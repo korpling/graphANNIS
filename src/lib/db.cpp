@@ -50,6 +50,7 @@ bool DB::loadNodeStorage(std::string dirPath)
   }
 
   in.close();
+  return true;
 }
 
 Node DB::getNodeByID(std::uint32_t id)
