@@ -3,6 +3,7 @@
 
 #include <string>
 #include <stx/btree_map>
+#include <stx/btree_multimap>
 #include <cstdint>
 #include <iostream>
 
@@ -19,10 +20,11 @@ public:
   bool loadNodeStorage(std::string file);
 
   Node getNodeByID(std::uint32_t id);
+  std::vector<NodeAnnotation> getNodeAnnotationsByID(std::uint32_t id);
 
 private:
   stx::btree_map<std::uint32_t, Node> nodes;
-  stx::btree_map<std::uint32_t, NodeAnnotation> nodeAnnotations;
+  stx::btree_multimap<std::uint32_t, NodeAnnotation> nodeAnnotations;
 
   std::vector<std::string> nextCSV(std::istream &in);
 };

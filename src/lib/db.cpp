@@ -36,6 +36,7 @@ bool DB::loadNodeStorage(std::string dirPath)
 
   std::ifstream in;
   in.open(nodeTabPath, std::ifstream::in);
+  if(!in.good()) return false;
 
   std::vector<std::string> line;
   while((line = nextCSV(in)).size() > 0)
@@ -50,6 +51,28 @@ bool DB::loadNodeStorage(std::string dirPath)
   }
 
   in.close();
+
+  std::string nodeAnnoTabPath = dirPath + "/node_annotation.tab";
+  std::cout << "loading " << nodeAnnoTabPath << std::endl;
+
+  in.open(nodeAnnoTabPath, std::ifstream::in);
+  if(!in.good()) return false;
+
+  while((line = nextCSV(in)).size() > 0)
+  {
+    std::uint32_t nodeNr;
+    std::stringstream nodeNrStream(line[0]);
+    nodeNrStream >> nodeNr;
+    NodeAnnotation anno;
+    anno.nodeId = nodeNr;
+    anno.ns = line[1];
+    anno.name = line[2];
+    anno.val = line[3];
+    nodeAnnotations.insert2(nodeNr, anno);
+  }
+
+  in.close();
+
   return true;
 }
 
@@ -61,5 +84,22 @@ Node DB::getNodeByID(std::uint32_t id)
     // TODO: don't use exception here
     throw("Unknown node");
   }
-  return itNode.data();
+  return itNode->second;
+}
+
+std::vector<NodeAnnotation> DB::getNodeAnnotationsByID(std::uint32_t id)
+{
+  typedef stx::btree_multimap<std::uint32_t, NodeAnnotation>::const_iterator AnnoIt;
+
+  std::vector<NodeAnnotation> result;
+
+  std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
+
+  for(AnnoIt itAnnos = itRange.first;
+      itAnnos != itRange.second; itAnnos++)
+  {
+    result.push_back(itAnnos->second);
+  }
+
+  return result;
 }

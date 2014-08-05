@@ -36,6 +36,19 @@ TEST_F(LoadTest, ReadNodeTab) {
   bool result = db.loadNodeStorage("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
   EXPECT_EQ(true, result);
   EXPECT_STREQ("tok_13", db.getNodeByID(0).name.c_str());
+
+  std::vector<annis::NodeAnnotation> annos = db.getNodeAnnotationsByID(0);
+  ASSERT_EQ(3, annos.size());
+  EXPECT_STREQ("tiger", annos[2].ns.c_str());
+  EXPECT_STREQ("lemma", annos[2].name.c_str());
+  EXPECT_STREQ("so", annos[2].val.c_str());
+  EXPECT_STREQ("tiger", annos[1].ns.c_str());
+  EXPECT_STREQ("morph", annos[1].name.c_str());
+  EXPECT_STREQ("--", annos[1].val.c_str());
+  EXPECT_STREQ("tiger", annos[0].ns.c_str());
+  EXPECT_STREQ("pos", annos[0].name.c_str());
+  EXPECT_STREQ("ADV", annos[0].val.c_str());
+
 }
 
 
