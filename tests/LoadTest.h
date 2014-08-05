@@ -2,7 +2,7 @@
 #define LOADTEST_H
 
 #include "gtest/gtest.h"
-#include "dummyclass.h"
+#include "db.h"
 
 class LoadTest : public ::testing::Test {
  protected:
@@ -32,8 +32,11 @@ class LoadTest : public ::testing::Test {
 };
 
 TEST_F(LoadTest, DummyReturnsTrue) {
-  DummyClass d;
-  EXPECT_EQ(true, d.anyFunction());
+  annis::DB db;
+  bool result = db.loadNodeStorage("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
+  EXPECT_EQ(true, result);
+  std::string name = db.getNodeByID(0).name;
+  EXPECT_EQ("tok_13", name);
 }
 
 

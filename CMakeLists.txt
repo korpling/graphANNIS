@@ -11,6 +11,7 @@ endif()
 
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
 add_executable("a4_runner" ${SRC_LIST_RUNNER})
+target_link_libraries("a4_runner" ${PROJECT_NAME})
 
 ################################
 # Testing with Google Test
