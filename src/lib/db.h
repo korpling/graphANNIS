@@ -17,7 +17,7 @@ class DB
 public:
   DB();
 
-  bool loadNodeStorage(std::string file);
+  bool loadRelANNIS(std::string file);
 
   Node getNodeByID(std::uint32_t id);
   std::vector<NodeAnnotation> getNodeAnnotationsByID(std::uint32_t id);

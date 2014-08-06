@@ -31,9 +31,9 @@ class LoadTest : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-TEST_F(LoadTest, ReadNodeTab) {
+TEST_F(LoadTest, LoadRelANNIS) {
   annis::DB db;
-  bool result = db.loadNodeStorage("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
+  bool result = db.loadRelANNIS("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
   EXPECT_EQ(true, result);
   EXPECT_STREQ("tok_13", db.getNodeByID(0).name.c_str());
 

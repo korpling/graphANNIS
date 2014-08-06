@@ -12,7 +12,7 @@ int main(int argc, char** argv)
   {
     annis::DB db;
     std::string path(argv[1]);
-    db.loadNodeStorage(path);
+    db.loadRelANNIS(path);
   }
   else
   {

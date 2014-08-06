@@ -26,7 +26,7 @@ std::vector<std::string> DB::nextCSV(std::istream& in)
   return result;
 }
 
-bool DB::loadNodeStorage(std::string dirPath)
+bool DB::loadRelANNIS(std::string dirPath)
 {
   nodes.clear();
   nodeAnnotations.clear();
