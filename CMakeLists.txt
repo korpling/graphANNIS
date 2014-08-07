@@ -1,7 +1,13 @@
 project(ANNIS4)
 cmake_minimum_required(VERSION 2.8)
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-include_directories("include")
+find_package(ICU 4.4 REQUIRED)
+
+include_directories(
+  "include"
+  ${ICU_INCLUDE_DIRS}
+)
 file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" )
 file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" )
 
