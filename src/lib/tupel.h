@@ -19,6 +19,13 @@ namespace annis
     std::uint32_t id;
     std::string name;
   };
+
+  struct Edge
+  {
+    std::uint32_t source;
+    std::uint32_t target;
+    std::uint32_t component;
+  };
 }
 
 #endif // TUPEL_H

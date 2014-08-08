@@ -60,9 +60,7 @@ bool DB::loadRelANNIS(std::string dirPath)
 
   while((line = nextCSV(in)).size() > 0)
   {
-    std::uint32_t nodeNr;
-    std::stringstream nodeNrStream(line[0]);
-    nodeNrStream >> nodeNr;
+    u_int32_t nodeNr = uint32FromString(line[0]);
     NodeAnnotation anno;
     anno.nodeId = nodeNr;
     anno.ns = line[1];
@@ -73,7 +71,59 @@ bool DB::loadRelANNIS(std::string dirPath)
 
   in.close();
 
-  return true;
+  bool result = loadRelANNISRank(dirPath);
+
+
+  return result;
+}
+
+bool DB::loadRelANNISRank(const std::string &dirPath)
+{
+  typedef stx::btree_map<std::uint32_t, std::uint32_t>::const_iterator UintMapIt;
+
+  std::ifstream in;
+  std::string rankTabPath = dirPath + "/rank.tab";
+  std::cout << "loading " << rankTabPath << std::endl;
+
+  in.open(rankTabPath, std::ifstream::in);
+  if(!in.good()) return false;
+
+  std::vector<std::string> line;
+
+  // first run: collect all pre-order values for a node
+  stx::btree_map<std::uint32_t, std::uint32_t> pre2NodeID;
+  while((line = nextCSV(in)).size() > 0)
+  {
+    pre2NodeID.insert2(uint32FromString(line[1]),uint32FromString(line[2]));
+  }
+
+  int test = pre2NodeID.size();
+
+  in.close();
+
+  in.open(rankTabPath, std::ifstream::in);
+  if(!in.good()) return false;
+
+  // second run: get the actual edges
+  while((line = nextCSV(in)).size() > 0)
+  {
+    std::uint32_t parent = uint32FromString(line[4]);
+    UintMapIt it = pre2NodeID.find(parent);
+    if(it != pre2NodeID.end())
+    {
+      Edge e;
+      e.target = uint32FromString(line[2]);
+      e.source = it->second;
+      e.component = uint32FromString(line[3]);
+
+      // since we ignore the pre-order value
+      // we might add an edge several times if it has several
+      // rank entries
+      edges.insert(e);
+    }
+  }
+
+  in.close();
 }
 
 Node DB::getNodeByID(std::uint32_t id)
