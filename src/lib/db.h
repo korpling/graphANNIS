@@ -23,14 +23,15 @@ public:
   bool loadRelANNIS(std::string file);
 
   Node getNodeByID(std::uint32_t id);
-  std::vector<NodeAnnotation> getNodeAnnotationsByID(std::uint32_t id);
+  std::vector<Annotation> getNodeAnnotationsByID(std::uint32_t id);
 
   std::vector<Edge> getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t targetID);
 
 private:
   stx::btree_map<std::uint32_t, Node> nodes;
-  stx::btree_multimap<std::uint32_t, NodeAnnotation> nodeAnnotations;
+  stx::btree_multimap<std::uint32_t, Annotation> nodeAnnotations;
   stx::btree_set<Edge, compEdges> edges;
+  stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
 
   std::vector<std::string> nextCSV(std::istream &in);
 

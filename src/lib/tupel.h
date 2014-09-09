@@ -6,9 +6,8 @@
 
 namespace annis
 {
-  struct NodeAnnotation
+  struct Annotation
   {
-    std::uint32_t nodeId;
     std::string name;
     std::string ns;
     std::string val;

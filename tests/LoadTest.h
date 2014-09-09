@@ -37,7 +37,7 @@ TEST_F(LoadTest, LoadRelANNIS) {
   EXPECT_EQ(true, result);
   EXPECT_STREQ("tok_13", db.getNodeByID(0).name.c_str());
 
-  std::vector<annis::NodeAnnotation> annos = db.getNodeAnnotationsByID(0);
+  std::vector<annis::Annotation> annos = db.getNodeAnnotationsByID(0);
   ASSERT_EQ(3, annos.size());
   EXPECT_STREQ("tiger", annos[2].ns.c_str());
   EXPECT_STREQ("lemma", annos[2].name.c_str());

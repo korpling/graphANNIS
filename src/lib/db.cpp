@@ -62,8 +62,7 @@ bool DB::loadRelANNIS(std::string dirPath)
   while((line = nextCSV(in)).size() > 0)
   {
     u_int32_t nodeNr = uint32FromString(line[0]);
-    NodeAnnotation anno;
-    anno.nodeId = nodeNr;
+    Annotation anno;
     anno.ns = line[1];
     anno.name = line[2];
     anno.val = line[3];
@@ -166,11 +165,11 @@ std::vector<Edge> DB::getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t
   return result;
 }
 
-std::vector<NodeAnnotation> DB::getNodeAnnotationsByID(std::uint32_t id)
+std::vector<Annotation> DB::getNodeAnnotationsByID(std::uint32_t id)
 {
-  typedef stx::btree_multimap<std::uint32_t, NodeAnnotation>::const_iterator AnnoIt;
+  typedef stx::btree_multimap<std::uint32_t, Annotation>::const_iterator AnnoIt;
 
-  std::vector<NodeAnnotation> result;
+  std::vector<Annotation> result;
 
   std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
 
