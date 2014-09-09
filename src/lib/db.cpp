@@ -135,14 +135,13 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
   if(result)
   {
 
-    result = loadEdgeAnnotation(dirPath, pre2NodeID, pre2Edge);
+    result = loadEdgeAnnotation(dirPath, pre2Edge);
   }
 
   return result;
 }
 
 bool DB::loadEdgeAnnotation(const std::string &dirPath,
-                            const stx::btree_map<std::uint32_t, std::uint32_t>& pre2NodeID,
                             const stx::btree_map<std::uint32_t, Edge>& pre2Edge)
 {
   typedef stx::btree_map<std::uint32_t, Edge>::const_iterator UintMapIt;

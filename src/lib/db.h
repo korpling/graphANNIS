@@ -39,7 +39,6 @@ private:
 
   bool loadRelANNISRank(const std::string& dirPath);
   bool loadEdgeAnnotation(const std::string& dirPath,
-                          const stx::btree_map<std::uint32_t, std::uint32_t> &pre2NodeID,
                           const stx::btree_map<std::uint32_t, Edge> &pre2Edge);
 
   std::uint32_t uint32FromString(const std::string& str)
