@@ -49,6 +49,11 @@ TEST_F(LoadTest, LoadRelANNIS) {
   EXPECT_STREQ("pos", annos[0].name.c_str());
   EXPECT_STREQ("ADV", annos[0].val.c_str());
 
+  // get some edges
+  std::vector<annis::Edge> edges = db.getEdgesBetweenNodes(0, 10);
+  EXPECT_EQ(1, edges.size());
+  EXPECT_EQ(0, edges[0].component);
+
 }
 
 

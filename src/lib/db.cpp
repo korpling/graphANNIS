@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <limits>
 
 using namespace annis;
 
@@ -94,7 +95,7 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
   stx::btree_map<std::uint32_t, std::uint32_t> pre2NodeID;
   while((line = nextCSV(in)).size() > 0)
   {
-    pre2NodeID.insert2(uint32FromString(line[1]),uint32FromString(line[2]));
+    pre2NodeID.insert2(uint32FromString(line[0]),uint32FromString(line[2]));
   }
 
   int test = pre2NodeID.size();
@@ -112,8 +113,8 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
     if(it != pre2NodeID.end())
     {
       Edge e;
-      e.target = uint32FromString(line[2]);
-      e.source = it->second;
+      e.source = uint32FromString(line[2]);
+      e.target = it->second;
       e.component = uint32FromString(line[3]);
 
       // since we ignore the pre-order value
@@ -124,6 +125,8 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
   }
 
   in.close();
+
+  return true;
 }
 
 Node DB::getNodeByID(std::uint32_t id)
@@ -135,6 +138,32 @@ Node DB::getNodeByID(std::uint32_t id)
     throw("Unknown node");
   }
   return itNode->second;
+}
+
+std::vector<Edge> DB::getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t targetID)
+{
+  typedef stx::btree_set<Edge, compEdges>::const_iterator UintSetIt;
+  std::vector<Edge> result;
+  Edge keyLower;
+  Edge keyUpper;
+
+  keyLower.source = sourceID;
+  keyUpper.source = sourceID;
+  keyLower.target = targetID;
+  keyUpper.target = targetID;
+
+  keyLower.component = std::numeric_limits<std::uint32_t>::min();
+  keyUpper.component = std::numeric_limits<std::uint32_t>::max();
+
+  UintSetIt lowerBound = edges.lower_bound(keyLower);
+  UintSetIt upperBound = edges.upper_bound(keyUpper);
+
+  for(UintSetIt it=lowerBound; it != upperBound; it++)
+  {
+    result.push_back(*it);
+  }
+
+  return result;
 }
 
 std::vector<NodeAnnotation> DB::getNodeAnnotationsByID(std::uint32_t id)

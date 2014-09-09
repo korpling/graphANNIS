@@ -25,6 +25,8 @@ public:
   Node getNodeByID(std::uint32_t id);
   std::vector<NodeAnnotation> getNodeAnnotationsByID(std::uint32_t id);
 
+  std::vector<Edge> getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t targetID);
+
 private:
   stx::btree_map<std::uint32_t, Node> nodes;
   stx::btree_multimap<std::uint32_t, NodeAnnotation> nodeAnnotations;

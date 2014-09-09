@@ -40,7 +40,7 @@ struct compEdges
     }
 
     // they are equal
-    return true;
+    return false;
   }
 };
 
