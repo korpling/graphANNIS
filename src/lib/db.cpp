@@ -81,6 +81,8 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
 {
   typedef stx::btree_map<std::uint32_t, std::uint32_t>::const_iterator UintMapIt;
 
+  bool result = true;
+
   std::ifstream in;
   std::string rankTabPath = dirPath + "/rank.tab";
   std::cout << "loading " << rankTabPath << std::endl;
@@ -97,7 +99,6 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
     pre2NodeID.insert2(uint32FromString(line[0]),uint32FromString(line[2]));
   }
 
-  int test = pre2NodeID.size();
 
   in.close();
 
@@ -121,11 +122,15 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
       // rank entries
       edges.insert(e);
     }
+    else
+    {
+      result = false;
+    }
   }
 
   in.close();
 
-  return true;
+  return result;
 }
 
 Node DB::getNodeByID(std::uint32_t id)
