@@ -21,12 +21,16 @@ int main(int argc, char** argv)
   fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date] %m\n"));
   fac.registerAppender(new humble::logging::ConsoleAppender());
 
+  linenoiseHistoryLoad("annis4_history.txt");
+
   bool exit = false;
   while(!exit && (lineBuffer = linenoise("annis4> ")) != NULL)
   {
     std::string line(lineBuffer);
-    // split the line into it's components
+    linenoiseHistoryAdd(lineBuffer);
+    linenoiseHistorySave("annis4_history.txt");
 
+    // split the line into it's components
     vector<string> args;
     boost::split(args,line, boost::is_any_of(" "));
     std::string cmd = "";
