@@ -6,6 +6,7 @@
 #include <db.h>
 
 #include <humblelogging/api.h>
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -24,21 +25,36 @@ int main(int argc, char** argv)
   while(!exit && (lineBuffer = linenoise("annis4> ")) != NULL)
   {
     std::string line(lineBuffer);
-    // split the line into it's component
-    if (line == "import")
+    // split the line into it's components
+
+    vector<string> args;
+    boost::split(args,line, boost::is_any_of(" "));
+    std::string cmd = "";
+    if(args.size() > 0)
     {
-      std::cout << "Import relANNIS" << std::endl;
-      annis::DB db;
-      std::string path(argv[argc-1]);
-      db.loadRelANNIS(path);
+      cmd = args[0];
+      args.erase(args.begin());
     }
-    else if (line == "quit" || line == "exit")
+    if (cmd == "import")
+    {
+      if(args.size() > 0)
+      {
+        std::cout << "Import relANNIS from " << args[0] << std::endl;
+        annis::DB db;
+        db.loadRelANNIS(args[0]);
+      }
+      else
+      {
+        std::cout << "You have to give a path as argument" << std::endl;
+      }
+    }
+    else if (cmd == "quit" || cmd == "exit")
     {
       exit = true;
     }
     else
     {
-      std::cout << "Unknown command" << std::endl;
+      std::cout << "Unknown command \"" << cmd << "\"" << std::endl;
     }
     free(lineBuffer);
   }
