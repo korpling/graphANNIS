@@ -53,6 +53,26 @@ TEST_F(LoadTest, LoadRelANNIS) {
   std::vector<annis::Edge> edges = db.getEdgesBetweenNodes(0, 10);
   EXPECT_EQ(1, edges.size());
   EXPECT_EQ(0, edges[0].component);
+  EXPECT_EQ(0, edges[0].source);
+  EXPECT_EQ(10, edges[0].target);
+
+  edges = db.getEdgesBetweenNodes(126, 371);
+  EXPECT_EQ(2, edges.size());
+  EXPECT_EQ(156, edges[0].component);
+  EXPECT_EQ(185, edges[1].component);
+
+  std::vector<annis::Annotation> edgeAnnos = db.getEdgeAnnotations(edges[0]);
+  EXPECT_EQ(1, edgeAnnos.size());
+  EXPECT_STREQ("tiger", edgeAnnos[0].ns.c_str());
+  EXPECT_STREQ("func", edgeAnnos[0].name.c_str());
+  EXPECT_STREQ("OA", edgeAnnos[0].val.c_str());
+
+  edgeAnnos = db.getEdgeAnnotations(edges[1]);
+  EXPECT_EQ(1, edgeAnnos.size());
+  EXPECT_STREQ("tiger", edgeAnnos[0].ns.c_str());
+  EXPECT_STREQ("func", edgeAnnos[0].name.c_str());
+  EXPECT_STREQ("OA", edgeAnnos[0].val.c_str());
+
 
 }
 

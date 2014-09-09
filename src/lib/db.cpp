@@ -94,11 +94,11 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
 
   // first run: collect all pre-order values for a node
   stx::btree_map<std::uint32_t, std::uint32_t> pre2NodeID;
+  stx::btree_map<std::uint32_t, Edge> pre2Edge;
   while((line = nextCSV(in)).size() > 0)
   {
     pre2NodeID.insert2(uint32FromString(line[0]),uint32FromString(line[2]));
   }
-
 
   in.close();
 
@@ -121,6 +121,55 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
       // we might add an edge several times if it has several
       // rank entries
       edges.insert(e);
+
+      pre2Edge.insert2(uint32FromString(line[0]), e);
+    }
+    else
+    {
+      result = false;
+    }
+  }
+
+  in.close();
+
+  if(result)
+  {
+
+    result = loadEdgeAnnotation(dirPath, pre2NodeID, pre2Edge);
+  }
+
+  return result;
+}
+
+bool DB::loadEdgeAnnotation(const std::string &dirPath,
+                            const stx::btree_map<std::uint32_t, std::uint32_t>& pre2NodeID,
+                            const stx::btree_map<std::uint32_t, Edge>& pre2Edge)
+{
+  typedef stx::btree_map<std::uint32_t, Edge>::const_iterator UintMapIt;
+
+  bool result = true;
+
+  std::ifstream in;
+  std::string edgeAnnoTabPath = dirPath + "/edge_annotation.tab";
+  std::cout << "loading " << edgeAnnoTabPath << std::endl;
+
+  in.open(edgeAnnoTabPath, std::ifstream::in);
+  if(!in.good()) return false;
+
+  std::vector<std::string> line;
+
+  while((line = nextCSV(in)).size() > 0)
+  {
+    std::uint32_t pre = uint32FromString(line[0]);
+    UintMapIt it = pre2Edge.find(pre);
+    if(it != pre2Edge.end())
+    {
+      const Edge& e = it->second;
+      Annotation anno;
+      anno.ns = line[1];
+      anno.name = line[2];
+      anno.val = line[3];
+      edgeAnnotations.insert2(e, anno);
     }
     else
     {
@@ -142,6 +191,33 @@ Node DB::getNodeByID(std::uint32_t id)
     throw("Unknown node");
   }
   return itNode->second;
+}
+
+std::vector<Edge> DB::getInEdges(std::uint32_t nodeID)
+{
+  typedef stx::btree_set<Edge, compEdges>::const_iterator UintSetIt;
+  std::vector<Edge> result;
+  Edge keyLower;
+  Edge keyUpper;
+
+  keyLower.target = nodeID;
+  keyUpper.target = nodeID;
+
+  keyLower.source = std::numeric_limits<std::uint32_t>::min();
+  keyLower.component = std::numeric_limits<std::uint32_t>::min();
+
+  keyUpper.source = std::numeric_limits<std::uint32_t>::max();
+  keyUpper.component = std::numeric_limits<std::uint32_t>::max();
+
+  UintSetIt lowerBound = edges.lower_bound(keyLower);
+  UintSetIt upperBound = edges.upper_bound(keyUpper);
+
+  for(UintSetIt it=lowerBound; it != upperBound; it++)
+  {
+    result.push_back(*it);
+  }
+
+  return result;
 }
 
 std::vector<Edge> DB::getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t targetID)
@@ -170,7 +246,7 @@ std::vector<Edge> DB::getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t
   return result;
 }
 
-std::vector<Annotation> DB::getNodeAnnotationsByID(std::uint32_t id)
+std::vector<Annotation> DB::getNodeAnnotationsByID(const std::uint32_t& id)
 {
   typedef stx::btree_multimap<std::uint32_t, Annotation>::const_iterator AnnoIt;
 
@@ -185,4 +261,22 @@ std::vector<Annotation> DB::getNodeAnnotationsByID(std::uint32_t id)
   }
 
   return result;
+}
+
+std::vector<Annotation> DB::getEdgeAnnotations(const Edge &edge)
+{
+  typedef stx::btree_multimap<Edge, Annotation, compEdges>::const_iterator AnnoIt;
+
+  std::vector<Annotation> result;
+
+  std::pair<AnnoIt,AnnoIt> itRange = edgeAnnotations.equal_range(edge);
+
+  for(AnnoIt itAnnos = itRange.first;
+      itAnnos != itRange.second; itAnnos++)
+  {
+    result.push_back(itAnnos->second);
+  }
+
+  return result;
+
 }

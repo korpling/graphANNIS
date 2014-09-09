@@ -23,9 +23,11 @@ public:
   bool loadRelANNIS(std::string file);
 
   Node getNodeByID(std::uint32_t id);
-  std::vector<Annotation> getNodeAnnotationsByID(std::uint32_t id);
+  std::vector<Annotation> getNodeAnnotationsByID(const std::uint32_t &id);
+  std::vector<Annotation> getEdgeAnnotations(const Edge& edge);
 
   std::vector<Edge> getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t targetID);
+  std::vector<Edge> getInEdges(std::uint32_t nodeID);
 
 private:
   stx::btree_map<std::uint32_t, Node> nodes;
@@ -36,6 +38,9 @@ private:
   std::vector<std::string> nextCSV(std::istream &in);
 
   bool loadRelANNISRank(const std::string& dirPath);
+  bool loadEdgeAnnotation(const std::string& dirPath,
+                          const stx::btree_map<std::uint32_t, std::uint32_t> &pre2NodeID,
+                          const stx::btree_map<std::uint32_t, Edge> &pre2Edge);
 
   std::uint32_t uint32FromString(const std::string& str)
   {
