@@ -5,6 +5,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/ext/h
 add_subdirectory(ext/humble-logging-library-2.0.0)
 
 find_package(ICU 4.4 REQUIRED)
+find_package(Boost REQUIRED)
 
 message(STATUS "HumbleLogging_INCLUDE_DIRS=${HumbleLogging_INCLUDE_DIRS}")
 message(STATUS "HumbleLogging_LIBRARY=${HumbleLogging_LIBRARY}")
@@ -23,6 +24,9 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
+target_link_libraries(${PROJECT_NAME} humblelogging)
+
+
 add_executable("a4_runner" ${SRC_LIST_RUNNER})
 target_link_libraries("a4_runner" humblelogging ${PROJECT_NAME})
 

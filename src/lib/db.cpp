@@ -5,6 +5,11 @@
 #include <sstream>
 #include <limits>
 
+#include <boost/format.hpp>
+#include <humblelogging/api.h>
+
+HUMBLE_LOGGER(logger, "annis4");
+
 using namespace annis;
 
 DB::DB()
@@ -33,7 +38,7 @@ bool DB::loadRelANNIS(std::string dirPath)
   nodeAnnotations.clear();
 
   std::string nodeTabPath = dirPath + "/node.tab";
-  std::cout << "loading " << nodeTabPath << std::endl;
+  HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
 
   std::ifstream in;
   in.open(nodeTabPath, std::ifstream::in);
@@ -54,7 +59,7 @@ bool DB::loadRelANNIS(std::string dirPath)
   in.close();
 
   std::string nodeAnnoTabPath = dirPath + "/node_annotation.tab";
-  std::cout << "loading " << nodeAnnoTabPath << std::endl;
+  HL_INFO(logger, (boost::format("loading %1%") % nodeAnnoTabPath).str());
 
   in.open(nodeAnnoTabPath, std::ifstream::in);
   if(!in.good()) return false;
@@ -85,7 +90,7 @@ bool DB::loadRelANNISRank(const std::string &dirPath)
 
   std::ifstream in;
   std::string rankTabPath = dirPath + "/rank.tab";
-  std::cout << "loading " << rankTabPath << std::endl;
+  HL_INFO(logger, (boost::format("loading %1%") % rankTabPath).str());
 
   in.open(rankTabPath, std::ifstream::in);
   if(!in.good()) return false;
@@ -150,7 +155,7 @@ bool DB::loadEdgeAnnotation(const std::string &dirPath,
 
   std::ifstream in;
   std::string edgeAnnoTabPath = dirPath + "/edge_annotation.tab";
-  std::cout << "loading " << edgeAnnoTabPath << std::endl;
+  HL_INFO(logger, (boost::format("loading %1%") % edgeAnnoTabPath).str());
 
   in.open(edgeAnnoTabPath, std::ifstream::in);
   if(!in.good()) return false;
