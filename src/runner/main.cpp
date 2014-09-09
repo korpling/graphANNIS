@@ -12,6 +12,24 @@ using namespace std;
 
 HUMBLE_LOGGER(logger, "default");
 
+void completion(const char *bufRaw, linenoiseCompletions *lc)
+{
+  std::string buf(bufRaw);
+  if(boost::starts_with(buf, "q"))
+  {
+    linenoiseAddCompletion(lc,"quit");
+  }
+  else if(boost::starts_with(buf, "e"))
+  {
+    linenoiseAddCompletion(lc,"exit");
+  }
+  else if(boost::starts_with(buf, "i"))
+  {
+    linenoiseAddCompletion(lc,"import");
+  }
+}
+
+
 int main(int argc, char** argv)
 {
   char* lineBuffer = NULL;
@@ -22,6 +40,7 @@ int main(int argc, char** argv)
   fac.registerAppender(new humble::logging::ConsoleAppender());
 
   linenoiseHistoryLoad("annis4_history.txt");
+  linenoiseSetCompletionCallback(completion);
 
   bool exit = false;
   while(!exit && (lineBuffer = linenoise("annis4> ")) != NULL)
