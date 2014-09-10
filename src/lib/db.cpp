@@ -163,6 +163,12 @@ bool DB::loadRelANNIS(std::string dirPath)
     Node n;
     n.id = nodeNr;
     nodes[nodeNr] = n;
+
+    Annotation tokAnno;
+    tokAnno.ns = addString(annis_ns);
+    tokAnno.name = addString("tok");
+    tokAnno.val = addString(line[9]);
+    nodeAnnotations.insert2(nodeNr, tokAnno);
   }
 
   in.close();

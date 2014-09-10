@@ -35,16 +35,27 @@ class LoadTest : public ::testing::Test {
 TEST_F(LoadTest, NodeAnnotations) {
 
   std::vector<annis::Annotation> annos = db.getNodeAnnotationsByID(0);
-  ASSERT_EQ(3, annos.size());
+  ASSERT_EQ(4, annos.size());
+
+  EXPECT_STREQ(annis::annis_ns.c_str(), db.string(annos[3].ns).c_str());
+  EXPECT_STREQ("tok", db.string(annos[3].name).c_str());
+  EXPECT_STREQ("so", db.string(annos[3].val).c_str());
+
   EXPECT_STREQ("tiger", db.string(annos[2].ns).c_str());
   EXPECT_STREQ("lemma", db.string(annos[2].name).c_str());
   EXPECT_STREQ("so", db.string(annos[2].val).c_str());
+
   EXPECT_STREQ("tiger", db.string(annos[1].ns).c_str());
   EXPECT_STREQ("morph", db.string(annos[1].name).c_str());
   EXPECT_STREQ("--", db.string(annos[1].val).c_str());
+
+
   EXPECT_STREQ("tiger", db.string(annos[0].ns).c_str());
   EXPECT_STREQ("pos", db.string(annos[0].name).c_str());
   EXPECT_STREQ("ADV", db.string(annos[0].val).c_str());
+
+
+
 }
 
 
