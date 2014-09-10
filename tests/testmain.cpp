@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "LoadTest.h"
+#include "SearchTestPcc2.h"
 
 
 int main(int argc, char **argv) {

@@ -14,7 +14,6 @@
 
 namespace annis
 {
-
 class DB
 {
 public:
@@ -53,8 +52,8 @@ private:
   stx::btree_set<Edge, compEdges> edges;
   stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
 
-  stx::btree<std::uint32_t, std::string> stringStorageByID;
-  stx::btree<std::string, std::uint32_t> stringStorageByValue;
+  stx::btree_map<std::uint32_t, std::string> stringStorageByID;
+  stx::btree_map<std::string, std::uint32_t> stringStorageByValue;
 
   std::vector<std::string> nextCSV(std::istream &in);
   void writeCSVLine(std::ostream &out, std::vector<std::string> data);
