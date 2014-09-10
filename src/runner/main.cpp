@@ -50,6 +50,10 @@ int main(int argc, char** argv)
   linenoiseHistoryLoad("annis4_history.txt");
   linenoiseSetCompletionCallback(completion);
 
+  // our main database
+  annis::DB db;
+
+
   bool exit = false;
   while(!exit && (lineBuffer = linenoise("annis4> ")) != NULL)
   {
@@ -71,13 +75,40 @@ int main(int argc, char** argv)
       if(args.size() > 0)
       {
         std::cout << "Import relANNIS from " << args[0] << std::endl;
-        annis::DB db;
         db.loadRelANNIS(args[0]);
       }
       else
       {
         std::cout << "You have to give a path as argument" << std::endl;
       }
+    }
+    else if(cmd == "save")
+    {
+      if(args.size() > 0)
+      {
+        std::cout << "Save to " << args[0] << std::endl;
+        db.save(args[0]);
+      }
+      else
+      {
+        std::cout << "You have to give a path as argument" << std::endl;
+      }
+    }
+    else if(cmd == "load")
+    {
+      if(args.size() > 0)
+      {
+        std::cout << "Loading from " << args[0] << std::endl;
+        db.load(args[0]);
+      }
+      else
+      {
+        std::cout << "You have to give a path as argument" << std::endl;
+      }
+    }
+    else if(cmd == "info")
+    {
+      std::cout << db.info() << std::endl;
     }
     else if (cmd == "quit" || cmd == "exit")
     {

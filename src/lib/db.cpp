@@ -5,6 +5,8 @@
 #include <sstream>
 #include <limits>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <humblelogging/api.h>
 
@@ -27,9 +29,32 @@ std::vector<std::string> DB::nextCSV(std::istream& in)
 
   while(std::getline(lineStream, cell, '\t'))
   {
+    boost::replace_all(cell, "\\\\", "\\");
+    boost::replace_all(cell, "\\t", "\t");
+    boost::replace_all(cell, "\\n", "\n");
     result.push_back(cell);
   }
   return result;
+}
+
+void DB::writeCSVLine(std::ostream &out, std::vector<std::string> data)
+{
+
+  std::vector<std::string>::const_iterator it = data.begin();
+  while(it != data.end())
+  {
+    std::string s = *it;
+    boost::replace_all(s, "\t", "\\t");
+    boost::replace_all(s, "\n", "\\n");
+    boost::replace_all(s, "\\", "\\\\");
+
+    out << s;
+    it++;
+    if(it != data.end())
+    {
+      out << "\t";
+    }
+  }
 }
 
 
@@ -40,21 +65,78 @@ bool DB::load(std::string dirPath)
 
   std::ifstream in;
   in.open(dirPath + "/nodes.btree");
-//  nodes.restore(in);
+  nodes.restore(in);
   in.close();
 
   in.open(dirPath + "/edges.btree");
- // edges.restore(in);
+  edges.restore(in);
   in.close();
 
   in.open(dirPath + "/nodeAnnotations.btree");
- // nodeAnnotations.restore(in);
+  nodeAnnotations.restore(in);
   in.close();
 
   in.open(dirPath + "/edgeAnnotations.btree");
- // edgeAnnotations.restore(in);
+  edgeAnnotations.restore(in);
   in.close();
 
+  // load the strings from CSV
+  in.open(dirPath + "/strings.list");
+  std::vector<std::string> line;
+  while((line = nextCSV(in)).size() > 0)
+  {
+    std::uint32_t id = uint32FromString(line[0]);
+    stringStorageByID.insert2(id, line[1]);
+    stringStorageByValue.insert2(line[1], id);
+  }
+  in.close();
+
+  // TODO: return false on failure
+  return true;
+}
+
+bool DB::save(std::string dirPath)
+{
+  typedef stx::btree<std::uint32_t, std::string>::const_iterator StringStorageIt;
+
+  boost::filesystem::create_directories(dirPath);
+
+  std::ofstream out;
+  out.open(dirPath + "/nodes.btree");
+  nodes.dump(out);
+  out.close();
+
+  out.open(dirPath + "/edges.btree");
+  edges.dump(out);
+  out.close();
+
+  out.open(dirPath + "/nodeAnnotations.btree");
+  nodeAnnotations.dump(out);
+  out.close();
+
+  out.open(dirPath + "/edgeAnnotations.btree");
+  edgeAnnotations.dump(out);
+  out.close();
+
+  // load the strings from CSV
+  out.open(dirPath + "/strings.list");
+  StringStorageIt it = stringStorageByID.begin();
+  while(it != stringStorageByID.end())
+  {
+    std::vector<std::string> line;
+    line.push_back(stringFromUInt32(it->first));
+    line.push_back(it->second);
+    writeCSVLine(out, line);
+    it++;
+    if(it != stringStorageByID.end())
+    {
+      out << "\n";
+    }
+  }
+  out.close();
+
+  // TODO: return false on failure
+  return true;
 }
 
 bool DB::loadRelANNIS(std::string dirPath)
@@ -67,8 +149,11 @@ bool DB::loadRelANNIS(std::string dirPath)
 
   std::ifstream in;
   in.open(nodeTabPath, std::ifstream::in);
-  if(!in.good()) return false;
-
+  if(!in.good())
+  {
+    HL_ERROR(logger, "Can't find node.tab");
+    return false;
+  }
   std::vector<std::string> line;
   while((line = nextCSV(in)).size() > 0)
   {
@@ -77,7 +162,6 @@ bool DB::loadRelANNIS(std::string dirPath)
     nodeNrStream >> nodeNr;
     Node n;
     n.id = nodeNr;
-    //n.name = line[4];
     nodes[nodeNr] = n;
   }
 
@@ -280,6 +364,17 @@ std::vector<Edge> DB::getInEdges(std::uint32_t nodeID)
   }
 
   return result;
+}
+
+std::string DB::info()
+{
+  std::stringstream ss;
+  ss <<  "Number of nodes: " << nodes.size() << std::endl
+      << "Number of node annotations: " << nodeAnnotations.size() << std::endl
+      << "Number of edges: " << edges.size() << std::endl
+      << "Number of edge annotations: " << edgeAnnotations.size() << std::endl
+      << "Number of strings in storage: " << stringStorageByID.size();
+  return ss.str();
 }
 
 std::vector<Edge> DB::getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t targetID)

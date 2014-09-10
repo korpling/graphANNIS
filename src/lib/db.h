@@ -22,6 +22,7 @@ public:
 
   bool loadRelANNIS(std::string dirPath);
   bool load(std::string dirPath);
+  bool save(std::string dirPath);
 
   Node getNodeByID(std::uint32_t id);
   std::vector<Annotation> getNodeAnnotationsByID(const std::uint32_t &id);
@@ -29,6 +30,8 @@ public:
 
   std::vector<Edge> getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t targetID);
   std::vector<Edge> getInEdges(std::uint32_t nodeID);
+
+  std::string info();
 
   const std::string& string(std::uint32_t id)
   {
@@ -54,6 +57,7 @@ private:
   stx::btree<std::string, std::uint32_t> stringStorageByValue;
 
   std::vector<std::string> nextCSV(std::istream &in);
+  void writeCSVLine(std::ostream &out, std::vector<std::string> data);
 
   bool loadRelANNISRank(const std::string& dirPath);
   bool loadEdgeAnnotation(const std::string& dirPath,
@@ -67,6 +71,13 @@ private:
     std::stringstream stream(str);
     stream >> result;
     return result;
+  }
+
+  std::string stringFromUInt32(const std::uint32_t& val)
+  {
+    std::stringstream stream("");
+    stream << val;
+    return stream.str();
   }
 
   void clear();
