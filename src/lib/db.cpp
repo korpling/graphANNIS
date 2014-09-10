@@ -32,10 +32,35 @@ std::vector<std::string> DB::nextCSV(std::istream& in)
   return result;
 }
 
+
+
+bool DB::load(std::string dirPath)
+{
+  clear();
+
+  std::ifstream in;
+  in.open(dirPath + "/nodes.btree");
+//  nodes.restore(in);
+  in.close();
+
+  in.open(dirPath + "/edges.btree");
+ // edges.restore(in);
+  in.close();
+
+  in.open(dirPath + "/nodeAnnotations.btree");
+ // nodeAnnotations.restore(in);
+  in.close();
+
+  in.open(dirPath + "/edgeAnnotations.btree");
+ // edgeAnnotations.restore(in);
+  in.close();
+
+}
+
 bool DB::loadRelANNIS(std::string dirPath)
 {
-  nodes.clear();
-  nodeAnnotations.clear();
+  clear();
+
 
   std::string nodeTabPath = dirPath + "/node.tab";
   HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
@@ -52,7 +77,7 @@ bool DB::loadRelANNIS(std::string dirPath)
     nodeNrStream >> nodeNr;
     Node n;
     n.id = nodeNr;
-    n.name = line[4];
+    //n.name = line[4];
     nodes[nodeNr] = n;
   }
 
@@ -68,9 +93,9 @@ bool DB::loadRelANNIS(std::string dirPath)
   {
     u_int32_t nodeNr = uint32FromString(line[0]);
     Annotation anno;
-    anno.ns = line[1];
-    anno.name = line[2];
-    anno.val = line[3];
+    anno.ns = addString(line[1]);
+    anno.name = addString(line[2]);
+    anno.val = addString(line[3]);
     nodeAnnotations.insert2(nodeNr, anno);
   }
 
@@ -170,9 +195,9 @@ bool DB::loadEdgeAnnotation(const std::string &dirPath,
     {
       const Edge& e = it->second;
       Annotation anno;
-      anno.ns = line[1];
-      anno.name = line[2];
-      anno.val = line[3];
+      anno.ns = addString(line[1]);
+      anno.name = addString(line[2]);
+      anno.val = addString(line[3]);
       edgeAnnotations.insert2(e, anno);
     }
     else
@@ -184,6 +209,39 @@ bool DB::loadEdgeAnnotation(const std::string &dirPath,
   in.close();
 
   return result;
+}
+
+std::uint32_t DB::addString(const std::string &str)
+{
+  typedef stx::btree_map<std::string, std::uint32_t>::const_iterator ItType;
+  ItType it = stringStorageByValue.find(str);
+  if(it == stringStorageByValue.end())
+  {
+    // non-existing
+    std::uint32_t id = 0;
+    if(stringStorageByID.size() > 0)
+    {
+      id = ((stringStorageByID.rbegin())->first)+1;
+    }
+    stringStorageByID.insert2(id, str);
+    stringStorageByValue.insert2(str, id);
+    return id;
+  }
+  else
+  {
+    // already existing, return the original ID
+    return it->second;
+  }
+}
+
+void DB::clear()
+{
+  nodes.clear();
+  edges.clear();
+  nodeAnnotations.clear();
+  edgeAnnotations.clear();
+  stringStorageByID.clear();
+  stringStorageByValue.clear();
 }
 
 Node DB::getNodeByID(std::uint32_t id)

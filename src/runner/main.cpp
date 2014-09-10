@@ -27,6 +27,14 @@ void completion(const char *bufRaw, linenoiseCompletions *lc)
   {
     linenoiseAddCompletion(lc,"import");
   }
+  else if(boost::starts_with(buf, "s"))
+  {
+    linenoiseAddCompletion(lc, "save");
+  }
+  else if(boost::starts_with(buf, "l"))
+  {
+    linenoiseAddCompletion(lc, "load");
+  }
 }
 
 

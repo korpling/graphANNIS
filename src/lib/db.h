@@ -20,7 +20,8 @@ class DB
 public:
   DB();
 
-  bool loadRelANNIS(std::string file);
+  bool loadRelANNIS(std::string dirPath);
+  bool load(std::string dirPath);
 
   Node getNodeByID(std::uint32_t id);
   std::vector<Annotation> getNodeAnnotationsByID(const std::uint32_t &id);
@@ -29,17 +30,36 @@ public:
   std::vector<Edge> getEdgesBetweenNodes(std::uint32_t sourceID, std::uint32_t targetID);
   std::vector<Edge> getInEdges(std::uint32_t nodeID);
 
+  const std::string& string(std::uint32_t id)
+  {
+    typedef stx::btree_map<std::uint32_t, std::string>::const_iterator ItType;
+    ItType it = stringStorageByID.find(id);
+    if(it != stringStorageByID.end())
+    {
+      return it->second;
+    }
+    else
+    {
+      throw("Unknown string ID");
+    }
+  }
+
 private:
   stx::btree_map<std::uint32_t, Node> nodes;
   stx::btree_multimap<std::uint32_t, Annotation> nodeAnnotations;
   stx::btree_set<Edge, compEdges> edges;
   stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
 
+  stx::btree<std::uint32_t, std::string> stringStorageByID;
+  stx::btree<std::string, std::uint32_t> stringStorageByValue;
+
   std::vector<std::string> nextCSV(std::istream &in);
 
   bool loadRelANNISRank(const std::string& dirPath);
   bool loadEdgeAnnotation(const std::string& dirPath,
                           const stx::btree_map<std::uint32_t, Edge> &pre2Edge);
+
+  std::uint32_t addString(const std::string& str);
 
   std::uint32_t uint32FromString(const std::string& str)
   {
@@ -48,6 +68,8 @@ private:
     stream >> result;
     return result;
   }
+
+  void clear();
 };
 
 } // end namespace annis

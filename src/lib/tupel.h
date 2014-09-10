@@ -6,17 +6,18 @@
 
 namespace annis
 {
+  const std::string annis_ns = "annis4_internal";
+
   struct Annotation
   {
-    std::string name;
-    std::string ns;
-    std::string val;
+    std::uint32_t name;
+    std::uint32_t ns;
+    std::uint32_t val;
   };
 
   struct Node
   {
     std::uint32_t id;
-    std::string name;
   };
 
   struct Edge
