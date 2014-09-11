@@ -1,7 +1,7 @@
 #ifndef ANNOTATIONITERATOR_H
 #define ANNOTATIONITERATOR_H
 
-#include "tupel.h"
+#include "types.h"
 
 namespace annis
 {

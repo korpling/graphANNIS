@@ -41,8 +41,8 @@ TEST_F(SearchTestPcc2, CatSearch) {
   while(search.hasNext())
   {
     const Annotation& anno = search.next();
-    std::cout << "ns: " << db.string(anno.ns) << "name: " << db.string(anno.name)
-                 << "val: " << db.string(anno.val) << std::endl;
+    std::cout << "ns: " << db.str(anno.ns) << "name: " << db.str(anno.name)
+                 << "val: " << db.str(anno.val) << std::endl;
   }
 }
 
