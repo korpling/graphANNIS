@@ -63,13 +63,13 @@ TEST_F(LoadTest, Edges) {
 
   // get some edges
   std::vector<annis::Component> components = db.getDirectConnected(annis::Edge(0, 10));
-  EXPECT_EQ(1, components.size());
+  ASSERT_EQ(1, components.size());
   EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
   EXPECT_STREQ("exmaralda", components[0].ns);
   EXPECT_STREQ("", components[0].name);
 
   components = db.getDirectConnected(annis::Edge(126, 371));
-  EXPECT_EQ(2, components.size());
+  ASSERT_EQ(2, components.size());
   EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
   EXPECT_STREQ("exmaralda", components[0].ns);
   EXPECT_STREQ("NULL", components[0].name);
