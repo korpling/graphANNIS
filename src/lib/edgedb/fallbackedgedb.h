@@ -20,7 +20,8 @@ public:
   virtual std::string getName() {return "fallback";}
   virtual const Component& getComponent();
 
-  std::vector<Annotation> getEdgeAnnotations(Edge edge);
+  virtual bool isConnected(const Edge& edge, unsigned int distance);
+  virtual std::vector<Annotation> getEdgeAnnotations(Edge edge);
 private:
   Component component;
 

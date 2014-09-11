@@ -390,7 +390,10 @@ EdgeDB *DB::createEdgeDBForComponent(const string &type, const string &ns, const
     memset(c.ns, 0, MAX_COMPONENT_NAME_SIZE);
     memset(c.name, 0, MAX_COMPONENT_NAME_SIZE);
     ns.copy(c.ns, ns.size());
-    name.copy(c.name, name.size());
+    if(name != "NULL")
+    {
+      name.copy(c.name, name.size());
+    }
   }
   else
   {
@@ -506,6 +509,27 @@ vector<Annotation> DB::getNodeAnnotationsByID(const uint32_t& id)
       itAnnos != itRange.second; itAnnos++)
   {
     result.push_back(itAnnos->second);
+  }
+
+  return result;
+}
+
+std::vector<Component> DB::getDirectConnected(const Edge &edge)
+{
+  std::vector<Component> result;
+  map<Component, EdgeDB*>::const_iterator itEdgeDB = edgeDatabases.begin();
+
+  while(itEdgeDB != edgeDatabases.end())
+  {
+    EdgeDB* edb = itEdgeDB->second;
+    if(edb != NULL)
+    {
+      if(edb->isConnected(edge))
+      {
+        result.push_back(itEdgeDB->first);
+      }
+    }
+    itEdgeDB++;
   }
 
   return result;

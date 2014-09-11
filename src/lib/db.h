@@ -28,8 +28,7 @@ public:
   Node getNodeByID(std::uint32_t id);
   std::vector<Annotation> getNodeAnnotationsByID(const std::uint32_t &id);
 
-  std::map<Component, Edge> getEdgeBetweenNodes(const Component& component,
-                                             const Edge& edge);
+  std::vector<Component> getDirectConnected(const Edge& edge);
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);
   std::string info();

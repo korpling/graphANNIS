@@ -58,22 +58,27 @@ TEST_F(LoadTest, NodeAnnotations) {
 
 }
 
-/*
+
 TEST_F(LoadTest, Edges) {
 
   // get some edges
-  std::vector<annis::Edge> edges = db.getEdgesBetweenNodes(0, 10);
-  EXPECT_EQ(1, edges.size());
-  EXPECT_EQ(0, edges[0].component);
-  EXPECT_EQ(0, edges[0].source);
-  EXPECT_EQ(10, edges[0].target);
+  std::vector<annis::Component> components = db.getDirectConnected(annis::Edge(0, 10));
+  EXPECT_EQ(1, components.size());
+  EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
+  EXPECT_STREQ("exmaralda", components[0].ns);
+  EXPECT_STREQ("", components[0].name);
 
-  edges = db.getEdgesBetweenNodes(126, 371);
-  EXPECT_EQ(2, edges.size());
-  EXPECT_EQ(156, edges[0].component);
-  EXPECT_EQ(185, edges[1].component);
+  components = db.getDirectConnected(annis::Edge(126, 371));
+  EXPECT_EQ(2, components.size());
+  EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
+  EXPECT_STREQ("exmaralda", components[0].ns);
+  EXPECT_STREQ("NULL", components[0].name);
+  EXPECT_EQ(annis::ComponentType::DOMINANCE, components[1].type);
+  EXPECT_STREQ("tiger", components[1].ns);
+  EXPECT_STREQ("cat", components[1].name);
 }
 
+/*
 TEST_F(LoadTest, EdgeAnnos) {
 
   std::vector<annis::Edge> edges = db.getEdgesBetweenNodes(126, 371);

@@ -28,6 +28,31 @@ const Component &FallbackEdgeDB::getComponent()
   return component;
 }
 
+bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance)
+{
+  if(distance == 0)
+  {
+    return false;
+  }
+  else if(distance == 1)
+  {
+    stx::btree_map<std::uint32_t, std::uint32_t>::const_iterator it
+        = edges.find(edge.first);
+    if(it == edges.end())
+    {
+      return false;
+    }
+    else
+    {
+      return it->second == edge.second;
+    }
+  }
+  else
+  {
+    throw("Not implemented yet");
+  }
+}
+
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(Edge edge)
 {
   std::vector<Annotation> result;
