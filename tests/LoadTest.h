@@ -80,23 +80,27 @@ TEST_F(LoadTest, Edges) {
   EXPECT_STREQ("edge", components[1].name);
 }
 
-/*
+
 TEST_F(LoadTest, EdgeAnnos) {
 
-  std::vector<annis::Edge> edges = db.getEdgesBetweenNodes(126, 371);
-  std::vector<annis::Annotation> edgeAnnos = db.getEdgeAnnotations(edges[0]);
+  annis::Edge edge(126, 371);
+  std::vector<annis::Component> components = db.getDirectConnected(edge);
+
+  ASSERT_EQ(2, components.size());
+
+  std::vector<annis::Annotation> edgeAnnos = db.getEdgeAnnotations(components[0], edge);
   EXPECT_EQ(1, edgeAnnos.size());
   EXPECT_STREQ("tiger", db.str(edgeAnnos[0].ns).c_str());
   EXPECT_STREQ("func", db.str(edgeAnnos[0].name).c_str());
   EXPECT_STREQ("OA", db.str(edgeAnnos[0].val).c_str());
 
-  edgeAnnos = db.getEdgeAnnotations(edges[1]);
+  edgeAnnos = db.getEdgeAnnotations(components[1], edge);
   EXPECT_EQ(1, edgeAnnos.size());
   EXPECT_STREQ("tiger", db.str(edgeAnnos[0].ns).c_str());
   EXPECT_STREQ("func", db.str(edgeAnnos[0].name).c_str());
   EXPECT_STREQ("OA", db.str(edgeAnnos[0].val).c_str());
 }
-*/
+
 
 
 #endif // LOADTEST_H

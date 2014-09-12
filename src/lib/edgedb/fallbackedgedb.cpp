@@ -55,15 +55,16 @@ bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance)
 
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(Edge edge)
 {
+  typedef stx::btree_multimap<Edge, Annotation>::const_iterator ItType;
+
   std::vector<Annotation> result;
 
-  stx::btree_multimap<Edge, Annotation>::const_iterator it =
-      edgeAnnotations.find(edge);
+  std::pair<ItType, ItType> range =
+      edgeAnnotations.equal_range(edge);
 
-  while(it != edgeAnnotations.end())
+  for(ItType it=range.first; it != range.second; ++it)
   {
     result.push_back(it->second);
-    it++;
   }
 
   return result;

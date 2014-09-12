@@ -539,21 +539,14 @@ std::vector<Component> DB::getDirectConnected(const Edge &edge)
 vector<Annotation> DB::getEdgeAnnotations(const Component &component,
                                           const Edge &edge)
 {
-  vector<Annotation> result;
-
-  /*
-  typedef stx::btree_multimap<Edge, Annotation, compEdges>::const_iterator AnnoIt;
-
-
-  pair<AnnoIt,AnnoIt> itRange = edgeAnnotations.equal_range(edge);
-
-  for(AnnoIt itAnnos = itRange.first;
-      itAnnos != itRange.second; itAnnos++)
+  std::map<Component,EdgeDB*>::const_iterator it = edgeDatabases.find(component);
+  if(it != edgeDatabases.end() && it->second != NULL)
   {
-    result.push_back(itAnnos->second);
+    EdgeDB* edb = it->second;
+    return edb->getEdgeAnnotations(edge);
   }
-*/
-  return result;
+
+  return vector<Annotation>();
 
 }
 
