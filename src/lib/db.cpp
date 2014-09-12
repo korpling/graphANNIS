@@ -262,7 +262,8 @@ bool DB::loadRelANNISRank(const string &dirPath,
     {
       // find the responsible edge database by the component ID
       EdgeDB* edb = componentToEdgeDB[uint32FromString(line[3])];
-      pair<uint32_t, uint32_t> edge(uint32FromString(line[0]), it->second);
+      pair<uint32_t, uint32_t> edge(uint32FromString(line[2]), it->second);
+
       edb->addEdge(edge);
       pre2Edge[uint32FromString(line[0])] = edge;
       pre2EdgeDB[uint32FromString(line[0])] = edb;

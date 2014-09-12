@@ -70,12 +70,14 @@ TEST_F(LoadTest, Edges) {
 
   components = db.getDirectConnected(annis::Edge(126, 371));
   ASSERT_EQ(2, components.size());
-  EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
-  EXPECT_STREQ("exmaralda", components[0].ns);
-  EXPECT_STREQ("NULL", components[0].name);
+
+  EXPECT_EQ(annis::ComponentType::DOMINANCE, components[0].type);
+  EXPECT_STREQ("tiger", components[0].ns);
+  EXPECT_STREQ("", components[0].name);
+
   EXPECT_EQ(annis::ComponentType::DOMINANCE, components[1].type);
   EXPECT_STREQ("tiger", components[1].ns);
-  EXPECT_STREQ("cat", components[1].name);
+  EXPECT_STREQ("edge", components[1].name);
 }
 
 /*
