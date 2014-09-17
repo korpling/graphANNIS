@@ -165,20 +165,15 @@ bool DB::loadRelANNIS(string dirPath)
 
     bool hasSegmentations = line.size() > 10;
     string token_index = line[7];
-    string span = hasSegmentations ? line[12] : line[9];
+    Annotation nodeNameAnno;
+    nodeNameAnno.ns = addString(annis_ns);
+    nodeNameAnno.name = addString("node_name");
+    nodeNameAnno.val = addString(line[4]);
+    nodeAnnotations.insert2(nodeNr, nodeNameAnno);
+    if(token_index != "NULL")
+    {
+      string span = hasSegmentations ? line[12] : line[9];
 
-    if(token_index == "NULL")
-    {
-      // add at least one dummy annotation so we know the node is there
-      // TODO: remove all these later if other annotations are found
-      Annotation nodeAnno;
-      nodeAnno.ns = addString(annis_ns);
-      nodeAnno.name = addString("node");
-      nodeAnno.val = addString("");
-      nodeAnnotations.insert2(nodeNr, nodeAnno);
-    }
-    else
-    {
       Annotation tokAnno;
       tokAnno.ns = addString(annis_ns);
       tokAnno.name = addString("tok");
