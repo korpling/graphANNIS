@@ -5,13 +5,16 @@
 #include "db.h"
 #include "annotationsearch.h"
 
+#include <vector>
+
 using namespace annis;
 
 class SearchTestPcc2 : public ::testing::Test {
  protected:
   DB db;
   SearchTestPcc2() {
-    bool result = db.load("/home/thomas/korpora/a4/pcc2");
+    bool result = db.loadRelANNIS("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
+//    bool result = db.load("/home/thomas/korpora/a4/pcc2");
     EXPECT_EQ(true, result);
   }
 
@@ -36,15 +39,17 @@ class SearchTestPcc2 : public ::testing::Test {
 };
 
 TEST_F(SearchTestPcc2, CatSearch) {
-
   AnnotationNameSearch search(db, "cat");
+  unsigned int counter=0;
   while(search.hasNext())
   {
     Match m = search.next();
-/*    std::cout << "ns: " << db.str(anno.ns) << "name: " << db.str(anno.name)
-                 << "val: " << db.str(anno.val) << std::endl;
-                 */
+    EXPECT_STREQ("cat", db.str(m.second.name).c_str());
+    EXPECT_STREQ("tiger", db.str(m.second.ns).c_str());
+    counter++;
   }
+
+  EXPECT_EQ(155, counter);
 }
 
 

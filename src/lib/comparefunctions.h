@@ -48,6 +48,44 @@ struct compComponent
   }
 };
 
+struct compAnno
+{
+  bool operator()(const struct Annotation &a, const struct Annotation &b) const
+  {
+    // compare by name (non lexical but just by the ID)
+    if(a.name < b.name)
+    {
+      return true;
+    }
+    else if(a.name > b.name)
+    {
+      return false;
+    }
+    // if equal, compare by namespace (non lexical but just by the ID)
+    if(a.ns < b.ns)
+    {
+      return true;
+    }
+    else if(a.ns > b.ns)
+    {
+      return false;
+    }
+
+    // if still equal compare by value (non lexical but just by the ID)
+   if(a.val < b.val)
+    {
+      return true;
+    }
+    else if(a.val > b.val)
+    {
+      return false;
+    }
+
+    // they are equal
+    return false;
+  }
+};
+
 /*
 struct compEdges
 {

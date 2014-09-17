@@ -9,20 +9,23 @@ namespace annis
 
 class AnnotationNameSearch : public AnnotationIterator
 {
-typedef stx::btree_multimap<std::uint32_t, Annotation>::const_iterator ItType;
+typedef stx::btree_multimap<Annotation, std::uint32_t, compAnno>::const_iterator ItType;
 
 public:
   AnnotationNameSearch(DB& db, std::string annoName);
 
-  virtual bool hasNext();
+  virtual bool hasNext()
+  {
+    return it != itEnd;
+  }
   virtual Match next();
 
 private:
   DB& db;
   std::string annoName;
 
-  ItType it_lower;
-  ItType it_upper;
+  ItType it;
+  ItType itEnd;
 
 };
 } // end namespace annis

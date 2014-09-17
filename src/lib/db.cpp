@@ -169,7 +169,7 @@ bool DB::loadRelANNIS(string dirPath)
     nodeNameAnno.ns = addString(annis_ns);
     nodeNameAnno.name = addString("node_name");
     nodeNameAnno.val = addString(line[4]);
-    nodeAnnotations.insert2(nodeNr, nodeNameAnno);
+    addNodeAnnotation(nodeNr, nodeNameAnno);
     if(token_index != "NULL")
     {
       string span = hasSegmentations ? line[12] : line[9];
@@ -178,7 +178,7 @@ bool DB::loadRelANNIS(string dirPath)
       tokAnno.ns = addString(annis_ns);
       tokAnno.name = addString("tok");
       tokAnno.val = addString(span);
-      nodeAnnotations.insert2(nodeNr, tokAnno);
+      addNodeAnnotation(nodeNr, tokAnno);
     }
   }
 
@@ -197,7 +197,7 @@ bool DB::loadRelANNIS(string dirPath)
     anno.ns = addString(line[1]);
     anno.name = addString(line[2]);
     anno.val = addString(line[3]);
-    nodeAnnotations.insert2(nodeNr, anno);
+    addNodeAnnotation(nodeNr, anno);
   }
 
   in.close();

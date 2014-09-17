@@ -18,6 +18,7 @@ namespace annis
 {
 class DB
 {
+  friend class AnnotationNameSearch;
 public:
   DB();
 
@@ -46,10 +47,26 @@ public:
       throw("Unknown string ID");
     }
   }
+
+  std::pair<bool, std::uint32_t> findString(const std::string& str)
+  {
+    typedef stx::btree_map<std::string, std::uint32_t>::const_iterator ItType;
+    std::pair<bool, std::uint32_t> result;
+    result.first = false;
+    ItType it = stringStorageByValue.find(str);
+    if(it != stringStorageByValue.end())
+    {
+      result.first = true;
+      result.second = it->second;
+    }
+    return result;
+  }
+
   virtual ~DB();
 
 private:
   stx::btree_multimap<std::uint32_t, Annotation> nodeAnnotations;
+  stx::btree_multimap<Annotation, std::uint32_t, compAnno> inverseNodeAnnotations;
 
   stx::btree_map<std::uint32_t, std::string> stringStorageByID;
   stx::btree_map<std::string, std::uint32_t> stringStorageByValue;
@@ -80,6 +97,12 @@ private:
     std::stringstream stream("");
     stream << val;
     return stream.str();
+  }
+
+  void addNodeAnnotation(std::uint32_t nodeID, Annotation& anno)
+  {
+    nodeAnnotations.insert2(nodeID, anno);
+    inverseNodeAnnotations.insert2(anno, nodeID);
   }
 
   void clear();
