@@ -67,20 +67,10 @@ bool DB::load(string dirPath)
   clear();
 
   ifstream in;
-/*
-  in.open(dirPath + "/edges.btree");
-  edges.restore(in);
-  in.close();
-*/
+
   in.open(dirPath + "/nodeAnnotations.btree");
   nodeAnnotations.restore(in);
   in.close();
-
-  /*
-  in.open(dirPath + "/edgeAnnotations.btree");
-  edgeAnnotations.restore(in);
-  in.close();
-*/
 
   // load the strings from CSV
   in.open(dirPath + "/strings.list");
@@ -93,6 +83,9 @@ bool DB::load(string dirPath)
   }
   in.close();
 
+  string edgeDBParent = dirPath + "/edgedb";
+//  boost::filesystem::di
+
   // TODO: return false on failure
   return true;
 }
@@ -100,25 +93,15 @@ bool DB::load(string dirPath)
 bool DB::save(string dirPath)
 {
   typedef stx::btree<uint32_t, string>::const_iterator StringStorageIt;
+  typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
 
   boost::filesystem::create_directories(dirPath);
 
   ofstream out;
 
-/*
-  out.open(dirPath + "/edges.btree");
-  edges.dump(out);
-  out.close();
-*/
   out.open(dirPath + "/nodeAnnotations.btree");
   nodeAnnotations.dump(out);
   out.close();
-
-/*
-  out.open(dirPath + "/edgeAnnotations.btree");
-  edgeAnnotations.dump(out);
-  out.close();
-*/
 
   // load the strings from CSV
   out.open(dirPath + "/strings.list");
@@ -136,6 +119,25 @@ bool DB::save(string dirPath)
     }
   }
   out.close();
+
+  // save each edge db separately
+  string edgeDBParent = dirPath + "/edgedb";
+  for(EdgeDBIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
+  {
+    const Component& c = it->first;
+    string finalPath;
+    if(c.name == NULL)
+    {
+      finalPath = edgeDBParent + "/" + ComponentTypeToString(c.type) + "/" + c.ns;
+    }
+    else
+    {
+      finalPath = edgeDBParent + "/" + ComponentTypeToString(c.type) + "/" + c.ns + "/" + c.name;
+    }
+    boost::filesystem::create_directories(finalPath);
+    it->second->save(finalPath);
+  }
+
 
   // TODO: return false on failure
   return true;
@@ -265,7 +267,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
     {
       // find the responsible edge database by the component ID
       EdgeDB* edb = componentToEdgeDB[uint32FromString(line[3])];
-      pair<uint32_t, uint32_t> edge(uint32FromString(line[2]), it->second);
+      Edge edge = constructEdge(uint32FromString(line[2]), it->second);
 
       edb->addEdge(edge);
       pre2Edge[uint32FromString(line[0])] = edge;

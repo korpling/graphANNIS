@@ -66,13 +66,13 @@ TEST_F(LoadTest, NodeAnnotations) {
 TEST_F(LoadTest, Edges) {
 
   // get some edges
-  std::vector<annis::Component> components = db.getDirectConnected(annis::Edge(0, 10));
+  std::vector<annis::Component> components = db.getDirectConnected(annis::constructEdge(0, 10));
   ASSERT_EQ(1, components.size());
   EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
   EXPECT_STREQ("exmaralda", components[0].ns);
   EXPECT_STREQ("", components[0].name);
 
-  components = db.getDirectConnected(annis::Edge(126, 371));
+  components = db.getDirectConnected(annis::constructEdge(126, 371));
   ASSERT_EQ(2, components.size());
 
   EXPECT_EQ(annis::ComponentType::DOMINANCE, components[0].type);
@@ -87,7 +87,7 @@ TEST_F(LoadTest, Edges) {
 
 TEST_F(LoadTest, EdgeAnnos) {
 
-  annis::Edge edge(126, 371);
+  annis::Edge edge = annis::constructEdge(126, 371);
   std::vector<annis::Component> components = db.getDirectConnected(edge);
 
   ASSERT_EQ(2, components.size());
