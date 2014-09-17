@@ -14,8 +14,8 @@ typedef stx::btree_multimap<std::uint32_t, Annotation>::const_iterator ItType;
 public:
   AnnotationNameSearch(DB& db, std::string annoName);
 
-  bool hasNext();
-  const Annotation& next();
+  virtual bool hasNext();
+  virtual Match next();
 
 private:
   DB& db;

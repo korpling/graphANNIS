@@ -40,9 +40,10 @@ TEST_F(SearchTestPcc2, CatSearch) {
   AnnotationNameSearch search(db, "cat");
   while(search.hasNext())
   {
-    const Annotation& anno = search.next();
-    std::cout << "ns: " << db.str(anno.ns) << "name: " << db.str(anno.name)
+    Match m = search.next();
+/*    std::cout << "ns: " << db.str(anno.ns) << "name: " << db.str(anno.name)
                  << "val: " << db.str(anno.val) << std::endl;
+                 */
   }
 }
 

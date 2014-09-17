@@ -9,10 +9,10 @@ AnnotationNameSearch::AnnotationNameSearch(DB& db, std::string annoName)
 
 bool AnnotationNameSearch::hasNext()
 {
-
+  return false;
 }
 
-const Annotation &AnnotationNameSearch::next()
+Match AnnotationNameSearch::next()
 {
 
 }

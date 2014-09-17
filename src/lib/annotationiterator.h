@@ -5,11 +5,14 @@
 
 namespace annis
 {
+
+typedef std::pair<std::uint32_t, Annotation> Match;
+
 class AnnotationIterator
 {
 public:
   virtual bool hasNext() = 0;
-  virtual const Annotation& next() = 0;
+  virtual Match next() = 0;
 };
 
 } // end namespace annis
