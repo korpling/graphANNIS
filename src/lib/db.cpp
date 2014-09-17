@@ -67,9 +67,6 @@ bool DB::load(string dirPath)
   clear();
 
   ifstream in;
-  in.open(dirPath + "/nodes.btree");
-  nodes.restore(in);
-  in.close();
 /*
   in.open(dirPath + "/edges.btree");
   edges.restore(in);
@@ -107,9 +104,6 @@ bool DB::save(string dirPath)
   boost::filesystem::create_directories(dirPath);
 
   ofstream out;
-  out.open(dirPath + "/nodes.btree");
-  nodes.dump(out);
-  out.close();
 
 /*
   out.open(dirPath + "/edges.btree");
@@ -168,15 +162,29 @@ bool DB::loadRelANNIS(string dirPath)
     uint32_t nodeNr;
     stringstream nodeNrStream(line[0]);
     nodeNrStream >> nodeNr;
-    Node n;
-    n.id = nodeNr;
-    nodes[nodeNr] = n;
 
-    Annotation tokAnno;
-    tokAnno.ns = addString(annis_ns);
-    tokAnno.name = addString("tok");
-    tokAnno.val = addString(line[9]);
-    nodeAnnotations.insert2(nodeNr, tokAnno);
+    bool hasSegmentations = line.size() > 10;
+    string token_index = line[7];
+    string span = hasSegmentations ? line[12] : line[9];
+
+    if(token_index == "NULL")
+    {
+      // add at least one dummy annotation so we know the node is there
+      // TODO: remove all these later if other annotations are found
+      Annotation nodeAnno;
+      nodeAnno.ns = addString(annis_ns);
+      nodeAnno.name = addString("node");
+      nodeAnno.val = addString("");
+      nodeAnnotations.insert2(nodeNr, nodeAnno);
+    }
+    else
+    {
+      Annotation tokAnno;
+      tokAnno.ns = addString(annis_ns);
+      tokAnno.name = addString("tok");
+      tokAnno.val = addString(span);
+      nodeAnnotations.insert2(nodeNr, tokAnno);
+    }
   }
 
   in.close();
@@ -356,7 +364,6 @@ uint32_t DB::addString(const string &str)
 
 void DB::clear()
 {
-  nodes.clear();
   nodeAnnotations.clear();
   stringStorageByID.clear();
   stringStorageByValue.clear();
@@ -421,15 +428,17 @@ EdgeDB *DB::createEdgeDBForComponent(const string &type, const string &ns, const
   }
 }
 
-Node DB::getNodeByID(uint32_t id)
+bool DB::hasNode(uint32_t id)
 {
-  stx::btree_map<uint32_t, Node>::const_iterator itNode = nodes.find(id);
-  if(itNode == nodes.end())
+  stx::btree_multimap<uint32_t, Annotation>::const_iterator itNode = nodeAnnotations.find(id);
+  if(itNode == nodeAnnotations.end())
   {
-    // TODO: don't use exception here
-    throw("Unknown node");
+    return false;
   }
-  return itNode->second;
+  else
+  {
+    return true;
+  }
 }
 
 /*
@@ -464,8 +473,7 @@ vector<Edge> DB::getInEdges(uint32_t nodeID)
 string DB::info()
 {
   stringstream ss;
-  ss <<  "Number of nodes: " << nodes.size() << endl
-      << "Number of node annotations: " << nodeAnnotations.size() << endl
+  ss  << "Number of node annotations: " << nodeAnnotations.size() << endl
       << "Number of strings in storage: " << stringStorageByID.size();
   return ss.str();
 }

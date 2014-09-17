@@ -6,8 +6,6 @@
 namespace annis
 {
 
-typedef std::pair<std::uint32_t, Annotation> Match;
-
 class AnnotationIterator
 {
 public:

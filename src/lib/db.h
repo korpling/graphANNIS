@@ -25,7 +25,7 @@ public:
   bool load(std::string dirPath);
   bool save(std::string dirPath);
 
-  Node getNodeByID(std::uint32_t id);
+  bool hasNode(std::uint32_t id);
   std::vector<Annotation> getNodeAnnotationsByID(const std::uint32_t &id);
 
   std::vector<Component> getDirectConnected(const Edge& edge);
@@ -49,7 +49,6 @@ public:
   virtual ~DB();
 
 private:
-  stx::btree_map<std::uint32_t, Node> nodes;
   stx::btree_multimap<std::uint32_t, Annotation> nodeAnnotations;
 
   stx::btree_map<std::uint32_t, std::string> stringStorageByID;

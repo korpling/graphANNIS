@@ -29,10 +29,7 @@ namespace annis
     std::uint32_t val;
   };
 
-  struct Node
-  {
-    std::uint32_t id;
-  };
+  typedef std::pair<std::uint32_t, Annotation> Match;
 }
 
 #endif // TUPEL_H
