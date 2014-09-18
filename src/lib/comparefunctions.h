@@ -22,7 +22,7 @@ struct compComponent
       return false;
     }
     // if equal compare by namespace
-    int nsCompare = strncmp(a.ns, b.ns, MAX_COMPONENT_NAME_SIZE);
+    int nsCompare = strncmp(a.layer, b.layer, MAX_COMPONENT_NAME_SIZE);
     if(nsCompare < 0)
     {
       return true;

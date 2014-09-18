@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <cstring>
 
 namespace annis
 {
@@ -54,7 +55,7 @@ namespace annis
   struct Component
   {
     ComponentType type;
-    char ns[MAX_COMPONENT_NAME_SIZE];
+    char layer[MAX_COMPONENT_NAME_SIZE];
     char name[MAX_COMPONENT_NAME_SIZE];
   };
 
@@ -73,6 +74,27 @@ namespace annis
     result.source = source;
     result.target = target;
     return result;
+  }
+  
+  static Component constructComponent(ComponentType type, const std::string& layer, const std::string& name)
+  {
+    Component c;
+    c.type = type;
+    if(layer.size() < MAX_COMPONENT_NAME_SIZE-1 && name.size() < MAX_COMPONENT_NAME_SIZE-1)
+    {
+      memset(c.layer, 0, MAX_COMPONENT_NAME_SIZE);
+      memset(c.name, 0, MAX_COMPONENT_NAME_SIZE);
+      layer.copy(c.layer, layer.size());
+      if(name != "NULL")
+      {
+        name.copy(c.name, name.size());
+      }
+    }
+    else
+    {
+      throw("Component name or namespace are too long");
+    }
+    return c;
   }
 }
 

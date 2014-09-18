@@ -64,6 +64,7 @@ void DB::writeCSVLine(ostream &out, vector<string> data)
 
 bool DB::load(string dirPath)
 {
+  typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EDBIt;
   clear();
 
   ifstream in;
@@ -83,8 +84,55 @@ bool DB::load(string dirPath)
   }
   in.close();
 
-  string edgeDBParent = dirPath + "/edgedb";
-//  boost::filesystem::di
+  boost::filesystem::directory_iterator fileEndIt;
+
+  for(unsigned int componentType = (unsigned int) ComponentType::COVERAGE;
+      componentType < (unsigned int) ComponentType::ComponentType_MAX; componentType++)
+  {
+    const boost::filesystem::path componentPath(dirPath + "/edgedb/"
+                                                + ComponentTypeToString((ComponentType) componentType));
+
+    if(boost::filesystem::is_directory(componentPath))
+    {
+      // get all the namespaces/layers
+      boost::filesystem::directory_iterator itLayers(componentPath);
+      while(itLayers != fileEndIt)
+      {
+        const boost::filesystem::path layerPath = *itLayers;
+
+        // try to load the component with the empty name
+        Component emptyNameComponent = constructComponent((ComponentType) componentType,
+                                                          layerPath.filename().string(), "");
+        EDBIt itEmptyName = edgeDatabases.find(emptyNameComponent);
+        if(itEmptyName != edgeDatabases.end())
+        {
+          EdgeDB* edb = itEmptyName->second;
+          edb->load(layerPath.string());
+        }
+
+        // also load all named components
+        boost::filesystem::directory_iterator itNamedComponents(layerPath);
+        while(itNamedComponents != fileEndIt)
+        {
+          const boost::filesystem::path namedComponentPath = *itNamedComponents;
+          if(boost::filesystem::is_directory(namedComponentPath))
+          {
+            // try to load the named component
+            Component namedComponent = constructComponent((ComponentType) componentType,
+                                                              namedComponentPath.filename().string(), "");
+            EDBIt itNamed = edgeDatabases.find(namedComponent);
+            if(itNamed != edgeDatabases.end())
+            {
+              EdgeDB* edb = itNamed->second;
+              edb->load(namedComponentPath.string());
+            }
+          }
+          itNamedComponents++;
+        } // end for each file/directory in layer directory
+        itLayers++;
+      } // for each layers
+    }
+  } // end for each component
 
   // TODO: return false on failure
   return true;
@@ -128,11 +176,11 @@ bool DB::save(string dirPath)
     string finalPath;
     if(c.name == NULL)
     {
-      finalPath = edgeDBParent + "/" + ComponentTypeToString(c.type) + "/" + c.ns;
+      finalPath = edgeDBParent + "/" + ComponentTypeToString(c.type) + "/" + c.layer;
     }
     else
     {
-      finalPath = edgeDBParent + "/" + ComponentTypeToString(c.type) + "/" + c.ns + "/" + c.name;
+      finalPath = edgeDBParent + "/" + ComponentTypeToString(c.type) + "/" + c.layer + "/" + c.name;
     }
     boost::filesystem::create_directories(finalPath);
     it->second->save(finalPath);
@@ -369,42 +417,28 @@ void DB::clear()
 EdgeDB *DB::createEdgeDBForComponent(const string &type, const string &ns, const string &name)
 {
   // fill the component variable
-  Component c;
+  ComponentType ctype;
   if(type == "c")
   {
-    c.type = ComponentType::COVERAGE;
+    ctype = ComponentType::COVERAGE;
   }
   else if(type == "d")
   {
-    c.type = ComponentType::DOMINANCE;
+    ctype = ComponentType::DOMINANCE;
   }
   else if(type == "p")
   {
-    c.type = ComponentType::POINTING;
+    ctype = ComponentType::POINTING;
   }
   else if(type == "o")
   {
-    c.type = ComponentType::ORDERING;
+    ctype = ComponentType::ORDERING;
   }
   else
   {
     throw("Unknown component type \"" + type + "\"");
   }
-  if(ns.size() < MAX_COMPONENT_NAME_SIZE-1 && name.size() < MAX_COMPONENT_NAME_SIZE-1)
-  {
-    memset(c.ns, 0, MAX_COMPONENT_NAME_SIZE);
-    memset(c.name, 0, MAX_COMPONENT_NAME_SIZE);
-    ns.copy(c.ns, ns.size());
-    if(name != "NULL")
-    {
-      name.copy(c.name, name.size());
-    }
-  }
-  else
-  {
-    throw("Component name or namespace are too long");
-  }
-
+  Component c = constructComponent(ctype, ns, name);
 
   // check if there is already an edge DB for this component
   map<Component,EdgeDB*,compComponent>::const_iterator itDB =
