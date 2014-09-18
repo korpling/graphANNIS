@@ -246,6 +246,7 @@ bool DB::loadRelANNISNode(string dirPath)
   // text coverate (either left or right) and add explicit precedence edges
   if(!tokenByIndex.empty())
   {
+    HL_INFO(logger, "calculating the automatically generated ORDERING edges");
     EdgeDB* edb = createEdgeDBForComponent(ComponentType::ORDERING, annis_ns, "");
     map<TextProperty, uint32_t, compTextProperty>::const_iterator tokenIt = tokenByIndex.begin();
     uint32_t lastToken = tokenIt->second;
