@@ -37,7 +37,7 @@ class SearchTestRidges : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-TEST_F(SearchTestRidges, DiplSearch) {
+TEST_F(SearchTestRidges, DiplNameSearch) {
   AnnotationNameSearch search(db, "dipl");
   unsigned int counter=0;
   while(search.hasNext())
@@ -49,6 +49,27 @@ TEST_F(SearchTestRidges, DiplSearch) {
   }
 
   EXPECT_EQ(153732, counter);
+}
+
+TEST_F(SearchTestRidges, PosValueSearch) {
+  AnnotationNameSearch search(db, "default_ns", "pos", "NN");
+  unsigned int counter=0;
+  while(search.hasNext())
+  {
+    Match m = search.next();
+    ASSERT_STREQ("pos", db.str(m.second.name).c_str());
+    ASSERT_STREQ("NN", db.str(m.second.val).c_str());
+    ASSERT_STREQ("default_ns", db.str(m.second.ns).c_str());
+    counter++;
+  }
+
+  EXPECT_EQ(27490, counter);
+}
+
+// Should test query
+// pos="NN" . pos . tok . dipl
+TEST_F(SearchTestRidges, DiplDirectPrecedenceSearch) {
+  // TODO
 }
 
 

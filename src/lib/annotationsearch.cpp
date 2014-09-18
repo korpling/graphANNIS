@@ -3,8 +3,8 @@
 using namespace annis;
 using namespace std;
 
-AnnotationNameSearch::AnnotationNameSearch(DB& db, string annoName)
-  : db(db), annoName(annoName)
+AnnotationNameSearch::AnnotationNameSearch(DB& db, const string& annoName)
+  : db(db)
 {
   std::pair<bool, uint32_t> searchResult = db.findString(annoName);
 
@@ -29,6 +29,32 @@ AnnotationNameSearch::AnnotationNameSearch(DB& db, string annoName)
     itEnd = db.inverseNodeAnnotations.end();
   }
 }
+
+AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
+  :db(db)
+{
+  std::pair<bool, uint32_t> nameID = db.findString(annoName);
+  std::pair<bool, uint32_t> namspaceID = db.findString(annoNamspace);
+  std::pair<bool, uint32_t> valueID = db.findString(annoValue);
+
+  if(nameID.first && namspaceID.first && valueID.first)
+  {
+    Annotation key;
+    key.name = nameID.second;
+    key.ns = namspaceID.second;
+    key.val = valueID.second;
+
+    it = db.inverseNodeAnnotations.lower_bound(key);
+    itEnd = db.inverseNodeAnnotations.upper_bound(key);
+  }
+  else
+  {
+    it = db.inverseNodeAnnotations.end();
+    itEnd = db.inverseNodeAnnotations.end();
+  }
+}
+
+
 
 Match AnnotationNameSearch::next()
 {

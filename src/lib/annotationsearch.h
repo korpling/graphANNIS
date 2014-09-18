@@ -12,7 +12,8 @@ class AnnotationNameSearch : public AnnotationIterator
 typedef stx::btree_multimap<Annotation, std::uint32_t, compAnno>::const_iterator ItType;
 
 public:
-  AnnotationNameSearch(DB& db, std::string annoName);
+  AnnotationNameSearch(DB& db, const std::string& annoName);
+  AnnotationNameSearch(DB& db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
 
   virtual bool hasNext()
   {
@@ -22,7 +23,6 @@ public:
 
 private:
   DB& db;
-  std::string annoName;
 
   ItType it;
   ItType itEnd;
