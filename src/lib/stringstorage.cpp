@@ -50,8 +50,9 @@ bool StringStorage::load(const string &dirPath)
   while((line = nextCSV(in)).size() > 0)
   {
     uint32_t id = uint32FromString(line[0]);
-    stringStorageByID.insert2(id, line[1]);
-    stringStorageByValue.insert2(line[1], id);
+    const std::string& val = line.size() > 1 ? line[1] : "";
+    stringStorageByID.insert2(id, val);
+    stringStorageByValue.insert2(val, id);
   }
   in.close();
   return true;
