@@ -195,7 +195,42 @@ bool DB::loadRelANNIS(string dirPath)
 {
   clear();
 
+  if(loadRelANNISNode(dirPath) == false)
+  {
+    return false;
+  }
 
+  string componentTabPath = dirPath + "/component.tab";
+  HL_INFO(logger, (boost::format("loading %1%") % componentTabPath).str());
+
+  ifstream in;
+  vector<string> line;
+
+  in.open(componentTabPath, ifstream::in);
+  if(!in.good()) return false;
+
+  map<uint32_t, EdgeDB*> componentToEdgeDB;
+  while((line = nextCSV(in)).size() > 0)
+  {
+    uint32_t componentID = uint32FromString(line[0]);
+    if(line[1] != "NULL")
+    {
+      EdgeDB* edb = createEdgeDBForComponent(line[1], line[2], line[3]);
+      componentToEdgeDB[componentID] = edb;
+    }
+  }
+
+  in.close();
+
+  bool result = loadRelANNISRank(dirPath, componentToEdgeDB);
+
+
+  return result;
+}
+
+
+bool DB::loadRelANNISNode(string dirPath)
+{
   string nodeTabPath = dirPath + "/node.tab";
   HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
 
@@ -251,31 +286,9 @@ bool DB::loadRelANNIS(string dirPath)
   }
 
   in.close();
-
-  string componentTabPath = dirPath + "/component.tab";
-  HL_INFO(logger, (boost::format("loading %1%") % componentTabPath).str());
-
-  in.open(componentTabPath, ifstream::in);
-  if(!in.good()) return false;
-
-  map<uint32_t, EdgeDB*> componentToEdgeDB;
-  while((line = nextCSV(in)).size() > 0)
-  {
-    uint32_t componentID = uint32FromString(line[0]);
-    if(line[1] != "NULL")
-    {
-      EdgeDB* edb = createEdgeDBForComponent(line[1], line[2], line[3]);
-      componentToEdgeDB[componentID] = edb;
-    }
-  }
-
-  in.close();
-
-  bool result = loadRelANNISRank(dirPath, componentToEdgeDB);
-
-
-  return result;
+  return true;
 }
+
 
 bool DB::loadRelANNISRank(const string &dirPath,
                           const map<uint32_t, EdgeDB*>& componentToEdgeDB)

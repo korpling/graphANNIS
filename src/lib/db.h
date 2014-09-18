@@ -76,6 +76,7 @@ private:
   std::vector<std::string> nextCSV(std::istream &in);
   void writeCSVLine(std::ostream &out, std::vector<std::string> data);
 
+  bool loadRelANNISNode(std::string dirPath);
   bool loadRelANNISRank(const std::string& dirPath,
                         const std::map<uint32_t, EdgeDB*>& componentToEdgeDB);
 
