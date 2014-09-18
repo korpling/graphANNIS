@@ -262,9 +262,16 @@ bool DB::loadRelANNIS(string dirPath)
   while((line = nextCSV(in)).size() > 0)
   {
     uint32_t componentID = uint32FromString(line[0]);
-    if(line[1] != "NULL")
+    std::string componentTypeName = line[1];
+    boost::trim(componentTypeName);
+    if(componentTypeName != "NULL")
     {
-      EdgeDB* edb = createEdgeDBForComponent(line[1], line[2], line[3]);
+      std::string layerName = line[2];
+      boost::trim(layerName);
+
+      std::string componentName = line[3];
+      boost::trim(componentName);
+      EdgeDB* edb = createEdgeDBForComponent(componentTypeName, layerName, componentName);
       componentToEdgeDB[componentID] = edb;
     }
   }
