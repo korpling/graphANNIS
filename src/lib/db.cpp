@@ -218,7 +218,6 @@ bool DB::loadRelANNISNode(string dirPath)
   in.close();
 
   // iterate over all token by their order and add an explicit edge
-  HL_DEBUG(logger, (boost::format("tokenByIndex size: %1%") % tokenByIndex.size()).str());
   if(tokenByIndex.size() > 1)
   {
     EdgeDB* edb = createEdgeDBForComponent(ComponentType::ORDERING, annis_ns, "tok");
