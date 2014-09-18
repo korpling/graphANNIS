@@ -58,8 +58,6 @@ TEST_F(LoadTest, NodeAnnotations) {
   EXPECT_STREQ("pos", db.strings.str(annos[0].name).c_str());
   EXPECT_STREQ("ADV", db.strings.str(annos[0].val).c_str());
 
-
-
 }
 
 
@@ -105,6 +103,21 @@ TEST_F(LoadTest, EdgeAnnos) {
   EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
 }
 
+TEST_F(LoadTest, Ordering) {
+
+  annis::Component c = annis::constructComponent(annis::ComponentType::ORDERING,
+                                                 annis::annis_ns, "");
+  const annis::EdgeDB* edb = db.getEdgeDB(c);
+  // tok . tok
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(0, 1)));
+  // span . tok
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(125, 126)));
+  // tok . span
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(151, 61)));
+  // span . span
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(152, 61)));
+
+}
 
 
 #endif // LOADTEST_H

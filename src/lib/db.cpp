@@ -58,7 +58,6 @@ bool DB::load(string dirPath)
         const boost::filesystem::path layerPath = *itLayers;
 
         // try to load the component with the empty name
-
         EdgeDB* edbEmptyName = createEdgeDBForComponent((ComponentType) componentType,
                                                layerPath.filename().string(), "");
         edbEmptyName->load(layerPath.string());
@@ -169,8 +168,19 @@ bool DB::loadRelANNIS(string dirPath)
 
 bool DB::loadRelANNISNode(string dirPath)
 {
+  typedef multimap<TextProperty, uint32_t, compTextProperty>::const_iterator TextPropIt;
+
   // maps a token index to an node ID
-  map<TokenIndex, uint32_t, compTokenIndex> tokenByIndex;
+  map<TextProperty, uint32_t, compTextProperty> tokenByIndex;
+
+  // map the "left" value to the nodes it belongs to
+  multimap<TextProperty, uint32_t, compTextProperty> leftToNode;
+  // map the "right" value to the nodes it belongs to
+  multimap<TextProperty, uint32_t, compTextProperty> rightToNode;
+  // map as node to it's "left" value
+  map<uint32_t, uint32_t> nodeToLeft;
+  // map as node to it's "right" value
+  map<uint32_t, uint32_t> nodeToRight;
 
   string nodeTabPath = dirPath + "/node.tab";
   HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
@@ -207,38 +217,71 @@ bool DB::loadRelANNISNode(string dirPath)
       tokAnno.val = strings.add(span);
       addNodeAnnotation(nodeNr, tokAnno);
 
-      TokenIndex index;
-      index.tokenIndex = uint32FromString(tokenIndexRaw);
+      TextProperty index;
+      index.val = uint32FromString(tokenIndexRaw);
       index.textID = textID;
 
       tokenByIndex[index] = nodeNr;
-    }
+
+    } // end if token
+    TextProperty left;
+    left.val = uint32FromString(line[5]);
+    left.textID = textID;
+
+    TextProperty right;
+    right.val = uint32FromString(line[6]);
+    right.textID = textID;
+
+    leftToNode.insert(pair<TextProperty, uint32_t>(left, nodeNr));
+    rightToNode.insert(pair<TextProperty, uint32_t>(right, nodeNr));
+    nodeToLeft[nodeNr] = left.val;
+    nodeToRight[nodeNr] = right.val;
+
   }
 
   in.close();
 
-  // iterate over all token by their order and add an explicit edge
-  if(tokenByIndex.size() > 1)
+  // TODO: cleanup, better variable naming and put this into it's own function
+  // iterate over all token by their order, find the nodes with the same
+  // text coverate (either left or right) and add explicit precedence edges
+  if(!tokenByIndex.empty())
   {
-    EdgeDB* edb = createEdgeDBForComponent(ComponentType::ORDERING, annis_ns, "tok");
-    map<TokenIndex, uint32_t, compTokenIndex>::const_iterator tokenIt = tokenByIndex.begin();
-    uint32_t lastNodeNr = tokenIt->second;
+    EdgeDB* edb = createEdgeDBForComponent(ComponentType::ORDERING, annis_ns, "");
+    map<TextProperty, uint32_t, compTextProperty>::const_iterator tokenIt = tokenByIndex.begin();
+    uint32_t lastToken = tokenIt->second;
     uint32_t lastTextID = tokenIt->first.textID;
-
+    tokenIt++;
     while(tokenIt != tokenByIndex.end())
     {
       uint32_t currentTextID = tokenIt->first.textID;
       if(currentTextID == lastTextID)
       {
-        edb->addEdge(constructEdge(lastNodeNr, tokenIt->second));
-      }
+        // we are still in the same text
+        uint32_t nextToken = tokenIt->second;
+        // find all nodes that end together with the last token
+        TextProperty lastTokenRight;
+        lastTokenRight.textID = currentTextID;
+        lastTokenRight.val = nodeToRight[lastToken];
+        pair<TextPropIt, TextPropIt> lastNodesRange = rightToNode.equal_range(lastTokenRight);
+        for(TextPropIt itLast=lastNodesRange.first; itLast != lastNodesRange.second; itLast++)
+        {
+          // find all nodes that start together with the nextToken
+          TextProperty nextTokenLeft;
+          nextTokenLeft.textID = currentTextID;
+          nextTokenLeft.val = nodeToLeft[nextToken];
+          pair<TextPropIt, TextPropIt> nextNodeRange = leftToNode.equal_range(nextTokenLeft);
+          for(TextPropIt itNext=nextNodeRange.first; itNext != nextNodeRange.second; itNext++)
+          {
+            // actually add the ordering edge
+            edb->addEdge(constructEdge(itLast->second, itNext->second));
+          }
+        }
+      } // end if same text
       lastTextID = currentTextID;
-      lastNodeNr = tokenIt->second;
-
+      lastToken = tokenIt->second;
       tokenIt++;
-    }
+    } // end for each token
   }
-
 
   string nodeAnnoTabPath = dirPath + "/node_annotation.tab";
   HL_INFO(logger, (boost::format("loading %1%") % nodeAnnoTabPath).str());

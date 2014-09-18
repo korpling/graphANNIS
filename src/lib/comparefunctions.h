@@ -114,9 +114,9 @@ struct compEdges
   }
 };
 
-struct compTokenIndex
+struct compTextProperty
 {
-  bool operator()(const struct TokenIndex &a, const struct TokenIndex &b) const
+  bool operator()(const struct TextProperty &a, const struct TextProperty &b) const
   {
     if(a.textID < b.textID)
     {
@@ -126,11 +126,11 @@ struct compTokenIndex
     {
       return false;
     }
-    if(a.tokenIndex < b.tokenIndex)
+    if(a.val < b.val)
     {
       return true;
     }
-    else if(a.tokenIndex > b.tokenIndex)
+    else if(a.val > b.val)
     {
       return false;
     }

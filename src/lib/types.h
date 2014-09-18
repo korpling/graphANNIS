@@ -66,10 +66,10 @@ namespace annis
     std::uint32_t val;
   };
 
-  struct TokenIndex
+  struct TextProperty
   {
     std::uint32_t textID;
-    std::uint32_t tokenIndex;
+    std::uint32_t val;
   };
 
   /** combines a node ID and the matched annotation */

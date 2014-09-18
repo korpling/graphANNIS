@@ -44,7 +44,7 @@ private:
   Component component;
 
 
-  stx::btree_map<std::uint32_t, std::uint32_t> edges;
+  stx::btree_multimap<std::uint32_t, std::uint32_t> edges;
   stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
 
 
@@ -54,7 +54,8 @@ private:
 /** A depth first traverser */
 class FallbackReachableIterator : public AnnotationIterator
 {
-  typedef stx::btree_map<std::uint32_t, std::uint32_t>::const_iterator EdgeIt;
+  //TODO: it might be better to use a map of pair<uint32> -> bool
+  typedef stx::btree_multimap<std::uint32_t, std::uint32_t>::const_iterator EdgeIt;
 
 public:
 
@@ -69,10 +70,6 @@ private:
   std::stack<EdgeIt> traversalStack;
   unsigned int minDistance;
   unsigned int maxDistance;
-
-  std::uint32_t nodeNameID;
-  std::uint32_t nodeNamespaceID;
-  std::uint32_t emptyValID;
 };
 
 } // end namespace annis

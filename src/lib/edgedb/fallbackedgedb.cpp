@@ -12,7 +12,10 @@ FallbackEdgeDB::FallbackEdgeDB(StringStorage &strings, const Component &componen
 
 void FallbackEdgeDB::addEdge(const Edge &edge)
 {
-  edges.insert2(edge.source, edge.target);
+  if(edge.source != edge.target)
+  {
+    edges.insert2(edge.source, edge.target);
+  }
 }
 
 void FallbackEdgeDB::addEdgeAnnotation(const Edge& edge, const Annotation &anno)
@@ -33,22 +36,22 @@ const Component &FallbackEdgeDB::getComponent()
 
 bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance) const
 {
+  typedef stx::btree_multimap<uint32_t, uint32_t>::const_iterator EdgeIt;
   if(distance == 0)
   {
     return false;
   }
   else if(distance == 1)
   {
-    stx::btree_map<uint32_t, uint32_t>::const_iterator it
-        = edges.find(edge.source);
-    if(it == edges.end())
+    pair<EdgeIt, EdgeIt> range = edges.equal_range(edge.source);
+    for(EdgeIt it = range.first; it != range.second; it++)
     {
-      return false;
+      if(it->second == edge.target)
+      {
+        return true;
+      }
     }
-    else
-    {
-      return it->second == edge.target;
-    }
+    return false;
   }
   else
   {
@@ -129,10 +132,6 @@ FallbackReachableIterator::FallbackReachableIterator(const FallbackEdgeDB &edb,
                                                      unsigned int maxDistance)
   : edb(edb), minDistance(minDistance), maxDistance(maxDistance)
 {
-  nodeNameID = STRING_STORAGE_ANY;
-  nodeNamespaceID = STRING_STORAGE_ANY;
-  emptyValID = STRING_STORAGE_ANY;
-
   EdgeIt it = edb.edges.find(startNode);
   if(it != edb.edges.end())
   {
@@ -153,12 +152,11 @@ Match FallbackReachableIterator::next()
     EdgeIt it = traversalStack.top();
     traversalStack.pop();
 
-
     // get the next node
     result.first = it->second;
-    result.second.name = nodeNameID;
-    result.second.ns = nodeNamespaceID;
-    result.second.val = emptyValID; // TODO: do we need to catch the real value here?
+    result.second.name = STRING_STORAGE_ANY;
+    result.second.ns = STRING_STORAGE_ANY;
+    result.second.val = STRING_STORAGE_ANY;
 
     // update iterator and add it to the stack again if there are more siblings
     it++;

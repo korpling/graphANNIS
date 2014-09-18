@@ -57,7 +57,7 @@ TEST_F(SearchTestPcc2, TokenIndexTest) {
 
   unsigned int counter=0;
 
-  Component c = constructComponent(ComponentType::ORDERING, annis_ns, "tok");
+  Component c = constructComponent(ComponentType::ORDERING, annis_ns, "");
   const EdgeDB* edb = db.getEdgeDB(c);
   if(edb != NULL)
   {
