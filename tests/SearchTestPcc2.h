@@ -13,8 +13,8 @@ class SearchTestPcc2 : public ::testing::Test {
  protected:
   DB db;
   SearchTestPcc2() {
-    bool result = db.loadRelANNIS("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
-//    bool result = db.load("/home/thomas/korpora/a4/pcc2");
+//    bool result = db.loadRelANNIS("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
+    bool result = db.load("/home/thomas/korpora/a4/pcc2");
     EXPECT_EQ(true, result);
   }
 

@@ -107,7 +107,9 @@ private:
 
   void clear();
 
-  EdgeDB *createEdgeDBForComponent(const std::string& type, const std::string& ns,
+  EdgeDB *createEdgeDBForComponent(const std::string& shortType, const std::string& layer,
+                       const std::string& name);
+  EdgeDB *createEdgeDBForComponent(ComponentType ctype, const std::string& layer,
                        const std::string& name);
 };
 

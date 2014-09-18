@@ -26,6 +26,10 @@ public:
 
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
+
+  virtual std::uint32_t numberOfEdges() const;
+  virtual std::uint32_t numberOfEdgeAnnotations() const;
+
 private:
   Component component;
 

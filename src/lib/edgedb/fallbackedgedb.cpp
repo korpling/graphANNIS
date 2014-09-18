@@ -105,3 +105,13 @@ bool FallbackEdgeDB::save(std::string dirPath)
 
   return true;
 }
+
+std::uint32_t FallbackEdgeDB::numberOfEdges() const
+{
+  return edges.size();
+}
+
+std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
+{
+  return edgeAnnotations.size();
+}

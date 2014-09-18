@@ -25,6 +25,9 @@ public:
 
   virtual bool load(std::string dirPath) = 0;
   virtual bool save(std::string dirPath) = 0;
+
+  virtual std::uint32_t numberOfEdges() const = 0;
+  virtual std::uint32_t numberOfEdgeAnnotations() const = 0;
 };
 } // end namespace annis
 #endif // EDGEDB_H

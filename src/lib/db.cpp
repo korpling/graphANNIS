@@ -101,14 +101,10 @@ bool DB::load(string dirPath)
         const boost::filesystem::path layerPath = *itLayers;
 
         // try to load the component with the empty name
-        Component emptyNameComponent = constructComponent((ComponentType) componentType,
-                                                          layerPath.filename().string(), "");
-        EDBIt itEmptyName = edgeDatabases.find(emptyNameComponent);
-        if(itEmptyName != edgeDatabases.end())
-        {
-          EdgeDB* edb = itEmptyName->second;
-          edb->load(layerPath.string());
-        }
+
+        EdgeDB* edbEmptyName = createEdgeDBForComponent((ComponentType) componentType,
+                                               layerPath.filename().string(), "");
+        edbEmptyName->load(layerPath.string());
 
         // also load all named components
         boost::filesystem::directory_iterator itNamedComponents(layerPath);
@@ -118,14 +114,10 @@ bool DB::load(string dirPath)
           if(boost::filesystem::is_directory(namedComponentPath))
           {
             // try to load the named component
-            Component namedComponent = constructComponent((ComponentType) componentType,
-                                                              namedComponentPath.filename().string(), "");
-            EDBIt itNamed = edgeDatabases.find(namedComponent);
-            if(itNamed != edgeDatabases.end())
-            {
-              EdgeDB* edb = itNamed->second;
-              edb->load(namedComponentPath.string());
-            }
+            EdgeDB* edbNamed = createEdgeDBForComponent((ComponentType) componentType,
+                                                   layerPath.filename().string(),
+                                                   namedComponentPath.filename().string());
+            edbNamed->load(namedComponentPath.string());
           }
           itNamedComponents++;
         } // end for each file/directory in layer directory
@@ -414,31 +406,37 @@ void DB::clear()
   stringStorageByValue.clear();
 }
 
-EdgeDB *DB::createEdgeDBForComponent(const string &type, const string &ns, const string &name)
+EdgeDB *DB::createEdgeDBForComponent(const string &shortType, const string &layer, const string &name)
 {
   // fill the component variable
   ComponentType ctype;
-  if(type == "c")
+  if(shortType == "c")
   {
     ctype = ComponentType::COVERAGE;
   }
-  else if(type == "d")
+  else if(shortType == "d")
   {
     ctype = ComponentType::DOMINANCE;
   }
-  else if(type == "p")
+  else if(shortType == "p")
   {
     ctype = ComponentType::POINTING;
   }
-  else if(type == "o")
+  else if(shortType == "o")
   {
     ctype = ComponentType::ORDERING;
   }
   else
   {
-    throw("Unknown component type \"" + type + "\"");
+    throw("Unknown component type \"" + shortType + "\"");
   }
-  Component c = constructComponent(ctype, ns, name);
+  return createEdgeDBForComponent(ctype, layer, name);
+
+}
+
+EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, const string &name)
+{
+  Component c = constructComponent(ctype, layer, name);
 
   // check if there is already an edge DB for this component
   map<Component,EdgeDB*,compComponent>::const_iterator itDB =
@@ -503,9 +501,20 @@ vector<Edge> DB::getInEdges(uint32_t nodeID)
 
 string DB::info()
 {
+  typedef map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
   stringstream ss;
   ss  << "Number of node annotations: " << nodeAnnotations.size() << endl
-      << "Number of strings in storage: " << stringStorageByID.size();
+      << "Number of strings in storage: " << stringStorageByID.size() << endl;
+
+  for(EdgeDBIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
+  {
+    const Component& c = it->first;
+    const EdgeDB* edb = it->second;
+    ss << "Component " << ComponentTypeToString(c.type) << "|" << c.layer
+       << "|" << c.name << ": " << edb->numberOfEdges() << " edges and "
+       << edb->numberOfEdgeAnnotations() << " annotations" << endl;
+  }
+
   return ss.str();
 }
 
