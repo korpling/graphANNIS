@@ -37,26 +37,26 @@ TEST_F(LoadTest, NodeAnnotations) {
   std::vector<annis::Annotation> annos = db.getNodeAnnotationsByID(0);
   ASSERT_EQ(5, annos.size());
 
-  EXPECT_STREQ(annis::annis_ns.c_str(), db.str(annos[4].ns).c_str());
-  EXPECT_STREQ("node_name", db.str(annos[4].name).c_str());
-  EXPECT_STREQ("tok_13", db.str(annos[4].val).c_str());
+  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[4].ns).c_str());
+  EXPECT_STREQ("node_name", db.strings.str(annos[4].name).c_str());
+  EXPECT_STREQ("tok_13", db.strings.str(annos[4].val).c_str());
 
-  EXPECT_STREQ(annis::annis_ns.c_str(), db.str(annos[3].ns).c_str());
-  EXPECT_STREQ("tok", db.str(annos[3].name).c_str());
-  EXPECT_STREQ("so", db.str(annos[3].val).c_str());
+  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[3].ns).c_str());
+  EXPECT_STREQ("tok", db.strings.str(annos[3].name).c_str());
+  EXPECT_STREQ("so", db.strings.str(annos[3].val).c_str());
 
-  EXPECT_STREQ("tiger", db.str(annos[2].ns).c_str());
-  EXPECT_STREQ("lemma", db.str(annos[2].name).c_str());
-  EXPECT_STREQ("so", db.str(annos[2].val).c_str());
+  EXPECT_STREQ("tiger", db.strings.str(annos[2].ns).c_str());
+  EXPECT_STREQ("lemma", db.strings.str(annos[2].name).c_str());
+  EXPECT_STREQ("so", db.strings.str(annos[2].val).c_str());
 
-  EXPECT_STREQ("tiger", db.str(annos[1].ns).c_str());
-  EXPECT_STREQ("morph", db.str(annos[1].name).c_str());
-  EXPECT_STREQ("--", db.str(annos[1].val).c_str());
+  EXPECT_STREQ("tiger", db.strings.str(annos[1].ns).c_str());
+  EXPECT_STREQ("morph", db.strings.str(annos[1].name).c_str());
+  EXPECT_STREQ("--", db.strings.str(annos[1].val).c_str());
 
 
-  EXPECT_STREQ("tiger", db.str(annos[0].ns).c_str());
-  EXPECT_STREQ("pos", db.str(annos[0].name).c_str());
-  EXPECT_STREQ("ADV", db.str(annos[0].val).c_str());
+  EXPECT_STREQ("tiger", db.strings.str(annos[0].ns).c_str());
+  EXPECT_STREQ("pos", db.strings.str(annos[0].name).c_str());
+  EXPECT_STREQ("ADV", db.strings.str(annos[0].val).c_str());
 
 
 
@@ -94,15 +94,15 @@ TEST_F(LoadTest, EdgeAnnos) {
 
   std::vector<annis::Annotation> edgeAnnos = db.getEdgeAnnotations(components[0], edge);
   EXPECT_EQ(1, edgeAnnos.size());
-  EXPECT_STREQ("tiger", db.str(edgeAnnos[0].ns).c_str());
-  EXPECT_STREQ("func", db.str(edgeAnnos[0].name).c_str());
-  EXPECT_STREQ("OA", db.str(edgeAnnos[0].val).c_str());
+  EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
+  EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
+  EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
 
   edgeAnnos = db.getEdgeAnnotations(components[1], edge);
   EXPECT_EQ(1, edgeAnnos.size());
-  EXPECT_STREQ("tiger", db.str(edgeAnnos[0].ns).c_str());
-  EXPECT_STREQ("func", db.str(edgeAnnos[0].name).c_str());
-  EXPECT_STREQ("OA", db.str(edgeAnnos[0].val).c_str());
+  EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
+  EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
+  EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
 }
 
 

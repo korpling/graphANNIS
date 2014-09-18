@@ -10,6 +10,7 @@
 #include <boost/format.hpp>
 #include <humblelogging/api.h>
 
+#include "helper.h"
 #include "edgedb/fallbackedgedb.h"
 
 HUMBLE_LOGGER(logger, "annis4");
@@ -19,53 +20,16 @@ using namespace std;
 
 DB::DB()
 {
+  addDefaultStrings();
 }
-
-vector<string> DB::nextCSV(istream& in)
-{
-  vector<string> result;
-  string line;
-
-  getline(in, line);
-  stringstream lineStream(line);
-  string cell;
-
-  while(getline(lineStream, cell, '\t'))
-  {
-    boost::replace_all(cell, "\\\\", "\\");
-    boost::replace_all(cell, "\\t", "\t");
-    boost::replace_all(cell, "\\n", "\n");
-    result.push_back(cell);
-  }
-  return result;
-}
-
-void DB::writeCSVLine(ostream &out, vector<string> data)
-{
-
-  vector<string>::const_iterator it = data.begin();
-  while(it != data.end())
-  {
-    string s = *it;
-    boost::replace_all(s, "\t", "\\t");
-    boost::replace_all(s, "\n", "\\n");
-    boost::replace_all(s, "\\", "\\\\");
-
-    out << s;
-    it++;
-    if(it != data.end())
-    {
-      out << "\t";
-    }
-  }
-}
-
-
 
 bool DB::load(string dirPath)
 {
   typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EDBIt;
   clear();
+  addDefaultStrings();
+
+  strings.load(dirPath);
 
   ifstream in;
 
@@ -75,17 +39,6 @@ bool DB::load(string dirPath)
 
   in.open(dirPath + "/inverseNodeAnnotations.btree");
   inverseNodeAnnotations.restore(in);
-  in.close();
-
-  // load the strings from CSV
-  in.open(dirPath + "/strings.list");
-  vector<string> line;
-  while((line = nextCSV(in)).size() > 0)
-  {
-    uint32_t id = uint32FromString(line[0]);
-    stringStorageByID.insert2(id, line[1]);
-    stringStorageByValue.insert2(line[1], id);
-  }
   in.close();
 
   boost::filesystem::directory_iterator fileEndIt;
@@ -136,10 +89,11 @@ bool DB::load(string dirPath)
 
 bool DB::save(string dirPath)
 {
-  typedef stx::btree<uint32_t, string>::const_iterator StringStorageIt;
   typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
 
   boost::filesystem::create_directories(dirPath);
+
+  strings.save(dirPath);
 
   ofstream out;
 
@@ -149,23 +103,6 @@ bool DB::save(string dirPath)
 
   out.open(dirPath + "/inverseNodeAnnotations.btree");
   inverseNodeAnnotations.dump(out);
-  out.close();
-
-  // load the strings from CSV
-  out.open(dirPath + "/strings.list");
-  StringStorageIt it = stringStorageByID.begin();
-  while(it != stringStorageByID.end())
-  {
-    vector<string> line;
-    line.push_back(stringFromUInt32(it->first));
-    line.push_back(it->second);
-    writeCSVLine(out, line);
-    it++;
-    if(it != stringStorageByID.end())
-    {
-      out << "\n";
-    }
-  }
   out.close();
 
   // save each edge db separately
@@ -194,6 +131,7 @@ bool DB::save(string dirPath)
 bool DB::loadRelANNIS(string dirPath)
 {
   clear();
+  addDefaultStrings();
 
   if(loadRelANNISNode(dirPath) == false)
   {
@@ -255,18 +193,18 @@ bool DB::loadRelANNISNode(string dirPath)
     string tokenIndexRaw = line[7];
     uint32_t textID = uint32FromString(line[1]);
     Annotation nodeNameAnno;
-    nodeNameAnno.ns = addString(annis_ns);
-    nodeNameAnno.name = addString("node_name");
-    nodeNameAnno.val = addString(line[4]);
+    nodeNameAnno.ns = strings.add(annis_ns);
+    nodeNameAnno.name = strings.add("node_name");
+    nodeNameAnno.val = strings.add(line[4]);
     addNodeAnnotation(nodeNr, nodeNameAnno);
     if(tokenIndexRaw != "NULL")
     {
       string span = hasSegmentations ? line[12] : line[9];
 
       Annotation tokAnno;
-      tokAnno.ns = addString(annis_ns);
-      tokAnno.name = addString("tok");
-      tokAnno.val = addString(span);
+      tokAnno.ns = strings.add(annis_ns);
+      tokAnno.name = strings.add("tok");
+      tokAnno.val = strings.add(span);
       addNodeAnnotation(nodeNr, tokAnno);
 
       TokenIndex index;
@@ -313,9 +251,9 @@ bool DB::loadRelANNISNode(string dirPath)
   {
     u_int32_t nodeNr = uint32FromString(line[0]);
     Annotation anno;
-    anno.ns = addString(line[1]);
-    anno.name = addString(line[2]);
-    anno.val = addString(line[3]);
+    anno.ns = strings.add(line[1]);
+    anno.name = strings.add(line[2]);
+    anno.val = strings.add(line[3]);
     addNodeAnnotation(nodeNr, anno);
   }
 
@@ -419,9 +357,9 @@ bool DB::loadEdgeAnnotation(const string &dirPath,
     {
       EdgeDB* e = itDB->second;
       Annotation anno;
-      anno.ns = addString(line[1]);
-      anno.name = addString(line[2]);
-      anno.val = addString(line[3]);
+      anno.ns = strings.add(line[1]);
+      anno.name = strings.add(line[2]);
+      anno.val = strings.add(line[3]);
       if(e != NULL)
       {
         e->addEdgeAnnotation(itEdge->second, anno);
@@ -438,34 +376,18 @@ bool DB::loadEdgeAnnotation(const string &dirPath,
   return result;
 }
 
-uint32_t DB::addString(const string &str)
-{
-  typedef stx::btree_map<string, uint32_t>::const_iterator ItType;
-  ItType it = stringStorageByValue.find(str);
-  if(it == stringStorageByValue.end())
-  {
-    // non-existing
-    uint32_t id = 0;
-    if(stringStorageByID.size() > 0)
-    {
-      id = ((stringStorageByID.rbegin())->first)+1;
-    }
-    stringStorageByID.insert2(id, str);
-    stringStorageByValue.insert2(str, id);
-    return id;
-  }
-  else
-  {
-    // already existing, return the original ID
-    return it->second;
-  }
-}
-
 void DB::clear()
 {
+  strings.clear();
   nodeAnnotations.clear();
-  stringStorageByID.clear();
-  stringStorageByValue.clear();
+}
+
+void DB::addDefaultStrings()
+{
+  strings.add(annis_ns);
+  strings.add("");
+  strings.add("tok");
+  strings.add("node_name");
 }
 
 EdgeDB *DB::createEdgeDBForComponent(const string &shortType, const string &layer, const string &name)
@@ -507,7 +429,7 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
   {
 
     // TODO: decide which implementation to use
-    EdgeDB* edgeDB = new FallbackEdgeDB(c);
+    EdgeDB* edgeDB = new FallbackEdgeDB(strings, c);
 
     // register the used implementation
     edgeDatabases.insert(pair<Component,EdgeDB*>(c,edgeDB));
@@ -566,7 +488,7 @@ string DB::info()
   typedef map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
   stringstream ss;
   ss  << "Number of node annotations: " << nodeAnnotations.size() << endl
-      << "Number of strings in storage: " << stringStorageByID.size() << endl;
+      << "Number of strings in storage: " << strings.size() << endl;
 
   for(EdgeDBIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
   {

@@ -4,15 +4,21 @@
 #include <stx/btree_map>
 #include <stx/btree_multimap>
 #include "../edgedb.h"
+#include "../db.h"
 #include "../comparefunctions.h"
 
+#include <stack>
 
 namespace annis
 {
+
+
 class FallbackEdgeDB : public EdgeDB
 {
+friend class FallbackReachableIterator;
+
 public:
-  FallbackEdgeDB(const Component& component);
+  FallbackEdgeDB(StringStorage& strings, const Component& component);
 
   virtual void addEdge(const Edge& edge);
   virtual void addEdgeAnnotation(const Edge &edge, const Annotation& anno);
@@ -22,6 +28,10 @@ public:
   virtual const Component& getComponent();
 
   virtual bool isConnected(const Edge& edge, unsigned int distance) const;
+  virtual AnnotationIterator* findConnected(const StringStorage& strings,
+                                            std::uint32_t sourceNode,
+                                           unsigned int minDistance = 1,
+                                           unsigned int maxDistance = 1) const;
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge);
 
   virtual bool load(std::string dirPath);
@@ -31,12 +41,41 @@ public:
   virtual std::uint32_t numberOfEdgeAnnotations() const;
 
 private:
+  StringStorage& strings;
   Component component;
+
 
   stx::btree_map<std::uint32_t, std::uint32_t> edges;
   stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
 
 
 };
+
+
+/** A depth first traverser */
+class FallbackReachableIterator : public AnnotationIterator
+{
+  typedef stx::btree_map<std::uint32_t, std::uint32_t>::const_iterator EdgeIt;
+
+public:
+
+  FallbackReachableIterator(const StringStorage &strings,
+                            const FallbackEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
+
+  virtual bool hasNext();
+  virtual Match next();
+private:
+
+  const FallbackEdgeDB& edb;
+
+  std::stack<EdgeIt> traversalStack;
+  unsigned int minDistance;
+  unsigned int maxDistance;
+
+  std::uint32_t nodeNameID;
+  std::uint32_t nodeNamespaceID;
+  std::uint32_t emptyValID;
+};
+
 } // end namespace annis
 #endif // FALLBACKEDGEDB_H

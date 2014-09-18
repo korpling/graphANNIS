@@ -72,6 +72,7 @@ namespace annis
     std::uint32_t tokenIndex;
   };
 
+  /** combines a node ID and the matched annotation */
   typedef std::pair<std::uint32_t, Annotation> Match;
 
   static Edge constructEdge(std::uint32_t source, std::uint32_t target)

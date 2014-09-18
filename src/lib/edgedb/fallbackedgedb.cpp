@@ -5,8 +5,8 @@
 using namespace annis;
 using namespace std;
 
-FallbackEdgeDB::FallbackEdgeDB(const Component &component)
-  : component(component)
+FallbackEdgeDB::FallbackEdgeDB(StringStorage &strings, const Component &component)
+  : strings(strings), component(component)
 {
 }
 
@@ -54,6 +54,14 @@ bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance) const
   {
     throw("Not implemented yet");
   }
+}
+
+AnnotationIterator *FallbackEdgeDB::findConnected(const StringStorage& strings,
+                                                 std::uint32_t sourceNode,
+                                                 unsigned int minDistance,
+                                                 unsigned int maxDistance) const
+{
+  return new FallbackReachableIterator(strings, *this, sourceNode, minDistance, maxDistance);
 }
 
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge)
@@ -114,4 +122,55 @@ std::uint32_t FallbackEdgeDB::numberOfEdges() const
 std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
 {
   return edgeAnnotations.size();
+}
+
+FallbackReachableIterator::FallbackReachableIterator(
+                                                     const StringStorage& strings,
+                                                     const FallbackEdgeDB &edb,
+                                                     std::uint32_t startNode,
+                                                     unsigned int minDistance,
+                                                     unsigned int maxDistance)
+  : edb(edb), minDistance(minDistance), maxDistance(maxDistance)
+{
+  nodeNameID = strings.findID("node_name").second;
+  nodeNamespaceID = strings.findID(annis_ns).second;
+  emptyValID = strings.findID("annis_ns").second;
+
+  EdgeIt it = edb.edges.find(startNode);
+  if(it != edb.edges.end())
+  {
+    traversalStack.push(it);
+  }
+}
+
+bool FallbackReachableIterator::hasNext()
+{
+  return !traversalStack.empty();
+}
+
+Match FallbackReachableIterator::next()
+{
+  Match result;
+  if(!traversalStack.empty())
+  {
+    EdgeIt it = traversalStack.top();
+    traversalStack.pop();
+
+
+    // get the next node
+    result.first = it->second;
+    result.second.name = nodeNameID;
+    result.second.ns = nodeNamespaceID;
+    result.second.val = emptyValID; // TODO: do we need to catch the real value here?
+
+    // update iterator and add it to the stack again if there are more siblings
+    it++;
+    if(it != edb.edges.end())
+    {
+      traversalStack.push(it);
+    }
+
+
+  }
+  return result;
 }

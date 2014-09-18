@@ -6,7 +6,7 @@ using namespace std;
 AnnotationNameSearch::AnnotationNameSearch(DB& db, const string& annoName)
   : db(db)
 {
-  std::pair<bool, uint32_t> searchResult = db.findString(annoName);
+  std::pair<bool, uint32_t> searchResult = db.strings.findID(annoName);
 
   if(searchResult.first)
   {
@@ -33,9 +33,9 @@ AnnotationNameSearch::AnnotationNameSearch(DB& db, const string& annoName)
 AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
   :db(db)
 {
-  std::pair<bool, uint32_t> nameID = db.findString(annoName);
-  std::pair<bool, uint32_t> namspaceID = db.findString(annoNamspace);
-  std::pair<bool, uint32_t> valueID = db.findString(annoValue);
+  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
+  std::pair<bool, uint32_t> namspaceID = db.strings.findID(annoNamspace);
+  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
 
   if(nameID.first && namspaceID.first && valueID.first)
   {

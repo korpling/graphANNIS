@@ -44,8 +44,8 @@ TEST_F(SearchTestPcc2, CatSearch) {
   while(search.hasNext())
   {
     Match m = search.next();
-    ASSERT_STREQ("cat", db.str(m.second.name).c_str());
-    ASSERT_STREQ("tiger", db.str(m.second.ns).c_str());
+    ASSERT_STREQ("cat", db.strings.str(m.second.name).c_str());
+    ASSERT_STREQ("tiger", db.strings.str(m.second.ns).c_str());
     counter++;
   }
 

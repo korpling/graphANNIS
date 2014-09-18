@@ -13,6 +13,7 @@
 #include "types.h"
 #include "comparefunctions.h"
 #include "edgedb.h"
+#include "stringstorage.h"
 
 namespace annis
 {
@@ -34,48 +35,16 @@ public:
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);
   std::string info();
-
-  const std::string& str(std::uint32_t id)
-  {
-    typedef stx::btree_map<std::uint32_t, std::string>::const_iterator ItType;
-    ItType it = stringStorageByID.find(id);
-    if(it != stringStorageByID.end())
-    {
-      return it->second;
-    }
-    else
-    {
-      throw("Unknown string ID");
-    }
-  }
-
-  std::pair<bool, std::uint32_t> findString(const std::string& str)
-  {
-    typedef stx::btree_map<std::string, std::uint32_t>::const_iterator ItType;
-    std::pair<bool, std::uint32_t> result;
-    result.first = false;
-    ItType it = stringStorageByValue.find(str);
-    if(it != stringStorageByValue.end())
-    {
-      result.first = true;
-      result.second = it->second;
-    }
-    return result;
-  }
-
   virtual ~DB();
+
+
+  StringStorage strings;
 
 private:
   stx::btree_multimap<std::uint32_t, Annotation> nodeAnnotations;
   stx::btree_multimap<Annotation, std::uint32_t, compAnno> inverseNodeAnnotations;
 
-  stx::btree_map<std::uint32_t, std::string> stringStorageByID;
-  stx::btree_map<std::string, std::uint32_t> stringStorageByValue;
-
   std::map<Component, EdgeDB*, compComponent> edgeDatabases;
-
-  std::vector<std::string> nextCSV(std::istream &in);
-  void writeCSVLine(std::ostream &out, std::vector<std::string> data);
 
   bool loadRelANNISNode(std::string dirPath);
   bool loadRelANNISRank(const std::string& dirPath,
@@ -85,23 +54,6 @@ private:
                           const std::map<std::uint32_t, EdgeDB* >& pre2EdgeDB,
                           const std::map<std::uint32_t, Edge>& pre2Edge);
 
-  std::uint32_t addString(const std::string& str);
-
-  std::uint32_t uint32FromString(const std::string& str)
-  {
-    std::uint32_t result = 0;
-    std::stringstream stream(str);
-    stream >> result;
-    return result;
-  }
-
-  std::string stringFromUInt32(const std::uint32_t& val)
-  {
-    std::stringstream stream("");
-    stream << val;
-    return stream.str();
-  }
-
   void addNodeAnnotation(std::uint32_t nodeID, Annotation& anno)
   {
     nodeAnnotations.insert2(nodeID, anno);
@@ -109,6 +61,7 @@ private:
   }
 
   void clear();
+  void addDefaultStrings();
 
   EdgeDB *createEdgeDBForComponent(const std::string& shortType, const std::string& layer,
                        const std::string& name);

@@ -6,6 +6,8 @@
 #include <string>
 
 #include "types.h"
+#include "annotationiterator.h"
+#include "stringstorage.h"
 
 namespace annis
 {
@@ -18,6 +20,19 @@ public:
   virtual void clear() = 0;
 
   virtual bool isConnected(const Edge& edge, unsigned int distance = 1) const = 0;
+  /**
+   * @brief Returns a newly allocated iterator for the connected nodes.
+   * @param sourceNode
+   * @param minDistance
+   * @param maxDistance
+   * @return An iterator. You have to delete this iterator by yourself after using it.
+   */
+  virtual AnnotationIterator* findConnected(
+                                           const StringStorage& strings,
+                                           std::uint32_t sourceNode,
+                                           unsigned int minDistance = 1,
+                                           unsigned int maxDistance = 1) const = 0;
+
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) = 0;
 
   virtual std::string getName() = 0;
