@@ -73,6 +73,10 @@ bool DB::load(string dirPath)
   nodeAnnotations.restore(in);
   in.close();
 
+  in.open(dirPath + "/inverseNodeAnnotations.btree");
+  inverseNodeAnnotations.restore(in);
+  in.close();
+
   // load the strings from CSV
   in.open(dirPath + "/strings.list");
   vector<string> line;
@@ -141,6 +145,10 @@ bool DB::save(string dirPath)
 
   out.open(dirPath + "/nodeAnnotations.btree");
   nodeAnnotations.dump(out);
+  out.close();
+
+  out.open(dirPath + "/inverseNodeAnnotations.btree");
+  inverseNodeAnnotations.dump(out);
   out.close();
 
   // load the strings from CSV
