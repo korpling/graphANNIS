@@ -30,6 +30,7 @@ public:
   std::vector<Annotation> getNodeAnnotationsByID(const std::uint32_t &id);
 
   std::vector<Component> getDirectConnected(const Edge& edge);
+  const EdgeDB* getEdgeDB(const Component& component);
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);
   std::string info();

@@ -52,6 +52,35 @@ TEST_F(SearchTestPcc2, CatSearch) {
   EXPECT_EQ(155, counter);
 }
 
+TEST_F(SearchTestPcc2, TokenIndexTest) {
+  AnnotationNameSearch n1(db, annis_ns, "tok", "Die");
+
+  unsigned int counter=0;
+
+  Component c = constructComponent(ComponentType::ORDERING, annis_ns, "tok");
+  const EdgeDB* edb = db.getEdgeDB(c);
+  if(edb != NULL)
+  {
+    while(n1.hasNext())
+    {
+      AnnotationNameSearch n2(db, annis_ns, "tok", "Jugendlichen");
+
+      Match m1 = n1.next();
+      while(n2.hasNext())
+      {
+        Match m2 = n2.next();
+
+        if(edb->isConnected(constructEdge(m1.first, m2.first)))
+        {
+          counter++;
+        }
+      }
+    }
+  }
+
+  EXPECT_EQ(2, counter);
+}
+
 
 
 #endif // SEARCHTESTPCC2_H

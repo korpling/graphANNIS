@@ -17,7 +17,7 @@ public:
   virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;
   virtual void clear() = 0;
 
-  virtual bool isConnected(const Edge& edge, unsigned int distance = 1) = 0;
+  virtual bool isConnected(const Edge& edge, unsigned int distance = 1) const = 0;
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) = 0;
 
   virtual std::string getName() = 0;

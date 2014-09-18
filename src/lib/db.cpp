@@ -646,6 +646,16 @@ std::vector<Component> DB::getDirectConnected(const Edge &edge)
   return result;
 }
 
+const EdgeDB* DB::getEdgeDB(const Component &component)
+{
+  map<Component, EdgeDB*>::const_iterator itEdgeDB = edgeDatabases.find(component);
+  if(itEdgeDB != edgeDatabases.end())
+  {
+    return itEdgeDB->second;
+  }
+  return NULL;
+}
+
 vector<Annotation> DB::getEdgeAnnotations(const Component &component,
                                           const Edge &edge)
 {

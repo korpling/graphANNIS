@@ -31,7 +31,7 @@ const Component &FallbackEdgeDB::getComponent()
   return component;
 }
 
-bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance)
+bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance) const
 {
   if(distance == 0)
   {

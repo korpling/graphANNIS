@@ -21,7 +21,7 @@ public:
   virtual std::string getName() {return "fallback";}
   virtual const Component& getComponent();
 
-  virtual bool isConnected(const Edge& edge, unsigned int distance);
+  virtual bool isConnected(const Edge& edge, unsigned int distance) const;
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge);
 
   virtual bool load(std::string dirPath);
