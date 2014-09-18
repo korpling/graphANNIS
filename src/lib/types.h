@@ -66,6 +66,12 @@ namespace annis
     std::uint32_t val;
   };
 
+  struct TokenIndex
+  {
+    std::uint32_t textID;
+    std::uint32_t tokenIndex;
+  };
+
   typedef std::pair<std::uint32_t, Annotation> Match;
 
   static Edge constructEdge(std::uint32_t source, std::uint32_t target)

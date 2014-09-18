@@ -114,6 +114,34 @@ struct compEdges
   }
 };
 
+struct compTokenIndex
+{
+  bool operator()(const struct TokenIndex &a, const struct TokenIndex &b) const
+  {
+    if(a.textID < b.textID)
+    {
+      return true;
+    }
+    else if(a.textID > b.textID)
+    {
+      return false;
+    }
+    if(a.tokenIndex < b.tokenIndex)
+    {
+      return true;
+    }
+    else if(a.tokenIndex > b.tokenIndex)
+    {
+      return false;
+    }
+
+    // they are equal
+    return false;
+  }
+};
+
+
+
 } // end namespace annis
 
 #endif // COMPAREFUNCTIONS_H

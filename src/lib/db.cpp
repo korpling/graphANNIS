@@ -231,6 +231,9 @@ bool DB::loadRelANNIS(string dirPath)
 
 bool DB::loadRelANNISNode(string dirPath)
 {
+  // maps a token index to an node ID
+  map<TokenIndex, uint32_t, compTokenIndex> tokenByIndex;
+
   string nodeTabPath = dirPath + "/node.tab";
   HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
 
@@ -249,13 +252,14 @@ bool DB::loadRelANNISNode(string dirPath)
     nodeNrStream >> nodeNr;
 
     bool hasSegmentations = line.size() > 10;
-    string token_index = line[7];
+    string tokenIndexRaw = line[7];
+    uint32_t textID = uint32FromString(line[1]);
     Annotation nodeNameAnno;
     nodeNameAnno.ns = addString(annis_ns);
     nodeNameAnno.name = addString("node_name");
     nodeNameAnno.val = addString(line[4]);
     addNodeAnnotation(nodeNr, nodeNameAnno);
-    if(token_index != "NULL")
+    if(tokenIndexRaw != "NULL")
     {
       string span = hasSegmentations ? line[12] : line[9];
 
@@ -264,10 +268,40 @@ bool DB::loadRelANNISNode(string dirPath)
       tokAnno.name = addString("tok");
       tokAnno.val = addString(span);
       addNodeAnnotation(nodeNr, tokAnno);
+
+      TokenIndex index;
+      index.tokenIndex = uint32FromString(tokenIndexRaw);
+      index.textID = textID;
+
+      tokenByIndex[index] = nodeNr;
     }
   }
 
   in.close();
+
+  // iterate over all token by their order and add an explicit edge
+  HL_DEBUG(logger, (boost::format("tokenByIndex size: %1%") % tokenByIndex.size()).str());
+  if(tokenByIndex.size() > 1)
+  {
+    EdgeDB* edb = createEdgeDBForComponent(ComponentType::ORDERING, annis_ns, "tok");
+    map<TokenIndex, uint32_t, compTokenIndex>::const_iterator tokenIt = tokenByIndex.begin();
+    uint32_t lastNodeNr = tokenIt->second;
+    uint32_t lastTextID = tokenIt->first.textID;
+
+    while(tokenIt != tokenByIndex.end())
+    {
+      uint32_t currentTextID = tokenIt->first.textID;
+      if(currentTextID == lastTextID)
+      {
+        edb->addEdge(constructEdge(lastNodeNr, tokenIt->second));
+      }
+      lastTextID = currentTextID;
+      lastNodeNr = tokenIt->second;
+
+      tokenIt++;
+    }
+  }
+
 
   string nodeAnnoTabPath = dirPath + "/node_annotation.tab";
   HL_INFO(logger, (boost::format("loading %1%") % nodeAnnoTabPath).str());

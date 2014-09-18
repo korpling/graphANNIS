@@ -68,8 +68,20 @@ TEST_F(SearchTestRidges, PosValueSearch) {
 
 // Should test query
 // pos="NN" . pos . tok . dipl
-TEST_F(SearchTestRidges, DiplDirectPrecedenceSearch) {
+TEST_F(SearchTestRidges, Benchmark5) {
   // TODO
+  AnnotationNameSearch search(db, "default_ns", "pos", "NN");
+  unsigned int counter=0;
+
+  while(search.hasNext())
+  {
+    Match m = search.next();
+    // find all adjacent nodes
+
+    counter++;
+  }
+
+  EXPECT_EQ(27490, counter);
 }
 
 
