@@ -28,8 +28,7 @@ public:
   virtual const Component& getComponent();
 
   virtual bool isConnected(const Edge& edge, unsigned int distance) const;
-  virtual AnnotationIterator* findConnected(const StringStorage& strings,
-                                            std::uint32_t sourceNode,
+  virtual AnnotationIterator* findConnected(std::uint32_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const;
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge);
@@ -59,8 +58,7 @@ class FallbackReachableIterator : public AnnotationIterator
 
 public:
 
-  FallbackReachableIterator(const StringStorage &strings,
-                            const FallbackEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
+  FallbackReachableIterator(const FallbackEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
 
   virtual bool hasNext();
   virtual Match next();

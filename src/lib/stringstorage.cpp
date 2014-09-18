@@ -16,7 +16,7 @@ uint32_t StringStorage::add(const string &str)
   if(it == stringStorageByValue.end())
   {
     // non-existing
-    uint32_t id = 0;
+    uint32_t id = 1; // since 0 is taken as ANY value begin with 1
     if(stringStorageByID.size() > 0)
     {
       id = ((stringStorageByID.rbegin())->first)+1;

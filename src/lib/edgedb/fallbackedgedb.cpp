@@ -56,12 +56,11 @@ bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance) const
   }
 }
 
-AnnotationIterator *FallbackEdgeDB::findConnected(const StringStorage& strings,
-                                                 std::uint32_t sourceNode,
+AnnotationIterator *FallbackEdgeDB::findConnected(std::uint32_t sourceNode,
                                                  unsigned int minDistance,
                                                  unsigned int maxDistance) const
 {
-  return new FallbackReachableIterator(strings, *this, sourceNode, minDistance, maxDistance);
+  return new FallbackReachableIterator(*this, sourceNode, minDistance, maxDistance);
 }
 
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge)
@@ -124,17 +123,15 @@ std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
   return edgeAnnotations.size();
 }
 
-FallbackReachableIterator::FallbackReachableIterator(
-                                                     const StringStorage& strings,
-                                                     const FallbackEdgeDB &edb,
+FallbackReachableIterator::FallbackReachableIterator(const FallbackEdgeDB &edb,
                                                      std::uint32_t startNode,
                                                      unsigned int minDistance,
                                                      unsigned int maxDistance)
   : edb(edb), minDistance(minDistance), maxDistance(maxDistance)
 {
-  nodeNameID = strings.findID("node_name").second;
-  nodeNamespaceID = strings.findID(annis_ns).second;
-  emptyValID = strings.findID("annis_ns").second;
+  nodeNameID = STRING_STORAGE_ANY;
+  nodeNamespaceID = STRING_STORAGE_ANY;
+  emptyValID = STRING_STORAGE_ANY;
 
   EdgeIt it = edb.edges.find(startNode);
   if(it != edb.edges.end())

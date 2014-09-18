@@ -28,7 +28,6 @@ public:
    * @return An iterator. You have to delete this iterator by yourself after using it.
    */
   virtual AnnotationIterator* findConnected(
-                                           const StringStorage& strings,
                                            std::uint32_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const = 0;

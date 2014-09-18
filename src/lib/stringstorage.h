@@ -6,6 +6,7 @@
 
 namespace annis
 {
+const std::uint32_t STRING_STORAGE_ANY = 0;
 
 class StringStorage
 {
