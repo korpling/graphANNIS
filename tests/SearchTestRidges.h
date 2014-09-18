@@ -1,5 +1,5 @@
-#ifndef SEARCHTESTPCC2_H
-#define SEARCHTESTPCC2_H
+#ifndef SEARCHTESTRIDGES_H
+#define SEARCHTESTRIDGES_H
 
 #include "gtest/gtest.h"
 #include "db.h"
@@ -9,16 +9,15 @@
 
 using namespace annis;
 
-class SearchTestPcc2 : public ::testing::Test {
+class SearchTestRidges : public ::testing::Test {
  protected:
   DB db;
-  SearchTestPcc2() {
-//    bool result = db.loadRelANNIS("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
-    bool result = db.load("/home/thomas/korpora/a4/pcc2");
+  SearchTestRidges() {
+    bool result = db.load("/home/thomas/korpora/a4/ridges");
     EXPECT_EQ(true, result);
   }
 
-  virtual ~SearchTestPcc2() {
+  virtual ~SearchTestRidges() {
     // You can do clean-up work that doesn't throw exceptions here.
   }
 
@@ -38,20 +37,20 @@ class SearchTestPcc2 : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-TEST_F(SearchTestPcc2, CatSearch) {
-  AnnotationNameSearch search(db, "cat");
+TEST_F(SearchTestRidges, DiplSearch) {
+  AnnotationNameSearch search(db, "dipl");
   unsigned int counter=0;
   while(search.hasNext())
   {
     Match m = search.next();
-    ASSERT_STREQ("cat", db.str(m.second.name).c_str());
-    ASSERT_STREQ("tiger", db.str(m.second.ns).c_str());
+    ASSERT_STREQ("dipl", db.str(m.second.name).c_str());
+    ASSERT_STREQ("default_ns", db.str(m.second.ns).c_str());
     counter++;
   }
 
-  EXPECT_EQ(155, counter);
+  EXPECT_EQ(153732, counter);
 }
 
 
 
-#endif // SEARCHTESTPCC2_H
+#endif // SEARCHTESTRIDGES_H

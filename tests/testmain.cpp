@@ -2,6 +2,8 @@
 
 #include "LoadTest.h"
 #include "SearchTestPcc2.h"
+#include "SearchTestRidges.h"
+#include "SearchTestTiger.h"
 
 #include <humblelogging/api.h>
 

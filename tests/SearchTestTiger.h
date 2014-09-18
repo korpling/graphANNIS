@@ -1,5 +1,5 @@
-#ifndef SEARCHTESTPCC2_H
-#define SEARCHTESTPCC2_H
+#ifndef SEARCHTESTTIGER_H
+#define SEARCHTESTTIGER_H
 
 #include "gtest/gtest.h"
 #include "db.h"
@@ -9,16 +9,15 @@
 
 using namespace annis;
 
-class SearchTestPcc2 : public ::testing::Test {
+class SearchTestTiger : public ::testing::Test {
  protected:
   DB db;
-  SearchTestPcc2() {
-//    bool result = db.loadRelANNIS("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
-    bool result = db.load("/home/thomas/korpora/a4/pcc2");
+  SearchTestTiger() {
+    bool result = db.load("/home/thomas/korpora/a4/tiger2");
     EXPECT_EQ(true, result);
   }
 
-  virtual ~SearchTestPcc2() {
+  virtual ~SearchTestTiger() {
     // You can do clean-up work that doesn't throw exceptions here.
   }
 
@@ -38,7 +37,7 @@ class SearchTestPcc2 : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-TEST_F(SearchTestPcc2, CatSearch) {
+TEST_F(SearchTestTiger, CatSearch) {
   AnnotationNameSearch search(db, "cat");
   unsigned int counter=0;
   while(search.hasNext())
@@ -49,9 +48,9 @@ TEST_F(SearchTestPcc2, CatSearch) {
     counter++;
   }
 
-  EXPECT_EQ(155, counter);
+  EXPECT_EQ(373436, counter);
 }
 
 
 
-#endif // SEARCHTESTPCC2_H
+#endif // SEARCHTESTTIGER_H
