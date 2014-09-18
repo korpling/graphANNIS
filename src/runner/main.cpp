@@ -70,53 +70,60 @@ int main(int argc, char** argv)
       cmd = args[0];
       args.erase(args.begin());
     }
-    if (cmd == "import")
+    try
     {
-      if(args.size() > 0)
+      if (cmd == "import")
       {
-        std::cout << "Import relANNIS from " << args[0] << std::endl;
-        db.loadRelANNIS(args[0]);
+        if(args.size() > 0)
+        {
+          std::cout << "Import relANNIS from " << args[0] << std::endl;
+          db.loadRelANNIS(args[0]);
+        }
+        else
+        {
+          std::cout << "You have to give a path as argument" << std::endl;
+        }
+      }
+      else if(cmd == "save")
+      {
+        if(args.size() > 0)
+        {
+          std::cout << "Save to " << args[0] << std::endl;
+          db.save(args[0]);
+        }
+        else
+        {
+          std::cout << "You have to give a path as argument" << std::endl;
+        }
+      }
+      else if(cmd == "load")
+      {
+        if(args.size() > 0)
+        {
+          std::cout << "Loading from " << args[0] << std::endl;
+          db.load(args[0]);
+        }
+        else
+        {
+          std::cout << "You have to give a path as argument" << std::endl;
+        }
+      }
+      else if(cmd == "info")
+      {
+        std::cout << db.info() << std::endl;
+      }
+      else if (cmd == "quit" || cmd == "exit")
+      {
+        exit = true;
       }
       else
       {
-        std::cout << "You have to give a path as argument" << std::endl;
+        std::cout << "Unknown command \"" << cmd << "\"" << std::endl;
       }
     }
-    else if(cmd == "save")
+    catch(std::string ex)
     {
-      if(args.size() > 0)
-      {
-        std::cout << "Save to " << args[0] << std::endl;
-        db.save(args[0]);
-      }
-      else
-      {
-        std::cout << "You have to give a path as argument" << std::endl;
-      }
-    }
-    else if(cmd == "load")
-    {
-      if(args.size() > 0)
-      {
-        std::cout << "Loading from " << args[0] << std::endl;
-        db.load(args[0]);
-      }
-      else
-      {
-        std::cout << "You have to give a path as argument" << std::endl;
-      }
-    }
-    else if(cmd == "info")
-    {
-      std::cout << db.info() << std::endl;
-    }
-    else if (cmd == "quit" || cmd == "exit")
-    {
-      exit = true;
-    }
-    else
-    {
-      std::cout << "Unknown command \"" << cmd << "\"" << std::endl;
+      std::cerr << "Exception: " << ex << std::endl;
     }
     free(lineBuffer);
   }

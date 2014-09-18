@@ -76,7 +76,8 @@ private:
   std::vector<std::string> nextCSV(std::istream &in);
   void writeCSVLine(std::ostream &out, std::vector<std::string> data);
 
-  bool loadRelANNISRank(const std::string& dirPath, std::map<uint32_t, EdgeDB*>& componentToEdgeDB);
+  bool loadRelANNISRank(const std::string& dirPath,
+                        const std::map<uint32_t, EdgeDB*>& componentToEdgeDB);
 
   bool loadEdgeAnnotation(const std::string& dirPath,
                           const std::map<std::uint32_t, EdgeDB* >& pre2EdgeDB,

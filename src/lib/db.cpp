@@ -262,8 +262,11 @@ bool DB::loadRelANNIS(string dirPath)
   while((line = nextCSV(in)).size() > 0)
   {
     uint32_t componentID = uint32FromString(line[0]);
-    EdgeDB* edb = createEdgeDBForComponent(line[1], line[2], line[3]);
-    componentToEdgeDB[componentID] = edb;
+    if(line[1] != "NULL")
+    {
+      EdgeDB* edb = createEdgeDBForComponent(line[1], line[2], line[3]);
+      componentToEdgeDB[componentID] = edb;
+    }
   }
 
   in.close();
@@ -275,10 +278,10 @@ bool DB::loadRelANNIS(string dirPath)
 }
 
 bool DB::loadRelANNISRank(const string &dirPath,
-                          map<uint32_t, EdgeDB*>& componentToEdgeDB)
+                          const map<uint32_t, EdgeDB*>& componentToEdgeDB)
 {
   typedef stx::btree_map<uint32_t, uint32_t>::const_iterator UintMapIt;
-
+  typedef map<uint32_t, EdgeDB*>::const_iterator ComponentIt;
   bool result = true;
 
   ifstream in;
@@ -314,12 +317,16 @@ bool DB::loadRelANNISRank(const string &dirPath,
     if(it != pre2NodeID.end())
     {
       // find the responsible edge database by the component ID
-      EdgeDB* edb = componentToEdgeDB[uint32FromString(line[3])];
-      Edge edge = constructEdge(uint32FromString(line[2]), it->second);
+      ComponentIt itEdb = componentToEdgeDB.find(uint32FromString(line[3]));
+      if(itEdb != componentToEdgeDB.end())
+      {
+        EdgeDB* edb = itEdb->second;
+        Edge edge = constructEdge(uint32FromString(line[2]), it->second);
 
-      edb->addEdge(edge);
-      pre2Edge[uint32FromString(line[0])] = edge;
-      pre2EdgeDB[uint32FromString(line[0])] = edb;
+        edb->addEdge(edge);
+        pre2Edge[uint32FromString(line[0])] = edge;
+        pre2EdgeDB[uint32FromString(line[0])] = edb;
+      }
     }
     else
     {
