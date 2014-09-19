@@ -92,14 +92,14 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
   {
     while(n1.hasNext())
     {
-      AnnotationNameSearch n2(db, annis_ns, "tok", "Zossen");
+      AnnotationNameSearch n2(db, annis_ns, "tok", "Musikcafé");
 
       Match m1 = n1.next();
       while(n2.hasNext())
       {
         Match m2 = n2.next();
 
-        if(edb->isConnected(constructEdge(m1.first, m2.first), 1, 10))
+        if(edb->isConnected(constructEdge(m1.first, m2.first), 3, 10))
         {
           counter++;
         }
