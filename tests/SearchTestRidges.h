@@ -68,52 +68,119 @@ TEST_F(SearchTestRidges, PosValueSearch) {
 
 // Should test query
 // pos="NN" .2,10 pos="ART"
-TEST_F(SearchTestRidges, BenchmarkTest) {
+TEST_F(SearchTestRidges, Benchmark1) {
 
   unsigned int counter=0;
 
-  AnnotationNameSearch n1(db, "default_ns", "pos", "VAIMP");
-  Component cOrder = constructComponent(ComponentType::ORDERING, annis_ns, "");
-  Component cLeft = constructComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
-  Component cRight = constructComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
+  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
 
-
-  const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
-  const EdgeDB* edbLeft = db.getEdgeDB(cLeft);
-  const EdgeDB* edbRight = db.getEdgeDB(cRight);
-  if(edbOrder != NULL && edbLeft != NULL && edbRight != NULL)
+  std::pair<bool, uint32_t> n2_nameID = db.strings.findID("pos");
+  std::pair<bool, uint32_t> n2_valueID = db.strings.findID("ART");
+  if(n2_nameID.first && n2_valueID.first)
   {
-    // get all nodes with pos="NN"
-    unsigned int n1Counter =0;
-    while(n1.hasNext())
+    Component cOrder = constructComponent(ComponentType::ORDERING, annis_ns, "");
+    Component cLeft = constructComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
+    Component cRight = constructComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
+
+
+    const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
+    const EdgeDB* edbLeft = db.getEdgeDB(cLeft);
+    const EdgeDB* edbRight = db.getEdgeDB(cRight);
+    if(edbOrder != NULL && edbLeft != NULL && edbRight != NULL)
     {
-      Match m1 = n1.next();
-      n1Counter++;
-
-      std::cout << "pos=\"NN\" check nr. " << n1Counter << std::endl;
-
-      // get the right-most covered token of m1
-      std::uint32_t tok1 = edbRight->getOutgoingEdges(m1.first)[0];
-
-      // check with all matching nodes for #2
-      AnnotationNameSearch n2(db, "default_ns", "pos", "PIDAT");
-      while(n2.hasNext())
+      // get all nodes with pos="NN"
+      unsigned int n1Counter =0;
+      while(n1.hasNext())
       {
-        Match m2 = n2.next();
-        // get the left-most covered token of m2
-        std::uint32_t tok2 = edbRight->getOutgoingEdges(m2.first)[0];
-        // check if both are connected
-        if(edbOrder->isConnected(constructEdge(tok1, tok2), 2,10))
+        Match m1 = n1.next();
+        n1Counter++;
+
+        // get the right-most covered token of m1
+        std::uint32_t tok1 = edbRight->getOutgoingEdges(m1.first)[0];
+
+        // find all token in the range 2-10
+        EdgeIterator* itConnected = edbOrder->findConnected(tok1, 2, 10);
+        for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
+            tok2.first; tok2 = itConnected->next())
         {
-          counter++;
+          // get all node that are left-aligned with tok2
+          std::vector<std::uint32_t> n2_candidates = edbLeft->getOutgoingEdges(tok2.second);
+          for(size_t i=0; i < n2_candidates.size(); i++)
+          {
+            // check if the node has the correct annotations
+            std::vector<Annotation> n2_annos = db.getNodeAnnotationsByID(n2_candidates[i]);
+            for(size_t j=0; j < n2_annos.size(); j++)
+            {
+              if(n2_annos[j].val == n2_valueID.second && n2_annos[j].name == n2_nameID.second)
+              {
+                counter++;
+                break; // we don't have to search for other annotations
+              }
+            }
+          }
         }
+        delete itConnected;
       }
     }
-  }
+  } // end if pos="ART" strings found
 
   EXPECT_EQ(21911, counter);
 }
 
+// Should test query
+// tok .2,10 tok
+TEST_F(SearchTestRidges, Benchmark2) {
+
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, annis::annis_ns, "tok");
+
+  std::pair<bool, uint32_t> n2_namespaceID = db.strings.findID(annis::annis_ns);
+  std::pair<bool, uint32_t> n2_nameID = db.strings.findID("tok");
+  if(n2_nameID.first && n2_namespaceID.first)
+  {
+    Component cOrder = constructComponent(ComponentType::ORDERING, annis_ns, "");
+
+
+    const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
+    if(edbOrder != NULL)
+    {
+      unsigned int n1Counter =0;
+      while(n1.hasNext())
+      {
+        Match m1 = n1.next();
+        if(n1Counter % 1000 == 0)
+        {
+          std::cout << "checking token " << n1Counter << " (already found: " << counter << ")" << std::endl;
+        }
+        n1Counter++;
+
+        size_t numberOfConnected = 0;
+        // find all token in the range 2-10
+        EdgeIterator* itConnected = edbOrder->findConnected(m1.first, 1, 1);
+        for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
+            tok2.first; tok2 = itConnected->next())
+        {
+          numberOfConnected++;
+          // check if the node has the correct annotations
+          std::vector<Annotation> n2_annos = db.getNodeAnnotationsByID(tok2.second);
+          for(size_t j=0; j < n2_annos.size(); j++)
+          {
+            if(n2_annos[j].ns == n2_namespaceID.second && n2_annos[j].name == n2_nameID.second)
+            {
+              counter++;
+              break; // we don't have to search for other annotations
+            }
+          }
+        }
+        ASSERT_LT(numberOfConnected, 2);
+        delete itConnected;
+      }
+    }
+  } // end if pos="ART" strings found
+
+  EXPECT_EQ(21911, counter);
+}
 
 
 #endif // SEARCHTESTRIDGES_H

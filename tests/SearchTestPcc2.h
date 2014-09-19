@@ -92,11 +92,10 @@ TEST_F(SearchTestPcc2, TokenIndexTest) {
       Match m1 = n1.next();
 
       EdgeIterator* it = edb->findConnected(m1.first, 2, 10);
-      std::pair<bool, std::uint32_t> connectedNode = it->next();
-      while(connectedNode.first)
+      for(std::pair<bool, std::uint32_t> connectedNode = it->next();
+          connectedNode.first; connectedNode = it->next())
       {
         counter++;
-        connectedNode = it->next();
       }
       delete it;
     }

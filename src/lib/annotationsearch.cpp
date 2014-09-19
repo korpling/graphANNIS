@@ -30,6 +30,34 @@ AnnotationNameSearch::AnnotationNameSearch(DB& db, const string& annoName)
   }
 }
 
+AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, const string &annoName)
+  : db(db)
+{
+  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
+  std::pair<bool, uint32_t> namspaceID = db.strings.findID(annoNamspace);
+
+  if(nameID.first && namspaceID.first)
+  {
+    Annotation lowerKey;
+    lowerKey.name = nameID.second;
+    lowerKey.ns = namspaceID.second;
+    lowerKey.val = numeric_limits<uint32_t>::min();
+
+    Annotation upperKey;
+    upperKey.name = nameID.second;
+    upperKey.ns = namspaceID.second;
+    upperKey.val = numeric_limits<uint32_t>::max();
+
+    it = db.inverseNodeAnnotations.lower_bound(lowerKey);
+    itEnd = db.inverseNodeAnnotations.upper_bound(upperKey);
+  }
+  else
+  {
+    it = db.inverseNodeAnnotations.end();
+    itEnd = db.inverseNodeAnnotations.end();
+  }
+}
+
 AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
   :db(db)
 {
