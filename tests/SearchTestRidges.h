@@ -145,23 +145,15 @@ TEST_F(SearchTestRidges, Benchmark2) {
     const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
     if(edbOrder != NULL)
     {
-      unsigned int n1Counter =0;
       while(n1.hasNext())
       {
         Match m1 = n1.next();
-        if(n1Counter % 1000 == 0)
-        {
-          std::cout << "checking token " << n1Counter << " (already found: " << counter << ")" << std::endl;
-        }
-        n1Counter++;
 
-        size_t numberOfConnected = 0;
         // find all token in the range 2-10
-        EdgeIterator* itConnected = edbOrder->findConnected(m1.first, 1, 1);
+        EdgeIterator* itConnected = edbOrder->findConnected(m1.first, 2, 10);
         for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
             tok2.first; tok2 = itConnected->next())
         {
-          numberOfConnected++;
           // check if the node has the correct annotations
           std::vector<Annotation> n2_annos = db.getNodeAnnotationsByID(tok2.second);
           for(size_t j=0; j < n2_annos.size(); j++)
@@ -173,7 +165,6 @@ TEST_F(SearchTestRidges, Benchmark2) {
             }
           }
         }
-        ASSERT_LT(numberOfConnected, 2);
         delete itConnected;
       }
     }
