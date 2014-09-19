@@ -14,7 +14,7 @@ void FallbackEdgeDB::addEdge(const Edge &edge)
 {
   if(edge.source != edge.target)
   {
-    edges.insert2(edge.source, edge.target);
+    edges.insert(edge);
   }
 }
 
@@ -36,22 +36,22 @@ const Component &FallbackEdgeDB::getComponent()
 
 bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
-  typedef stx::btree_multimap<uint32_t, uint32_t>::const_iterator EdgeIt;
+  typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
   if(minDistance == 0 && maxDistance == 0)
   {
     return false;
   }
   else if(minDistance == 1 && maxDistance == 1)
   {
-    pair<EdgeIt, EdgeIt> range = edges.equal_range(edge.source);
-    for(EdgeIt it = range.first; it != range.second; it++)
+    EdgeIt it = edges.find(edge);
+    if(it != edges.end())
     {
-      if(it->second == edge.target)
-      {
-        return true;
-      }
+      return true;
     }
-    return false;
+    else
+    {
+      return false;
+    }
   }
   else
   {
@@ -96,13 +96,16 @@ std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) con
 
 std::vector<std::uint32_t> FallbackEdgeDB::getOutgoingEdges(std::uint32_t sourceNode) const
 {
-  typedef stx::btree_multimap<uint32_t, uint32_t>::const_iterator EdgeIt;
+  typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
 
   vector<uint32_t> result;
-  pair<EdgeIt, EdgeIt> range = edges.equal_range(sourceNode);
-  for(EdgeIt it = range.first; it != range.second; it++)
+
+  EdgeIt lowerIt = edges.lower_bound(constructEdge(sourceNode, numeric_limits<uint32_t>::min()));
+  EdgeIt upperIt = edges.lower_bound(constructEdge(sourceNode, numeric_limits<uint32_t>::max()));
+
+  for(EdgeIt it = lowerIt; it != upperIt; it++)
   {
-    result.push_back(it->second);
+    result.push_back(it->target);
   }
 
   return result;
@@ -180,11 +183,11 @@ std::pair<bool, std::uint32_t> FallbackDFSIterator::next()
     // add the remaining child nodes
     if(distance < maxDistance)
     {
-      // add the edges to the stack
-      pair<EdgeIt, EdgeIt> children = edb.edges.equal_range(node);
-      for(EdgeIt it=children.first; it != children.second; it++)
+      // add the outgoing edges to the stack
+      std::vector<uint32_t> outgoing = edb.getOutgoingEdges(node);
+      for(size_t idxOutgoing=0; idxOutgoing < outgoing.size(); idxOutgoing++)
       {
-        traversalStack.push(pair<uint32_t, unsigned int>(it->second, distance+1));
+        traversalStack.push(pair<uint32_t, unsigned int>(outgoing[idxOutgoing], distance+1));
       }
     }
   }

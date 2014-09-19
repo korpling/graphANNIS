@@ -3,6 +3,7 @@
 
 #include <stx/btree_map>
 #include <stx/btree_multimap>
+#include <stx/btree_set>
 #include "../edgedb.h"
 #include "../db.h"
 #include "../comparefunctions.h"
@@ -45,8 +46,7 @@ private:
   StringStorage& strings;
   Component component;
 
-  //TODO: it might be better to use a map of pair<uint32> -> bool
-  stx::btree_multimap<std::uint32_t, std::uint32_t> edges;
+  stx::btree_set<Edge, compEdges> edges;
   stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
 
 

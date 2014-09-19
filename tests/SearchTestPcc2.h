@@ -79,7 +79,7 @@ TEST_F(SearchTestPcc2, TokenIndexTest) {
   }
 }
 
-  TEST_F(SearchTestPcc2, DepthFirst) {
+TEST_F(SearchTestPcc2, DepthFirst) {
     AnnotationNameSearch n1(db, annis_ns, "tok", "Tiefe");
 
     unsigned int counter=0;
