@@ -15,7 +15,8 @@ namespace annis
 
 class FallbackEdgeDB : public EdgeDB
 {
-friend class FallbackReachableIterator;
+friend class FallbackDFSIterator;
+friend class FallbackDFS;
 
 public:
   FallbackEdgeDB(StringStorage& strings, const Component& component);
@@ -27,11 +28,12 @@ public:
   virtual std::string getName() {return "fallback";}
   virtual const Component& getComponent();
 
-  virtual bool isConnected(const Edge& edge, unsigned int distance) const;
-  virtual AnnotationIterator* findConnected(std::uint32_t sourceNode,
+  virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const;
+  virtual EdgeIterator* findConnected(std::uint32_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const;
-  virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge);
+  virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const;
+  virtual std::vector<std::uint32_t> getOutgoingEdges(std::uint32_t sourceNode) const;
 
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
@@ -43,7 +45,7 @@ private:
   StringStorage& strings;
   Component component;
 
-
+  //TODO: it might be better to use a map of pair<uint32> -> bool
   stx::btree_multimap<std::uint32_t, std::uint32_t> edges;
   stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
 
@@ -52,22 +54,24 @@ private:
 
 
 /** A depth first traverser */
-class FallbackReachableIterator : public AnnotationIterator
+class FallbackDFSIterator : public EdgeIterator
 {
-  //TODO: it might be better to use a map of pair<uint32> -> bool
   typedef stx::btree_multimap<std::uint32_t, std::uint32_t>::const_iterator EdgeIt;
 
 public:
 
-  FallbackReachableIterator(const FallbackEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
+  FallbackDFSIterator(const FallbackEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
 
-  virtual bool hasNext();
-  virtual Match next();
+  virtual std::pair<bool, std::uint32_t> next();
 private:
 
   const FallbackEdgeDB& edb;
 
-  std::stack<EdgeIt> traversalStack;
+  /**
+   * @brief Traversion stack
+   * Contains both the node id (first) and the distance from the start node (second)
+   */
+  std::stack<std::pair<std::uint32_t, unsigned int> > traversalStack;
   unsigned int minDistance;
   unsigned int maxDistance;
 };

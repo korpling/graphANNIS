@@ -13,6 +13,12 @@ public:
   virtual Match next() = 0;
 };
 
+class EdgeIterator
+{
+public:
+  virtual std::pair<bool, std::uint32_t> next() = 0;
+};
+
 } // end namespace annis
 
 #endif // ANNOTATIONITERATOR_H

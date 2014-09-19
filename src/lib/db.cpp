@@ -271,6 +271,7 @@ bool DB::loadRelANNISNode(string dirPath)
       for(TextPropIt itLeftAligned=leftAlignedNodes.first; itLeftAligned != leftAlignedNodes.second; itLeftAligned++)
       {
         edbLeft->addEdge(constructEdge(itLeftAligned->second, currentToken));
+        edbLeft->addEdge(constructEdge(currentToken, itLeftAligned->second));
       }
 
       // find all nodes that end together with the current token
@@ -281,6 +282,7 @@ bool DB::loadRelANNISNode(string dirPath)
       for(TextPropIt itRightAligned=rightAlignedNodes.first; itRightAligned != rightAlignedNodes.second; itRightAligned++)
       {
         edbRight->addEdge(constructEdge(itRightAligned->second, currentToken));
+        edbRight->addEdge(constructEdge(currentToken, itRightAligned->second));
       }
 
       // if the last token/text value is valid and we are still in the same text

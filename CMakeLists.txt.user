@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 3.0.1, 2014-09-18T17:27:51. -->
+<!-- Written by QtCreator 3.0.1, 2014-09-19T13:31:58. -->
 <qtcreator>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
@@ -252,7 +252,7 @@
      <value type="int">14</value>
     </valuelist>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguation.Title">test_ANNIS4</value>
-    <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.Arguments">--gtest_filter='LoadTest.Ordering'</value>
+    <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.Arguments">--gtest_filter='SearchTestPcc2.DepthFirst'</value>
     <value type="bool" key="CMakeProjectManager.CMakeRunConfiguration.UseTerminal">false</value>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory"></value>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>

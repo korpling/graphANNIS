@@ -67,30 +67,51 @@ TEST_F(SearchTestRidges, PosValueSearch) {
 }
 
 // Should test query
-// pos="NN" . pos . tok . dipl
-TEST_F(SearchTestRidges, Benchmark5) {
+// pos="NN" .2,10 pos="ART"
+TEST_F(SearchTestRidges, BenchmarkTest) {
+
   unsigned int counter=0;
 
-  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
-  Component c = constructComponent(ComponentType::ORDERING, annis_ns, "tok");
-  const EdgeDB* edb = db.getEdgeDB(c);
-  if(edb != NULL)
+  AnnotationNameSearch n1(db, "default_ns", "pos", "VAIMP");
+  Component cOrder = constructComponent(ComponentType::ORDERING, annis_ns, "");
+  Component cLeft = constructComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
+  Component cRight = constructComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
+
+
+  const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
+  const EdgeDB* edbLeft = db.getEdgeDB(cLeft);
+  const EdgeDB* edbRight = db.getEdgeDB(cRight);
+  if(edbOrder != NULL && edbLeft != NULL && edbRight != NULL)
   {
+    // get all nodes with pos="NN"
+    unsigned int n1Counter =0;
     while(n1.hasNext())
     {
       Match m1 = n1.next();
-      AnnotationIterator* itP1_2 = edb->findConnected(m1.first);
-      while(itP1_2->hasNext())
-      {
-        Match m2 = itP1_2->next();
+      n1Counter++;
 
+      std::cout << "pos=\"NN\" check nr. " << n1Counter << std::endl;
+
+      // get the right-most covered token of m1
+      std::uint32_t tok1 = edbRight->getOutgoingEdges(m1.first)[0];
+
+      // check with all matching nodes for #2
+      AnnotationNameSearch n2(db, "default_ns", "pos", "PIDAT");
+      while(n2.hasNext())
+      {
+        Match m2 = n2.next();
+        // get the left-most covered token of m2
+        std::uint32_t tok2 = edbRight->getOutgoingEdges(m2.first)[0];
+        // check if both are connected
+        if(edbOrder->isConnected(constructEdge(tok1, tok2), 2,10))
+        {
+          counter++;
+        }
       }
-      delete itP1_2;
     }
   }
-  // TODO: implement this complex query
 
-//  EXPECT_EQ(27379, counter);
+  EXPECT_EQ(21911, counter);
 }
 
 

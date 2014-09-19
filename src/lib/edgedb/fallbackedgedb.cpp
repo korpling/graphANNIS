@@ -34,14 +34,14 @@ const Component &FallbackEdgeDB::getComponent()
   return component;
 }
 
-bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance) const
+bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
   typedef stx::btree_multimap<uint32_t, uint32_t>::const_iterator EdgeIt;
-  if(distance == 0)
+  if(minDistance == 0 && maxDistance == 0)
   {
     return false;
   }
-  else if(distance == 1)
+  else if(minDistance == 1 && maxDistance == 1)
   {
     pair<EdgeIt, EdgeIt> range = edges.equal_range(edge.source);
     for(EdgeIt it = range.first; it != range.second; it++)
@@ -55,18 +55,29 @@ bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int distance) const
   }
   else
   {
-    throw("Not implemented yet");
+    FallbackDFSIterator dfs(*this, edge.source, minDistance, maxDistance);
+    std::pair<bool, std::uint32_t> result = dfs.next();
+    while(result.first)
+    {
+      if(result.second == edge.target)
+      {
+        return true;
+      }
+      result = dfs.next();
+    }
   }
+
+  return false;
 }
 
-AnnotationIterator *FallbackEdgeDB::findConnected(std::uint32_t sourceNode,
+EdgeIterator *FallbackEdgeDB::findConnected(std::uint32_t sourceNode,
                                                  unsigned int minDistance,
                                                  unsigned int maxDistance) const
 {
-  return new FallbackReachableIterator(*this, sourceNode, minDistance, maxDistance);
+  return new FallbackDFSIterator(*this, sourceNode, minDistance, maxDistance);
 }
 
-std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge)
+std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) const
 {
   typedef stx::btree_multimap<Edge, Annotation, compEdges>::const_iterator ItType;
 
@@ -76,6 +87,20 @@ std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge)
       edgeAnnotations.equal_range(edge);
 
   for(ItType it=range.first; it != range.second; ++it)
+  {
+    result.push_back(it->second);
+  }
+
+  return result;
+}
+
+std::vector<std::uint32_t> FallbackEdgeDB::getOutgoingEdges(std::uint32_t sourceNode) const
+{
+  typedef stx::btree_multimap<uint32_t, uint32_t>::const_iterator EdgeIt;
+
+  vector<uint32_t> result;
+  pair<EdgeIt, EdgeIt> range = edges.equal_range(sourceNode);
+  for(EdgeIt it = range.first; it != range.second; it++)
   {
     result.push_back(it->second);
   }
@@ -126,46 +151,42 @@ std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
   return edgeAnnotations.size();
 }
 
-FallbackReachableIterator::FallbackReachableIterator(const FallbackEdgeDB &edb,
+FallbackDFSIterator::FallbackDFSIterator(const FallbackEdgeDB &edb,
                                                      std::uint32_t startNode,
                                                      unsigned int minDistance,
                                                      unsigned int maxDistance)
   : edb(edb), minDistance(minDistance), maxDistance(maxDistance)
 {
-  EdgeIt it = edb.edges.find(startNode);
-  if(it != edb.edges.end())
-  {
-    traversalStack.push(it);
-  }
+  traversalStack.push(pair<uint32_t,unsigned int>(startNode, 0));
 }
 
-bool FallbackReachableIterator::hasNext()
+std::pair<bool, std::uint32_t> FallbackDFSIterator::next()
 {
-  return !traversalStack.empty();
-}
-
-Match FallbackReachableIterator::next()
-{
-  Match result;
-  if(!traversalStack.empty())
+  bool found = false;
+  uint32_t node;
+  while(!found && !traversalStack.empty())
   {
-    EdgeIt it = traversalStack.top();
+    pair<uint32_t, unsigned int> stackEntry = traversalStack.top();
+    node = stackEntry.first;
+    unsigned int distance = stackEntry.second;
     traversalStack.pop();
 
-    // get the next node
-    result.first = it->second;
-    result.second.name = STRING_STORAGE_ANY;
-    result.second.ns = STRING_STORAGE_ANY;
-    result.second.val = STRING_STORAGE_ANY;
-
-    // update iterator and add it to the stack again if there are more siblings
-    it++;
-    if(it != edb.edges.end())
+    if(distance >= minDistance && distance <= maxDistance)
     {
-      traversalStack.push(it);
+      // get the next node
+      found = true;
     }
 
-
+    // add the remaining child nodes
+    if(distance < maxDistance)
+    {
+      // add the edges to the stack
+      pair<EdgeIt, EdgeIt> children = edb.edges.equal_range(node);
+      for(EdgeIt it=children.first; it != children.second; it++)
+      {
+        traversalStack.push(pair<uint32_t, unsigned int>(it->second, distance+1));
+      }
+    }
   }
-  return result;
+  return std::pair<bool, uint32_t>(found, node);
 }

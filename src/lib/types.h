@@ -1,5 +1,5 @@
-#ifndef TUPEL_H
-#define TUPEL_H
+#ifndef ANNISTYPES_H
+#define ANNISTYPES_H
 
 #include <cstdint>
 #include <string>
@@ -110,6 +110,12 @@ namespace annis
     }
     return c;
   }
+
+  inline bool operator==(const Annotation& lhs, const Annotation& rhs)
+  {
+      return lhs.ns == rhs.ns && lhs.name == rhs.name && lhs.val == rhs.val;
+  }
+
 }
 
-#endif // TUPEL_H
+#endif // ANNISTYPES_H

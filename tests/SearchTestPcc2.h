@@ -77,8 +77,31 @@ TEST_F(SearchTestPcc2, TokenIndexTest) {
       }
     }
   }
+}
 
-  EXPECT_EQ(2, counter);
+  TEST_F(SearchTestPcc2, DepthFirst) {
+    AnnotationNameSearch n1(db, annis_ns, "tok", "Tiefe");
+
+    unsigned int counter=0;
+
+    Component c = constructComponent(ComponentType::ORDERING, annis_ns, "");
+    const EdgeDB* edb = db.getEdgeDB(c);
+    if(edb != NULL)
+    {
+      ASSERT_TRUE(n1.hasNext());
+      Match m1 = n1.next();
+
+      EdgeIterator* it = edb->findConnected(m1.first, 2, 10);
+      std::pair<bool, std::uint32_t> connectedNode = it->next();
+      while(connectedNode.first)
+      {
+        counter++;
+        connectedNode = it->next();
+      }
+      delete it;
+    }
+
+  EXPECT_EQ(9, counter);
 }
 
 
