@@ -52,7 +52,7 @@ TEST_F(SearchTestPcc2, CatSearch) {
   EXPECT_EQ(155, counter);
 }
 
-TEST_F(SearchTestPcc2, TokenIndexTest) {
+TEST_F(SearchTestPcc2, TokenIndex) {
   AnnotationNameSearch n1(db, annis_ns, "tok", "Die");
 
   unsigned int counter=0;
@@ -77,6 +77,36 @@ TEST_F(SearchTestPcc2, TokenIndexTest) {
       }
     }
   }
+
+  EXPECT_EQ(2, counter);
+}
+
+TEST_F(SearchTestPcc2, IsConnectedRange) {
+  AnnotationNameSearch n1(db, annis_ns, "tok", "Jugendlichen");
+
+  unsigned int counter=0;
+
+  Component c = constructComponent(ComponentType::ORDERING, annis_ns, "");
+  const EdgeDB* edb = db.getEdgeDB(c);
+  if(edb != NULL)
+  {
+    while(n1.hasNext())
+    {
+      AnnotationNameSearch n2(db, annis_ns, "tok", "Zossen");
+
+      Match m1 = n1.next();
+      while(n2.hasNext())
+      {
+        Match m2 = n2.next();
+
+        if(edb->isConnected(constructEdge(m1.first, m2.first), 1, 10))
+        {
+          counter++;
+        }
+      }
+    }
+  }
+  EXPECT_EQ(1, counter);
 }
 
 TEST_F(SearchTestPcc2, DepthFirst) {

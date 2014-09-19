@@ -170,7 +170,7 @@ TEST_F(SearchTestRidges, Benchmark2) {
     }
   } // end if pos="ART" strings found
 
-  EXPECT_EQ(21911, counter);
+  EXPECT_EQ(1386828, counter);
 }
 
 
