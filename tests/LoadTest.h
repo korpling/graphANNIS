@@ -105,17 +105,39 @@ TEST_F(LoadTest, EdgeAnnos) {
 
 TEST_F(LoadTest, Ordering) {
 
-  annis::Component c = annis::constructComponent(annis::ComponentType::ORDERING,
+  annis::Component componentOrdering = annis::constructComponent(annis::ComponentType::ORDERING,
                                                  annis::annis_ns, "");
-  const annis::EdgeDB* edb = db.getEdgeDB(c);
+  const annis::EdgeDB* edb = db.getEdgeDB(componentOrdering);
+  ASSERT_TRUE(edb != NULL);
   // tok . tok
   EXPECT_TRUE(edb->isConnected(annis::constructEdge(0, 1)));
+
+  // test the last two token
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(517, 880)));
+
   // span . tok
-  EXPECT_TRUE(edb->isConnected(annis::constructEdge(125, 126)));
+  EXPECT_FALSE(edb->isConnected(annis::constructEdge(125, 126)));
   // tok . span
-  EXPECT_TRUE(edb->isConnected(annis::constructEdge(151, 61)));
+  EXPECT_FALSE(edb->isConnected(annis::constructEdge(151, 61)));
   // span . span
-  EXPECT_TRUE(edb->isConnected(annis::constructEdge(152, 61)));
+  EXPECT_FALSE(edb->isConnected(annis::constructEdge(152, 61)));
+
+  annis::Component componentLeftToken = annis::constructComponent(annis::ComponentType::LEFT_TOKEN,
+                                                 annis::annis_ns, "");
+  edb = db.getEdgeDB(componentLeftToken);
+  ASSERT_TRUE(edb != NULL);
+  // span _l_ tok
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(125, 124)));
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(61, 49)));
+
+  annis::Component componentRightToken = annis::constructComponent(annis::ComponentType::RIGHT_TOKEN,
+                                                 annis::annis_ns, "");
+  edb = db.getEdgeDB(componentRightToken);
+  ASSERT_TRUE(edb != NULL);
+  // span _r_ tok
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(125, 124)));
+  EXPECT_TRUE(edb->isConnected(annis::constructEdge(61, 60)));
+
 
 }
 

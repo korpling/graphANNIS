@@ -29,7 +29,9 @@ bool DB::load(string dirPath)
   clear();
   addDefaultStrings();
 
+  HL_INFO(logger, "Start loading string storage");
   strings.load(dirPath);
+  HL_INFO(logger, "End loading string storage");
 
   ifstream in;
 
@@ -83,6 +85,7 @@ bool DB::load(string dirPath)
   } // end for each component
 
   // TODO: return false on failure
+  HL_INFO(logger, "Finished loading");
   return true;
 }
 
@@ -243,41 +246,54 @@ bool DB::loadRelANNISNode(string dirPath)
 
   // TODO: cleanup, better variable naming and put this into it's own function
   // iterate over all token by their order, find the nodes with the same
-  // text coverate (either left or right) and add explicit precedence edges
+  // text coverate (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
   if(!tokenByIndex.empty())
   {
-    HL_INFO(logger, "calculating the automatically generated ORDERING edges");
-    EdgeDB* edb = createEdgeDBForComponent(ComponentType::ORDERING, annis_ns, "");
+    HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
+    EdgeDB* edbOrder = createEdgeDBForComponent(ComponentType::ORDERING, annis_ns, "");
+    EdgeDB* edbLeft = createEdgeDBForComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
+    EdgeDB* edbRight = createEdgeDBForComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
+
     map<TextProperty, uint32_t, compTextProperty>::const_iterator tokenIt = tokenByIndex.begin();
-    uint32_t lastToken = tokenIt->second;
-    uint32_t lastTextID = tokenIt->first.textID;
-    tokenIt++;
+    uint32_t lastTextID = numeric_limits<uint32_t>::max();
+    uint32_t lastToken = numeric_limits<uint32_t>::max();
+
     while(tokenIt != tokenByIndex.end())
     {
+      uint32_t currentToken = tokenIt->second;
       uint32_t currentTextID = tokenIt->first.textID;
-      if(currentTextID == lastTextID)
+
+      // find all nodes that start together with the current token
+      TextProperty currentTokenLeft;
+      currentTokenLeft.textID = currentTextID;
+      currentTokenLeft.val = nodeToLeft[currentToken];
+      pair<TextPropIt, TextPropIt> leftAlignedNodes = leftToNode.equal_range(currentTokenLeft);
+      for(TextPropIt itLeftAligned=leftAlignedNodes.first; itLeftAligned != leftAlignedNodes.second; itLeftAligned++)
+      {
+        edbLeft->addEdge(constructEdge(itLeftAligned->second, currentToken));
+      }
+
+      // find all nodes that end together with the current token
+      TextProperty currentTokenRight;
+      currentTokenRight.textID = currentTextID;
+      currentTokenRight.val = nodeToRight[currentToken];
+      pair<TextPropIt, TextPropIt> rightAlignedNodes = rightToNode.equal_range(currentTokenRight);
+      for(TextPropIt itRightAligned=rightAlignedNodes.first; itRightAligned != rightAlignedNodes.second; itRightAligned++)
+      {
+        edbRight->addEdge(constructEdge(itRightAligned->second, currentToken));
+      }
+
+      // if the last token/text value is valid and we are still in the same text
+      if(tokenIt != tokenByIndex.begin() && currentTextID == lastTextID)
       {
         // we are still in the same text
         uint32_t nextToken = tokenIt->second;
-        // find all nodes that end together with the last token
-        TextProperty lastTokenRight;
-        lastTokenRight.textID = currentTextID;
-        lastTokenRight.val = nodeToRight[lastToken];
-        pair<TextPropIt, TextPropIt> lastNodesRange = rightToNode.equal_range(lastTokenRight);
-        for(TextPropIt itLast=lastNodesRange.first; itLast != lastNodesRange.second; itLast++)
-        {
-          // find all nodes that start together with the nextToken
-          TextProperty nextTokenLeft;
-          nextTokenLeft.textID = currentTextID;
-          nextTokenLeft.val = nodeToLeft[nextToken];
-          pair<TextPropIt, TextPropIt> nextNodeRange = leftToNode.equal_range(nextTokenLeft);
-          for(TextPropIt itNext=nextNodeRange.first; itNext != nextNodeRange.second; itNext++)
-          {
-            // actually add the ordering edge
-            edb->addEdge(constructEdge(itLast->second, itNext->second));
-          }
-        }
+        // add ordering between token
+        edbOrder->addEdge(constructEdge(lastToken, nextToken));
+
       } // end if same text
+
+      // update the iterator and other variables
       lastTextID = currentTextID;
       lastToken = tokenIt->second;
       tokenIt++;

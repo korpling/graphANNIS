@@ -16,6 +16,7 @@ namespace annis
   };
 
   enum class ComponentType {COVERAGE, DOMINANCE, POINTING, ORDERING,
+                            LEFT_TOKEN, RIGHT_TOKEN,
                             ComponentType_MAX};
   static std::string ComponentTypeToString(const ComponentType& type)
   {
@@ -32,6 +33,12 @@ namespace annis
       break;
     case ComponentType::ORDERING:
       return "ORDERING";
+      break;
+    case ComponentType::LEFT_TOKEN:
+      return "LEFT_TOKEN";
+      break;
+    case ComponentType::RIGHT_TOKEN:
+      return "RIGHT_TOKEN";
       break;
     default:
       return "UNKNOWN";
