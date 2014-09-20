@@ -20,6 +20,7 @@ namespace annis
 class DB
 {
   friend class AnnotationNameSearch;
+  typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
 public:
   DB();
 

@@ -12,6 +12,7 @@
 
 #include "helper.h"
 #include "edgedb/fallbackedgedb.h"
+#include "edgedb/linearedgedb.h"
 
 HUMBLE_LOGGER(logger, "annis4");
 
@@ -91,7 +92,6 @@ bool DB::load(string dirPath)
 
 bool DB::save(string dirPath)
 {
-  typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
 
   boost::filesystem::create_directories(dirPath);
 
@@ -164,7 +164,17 @@ bool DB::loadRelANNIS(string dirPath)
 
   bool result = loadRelANNISRank(dirPath, componentToEdgeDB);
 
-
+  // construct the complex indexes for all components
+  for(auto& ed : edgeDatabases)
+  {
+    Component c = ed.first;
+    HL_INFO(logger, (boost::format("component calculations %1%|%2%|%3%")
+                     % ComponentTypeToString(c.type)
+                     % c.layer
+                     % c.name).str());
+    ed.second->calculateIndex();
+  }
+  HL_INFO(logger, "Finished loading relANNIS");
   return result;
 }
 
@@ -270,8 +280,8 @@ bool DB::loadRelANNISNode(string dirPath)
       pair<TextPropIt, TextPropIt> leftAlignedNodes = leftToNode.equal_range(currentTokenLeft);
       for(TextPropIt itLeftAligned=leftAlignedNodes.first; itLeftAligned != leftAlignedNodes.second; itLeftAligned++)
       {
-        edbLeft->addEdge(constructEdge(itLeftAligned->second, currentToken));
-        edbLeft->addEdge(constructEdge(currentToken, itLeftAligned->second));
+        edbLeft->addEdge(initEdge(itLeftAligned->second, currentToken));
+        edbLeft->addEdge(initEdge(currentToken, itLeftAligned->second));
       }
 
       // find all nodes that end together with the current token
@@ -281,8 +291,8 @@ bool DB::loadRelANNISNode(string dirPath)
       pair<TextPropIt, TextPropIt> rightAlignedNodes = rightToNode.equal_range(currentTokenRight);
       for(TextPropIt itRightAligned=rightAlignedNodes.first; itRightAligned != rightAlignedNodes.second; itRightAligned++)
       {
-        edbRight->addEdge(constructEdge(itRightAligned->second, currentToken));
-        edbRight->addEdge(constructEdge(currentToken, itRightAligned->second));
+        edbRight->addEdge(initEdge(itRightAligned->second, currentToken));
+        edbRight->addEdge(initEdge(currentToken, itRightAligned->second));
       }
 
       // if the last token/text value is valid and we are still in the same text
@@ -291,7 +301,7 @@ bool DB::loadRelANNISNode(string dirPath)
         // we are still in the same text
         uint32_t nextToken = tokenIt->second;
         // add ordering between token
-        edbOrder->addEdge(constructEdge(lastToken, nextToken));
+        edbOrder->addEdge(initEdge(lastToken, nextToken));
 
       } // end if same text
 
@@ -367,7 +377,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
       if(itEdb != componentToEdgeDB.end())
       {
         EdgeDB* edb = itEdb->second;
-        Edge edge = constructEdge(uint32FromString(line[2]), it->second);
+        Edge edge = initEdge(uint32FromString(line[2]), it->second);
 
         edb->addEdge(edge);
         pre2Edge[uint32FromString(line[0])] = edge;
@@ -379,7 +389,6 @@ bool DB::loadRelANNISRank(const string &dirPath,
       result = false;
     }
   }
-
   in.close();
 
 
@@ -441,6 +450,12 @@ void DB::clear()
 {
   strings.clear();
   nodeAnnotations.clear();
+  inverseNodeAnnotations.clear();
+  for(auto& ed : edgeDatabases)
+  {
+    delete ed.second;
+  }
+  edgeDatabases.clear();
 }
 
 void DB::addDefaultStrings()
@@ -481,7 +496,7 @@ EdgeDB *DB::createEdgeDBForComponent(const string &shortType, const string &laye
 
 EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, const string &name)
 {
-  Component c = constructComponent(ctype, layer, name);
+  Component c = initComponent(ctype, layer, name);
 
   // check if there is already an edge DB for this component
   map<Component,EdgeDB*,compComponent>::const_iterator itDB =
@@ -490,8 +505,16 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
   {
 
     // TODO: decide which implementation to use
-    EdgeDB* edgeDB = new FallbackEdgeDB(strings, c);
-
+    EdgeDB* edgeDB = NULL;
+    if(c.type == ComponentType::ORDERING)
+    {
+      //edgeDB = new LinearEdgeDB(strings, c);
+      edgeDB = new FallbackEdgeDB(strings, c);
+    }
+    else
+    {
+      edgeDB= new FallbackEdgeDB(strings, c);
+    }
     // register the used implementation
     edgeDatabases.insert(pair<Component,EdgeDB*>(c,edgeDB));
     return edgeDB;
@@ -546,7 +569,6 @@ vector<Edge> DB::getInEdges(uint32_t nodeID)
 
 string DB::info()
 {
-  typedef map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
   stringstream ss;
   ss  << "Number of node annotations: " << nodeAnnotations.size() << endl
       << "Number of strings in storage: " << strings.size() << endl;

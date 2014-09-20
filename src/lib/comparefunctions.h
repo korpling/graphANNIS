@@ -140,6 +140,32 @@ struct compTextProperty
   }
 };
 
+struct compRelativePosition
+{
+  bool operator()(const struct RelativePosition &a, const struct RelativePosition &b) const
+  {
+    if(a.node < b.node)
+    {
+      return true;
+    }
+    else if(a.node > b.node)
+    {
+      return false;
+    }
+    if(a.pos < b.pos)
+    {
+      return true;
+    }
+    else if(a.pos > b.pos)
+    {
+      return false;
+    }
+
+    // they are equal
+    return false;
+  }
+};
+
 
 
 } // end namespace annis

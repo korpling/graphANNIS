@@ -62,7 +62,7 @@ TEST_F(SearchTestPcc2, TokenIndex) {
 
   unsigned int counter=0;
 
-  Component c = constructComponent(ComponentType::ORDERING, annis_ns, "");
+  Component c = initComponent(ComponentType::ORDERING, annis_ns, "");
   const EdgeDB* edb = db.getEdgeDB(c);
   if(edb != NULL)
   {
@@ -75,7 +75,7 @@ TEST_F(SearchTestPcc2, TokenIndex) {
       {
         Match m2 = n2.next();
 
-        if(edb->isConnected(constructEdge(m1.first, m2.first)))
+        if(edb->isConnected(initEdge(m1.first, m2.first)))
         {
           counter++;
         }
@@ -91,7 +91,7 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 
   unsigned int counter=0;
 
-  Component c = constructComponent(ComponentType::ORDERING, annis_ns, "");
+  Component c = initComponent(ComponentType::ORDERING, annis_ns, "");
   const EdgeDB* edb = db.getEdgeDB(c);
   if(edb != NULL)
   {
@@ -104,7 +104,7 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
       {
         Match m2 = n2.next();
 
-        if(edb->isConnected(constructEdge(m1.first, m2.first), 3, 10))
+        if(edb->isConnected(initEdge(m1.first, m2.first), 3, 10))
         {
           counter++;
         }
@@ -119,7 +119,7 @@ TEST_F(SearchTestPcc2, DepthFirst) {
 
     unsigned int counter=0;
 
-    Component c = constructComponent(ComponentType::ORDERING, annis_ns, "");
+    Component c = initComponent(ComponentType::ORDERING, annis_ns, "");
     const EdgeDB* edb = db.getEdgeDB(c);
     if(edb != NULL)
     {

@@ -82,9 +82,9 @@ TEST_F(SearchTestRidges, Benchmark1) {
   std::pair<bool, uint32_t> n2_valueID = db.strings.findID("ART");
   if(n2_nameID.first && n2_valueID.first)
   {
-    Component cOrder = constructComponent(ComponentType::ORDERING, annis_ns, "");
-    Component cLeft = constructComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
-    Component cRight = constructComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
+    Component cOrder = initComponent(ComponentType::ORDERING, annis_ns, "");
+    Component cLeft = initComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
+    Component cRight = initComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
 
     const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
@@ -143,7 +143,7 @@ TEST_F(SearchTestRidges, Benchmark2) {
   std::pair<bool, uint32_t> n2_nameID = db.strings.findID("tok");
   if(n2_nameID.first && n2_namespaceID.first)
   {
-    Component cOrder = constructComponent(ComponentType::ORDERING, annis_ns, "");
+    Component cOrder = initComponent(ComponentType::ORDERING, annis_ns, "");
 
 
     const EdgeDB* edbOrder = db.getEdgeDB(cOrder);

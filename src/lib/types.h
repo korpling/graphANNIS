@@ -81,10 +81,17 @@ namespace annis
     std::uint32_t val;
   };
 
+  struct RelativePosition
+  {
+    nodeid_t node;
+    u_int32_t pos;
+  };
+
+
   /** combines a node ID and the matched annotation */
   typedef std::pair<std::uint32_t, Annotation> Match;
 
-  static Edge constructEdge(nodeid_t source, nodeid_t target)
+  static Edge initEdge(nodeid_t source, nodeid_t target)
   {
     Edge result;
     result.source = source;
@@ -92,7 +99,7 @@ namespace annis
     return result;
   }
   
-  static Component constructComponent(ComponentType type, const std::string& layer, const std::string& name)
+  static Component initComponent(ComponentType type, const std::string& layer, const std::string& name)
   {
     Component c;
     c.type = type;
@@ -111,6 +118,14 @@ namespace annis
       throw("Component name or namespace are too long");
     }
     return c;
+  }
+
+  static RelativePosition initRelativePosition(nodeid_t node, u_int32_t pos)
+  {
+    RelativePosition result;
+    result.node = node;
+    result.pos = pos;
+    return result;
   }
 
   inline bool operator==(const Annotation& lhs, const Annotation& rhs)

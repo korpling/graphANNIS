@@ -31,7 +31,16 @@ public:
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const;
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const;
-  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t sourceNode) const;
+  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const;
+
+  stx::btree_set<Edge, compEdges>::const_iterator getEdgesBegin()
+  {
+    return edges.begin();
+  }
+  stx::btree_set<Edge, compEdges>::const_iterator getEdgesEnd()
+  {
+    return edges.end();
+  }
 
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);

@@ -89,14 +89,14 @@ std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) con
   return result;
 }
 
-std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t sourceNode) const
+std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t node) const
 {
   typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
 
   vector<nodeid_t> result;
 
-  EdgeIt lowerIt = edges.lower_bound(constructEdge(sourceNode, numeric_limits<uint32_t>::min()));
-  EdgeIt upperIt = edges.lower_bound(constructEdge(sourceNode, numeric_limits<uint32_t>::max()));
+  EdgeIt lowerIt = edges.lower_bound(initEdge(node, numeric_limits<uint32_t>::min()));
+  EdgeIt upperIt = edges.lower_bound(initEdge(node, numeric_limits<uint32_t>::max()));
 
   for(EdgeIt it = lowerIt; it != upperIt; it++)
   {
@@ -186,5 +186,5 @@ std::pair<bool, nodeid_t> FallbackDFSIterator::next()
       }
     }
   }
-  return std::pair<bool, uint32_t>(found, node);
+  return std::pair<bool, nodeid_t>(found, node);
 }
