@@ -16,7 +16,7 @@ public:
 class EdgeIterator
 {
 public:
-  virtual std::pair<bool, std::uint32_t> next() = 0;
+  virtual std::pair<bool, nodeid_t> next() = 0;
 };
 
 } // end namespace annis

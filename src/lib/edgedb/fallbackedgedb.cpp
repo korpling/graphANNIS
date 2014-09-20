@@ -29,11 +29,6 @@ void FallbackEdgeDB::clear()
   edgeAnnotations.clear();
 }
 
-const Component &FallbackEdgeDB::getComponent()
-{
-  return component;
-}
-
 bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
   typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
@@ -94,11 +89,11 @@ std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) con
   return result;
 }
 
-std::vector<std::uint32_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t sourceNode) const
+std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t sourceNode) const
 {
   typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
 
-  vector<uint32_t> result;
+  vector<nodeid_t> result;
 
   EdgeIt lowerIt = edges.lower_bound(constructEdge(sourceNode, numeric_limits<uint32_t>::min()));
   EdgeIt upperIt = edges.lower_bound(constructEdge(sourceNode, numeric_limits<uint32_t>::max()));
@@ -163,10 +158,10 @@ FallbackDFSIterator::FallbackDFSIterator(const FallbackEdgeDB &edb,
   traversalStack.push(pair<uint32_t,unsigned int>(startNode, 0));
 }
 
-std::pair<bool, std::uint32_t> FallbackDFSIterator::next()
+std::pair<bool, nodeid_t> FallbackDFSIterator::next()
 {
   bool found = false;
-  uint32_t node;
+  nodeid_t node;
   while(!found && !traversalStack.empty())
   {
     pair<uint32_t, unsigned int> stackEntry = traversalStack.top();

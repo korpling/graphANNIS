@@ -26,15 +26,12 @@ public:
   virtual void addEdgeAnnotation(const Edge &edge, const Annotation& anno);
   virtual void clear();
 
-  virtual std::string getName() {return "fallback";}
-  virtual const Component& getComponent();
-
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const;
   virtual EdgeIterator* findConnected(nodeid_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const;
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const;
-  virtual std::vector<std::uint32_t> getOutgoingEdges(nodeid_t sourceNode) const;
+  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t sourceNode) const;
 
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
@@ -56,13 +53,11 @@ private:
 /** A depth first traverser */
 class FallbackDFSIterator : public EdgeIterator
 {
-  typedef stx::btree_multimap<std::uint32_t, std::uint32_t>::const_iterator EdgeIt;
-
 public:
 
   FallbackDFSIterator(const FallbackEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
 
-  virtual std::pair<bool, std::uint32_t> next();
+  virtual std::pair<bool, nodeid_t> next();
 private:
 
   const FallbackEdgeDB& edb;
@@ -71,7 +66,7 @@ private:
    * @brief Traversion stack
    * Contains both the node id (first) and the distance from the start node (second)
    */
-  std::stack<std::pair<std::uint32_t, unsigned int> > traversalStack;
+  std::stack<std::pair<nodeid_t, unsigned int> > traversalStack;
   unsigned int minDistance;
   unsigned int maxDistance;
 };
