@@ -7,12 +7,14 @@
 
 namespace annis
 {
+  typedef std::uint32_t nodeid_t;
+
   const std::string annis_ns = "annis4_internal";
 
   struct Edge
   {
-    std::uint32_t source;
-    std::uint32_t target;
+    nodeid_t source;
+    nodeid_t target;
   };
 
   enum class ComponentType {COVERAGE, DOMINANCE, POINTING, ORDERING,
@@ -82,7 +84,7 @@ namespace annis
   /** combines a node ID and the matched annotation */
   typedef std::pair<std::uint32_t, Annotation> Match;
 
-  static Edge constructEdge(std::uint32_t source, std::uint32_t target)
+  static Edge constructEdge(nodeid_t source, nodeid_t target)
   {
     Edge result;
     result.source = source;

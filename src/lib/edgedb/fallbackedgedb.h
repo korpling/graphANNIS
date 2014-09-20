@@ -30,11 +30,11 @@ public:
   virtual const Component& getComponent();
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const;
-  virtual EdgeIterator* findConnected(std::uint32_t sourceNode,
+  virtual EdgeIterator* findConnected(nodeid_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const;
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const;
-  virtual std::vector<std::uint32_t> getOutgoingEdges(std::uint32_t sourceNode) const;
+  virtual std::vector<std::uint32_t> getOutgoingEdges(nodeid_t sourceNode) const;
 
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);

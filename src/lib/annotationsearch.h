@@ -9,7 +9,7 @@ namespace annis
 
 class AnnotationNameSearch : public AnnotationIterator
 {
-typedef stx::btree_multimap<Annotation, std::uint32_t, compAnno>::const_iterator ItType;
+typedef stx::btree_multimap<Annotation, nodeid_t, compAnno>::const_iterator ItType;
 
 public:
   AnnotationNameSearch(DB& db, const std::string& annoName);

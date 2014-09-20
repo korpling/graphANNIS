@@ -70,7 +70,7 @@ bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, uns
   return false;
 }
 
-EdgeIterator *FallbackEdgeDB::findConnected(std::uint32_t sourceNode,
+EdgeIterator *FallbackEdgeDB::findConnected(nodeid_t sourceNode,
                                                  unsigned int minDistance,
                                                  unsigned int maxDistance) const
 {
@@ -94,7 +94,7 @@ std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) con
   return result;
 }
 
-std::vector<std::uint32_t> FallbackEdgeDB::getOutgoingEdges(std::uint32_t sourceNode) const
+std::vector<std::uint32_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t sourceNode) const
 {
   typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
 

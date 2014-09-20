@@ -27,8 +27,8 @@ public:
   bool load(std::string dirPath);
   bool save(std::string dirPath);
 
-  bool hasNode(std::uint32_t id);
-  std::vector<Annotation> getNodeAnnotationsByID(const std::uint32_t &id);
+  bool hasNode(nodeid_t id);
+  std::vector<Annotation> getNodeAnnotationsByID(const nodeid_t &id);
 
   std::vector<Component> getDirectConnected(const Edge& edge);
   const EdgeDB* getEdgeDB(const Component& component);
@@ -41,8 +41,8 @@ public:
   StringStorage strings;
 
 private:
-  stx::btree_multimap<std::uint32_t, Annotation> nodeAnnotations;
-  stx::btree_multimap<Annotation, std::uint32_t, compAnno> inverseNodeAnnotations;
+  stx::btree_multimap<nodeid_t, Annotation> nodeAnnotations;
+  stx::btree_multimap<Annotation, nodeid_t, compAnno> inverseNodeAnnotations;
 
   std::map<Component, EdgeDB*, compComponent> edgeDatabases;
 
@@ -54,7 +54,7 @@ private:
                           const std::map<std::uint32_t, EdgeDB* >& pre2EdgeDB,
                           const std::map<std::uint32_t, Edge>& pre2Edge);
 
-  void addNodeAnnotation(std::uint32_t nodeID, Annotation& anno)
+  void addNodeAnnotation(nodeid_t nodeID, Annotation& anno)
   {
     nodeAnnotations.insert2(nodeID, anno);
     inverseNodeAnnotations.insert2(anno, nodeID);

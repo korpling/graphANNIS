@@ -28,12 +28,12 @@ public:
    * @return An iterator. You have to delete this iterator by yourself after using it.
    */
   virtual EdgeIterator* findConnected(
-                                           std::uint32_t sourceNode,
+                                           nodeid_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const = 0;
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const = 0;
-  virtual std::vector<std::uint32_t> getOutgoingEdges(std::uint32_t sourceNode) const = 0;
+  virtual std::vector<std::uint32_t> getOutgoingEdges(nodeid_t sourceNode) const = 0;
 
   virtual std::string getName() = 0;
   virtual const Component& getComponent() = 0;

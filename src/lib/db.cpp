@@ -502,9 +502,9 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
   }
 }
 
-bool DB::hasNode(uint32_t id)
+bool DB::hasNode(nodeid_t id)
 {
-  stx::btree_multimap<uint32_t, Annotation>::const_iterator itNode = nodeAnnotations.find(id);
+  stx::btree_multimap<nodeid_t, Annotation>::const_iterator itNode = nodeAnnotations.find(id);
   if(itNode == nodeAnnotations.end())
   {
     return false;
@@ -591,9 +591,9 @@ vector<Edge> DB::getEdgesBetweenNodes(uint32_t sourceID, uint32_t targetID)
 }
 */
 
-vector<Annotation> DB::getNodeAnnotationsByID(const uint32_t& id)
+vector<Annotation> DB::getNodeAnnotationsByID(const nodeid_t& id)
 {
-  typedef stx::btree_multimap<uint32_t, Annotation>::const_iterator AnnoIt;
+  typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
 
   vector<Annotation> result;
 
