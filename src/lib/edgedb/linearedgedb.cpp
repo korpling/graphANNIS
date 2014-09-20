@@ -131,9 +131,11 @@ LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
   if(posSourceIt != edb.node2pos.end())
   {
     currentPos = posSourceIt->second;
+    // define where to stop
+    endPos = currentPos.pos + maxDistance;
     // add the minium distance
     currentPos.pos = currentPos.pos + minDistance;
-    endPos = currentPos.pos + maxDistance;
+
   }
 }
 
