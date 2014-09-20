@@ -8,7 +8,9 @@
 class LoadTest : public ::testing::Test {
 protected:
   annis::DB db;
+  std::string dataDir;
   LoadTest()
+    : dataDir("data")
   {
   }
 
@@ -21,7 +23,6 @@ protected:
 
   virtual void SetUp() {
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
-    std::string dataDir("data");
     if(testDataEnv != NULL)
     {
       dataDir = testDataEnv;

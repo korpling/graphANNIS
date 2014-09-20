@@ -30,6 +30,7 @@ class SearchTestPcc2 : public ::testing::Test {
     {
       dataDir = testDataEnv;
     }
+//    bool loadedDB = db.loadRelANNIS(dataDir + "/pcc2_v6_relANNIS");
     bool loadedDB = db.load(dataDir + "/pcc2");
     EXPECT_EQ(true, loadedDB);
 

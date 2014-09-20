@@ -89,6 +89,8 @@ EdgeIterator *LinearEdgeDB::findConnected(nodeid_t sourceNode, unsigned int minD
 
 bool LinearEdgeDB::save(string dirPath)
 {
+  bool result = FallbackEdgeDB::save(dirPath);
+
   ofstream out;
 
   out.open(dirPath + "/node2pos.btree");
@@ -99,22 +101,24 @@ bool LinearEdgeDB::save(string dirPath)
   pos2node.dump(out);
   out.close();
 
-  return FallbackEdgeDB::save(dirPath);
+  return result;
 }
 
 bool LinearEdgeDB::load(string dirPath)
 {
+  bool result = FallbackEdgeDB::load(dirPath);
   ifstream in;
 
+
   in.open(dirPath + "/node2pos.btree");
-  node2pos.restore(in);
+  result = result && node2pos.restore(in);
   in.close();
 
   in.open(dirPath + "/pos2node.btree");
-  pos2node.restore(in);
+  result = result && pos2node.restore(in);
   in.close();
 
-  return FallbackEdgeDB::load(dirPath);
+  return result;
 }
 
 LinearEdgeDB::~LinearEdgeDB()
