@@ -44,4 +44,3 @@ set(TEST_EXEC "test_${PROJECT_NAME}")
 add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
 target_link_libraries(${TEST_EXEC} ${PROJECT_NAME} gtest gtest_main)
 add_test( ${TEST_EXEC} ${TEST_EXEC} )
-

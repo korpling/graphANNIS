@@ -3,13 +3,13 @@
 
 #include "gtest/gtest.h"
 #include "db.h"
+#include <cstdlib>
 
 class LoadTest : public ::testing::Test {
- protected:
+protected:
   annis::DB db;
-  LoadTest() {
-    bool result = db.loadRelANNIS("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
-    EXPECT_EQ(true, result);
+  LoadTest()
+  {
   }
 
   virtual ~LoadTest() {
@@ -20,8 +20,14 @@ class LoadTest : public ::testing::Test {
   // and cleaning up each test, you can define the following methods:
 
   virtual void SetUp() {
-    // Code here will be called immediately after the constructor (right
-    // before each test).
+    char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
+    std::string dataDir("data");
+    if(testDataEnv != NULL)
+    {
+      dataDir = testDataEnv;
+    }
+    bool loadedDB = db.loadRelANNIS(dataDir + "/pcc2_v6_relANNIS");
+    ASSERT_EQ(true, loadedDB);
   }
 
   virtual void TearDown() {
@@ -118,7 +124,7 @@ TEST_F(LoadTest, EdgeAnnos) {
 TEST_F(LoadTest, Ordering) {
 
   annis::Component componentOrdering = annis::constructComponent(annis::ComponentType::ORDERING,
-                                                 annis::annis_ns, "");
+                                                                 annis::annis_ns, "");
   const annis::EdgeDB* edb = db.getEdgeDB(componentOrdering);
   ASSERT_TRUE(edb != NULL);
   // tok . tok
@@ -135,7 +141,7 @@ TEST_F(LoadTest, Ordering) {
   EXPECT_FALSE(edb->isConnected(annis::constructEdge(152, 61)));
 
   annis::Component componentLeftToken = annis::constructComponent(annis::ComponentType::LEFT_TOKEN,
-                                                 annis::annis_ns, "");
+                                                                  annis::annis_ns, "");
   edb = db.getEdgeDB(componentLeftToken);
   ASSERT_TRUE(edb != NULL);
   // span _l_ tok (both direcctions)
@@ -145,7 +151,7 @@ TEST_F(LoadTest, Ordering) {
   EXPECT_TRUE(edb->isConnected(annis::constructEdge(49, 61)));
 
   annis::Component componentRightToken = annis::constructComponent(annis::ComponentType::RIGHT_TOKEN,
-                                                 annis::annis_ns, "");
+                                                                   annis::annis_ns, "");
   edb = db.getEdgeDB(componentRightToken);
   ASSERT_TRUE(edb != NULL);
   // span _r_ tok (both direcctions)

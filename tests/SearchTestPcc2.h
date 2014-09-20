@@ -12,10 +12,8 @@ using namespace annis;
 class SearchTestPcc2 : public ::testing::Test {
  protected:
   DB db;
-  SearchTestPcc2() {
-//    bool result = db.loadRelANNIS("/home/thomas/korpora/pcc/pcc-2/pcc2_v6_relANNIS");
-    bool result = db.load("/home/thomas/korpora/a4/pcc2");
-    EXPECT_EQ(true, result);
+  SearchTestPcc2()
+  {
   }
 
   virtual ~SearchTestPcc2() {
@@ -26,8 +24,15 @@ class SearchTestPcc2 : public ::testing::Test {
   // and cleaning up each test, you can define the following methods:
 
   virtual void SetUp() {
-    // Code here will be called immediately after the constructor (right
-    // before each test).
+    char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
+    std::string dataDir("data");
+    if(testDataEnv != NULL)
+    {
+      dataDir = testDataEnv;
+    }
+    bool loadedDB = db.load(dataDir + "/pcc2");
+    EXPECT_EQ(true, loadedDB);
+
   }
 
   virtual void TearDown() {

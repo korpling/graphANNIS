@@ -13,8 +13,6 @@ class SearchTestRidges : public ::testing::Test {
  protected:
   DB db;
   SearchTestRidges() {
-    bool result = db.load("/home/thomas/korpora/a4/ridges");
-    EXPECT_EQ(true, result);
   }
 
   virtual ~SearchTestRidges() {
@@ -25,8 +23,14 @@ class SearchTestRidges : public ::testing::Test {
   // and cleaning up each test, you can define the following methods:
 
   virtual void SetUp() {
-    // Code here will be called immediately after the constructor (right
-    // before each test).
+    char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
+    std::string dataDir("data");
+    if(testDataEnv != NULL)
+    {
+      dataDir = testDataEnv;
+    }
+    bool loadedDB = db.load(dataDir + "/ridges");
+    EXPECT_EQ(true, loadedDB);
   }
 
   virtual void TearDown() {
