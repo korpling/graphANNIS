@@ -31,7 +31,7 @@ public:
 
 private:
   stx::btree_map<nodeid_t, RelativePosition> node2pos;
-  stx::btree_map<RelativePosition, nodeid_t, compRelativePosition> pos2node;
+  std::map<nodeid_t, std::vector<nodeid_t> > nodeChains;
 };
 
 class LinearIterator : public EdgeIterator
@@ -45,8 +45,9 @@ private:
 
   const LinearEdgeDB& edb;
 
-  RelativePosition currentPos;
-  u_int32_t endPos;
+  const std::vector<nodeid_t>* chain;
+  uint32_t currentPos;
+  uint32_t endPos;
 
 };
 

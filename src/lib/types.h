@@ -83,7 +83,7 @@ namespace annis
 
   struct RelativePosition
   {
-    nodeid_t node;
+    nodeid_t root;
     u_int32_t pos;
   };
 
@@ -123,7 +123,7 @@ namespace annis
   static RelativePosition initRelativePosition(nodeid_t node, u_int32_t pos)
   {
     RelativePosition result;
-    result.node = node;
+    result.root = node;
     result.pos = pos;
     return result;
   }

@@ -144,11 +144,11 @@ struct compRelativePosition
 {
   bool operator()(const struct RelativePosition &a, const struct RelativePosition &b) const
   {
-    if(a.node < b.node)
+    if(a.root < b.root)
     {
       return true;
     }
-    else if(a.node > b.node)
+    else if(a.root > b.root)
     {
       return false;
     }

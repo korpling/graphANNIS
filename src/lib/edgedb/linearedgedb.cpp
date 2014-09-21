@@ -3,6 +3,12 @@
 #include <set>
 #include <limits>
 
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
+
 using namespace annis;
 using namespace std;
 
@@ -15,7 +21,7 @@ void LinearEdgeDB::clear()
 {
   FallbackEdgeDB::clear();
   node2pos.clear();
-  pos2node.clear();
+  nodeChains.clear();
 }
 
 void LinearEdgeDB::calculateIndex()
@@ -46,16 +52,18 @@ void LinearEdgeDB::calculateIndex()
   for(auto& rootNode : roots)
   {
     // iterate over all edges beginning from the root
-    pos2node[initRelativePosition(rootNode,0)] = rootNode;
-    node2pos[rootNode] = initRelativePosition(rootNode,0);
+    nodeChains[rootNode] = std::vector<nodeid_t>();
+    std::vector<nodeid_t>& chain = nodeChains[rootNode];
+    chain.push_back(rootNode);
+    node2pos[rootNode] = initRelativePosition(rootNode,chain.size()-1);
 
     FallbackDFSIterator it(*this, rootNode, 1, numeric_limits<uint32_t>::max());
 
     uint32_t pos=1;
     for(pair<bool, nodeid_t> node = it.next(); node.first; node = it.next(), pos++)
     {
-      pos2node[initRelativePosition(rootNode,pos)] = node.second;
-      node2pos[node.second] = initRelativePosition(rootNode,pos);
+      chain.push_back(node.second);
+      node2pos[node.second] = initRelativePosition(rootNode,chain.size()-1);
     }
   }
 
@@ -72,7 +80,7 @@ bool LinearEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsig
   {
     RelativePosition posSource = posSourceIt->second;
     RelativePosition posTarget = posTargetIt->second;
-    if(posSource.node == posTarget.node && posSource.pos < posTarget.pos)
+    if(posSource.root == posTarget.root && posSource.pos < posTarget.pos)
     {
       unsigned int diff = posTarget.pos - posSource.pos;
       return diff >= minDistance && diff <= maxDistance;
@@ -97,8 +105,9 @@ bool LinearEdgeDB::save(string dirPath)
   node2pos.dump(out);
   out.close();
 
-  out.open(dirPath + "/pos2node.btree");
-  pos2node.dump(out);
+  out.open(dirPath + "/nodeChains.archive", ios::binary);
+  boost::archive::binary_oarchive oa(out);
+  oa << nodeChains;
   out.close();
 
   return result;
@@ -114,8 +123,9 @@ bool LinearEdgeDB::load(string dirPath)
   result = result && node2pos.restore(in);
   in.close();
 
-  in.open(dirPath + "/pos2node.btree");
-  result = result && pos2node.restore(in);
+  in.open(dirPath + "/nodeChains.archive", ios::binary);
+  boost::archive::binary_iarchive ia(in);
+  ia >> nodeChains;
   in.close();
 
   return result;
@@ -128,35 +138,39 @@ LinearEdgeDB::~LinearEdgeDB()
 
 LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
                                unsigned int minDistance, unsigned int maxDistance)
-  : edb(edb)
+  : edb(edb), chain(NULL)
 {
   typedef stx::btree_map<nodeid_t, RelativePosition>::const_iterator PosIt;
+  typedef map<nodeid_t, std::vector<nodeid_t> >::const_iterator NodeChainIt;
   PosIt posSourceIt = edb.node2pos.find(startNode);
   if(posSourceIt != edb.node2pos.end())
   {
-    currentPos = posSourceIt->second;
+    const RelativePosition& relPos = posSourceIt->second;
+    currentPos = relPos.pos;
+    NodeChainIt itNodeChain = edb.nodeChains.find(relPos.root);
+    if(itNodeChain != edb.nodeChains.end())
+    {
+      chain = &(itNodeChain->second);
+    }
+
     // define where to stop
-    endPos = currentPos.pos + maxDistance;
+    endPos = currentPos + maxDistance;
     // add the minium distance
-    currentPos.pos = currentPos.pos + minDistance;
+    currentPos = currentPos + minDistance;
 
   }
 }
 
 pair<bool, nodeid_t> LinearIterator::next()
 {
-  typedef stx::btree_map<RelativePosition, nodeid_t, compRelativePosition>::const_iterator NodeIt;
   bool found = false;
   nodeid_t node;
-  if(currentPos.pos <= endPos)
+  if(chain != NULL && currentPos <= endPos && currentPos < chain->size())
   {
-    NodeIt nextIt = edb.pos2node.find(currentPos);
-    if(nextIt != edb.pos2node.end())
-    {
-      found = true;
-      node = nextIt->second;
-      currentPos.pos++;
-    }
+    found = true;
+    node = chain->at(currentPos);
+    chain->at(currentPos);
+    currentPos++;
   }
   return std::pair<bool, nodeid_t>(found, node);
 }

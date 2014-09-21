@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/ext/h
 add_subdirectory(ext/humble-logging-library-2.0.0)
 
 find_package(ICU 4.4 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system filesystem)
+find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
 
 message(STATUS "HumbleLogging_INCLUDE_DIRS=${HumbleLogging_INCLUDE_DIRS}")
 message(STATUS "HumbleLogging_LIBRARY=${HumbleLogging_LIBRARY}")
