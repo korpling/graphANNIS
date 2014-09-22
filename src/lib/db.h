@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <map>
+#include <vector>
 
 #include "types.h"
 #include "comparefunctions.h"
@@ -29,7 +30,21 @@ public:
   bool save(std::string dirPath);
 
   bool hasNode(nodeid_t id);
-  std::vector<Annotation> getNodeAnnotationsByID(const nodeid_t &id);
+  std::vector<Annotation> getNodeAnnotationsByID(const nodeid_t &id)
+  {
+    typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
+
+    std::vector<Annotation> result;
+    result.reserve(10);
+    std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
+    for(AnnoIt itAnnos = itRange.first;
+        itAnnos != itRange.second; itAnnos++)
+    {
+      result.push_back(itAnnos->second);
+    }
+
+    return result;
+  }
 
   std::vector<Component> getDirectConnected(const Edge& edge);
   const EdgeDB* getEdgeDB(const Component& component);

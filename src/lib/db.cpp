@@ -538,35 +538,6 @@ bool DB::hasNode(nodeid_t id)
   }
 }
 
-/*
-vector<Edge> DB::getInEdges(uint32_t nodeID)
-{
-  typedef stx::btree_set<Edge, compEdges>::const_iterator UintSetIt;
-  vector<Edge> result;
-  Edge keyLower;
-  Edge keyUpper;
-
-  keyLower.target = nodeID;
-  keyUpper.target = nodeID;
-
-  keyLower.source = numeric_limits<uint32_t>::min();
-  keyLower.component = numeric_limits<uint32_t>::min();
-
-  keyUpper.source = numeric_limits<uint32_t>::max();
-  keyUpper.component = numeric_limits<uint32_t>::max();
-
-  UintSetIt lowerBound = edges.lower_bound(keyLower);
-  UintSetIt upperBound = edges.upper_bound(keyUpper);
-
-  for(UintSetIt it=lowerBound; it != upperBound; it++)
-  {
-    result.push_back(*it);
-  }
-
-  return result;
-}
-*/
-
 string DB::info()
 {
   stringstream ss;
@@ -585,50 +556,6 @@ string DB::info()
   return ss.str();
 }
 
-/*
-vector<Edge> DB::getEdgesBetweenNodes(uint32_t sourceID, uint32_t targetID)
-{
-  typedef stx::btree_set<Edge, compEdges>::const_iterator UintSetIt;
-  vector<Edge> result;
-  Edge keyLower;
-  Edge keyUpper;
-
-  keyLower.source = sourceID;
-  keyUpper.source = sourceID;
-  keyLower.target = targetID;
-  keyUpper.target = targetID;
-
-  keyLower.component = numeric_limits<uint32_t>::min();
-  keyUpper.component = numeric_limits<uint32_t>::max();
-
-  UintSetIt lowerBound = edges.lower_bound(keyLower);
-  UintSetIt upperBound = edges.upper_bound(keyUpper);
-
-  for(UintSetIt it=lowerBound; it != upperBound; it++)
-  {
-    result.push_back(*it);
-  }
-
-  return result;
-}
-*/
-
-vector<Annotation> DB::getNodeAnnotationsByID(const nodeid_t& id)
-{
-  typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
-
-  vector<Annotation> result;
-
-  pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
-
-  for(AnnoIt itAnnos = itRange.first;
-      itAnnos != itRange.second; itAnnos++)
-  {
-    result.push_back(itAnnos->second);
-  }
-
-  return result;
-}
 
 std::vector<Component> DB::getDirectConnected(const Edge &edge)
 {
