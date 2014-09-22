@@ -2,7 +2,7 @@
 #define STRINGSTORAGE_H
 
 #include <string>
-#include <stx/btree_map>
+#include <map>
 
 namespace annis
 {
@@ -15,7 +15,7 @@ public:
 
   const std::string& str(std::uint32_t id) const
   {
-    typedef stx::btree_map<std::uint32_t, std::string>::const_iterator ItType;
+    typedef std::map<std::uint32_t, std::string>::const_iterator ItType;
     ItType it = stringStorageByID.find(id);
     if(it != stringStorageByID.end())
     {
@@ -29,7 +29,7 @@ public:
 
   std::pair<bool, std::uint32_t> findID(const std::string& str) const
   {
-    typedef stx::btree_map<std::string, std::uint32_t>::const_iterator ItType;
+    typedef std::map<std::string, std::uint32_t>::const_iterator ItType;
     std::pair<bool, std::uint32_t> result;
     result.first = false;
     ItType it = stringStorageByValue.find(str);
@@ -49,8 +49,8 @@ public:
   size_t size() {return stringStorageByID.size();}
 
 private:
-  stx::btree_map<std::uint32_t, std::string> stringStorageByID;
-  stx::btree_map<std::string, std::uint32_t> stringStorageByValue;
+  std::map<std::uint32_t, std::string> stringStorageByID;
+  std::map<std::string, std::uint32_t> stringStorageByValue;
 
 };
 }
