@@ -25,6 +25,7 @@ private:
   AnnotationIterator& right;
   unsigned int minDistance;
   unsigned int maxDistance;
+  bool initialized;
 
   Match matchLeft;
   Match matchRight;
@@ -50,6 +51,15 @@ private:
   unsigned int maxDistance;
 
   Match matchLeft;
+
+  EdgeIterator* edgeIterator;
+  std::pair<bool, nodeid_t> connectedNode;
+  std::vector<Annotation> candidateAnnotations;
+  size_t currentAnnotationCandidate;
+
+  bool nextLeft();
+  bool nextConnected();
+  bool nextAnnotation();
 
 };
 
