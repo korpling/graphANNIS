@@ -1,4 +1,4 @@
-#include "nestedloopjoin.h"
+#include "defaultjoins.h"
 
 using namespace annis;
 

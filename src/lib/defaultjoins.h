@@ -1,5 +1,5 @@
-#ifndef NESTEDLOOPJOIN_H
-#define NESTEDLOOPJOIN_H
+#ifndef DEFAULTJOINS_H
+#define DEFAULTJOINS_H
 
 #include "types.h"
 #include "annotationiterator.h"
@@ -55,4 +55,4 @@ private:
 
 } // end namespace annis
 
-#endif // NESTEDLOOPJOIN_H
+#endif // DEFAULTJOINS_H
