@@ -8,7 +8,8 @@
 namespace annis
 {
 
-class NestedLoopJoin : public BinaryMatch
+/** A join that checks all combinations of the left and right matches if their are connected. */
+class NestedLoopJoin : public BinaryOperatorIterator
 {
 public:
   NestedLoopJoin(const EdgeDB* edb, AnnotationIterator &left, AnnotationIterator &right,
