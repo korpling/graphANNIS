@@ -20,12 +20,14 @@ AnnotationNameSearch::AnnotationNameSearch(DB& db, const string& annoName)
     upperKey.ns = numeric_limits<uint32_t>::max();
     upperKey.val = numeric_limits<uint32_t>::max();
 
-    it = db.inverseNodeAnnotations.lower_bound(lowerKey);
+    itBegin = db.inverseNodeAnnotations.lower_bound(lowerKey);
+    it = itBegin;
     itEnd = db.inverseNodeAnnotations.upper_bound(upperKey);
   }
   else
   {
-    it = db.inverseNodeAnnotations.end();
+    itBegin = db.inverseNodeAnnotations.end();
+    it = itBegin;
     itEnd = db.inverseNodeAnnotations.end();
   }
 }
@@ -48,12 +50,14 @@ AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, c
     upperKey.ns = namspaceID.second;
     upperKey.val = numeric_limits<uint32_t>::max();
 
-    it = db.inverseNodeAnnotations.lower_bound(lowerKey);
+    itBegin = db.inverseNodeAnnotations.lower_bound(lowerKey);
+    it = itBegin;
     itEnd = db.inverseNodeAnnotations.upper_bound(upperKey);
   }
   else
   {
-    it = db.inverseNodeAnnotations.end();
+    itBegin = db.inverseNodeAnnotations.end();
+    it = itBegin;
     itEnd = db.inverseNodeAnnotations.end();
   }
 }
@@ -72,12 +76,14 @@ AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, c
     key.ns = namspaceID.second;
     key.val = valueID.second;
 
-    it = db.inverseNodeAnnotations.lower_bound(key);
+    itBegin = db.inverseNodeAnnotations.lower_bound(key);
+    it = itBegin;
     itEnd = db.inverseNodeAnnotations.upper_bound(key);
   }
   else
   {
-    it = db.inverseNodeAnnotations.end();
+    itBegin = db.inverseNodeAnnotations.end();
+    it = itBegin;
     itEnd = db.inverseNodeAnnotations.end();
   }
 }
@@ -94,4 +100,14 @@ Match AnnotationNameSearch::next()
     it++;
   }
   return result;
+}
+
+void AnnotationNameSearch::reset()
+{
+  it = itBegin;
+}
+
+AnnotationNameSearch::~AnnotationNameSearch()
+{
+
 }

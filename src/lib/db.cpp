@@ -509,7 +509,7 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
     if(c.type == ComponentType::ORDERING)
     {
       edgeDB = new LinearEdgeDB(strings, c);
-      //edgeDB = new FallbackEdgeDB(strings, c);
+//      edgeDB = new FallbackEdgeDB(strings, c);
     }
     else
     {

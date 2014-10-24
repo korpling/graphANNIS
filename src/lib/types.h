@@ -91,6 +91,14 @@ namespace annis
   /** combines a node ID and the matched annotation */
   typedef std::pair<std::uint32_t, Annotation> Match;
 
+  /** A combination of two matches together with a flag if a result was found */
+  struct BinaryMatch
+  {
+    bool found;
+    Match left;
+    Match right;
+  };
+
   static Edge initEdge(nodeid_t source, nodeid_t target)
   {
     Edge result;
