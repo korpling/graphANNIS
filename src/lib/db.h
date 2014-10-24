@@ -30,7 +30,7 @@ public:
   bool save(std::string dirPath);
 
   bool hasNode(nodeid_t id);
-  inline std::vector<Annotation> getNodeAnnotationsByID(const nodeid_t &id)
+  inline std::vector<Annotation> getNodeAnnotationsByID(const nodeid_t &id) const
   {
     typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
 

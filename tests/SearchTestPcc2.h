@@ -101,6 +101,7 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 
 TEST_F(SearchTestPcc2, DepthFirst) {
     AnnotationNameSearch n1(db, annis_ns, "tok", "Tiefe");
+    Annotation anno2 = initAnnotation();
 
     unsigned int counter=0;
 
@@ -108,16 +109,11 @@ TEST_F(SearchTestPcc2, DepthFirst) {
     const EdgeDB* edb = db.getEdgeDB(c);
     if(edb != NULL)
     {
-      ASSERT_TRUE(n1.hasNext());
-      Match m1 = n1.next();
-
-      EdgeIterator* it = edb->findConnected(m1.first, 2, 10);
-      for(std::pair<bool, std::uint32_t> connectedNode = it->next();
-          connectedNode.first; connectedNode = it->next())
+      SeedJoin join(db, edb, n1, anno2, 2, 10);
+      for(BinaryMatch match=join.next(); match.found; match = join.next())
       {
         counter++;
       }
-      delete it;
     }
 
   EXPECT_EQ(9, counter);

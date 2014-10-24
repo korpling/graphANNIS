@@ -4,6 +4,7 @@
 #include "types.h"
 #include "annotationiterator.h"
 #include "edgedb.h"
+#include "db.h"
 
 namespace annis
 {
@@ -27,6 +28,28 @@ private:
 
   Match matchLeft;
   Match matchRight;
+
+};
+
+/** A join that takes the left argument as a seed, finds all connected nodes (matching the distance) and checks the condition for each node. */
+class SeedJoin : public BinaryOperatorIterator
+{
+public:
+  SeedJoin(const DB& db, const EdgeDB* edb, AnnotationIterator &left, const Annotation &right,
+                 unsigned int minDistance = 1, unsigned int maxDistance = 1);
+  virtual ~SeedJoin();
+
+  virtual BinaryMatch next();
+  virtual void reset();
+private:
+  const DB& db;
+  const EdgeDB* edb;
+  AnnotationIterator& left;
+  const Annotation& right;
+  unsigned int minDistance;
+  unsigned int maxDistance;
+
+  Match matchLeft;
 
 };
 

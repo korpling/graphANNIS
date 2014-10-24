@@ -99,6 +99,22 @@ namespace annis
     Match right;
   };
 
+  /**
+   * @brief initialize an Annotation
+   * @param name
+   * @param val
+   * @param ns
+   * @return
+   */
+  static Annotation initAnnotation(std::uint32_t name = 0, std::uint32_t val=0, std::uint32_t ns=0)
+  {
+    Annotation result;
+    result.name = name;
+    result.ns = ns;
+    result.val = val;
+    return result;
+  }
+
   static Edge initEdge(nodeid_t source, nodeid_t target)
   {
     Edge result;
