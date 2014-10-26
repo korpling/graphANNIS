@@ -145,7 +145,7 @@ bool SeedJoin::nextConnected()
     connectedNode.first = false;
   }
 
-  if(!connectedNode.first)
+  while(!connectedNode.first)
   {
     delete edgeIterator;
     edgeIterator = NULL;

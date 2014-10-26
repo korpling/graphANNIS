@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "annotationsearch.h"
+#include "defaultjoins.h"
 
 #include <vector>
 
@@ -138,41 +139,13 @@ TEST_F(SearchTestRidges, Benchmark2) {
   unsigned int counter=0;
 
   AnnotationNameSearch n1(db, annis::annis_ns, annis::annis_tok);
+  Annotation annos2 = initAnnotation(db.strings.add(annis::annis_tok), 0, db.strings.add(annis::annis_ns));
 
-  std::pair<bool, uint32_t> n2_namespaceID = db.strings.findID(annis::annis_ns);
-  std::pair<bool, uint32_t> n2_nameID = db.strings.findID(annis::annis_tok);
-  if(n2_nameID.first && n2_namespaceID.first)
+  annis::SeedJoin join(db, db.getEdgeDB(ComponentType::ORDERING, annis_ns, ""), n1, annos2, 2, 10);
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
-    Component cOrder = initComponent(ComponentType::ORDERING, annis_ns, "");
-
-
-    const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
-    if(edbOrder != NULL)
-    {
-      while(n1.hasNext())
-      {
-        Match m1 = n1.next();
-
-        // find all token in the range 2-10
-        EdgeIterator* itConnected = edbOrder->findConnected(m1.first, 2, 10);
-        for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
-            tok2.first; tok2 = itConnected->next())
-        {
-          // check if the node has the correct annotations
-          std::vector<Annotation> n2_annos = db.getNodeAnnotationsByID(tok2.second);
-          for(size_t j=0; j < n2_annos.size(); j++)
-          {
-            if(n2_annos[j].ns == n2_namespaceID.second && n2_annos[j].name == n2_nameID.second)
-            {
-              counter++;
-              break; // we don't have to search for other annotations
-            }
-          }
-        }
-        delete itConnected;
-      }
-    }
-  } // end if pos="ART" strings found
+    counter++;
+  }
 
   EXPECT_EQ(1386828, counter);
 }
