@@ -17,7 +17,9 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
 )
 
-file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/edgedb/*.h" "src/lib/edgedb/*.cpp" )
+file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp"
+  "src/lib/edgedb/*.h" "src/lib/edgedb/*.cpp"
+  "src/lib/operators/*.h" "src/lib/operators/*.cpp")
 file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
 
 if(CMAKE_COMPILER_IS_GNUCXX)

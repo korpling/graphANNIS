@@ -4,7 +4,7 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "annotationsearch.h"
-#include "defaultjoins.h"
+#include "operators/defaultjoins.h"
 
 #include <vector>
 

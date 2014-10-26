@@ -35,12 +35,16 @@ public:
   virtual Match next();
   virtual void reset();
 
+  const Annotation& getAnnotation() {return anno;}
+
 private:
   DB& db;
 
   ItType it;
   ItType itBegin;
   ItType itEnd;
+
+  Annotation anno;
 
 };
 } // end namespace annis

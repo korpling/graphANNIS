@@ -13,6 +13,8 @@ public:
   virtual Match next() = 0;
   virtual void reset() = 0;
 
+  virtual const Annotation& getAnnotation() = 0;
+
   virtual ~AnnotationIterator() {}
 };
 
