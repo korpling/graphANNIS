@@ -12,6 +12,16 @@ class AnnotationNameSearch : public AnnotationIterator
 typedef stx::btree_multimap<Annotation, nodeid_t, compAnno>::const_iterator ItType;
 
 public:
+  /**
+   * @brief Find all annotations.
+   * @param db
+   */
+  AnnotationNameSearch(DB& db);
+  /**
+   * @brief Find annotations by name
+   * @param db
+   * @param annoName
+   */
   AnnotationNameSearch(DB& db, const std::string& annoName);
   AnnotationNameSearch(DB& db, const std::string& annoNamspace, const std::string& annoName);
   AnnotationNameSearch(DB& db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);

@@ -3,6 +3,13 @@
 using namespace annis;
 using namespace std;
 
+AnnotationNameSearch::AnnotationNameSearch(DB &db)
+  : db(db)
+{
+  itBegin = db.inverseNodeAnnotations.begin();
+  itEnd = db.inverseNodeAnnotations.end();
+}
+
 AnnotationNameSearch::AnnotationNameSearch(DB& db, const string& annoName)
   : db(db)
 {
