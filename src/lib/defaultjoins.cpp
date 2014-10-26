@@ -1,4 +1,5 @@
 #include "defaultjoins.h"
+#include "annotationsearch.h"
 
 using namespace annis;
 
@@ -7,11 +8,15 @@ NestedLoopJoin::NestedLoopJoin(const EdgeDB *edb, AnnotationIterator& left, Anno
 {
 }
 
-
 BinaryMatch NestedLoopJoin::next()
 {
   BinaryMatch result;
   result.found = false;
+
+  if(edb == NULL)
+  {
+    return result;
+  }
 
   bool proceed = true;
 
@@ -81,6 +86,11 @@ BinaryMatch SeedJoin::next()
 {
   BinaryMatch result;
   result.found = false;
+
+  if(edb == NULL)
+  {
+    return result;
+  }
 
   while(nextAnnotation())
   {

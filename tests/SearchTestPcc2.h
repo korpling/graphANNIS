@@ -85,17 +85,12 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 
   unsigned int counter=0;
 
-  Component c = initComponent(ComponentType::ORDERING, annis_ns, "");
-  const EdgeDB* edb = db.getEdgeDB(c);
-
-  if(edb != NULL)
+  NestedLoopJoin join(db.getEdgeDB(ComponentType::ORDERING, annis_ns, ""), n1, n2, 3, 10);
+  for(BinaryMatch match = join.next(); match.found; match = join.next())
   {
-    NestedLoopJoin join(edb, n1, n2, 3, 10);
-    for(BinaryMatch match = join.next(); match.found; match = join.next())
-    {
-      counter++;
-    }
+    counter++;
   }
+
   EXPECT_EQ(1, counter);
 }
 

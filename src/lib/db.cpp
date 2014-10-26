@@ -588,6 +588,12 @@ const EdgeDB* DB::getEdgeDB(const Component &component)
   return NULL;
 }
 
+const EdgeDB *DB::getEdgeDB(ComponentType type, const string &layer, const string &name)
+{
+  Component c = initComponent(type, layer, name);
+  return getEdgeDB(c);
+}
+
 vector<Annotation> DB::getEdgeAnnotations(const Component &component,
                                           const Edge &edge)
 {
