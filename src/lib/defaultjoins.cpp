@@ -82,7 +82,7 @@ BinaryMatch SeedJoin::next()
   BinaryMatch result;
   result.found = false;
 
-  if(nextAnnotation())
+  while(nextAnnotation())
   {
     if(checkAnnotationEqual(candidateAnnotations[currentAnnotationCandidate], right))
     {
