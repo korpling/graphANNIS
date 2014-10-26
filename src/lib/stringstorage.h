@@ -32,6 +32,7 @@ public:
     typedef std::map<std::string, std::uint32_t>::const_iterator ItType;
     std::pair<bool, std::uint32_t> result;
     result.first = false;
+    result.second = 0;
     ItType it = stringStorageByValue.find(str);
     if(it != stringStorageByValue.end())
     {

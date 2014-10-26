@@ -137,10 +137,10 @@ TEST_F(SearchTestRidges, Benchmark2) {
 
   unsigned int counter=0;
 
-  AnnotationNameSearch n1(db, annis::annis_ns, "tok");
+  AnnotationNameSearch n1(db, annis::annis_ns, annis::annis_tok);
 
   std::pair<bool, uint32_t> n2_namespaceID = db.strings.findID(annis::annis_ns);
-  std::pair<bool, uint32_t> n2_nameID = db.strings.findID("tok");
+  std::pair<bool, uint32_t> n2_nameID = db.strings.findID(annis::annis_tok);
   if(n2_nameID.first && n2_namespaceID.first)
   {
     Component cOrder = initComponent(ComponentType::ORDERING, annis_ns, "");

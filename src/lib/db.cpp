@@ -217,7 +217,7 @@ bool DB::loadRelANNISNode(string dirPath)
     uint32_t textID = uint32FromString(line[1]);
     Annotation nodeNameAnno;
     nodeNameAnno.ns = strings.add(annis_ns);
-    nodeNameAnno.name = strings.add("node_name");
+    nodeNameAnno.name = strings.add(annis_node_name);
     nodeNameAnno.val = strings.add(line[4]);
     addNodeAnnotation(nodeNr, nodeNameAnno);
     if(tokenIndexRaw != "NULL")
@@ -226,7 +226,7 @@ bool DB::loadRelANNISNode(string dirPath)
 
       Annotation tokAnno;
       tokAnno.ns = strings.add(annis_ns);
-      tokAnno.name = strings.add("tok");
+      tokAnno.name = strings.add(annis_tok);
       tokAnno.val = strings.add(span);
       addNodeAnnotation(nodeNr, tokAnno);
 
@@ -462,8 +462,8 @@ void DB::addDefaultStrings()
 {
   strings.add(annis_ns);
   strings.add("");
-  strings.add("tok");
-  strings.add("node_name");
+  strings.add(annis_tok);
+  strings.add(annis_node_name);
 }
 
 EdgeDB *DB::createEdgeDBForComponent(const string &shortType, const string &layer, const string &name)

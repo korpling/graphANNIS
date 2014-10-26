@@ -60,8 +60,8 @@ TEST_F(SearchTestPcc2, CatSearch) {
 }
 
 TEST_F(SearchTestPcc2, TokenIndex) {
-  AnnotationNameSearch n1(db, annis_ns, "tok", "Die");
-  AnnotationNameSearch n2(db, annis_ns, "tok", "Jugendlichen");
+  AnnotationNameSearch n1(db, annis_ns, annis_tok, "Die");
+  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Jugendlichen");
 
   unsigned int counter=0;
 
@@ -80,8 +80,8 @@ TEST_F(SearchTestPcc2, TokenIndex) {
 }
 
 TEST_F(SearchTestPcc2, IsConnectedRange) {
-  AnnotationNameSearch n1(db, annis_ns, "tok", "Jugendlichen");
-  AnnotationNameSearch n2(db, annis_ns, "tok", "Musikcafé");
+  AnnotationNameSearch n1(db, annis_ns, annis_tok, "Jugendlichen");
+  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Musikcafé");
 
   unsigned int counter=0;
 
@@ -100,8 +100,8 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 }
 
 TEST_F(SearchTestPcc2, DepthFirst) {
-    AnnotationNameSearch n1(db, annis_ns, "tok", "Tiefe");
-    Annotation anno2 = initAnnotation();
+    AnnotationNameSearch n1(db, annis_ns, annis_tok, "Tiefe");
+    Annotation anno2 = initAnnotation(db.strings.add("node_name"), 0, db.strings.add(annis_ns));
 
     unsigned int counter=0;
 
