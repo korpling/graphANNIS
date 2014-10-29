@@ -76,7 +76,7 @@ NestedLoopJoin::~NestedLoopJoin()
 
 
 
-SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, AnnotationIterator &left, const Annotation &right, unsigned int minDistance, unsigned int maxDistance)
+SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, AnnotationIterator &left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
   : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), edgeIterator(NULL)
 {
 

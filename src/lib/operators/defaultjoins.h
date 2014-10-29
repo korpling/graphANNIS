@@ -36,7 +36,7 @@ private:
 class SeedJoin : public BinaryOperatorIterator
 {
 public:
-  SeedJoin(const DB& db, const EdgeDB* edb, AnnotationIterator &left, const Annotation &right,
+  SeedJoin(const DB& db, const EdgeDB* edb, AnnotationIterator &left, Annotation right,
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
   virtual ~SeedJoin();
 
@@ -46,7 +46,7 @@ private:
   const DB& db;
   const EdgeDB* edb;
   AnnotationIterator& left;
-  const Annotation& right;
+  Annotation right;
   unsigned int minDistance;
   unsigned int maxDistance;
 

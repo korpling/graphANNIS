@@ -5,6 +5,7 @@
 #include "db.h"
 #include "annotationsearch.h"
 #include "operators/defaultjoins.h"
+#include "operators/precedence.h"
 
 #include <vector>
 
@@ -78,56 +79,13 @@ TEST_F(SearchTestRidges, Benchmark1) {
   unsigned int counter=0;
 
   AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
+  AnnotationNameSearch n2(db, "default_ns", "pos", "ART");
 
-  std::pair<bool, uint32_t> n2_nameID = db.strings.findID("pos");
-  std::pair<bool, uint32_t> n2_valueID = db.strings.findID("ART");
-  if(n2_nameID.first && n2_valueID.first)
+  Precedence join(db, n1, n2, 2, 10);
+  for(BinaryMatch m=join.next(); m.found; m = join.next())
   {
-    Component cOrder = initComponent(ComponentType::ORDERING, annis_ns, "");
-    Component cLeft = initComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
-    Component cRight = initComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
-
-
-    const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
-    const EdgeDB* edbLeft = db.getEdgeDB(cLeft);
-    const EdgeDB* edbRight = db.getEdgeDB(cRight);
-    if(edbOrder != NULL && edbLeft != NULL && edbRight != NULL)
-    {
-      // get all nodes with pos="NN"
-      unsigned int n1Counter =0;
-      while(n1.hasNext())
-      {
-        Match m1 = n1.next();
-        n1Counter++;
-
-        // get the right-most covered token of m1
-        std::uint32_t tok1 = edbRight->getOutgoingEdges(m1.first)[0];
-
-        // find all token in the range 2-10
-        EdgeIterator* itConnected = edbOrder->findConnected(tok1, 2, 10);
-        for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
-            tok2.first; tok2 = itConnected->next())
-        {
-          // get all node that are left-aligned with tok2
-          std::vector<std::uint32_t> n2_candidates = edbLeft->getOutgoingEdges(tok2.second);
-          for(size_t i=0; i < n2_candidates.size(); i++)
-          {
-            // check if the node has the correct annotations
-            std::vector<Annotation> n2_annos = db.getNodeAnnotationsByID(n2_candidates[i]);
-            for(size_t j=0; j < n2_annos.size(); j++)
-            {
-              if(n2_annos[j].val == n2_valueID.second && n2_annos[j].name == n2_nameID.second)
-              {
-                counter++;
-                break; // we don't have to search for other annotations
-              }
-            }
-          }
-        }
-        delete itConnected;
-      }
-    }
-  } // end if pos="ART" strings found
+    counter++;
+  }
 
   EXPECT_EQ(21911, counter);
 }

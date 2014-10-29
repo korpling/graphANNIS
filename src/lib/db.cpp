@@ -578,7 +578,7 @@ std::vector<Component> DB::getDirectConnected(const Edge &edge)
   return result;
 }
 
-const EdgeDB* DB::getEdgeDB(const Component &component)
+const EdgeDB* DB::getEdgeDB(const Component &component) const
 {
   map<Component, EdgeDB*>::const_iterator itEdgeDB = edgeDatabases.find(component);
   if(itEdgeDB != edgeDatabases.end())
@@ -588,7 +588,7 @@ const EdgeDB* DB::getEdgeDB(const Component &component)
   return NULL;
 }
 
-const EdgeDB *DB::getEdgeDB(ComponentType type, const string &layer, const string &name)
+const EdgeDB *DB::getEdgeDB(ComponentType type, const string &layer, const string &name) const
 {
   Component c = initComponent(type, layer, name);
   return getEdgeDB(c);
