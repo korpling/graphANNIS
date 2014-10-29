@@ -186,9 +186,39 @@ SeedJoin::~SeedJoin()
   delete edgeIterator;
 }
 
-/*
-JoinWrapIterator::JoinWrapIterator(BinaryOperatorIterator inner)
+
+JoinWrapIterator::JoinWrapIterator(BinaryOperatorIterator &wrappedIterator, bool wrapLeftOperand)
+  : matchAllAnnotation(initAnnotation()), wrappedIterator(wrappedIterator), wrapLeftOperand(wrapLeftOperand)
 {
-  inner
+  currentMatch = wrappedIterator.next();
 }
-*/
+
+bool JoinWrapIterator::hasNext()
+{
+  return currentMatch.found;
+}
+
+Match JoinWrapIterator::next()
+{
+  Match result;
+  if(currentMatch.found)
+  {
+    if(wrapLeftOperand)
+    {
+      result = currentMatch.left;
+    }
+    else
+    {
+      result = currentMatch.right;
+    }
+    currentMatch = wrappedIterator.next();
+  }
+  return result;
+}
+
+void JoinWrapIterator::reset()
+{
+  wrappedIterator.reset();
+  currentMatch = wrappedIterator.next();
+}
+

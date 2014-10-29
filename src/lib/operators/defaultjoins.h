@@ -62,22 +62,28 @@ private:
   bool nextAnnotation();
 
 };
-/*
+
 class JoinWrapIterator : public AnnotationIterator
 {
 public:
 
-  JoinWrapIterator(BinaryOperatorIterator inner);
+  JoinWrapIterator(BinaryOperatorIterator& wrappedIterator, bool wrapLeftOperand = false);
 
   virtual bool hasNext();
   virtual Match next();
   virtual void reset();
 
-  virtual const Annotation& getAnnotation();
+  // TODO: is there any good way of defining this?
+  virtual const Annotation& getAnnotation() {return matchAllAnnotation;}
 
   virtual ~JoinWrapIterator() {}
-}
-*/
+private:
+  Annotation matchAllAnnotation;
+  BinaryOperatorIterator& wrappedIterator;
+  BinaryMatch currentMatch;
+  bool wrapLeftOperand;
+};
+
 } // end namespace annis
 
 #endif // DEFAULTJOINS_H

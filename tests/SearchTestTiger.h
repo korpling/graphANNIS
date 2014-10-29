@@ -3,6 +3,8 @@
 
 #include "gtest/gtest.h"
 #include "db.h"
+#include "operators/defaultjoins.h"
+#include "operators/precedence.h"
 #include "annotationsearch.h"
 
 #include <vector>
@@ -83,11 +85,17 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 
   AnnotationNameSearch n1(db, "tiger", "pos", "NN");
   AnnotationNameSearch n2(db, "tiger", "pos", "ART");
-  AnnotationNameSearch n3(db, "tiger", "pos", "ART");
+  AnnotationNameSearch n3(db, "tiger", "pos", "NN");
 
-  // TODO
+  Precedence join1(db, n1, n2, 2, 10);
+  JoinWrapIterator wrappedJoin1(join1);
+  Precedence join2(db, wrappedJoin1, n3);
+  for(BinaryMatch m = join2.next(); m.found; m = join2.next())
+  {
+    counter++;
+  }
 
- // EXPECT_EQ(179024, counter);
+  EXPECT_EQ(114042, counter);
 }
 
 
