@@ -35,9 +35,9 @@ BinaryMatch Precedence::next()
   {
     for(BinaryMatch matchedToken = actualJoin->next(); matchedToken.found; matchedToken = actualJoin->next())
     {
-      std::vector<nodeid_t> nodeCandiates = edbLeft->getOutgoingEdges(matchedToken.right.first);
+      std::vector<nodeid_t> nodeCandiates = edbLeft->getOutgoingEdges(matchedToken.right.node);
       // first check the token itself
-      nodeCandiates.insert(nodeCandiates.begin(), matchedToken.right.first);
+      nodeCandiates.insert(nodeCandiates.begin(), matchedToken.right.node);
       for(auto nodeID : nodeCandiates)
       {
         for(auto& nodeAnno : db.getNodeAnnotationsByID(nodeID))
@@ -46,8 +46,8 @@ BinaryMatch Precedence::next()
           {
             result.found = true;
             result.left = tokIteratorForLeftNode.currentNodeMatch();
-            result.right.first = nodeID;
-            result.right.second = nodeAnno;
+            result.right.node = nodeID;
+            result.right.anno = nodeAnno;
             return result;
           }
         }
@@ -85,7 +85,7 @@ Match RightMostTokenForNodeIterator::next()
     currentOriginalMatch = source.next();
 
     // check if this is a token
-    std::vector<Annotation> annos = db.getNodeAnnotationsByID(currentOriginalMatch.first);
+    std::vector<Annotation> annos = db.getNodeAnnotationsByID(currentOriginalMatch.node);
     for(auto& a : annos)
     {
       if(checkAnnotationEqual(anyTokAnnotation, a))
@@ -94,10 +94,10 @@ Match RightMostTokenForNodeIterator::next()
       }
     }
 
-    result.first = edb->getOutgoingEdges(currentOriginalMatch.first)[0];
-    result.second.name = db.getTokStringID();
-    result.second.ns = db.getNamespaceStringID();
-    result.second.val = 0; //TODO: do we want to include the actual value here?
+    result.node = edb->getOutgoingEdges(currentOriginalMatch.node)[0];
+    result.anno.name = db.getTokStringID();
+    result.anno.ns = db.getNamespaceStringID();
+    result.anno.val = 0; //TODO: do we want to include the actual value here?
   }
 
   return result;

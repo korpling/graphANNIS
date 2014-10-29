@@ -39,7 +39,7 @@ BinaryMatch NestedLoopJoin::next()
       matchRight = right.next();
 
       // check the actual constraint
-      if(edb->isConnected(initEdge(matchLeft.first, matchRight.first), minDistance, maxDistance))
+      if(edb->isConnected(initEdge(matchLeft.node, matchRight.node), minDistance, maxDistance))
       {
         result.found = true;
         result.left = matchLeft;
@@ -98,8 +98,8 @@ BinaryMatch SeedJoin::next()
     {
       result.found = true;
       result.left = matchLeft;
-      result.right.first = connectedNode.second;
-      result.right.second = candidateAnnotations[currentAnnotationCandidate];
+      result.right.node = connectedNode.second;
+      result.right.anno = candidateAnnotations[currentAnnotationCandidate];
       return result;
     }
   }
@@ -151,7 +151,7 @@ bool SeedJoin::nextConnected()
     edgeIterator = NULL;
     if(nextLeft())
     {
-      edgeIterator = edb->findConnected(matchLeft.first, minDistance, maxDistance);
+      edgeIterator = edb->findConnected(matchLeft.node, minDistance, maxDistance);
       connectedNode = edgeIterator->next();
     }
     else
@@ -185,3 +185,10 @@ SeedJoin::~SeedJoin()
 {
   delete edgeIterator;
 }
+
+/*
+JoinWrapIterator::JoinWrapIterator(BinaryOperatorIterator inner)
+{
+  inner
+}
+*/

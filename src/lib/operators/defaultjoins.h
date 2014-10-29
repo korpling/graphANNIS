@@ -62,7 +62,22 @@ private:
   bool nextAnnotation();
 
 };
+/*
+class JoinWrapIterator : public AnnotationIterator
+{
+public:
 
+  JoinWrapIterator(BinaryOperatorIterator inner);
+
+  virtual bool hasNext();
+  virtual Match next();
+  virtual void reset();
+
+  virtual const Annotation& getAnnotation();
+
+  virtual ~JoinWrapIterator() {}
+}
+*/
 } // end namespace annis
 
 #endif // DEFAULTJOINS_H

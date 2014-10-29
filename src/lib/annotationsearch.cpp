@@ -112,8 +112,8 @@ Match AnnotationNameSearch::next()
   Match result;
   if(hasNext())
   {
-    result.first = it->second; // node ID
-    result.second = it->first; // annotation itself
+    result.node = it->second; // node ID
+    result.anno = it->first; // annotation itself
     it++;
   }
   return result;

@@ -49,8 +49,8 @@ TEST_F(SearchTestTiger, CatSearch) {
   while(search.hasNext())
   {
     Match m = search.next();
-    ASSERT_STREQ("cat", db.strings.str(m.second.name).c_str());
-    ASSERT_STREQ("tiger", db.strings.str(m.second.ns).c_str());
+    ASSERT_STREQ("cat", db.strings.str(m.anno.name).c_str());
+    ASSERT_STREQ("tiger", db.strings.str(m.anno.ns).c_str());
     counter++;
   }
 
@@ -73,6 +73,21 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
   }
 
   EXPECT_EQ(179024, counter);
+}
+
+// Should test query
+// pos="NN" .2,10 pos="ART" . pos="NN"
+TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
+
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, "tiger", "pos", "NN");
+  AnnotationNameSearch n2(db, "tiger", "pos", "ART");
+  AnnotationNameSearch n3(db, "tiger", "pos", "ART");
+
+  // TODO
+
+ // EXPECT_EQ(179024, counter);
 }
 
 

@@ -91,7 +91,12 @@ namespace annis
 
 
   /** combines a node ID and the matched annotation */
-  typedef std::pair<std::uint32_t, Annotation> Match;
+  struct Match
+  {
+//    bool found;
+    nodeid_t node;
+    Annotation anno;
+  };
 
   /** A combination of two matches together with a flag if a result was found */
   struct BinaryMatch

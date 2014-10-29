@@ -49,8 +49,8 @@ TEST_F(SearchTestRidges, DiplNameSearch) {
   while(search.hasNext())
   {
     Match m = search.next();
-    ASSERT_STREQ("dipl", db.strings.str(m.second.name).c_str());
-    ASSERT_STREQ("default_ns", db.strings.str(m.second.ns).c_str());
+    ASSERT_STREQ("dipl", db.strings.str(m.anno.name).c_str());
+    ASSERT_STREQ("default_ns", db.strings.str(m.anno.ns).c_str());
     counter++;
   }
 
@@ -63,9 +63,9 @@ TEST_F(SearchTestRidges, PosValueSearch) {
   while(search.hasNext())
   {
     Match m = search.next();
-    ASSERT_STREQ("pos", db.strings.str(m.second.name).c_str());
-    ASSERT_STREQ("NN", db.strings.str(m.second.val).c_str());
-    ASSERT_STREQ("default_ns", db.strings.str(m.second.ns).c_str());
+    ASSERT_STREQ("pos", db.strings.str(m.anno.name).c_str());
+    ASSERT_STREQ("NN", db.strings.str(m.anno.val).c_str());
+    ASSERT_STREQ("default_ns", db.strings.str(m.anno.ns).c_str());
     counter++;
   }
 
