@@ -53,6 +53,12 @@ public:
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);
   std::string info();
+
+  std::uint32_t getNamespaceStringID() const {return annisNamespaceStringID;}
+  std::uint32_t getNodeNameStringID() const {return annisNodeNameStringID;}
+  std::uint32_t getEmptyStringID() const {return annisEmptyStringID;}
+  std::uint32_t getTokStringID() const {return annisTokStringID;}
+
   virtual ~DB();
 
 
@@ -63,6 +69,11 @@ private:
   stx::btree_multimap<Annotation, nodeid_t, compAnno> inverseNodeAnnotations;
 
   std::map<Component, EdgeDB*, compComponent> edgeDatabases;
+
+  std::uint32_t annisNamespaceStringID;
+  std::uint32_t annisEmptyStringID;
+  std::uint32_t annisTokStringID;
+  std::uint32_t annisNodeNameStringID;
 
   bool loadRelANNISNode(std::string dirPath);
   bool loadRelANNISRank(const std::string& dirPath,

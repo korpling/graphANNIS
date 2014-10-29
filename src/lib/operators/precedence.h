@@ -7,6 +7,12 @@
 namespace annis
 {
 
+/**
+ * @brief The RightMostTokenForNodeIterator class
+ *
+ * This iterator outputs the token that is right aligned with the original matched node.
+ * If the matched node itself is a token, the token is returned.
+ */
 class RightMostTokenForNodeIterator : public AnnotationIterator
 {
 public:
@@ -30,6 +36,7 @@ private:
   const EdgeDB* edb;
   Match matchTemplate;
   Match currentOriginalMatch;
+  Annotation anyTokAnnotation;
 
   void initEdgeDB();
 };

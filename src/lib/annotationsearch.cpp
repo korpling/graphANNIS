@@ -10,7 +10,7 @@ AnnotationNameSearch::AnnotationNameSearch(DB &db)
   itEnd = db.inverseNodeAnnotations.end();
 }
 
-AnnotationNameSearch::AnnotationNameSearch(DB& db, const string& annoName)
+AnnotationNameSearch::AnnotationNameSearch(const DB& db, const string& annoName)
   : db(db)
 {
   std::pair<bool, uint32_t> searchResult = db.strings.findID(annoName);
@@ -43,7 +43,7 @@ AnnotationNameSearch::AnnotationNameSearch(DB& db, const string& annoName)
   }
 }
 
-AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, const string &annoName)
+AnnotationNameSearch::AnnotationNameSearch(const DB &db, const string &annoNamspace, const string &annoName)
   : db(db)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
@@ -77,7 +77,7 @@ AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, c
   }
 }
 
-AnnotationNameSearch::AnnotationNameSearch(DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
+AnnotationNameSearch::AnnotationNameSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
   :db(db)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);

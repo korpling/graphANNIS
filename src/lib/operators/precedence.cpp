@@ -15,7 +15,7 @@ Precedence::Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& rig
   edbLeft = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
   if(edbOrder != NULL)
   {
-    Annotation anyTokAnno = initAnnotation(db.strings.findID(annis_tok).second, 0, db.strings.findID(annis_ns).second);
+    Annotation anyTokAnno = initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
     // TODO: allow to use a nested loop iterator as a configurable alternative
     actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyTokAnno, minDistance, maxDistance);
   }
@@ -36,6 +36,8 @@ BinaryMatch Precedence::next()
     for(BinaryMatch matchedToken = actualJoin->next(); matchedToken.found; matchedToken = actualJoin->next())
     {
       std::vector<nodeid_t> nodeCandiates = edbLeft->getOutgoingEdges(matchedToken.right.first);
+      // first check the token itself
+      nodeCandiates.insert(nodeCandiates.begin(), matchedToken.right.first);
       for(auto nodeID : nodeCandiates)
       {
         for(auto& nodeAnno : db.getNodeAnnotationsByID(nodeID))
@@ -67,6 +69,7 @@ void Precedence::reset()
 RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(AnnotationIterator &source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, ""))
 {
+  anyTokAnnotation = initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
 }
 
 bool RightMostTokenForNodeIterator::hasNext()
@@ -80,9 +83,20 @@ Match RightMostTokenForNodeIterator::next()
   if(source.hasNext() && edb != NULL)
   {
     currentOriginalMatch = source.next();
+
+    // check if this is a token
+    std::vector<Annotation> annos = db.getNodeAnnotationsByID(currentOriginalMatch.first);
+    for(auto& a : annos)
+    {
+      if(checkAnnotationEqual(anyTokAnnotation, a))
+      {
+        return currentOriginalMatch;
+      }
+    }
+
     result.first = edb->getOutgoingEdges(currentOriginalMatch.first)[0];
-    result.second.name = db.strings.findID(annis_tok).second; // TODO: better buffer the values instead of fetching them in each annotation step
-    result.second.ns = db.strings.findID(annis_ns).second;
+    result.second.name = db.getTokStringID();
+    result.second.ns = db.getNamespaceStringID();
     result.second.val = 0; //TODO: do we want to include the actual value here?
   }
 

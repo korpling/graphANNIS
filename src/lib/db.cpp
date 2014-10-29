@@ -460,10 +460,10 @@ void DB::clear()
 
 void DB::addDefaultStrings()
 {
-  strings.add(annis_ns);
-  strings.add("");
-  strings.add(annis_tok);
-  strings.add(annis_node_name);
+  annisNamespaceStringID = strings.add(annis_ns);
+  annisEmptyStringID = strings.add("");
+  annisTokStringID = strings.add(annis_tok);
+  annisNodeNameStringID = strings.add(annis_node_name);
 }
 
 EdgeDB *DB::createEdgeDBForComponent(const string &shortType, const string &layer, const string &name)

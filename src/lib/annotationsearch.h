@@ -22,9 +22,9 @@ public:
    * @param db
    * @param annoName
    */
-  AnnotationNameSearch(DB& db, const std::string& annoName);
-  AnnotationNameSearch(DB& db, const std::string& annoNamspace, const std::string& annoName);
-  AnnotationNameSearch(DB& db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
+  AnnotationNameSearch(const DB& db, const std::string& annoName);
+  AnnotationNameSearch(const DB& db, const std::string& annoNamspace, const std::string& annoName);
+  AnnotationNameSearch(const DB &db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
 
   virtual ~AnnotationNameSearch();
 
@@ -38,7 +38,7 @@ public:
   const Annotation& getAnnotation() {return anno;}
 
 private:
-  DB& db;
+  const DB& db;
 
   ItType it;
   ItType itBegin;

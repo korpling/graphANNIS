@@ -57,6 +57,24 @@ TEST_F(SearchTestTiger, CatSearch) {
   EXPECT_EQ(373436, counter);
 }
 
+// Should test query
+// pos="NN" .2,10 pos="ART"
+TEST_F(SearchTestTiger, TokenPrecedence) {
+
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, "tiger", "pos", "NN");
+  AnnotationNameSearch n2(db, "tiger", "pos", "ART");
+
+  Precedence join(db, n1, n2, 2, 10);
+  for(BinaryMatch m=join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+
+  EXPECT_EQ(179024, counter);
+}
+
 
 
 #endif // SEARCHTESTTIGER_H
