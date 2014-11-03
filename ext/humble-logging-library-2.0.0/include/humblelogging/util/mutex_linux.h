@@ -17,7 +17,8 @@ public:
   void unlock();
 
 private:
-  std::mutex _m;
+  std::mutex _internalMutex;
+  std::unique_lock<std::mutex> _m;
 };
 
 }} // End of namespace.
