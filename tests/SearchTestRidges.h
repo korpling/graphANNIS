@@ -1,13 +1,19 @@
 #ifndef SEARCHTESTRIDGES_H
 #define SEARCHTESTRIDGES_H
 
+
 #include "gtest/gtest.h"
 #include "db.h"
 #include "annotationsearch.h"
 #include "operators/defaultjoins.h"
 #include "operators/precedence.h"
+#include "operators/overlap.h"
 
+
+#include <boost/format.hpp>
 #include <vector>
+
+#include <humblelogging/api.h>
 
 using namespace annis;
 
@@ -106,6 +112,25 @@ TEST_F(SearchTestRidges, Benchmark2) {
   }
 
   EXPECT_EQ(1386828, counter);
+}
+
+// Should test query
+// pos="NN" & norm="Blumen" & #1 _o_ #2
+TEST_F(SearchTestRidges, Overlap) {
+
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
+  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+
+  annis::Overlap join(db, n1, n2);
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  {
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.left.node % m.right.node).str()) ;
+    counter++;
+  }
+
+  EXPECT_EQ(152, counter);
 }
 
 

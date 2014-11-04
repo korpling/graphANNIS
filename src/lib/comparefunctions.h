@@ -5,6 +5,8 @@
 #include "types.h"
 #include <string.h>
 
+#include <tuple>
+
 namespace annis
 {
 
@@ -52,37 +54,7 @@ struct compAnno
 {
   bool operator()(const struct Annotation &a, const struct Annotation &b) const
   {
-    // compare by name (non lexical but just by the ID)
-    if(a.name < b.name)
-    {
-      return true;
-    }
-    else if(a.name > b.name)
-    {
-      return false;
-    }
-    // if equal, compare by namespace (non lexical but just by the ID)
-    if(a.ns < b.ns)
-    {
-      return true;
-    }
-    else if(a.ns > b.ns)
-    {
-      return false;
-    }
-
-    // if still equal compare by value (non lexical but just by the ID)
-   if(a.val < b.val)
-    {
-      return true;
-    }
-    else if(a.val > b.val)
-    {
-      return false;
-    }
-
-    // they are equal
-    return false;
+    return std::tie(a.name, a.ns, a.val) < std::tie(b.name, b.ns, b.val);
   }
 };
 
@@ -121,27 +93,7 @@ struct compEdges
 {
   bool operator()(const struct Edge &a, const struct Edge &b) const
   {
-    // compare by source id
-    if(a.source < b.source)
-    {
-      return true;
-    }
-    else if(a.source > b.source)
-    {
-      return false;
-    }
-    // if equal compare by target id
-    if(a.target < b.target)
-    {
-      return true;
-    }
-    else if(a.target > b.target)
-    {
-      return false;
-    }
-
-    // they are equal
-    return false;
+    return std::tie(a.source, a.target) < std::tie(b.source, b.target);
   }
 };
 
@@ -149,25 +101,7 @@ struct compTextProperty
 {
   bool operator()(const struct TextProperty &a, const struct TextProperty &b) const
   {
-    if(a.textID < b.textID)
-    {
-      return true;
-    }
-    else if(a.textID > b.textID)
-    {
-      return false;
-    }
-    if(a.val < b.val)
-    {
-      return true;
-    }
-    else if(a.val > b.val)
-    {
-      return false;
-    }
-
-    // they are equal
-    return false;
+    return std::tie(a.textID, a.val) < std::tie(b.textID, b.val);
   }
 };
 
@@ -175,25 +109,25 @@ struct compRelativePosition
 {
   bool operator()(const struct RelativePosition &a, const struct RelativePosition &b) const
   {
-    if(a.root < b.root)
-    {
-      return true;
-    }
-    else if(a.root > b.root)
-    {
-      return false;
-    }
-    if(a.pos < b.pos)
-    {
-      return true;
-    }
-    else if(a.pos > b.pos)
-    {
-      return false;
-    }
+    return std::tie(a.root, a.pos) < std::tie(b.root, b.pos);
+  }
+};
 
-    // they are equal
-    return false;
+struct compMatch
+{
+  bool operator()(const struct Match &a, const struct Match &b) const
+  {
+    return std::tie(a.node, a.anno.name, a.anno.ns, a.anno.val) < std::tie(b.node, b.anno.name, b.anno.ns, b.anno.val);
+  }
+};
+
+struct compBinaryMatch
+{
+  bool operator()(const struct BinaryMatch &a, const struct BinaryMatch &b) const
+  {
+    return std::tie(a.left.node, a.left.anno.name, a.left.anno.ns, a.left.anno.val, a.right.node, a.right.anno.name, a.right.anno.ns, a.right.anno.val)
+        <
+        std::tie(b.left.node, b.left.anno.name, b.left.anno.ns, b.left.anno.val, b.right.node, b.right.anno.name, b.right.anno.ns, b.right.anno.val);
   }
 };
 
