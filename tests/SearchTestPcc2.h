@@ -5,8 +5,11 @@
 #include "db.h"
 #include "annotationsearch.h"
 #include "operators/defaultjoins.h"
+#include "operators/overlap.h"
+#include "operators/inclusion.h"
 
 #include <vector>
+#include <boost/format.hpp>
 
 using namespace annis;
 
@@ -112,6 +115,56 @@ TEST_F(SearchTestPcc2, DepthFirst) {
     }
 
   EXPECT_EQ(9, counter);
+}
+
+// exmaralda:Inf-Stat="new" _o_ exmaralda:PP
+TEST_F(SearchTestPcc2, TestQueryOverlap1) {
+  AnnotationNameSearch n1(db, "exmaralda", "Inf-Stat", "new");
+  AnnotationNameSearch n2(db, "exmaralda", "PP");
+
+  Overlap join(db, n1, n2);
+
+  unsigned int counter=0;
+  for(BinaryMatch m=join.next(); m.found; m=join.next())
+  {
+    counter++;
+  }
+
+  EXPECT_EQ(3, counter);
+}
+
+// mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
+TEST_F(SearchTestPcc2, TestQueryOverlap2) {
+  AnnotationNameSearch n1(db, "mmax", "ambiguity", "not_ambig");
+  AnnotationNameSearch n2(db, "mmax", "complex_np", "yes");
+
+  Overlap join(db, n1, n2);
+
+  unsigned int counter=0;
+  for(BinaryMatch m=join.next(); m.found; m=join.next())
+  {
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.left.node) % db.getNodeName(m.right.node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(47, counter);
+}
+
+// mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
+TEST_F(SearchTestPcc2, TestQueryInclude) {
+  AnnotationNameSearch n1(db, "mmax", "ambiguity", "not_ambig");
+  AnnotationNameSearch n2(db, "mmax", "complex_np", "yes");
+
+  Inclusion join(db, n1, n2);
+
+  unsigned int counter=0;
+  for(BinaryMatch m=join.next(); m.found; m=join.next())
+  {
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.left.node) % db.getNodeName(m.right.node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(23, counter);
 }
 
 

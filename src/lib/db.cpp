@@ -256,7 +256,7 @@ bool DB::loadRelANNISNode(string dirPath)
 
   // TODO: cleanup, better variable naming and put this into it's own function
   // iterate over all token by their order, find the nodes with the same
-  // text coverate (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
+  // text coverage (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
   if(!tokenByIndex.empty())
   {
     HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
@@ -592,6 +592,26 @@ const EdgeDB *DB::getEdgeDB(ComponentType type, const string &layer, const strin
 {
   Component c = initComponent(type, layer, name);
   return getEdgeDB(c);
+}
+
+std::vector<const EdgeDB* > DB::getAllEdgeDBForType(ComponentType type) const
+{
+  std::vector<const EdgeDB* > result;
+
+  Component c;
+  c.type = type;
+  c.layer[0] = '\0';
+  c.name[0] = '\0';
+
+  for(
+      map<Component, EdgeDB*>::const_iterator itEdgeDB = edgeDatabases.lower_bound(c);
+      itEdgeDB != edgeDatabases.end() && itEdgeDB->first.type == type;
+      itEdgeDB++)
+  {
+    result.push_back(itEdgeDB->second);
+  }
+
+  return result;
 }
 
 vector<Annotation> DB::getEdgeAnnotations(const Component &component,

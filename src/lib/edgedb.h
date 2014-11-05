@@ -36,6 +36,7 @@ public:
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const = 0;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const = 0;
+  virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const = 0;
 
   virtual bool load(std::string dirPath) = 0;
   virtual bool save(std::string dirPath) = 0;

@@ -46,9 +46,50 @@ public:
     return result;
   }
 
+  inline std::string getNodeName(const nodeid_t &id) const
+  {
+    std::string result = "";
+
+    std::pair<bool, Annotation> anno = getNodeAnnotation(id, annis_ns, annis_node_name);
+    if(anno.first)
+    {
+      result = strings.str(anno.second.val);
+    }
+    return result;
+  }
+
+  inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::string& ns, const std::string& name) const
+  {
+    typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
+
+    std::pair<bool, Annotation> result;
+    result.first = false;
+
+    std::pair<bool, std::uint32_t> nsID = strings.findID(ns);
+    std::pair<bool, std::uint32_t> nameID = strings.findID(name);
+
+    if(nsID.first && nameID.first)
+    {
+      std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
+      for(AnnoIt itAnnos = itRange.first;
+          itAnnos != itRange.second; itAnnos++)
+      {
+        Annotation anno = itAnnos->second;
+        if(anno.ns == nsID.second && anno.name && nameID.second)
+        {
+          result.first = true;
+          result.second = anno;
+        }
+      }
+    }
+
+    return result;
+  }
+
   std::vector<Component> getDirectConnected(const Edge& edge);
   const EdgeDB* getEdgeDB(const Component& component) const;
   const EdgeDB* getEdgeDB(ComponentType type, const std::string& layer, const std::string& name) const;
+  std::vector<const EdgeDB *> getAllEdgeDBForType(ComponentType type) const;
 
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);

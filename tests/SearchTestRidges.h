@@ -8,7 +8,7 @@
 #include "operators/defaultjoins.h"
 #include "operators/precedence.h"
 #include "operators/overlap.h"
-
+#include "operators/inclusion.h"
 
 #include <boost/format.hpp>
 #include <vector>
@@ -124,6 +124,25 @@ TEST_F(SearchTestRidges, Overlap) {
   AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
 
   annis::Overlap join(db, n1, n2);
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  {
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.left.node % m.right.node).str()) ;
+    counter++;
+  }
+
+  EXPECT_EQ(152, counter);
+}
+
+// Should test query
+// pos="NN" & norm="Blumen" & #1 _i_ #2
+TEST_F(SearchTestRidges, Inclusion) {
+
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
+  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+
+  annis::Inclusion join(db, n1, n2);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.left.node % m.right.node).str()) ;

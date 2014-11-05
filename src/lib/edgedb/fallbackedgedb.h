@@ -32,6 +32,7 @@ public:
                                            unsigned int maxDistance = 1) const;
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const;
+  virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const;
 
   stx::btree_set<Edge, compEdges>::const_iterator getEdgesBegin()
   {
