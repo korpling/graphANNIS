@@ -35,9 +35,9 @@ BinaryMatch Precedence::next()
   {
     for(BinaryMatch matchedToken = actualJoin->next(); matchedToken.found; matchedToken = actualJoin->next())
     {
-      std::vector<nodeid_t> nodeCandiates = edbLeft->getOutgoingEdges(matchedToken.right.node);
+      std::vector<nodeid_t> nodeCandiates = edbLeft->getOutgoingEdges(matchedToken.rhs.node);
       // first check the token itself
-      nodeCandiates.insert(nodeCandiates.begin(), matchedToken.right.node);
+      nodeCandiates.insert(nodeCandiates.begin(), matchedToken.rhs.node);
       for(auto nodeID : nodeCandiates)
       {
         for(auto& nodeAnno : db.getNodeAnnotationsByID(nodeID))
@@ -45,9 +45,9 @@ BinaryMatch Precedence::next()
           if(checkAnnotationEqual(nodeAnno, annoForRightNode))
           {
             result.found = true;
-            result.left = tokIteratorForLeftNode.currentNodeMatch();
-            result.right.node = nodeID;
-            result.right.anno = nodeAnno;
+            result.lhs = tokIteratorForLeftNode.currentNodeMatch();
+            result.rhs.node = nodeID;
+            result.rhs.anno = nodeAnno;
             return result;
           }
         }

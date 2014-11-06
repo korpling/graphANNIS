@@ -125,9 +125,9 @@ struct compBinaryMatch
 {
   bool operator()(const struct BinaryMatch &a, const struct BinaryMatch &b) const
   {
-    return std::tie(a.left.node, a.left.anno.name, a.left.anno.ns, a.left.anno.val, a.right.node, a.right.anno.name, a.right.anno.ns, a.right.anno.val)
+    return std::tie(a.lhs.node, a.lhs.anno.name, a.lhs.anno.ns, a.lhs.anno.val, a.rhs.node, a.rhs.anno.name, a.rhs.anno.ns, a.rhs.anno.val)
         <
-        std::tie(b.left.node, b.left.anno.name, b.left.anno.ns, b.left.anno.val, b.right.node, b.right.anno.name, b.right.anno.ns, b.right.anno.val);
+        std::tie(b.lhs.node, b.lhs.anno.name, b.lhs.anno.ns, b.lhs.anno.val, b.rhs.node, b.rhs.anno.name, b.rhs.anno.ns, b.rhs.anno.val);
   }
 };
 

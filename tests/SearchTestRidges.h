@@ -126,7 +126,7 @@ TEST_F(SearchTestRidges, Overlap) {
   annis::Overlap join(db, n1, n2);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
-    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.left.node % m.right.node).str()) ;
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.lhs.node % m.rhs.node).str()) ;
     counter++;
   }
 
@@ -145,7 +145,7 @@ TEST_F(SearchTestRidges, Inclusion) {
   annis::Inclusion join(db, n1, n2);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
-    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.left.node % m.right.node).str()) ;
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.lhs.node % m.rhs.node).str()) ;
     counter++;
   }
 

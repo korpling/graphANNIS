@@ -20,8 +20,8 @@ BinaryMatch Inclusion::next()
   while(nextAnnotation())
   {
 
-    result.right = currentRightMatch;
-    result.left = currentLeftMatch;
+    result.rhs = currentRightMatch;
+    result.lhs = currentLeftMatch;
 
     if(uniqueMatches.find(result) == uniqueMatches.end())
     {

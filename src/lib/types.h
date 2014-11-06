@@ -102,8 +102,8 @@ namespace annis
   struct BinaryMatch
   {
     bool found;
-    Match left;
-    Match right;
+    Match lhs;
+    Match rhs;
   };
 
   /**

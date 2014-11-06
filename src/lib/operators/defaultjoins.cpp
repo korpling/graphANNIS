@@ -42,8 +42,8 @@ BinaryMatch NestedLoopJoin::next()
       if(edb->isConnected(initEdge(matchLeft.node, matchRight.node), minDistance, maxDistance))
       {
         result.found = true;
-        result.left = matchLeft;
-        result.right = matchRight;
+        result.lhs = matchLeft;
+        result.rhs = matchRight;
 
         // immediatly return
         return result;
@@ -97,9 +97,9 @@ BinaryMatch SeedJoin::next()
     if(checkAnnotationEqual(candidateAnnotations[currentAnnotationCandidate], right))
     {
       result.found = true;
-      result.left = matchLeft;
-      result.right.node = connectedNode.second;
-      result.right.anno = candidateAnnotations[currentAnnotationCandidate];
+      result.lhs = matchLeft;
+      result.rhs.node = connectedNode.second;
+      result.rhs.anno = candidateAnnotations[currentAnnotationCandidate];
       return result;
     }
   }
@@ -205,11 +205,11 @@ Match JoinWrapIterator::next()
   {
     if(wrapLeftOperand)
     {
-      result = currentMatch.left;
+      result = currentMatch.lhs;
     }
     else
     {
-      result = currentMatch.right;
+      result = currentMatch.rhs;
     }
     currentMatch = wrappedIterator.next();
   }

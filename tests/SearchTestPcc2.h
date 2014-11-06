@@ -143,7 +143,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
   unsigned int counter=0;
   for(BinaryMatch m=join.next(); m.found; m=join.next())
   {
-    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.left.node) % db.getNodeName(m.right.node)).str());
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.lhs.node) % db.getNodeName(m.rhs.node)).str());
     counter++;
   }
 
@@ -160,7 +160,7 @@ TEST_F(SearchTestPcc2, TestQueryInclude) {
   unsigned int counter=0;
   for(BinaryMatch m=join.next(); m.found; m=join.next())
   {
-    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.left.node) % db.getNodeName(m.right.node)).str());
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.lhs.node) % db.getNodeName(m.rhs.node)).str());
     counter++;
   }
 
