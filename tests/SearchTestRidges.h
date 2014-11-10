@@ -135,7 +135,7 @@ TEST_F(SearchTestRidges, Overlap) {
 
 // Should test query
 // pos="NN" & norm="Blumen" & #1 _i_ #2
-TEST_F(SearchTestRidges, Inclusion) {
+TEST_F(SearchTestRidges, DISABLED_Inclusion) {
 
   unsigned int counter=0;
 

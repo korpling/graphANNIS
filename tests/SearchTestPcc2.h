@@ -134,7 +134,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 }
 
 // mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
-TEST_F(SearchTestPcc2, TestQueryOverlap2) {
+TEST_F(SearchTestPcc2, DISABLED_TestQueryOverlap2) {
   AnnotationNameSearch n1(db, "mmax", "ambiguity", "not_ambig");
   AnnotationNameSearch n2(db, "mmax", "complex_np", "yes");
 
@@ -151,7 +151,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 }
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
-TEST_F(SearchTestPcc2, TestQueryInclude) {
+TEST_F(SearchTestPcc2, DISABLED_TestQueryInclude) {
   AnnotationNameSearch n1(db, "mmax", "ambiguity", "not_ambig");
   AnnotationNameSearch n2(db, "mmax", "complex_np", "yes");
 

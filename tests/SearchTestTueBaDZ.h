@@ -47,7 +47,7 @@ class SearchTestTueBaDZ : public ::testing::Test {
 };
 
 
-TEST_F(SearchTestTueBaDZ, Benchmark1) {
+TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
 
   AnnotationNameSearch n1(db, annis_ns, annis_node_name);
   AnnotationNameSearch n2(db, "merged", "pos", "PPER");
