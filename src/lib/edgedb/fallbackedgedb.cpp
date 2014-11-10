@@ -32,11 +32,7 @@ void FallbackEdgeDB::clear()
 bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
   typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
-  if(minDistance == 0 && maxDistance == 0)
-  {
-    return false;
-  }
-  else if(minDistance == 1 && maxDistance == 1)
+  if(minDistance == 1 && maxDistance == 1)
   {
     EdgeIt it = edges.find(edge);
     if(it != edges.end())
