@@ -82,7 +82,7 @@ bool LinearEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsig
     RelativePosition posTarget = posTargetIt->second;
     if(posSource.root == posTarget.root && posSource.pos < posTarget.pos)
     {
-      unsigned int diff = posTarget.pos - posSource.pos;
+      int diff = posTarget.pos - posSource.pos;
       return diff >= minDistance && diff <= maxDistance;
     }
   }
@@ -92,6 +92,28 @@ bool LinearEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsig
 EdgeIterator *LinearEdgeDB::findConnected(nodeid_t sourceNode, unsigned int minDistance, unsigned int maxDistance) const
 {
   return new LinearIterator(*this, sourceNode, minDistance, maxDistance);
+}
+
+int LinearEdgeDB::distance(const Edge &edge) const
+{
+  typedef stx::btree_map<nodeid_t, RelativePosition>::const_iterator PosIt;
+
+  PosIt posSourceIt = node2pos.find(edge.source);
+  PosIt posTargetIt = node2pos.find(edge.target);
+  if(posSourceIt != node2pos.end() && posTargetIt != node2pos.end())
+  {
+    RelativePosition posSource = posSourceIt->second;
+    RelativePosition posTarget = posTargetIt->second;
+    if(posSource.root == posTarget.root && posSource.pos < posTarget.pos)
+    {
+      int diff = posTarget.pos - posSource.pos;
+      if(diff >= 0)
+      {
+        return diff;
+      }
+    }
+  }
+  return -1;
 }
 
 

@@ -34,6 +34,8 @@ public:
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const = 0;
 
+  virtual int distance(const Edge& edge) const = 0;
+
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const = 0;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const = 0;
   virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const = 0;
@@ -44,5 +46,7 @@ public:
   virtual std::uint32_t numberOfEdges() const = 0;
   virtual std::uint32_t numberOfEdgeAnnotations() const = 0;
 };
+
+
 } // end namespace annis
 #endif // EDGEDB_H

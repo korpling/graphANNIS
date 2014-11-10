@@ -24,6 +24,8 @@ public:
                                            unsigned int minDistance,
                                            unsigned int maxDistance) const;
 
+  virtual int distance(const Edge &edge) const;
+
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
 

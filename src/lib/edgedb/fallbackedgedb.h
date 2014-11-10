@@ -30,6 +30,9 @@ public:
   virtual EdgeIterator* findConnected(nodeid_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const;
+
+  virtual int distance(const Edge &edge) const;
+
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const;
   virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const;
@@ -59,6 +62,12 @@ private:
 
 };
 
+struct DFSIteratorResult
+{
+  bool found;
+  unsigned int distance;
+  nodeid_t node;
+};
 
 /** A depth first traverser */
 class FallbackDFSIterator : public EdgeIterator
@@ -67,6 +76,7 @@ public:
 
   FallbackDFSIterator(const FallbackEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
 
+  virtual DFSIteratorResult nextDFS();
   virtual std::pair<bool, nodeid_t> next();
 private:
 

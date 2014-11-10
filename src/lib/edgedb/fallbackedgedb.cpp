@@ -1,6 +1,7 @@
 #include "fallbackedgedb.h"
 
 #include <fstream>
+#include <limits>
 
 using namespace annis;
 using namespace std;
@@ -47,14 +48,14 @@ bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, uns
   else
   {
     FallbackDFSIterator dfs(*this, edge.source, minDistance, maxDistance);
-    std::pair<bool, std::uint32_t> result = dfs.next();
-    while(result.first)
+    DFSIteratorResult result = dfs.nextDFS();
+    while(result.found)
     {
-      if(result.second == edge.target)
+      if(result.node == edge.target)
       {
         return true;
       }
-      result = dfs.next();
+      result = dfs.nextDFS();
     }
   }
 
@@ -66,6 +67,20 @@ EdgeIterator *FallbackEdgeDB::findConnected(nodeid_t sourceNode,
                                                  unsigned int maxDistance) const
 {
   return new FallbackDFSIterator(*this, sourceNode, minDistance, maxDistance);
+}
+
+int FallbackEdgeDB::distance(const Edge &edge) const
+{
+  FallbackDFSIterator dfs(*this, edge.source, 0, std::numeric_limits<unsigned int>::max());
+  DFSIteratorResult result = dfs.nextDFS();
+  while(result.found)
+  {
+    if(result.node == edge.target)
+    {
+      return result.distance;
+    }
+    result = dfs.nextDFS();
+  }
 }
 
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) const
@@ -172,33 +187,40 @@ FallbackDFSIterator::FallbackDFSIterator(const FallbackEdgeDB &edb,
   traversalStack.push(pair<uint32_t,unsigned int>(startNode, 0));
 }
 
-std::pair<bool, nodeid_t> FallbackDFSIterator::next()
+DFSIteratorResult FallbackDFSIterator::nextDFS()
 {
-  bool found = false;
-  nodeid_t node;
-  while(!found && !traversalStack.empty())
+  DFSIteratorResult result;
+  result.found = false;
+
+  while(!result.found && !traversalStack.empty())
   {
     pair<uint32_t, unsigned int> stackEntry = traversalStack.top();
-    node = stackEntry.first;
-    unsigned int distance = stackEntry.second;
+    result.node = stackEntry.first;
+    result.distance = stackEntry.second;
     traversalStack.pop();
 
-    if(distance >= minDistance && distance <= maxDistance)
+    if(result.distance >= minDistance && result.distance <= maxDistance)
     {
       // get the next node
-      found = true;
+      result.found = true;
     }
 
     // add the remaining child nodes
-    if(distance < maxDistance)
+    if(result.distance < maxDistance)
     {
       // add the outgoing edges to the stack
-      std::vector<uint32_t> outgoing = edb.getOutgoingEdges(node);
+      std::vector<uint32_t> outgoing = edb.getOutgoingEdges(result.node);
       for(size_t idxOutgoing=0; idxOutgoing < outgoing.size(); idxOutgoing++)
       {
-        traversalStack.push(pair<uint32_t, unsigned int>(outgoing[idxOutgoing], distance+1));
+        traversalStack.push(pair<uint32_t, unsigned int>(outgoing[idxOutgoing], result.distance+1));
       }
     }
   }
-  return std::pair<bool, nodeid_t>(found, node);
+  return result;
+}
+
+std::pair<bool, nodeid_t> FallbackDFSIterator::next()
+{
+  DFSIteratorResult result = nextDFS();
+  return std::pair<bool, nodeid_t>(result.found, result.node);
 }
