@@ -26,27 +26,15 @@ private:
 
   const DB& db;
   std::vector<const EdgeDB*> edbCoverage;
+  const EdgeDB* edbOrder;
+  const EdgeDB* edbLeftToken;
+  const EdgeDB* edbRightToken;
   std::set<BinaryMatch, compBinaryMatch> uniqueMatches;
 
   // the following variales hold the current iteration state
-  std::vector<Annotation> currentAnnnotations;
-  std::vector<Annotation>::const_iterator itCurrentAnnotations;
+  std::list<Match> currentMatches;
+  // end iteration state
 
-  Match currentRightMatch;
-
-  std::vector<nodeid_t> rightMatchCandidates;
-  std::vector<nodeid_t>::const_iterator itRightMatchCandidates;
-
-  EdgeIterator* itCurrentCoveredToken;
-
-  Match currentLeftMatch;
-  // end iteration sttate
-
-
-  bool nextAnnotation();
-  bool nextRightMatch();
-  bool nextCoveredToken();
-  bool nextLeftMatch();
 
 };
 } // end namespace annis

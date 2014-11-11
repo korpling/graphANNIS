@@ -5,10 +5,12 @@
 using namespace annis;
 
 Inclusion::Inclusion(DB &db, AnnotationIterator &left, AnnotationIterator &right)
-  : left(left), rightAnnotation(right.getAnnotation()), db(db), itCurrentCoveredToken(NULL)
+  : left(left), rightAnnotation(right.getAnnotation()), db(db)
 {
   edbCoverage = db.getAllEdgeDBForType(ComponentType::COVERAGE);
-
+  edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
+  edbLeftToken = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
+  edbRightToken = db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "");
   reset();
 }
 
@@ -17,21 +19,74 @@ BinaryMatch Inclusion::next()
   BinaryMatch result;
   result.found = false;
 
-  while(nextAnnotation())
+  while(currentMatches.empty() && left.hasNext())
   {
+    result.lhs = left.next();
 
-    result.rhs = currentRightMatch;
-    result.lhs = currentLeftMatch;
+    currentMatches.clear();
 
-    if(uniqueMatches.find(result) == uniqueMatches.end())
+    nodeid_t leftToken;
+    nodeid_t rightToken;
+    int spanLength = 0;
+    if(db.getNodeAnnotation(result.lhs.node, annis_ns, annis_tok).first)
     {
-      // not outputed yet
-      uniqueMatches.insert(result);
-      result.found = true;
-
-      return result;
+      // is token
+      leftToken = result.lhs.node;
+      rightToken = result.lhs.node;
+    }
+    else
+    {
+      leftToken = edbLeftToken->getOutgoingEdges(result.lhs.node)[0];
+      rightToken = edbRightToken->getOutgoingEdges(result.lhs.node)[0];
+      spanLength = edbOrder->distance(initEdge(leftToken, rightToken));
     }
 
+    // find each token which is between the left and right border
+    EdgeIterator* itIncludedStart = edbOrder->findConnected(leftToken, 0, spanLength);
+    for(std::pair<bool, nodeid_t> includedStart = itIncludedStart->next();
+        includedStart.first;
+        includedStart = itIncludedStart->next())
+    {
+      for(Annotation anno : db.getNodeAnnotationsByID(includedStart.second))
+      {
+        if(checkAnnotationEqual(rightAnnotation, anno))
+        {
+          Match m;
+          m.anno = anno;
+          m.node = includedStart.second;
+          currentMatches.push_back(m);
+          break;
+        }
+      }
+      for(auto leftAlignedNode : edbLeftToken->getOutgoingEdges(includedStart.second))
+      {
+        nodeid_t includedEndCandiate = edbRightToken->getOutgoingEdges(leftAlignedNode)[0];
+        if(edbOrder->isConnected(initEdge(includedEndCandiate, rightToken), 0, std::numeric_limits<unsigned int>::max()))
+        {
+
+          for(Annotation anno : db.getNodeAnnotationsByID(leftAlignedNode))
+          {
+            if(checkAnnotationEqual(rightAnnotation, anno))
+            {
+              Match m;
+              m.anno = anno;
+              m.node = leftAlignedNode;
+              currentMatches.push_back(m);
+
+              break;
+            }
+          }
+
+        }
+      }
+    }
+  }
+
+  if(!currentMatches.empty())
+  {
+    result.found = true;
+    result.rhs = currentMatches.front();
+    currentMatches.pop_front();
   }
 
   return result;
@@ -41,98 +96,8 @@ void Inclusion::reset()
 {
   uniqueMatches.clear();
   left.reset();
-
-  currentAnnnotations.clear();
-  itCurrentAnnotations = currentAnnnotations.begin();
-
-  delete itCurrentCoveredToken;
 }
 
 Inclusion::~Inclusion()
 {
-  delete itCurrentCoveredToken;
-}
-
-bool Inclusion::nextAnnotation()
-{
-  do
-  {
-    while(itCurrentAnnotations != currentAnnnotations.end())
-    {
-      Annotation anno = *itCurrentAnnotations;
-      itCurrentAnnotations++;
-
-      if(checkAnnotationEqual(anno, rightAnnotation))
-      {
-        currentRightMatch.anno = anno;
-        return true;
-      }
-    }
-  } while(nextRightMatch());
-  return false;
-}
-
-bool Inclusion::nextRightMatch()
-{
-  do
-  {
-
-    if(itRightMatchCandidates != rightMatchCandidates.end())
-    {
-      currentRightMatch.node = *itRightMatchCandidates;
-      itRightMatchCandidates++;
-
-      currentAnnnotations = db.getNodeAnnotationsByID(currentRightMatch.node);
-      itCurrentAnnotations = currentAnnnotations.begin();
-
-      return true;
-    }
-
-  } while(nextCoveredToken());
-
-  return false;
-}
-
-bool Inclusion::nextCoveredToken()
-{
-  do
-  {
-    if(itCurrentCoveredToken != NULL)
-    {
-      for(std::pair<bool, nodeid_t> m = itCurrentCoveredToken->next(); m.first; m = itCurrentCoveredToken->next())
-      {
-        nodeid_t coveredToken = m.second;
-
-        rightMatchCandidates.clear();
-        for(const EdgeDB* edb : edbCoverage)
-        {
-          for(auto i : edb->getIncomingEdges(coveredToken))
-          {
-            rightMatchCandidates.push_back(i);
-          }
-        }
-        itRightMatchCandidates = rightMatchCandidates.begin();
-
-        return true;
-      }
-    }
-  } while(nextLeftMatch());
-
-  return false;
-}
-
-
-
-bool Inclusion::nextLeftMatch()
-{
-  while(left.hasNext())
-  {
-    currentLeftMatch = left.next();
-
-    delete itCurrentCoveredToken;
-    itCurrentCoveredToken = new ComponentTypeIterator(db, ComponentType::COVERAGE, currentLeftMatch.node);
-
-    return true;
-  }
-  return false;
 }

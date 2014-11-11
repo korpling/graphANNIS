@@ -104,7 +104,7 @@ int LinearEdgeDB::distance(const Edge &edge) const
   {
     RelativePosition posSource = posSourceIt->second;
     RelativePosition posTarget = posTargetIt->second;
-    if(posSource.root == posTarget.root && posSource.pos < posTarget.pos)
+    if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
     {
       int diff = posTarget.pos - posSource.pos;
       if(diff >= 0)
