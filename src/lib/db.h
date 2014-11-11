@@ -75,7 +75,7 @@ public:
           itAnnos != itRange.second; itAnnos++)
       {
         Annotation anno = itAnnos->second;
-        if(anno.ns == nsID.second && anno.name && nameID.second)
+        if(anno.ns == nsID.second && anno.name == nameID.second)
         {
           result.first = true;
           result.second = anno;
