@@ -62,6 +62,36 @@ TEST_F(SearchTestPcc2, CatSearch) {
   EXPECT_EQ(155, counter);
 }
 
+TEST_F(SearchTestPcc2, MMaxAnnos) {
+
+  AnnotationNameSearch n1(db, "mmax", "ambiguity", "not_ambig");
+  AnnotationNameSearch n2(db, "mmax", "complex_np", "yes");
+
+  unsigned int counter=0;
+  while(n1.hasNext())
+  {
+    Match m = n1.next();
+    ASSERT_STREQ("mmax", db.strings.str(m.anno.ns).c_str());
+    ASSERT_STREQ("ambiguity", db.strings.str(m.anno.name).c_str());
+    ASSERT_STREQ("not_ambig", db.strings.str(m.anno.val).c_str());
+    counter++;
+  }
+
+  EXPECT_EQ(73, counter);
+
+  counter=0;
+  while(n2.hasNext())
+  {
+    Match m = n2.next();
+    ASSERT_STREQ("mmax", db.strings.str(m.anno.ns).c_str());
+    ASSERT_STREQ("complex_np", db.strings.str(m.anno.name).c_str());
+    ASSERT_STREQ("yes", db.strings.str(m.anno.val).c_str());
+    counter++;
+  }
+
+  EXPECT_EQ(17, counter);
+}
+
 TEST_F(SearchTestPcc2, TokenIndex) {
   AnnotationNameSearch n1(db, annis_ns, annis_tok, "Die");
   AnnotationNameSearch n2(db, annis_ns, annis_tok, "Jugendlichen");
