@@ -47,6 +47,7 @@ BinaryMatch Inclusion::next()
         includedStart.first;
         includedStart = itIncludedStart->next())
     {
+      // check the token itself
       for(Annotation anno : db.getNodeAnnotationsByID(includedStart.second))
       {
         if(checkAnnotationEqual(rightAnnotation, anno))
