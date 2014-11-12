@@ -103,15 +103,35 @@ TEST_F(SearchTestRidges, Benchmark2) {
   unsigned int counter=0;
 
   AnnotationNameSearch n1(db, annis::annis_ns, annis::annis_tok);
-  Annotation annos2 = initAnnotation(db.strings.add(annis::annis_tok), 0, db.strings.add(annis::annis_ns));
+  AnnotationNameSearch n2(db, annis::annis_ns,annis::annis_tok);
 
-  annis::SeedJoin join(db, db.getEdgeDB(ComponentType::ORDERING, annis_ns, ""), n1, annos2, 2, 10);
+  Precedence join(db, n1, n2, 2, 10);
+
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
     counter++;
   }
 
   EXPECT_EQ(1386828, counter);
+}
+
+// Should test query
+// pos="PTKANT" . node
+TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
+
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, "default_ns", "pos", "PTKANT");
+  AnnotationNameSearch n2(db, annis::annis_ns,annis::annis_node_name);
+
+  Precedence join(db, n1, n2, 1, 1);
+
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+
+  EXPECT_EQ(29, counter);
 }
 
 // Should test query

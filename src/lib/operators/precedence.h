@@ -64,6 +64,8 @@ private:
   const Annotation& annoForRightNode;
 
   BinaryOperatorIterator* actualJoin;
+  std::vector<nodeid_t> currentNodeCandiates;
+  BinaryMatch currentMatchedToken;
 
   const EdgeDB* edbLeft;
 };

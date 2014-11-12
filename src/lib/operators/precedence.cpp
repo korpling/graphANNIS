@@ -28,18 +28,27 @@ Precedence::~Precedence()
 
 BinaryMatch Precedence::next()
 {
-  //TODO: the token itself might match the conditions
   BinaryMatch result;
   result.found = false;
   if(actualJoin != NULL && edbLeft != NULL)
   {
-    for(BinaryMatch matchedToken = actualJoin->next(); matchedToken.found; matchedToken = actualJoin->next())
+    do
     {
-      std::vector<nodeid_t> nodeCandiates = edbLeft->getOutgoingEdges(matchedToken.rhs.node);
-      // first check the token itself
-      nodeCandiates.insert(nodeCandiates.begin(), matchedToken.rhs.node);
-      for(auto nodeID : nodeCandiates)
+      if(currentNodeCandiates.empty())
       {
+        currentMatchedToken = actualJoin->next();
+        if(currentMatchedToken.found)
+        {
+          currentNodeCandiates = edbLeft->getOutgoingEdges(currentMatchedToken.rhs.node);
+          // also check the token itself
+          currentNodeCandiates.insert(currentNodeCandiates.end(),
+                                      currentMatchedToken.rhs.node);
+        }
+      }
+      else
+      {
+        nodeid_t nodeID = currentNodeCandiates.back();
+        currentNodeCandiates.pop_back();
         for(auto& nodeAnno : db.getNodeAnnotationsByID(nodeID))
         {
           if(checkAnnotationEqual(nodeAnno, annoForRightNode))
@@ -52,7 +61,8 @@ BinaryMatch Precedence::next()
           }
         }
       }
-    } // end while a matched token was found
+
+    } while(currentMatchedToken.found  || !currentNodeCandiates.empty());
   }
   return result;
 }
@@ -63,6 +73,7 @@ void Precedence::reset()
   {
     actualJoin->reset();
   }
+  currentNodeCandiates.clear();
 }
 
 
