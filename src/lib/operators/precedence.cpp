@@ -19,6 +19,7 @@ Precedence::Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& rig
     // TODO: allow to use a nested loop iterator as a configurable alternative
     actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyTokAnno, minDistance, maxDistance);
   }
+  currentMatchedToken.found = true;
 }
 
 Precedence::~Precedence()
@@ -32,37 +33,43 @@ BinaryMatch Precedence::next()
   result.found = false;
   if(actualJoin != NULL && edbLeft != NULL)
   {
-    do
+    while(currentMatches.empty() && currentMatchedToken.found)
     {
-      if(currentNodeCandiates.empty())
+      currentMatchedToken = actualJoin->next();
+      if(currentMatchedToken.found)
       {
-        currentMatchedToken = actualJoin->next();
-        if(currentMatchedToken.found)
+        std::vector<nodeid_t> matchCandidateNodes = edbLeft->getOutgoingEdges(currentMatchedToken.rhs.node);
+        // also check the token itself
+        matchCandidateNodes.insert(matchCandidateNodes.end(),
+                                   currentMatchedToken.rhs.node);
+
+        for(nodeid_t nodeID : matchCandidateNodes)
         {
-          currentNodeCandiates = edbLeft->getOutgoingEdges(currentMatchedToken.rhs.node);
-          // also check the token itself
-          currentNodeCandiates.insert(currentNodeCandiates.end(),
-                                      currentMatchedToken.rhs.node);
-        }
-      }
-      else
-      {
-        nodeid_t nodeID = currentNodeCandiates.back();
-        currentNodeCandiates.pop_back();
-        for(auto& nodeAnno : db.getNodeAnnotationsByID(nodeID))
-        {
-          if(checkAnnotationEqual(nodeAnno, annoForRightNode))
+          for(auto& nodeAnno : db.getNodeAnnotationsByID(nodeID))
           {
-            result.found = true;
-            result.lhs = tokIteratorForLeftNode.currentNodeMatch();
-            result.rhs.node = nodeID;
-            result.rhs.anno = nodeAnno;
-            return result;
+            if(checkAnnotationEqual(nodeAnno, annoForRightNode))
+            {
+              Match m;
+              m.node = nodeID;
+              m.anno = nodeAnno;
+              currentMatches.push_back(m);
+            }
           }
         }
       }
 
-    } while(currentMatchedToken.found  || !currentNodeCandiates.empty());
+
+    }
+
+    if(!currentMatches.empty())
+    {
+      result.found = true;
+      result.lhs = tokIteratorForLeftNode.currentNodeMatch();
+      result.rhs = currentMatches.front();
+      currentMatches.pop_front();
+      return result;
+    }
+
   }
   return result;
 }
@@ -73,7 +80,8 @@ void Precedence::reset()
   {
     actualJoin->reset();
   }
-  currentNodeCandiates.clear();
+  currentMatches.clear();
+  currentMatchedToken.found = true;
 }
 
 

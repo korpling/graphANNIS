@@ -4,6 +4,8 @@
 #include "db.h"
 #include "../annotationiterator.h"
 
+#include <list>
+
 namespace annis
 {
 
@@ -64,7 +66,7 @@ private:
   const Annotation& annoForRightNode;
 
   BinaryOperatorIterator* actualJoin;
-  std::vector<nodeid_t> currentNodeCandiates;
+  std::list<Match> currentMatches;
   BinaryMatch currentMatchedToken;
 
   const EdgeDB* edbLeft;
