@@ -3,46 +3,12 @@
 
 #include "db.h"
 #include "../annotationiterator.h"
+#include "defaultjoins.h"
 
 #include <list>
 
 namespace annis
 {
-
-/**
- * @brief The RightMostTokenForNodeIterator class
- *
- * This iterator outputs the token that is right aligned with the original matched node.
- * If the matched node itself is a token, the token is returned.
- */
-class RightMostTokenForNodeIterator : public AnnotationIterator
-{
-public:
-
-  RightMostTokenForNodeIterator(AnnotationIterator& source, const DB& db);
-
-  virtual bool hasNext();
-  virtual Match next();
-  virtual void reset();
-
-  virtual Match currentNodeMatch();
-
-  virtual const Annotation& getAnnotation() {return source.getAnnotation();}
-
-  virtual ~RightMostTokenForNodeIterator() {}
-
-
-private:
-  AnnotationIterator& source;
-  const DB& db;
-  const EdgeDB* edb;
-  Match matchTemplate;
-  Match currentOriginalMatch;
-  Annotation anyTokAnnotation;
-
-  void initEdgeDB();
-};
-
 
 
 class Precedence : public BinaryOperatorIterator

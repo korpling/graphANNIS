@@ -84,6 +84,74 @@ private:
   bool wrapLeftOperand;
 };
 
+/**
+ * @brief The RightMostTokenForNodeIterator class
+ *
+ * This iterator outputs the token that is right aligned with the original matched node.
+ * If the matched node itself is a token, the token is returned.
+ */
+class RightMostTokenForNodeIterator : public AnnotationIterator
+{
+public:
+
+  RightMostTokenForNodeIterator(AnnotationIterator& source, const DB& db);
+
+  virtual bool hasNext();
+  virtual Match next();
+  virtual void reset();
+
+  virtual Match currentNodeMatch();
+
+  virtual const Annotation& getAnnotation() {return source.getAnnotation();}
+
+  virtual ~RightMostTokenForNodeIterator() {}
+
+
+private:
+  AnnotationIterator& source;
+  const DB& db;
+  const EdgeDB* edb;
+  Match matchTemplate;
+  Match currentOriginalMatch;
+  Annotation anyTokAnnotation;
+
+  void initEdgeDB();
+};
+
+/**
+ * @brief The LeftMostTokenForNodeIterator class
+ *
+ * This iterator outputs the token that is left aligned with the original matched node.
+ * If the matched node itself is a token, the token is returned.
+ */
+class LeftMostTokenForNodeIterator : public AnnotationIterator
+{
+public:
+
+  LeftMostTokenForNodeIterator(AnnotationIterator& source, const DB& db);
+
+  virtual bool hasNext();
+  virtual Match next();
+  virtual void reset();
+
+  virtual Match currentNodeMatch();
+
+  virtual const Annotation& getAnnotation() {return source.getAnnotation();}
+
+  virtual ~LeftMostTokenForNodeIterator() {}
+
+
+private:
+  AnnotationIterator& source;
+  const DB& db;
+  const EdgeDB* edb;
+  Match matchTemplate;
+  Match currentOriginalMatch;
+  Annotation anyTokAnnotation;
+
+  void initEdgeDB();
+};
+
 } // end namespace annis
 
 #endif // DEFAULTJOINS_H

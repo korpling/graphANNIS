@@ -157,6 +157,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
   unsigned int counter=0;
   for(BinaryMatch m=join.next(); m.found; m=join.next())
   {
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.lhs.node) % db.getNodeName(m.rhs.node)).str());
     counter++;
   }
 

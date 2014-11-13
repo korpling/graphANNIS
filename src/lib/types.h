@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <cstring>
+#include <limits>
 
 namespace annis
 {
@@ -12,6 +13,8 @@ namespace annis
   const std::string annis_ns = "annis4_internal";
   const std::string annis_node_name = "node_name";
   const std::string annis_tok = "tok";
+
+  const unsigned int uintmax = std::numeric_limits<unsigned int>::max();
 
   struct Edge
   {

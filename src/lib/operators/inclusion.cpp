@@ -56,13 +56,14 @@ BinaryMatch Inclusion::next()
           m.anno = anno;
           m.node = includedStart.second;
           currentMatches.push_back(m);
+          // TODO: do we want to be able to match all annotations?
           break;
         }
       }
       for(auto leftAlignedNode : edbLeftToken->getOutgoingEdges(includedStart.second))
       {
         nodeid_t includedEndCandiate = edbRightToken->getOutgoingEdges(leftAlignedNode)[0];
-        if(edbOrder->isConnected(initEdge(includedEndCandiate, rightToken), 0, std::numeric_limits<unsigned int>::max()))
+        if(edbOrder->isConnected(initEdge(includedEndCandiate, rightToken), 0, uintmax))
         {
 
           for(Annotation anno : db.getNodeAnnotationsByID(leftAlignedNode))
@@ -73,7 +74,7 @@ BinaryMatch Inclusion::next()
               m.anno = anno;
               m.node = leftAlignedNode;
               currentMatches.push_back(m);
-
+              // TODO: do we want to be able to match all annotations?
               break;
             }
           }

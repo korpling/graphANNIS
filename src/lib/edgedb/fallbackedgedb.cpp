@@ -71,7 +71,7 @@ EdgeIterator *FallbackEdgeDB::findConnected(nodeid_t sourceNode,
 
 int FallbackEdgeDB::distance(const Edge &edge) const
 {
-  FallbackDFSIterator dfs(*this, edge.source, 0, std::numeric_limits<unsigned int>::max());
+  FallbackDFSIterator dfs(*this, edge.source, 0, uintmax);
   DFSIteratorResult result = dfs.nextDFS();
   while(result.found)
   {

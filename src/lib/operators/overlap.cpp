@@ -3,12 +3,13 @@
 using namespace annis;
 
 Overlap::Overlap(DB &db, AnnotationIterator &left, AnnotationIterator &right)
-  : left(left), rightAnnotation(right.getAnnotation()), db(db), edbLeft(NULL), edbRight(NULL),
-    leftTokBorder(0), rightTokBorder(0), currentTok(0)
+  : left(left), rightAnnotation(right.getAnnotation()), db(db),
+    edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
+    edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
+    edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, "")),
+    lhsLeftTokenIt(LeftMostTokenForNodeIterator(left, db)),
+    tokenRightFromLHSIt(db, edbOrder, lhsLeftTokenIt, initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()), 0, uintmax)
 {
-  edbLeft = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
-  edbRight = db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "");
-
   reset();
 }
 
@@ -17,21 +18,56 @@ BinaryMatch Overlap::next()
   BinaryMatch result;
   result.found = false;
 
-  while(nextAnnotation())
+  // TODO: implement overlap
+  BinaryMatch rightTokenMatch;
+
+  if(currentMatches.empty())
   {
+    rightTokenMatch = tokenRightFromLHSIt.next();
+  }
+  else
+  {
+    rightTokenMatch.found = false;
+  }
+  while(currentMatches.empty() && rightTokenMatch.found)
+  {
+    result.lhs = lhsLeftTokenIt.currentNodeMatch();
 
-    result.rhs = currentRightMatch;
-    result.lhs = currentLeftMatch;
+    // get the node that has a right border with the token
+    std::vector<nodeid_t> overlapCandidates = edbRight->getOutgoingEdges(rightTokenMatch.rhs.node);
+    // also add the token itself
+    overlapCandidates.insert(overlapCandidates.begin(), rightTokenMatch.rhs.node);
 
-    if(uniqueMatches.find(result) == uniqueMatches.end())
+    // check each candidate if it's left side comes before the right side of the lhs node
+    for(unsigned int i=0; i < overlapCandidates.size(); i++)
     {
-      // not outputed yet
-      uniqueMatches.insert(result);
-      result.found = true;
+      nodeid_t candidateID = overlapCandidates[i];
+      // the first candidate is always the token itself, otherwise get the aligned token
+      nodeid_t leftTokenForCandidate = i == 0 ? candidateID : edbLeft->getOutgoingEdges(candidateID)[0];
 
-      return result;
+      if(edbOrder->isConnected(initEdge(leftTokenForCandidate, rightTokenMatch.rhs.node), 0, uintmax))
+      {
+        Match m;
+        m.node = candidateID;
+        for(const Annotation& anno : db.getNodeAnnotationsByID(candidateID))
+        {
+          if(checkAnnotationEqual(rightAnnotation, anno))
+          {
+            m.anno = anno;
+            currentMatches.push_back(m);
+          }
+        }
+      }
     }
 
+    rightTokenMatch = tokenRightFromLHSIt.next();
+  } // end while
+
+  while(!currentMatches.empty())
+  {
+    result.found = true;
+    result.rhs = currentMatches.front();
+    currentMatches.pop_front();
   }
 
   return result;
@@ -41,14 +77,9 @@ void Overlap::reset()
 {
   uniqueMatches.clear();
   left.reset();
-  currentAnnnotations.clear();
-  itCurrentAnnotations = currentAnnnotations.begin();
-  nodesOverlappingCurrentToken.clear();
-  itNodeOverlappingCurrentToken = nodesOverlappingCurrentToken.begin();
-
-  leftTokBorder = 0;
-  rightTokBorder = 0;
-  currentTok = 1;
+  currentMatches.clear();
+  lhsLeftTokenIt.reset();
+  tokenRightFromLHSIt.reset();
 }
 
 Overlap::~Overlap()
@@ -56,84 +87,3 @@ Overlap::~Overlap()
 
 }
 
-bool Overlap::nextAnnotation()
-{
-  do
-  {
-    while(itCurrentAnnotations != currentAnnnotations.end())
-    {
-      Annotation anno = *itCurrentAnnotations;
-      itCurrentAnnotations++;
-
-      if(checkAnnotationEqual(anno, rightAnnotation))
-      {
-        currentRightMatch.anno = anno;
-        return true;
-      }
-    }
-  } while(nextOverlappingNode());
-  return false;
-}
-
-bool Overlap::nextOverlappingNode()
-{
-  do
-  {
-    while(itNodeOverlappingCurrentToken != nodesOverlappingCurrentToken.end())
-    {
-      nodeid_t currentNode = *itNodeOverlappingCurrentToken;
-
-      currentRightMatch.node = currentNode;
-
-      currentAnnnotations = db.getNodeAnnotationsByID(currentNode);
-      itCurrentAnnotations = currentAnnnotations.begin();
-      itNodeOverlappingCurrentToken++;
-
-      return true;
-    }
-  } while(nextToken());
-
-  return false;
-}
-
-bool Overlap::nextToken()
-{
-  do
-  {
-    while(currentTok <= rightTokBorder)
-    {
-      // get all the nodes that cover this token
-
-      nodesOverlappingCurrentToken.clear();
-      nodesOverlappingCurrentToken.insert(currentTok);
-      for(auto n : edbLeft->getOutgoingEdges(currentTok))
-      {
-        nodesOverlappingCurrentToken.insert(n);
-      }
-      for(auto n : edbRight->getOutgoingEdges(currentTok))
-      {
-        nodesOverlappingCurrentToken.insert(n);
-      }
-      itNodeOverlappingCurrentToken = nodesOverlappingCurrentToken.begin();
-      currentTok++;
-
-      return true;
-    }
-  } while(nextMatch());
-
-  return false;
-}
-
-bool Overlap::nextMatch()
-{
-  while(left.hasNext())
-  {
-    currentLeftMatch = left.next();
-    // get the covered token for the matched node
-    leftTokBorder = edbLeft->getOutgoingEdges(currentLeftMatch.node)[0];
-    rightTokBorder = edbRight->getOutgoingEdges(currentLeftMatch.node)[0];
-    currentTok = leftTokBorder;
-    return true;
-  }
-  return false;
-}

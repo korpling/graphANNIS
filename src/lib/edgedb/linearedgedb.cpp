@@ -57,7 +57,7 @@ void LinearEdgeDB::calculateIndex()
     chain.push_back(rootNode);
     node2pos[rootNode] = initRelativePosition(rootNode,chain.size()-1);
 
-    FallbackDFSIterator it(*this, rootNode, 1, numeric_limits<uint32_t>::max());
+    FallbackDFSIterator it(*this, rootNode, 1, uintmax);
 
     uint32_t pos=1;
     for(pair<bool, nodeid_t> node = it.next(); node.first; node = it.next(), pos++)
@@ -176,7 +176,14 @@ LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
     }
 
     // define where to stop
-    endPos = currentPos + maxDistance;
+    if(maxDistance == uintmax)
+    {
+      endPos = uintmax;
+    }
+    else
+    {
+      endPos = currentPos + maxDistance;
+    }
     // add the minium distance
     currentPos = currentPos + minDistance;
 

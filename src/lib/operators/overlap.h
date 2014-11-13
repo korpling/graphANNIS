@@ -2,9 +2,11 @@
 #define OVERLAP_H
 
 #include <set>
+#include <list>
 
 #include "../db.h"
 #include "../annotationiterator.h"
+#include "defaultjoins.h"
 
 namespace annis
 {
@@ -23,29 +25,20 @@ private:
   AnnotationIterator& left;
   Annotation rightAnnotation;
 
+
   const DB& db;
   const EdgeDB* edbLeft;
   const EdgeDB* edbRight;
+  const EdgeDB* edbOrder;
 
-  nodeid_t leftTokBorder;
-  nodeid_t rightTokBorder;
-  nodeid_t currentTok;
-
-  std::set<nodeid_t> nodesOverlappingCurrentToken;
-  std::set<nodeid_t>::const_iterator itNodeOverlappingCurrentToken;
-
-  std::vector<Annotation> currentAnnnotations;
-  std::vector<Annotation>::const_iterator itCurrentAnnotations;
-
-  Match currentLeftMatch;
-  Match currentRightMatch;
+  LeftMostTokenForNodeIterator lhsLeftTokenIt;
+  /**
+   * @brief finds *all* the token right from the lhs
+   */
+  SeedJoin tokenRightFromLHSIt;
+  std::list<Match> currentMatches;
 
   std::set<BinaryMatch, compBinaryMatch> uniqueMatches;
-
-  bool nextAnnotation();
-  bool nextOverlappingNode();
-  bool nextToken();
-  bool nextMatch();
 
 };
 } // end namespace annis
