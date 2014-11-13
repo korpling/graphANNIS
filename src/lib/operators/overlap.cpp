@@ -6,7 +6,8 @@ NestedOverlap::NestedOverlap(DB &db, AnnotationIterator &left, AnnotationIterato
   : left(left), right(right), db(db),
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
-    edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, ""))
+    edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, "")),
+    initialized(false)
     //lhsLeftTokenIt(left, db)
   //  tokenRightFromLHSIt(db, edbOrder, lhsLeftTokenIt, initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()), 0, uintmax)
 {
@@ -15,41 +16,71 @@ NestedOverlap::NestedOverlap(DB &db, AnnotationIterator &left, AnnotationIterato
 
 BinaryMatch NestedOverlap::next()
 {
+
   BinaryMatch result;
   result.found = false;
 
-
-  while(left.hasNext())
+  if(edbLeft == NULL || edbRight == NULL || edbOrder == NULL)
   {
-    result.lhs = left.next();
-    nodeid_t lhsLeftToken = leftTokenForNode(result.lhs.node);
-    nodeid_t lhsRightToken = rightTokenForNode(result.lhs.node);
+    return result;
+  }
+
+  bool proceed = true;
+
+  if(!initialized)
+  {
+    proceed = false;
+    if(left.hasNext())
+    {
+      matchLHS = left.next();
+      proceed = true;
+      initialized = true;
+    }
+  }
+
+  while(proceed)
+  {
+
+    nodeid_t lhsLeftToken = leftTokenForNode(matchLHS.node);
+    nodeid_t lhsRightToken = rightTokenForNode(matchLHS.node);
 
     while(right.hasNext())
     {
-      result.rhs = right.next();
+      matchRHS = right.next();
 
       // get the left- and right-most covered token for rhs
-      nodeid_t rhsLeftToken = leftTokenForNode(result.rhs.node);
-      nodeid_t rhsRightToken = rightTokenForNode(result.rhs.node);
+      nodeid_t rhsLeftToken = leftTokenForNode(matchRHS.node);
+      nodeid_t rhsRightToken = rightTokenForNode(matchRHS.node);
+
+
+      // check the actual constraint
       if(edbOrder->isConnected(initEdge(lhsLeftToken, rhsRightToken), 0, uintmax) &&
-        edbOrder->isConnected(initEdge(rhsLeftToken, lhsRightToken), 0, uintmax))
+         edbOrder->isConnected(initEdge(rhsLeftToken, lhsRightToken), 0, uintmax))
       {
-         result.found = true;
-         return result;
+        result.found = true;
+        result.lhs = matchLHS;
+        result.rhs = matchRHS;
+
+        // immediatly return
+        return result;
       }
-
     }
-
-    right.reset();
+    if(left.hasNext())
+    {
+      matchLHS= left.next();
+      right.reset();
+    }
+    else
+    {
+      proceed = false;
+    }
   }
-
   return result;
 }
 
 void NestedOverlap::reset()
 {
-  uniqueMatches.clear();
+  //uniqueMatches.clear();
   left.reset();
   right.reset();
   //currentMatches.clear();

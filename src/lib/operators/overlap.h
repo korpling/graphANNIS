@@ -30,7 +30,10 @@ private:
   const EdgeDB* edbRight;
   const EdgeDB* edbOrder;
 
-  std::set<BinaryMatch, compBinaryMatch> uniqueMatches;
+  bool initialized;
+
+  Match matchLHS;
+  Match matchRHS;
 
   nodeid_t leftTokenForNode(nodeid_t n);
   nodeid_t rightTokenForNode(nodeid_t n);
