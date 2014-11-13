@@ -152,7 +152,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
   AnnotationNameSearch n1(db, "exmaralda", "Inf-Stat", "new");
   AnnotationNameSearch n2(db, "exmaralda", "PP");
 
-  Overlap join(db, n1, n2);
+  NestedOverlap join(db, n1, n2);
 
   unsigned int counter=0;
   for(BinaryMatch m=join.next(); m.found; m=join.next())
@@ -169,7 +169,7 @@ TEST_F(SearchTestPcc2, DISABLED_TestQueryOverlap2) {
   AnnotationNameSearch n1(db, "mmax", "ambiguity", "not_ambig");
   AnnotationNameSearch n2(db, "mmax", "complex_np", "yes");
 
-  Overlap join(db, n1, n2);
+  NestedOverlap join(db, n1, n2);
 
   unsigned int counter=0;
   for(BinaryMatch m=join.next(); m.found; m=join.next())

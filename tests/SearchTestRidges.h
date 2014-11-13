@@ -147,7 +147,6 @@ TEST_F(SearchTestRidges, Overlap) {
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.lhs.node % m.rhs.node).str()) ;
-    std::cout << "match " << counter << std::endl;
     counter++;
   }
 

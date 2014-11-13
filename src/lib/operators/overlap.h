@@ -11,19 +11,18 @@
 namespace annis
 {
 
-class Overlap : public BinaryOperatorIterator
+class NestedOverlap : public BinaryOperatorIterator
 {
 public:
-  Overlap(DB &db, AnnotationIterator& left, AnnotationIterator& right);
+  NestedOverlap(DB &db, AnnotationIterator& left, AnnotationIterator& right);
 
   virtual BinaryMatch next();
   virtual void reset();
 
-  virtual ~Overlap();
+  virtual ~NestedOverlap();
 private:
-
   AnnotationIterator& left;
-  Annotation rightAnnotation;
+  AnnotationIterator& right;
 
 
   const DB& db;
@@ -31,14 +30,11 @@ private:
   const EdgeDB* edbRight;
   const EdgeDB* edbOrder;
 
-  LeftMostTokenForNodeIterator lhsLeftTokenIt;
-  /**
-   * @brief finds *all* the token right from the lhs
-   */
-  SeedJoin tokenRightFromLHSIt;
-  std::list<Match> currentMatches;
-
   std::set<BinaryMatch, compBinaryMatch> uniqueMatches;
+
+  nodeid_t leftTokenForNode(nodeid_t n);
+  nodeid_t rightTokenForNode(nodeid_t n);
+  bool isToken(nodeid_t n);
 
 };
 } // end namespace annis
