@@ -44,13 +44,22 @@ BinaryMatch Overlap::next()
       // the first candidate is always the token itself, otherwise get the aligned token
       nodeid_t leftTokenForCandidate = i == 0 ? candidateID : edbLeft->getOutgoingEdges(candidateID)[0];
 
-      if(edbOrder->isConnected(initEdge(leftTokenForCandidate, rightTokenMatch.lhs.node), 0, uintmax))
+      std::list<Annotation> matchingAnnos;
+      for(const Annotation& anno : db.getNodeAnnotationsByID(candidateID))
       {
-        Match m;
-        m.node = candidateID;
-        for(const Annotation& anno : db.getNodeAnnotationsByID(candidateID))
+        if(checkAnnotationEqual(rightAnnotation, anno))
         {
-          if(checkAnnotationEqual(rightAnnotation, anno))
+          matchingAnnos.push_back(anno);
+        }
+      }
+
+      if(!matchingAnnos.empty())
+      {
+        if(edbOrder->isConnected(initEdge(leftTokenForCandidate, rightTokenMatch.lhs.node), 0, uintmax))
+        {
+          Match m;
+          m.node = candidateID;
+          for(const Annotation& anno : matchingAnnos)
           {
             m.anno = anno;
             currentMatches.push_back(m);
