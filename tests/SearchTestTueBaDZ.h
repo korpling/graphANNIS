@@ -57,7 +57,7 @@ TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
   AnnotationNameSearch n6(db, annis_ns, annis_node_name);
   AnnotationNameSearch n7(db, "mmax", "relation", "anaphoric");
 
-  Overlap n2_incl_n4(db, n2, n4);
+  NestedOverlap n2_incl_n4(db, n2, n4);
 
   unsigned int counter=0;
 

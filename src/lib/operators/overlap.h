@@ -37,5 +37,36 @@ private:
   bool isToken(nodeid_t n);
 
 };
+
+class SeedOverlap : public BinaryOperatorIterator
+{
+public:
+  SeedOverlap(DB &db, AnnotationIterator& left, AnnotationIterator& right);
+
+  virtual BinaryMatch next();
+  virtual void reset();
+
+  virtual ~SeedOverlap();
+private:
+
+  AnnotationIterator& left;
+  Annotation rightAnnotation;
+
+
+  const DB& db;
+  const EdgeDB* edbLeft;
+  const EdgeDB* edbRight;
+  const EdgeDB* edbOrder;
+
+  LeftMostTokenForNodeIterator lhsLeftTokenIt;
+  /**
+   * @brief finds *all* the token right from the lhs
+   */
+  SeedJoin tokenRightFromLHSIt;
+  std::list<Match> currentMatches;
+
+  std::set<BinaryMatch, compBinaryMatch> uniqueMatches;
+
+};
 } // end namespace annis
 #endif // OVERLAP_H
