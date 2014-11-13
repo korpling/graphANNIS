@@ -7,7 +7,7 @@ Overlap::Overlap(DB &db, AnnotationIterator &left, AnnotationIterator &right)
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
     edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, "")),
-    lhsLeftTokenIt(LeftMostTokenForNodeIterator(left, db)),
+    lhsLeftTokenIt(left, db),
     tokenRightFromLHSIt(db, edbOrder, lhsLeftTokenIt, initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()), 0, uintmax)
 {
   reset();
@@ -18,7 +18,6 @@ BinaryMatch Overlap::next()
   BinaryMatch result;
   result.found = false;
 
-  // TODO: implement overlap
   BinaryMatch rightTokenMatch;
 
   if(currentMatches.empty())
@@ -45,7 +44,7 @@ BinaryMatch Overlap::next()
       // the first candidate is always the token itself, otherwise get the aligned token
       nodeid_t leftTokenForCandidate = i == 0 ? candidateID : edbLeft->getOutgoingEdges(candidateID)[0];
 
-      if(edbOrder->isConnected(initEdge(leftTokenForCandidate, rightTokenMatch.rhs.node), 0, uintmax))
+      if(edbOrder->isConnected(initEdge(leftTokenForCandidate, rightTokenMatch.lhs.node), 0, uintmax))
       {
         Match m;
         m.node = candidateID;
