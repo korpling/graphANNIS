@@ -1,6 +1,7 @@
 #include "coverageedb.h"
 
 #include <fstream>
+#include <set>
 
 using namespace annis;
 
@@ -17,7 +18,7 @@ void CoverageEdgeDB::calculateIndex()
 
   {
     const Edge& e = *it;
-    coveringNodes.insert2(e.source, e.target);
+    coveringNodes.insert2(e.target, e.source);
   }
 }
 
@@ -44,6 +45,12 @@ bool CoverageEdgeDB::load(std::string dirPath)
   result = result && coveringNodes.restore(in);
   in.close();
 
+//  for(stx::btree_multimap<nodeid_t, nodeid_t>::const_iterator it=coveringNodes.begin();
+//      it != coveringNodes.end(); it++)
+//  {
+//    std::cout << "covering: " <<  it->first << "->" << it->second << std::endl;
+//  }
+
   return result;
 }
 
@@ -52,9 +59,10 @@ std::vector<nodeid_t> CoverageEdgeDB::getIncomingEdges(nodeid_t node) const
   typedef stx::btree_multimap<nodeid_t, nodeid_t>::const_iterator It;
 
   std::vector<nodeid_t> result;
-  result.reserve(10);
+  result.reserve(20);
 
-  for(It it=coveringNodes.begin(); it != coveringNodes.end(); it++)
+  std::pair<It, It> itRange = coveringNodes.equal_range(node);
+  for(It it=itRange.first; it != itRange.second; it++)
   {
     result.push_back(it->second);
   }
