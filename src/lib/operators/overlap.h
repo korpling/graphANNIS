@@ -60,6 +60,7 @@ private:
   const EdgeDB* edbLeft;
   const EdgeDB* edbRight;
   const EdgeDB* edbOrder;
+  const EdgeDB* edbCoverage;
 
   LeftMostTokenForNodeIterator lhsLeftTokenIt;
   /**
