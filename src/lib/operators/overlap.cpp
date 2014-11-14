@@ -196,7 +196,12 @@ BinaryMatch SeedOverlap::next()
       }
     }
 
-    coveredTokenMatch = tokenCoveredByLHS.next();
+    if(currentMatches.empty())
+    {
+      // nothing found for this token, get the next one
+      coveredTokenMatch = tokenCoveredByLHS.next();
+    }
+
   } // end while
 
   while(!currentMatches.empty())
