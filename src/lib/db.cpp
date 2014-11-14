@@ -345,7 +345,10 @@ bool DB::loadRelANNISNode(string dirPath)
       // get the token that belongs to this text position
       textPos.val = i;
       nodeid_t tokenID = tokenByTextPosition[textPos];
-      edbCoverage->addEdge(initEdge(n, tokenID));
+      if(n != tokenID)
+      {
+        edbCoverage->addEdge(initEdge(n, tokenID));
+      }
     }
   }
 
