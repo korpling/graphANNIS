@@ -177,7 +177,16 @@ BinaryMatch SeedOverlap::next()
           Match m;
           m.node = candidateID;
           m.anno = anno;
-          currentMatches.push_back(m);
+
+          BinaryMatch tmp = result;
+          tmp.rhs = m;
+          tmp.found = true;
+
+          if(uniqueMatches.find(tmp) == uniqueMatches.end())
+          {
+            currentMatches.push_back(m);
+            uniqueMatches.insert(tmp);
+          }
         }
       }
     }
