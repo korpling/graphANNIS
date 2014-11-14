@@ -13,6 +13,7 @@
 #include "helper.h"
 #include "edgedb/fallbackedgedb.h"
 #include "edgedb/linearedgedb.h"
+#include "edgedb/coverageedb.h"
 
 HUMBLE_LOGGER(logger, "annis4");
 
@@ -510,6 +511,10 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
     {
       edgeDB = new LinearEdgeDB(strings, c);
 //      edgeDB = new FallbackEdgeDB(strings, c);
+    }
+    else if(c.type == ComponentType::COVERAGE)
+    {
+      edgeDB = new CoverageEdgeDB(strings, c);
     }
     else
     {
