@@ -340,7 +340,7 @@ bool DB::loadRelANNISNode(string dirPath)
     uint32_t left = itLeftToNode->first.val;
     uint32_t right = nodeToRight[n];
 
-    for(uint32_t i = left; i <= right; i++)
+    for(uint32_t i = left; i < right; i++)
     {
       // get the token that belongs to this text position
       textPos.val = i;

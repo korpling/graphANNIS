@@ -165,6 +165,7 @@ BinaryMatch SeedOverlap::next()
   while(currentMatches.empty() && coveredTokenMatch.found)
   {
     result.lhs = coveredTokenMatch.lhs;
+
     // get all nodes that are covering the token
     std::vector<nodeid_t> overlapCandidates = edbCoverage->getIncomingEdges(coveredTokenMatch.rhs.node);
 
