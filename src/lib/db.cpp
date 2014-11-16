@@ -13,6 +13,7 @@
 #include "helper.h"
 #include "edgedb/fallbackedgedb.h"
 #include "edgedb/linearedgedb.h"
+#include "edgedb/coverageedb.h"
 
 HUMBLE_LOGGER(logger, "annis4");
 
@@ -187,13 +188,16 @@ bool DB::loadRelANNISNode(string dirPath)
   map<TextProperty, uint32_t, compTextProperty> tokenByIndex;
 
   // map the "left" value to the nodes it belongs to
-  multimap<TextProperty, uint32_t, compTextProperty> leftToNode;
+  multimap<TextProperty, nodeid_t, compTextProperty> leftToNode;
   // map the "right" value to the nodes it belongs to
-  multimap<TextProperty, uint32_t, compTextProperty> rightToNode;
+  multimap<TextProperty, nodeid_t, compTextProperty> rightToNode;
   // map as node to it's "left" value
-  map<uint32_t, uint32_t> nodeToLeft;
+  map<nodeid_t, uint32_t> nodeToLeft;
   // map as node to it's "right" value
-  map<uint32_t, uint32_t> nodeToRight;
+  map<nodeid_t, uint32_t> nodeToRight;
+
+  // maps a character position to it's token
+  map<TextProperty, nodeid_t, compTextProperty> tokenByTextPosition;
 
   string nodeTabPath = dirPath + "/node.tab";
   HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
@@ -220,6 +224,15 @@ bool DB::loadRelANNISNode(string dirPath)
     nodeNameAnno.name = strings.add(annis_node_name);
     nodeNameAnno.val = strings.add(line[4]);
     addNodeAnnotation(nodeNr, nodeNameAnno);
+
+    TextProperty left;
+    left.val = uint32FromString(line[5]);
+    left.textID = textID;
+
+    TextProperty right;
+    right.val = uint32FromString(line[6]);
+    right.textID = textID;
+
     if(tokenIndexRaw != "NULL")
     {
       string span = hasSegmentations ? line[12] : line[9];
@@ -236,14 +249,15 @@ bool DB::loadRelANNISNode(string dirPath)
 
       tokenByIndex[index] = nodeNr;
 
-    } // end if token
-    TextProperty left;
-    left.val = uint32FromString(line[5]);
-    left.textID = textID;
+      TextProperty textPos;
+      textPos.textID = textID;
+      for(uint32_t i=left.val; i <= right.val; i++)
+      {
+        textPos.val = i;
+        tokenByTextPosition[textPos] = nodeNr;
+      }
 
-    TextProperty right;
-    right.val = uint32FromString(line[6]);
-    right.textID = textID;
+    } // end if token
 
     leftToNode.insert(pair<TextProperty, uint32_t>(left, nodeNr));
     rightToNode.insert(pair<TextProperty, uint32_t>(right, nodeNr));
@@ -310,6 +324,32 @@ bool DB::loadRelANNISNode(string dirPath)
       lastToken = tokenIt->second;
       tokenIt++;
     } // end for each token
+  }
+
+  // add explicit coverage edges for each node in the special annis namespace coverage component
+  EdgeDB* edbCoverage = createEdgeDBForComponent(ComponentType::COVERAGE, annis_ns, "");
+  HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
+  for(multimap<TextProperty, nodeid_t, compTextProperty>::const_iterator itLeftToNode = leftToNode.begin();
+      itLeftToNode != leftToNode.end(); itLeftToNode++)
+  {
+    nodeid_t n = itLeftToNode->second;
+
+    TextProperty textPos;
+    textPos.textID = itLeftToNode->first.textID;
+
+    uint32_t left = itLeftToNode->first.val;
+    uint32_t right = nodeToRight[n];
+
+    for(uint32_t i = left; i < right; i++)
+    {
+      // get the token that belongs to this text position
+      textPos.val = i;
+      nodeid_t tokenID = tokenByTextPosition[textPos];
+      if(n != tokenID)
+      {
+        edbCoverage->addEdge(initEdge(n, tokenID));
+      }
+    }
   }
 
   string nodeAnnoTabPath = dirPath + "/node_annotation.tab";
@@ -510,6 +550,10 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
     {
       edgeDB = new LinearEdgeDB(strings, c);
 //      edgeDB = new FallbackEdgeDB(strings, c);
+    }
+    else if(c.type == ComponentType::COVERAGE)
+    {
+      edgeDB = new CoverageEdgeDB(strings, c);
     }
     else
     {

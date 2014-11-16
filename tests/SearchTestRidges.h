@@ -146,7 +146,8 @@ TEST_F(SearchTestRidges, NestedOverlap) {
   annis::NestedOverlap join(db, n1, n2);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
-    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.lhs.node % m.rhs.node).str()) ;
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m.lhs.node)
+                     % db.getNodeName(m.rhs.node)).str()) ;
     counter++;
   }
 
@@ -162,10 +163,11 @@ TEST_F(SearchTestRidges, SeedOverlap) {
   AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
   AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
 
-  annis::SeedOverlap join(db, n2, n1);
+  annis::SeedOverlap join(db, n1, n2);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
-    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.lhs.node % m.rhs.node).str()) ;
+//    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m.lhs.node)
+//                     % db.getNodeName(m.rhs.node)).str()) ;
     counter++;
   }
 

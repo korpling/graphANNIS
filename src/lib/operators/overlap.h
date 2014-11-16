@@ -52,20 +52,22 @@ public:
   virtual ~SeedOverlap();
 private:
 
-  AnnotationIterator& left;
-  Annotation rightAnnotation;
-
 
   const DB& db;
+
+  AnnotationIterator& left;
+  Annotation rightAnnotation;
+  Annotation anyNodeAnno;
+
+
   const EdgeDB* edbLeft;
   const EdgeDB* edbRight;
   const EdgeDB* edbOrder;
+  const EdgeDB* edbCoverage;
 
-  LeftMostTokenForNodeIterator lhsLeftTokenIt;
-  /**
-   * @brief finds *all* the token right from the lhs
-   */
-  SeedJoin tokenRightFromLHSIt;
+  //LeftMostTokenForNodeIterator lhsLeftTokenIt;
+  SeedJoin tokenCoveredByLHS;
+  //SeedJoin tokenRightFromLHSIt;
   std::list<Match> currentMatches;
 
   std::set<BinaryMatch, compBinaryMatch> uniqueMatches;

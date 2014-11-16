@@ -131,12 +131,17 @@ bool NestedOverlap::isToken(nodeid_t n)
 }
 
 SeedOverlap::SeedOverlap(DB &db, AnnotationIterator &left, AnnotationIterator &right)
-  : left(left), rightAnnotation(right.getAnnotation()), db(db),
+  :
+    db(db),
+    left(left), rightAnnotation(right.getAnnotation()),
+    anyNodeAnno(initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
     edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, "")),
-    lhsLeftTokenIt(left, db),
-    tokenRightFromLHSIt(db, edbOrder, lhsLeftTokenIt, initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()), 0, uintmax)
+    edbCoverage(db.getEdgeDB(ComponentType::COVERAGE, annis_ns, "")),
+//    lhsLeftTokenIt(left, db),
+    tokenCoveredByLHS(db, edbCoverage, left, anyNodeAnno)
+//    tokenRightFromLHSIt(db, edbOrder, lhsLeftTokenIt, initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()), 0, uintmax)
 {
   reset();
 }
@@ -146,60 +151,60 @@ BinaryMatch SeedOverlap::next()
   BinaryMatch result;
   result.found = false;
 
-  BinaryMatch rightTokenMatch;
-
+  BinaryMatch coveredTokenMatch;
   if(currentMatches.empty())
   {
-    rightTokenMatch = tokenRightFromLHSIt.next();
+    coveredTokenMatch = tokenCoveredByLHS.next();
   }
   else
   {
-    rightTokenMatch.found = false;
+    coveredTokenMatch.found = false;
   }
-  while(currentMatches.empty() && rightTokenMatch.found)
+
+
+  while(currentMatches.empty() && coveredTokenMatch.found)
   {
-    result.lhs = lhsLeftTokenIt.currentNodeMatch();
+    result.lhs = coveredTokenMatch.lhs;
 
-    // get the node that has a right border with the token
-    std::vector<nodeid_t> overlapCandidates = edbRight->getOutgoingEdges(rightTokenMatch.rhs.node);
-    // also add the token itself
-    overlapCandidates.insert(overlapCandidates.begin(), rightTokenMatch.rhs.node);
+    // get all nodes that are covering the token
+    std::vector<nodeid_t> overlapCandidates = edbCoverage->getIncomingEdges(coveredTokenMatch.rhs.node);
 
-    // check each candidate if it's left side comes before the right side of the lhs node
-    for(unsigned int i=0; i < overlapCandidates.size(); i++)
+     // also add the token itself
+    overlapCandidates.push_back(coveredTokenMatch.rhs.node);
+
+    // check the annotations for the candidates
+    for(const nodeid_t& candidateID :  overlapCandidates)
     {
-      nodeid_t candidateID = overlapCandidates[i];
-      // the first candidate is always the token itself, otherwise get the aligned token
-      nodeid_t leftTokenForCandidate = i == 0 ? candidateID : edbLeft->getOutgoingEdges(candidateID)[0];
-
-      std::list<Annotation> matchingAnnos;
       for(const Annotation& anno : db.getNodeAnnotationsByID(candidateID))
       {
         if(checkAnnotationEqual(rightAnnotation, anno))
         {
-          matchingAnnos.push_back(anno);
-        }
-      }
-
-      if(!matchingAnnos.empty())
-      {
-        if(edbOrder->isConnected(initEdge(leftTokenForCandidate, rightTokenMatch.lhs.node), 0, uintmax))
-        {
           Match m;
           m.node = candidateID;
-          for(const Annotation& anno : matchingAnnos)
+          m.anno = anno;
+
+          BinaryMatch tmp = result;
+          tmp.rhs = m;
+          tmp.found = true;
+
+          if(uniqueMatches.find(tmp) == uniqueMatches.end())
           {
-            m.anno = anno;
             currentMatches.push_back(m);
+            uniqueMatches.insert(tmp);
           }
         }
       }
     }
 
-    rightTokenMatch = tokenRightFromLHSIt.next();
+    if(currentMatches.empty())
+    {
+      // nothing found for this token, get the next one
+      coveredTokenMatch = tokenCoveredByLHS.next();
+    }
+
   } // end while
 
-  while(!currentMatches.empty())
+  if(!currentMatches.empty())
   {
     result.found = true;
     result.rhs = currentMatches.front();
@@ -214,8 +219,9 @@ void SeedOverlap::reset()
   uniqueMatches.clear();
   left.reset();
   currentMatches.clear();
-  lhsLeftTokenIt.reset();
-  tokenRightFromLHSIt.reset();
+  tokenCoveredByLHS.reset();
+  //lhsLeftTokenIt.reset();
+  //tokenRightFromLHSIt.reset();
 }
 
 SeedOverlap::~SeedOverlap()
