@@ -152,7 +152,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
   AnnotationNameSearch n1(db, "exmaralda", "Inf-Stat", "new");
   AnnotationNameSearch n2(db, "exmaralda", "PP");
 
-  NestedOverlap join(db, n1, n2);
+  SeedOverlap join(db, n1, n2);
 
   unsigned int counter=0;
   for(BinaryMatch m=join.next(); m.found; m=join.next())

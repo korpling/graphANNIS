@@ -166,8 +166,8 @@ TEST_F(SearchTestRidges, SeedOverlap) {
   annis::SeedOverlap join(db, n1, n2);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
-    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m.lhs.node)
-                     % db.getNodeName(m.rhs.node)).str()) ;
+//    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m.lhs.node)
+//                     % db.getNodeName(m.rhs.node)).str()) ;
     counter++;
   }
 
