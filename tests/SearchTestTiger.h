@@ -3,17 +3,21 @@
 
 #include "gtest/gtest.h"
 #include "db.h"
+#include "helper.h"
 #include "operators/defaultjoins.h"
 #include "operators/precedence.h"
 #include "annotationsearch.h"
 
 #include <vector>
 
+#include <humblelogging/api.h>
+
 using namespace annis;
 
 class SearchTestTiger : public ::testing::Test {
  protected:
   DB db;
+  bool loaded;
   SearchTestTiger() {
 
   }
@@ -46,6 +50,9 @@ class SearchTestTiger : public ::testing::Test {
 };
 
 TEST_F(SearchTestTiger, CatSearch) {
+
+  unsigned long long start = annis::getSystemTimeInMilliSeconds();
+
   AnnotationNameSearch search(db, "cat");
   unsigned int counter=0;
   while(search.hasNext())
@@ -56,7 +63,10 @@ TEST_F(SearchTestTiger, CatSearch) {
     counter++;
   }
 
+   unsigned long long end = annis::getSystemTimeInMilliSeconds();
+
   EXPECT_EQ(373436, counter);
+  HL_INFO(benchmark, (boost::format("CatSearch\t%1%ms") % (end-start)).str());
 }
 
 // Should test query

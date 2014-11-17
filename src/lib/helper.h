@@ -8,8 +8,18 @@
 #include <boost/algorithm/string.hpp>
 #include <sstream>
 
+#ifdef WIN32
+#include <windows.h>
+#else
+  #include <sys/time.h>
+  #include <cstdlib>
+  #include <ctime>
+#endif
+
 namespace annis
 {
+
+static const unsigned long long long_thousand = 1000;
 
 static std::uint32_t uint32FromString(const std::string& str)
 {
@@ -63,6 +73,29 @@ static void writeCSVLine(std::ostream &out, std::vector<std::string> data)
     }
   }
 }
+
+static unsigned long long getSystemTimeInMilliSeconds()
+{
+  #ifdef WIN32
+    LARGE_INTEGER highPerformanceTick;
+    LARGE_INTEGER freq;
+    if(QueryPerformanceCounter(&highPerformanceTick) && QueryPerformanceFrequency(&freq)) {
+      double inSeconds = ((double) highPerformanceTick.LowPart) / ((double) freq.LowPart);
+      return (unsigned long long) (inSeconds * 1000.0);
+    } else {
+      return 0;
+    }
+  #else
+    struct timeval t;
+    int returnval = gettimeofday(&t, NULL);
+    if(returnval == 0) {
+      return ((unsigned long long)t.tv_sec) * long_thousand + ((unsigned long long)t.tv_usec) / long_thousand;
+    } else {
+      return 0;
+    }
+  #endif
+}//end getSystemTimeInMilliSeconds
+
 } // end namespace annis
 
 #endif // HELPER_H
