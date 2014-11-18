@@ -5,6 +5,7 @@
 
 #include <db.h>
 #include <annotationsearch.h>
+#include <operators/precedence.h>
 
 HUMBLE_LOGGER(logger, "default");
 
@@ -39,8 +40,37 @@ public:
 
 };
 
+class RidgesTestFixture
+    : public ::hayai::Fixture
+{
+public:
 
-BENCHMARK_F(TigerTestFixture, CatSearch, 5, 1)
+  virtual void SetUp()
+  {
+    char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
+    std::string dataDir("data");
+    if(testDataEnv != NULL)
+    {
+      dataDir = testDataEnv;
+    }
+    dbLoaded = db.load(dataDir + "/ridges");
+  }
+
+  /// After each run, clear the vector of random integers.
+  virtual void TearDown()
+  {
+     HL_INFO(logger, (boost::format("result %1%") % counter).str());
+  }
+
+  DB db;
+  bool dbLoaded;
+
+  unsigned int counter;
+
+};
+
+
+BENCHMARK_F(TigerTestFixture, Cat, 5, 1)
 {
   AnnotationNameSearch search(db, "cat");
   counter=0;
@@ -50,6 +80,22 @@ BENCHMARK_F(TigerTestFixture, CatSearch, 5, 1)
     counter++;
   }
 }
+
+// pos="NN" .2,10 pos="ART"
+BENCHMARK_F(RidgesTestFixture, NNPreceedingART, 5, 1) {
+
+  counter=0;
+
+  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
+  AnnotationNameSearch n2(db, "default_ns", "pos", "ART");
+
+  Precedence join(db, n1, n2, 2, 10);
+  for(BinaryMatch m=join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+}
+
 
 int main()
 {
