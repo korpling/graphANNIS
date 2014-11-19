@@ -27,7 +27,6 @@ DB::DB()
 
 bool DB::load(string dirPath)
 {
-  typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EDBIt;
   clear();
   addDefaultStrings();
 
