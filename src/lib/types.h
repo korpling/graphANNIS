@@ -25,46 +25,54 @@ namespace annis
   enum class ComponentType {COVERAGE, DOMINANCE, POINTING, ORDERING,
                             LEFT_TOKEN, RIGHT_TOKEN,
                             ComponentType_MAX};
-  /*
-  static std::string ComponentTypeToString(const ComponentType& type)
-  {
-    switch(type)
-    {
-    case ComponentType::COVERAGE:
-      return "COVERAGE";
-      break;
-    case ComponentType::DOMINANCE:
-      return "DOMINANCE";
-      break;
-    case ComponentType::POINTING:
-      return "POINTING";
-      break;
-    case ComponentType::ORDERING:
-      return "ORDERING";
-      break;
-    case ComponentType::LEFT_TOKEN:
-      return "LEFT_TOKEN";
-      break;
-    case ComponentType::RIGHT_TOKEN:
-      return "RIGHT_TOKEN";
-      break;
-    default:
-      return "UNKNOWN";
-    }
-  }
 
-  static ComponentType ComponentTypeFromString(const std::string& typeAsString)
+  class ComponentTypeHelper
   {
-    for(unsigned int t = (unsigned int)ComponentType::COVERAGE; t < (unsigned int) ComponentType::ComponentType_MAX; t++)
+  public:
+    static std::string toString(const ComponentType& type)
     {
-      if(ComponentTypeToString((ComponentType) t) == typeAsString)
+      switch(type)
       {
-        return (ComponentType) t;
+      case ComponentType::COVERAGE:
+        return "COVERAGE";
+        break;
+      case ComponentType::DOMINANCE:
+        return "DOMINANCE";
+        break;
+      case ComponentType::POINTING:
+        return "POINTING";
+        break;
+      case ComponentType::ORDERING:
+        return "ORDERING";
+        break;
+      case ComponentType::LEFT_TOKEN:
+        return "LEFT_TOKEN";
+        break;
+      case ComponentType::RIGHT_TOKEN:
+        return "RIGHT_TOKEN";
+        break;
+      default:
+        return "UNKNOWN";
       }
     }
-    return ComponentType::ComponentType_MAX;
-  }
-  */
+
+    /*
+     static ComponentType fromString(const std::string& typeAsString)
+     {
+       for(unsigned int t = (unsigned int)ComponentType::COVERAGE; t < (unsigned int) ComponentType::ComponentType_MAX; t++)
+       {
+         if(ComponentTypeToString((ComponentType) t) == typeAsString)
+         {
+           return (ComponentType) t;
+         }
+       }
+       return ComponentType::ComponentType_MAX;
+     }
+     */
+  };
+
+
+
 
   const size_t MAX_COMPONENT_NAME_SIZE = 255;
 

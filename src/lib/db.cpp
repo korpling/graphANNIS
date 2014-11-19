@@ -51,7 +51,7 @@ bool DB::load(string dirPath)
       componentType < (unsigned int) ComponentType::ComponentType_MAX; componentType++)
   {
     const boost::filesystem::path componentPath(dirPath + "/edgedb/"
-                                                + ComponentTypeToString((ComponentType) componentType));
+                                                + ComponentTypeHelper::toString((ComponentType) componentType));
 
     if(boost::filesystem::is_directory(componentPath))
     {
@@ -116,11 +116,11 @@ bool DB::save(string dirPath)
     string finalPath;
     if(c.name == NULL)
     {
-      finalPath = edgeDBParent + "/" + ComponentTypeToString(c.type) + "/" + c.layer;
+      finalPath = edgeDBParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer;
     }
     else
     {
-      finalPath = edgeDBParent + "/" + ComponentTypeToString(c.type) + "/" + c.layer + "/" + c.name;
+      finalPath = edgeDBParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer + "/" + c.name;
     }
     boost::filesystem::create_directories(finalPath);
     it->second->save(finalPath);
@@ -170,7 +170,7 @@ bool DB::loadRelANNIS(string dirPath)
   {
     Component c = ed.first;
     HL_INFO(logger, (boost::format("component calculations %1%|%2%|%3%")
-                     % ComponentTypeToString(c.type)
+                     % ComponentTypeHelper::toString(c.type)
                      % c.layer
                      % c.name).str());
     ed.second->calculateIndex();
@@ -592,7 +592,7 @@ string DB::info()
   {
     const Component& c = it->first;
     const EdgeDB* edb = it->second;
-    ss << "Component " << ComponentTypeToString(c.type) << "|" << c.layer
+    ss << "Component " << ComponentTypeHelper::toString(c.type) << "|" << c.layer
        << "|" << c.name << ": " << edb->numberOfEdges() << " edges and "
        << edb->numberOfEdgeAnnotations() << " annotations" << endl;
   }
