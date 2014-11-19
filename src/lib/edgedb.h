@@ -16,6 +16,9 @@ namespace annis
 class EdgeDB
 {
 public:
+
+  virtual ~EdgeDB() {}
+
   virtual void addEdge(const Edge& edge) = 0;
   virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;
   virtual void clear() = 0;
