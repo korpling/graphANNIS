@@ -83,7 +83,10 @@ bool LinearEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsig
     if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
     {
       int diff = posTarget.pos - posSource.pos;
-      return diff >= minDistance && diff <= maxDistance;
+      if(diff >= 0)
+      {
+        return ((unsigned int) diff) >= minDistance && ((unsigned int) diff) <= maxDistance;
+      }
     }
   }
   return false;
