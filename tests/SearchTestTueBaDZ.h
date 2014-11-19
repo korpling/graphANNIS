@@ -6,6 +6,7 @@
 #include "operators/defaultjoins.h"
 #include "operators/precedence.h"
 #include "operators/overlap.h"
+#include "operators/inclusion.h"
 #include "annotationsearch.h"
 
 #include <vector>
@@ -46,7 +47,16 @@ class SearchTestTueBaDZ : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-
+/*
+ * Query:
+ * node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax:relation="anaphoric"
+& #1 >[func="ON"] #3
+& #3 >* #2
+& #2 _i_ #4
+& #5 >[func="ON"] #6
+& #6 >* #7
+& #4 ->anaphoric #7
+*/
 TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
 
   AnnotationNameSearch n1(db, annis_ns, annis_node_name);
@@ -57,7 +67,11 @@ TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
   AnnotationNameSearch n6(db, annis_ns, annis_node_name);
   AnnotationNameSearch n7(db, "mmax", "relation", "anaphoric");
 
-  NestedOverlap n2_incl_n4(db, n2, n4);
+  const EdgeDB* edbAnaphoric = db.getEdgeDB(ComponentType::POINTING, "mmax", "anaphoric");
+  Inclusion n2_incl_n4(db, n2, n4);
+
+  JoinWrapIterator wrap_n2_n4(n2_incl_n4);
+  NestedLoopJoin n4_anaphoric_n7(edbAnaphoric, wrap_n2_n4, n7);
 
   unsigned int counter=0;
 
