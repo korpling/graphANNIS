@@ -3,8 +3,6 @@
 
 #include <humblelogging/api.h>
 HUMBLE_LOGGER(logger, "default");
-HUMBLE_LOGGER(benchmark, "benchmark");
-
 
 #include "LoadTest.h"
 #include "SearchTestPcc2.h"
@@ -17,8 +15,6 @@ int main(int argc, char **argv)
 
   humble::logging::Factory &fac = humble::logging::Factory::getInstance();
 
-  humble::logging::DefaultConfiguration* conf = humble::logging::DefaultConfiguration::createFromString("logger.level(benchmark)=info");
-  fac.setConfiguration(conf);
 
   fac.setDefaultLogLevel(humble::logging::LogLevel::Warn);
 //  fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date] %m\n"));

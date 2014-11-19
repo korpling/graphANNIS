@@ -150,9 +150,9 @@ bool DB::loadRelANNIS(string dirPath)
   if(!in.good()) return false;
 
   map<uint32_t, EdgeDB*> componentToEdgeDB;
-  while((line = nextCSV(in)).size() > 0)
+  while((line = Helper::nextCSV(in)).size() > 0)
   {
-    uint32_t componentID = uint32FromString(line[0]);
+    uint32_t componentID = Helper::uint32FromString(line[0]);
     if(line[1] != "NULL")
     {
       EdgeDB* edb = createEdgeDBForComponent(line[1], line[2], line[3]);
@@ -209,7 +209,7 @@ bool DB::loadRelANNISNode(string dirPath)
     return false;
   }
   vector<string> line;
-  while((line = nextCSV(in)).size() > 0)
+  while((line = Helper::nextCSV(in)).size() > 0)
   {
     uint32_t nodeNr;
     stringstream nodeNrStream(line[0]);
@@ -217,7 +217,7 @@ bool DB::loadRelANNISNode(string dirPath)
 
     bool hasSegmentations = line.size() > 10;
     string tokenIndexRaw = line[7];
-    uint32_t textID = uint32FromString(line[1]);
+    uint32_t textID = Helper::uint32FromString(line[1]);
     Annotation nodeNameAnno;
     nodeNameAnno.ns = strings.add(annis_ns);
     nodeNameAnno.name = strings.add(annis_node_name);
@@ -225,11 +225,11 @@ bool DB::loadRelANNISNode(string dirPath)
     addNodeAnnotation(nodeNr, nodeNameAnno);
 
     TextProperty left;
-    left.val = uint32FromString(line[5]);
+    left.val = Helper::uint32FromString(line[5]);
     left.textID = textID;
 
     TextProperty right;
-    right.val = uint32FromString(line[6]);
+    right.val = Helper::uint32FromString(line[6]);
     right.textID = textID;
 
     if(tokenIndexRaw != "NULL")
@@ -243,7 +243,7 @@ bool DB::loadRelANNISNode(string dirPath)
       addNodeAnnotation(nodeNr, tokAnno);
 
       TextProperty index;
-      index.val = uint32FromString(tokenIndexRaw);
+      index.val = Helper::uint32FromString(tokenIndexRaw);
       index.textID = textID;
 
       tokenByIndex[index] = nodeNr;
@@ -357,9 +357,9 @@ bool DB::loadRelANNISNode(string dirPath)
   in.open(nodeAnnoTabPath, ifstream::in);
   if(!in.good()) return false;
 
-  while((line = nextCSV(in)).size() > 0)
+  while((line = Helper::nextCSV(in)).size() > 0)
   {
-    u_int32_t nodeNr = uint32FromString(line[0]);
+    u_int32_t nodeNr = Helper::uint32FromString(line[0]);
     Annotation anno;
     anno.ns = strings.add(line[1]);
     anno.name = strings.add(line[2]);
@@ -392,9 +392,9 @@ bool DB::loadRelANNISRank(const string &dirPath,
   stx::btree_map<uint32_t, uint32_t> pre2NodeID;
   map<uint32_t, Edge> pre2Edge;
 
-  while((line = nextCSV(in)).size() > 0)
+  while((line = Helper::nextCSV(in)).size() > 0)
   {
-    pre2NodeID.insert2(uint32FromString(line[0]),uint32FromString(line[2]));
+    pre2NodeID.insert2(Helper::uint32FromString(line[0]),Helper::uint32FromString(line[2]));
   }
 
   in.close();
@@ -405,22 +405,22 @@ bool DB::loadRelANNISRank(const string &dirPath,
   map<uint32_t, EdgeDB* > pre2EdgeDB;
 
   // second run: get the actual edges
-  while((line = nextCSV(in)).size() > 0)
+  while((line = Helper::nextCSV(in)).size() > 0)
   {
-    uint32_t parent = uint32FromString(line[4]);
+    uint32_t parent = Helper::uint32FromString(line[4]);
     UintMapIt it = pre2NodeID.find(parent);
     if(it != pre2NodeID.end())
     {
       // find the responsible edge database by the component ID
-      ComponentIt itEdb = componentToEdgeDB.find(uint32FromString(line[3]));
+      ComponentIt itEdb = componentToEdgeDB.find(Helper::uint32FromString(line[3]));
       if(itEdb != componentToEdgeDB.end())
       {
         EdgeDB* edb = itEdb->second;
-        Edge edge = Init::initEdge(uint32FromString(line[2]), it->second);
+        Edge edge = Init::initEdge(Helper::uint32FromString(line[2]), it->second);
 
         edb->addEdge(edge);
-        pre2Edge[uint32FromString(line[0])] = edge;
-        pre2EdgeDB[uint32FromString(line[0])] = edb;
+        pre2Edge[Helper::uint32FromString(line[0])] = edge;
+        pre2EdgeDB[Helper::uint32FromString(line[0])] = edb;
       }
     }
     else
@@ -457,9 +457,9 @@ bool DB::loadEdgeAnnotation(const string &dirPath,
 
   vector<string> line;
 
-  while((line = nextCSV(in)).size() > 0)
+  while((line = Helper::nextCSV(in)).size() > 0)
   {
-    uint32_t pre = uint32FromString(line[0]);
+    uint32_t pre = Helper::uint32FromString(line[0]);
     map<uint32_t, EdgeDB*>::const_iterator itDB = pre2EdgeDB.find(pre);
     map<uint32_t, Edge>::const_iterator itEdge = pre2Edge.find(pre);
     if(itDB != pre2EdgeDB.end() && itEdge != pre2Edge.end())
