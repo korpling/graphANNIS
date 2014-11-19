@@ -54,8 +54,8 @@ BinaryMatch NestedOverlap::next()
 
 
       // check the actual constraint
-      if(edbOrder->isConnected(initEdge(lhsLeftToken, rhsRightToken), 0, uintmax) &&
-         edbOrder->isConnected(initEdge(rhsLeftToken, lhsRightToken), 0, uintmax))
+      if(edbOrder->isConnected(Init::initEdge(lhsLeftToken, rhsRightToken), 0, uintmax) &&
+         edbOrder->isConnected(Init::initEdge(rhsLeftToken, lhsRightToken), 0, uintmax))
       {
         result.found = true;
         result.lhs = matchLHS;
@@ -134,7 +134,7 @@ SeedOverlap::SeedOverlap(DB &db, AnnotationIterator &left, AnnotationIterator &r
   :
     db(db),
     left(left), rightAnnotation(right.getAnnotation()),
-    anyNodeAnno(initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
+    anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
     edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, "")),

@@ -11,9 +11,9 @@
 #ifdef WIN32
 #include <windows.h>
 #else
-  #include <sys/time.h>
-  #include <cstdlib>
-  #include <ctime>
+#include <sys/time.h>
+#include <cstdlib>
+#include <ctime>
 #endif
 
 namespace annis
@@ -21,62 +21,65 @@ namespace annis
 
 static const unsigned long long long_thousand = 1000;
 
-static std::uint32_t uint32FromString(const std::string& str)
+class Helper
 {
-  std::uint32_t result = 0;
-  std::stringstream stream(str);
-  stream >> result;
-  return result;
-}
-
-static std::string stringFromUInt32(const std::uint32_t& val)
-{
-  std::stringstream stream("");
-  stream << val;
-  return stream.str();
-}
-
-static std::vector<std::string> nextCSV(std::istream &in)
-{
-  std::vector<std::string> result;
-  std::string line;
-
-  std::getline(in, line);
-  std::stringstream lineStream(line);
-  std::string cell;
-
-  while(std::getline(lineStream, cell, '\t'))
+public:
+  static std::uint32_t uint32FromString(const std::string& str)
   {
-    boost::replace_all(cell, "\\\\", "\\");
-    boost::replace_all(cell, "\\t", "\t");
-    boost::replace_all(cell, "\\n", "\n");
-    result.push_back(cell);
+    std::uint32_t result = 0;
+    std::stringstream stream(str);
+    stream >> result;
+    return result;
   }
-  return result;
-}
 
-static void writeCSVLine(std::ostream &out, std::vector<std::string> data)
-{
-  std::vector<std::string>::const_iterator it = data.begin();
-  while(it != data.end())
+  static std::string stringFromUInt32(const std::uint32_t& val)
   {
-    std::string s = *it;
-    boost::replace_all(s, "\t", "\\t");
-    boost::replace_all(s, "\n", "\\n");
-    boost::replace_all(s, "\\", "\\\\");
+    std::stringstream stream("");
+    stream << val;
+    return stream.str();
+  }
 
-    out << s;
-    it++;
-    if(it != data.end())
+  static std::vector<std::string> nextCSV(std::istream &in)
+  {
+    std::vector<std::string> result;
+    std::string line;
+
+    std::getline(in, line);
+    std::stringstream lineStream(line);
+    std::string cell;
+
+    while(std::getline(lineStream, cell, '\t'))
     {
-      out << "\t";
+      boost::replace_all(cell, "\\\\", "\\");
+      boost::replace_all(cell, "\\t", "\t");
+      boost::replace_all(cell, "\\n", "\n");
+      result.push_back(cell);
+    }
+    return result;
+  }
+
+  static void writeCSVLine(std::ostream &out, std::vector<std::string> data)
+  {
+    std::vector<std::string>::const_iterator it = data.begin();
+    while(it != data.end())
+    {
+      std::string s = *it;
+      boost::replace_all(s, "\t", "\\t");
+      boost::replace_all(s, "\n", "\\n");
+      boost::replace_all(s, "\\", "\\\\");
+
+      out << s;
+      it++;
+      if(it != data.end())
+      {
+        out << "\t";
+      }
     }
   }
-}
 
-static unsigned long long getSystemTimeInMilliSeconds()
-{
-  #ifdef WIN32
+  static unsigned long long getSystemTimeInMilliSeconds()
+  {
+#ifdef WIN32
     LARGE_INTEGER highPerformanceTick;
     LARGE_INTEGER freq;
     if(QueryPerformanceCounter(&highPerformanceTick) && QueryPerformanceFrequency(&freq)) {
@@ -85,7 +88,7 @@ static unsigned long long getSystemTimeInMilliSeconds()
     } else {
       return 0;
     }
-  #else
+#else
     struct timeval t;
     int returnval = gettimeofday(&t, NULL);
     if(returnval == 0) {
@@ -93,8 +96,11 @@ static unsigned long long getSystemTimeInMilliSeconds()
     } else {
       return 0;
     }
-  #endif
-}//end getSystemTimeInMilliSeconds
+#endif
+  }//end getSystemTimeInMilliSeconds
+};
+
+
 
 } // end namespace annis
 

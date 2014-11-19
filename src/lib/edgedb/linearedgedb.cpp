@@ -55,7 +55,7 @@ void LinearEdgeDB::calculateIndex()
     nodeChains[rootNode] = std::vector<nodeid_t>();
     std::vector<nodeid_t>& chain = nodeChains[rootNode];
     chain.push_back(rootNode);
-    node2pos[rootNode] = initRelativePosition(rootNode,chain.size()-1);
+    node2pos[rootNode] = Init::initRelativePosition(rootNode,chain.size()-1);
 
     FallbackDFSIterator it(*this, rootNode, 1, uintmax);
 
@@ -63,7 +63,7 @@ void LinearEdgeDB::calculateIndex()
     for(pair<bool, nodeid_t> node = it.next(); node.first; node = it.next(), pos++)
     {
       chain.push_back(node.second);
-      node2pos[node.second] = initRelativePosition(rootNode,chain.size()-1);
+      node2pos[node.second] = Init::initRelativePosition(rootNode,chain.size()-1);
     }
   }
 
@@ -83,7 +83,10 @@ bool LinearEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsig
     if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
     {
       int diff = posTarget.pos - posSource.pos;
-      return diff >= minDistance && diff <= maxDistance;
+      if(diff >= 0)
+      {
+        return ((unsigned int) diff) >= minDistance && ((unsigned int) diff) <= maxDistance;
+      }
     }
   }
   return false;
@@ -193,7 +196,7 @@ LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
 pair<bool, nodeid_t> LinearIterator::next()
 {
   bool found = false;
-  nodeid_t node;
+  nodeid_t node = 0;
   if(chain != NULL && currentPos <= endPos && currentPos < chain->size())
   {
     found = true;

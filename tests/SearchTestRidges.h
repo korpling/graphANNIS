@@ -60,7 +60,7 @@ TEST_F(SearchTestRidges, DiplNameSearch) {
     counter++;
   }
 
-  EXPECT_EQ(153732, counter);
+  EXPECT_EQ(153732u, counter);
 }
 
 TEST_F(SearchTestRidges, PosValueSearch) {
@@ -75,7 +75,7 @@ TEST_F(SearchTestRidges, PosValueSearch) {
     counter++;
   }
 
-  EXPECT_EQ(27490, counter);
+  EXPECT_EQ(27490u, counter);
 }
 
 // Should test query
@@ -93,7 +93,7 @@ TEST_F(SearchTestRidges, Benchmark1) {
     counter++;
   }
 
-  EXPECT_EQ(21911, counter);
+  EXPECT_EQ(21911u, counter);
 }
 
 // Should test query
@@ -112,7 +112,7 @@ TEST_F(SearchTestRidges, Benchmark2) {
     counter++;
   }
 
-  EXPECT_EQ(1386828, counter);
+  EXPECT_EQ(1386828u, counter);
 }
 
 // Should test query
@@ -131,7 +131,7 @@ TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
     counter++;
   }
 
-  EXPECT_EQ(29, counter);
+  EXPECT_EQ(29u, counter);
 }
 
 // Should test query
@@ -151,7 +151,7 @@ TEST_F(SearchTestRidges, NestedOverlap) {
     counter++;
   }
 
-  EXPECT_EQ(152, counter);
+  EXPECT_EQ(152u, counter);
 }
 
 // Should test query
@@ -171,7 +171,7 @@ TEST_F(SearchTestRidges, SeedOverlap) {
     counter++;
   }
 
-  EXPECT_EQ(152, counter);
+  EXPECT_EQ(152u, counter);
 }
 
 // Should test query
@@ -190,7 +190,7 @@ TEST_F(SearchTestRidges, Inclusion) {
     counter++;
   }
 
-  EXPECT_EQ(152, counter);
+  EXPECT_EQ(152u, counter);
 }
 
 

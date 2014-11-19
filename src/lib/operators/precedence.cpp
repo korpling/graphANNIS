@@ -15,7 +15,7 @@ Precedence::Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& rig
   edbLeft = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
   if(edbOrder != NULL)
   {
-    Annotation anyTokAnno = initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
+    Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
     // TODO: allow to use a nested loop iterator as a configurable alternative
     actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyTokAnno, minDistance, maxDistance);
   }

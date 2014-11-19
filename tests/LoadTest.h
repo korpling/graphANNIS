@@ -42,7 +42,7 @@ protected:
 TEST_F(LoadTest, NodeAnnotations) {
 
   std::vector<annis::Annotation> annos = db.getNodeAnnotationsByID(0);
-  ASSERT_EQ(5, annos.size());
+  ASSERT_EQ(5u, annos.size());
 
   EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[4].ns).c_str());
   EXPECT_STREQ("node_name", db.strings.str(annos[4].name).c_str());
@@ -71,8 +71,8 @@ TEST_F(LoadTest, NodeAnnotations) {
 TEST_F(LoadTest, Edges) {
 
   // get some edges
-  std::vector<annis::Component> components = db.getDirectConnected(annis::initEdge(0, 10));
-  ASSERT_EQ(2, components.size());
+  std::vector<annis::Component> components = db.getDirectConnected(annis::Init::initEdge(0, 10));
+  ASSERT_EQ(2u, components.size());
   EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
   EXPECT_STREQ("exmaralda", components[0].layer);
   EXPECT_STREQ("", components[0].name);
@@ -81,8 +81,8 @@ TEST_F(LoadTest, Edges) {
   EXPECT_STREQ(annis::annis_ns.c_str(), components[1].layer);
   EXPECT_STREQ("", components[1].name);
 
-  components = db.getDirectConnected(annis::initEdge(126, 371));
-  ASSERT_EQ(3, components.size());
+  components = db.getDirectConnected(annis::Init::initEdge(126, 371));
+  ASSERT_EQ(3u, components.size());
 
   EXPECT_EQ(annis::ComponentType::DOMINANCE, components[0].type);
   EXPECT_STREQ("tiger", components[0].layer);
@@ -100,66 +100,66 @@ TEST_F(LoadTest, Edges) {
 
 TEST_F(LoadTest, EdgeAnnos) {
 
-  annis::Edge edge = annis::initEdge(126, 371);
+  annis::Edge edge = annis::Init::initEdge(126, 371);
   std::vector<annis::Component> components = db.getDirectConnected(edge);
 
-  ASSERT_EQ(3, components.size());
+  ASSERT_EQ(3u, components.size());
 
   std::vector<annis::Annotation> edgeAnnos = db.getEdgeAnnotations(components[0], edge);
-  EXPECT_EQ(1, edgeAnnos.size());
+  EXPECT_EQ(1u, edgeAnnos.size());
   EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
   EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
   EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
 
   edgeAnnos = db.getEdgeAnnotations(components[1], edge);
-  EXPECT_EQ(1, edgeAnnos.size());
+  EXPECT_EQ(1u, edgeAnnos.size());
   EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
   EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
   EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
 
   edgeAnnos = db.getEdgeAnnotations(components[2], edge);
-  EXPECT_EQ(0, edgeAnnos.size());
+  EXPECT_EQ(0u, edgeAnnos.size());
 
 }
 
 TEST_F(LoadTest, Ordering) {
 
-  annis::Component componentOrdering = annis::initComponent(annis::ComponentType::ORDERING,
+  annis::Component componentOrdering = annis::Init::initComponent(annis::ComponentType::ORDERING,
                                                                  annis::annis_ns, "");
   const annis::EdgeDB* edb = db.getEdgeDB(componentOrdering);
   ASSERT_TRUE(edb != NULL);
   // tok . tok
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(0, 1)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(0, 1)));
 
   // test the last two token
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(517, 880)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(517, 880)));
 
   // span . tok
-  EXPECT_FALSE(edb->isConnected(annis::initEdge(125, 126)));
+  EXPECT_FALSE(edb->isConnected(annis::Init::initEdge(125, 126)));
   // tok . span
-  EXPECT_FALSE(edb->isConnected(annis::initEdge(151, 61)));
+  EXPECT_FALSE(edb->isConnected(annis::Init::initEdge(151, 61)));
   // span . span
-  EXPECT_FALSE(edb->isConnected(annis::initEdge(152, 61)));
+  EXPECT_FALSE(edb->isConnected(annis::Init::initEdge(152, 61)));
 
-  annis::Component componentLeftToken = annis::initComponent(annis::ComponentType::LEFT_TOKEN,
+  annis::Component componentLeftToken = annis::Init::initComponent(annis::ComponentType::LEFT_TOKEN,
                                                                   annis::annis_ns, "");
   edb = db.getEdgeDB(componentLeftToken);
   ASSERT_TRUE(edb != NULL);
   // span _l_ tok (both direcctions)
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(125, 124)));
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(124, 125)));
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(61, 49)));
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(49, 61)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(125, 124)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(124, 125)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(61, 49)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(49, 61)));
 
-  annis::Component componentRightToken = annis::initComponent(annis::ComponentType::RIGHT_TOKEN,
+  annis::Component componentRightToken = annis::Init::initComponent(annis::ComponentType::RIGHT_TOKEN,
                                                                    annis::annis_ns, "");
   edb = db.getEdgeDB(componentRightToken);
   ASSERT_TRUE(edb != NULL);
   // span _r_ tok (both direcctions)
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(125, 124)));
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(124, 125)));
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(61, 60)));
-  EXPECT_TRUE(edb->isConnected(annis::initEdge(60, 61)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(125, 124)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(124, 125)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(61, 60)));
+  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(60, 61)));
 
 
 }

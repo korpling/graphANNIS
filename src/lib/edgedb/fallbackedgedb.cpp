@@ -81,6 +81,7 @@ int FallbackEdgeDB::distance(const Edge &edge) const
     }
     result = dfs.nextDFS();
   }
+  return -1;
 }
 
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) const
@@ -106,8 +107,8 @@ std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t node) const
 
   vector<nodeid_t> result;
 
-  EdgeIt lowerIt = edges.lower_bound(initEdge(node, numeric_limits<uint32_t>::min()));
-  EdgeIt upperIt = edges.lower_bound(initEdge(node, numeric_limits<uint32_t>::max()));
+  EdgeIt lowerIt = edges.lower_bound(Init::initEdge(node, numeric_limits<uint32_t>::min()));
+  EdgeIt upperIt = edges.lower_bound(Init::initEdge(node, numeric_limits<uint32_t>::max()));
 
   for(EdgeIt it = lowerIt; it != upperIt; it++)
   {
