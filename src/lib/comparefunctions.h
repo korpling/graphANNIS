@@ -74,7 +74,7 @@ static bool checkAnnotationEqual(const struct Annotation &a, const struct Annota
   }
 
   // if equal, compare by namespace (non lexical but just by the ID)
-  if(a.ns != 0 & b.ns != 0 && a.ns != b.ns)
+  if(a.ns != 0 && b.ns != 0 && a.ns != b.ns)
   {
     return false;
   }
