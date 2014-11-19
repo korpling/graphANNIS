@@ -65,7 +65,7 @@ struct compAnno
  * @param b
  * @return True if the annotations are the same
  */
-static bool checkAnnotationEqual(const struct Annotation &a, const struct Annotation &b)
+inline bool checkAnnotationEqual(const struct Annotation &a, const struct Annotation &b)
 {
   // compare by name (non lexical but just by the ID)
   if(a.name != 0 && b.name != 0 &&  a.name != b.name)
