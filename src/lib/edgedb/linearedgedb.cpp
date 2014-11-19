@@ -196,7 +196,7 @@ LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
 pair<bool, nodeid_t> LinearIterator::next()
 {
   bool found = false;
-  nodeid_t node;
+  nodeid_t node = 0;
   if(chain != NULL && currentPos <= endPos && currentPos < chain->size())
   {
     found = true;
