@@ -11,6 +11,7 @@ message(STATUS "HumbleLogging_INCLUDE_DIRS=${HumbleLogging_INCLUDE_DIRS}")
 message(STATUS "HumbleLogging_LIBRARY=${HumbleLogging_LIBRARY}")
 
 include_directories(
+  SYSTEM
   "include"
   "ext/humble-logging-library-2.0.0/include"
   ${ICU_INCLUDE_DIRS}
@@ -33,10 +34,11 @@ target_link_libraries(${PROJECT_NAME} humblelogging ${Boost_LIBRARIES})
 add_executable("a4_runner" ${SRC_LIST_RUNNER})
 target_link_libraries("a4_runner" humblelogging ${Boost_LIBRARIES} ${PROJECT_NAME})
 
-add_subdirectory(ext/hayai)
+
 file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
 set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
-include_directories("ext/hayai/src/" "src/lib/")
+include_directories(SYSTEM "ext/hayai/src/")
+include_directories("src/lib/")
 add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
 target_link_libraries(${BENCHMARK_EXEC} ${PROJECT_NAME} )
 
