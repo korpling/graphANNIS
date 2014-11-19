@@ -293,8 +293,8 @@ bool DB::loadRelANNISNode(string dirPath)
       pair<TextPropIt, TextPropIt> leftAlignedNodes = leftToNode.equal_range(currentTokenLeft);
       for(TextPropIt itLeftAligned=leftAlignedNodes.first; itLeftAligned != leftAlignedNodes.second; itLeftAligned++)
       {
-        edbLeft->addEdge(initEdge(itLeftAligned->second, currentToken));
-        edbLeft->addEdge(initEdge(currentToken, itLeftAligned->second));
+        edbLeft->addEdge(Init::initEdge(itLeftAligned->second, currentToken));
+        edbLeft->addEdge(Init::initEdge(currentToken, itLeftAligned->second));
       }
 
       // find all nodes that end together with the current token
@@ -304,8 +304,8 @@ bool DB::loadRelANNISNode(string dirPath)
       pair<TextPropIt, TextPropIt> rightAlignedNodes = rightToNode.equal_range(currentTokenRight);
       for(TextPropIt itRightAligned=rightAlignedNodes.first; itRightAligned != rightAlignedNodes.second; itRightAligned++)
       {
-        edbRight->addEdge(initEdge(itRightAligned->second, currentToken));
-        edbRight->addEdge(initEdge(currentToken, itRightAligned->second));
+        edbRight->addEdge(Init::initEdge(itRightAligned->second, currentToken));
+        edbRight->addEdge(Init::initEdge(currentToken, itRightAligned->second));
       }
 
       // if the last token/text value is valid and we are still in the same text
@@ -314,7 +314,7 @@ bool DB::loadRelANNISNode(string dirPath)
         // we are still in the same text
         uint32_t nextToken = tokenIt->second;
         // add ordering between token
-        edbOrder->addEdge(initEdge(lastToken, nextToken));
+        edbOrder->addEdge(Init::initEdge(lastToken, nextToken));
 
       } // end if same text
 
@@ -346,7 +346,7 @@ bool DB::loadRelANNISNode(string dirPath)
       nodeid_t tokenID = tokenByTextPosition[textPos];
       if(n != tokenID)
       {
-        edbCoverage->addEdge(initEdge(n, tokenID));
+        edbCoverage->addEdge(Init::initEdge(n, tokenID));
       }
     }
   }
@@ -416,7 +416,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
       if(itEdb != componentToEdgeDB.end())
       {
         EdgeDB* edb = itEdb->second;
-        Edge edge = initEdge(uint32FromString(line[2]), it->second);
+        Edge edge = Init::initEdge(uint32FromString(line[2]), it->second);
 
         edb->addEdge(edge);
         pre2Edge[uint32FromString(line[0])] = edge;
@@ -535,7 +535,7 @@ EdgeDB *DB::createEdgeDBForComponent(const string &shortType, const string &laye
 
 EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, const string &name)
 {
-  Component c = initComponent(ctype, layer, name);
+  Component c = Init::initComponent(ctype, layer, name);
 
   // check if there is already an edge DB for this component
   map<Component,EdgeDB*,compComponent>::const_iterator itDB =
@@ -633,7 +633,7 @@ const EdgeDB* DB::getEdgeDB(const Component &component) const
 
 const EdgeDB *DB::getEdgeDB(ComponentType type, const string &layer, const string &name) const
 {
-  Component c = initComponent(type, layer, name);
+  Component c = Init::initComponent(type, layer, name);
   return getEdgeDB(c);
 }
 

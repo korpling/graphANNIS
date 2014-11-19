@@ -38,7 +38,7 @@ BinaryMatch Inclusion::next()
     {
       leftToken = edbLeftToken->getOutgoingEdges(result.lhs.node)[0];
       rightToken = edbRightToken->getOutgoingEdges(result.lhs.node)[0];
-      spanLength = edbOrder->distance(initEdge(leftToken, rightToken));
+      spanLength = edbOrder->distance(Init::initEdge(leftToken, rightToken));
     }
 
     // find each token which is between the left and right border
@@ -63,7 +63,7 @@ BinaryMatch Inclusion::next()
       for(auto leftAlignedNode : edbLeftToken->getOutgoingEdges(includedStart.second))
       {
         nodeid_t includedEndCandiate = edbRightToken->getOutgoingEdges(leftAlignedNode)[0];
-        if(edbOrder->isConnected(initEdge(includedEndCandiate, rightToken), 0, uintmax))
+        if(edbOrder->isConnected(Init::initEdge(includedEndCandiate, rightToken), 0, uintmax))
         {
 
           for(Annotation anno : db.getNodeAnnotationsByID(leftAlignedNode))

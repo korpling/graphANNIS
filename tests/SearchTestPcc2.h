@@ -98,7 +98,7 @@ TEST_F(SearchTestPcc2, TokenIndex) {
 
   unsigned int counter=0;
 
-  Component c = initComponent(ComponentType::ORDERING, annis_ns, "");
+  Component c = Init::initComponent(ComponentType::ORDERING, annis_ns, "");
   const EdgeDB* edb = db.getEdgeDB(c);
   if(edb != NULL)
   {
@@ -129,11 +129,11 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 
 TEST_F(SearchTestPcc2, DepthFirst) {
     AnnotationNameSearch n1(db, annis_ns, annis_tok, "Tiefe");
-    Annotation anno2 = initAnnotation(db.strings.add("node_name"), 0, db.strings.add(annis_ns));
+    Annotation anno2 = Init::initAnnotation(db.strings.add("node_name"), 0, db.strings.add(annis_ns));
 
     unsigned int counter=0;
 
-    Component c = initComponent(ComponentType::ORDERING, annis_ns, "");
+    Component c = Init::initComponent(ComponentType::ORDERING, annis_ns, "");
     const EdgeDB* edb = db.getEdgeDB(c);
     if(edb != NULL)
     {

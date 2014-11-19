@@ -39,7 +39,7 @@ BinaryMatch NestedLoopJoin::next()
       matchRight = right.next();
 
       // check the actual constraint
-      if(edb->isConnected(initEdge(matchLeft.node, matchRight.node), minDistance, maxDistance))
+      if(edb->isConnected(Init::initEdge(matchLeft.node, matchRight.node), minDistance, maxDistance))
       {
         result.found = true;
         result.lhs = matchLeft;
@@ -188,7 +188,7 @@ SeedJoin::~SeedJoin()
 
 
 JoinWrapIterator::JoinWrapIterator(BinaryOperatorIterator &wrappedIterator, bool wrapLeftOperand)
-  : matchAllAnnotation(initAnnotation()), wrappedIterator(wrappedIterator), wrapLeftOperand(wrapLeftOperand)
+  : matchAllAnnotation(Init::initAnnotation()), wrappedIterator(wrappedIterator), wrapLeftOperand(wrapLeftOperand)
 {
   currentMatch = wrappedIterator.next();
 }
@@ -227,7 +227,7 @@ void JoinWrapIterator::reset()
 RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(AnnotationIterator &source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, ""))
 {
-  anyTokAnnotation = initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
+  anyTokAnnotation = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
 }
 
 bool RightMostTokenForNodeIterator::hasNext()
@@ -275,7 +275,7 @@ Match RightMostTokenForNodeIterator::currentNodeMatch()
 LeftMostTokenForNodeIterator::LeftMostTokenForNodeIterator(AnnotationIterator &source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, ""))
 {
-  anyTokAnnotation = initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
+  anyTokAnnotation = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
 }
 
 bool LeftMostTokenForNodeIterator::hasNext()

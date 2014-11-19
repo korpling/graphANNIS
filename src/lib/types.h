@@ -119,58 +119,66 @@ namespace annis
     Match rhs;
   };
 
-  /**
-   * @brief initialize an Annotation
-   * @param name
-   * @param val
-   * @param ns
-   * @return
-   */
-  static Annotation initAnnotation(std::uint32_t name = 0, std::uint32_t val=0, std::uint32_t ns=0)
+  class Init
   {
-    Annotation result;
-    result.name = name;
-    result.ns = ns;
-    result.val = val;
-    return result;
-  }
-
-  static Edge initEdge(nodeid_t source, nodeid_t target)
-  {
-    Edge result;
-    result.source = source;
-    result.target = target;
-    return result;
-  }
-  
-  static Component initComponent(ComponentType type, const std::string& layer, const std::string& name)
-  {
-    Component c;
-    c.type = type;
-    if(layer.size() < MAX_COMPONENT_NAME_SIZE-1 && name.size() < MAX_COMPONENT_NAME_SIZE-1)
+  public:
+    /**
+     * @brief initialize an Annotation
+     * @param name
+     * @param val
+     * @param ns
+     * @return
+     */
+    static Annotation initAnnotation(std::uint32_t name = 0, std::uint32_t val=0, std::uint32_t ns=0)
     {
-      memset(c.layer, 0, MAX_COMPONENT_NAME_SIZE);
-      memset(c.name, 0, MAX_COMPONENT_NAME_SIZE);
-      layer.copy(c.layer, layer.size());
-      if(name != "NULL")
+      Annotation result;
+      result.name = name;
+      result.ns = ns;
+      result.val = val;
+      return result;
+    }
+
+    static Edge initEdge(nodeid_t source, nodeid_t target)
+    {
+      Edge result;
+      result.source = source;
+      result.target = target;
+      return result;
+    }
+
+    static Component initComponent(ComponentType type, const std::string& layer, const std::string& name)
+    {
+      Component c;
+      c.type = type;
+      if(layer.size() < MAX_COMPONENT_NAME_SIZE-1 && name.size() < MAX_COMPONENT_NAME_SIZE-1)
       {
-        name.copy(c.name, name.size());
+        memset(c.layer, 0, MAX_COMPONENT_NAME_SIZE);
+        memset(c.name, 0, MAX_COMPONENT_NAME_SIZE);
+        layer.copy(c.layer, layer.size());
+        if(name != "NULL")
+        {
+          name.copy(c.name, name.size());
+        }
       }
+      else
+      {
+        throw("Component name or namespace are too long");
+      }
+      return c;
     }
-    else
-    {
-      throw("Component name or namespace are too long");
-    }
-    return c;
-  }
 
-  static RelativePosition initRelativePosition(nodeid_t node, u_int32_t pos)
-  {
-    RelativePosition result;
-    result.root = node;
-    result.pos = pos;
-    return result;
-  }
+    static RelativePosition initRelativePosition(nodeid_t node, u_int32_t pos)
+    {
+      RelativePosition result;
+      result.root = node;
+      result.pos = pos;
+      return result;
+    }
+  };
+
+
+
+
 
   inline bool operator==(const Annotation& lhs, const Annotation& rhs)
   {
