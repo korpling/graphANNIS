@@ -25,6 +25,7 @@ namespace annis
   enum class ComponentType {COVERAGE, DOMINANCE, POINTING, ORDERING,
                             LEFT_TOKEN, RIGHT_TOKEN,
                             ComponentType_MAX};
+  /*
   static std::string ComponentTypeToString(const ComponentType& type)
   {
     switch(type)
@@ -63,6 +64,7 @@ namespace annis
     }
     return ComponentType::ComponentType_MAX;
   }
+  */
 
   const size_t MAX_COMPONENT_NAME_SIZE = 255;
 
