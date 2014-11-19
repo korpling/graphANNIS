@@ -20,11 +20,6 @@ int main(int argc, char **argv)
 //  fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date] %m\n"));
   fac.registerAppender(new humble::logging::FileAppender("testexecution_annis4.log"));
 
-  humble::logging::ConsoleAppender* console = new humble::logging::ConsoleAppender();
-  fac.registerAppender(console);
-  console->setFormatter(new humble::logging::PatternFormatter("[%date][%lls] %m\n"));
-
-
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
