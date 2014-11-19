@@ -81,6 +81,7 @@ int FallbackEdgeDB::distance(const Edge &edge) const
     }
     result = dfs.nextDFS();
   }
+  return -1;
 }
 
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) const
