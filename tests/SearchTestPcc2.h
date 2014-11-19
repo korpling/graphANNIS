@@ -59,7 +59,7 @@ TEST_F(SearchTestPcc2, CatSearch) {
     counter++;
   }
 
-  EXPECT_EQ(155, counter);
+  EXPECT_EQ(155u, counter);
 }
 
 TEST_F(SearchTestPcc2, MMaxAnnos) {
@@ -77,7 +77,7 @@ TEST_F(SearchTestPcc2, MMaxAnnos) {
     counter++;
   }
 
-  EXPECT_EQ(73, counter);
+  EXPECT_EQ(73u, counter);
 
   counter=0;
   while(n2.hasNext())
@@ -89,7 +89,7 @@ TEST_F(SearchTestPcc2, MMaxAnnos) {
     counter++;
   }
 
-  EXPECT_EQ(17, counter);
+  EXPECT_EQ(17u, counter);
 }
 
 TEST_F(SearchTestPcc2, TokenIndex) {
@@ -109,7 +109,7 @@ TEST_F(SearchTestPcc2, TokenIndex) {
     }
   }
 
-  EXPECT_EQ(2, counter);
+  EXPECT_EQ(2u, counter);
 }
 
 TEST_F(SearchTestPcc2, IsConnectedRange) {
@@ -124,7 +124,7 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
     counter++;
   }
 
-  EXPECT_EQ(1, counter);
+  EXPECT_EQ(1u, counter);
 }
 
 TEST_F(SearchTestPcc2, DepthFirst) {
@@ -144,7 +144,7 @@ TEST_F(SearchTestPcc2, DepthFirst) {
       }
     }
 
-  EXPECT_EQ(9, counter);
+  EXPECT_EQ(9u, counter);
 }
 
 // exmaralda:Inf-Stat="new" _o_ exmaralda:PP
@@ -161,7 +161,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
     counter++;
   }
 
-  EXPECT_EQ(3, counter);
+  EXPECT_EQ(3u, counter);
 }
 
 // mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
@@ -178,7 +178,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
     counter++;
   }
 
-  EXPECT_EQ(47, counter);
+  EXPECT_EQ(47u, counter);
 }
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
@@ -195,7 +195,7 @@ TEST_F(SearchTestPcc2, TestQueryInclude) {
     counter++;
   }
 
-  EXPECT_EQ(23, counter);
+  EXPECT_EQ(23u, counter);
 }
 
 

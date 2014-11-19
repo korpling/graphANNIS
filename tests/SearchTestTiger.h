@@ -61,7 +61,7 @@ TEST_F(SearchTestTiger, CatSearch) {
     counter++;
   }
 
-  EXPECT_EQ(373436, counter);
+  EXPECT_EQ(373436u, counter);
 }
 
 // Should test query
@@ -79,7 +79,7 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
     counter++;
   }
 
-  EXPECT_EQ(179024, counter);
+  EXPECT_EQ(179024u, counter);
 }
 
 // Should test query
@@ -100,7 +100,7 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
     counter++;
   }
 
-  EXPECT_EQ(114042, counter);
+  EXPECT_EQ(114042u, counter);
 }
 
 

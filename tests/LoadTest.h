@@ -42,7 +42,7 @@ protected:
 TEST_F(LoadTest, NodeAnnotations) {
 
   std::vector<annis::Annotation> annos = db.getNodeAnnotationsByID(0);
-  ASSERT_EQ(5, annos.size());
+  ASSERT_EQ(5u, annos.size());
 
   EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[4].ns).c_str());
   EXPECT_STREQ("node_name", db.strings.str(annos[4].name).c_str());
@@ -72,7 +72,7 @@ TEST_F(LoadTest, Edges) {
 
   // get some edges
   std::vector<annis::Component> components = db.getDirectConnected(annis::Init::initEdge(0, 10));
-  ASSERT_EQ(2, components.size());
+  ASSERT_EQ(2u, components.size());
   EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
   EXPECT_STREQ("exmaralda", components[0].layer);
   EXPECT_STREQ("", components[0].name);
@@ -82,7 +82,7 @@ TEST_F(LoadTest, Edges) {
   EXPECT_STREQ("", components[1].name);
 
   components = db.getDirectConnected(annis::Init::initEdge(126, 371));
-  ASSERT_EQ(3, components.size());
+  ASSERT_EQ(3u, components.size());
 
   EXPECT_EQ(annis::ComponentType::DOMINANCE, components[0].type);
   EXPECT_STREQ("tiger", components[0].layer);
@@ -103,22 +103,22 @@ TEST_F(LoadTest, EdgeAnnos) {
   annis::Edge edge = annis::Init::initEdge(126, 371);
   std::vector<annis::Component> components = db.getDirectConnected(edge);
 
-  ASSERT_EQ(3, components.size());
+  ASSERT_EQ(3u, components.size());
 
   std::vector<annis::Annotation> edgeAnnos = db.getEdgeAnnotations(components[0], edge);
-  EXPECT_EQ(1, edgeAnnos.size());
+  EXPECT_EQ(1u, edgeAnnos.size());
   EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
   EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
   EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
 
   edgeAnnos = db.getEdgeAnnotations(components[1], edge);
-  EXPECT_EQ(1, edgeAnnos.size());
+  EXPECT_EQ(1u, edgeAnnos.size());
   EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
   EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
   EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
 
   edgeAnnos = db.getEdgeAnnotations(components[2], edge);
-  EXPECT_EQ(0, edgeAnnos.size());
+  EXPECT_EQ(0u, edgeAnnos.size());
 
 }
 

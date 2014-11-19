@@ -75,7 +75,7 @@ TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
 
   unsigned int counter=0;
 
-  EXPECT_EQ(373436, counter);
+  EXPECT_EQ(373436u, counter);
 }
 
 
