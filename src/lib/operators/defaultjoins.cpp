@@ -265,7 +265,7 @@ void RightMostTokenForNodeIterator::reset()
   source.reset();
 }
 
-Match RightMostTokenForNodeIterator::currentNodeMatch()
+const Match& RightMostTokenForNodeIterator::currentNodeMatch()
 {
   return currentOriginalMatch;
 }

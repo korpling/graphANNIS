@@ -100,7 +100,7 @@ public:
   virtual Match next();
   virtual void reset();
 
-  virtual Match currentNodeMatch();
+  virtual const Match &currentNodeMatch();
 
   virtual const Annotation& getAnnotation() {return source.getAnnotation();}
 
