@@ -12,7 +12,7 @@ HUMBLE_LOGGER(logger, "default");
 
 using namespace annis;
 
-class TigerTestFixture
+class Tiger
     : public ::hayai::Fixture
 {
 public:
@@ -42,7 +42,7 @@ public:
 
 };
 
-class RidgesTestFixture
+class Ridges
     : public ::hayai::Fixture
 {
 public:
@@ -72,12 +72,12 @@ public:
 
 };
 
-class FallbackRidgesTestFixture
+class RidgesFallback
     : public ::hayai::Fixture
 {
 public:
 
-  FallbackRidgesTestFixture()
+  RidgesFallback()
     :db(false)
   {
 
@@ -109,7 +109,7 @@ public:
 };
 
 
-BENCHMARK_F(TigerTestFixture, Cat, 5, 1)
+BENCHMARK_F(Tiger, Cat, 5, 1)
 {
   AnnotationNameSearch search(db, "cat");
   counter=0;
@@ -121,7 +121,7 @@ BENCHMARK_F(TigerTestFixture, Cat, 5, 1)
 }
 
 // pos="NN" & norm="Blumen" & #1 _i_ #2
-BENCHMARK_F(RidgesTestFixture, PosNNIncludesNormBlumen, 5, 1) {
+BENCHMARK_F(Ridges, PosNNIncludesNormBlumen, 5, 1) {
 
 
   AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
@@ -135,7 +135,7 @@ BENCHMARK_F(RidgesTestFixture, PosNNIncludesNormBlumen, 5, 1) {
 }
 
 // pos="NN" .2,10 pos="ART"
-BENCHMARK_F(RidgesTestFixture, NNPreceedingART, 5, 1) {
+BENCHMARK_F(Ridges, NNPreceedingART, 5, 1) {
 
   AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
   AnnotationNameSearch n2(db, "default_ns", "pos", "ART");
@@ -148,7 +148,7 @@ BENCHMARK_F(RidgesTestFixture, NNPreceedingART, 5, 1) {
 }
 
 // tok .2,10 tok
-BENCHMARK_F(RidgesTestFixture, TokPreceedingTok, 5, 1) {
+BENCHMARK_F(Ridges, TokPreceedingTok, 5, 1) {
 
   unsigned int counter=0;
 
@@ -164,7 +164,7 @@ BENCHMARK_F(RidgesTestFixture, TokPreceedingTok, 5, 1) {
 }
 
 // pos="NN" .2,10 pos="ART"
-BENCHMARK_F(FallbackRidgesTestFixture, NNPreceedingART, 5, 1) {
+BENCHMARK_F(RidgesFallback, NNPreceedingART, 5, 1) {
 
   AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
   AnnotationNameSearch n2(db, "default_ns", "pos", "ART");
@@ -177,7 +177,7 @@ BENCHMARK_F(FallbackRidgesTestFixture, NNPreceedingART, 5, 1) {
 }
 
 // tok .2,10 tok
-BENCHMARK_F(FallbackRidgesTestFixture, TokPreceedingTok, 5, 1) {
+BENCHMARK_F(RidgesFallback, TokPreceedingTok, 5, 1) {
 
   unsigned int counter=0;
 
