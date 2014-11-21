@@ -104,7 +104,7 @@ BinaryMatch SeedJoin::next()
       result.found = true;
       result.lhs = matchLeft;
       result.rhs.node = connectedNode.second;
-      result.rhs.node = anyNodeShortcut;
+      result.rhs.anno = right;
       return result;
     }
     else if(checkAnnotationEqual(*currentAnnotationCandidate, right))
