@@ -72,6 +72,42 @@ public:
 
 };
 
+class FallbackRidgesTestFixture
+    : public ::hayai::Fixture
+{
+public:
+
+  FallbackRidgesTestFixture()
+    :db(false)
+  {
+
+  }
+
+  virtual void SetUp()
+  {
+    char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
+    std::string dataDir("data");
+    if(testDataEnv != NULL)
+    {
+      dataDir = testDataEnv;
+    }
+    dbLoaded = db.load(dataDir + "/ridges");
+    counter = 0;
+  }
+
+  /// After each run, clear the vector of random integers.
+  virtual void TearDown()
+  {
+     HL_INFO(logger, (boost::format("result %1%") % counter).str());
+  }
+
+  DB db;
+  bool dbLoaded;
+
+  unsigned int counter;
+
+};
+
 
 BENCHMARK_F(TigerTestFixture, Cat, 5, 1)
 {
@@ -111,8 +147,52 @@ BENCHMARK_F(RidgesTestFixture, NNPreceedingART, 5, 1) {
   }
 }
 
+// tok .2,10 tok
+BENCHMARK_F(RidgesTestFixture, TokPreceedingTok, 5, 1) {
 
-int main()
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, annis::annis_ns, annis::annis_tok);
+  AnnotationNameSearch n2(db, annis::annis_ns,annis::annis_tok);
+
+  Precedence join(db, n1, n2, 2, 10);
+
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+}
+
+// pos="NN" .2,10 pos="ART"
+BENCHMARK_F(FallbackRidgesTestFixture, NNPreceedingART, 5, 1) {
+
+  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
+  AnnotationNameSearch n2(db, "default_ns", "pos", "ART");
+
+  Precedence join(db, n1, n2, 2, 10);
+  for(BinaryMatch m=join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+}
+
+// tok .2,10 tok
+BENCHMARK_F(FallbackRidgesTestFixture, TokPreceedingTok, 5, 1) {
+
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, annis::annis_ns, annis::annis_tok);
+  AnnotationNameSearch n2(db, annis::annis_ns,annis::annis_tok);
+
+  Precedence join(db, n1, n2, 2, 10);
+
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+}
+
+int main(int argc, char** argv)
 {
   humble::logging::Factory &fac = humble::logging::Factory::getInstance();
 
@@ -123,6 +203,14 @@ int main()
   hayai::ConsoleOutputter consoleOutputter;
 
   hayai::Benchmarker::AddOutputter(consoleOutputter);
+  if(argc >= 2)
+  {
+    for(int i=1; i < argc; i++)
+    {
+      std::cout << "adding include filter" << argv[i] << std::endl;
+      hayai::Benchmarker::AddIncludeFilter(argv[i]);
+    }
+  }
   hayai::Benchmarker::RunAllTests();
   return 0;
 }
