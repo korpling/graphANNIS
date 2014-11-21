@@ -54,8 +54,8 @@ private:
 
   EdgeIterator* edgeIterator;
   std::pair<bool, nodeid_t> connectedNode;
-  std::vector<Annotation> candidateAnnotations;
-  size_t currentAnnotationCandidate;
+  std::list<Annotation> candidateAnnotations;
+  std::list<Annotation>::const_iterator currentAnnotationCandidate;
 
   bool nextLeft();
   bool nextConnected();

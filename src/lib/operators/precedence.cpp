@@ -31,6 +31,7 @@ BinaryMatch Precedence::next()
 {
   BinaryMatch result;
   result.found = false;
+
   if(actualJoin != NULL && edbLeft != NULL)
   {
     while(currentMatches.empty() && currentMatchedToken.found)
@@ -43,9 +44,9 @@ BinaryMatch Precedence::next()
         matchCandidateNodes.insert(matchCandidateNodes.end(),
                                    currentMatchedToken.rhs.node);
 
-        for(nodeid_t nodeID : matchCandidateNodes)
+        for(const nodeid_t& nodeID : matchCandidateNodes)
         {
-          for(auto& nodeAnno : db.getNodeAnnotationsByID(nodeID))
+          for(const auto& nodeAnno : db.getNodeAnnotationsByID(nodeID))
           {
             if(checkAnnotationEqual(nodeAnno, annoForRightNode))
             {

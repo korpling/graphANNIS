@@ -10,6 +10,7 @@
 #include <sstream>
 #include <map>
 #include <vector>
+#include <list>
 
 #include "types.h"
 #include "comparefunctions.h"
@@ -30,12 +31,11 @@ public:
   bool save(std::string dirPath);
 
   bool hasNode(nodeid_t id);
-  inline std::vector<Annotation> getNodeAnnotationsByID(const nodeid_t &id) const
+  inline std::list<Annotation> getNodeAnnotationsByID(const nodeid_t &id) const
   {
     typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
 
-    std::vector<Annotation> result;
-    result.reserve(10);
+    std::list<Annotation> result;
     std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
     for(AnnoIt itAnnos = itRange.first;
         itAnnos != itRange.second; itAnnos++)

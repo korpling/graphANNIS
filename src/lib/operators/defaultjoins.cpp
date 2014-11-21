@@ -79,7 +79,7 @@ NestedLoopJoin::~NestedLoopJoin()
 SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, AnnotationIterator &left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
   : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), edgeIterator(NULL)
 {
-
+  reset();
 }
 
 BinaryMatch SeedJoin::next()
@@ -94,12 +94,12 @@ BinaryMatch SeedJoin::next()
 
   while(nextAnnotation())
   {
-    if(checkAnnotationEqual(candidateAnnotations[currentAnnotationCandidate], right))
+    if(checkAnnotationEqual(*currentAnnotationCandidate, right))
     {
       result.found = true;
       result.lhs = matchLeft;
       result.rhs.node = connectedNode.second;
-      result.rhs.anno = candidateAnnotations[currentAnnotationCandidate];
+      result.rhs.anno = *currentAnnotationCandidate;
       return result;
     }
   }
@@ -114,8 +114,8 @@ void SeedJoin::reset()
 
   left.reset();
 
-  currentAnnotationCandidate = 0;
   candidateAnnotations.clear();
+  currentAnnotationCandidate = candidateAnnotations.begin();
 
   connectedNode.first = false;
 
@@ -166,19 +166,19 @@ bool SeedJoin::nextConnected()
 bool SeedJoin::nextAnnotation()
 {
   currentAnnotationCandidate++;
-  if(currentAnnotationCandidate >= candidateAnnotations.size())
+  if(currentAnnotationCandidate == candidateAnnotations.end())
   {
-    currentAnnotationCandidate = 0;
     if(nextConnected())
     {
       candidateAnnotations = db.getNodeAnnotationsByID(connectedNode.second);
+      currentAnnotationCandidate = candidateAnnotations.begin();
     }
     else
     {
       return false;
     }
   }
-  return currentAnnotationCandidate < candidateAnnotations.size();
+  return currentAnnotationCandidate != candidateAnnotations.end();
 }
 
 SeedJoin::~SeedJoin()
@@ -243,8 +243,7 @@ Match RightMostTokenForNodeIterator::next()
     currentOriginalMatch = source.next();
 
     // check if this is a token
-    std::vector<Annotation> annos = db.getNodeAnnotationsByID(currentOriginalMatch.node);
-    for(auto& a : annos)
+    for(const auto& a : db.getNodeAnnotationsByID(currentOriginalMatch.node))
     {
       if(checkAnnotationEqual(anyTokAnnotation, a))
       {
@@ -291,8 +290,7 @@ Match LeftMostTokenForNodeIterator::next()
     currentOriginalMatch = source.next();
 
     // check if this is a token
-    std::vector<Annotation> annos = db.getNodeAnnotationsByID(currentOriginalMatch.node);
-    for(auto& a : annos)
+    for(const auto& a : db.getNodeAnnotationsByID(currentOriginalMatch.node))
     {
       if(checkAnnotationEqual(anyTokAnnotation, a))
       {
