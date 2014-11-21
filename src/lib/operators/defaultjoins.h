@@ -56,6 +56,7 @@ private:
   std::pair<bool, nodeid_t> connectedNode;
   std::list<Annotation> candidateAnnotations;
   std::list<Annotation>::const_iterator currentAnnotationCandidate;
+  bool anyNodeShortcut;
 
   bool nextLeft();
   bool nextConnected();
@@ -114,6 +115,7 @@ private:
   Match matchTemplate;
   Match currentOriginalMatch;
   Annotation anyTokAnnotation;
+  bool tokenShortcut;
 
   void initEdgeDB();
 };

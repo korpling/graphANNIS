@@ -123,6 +123,8 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
 
   AnnotationNameSearch n1(db, annis::annis_ns, "tok");
 
+  Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
+
   std::pair<bool, uint32_t> n2_namespaceID = db.strings.findID(annis::annis_ns);
   std::pair<bool, uint32_t> n2_nameID = db.strings.findID("tok");
   if(n2_nameID.first && n2_namespaceID.first)
@@ -145,7 +147,7 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
           // check if the node has the correct annotations
           for(const Annotation& anno : db.getNodeAnnotationsByID(tok2.second))
           {
-            if(anno.ns == n2_namespaceID.second && anno.name == n2_nameID.second)
+            if(checkAnnotationEqual(anyTokAnno, anno))
             {
               counter++;
               break; // we don't have to search for other annotations
@@ -155,7 +157,7 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
         delete itConnected;
       }
     }
-  } // end if pos="ART" strings found
+  } // end if
 
   EXPECT_EQ(1386828u, counter);
 }

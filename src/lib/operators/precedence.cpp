@@ -16,8 +16,20 @@ Precedence::Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& rig
   if(edbOrder != NULL)
   {
     Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
-    // TODO: allow to use a nested loop iterator as a configurable alternative
-    actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyTokAnno, minDistance, maxDistance);
+    Annotation anyNodeAnno = Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID());
+
+    if(checkAnnotationEqual(left.getAnnotation(), anyTokAnno)
+       && checkAnnotationEqual(right.getAnnotation(), anyTokAnno))
+    {
+      // special case: order relations always have token as target if the source is a token
+      actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyNodeAnno, minDistance, maxDistance);
+
+    }
+    else
+    {
+      // TODO: allow to use a nested loop iterator as a configurable alternative
+      actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyTokAnno, minDistance, maxDistance);
+    }
   }
   currentMatchedToken.found = true;
 }

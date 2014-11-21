@@ -77,8 +77,13 @@ NestedLoopJoin::~NestedLoopJoin()
 
 
 SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, AnnotationIterator &left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
-  : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), edgeIterator(NULL)
+  : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), edgeIterator(NULL), anyNodeShortcut(false)
 {
+  Annotation anyNodeAnno = Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID());
+  if(checkAnnotationEqual(anyNodeAnno, right))
+  {
+    anyNodeShortcut = true;
+  }
   reset();
 }
 
@@ -92,9 +97,18 @@ BinaryMatch SeedJoin::next()
     return result;
   }
 
+
   while(nextAnnotation())
   {
-    if(checkAnnotationEqual(*currentAnnotationCandidate, right))
+    if(anyNodeShortcut)
+    {
+      result.found = true;
+      result.lhs = matchLeft;
+      result.rhs.node = connectedNode.second;
+      result.rhs.node = anyNodeShortcut;
+      return result;
+    }
+    else if(checkAnnotationEqual(*currentAnnotationCandidate, right))
     {
       result.found = true;
       result.lhs = matchLeft;
@@ -103,6 +117,7 @@ BinaryMatch SeedJoin::next()
       return result;
     }
   }
+
 
   return result;
 }
@@ -165,20 +180,27 @@ bool SeedJoin::nextConnected()
 
 bool SeedJoin::nextAnnotation()
 {
-  currentAnnotationCandidate++;
-  if(currentAnnotationCandidate == candidateAnnotations.end())
+  if(anyNodeShortcut)
   {
-    if(nextConnected())
-    {
-      candidateAnnotations = db.getNodeAnnotationsByID(connectedNode.second);
-      currentAnnotationCandidate = candidateAnnotations.begin();
-    }
-    else
-    {
-      return false;
-    }
+    return nextConnected();
   }
-  return currentAnnotationCandidate != candidateAnnotations.end();
+  else
+  {
+    currentAnnotationCandidate++;
+    if(currentAnnotationCandidate == candidateAnnotations.end())
+    {
+      if(nextConnected())
+      {
+        candidateAnnotations = db.getNodeAnnotationsByID(connectedNode.second);
+        currentAnnotationCandidate = candidateAnnotations.begin();
+      }
+      else
+      {
+        return false;
+      }
+    }
+    return currentAnnotationCandidate != candidateAnnotations.end();
+  }
 }
 
 SeedJoin::~SeedJoin()
@@ -225,9 +247,13 @@ void JoinWrapIterator::reset()
 
 
 RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(AnnotationIterator &source, const DB &db)
-  : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, ""))
+  : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")), tokenShortcut(false)
 {
   anyTokAnnotation = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
+  if(checkAnnotationEqual(source.getAnnotation(), anyTokAnnotation))
+  {
+    tokenShortcut = true;
+  }
 }
 
 bool RightMostTokenForNodeIterator::hasNext()
@@ -243,14 +269,10 @@ Match RightMostTokenForNodeIterator::next()
     currentOriginalMatch = source.next();
 
     // check if this is a token
-    for(const auto& a : db.getNodeAnnotationsByID(currentOriginalMatch.node))
+    if(tokenShortcut)
     {
-      if(checkAnnotationEqual(anyTokAnnotation, a))
-      {
-        return currentOriginalMatch;
-      }
+      return currentOriginalMatch;
     }
-
     result.node = edb->getOutgoingEdges(currentOriginalMatch.node)[0];
     result.anno.name = db.getTokStringID();
     result.anno.ns = db.getNamespaceStringID();

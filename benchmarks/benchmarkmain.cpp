@@ -161,6 +161,51 @@ BENCHMARK_F(Ridges, TokPreceedingTok, 1, 1) {
   }
 }
 
+// tok .2,10 tok
+BENCHMARK_F(Ridges, ClassicTok, 1, 1) {
+
+  unsigned int counter=0;
+
+  AnnotationNameSearch n1(db, annis::annis_ns, "tok");
+
+  Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
+
+  std::pair<bool, uint32_t> n2_namespaceID = db.strings.findID(annis::annis_ns);
+  std::pair<bool, uint32_t> n2_nameID = db.strings.findID("tok");
+  if(n2_nameID.first && n2_namespaceID.first)
+  {
+    Component cOrder = Init::initComponent(ComponentType::ORDERING, annis_ns, "");
+
+
+    const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
+    if(edbOrder != NULL)
+    {
+      while(n1.hasNext())
+      {
+        Match m1 = n1.next();
+
+        // find all token in the range 2-10
+        EdgeIterator* itConnected = edbOrder->findConnected(m1.node, 2, 10);
+        for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
+            tok2.first; tok2 = itConnected->next())
+        {
+          // check if the node has the correct annotations
+          for(const Annotation& anno : db.getNodeAnnotationsByID(tok2.second))
+          {
+            if(checkAnnotationEqual(anyTokAnno, anno))
+            {
+              counter++;
+              break; // we don't have to search for other annotations
+            }
+          }
+        }
+        delete itConnected;
+      }
+    }
+  } // end if
+
+}
+
 // pos="NN" .2,10 pos="ART"
 BENCHMARK_F(RidgesFallback, NNPreceedingART, 5, 1) {
 
