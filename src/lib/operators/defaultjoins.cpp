@@ -79,8 +79,7 @@ NestedLoopJoin::~NestedLoopJoin()
 SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, AnnotationIterator &left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
   : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), edgeIterator(NULL), anyNodeShortcut(false)
 {
-  Annotation anyNodeAnno = Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID());
-  if(checkAnnotationEqual(anyNodeAnno, right))
+  if(right.name == db.getNodeNameStringID() && right.ns == db.getNamespaceStringID() && right.val == 0)
   {
     anyNodeShortcut = true;
   }
@@ -249,8 +248,8 @@ void JoinWrapIterator::reset()
 RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(AnnotationIterator &source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")), tokenShortcut(false)
 {
-  anyTokAnnotation = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
-  if(checkAnnotationEqual(source.getAnnotation(), anyTokAnnotation))
+  const Annotation& anno = source.getAnnotation();
+  if(anno.name == db.getTokStringID() && anno.ns == db.getNamespaceStringID() && anno.val == 0)
   {
     tokenShortcut = true;
   }
