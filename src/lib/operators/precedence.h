@@ -33,7 +33,7 @@ private:
   const Annotation& annoForRightNode;
 
   BinaryOperatorIterator* actualJoin;
-  std::stack<Match, std::list> currentMatches;
+  std::stack<Match, std::list<Match>> currentMatches;
   BinaryMatch currentMatchedToken;
 
   const EdgeDB* edbLeft;
