@@ -23,7 +23,7 @@ class DB
   friend class AnnotationNameSearch;
   typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
 public:
-  DB();
+  DB(bool useSpecializedEdgeDB = true);
 
   bool loadRelANNIS(std::string dirPath);
   bool load(std::string dirPath);
@@ -115,6 +115,8 @@ private:
   std::uint32_t annisEmptyStringID;
   std::uint32_t annisTokStringID;
   std::uint32_t annisNodeNameStringID;
+
+  bool useSpecializedEdgeDB;
 
   bool loadRelANNISNode(std::string dirPath);
   bool loadRelANNISRank(const std::string& dirPath,

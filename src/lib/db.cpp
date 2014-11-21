@@ -20,7 +20,8 @@ HUMBLE_LOGGER(logger, "annis4");
 using namespace annis;
 using namespace std;
 
-DB::DB()
+DB::DB(bool useSpecializedEdgeDB)
+  : useSpecializedEdgeDB(useSpecializedEdgeDB)
 {
   addDefaultStrings();
 }
@@ -545,12 +546,12 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
 
     // TODO: decide which implementation to use
     EdgeDB* edgeDB = NULL;
-    if(c.type == ComponentType::ORDERING)
+
+    if(useSpecializedEdgeDB && c.type == ComponentType::ORDERING)
     {
       edgeDB = new LinearEdgeDB(strings, c);
-//      edgeDB = new FallbackEdgeDB(strings, c);
     }
-    else if(c.type == ComponentType::COVERAGE)
+    else if(useSpecializedEdgeDB && c.type == ComponentType::COVERAGE)
     {
       edgeDB = new CoverageEdgeDB(strings, c);
     }
