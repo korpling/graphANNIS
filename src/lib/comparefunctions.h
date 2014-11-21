@@ -10,40 +10,22 @@
 namespace annis
 {
 
+#define ANNIS_STRUCT_COMPARE(a, b) {if(a < b) {return true;} else if(a > b) {return false;}}
+
 struct compComponent
 {
   bool operator()(const struct Component &a, const struct Component &b) const
   {
     // compare by type
-    if(a.type < b.type)
-    {
-      return true;
-    }
-    else if(a.type > b.type)
-    {
-      return false;
-    }
+    ANNIS_STRUCT_COMPARE(a.type, b.type);
+
     // if equal compare by namespace
     int nsCompare = strncmp(a.layer, b.layer, MAX_COMPONENT_NAME_SIZE);
-    if(nsCompare < 0)
-    {
-      return true;
-    }
-    else if(nsCompare > 0)
-    {
-      return false;
-    }
+    ANNIS_STRUCT_COMPARE(nsCompare, 0);
 
     // if still equal compare by name
     int nameCompare = strncmp(a.name, b.name, MAX_COMPONENT_NAME_SIZE);
-    if(nameCompare < 0)
-    {
-      return true;
-    }
-    else if(nameCompare > 0)
-    {
-      return false;
-    }
+    ANNIS_STRUCT_COMPARE(nameCompare, 0);
 
     // they are equal
     return false;
@@ -54,7 +36,17 @@ struct compAnno
 {
   bool operator()(const struct Annotation &a, const struct Annotation &b) const
   {
-    return std::tie(a.name, a.ns, a.val) < std::tie(b.name, b.ns, b.val);
+    // compare by name (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.name, b.name);
+
+    // if equal, compare by namespace (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.ns, b.ns);
+
+    // if still equal compare by value (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.val, b.val);
+
+    // they are equal
+    return false;
   }
 };
 
@@ -93,7 +85,14 @@ struct compEdges
 {
   bool operator()(const struct Edge &a, const struct Edge &b) const
   {
-    return std::tie(a.source, a.target) < std::tie(b.source, b.target);
+    // compare by source id
+    ANNIS_STRUCT_COMPARE(a.source, b.source);
+
+    // if equal compare by target id
+    ANNIS_STRUCT_COMPARE(a.target, b.target);
+
+    // they are equal
+    return false;
   }
 };
 
@@ -101,7 +100,11 @@ struct compTextProperty
 {
   bool operator()(const struct TextProperty &a, const struct TextProperty &b) const
   {
-    return std::tie(a.textID, a.val) < std::tie(b.textID, b.val);
+    ANNIS_STRUCT_COMPARE(a.textID, b.textID);
+    ANNIS_STRUCT_COMPARE(a.val, b.val);
+
+    // they are equal
+    return false;
   }
 };
 
@@ -109,7 +112,11 @@ struct compRelativePosition
 {
   bool operator()(const struct RelativePosition &a, const struct RelativePosition &b) const
   {
-    return std::tie(a.root, a.pos) < std::tie(b.root, b.pos);
+    ANNIS_STRUCT_COMPARE(a.root, b.root);
+    ANNIS_STRUCT_COMPARE(a.pos, b.pos);
+
+    // they are equal
+    return false;
   }
 };
 
@@ -117,7 +124,11 @@ struct compMatch
 {
   bool operator()(const struct Match &a, const struct Match &b) const
   {
-    return std::tie(a.node, a.anno.name, a.anno.ns, a.anno.val) < std::tie(b.node, b.anno.name, b.anno.ns, b.anno.val);
+    ANNIS_STRUCT_COMPARE(a.node, b.node);
+    ANNIS_STRUCT_COMPARE(a.anno.name, b.anno.name);
+    ANNIS_STRUCT_COMPARE(a.anno.ns, b.anno.ns);
+    ANNIS_STRUCT_COMPARE(a.anno.val, b.anno.val);
+    return false;
   }
 };
 
@@ -125,9 +136,18 @@ struct compBinaryMatch
 {
   bool operator()(const struct BinaryMatch &a, const struct BinaryMatch &b) const
   {
-    return std::tie(a.lhs.node, a.lhs.anno.name, a.lhs.anno.ns, a.lhs.anno.val, a.rhs.node, a.rhs.anno.name, a.rhs.anno.ns, a.rhs.anno.val)
-        <
-        std::tie(b.lhs.node, b.lhs.anno.name, b.lhs.anno.ns, b.lhs.anno.val, b.rhs.node, b.rhs.anno.name, b.rhs.anno.ns, b.rhs.anno.val);
+
+    ANNIS_STRUCT_COMPARE(a.lhs.node, b.lhs.node);
+    ANNIS_STRUCT_COMPARE(a.lhs.anno.name, b.lhs.anno.name);
+    ANNIS_STRUCT_COMPARE(a.lhs.anno.ns, b.lhs.anno.ns);
+    ANNIS_STRUCT_COMPARE(a.lhs.anno.val, b.lhs.anno.val);
+
+    ANNIS_STRUCT_COMPARE(a.rhs.node, b.rhs.node);
+    ANNIS_STRUCT_COMPARE(a.rhs.anno.name, b.rhs.anno.name);
+    ANNIS_STRUCT_COMPARE(a.rhs.anno.ns, b.rhs.anno.ns);
+    ANNIS_STRUCT_COMPARE(a.rhs.anno.val, b.rhs.anno.val);
+
+    return false;
   }
 };
 
