@@ -248,6 +248,7 @@ void JoinWrapIterator::reset()
 RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(AnnotationIterator &source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")), tokenShortcut(false)
 {
+  anyTokAnnotation = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
   const Annotation& anno = source.getAnnotation();
   if(anno.name == db.getTokStringID() && anno.ns == db.getNamespaceStringID() && anno.val == 0)
   {
@@ -267,11 +268,21 @@ Match RightMostTokenForNodeIterator::next()
   {
     currentOriginalMatch = source.next();
 
-    // check if this is a token
+    // check if we can use the shortcut
     if(tokenShortcut)
     {
       return currentOriginalMatch;
     }
+
+    // we still have to check if this is a token in case for token annotions
+    for(const auto& a : db.getNodeAnnotationsByID(currentOriginalMatch.node))
+    {
+      if(checkAnnotationEqual(anyTokAnnotation, a))
+      {
+        return currentOriginalMatch;
+      }
+    }
+
     result.node = edb->getOutgoingEdges(currentOriginalMatch.node)[0];
     result.anno.name = db.getTokStringID();
     result.anno.ns = db.getNamespaceStringID();
