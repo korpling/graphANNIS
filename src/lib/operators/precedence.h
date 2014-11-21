@@ -6,6 +6,7 @@
 #include "defaultjoins.h"
 
 #include <list>
+#include <stack>
 
 namespace annis
 {
@@ -32,7 +33,7 @@ private:
   const Annotation& annoForRightNode;
 
   BinaryOperatorIterator* actualJoin;
-  std::list<Match> currentMatches;
+  std::stack<Match, std::list> currentMatches;
   BinaryMatch currentMatchedToken;
 
   const EdgeDB* edbLeft;

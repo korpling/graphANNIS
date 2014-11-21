@@ -53,25 +53,23 @@ BinaryMatch Precedence::next()
               Match m;
               m.node = nodeID;
               m.anno = nodeAnno;
-              currentMatches.push_back(m);
+              currentMatches.push(m);
             }
-          }
-        }
-      }
-
-
-    }
+          } // end for each annotation of the match candidate
+        } // end for each match (rhs) candidate
+      } // end if matched token found
+    } // end while no current matches left and any token matched token found
 
     if(!currentMatches.empty())
     {
       result.found = true;
       result.lhs = tokIteratorForLeftNode.currentNodeMatch();
-      result.rhs = currentMatches.front();
-      currentMatches.pop_front();
+      result.rhs = currentMatches.top();
+      currentMatches.pop();
       return result;
     }
 
-  }
+  } // end if join and edge db for left_token component initialized
   return result;
 }
 
@@ -81,7 +79,10 @@ void Precedence::reset()
   {
     actualJoin->reset();
   }
-  currentMatches.clear();
+  while(!currentMatches.empty())
+  {
+    currentMatches.pop();
+  }
   currentMatchedToken.found = true;
 }
 
