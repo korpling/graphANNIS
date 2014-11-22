@@ -37,6 +37,7 @@ private:
   BinaryMatch currentMatchedToken;
 
   const EdgeDB* edbLeft;
+  bool tokenShortcut;
 };
 
 

@@ -9,7 +9,8 @@ Precedence::Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& rig
     tokIteratorForLeftNode(RightMostTokenForNodeIterator(left, db)),
     annoForRightNode(right.getAnnotation()),
     actualJoin(NULL),
-    edbLeft(NULL)
+    edbLeft(NULL),
+    tokenShortcut(false)
 {
   const EdgeDB* edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
   edbLeft = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
@@ -21,9 +22,9 @@ Precedence::Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& rig
     if(checkAnnotationEqual(left.getAnnotation(), anyTokAnno)
        && checkAnnotationEqual(right.getAnnotation(), anyTokAnno))
     {
+      tokenShortcut = true;
       // special case: order relations always have token as target if the source is a token
       actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyNodeAnno, minDistance, maxDistance);
-
     }
     else
     {
@@ -51,7 +52,11 @@ BinaryMatch Precedence::next()
       currentMatchedToken = actualJoin->next();
       if(currentMatchedToken.found)
       {
-        std::vector<nodeid_t> matchCandidateNodes = edbLeft->getOutgoingEdges(currentMatchedToken.rhs.node);
+        std::vector<nodeid_t> matchCandidateNodes;
+        if(!tokenShortcut)
+        {
+          matchCandidateNodes = edbLeft->getOutgoingEdges(currentMatchedToken.rhs.node);
+        }
         // also check the token itself
         matchCandidateNodes.insert(matchCandidateNodes.end(),
                                    currentMatchedToken.rhs.node);
