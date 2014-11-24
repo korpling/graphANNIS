@@ -43,6 +43,42 @@ public:
 
 };
 
+class TigerFallback
+    : public ::hayai::Fixture
+{
+public:
+
+  TigerFallback()
+    :db(false)
+  {
+
+  }
+
+  virtual void SetUp()
+  {
+    char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
+    std::string dataDir("data");
+    if(testDataEnv != NULL)
+    {
+      dataDir = testDataEnv;
+    }
+    dbLoaded = db.load(dataDir + "/tiger2");
+    counter = 0;
+  }
+
+  /// After each run, clear the vector of random integers.
+  virtual void TearDown()
+  {
+     HL_INFO(logger, (boost::format("result %1%") % counter).str());
+  }
+
+  DB db;
+  bool dbLoaded;
+
+  unsigned int counter;
+
+};
+
 class Ridges
     : public ::hayai::Fixture
 {
@@ -128,13 +164,45 @@ BENCHMARK_F(Tiger, BilharzioseSentence, 5, 1)
   AnnotationNameSearch n2(db, annis_ns, annis_tok, "Bilharziose");
 
   const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "edge");
-  NestedLoopJoin n1Dom2(edbDom, n1, n2, 1, 40);
+  NestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
 
   for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
   {
     counter++;
   }
 
+}
+
+// pos="NN" .2,10 pos="ART" . pos="NN"
+BENCHMARK_F(Tiger, NNPreARTPreNN, 5, 1) {
+
+  AnnotationNameSearch n1(db, "tiger", "pos", "NN");
+  AnnotationNameSearch n2(db, "tiger", "pos", "ART");
+  AnnotationNameSearch n3(db, "tiger", "pos", "NN");
+
+  Precedence join1(db, n1, n2, 2, 10);
+  JoinWrapIterator wrappedJoin1(join1);
+  Precedence join2(db, wrappedJoin1, n3);
+  for(BinaryMatch m = join2.next(); m.found; m = join2.next())
+  {
+    counter++;
+  }
+}
+
+// pos="NN" .2,10 pos="ART" . pos="NN"
+BENCHMARK_F(TigerFallback, NNPreARTPreNN, 5, 1) {
+
+  AnnotationNameSearch n1(db, "tiger", "pos", "NN");
+  AnnotationNameSearch n2(db, "tiger", "pos", "ART");
+  AnnotationNameSearch n3(db, "tiger", "pos", "NN");
+
+  Precedence join1(db, n1, n2, 2, 10);
+  JoinWrapIterator wrappedJoin1(join1);
+  Precedence join2(db, wrappedJoin1, n3);
+  for(BinaryMatch m = join2.next(); m.found; m = join2.next())
+  {
+    counter++;
+  }
 }
 
 // pos="NN" & norm="Blumen" & #1 _i_ #2
