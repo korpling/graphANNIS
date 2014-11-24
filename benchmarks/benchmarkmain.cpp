@@ -148,7 +148,7 @@ BENCHMARK_F(Ridges, NNPreceedingART, 5, 1) {
 }
 
 // tok .2,10 tok
-BENCHMARK_F(Ridges, TokPreceedingTok, 1, 1) {
+BENCHMARK_F(Ridges, TokPreceedingTok, 5, 1) {
 
   AnnotationNameSearch n1(db, annis::annis_ns, annis::annis_tok);
   AnnotationNameSearch n2(db, annis::annis_ns,annis::annis_tok);
@@ -162,7 +162,7 @@ BENCHMARK_F(Ridges, TokPreceedingTok, 1, 1) {
 }
 
 // tok .2,10 tok
-BENCHMARK_F(Ridges, ClassicTok, 1, 1) {
+BENCHMARK_F(Ridges, ClassicTok, 5, 1) {
 
   unsigned int counter=0;
 
