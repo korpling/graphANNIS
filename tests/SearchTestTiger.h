@@ -103,6 +103,25 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
   EXPECT_EQ(114042u, counter);
 }
 
+// cat="S" & tok="Bilharziose" & #1 >* #2
+TEST_F(SearchTestTiger, BilharzioseSentence)
+{
+  AnnotationNameSearch n1(db, "tiger", "cat", "S");
+  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Bilharziose");
+
+  unsigned int counter=0;
+
+  const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "");
+  NestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
+
+  for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
+  {
+    counter++;
+  }
+
+  EXPECT_EQ(21u, counter);
+}
+
 
 
 #endif // SEARCHTESTTIGER_H

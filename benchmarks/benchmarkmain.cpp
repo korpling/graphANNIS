@@ -7,6 +7,7 @@
 #include <annotationsearch.h>
 #include <operators/precedence.h>
 #include <operators/inclusion.h>
+#include <operators/overlap.h>
 
 HUMBLE_LOGGER(logger, "default");
 
@@ -120,6 +121,22 @@ BENCHMARK_F(Tiger, Cat, 5, 1)
   }
 }
 
+// cat="S" & tok="Bilharziose" & #1 >* #2
+BENCHMARK_F(Tiger, BilharzioseSentence, 5, 1)
+{
+  AnnotationNameSearch n1(db, "tiger", "cat", "S");
+  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Bilharziose");
+
+  const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "edge");
+  NestedLoopJoin n1Dom2(edbDom, n1, n2, 1, 40);
+
+  for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
+  {
+    counter++;
+  }
+
+}
+
 // pos="NN" & norm="Blumen" & #1 _i_ #2
 BENCHMARK_F(Ridges, PosNNIncludesNormBlumen, 5, 1) {
 
@@ -127,7 +144,19 @@ BENCHMARK_F(Ridges, PosNNIncludesNormBlumen, 5, 1) {
   AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
   AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
 
-  annis::Inclusion join(db, n1, n2);
+  annis::Inclusion join(db, n2, n1);
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+}
+
+// pos="NN" & norm="Blumen" & #1 _o_ #2
+BENCHMARK_F(Ridges, PosNNOverlapsNormBlumen, 5, 1) {
+  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
+  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+
+  SeedOverlap join(db, n2, n1);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
     counter++;
@@ -161,51 +190,6 @@ BENCHMARK_F(Ridges, TokPreceedingTok, 5, 1) {
   }
 }
 
-// tok .2,10 tok
-BENCHMARK_F(Ridges, ClassicTok, 5, 1) {
-
-  unsigned int counter=0;
-
-  AnnotationNameSearch n1(db, annis::annis_ns, "tok");
-
-  Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
-
-  std::pair<bool, uint32_t> n2_namespaceID = db.strings.findID(annis::annis_ns);
-  std::pair<bool, uint32_t> n2_nameID = db.strings.findID("tok");
-  if(n2_nameID.first && n2_namespaceID.first)
-  {
-    Component cOrder = Init::initComponent(ComponentType::ORDERING, annis_ns, "");
-
-
-    const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
-    if(edbOrder != NULL)
-    {
-      while(n1.hasNext())
-      {
-        Match m1 = n1.next();
-
-        // find all token in the range 2-10
-        EdgeIterator* itConnected = edbOrder->findConnected(m1.node, 2, 10);
-        for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
-            tok2.first; tok2 = itConnected->next())
-        {
-          // check if the node has the correct annotations
-          for(const Annotation& anno : db.getNodeAnnotationsByID(tok2.second))
-          {
-            if(checkAnnotationEqual(anyTokAnno, anno))
-            {
-              counter++;
-              break; // we don't have to search for other annotations
-            }
-          }
-        }
-        delete itConnected;
-      }
-    }
-  } // end if
-
-}
-
 // pos="NN" .2,10 pos="ART"
 BENCHMARK_F(RidgesFallback, NNPreceedingART, 5, 1) {
 
@@ -229,6 +213,32 @@ BENCHMARK_F(RidgesFallback, TokPreceedingTok, 5, 1) {
 
   Precedence join(db, n1, n2, 2, 10);
 
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+}
+
+// pos="NN" & norm="Blumen" & #1 _i_ #2
+BENCHMARK_F(RidgesFallback, PosNNIncludesNormBlumen, 5, 1) {
+
+
+  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
+  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+
+  annis::Inclusion join(db, n2, n1);
+  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  {
+    counter++;
+  }
+}
+
+// pos="NN" & norm="Blumen" & #1 _o_ #2
+BENCHMARK_F(RidgesFallback, PosNNOverlapsNormBlumen, 5, 1) {
+  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
+  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+
+  SeedOverlap join(db, n2, n1);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
   {
     counter++;
