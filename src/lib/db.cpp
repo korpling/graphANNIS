@@ -463,10 +463,10 @@ bool DB::loadRelANNISRank(const string &dirPath,
           pre2EdgeDB[Helper::uint32FromString(line[0])] = edb;
         }
       }
-    }
-    else
-    {
-      result = false;
+      else
+      {
+        result = false;
+      }
     }
   }
   in.close();
