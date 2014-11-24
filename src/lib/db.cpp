@@ -444,20 +444,24 @@ bool DB::loadRelANNISRank(const string &dirPath,
   // second run: get the actual edges
   while((line = Helper::nextCSV(in)).size() > 0)
   {
-    uint32_t parent = Helper::uint32FromString(line[4]);
-    UintMapIt it = pre2NodeID.find(parent);
-    if(it != pre2NodeID.end())
+    std::string parentAsString = line[4];
+    if(parentAsString != "NULL")
     {
-      // find the responsible edge database by the component ID
-      ComponentIt itEdb = componentToEdgeDB.find(Helper::uint32FromString(line[3]));
-      if(itEdb != componentToEdgeDB.end())
+      uint32_t parent = Helper::uint32FromString(parentAsString);
+      UintMapIt it = pre2NodeID.find(parent);
+      if(it != pre2NodeID.end())
       {
-        EdgeDB* edb = itEdb->second;
-        Edge edge = Init::initEdge(it->second, Helper::uint32FromString(line[2]));
+        // find the responsible edge database by the component ID
+        ComponentIt itEdb = componentToEdgeDB.find(Helper::uint32FromString(line[3]));
+        if(itEdb != componentToEdgeDB.end())
+        {
+          EdgeDB* edb = itEdb->second;
+          Edge edge = Init::initEdge(it->second, Helper::uint32FromString(line[2]));
 
-        edb->addEdge(edge);
-        pre2Edge[Helper::uint32FromString(line[0])] = edge;
-        pre2EdgeDB[Helper::uint32FromString(line[0])] = edb;
+          edb->addEdge(edge);
+          pre2Edge[Helper::uint32FromString(line[0])] = edge;
+          pre2EdgeDB[Helper::uint32FromString(line[0])] = edb;
+        }
       }
     }
     else
