@@ -49,12 +49,17 @@ TEST_F(LoadTest, NodeAnnotations) {
   std::list<annis::Annotation> annosAsList = db.getNodeAnnotationsByID(0);
   std::vector<annis::Annotation> annos(annosAsList.size());
   std::copy(annosAsList.begin(), annosAsList.end(), annos.begin());
-  ASSERT_EQ(5u, annos.size());
+  ASSERT_EQ(6u, annos.size());
 
+
+  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[5].ns).c_str());
+  EXPECT_STREQ("node_name", db.strings.str(annos[5].name).c_str());
+  EXPECT_STREQ("tok_13", db.strings.str(annos[5].val).c_str());
 
   EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[4].ns).c_str());
-  EXPECT_STREQ("node_name", db.strings.str(annos[4].name).c_str());
-  EXPECT_STREQ("tok_13", db.strings.str(annos[4].val).c_str());
+  EXPECT_STREQ("document", db.strings.str(annos[4].name).c_str());
+  EXPECT_STREQ("4282", db.strings.str(annos[4].val).c_str());
+
 
   EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[3].ns).c_str());
   EXPECT_STREQ("tok", db.strings.str(annos[3].name).c_str());
