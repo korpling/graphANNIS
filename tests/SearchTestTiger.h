@@ -116,6 +116,10 @@ TEST_F(SearchTestTiger, BilharzioseSentence)
 
   for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
   {
+     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%\t%4%#%5%\t%6%#%7%")
+                      % counter % m.lhs.node % m.rhs.node
+                      % db.getNodeDocument(m.lhs.node) % db.getNodeName(m.lhs.node)
+                      % db.getNodeDocument(m.rhs.node) % db.getNodeName(m.rhs.node)).str()) ;
     counter++;
   }
 

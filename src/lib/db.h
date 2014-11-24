@@ -58,6 +58,18 @@ public:
     return result;
   }
 
+  inline std::string getNodeDocument(const nodeid_t &id) const
+  {
+    std::string result = "";
+
+    std::pair<bool, Annotation> anno = getNodeAnnotation(id, annis_ns, "document");
+    if(anno.first)
+    {
+      result = strings.str(anno.second.val);
+    }
+    return result;
+  }
+
   inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::string& ns, const std::string& name) const
   {
     typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
@@ -118,7 +130,8 @@ private:
 
   bool useSpecializedEdgeDB;
 
-  bool loadRelANNISNode(std::string dirPath);
+  bool loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
+  bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
   bool loadRelANNISRank(const std::string& dirPath,
                         const std::map<uint32_t, EdgeDB*>& componentToEdgeDB);
 

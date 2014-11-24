@@ -136,7 +136,13 @@ bool DB::loadRelANNIS(string dirPath)
   clear();
   addDefaultStrings();
 
-  if(loadRelANNISNode(dirPath) == false)
+  map<uint32_t, std::uint32_t> corpusIDToName;
+  if(loadRelANNISCorpusTab(dirPath, corpusIDToName) == false)
+  {
+    return false;
+  }
+
+  if(loadRelANNISNode(dirPath, corpusIDToName) == false)
   {
     return false;
   }
@@ -180,7 +186,29 @@ bool DB::loadRelANNIS(string dirPath)
 }
 
 
-bool DB::loadRelANNISNode(string dirPath)
+bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName)
+{
+  string corpusTabPath = dirPath + "/corpus.tab";
+  HL_INFO(logger, (boost::format("loading %1%") % corpusTabPath).str());
+
+  ifstream in;
+  in.open(corpusTabPath, ifstream::in);
+  if(!in.good())
+  {
+    HL_ERROR(logger, "Can't find corpus.tab");
+    return false;
+  }
+  vector<string> line;
+  while((line = Helper::nextCSV(in)).size() > 0)
+  {
+    std::uint32_t corpusID = Helper::uint32FromString(line[0]);
+    std::uint32_t nameID = strings.add(line[1]);
+    corpusIDToName[corpusID] = nameID;
+  }
+  return true;
+}
+
+bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName)
 {
   typedef multimap<TextProperty, uint32_t, compTextProperty>::const_iterator TextPropIt;
 
@@ -219,11 +247,19 @@ bool DB::loadRelANNISNode(string dirPath)
     bool hasSegmentations = line.size() > 10;
     string tokenIndexRaw = line[7];
     uint32_t textID = Helper::uint32FromString(line[1]);
+    uint32_t corpusID = Helper::uint32FromString(line[2]);
+
     Annotation nodeNameAnno;
     nodeNameAnno.ns = strings.add(annis_ns);
     nodeNameAnno.name = strings.add(annis_node_name);
     nodeNameAnno.val = strings.add(line[4]);
     addNodeAnnotation(nodeNr, nodeNameAnno);
+
+    Annotation documentNameAnno;
+    documentNameAnno.ns = strings.add(annis_ns);
+    documentNameAnno.name = strings.add("document");
+    documentNameAnno.val = corpusIDToName[corpusID];
+    addNodeAnnotation(nodeNr, documentNameAnno);
 
     TextProperty left;
     left.val = Helper::uint32FromString(line[5]);
@@ -679,3 +715,4 @@ DB::~DB()
     delete ed.second;
   }
 }
+

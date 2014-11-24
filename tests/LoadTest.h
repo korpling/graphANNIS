@@ -4,7 +4,9 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "annotationsearch.h"
+#include "operators/defaultjoins.h"
 #include <cstdlib>
+#include <boost/format.hpp>
 
 using namespace annis;
 
@@ -194,6 +196,29 @@ TEST_F(LoadTest, Ordering) {
 
 
 }
+
+// cat="S" >* "Tiefe"
+TEST_F(LoadTest, Dom)
+{
+  AnnotationNameSearch n1(db, "tiger", "cat", "S");
+  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Tiefe");
+
+  unsigned int counter=0;
+
+  const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "");
+  NestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
+
+  for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
+    {
+     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%\t%4%\t%5%")
+                      % counter % m.lhs.node % m.rhs.node % db.getNodeName(m.lhs.node)
+                         % db.getNodeName(m.rhs.node)).str()) ;
+    counter++;
+  }
+
+  EXPECT_EQ(1u, counter);
+}
+
 
 
 #endif // LOADTEST_H
