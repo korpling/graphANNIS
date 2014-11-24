@@ -417,7 +417,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
       if(itEdb != componentToEdgeDB.end())
       {
         EdgeDB* edb = itEdb->second;
-        Edge edge = Init::initEdge(Helper::uint32FromString(line[2]), it->second);
+        Edge edge = Init::initEdge(it->second, Helper::uint32FromString(line[2]));
 
         edb->addEdge(edge);
         pre2Edge[Helper::uint32FromString(line[0])] = edge;

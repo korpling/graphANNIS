@@ -3,7 +3,10 @@
 
 #include "gtest/gtest.h"
 #include "db.h"
+#include "annotationsearch.h"
 #include <cstdlib>
+
+using namespace annis;
 
 class LoadTest : public ::testing::Test {
 protected:
@@ -74,53 +77,78 @@ TEST_F(LoadTest, NodeAnnotations) {
 TEST_F(LoadTest, Edges) {
 
   // get some edges
-  std::vector<annis::Component> components = db.getDirectConnected(annis::Init::initEdge(0, 10));
-  ASSERT_EQ(2u, components.size());
-  EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
-  EXPECT_STREQ("exmaralda", components[0].layer);
-  EXPECT_STREQ("", components[0].name);
-
-  EXPECT_EQ(annis::ComponentType::LEFT_TOKEN, components[1].type);
-  EXPECT_STREQ(annis::annis_ns.c_str(), components[1].layer);
-  EXPECT_STREQ("", components[1].name);
-
-  components = db.getDirectConnected(annis::Init::initEdge(126, 371));
+  std::vector<annis::Component> components = db.getDirectConnected(annis::Init::initEdge(10, 0));
   ASSERT_EQ(3u, components.size());
 
-  EXPECT_EQ(annis::ComponentType::DOMINANCE, components[0].type);
-  EXPECT_STREQ("tiger", components[0].layer);
+  EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
+  EXPECT_STREQ(annis_ns.c_str(), components[0].layer);
   EXPECT_STREQ("", components[0].name);
 
-  EXPECT_EQ(annis::ComponentType::DOMINANCE, components[1].type);
-  EXPECT_STREQ("tiger", components[1].layer);
-  EXPECT_STREQ("edge", components[1].name);
+  EXPECT_EQ(annis::ComponentType::COVERAGE, components[1].type);
+  EXPECT_STREQ("exmaralda", components[1].layer);
+  EXPECT_STREQ("", components[1].name);
 
   EXPECT_EQ(annis::ComponentType::LEFT_TOKEN, components[2].type);
   EXPECT_STREQ(annis::annis_ns.c_str(), components[2].layer);
   EXPECT_STREQ("", components[2].name);
+
+  components = db.getDirectConnected(annis::Init::initEdge(371, 126));
+  ASSERT_EQ(4u, components.size());
+
+  EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
+  EXPECT_STREQ(annis_ns.c_str(), components[0].layer);
+  EXPECT_STREQ("", components[0].name);
+
+  EXPECT_EQ(annis::ComponentType::DOMINANCE, components[1].type);
+  EXPECT_STREQ("tiger", components[1].layer);
+  EXPECT_STREQ("", components[1].name);
+
+  EXPECT_EQ(annis::ComponentType::DOMINANCE, components[2].type);
+  EXPECT_STREQ("tiger", components[2].layer);
+  EXPECT_STREQ("edge", components[2].name);
+
+  EXPECT_EQ(annis::ComponentType::LEFT_TOKEN, components[3].type);
+  EXPECT_STREQ(annis::annis_ns.c_str(), components[3].layer);
+  EXPECT_STREQ("", components[3].name);
+}
+
+TEST_F(LoadTest, OutgoingEdges) {
+
+
+  AnnotationNameSearch catSearch(db, "tiger", "cat", "CPP");
+  EXPECT_TRUE(catSearch.hasNext());
+
+  Match cppNode = catSearch.next();
+
+  const EdgeDB* edbDom = db.getEdgeDB(annis::ComponentType::DOMINANCE, "tiger", "edge");
+  std::vector<nodeid_t> outEdges = edbDom->getOutgoingEdges(cppNode.node);
+  EXPECT_EQ(3, outEdges.size());
+
 }
 
 
 TEST_F(LoadTest, EdgeAnnos) {
 
-  annis::Edge edge = annis::Init::initEdge(126, 371);
+  annis::Edge edge = annis::Init::initEdge(371, 126);
   std::vector<annis::Component> components = db.getDirectConnected(edge);
 
-  ASSERT_EQ(3u, components.size());
+  ASSERT_EQ(4u, components.size());
 
-  std::vector<annis::Annotation> edgeAnnos = db.getEdgeAnnotations(components[0], edge);
-  EXPECT_EQ(1u, edgeAnnos.size());
-  EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
-  EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
-  EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
-
-  edgeAnnos = db.getEdgeAnnotations(components[1], edge);
+  std::vector<annis::Annotation> edgeAnnos = db.getEdgeAnnotations(components[1], edge);
   EXPECT_EQ(1u, edgeAnnos.size());
   EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
   EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
   EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
 
   edgeAnnos = db.getEdgeAnnotations(components[2], edge);
+  EXPECT_EQ(1u, edgeAnnos.size());
+  EXPECT_STREQ("tiger", db.strings.str(edgeAnnos[0].ns).c_str());
+  EXPECT_STREQ("func", db.strings.str(edgeAnnos[0].name).c_str());
+  EXPECT_STREQ("OA", db.strings.str(edgeAnnos[0].val).c_str());
+
+  edgeAnnos = db.getEdgeAnnotations(components[0], edge);
+  EXPECT_EQ(0u, edgeAnnos.size());
+  edgeAnnos = db.getEdgeAnnotations(components[3], edge);
   EXPECT_EQ(0u, edgeAnnos.size());
 
 }
