@@ -68,7 +68,7 @@ private:
 
 };
 
-class JoinWrapIterator : public AnnotationIterator
+class JoinWrapIterator : public CacheableAnnoIt
 {
 public:
 
@@ -77,6 +77,8 @@ public:
   virtual bool hasNext();
   virtual Match next();
   virtual void reset();
+
+  virtual Match current();
 
   // TODO: is there any good way of defining this?
   virtual const Annotation& getAnnotation() {return matchAllAnnotation;}

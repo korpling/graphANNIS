@@ -19,18 +19,27 @@ public:
    * @param n The initial source
    * @return new node number
    */
-  size_t addNode(std::shared_ptr<AnnotationIterator> n);
+  size_t addNode(std::shared_ptr<CacheableAnnoIt> n);
 
   /**
-   * @brief Execute an operator
+   * @brief add an operator to the execution queue
    * @param op
    * @param idxLeft index of LHS node
    * @param idxRight index of RHS node
    */
-  void executeOperator(std::shared_ptr<BinaryOperatorIterator> op, size_t idxLeft, size_t idxRight);
+  void addOperator(std::shared_ptr<BinaryOperatorIterator> op, size_t idxLeft, size_t idxRight);
+
+  bool hasNext();
+  std::vector<Match> next();
 
 private:
-  std::vector<std::shared_ptr<AnnotationIterator>> source;
+  std::vector<std::shared_ptr<CacheableAnnoIt>> source;
+  /**
+   * @brief Stores if a certain source is the original (and we should call "next()") of just a copy
+   * where we have to use "current()"
+   */
+  std::vector<bool> isOrig;
+
 };
 
 } // end namespace annis

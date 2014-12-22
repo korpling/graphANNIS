@@ -4,7 +4,7 @@ using namespace annis;
 using namespace std;
 
 AnnotationNameSearch::AnnotationNameSearch(DB &db)
-  : db(db)
+  : db(db), currentMatchValid(false)
 {
   itBegin = db.inverseNodeAnnotations.begin();
   itEnd = db.inverseNodeAnnotations.end();
@@ -110,11 +110,24 @@ AnnotationNameSearch::AnnotationNameSearch(const DB &db, const string &annoNamsp
 Match AnnotationNameSearch::next()
 {
   Match result;
+  currentMatchValid = false;
   if(hasNext())
   {
     result.node = it->second; // node ID
     result.anno = it->first; // annotation itself
+    currentMatch = result;
+    currentMatchValid = true;
     it++;
+  }
+  return result;
+}
+
+Match AnnotationNameSearch::current()
+{
+  Match result;
+  if(currentMatchValid)
+  {
+    result = currentMatch;
   }
   return result;
 }

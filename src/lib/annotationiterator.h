@@ -19,6 +19,13 @@ public:
   virtual ~AnnotationIterator() {}
 };
 
+class CacheableAnnoIt : public AnnotationIterator
+{
+public:
+  virtual Match current() = 0;
+  virtual ~CacheableAnnoIt() {}
+};
+
 class EdgeIterator
 {
 public:

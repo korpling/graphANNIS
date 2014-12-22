@@ -7,6 +7,7 @@
 #include "operators/defaultjoins.h"
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
+#include "query.h"
 
 #include <vector>
 #include <boost/format.hpp>
@@ -149,15 +150,21 @@ TEST_F(SearchTestPcc2, DepthFirst) {
 
 // exmaralda:Inf-Stat="new" _o_ exmaralda:PP
 TEST_F(SearchTestPcc2, TestQueryOverlap1) {
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
+  std::shared_ptr<CacheableAnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
+  std::shared_ptr<CacheableAnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
 
-  SeedOverlap join(db, n1, n2);
+  std::shared_ptr<BinaryOperatorIterator> join(std::make_shared<SeedOverlap>(db, n1, n2));
+
+  Query q;
+  q.addNode(n1);
+  q.addNode(n2);
+  q.addOperator(join, 0, 1);
 
   unsigned int counter=0;
-  for(BinaryMatch m=join.next(); m.found; m=join.next())
+  while(q.hasNext())
   {
-    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.lhs.node) % db.getNodeName(m.rhs.node)).str());
+    auto m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
 

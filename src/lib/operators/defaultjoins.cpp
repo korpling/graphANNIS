@@ -223,7 +223,7 @@ void SeedJoin::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<Ann
 JoinWrapIterator::JoinWrapIterator(std::shared_ptr<BinaryOperatorIterator> wrappedIterator, bool wrapLeftOperand)
   : matchAllAnnotation(Init::initAnnotation()), wrappedIterator(wrappedIterator), wrapLeftOperand(wrapLeftOperand)
 {
-  currentMatch = wrappedIterator->next();
+  reset();
 }
 
 
@@ -254,6 +254,23 @@ void JoinWrapIterator::reset()
 {
   wrappedIterator->reset();
   currentMatch = wrappedIterator->next();
+}
+
+Match JoinWrapIterator::current()
+{
+  Match result;
+  if(currentMatch.found)
+  {
+    if(wrapLeftOperand)
+    {
+      result = currentMatch.lhs;
+    }
+    else
+    {
+      result = currentMatch.rhs;
+    }
+  }
+  return result;
 }
 
 

@@ -7,7 +7,7 @@
 namespace annis
 {
 
-class AnnotationNameSearch : public AnnotationIterator
+class AnnotationNameSearch : public CacheableAnnoIt
 {
 typedef stx::btree_multimap<Annotation, nodeid_t, compAnno>::const_iterator ItType;
 
@@ -33,6 +33,7 @@ public:
     return it != db.inverseNodeAnnotations.end() && it != itEnd;
   }
   virtual Match next();
+  virtual Match current();
   virtual void reset();
 
   const Annotation& getAnnotation() {return anno;}
@@ -45,6 +46,9 @@ private:
   ItType itEnd;
 
   Annotation anno;
+
+  bool currentMatchValid;
+  Match currentMatch;
 
 };
 } // end namespace annis
