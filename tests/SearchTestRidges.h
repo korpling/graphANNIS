@@ -188,8 +188,8 @@ TEST_F(SearchTestRidges, NestedOverlap) {
 
   unsigned int counter=0;
 
-  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
-  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
   annis::NestedOverlap join(db, n1, n2);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
@@ -208,8 +208,8 @@ TEST_F(SearchTestRidges, SeedOverlap) {
 
   unsigned int counter=0;
 
-  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
-  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
   annis::SeedOverlap join(db, n1, n2);
   for(BinaryMatch m = join.next(); m.found; m = join.next())

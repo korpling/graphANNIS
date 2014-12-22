@@ -3,7 +3,7 @@
 
 using namespace annis;
 
-NestedLoopJoin::NestedLoopJoin(const EdgeDB *edb, AnnotationIterator& left, AnnotationIterator& right, unsigned int minDistance, unsigned int maxDistance)
+NestedLoopJoin::NestedLoopJoin(const EdgeDB *edb, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right, unsigned int minDistance, unsigned int maxDistance)
   : edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), initialized(false)
 {
 }
@@ -23,9 +23,9 @@ BinaryMatch NestedLoopJoin::next()
   if(!initialized)
   {
     proceed = false;
-    if(left.hasNext())
+    if(left->hasNext())
     {
-      matchLeft = left.next();
+      matchLeft = left->next();
       proceed = true;
       initialized = true;
     }
@@ -34,9 +34,9 @@ BinaryMatch NestedLoopJoin::next()
   while(proceed)
   {
 
-    while(right.hasNext())
+    while(right->hasNext())
     {
-      matchRight = right.next();
+      matchRight = right->next();
 
       // check the actual constraint
       if(edb->isConnected(Init::initEdge(matchLeft.node, matchRight.node), minDistance, maxDistance))
@@ -49,10 +49,10 @@ BinaryMatch NestedLoopJoin::next()
         return result;
       }
     }
-    if(left.hasNext())
+    if(left->hasNext())
     {
-      matchLeft = left.next();
-      right.reset();
+      matchLeft = left->next();
+      right->reset();
     }
     else
     {
@@ -64,8 +64,8 @@ BinaryMatch NestedLoopJoin::next()
 
 void NestedLoopJoin::reset()
 {
-  left.reset();
-  right.reset();
+  left->reset();
+  right->reset();
   initialized = false;
 }
 
@@ -76,7 +76,7 @@ NestedLoopJoin::~NestedLoopJoin()
 
 
 
-SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, AnnotationIterator &left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
+SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, std::shared_ptr<AnnotationIterator> left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
   : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), edgeIterator(NULL), anyNodeShortcut(false)
 {
   if(right.name == db.getNodeNameStringID() && right.ns == db.getNamespaceStringID() && right.val == 0)
@@ -126,7 +126,7 @@ void SeedJoin::reset()
   delete edgeIterator;
   edgeIterator = NULL;
 
-  left.reset();
+  left->reset();
 
   candidateAnnotations.clear();
   currentAnnotationCandidate = candidateAnnotations.begin();
@@ -137,9 +137,9 @@ void SeedJoin::reset()
 
 bool SeedJoin::nextLeft()
 {
-  if(left.hasNext())
+  if(left->hasNext())
   {
-    matchLeft = left.next();
+    matchLeft = left->next();
     return true;
   }
   else

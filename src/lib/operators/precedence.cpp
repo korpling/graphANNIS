@@ -6,7 +6,7 @@ using namespace annis;
 Precedence::Precedence(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right,
                        unsigned int minDistance, unsigned int maxDistance)
   : db(db), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance),
-    tokIteratorForLeftNode(RightMostTokenForNodeIterator(left, db)),
+    tokIteratorForLeftNode(std::shared_ptr<RightMostTokenForNodeIterator>(new RightMostTokenForNodeIterator(left, db))),
     annoForRightNode(right->getAnnotation()),
     actualJoin(NULL),
     edbLeft(NULL),
@@ -80,7 +80,7 @@ BinaryMatch Precedence::next()
     if(!currentMatches.empty())
     {
       result.found = true;
-      result.lhs = tokIteratorForLeftNode.currentNodeMatch();
+      result.lhs = tokIteratorForLeftNode->currentNodeMatch();
       result.rhs = currentMatches.top();
       currentMatches.pop();
       return result;

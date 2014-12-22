@@ -13,7 +13,7 @@ namespace annis
 class NestedLoopJoin : public BinaryOperatorIterator
 {
 public:
-  NestedLoopJoin(const EdgeDB* edb, AnnotationIterator &left, AnnotationIterator &right,
+  NestedLoopJoin(const EdgeDB* edb, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right,
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
   virtual ~NestedLoopJoin();
 
@@ -21,8 +21,8 @@ public:
   virtual void reset();
 private:
   const EdgeDB* edb;
-  AnnotationIterator& left;
-  AnnotationIterator& right;
+  std::shared_ptr<AnnotationIterator> left;
+  std::shared_ptr<AnnotationIterator> right;
   unsigned int minDistance;
   unsigned int maxDistance;
   bool initialized;
@@ -36,7 +36,7 @@ private:
 class SeedJoin : public BinaryOperatorIterator
 {
 public:
-  SeedJoin(const DB& db, const EdgeDB* edb, AnnotationIterator &left, Annotation right,
+  SeedJoin(const DB& db, const EdgeDB* edb, std::shared_ptr<AnnotationIterator> left, Annotation right,
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
   virtual ~SeedJoin();
 
@@ -45,7 +45,7 @@ public:
 private:
   const DB& db;
   const EdgeDB* edb;
-  AnnotationIterator& left;
+  std::shared_ptr<AnnotationIterator> left;
   Annotation right;
   unsigned int minDistance;
   unsigned int maxDistance;

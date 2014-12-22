@@ -65,12 +65,12 @@ TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
   std::shared_ptr<AnnotationIterator> n4(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
   AnnotationNameSearch n5(db, annis_ns, annis_node_name);
   AnnotationNameSearch n6(db, annis_ns, annis_node_name);
-  AnnotationNameSearch n7(db, "mmax", "relation", "anaphoric");
+  std::shared_ptr<AnnotationIterator> n7(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
 
   const EdgeDB* edbAnaphoric = db.getEdgeDB(ComponentType::POINTING, "mmax", "anaphoric");
   Inclusion n2_incl_n4(db, n2, n4);
 
-  JoinWrapIterator wrap_n2_n4(n2_incl_n4);
+  std::shared_ptr<AnnotationIterator> wrap_n2_n4(std::make_shared<JoinWrapIterator>(n2_incl_n4));
   NestedLoopJoin n4_anaphoric_n7(edbAnaphoric, wrap_n2_n4, n7);
 
   unsigned int counter=0;

@@ -93,8 +93,8 @@ TEST_F(SearchTestPcc2, MMaxAnnos) {
 }
 
 TEST_F(SearchTestPcc2, TokenIndex) {
-  AnnotationNameSearch n1(db, annis_ns, annis_tok, "Die");
-  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Jugendlichen");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Die"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
 
   unsigned int counter=0;
 
@@ -113,8 +113,8 @@ TEST_F(SearchTestPcc2, TokenIndex) {
 }
 
 TEST_F(SearchTestPcc2, IsConnectedRange) {
-  AnnotationNameSearch n1(db, annis_ns, annis_tok, "Jugendlichen");
-  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Musikcafé");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Musikcafé"));
 
   unsigned int counter=0;
 
@@ -128,7 +128,7 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 }
 
 TEST_F(SearchTestPcc2, DepthFirst) {
-    AnnotationNameSearch n1(db, annis_ns, annis_tok, "Tiefe");
+    std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
     Annotation anno2 = Init::initAnnotation(db.strings.add("node_name"), 0, db.strings.add(annis_ns));
 
     unsigned int counter=0;
@@ -149,8 +149,8 @@ TEST_F(SearchTestPcc2, DepthFirst) {
 
 // exmaralda:Inf-Stat="new" _o_ exmaralda:PP
 TEST_F(SearchTestPcc2, TestQueryOverlap1) {
-  AnnotationNameSearch n1(db, "exmaralda", "Inf-Stat", "new");
-  AnnotationNameSearch n2(db, "exmaralda", "PP");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
 
   SeedOverlap join(db, n1, n2);
 
@@ -166,8 +166,8 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 
 // mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryOverlap2) {
-  AnnotationNameSearch n1(db, "mmax", "ambiguity", "not_ambig");
-  AnnotationNameSearch n2(db, "mmax", "complex_np", "yes");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
 
   SeedOverlap join(db, n1, n2);
 

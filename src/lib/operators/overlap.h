@@ -14,15 +14,15 @@ namespace annis
 class NestedOverlap : public BinaryOperatorIterator
 {
 public:
-  NestedOverlap(DB &db, AnnotationIterator& left, AnnotationIterator& right);
+  NestedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right);
 
   virtual BinaryMatch next();
   virtual void reset();
 
   virtual ~NestedOverlap();
 private:
-  AnnotationIterator& left;
-  AnnotationIterator& right;
+  std::shared_ptr<AnnotationIterator> left;
+  std::shared_ptr<AnnotationIterator> right;
 
 
   const DB& db;
@@ -44,7 +44,7 @@ private:
 class SeedOverlap : public BinaryOperatorIterator
 {
 public:
-  SeedOverlap(DB &db, AnnotationIterator& left, AnnotationIterator& right);
+  SeedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right);
 
   virtual BinaryMatch next();
   virtual void reset();
@@ -55,7 +55,7 @@ private:
 
   const DB& db;
 
-  AnnotationIterator& left;
+  std::shared_ptr<AnnotationIterator> left;
   Annotation rightAnnotation;
   Annotation anyNodeAnno;
 

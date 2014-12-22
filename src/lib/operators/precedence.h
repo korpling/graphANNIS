@@ -29,7 +29,7 @@ private:
   unsigned int minDistance;
   unsigned int maxDistance;
 
-  RightMostTokenForNodeIterator tokIteratorForLeftNode;
+  std::shared_ptr<RightMostTokenForNodeIterator> tokIteratorForLeftNode;
   const Annotation& annoForRightNode;
 
   BinaryOperatorIterator* actualJoin;

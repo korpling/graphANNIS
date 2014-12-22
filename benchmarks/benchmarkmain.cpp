@@ -160,8 +160,8 @@ BENCHMARK_F(Tiger, Cat, 5, 1)
 // cat="S" & tok="Bilharziose" & #1 >* #2
 BENCHMARK_F(Tiger, BilharzioseSentence, 5, 1)
 {
-  AnnotationNameSearch n1(db, "tiger", "cat", "S");
-  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Bilharziose");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
 
   const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "edge");
   NestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
@@ -222,8 +222,8 @@ BENCHMARK_F(Ridges, PosNNIncludesNormBlumen, 5, 1) {
 
 // pos="NN" & norm="Blumen" & #1 _o_ #2
 BENCHMARK_F(Ridges, PosNNOverlapsNormBlumen, 5, 1) {
-  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
-  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
   SeedOverlap join(db, n2, n1);
   for(BinaryMatch m = join.next(); m.found; m = join.next())
@@ -304,8 +304,8 @@ BENCHMARK_F(RidgesFallback, PosNNIncludesNormBlumen, 5, 1) {
 
 // pos="NN" & norm="Blumen" & #1 _o_ #2
 BENCHMARK_F(RidgesFallback, PosNNOverlapsNormBlumen, 5, 1) {
-  AnnotationNameSearch n1(db, "default_ns", "pos", "NN");
-  AnnotationNameSearch n2(db, "default_ns", "norm", "Blumen");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
   SeedOverlap join(db, n2, n1);
   for(BinaryMatch m = join.next(); m.found; m = join.next())

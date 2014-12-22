@@ -106,8 +106,8 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 // cat="S" & tok="Bilharziose" & #1 >* #2
 TEST_F(SearchTestTiger, BilharzioseSentence)
 {
-  AnnotationNameSearch n1(db, "tiger", "cat", "S");
-  AnnotationNameSearch n2(db, annis_ns, annis_tok, "Bilharziose");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
 
   unsigned int counter=0;
 

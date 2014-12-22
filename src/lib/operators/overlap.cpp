@@ -2,7 +2,7 @@
 
 using namespace annis;
 
-NestedOverlap::NestedOverlap(DB &db, AnnotationIterator &left, AnnotationIterator &right)
+NestedOverlap::NestedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right)
   : left(left), right(right), db(db),
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
@@ -30,9 +30,9 @@ BinaryMatch NestedOverlap::next()
   if(!initialized)
   {
     proceed = false;
-    if(left.hasNext())
+    if(left->hasNext())
     {
-      matchLHS = left.next();
+      matchLHS = left->next();
       proceed = true;
       initialized = true;
     }
@@ -44,9 +44,9 @@ BinaryMatch NestedOverlap::next()
     nodeid_t lhsLeftToken = leftTokenForNode(matchLHS.node);
     nodeid_t lhsRightToken = rightTokenForNode(matchLHS.node);
 
-    while(right.hasNext())
+    while(right->hasNext())
     {
-      matchRHS = right.next();
+      matchRHS = right->next();
 
       // get the left- and right-most covered token for rhs
       nodeid_t rhsLeftToken = leftTokenForNode(matchRHS.node);
@@ -65,10 +65,10 @@ BinaryMatch NestedOverlap::next()
         return result;
       }
     }
-    if(left.hasNext())
+    if(left->hasNext())
     {
-      matchLHS= left.next();
-      right.reset();
+      matchLHS= left->next();
+      right->reset();
     }
     else
     {
@@ -81,8 +81,8 @@ BinaryMatch NestedOverlap::next()
 void NestedOverlap::reset()
 {
   //uniqueMatches.clear();
-  left.reset();
-  right.reset();
+  left->reset();
+  right->reset();
   //currentMatches.clear();
   //hsLeftTokenIt.reset();
   //tokenRightFromLHSIt.reset();
@@ -130,10 +130,10 @@ bool NestedOverlap::isToken(nodeid_t n)
   return false;
 }
 
-SeedOverlap::SeedOverlap(DB &db, AnnotationIterator &left, AnnotationIterator &right)
+SeedOverlap::SeedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right)
   :
     db(db),
-    left(left), rightAnnotation(right.getAnnotation()),
+    left(left), rightAnnotation(right->getAnnotation()),
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
@@ -217,7 +217,7 @@ BinaryMatch SeedOverlap::next()
 void SeedOverlap::reset()
 {
   uniqueMatches.clear();
-  left.reset();
+  left->reset();
   currentMatches.clear();
   tokenCoveredByLHS.reset();
   //lhsLeftTokenIt.reset();
