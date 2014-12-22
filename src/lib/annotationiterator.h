@@ -2,6 +2,7 @@
 #define ANNOTATIONITERATOR_H
 
 #include "types.h"
+#include <memory>
 
 namespace annis
 {
@@ -29,6 +30,7 @@ public:
 class BinaryOperatorIterator
 {
 public:
+  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs) = 0;
   virtual BinaryMatch next() = 0;
   virtual void reset() = 0;
 

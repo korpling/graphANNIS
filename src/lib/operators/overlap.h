@@ -16,6 +16,8 @@ class NestedOverlap : public BinaryOperatorIterator
 public:
   NestedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right);
 
+  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+
   virtual BinaryMatch next();
   virtual void reset();
 
@@ -45,6 +47,8 @@ class SeedOverlap : public BinaryOperatorIterator
 {
 public:
   SeedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right);
+
+  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();

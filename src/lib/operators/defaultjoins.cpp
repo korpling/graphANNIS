@@ -74,6 +74,12 @@ NestedLoopJoin::~NestedLoopJoin()
 
 }
 
+void NestedLoopJoin::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+{
+  left = lhs;
+  right = rhs;
+}
+
 
 
 SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, std::shared_ptr<AnnotationIterator> left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
@@ -207,12 +213,19 @@ SeedJoin::~SeedJoin()
   delete edgeIterator;
 }
 
+void SeedJoin::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+{
+  left = lhs;
+  right = rhs->getAnnotation();
+}
 
-JoinWrapIterator::JoinWrapIterator(BinaryOperatorIterator &wrappedIterator, bool wrapLeftOperand)
+
+JoinWrapIterator::JoinWrapIterator(std::shared_ptr<BinaryOperatorIterator> wrappedIterator, bool wrapLeftOperand)
   : matchAllAnnotation(Init::initAnnotation()), wrappedIterator(wrappedIterator), wrapLeftOperand(wrapLeftOperand)
 {
-  currentMatch = wrappedIterator.next();
+  currentMatch = wrappedIterator->next();
 }
+
 
 bool JoinWrapIterator::hasNext()
 {
@@ -232,15 +245,15 @@ Match JoinWrapIterator::next()
     {
       result = currentMatch.rhs;
     }
-    currentMatch = wrappedIterator.next();
+    currentMatch = wrappedIterator->next();
   }
   return result;
 }
 
 void JoinWrapIterator::reset()
 {
-  wrappedIterator.reset();
-  currentMatch = wrappedIterator.next();
+  wrappedIterator->reset();
+  currentMatch = wrappedIterator->next();
 }
 
 

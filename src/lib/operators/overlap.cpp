@@ -14,6 +14,12 @@ NestedOverlap::NestedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, s
   reset();
 }
 
+void NestedOverlap::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+{
+  left = lhs;
+  right = rhs;
+}
+
 BinaryMatch NestedOverlap::next()
 {
 
@@ -144,6 +150,12 @@ SeedOverlap::SeedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::
 //    tokenRightFromLHSIt(db, edbOrder, lhsLeftTokenIt, initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()), 0, uintmax)
 {
   reset();
+}
+
+void SeedOverlap::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+{
+  left = rhs;
+  rightAnnotation = rhs->getAnnotation();
 }
 
 BinaryMatch SeedOverlap::next()

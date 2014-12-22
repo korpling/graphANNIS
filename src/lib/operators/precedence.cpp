@@ -40,6 +40,12 @@ Precedence::~Precedence()
   delete actualJoin;
 }
 
+void Precedence::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+{
+  left = lhs;
+  right = rhs;
+}
+
 BinaryMatch Precedence::next()
 {
   BinaryMatch result;

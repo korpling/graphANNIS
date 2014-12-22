@@ -14,6 +14,12 @@ Inclusion::Inclusion(DB &db, std::shared_ptr<AnnotationIterator> left, std::shar
   reset();
 }
 
+void Inclusion::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+{
+  left = lhs;
+  rightAnnotation = rhs->getAnnotation();
+}
+
 BinaryMatch Inclusion::next()
 {
   BinaryMatch result;

@@ -17,6 +17,8 @@ public:
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
   virtual ~NestedLoopJoin();
 
+  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+
   virtual BinaryMatch next();
   virtual void reset();
 private:
@@ -39,6 +41,8 @@ public:
   SeedJoin(const DB& db, const EdgeDB* edb, std::shared_ptr<AnnotationIterator> left, Annotation right,
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
   virtual ~SeedJoin();
+
+  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();
@@ -68,7 +72,7 @@ class JoinWrapIterator : public AnnotationIterator
 {
 public:
 
-  JoinWrapIterator(BinaryOperatorIterator& wrappedIterator, bool wrapLeftOperand = false);
+  JoinWrapIterator(std::shared_ptr<BinaryOperatorIterator> wrappedIterator, bool wrapLeftOperand = false);
 
   virtual bool hasNext();
   virtual Match next();
@@ -80,7 +84,7 @@ public:
   virtual ~JoinWrapIterator() {}
 private:
   Annotation matchAllAnnotation;
-  BinaryOperatorIterator& wrappedIterator;
+  std::shared_ptr<BinaryOperatorIterator> wrappedIterator;
   BinaryMatch currentMatch;
   bool wrapLeftOperand;
 };

@@ -180,7 +180,7 @@ BENCHMARK_F(Tiger, NNPreARTPreNN, 5, 1) {
   std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
   std::shared_ptr<AnnotationIterator> n3(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
 
-  Precedence join1(db, n1, n2, 2, 10);
+  std::shared_ptr<BinaryOperatorIterator> join1(std::make_shared<Precedence>(db, n1, n2, 2, 10));
   std::shared_ptr<AnnotationIterator> wrappedJoin1(std::make_shared<JoinWrapIterator>(join1));
 
   Precedence join2(db, wrappedJoin1, n3);
@@ -197,7 +197,7 @@ BENCHMARK_F(TigerFallback, NNPreARTPreNN, 5, 1) {
   std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
   std::shared_ptr<AnnotationIterator> n3(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
 
-  Precedence join1(db, n1, n2, 2, 10);
+  std::shared_ptr<BinaryOperatorIterator> join1(std::make_shared<Precedence>(db, n1, n2, 2, 10));
   std::shared_ptr<AnnotationIterator> wrappedJoin1(std::make_shared<JoinWrapIterator>(join1));
   Precedence join2(db, wrappedJoin1, n3);
   for(BinaryMatch m = join2.next(); m.found; m = join2.next())

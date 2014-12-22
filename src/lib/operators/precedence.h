@@ -19,6 +19,8 @@ public:
              unsigned int minDistance=1, unsigned int maxDistance=1);
   virtual ~Precedence();
 
+  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+
   virtual BinaryMatch next();
   virtual void reset();
 

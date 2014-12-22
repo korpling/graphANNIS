@@ -15,6 +15,8 @@ class Inclusion : public BinaryOperatorIterator
 public:
   Inclusion(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right);
 
+  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+
   virtual BinaryMatch next();
   virtual void reset();
 
