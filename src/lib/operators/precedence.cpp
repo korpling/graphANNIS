@@ -3,11 +3,11 @@
 
 using namespace annis;
 
-Precedence::Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& right,
+Precedence::Precedence(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right,
                        unsigned int minDistance, unsigned int maxDistance)
   : db(db), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance),
     tokIteratorForLeftNode(RightMostTokenForNodeIterator(left, db)),
-    annoForRightNode(right.getAnnotation()),
+    annoForRightNode(right->getAnnotation()),
     actualJoin(NULL),
     edbLeft(NULL),
     tokenShortcut(false)
@@ -19,8 +19,8 @@ Precedence::Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& rig
     Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
     Annotation anyNodeAnno = Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID());
 
-    if(checkAnnotationEqual(left.getAnnotation(), anyTokAnno)
-       && checkAnnotationEqual(right.getAnnotation(), anyTokAnno))
+    if(checkAnnotationEqual(left->getAnnotation(), anyTokAnno)
+       && checkAnnotationEqual(right->getAnnotation(), anyTokAnno))
     {
       tokenShortcut = true;
       // special case: order relations always have token as target if the source is a token
@@ -92,7 +92,7 @@ BinaryMatch Precedence::next()
 
 void Precedence::reset()
 {
-  if(actualJoin != NULL)
+  if(actualJoin != nullptr)
   {
     actualJoin->reset();
   }

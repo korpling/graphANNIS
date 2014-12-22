@@ -15,7 +15,7 @@ namespace annis
 class Precedence : public BinaryOperatorIterator
 {
 public:
-  Precedence(DB &db, AnnotationIterator& left, AnnotationIterator& right,
+  Precedence(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right,
              unsigned int minDistance=1, unsigned int maxDistance=1);
   virtual ~Precedence();
 
@@ -24,8 +24,8 @@ public:
 
 private:
   const DB& db;
-  AnnotationIterator& left;
-  AnnotationIterator& right;
+  std::shared_ptr<AnnotationIterator> left;
+  std::shared_ptr<AnnotationIterator> right;
   unsigned int minDistance;
   unsigned int maxDistance;
 

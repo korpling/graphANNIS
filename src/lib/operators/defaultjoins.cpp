@@ -245,11 +245,11 @@ void JoinWrapIterator::reset()
 
 
 
-RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(AnnotationIterator &source, const DB &db)
+RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(std::shared_ptr<AnnotationIterator> source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")), tokenShortcut(false)
 {
   anyTokAnnotation = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
-  const Annotation& anno = source.getAnnotation();
+  const Annotation& anno = source->getAnnotation();
   if(anno.name == db.getTokStringID() && anno.ns == db.getNamespaceStringID() && anno.val == 0)
   {
     tokenShortcut = true;
@@ -258,15 +258,15 @@ RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(AnnotationIterator 
 
 bool RightMostTokenForNodeIterator::hasNext()
 {
-  return source.hasNext();
+  return source->hasNext();
 }
 
 Match RightMostTokenForNodeIterator::next()
 {
   Match result;
-  if(source.hasNext() && edb != NULL)
+  if(source->hasNext() && edb != NULL)
   {
-    currentOriginalMatch = source.next();
+    currentOriginalMatch = source->next();
 
     // check if we can use the shortcut
     if(tokenShortcut)
@@ -294,7 +294,7 @@ Match RightMostTokenForNodeIterator::next()
 
 void RightMostTokenForNodeIterator::reset()
 {
-  source.reset();
+  source->reset();
 }
 
 const Match& RightMostTokenForNodeIterator::currentNodeMatch()

@@ -95,7 +95,7 @@ class RightMostTokenForNodeIterator : public AnnotationIterator
 {
 public:
 
-  RightMostTokenForNodeIterator(AnnotationIterator& source, const DB& db);
+  RightMostTokenForNodeIterator(std::shared_ptr<AnnotationIterator> source, const DB& db);
 
   virtual bool hasNext();
   virtual Match next();
@@ -103,13 +103,13 @@ public:
 
   virtual const Match &currentNodeMatch();
 
-  virtual const Annotation& getAnnotation() {return source.getAnnotation();}
+  virtual const Annotation& getAnnotation() {return source->getAnnotation();}
 
   virtual ~RightMostTokenForNodeIterator() {}
 
 
 private:
-  AnnotationIterator& source;
+  std::shared_ptr<AnnotationIterator> source;
   const DB& db;
   const EdgeDB* edb;
   Match matchTemplate;

@@ -70,8 +70,8 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
 
   unsigned int counter=0;
 
-  AnnotationNameSearch n1(db, "tiger", "pos", "NN");
-  AnnotationNameSearch n2(db, "tiger", "pos", "ART");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
 
   Precedence join(db, n1, n2, 2, 10);
   for(BinaryMatch m=join.next(); m.found; m = join.next())
@@ -88,12 +88,12 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 
   unsigned int counter=0;
 
-  AnnotationNameSearch n1(db, "tiger", "pos", "NN");
-  AnnotationNameSearch n2(db, "tiger", "pos", "ART");
-  AnnotationNameSearch n3(db, "tiger", "pos", "NN");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
+  std::shared_ptr<AnnotationIterator> n3(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
 
   Precedence join1(db, n1, n2, 2, 10);
-  JoinWrapIterator wrappedJoin1(join1);
+  std::shared_ptr<AnnotationIterator> wrappedJoin1(std::make_shared<JoinWrapIterator>(join1));
   Precedence join2(db, wrappedJoin1, n3);
   for(BinaryMatch m = join2.next(); m.found; m = join2.next())
   {
