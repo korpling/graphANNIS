@@ -15,19 +15,19 @@ namespace annis
 class Precedence : public BinaryOperatorIterator
 {
 public:
-  Precedence(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right,
+  Precedence(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
              unsigned int minDistance=1, unsigned int maxDistance=1);
   virtual ~Precedence();
 
-  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();
 
 private:
   const DB& db;
-  std::shared_ptr<AnnotationIterator> left;
-  std::shared_ptr<AnnotationIterator> right;
+  std::shared_ptr<AnnoIt> left;
+  std::shared_ptr<AnnoIt> right;
   unsigned int minDistance;
   unsigned int maxDistance;
 

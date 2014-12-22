@@ -2,7 +2,7 @@
 
 using namespace annis;
 
-NestedOverlap::NestedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right)
+NestedOverlap::NestedOverlap(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right)
   : left(left), right(right), db(db),
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
@@ -14,7 +14,7 @@ NestedOverlap::NestedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, s
   reset();
 }
 
-void NestedOverlap::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+void NestedOverlap::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 {
   left = lhs;
   right = rhs;
@@ -136,26 +136,26 @@ bool NestedOverlap::isToken(nodeid_t n)
   return false;
 }
 
-SeedOverlap::SeedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right)
+SeedOverlap::SeedOverlap(DB &db)
   :
     db(db),
-    left(left), rightAnnotation(right->getAnnotation()),
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
     edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, "")),
     edbCoverage(db.getEdgeDB(ComponentType::COVERAGE, annis_ns, "")),
+    tokenCoveredByLHS(NULL)
 //    lhsLeftTokenIt(left, db),
-    tokenCoveredByLHS(db, edbCoverage, left, anyNodeAnno)
 //    tokenRightFromLHSIt(db, edbOrder, lhsLeftTokenIt, initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()), 0, uintmax)
 {
   reset();
 }
 
-void SeedOverlap::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+void SeedOverlap::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 {
-  left = rhs;
+  left = lhs;
   rightAnnotation = rhs->getAnnotation();
+  tokenCoveredByLHS = new SeedJoin(db, edbCoverage, left, anyNodeAnno);
 }
 
 BinaryMatch SeedOverlap::next()
@@ -166,7 +166,7 @@ BinaryMatch SeedOverlap::next()
   BinaryMatch coveredTokenMatch;
   if(currentMatches.empty())
   {
-    coveredTokenMatch = tokenCoveredByLHS.next();
+    coveredTokenMatch = tokenCoveredByLHS->next();
   }
   else
   {
@@ -211,7 +211,7 @@ BinaryMatch SeedOverlap::next()
     if(currentMatches.empty())
     {
       // nothing found for this token, get the next one
-      coveredTokenMatch = tokenCoveredByLHS.next();
+      coveredTokenMatch = tokenCoveredByLHS->next();
     }
 
   } // end while
@@ -229,15 +229,21 @@ BinaryMatch SeedOverlap::next()
 void SeedOverlap::reset()
 {
   uniqueMatches.clear();
-  left->reset();
+  if(left)
+  {
+    left->reset();
+  }
   currentMatches.clear();
-  tokenCoveredByLHS.reset();
+  if(tokenCoveredByLHS)
+  {
+    tokenCoveredByLHS->reset();
+  }
   //lhsLeftTokenIt.reset();
   //tokenRightFromLHSIt.reset();
 }
 
 SeedOverlap::~SeedOverlap()
 {
-
+  delete tokenCoveredByLHS;
 }
 

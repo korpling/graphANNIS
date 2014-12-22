@@ -3,7 +3,7 @@
 
 using namespace annis;
 
-Precedence::Precedence(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right,
+Precedence::Precedence(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
                        unsigned int minDistance, unsigned int maxDistance)
   : db(db), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance),
     tokIteratorForLeftNode(std::shared_ptr<RightMostTokenForNodeIterator>(new RightMostTokenForNodeIterator(left, db))),
@@ -40,7 +40,7 @@ Precedence::~Precedence()
   delete actualJoin;
 }
 
-void Precedence::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+void Precedence::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 {
   left = lhs;
   right = rhs;

@@ -3,7 +3,7 @@
 
 using namespace annis;
 
-NestedLoopJoin::NestedLoopJoin(const EdgeDB *edb, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right, unsigned int minDistance, unsigned int maxDistance)
+NestedLoopJoin::NestedLoopJoin(const EdgeDB *edb, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right, unsigned int minDistance, unsigned int maxDistance)
   : edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), initialized(false)
 {
 }
@@ -74,7 +74,7 @@ NestedLoopJoin::~NestedLoopJoin()
 
 }
 
-void NestedLoopJoin::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+void NestedLoopJoin::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 {
   left = lhs;
   right = rhs;
@@ -82,7 +82,7 @@ void NestedLoopJoin::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_p
 
 
 
-SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, std::shared_ptr<AnnotationIterator> left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
+SeedJoin::SeedJoin(const DB &db, const EdgeDB *edb, std::shared_ptr<AnnoIt> left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
   : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), edgeIterator(NULL), anyNodeShortcut(false)
 {
   if(right.name == db.getNodeNameStringID() && right.ns == db.getNamespaceStringID() && right.val == 0)
@@ -213,7 +213,7 @@ SeedJoin::~SeedJoin()
   delete edgeIterator;
 }
 
-void SeedJoin::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+void SeedJoin::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 {
   left = lhs;
   right = rhs->getAnnotation();
@@ -275,7 +275,7 @@ Match JoinWrapIterator::current()
 
 
 
-RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(std::shared_ptr<AnnotationIterator> source, const DB &db)
+RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(std::shared_ptr<AnnoIt> source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")), tokenShortcut(false)
 {
   anyTokAnnotation = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
@@ -333,7 +333,7 @@ const Match& RightMostTokenForNodeIterator::currentNodeMatch()
 }
 
 
-LeftMostTokenForNodeIterator::LeftMostTokenForNodeIterator(AnnotationIterator &source, const DB &db)
+LeftMostTokenForNodeIterator::LeftMostTokenForNodeIterator(AnnoIt &source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, ""))
 {
   anyTokAnnotation = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());

@@ -7,7 +7,7 @@
 namespace annis
 {
 
-class AnnotationIterator
+class AnnoIt
 {
 public:
   virtual bool hasNext() = 0;
@@ -16,10 +16,10 @@ public:
 
   virtual const Annotation& getAnnotation() = 0;
 
-  virtual ~AnnotationIterator() {}
+  virtual ~AnnoIt() {}
 };
 
-class CacheableAnnoIt : public AnnotationIterator
+class CacheableAnnoIt : public AnnoIt
 {
 public:
   virtual Match current() = 0;
@@ -37,7 +37,7 @@ public:
 class BinaryOperatorIterator
 {
 public:
-  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs) = 0;
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs) = 0;
   virtual BinaryMatch next() = 0;
   virtual void reset() = 0;
 

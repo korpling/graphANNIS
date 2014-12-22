@@ -4,7 +4,7 @@
 
 using namespace annis;
 
-Inclusion::Inclusion(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right)
+Inclusion::Inclusion(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right)
   : left(left), rightAnnotation(right->getAnnotation()), db(db)
 {
   edbCoverage = db.getAllEdgeDBForType(ComponentType::COVERAGE);
@@ -14,7 +14,7 @@ Inclusion::Inclusion(DB &db, std::shared_ptr<AnnotationIterator> left, std::shar
   reset();
 }
 
-void Inclusion::init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs)
+void Inclusion::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 {
   left = lhs;
   rightAnnotation = rhs->getAnnotation();

@@ -13,9 +13,9 @@ namespace annis
 class Inclusion : public BinaryOperatorIterator
 {
 public:
-  Inclusion(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right);
+  Inclusion(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right);
 
-  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();
@@ -23,7 +23,7 @@ public:
   virtual ~Inclusion();
 private:
 
-  std::shared_ptr<AnnotationIterator> left;
+  std::shared_ptr<AnnoIt> left;
   Annotation rightAnnotation;
 
   const DB& db;

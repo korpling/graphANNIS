@@ -13,18 +13,18 @@ namespace annis
 class NestedLoopJoin : public BinaryOperatorIterator
 {
 public:
-  NestedLoopJoin(const EdgeDB* edb, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right,
+  NestedLoopJoin(const EdgeDB* edb, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
   virtual ~NestedLoopJoin();
 
-  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();
 private:
   const EdgeDB* edb;
-  std::shared_ptr<AnnotationIterator> left;
-  std::shared_ptr<AnnotationIterator> right;
+  std::shared_ptr<AnnoIt> left;
+  std::shared_ptr<AnnoIt> right;
   unsigned int minDistance;
   unsigned int maxDistance;
   bool initialized;
@@ -38,18 +38,18 @@ private:
 class SeedJoin : public BinaryOperatorIterator
 {
 public:
-  SeedJoin(const DB& db, const EdgeDB* edb, std::shared_ptr<AnnotationIterator> left, Annotation right,
+  SeedJoin(const DB& db, const EdgeDB* edb, std::shared_ptr<AnnoIt> left, Annotation right,
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
   virtual ~SeedJoin();
 
-  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();
 private:
   const DB& db;
   const EdgeDB* edb;
-  std::shared_ptr<AnnotationIterator> left;
+  std::shared_ptr<AnnoIt> left;
   Annotation right;
   unsigned int minDistance;
   unsigned int maxDistance;
@@ -97,11 +97,11 @@ private:
  * This iterator outputs the token that is right aligned with the original matched node.
  * If the matched node itself is a token, the token is returned.
  */
-class RightMostTokenForNodeIterator : public AnnotationIterator
+class RightMostTokenForNodeIterator : public AnnoIt
 {
 public:
 
-  RightMostTokenForNodeIterator(std::shared_ptr<AnnotationIterator> source, const DB& db);
+  RightMostTokenForNodeIterator(std::shared_ptr<AnnoIt> source, const DB& db);
 
   virtual bool hasNext();
   virtual Match next();
@@ -115,7 +115,7 @@ public:
 
 
 private:
-  std::shared_ptr<AnnotationIterator> source;
+  std::shared_ptr<AnnoIt> source;
   const DB& db;
   const EdgeDB* edb;
   Match matchTemplate;
@@ -132,11 +132,11 @@ private:
  * This iterator outputs the token that is left aligned with the original matched node.
  * If the matched node itself is a token, the token is returned.
  */
-class LeftMostTokenForNodeIterator : public AnnotationIterator
+class LeftMostTokenForNodeIterator : public AnnoIt
 {
 public:
 
-  LeftMostTokenForNodeIterator(AnnotationIterator& source, const DB& db);
+  LeftMostTokenForNodeIterator(AnnoIt& source, const DB& db);
 
   virtual bool hasNext();
   virtual Match next();
@@ -150,7 +150,7 @@ public:
 
 
 private:
-  AnnotationIterator& source;
+  AnnoIt& source;
   const DB& db;
   const EdgeDB* edb;
   Match matchTemplate;

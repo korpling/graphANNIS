@@ -14,17 +14,17 @@ namespace annis
 class NestedOverlap : public BinaryOperatorIterator
 {
 public:
-  NestedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right);
+  NestedOverlap(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right);
 
-  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();
 
   virtual ~NestedOverlap();
 private:
-  std::shared_ptr<AnnotationIterator> left;
-  std::shared_ptr<AnnotationIterator> right;
+  std::shared_ptr<AnnoIt> left;
+  std::shared_ptr<AnnoIt> right;
 
 
   const DB& db;
@@ -46,9 +46,9 @@ private:
 class SeedOverlap : public BinaryOperatorIterator
 {
 public:
-  SeedOverlap(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right);
+  SeedOverlap(DB &db);
 
-  virtual void init(std::shared_ptr<AnnotationIterator> lhs, std::shared_ptr<AnnotationIterator> rhs);
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();
@@ -59,7 +59,7 @@ private:
 
   const DB& db;
 
-  std::shared_ptr<AnnotationIterator> left;
+  std::shared_ptr<AnnoIt> left;
   Annotation rightAnnotation;
   Annotation anyNodeAnno;
 
@@ -70,7 +70,7 @@ private:
   const EdgeDB* edbCoverage;
 
   //LeftMostTokenForNodeIterator lhsLeftTokenIt;
-  SeedJoin tokenCoveredByLHS;
+  SeedJoin* tokenCoveredByLHS;
   //SeedJoin tokenRightFromLHSIt;
   std::list<Match> currentMatches;
 

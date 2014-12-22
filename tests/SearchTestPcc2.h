@@ -94,8 +94,8 @@ TEST_F(SearchTestPcc2, MMaxAnnos) {
 }
 
 TEST_F(SearchTestPcc2, TokenIndex) {
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Die"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
+  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Die"));
+  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
 
   unsigned int counter=0;
 
@@ -114,8 +114,8 @@ TEST_F(SearchTestPcc2, TokenIndex) {
 }
 
 TEST_F(SearchTestPcc2, IsConnectedRange) {
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Musikcafé"));
+  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
+  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Musikcafé"));
 
   unsigned int counter=0;
 
@@ -129,7 +129,7 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 }
 
 TEST_F(SearchTestPcc2, DepthFirst) {
-    std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
+    std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
     Annotation anno2 = Init::initAnnotation(db.strings.add("node_name"), 0, db.strings.add(annis_ns));
 
     unsigned int counter=0;
@@ -153,7 +153,8 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
   std::shared_ptr<CacheableAnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
   std::shared_ptr<CacheableAnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
 
-  std::shared_ptr<BinaryOperatorIterator> join(std::make_shared<SeedOverlap>(db, n1, n2));
+  std::shared_ptr<BinaryOperatorIterator> join(std::make_shared<SeedOverlap>(db));
+  join->init(n1, n2);
 
   Query q;
   q.addNode(n1);
@@ -173,10 +174,11 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 
 // mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryOverlap2) {
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
+  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
+  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
 
-  SeedOverlap join(db, n1, n2);
+  SeedOverlap join(db);
+  join.init(n1, n2);
 
   unsigned int counter=0;
   for(BinaryMatch m=join.next(); m.found; m=join.next())
@@ -190,8 +192,8 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryInclude) {
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
+  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
+  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
 
   Inclusion join(db, n1, n2);
 

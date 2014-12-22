@@ -70,8 +70,8 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
+  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
 
   Precedence join(db, n1, n2, 2, 10);
   for(BinaryMatch m=join.next(); m.found; m = join.next())
@@ -88,12 +88,12 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
-  std::shared_ptr<AnnotationIterator> n3(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
+  std::shared_ptr<AnnoIt> n3(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
 
   std::shared_ptr<BinaryOperatorIterator> join1(std::make_shared<Precedence>(db, n1, n2, 2, 10));
-  std::shared_ptr<AnnotationIterator> wrappedJoin1(std::make_shared<JoinWrapIterator>(join1));
+  std::shared_ptr<AnnoIt> wrappedJoin1(std::make_shared<JoinWrapIterator>(join1));
   Precedence join2(db, wrappedJoin1, n3);
   for(BinaryMatch m = join2.next(); m.found; m = join2.next())
   {
@@ -106,8 +106,8 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 // cat="S" & tok="Bilharziose" & #1 >* #2
 TEST_F(SearchTestTiger, BilharzioseSentence)
 {
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
+  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
 
   unsigned int counter=0;
 

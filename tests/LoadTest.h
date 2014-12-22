@@ -205,8 +205,8 @@ TEST_F(LoadTest, Ordering) {
 // cat="S" >* "Tiefe"
 TEST_F(LoadTest, Dom)
 {
-  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
+  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
   unsigned int counter=0;
 
