@@ -4,8 +4,8 @@
 
 using namespace annis;
 
-Inclusion::Inclusion(DB &db, AnnotationIterator &left, AnnotationIterator &right)
-  : left(left), rightAnnotation(right.getAnnotation()), db(db)
+Inclusion::Inclusion(DB &db, std::shared_ptr<AnnotationIterator> left, std::shared_ptr<AnnotationIterator> right)
+  : left(left), rightAnnotation(right->getAnnotation()), db(db)
 {
   edbCoverage = db.getAllEdgeDBForType(ComponentType::COVERAGE);
   edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
@@ -19,9 +19,9 @@ BinaryMatch Inclusion::next()
   BinaryMatch result;
   result.found = false;
 
-  while(currentMatches.empty() && left.hasNext())
+  while(currentMatches.empty() && left->hasNext())
   {
-    result.lhs = left.next();
+    result.lhs = left->next();
 
     currentMatches.clear();
 
@@ -60,7 +60,7 @@ BinaryMatch Inclusion::next()
           break;
         }
       }
-      for(auto leftAlignedNode : edbLeftToken->getOutgoingEdges(includedStart.second))
+      for(const auto& leftAlignedNode : edbLeftToken->getOutgoingEdges(includedStart.second))
       {
         nodeid_t includedEndCandiate = edbRightToken->getOutgoingEdges(leftAlignedNode)[0];
         if(edbOrder->isConnected(Init::initEdge(includedEndCandiate, rightToken), 0, uintmax))
@@ -97,7 +97,7 @@ BinaryMatch Inclusion::next()
 void Inclusion::reset()
 {
   uniqueMatches.clear();
-  left.reset();
+  left->reset();
 }
 
 Inclusion::~Inclusion()

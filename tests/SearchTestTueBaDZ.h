@@ -60,9 +60,9 @@ class SearchTestTueBaDZ : public ::testing::Test {
 TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
 
   AnnotationNameSearch n1(db, annis_ns, annis_node_name);
-  AnnotationNameSearch n2(db, "merged", "pos", "PPER");
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "merged", "pos", "PPER"));
   AnnotationNameSearch n3(db, annis_ns, annis_node_name);
-  AnnotationNameSearch n4(db, "mmax", "relation", "anaphoric");
+  std::shared_ptr<AnnotationIterator> n4(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
   AnnotationNameSearch n5(db, annis_ns, annis_node_name);
   AnnotationNameSearch n6(db, annis_ns, annis_node_name);
   AnnotationNameSearch n7(db, "mmax", "relation", "anaphoric");

@@ -183,8 +183,8 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryInclude) {
-  AnnotationNameSearch n1(db, "mmax", "ambiguity", "not_ambig");
-  AnnotationNameSearch n2(db, "mmax", "complex_np", "yes");
+  std::shared_ptr<AnnotationIterator> n1(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
+  std::shared_ptr<AnnotationIterator> n2(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
 
   Inclusion join(db, n1, n2);
 
