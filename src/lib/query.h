@@ -27,7 +27,7 @@ public:
    * @param idxLeft index of LHS node
    * @param idxRight index of RHS node
    */
-  void addOperator(std::shared_ptr<BinaryOperatorIterator> op, size_t idxLeft, size_t idxRight);
+  void addOperator(std::shared_ptr<BinaryIt> op, size_t idxLeft, size_t idxRight);
 
   bool hasNext();
   std::vector<Match> next();

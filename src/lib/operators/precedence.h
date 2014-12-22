@@ -12,7 +12,7 @@ namespace annis
 {
 
 
-class Precedence : public BinaryOperatorIterator
+class Precedence : public BinaryIt
 {
 public:
   Precedence(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
@@ -34,7 +34,7 @@ private:
   std::shared_ptr<RightMostTokenForNodeIterator> tokIteratorForLeftNode;
   const Annotation& annoForRightNode;
 
-  BinaryOperatorIterator* actualJoin;
+  BinaryIt* actualJoin;
   std::stack<Match, std::list<Match>> currentMatches;
   BinaryMatch currentMatchedToken;
 

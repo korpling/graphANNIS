@@ -153,7 +153,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
   std::shared_ptr<CacheableAnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
   std::shared_ptr<CacheableAnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
 
-  std::shared_ptr<BinaryOperatorIterator> join(std::make_shared<SeedOverlap>(db));
+  std::shared_ptr<BinaryIt> join(std::make_shared<SeedOverlap>(db));
   join->init(n1, n2);
 
   Query q;

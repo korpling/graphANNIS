@@ -10,7 +10,7 @@ namespace annis
 {
 
 /** A join that checks all combinations of the left and right matches if their are connected. */
-class NestedLoopJoin : public BinaryOperatorIterator
+class NestedLoopJoin : public BinaryIt
 {
 public:
   NestedLoopJoin(const EdgeDB* edb, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
@@ -35,7 +35,7 @@ private:
 };
 
 /** A join that takes the left argument as a seed, finds all connected nodes (matching the distance) and checks the condition for each node. */
-class SeedJoin : public BinaryOperatorIterator
+class SeedJoin : public BinaryIt
 {
 public:
   SeedJoin(const DB& db, const EdgeDB* edb, std::shared_ptr<AnnoIt> left, Annotation right,
@@ -72,7 +72,7 @@ class JoinWrapIterator : public CacheableAnnoIt
 {
 public:
 
-  JoinWrapIterator(std::shared_ptr<BinaryOperatorIterator> wrappedIterator, bool wrapLeftOperand = false);
+  JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedIterator, bool wrapLeftOperand = false);
 
   virtual bool hasNext();
   virtual Match next();
@@ -86,7 +86,7 @@ public:
   virtual ~JoinWrapIterator() {}
 private:
   Annotation matchAllAnnotation;
-  std::shared_ptr<BinaryOperatorIterator> wrappedIterator;
+  std::shared_ptr<BinaryIt> wrappedIterator;
   BinaryMatch currentMatch;
   bool wrapLeftOperand;
 };

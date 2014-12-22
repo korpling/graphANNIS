@@ -11,7 +11,7 @@
 namespace annis
 {
 
-class NestedOverlap : public BinaryOperatorIterator
+class NestedOverlap : public BinaryIt
 {
 public:
   NestedOverlap(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right);
@@ -43,7 +43,7 @@ private:
 
 };
 
-class SeedOverlap : public BinaryOperatorIterator
+class SeedOverlap : public BinaryIt
 {
 public:
   SeedOverlap(DB &db);

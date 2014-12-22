@@ -34,14 +34,14 @@ public:
   virtual ~EdgeIterator() {}
 };
 
-class BinaryOperatorIterator
+class BinaryIt
 {
 public:
   virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs) = 0;
   virtual BinaryMatch next() = 0;
   virtual void reset() = 0;
 
-  virtual ~BinaryOperatorIterator() {}
+  virtual ~BinaryIt() {}
 };
 
 } // end namespace annis

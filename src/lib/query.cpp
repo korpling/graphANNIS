@@ -16,7 +16,7 @@ size_t annis::Query::addNode(std::shared_ptr<annis::CacheableAnnoIt> n)
   return idx;
 }
 
-void Query::addOperator(std::shared_ptr<BinaryOperatorIterator> op, size_t idxLeft, size_t idxRight)
+void Query::addOperator(std::shared_ptr<BinaryIt> op, size_t idxLeft, size_t idxRight)
 {
   if(idxLeft < source.size() && idxRight < source.size())
   {

@@ -10,7 +10,7 @@
 namespace annis
 {
 
-class Inclusion : public BinaryOperatorIterator
+class Inclusion : public BinaryIt
 {
 public:
   Inclusion(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right);

@@ -220,7 +220,7 @@ void SeedJoin::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 }
 
 
-JoinWrapIterator::JoinWrapIterator(std::shared_ptr<BinaryOperatorIterator> wrappedIterator, bool wrapLeftOperand)
+JoinWrapIterator::JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedIterator, bool wrapLeftOperand)
   : matchAllAnnotation(Init::initAnnotation()), wrappedIterator(wrappedIterator), wrapLeftOperand(wrapLeftOperand)
 {
   reset();
