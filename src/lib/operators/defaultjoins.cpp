@@ -220,61 +220,6 @@ void SeedJoin::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 }
 
 
-JoinWrapIterator::JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedIterator, bool wrapLeftOperand)
-  : matchAllAnnotation(Init::initAnnotation()), wrappedIterator(wrappedIterator), wrapLeftOperand(wrapLeftOperand)
-{
-  reset();
-}
-
-
-bool JoinWrapIterator::hasNext()
-{
-  return currentMatch.found;
-}
-
-Match JoinWrapIterator::next()
-{
-  Match result;
-  if(currentMatch.found)
-  {
-    if(wrapLeftOperand)
-    {
-      result = currentMatch.lhs;
-    }
-    else
-    {
-      result = currentMatch.rhs;
-    }
-    currentMatch = wrappedIterator->next();
-  }
-  return result;
-}
-
-void JoinWrapIterator::reset()
-{
-  wrappedIterator->reset();
-  currentMatch = wrappedIterator->next();
-}
-
-Match JoinWrapIterator::current()
-{
-  Match result;
-  if(currentMatch.found)
-  {
-    if(wrapLeftOperand)
-    {
-      result = currentMatch.lhs;
-    }
-    else
-    {
-      result = currentMatch.rhs;
-    }
-  }
-  return result;
-}
-
-
-
 RightMostTokenForNodeIterator::RightMostTokenForNodeIterator(std::shared_ptr<AnnoIt> source, const DB &db)
   : source(source), db(db), edb(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")), tokenShortcut(false)
 {

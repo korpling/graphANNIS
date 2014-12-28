@@ -1,5 +1,5 @@
 #include "query.h"
-#include "operators/defaultjoins.h"
+#include "operators/wrapper.h"
 
 using namespace annis;
 
