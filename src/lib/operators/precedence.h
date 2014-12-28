@@ -25,6 +25,7 @@ public:
 private:
   TokenHelper tokHelper;
   const EdgeDB* edbOrder;
+  const EdgeDB* edbLeft;
   Annotation anyTokAnno;
   Annotation anyNodeAnno;
 

@@ -8,16 +8,23 @@ namespace annis
 {
 
 /**
- * @brief Helper class to wrap a list of matches and make it an AnnoIt
+ * @brief Helper class which has an internal list of matches and wraps it as a AnnoIt
+ * Thus this class is a kind of materialized result
  */
 class ListWrapper : public AnnoIt
 {
 public:
 
-  ListWrapper(const std::list<Match>& orig)
-    : orig(orig), anyAnno(Init::initAnnotation())
+  ListWrapper()
+    : anyAnno(Init::initAnnotation())
   {
     reset();
+  }
+
+  void addMatch(const Match& m)
+  {
+    orig.push_back(m);
+    origIt = orig.begin();
   }
 
   virtual bool hasNext()
@@ -46,7 +53,7 @@ public:
 
   virtual ~ListWrapper() {}
 private:
-  const std::list<Match>& orig;
+  std::list<Match> orig;
   std::list<Match>::const_iterator origIt;
 
   Annotation anyAnno;

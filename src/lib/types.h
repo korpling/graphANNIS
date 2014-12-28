@@ -174,6 +174,14 @@ namespace annis
       result.pos = pos;
       return result;
     }
+
+    static Match initMatch(const Annotation& anno, nodeid_t node)
+    {
+      Match result;
+      result.node = node;
+      result.anno = anno;
+      return result;
+    }
   };
 
 
