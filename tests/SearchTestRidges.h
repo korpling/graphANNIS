@@ -9,6 +9,7 @@
 #include "operators/precedence.h"
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
+#include "query.h"
 
 #include <boost/format.hpp>
 #include <vector>
@@ -229,13 +230,19 @@ TEST_F(SearchTestRidges, Inclusion) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  std::shared_ptr<CacheableAnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  std::shared_ptr<CacheableAnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
-  annis::Inclusion join(db, n1, n2);
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  annis::Query q;
+  q.addNode(n1);
+  q.addNode(n2);
+
+  q.addOperator(std::make_shared<Inclusion>(db), 0, 1);
+
+  while(q.hasNext())
   {
-    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m.lhs.node % m.rhs.node).str()) ;
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m[0].node % m[1].node).str()) ;
     counter++;
   }
 

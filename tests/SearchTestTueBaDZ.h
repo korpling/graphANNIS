@@ -8,6 +8,7 @@
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
 #include "annotationsearch.h"
+#include "query.h"
 
 #include <vector>
 
@@ -59,19 +60,18 @@ class SearchTestTueBaDZ : public ::testing::Test {
 */
 TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
 
-  AnnotationNameSearch n1(db, annis_ns, annis_node_name);
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "merged", "pos", "PPER"));
-  AnnotationNameSearch n3(db, annis_ns, annis_node_name);
-  std::shared_ptr<AnnoIt> n4(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
-  AnnotationNameSearch n5(db, annis_ns, annis_node_name);
-  AnnotationNameSearch n6(db, annis_ns, annis_node_name);
-  std::shared_ptr<AnnoIt> n7(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
+  Query q;
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "merged", "pos", "PPER"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
 
   const EdgeDB* edbAnaphoric = db.getEdgeDB(ComponentType::POINTING, "mmax", "anaphoric");
-  std::shared_ptr<BinaryIt> n2_incl_n4(std::make_shared<Inclusion>(db, n2, n4));
 
-  std::shared_ptr<AnnoIt> wrap_n2_n4(std::make_shared<JoinWrapIterator>(n2_incl_n4));
-  NestedLoopJoin n4_anaphoric_n7(edbAnaphoric, wrap_n2_n4, n7);
+  q.addOperator(std::make_shared<Inclusion>(db), 1, 3);
 
   unsigned int counter=0;
 

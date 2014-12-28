@@ -4,6 +4,7 @@
 #include <humblelogging/api.h>
 
 #include <db.h>
+#include <query.h>
 #include <annotationsearch.h>
 #include <operators/precedence.h>
 #include <operators/inclusion.h>
@@ -210,12 +211,15 @@ BENCHMARK_F(TigerFallback, NNPreARTPreNN, 5, 1) {
 BENCHMARK_F(Ridges, PosNNIncludesNormBlumen, 5, 1) {
 
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  Query q;
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
-  annis::Inclusion join(db, n2, n1);
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<annis::Inclusion>(db), 1, 0);
+
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }
@@ -292,13 +296,14 @@ BENCHMARK_F(RidgesFallback, TokPreceedingTok, 5, 1) {
 // pos="NN" & norm="Blumen" & #1 _i_ #2
 BENCHMARK_F(RidgesFallback, PosNNIncludesNormBlumen, 5, 1) {
 
+  Query q;
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  q.addOperator(std::make_shared<annis::Inclusion>(db), 1, 0);
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
-
-  annis::Inclusion join(db, n2, n1);
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }

@@ -173,16 +173,17 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 
 // mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryOverlap2) {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
 
-  SeedOverlap join(db);
-  join.init(n1, n2);
+  Query q;
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
+  q.addOperator(std::make_shared<SeedOverlap>(db), 0, 1);
 
   unsigned int counter=0;
-  for(BinaryMatch m=join.next(); m.found; m=join.next())
+  while(q.hasNext())
   {
-    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.lhs.node) % db.getNodeName(m.rhs.node)).str());
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
 
@@ -191,15 +192,17 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryInclude) {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
 
-  Inclusion join(db, n1, n2);
+  Query q;
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
+  q.addOperator(std::make_shared<Inclusion>(db), 0, 1);
 
   unsigned int counter=0;
-  for(BinaryMatch m=join.next(); m.found; m=join.next())
+  while(q.hasNext())
   {
-    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m.lhs.node) % db.getNodeName(m.rhs.node)).str());
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
 

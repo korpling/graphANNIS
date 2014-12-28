@@ -4,8 +4,8 @@
 
 using namespace annis;
 
-Inclusion::Inclusion(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right)
-  : left(left), rightAnnotation(right->getAnnotation()), db(db)
+Inclusion::Inclusion(DB &db)
+  : db(db)
 {
   edbCoverage = db.getAllEdgeDBForType(ComponentType::COVERAGE);
   edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");

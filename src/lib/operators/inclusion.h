@@ -13,7 +13,7 @@ namespace annis
 class Inclusion : public BinaryIt
 {
 public:
-  Inclusion(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right);
+  Inclusion(DB &db);
 
   virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
