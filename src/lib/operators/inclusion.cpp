@@ -103,7 +103,10 @@ BinaryMatch Inclusion::next()
 void Inclusion::reset()
 {
   uniqueMatches.clear();
-  left->reset();
+  if(left)
+  {
+    left->reset();
+  }
 }
 
 Inclusion::~Inclusion()
