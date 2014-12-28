@@ -22,28 +22,27 @@ void Inclusion::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 
 BinaryMatch Inclusion::next()
 {
-  BinaryMatch result;
-  result.found = false;
+  currentResult.found = false;
 
   while(currentMatches.empty() && left->hasNext())
   {
-    result.lhs = left->next();
+    currentResult.lhs = left->next();
 
     currentMatches.clear();
 
     nodeid_t leftToken;
     nodeid_t rightToken;
     int spanLength = 0;
-    if(db.getNodeAnnotation(result.lhs.node, annis_ns, annis_tok).first)
+    if(db.getNodeAnnotation(currentResult.lhs.node, annis_ns, annis_tok).first)
     {
       // is token
-      leftToken = result.lhs.node;
-      rightToken = result.lhs.node;
+      leftToken = currentResult.lhs.node;
+      rightToken = currentResult.lhs.node;
     }
     else
     {
-      leftToken = edbLeftToken->getOutgoingEdges(result.lhs.node)[0];
-      rightToken = edbRightToken->getOutgoingEdges(result.lhs.node)[0];
+      leftToken = edbLeftToken->getOutgoingEdges(currentResult.lhs.node)[0];
+      rightToken = edbRightToken->getOutgoingEdges(currentResult.lhs.node)[0];
       spanLength = edbOrder->distance(Init::initEdge(leftToken, rightToken));
     }
 
@@ -92,17 +91,17 @@ BinaryMatch Inclusion::next()
 
   if(!currentMatches.empty())
   {
-    result.found = true;
-    result.rhs = currentMatches.front();
+    currentResult.found = true;
+    currentResult.rhs = currentMatches.front();
     currentMatches.pop_front();
   }
 
-  return result;
+  return currentResult;
 }
 
 void Inclusion::reset()
 {
-  uniqueMatches.clear();
+  currentMatches.clear();
   if(left)
   {
     left->reset();

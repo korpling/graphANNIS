@@ -31,10 +31,10 @@ private:
   const EdgeDB* edbOrder;
   const EdgeDB* edbLeftToken;
   const EdgeDB* edbRightToken;
-  std::set<BinaryMatch, compBinaryMatch> uniqueMatches;
 
   // the following variales hold the current iteration state
   std::list<Match> currentMatches;
+  BinaryMatch currentResult;
   // end iteration state
 
 
