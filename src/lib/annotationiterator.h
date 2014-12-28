@@ -30,6 +30,7 @@ class EdgeIterator
 {
 public:
   virtual std::pair<bool, nodeid_t> next() = 0;
+  virtual void reset() = 0;
 
   virtual ~EdgeIterator() {}
 };

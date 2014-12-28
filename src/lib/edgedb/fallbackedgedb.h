@@ -78,6 +78,8 @@ public:
 
   virtual DFSIteratorResult nextDFS();
   virtual std::pair<bool, nodeid_t> next();
+
+  virtual void reset();
 private:
 
   const FallbackEdgeDB& edb;
@@ -89,6 +91,7 @@ private:
   std::stack<std::pair<nodeid_t, unsigned int> > traversalStack;
   unsigned int minDistance;
   unsigned int maxDistance;
+  std::uint32_t startNode;
 };
 
 } // end namespace annis

@@ -163,7 +163,27 @@ LinearEdgeDB::~LinearEdgeDB()
 
 LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
                                unsigned int minDistance, unsigned int maxDistance)
-  : edb(edb), chain(NULL)
+  : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode),
+    chain(NULL)
+{
+  reset();
+}
+
+pair<bool, nodeid_t> LinearIterator::next()
+{
+  bool found = false;
+  nodeid_t node = 0;
+  if(chain != NULL && currentPos <= endPos && currentPos < chain->size())
+  {
+    found = true;
+    node = chain->at(currentPos);
+    chain->at(currentPos);
+    currentPos++;
+  }
+  return std::pair<bool, nodeid_t>(found, node);
+}
+
+void LinearIterator::reset()
 {
   typedef stx::btree_map<nodeid_t, RelativePosition>::const_iterator PosIt;
   typedef map<nodeid_t, std::vector<nodeid_t> >::const_iterator NodeChainIt;
@@ -193,16 +213,7 @@ LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
   }
 }
 
-pair<bool, nodeid_t> LinearIterator::next()
+LinearIterator::~LinearIterator()
 {
-  bool found = false;
-  nodeid_t node = 0;
-  if(chain != NULL && currentPos <= endPos && currentPos < chain->size())
-  {
-    found = true;
-    node = chain->at(currentPos);
-    chain->at(currentPos);
-    currentPos++;
-  }
-  return std::pair<bool, nodeid_t>(found, node);
+
 }

@@ -111,7 +111,29 @@ void LegacyPrecedence::reset()
   currentMatchedToken.found = true;
 }
 
-bool LegacyPrecedence::filter(const Match &lhs, const Match &rhs)
+
+Precedence::Precedence(const DB &db, unsigned int minDistance, unsigned int maxDistance)
+  : tokHelper(db), edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, "")),
+    anyTokAnno(Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID())),
+    anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
+    minDistance(minDistance), maxDistance(maxDistance)
+{
+}
+
+std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
+{
+  EdgeIterator* edgeIterator = edbOrder->findConnected(lhs.node, minDistance, maxDistance);
+  if(checkAnnotationEqual(lhs.anno, anyTokAnno))
+  {
+    // special case: order relations always have token as target if the source is a token
+
+  }
+  else
+  {
+  }
+}
+
+bool Precedence::filter(const Match &lhs, const Match &rhs)
 {
   nodeid_t lhsToken = tokHelper.rightTokenForNode(lhs.node);
   nodeid_t rhsToken = tokHelper.leftTokenForNode(rhs.node);
@@ -119,6 +141,10 @@ bool LegacyPrecedence::filter(const Match &lhs, const Match &rhs)
   {
     return true;
   }
-  return true;
+  return false;
 }
 
+Precedence::~Precedence()
+{
+
+}

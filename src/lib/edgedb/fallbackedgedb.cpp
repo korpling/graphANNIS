@@ -183,9 +183,9 @@ FallbackDFSIterator::FallbackDFSIterator(const FallbackEdgeDB &edb,
                                                      std::uint32_t startNode,
                                                      unsigned int minDistance,
                                                      unsigned int maxDistance)
-  : edb(edb), minDistance(minDistance), maxDistance(maxDistance)
+  : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode)
 {
-  traversalStack.push(pair<uint32_t,unsigned int>(startNode, 0));
+  reset();
 }
 
 DFSIteratorResult FallbackDFSIterator::nextDFS()
@@ -226,4 +226,15 @@ std::pair<bool, nodeid_t> FallbackDFSIterator::next()
 {
   DFSIteratorResult result = nextDFS();
   return std::pair<bool, nodeid_t>(result.found, result.node);
+}
+
+void FallbackDFSIterator::reset()
+{
+  // clear the stack
+  while(!traversalStack.empty())
+  {
+    traversalStack.pop();
+  }
+  // add the initial value to the stack
+  traversalStack.push(pair<uint32_t,unsigned int>(startNode, 0));
 }
