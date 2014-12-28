@@ -9,6 +9,7 @@
 #include <operators/precedence.h>
 #include <operators/inclusion.h>
 #include <operators/overlap.h>
+#include <operators/wrapper.h>
 
 HUMBLE_LOGGER(logger, "default");
 

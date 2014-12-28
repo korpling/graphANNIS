@@ -7,6 +7,7 @@
 #include "operators/defaultjoins.h"
 #include "operators/precedence.h"
 #include "annotationsearch.h"
+#include "operators/wrapper.h"
 
 #include <vector>
 
