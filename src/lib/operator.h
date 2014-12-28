@@ -5,10 +5,10 @@
 
 namespace annis
 {
-class Operator : public BinaryIt
+class Operator
 {
 public:
-  bool filter(const Match& lhs, const Match& rhs) = 0;
+  virtual bool filter(const Match& lhs, const Match& rhs) = 0;
 };
 } // end namespace annis
 

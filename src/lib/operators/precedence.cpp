@@ -3,16 +3,18 @@
 
 using namespace annis;
 
-Precedence::Precedence(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
+Precedence::Precedence(DB &db,
+                       std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
                        unsigned int minDistance, unsigned int maxDistance)
-  : db(db), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance),
+  : db(db), tokHelper(db),
+    left(left), right(right), minDistance(minDistance), maxDistance(maxDistance),
     tokIteratorForLeftNode(std::shared_ptr<RightMostTokenForNodeIterator>(new RightMostTokenForNodeIterator(left, db))),
     annoForRightNode(right->getAnnotation()),
     actualJoin(NULL),
-    edbLeft(NULL),
+    edbLeft(NULL), edbOrder(NULL),
     tokenShortcut(false)
 {
-  const EdgeDB* edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
+  edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
   edbLeft = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
   if(edbOrder != NULL)
   {
@@ -107,5 +109,16 @@ void Precedence::reset()
     currentMatches.pop();
   }
   currentMatchedToken.found = true;
+}
+
+bool Precedence::filter(const Match &lhs, const Match &rhs)
+{
+  nodeid_t lhsToken = tokHelper.rightTokenForNode(lhs.node);
+  nodeid_t rhsToken = tokHelper.leftTokenForNode(rhs.node);
+  if(edbOrder->isConnected(Init::initEdge(lhsToken, rhsToken), minDistance, maxDistance))
+  {
+    return true;
+  }
+  return true;
 }
 

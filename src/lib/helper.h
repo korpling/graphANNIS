@@ -8,6 +8,9 @@
 #include <boost/algorithm/string.hpp>
 #include <sstream>
 
+#include "db.h"
+#include "edgedb.h"
+
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -20,6 +23,60 @@ namespace annis
 {
 
 static const unsigned long long long_thousand = 1000;
+
+class TokenHelper
+{
+public:
+
+  TokenHelper(DB& db) : db(db),
+    leftEdges(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
+    rightEdges(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, ""))
+  {
+
+  }
+
+  nodeid_t leftTokenForNode(nodeid_t n)
+  {
+    if(isToken(n))
+    {
+      return n;
+    }
+    else
+    {
+      return leftEdges->getOutgoingEdges(n)[0];
+    }
+  }
+
+  nodeid_t rightTokenForNode(nodeid_t n)
+  {
+    if(isToken(n))
+    {
+      return n;
+    }
+    else
+    {
+      return rightEdges->getOutgoingEdges(n)[0];
+    }
+  }
+
+  bool isToken(nodeid_t n)
+  {
+    for(const Annotation& anno: db.getNodeAnnotationsByID(n))
+    {
+      if(anno.ns == db.getNamespaceStringID() && anno.name == db.getTokStringID())
+      {
+        // rhs is token by itself
+        return true;
+      }
+    }
+    return false;
+  }
+
+private:
+  const DB& db;
+  const EdgeDB* leftEdges;
+  const EdgeDB* rightEdges;
+};
 
 class Helper
 {

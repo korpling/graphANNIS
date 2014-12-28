@@ -7,6 +7,7 @@
 #include "../db.h"
 #include "../annotationiterator.h"
 #include "defaultjoins.h"
+#include "../helper.h"
 
 namespace annis
 {
@@ -37,9 +38,7 @@ private:
   Match matchLHS;
   Match matchRHS;
 
-  nodeid_t leftTokenForNode(nodeid_t n);
-  nodeid_t rightTokenForNode(nodeid_t n);
-  bool isToken(nodeid_t n);
+  TokenHelper tokenHelper;
 
 };
 

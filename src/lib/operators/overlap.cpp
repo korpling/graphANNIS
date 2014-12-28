@@ -7,7 +7,8 @@ NestedOverlap::NestedOverlap(DB &db, std::shared_ptr<AnnoIt> left, std::shared_p
     edbLeft(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
     edbRight(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "")),
     edbOrder(db.getEdgeDB(ComponentType::ORDERING, annis_ns, "")),
-    initialized(false)
+    initialized(false),
+    tokenHelper(db)
     //lhsLeftTokenIt(left, db)
   //  tokenRightFromLHSIt(db, edbOrder, lhsLeftTokenIt, initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()), 0, uintmax)
 {
@@ -47,16 +48,16 @@ BinaryMatch NestedOverlap::next()
   while(proceed)
   {
 
-    nodeid_t lhsLeftToken = leftTokenForNode(matchLHS.node);
-    nodeid_t lhsRightToken = rightTokenForNode(matchLHS.node);
+    nodeid_t lhsLeftToken = tokenHelper.leftTokenForNode(matchLHS.node);
+    nodeid_t lhsRightToken = tokenHelper.rightTokenForNode(matchLHS.node);
 
     while(right->hasNext())
     {
       matchRHS = right->next();
 
       // get the left- and right-most covered token for rhs
-      nodeid_t rhsLeftToken = leftTokenForNode(matchRHS.node);
-      nodeid_t rhsRightToken = rightTokenForNode(matchRHS.node);
+      nodeid_t rhsLeftToken = tokenHelper.leftTokenForNode(matchRHS.node);
+      nodeid_t rhsRightToken = tokenHelper.rightTokenForNode(matchRHS.node);
 
 
       // check the actual constraint
@@ -97,43 +98,6 @@ void NestedOverlap::reset()
 NestedOverlap::~NestedOverlap()
 {
 
-}
-
-nodeid_t NestedOverlap::leftTokenForNode(nodeid_t n)
-{
-  if(isToken(n))
-  {
-    return n;
-  }
-  else
-  {
-    return edbLeft->getOutgoingEdges(n)[0];
-  }
-}
-
-nodeid_t NestedOverlap::rightTokenForNode(nodeid_t n)
-{
-  if(isToken(n))
-  {
-    return n;
-  }
-  else
-  {
-    return edbRight->getOutgoingEdges(n)[0];
-  }
-}
-
-bool NestedOverlap::isToken(nodeid_t n)
-{
-  for(const Annotation& anno: db.getNodeAnnotationsByID(n))
-  {
-    if(anno.ns == db.getNamespaceStringID() && anno.name == db.getTokStringID())
-    {
-      // rhs is token by itself
-      return true;
-    }
-  }
-  return false;
 }
 
 SeedOverlap::SeedOverlap(DB &db)

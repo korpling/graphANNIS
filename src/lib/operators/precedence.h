@@ -2,8 +2,8 @@
 #define PRECEDENCE_H
 
 #include "db.h"
-#include "../annotationiterator.h"
 #include "defaultjoins.h"
+#include "../helper.h"
 
 #include <list>
 #include <stack>
@@ -24,8 +24,12 @@ public:
   virtual BinaryMatch next();
   virtual void reset();
 
+  virtual bool filter(const Match& lhs, const Match& rhs);
+
 private:
   const DB& db;
+
+  TokenHelper tokHelper;
   std::shared_ptr<AnnoIt> left;
   std::shared_ptr<AnnoIt> right;
   unsigned int minDistance;
@@ -39,7 +43,9 @@ private:
   BinaryMatch currentMatchedToken;
 
   const EdgeDB* edbLeft;
+  const EdgeDB* edbOrder;
   bool tokenShortcut;
+
 };
 
 
