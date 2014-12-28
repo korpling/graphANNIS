@@ -12,12 +12,12 @@ namespace annis
 {
 
 
-class Precedence : public BinaryIt
+class LegacyPrecedence : public BinaryIt
 {
 public:
-  Precedence(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
+  LegacyPrecedence(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
              unsigned int minDistance=1, unsigned int maxDistance=1);
-  virtual ~Precedence();
+  virtual ~LegacyPrecedence();
 
   virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 

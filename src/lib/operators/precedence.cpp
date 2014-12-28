@@ -3,7 +3,7 @@
 
 using namespace annis;
 
-Precedence::Precedence(DB &db,
+LegacyPrecedence::LegacyPrecedence(DB &db,
                        std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
                        unsigned int minDistance, unsigned int maxDistance)
   : db(db), tokHelper(db),
@@ -37,18 +37,18 @@ Precedence::Precedence(DB &db,
   currentMatchedToken.found = true;
 }
 
-Precedence::~Precedence()
+LegacyPrecedence::~LegacyPrecedence()
 {
   delete actualJoin;
 }
 
-void Precedence::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
+void LegacyPrecedence::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 {
   left = lhs;
   right = rhs;
 }
 
-BinaryMatch Precedence::next()
+BinaryMatch LegacyPrecedence::next()
 {
   BinaryMatch result;
   result.found = false;
@@ -98,7 +98,7 @@ BinaryMatch Precedence::next()
   return result;
 }
 
-void Precedence::reset()
+void LegacyPrecedence::reset()
 {
   if(actualJoin != nullptr)
   {
@@ -111,7 +111,7 @@ void Precedence::reset()
   currentMatchedToken.found = true;
 }
 
-bool Precedence::filter(const Match &lhs, const Match &rhs)
+bool LegacyPrecedence::filter(const Match &lhs, const Match &rhs)
 {
   nodeid_t lhsToken = tokHelper.rightTokenForNode(lhs.node);
   nodeid_t rhsToken = tokHelper.leftTokenForNode(rhs.node);
