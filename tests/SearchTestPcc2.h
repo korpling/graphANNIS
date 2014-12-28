@@ -103,7 +103,7 @@ TEST_F(SearchTestPcc2, TokenIndex) {
   const EdgeDB* edb = db.getEdgeDB(c);
   if(edb != NULL)
   {
-    NestedLoopJoin join(edb, n1, n2);
+    LegacyNestedLoopJoin join(edb, n1, n2);
     for(BinaryMatch match = join.next(); match.found; match = join.next())
     {
       counter++;
@@ -119,7 +119,7 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 
   unsigned int counter=0;
 
-  NestedLoopJoin join(db.getEdgeDB(ComponentType::ORDERING, annis_ns, ""), n1, n2, 3, 10);
+  LegacyNestedLoopJoin join(db.getEdgeDB(ComponentType::ORDERING, annis_ns, ""), n1, n2, 3, 10);
   for(BinaryMatch match = join.next(); match.found; match = join.next())
   {
     counter++;
@@ -138,7 +138,7 @@ TEST_F(SearchTestPcc2, DepthFirst) {
     const EdgeDB* edb = db.getEdgeDB(c);
     if(edb != NULL)
     {
-      SeedJoin join(db, edb, n1, anno2, 2, 10);
+      LegacySeedJoin join(db, edb, n1, anno2, 2, 10);
       for(BinaryMatch match=join.next(); match.found; match = join.next())
       {
         counter++;
@@ -153,7 +153,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
   std::shared_ptr<CacheableAnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
   std::shared_ptr<CacheableAnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
 
-  std::shared_ptr<BinaryIt> join(std::make_shared<SeedOverlap>(db));
+  std::shared_ptr<Join> join(std::make_shared<SeedOverlap>(db));
 
   Query q;
   q.addNode(n1);

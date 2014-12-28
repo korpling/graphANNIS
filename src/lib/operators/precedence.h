@@ -33,7 +33,7 @@ private:
   unsigned int maxDistance;
 };
 
-class LegacyPrecedence : public BinaryIt
+class LegacyPrecedence : public Join
 {
 public:
   LegacyPrecedence(DB &db, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,

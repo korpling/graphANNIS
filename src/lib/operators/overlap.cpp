@@ -119,7 +119,7 @@ void SeedOverlap::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
 {
   left = lhs;
   rightAnnotation = rhs->getAnnotation();
-  tokenCoveredByLHS = new SeedJoin(db, edbCoverage, left, anyNodeAnno);
+  tokenCoveredByLHS = new LegacySeedJoin(db, edbCoverage, left, anyNodeAnno);
 }
 
 BinaryMatch SeedOverlap::next()

@@ -166,7 +166,7 @@ BENCHMARK_F(Tiger, BilharzioseSentence, 5, 1)
   std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
 
   const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "edge");
-  NestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
+  LegacyNestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
 
   for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
   {

@@ -1,5 +1,6 @@
 #include "query.h"
 #include "operators/wrapper.h"
+#include "operators/defaultjoins.h"
 
 using namespace annis;
 
@@ -18,12 +19,24 @@ size_t annis::Query::addNode(std::shared_ptr<annis::CacheableAnnoIt> n)
   return idx;
 }
 
-void Query::addOperator(std::shared_ptr<BinaryIt> op, size_t idxLeft, size_t idxRight)
+void Query::addOperator(std::shared_ptr<Join> op, size_t idxLeft, size_t idxRight)
 {
   initialized = false;
 
   OperatorEntry entry;
   entry.op = op;
+  entry.idxLeft = idxLeft;
+  entry.idxRight = idxRight;
+
+  operators.push_back(entry);
+}
+
+void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight)
+{
+  initialized = false;
+
+  OperatorEntry entry;
+  entry.op = std::make_shared<NestedLoopJoin>(op);
   entry.idxLeft = idxLeft;
   entry.idxRight = idxRight;
 

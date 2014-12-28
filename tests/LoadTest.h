@@ -211,7 +211,7 @@ TEST_F(LoadTest, Dom)
   unsigned int counter=0;
 
   const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "");
-  NestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
+  LegacyNestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
 
   for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
     {

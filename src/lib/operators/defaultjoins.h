@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "annotationiterator.h"
+#include "operator.h"
 #include "edgedb.h"
 #include "db.h"
 
@@ -10,12 +11,12 @@ namespace annis
 {
 
 /** A join that checks all combinations of the left and right matches if their are connected. */
-class NestedLoopJoin : public BinaryIt
+class LegacyNestedLoopJoin : public BinaryIt
 {
 public:
-  NestedLoopJoin(const EdgeDB* edb, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
+  LegacyNestedLoopJoin(const EdgeDB* edb, std::shared_ptr<AnnoIt> left, std::shared_ptr<AnnoIt> right,
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
-  virtual ~NestedLoopJoin();
+  virtual ~LegacyNestedLoopJoin();
 
   virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
@@ -35,12 +36,12 @@ private:
 };
 
 /** A join that takes the left argument as a seed, finds all connected nodes (matching the distance) and checks the condition for each node. */
-class SeedJoin : public BinaryIt
+class LegacySeedJoin : public BinaryIt
 {
 public:
-  SeedJoin(const DB& db, const EdgeDB* edb, std::shared_ptr<AnnoIt> left, Annotation right,
+  LegacySeedJoin(const DB& db, const EdgeDB* edb, std::shared_ptr<AnnoIt> left, Annotation right,
                  unsigned int minDistance = 1, unsigned int maxDistance = 1);
-  virtual ~SeedJoin();
+  virtual ~LegacySeedJoin();
 
   virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
@@ -137,6 +138,30 @@ private:
 
   void initEdgeDB();
 };
+
+/** A join that checks all combinations of the left and right matches if their are connected. */
+class NestedLoopJoin : public Join
+{
+public:
+  NestedLoopJoin(std::shared_ptr<Operator> op);
+  virtual ~NestedLoopJoin();
+
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
+
+  virtual BinaryMatch next();
+  virtual void reset();
+private:
+  std::shared_ptr<Operator> op;
+  bool initialized;
+
+  std::shared_ptr<AnnoIt> left;
+  std::shared_ptr<AnnoIt> right;
+
+  Match matchLeft;
+  Match matchRight;
+
+};
+
 
 } // end namespace annis
 

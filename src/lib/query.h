@@ -6,13 +6,14 @@
 #include <list>
 
 #include <annotationiterator.h>
+#include "operator.h"
 
 namespace annis
 {
 
 struct OperatorEntry
 {
-  std::shared_ptr<BinaryIt> op;
+  std::shared_ptr<Join> op;
   size_t idxLeft;
   size_t idxRight;
 };
@@ -35,7 +36,15 @@ public:
    * @param idxLeft index of LHS node
    * @param idxRight index of RHS node
    */
-  void addOperator(std::shared_ptr<BinaryIt> op, size_t idxLeft, size_t idxRight);
+  void addOperator(std::shared_ptr<Join> op, size_t idxLeft, size_t idxRight);
+
+  /**
+   * @brief add an operator to the execution queue
+   * @param op
+   * @param idxLeft index of LHS node
+   * @param idxRight index of RHS node
+   */
+  void addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight);
 
   bool hasNext();
   std::vector<Match> next();
@@ -43,7 +52,7 @@ public:
 private:
   std::vector<std::shared_ptr<CacheableAnnoIt>> source;
   /**
-   * @brief Stores if a certain source is the original (and we should call "next()") of just a copy
+   * @brief Stores if a certain source is the original (and we should call "next()") or just a copy
    * where we have to use "current()"
    */
   std::vector<bool> isOrig;

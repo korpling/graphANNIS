@@ -38,11 +38,18 @@ public:
 class BinaryIt
 {
 public:
-  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs) = 0;
   virtual BinaryMatch next() = 0;
   virtual void reset() = 0;
 
   virtual ~BinaryIt() {}
+};
+
+class Join : public BinaryIt
+{
+public:
+  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs) = 0;
+
+  virtual ~Join() {}
 };
 
 } // end namespace annis

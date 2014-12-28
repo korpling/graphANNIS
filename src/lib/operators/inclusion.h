@@ -10,7 +10,7 @@
 namespace annis
 {
 
-class Inclusion : public BinaryIt
+class Inclusion : public Join
 {
 public:
   Inclusion(DB &db);

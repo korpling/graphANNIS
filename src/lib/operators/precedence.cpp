@@ -27,12 +27,12 @@ LegacyPrecedence::LegacyPrecedence(DB &db,
     {
       tokenShortcut = true;
       // special case: order relations always have token as target if the source is a token
-      actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyNodeAnno, minDistance, maxDistance);
+      actualJoin = new LegacySeedJoin(db, edbOrder, tokIteratorForLeftNode, anyNodeAnno, minDistance, maxDistance);
     }
     else
     {
       // TODO: allow to use a nested loop iterator as a configurable alternative
-      actualJoin = new SeedJoin(db, edbOrder, tokIteratorForLeftNode, anyTokAnno, minDistance, maxDistance);
+      actualJoin = new LegacySeedJoin(db, edbOrder, tokIteratorForLeftNode, anyTokAnno, minDistance, maxDistance);
     }
   }
   currentMatchedToken.found = true;
@@ -156,9 +156,10 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
 
 bool Precedence::filter(const Match &lhs, const Match &rhs)
 {
-  nodeid_t lhsToken = tokHelper.rightTokenForNode(lhs.node);
-  nodeid_t rhsToken = tokHelper.leftTokenForNode(rhs.node);
-  if(edbOrder->isConnected(Init::initEdge(lhsToken, rhsToken), minDistance, maxDistance))
+  nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
+  nodeid_t rhsLeftToken = tokHelper.leftTokenForNode(rhs.node);
+  if(edbOrder->isConnected(Init::initEdge(lhsRightToken, rhsLeftToken),
+                           minDistance, maxDistance))
   {
     return true;
   }

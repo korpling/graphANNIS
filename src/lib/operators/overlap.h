@@ -42,7 +42,7 @@ private:
 
 };
 
-class SeedOverlap : public BinaryIt
+class SeedOverlap : public Join
 {
 public:
   SeedOverlap(DB &db);
@@ -69,7 +69,7 @@ private:
   const EdgeDB* edbCoverage;
 
   //LeftMostTokenForNodeIterator lhsLeftTokenIt;
-  SeedJoin* tokenCoveredByLHS;
+  LegacySeedJoin* tokenCoveredByLHS;
   //SeedJoin tokenRightFromLHSIt;
   std::list<Match> currentMatches;
 
