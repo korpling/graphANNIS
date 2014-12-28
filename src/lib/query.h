@@ -3,11 +3,19 @@
 
 #include <memory>
 #include <vector>
+#include <list>
 
 #include <annotationiterator.h>
 
 namespace annis
 {
+
+struct OperatorEntry
+{
+  std::shared_ptr<BinaryIt> op;
+  size_t idxLeft;
+  size_t idxRight;
+};
 
 class Query
 {
@@ -39,6 +47,13 @@ private:
    * where we have to use "current()"
    */
   std::vector<bool> isOrig;
+
+  std::list<std::shared_ptr<CacheableAnnoIt>> nodes;
+  std::list<OperatorEntry> operators;
+
+  bool initialized;
+
+  void internalInit();
 
 };
 
