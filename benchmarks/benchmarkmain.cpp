@@ -178,16 +178,16 @@ BENCHMARK_F(Tiger, BilharzioseSentence, 5, 1)
 // pos="NN" .2,10 pos="ART" . pos="NN"
 BENCHMARK_F(Tiger, NNPreARTPreNN, 5, 1) {
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
-  std::shared_ptr<AnnoIt> n3(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
 
-  std::shared_ptr<BinaryIt> join1(std::make_shared<LegacyPrecedence>(db, n1, n2, 2, 10));
-  std::shared_ptr<AnnoIt> wrappedJoin1(std::make_shared<JoinWrapIterator>(join1));
-
-  LegacyPrecedence join2(db, wrappedJoin1, n3);
-  for(BinaryMatch m = join2.next(); m.found; m = join2.next())
+  q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(db), 1, 2);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }
@@ -195,15 +195,16 @@ BENCHMARK_F(Tiger, NNPreARTPreNN, 5, 1) {
 // pos="NN" .2,10 pos="ART" . pos="NN"
 BENCHMARK_F(TigerFallback, NNPreARTPreNN, 5, 1) {
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
-  std::shared_ptr<AnnoIt> n3(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
 
-  std::shared_ptr<BinaryIt> join1(std::make_shared<LegacyPrecedence>(db, n1, n2, 2, 10));
-  std::shared_ptr<AnnoIt> wrappedJoin1(std::make_shared<JoinWrapIterator>(join1));
-  LegacyPrecedence join2(db, wrappedJoin1, n3);
-  for(BinaryMatch m = join2.next(); m.found; m = join2.next())
+  q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(db), 1, 2);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }
@@ -241,12 +242,14 @@ BENCHMARK_F(Ridges, PosNNOverlapsNormBlumen, 5, 1) {
 // pos="NN" .2,10 pos="ART"
 BENCHMARK_F(Ridges, NNPreceedingART, 5, 1) {
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "ART"));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "ART"));
 
-  LegacyPrecedence join(db, n1, n2, 2, 10);
-  for(BinaryMatch m=join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }
@@ -254,13 +257,15 @@ BENCHMARK_F(Ridges, NNPreceedingART, 5, 1) {
 // tok .2,10 tok
 BENCHMARK_F(Ridges, TokPreceedingTok, 5, 1) {
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns, annis::annis_tok));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
 
-  LegacyPrecedence join(db, n1, n2, 2, 10);
 
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }
@@ -268,12 +273,14 @@ BENCHMARK_F(Ridges, TokPreceedingTok, 5, 1) {
 // pos="NN" .2,10 pos="ART"
 BENCHMARK_F(RidgesFallback, NNPreceedingART, 5, 1) {
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "ART"));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "ART"));
 
-  LegacyPrecedence join(db, n1, n2, 2, 10);
-  for(BinaryMatch m=join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }
@@ -281,15 +288,15 @@ BENCHMARK_F(RidgesFallback, NNPreceedingART, 5, 1) {
 // tok .2,10 tok
 BENCHMARK_F(RidgesFallback, TokPreceedingTok, 5, 1) {
 
-  unsigned int counter=0;
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns, annis::annis_tok));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns, annis::annis_tok));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
+  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
 
-  LegacyPrecedence join(db, n1, n2, 2, 10);
-
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }

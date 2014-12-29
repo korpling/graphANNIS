@@ -105,8 +105,6 @@ AnnotationNameSearch::AnnotationNameSearch(const DB &db, const string &annoNamsp
   }
 }
 
-
-
 Match AnnotationNameSearch::next()
 {
   Match result;

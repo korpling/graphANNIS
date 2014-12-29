@@ -107,13 +107,15 @@ TEST_F(SearchTestRidges, Benchmark2) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns, annis::annis_tok));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
+  Query q(db);
 
-  LegacyPrecedence join(db, n1, n2, 2, 10);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns, annis::annis_tok));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
 
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 
@@ -174,13 +176,14 @@ TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "PTKANT"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_node_name));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "PTKANT"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_node_name));
 
-  LegacyPrecedence join(db, n1, n2, 1, 1);
-
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<Precedence>(db, 1, 1), 0, 1);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 

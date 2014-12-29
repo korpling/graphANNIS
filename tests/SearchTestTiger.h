@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "helper.h"
+#include "query.h"
 #include "operators/defaultjoins.h"
 #include "operators/precedence.h"
 #include "annotationsearch.h"
@@ -71,12 +72,14 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
 
-  LegacyPrecedence join(db, n1, n2, 2, 10);
-  for(BinaryMatch m=join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 
@@ -89,15 +92,17 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
-  std::shared_ptr<AnnoIt> n3(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
 
-  std::shared_ptr<BinaryIt> join1(std::make_shared<LegacyPrecedence>(db, n1, n2, 2, 10));
-  std::shared_ptr<AnnoIt> wrappedJoin1(std::make_shared<JoinWrapIterator>(join1));
-  LegacyPrecedence join2(db, wrappedJoin1, n3);
-  for(BinaryMatch m = join2.next(); m.found; m = join2.next())
+  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(db), 1, 2);
+
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 
