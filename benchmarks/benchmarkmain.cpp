@@ -212,7 +212,7 @@ BENCHMARK_F(TigerFallback, NNPreARTPreNN, 5, 1) {
 BENCHMARK_F(Ridges, PosNNIncludesNormBlumen, 5, 1) {
 
 
-  Query q;
+  Query q(db);
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
@@ -297,7 +297,7 @@ BENCHMARK_F(RidgesFallback, TokPreceedingTok, 5, 1) {
 // pos="NN" & norm="Blumen" & #1 _i_ #2
 BENCHMARK_F(RidgesFallback, PosNNIncludesNormBlumen, 5, 1) {
 
-  Query q;
+  Query q(db);
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
   q.addOperator(std::make_shared<annis::Inclusion>(db), 1, 0);

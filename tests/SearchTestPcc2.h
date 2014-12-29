@@ -7,6 +7,7 @@
 #include "operators/defaultjoins.h"
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
+#include "operators/precedence.h"
 #include "query.h"
 
 #include <vector>
@@ -155,7 +156,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 
   std::shared_ptr<Join> join(std::make_shared<SeedOverlap>(db));
 
-  Query q;
+  Query q(db);
   q.addNode(n1);
   q.addNode(n2);
   q.addOperator(join, 0, 1);
@@ -174,7 +175,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 // mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 
-  Query q;
+  Query q(db);
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
   q.addOperator(std::make_shared<SeedOverlap>(db), 0, 1);
@@ -193,7 +194,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryInclude) {
 
-  Query q;
+  Query q(db);
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
   q.addOperator(std::make_shared<Inclusion>(db), 0, 1);
@@ -207,6 +208,28 @@ TEST_F(SearchTestPcc2, TestQueryInclude) {
   }
 
   EXPECT_EQ(23u, counter);
+}
+
+// Should test query
+// pos="NN" .2,20 pos="ART"
+TEST_F(SearchTestPcc2, Precedence) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "acc-sit"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "NP", "NP"));
+
+  q.addOperator(std::make_shared<Precedence>(db, 1, 500), 0, 1);
+
+  while(q.hasNext() && counter < 2000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(27u, counter);
 }
 
 

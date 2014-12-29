@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 
+#include "db.h"
 #include <annotationiterator.h>
 #include "operator.h"
 
@@ -21,7 +22,7 @@ struct OperatorEntry
 class Query
 {
 public:
-  Query();
+  Query(const DB& db);
 
   /**
    * @brief Add a new node to query
@@ -50,6 +51,9 @@ public:
   std::vector<Match> next();
 
 private:
+
+  const DB& db;
+
   std::vector<std::shared_ptr<CacheableAnnoIt>> source;
   /**
    * @brief Stores if a certain source is the original (and we should call "next()") or just a copy

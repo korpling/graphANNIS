@@ -4,8 +4,8 @@
 
 using namespace annis;
 
-Query::Query()
-  : initialized(false)
+Query::Query(const DB &db)
+  : db(db), initialized(false)
 {
 }
 
@@ -36,7 +36,7 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
   initialized = false;
 
   OperatorEntry entry;
-  entry.op = std::make_shared<NestedLoopJoin>(op);
+  entry.op = std::make_shared<SeedJoin>(db, op);
   entry.idxLeft = idxLeft;
   entry.idxRight = idxRight;
 

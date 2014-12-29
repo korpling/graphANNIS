@@ -60,7 +60,7 @@ class SearchTestTueBaDZ : public ::testing::Test {
 */
 TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
 
-  Query q;
+  Query q(db);
   q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "merged", "pos", "PPER"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));

@@ -125,33 +125,29 @@ Precedence::Precedence(const DB &db, unsigned int minDistance, unsigned int maxD
 
 std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
 {
-  std::unique_ptr<AnnoIt> materialized(nullptr);
+  std::unique_ptr<AnnoIt> result(nullptr);
 
-  EdgeIterator* edgeIterator = edbOrder->findConnected(lhs.node, minDistance, maxDistance);
-  if(checkAnnotationEqual(lhs.anno, anyTokAnno))
+  nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
+  EdgeIterator* edgeIterator = edbOrder->findConnected(lhsRightToken,
+                                                       minDistance, maxDistance);
+
+  ListWrapper* w = new ListWrapper();
+  result.reset(w);
+  // materialize a list of all matches and wrap it
+  for(std::pair<bool, nodeid_t> matchedToken = edgeIterator->next();
+      matchedToken.first; matchedToken = edgeIterator->next())
   {
-    // special case: order relations always have token as target if the source is a token
-    return std::unique_ptr<AnnoIt>(new EdgeIteratorWrapper(edgeIterator));
-  }
-  else
-  {
-    ListWrapper* w = new ListWrapper();
-    materialized.reset(w);
-    // materialize a list of all matches and wrap it
-    for(std::pair<bool, nodeid_t> matchedToken = edgeIterator->next();
-        matchedToken.first; matchedToken = edgeIterator->next())
+    // get all nodes that are left-aligned to this token
+    std::vector<nodeid_t> tmp = edbLeft->getOutgoingEdges(matchedToken.second);
+    for(const auto& n : tmp)
     {
-      // get all nodes that are left-aligned to this token
-      std::vector<nodeid_t> tmp = edbLeft->getOutgoingEdges(matchedToken.second);
-      for(const auto& n : tmp)
-      {
-        w->addMatch(Init::initMatch(anyNodeAnno, n));
-      }
-      // add the actual token to the list as well
-      w->addMatch(Init::initMatch(anyNodeAnno, matchedToken.second));
+      w->addMatch(Init::initMatch(anyNodeAnno, n));
     }
+    // add the actual token to the list as well
+    w->addMatch(Init::initMatch(anyNodeAnno, matchedToken.second));
   }
-  return materialized;
+
+  return result;
 }
 
 bool Precedence::filter(const Match &lhs, const Match &rhs)

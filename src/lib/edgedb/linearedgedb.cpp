@@ -9,6 +9,11 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include <boost/format.hpp>
+#include <humblelogging/api.h>
+
+HUMBLE_LOGGER(logger, "annis4");
+
 using namespace annis;
 using namespace std;
 
@@ -164,7 +169,7 @@ LinearEdgeDB::~LinearEdgeDB()
 LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
                                unsigned int minDistance, unsigned int maxDistance)
   : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode),
-    chain(NULL)
+    chain(nullptr)
 {
   reset();
 }
@@ -173,7 +178,7 @@ pair<bool, nodeid_t> LinearIterator::next()
 {
   bool found = false;
   nodeid_t node = 0;
-  if(chain != NULL && currentPos <= endPos && currentPos < chain->size())
+  if(chain != nullptr && currentPos <= endPos && currentPos < chain->size())
   {
     found = true;
     node = chain->at(currentPos);
@@ -187,6 +192,7 @@ void LinearIterator::reset()
 {
   typedef stx::btree_map<nodeid_t, RelativePosition>::const_iterator PosIt;
   typedef map<nodeid_t, std::vector<nodeid_t> >::const_iterator NodeChainIt;
+
   PosIt posSourceIt = edb.node2pos.find(startNode);
   if(posSourceIt != edb.node2pos.end())
   {

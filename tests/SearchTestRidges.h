@@ -80,20 +80,21 @@ TEST_F(SearchTestRidges, PosValueSearch) {
 }
 
 // Should test query
-// pos="NN" .2,10 pos="ART"
+// pos="VVIZU" .10000,10010 pos="ART"
 TEST_F(SearchTestRidges, Benchmark1) {
 
   unsigned int counter=0;
 
-  Query q;
+  Query q(db);
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "ART"));
 
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
 
-  while(q.hasNext())
+  while(q.hasNext() && counter < 30000u)
   {
-    q.next();
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
 
@@ -236,7 +237,7 @@ TEST_F(SearchTestRidges, Inclusion) {
   std::shared_ptr<CacheableAnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
   std::shared_ptr<CacheableAnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
-  annis::Query q;
+  annis::Query q(db);
   q.addNode(n1);
   q.addNode(n2);
 
