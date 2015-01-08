@@ -19,6 +19,8 @@
 using namespace annis;
 
 class SearchTestRidges : public ::testing::Test {
+public:
+  const unsigned int MAX_COUNT = 5000000u;
  protected:
   DB db;
   SearchTestRidges() {
@@ -53,7 +55,7 @@ class SearchTestRidges : public ::testing::Test {
 TEST_F(SearchTestRidges, DiplNameSearch) {
   AnnotationNameSearch search(db, "dipl");
   unsigned int counter=0;
-  while(search.hasNext())
+  while(search.hasNext() && counter < MAX_COUNT)
   {
     Match m = search.next();
     ASSERT_STREQ("dipl", db.strings.str(m.anno.name).c_str());
@@ -67,7 +69,7 @@ TEST_F(SearchTestRidges, DiplNameSearch) {
 TEST_F(SearchTestRidges, PosValueSearch) {
   AnnotationNameSearch search(db, "default_ns", "pos", "NN");
   unsigned int counter=0;
-  while(search.hasNext())
+  while(search.hasNext() && counter < MAX_COUNT)
   {
     Match m = search.next();
     ASSERT_STREQ("pos", db.strings.str(m.anno.name).c_str());
@@ -91,7 +93,7 @@ TEST_F(SearchTestRidges, Benchmark1) {
 
   q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
 
-  while(q.hasNext() && counter < 30000u)
+  while(q.hasNext() && counter < MAX_COUNT)
   {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
@@ -113,7 +115,7 @@ TEST_F(SearchTestRidges, Benchmark2) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
 
   q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
-  while(q.hasNext())
+  while(q.hasNext() && counter < MAX_COUNT)
   {
     q.next();
     counter++;
@@ -181,7 +183,7 @@ TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_node_name));
 
   q.addOperator(std::make_shared<Precedence>(db, 1, 1), 0, 1);
-  while(q.hasNext())
+  while(q.hasNext() && counter < MAX_COUNT)
   {
     q.next();
     counter++;
@@ -246,7 +248,7 @@ TEST_F(SearchTestRidges, Inclusion) {
 
   q.addOperator(std::make_shared<Inclusion>(db), 0, 1);
 
-  while(q.hasNext())
+  while(q.hasNext() && counter < MAX_COUNT)
   {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m[0].node % m[1].node).str()) ;

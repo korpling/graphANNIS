@@ -17,6 +17,9 @@
 using namespace annis;
 
 class SearchTestTiger : public ::testing::Test {
+public:
+  const unsigned int MAX_COUNT = 5000000u;
+
  protected:
   DB db;
   bool loaded;
@@ -55,7 +58,7 @@ TEST_F(SearchTestTiger, CatSearch) {
 
   AnnotationNameSearch search(db, "cat");
   unsigned int counter=0;
-  while(search.hasNext())
+  while(search.hasNext() && counter < MAX_COUNT)
   {
     Match m = search.next();
     ASSERT_STREQ("cat", db.strings.str(m.anno.name).c_str());
@@ -77,7 +80,7 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
 
   q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
-  while(q.hasNext())
+  while(q.hasNext() && counter < MAX_COUNT)
   {
     q.next();
     counter++;
@@ -100,7 +103,7 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
   q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
   q.addOperator(std::make_shared<Precedence>(db), 1, 2);
 
-  while(q.hasNext())
+  while(q.hasNext() && counter < MAX_COUNT)
   {
     q.next();
     counter++;
