@@ -1,5 +1,4 @@
 #include "query.h"
-#include "operators/wrapper.h"
 #include "operators/defaultjoins.h"
 
 using namespace annis;
@@ -10,7 +9,7 @@ Query::Query(const DB &db)
 }
 
 
-size_t annis::Query::addNode(std::shared_ptr<annis::CacheableAnnoIt> n)
+size_t annis::Query::addNode(std::shared_ptr<AnnoIt> n)
 {
   initialized = false;
 
@@ -47,13 +46,11 @@ void Query::internalInit()
 {
   // clear old internal variables
   source.clear();
-  isOrig.clear();
 
   // 1. add all nodes
   for(auto& n : nodes)
   {
     source.push_back(n);
-    isOrig.push_back(true);
   }
 
   // 2. add the operators which produce the results
@@ -62,11 +59,15 @@ void Query::internalInit()
     if(e.idxLeft < source.size() && e.idxRight < source.size())
     {
       e.op->init(source[e.idxLeft], source[e.idxRight]);
-      source[e.idxLeft] = std::make_shared<JoinWrapIterator>(e.op, true);
-      isOrig[e.idxLeft] = true;
 
-      source[e.idxRight] = std::make_shared<JoinWrapIterator>(e.op, false);
-      isOrig[e.idxRight] = false;
+      std::shared_ptr<JoinWrapIterator> itLeft = std::make_shared<JoinWrapIterator>(e.op, true);
+      std::shared_ptr<JoinWrapIterator> itRight = std::make_shared<JoinWrapIterator>(e.op, false);
+
+      itLeft->setOther(itRight);
+      itRight->setOther(itLeft);
+
+      source[e.idxLeft] = itLeft;
+      source[e.idxRight] = itRight;
     }
   }
 
@@ -103,19 +104,12 @@ std::vector<Match> Query::next()
   {
     std::vector<Match> result(source.size());
 
-    // call "next()" on all original sources
+    // call "next()" on all sources
     for(size_t i=0; i < source.size(); i++)
     {
-      if(isOrig[i])
-      {
-        source[i]->next();
-      }
+      result[i] = source[i]->next();
     }
 
-    for(size_t i=0; i < source.size(); i++)
-    {
-      result[i] = source[i]->current();
-    }
     return result;
   }
   return std::vector<Match>(0);

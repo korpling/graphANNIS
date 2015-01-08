@@ -4,55 +4,42 @@
 using namespace annis;
 
 
-JoinWrapIterator::JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedIterator, bool wrapLeftOperand)
-  : matchAllAnnotation(Init::initAnnotation()), wrappedIterator(wrappedIterator), wrapLeftOperand(wrapLeftOperand)
-{
-  reset();
-}
 
-
-bool JoinWrapIterator::hasNext()
-{
-  return currentMatch.found;
-}
-
-Match JoinWrapIterator::next()
-{
-  Match result;
-  if(currentMatch.found)
-  {
-    if(wrapLeftOperand)
-    {
-      result = currentMatch.lhs;
-    }
-    else
-    {
-      result = currentMatch.rhs;
-    }
-    currentMatch = wrappedIterator->next();
-  }
-  return result;
-}
 
 void JoinWrapIterator::reset()
 {
-  wrappedIterator->reset();
-  currentMatch = wrappedIterator->next();
+  ListWrapper::reset();
+  if(otherInnerWrapper)
+  {
+    otherInnerWrapper->reset();
+  }
 }
 
-Match JoinWrapIterator::current()
+void JoinWrapIterator::checkIfNextCallNeeded()
 {
-  Match result;
-  if(currentMatch.found)
+  // if the current list of entries is entry call the underlying join
+  if(internalListSize() == 0)
   {
-    if(wrapLeftOperand)
+    BinaryMatch nextMatch = wrappedJoin->next();
+    if(nextMatch.found)
     {
-      result = currentMatch.lhs;
-    }
-    else
-    {
-      result = currentMatch.rhs;
+      // add the match to this list *and* to the other one which is hold by the JoinWrapIterator
+      if(wrapLeftOperand)
+      {
+        addMatch(nextMatch.lhs);
+        if(otherInnerWrapper)
+        {
+          otherInnerWrapper->addMatch(nextMatch.rhs);
+        }
+      }
+      else
+      {
+        addMatch(nextMatch.rhs);
+        if(otherInnerWrapper)
+        {
+          otherInnerWrapper->addMatch(nextMatch.lhs);
+        }
+      }
     }
   }
-  return result;
 }

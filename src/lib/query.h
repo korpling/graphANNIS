@@ -8,6 +8,7 @@
 #include "db.h"
 #include <annotationiterator.h>
 #include "operator.h"
+#include "operators/wrapper.h"
 
 namespace annis
 {
@@ -29,7 +30,7 @@ public:
    * @param n The initial source
    * @return new node number
    */
-  size_t addNode(std::shared_ptr<CacheableAnnoIt> n);
+  size_t addNode(std::shared_ptr<AnnoIt> n);
 
   /**
    * @brief add an operator to the execution queue
@@ -54,14 +55,8 @@ private:
 
   const DB& db;
 
-  std::vector<std::shared_ptr<CacheableAnnoIt>> source;
-  /**
-   * @brief Stores if a certain source is the original (and we should call "next()") or just a copy
-   * where we have to use "current()"
-   */
-  std::vector<bool> isOrig;
-
-  std::list<std::shared_ptr<CacheableAnnoIt>> nodes;
+  std::vector<std::shared_ptr<AnnoIt>> source;
+  std::list<std::shared_ptr<AnnoIt>> nodes;
   std::list<OperatorEntry> operators;
 
   bool initialized;
