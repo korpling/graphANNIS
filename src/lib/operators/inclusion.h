@@ -5,26 +5,22 @@
 #include <list>
 
 #include "../db.h"
-#include "../annotationiterator.h"
+#include "../operator.h"
+#include "../helper.h"
 
 namespace annis
 {
 
-class Inclusion : public Join
+class Inclusion : public Operator
 {
 public:
   Inclusion(DB &db);
 
-  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
-
-  virtual BinaryMatch next();
-  virtual void reset();
+  virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs);
+  virtual bool filter(const Match& lhs, const Match& rhs);
 
   virtual ~Inclusion();
 private:
-
-  std::shared_ptr<AnnoIt> left;
-  Annotation rightAnnotation;
 
   const DB& db;
   std::vector<const EdgeDB*> edbCoverage;
@@ -32,10 +28,9 @@ private:
   const EdgeDB* edbLeftToken;
   const EdgeDB* edbRightToken;
 
-  // the following variales hold the current iteration state
-  std::list<Match> currentMatches;
-  BinaryMatch currentResult;
-  // end iteration state
+  Annotation anyNodeAnno;
+
+  TokenHelper tokHelper;
 
 
 };

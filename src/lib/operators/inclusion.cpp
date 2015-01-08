@@ -1,113 +1,90 @@
 #include "inclusion.h"
 
 #include "../componenttypeiterator.h"
+#include "wrapper.h"
+
 
 using namespace annis;
 
 Inclusion::Inclusion(DB &db)
-  : db(db)
+  : db(db),
+    anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
+    tokHelper(db)
 {
   edbCoverage = db.getAllEdgeDBForType(ComponentType::COVERAGE);
   edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
   edbLeftToken = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
   edbRightToken = db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "");
-  reset();
+
 }
 
-void Inclusion::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
+bool Inclusion::filter(const Match &lhs, const Match &rhs)
 {
-  left = lhs;
-  rightAnnotation = rhs->getAnnotation();
-}
+  nodeid_t lhsLeftToken = tokHelper.leftTokenForNode(lhs.node);
+  nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
+  int spanLength = spanLength = edbOrder->distance(Init::initEdge(lhsLeftToken, lhsRightToken));
 
-BinaryMatch Inclusion::next()
-{
-  currentResult.found = false;
+  nodeid_t rhsLeftToken = tokHelper.leftTokenForNode(rhs.node);
+  nodeid_t rhsRightToken = tokHelper.rightTokenForNode(rhs.node);
 
-  while(currentMatches.empty() && left->hasNext())
+  if(edbOrder->isConnected(Init::initEdge(lhsLeftToken, rhsLeftToken), 0, spanLength)
+     && edbOrder->isConnected(Init::initEdge(lhsLeftToken, rhsRightToken)), 0, spanLength)
   {
-    currentResult.lhs = left->next();
+    return true;
+  }
+  return false;
+}
 
-    currentMatches.clear();
 
-    nodeid_t leftToken;
-    nodeid_t rightToken;
-    int spanLength = 0;
-    if(db.getNodeAnnotation(currentResult.lhs.node, annis_ns, annis_tok).first)
-    {
-      // is token
-      leftToken = currentResult.lhs.node;
-      rightToken = currentResult.lhs.node;
-    }
-    else
-    {
-      leftToken = edbLeftToken->getOutgoingEdges(currentResult.lhs.node)[0];
-      rightToken = edbRightToken->getOutgoingEdges(currentResult.lhs.node)[0];
-      spanLength = edbOrder->distance(Init::initEdge(leftToken, rightToken));
-    }
+std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
+{
+  std::unique_ptr<AnnoIt> result(nullptr);
 
-    // find each token which is between the left and right border
-    EdgeIterator* itIncludedStart = edbOrder->findConnected(leftToken, 0, spanLength);
-    for(std::pair<bool, nodeid_t> includedStart = itIncludedStart->next();
-        includedStart.first;
-        includedStart = itIncludedStart->next())
+  ListWrapper* w = new ListWrapper();
+  result.reset(w);
+
+  nodeid_t leftToken;
+  nodeid_t rightToken;
+  int spanLength = 0;
+  if(db.getNodeAnnotation(lhs.node, annis_ns, annis_tok).first)
+  {
+    // is token
+    leftToken = lhs.node;
+    rightToken = lhs.node;
+  }
+  else
+  {
+    leftToken = edbLeftToken->getOutgoingEdges(lhs.node)[0];
+    rightToken = edbRightToken->getOutgoingEdges(lhs.node)[0];
+    spanLength = edbOrder->distance(Init::initEdge(leftToken, rightToken));
+  }
+
+  // find each token which is between the left and right border
+  EdgeIterator* itIncludedStart = edbOrder->findConnected(leftToken, 0, spanLength);
+  for(std::pair<bool, nodeid_t> includedStart = itIncludedStart->next();
+      includedStart.first;
+      includedStart = itIncludedStart->next())
+  {
+    // add the token itself
+    w->addMatch(Init::initMatch(anyNodeAnno, includedStart.second));
+
+    // add aligned nodes
+    for(const auto& leftAlignedNode : edbLeftToken->getOutgoingEdges(includedStart.second))
     {
-      // check the token itself
-      for(Annotation anno : db.getNodeAnnotationsByID(includedStart.second))
+      nodeid_t includedEndCandiate = edbRightToken->getOutgoingEdges(leftAlignedNode)[0];
+      if(edbOrder->isConnected(Init::initEdge(includedEndCandiate, rightToken), 0, uintmax))
       {
-        if(checkAnnotationEqual(rightAnnotation, anno))
-        {
-          Match m;
-          m.anno = anno;
-          m.node = includedStart.second;
-          currentMatches.push_back(m);
-          // TODO: do we want to be able to match all annotations?
-          break;
-        }
-      }
-      for(const auto& leftAlignedNode : edbLeftToken->getOutgoingEdges(includedStart.second))
-      {
-        nodeid_t includedEndCandiate = edbRightToken->getOutgoingEdges(leftAlignedNode)[0];
-        if(edbOrder->isConnected(Init::initEdge(includedEndCandiate, rightToken), 0, uintmax))
-        {
-
-          for(Annotation anno : db.getNodeAnnotationsByID(leftAlignedNode))
-          {
-            if(checkAnnotationEqual(rightAnnotation, anno))
-            {
-              Match m;
-              m.anno = anno;
-              m.node = leftAlignedNode;
-              currentMatches.push_back(m);
-              // TODO: do we want to be able to match all annotations?
-              break;
-            }
-          }
-
-        }
+        w->addMatch(Init::initMatch(anyNodeAnno, leftAlignedNode));
       }
     }
   }
 
-  if(!currentMatches.empty())
-  {
-    currentResult.found = true;
-    currentResult.rhs = currentMatches.front();
-    currentMatches.pop_front();
-  }
-
-  return currentResult;
+  return result;
 }
 
-void Inclusion::reset()
-{
-  currentMatches.clear();
-  if(left)
-  {
-    left->reset();
-  }
-}
 
 Inclusion::~Inclusion()
 {
 }
+
+
