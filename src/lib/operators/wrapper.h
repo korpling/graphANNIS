@@ -1,7 +1,7 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
-#include <queue>
+#include <deque>
 #include "../annotationiterator.h"
 
 namespace annis
@@ -23,7 +23,7 @@ public:
 
   void addMatch(const Match& m)
   {
-    orig.push(m);
+    orig.push_back(m);
   }
 
   virtual bool hasNext()
@@ -34,16 +34,13 @@ public:
   virtual Match next()
   {
     Match result = orig.front();
-    orig.pop();
+    orig.pop_front();
     return result;
   }
 
   virtual void reset()
   {
-    while(!orig.empty())
-    {
-      orig.pop();
-    }
+    orig.clear();
   }
 
   virtual const Annotation& getAnnotation()
@@ -62,7 +59,7 @@ protected:
   }
 
 private:
-  std::queue<Match> orig;
+  std::deque<Match> orig;
 
   Annotation anyAnno;
 };
@@ -72,10 +69,11 @@ class JoinWrapIterator : public ListWrapper
 {
 public:
 
-  JoinWrapIterator(std::shared_ptr<Join> wrappedJoin,
+  JoinWrapIterator(std::shared_ptr<Join> wrappedJoin, const Annotation& rightAnno,
                         bool wrapLeftOperand = false)
     : wrappedJoin(wrappedJoin),
-      wrapLeftOperand(wrapLeftOperand)
+      wrapLeftOperand(wrapLeftOperand),
+      rightAnno(Init::initAnnotation())
   {
 
   }
@@ -94,6 +92,11 @@ public:
 
   virtual void reset();
 
+  virtual const Annotation& getAnnotation()
+  {
+    return rightAnno;
+  }
+
   virtual void setOther(std::shared_ptr<JoinWrapIterator> otherInnerWrapper)
   {
     JoinWrapIterator::otherInnerWrapper = otherInnerWrapper;
@@ -103,6 +106,7 @@ private:
   std::shared_ptr<Join> wrappedJoin;
   std::shared_ptr<JoinWrapIterator> otherInnerWrapper;
   bool wrapLeftOperand;
+  const Annotation& rightAnno;
 
   void checkIfNextCallNeeded();
 };

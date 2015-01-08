@@ -425,23 +425,9 @@ BinaryMatch SeedJoin::next()
 
   do
   {
-    if(!matchesByOperator)
-    {
-      matchesByOperator = op->retrieveMatches(currentMatch.lhs);
-      if(!matchesByOperator)
-      {
-        std::cerr << "could not create right matches from operator!" << std::endl;
-      }
-    }
-
     while(matchesByOperator && matchesByOperator->hasNext())
     {
       currentMatch.rhs = matchesByOperator->next();
-      if(!matchesByOperator->hasNext())
-      {
-        // if this was the last one reset the right match iterator
-        matchesByOperator.release();
-      }
 
       if(anyNodeShortcut)
       {
@@ -531,6 +517,14 @@ bool SeedJoin::nextLeftMatch()
 
     currentMatch.lhs = left->next();
     currentMatchValid = true;
+
+    matchesByOperator = op->retrieveMatches(currentMatch.lhs);
+    if(!matchesByOperator)
+    {
+      std::cerr << "could not create right matches from operator!" << std::endl;
+    }
+
+
     return true;
   }
 

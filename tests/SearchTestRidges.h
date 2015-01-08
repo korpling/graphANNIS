@@ -20,7 +20,7 @@ using namespace annis;
 
 class SearchTestRidges : public ::testing::Test {
 public:
-  const unsigned int MAX_COUNT = 5000000u;
+  const unsigned int MAX_COUNT = 2000000u;
  protected:
   DB db;
   SearchTestRidges() {
@@ -183,9 +183,11 @@ TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_node_name));
 
   q.addOperator(std::make_shared<Precedence>(db, 1, 1), 0, 1);
-  while(q.hasNext() && counter < MAX_COUNT)
+  while(q.hasNext() && counter < 100u)
   {
-    q.next();
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m[0].node)
+                       % db.getNodeName(m[1].node)).str()) ;
     counter++;
   }
 

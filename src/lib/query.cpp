@@ -60,8 +60,10 @@ void Query::internalInit()
     {
       e.op->init(source[e.idxLeft], source[e.idxRight]);
 
-      std::shared_ptr<JoinWrapIterator> itLeft = std::make_shared<JoinWrapIterator>(e.op, true);
-      std::shared_ptr<JoinWrapIterator> itRight = std::make_shared<JoinWrapIterator>(e.op, false);
+      std::shared_ptr<JoinWrapIterator> itLeft =
+          std::make_shared<JoinWrapIterator>(e.op, source[e.idxLeft]->getAnnotation(), true);
+      std::shared_ptr<JoinWrapIterator> itRight =
+          std::make_shared<JoinWrapIterator>(e.op, source[e.idxRight]->getAnnotation(), false);
 
       itLeft->setOther(itRight);
       itRight->setOther(itLeft);
