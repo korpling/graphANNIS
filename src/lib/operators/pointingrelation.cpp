@@ -1,5 +1,4 @@
 #include "pointingrelation.h"
-#include "wrapper.h"
 
 using namespace annis;
 

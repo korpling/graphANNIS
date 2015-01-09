@@ -9,6 +9,7 @@
 #include "operators/inclusion.h"
 #include "operators/precedence.h"
 #include "operators/pointingrelation.h"
+#include "operators/dominance.h"
 #include "query.h"
 
 #include <vector>
@@ -361,6 +362,52 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
   }
 
   EXPECT_EQ(4u, counter);
+}
+
+// Should test query
+// cat="S" >2,4 cat
+TEST_F(SearchTestPcc2, RangedDominance) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat"));
+
+  q.addOperator(std::make_shared<Dominance>(db, "", "", 2, 4), 0, 1);
+
+  while(q.hasNext() && counter < 2000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(93u, counter);
+}
+
+// Should test query
+// node >2,4 node
+TEST_F(SearchTestPcc2, DISABLED_MultiDominance) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns,
+                                                   annis_node_name));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns,
+                                                   annis_node_name));
+
+  q.addOperator(std::make_shared<Dominance>(db, "", "", 2, 4), 0, 1);
+
+  while(q.hasNext() && counter < 4000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(2072u, counter);
 }
 
 #endif // SEARCHTESTPCC2_H
