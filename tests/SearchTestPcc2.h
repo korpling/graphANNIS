@@ -8,7 +8,7 @@
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
 #include "operators/precedence.h"
-#include "operators/pointingrelation.h"
+#include "operators/pointing.h"
 #include "operators/dominance.h"
 #include "query.h"
 
@@ -240,7 +240,7 @@ TEST_F(SearchTestPcc2, IndirectPointing) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "pper"));
 
-  q.addOperator(std::make_shared<PointingRelation>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0);
+  q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0);
 
   while(q.hasNext() && counter < 2000)
   {
@@ -260,7 +260,7 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "pper"));
 
-  q.addOperator(std::make_shared<PointingRelation>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0, true);
+  q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0, true);
 
   while(q.hasNext() && counter < 2000)
   {
@@ -282,7 +282,7 @@ TEST_F(SearchTestPcc2, DirectPointing) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "pper"));
 
-  q.addOperator(std::make_shared<PointingRelation>(db, "", "anaphor_antecedent", 1, 1), 1, 0);
+  q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, 1), 1, 0);
 
   while(q.hasNext() && counter < 2000)
   {
@@ -302,7 +302,7 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "pper"));
 
-  q.addOperator(std::make_shared<PointingRelation>(db, "", "anaphor_antecedent", 1, 1), 1, 0, true);
+  q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, 1), 1, 0, true);
 
   while(q.hasNext() && counter < 2000)
   {
@@ -325,7 +325,7 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnno) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "."));
 
   std::shared_ptr<Operator> op =
-      std::make_shared<PointingRelation>(
+      std::make_shared<Pointing>(
         db, "", "dep",
         Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
   q.addOperator(op, 0, 1);
@@ -349,7 +349,7 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "."));
 
   std::shared_ptr<Operator> op =
-      std::make_shared<PointingRelation>(
+      std::make_shared<Pointing>(
         db, "", "dep",
         Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
   q.addOperator(op, 0, 1, true);
