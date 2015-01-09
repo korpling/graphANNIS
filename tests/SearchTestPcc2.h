@@ -313,6 +313,54 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
   EXPECT_EQ(5u, counter);
 }
 
+// Should test query
+// pos="ADJD" & "." & #1 ->dep[func="punct"] #2
+TEST_F(SearchTestPcc2, DirectPointingWithAnno) {
 
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ADJD"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "."));
+
+  std::shared_ptr<Operator> op =
+      std::make_shared<PointingRelation>(
+        db, "", "dep",
+        Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
+  q.addOperator(op, 0, 1);
+
+  while(q.hasNext() && counter < 2000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(4u, counter);
+}
+
+TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ADJD"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "."));
+
+  std::shared_ptr<Operator> op =
+      std::make_shared<PointingRelation>(
+        db, "", "dep",
+        Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
+  q.addOperator(op, 0, 1, true);
+
+  while(q.hasNext() && counter < 2000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(4u, counter);
+}
 
 #endif // SEARCHTESTPCC2_H
