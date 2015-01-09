@@ -52,6 +52,7 @@ bool Precedence::filter(const Match &lhs, const Match &rhs)
     return true;
   }
   return false;
+
 }
 
 Precedence::~Precedence()

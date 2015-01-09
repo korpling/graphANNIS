@@ -26,6 +26,11 @@ public:
     orig.push_back(m);
   }
 
+  void addMatch(const nodeid_t& m)
+  {
+    orig.push_back(Init::initMatch(anyAnno, m));
+  }
+
   virtual bool hasNext()
   {
     return !orig.empty();

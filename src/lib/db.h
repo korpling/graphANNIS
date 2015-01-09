@@ -101,6 +101,7 @@ public:
   std::vector<Component> getDirectConnected(const Edge& edge);
   const EdgeDB* getEdgeDB(const Component& component) const;
   const EdgeDB* getEdgeDB(ComponentType type, const std::string& layer, const std::string& name) const;
+  std::vector<const EdgeDB *> getEdgeDB(ComponentType type, const std::string& name) const;
   std::vector<const EdgeDB *> getAllEdgeDBForType(ComponentType type) const;
 
   std::vector<Annotation> getEdgeAnnotations(const Component& component,

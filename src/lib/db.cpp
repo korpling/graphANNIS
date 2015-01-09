@@ -678,6 +678,29 @@ const EdgeDB *DB::getEdgeDB(ComponentType type, const string &layer, const strin
   return getEdgeDB(c);
 }
 
+std::vector<const EdgeDB *> DB::getEdgeDB(ComponentType type, const string &name) const
+{
+  std::vector<const EdgeDB* > result;
+
+  Component componentKey;
+  componentKey.type = type;
+  componentKey.layer[0] = '\0';
+  componentKey.name[0] = '\0';
+
+  for(auto itEdgeDB = edgeDatabases.lower_bound(componentKey);
+      itEdgeDB != edgeDatabases.end() && itEdgeDB->first.type == type;
+      itEdgeDB++)
+  {
+    const Component& c = itEdgeDB->first;
+    if(name == c.name)
+    {
+      result.push_back(itEdgeDB->second);
+    }
+  }
+
+  return result;
+}
+
 std::vector<const EdgeDB* > DB::getAllEdgeDBForType(ComponentType type) const
 {
   std::vector<const EdgeDB* > result;
