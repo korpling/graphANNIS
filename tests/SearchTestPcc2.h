@@ -251,6 +251,68 @@ TEST_F(SearchTestPcc2, IndirectPointing) {
   EXPECT_EQ(13u, counter);
 }
 
+TEST_F(SearchTestPcc2, IndirectPointingNested) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "defnp"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "pper"));
+
+  q.addOperator(std::make_shared<PointingRelation>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0, true);
+
+  while(q.hasNext() && counter < 2000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(13u, counter);
+}
+
+// Should test query
+// mmax:np_form="defnp" & mmax:np_form="pper"  & #2 ->anaphor_antecedent * #1
+TEST_F(SearchTestPcc2, DirectPointing) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "defnp"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "pper"));
+
+  q.addOperator(std::make_shared<PointingRelation>(db, "", "anaphor_antecedent", 1, 1), 1, 0);
+
+  while(q.hasNext() && counter < 2000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(5u, counter);
+}
+
+TEST_F(SearchTestPcc2, DirectPointingNested) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "defnp"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "np_form", "pper"));
+
+  q.addOperator(std::make_shared<PointingRelation>(db, "", "anaphor_antecedent", 1, 1), 1, 0, true);
+
+  while(q.hasNext() && counter < 2000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(5u, counter);
+}
+
 
 
 #endif // SEARCHTESTPCC2_H
