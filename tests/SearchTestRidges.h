@@ -200,14 +200,17 @@ TEST_F(SearchTestRidges, NestedOverlap) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
-  annis::NestedOverlap join(db, n1, n2);
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<Overlap>(db), 0, 1, true);
+
+  while(q.hasNext())
   {
-    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m.lhs.node)
-                     % db.getNodeName(m.rhs.node)).str()) ;
+    auto m = q.next();
+    //HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m[0].node)
+    //                 % db.getNodeName(m[1].node)).str()) ;
     counter++;
   }
 
@@ -220,15 +223,17 @@ TEST_F(SearchTestRidges, SeedOverlap) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
-  annis::SeedOverlap join(db);
-  join.init(n1, n2);
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  q.addOperator(std::make_shared<Overlap>(db), 0, 1, false);
+
+  while(q.hasNext())
   {
-//    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m.lhs.node)
-//                     % db.getNodeName(m.rhs.node)).str()) ;
+    auto m = q.next();
+    //HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m[0].node)
+    //                 % db.getNodeName(m[1].node)).str()) ;
     counter++;
   }
 

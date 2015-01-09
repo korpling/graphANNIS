@@ -228,13 +228,15 @@ BENCHMARK_F(Ridges, PosNNIncludesNormBlumen, 5, 1) {
 
 // pos="NN" & norm="Blumen" & #1 _o_ #2
 BENCHMARK_F(Ridges, PosNNOverlapsNormBlumen, 5, 1) {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
-  SeedOverlap join(db);
-  join.init(n2, n1);
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  q.addOperator(std::make_shared<Overlap>(db), 0, 1);
+
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }
@@ -318,13 +320,15 @@ BENCHMARK_F(RidgesFallback, PosNNIncludesNormBlumen, 5, 1) {
 
 // pos="NN" & norm="Blumen" & #1 _o_ #2
 BENCHMARK_F(RidgesFallback, PosNNOverlapsNormBlumen, 5, 1) {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
-  SeedOverlap join(db);
-  join.init(n2, n1);
-  for(BinaryMatch m = join.next(); m.found; m = join.next())
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  q.addOperator(std::make_shared<Overlap>(db), 0, 1);
+
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 }

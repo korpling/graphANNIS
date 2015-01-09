@@ -151,15 +151,11 @@ TEST_F(SearchTestPcc2, DepthFirst) {
 
 // exmaralda:Inf-Stat="new" _o_ exmaralda:PP
 TEST_F(SearchTestPcc2, TestQueryOverlap1) {
-  std::shared_ptr<CacheableAnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
-  std::shared_ptr<CacheableAnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
-
-  std::shared_ptr<Join> join(std::make_shared<SeedOverlap>(db));
 
   Query q(db);
-  q.addNode(n1);
-  q.addNode(n2);
-  q.addOperator(join, 0, 1);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
+  q.addOperator(std::make_shared<Overlap>(db), 0, 1);
 
   unsigned int counter=0;
   while(q.hasNext())
@@ -178,7 +174,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
   Query q(db);
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "ambiguity", "not_ambig"));
   q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "complex_np", "yes"));
-  q.addOperator(std::make_shared<SeedOverlap>(db), 0, 1);
+  q.addOperator(std::make_shared<Overlap>(db), 0, 1);
 
   unsigned int counter=0;
   while(q.hasNext())
