@@ -18,7 +18,7 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
   std::set<nodeid_t> uniqueResultSet;
 
   // get covered token of lhs
-  EdgeIterator* coveredByLeftIt = edbCoverage->findConnected(lhs.node);
+  std::unique_ptr<EdgeIterator> coveredByLeftIt = edbCoverage->findConnected(lhs.node);
   for(auto leftToken = coveredByLeftIt->next();
       leftToken.first; leftToken = coveredByLeftIt->next())
   {
@@ -32,7 +32,6 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
      // also add the token itself
     uniqueResultSet.insert(leftToken.second);
   }
-  delete coveredByLeftIt;
 
   // add all unique matches to result
   for(const auto& m : uniqueResultSet)

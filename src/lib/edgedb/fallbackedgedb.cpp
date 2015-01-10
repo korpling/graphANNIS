@@ -62,11 +62,12 @@ bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, uns
   return false;
 }
 
-EdgeIterator *FallbackEdgeDB::findConnected(nodeid_t sourceNode,
+std::unique_ptr<EdgeIterator> FallbackEdgeDB::findConnected(nodeid_t sourceNode,
                                                  unsigned int minDistance,
                                                  unsigned int maxDistance) const
 {
-  return new FallbackDFSIterator(*this, sourceNode, minDistance, maxDistance);
+  return std::unique_ptr<EdgeIterator>(
+        new FallbackDFSIterator(*this, sourceNode, minDistance, maxDistance));
 }
 
 int FallbackEdgeDB::distance(const Edge &edge) const

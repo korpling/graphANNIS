@@ -60,7 +60,7 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
   }
 
   // find each token which is between the left and right border
-  EdgeIterator* itIncludedStart = edbOrder->findConnected(leftToken, 0, spanLength);
+  std::unique_ptr<EdgeIterator> itIncludedStart = edbOrder->findConnected(leftToken, 0, spanLength);
   for(std::pair<bool, nodeid_t> includedStart = itIncludedStart->next();
       includedStart.first;
       includedStart = itIncludedStart->next())

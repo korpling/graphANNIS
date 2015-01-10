@@ -149,7 +149,7 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
         Match m1 = n1.next();
 
         // find all token in the range 2-10
-        EdgeIterator* itConnected = edbOrder->findConnected(m1.node, 2, 10);
+        std::unique_ptr<EdgeIterator> itConnected = edbOrder->findConnected(m1.node, 2, 10);
         for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
             tok2.first; tok2 = itConnected->next())
         {
@@ -163,7 +163,6 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
             }
           }
         }
-        delete itConnected;
       }
     }
   } // end if

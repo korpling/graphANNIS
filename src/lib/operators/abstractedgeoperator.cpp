@@ -35,7 +35,7 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
   if(edb.size() == 1)
   {
 
-    EdgeIterator* it = edb[0]->findConnected(lhs.node, minDistance, maxDistance);
+    std::unique_ptr<EdgeIterator> it = edb[0]->findConnected(lhs.node, minDistance, maxDistance);
     for(auto m = it->next(); m.first; m = it->next())
     {
       if(checkEdgeAnnotation(edb[0], lhs.node, m.second))
@@ -51,7 +51,7 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
     std::set<nodeid_t> uniqueResult;
     for(auto e : edb)
     {
-      EdgeIterator* it = e->findConnected(lhs.node, minDistance, maxDistance);
+      std::unique_ptr<EdgeIterator> it = e->findConnected(lhs.node, minDistance, maxDistance);
       for(auto m = it->next(); m.first; m = it->next())
       {
         if(checkEdgeAnnotation(e, lhs.node, m.second))
@@ -59,7 +59,6 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
           uniqueResult.insert(m.second);
         }
       }
-      delete it;
     }
     for(const auto& n : uniqueResult)
     {

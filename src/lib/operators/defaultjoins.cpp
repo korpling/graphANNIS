@@ -83,7 +83,7 @@ void LegacyNestedLoopJoin::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<Ann
 
 
 LegacySeedJoin::LegacySeedJoin(const DB &db, const EdgeDB *edb, std::shared_ptr<AnnoIt> left, Annotation right, unsigned int minDistance, unsigned int maxDistance)
-  : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), edgeIterator(NULL), anyNodeShortcut(false)
+  : db(db), edb(edb), left(left), right(right), minDistance(minDistance), maxDistance(maxDistance), anyNodeShortcut(false)
 {
   if(right.name == db.getNodeNameStringID() && right.ns == db.getNamespaceStringID() && right.val == 0)
   {
@@ -129,8 +129,7 @@ BinaryMatch LegacySeedJoin::next()
 
 void LegacySeedJoin::reset()
 {
-  delete edgeIterator;
-  edgeIterator = NULL;
+  edgeIterator.release();
 
   left->reset();
 
@@ -156,7 +155,7 @@ bool LegacySeedJoin::nextLeft()
 
 bool LegacySeedJoin::nextConnected()
 {
-  if(edgeIterator != NULL)
+  if(edgeIterator)
   {
     connectedNode = edgeIterator->next();
   }
@@ -167,8 +166,7 @@ bool LegacySeedJoin::nextConnected()
 
   while(!connectedNode.first)
   {
-    delete edgeIterator;
-    edgeIterator = NULL;
+    edgeIterator.release();
     if(nextLeft())
     {
       edgeIterator = edb->findConnected(matchLeft.node, minDistance, maxDistance);
@@ -210,7 +208,6 @@ bool LegacySeedJoin::nextAnnotation()
 
 LegacySeedJoin::~LegacySeedJoin()
 {
-  delete edgeIterator;
 }
 
 void LegacySeedJoin::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)

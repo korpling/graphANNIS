@@ -27,7 +27,7 @@ public:
   virtual void clear();
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const;
-  virtual EdgeIterator* findConnected(nodeid_t sourceNode,
+  virtual std::unique_ptr<EdgeIterator> findConnected(nodeid_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const;
 

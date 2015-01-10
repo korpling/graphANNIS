@@ -57,7 +57,7 @@ private:
 
   Match matchLeft;
 
-  EdgeIterator* edgeIterator;
+  std::unique_ptr<EdgeIterator> edgeIterator;
   std::pair<bool, nodeid_t> connectedNode;
   std::list<Annotation> candidateAnnotations;
   std::list<Annotation>::const_iterator currentAnnotationCandidate;

@@ -19,7 +19,7 @@ public:
   virtual void calculateIndex();
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const;
-  virtual EdgeIterator* findConnected(
+  virtual std::unique_ptr<EdgeIterator> findConnected(
                                            nodeid_t sourceNode,
                                            unsigned int minDistance,
                                            unsigned int maxDistance) const;

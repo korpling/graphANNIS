@@ -30,9 +30,9 @@ public:
    * @param sourceNode
    * @param minDistance
    * @param maxDistance
-   * @return An iterator. You have to delete this iterator by yourself after using it.
+   * @return An iterator.
    */
-  virtual EdgeIterator* findConnected(
+  virtual std::unique_ptr<EdgeIterator> findConnected(
                                            nodeid_t sourceNode,
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const = 0;

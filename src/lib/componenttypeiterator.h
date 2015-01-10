@@ -23,7 +23,7 @@ public:
   virtual ~ComponentTypeIterator();
 private:
   nodeid_t sourceNode;
-  EdgeIterator* currentEdgeIterator;
+  std::unique_ptr<EdgeIterator> currentEdgeIterator;
   std::vector<const EdgeDB*> components;
   size_t currentComponent;
 };

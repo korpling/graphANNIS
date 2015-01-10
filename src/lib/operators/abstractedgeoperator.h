@@ -36,7 +36,6 @@ private:
   Annotation anyAnno;
   const Annotation edgeAnno;
 
-
   std::vector<const EdgeDB*> edb;
 
   void initEdgeDB();

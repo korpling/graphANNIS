@@ -3,7 +3,7 @@
 using namespace annis;
 
 ComponentTypeIterator::ComponentTypeIterator(const DB& db, ComponentType type, nodeid_t sourceNode)
-  :sourceNode(sourceNode), currentEdgeIterator(NULL), currentComponent(0)
+  :sourceNode(sourceNode), currentComponent(0)
 {
   components = db.getAllEdgeDBForType(type);
   currentEdgeIterator = components[currentComponent]->findConnected(sourceNode);
@@ -21,14 +21,13 @@ std::pair<bool, nodeid_t> ComponentTypeIterator::next()
     else
     {
       currentComponent++;
-      delete currentEdgeIterator;
       if(currentComponent < components.size())
       {
         currentEdgeIterator = components[currentComponent]->findConnected(sourceNode);
       }
       else
       {
-        currentEdgeIterator = NULL;
+        currentEdgeIterator.release();
       }
 
 
@@ -41,5 +40,4 @@ std::pair<bool, nodeid_t> ComponentTypeIterator::next()
 
 ComponentTypeIterator::~ComponentTypeIterator()
 {
-  delete currentEdgeIterator;
 }

@@ -20,7 +20,7 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
   std::unique_ptr<AnnoIt> result(nullptr);
 
   nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
-  EdgeIterator* edgeIterator = edbOrder->findConnected(lhsRightToken,
+  std::unique_ptr<EdgeIterator> edgeIterator = edbOrder->findConnected(lhsRightToken,
                                                        minDistance, maxDistance);
 
   ListWrapper* w = new ListWrapper();

@@ -97,9 +97,9 @@ bool LinearEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsig
   return false;
 }
 
-EdgeIterator *LinearEdgeDB::findConnected(nodeid_t sourceNode, unsigned int minDistance, unsigned int maxDistance) const
+std::unique_ptr<EdgeIterator> LinearEdgeDB::findConnected(nodeid_t sourceNode, unsigned int minDistance, unsigned int maxDistance) const
 {
-  return new LinearIterator(*this, sourceNode, minDistance, maxDistance);
+  return std::unique_ptr<EdgeIterator>(new LinearIterator(*this, sourceNode, minDistance, maxDistance));
 }
 
 int LinearEdgeDB::distance(const Edge &edge) const
