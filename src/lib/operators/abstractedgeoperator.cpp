@@ -1,6 +1,7 @@
 #include "abstractedgeoperator.h"
 
 #include "wrapper.h"
+#include <set>
 
 using namespace annis;
 
@@ -29,20 +30,42 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
 {
   ListWrapper* w = new ListWrapper();
 
+
   // add the rhs nodes of all of the edge storages
-  for(auto e : edb)
+  if(edb.size() == 1)
   {
-    EdgeIterator* it = e->findConnected(lhs.node, minDistance, maxDistance);
+
+    EdgeIterator* it = edb[0]->findConnected(lhs.node, minDistance, maxDistance);
     for(auto m = it->next(); m.first; m = it->next())
     {
-      if(checkEdgeAnnotation(e, lhs.node, m.second))
+      if(checkEdgeAnnotation(edb[0], lhs.node, m.second))
       {
+        // directly add the matched node since when having only one component
+        // no duplicates are possible
         w->addMatch(m.second);
       }
     }
-    delete it;
   }
-
+  else
+  {
+    std::set<nodeid_t> uniqueResult;
+    for(auto e : edb)
+    {
+      EdgeIterator* it = e->findConnected(lhs.node, minDistance, maxDistance);
+      for(auto m = it->next(); m.first; m = it->next())
+      {
+        if(checkEdgeAnnotation(e, lhs.node, m.second))
+        {
+          uniqueResult.insert(m.second);
+        }
+      }
+      delete it;
+    }
+    for(const auto& n : uniqueResult)
+    {
+      w->addMatch(n);
+    }
+  }
   return std::unique_ptr<AnnoIt>(w);
 }
 

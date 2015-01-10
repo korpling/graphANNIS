@@ -388,7 +388,7 @@ TEST_F(SearchTestPcc2, RangedDominance) {
 
 // Should test query
 // node >2,4 node
-TEST_F(SearchTestPcc2, DISABLED_MultiDominance) {
+TEST_F(SearchTestPcc2, MultiDominance) {
 
   unsigned int counter=0;
 
