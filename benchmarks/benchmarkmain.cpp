@@ -8,6 +8,7 @@
 #include <annotationsearch.h>
 #include <operators/precedence.h>
 #include <operators/inclusion.h>
+#include <operators/dominance.h>
 #include <operators/overlap.h>
 #include <operators/wrapper.h>
 
@@ -162,14 +163,15 @@ BENCHMARK_F(Tiger, Cat, 5, 1)
 // cat="S" & tok="Bilharziose" & #1 >* #2
 BENCHMARK_F(Tiger, BilharzioseSentence, 5, 1)
 {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
 
-  const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "edge");
-  LegacyNestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
+  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
 
-  for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 

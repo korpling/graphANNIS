@@ -7,6 +7,8 @@
 #include "operators/defaultjoins.h"
 #include <cstdlib>
 #include <boost/format.hpp>
+#include "query.h"
+#include "operators/dominance.h"
 
 using namespace annis;
 
@@ -205,19 +207,21 @@ TEST_F(LoadTest, Ordering) {
 // cat="S" >* "Tiefe"
 TEST_F(LoadTest, Dom)
 {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
   unsigned int counter=0;
 
-  const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "");
-  LegacyNestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
-  for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
-    {
-     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%\t%4%\t%5%")
-                      % counter % m.lhs.node % m.rhs.node % db.getNodeName(m.lhs.node)
-                         % db.getNodeName(m.rhs.node)).str()) ;
+  q.addOperator(std::make_shared<Dominance>(db, "tiger", "", 1, uintmax), 0, 1);
+
+  while(q.hasNext())
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%\t%4%\t%5%")
+                     % counter % m[0].node % m[1].node % db.getNodeName(m[0].node)
+                     % db.getNodeName(m[1].node)).str()) ;
     counter++;
   }
 

@@ -97,34 +97,38 @@ TEST_F(SearchTestPcc2, MMaxAnnos) {
 }
 
 TEST_F(SearchTestPcc2, TokenIndex) {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Die"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
 
   unsigned int counter=0;
 
-  Component c = Init::initComponent(ComponentType::ORDERING, annis_ns, "");
-  const EdgeDB* edb = db.getEdgeDB(c);
-  if(edb != NULL)
+  Query q(db);
+
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Die"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
+
+  q.addOperator(std::make_shared<Precedence>(db), n1, n2);
+
+  while(q.hasNext())
   {
-    LegacyNestedLoopJoin join(edb, n1, n2);
-    for(BinaryMatch match = join.next(); match.found; match = join.next())
-    {
-      counter++;
-    }
+    q.next();
+    counter++;
   }
 
   EXPECT_EQ(2u, counter);
 }
 
 TEST_F(SearchTestPcc2, IsConnectedRange) {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Musikcafé"));
+
+  Query q(db);
+
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Musikcafé"));
 
   unsigned int counter=0;
 
-  LegacyNestedLoopJoin join(db.getEdgeDB(ComponentType::ORDERING, annis_ns, ""), n1, n2, 3, 10);
-  for(BinaryMatch match = join.next(); match.found; match = join.next())
+  q.addOperator(std::make_shared<Precedence>(db, 3, 10), n1 , n2);
+  while(q.hasNext())
   {
+    q.next();
     counter++;
   }
 
@@ -132,21 +136,20 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 }
 
 TEST_F(SearchTestPcc2, DepthFirst) {
-    std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
-    Annotation anno2 = Init::initAnnotation(db.strings.add("node_name"), 0, db.strings.add(annis_ns));
 
-    unsigned int counter=0;
+  unsigned int counter=0;
 
-    Component c = Init::initComponent(ComponentType::ORDERING, annis_ns, "");
-    const EdgeDB* edb = db.getEdgeDB(c);
-    if(edb != NULL)
-    {
-      LegacySeedJoin join(db, edb, n1, anno2, 2, 10);
-      for(BinaryMatch match=join.next(); match.found; match = join.next())
-      {
-        counter++;
-      }
-    }
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok));
+
+  q.addOperator(std::make_shared<Precedence>(db, 2, 10), n1, n2);
+
+  while(q.hasNext())
+  {
+    q.next();
+    counter++;
+  }
 
   EXPECT_EQ(9u, counter);
 }
@@ -155,9 +158,9 @@ TEST_F(SearchTestPcc2, DepthFirst) {
 TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 
   Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
-  q.addOperator(std::make_shared<Overlap>(db), 0, 1);
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "Inf-Stat", "new"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "exmaralda", "PP"));
+  q.addOperator(std::make_shared<Overlap>(db), n1, n2);
 
   unsigned int counter=0;
   while(q.hasNext())

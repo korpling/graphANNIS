@@ -7,6 +7,7 @@
 #include "query.h"
 #include "operators/defaultjoins.h"
 #include "operators/precedence.h"
+#include "operators/dominance.h"
 #include "annotationsearch.h"
 #include "operators/wrapper.h"
 
@@ -115,20 +116,22 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 // cat="S" & tok="Bilharziose" & #1 >* #2
 TEST_F(SearchTestTiger, BilharzioseSentence)
 {
-  std::shared_ptr<AnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  std::shared_ptr<AnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
-
   unsigned int counter=0;
 
-  const EdgeDB* edbDom = db.getEdgeDB(ComponentType::DOMINANCE, "tiger", "");
-  LegacyNestedLoopJoin n1Dom2(edbDom, n1, n2, 1, uintmax);
+  Query q(db);
 
-  for(BinaryMatch m=n1Dom2.next(); m.found; m=n1Dom2.next())
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
+
+  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+
+  while(q.hasNext())
   {
+    std::vector<Match> m = q.next();
      HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%\t%4%#%5%\t%6%#%7%")
-                      % counter % m.lhs.node % m.rhs.node
-                      % db.getNodeDocument(m.lhs.node) % db.getNodeName(m.lhs.node)
-                      % db.getNodeDocument(m.rhs.node) % db.getNodeName(m.rhs.node)).str()) ;
+                      % counter % m[0].node % m[1].node
+                      % db.getNodeDocument(m[0].node) % db.getNodeName(m[0].node)
+                      % db.getNodeDocument(m[1].node) % db.getNodeName(m[1].node)).str()) ;
     counter++;
   }
 
