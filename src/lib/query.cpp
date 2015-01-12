@@ -68,6 +68,26 @@ void Query::internalInit()
     }
   }
 
+  // 3. check if every node is connected
+  int firstComponent;
+  bool firstComponentSet = false;
+  for(const auto& e : querynode2component)
+  {
+    if(firstComponentSet)
+    {
+      if(e.second != firstComponent)
+      {
+        std::cerr << "Node " << e.first << " is not connected";
+        return;
+      }
+    }
+    else
+    {
+      firstComponent = e.second;
+      firstComponentSet = true;
+    }
+  }
+
   initialized = true;
 }
 
