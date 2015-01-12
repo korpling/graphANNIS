@@ -201,8 +201,6 @@ DFSIteratorResult FallbackDFSIterator::nextDFS()
     result.distance = stackEntry.second;
     traversalStack.pop();
 
-
-
     if(result.distance >= minDistance && result.distance <= maxDistance)
     {
       // get the next node
