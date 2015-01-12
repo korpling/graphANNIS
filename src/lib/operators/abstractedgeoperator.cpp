@@ -30,24 +30,41 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
 {
   ListWrapper* w = new ListWrapper();
 
-  // add the unique rhs nodes of all of the edge storages
-  std::set<nodeid_t> uniqueResult;
-  for(auto e : edb)
+
+  // add the rhs nodes of all of the edge storages
+  if(edb.size() == 1)
   {
-    std::unique_ptr<EdgeIterator> it = e->findConnected(lhs.node, minDistance, maxDistance);
+
+    std::unique_ptr<EdgeIterator> it = edb[0]->findConnected(lhs.node, minDistance, maxDistance);
     for(auto m = it->next(); m.first; m = it->next())
     {
-      if(checkEdgeAnnotation(e, lhs.node, m.second))
+      if(checkEdgeAnnotation(edb[0], lhs.node, m.second))
       {
-        uniqueResult.insert(m.second);
+        // directly add the matched node since when having only one component
+        // no duplicates are possible
+        w->addMatch(m.second);
       }
     }
   }
-  for(const auto& n : uniqueResult)
+  else
   {
-    w->addMatch(n);
+    std::set<nodeid_t> uniqueResult;
+    for(auto e : edb)
+    {
+      std::unique_ptr<EdgeIterator> it = e->findConnected(lhs.node, minDistance, maxDistance);
+      for(auto m = it->next(); m.first; m = it->next())
+      {
+        if(checkEdgeAnnotation(e, lhs.node, m.second))
+        {
+          uniqueResult.insert(m.second);
+        }
+      }
+    }
+    for(const auto& n : uniqueResult)
+    {
+      w->addMatch(n);
+    }
   }
-
   return std::unique_ptr<AnnoIt>(w);
 }
 

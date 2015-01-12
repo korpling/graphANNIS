@@ -9,6 +9,7 @@
 #include "../comparefunctions.h"
 
 #include <stack>
+#include <set>
 
 namespace annis
 {
@@ -59,7 +60,6 @@ private:
   stx::btree_set<Edge, compEdges> edges;
   stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
 
-
 };
 
 struct DFSIteratorResult
@@ -92,6 +92,8 @@ private:
   unsigned int minDistance;
   unsigned int maxDistance;
   std::uint32_t startNode;
+
+  std::set<nodeid_t> visited;
 };
 
 } // end namespace annis

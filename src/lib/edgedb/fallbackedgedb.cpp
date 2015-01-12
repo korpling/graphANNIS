@@ -211,10 +211,15 @@ DFSIteratorResult FallbackDFSIterator::nextDFS()
     if(result.distance < maxDistance)
     {
       // add the outgoing edges to the stack
-      std::vector<uint32_t> outgoing = edb.getOutgoingEdges(result.node);
+      auto outgoing = edb.getOutgoingEdges(result.node);
       for(size_t idxOutgoing=0; idxOutgoing < outgoing.size(); idxOutgoing++)
       {
-        traversalStack.push(pair<uint32_t, unsigned int>(outgoing[idxOutgoing], result.distance+1));
+        if(visited.find(outgoing[idxOutgoing]) == visited.end())
+        {
+          traversalStack.push(pair<nodeid_t, unsigned int>(outgoing[idxOutgoing],
+                                                           result.distance+1));
+          visited.insert(outgoing[idxOutgoing]);
+        }
       }
     }
   }
@@ -234,6 +239,9 @@ void FallbackDFSIterator::reset()
   {
     traversalStack.pop();
   }
+  visited.clear();
+
   // add the initial value to the stack
   traversalStack.push(pair<uint32_t,unsigned int>(startNode, 0));
+  visited.insert(startNode);
 }
