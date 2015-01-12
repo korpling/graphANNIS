@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <list>
+#include <set>
 
 #include "db.h"
 #include <annotationiterator.h>
@@ -54,7 +55,14 @@ private:
 
   bool initialized;
 
+  std::map<int, int> querynode2component;
+
   void internalInit();
+
+  void addJoin(OperatorEntry &e);
+  void addFilter(OperatorEntry &e);
+
+  void mergeComponents(int c1, int c2);
 
 };
 
