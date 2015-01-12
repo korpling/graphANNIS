@@ -74,11 +74,11 @@ class JoinWrapIterator : public ListWrapper
 {
 public:
 
-  JoinWrapIterator(std::shared_ptr<Join> wrappedJoin, const Annotation& rightAnno,
+  JoinWrapIterator(std::shared_ptr<Join> wrappedJoin, const Annotation& rightAnno = Init::initAnnotation(),
                         bool wrapLeftOperand = false)
     : wrappedJoin(wrappedJoin),
       wrapLeftOperand(wrapLeftOperand),
-      rightAnno(Init::initAnnotation())
+      rightAnno(rightAnno)
   {
 
   }
