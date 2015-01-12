@@ -331,7 +331,8 @@ NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op)
 
 BinaryMatch NestedLoopJoin::next()
 {
-  BinaryMatch result;result.found = false;
+  BinaryMatch result;
+  result.found = false;
 
   if(!op || !left || !right)
   {

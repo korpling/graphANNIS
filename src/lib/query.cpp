@@ -1,5 +1,6 @@
 #include "query.h"
 #include "operators/defaultjoins.h"
+#include "filter.h"
 
 #include <vector>
 
@@ -25,14 +26,8 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
   initialized = false;
 
   OperatorEntry entry;
-  if(useNestedLoop)
-  {
-    entry.op = std::make_shared<NestedLoopJoin>(op);
-  }
-  else
-  {
-    entry.op = std::make_shared<SeedJoin>(db, op);
-  }
+  entry.op = op;
+  entry.useNestedLoop = useNestedLoop;
   entry.idxLeft = idxLeft;
   entry.idxRight = idxRight;
 
@@ -60,13 +55,14 @@ void Query::internalInit()
     {
       int leftComponent = querynode2component[e.idxLeft];
       int rightComponent = querynode2component[e.idxRight];
+
       if(leftComponent == rightComponent)
       {
-        addFilter(e);
+        addJoin(e, true);
       }
       else
       {
-        addJoin(e);
+        addJoin(e, false);
         mergeComponents(leftComponent, rightComponent);
       }
     }
@@ -75,14 +71,30 @@ void Query::internalInit()
   initialized = true;
 }
 
-void Query::addJoin(OperatorEntry& e)
+void Query::addJoin(OperatorEntry& e, bool filterOnly)
 {
-  e.op->init(source[e.idxLeft], source[e.idxRight]);
+  std::shared_ptr<Join> j;
+  if(filterOnly)
+  {
+    j = std::make_shared<Filter>(e.op);
+  }
+  else
+  {
+    if(e.useNestedLoop)
+    {
+      j = std::make_shared<NestedLoopJoin>(e.op);
+    }
+    else
+    {
+      j = std::make_shared<SeedJoin>(db, e.op);
+    }
+  }
+  j->init(source[e.idxLeft], source[e.idxRight]);
 
   std::shared_ptr<JoinWrapIterator> itLeft =
-      std::make_shared<JoinWrapIterator>(e.op, source[e.idxLeft]->getAnnotation(), true);
+      std::make_shared<JoinWrapIterator>(j, source[e.idxLeft]->getAnnotation(), true);
   std::shared_ptr<JoinWrapIterator> itRight =
-      std::make_shared<JoinWrapIterator>(e.op, source[e.idxRight]->getAnnotation(), false);
+      std::make_shared<JoinWrapIterator>(j, source[e.idxRight]->getAnnotation(), false);
 
   itLeft->setOther(itRight);
   itRight->setOther(itLeft);
@@ -91,12 +103,6 @@ void Query::addJoin(OperatorEntry& e)
   source[e.idxRight] = itRight;
 
 }
-
-void Query::addFilter(OperatorEntry &e)
-{
-  // TODO
-}
-
 
 void Query::mergeComponents(int c1, int c2)
 {

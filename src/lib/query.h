@@ -16,9 +16,10 @@ namespace annis
 
 struct OperatorEntry
 {
-  std::shared_ptr<Join> op;
+  std::shared_ptr<Operator> op;
   size_t idxLeft;
   size_t idxRight;
+  bool useNestedLoop;
 };
 
 class Query
@@ -59,8 +60,7 @@ private:
 
   void internalInit();
 
-  void addJoin(OperatorEntry &e);
-  void addFilter(OperatorEntry &e);
+  void addJoin(OperatorEntry &e, bool filterOnly = false);
 
   void mergeComponents(int c1, int c2);
 

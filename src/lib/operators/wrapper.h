@@ -107,6 +107,8 @@ public:
     JoinWrapIterator::otherInnerWrapper = otherInnerWrapper;
   }
 
+  virtual ~JoinWrapIterator() {};
+
 private:
   std::shared_ptr<Join> wrappedJoin;
   std::shared_ptr<JoinWrapIterator> otherInnerWrapper;
