@@ -13,7 +13,7 @@ public:
                    unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   Pointing(const DB& db, std::string ns, std::string name,
-                   const Annotation& edgeAnno = Init::initAnnotation());
+                   const Annotation& edgeAnno);
 
   virtual ~Pointing();
 private:
