@@ -3,10 +3,20 @@
 
 using namespace annis;
 
-SeedJoin::SeedJoin(const DB &db, std::shared_ptr<Operator> op)
-  : db(db), op(op), currentMatchValid(false), anyNodeShortcut(false)
+SeedJoin::SeedJoin(const DB &db, std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, const Annotation &rightAnno)
+  : db(db), op(op), currentMatchValid(false), anyNodeShortcut(false),
+    left(lhs), right(rightAnno)
 {
-  reset();
+  left = lhs;
+
+  anyNodeShortcut = false;
+  Annotation anyNodeAnno = Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID());
+  if(checkAnnotationEqual(rightAnno, anyNodeAnno))
+  {
+    anyNodeShortcut = true;
+  }
+
+  nextLeftMatch();
 }
 
 BinaryMatch SeedJoin::next()
@@ -64,32 +74,6 @@ BinaryMatch SeedJoin::next()
   return currentMatch;
 }
 
-
-void SeedJoin::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
-{
-  left = lhs;
-  anyNodeShortcut = false;
-  if(rhs)
-  {
-    Annotation anyNodeAnno = Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID());
-    if(checkAnnotationEqual(rhs->getAnnotation(), anyNodeAnno))
-    {
-      anyNodeShortcut = true;
-    }
-    else
-    {
-      right = rhs->getAnnotation();
-    }
-  }
-  else
-  {
-    anyNodeShortcut = true;
-  }
-
-  nextLeftMatch();
-}
-
-
 void SeedJoin::reset()
 {
   if(left)
@@ -97,12 +81,9 @@ void SeedJoin::reset()
     left->reset();
   }
 
-  currentMatch.lhs.node = 6666666;
-
   matchesByOperator.release();
   matchingRightAnnos.clear();
   currentMatchValid = false;
-  anyNodeShortcut = false;
 
   // start the iterations
   nextLeftMatch();
@@ -124,8 +105,6 @@ bool SeedJoin::nextLeftMatch()
     {
       std::cerr << "could not create right matches from operator!" << std::endl;
     }
-
-
     return true;
   }
 

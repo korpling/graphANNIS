@@ -3,16 +3,10 @@
 using namespace annis;
 
 
-Filter::Filter(std::shared_ptr<Operator> op)
-  : op(op)
+Filter::Filter(std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
+  : op(op), lhs(lhs), rhs(rhs)
 {
 
-}
-
-void Filter::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
-{
-  Filter::lhs = lhs;
-  Filter::rhs = rhs;
 }
 
 BinaryMatch Filter::next()

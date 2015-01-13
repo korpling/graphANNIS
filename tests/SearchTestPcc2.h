@@ -422,7 +422,7 @@ TEST_F(SearchTestPcc2, Profile) {
   q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns,
                                                    annis_node_name));
 
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), 0, 1);
+  q.addOperator(std::make_shared<Pointing>(db, "", "dep", Init::initAnnotation(db.strings.add("func"), db.strings.add("sbj"))), 0, 1);
 
   while(q.hasNext() && counter < 5000)
   {
@@ -430,7 +430,7 @@ TEST_F(SearchTestPcc2, Profile) {
     counter++;
   }
 
-  EXPECT_EQ(4853u, counter);
+  EXPECT_EQ(38, counter);
 }
 
 #endif // SEARCHTESTPCC2_H

@@ -4,7 +4,6 @@
 #include "types.h"
 #include "iterators.h"
 #include "operator.h"
-#include "join.h"
 #include "edgedb.h"
 #include "db.h"
 
@@ -12,13 +11,12 @@ namespace annis
 {
 
 /** A join that takes the left argument as a seed, finds all connected nodes (matching the distance) and checks the condition for each node. */
-class SeedJoin : public Join
+class SeedJoin : public BinaryIt
 {
 public:
-  SeedJoin(const DB& db, std::shared_ptr<Operator> op);
+  SeedJoin(const DB& db, std::shared_ptr<Operator> op,
+           std::shared_ptr<AnnoIt> lhs, const Annotation& rightAnno);
   virtual ~SeedJoin();
-
-  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
 
   virtual BinaryMatch next();
   virtual void reset();

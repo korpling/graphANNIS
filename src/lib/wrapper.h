@@ -2,7 +2,6 @@
 #define WRAPPER_H
 
 #include "iterators.h"
-#include "join.h"
 
 #include <queue>
 #include <list>
@@ -81,7 +80,7 @@ class JoinWrapIterator : public ListWrapper
 {
 public:
 
-  JoinWrapIterator(std::shared_ptr<Join> wrappedJoin, const Annotation& rightAnno = Init::initAnnotation(),
+  JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedJoin, const Annotation& rightAnno = Init::initAnnotation(),
                         bool wrapLeftOperand = false)
     : wrappedJoin(wrappedJoin),
       wrapLeftOperand(wrapLeftOperand),
@@ -117,7 +116,7 @@ public:
   virtual ~JoinWrapIterator() {};
 
 private:
-  std::shared_ptr<Join> wrappedJoin;
+  std::shared_ptr<BinaryIt> wrappedJoin;
   std::shared_ptr<JoinWrapIterator> otherInnerWrapper;
   bool wrapLeftOperand;
   const Annotation& rightAnno;

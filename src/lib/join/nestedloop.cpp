@@ -4,8 +4,11 @@
 using namespace annis;
 
 
-NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op)
-  : op(op), initialized(false)
+NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op,
+                               std::shared_ptr<AnnoIt> lhs,
+                               std::shared_ptr<AnnoIt> rhs)
+  : op(op), initialized(false),
+    left(lhs), right(rhs)
 {
 }
 
@@ -65,14 +68,6 @@ void NestedLoopJoin::reset()
 {
   left->reset();
   right->reset();
-  initialized = false;
-}
-
-
-void NestedLoopJoin::init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs)
-{
-  left = lhs;
-  right = rhs;
   initialized = false;
 }
 

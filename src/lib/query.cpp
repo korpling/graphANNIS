@@ -94,23 +94,22 @@ void Query::internalInit()
 
 void Query::addJoin(OperatorEntry& e, bool filterOnly)
 {
-  std::shared_ptr<Join> j;
+  std::shared_ptr<BinaryIt> j;
   if(filterOnly)
   {
-    j = std::make_shared<Filter>(e.op);
+    j = std::make_shared<Filter>(e.op, source[e.idxLeft], source[e.idxRight]);
   }
   else
   {
     if(e.useNestedLoop)
     {
-      j = std::make_shared<NestedLoopJoin>(e.op);
+      j = std::make_shared<NestedLoopJoin>(e.op, source[e.idxLeft], source[e.idxRight]);
     }
     else
     {
-      j = std::make_shared<SeedJoin>(db, e.op);
+      j = std::make_shared<SeedJoin>(db, e.op, source[e.idxLeft], source[e.idxRight]->getAnnotation());
     }
   }
-  j->init(source[e.idxLeft], source[e.idxRight]);
 
   std::shared_ptr<JoinWrapIterator> itLeft =
       std::make_shared<JoinWrapIterator>(j, source[e.idxLeft]->getAnnotation(), true);
