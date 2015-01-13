@@ -9,6 +9,7 @@
 #include "../comparefunctions.h"
 
 #include <stack>
+#include <list>
 #include <set>
 
 namespace annis
@@ -79,16 +80,19 @@ public:
   virtual DFSIteratorResult nextDFS();
   virtual std::pair<bool, nodeid_t> next();
 
-  virtual void reset();
+  void initStack();
+  void reset();
 private:
 
   const FallbackEdgeDB& edb;
+
+  using TraversalEntry = std::pair<nodeid_t, unsigned int>;
 
   /**
    * @brief Traversion stack
    * Contains both the node id (first) and the distance from the start node (second)
    */
-  std::stack<std::pair<nodeid_t, unsigned int> > traversalStack;
+  std::stack<TraversalEntry, std::list<TraversalEntry> > traversalStack;
   unsigned int minDistance;
   unsigned int maxDistance;
   std::uint32_t startNode;
