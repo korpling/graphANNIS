@@ -171,18 +171,17 @@ std::vector<Match> Query::next()
     internalInit();
   }
 
-  if(hasNext())
+
+  std::vector<Match> result(source.size());
+
+  // call "next()" on all sources
+  for(size_t i=0; i < source.size(); i++)
   {
-    std::vector<Match> result(source.size());
-
-    // call "next()" on all sources
-    for(size_t i=0; i < source.size(); i++)
-    {
-      result[i] = source[i]->next();
-    }
-
-    return result;
+    result[i] = source[i]->next();
   }
+
+  return result;
+
   return std::vector<Match>(0);
 }
 
