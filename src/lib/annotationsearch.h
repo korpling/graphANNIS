@@ -4,12 +4,21 @@
 #include "db.h"
 #include "iterators.h"
 
+#include <set>
+
 namespace annis
 {
 
-class AnnotationNameSearch : public CacheableAnnoIt
+class AnnotationSearch : public CacheableAnnoIt
 {
-typedef stx::btree_multimap<Annotation, nodeid_t, compAnno>::const_iterator ItType;
+public:
+  virtual const std::set<Annotation, compAnno>& getValidAnnotations() = 0;
+  virtual ~AnnotationSearch() {};
+};
+
+class AnnotationNameSearch : public AnnotationSearch
+{
+  using ItType = stx::btree_multimap<Annotation, nodeid_t, compAnno>::const_iterator;
 
 public:
   /**
@@ -36,7 +45,14 @@ public:
   virtual Match current();
   virtual void reset();
 
-  const Annotation& getAnnotation() {return anno;}
+  const std::set<Annotation, compAnno>& getValidAnnotations()
+  {
+    if(!validAnnotationInitialized)
+    {
+      initializeValidAnnotations();
+    }
+    return validAnnotations;
+  }
 
 private:
   const DB& db;
@@ -45,10 +61,13 @@ private:
   ItType itBegin;
   ItType itEnd;
 
-  Annotation anno;
+  bool validAnnotationInitialized;
+  std::set<Annotation, compAnno> validAnnotations;
 
   bool currentMatchValid;
   Match currentMatch;
+
+  void initializeValidAnnotations();
 
 };
 } // end namespace annis

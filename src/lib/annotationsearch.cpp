@@ -4,23 +4,19 @@ using namespace annis;
 using namespace std;
 
 AnnotationNameSearch::AnnotationNameSearch(DB &db)
-  : db(db), currentMatchValid(false)
+  : db(db), currentMatchValid(false), validAnnotationInitialized(false)
 {
   itBegin = db.inverseNodeAnnotations.begin();
   itEnd = db.inverseNodeAnnotations.end();
 }
 
 AnnotationNameSearch::AnnotationNameSearch(const DB& db, const string& annoName)
-  : db(db)
+  : db(db), validAnnotationInitialized(false)
 {
   std::pair<bool, uint32_t> searchResult = db.strings.findID(annoName);
 
   if(searchResult.first)
   {
-    anno.name = searchResult.second;
-    anno.ns = 0;
-    anno.val = 0;
-
     Annotation lowerKey;
     lowerKey.name = searchResult.second;
     lowerKey.ns = numeric_limits<uint32_t>::min();
@@ -44,17 +40,13 @@ AnnotationNameSearch::AnnotationNameSearch(const DB& db, const string& annoName)
 }
 
 AnnotationNameSearch::AnnotationNameSearch(const DB &db, const string &annoNamspace, const string &annoName)
-  : db(db)
+  : db(db),validAnnotationInitialized(false)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> namespaceID = db.strings.findID(annoNamspace);
 
   if(nameID.first && namespaceID.first)
   {
-    anno.name = nameID.second;
-    anno.ns = namespaceID.second;
-    anno.val = 0;
-
     Annotation lowerKey;
     lowerKey.name = nameID.second;
     lowerKey.ns = namespaceID.second;
@@ -78,7 +70,7 @@ AnnotationNameSearch::AnnotationNameSearch(const DB &db, const string &annoNamsp
 }
 
 AnnotationNameSearch::AnnotationNameSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
-  :db(db)
+  :db(db),validAnnotationInitialized(false)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> namspaceID = db.strings.findID(annoNamspace);
@@ -90,8 +82,6 @@ AnnotationNameSearch::AnnotationNameSearch(const DB &db, const string &annoNamsp
     key.name = nameID.second;
     key.ns = namspaceID.second;
     key.val = valueID.second;
-
-    anno = key;
 
     itBegin = db.inverseNodeAnnotations.lower_bound(key);
     it = itBegin;
@@ -133,6 +123,15 @@ Match AnnotationNameSearch::current()
 void AnnotationNameSearch::reset()
 {
   it = itBegin;
+}
+
+void AnnotationNameSearch::initializeValidAnnotations()
+{
+  for(ItType annoIt = itBegin; annoIt != itEnd; annoIt++)
+  {
+    validAnnotations.insert(annoIt->first);
+  }
+  validAnnotationInitialized = true;
 }
 
 AnnotationNameSearch::~AnnotationNameSearch()

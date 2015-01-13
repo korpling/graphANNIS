@@ -80,11 +80,10 @@ class JoinWrapIterator : public ListWrapper
 {
 public:
 
-  JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedJoin, const Annotation& rightAnno = Init::initAnnotation(),
+  JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedJoin,
                         bool wrapLeftOperand = false)
     : wrappedJoin(wrappedJoin),
-      wrapLeftOperand(wrapLeftOperand),
-      rightAnno(rightAnno)
+      wrapLeftOperand(wrapLeftOperand)
   {
 
   }
@@ -103,11 +102,6 @@ public:
 
   virtual void reset();
 
-  virtual const Annotation& getAnnotation()
-  {
-    return rightAnno;
-  }
-
   virtual void setOther(std::shared_ptr<JoinWrapIterator> otherInnerWrapper)
   {
     JoinWrapIterator::otherInnerWrapper = otherInnerWrapper;
@@ -119,7 +113,6 @@ private:
   std::shared_ptr<BinaryIt> wrappedJoin;
   std::shared_ptr<JoinWrapIterator> otherInnerWrapper;
   bool wrapLeftOperand;
-  const Annotation& rightAnno;
 
   void checkIfNextCallNeeded();
 };

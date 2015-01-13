@@ -7,6 +7,8 @@
 #include "edgedb.h"
 #include "db.h"
 
+#include <set>
+
 namespace annis
 {
 
@@ -15,7 +17,7 @@ class SeedJoin : public BinaryIt
 {
 public:
   SeedJoin(const DB& db, std::shared_ptr<Operator> op,
-           std::shared_ptr<AnnoIt> lhs, const Annotation& rightAnno);
+           std::shared_ptr<AnnoIt> lhs, const std::set<Annotation, compAnno> &rightAnno);
   virtual ~SeedJoin();
 
   virtual BinaryMatch next();
@@ -25,7 +27,7 @@ private:
   std::shared_ptr<Operator> op;
 
   std::shared_ptr<AnnoIt> left;
-  Annotation right;
+  const std::set<Annotation, compAnno>& right;
   unsigned int minDistance;
   unsigned int maxDistance;
 

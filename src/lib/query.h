@@ -7,9 +7,10 @@
 #include <set>
 
 #include "db.h"
-#include <iterators.h>
+#include "iterators.h"
 #include "operator.h"
 #include "wrapper.h"
+#include "annotationsearch.h"
 
 namespace annis
 {
@@ -32,7 +33,7 @@ public:
    * @param n The initial source
    * @return new node number
    */
-  size_t addNode(std::shared_ptr<AnnoIt> n);
+  size_t addNode(std::shared_ptr<AnnotationSearch> n);
 
   /**
    * @brief add an operator to the execution queue
@@ -51,7 +52,7 @@ private:
   const DB& db;
 
   std::vector<std::shared_ptr<AnnoIt>> source;
-  std::list<std::shared_ptr<AnnoIt>> nodes;
+  std::vector<std::shared_ptr<AnnotationSearch>> nodes;
   std::list<OperatorEntry> operators;
 
   bool initialized;

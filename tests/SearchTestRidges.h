@@ -244,8 +244,8 @@ TEST_F(SearchTestRidges, Inclusion) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<CacheableAnnoIt> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<CacheableAnnoIt> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  std::shared_ptr<AnnotationSearch> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
+  std::shared_ptr<AnnotationSearch> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
 
   annis::Query q(db);
   q.addNode(n1);

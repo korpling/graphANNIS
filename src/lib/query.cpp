@@ -13,7 +13,7 @@ Query::Query(const DB &db)
 }
 
 
-size_t annis::Query::addNode(std::shared_ptr<AnnoIt> n)
+size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n)
 {
   initialized = false;
 
@@ -107,14 +107,14 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
     }
     else
     {
-      j = std::make_shared<SeedJoin>(db, e.op, source[e.idxLeft], source[e.idxRight]->getAnnotation());
+      j = std::make_shared<SeedJoin>(db, e.op, source[e.idxLeft], nodes[e.idxRight]->getValidAnnotations());
     }
   }
 
   std::shared_ptr<JoinWrapIterator> itLeft =
-      std::make_shared<JoinWrapIterator>(j, source[e.idxLeft]->getAnnotation(), true);
+      std::make_shared<JoinWrapIterator>(j, true);
   std::shared_ptr<JoinWrapIterator> itRight =
-      std::make_shared<JoinWrapIterator>(j, source[e.idxRight]->getAnnotation(), false);
+      std::make_shared<JoinWrapIterator>(j, false);
 
   itLeft->setOther(itRight);
   itRight->setOther(itLeft);

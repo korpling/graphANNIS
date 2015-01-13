@@ -3,17 +3,20 @@
 
 using namespace annis;
 
-SeedJoin::SeedJoin(const DB &db, std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, const Annotation &rightAnno)
+SeedJoin::SeedJoin(const DB &db, std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, const std::set<Annotation, compAnno>& rightAnno)
   : db(db), op(op), currentMatchValid(false), anyNodeShortcut(false),
     left(lhs), right(rightAnno)
 {
-  left = lhs;
-
   anyNodeShortcut = false;
   Annotation anyNodeAnno = Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID());
-  if(checkAnnotationEqual(rightAnno, anyNodeAnno))
+
+  if(right.size() == 1)
   {
-    anyNodeShortcut = true;
+    Annotation anno = *(right.begin());
+    if(checkAnnotationEqual(anno, anyNodeAnno))
+    {
+      anyNodeShortcut = true;
+    }
   }
 
   nextLeftMatch();
@@ -57,7 +60,7 @@ BinaryMatch SeedJoin::next()
         std::list<Annotation> annos = db.getNodeAnnotationsByID(currentMatch.rhs.node);
         for(const auto& a : annos)
         {
-          if(checkAnnotationEqual(a, right))
+          if(right.find(a) != right.end())
           {
             matchingRightAnnos.push_back(a);
           }
