@@ -4,7 +4,8 @@
 #include "iterators.h"
 #include "join.h"
 
-#include <deque>
+#include <queue>
+#include <list>
 #include <memory>
 
 namespace annis
@@ -26,12 +27,12 @@ public:
 
   void addMatch(const Match& m)
   {
-    orig.push_back(m);
+    orig.push(m);
   }
 
   void addMatch(const nodeid_t& m)
   {
-    orig.push_back(Init::initMatch(anyAnno, m));
+    orig.push(Init::initMatch(anyAnno, m));
   }
 
   virtual bool hasNext()
@@ -42,13 +43,16 @@ public:
   virtual Match next()
   {
     Match result = orig.front();
-    orig.pop_front();
+    orig.pop();
     return result;
   }
 
   virtual void reset()
   {
-    orig.clear();
+    while(!orig.empty())
+    {
+      orig.pop();
+    }
   }
 
   virtual const Annotation& getAnnotation()
@@ -67,7 +71,7 @@ protected:
   }
 
 private:
-  std::deque<Match> orig;
+  std::queue<Match, std::list<Match> > orig;
 
   Annotation anyAnno;
 };
