@@ -69,33 +69,40 @@ public:
     }
     return result;
   }
-
-  inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::string& ns, const std::string& name) const
+  inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
   {
-    typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
+    using AnnoIt = stx::btree_multimap<nodeid_t, Annotation>::const_iterator;
 
     std::pair<bool, Annotation> result;
     result.first = false;
 
+    std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
+    for(AnnoIt itAnnos = itRange.first;
+        itAnnos != itRange.second; itAnnos++)
+    {
+      Annotation anno = itAnnos->second;
+      if(anno.ns == nsID && anno.name == nameID)
+      {
+        result.first = true;
+        result.second = anno;
+      }
+    }
+    return result;
+  }
+
+  inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::string& ns, const std::string& name) const
+  {
     std::pair<bool, std::uint32_t> nsID = strings.findID(ns);
     std::pair<bool, std::uint32_t> nameID = strings.findID(name);
 
     if(nsID.first && nameID.first)
     {
-      std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
-      for(AnnoIt itAnnos = itRange.first;
-          itAnnos != itRange.second; itAnnos++)
-      {
-        Annotation anno = itAnnos->second;
-        if(anno.ns == nsID.second && anno.name == nameID.second)
-        {
-          result.first = true;
-          result.second = anno;
-        }
-      }
+      return getNodeAnnotation(id, nsID.second, nameID.second);
     }
 
-    return result;
+    std::pair<bool, Annotation> noResult;
+    noResult.first = false;
+    return noResult;
   }
 
   std::vector<Component> getDirectConnected(const Edge& edge);
@@ -108,10 +115,10 @@ public:
                                              const Edge& edge);
   std::string info();
 
-  std::uint32_t getNamespaceStringID() const {return annisNamespaceStringID;}
-  std::uint32_t getNodeNameStringID() const {return annisNodeNameStringID;}
-  std::uint32_t getEmptyStringID() const {return annisEmptyStringID;}
-  std::uint32_t getTokStringID() const {return annisTokStringID;}
+  inline std::uint32_t getNamespaceStringID() const {return annisNamespaceStringID;}
+  inline std::uint32_t getNodeNameStringID() const {return annisNodeNameStringID;}
+  inline std::uint32_t getEmptyStringID() const {return annisEmptyStringID;}
+  inline std::uint32_t getTokStringID() const {return annisTokStringID;}
 
   virtual ~DB();
 

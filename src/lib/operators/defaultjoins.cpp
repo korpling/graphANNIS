@@ -217,7 +217,8 @@ BinaryMatch SeedJoin::next()
       {
         currentMatch.found = true;
         std::pair<bool, Annotation> annoSearch =
-            db.getNodeAnnotation(currentMatch.rhs.node, annis_ns, annis_node_name);
+            db.getNodeAnnotation(currentMatch.rhs.node, db.getNamespaceStringID(),
+                                 db.getNodeNameStringID());
         if(annoSearch.first)
         {
           currentMatch.rhs.anno = annoSearch.second;
