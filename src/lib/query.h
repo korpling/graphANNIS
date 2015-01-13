@@ -9,7 +9,7 @@
 #include "db.h"
 #include <iterators.h>
 #include "operator.h"
-#include "operators/wrapper.h"
+#include "wrapper.h"
 
 namespace annis
 {

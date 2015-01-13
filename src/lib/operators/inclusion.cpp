@@ -1,7 +1,7 @@
 #include "inclusion.h"
 
 #include "../componenttypeiterator.h"
-#include "wrapper.h"
+#include "../wrapper.h"
 
 
 using namespace annis;

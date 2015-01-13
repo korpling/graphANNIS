@@ -1,5 +1,5 @@
 #include "overlap.h"
-#include "wrapper.h"
+#include "../wrapper.h"
 
 using namespace annis;
 

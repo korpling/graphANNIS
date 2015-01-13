@@ -1,10 +1,6 @@
 #include "wrapper.h"
 
-
 using namespace annis;
-
-
-
 
 void JoinWrapIterator::reset()
 {

@@ -1,6 +1,6 @@
 #include "abstractedgeoperator.h"
 
-#include "wrapper.h"
+#include "../wrapper.h"
 #include <set>
 
 using namespace annis;

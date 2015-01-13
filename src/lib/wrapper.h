@@ -1,8 +1,8 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
-#include "../iterators.h"
-#include "../join.h"
+#include "iterators.h"
+#include "join.h"
 
 #include <deque>
 #include <memory>

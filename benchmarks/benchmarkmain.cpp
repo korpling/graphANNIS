@@ -10,7 +10,7 @@
 #include <operators/inclusion.h>
 #include <operators/dominance.h>
 #include <operators/overlap.h>
-#include <operators/wrapper.h>
+#include <wrapper.h>
 
 HUMBLE_LOGGER(logger, "default");
 

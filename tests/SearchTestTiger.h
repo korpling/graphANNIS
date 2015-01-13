@@ -8,7 +8,7 @@
 #include "operators/precedence.h"
 #include "operators/dominance.h"
 #include "annotationsearch.h"
-#include "operators/wrapper.h"
+#include "wrapper.h"
 
 #include <vector>
 
