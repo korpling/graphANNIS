@@ -7,7 +7,7 @@
 #include <set>
 
 #include "db.h"
-#include <annotationiterator.h>
+#include <iterators.h>
 #include "operator.h"
 #include "operators/wrapper.h"
 

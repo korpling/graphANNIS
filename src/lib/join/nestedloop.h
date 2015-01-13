@@ -2,8 +2,9 @@
 #define NESTEDLOOP_H
 
 #include "types.h"
-#include "annotationiterator.h"
+#include "iterators.h"
 #include "operator.h"
+#include "join.h"
 #include "edgedb.h"
 #include "db.h"
 

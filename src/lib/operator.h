@@ -1,8 +1,11 @@
 #ifndef OPERATOR_H
 #define OPERATOR_H
 
-#include "annotationiterator.h"
 #include <list>
+#include <memory>
+
+#include "iterators.h"
+
 
 namespace annis
 {

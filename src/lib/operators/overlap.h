@@ -5,7 +5,7 @@
 #include <list>
 
 #include "../db.h"
-#include "../annotationiterator.h"
+#include "../iterators.h"
 #include "../helper.h"
 #include "operator.h"
 

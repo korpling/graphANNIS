@@ -1,8 +1,11 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
+#include "../iterators.h"
+#include "../join.h"
+
 #include <deque>
-#include "../annotationiterator.h"
+#include <memory>
 
 namespace annis
 {

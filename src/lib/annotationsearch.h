@@ -2,7 +2,7 @@
 #define ANNOTATIONSEARCH_H
 
 #include "db.h"
-#include "annotationiterator.h"
+#include "iterators.h"
 
 namespace annis
 {

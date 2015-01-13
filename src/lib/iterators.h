@@ -1,8 +1,7 @@
-#ifndef ANNOTATIONITERATOR_H
-#define ANNOTATIONITERATOR_H
+#ifndef ITERATORS
+#define ITERATORS
 
 #include "types.h"
-#include <memory>
 
 namespace annis
 {
@@ -44,14 +43,7 @@ public:
   virtual ~BinaryIt() {}
 };
 
-class Join : public BinaryIt
-{
-public:
-  virtual void init(std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs) = 0;
-
-  virtual ~Join() {}
-};
-
 } // end namespace annis
 
-#endif // ANNOTATIONITERATOR_H
+#endif // ITERATORS
+

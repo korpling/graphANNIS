@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "types.h"
-#include "annotationiterator.h"
+#include "iterators.h"
 #include "stringstorage.h"
 
 namespace annis

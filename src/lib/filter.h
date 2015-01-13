@@ -1,7 +1,8 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-#include "annotationiterator.h"
+#include "iterators.h"
+#include "join.h"
 #include "operator.h"
 
 namespace annis

@@ -1,7 +1,7 @@
 #ifndef COMPONENTTYPEITERATOR_H
 #define COMPONENTTYPEITERATOR_H
 
-#include "annotationiterator.h"
+#include "iterators.h"
 #include "db.h"
 
 #include <vector>
