@@ -1,5 +1,4 @@
 #include "precedence.h"
-#include "defaultjoins.h"
 #include "wrapper.h"
 
 using namespace annis;

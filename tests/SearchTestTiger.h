@@ -5,7 +5,6 @@
 #include "db.h"
 #include "helper.h"
 #include "query.h"
-#include "operators/defaultjoins.h"
 #include "operators/precedence.h"
 #include "operators/dominance.h"
 #include "annotationsearch.h"

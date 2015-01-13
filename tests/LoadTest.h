@@ -4,7 +4,6 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "annotationsearch.h"
-#include "operators/defaultjoins.h"
 #include <cstdlib>
 #include <boost/format.hpp>
 #include "query.h"

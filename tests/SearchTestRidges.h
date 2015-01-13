@@ -5,7 +5,6 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "annotationsearch.h"
-#include "operators/defaultjoins.h"
 #include "operators/precedence.h"
 #include "operators/overlap.h"
 #include "operators/inclusion.h"

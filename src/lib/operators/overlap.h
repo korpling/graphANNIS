@@ -6,7 +6,6 @@
 
 #include "../db.h"
 #include "../annotationiterator.h"
-#include "defaultjoins.h"
 #include "../helper.h"
 #include "operator.h"
 

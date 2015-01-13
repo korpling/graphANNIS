@@ -4,7 +4,6 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "annotationsearch.h"
-#include "operators/defaultjoins.h"
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
 #include "operators/precedence.h"
@@ -411,6 +410,27 @@ TEST_F(SearchTestPcc2, MultiDominance) {
   }
 
   EXPECT_EQ(2072u, counter);
+}
+
+TEST_F(SearchTestPcc2, Profile) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns,
+                                                   annis_node_name));
+  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns,
+                                                   annis_node_name));
+
+  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), 0, 1);
+
+  while(q.hasNext() && counter < 5000)
+  {
+    std::vector<Match> m = q.next();
+    counter++;
+  }
+
+  EXPECT_EQ(4853u, counter);
 }
 
 #endif // SEARCHTESTPCC2_H

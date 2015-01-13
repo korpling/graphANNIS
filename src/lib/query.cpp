@@ -1,5 +1,6 @@
 #include "query.h"
-#include "operators/defaultjoins.h"
+#include "join/nestedloop.h"
+#include "join/seed.h"
 #include "filter.h"
 
 #include <vector>

@@ -3,7 +3,6 @@
 
 #include "gtest/gtest.h"
 #include "db.h"
-#include "operators/defaultjoins.h"
 #include "operators/precedence.h"
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
