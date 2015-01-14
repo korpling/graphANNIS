@@ -212,13 +212,13 @@ DFSIteratorResult FallbackDFSIterator::nextDFS()
     {
       // add the outgoing edges to the stack
       auto outgoing = edb.getOutgoingEdges(result.node);
-      for(size_t idxOutgoing=0; idxOutgoing < outgoing.size(); idxOutgoing++)
+      for(const auto& outNodeID : outgoing)
       {
-        if(visited.find(outgoing[idxOutgoing]) == visited.end())
+        if(visited.find(outNodeID) == visited.end())
         {
-          traversalStack.push(pair<nodeid_t, unsigned int>(outgoing[idxOutgoing],
+          traversalStack.push(pair<nodeid_t, unsigned int>(outNodeID,
                                                            result.distance+1));
-          visited.insert(outgoing[idxOutgoing]);
+          visited.insert(outNodeID);
         }
       }
     }
