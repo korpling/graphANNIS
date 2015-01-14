@@ -19,7 +19,6 @@ class ListWrapper : public AnnoIt
 public:
 
   ListWrapper()
-    : anyAnno(Init::initAnnotation())
   {
     reset();
   }
@@ -31,6 +30,7 @@ public:
 
   void addMatch(const nodeid_t& m)
   {
+    static const Annotation anyAnno = Init::initAnnotation();
     orig.push(Init::initMatch(anyAnno, m));
   }
 
@@ -63,8 +63,6 @@ protected:
 
 private:
   std::queue<Match, std::list<Match> > orig;
-
-  Annotation anyAnno;
 };
 
 

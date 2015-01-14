@@ -82,6 +82,8 @@ public:
 
   void initStack();
   void reset();
+
+  virtual ~FallbackDFSIterator() {}
 private:
 
   const FallbackEdgeDB& edb;
