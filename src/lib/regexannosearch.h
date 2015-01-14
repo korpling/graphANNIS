@@ -13,7 +13,7 @@ public:
   RegexAnnoSearch(const DB& db, const std::string &name, const std::string &valRegex);
   RegexAnnoSearch(const DB& db, const std::string &ns, const std::string &name, const std::string &valRegex);
 
-  virtual const std::set<Annotation, compAnno>& getValidAnnotations()
+  virtual const std::unordered_set<Annotation>& getValidAnnotations()
   {
     if(!validAnnotationsInitialized)
     {
@@ -37,7 +37,7 @@ public:
   virtual ~RegexAnnoSearch();
 private:
     const DB& db;
-    std::set<Annotation, compAnno> validAnnotations;
+    std::unordered_set<Annotation> validAnnotations;
     bool validAnnotationsInitialized;
     std::string valRegex;
     RE2 compiledValRegex;

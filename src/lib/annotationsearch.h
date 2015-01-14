@@ -3,8 +3,10 @@
 
 #include "db.h"
 #include "iterators.h"
+#include "comparefunctions.h"
 
 #include <set>
+#include <unordered_set>
 
 namespace annis
 {
@@ -12,7 +14,7 @@ namespace annis
 class AnnotationSearch : public AnnoIt
 {
 public:
-  virtual const std::set<Annotation, compAnno>& getValidAnnotations() = 0;
+  virtual const std::unordered_set<Annotation>& getValidAnnotations() = 0;
 
   virtual ~AnnotationSearch() {};
 };
@@ -46,7 +48,7 @@ public:
   virtual Match next();
   virtual void reset();
 
-  const std::set<Annotation, compAnno>& getValidAnnotations()
+  const std::unordered_set<Annotation>& getValidAnnotations()
   {
     if(!validAnnotationInitialized)
     {
@@ -63,7 +65,7 @@ private:
   ItType itEnd;
 
   bool validAnnotationInitialized;
-  std::set<Annotation, compAnno> validAnnotations;
+  std::unordered_set<Annotation> validAnnotations;
 
   bool currentMatchValid;
   Match currentMatch;

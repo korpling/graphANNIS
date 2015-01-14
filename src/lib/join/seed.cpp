@@ -3,7 +3,7 @@
 
 using namespace annis;
 
-SeedJoin::SeedJoin(const DB &db, std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, const std::set<Annotation, compAnno>& rightAnno)
+SeedJoin::SeedJoin(const DB &db, std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, const std::unordered_set<Annotation>& rightAnno)
   : db(db), op(op), currentMatchValid(false), anyNodeShortcut(false),
     left(lhs), right(rightAnno)
 {

@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <tuple>
+#include <functional>
 
 namespace annis
 {
@@ -154,5 +155,15 @@ struct compBinaryMatch
 
 
 } // end namespace annis
+
+namespace std {
+    template <>
+        class hash<annis::Annotation>{
+        public :
+        size_t operator()(const annis::Annotation &a ) const{
+            return hash<uint32_t>()(a.ns) ^ hash<uint32_t>()(a.name) ^ hash<uint32_t>()(a.val);
+        }
+    };
+}
 
 #endif // COMPAREFUNCTIONS_H
