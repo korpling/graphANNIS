@@ -6,11 +6,34 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/map.hpp>
 
+#include <re2/re2.h>
+
 using namespace annis;
 using namespace std;
 
 StringStorage::StringStorage()
 {
+}
+
+std::set<std::uint32_t> StringStorage::findRegex(const string &str) const
+{
+  using ItType = map<string, uint32_t>::const_iterator;
+  std::set<std::uint32_t> result;
+
+  RE2 re(str, RE2::Quiet);
+  if(re.ok())
+  {
+    for(ItType it=stringStorageByValue.begin();
+        it != stringStorageByValue.end(); it++)
+    {
+      if(RE2::FullMatch(it->first, re))
+      {
+        result.insert(it->second);
+      }
+    }
+  }
+
+  return result;
 }
 
 uint32_t StringStorage::add(const string &str)

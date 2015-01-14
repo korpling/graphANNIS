@@ -54,14 +54,6 @@ public:
     }
   }
 
-  virtual const Annotation& getAnnotation()
-  {
-    // TODO: what kind of annotation can we return here?
-    // maybe it's even better to remove this function from the interface
-    // as soon as operators are no BinaryIt any longer.
-    return anyAnno;
-  }
-
   virtual ~ListWrapper() {}
 protected:
   size_t internalListSize()

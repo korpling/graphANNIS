@@ -3,7 +3,7 @@
 using namespace annis;
 using namespace std;
 
-AnnotationNameSearch::AnnotationNameSearch(DB &db)
+AnnotationNameSearch::AnnotationNameSearch(const DB &db)
   : db(db), currentMatchValid(false), validAnnotationInitialized(false)
 {
   itBegin = db.inverseNodeAnnotations.begin();

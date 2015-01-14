@@ -22,6 +22,8 @@ namespace annis
 class DB
 {
   friend class AnnotationNameSearch;
+  friend class RegexAnnoSearch;
+
   typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
 public:
   DB(bool useSpecializedEdgeDB = true);

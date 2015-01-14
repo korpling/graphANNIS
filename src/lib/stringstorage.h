@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 
 namespace annis
 {
@@ -42,12 +43,15 @@ public:
     return result;
   }
 
+  std::set<std::uint32_t> findRegex(const std::string& str) const;
+
   std::uint32_t add(const std::string& str);
 
   void clear();
   bool load(const std::string& dirPath);
   bool save(const std::string &dirPath);
   size_t size() {return stringStorageByID.size();}
+
 
 private:
   std::map<std::uint32_t, std::string> stringStorageByID;

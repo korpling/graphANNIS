@@ -7,6 +7,7 @@ add_subdirectory(ext/humble-logging-library-2.0.0)
 find_package(ICU 4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
 find_package(Re2 REQUIRED)
+find_package (Threads REQUIRED)
 
 message(STATUS "HumbleLogging_INCLUDE_DIRS=${HumbleLogging_INCLUDE_DIRS}")
 message(STATUS "HumbleLogging_LIBRARY=${HumbleLogging_LIBRARY}")
@@ -32,7 +33,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
-target_link_libraries(${PROJECT_NAME} humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 
 add_executable("a4_runner" ${SRC_LIST_RUNNER})

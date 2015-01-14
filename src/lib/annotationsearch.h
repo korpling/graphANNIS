@@ -13,6 +13,7 @@ class AnnotationSearch : public AnnoIt
 {
 public:
   virtual const std::set<Annotation, compAnno>& getValidAnnotations() = 0;
+
   virtual ~AnnotationSearch() {};
 };
 
@@ -25,7 +26,7 @@ public:
    * @brief Find all annotations.
    * @param db
    */
-  AnnotationNameSearch(DB& db);
+  AnnotationNameSearch(const DB& db);
   /**
    * @brief Find annotations by name
    * @param db
@@ -41,6 +42,7 @@ public:
   {
     return it != db.inverseNodeAnnotations.end() && it != itEnd;
   }
+
   virtual Match next();
   virtual void reset();
 
