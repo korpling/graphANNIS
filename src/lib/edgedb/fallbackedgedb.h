@@ -99,7 +99,7 @@ private:
   unsigned int maxDistance;
   std::uint32_t startNode;
 
-  std::set<nodeid_t> visited;
+  stx::btree_set<nodeid_t> visited;
 };
 
 } // end namespace annis
