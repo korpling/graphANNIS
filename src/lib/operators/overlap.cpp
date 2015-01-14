@@ -1,6 +1,8 @@
 #include "overlap.h"
 #include "../wrapper.h"
 
+#include <unordered_set>
+
 using namespace annis;
 
 Overlap::Overlap(DB &db)
@@ -15,7 +17,7 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
   ListWrapper* w = new ListWrapper();
   std::unique_ptr<AnnoIt> result(w);
 
-  std::set<nodeid_t> uniqueResultSet;
+  std::unordered_set<nodeid_t> uniqueResultSet;
 
   // get covered token of lhs
   std::unique_ptr<EdgeIterator> coveredByLeftIt = edbCoverage->findConnected(lhs.node);
