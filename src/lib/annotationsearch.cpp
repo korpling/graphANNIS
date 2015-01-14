@@ -110,16 +110,6 @@ Match AnnotationNameSearch::next()
   return result;
 }
 
-Match AnnotationNameSearch::current()
-{
-  Match result;
-  if(currentMatchValid)
-  {
-    result = currentMatch;
-  }
-  return result;
-}
-
 void AnnotationNameSearch::reset()
 {
   it = itBegin;

@@ -9,7 +9,7 @@
 namespace annis
 {
 
-class AnnotationSearch : public CacheableAnnoIt
+class AnnotationSearch : public AnnoIt
 {
 public:
   virtual const std::set<Annotation, compAnno>& getValidAnnotations() = 0;
@@ -42,7 +42,6 @@ public:
     return it != db.inverseNodeAnnotations.end() && it != itEnd;
   }
   virtual Match next();
-  virtual Match current();
   virtual void reset();
 
   const std::set<Annotation, compAnno>& getValidAnnotations()

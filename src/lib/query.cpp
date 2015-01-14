@@ -121,7 +121,6 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
 
   source[e.idxLeft] = itLeft;
   source[e.idxRight] = itRight;
-
 }
 
 void Query::mergeComponents(int c1, int c2)
@@ -170,7 +169,6 @@ std::vector<Match> Query::next()
   {
     internalInit();
   }
-
 
   std::vector<Match> result(source.size());
 

@@ -16,13 +16,6 @@ public:
   virtual ~AnnoIt() {}
 };
 
-class CacheableAnnoIt : public AnnoIt
-{
-public:
-  virtual Match current() = 0;
-  virtual ~CacheableAnnoIt() {}
-};
-
 class EdgeIterator
 {
 public:
