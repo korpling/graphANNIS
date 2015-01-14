@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "annotationsearch.h"
+#include "regexannosearch.h"
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
 #include "operators/precedence.h"
@@ -410,6 +411,28 @@ TEST_F(SearchTestPcc2, MultiDominance) {
   }
 
   EXPECT_EQ(2072u, counter);
+}
+
+TEST_F(SearchTestPcc2, Regex) {
+
+  unsigned int counter=0;
+
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
+                                                        "cat",".P"));
+  auto n2 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
+                                                        annis_ns, annis_tok,
+                                                       "A.*"));
+
+  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+
+  while(q.hasNext() && counter < 100)
+  {
+    std::vector<Match> m = q.next();
+    counter++;
+  }
+
+  EXPECT_EQ(12, counter);
 }
 
 TEST_F(SearchTestPcc2, Profile) {

@@ -78,7 +78,7 @@ void Query::internalInit()
     {
       if(e.second != firstComponent)
       {
-        std::cerr << "Node " << e.first << " is not connected";
+        std::cerr << "Node " << e.first << " is not connected" << std::endl;
         return;
       }
     }

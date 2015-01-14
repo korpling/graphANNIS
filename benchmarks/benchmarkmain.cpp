@@ -6,6 +6,7 @@
 #include <db.h>
 #include <query.h>
 #include <annotationsearch.h>
+#include <regexannosearch.h>
 #include <operators/precedence.h>
 #include <operators/inclusion.h>
 #include <operators/dominance.h>
@@ -207,6 +208,25 @@ BENCHMARK_F(TigerFallback, NNPreARTPreNN, 5, 1) {
   while(q.hasNext())
   {
     q.next();
+    counter++;
+  }
+}
+
+// cat=/(.P)/ >* /A.*/
+BENCHMARK_F(Tiger, RegexDom, 5, 1) {
+
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
+                                                        "cat",".P"));
+  auto n2 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
+                                                        annis_ns, annis_tok,
+                                                       "A.*"));
+
+  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+
+  while(q.hasNext())
+  {
+    std::vector<Match> m = q.next();
     counter++;
   }
 }
