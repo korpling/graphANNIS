@@ -24,7 +24,7 @@ class DB
   friend class AnnotationNameSearch;
   friend class RegexAnnoSearch;
 
-  typedef std::map<Component, EdgeDB*, compComponent>::const_iterator EdgeDBIt;
+  typedef std::map<Component, EdgeDB*>::const_iterator EdgeDBIt;
 public:
   DB(bool useSpecializedEdgeDB = true);
 
@@ -129,9 +129,9 @@ public:
 
 private:
   stx::btree_multimap<nodeid_t, Annotation> nodeAnnotations;
-  stx::btree_multimap<Annotation, nodeid_t, compAnno> inverseNodeAnnotations;
+  stx::btree_multimap<Annotation, nodeid_t> inverseNodeAnnotations;
 
-  std::map<Component, EdgeDB*, compComponent> edgeDatabases;
+  std::map<Component, EdgeDB*> edgeDatabases;
 
   std::uint32_t annisNamespaceStringID;
   std::uint32_t annisEmptyStringID;

@@ -39,11 +39,11 @@ public:
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const;
   virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const;
 
-  stx::btree_set<Edge, compEdges>::const_iterator getEdgesBegin()
+  stx::btree_set<Edge>::const_iterator getEdgesBegin()
   {
     return edges.begin();
   }
-  stx::btree_set<Edge, compEdges>::const_iterator getEdgesEnd()
+  stx::btree_set<Edge>::const_iterator getEdgesEnd()
   {
     return edges.end();
   }
@@ -58,8 +58,8 @@ private:
   StringStorage& strings;
   Component component;
 
-  stx::btree_set<Edge, compEdges> edges;
-  stx::btree_multimap<Edge, Annotation, compEdges> edgeAnnotations;
+  stx::btree_set<Edge> edges;
+  stx::btree_multimap<Edge, Annotation> edgeAnnotations;
 
 };
 

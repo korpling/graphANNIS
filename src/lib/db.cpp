@@ -210,22 +210,22 @@ bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& cor
 
 bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName)
 {
-  typedef multimap<TextProperty, uint32_t, compTextProperty>::const_iterator TextPropIt;
+  typedef multimap<TextProperty, uint32_t>::const_iterator TextPropIt;
 
   // maps a token index to an node ID
-  map<TextProperty, uint32_t, compTextProperty> tokenByIndex;
+  map<TextProperty, uint32_t> tokenByIndex;
 
   // map the "left" value to the nodes it belongs to
-  multimap<TextProperty, nodeid_t, compTextProperty> leftToNode;
+  multimap<TextProperty, nodeid_t> leftToNode;
   // map the "right" value to the nodes it belongs to
-  multimap<TextProperty, nodeid_t, compTextProperty> rightToNode;
+  multimap<TextProperty, nodeid_t> rightToNode;
   // map as node to it's "left" value
   map<nodeid_t, uint32_t> nodeToLeft;
   // map as node to it's "right" value
   map<nodeid_t, uint32_t> nodeToRight;
 
   // maps a character position to it's token
-  map<TextProperty, nodeid_t, compTextProperty> tokenByTextPosition;
+  map<TextProperty, nodeid_t> tokenByTextPosition;
 
   string nodeTabPath = dirPath + "/node.tab";
   HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
@@ -314,7 +314,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
     EdgeDB* edbLeft = createEdgeDBForComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
     EdgeDB* edbRight = createEdgeDBForComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
-    map<TextProperty, uint32_t, compTextProperty>::const_iterator tokenIt = tokenByIndex.begin();
+    map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
     uint32_t lastTextID = numeric_limits<uint32_t>::max();
     uint32_t lastToken = numeric_limits<uint32_t>::max();
 
@@ -365,7 +365,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   // add explicit coverage edges for each node in the special annis namespace coverage component
   EdgeDB* edbCoverage = createEdgeDBForComponent(ComponentType::COVERAGE, annis_ns, "");
   HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
-  for(multimap<TextProperty, nodeid_t, compTextProperty>::const_iterator itLeftToNode = leftToNode.begin();
+  for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
       itLeftToNode != leftToNode.end(); itLeftToNode++)
   {
     nodeid_t n = itLeftToNode->second;
@@ -579,7 +579,7 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
   Component c = Init::initComponent(ctype, layer, name);
 
   // check if there is already an edge DB for this component
-  map<Component,EdgeDB*,compComponent>::const_iterator itDB =
+  map<Component,EdgeDB*>::const_iterator itDB =
       edgeDatabases.find(c);
   if(itDB == edgeDatabases.end())
   {

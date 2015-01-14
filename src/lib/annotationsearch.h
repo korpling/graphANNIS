@@ -21,7 +21,7 @@ public:
 
 class AnnotationNameSearch : public AnnotationSearch
 {
-  using ItType = stx::btree_multimap<Annotation, nodeid_t, compAnno>::const_iterator;
+  using ItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
 
 public:
   /**

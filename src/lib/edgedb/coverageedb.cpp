@@ -12,7 +12,7 @@ CoverageEdgeDB::CoverageEdgeDB(StringStorage &strings, const Component &componen
 
 void CoverageEdgeDB::calculateIndex()
 {
-  typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
+  typedef stx::btree_set<Edge>::const_iterator EdgeIt;
   for(EdgeIt it=getEdgesBegin();
       it != getEdgesEnd(); it++)
 

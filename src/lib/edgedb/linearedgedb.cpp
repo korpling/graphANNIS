@@ -31,7 +31,7 @@ void LinearEdgeDB::clear()
 
 void LinearEdgeDB::calculateIndex()
 {
-  typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
+  typedef stx::btree_set<Edge>::const_iterator EdgeIt;
   // find all root nodes
   set<nodeid_t> roots;
 

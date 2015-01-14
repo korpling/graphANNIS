@@ -32,7 +32,7 @@ void FallbackEdgeDB::clear()
 
 bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
-  typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
+  typedef stx::btree_set<Edge>::const_iterator EdgeIt;
   if(minDistance == 1 && maxDistance == 1)
   {
     EdgeIt it = edges.find(edge);
@@ -87,7 +87,7 @@ int FallbackEdgeDB::distance(const Edge &edge) const
 
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) const
 {
-  typedef stx::btree_multimap<Edge, Annotation, compEdges>::const_iterator ItType;
+  typedef stx::btree_multimap<Edge, Annotation>::const_iterator ItType;
 
   std::vector<Annotation> result;
 
@@ -104,7 +104,7 @@ std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) con
 
 std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t node) const
 {
-  typedef stx::btree_set<Edge, compEdges>::const_iterator EdgeIt;
+  typedef stx::btree_set<Edge>::const_iterator EdgeIt;
 
   vector<nodeid_t> result;
 

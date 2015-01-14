@@ -8,34 +8,23 @@
 #include <tuple>
 #include <functional>
 
-namespace annis
-{
 
 #define ANNIS_STRUCT_COMPARE(a, b) {if(a < b) {return true;} else if(a > b) {return false;}}
 
-struct compComponent
-{
-  bool operator()(const struct Component &a, const struct Component &b) const
-  {
-    // compare by type
-    ANNIS_STRUCT_COMPARE(a.type, b.type);
 
-    // if equal compare by namespace
-    int nsCompare = strncmp(a.layer, b.layer, MAX_COMPONENT_NAME_SIZE);
-    ANNIS_STRUCT_COMPARE(nsCompare, 0);
-
-    // if still equal compare by name
-    int nameCompare = strncmp(a.name, b.name, MAX_COMPONENT_NAME_SIZE);
-    ANNIS_STRUCT_COMPARE(nameCompare, 0);
-
-    // they are equal
-    return false;
+namespace std {
+template <>
+class hash<annis::Annotation>{
+public :
+  size_t operator()(const annis::Annotation &a ) const{
+    return hash<uint32_t>()(a.ns) ^ hash<uint32_t>()(a.name) ^ hash<uint32_t>()(a.val);
   }
 };
 
-struct compAnno
+template<>
+struct less<annis::Annotation>
 {
-  bool operator()(const struct Annotation &a, const struct Annotation &b) const
+  bool operator()(const annis::Annotation& a,  const annis::Annotation& b) const
   {
     // compare by name (non lexical but just by the ID)
     ANNIS_STRUCT_COMPARE(a.name, b.name);
@@ -50,6 +39,60 @@ struct compAnno
     return false;
   }
 };
+
+template<>
+struct less<annis::Component>
+{
+  bool operator()(const struct annis::Component &a, const struct annis::Component &b) const
+  {
+    // compare by type
+    ANNIS_STRUCT_COMPARE(a.type, b.type);
+
+    // if equal compare by namespace
+    int nsCompare = strncmp(a.layer, b.layer, annis::MAX_COMPONENT_NAME_SIZE);
+    ANNIS_STRUCT_COMPARE(nsCompare, 0);
+
+    // if still equal compare by name
+    int nameCompare = strncmp(a.name, b.name, annis::MAX_COMPONENT_NAME_SIZE);
+    ANNIS_STRUCT_COMPARE(nameCompare, 0);
+
+    // they are equal
+    return false;
+  }
+};
+
+template<>
+struct less<annis::Edge>
+{
+  bool operator()(const struct annis::Edge &a, const struct annis::Edge &b) const
+  {
+    // compare by source id
+    ANNIS_STRUCT_COMPARE(a.source, b.source);
+
+    // if equal compare by target id
+    ANNIS_STRUCT_COMPARE(a.target, b.target);
+
+    // they are equal
+    return false;
+  }
+};
+
+template<>
+struct less<annis::TextProperty>
+{
+  bool operator()(const struct annis::TextProperty &a, const struct annis::TextProperty &b) const
+  {
+    ANNIS_STRUCT_COMPARE(a.textID, b.textID);
+    ANNIS_STRUCT_COMPARE(a.val, b.val);
+
+    // they are equal
+    return false;
+  }
+};
+} // end namespace std
+
+namespace annis
+{
 
 /**
  * @brief Compares two annotations.
@@ -82,88 +125,8 @@ inline bool checkAnnotationEqual(const struct Annotation &a, const struct Annota
   return true;
 }
 
-struct compEdges
-{
-  bool operator()(const struct Edge &a, const struct Edge &b) const
-  {
-    // compare by source id
-    ANNIS_STRUCT_COMPARE(a.source, b.source);
-
-    // if equal compare by target id
-    ANNIS_STRUCT_COMPARE(a.target, b.target);
-
-    // they are equal
-    return false;
-  }
-};
-
-struct compTextProperty
-{
-  bool operator()(const struct TextProperty &a, const struct TextProperty &b) const
-  {
-    ANNIS_STRUCT_COMPARE(a.textID, b.textID);
-    ANNIS_STRUCT_COMPARE(a.val, b.val);
-
-    // they are equal
-    return false;
-  }
-};
-
-struct compRelativePosition
-{
-  bool operator()(const struct RelativePosition &a, const struct RelativePosition &b) const
-  {
-    ANNIS_STRUCT_COMPARE(a.root, b.root);
-    ANNIS_STRUCT_COMPARE(a.pos, b.pos);
-
-    // they are equal
-    return false;
-  }
-};
-
-struct compMatch
-{
-  bool operator()(const struct Match &a, const struct Match &b) const
-  {
-    ANNIS_STRUCT_COMPARE(a.node, b.node);
-    ANNIS_STRUCT_COMPARE(a.anno.name, b.anno.name);
-    ANNIS_STRUCT_COMPARE(a.anno.ns, b.anno.ns);
-    ANNIS_STRUCT_COMPARE(a.anno.val, b.anno.val);
-    return false;
-  }
-};
-
-struct compBinaryMatch
-{
-  bool operator()(const struct BinaryMatch &a, const struct BinaryMatch &b) const
-  {
-
-    ANNIS_STRUCT_COMPARE(a.lhs.node, b.lhs.node);
-    ANNIS_STRUCT_COMPARE(a.lhs.anno.name, b.lhs.anno.name);
-    ANNIS_STRUCT_COMPARE(a.lhs.anno.ns, b.lhs.anno.ns);
-    ANNIS_STRUCT_COMPARE(a.lhs.anno.val, b.lhs.anno.val);
-
-    ANNIS_STRUCT_COMPARE(a.rhs.node, b.rhs.node);
-    ANNIS_STRUCT_COMPARE(a.rhs.anno.name, b.rhs.anno.name);
-    ANNIS_STRUCT_COMPARE(a.rhs.anno.ns, b.rhs.anno.ns);
-    ANNIS_STRUCT_COMPARE(a.rhs.anno.val, b.rhs.anno.val);
-
-    return false;
-  }
-};
-
-
-
 } // end namespace annis
 
-namespace std {
-    template <>
-        class hash<annis::Annotation>{
-        public :
-        size_t operator()(const annis::Annotation &a ) const{
-            return hash<uint32_t>()(a.ns) ^ hash<uint32_t>()(a.name) ^ hash<uint32_t>()(a.val);
-        }
-    };
-}
+
 
 #endif // COMPAREFUNCTIONS_H
