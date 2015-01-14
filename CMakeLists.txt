@@ -6,6 +6,7 @@ add_subdirectory(ext/humble-logging-library-2.0.0)
 
 find_package(ICU 4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
+find_package(Re2 REQUIRED)
 
 message(STATUS "HumbleLogging_INCLUDE_DIRS=${HumbleLogging_INCLUDE_DIRS}")
 message(STATUS "HumbleLogging_LIBRARY=${HumbleLogging_LIBRARY}")
@@ -16,6 +17,7 @@ include_directories(
   "ext/humble-logging-library-2.0.0/include"
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${RE2_INCLUDE_DIR}
 )
 
 file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp"
@@ -30,11 +32,11 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
-target_link_libraries(${PROJECT_NAME} humblelogging ${Boost_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES})
 
 
 add_executable("a4_runner" ${SRC_LIST_RUNNER})
-target_link_libraries("a4_runner" humblelogging ${Boost_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries("a4_runner" humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${PROJECT_NAME})
 
 
 file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
