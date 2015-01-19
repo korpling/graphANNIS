@@ -2,7 +2,8 @@
 
 using namespace annis;
 
-PrePostOrderStorage::PrePostOrderStorage()
+PrePostOrderStorage::PrePostOrderStorage(StringStorage &strings, const Component &component)
+ : FallbackEdgeDB(strings, component)
 {
 
 }

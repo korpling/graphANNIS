@@ -6,10 +6,10 @@
 namespace annis
 {
 
-class PrePostOrderStorage
+class PrePostOrderStorage : public FallbackEdgeDB
 {
 public:
-  PrePostOrderStorage();
+  PrePostOrderStorage(StringStorage& strings, const Component& component);
   virtual ~PrePostOrderStorage();
 
   virtual void calculateIndex();
