@@ -213,7 +213,7 @@ BENCHMARK_F(TigerFallback, NNPreARTPreNN, 5, 1) {
 }
 
 // cat=/(.P)/ >* /A.*/
-BENCHMARK_F(Tiger, RegexDom, 5, 1) {
+BENCHMARK_F(Tiger, RegexDom, 1, 1) {
 
   Query q(db);
   auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db,

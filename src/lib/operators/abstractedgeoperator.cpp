@@ -1,7 +1,7 @@
 #include "abstractedgeoperator.h"
 
 #include "../wrapper.h"
-#include <unordered_set>
+#include <stx/btree_set>
 
 using namespace annis;
 
@@ -48,7 +48,7 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
   }
   else
   {
-    std::unordered_set<nodeid_t> uniqueResult;
+    stx::btree_set<nodeid_t> uniqueResult;
     for(auto e : edb)
     {
       std::unique_ptr<EdgeIterator> it = e->findConnected(lhs.node, minDistance, maxDistance);
