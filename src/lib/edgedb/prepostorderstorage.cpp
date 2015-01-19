@@ -88,6 +88,7 @@ void PrePostOrderStorage::calculateIndex()
 
     order2node[currentOrder] = startNode;
     node2order[startNode].pre = currentOrder++;
+    node2order[startNode].level = 0;
     nodeStack.push(startNode);
 
     FallbackDFSIterator dfs(*this, startNode, 1, uintmax);
@@ -99,6 +100,7 @@ void PrePostOrderStorage::calculateIndex()
         // first visited, set pre-order
         order2node[currentOrder] = step.node;
         node2order[step.node].pre = currentOrder++;
+        node2order[step.node].level = step.distance;
         nodeStack.push(step.node);
       }
       else if(step.distance == lastDistance)
@@ -112,6 +114,7 @@ void PrePostOrderStorage::calculateIndex()
         // new node
         order2node[currentOrder] = step.node;
         node2order[step.node].pre = currentOrder++;
+        node2order[step.node].level = step.distance;
         nodeStack.push(step.node);
 
       }
@@ -128,5 +131,22 @@ void PrePostOrderStorage::calculateIndex()
       lastDistance = step.distance;
     } // end for each DFS step
   } // end for each root
+}
+
+bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance)
+{
+  const auto& orderSource = node2order.find(edge.source);
+  const auto& orderTarget = node2order.find(edge.target);
+  if(orderSource != node2order.end() && orderTarget != node2order.end())
+  {
+    if(orderSource->second.pre <= orderTarget->second.pre
+       && orderTarget->second.post <= orderSource->second.post)
+    {
+      // check the level
+      int32_t diffLevel = (orderTarget->second.level - orderSource->second.level);
+      return minDistance <= diffLevel <= maxDistance;
+    }
+  }
+  return false;
 }
 

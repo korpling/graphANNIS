@@ -12,6 +12,7 @@ struct PrePost
 {
   uint32_t pre;
   uint32_t post;
+  int32_t level;
 };
 
 
@@ -25,6 +26,8 @@ public:
   virtual bool save(std::string dirPath);
 
   virtual void calculateIndex();
+
+  virtual bool isConnected(const Edge& edge, unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
 private:
   stx::btree_map<nodeid_t, PrePost> node2order;
@@ -46,6 +49,9 @@ struct less<annis::PrePost>
 
     // compare by post-order
     if(a.post < b.post) {return true;} else if(a.post > b.post) {return false;}
+
+    // compare by level
+    if(a.level < b.level) {return true;} else if(a.level > b.level) {return false;}
 
     // they are equal
     return false;
