@@ -14,6 +14,7 @@
 #include "edgedb/fallbackedgedb.h"
 #include "edgedb/linearedgedb.h"
 #include "edgedb/coverageedb.h"
+#include "edgedb/prepostorderstorage.h"
 
 HUMBLE_LOGGER(logger, "annis4");
 
@@ -594,6 +595,10 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
     else if(useSpecializedEdgeDB && c.type == ComponentType::COVERAGE)
     {
       edgeDB = new CoverageEdgeDB(strings, c);
+    }
+    else if(useSpecializedEdgeDB && c.type == ComponentType::DOMINANCE)
+    {
+      edgeDB = new PrePostOrderStorage(strings, c);
     }
     else
     {
