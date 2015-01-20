@@ -179,7 +179,7 @@ bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance
       {
         // check the level
         int32_t diffLevel = (itTarget->second.level - itSource->second.level);
-        if(minDistance <= diffLevel <= maxDistance)
+        if(minDistance <= diffLevel && diffLevel <= maxDistance)
         {
           return true;
         }
