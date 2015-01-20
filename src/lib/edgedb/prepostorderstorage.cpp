@@ -151,7 +151,7 @@ void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>&
 }
 
 
-bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance)
+bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
   Node sourceLower;
   sourceLower.id = edge.source;
