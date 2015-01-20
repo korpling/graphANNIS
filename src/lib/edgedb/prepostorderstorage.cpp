@@ -132,8 +132,10 @@ void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nod
   PrePost newEntry;
   newEntry.pre = currentOrder++;
   newEntry.level = level;
-  newEntry.rootNode = rootNode;
-  node2order.insert2(nodeID, newEntry);
+  Node n;
+  n.id = nodeID;
+  n.root = rootNode;
+  node2order.insert2(n, newEntry);
   nodeStack.push(nodeID);
 }
 
@@ -141,31 +143,47 @@ void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>&
 {
   order2node[currentOrder] = nodeStack.top();
   // find the correct pre/post entry and update the post-value
-  auto itPair = node2order.equal_range(nodeStack.top());
-  for(auto& it=itPair.first; it != itPair.second; it++)
-  {
-    if(it->second.rootNode == rootNode)
-    {
-      it->second.post = currentOrder++;
-      break;
-    }
-  }
+  Node n;
+  n.id = nodeStack.top();
+  n.root = rootNode;
+  node2order[n].post = currentOrder++;
   nodeStack.pop();
 }
 
 
 bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance)
 {
-  const auto& orderSource = node2order.find(edge.source);
-  const auto& orderTarget = node2order.find(edge.target);
-  if(orderSource != node2order.end() && orderTarget != node2order.end())
+  Node sourceLower;
+  sourceLower.id = edge.source;
+  sourceLower.root = 0;
+
+  Node sourceUpper;
+  sourceUpper.id = edge.source;
+  sourceUpper.root = uintmax;
+
+  const auto itSourceBegin = node2order.lower_bound(sourceLower);
+  const auto itSourceEnd = node2order.upper_bound(sourceUpper);
+
+  for(auto itSource=itSourceBegin; itSource != itSourceEnd; itSource++)
   {
-    if(orderSource->second.pre <= orderTarget->second.pre
-       && orderTarget->second.post <= orderSource->second.post)
+    Node target;
+    target.id = edge.target;
+    target.root = itSource->first.root;
+
+    const auto itTarget = node2order.find(target);
+    if(itTarget != node2order.end())
     {
-      // check the level
-      int32_t diffLevel = (orderTarget->second.level - orderSource->second.level);
-      return minDistance <= diffLevel <= maxDistance;
+      if(itSource->second.pre <= itTarget->second.pre
+         && itTarget->second.post <= itSource->second.post
+         && itSource->first.root && itTarget->first.root)
+      {
+        // check the level
+        int32_t diffLevel = (itTarget->second.level - itSource->second.level);
+        if(minDistance <= diffLevel <= maxDistance)
+        {
+          return true;
+        }
+      }
     }
   }
   return false;
