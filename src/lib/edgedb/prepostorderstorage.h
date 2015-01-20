@@ -4,6 +4,7 @@
 #include "fallbackedgedb.h"
 
 #include <stx/btree_map>
+#include <stx/btree_multimap>
 
 namespace annis
 {
@@ -31,12 +32,12 @@ public:
   virtual bool isConnected(const Edge& edge, unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
 private:
-  stx::btree_map<nodeid_t, PrePost> node2order;
+  stx::btree_multimap<nodeid_t, PrePost> node2order;
   stx::btree_map<uint32_t, uint32_t> order2node;
 
 
   void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, std::stack<nodeid_t> &nodeStack);
-  void exitNode(uint32_t &currentOrder, std::stack<nodeid_t> &nodeStack);
+  void exitNode(uint32_t &currentOrder, std::stack<nodeid_t> &nodeStack, uint32_t rootID);
 
 };
 

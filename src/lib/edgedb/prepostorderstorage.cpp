@@ -101,7 +101,7 @@ void PrePostOrderStorage::calculateIndex()
       {
         // neighbour node, the last subtree was iterated completly, thus the last node
         // can be assigned a post-order
-        exitNode(currentOrder, nodeStack);
+        exitNode(currentOrder, nodeStack, startNode);
 
         // new node
         enterNode(currentOrder, step.node, startNode, step.distance, nodeStack);
@@ -110,7 +110,7 @@ void PrePostOrderStorage::calculateIndex()
       {
         // parent node, the subtree was iterated completly, thus the last node
         // can be assigned a post-order
-        exitNode(currentOrder, nodeStack);
+        exitNode(currentOrder, nodeStack, startNode);
 
         // the current node was already visited
       }
@@ -119,7 +119,7 @@ void PrePostOrderStorage::calculateIndex()
 
     while(!nodeStack.empty())
     {
-      exitNode(currentOrder, nodeStack);
+      exitNode(currentOrder, nodeStack, startNode);
     }
 
   } // end for each root
@@ -129,16 +129,27 @@ void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nod
                                         int32_t level, std::stack<nodeid_t>& nodeStack)
 {
   order2node[currentOrder] = nodeID;
-  node2order[nodeID].pre = currentOrder++;
-  node2order[nodeID].level = level;
-  node2order[nodeID].rootNode = rootNode;
+  PrePost newEntry;
+  newEntry.pre = currentOrder++;
+  newEntry.level = level;
+  newEntry.rootNode = rootNode;
+  node2order.insert2(nodeID, newEntry);
   nodeStack.push(nodeID);
 }
 
-void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>& nodeStack)
+void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>& nodeStack, uint32_t rootNode)
 {
   order2node[currentOrder] = nodeStack.top();
-  node2order[nodeStack.top()].post = currentOrder++;
+  // find the correct pre/post entry and update the post-value
+  auto itPair = node2order.equal_range(nodeStack.top());
+  for(auto& it=itPair.first; it != itPair.second; it++)
+  {
+    if(it->second.rootNode == rootNode)
+    {
+      it->second.post = currentOrder++;
+      break;
+    }
+  }
   nodeStack.pop();
 }
 
