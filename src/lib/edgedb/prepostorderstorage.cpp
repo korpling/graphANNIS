@@ -86,10 +86,7 @@ void PrePostOrderStorage::calculateIndex()
     uint32_t currentOrder = 0;
     std::stack<nodeid_t> nodeStack;
 
-    order2node[currentOrder] = startNode;
-    node2order[startNode].pre = currentOrder++;
-    node2order[startNode].level = 0;
-    nodeStack.push(startNode);
+    enterNode(currentOrder, startNode, startNode, 0, nodeStack);
 
     FallbackDFSIterator dfs(*this, startNode, 1, uintmax);
     for(DFSIteratorResult step = dfs.nextDFS(); step.found;
@@ -98,40 +95,53 @@ void PrePostOrderStorage::calculateIndex()
       if(step.distance > lastDistance)
       {
         // first visited, set pre-order
-        order2node[currentOrder] = step.node;
-        node2order[step.node].pre = currentOrder++;
-        node2order[step.node].level = step.distance;
-        nodeStack.push(step.node);
+        enterNode(currentOrder, step.node, startNode, step.distance, nodeStack);
       }
       else if(step.distance == lastDistance)
       {
         // neighbour node, the last subtree was iterated completly, thus the last node
         // can be assigned a post-order
-        order2node[currentOrder] = nodeStack.top();
-        node2order[nodeStack.top()].post = currentOrder++;
-        nodeStack.pop();
+        exitNode(currentOrder, nodeStack);
 
         // new node
-        order2node[currentOrder] = step.node;
-        node2order[step.node].pre = currentOrder++;
-        node2order[step.node].level = step.distance;
-        nodeStack.push(step.node);
-
+        enterNode(currentOrder, step.node, startNode, step.distance, nodeStack);
       }
       else
       {
         // parent node, the subtree was iterated completly, thus the last node
         // can be assigned a post-order
-        order2node[currentOrder] = nodeStack.top();
-        node2order[nodeStack.top()].post = currentOrder++;
-        nodeStack.pop();
+        exitNode(currentOrder, nodeStack);
 
         // the current node was already visited
       }
       lastDistance = step.distance;
     } // end for each DFS step
+
+    while(!nodeStack.empty())
+    {
+      exitNode(currentOrder, nodeStack);
+    }
+
   } // end for each root
 }
+
+void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode,
+                                        int32_t level, std::stack<nodeid_t>& nodeStack)
+{
+  order2node[currentOrder] = nodeID;
+  node2order[nodeID].pre = currentOrder++;
+  node2order[nodeID].level = level;
+  node2order[nodeID].rootNode = rootNode;
+  nodeStack.push(nodeID);
+}
+
+void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>& nodeStack)
+{
+  order2node[currentOrder] = nodeStack.top();
+  node2order[nodeStack.top()].post = currentOrder++;
+  nodeStack.pop();
+}
+
 
 bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance)
 {

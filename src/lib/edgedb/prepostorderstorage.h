@@ -13,6 +13,7 @@ struct PrePost
   uint32_t pre;
   uint32_t post;
   int32_t level;
+  nodeid_t rootNode;
 };
 
 
@@ -33,6 +34,10 @@ private:
   stx::btree_map<nodeid_t, PrePost> node2order;
   stx::btree_map<uint32_t, uint32_t> order2node;
 
+
+  void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, std::stack<nodeid_t> &nodeStack);
+  void exitNode(uint32_t &currentOrder, std::stack<nodeid_t> &nodeStack);
+
 };
 
 } // end namespace annis
@@ -44,6 +49,9 @@ struct less<annis::PrePost>
 {
   bool operator()(const struct annis::PrePost &a, const struct annis::PrePost &b) const
   {
+    // compare by root node
+    if(a.rootNode < b.rootNode) {return true;} else if(a.rootNode > b.rootNode) {return false;}
+
     // compare by pre-order
     if(a.pre < b.pre) {return true;} else if(a.pre > b.pre) {return false;}
 
