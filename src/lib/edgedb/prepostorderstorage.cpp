@@ -189,3 +189,38 @@ bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance
   return false;
 }
 
+int PrePostOrderStorage::distance(const Edge &edge) const
+{
+  Node sourceLower;
+  sourceLower.id = edge.source;
+  sourceLower.root = 0;
+
+  Node sourceUpper;
+  sourceUpper.id = edge.source;
+  sourceUpper.root = uintmax;
+
+  const auto itSourceBegin = node2order.lower_bound(sourceLower);
+  const auto itSourceEnd = node2order.upper_bound(sourceUpper);
+
+  for(auto itSource=itSourceBegin; itSource != itSourceEnd; itSource++)
+  {
+    Node target;
+    target.id = edge.target;
+    target.root = itSource->first.root;
+
+    const auto itTarget = node2order.find(target);
+    if(itTarget != node2order.end())
+    {
+      if(itSource->second.pre <= itTarget->second.pre
+         && itTarget->second.post <= itSource->second.post
+         && itSource->first.root && itTarget->first.root)
+      {
+        // check the level
+        int32_t diffLevel = (itTarget->second.level - itSource->second.level);
+        return diffLevel;
+      }
+    }
+  }
+  return -1;
+}
+

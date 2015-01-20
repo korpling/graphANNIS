@@ -78,6 +78,7 @@ public:
   virtual void calculateIndex();
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance = 1, unsigned int maxDistance = 1);
+  virtual int distance(const Edge &edge) const;
 
 private:
   stx::btree_map<Node, PrePost> node2order;

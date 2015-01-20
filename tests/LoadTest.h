@@ -227,6 +227,31 @@ TEST_F(LoadTest, Dom)
   EXPECT_EQ(1u, counter);
 }
 
+TEST_F(LoadTest, IsConnected)
+{
+
+  annis::Component component = annis::Init::initComponent(annis::ComponentType::DOMINANCE,
+                                                                 "tiger", "");
+  const annis::EdgeDB* edb = db.getEdgeDB(component);
+
+  EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 1, uintmax));
+  EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 1, 2));
+  EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 2, 2));
+  EXPECT_FALSE(edb->isConnected(Init::initEdge(387, 16), 3, uintmax));
+
+}
+
+TEST_F(LoadTest, Distance)
+{
+
+  annis::Component component = annis::Init::initComponent(annis::ComponentType::DOMINANCE,
+                                                                 "tiger", "");
+  const annis::EdgeDB* edb = db.getEdgeDB(component);
+
+  EXPECT_EQ(2, edb->distance(Init::initEdge(387, 16)));
+
+}
+
 
 
 #endif // LOADTEST_H
