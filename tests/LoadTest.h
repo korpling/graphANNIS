@@ -210,10 +210,10 @@ TEST_F(LoadTest, Dom)
   unsigned int counter=0;
 
   Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
-  q.addOperator(std::make_shared<Dominance>(db, "tiger", "", 1, uintmax), 0, 1);
+  q.addOperator(std::make_shared<Dominance>(db, "tiger", "", 1, uintmax), n1, n2);
 
   while(q.hasNext())
   {

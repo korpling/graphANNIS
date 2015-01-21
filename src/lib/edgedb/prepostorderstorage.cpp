@@ -228,7 +228,8 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
       const PrePost& candidateOrder = (storage.node2order.find(candidateNode))->second;
       if(candidateOrder.post <= maximumOrder.post)
       {
-        result.first = currentNode->second.id;
+        result.first = true;
+        result.second = currentNode->second.id;
         currentNode++;
         return result;
       }
