@@ -132,10 +132,7 @@ void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nod
   PrePost newEntry;
   newEntry.pre = currentOrder++;
   newEntry.level = level;
-  Node n;
-  n.id = nodeID;
-  n.root = rootNode;
-  node2order.insert2(n, newEntry);
+  node2order.insert2({nodeID, rootNode}, newEntry);
   nodeStack.push(nodeID);
 }
 
@@ -153,24 +150,13 @@ void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>&
 
 bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
-  Node sourceLower;
-  sourceLower.id = edge.source;
-  sourceLower.root = 0;
 
-  Node sourceUpper;
-  sourceUpper.id = edge.source;
-  sourceUpper.root = uintmax;
-
-  const auto itSourceBegin = node2order.lower_bound(sourceLower);
-  const auto itSourceEnd = node2order.upper_bound(sourceUpper);
+  const auto itSourceBegin = node2order.lower_bound({edge.source, 0});
+  const auto itSourceEnd = node2order.upper_bound({edge.source, uintmax});
 
   for(auto itSource=itSourceBegin; itSource != itSourceEnd; itSource++)
   {
-    Node target;
-    target.id = edge.target;
-    target.root = itSource->first.root;
-
-    const auto itTarget = node2order.find(target);
+    const auto itTarget = node2order.find({edge.target, itSource->first.root});
     if(itTarget != node2order.end())
     {
       if(itSource->second.pre <= itTarget->second.pre
@@ -191,24 +177,12 @@ bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance
 
 int PrePostOrderStorage::distance(const Edge &edge) const
 {
-  Node sourceLower;
-  sourceLower.id = edge.source;
-  sourceLower.root = 0;
-
-  Node sourceUpper;
-  sourceUpper.id = edge.source;
-  sourceUpper.root = uintmax;
-
-  const auto itSourceBegin = node2order.lower_bound(sourceLower);
-  const auto itSourceEnd = node2order.upper_bound(sourceUpper);
+  const auto itSourceBegin = node2order.lower_bound({ edge.source, 0 });
+  const auto itSourceEnd = node2order.upper_bound({edge.source, uintmax});
 
   for(auto itSource=itSourceBegin; itSource != itSourceEnd; itSource++)
   {
-    Node target;
-    target.id = edge.target;
-    target.root = itSource->first.root;
-
-    const auto itTarget = node2order.find(target);
+    const auto itTarget = node2order.find({edge.target, itSource->first.root});
     if(itTarget != node2order.end())
     {
       if(itSource->second.pre <= itTarget->second.pre
