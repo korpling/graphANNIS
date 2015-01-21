@@ -128,7 +128,7 @@ void PrePostOrderStorage::calculateIndex()
 void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode,
                                         int32_t level, std::stack<nodeid_t>& nodeStack)
 {
-  order2node[currentOrder] = nodeID;
+  order2node[currentOrder] = {nodeID, rootNode};
   PrePost newEntry;
   newEntry.pre = currentOrder++;
   newEntry.level = level;
@@ -138,7 +138,7 @@ void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nod
 
 void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>& nodeStack, nodeid_t rootNode)
 {
-  order2node[currentOrder] = nodeStack.top();
+  order2node[currentOrder] = {nodeStack.top(), rootNode};
   // find the correct pre/post entry and update the post-value
   Node n;
   n.id = nodeStack.top();
@@ -217,14 +217,26 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
 
   while(!ranges.empty())
   {
-    if(currentNode != ranges.top().second)
+    while(currentNode != ranges.top().second)
     {
-      result.first = currentNode->second;
 
-      // TODO: check post-order
+      // check post order
+      const Node& maximumNode = ranges.top().second->second;
+      const Node& candidateNode = currentNode->second;
 
-      currentNode++;
-      return result;
+      const PrePost& maximumOrder = (storage.node2order.find(maximumNode))->second;
+      const PrePost& candidateOrder = (storage.node2order.find(candidateNode))->second;
+      if(candidateOrder.post <= maximumOrder.post)
+      {
+        result.first = currentNode->second.id;
+        currentNode++;
+        return result;
+      }
+      else
+      {
+        currentNode++;
+      }
+
     }
 
     // this range is finished, try next one
@@ -245,16 +257,8 @@ void PrePostIterator::reset()
     ranges.pop();
   }
 
-  Node lower;
-  lower.id = startNode;
-  lower.root = 0;
-
-  Node upper;
-  upper.id = startNode;
-  upper.root = uintmax;
-
-  auto subComponentsLower = storage.node2order.lower_bound(lower);
-  auto subComponentsUpper = storage.node2order.upper_bound(upper);
+  auto subComponentsLower = storage.node2order.lower_bound({startNode, 0});
+  auto subComponentsUpper = storage.node2order.upper_bound({startNode, uintmax});
 
   for(auto it=subComponentsLower; it != subComponentsUpper; it++)
   {
