@@ -77,13 +77,13 @@ void PrePostOrderStorage::calculateIndex()
   {
     roots.erase(it->target);
   }
+  uint32_t currentOrder = 0;
 
   // traverse the graph for each sub-component
   for(const auto& startNode : roots)
   {
     unsigned int lastDistance = 0;
 
-    uint32_t currentOrder = 0;
     std::stack<nodeid_t> nodeStack;
 
     enterNode(currentOrder, startNode, startNode, 0, nodeStack);
