@@ -166,7 +166,7 @@ LinearEdgeDB::~LinearEdgeDB()
 
 }
 
-LinearIterator::LinearIterator(const LinearEdgeDB &edb, std::uint32_t startNode,
+LinearIterator::LinearIterator(const LinearEdgeDB &edb, nodeid_t startNode,
                                unsigned int minDistance, unsigned int maxDistance)
   : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode),
     chain(nullptr)

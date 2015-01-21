@@ -139,7 +139,7 @@ void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nod
   nodeStack.push(nodeID);
 }
 
-void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>& nodeStack, uint32_t rootNode)
+void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>& nodeStack, nodeid_t rootNode)
 {
   order2node[currentOrder] = nodeStack.top();
   // find the correct pre/post entry and update the post-value
@@ -224,3 +224,80 @@ int PrePostOrderStorage::distance(const Edge &edge) const
   return -1;
 }
 
+std::unique_ptr<EdgeIterator> PrePostOrderStorage::findConnected(nodeid_t sourceNode, unsigned int minDistance, unsigned int maxDistance) const
+{
+  return std::unique_ptr<EdgeIterator>(new PrePostIterator(*this, sourceNode, minDistance, maxDistance));
+}
+
+
+
+PrePostIterator::PrePostIterator(const PrePostOrderStorage &storage, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
+  : storage(storage), startNode(startNode), minDistance(minDistance), maxDistance(maxDistance)
+{
+  reset();
+}
+
+std::pair<bool, nodeid_t> PrePostIterator::next()
+{
+  std::pair<bool, nodeid_t> result(0, false);
+
+  while(!ranges.empty())
+  {
+    if(currentNode != ranges.top().second)
+    {
+      result.first = currentNode->second;
+
+      // TODO: check post-order
+
+      currentNode++;
+      return result;
+    }
+
+    // this range is finished, try next one
+    ranges.pop();
+    if(!ranges.empty())
+    {
+      currentNode = ranges.top().first;
+    }
+  }
+
+  return result;
+}
+
+void PrePostIterator::reset()
+{
+  while(!ranges.empty())
+  {
+    ranges.pop();
+  }
+
+  Node lower;
+  lower.id = startNode;
+  lower.root = 0;
+
+  Node upper;
+  upper.id = startNode;
+  upper.root = uintmax;
+
+  auto subComponentsLower = storage.node2order.lower_bound(lower);
+  auto subComponentsUpper = storage.node2order.upper_bound(upper);
+
+  for(auto it=subComponentsLower; it != subComponentsUpper; it++)
+  {
+    ranges.push(
+          std::pair<OrderIt, OrderIt>(
+            storage.order2node.lower_bound(it->second.pre),
+            storage.order2node.upper_bound(it->second.post)));
+  }
+
+  if(!ranges.empty())
+  {
+    currentNode = ranges.top().first;
+  }
+
+}
+
+PrePostIterator::~PrePostIterator()
+{
+
+}

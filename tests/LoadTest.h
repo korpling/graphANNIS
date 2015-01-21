@@ -238,6 +238,7 @@ TEST_F(LoadTest, IsConnected)
   EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 1, 2));
   EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 2, 2));
   EXPECT_FALSE(edb->isConnected(Init::initEdge(387, 16), 3, uintmax));
+  EXPECT_FALSE(edb->isConnected(Init::initEdge(387, 16), 5, 10));
 
 }
 

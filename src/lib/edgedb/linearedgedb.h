@@ -40,7 +40,7 @@ class LinearIterator : public EdgeIterator
 {
 public:
 
-  LinearIterator(const LinearEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
+  LinearIterator(const LinearEdgeDB& edb, nodeid_t startNode, unsigned int minDistance, unsigned int maxDistance);
 
   virtual std::pair<bool, nodeid_t> next();
 
@@ -52,7 +52,7 @@ private:
   const LinearEdgeDB& edb;
   unsigned int minDistance;
   unsigned int maxDistance;
-  std::uint32_t startNode;
+  nodeid_t startNode;
 
   const std::vector<nodeid_t>* chain;
   uint32_t currentPos;
