@@ -10,15 +10,6 @@
 namespace annis
 {
 
-struct Node
-{
-  nodeid_t id;
-  /**
-   * @brief id of the root node of the subcomponent
-   */
-  nodeid_t root;
-};
-
 struct PrePost
 {
   uint32_t pre;
@@ -28,10 +19,17 @@ struct PrePost
 
 struct SearchRange
 {
-  stx::btree_map<uint32_t, Node>::const_iterator lower;
-  stx::btree_map<uint32_t, Node>::const_iterator upper;
+  stx::btree_map<uint32_t, nodeid_t>::const_iterator lower;
+  stx::btree_map<uint32_t, nodeid_t>::const_iterator upper;
   uint32_t maximumPost;
   int32_t startLevel;
+};
+
+
+struct NodeStackEntry
+{
+  nodeid_t id;
+  PrePost order;
 };
 
 } // end namespace annis
@@ -52,22 +50,6 @@ struct less<annis::PrePost>
 
     // compare by level
     if(a.level < b.level) {return true;} else if(a.level > b.level) {return false;}
-
-    // they are equal
-    return false;
-  }
-};
-
-template<>
-struct less<annis::Node>
-{
-  bool operator()(const struct annis::Node &a, const struct annis::Node &b) const
-  {
-    // compare by id
-    if(a.id < b.id) {return true;} else if(a.id > b.id) {return false;}
-
-    // compare by root node
-    if(a.root < b.root) {return true;} else if(a.root > b.root) {return false;}
 
     // they are equal
     return false;
@@ -99,18 +81,18 @@ public:
                                            unsigned int maxDistance = 1) const;
 
 private:
-  stx::btree_map<Node, PrePost> node2order;
-  stx::btree_map<uint32_t, Node> preorder2node;
+  stx::btree_multimap<nodeid_t, PrePost> node2order;
+  stx::btree_map<uint32_t, nodeid_t> preorder2node;
 
 
-  void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, std::stack<nodeid_t> &nodeStack);
-  void exitNode(uint32_t &currentOrder, std::stack<nodeid_t> &nodeStack, nodeid_t rootNode);
+  void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, std::stack<NodeStackEntry> &nodeStack);
+  void exitNode(uint32_t &currentOrder, std::stack<NodeStackEntry> &nodeStack);
 
 };
 
 class PrePostIterator : public EdgeIterator
 {
-  using OrderIt = stx::btree_map<uint32_t, Node>::const_iterator;
+  using OrderIt = stx::btree_map<uint32_t, nodeid_t>::const_iterator;
 public:
 
   PrePostIterator(const PrePostOrderStorage& storage,

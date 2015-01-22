@@ -84,7 +84,7 @@ void PrePostOrderStorage::calculateIndex()
   {
     unsigned int lastDistance = 0;
 
-    std::stack<nodeid_t> nodeStack;
+    std::stack<NodeStackEntry> nodeStack;
 
     enterNode(currentOrder, startNode, startNode, 0, nodeStack);
 
@@ -106,7 +106,7 @@ void PrePostOrderStorage::calculateIndex()
         // Distance starts with 0 but the stack size starts with 1.
         while(nodeStack.size() > step.distance)
         {
-          exitNode(currentOrder, nodeStack, startNode);
+          exitNode(currentOrder, nodeStack);
         }
         // new node
         enterNode(currentOrder, step.node, startNode, step.distance, nodeStack);
@@ -116,30 +116,32 @@ void PrePostOrderStorage::calculateIndex()
 
     while(!nodeStack.empty())
     {
-      exitNode(currentOrder, nodeStack, startNode);
+      exitNode(currentOrder, nodeStack);
     }
 
   } // end for each root
 }
 
 void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode,
-                                        int level, std::stack<nodeid_t>& nodeStack)
+                                        int level, std::stack<NodeStackEntry>& nodeStack)
 {
-  preorder2node[currentOrder] = {nodeID, rootNode};
-  PrePost newEntry;
-  newEntry.pre = currentOrder++;
-  newEntry.level = level;
-  node2order.insert2({nodeID, rootNode}, newEntry);
-  nodeStack.push(nodeID);
+  preorder2node[currentOrder] = nodeID;
+  NodeStackEntry newEntry;
+  newEntry.id = nodeID;
+  newEntry.order.pre = currentOrder++;
+  newEntry.order.level = level;
+
+  nodeStack.push(newEntry);
 }
 
-void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>& nodeStack, nodeid_t rootNode)
+void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<NodeStackEntry> &nodeStack)
 {
   // find the correct pre/post entry and update the post-value
-  Node n;
-  n.id = nodeStack.top();
-  n.root = rootNode;
-  node2order[n].post = currentOrder++;
+  auto& entry = nodeStack.top();
+  entry.order.post = currentOrder++;
+
+  node2order.insert2(entry.id, entry.order);
+
   nodeStack.pop();
 }
 
@@ -147,17 +149,16 @@ void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>&
 bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
 
-  const auto itSourceBegin = node2order.lower_bound({edge.source, 0});
-  const auto itSourceEnd = node2order.upper_bound({edge.source, uintmax});
+  const auto itSourceBegin = node2order.lower_bound(edge.source);
+  const auto itSourceEnd = node2order.upper_bound(edge.source);
 
   for(auto itSource=itSourceBegin; itSource != itSourceEnd; itSource++)
   {
-    const auto itTarget = node2order.find({edge.target, itSource->first.root});
-    if(itTarget != node2order.end())
+    auto itTargetRange = node2order.equal_range(edge.target);
+    for(auto itTarget=itTargetRange.first; itTarget != itTargetRange.second; itTarget++)
     {
       if(itSource->second.pre <= itTarget->second.pre
-         && itTarget->second.post <= itSource->second.post
-         && itSource->first.root && itTarget->first.root)
+         && itTarget->second.post <= itSource->second.post)
       {
         // check the level
         int diffLevel = (itTarget->second.level - itSource->second.level);
@@ -173,25 +174,38 @@ bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance
 
 int PrePostOrderStorage::distance(const Edge &edge) const
 {
-  const auto itSourceBegin = node2order.lower_bound({ edge.source, 0 });
-  const auto itSourceEnd = node2order.upper_bound({edge.source, uintmax});
+  const auto itSourceBegin = node2order.lower_bound(edge.source);
+  const auto itSourceEnd = node2order.upper_bound(edge.source);
+
+  bool wasFound = false;
+  int32_t minLevel = std::numeric_limits<int32_t>::max();
 
   for(auto itSource=itSourceBegin; itSource != itSourceEnd; itSource++)
   {
-    const auto itTarget = node2order.find({edge.target, itSource->first.root});
-    if(itTarget != node2order.end())
+    auto itTargetRange = node2order.equal_range(edge.target);
+    for(auto itTarget=itTargetRange.first; itTarget != itTargetRange.second; itTarget++)
     {
       if(itSource->second.pre <= itTarget->second.pre
-         && itTarget->second.post <= itSource->second.post
-         && itSource->first.root && itTarget->first.root)
+         && itTarget->second.post <= itSource->second.post)
       {
         // check the level
         int32_t diffLevel = (itTarget->second.level - itSource->second.level);
-        return diffLevel;
+        if(diffLevel >= 0)
+        {
+          wasFound = true;
+          minLevel = std::min(minLevel, diffLevel);
+        }
       }
     }
   }
-  return -1;
+  if(wasFound)
+  {
+    return minLevel;
+  }
+  else
+  {
+    return -1;
+  }
 }
 
 std::unique_ptr<EdgeIterator> PrePostOrderStorage::findConnected(nodeid_t sourceNode, unsigned int minDistance, unsigned int maxDistance) const
@@ -235,7 +249,7 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
         {
           // success
           result.first = true;
-          result.second = currentNode->second.id;
+          result.second = currentNode->second;
           currentNode++;
           return result;
         }
@@ -276,8 +290,8 @@ void PrePostIterator::reset()
     ranges.pop();
   }
 
-  auto subComponentsLower = storage.node2order.lower_bound({startNode, 0});
-  auto subComponentsUpper = storage.node2order.upper_bound({startNode, uintmax});
+  auto subComponentsLower = storage.node2order.lower_bound(startNode);
+  auto subComponentsUpper = storage.node2order.upper_bound(startNode);
 
   for(auto it=subComponentsLower; it != subComponentsUpper; it++)
   {
