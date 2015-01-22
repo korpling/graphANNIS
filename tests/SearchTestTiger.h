@@ -127,10 +127,10 @@ TEST_F(SearchTestTiger, BilharzioseSentence)
   while(q.hasNext())
   {
     std::vector<Match> m = q.next();
-     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%\t%4%#%5%\t%6%#%7%")
-                      % counter % m[0].node % m[1].node
-                      % db.getNodeDocument(m[0].node) % db.getNodeName(m[0].node)
-                      % db.getNodeDocument(m[1].node) % db.getNodeName(m[1].node)).str()) ;
+     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%")
+                      % counter
+                      % db.getNodeDebugName(m[0].node)
+                      % db.getNodeDebugName(m[1].node)).str()) ;
     counter++;
   }
 
