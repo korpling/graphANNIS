@@ -389,6 +389,7 @@ TEST_F(SearchTestPcc2, RangedDominance) {
   EXPECT_EQ(93u, counter);
 }
 
+
 // Should test query
 // node >2,4 node
 TEST_F(SearchTestPcc2, MultiDominance) {

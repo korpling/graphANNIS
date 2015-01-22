@@ -31,6 +31,7 @@ struct SearchRange
   stx::btree_map<uint32_t, Node>::const_iterator lower;
   stx::btree_map<uint32_t, Node>::const_iterator upper;
   uint32_t maximumPost;
+  int32_t startLevel;
 };
 
 } // end namespace annis

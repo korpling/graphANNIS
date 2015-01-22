@@ -71,6 +71,15 @@ public:
     }
     return result;
   }
+
+  inline std::string getNodeDebugName(const nodeid_t &id) const
+  {
+    std::stringstream ss;
+    ss << getNodeDocument(id) << "/" << getNodeName(id) << "(" << id << ")";
+
+    return ss.str();
+  }
+
   inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
   {
     using AnnoIt = stx::btree_multimap<nodeid_t, Annotation>::const_iterator;

@@ -97,22 +97,19 @@ void PrePostOrderStorage::calculateIndex()
         // first visited, set pre-order
         enterNode(currentOrder, step.node, startNode, step.distance, nodeStack);
       }
-      else if(step.distance == lastDistance)
-      {
-        // neighbour node, the last subtree was iterated completly, thus the last node
-        // can be assigned a post-order
-        exitNode(currentOrder, nodeStack, startNode);
-
-        // new node
-        enterNode(currentOrder, step.node, startNode, step.distance, nodeStack);
-      }
       else
       {
-        // parent node, the subtree was iterated completly, thus the last node
-        // can be assigned a post-order
-        exitNode(currentOrder, nodeStack, startNode);
-
-        // the current node was already visited
+        // Neighbour node, the last subtree was iterated completly, thus the last node
+        // can be assigned a post-order.
+        // The parent node must be at the top of the node stack,
+        // thus exit every node which comes after the parent node.
+        // Distance starts with 0 but the stack size starts with 1.
+        while(nodeStack.size() > step.distance)
+        {
+          exitNode(currentOrder, nodeStack, startNode);
+        }
+        // new node
+        enterNode(currentOrder, step.node, startNode, step.distance, nodeStack);
       }
       lastDistance = step.distance;
     } // end for each DFS step
@@ -126,7 +123,7 @@ void PrePostOrderStorage::calculateIndex()
 }
 
 void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode,
-                                        int32_t level, std::stack<nodeid_t>& nodeStack)
+                                        int level, std::stack<nodeid_t>& nodeStack)
 {
   preorder2node[currentOrder] = {nodeID, rootNode};
   PrePost newEntry;
@@ -163,7 +160,7 @@ bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance
          && itSource->first.root && itTarget->first.root)
       {
         // check the level
-        int32_t diffLevel = (itTarget->second.level - itSource->second.level);
+        int diffLevel = (itTarget->second.level - itSource->second.level);
         if(minDistance <= diffLevel && diffLevel <= maxDistance)
         {
           return true;
@@ -220,6 +217,7 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
   {
     const auto& upper = ranges.top().upper;
     const auto& maximumPost = ranges.top().maximumPost;
+    const auto& startLevel = ranges.top().startLevel;
 
     while(currentNode != upper)
     {
@@ -228,11 +226,12 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
       {
         const auto& currentPre = currentOrderIt->second.pre;
         const auto& currentPost = currentOrderIt->second.post;
+        const auto& currentLevel = currentOrderIt->second.level;
 
+        int diffLevel = currentLevel - startLevel;
 
-
-        // check post order as well
-        if(currentPost < maximumPost)
+        // check post order and level as well
+        if(currentPost < maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance)
         {
           // success
           result.first = true;
@@ -287,7 +286,7 @@ void PrePostIterator::reset()
     auto lowerIt = storage.preorder2node.lower_bound(pre);
     auto upperIt = storage.preorder2node.upper_bound(post);
 
-    ranges.push({lowerIt, upperIt, post});
+    ranges.push({lowerIt, upperIt, post, it->second.level});
   }
 
   if(!ranges.empty())

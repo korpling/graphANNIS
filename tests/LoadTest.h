@@ -253,6 +253,28 @@ TEST_F(LoadTest, Distance)
 
 }
 
+// Should test query
+// cat="CNP" >2 cat="PN"
+TEST_F(LoadTest, RangedDom) {
 
+  unsigned int counter=0;
+
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "AP"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
+
+  q.addOperator(std::make_shared<Dominance>(db, "", "", 3, 5), n1, n2);
+
+  while(q.hasNext() && counter < 2000)
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%")
+                     % db.getNodeDebugName(m[0].node)
+                     % db.getNodeDebugName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(7u, counter);
+}
 
 #endif // LOADTEST_H
