@@ -199,6 +199,18 @@ DFSIteratorResult FallbackDFSIterator::nextDFS()
     pair<uint32_t, unsigned int> stackEntry = traversalStack.top();
     result.node = stackEntry.first;
     result.distance = stackEntry.second;
+
+    // check if distance was changed to detect the completion of a subgraph
+    if(lastDistance >= result.distance)
+    {
+      // remove all nodes from the path set that are below the parent node
+      for(auto it=distanceToNode.find(result.distance); it != distanceToNode.end(); it = distanceToNode.erase(it))
+      {
+        nodesInCurrentPath.erase(it->second);
+      }
+    }
+
+    lastDistance = result.distance;
     traversalStack.pop();
 
     if(result.distance >= minDistance && result.distance <= maxDistance)
@@ -214,11 +226,17 @@ DFSIteratorResult FallbackDFSIterator::nextDFS()
       auto outgoing = edb.getOutgoingEdges(result.node);
       for(const auto& outNodeID : outgoing)
       {
-        if(visited.find(outNodeID) == visited.end())
+        if(nodesInCurrentPath.find(outNodeID) == nodesInCurrentPath.end())
         {
           traversalStack.push(pair<nodeid_t, unsigned int>(outNodeID,
                                                            result.distance+1));
-          visited.insert(outNodeID);
+          nodesInCurrentPath.insert(outNodeID);
+          distanceToNode.insert({result.distance+1, outNodeID});
+        }
+        else
+        {
+          // we detected a cycle!
+          std::cerr << "ERROR: cycle detected" << std::endl;
         }
       }
     }
@@ -235,8 +253,10 @@ std::pair<bool, nodeid_t> FallbackDFSIterator::next()
 void FallbackDFSIterator::initStack()
 {
   // add the initial value to the stack
-  traversalStack.push(pair<uint32_t,unsigned int>(startNode, 0));
-  visited.insert(startNode);
+  traversalStack.push({startNode, 0});
+  lastDistance = 0;
+  nodesInCurrentPath.insert(startNode);
+  distanceToNode.insert({0, startNode});
 }
 
 void FallbackDFSIterator::reset()
@@ -246,7 +266,8 @@ void FallbackDFSIterator::reset()
   {
     traversalStack.pop();
   }
-  visited.clear();
+  nodesInCurrentPath.clear();
+  distanceToNode.clear();
 
   initStack();
 }

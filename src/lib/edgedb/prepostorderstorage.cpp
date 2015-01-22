@@ -142,6 +142,16 @@ void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<NodeStackE
 
   node2order.insert2(entry.id, entry.order);
 
+//  if(entry.id == 750)
+//  {
+//    std::cerr << "debug component " << getComponent().layer << ":" << getComponent().name << std::endl;
+//    for(auto it = node2order.lower_bound(750); it != node2order.upper_bound(750); it++)
+//    {
+//      std::cerr << it->second.pre << "-" << it->second.post << " (" << it->second.level << ")" << std::endl;
+//    }
+//    std::cerr << "-------------" << std::endl;
+//  }
+
   nodeStack.pop();
 }
 

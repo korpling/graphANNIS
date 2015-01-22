@@ -11,6 +11,7 @@
 #include <stack>
 #include <list>
 #include <set>
+#include <map>
 
 namespace annis
 {
@@ -53,6 +54,7 @@ public:
 
   virtual std::uint32_t numberOfEdges() const;
   virtual std::uint32_t numberOfEdgeAnnotations() const;
+  const Component& getComponent() { return component;}
 
 private:
   StringStorage& strings;
@@ -75,7 +77,9 @@ class FallbackDFSIterator : public EdgeIterator
 {
 public:
 
-  FallbackDFSIterator(const FallbackEdgeDB& edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
+  FallbackDFSIterator(const FallbackEdgeDB& edb,
+                      std::uint32_t startNode,
+                      unsigned int minDistance, unsigned int maxDistance);
 
   virtual DFSIteratorResult nextDFS();
   virtual std::pair<bool, nodeid_t> next();
@@ -99,7 +103,9 @@ private:
   unsigned int maxDistance;
   std::uint32_t startNode;
 
-  stx::btree_set<nodeid_t> visited;
+  unsigned int lastDistance;
+  std::set<nodeid_t> nodesInCurrentPath;
+  std::multimap<unsigned int, nodeid_t> distanceToNode;
 };
 
 } // end namespace annis
