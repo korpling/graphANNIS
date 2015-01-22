@@ -91,7 +91,7 @@ public:
 
 private:
   stx::btree_map<Node, PrePost> node2order;
-  stx::btree_map<uint32_t, Node> order2node;
+  stx::btree_map<uint32_t, Node> preorder2node;
 
 
   void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, std::stack<nodeid_t> &nodeStack);
@@ -104,7 +104,9 @@ class PrePostIterator : public EdgeIterator
   using OrderIt = stx::btree_map<uint32_t, Node>::const_iterator;
 public:
 
-  PrePostIterator(const PrePostOrderStorage& storage, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance);
+  PrePostIterator(const PrePostOrderStorage& storage,
+                  std::uint32_t startNode,
+                  unsigned int minDistance, unsigned int maxDistance);
 
   virtual std::pair<bool, nodeid_t> next();
 

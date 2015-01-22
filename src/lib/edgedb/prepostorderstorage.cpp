@@ -25,7 +25,7 @@ PrePostOrderStorage::~PrePostOrderStorage()
 bool PrePostOrderStorage::load(std::string dirPath)
 {
   node2order.clear();
-  order2node.clear();
+  preorder2node.clear();
 
   bool result = FallbackEdgeDB::load(dirPath);
   std::ifstream in;
@@ -34,8 +34,8 @@ bool PrePostOrderStorage::load(std::string dirPath)
   result = result && node2order.restore(in);
   in.close();
 
-  in.open(dirPath + "/order2node.btree", std::ios::binary);
-  result = result && order2node.restore(in);
+  in.open(dirPath + "/preorder2node.btree", std::ios::binary);
+  result = result && preorder2node.restore(in);
   in.close();
 
   return result;
@@ -51,8 +51,8 @@ bool PrePostOrderStorage::save(std::string dirPath)
   node2order.dump(out);
   out.close();
 
-  out.open(dirPath + "/order2node.btree", std::ios::binary);
-  order2node.dump(out);
+  out.open(dirPath + "/preorder2node.btree", std::ios::binary);
+  preorder2node.dump(out);
   out.close();
 
   return result;
@@ -63,7 +63,7 @@ void PrePostOrderStorage::calculateIndex()
 {
   using ItType = stx::btree_set<Edge>::const_iterator;
   node2order.clear();
-  order2node.clear();
+  preorder2node.clear();
 
   // find all roots of the component
   std::set<nodeid_t> roots;
@@ -128,7 +128,7 @@ void PrePostOrderStorage::calculateIndex()
 void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode,
                                         int32_t level, std::stack<nodeid_t>& nodeStack)
 {
-  order2node[currentOrder] = {nodeID, rootNode};
+  preorder2node[currentOrder] = {nodeID, rootNode};
   PrePost newEntry;
   newEntry.pre = currentOrder++;
   newEntry.level = level;
@@ -138,7 +138,6 @@ void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nod
 
 void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<nodeid_t>& nodeStack, nodeid_t rootNode)
 {
-  order2node[currentOrder] = {nodeStack.top(), rootNode};
   // find the correct pre/post entry and update the post-value
   Node n;
   n.id = nodeStack.top();
@@ -200,13 +199,15 @@ int PrePostOrderStorage::distance(const Edge &edge) const
 
 std::unique_ptr<EdgeIterator> PrePostOrderStorage::findConnected(nodeid_t sourceNode, unsigned int minDistance, unsigned int maxDistance) const
 {
-  return std::unique_ptr<EdgeIterator>(new PrePostIterator(*this, sourceNode, minDistance, maxDistance));
+  return std::unique_ptr<EdgeIterator>(
+        new PrePostIterator(*this, sourceNode, minDistance, maxDistance));
 }
 
 
 
 PrePostIterator::PrePostIterator(const PrePostOrderStorage &storage, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
-  : storage(storage), startNode(startNode), minDistance(minDistance), maxDistance(maxDistance)
+  : storage(storage), startNode(startNode),
+    minDistance(minDistance), maxDistance(maxDistance)
 {
   reset();
 }
@@ -219,26 +220,35 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
   {
     while(currentNode != ranges.top().second)
     {
+      const auto& upper = ranges.top().second;
 
-      // check post order
-      const Node& maximumNode = ranges.top().second->second;
-      const Node& candidateNode = currentNode->second;
+      const auto& currentPre =
+          storage.node2order.find(currentNode->second)->second.pre;
+      const auto& currentPost =
+          storage.node2order.find(currentNode->second)->second.post;
 
-      const PrePost& maximumOrder = (storage.node2order.find(maximumNode))->second;
-      const PrePost& candidateOrder = (storage.node2order.find(candidateNode))->second;
-      if(candidateOrder.post <= maximumOrder.post)
+      const auto& maximumPost = upper->first;
+
+      // check post order as well
+      if(currentPost < maximumPost)
       {
+        // success
         result.first = true;
         result.second = currentNode->second.id;
         currentNode++;
         return result;
       }
-      else
+      else if(currentPre < maximumPost)
       {
+        // proceed with the next entry in the range
         currentNode++;
       }
-
-    }
+      else
+      {
+        // abort searching in this range
+        break;
+      }
+    } // end while range not finished yet
 
     // this range is finished, try next one
     ranges.pop();
@@ -263,10 +273,12 @@ void PrePostIterator::reset()
 
   for(auto it=subComponentsLower; it != subComponentsUpper; it++)
   {
-    ranges.push(
-          std::pair<OrderIt, OrderIt>(
-            storage.order2node.lower_bound(it->second.pre),
-            storage.order2node.upper_bound(it->second.post)));
+    auto pre = it->second.pre;
+    auto post = it->second.post;
+    auto lowerIt = storage.preorder2node.lower_bound(pre);
+    auto upperIt = storage.preorder2node.upper_bound(post);
+
+    ranges.push({lowerIt, upperIt});
   }
 
   if(!ranges.empty())
