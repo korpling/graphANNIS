@@ -218,43 +218,52 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
 
   while(!ranges.empty())
   {
-    while(currentNode != ranges.top().second)
+    const auto& upper = ranges.top().upper;
+    const auto& maximumPost = ranges.top().maximumPost;
+
+    while(currentNode != upper)
     {
-      const auto& upper = ranges.top().second;
-
-      const auto& currentPre =
-          storage.node2order.find(currentNode->second)->second.pre;
-      const auto& currentPost =
-          storage.node2order.find(currentNode->second)->second.post;
-
-      const auto& maximumPost = upper->first;
-
-      // check post order as well
-      if(currentPost < maximumPost)
+      const auto& currentOrderIt = storage.node2order.find(currentNode->second);
+      if(currentOrderIt != storage.node2order.end())
       {
-        // success
-        result.first = true;
-        result.second = currentNode->second.id;
-        currentNode++;
-        return result;
-      }
-      else if(currentPre < maximumPost)
-      {
-        // proceed with the next entry in the range
-        currentNode++;
-      }
+        const auto& currentPre = currentOrderIt->second.pre;
+        const auto& currentPost = currentOrderIt->second.post;
+
+
+
+        // check post order as well
+        if(currentPost < maximumPost)
+        {
+          // success
+          result.first = true;
+          result.second = currentNode->second.id;
+          currentNode++;
+          return result;
+        }
+        else if(currentPre < maximumPost)
+        {
+          // proceed with the next entry in the range
+          currentNode++;
+        }
+        else
+        {
+          // abort searching in this range
+          break;
+        }
+
+      } // end if the current pre-order could be mapped to a node
       else
       {
-        // abort searching in this range
-        break;
+        currentNode++;
       }
+
     } // end while range not finished yet
 
     // this range is finished, try next one
     ranges.pop();
     if(!ranges.empty())
     {
-      currentNode = ranges.top().first;
+      currentNode = ranges.top().lower;
     }
   }
 
@@ -278,12 +287,12 @@ void PrePostIterator::reset()
     auto lowerIt = storage.preorder2node.lower_bound(pre);
     auto upperIt = storage.preorder2node.upper_bound(post);
 
-    ranges.push({lowerIt, upperIt});
+    ranges.push({lowerIt, upperIt, post});
   }
 
   if(!ranges.empty())
   {
-    currentNode = ranges.top().first;
+    currentNode = ranges.top().lower;
   }
 
 }

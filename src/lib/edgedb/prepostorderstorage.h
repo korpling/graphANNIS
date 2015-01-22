@@ -25,6 +25,14 @@ struct PrePost
   uint32_t post;
   int32_t level;
 };
+
+struct SearchRange
+{
+  stx::btree_map<uint32_t, Node>::const_iterator lower;
+  stx::btree_map<uint32_t, Node>::const_iterator upper;
+  uint32_t maximumPost;
+};
+
 } // end namespace annis
 
 
@@ -120,7 +128,7 @@ private:
   unsigned int maxDistance;
   std::uint32_t startNode;
 
-  std::stack<std::pair<OrderIt, OrderIt> > ranges;
+  std::stack<SearchRange> ranges;
   OrderIt currentNode;
 
 };
