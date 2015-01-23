@@ -25,7 +25,7 @@ PrePostOrderStorage::~PrePostOrderStorage()
 bool PrePostOrderStorage::load(std::string dirPath)
 {
   node2order.clear();
-  preorder2node.clear();
+  order2node.clear();
 
   bool result = FallbackEdgeDB::load(dirPath);
   std::ifstream in;
@@ -34,8 +34,8 @@ bool PrePostOrderStorage::load(std::string dirPath)
   result = result && node2order.restore(in);
   in.close();
 
-  in.open(dirPath + "/preorder2node.btree", std::ios::binary);
-  result = result && preorder2node.restore(in);
+  in.open(dirPath + "/order2node.btree", std::ios::binary);
+  result = result && order2node.restore(in);
   in.close();
 
   return result;
@@ -51,8 +51,8 @@ bool PrePostOrderStorage::save(std::string dirPath)
   node2order.dump(out);
   out.close();
 
-  out.open(dirPath + "/preorder2node.btree", std::ios::binary);
-  preorder2node.dump(out);
+  out.open(dirPath + "/order2node.btree", std::ios::binary);
+  order2node.dump(out);
   out.close();
 
   return result;
@@ -63,7 +63,7 @@ void PrePostOrderStorage::calculateIndex()
 {
   using ItType = stx::btree_set<Edge>::const_iterator;
   node2order.clear();
-  preorder2node.clear();
+  order2node.clear();
 
   // find all roots of the component
   std::set<nodeid_t> roots;
@@ -125,7 +125,6 @@ void PrePostOrderStorage::calculateIndex()
 void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode,
                                         int level, std::stack<NodeStackEntry>& nodeStack)
 {
-  preorder2node[currentOrder] = nodeID;
   NodeStackEntry newEntry;
   newEntry.id = nodeID;
   newEntry.order.pre = currentOrder++;
@@ -141,6 +140,7 @@ void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<NodeStackE
   entry.order.post = currentOrder++;
 
   node2order.insert2(entry.id, entry.order);
+  order2node[entry.order] = entry.id;
 
 //  if(entry.id == 750)
 //  {
@@ -245,41 +245,31 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
 
     while(currentNode != upper)
     {
-      const auto& currentOrderIt = storage.node2order.find(currentNode->second);
-      if(currentOrderIt != storage.node2order.end())
+      const auto& currentPre = currentNode->first.pre;
+      const auto& currentPost = currentNode->first.post;
+      const auto& currentLevel = currentNode->first.level;
+
+      int diffLevel = currentLevel - startLevel;
+
+      // check post order and level as well
+      if(currentPost < maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance)
       {
-        const auto& currentPre = currentOrderIt->second.pre;
-        const auto& currentPost = currentOrderIt->second.post;
-        const auto& currentLevel = currentOrderIt->second.level;
-
-        int diffLevel = currentLevel - startLevel;
-
-        // check post order and level as well
-        if(currentPost < maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance)
-        {
-          // success
-          result.first = true;
-          result.second = currentNode->second;
-          currentNode++;
-          return result;
-        }
-        else if(currentPre < maximumPost)
-        {
-          // proceed with the next entry in the range
-          currentNode++;
-        }
-        else
-        {
-          // abort searching in this range
-          break;
-        }
-
-      } // end if the current pre-order could be mapped to a node
-      else
+        // success
+        result.first = true;
+        result.second = currentNode->second;
+        currentNode++;
+        return result;
+      }
+      else if(currentPre < maximumPost)
       {
+        // proceed with the next entry in the range
         currentNode++;
       }
-
+      else
+      {
+        // abort searching in this range
+        break;
+      }
     } // end while range not finished yet
 
     // this range is finished, try next one
@@ -307,8 +297,8 @@ void PrePostIterator::reset()
   {
     auto pre = it->second.pre;
     auto post = it->second.post;
-    auto lowerIt = storage.preorder2node.lower_bound(pre);
-    auto upperIt = storage.preorder2node.upper_bound(post);
+    auto lowerIt = storage.order2node.lower_bound({pre, 0, 0});
+    auto upperIt = storage.order2node.upper_bound({post, uintmax, std::numeric_limits<int32_t>::max()});
 
     ranges.push({lowerIt, upperIt, post, it->second.level});
   }

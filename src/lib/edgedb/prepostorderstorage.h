@@ -7,33 +7,16 @@
 #include <stx/btree_multimap>
 #include <stack>
 
+
 namespace annis
 {
-
 struct PrePost
 {
   uint32_t pre;
   uint32_t post;
   int32_t level;
 };
-
-struct SearchRange
-{
-  stx::btree_map<uint32_t, nodeid_t>::const_iterator lower;
-  stx::btree_map<uint32_t, nodeid_t>::const_iterator upper;
-  uint32_t maximumPost;
-  int32_t startLevel;
-};
-
-
-struct NodeStackEntry
-{
-  nodeid_t id;
-  PrePost order;
-};
-
 } // end namespace annis
-
 
 namespace std
 {
@@ -61,6 +44,21 @@ struct less<annis::PrePost>
 namespace annis
 {
 
+struct SearchRange
+{
+  stx::btree_map<PrePost, nodeid_t>::const_iterator lower;
+  stx::btree_map<PrePost, nodeid_t>::const_iterator upper;
+  uint32_t maximumPost;
+  int32_t startLevel;
+};
+
+
+struct NodeStackEntry
+{
+  nodeid_t id;
+  PrePost order;
+};
+
 class PrePostOrderStorage : public FallbackEdgeDB
 {  
 friend class PrePostIterator;
@@ -82,7 +80,7 @@ public:
 
 private:
   stx::btree_multimap<nodeid_t, PrePost> node2order;
-  stx::btree_map<uint32_t, nodeid_t> preorder2node;
+  stx::btree_map<PrePost, nodeid_t> order2node;
 
 
   void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, std::stack<NodeStackEntry> &nodeStack);
@@ -92,7 +90,7 @@ private:
 
 class PrePostIterator : public EdgeIterator
 {
-  using OrderIt = stx::btree_map<uint32_t, nodeid_t>::const_iterator;
+  using OrderIt = stx::btree_map<PrePost, nodeid_t>::const_iterator;
 public:
 
   PrePostIterator(const PrePostOrderStorage& storage,
