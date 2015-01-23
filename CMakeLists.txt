@@ -4,6 +4,10 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/ext/h
 
 add_subdirectory(ext/humble-logging-library-2.0.0)
 
+set(CELERO_BUILD_EXAMPLES OFF)
+set(CELERO_COMPILE_DYNAMIC_LIBRARIES OFF)
+add_subdirectory(ext/Celero-1.0.8)
+
 find_package(ICU 4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
 find_package(Re2 REQUIRED)
@@ -43,9 +47,10 @@ target_link_libraries("a4_runner" humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARI
 file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
 set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
 include_directories(SYSTEM "ext/hayai/src/")
+include_directories(SYSTEM "ext/Celero-1.0.8/include/")
 include_directories("src/lib/")
 add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
-target_link_libraries(${BENCHMARK_EXEC} ${PROJECT_NAME} )
+target_link_libraries(${BENCHMARK_EXEC} celero ${PROJECT_NAME}  )
 
 ################################
 # Testing with Google Test

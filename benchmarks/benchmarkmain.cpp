@@ -1,3 +1,5 @@
+#include <celero/Celero.h>
+
 #include <hayai.hpp>
 #include <boost/format.hpp>
 
@@ -223,87 +225,6 @@ public:
 };
 
 
-BENCHMARK_F(Tiger, Cat, 5, 1)
-{
-  AnnotationNameSearch search(db, "cat");
-  counter=0;
-  while(search.hasNext())
-  {
-    search.next();
-    counter++;
-  }
-}
-
-// cat="S" & tok="Bilharziose" & #1 >* #2
-BENCHMARK_F(Tiger, BilharzioseSentence, 5, 1)
-{
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
-
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
-
-  while(q.hasNext())
-  {
-    q.next();
-    counter++;
-  }
-
-}
-
-// pos="NN" .2,10 pos="ART" . pos="NN"
-BENCHMARK_F(Tiger, NNPreARTPreNN, 5, 1) {
-
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-
-  q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
-  q.addOperator(std::make_shared<Precedence>(db), 1, 2);
-  while(q.hasNext())
-  {
-    q.next();
-    counter++;
-  }
-}
-
-// pos="NN" .2,10 pos="ART" . pos="NN"
-BENCHMARK_F(TigerFallback, NNPreARTPreNN, 5, 1) {
-
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-
-  q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
-  q.addOperator(std::make_shared<Precedence>(db), 1, 2);
-  while(q.hasNext())
-  {
-    q.next();
-    counter++;
-  }
-}
-
-// cat=/(.P)/ >* /A.*/
-BENCHMARK_F(Tiger, RegexDom, 1, 1) {
-
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
-                                                        "cat",".P"));
-  auto n2 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
-                                                        annis_ns, annis_tok,
-                                                       "A.*"));
-
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
-
-  while(q.hasNext())
-  {
-    std::vector<Match> m = q.next();
-    counter++;
-  }
-}
-
 // pos="NN" & norm="Blumen" & #1 _i_ #2
 BENCHMARK_F(Ridges, PosNNIncludesNormBlumen, 5, 1) {
 
@@ -504,25 +425,9 @@ BENCHMARK_F(Tueba, Complex, 5, 1) {
   }
 }
 
-int main(int argc, char** argv)
-{
-  humble::logging::Factory &fac = humble::logging::Factory::getInstance();
 
-  fac.setDefaultLogLevel(humble::logging::LogLevel::Info);
-  fac.registerAppender(new humble::logging::FileAppender("benchmark_annis4.log"));
-
-
-  hayai::ConsoleOutputter consoleOutputter;
-
-  hayai::Benchmarker::AddOutputter(consoleOutputter);
-  if(argc >= 2)
-  {
-    for(int i=1; i < argc; i++)
-    {
-      std::cout << "adding include filter" << argv[i] << std::endl;
-      hayai::Benchmarker::AddIncludeFilter(argv[i]);
-    }
-  }
-  hayai::Benchmarker::RunAllTests();
-  return 0;
-}
+///
+/// This is the main(int argc, char** argv) for the entire celero program.
+/// You can write your own, or use this macro to insert the standard one into the project.
+///
+CELERO_MAIN
