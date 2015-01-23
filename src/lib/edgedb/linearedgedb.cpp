@@ -1,4 +1,6 @@
 #include "linearedgedb.h"
+#include "../dfs.h"
+
 #include <fstream>
 #include <set>
 #include <limits>

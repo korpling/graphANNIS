@@ -1,5 +1,7 @@
 #include "prepostorderstorage.h"
 
+#include "../dfs.h"
+
 #include <set>
 #include <stack>
 

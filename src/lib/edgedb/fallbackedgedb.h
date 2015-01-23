@@ -19,8 +19,6 @@ namespace annis
 
 class FallbackEdgeDB : public EdgeDB
 {
-friend class FallbackDFSIterator;
-friend class FallbackDFS;
 
 public:
   FallbackEdgeDB(StringStorage& strings, const Component& component);
@@ -63,77 +61,6 @@ private:
   stx::btree_set<Edge> edges;
   stx::btree_multimap<Edge, Annotation> edgeAnnotations;
 
-};
-
-struct DFSIteratorResult
-{
-  bool found;
-  unsigned int distance;
-  nodeid_t node;
-};
-
-/** A depth first traverser */
-class FallbackDFSIterator : public EdgeIterator
-{
-public:
-
-  FallbackDFSIterator(const FallbackEdgeDB& edb,
-                      std::uint32_t startNode,
-                      unsigned int minDistance, unsigned int maxDistance);
-
-  virtual DFSIteratorResult nextDFS();
-  virtual std::pair<bool, nodeid_t> next();
-
-  void reset();
-  virtual ~FallbackDFSIterator() {}
-protected:
-  const nodeid_t startNode;
-
-
-  void initStack();
-
-  virtual bool enterNode(nodeid_t node, unsigned int distance);
-
-  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance)
-  {
-    return true;
-  }
-
-private:
-
-  const FallbackEdgeDB& edb;
-
-  using TraversalEntry = std::pair<nodeid_t, unsigned int>;
-
-  /**
-   * @brief Traversion stack
-   * Contains both the node id (first) and the distance from the start node (second)
-   */
-  std::stack<TraversalEntry, std::list<TraversalEntry> > traversalStack;
-  unsigned int minDistance;
-  unsigned int maxDistance;
-
-};
-
-class CycleSafeDFS : public FallbackDFSIterator
-{
-public:
-
-  CycleSafeDFS(const FallbackEdgeDB& edb,
-                      std::uint32_t startNode,
-                      unsigned int minDistance, unsigned int maxDistance);
-  virtual ~CycleSafeDFS();
-protected:
-  virtual void initStack();
-  virtual void reset();
-  virtual bool enterNode(nodeid_t node, unsigned int distance);
-  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance);
-
-
-private:
-  unsigned int lastDistance;
-  std::set<nodeid_t> nodesInCurrentPath;
-  std::multimap<unsigned int, nodeid_t> distanceToNode;
 };
 
 
