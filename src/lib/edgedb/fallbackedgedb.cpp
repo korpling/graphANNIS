@@ -200,45 +200,64 @@ DFSIteratorResult FallbackDFSIterator::nextDFS()
     result.node = stackEntry.first;
     result.distance = stackEntry.second;
 
-    // check if distance was changed to detect the completion of a subgraph
     if(lastDistance >= result.distance)
     {
-      // remove all nodes from the path set that are below the parent node
+      // A subgraph was completed.
+      // Remove all nodes from the path set that are below the parent node:
       for(auto it=distanceToNode.find(result.distance); it != distanceToNode.end(); it = distanceToNode.erase(it))
       {
         nodesInCurrentPath.erase(it->second);
       }
     }
 
-    lastDistance = result.distance;
-    traversalStack.pop();
-
-    if(result.distance >= minDistance && result.distance <= maxDistance)
+    // we are entering a new node
+    if(nodesInCurrentPath.find(result.node) == nodesInCurrentPath.end())
     {
-      // get the next node
-      result.found = true;
-    }
+      nodesInCurrentPath.insert(result.node);
+      distanceToNode.insert({result.distance, result.node});
 
-    // add the remaining child nodes
-    if(result.distance < maxDistance)
-    {
-      // add the outgoing edges to the stack
-      auto outgoing = edb.getOutgoingEdges(result.node);
-      for(const auto& outNodeID : outgoing)
+      lastDistance = result.distance;
+      traversalStack.pop();
+
+      if(result.distance >= minDistance && result.distance <= maxDistance)
       {
-        if(nodesInCurrentPath.find(outNodeID) == nodesInCurrentPath.end())
+        // get the next node
+        result.found = true;
+      }
+
+      // add the remaining child nodes
+      if(result.distance < maxDistance)
+      {
+        // add the outgoing edges to the stack
+        auto outgoing = edb.getOutgoingEdges(result.node);
+        for(const auto& outNodeID : outgoing)
         {
-          traversalStack.push(pair<nodeid_t, unsigned int>(outNodeID,
-                                                           result.distance+1));
-          nodesInCurrentPath.insert(outNodeID);
-          distanceToNode.insert({result.distance+1, outNodeID});
-        }
-        else
-        {
-          // we detected a cycle!
-          std::cerr << "ERROR: cycle detected" << std::endl;
+
+          traversalStack.push(pair<nodeid_t, unsigned int>(outNodeID, result.distance+1));
         }
       }
+    }
+    else
+    {
+      // we detected a cycle!
+      std::cerr << "------------------------------" << std::endl;
+      std::cerr << "ERROR: cycle detected when inserting node " << result.node << std::endl;
+      std::cerr << "distanceToNode: ";
+      for(auto itPath = distanceToNode.begin(); itPath != distanceToNode.end(); itPath++)
+      {
+        std::cerr << itPath->first << "->" << itPath->second << " ";
+      }
+      std::cerr << endl;
+      std::cerr << "nodesInCurrentPath: ";
+      for(auto itPath = nodesInCurrentPath.begin(); itPath != nodesInCurrentPath.end(); itPath++)
+      {
+        std::cerr << *itPath << " ";
+      }
+      std::cerr << endl;
+      std::cerr << "------------------------------" << std::endl;
+
+      lastDistance = result.distance;
+      traversalStack.pop();
     }
   }
   return result;
