@@ -254,11 +254,15 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
       int diffLevel = currentLevel - startLevel;
 
       // check post order and level as well
-      if(currentPost < maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance)
+      if(currentPost < maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance
+         && visited.find(currentNode->second) == visited.end())
       {
         // success
         result.first = true;
         result.second = currentNode->second;
+
+        visited.insert(result.second);
+
         currentNode++;
         return result;
       }
@@ -309,6 +313,8 @@ void PrePostIterator::reset()
   {
     currentNode = ranges.top().lower;
   }
+
+  visited.clear();
 
 }
 

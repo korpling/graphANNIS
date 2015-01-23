@@ -112,6 +112,8 @@ private:
   std::stack<SearchRange> ranges;
   OrderIt currentNode;
 
+  std::set<nodeid_t> visited;
+
 };
 
 } // end namespace annis
