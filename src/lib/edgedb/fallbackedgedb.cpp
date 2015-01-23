@@ -183,8 +183,10 @@ std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
 FallbackDFSIterator::FallbackDFSIterator(const FallbackEdgeDB &edb,
                                                      std::uint32_t startNode,
                                                      unsigned int minDistance,
-                                                     unsigned int maxDistance)
-  : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode)
+                                                     unsigned int maxDistance,
+                                                     bool performCycleCheck)
+  : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode),
+    performCycleCheck(performCycleCheck)
 {
   initStack();
 }
@@ -200,18 +202,21 @@ DFSIteratorResult FallbackDFSIterator::nextDFS()
     result.node = stackEntry.first;
     result.distance = stackEntry.second;
 
-    if(lastDistance >= result.distance)
+    if(performCycleCheck)
     {
-      // A subgraph was completed.
-      // Remove all nodes from the path set that are below the parent node:
-      for(auto it=distanceToNode.find(result.distance); it != distanceToNode.end(); it = distanceToNode.erase(it))
+      if(lastDistance >= result.distance)
       {
-        nodesInCurrentPath.erase(it->second);
+        // A subgraph was completed.
+        // Remove all nodes from the path set that are below the parent node:
+        for(auto it=distanceToNode.find(result.distance); it != distanceToNode.end(); it = distanceToNode.erase(it))
+        {
+          nodesInCurrentPath.erase(it->second);
+        }
       }
     }
 
     // we are entering a new node
-    if(nodesInCurrentPath.find(result.node) == nodesInCurrentPath.end())
+    if(!performCycleCheck || nodesInCurrentPath.find(result.node) == nodesInCurrentPath.end())
     {
       nodesInCurrentPath.insert(result.node);
       distanceToNode.insert({result.distance, result.node});
@@ -274,8 +279,11 @@ void FallbackDFSIterator::initStack()
   // add the initial value to the stack
   traversalStack.push({startNode, 0});
   lastDistance = 0;
-  nodesInCurrentPath.insert(startNode);
-  distanceToNode.insert({0, startNode});
+  if(performCycleCheck)
+  {
+    nodesInCurrentPath.insert(startNode);
+    distanceToNode.insert({0, startNode});
+  }
 }
 
 void FallbackDFSIterator::reset()

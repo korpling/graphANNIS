@@ -79,7 +79,7 @@ public:
 
   FallbackDFSIterator(const FallbackEdgeDB& edb,
                       std::uint32_t startNode,
-                      unsigned int minDistance, unsigned int maxDistance);
+                      unsigned int minDistance, unsigned int maxDistance, bool performCycleCheck = true);
 
   virtual DFSIteratorResult nextDFS();
   virtual std::pair<bool, nodeid_t> next();
@@ -102,6 +102,7 @@ private:
   unsigned int minDistance;
   unsigned int maxDistance;
   std::uint32_t startNode;
+  const bool performCycleCheck;
 
   unsigned int lastDistance;
   std::set<nodeid_t> nodesInCurrentPath;
