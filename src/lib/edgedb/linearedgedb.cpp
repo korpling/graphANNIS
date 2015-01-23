@@ -62,7 +62,7 @@ void LinearEdgeDB::calculateIndex()
     chain.push_back(rootNode);
     node2pos[rootNode] = Init::initRelativePosition(rootNode,chain.size()-1);
 
-    FallbackDFSIterator it(*this, rootNode, 1, uintmax);
+    CycleSafeDFS it(*this, rootNode, 1, uintmax);
 
     uint32_t pos=1;
     for(pair<bool, nodeid_t> node = it.next(); node.first; node = it.next(), pos++)

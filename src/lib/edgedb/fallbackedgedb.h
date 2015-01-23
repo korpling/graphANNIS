@@ -79,15 +79,26 @@ public:
 
   FallbackDFSIterator(const FallbackEdgeDB& edb,
                       std::uint32_t startNode,
-                      unsigned int minDistance, unsigned int maxDistance, bool performCycleCheck = true);
+                      unsigned int minDistance, unsigned int maxDistance);
 
   virtual DFSIteratorResult nextDFS();
   virtual std::pair<bool, nodeid_t> next();
 
-  void initStack();
   void reset();
-
   virtual ~FallbackDFSIterator() {}
+protected:
+  const nodeid_t startNode;
+
+
+  void initStack();
+
+  virtual bool enterNode(nodeid_t node, unsigned int distance);
+
+  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance)
+  {
+    return true;
+  }
+
 private:
 
   const FallbackEdgeDB& edb;
@@ -101,13 +112,30 @@ private:
   std::stack<TraversalEntry, std::list<TraversalEntry> > traversalStack;
   unsigned int minDistance;
   unsigned int maxDistance;
-  std::uint32_t startNode;
-  const bool performCycleCheck;
 
+};
+
+class CycleSafeDFS : public FallbackDFSIterator
+{
+public:
+
+  CycleSafeDFS(const FallbackEdgeDB& edb,
+                      std::uint32_t startNode,
+                      unsigned int minDistance, unsigned int maxDistance);
+  virtual ~CycleSafeDFS();
+protected:
+  virtual void initStack();
+  virtual void reset();
+  virtual bool enterNode(nodeid_t node, unsigned int distance);
+  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance);
+
+
+private:
   unsigned int lastDistance;
   std::set<nodeid_t> nodesInCurrentPath;
   std::multimap<unsigned int, nodeid_t> distanceToNode;
 };
+
 
 } // end namespace annis
 #endif // FALLBACKEDGEDB_H

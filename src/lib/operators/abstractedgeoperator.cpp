@@ -34,7 +34,6 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
   // add the rhs nodes of all of the edge storages
   if(edb.size() == 1)
   {
-
     std::unique_ptr<EdgeIterator> it = edb[0]->findConnected(lhs.node, minDistance, maxDistance);
     for(auto m = it->next(); m.first; m = it->next())
     {

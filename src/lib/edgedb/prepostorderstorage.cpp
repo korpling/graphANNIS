@@ -88,7 +88,7 @@ void PrePostOrderStorage::calculateIndex()
 
     enterNode(currentOrder, startNode, startNode, 0, nodeStack);
 
-    FallbackDFSIterator dfs(*this, startNode, 1, uintmax);
+    CycleSafeDFS dfs(*this, startNode, 1, uintmax);
     for(DFSIteratorResult step = dfs.nextDFS(); step.found;
           step = dfs.nextDFS())
     {
