@@ -1,4 +1,5 @@
 #include "benchmark.h"
+
 char tigerCorpus[] = "tiger2";
 
 class TigerFixture : public CorpusFixture<true, tigerCorpus>
