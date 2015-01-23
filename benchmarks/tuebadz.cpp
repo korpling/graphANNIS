@@ -24,24 +24,24 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 */
 BASELINE_F(Tueba_Complex1, Fallback, TuebaFallbackFixture, 5, 1) {
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "merged", "pos", "PPER"));
-  auto n3 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n4 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
-  auto n5 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n6 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n7 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
+  Query q(getDB());
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_node_name));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "merged", "pos", "PPER"));
+  auto n3 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_node_name));
+  auto n4 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "mmax", "relation", "anaphoric"));
+  auto n5 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_node_name));
+  auto n6 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_node_name));
+  auto n7 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "mmax", "relation", "anaphoric"));
 
   Annotation funcOnAnno =
-      Init::initAnnotation(db.strings.add("func"), db.strings.add("ON"));
+      Init::initAnnotation(getDB().strings.add("func"), getDB().strings.add("ON"));
 
-  q.addOperator(std::make_shared<Inclusion>(db), n2, n4);
-  q.addOperator(std::make_shared<Pointing>(db, "", "anaphoric"), n4, n7);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n1, n3);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n3, n2);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n5, n6);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n6, n7);
+  q.addOperator(std::make_shared<Inclusion>(getDB()), n2, n4);
+  q.addOperator(std::make_shared<Pointing>(getDB(), "", "anaphoric"), n4, n7);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", funcOnAnno), n1, n3);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", 1, uintmax), n3, n2);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", funcOnAnno), n5, n6);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", 1, uintmax), n6, n7);
 
   unsigned int counter=0;
   while(q.hasNext() && counter < 10u)
@@ -63,24 +63,24 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 */
 BENCHMARK_F(Tueba_Complex1, Optimized, TuebaFixture, 5, 1) {
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "merged", "pos", "PPER"));
-  auto n3 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n4 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
-  auto n5 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n6 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n7 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
+  Query q(getDB());
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_node_name));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "merged", "pos", "PPER"));
+  auto n3 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_node_name));
+  auto n4 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "mmax", "relation", "anaphoric"));
+  auto n5 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_node_name));
+  auto n6 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_node_name));
+  auto n7 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "mmax", "relation", "anaphoric"));
 
   Annotation funcOnAnno =
-      Init::initAnnotation(db.strings.add("func"), db.strings.add("ON"));
+      Init::initAnnotation(getDB().strings.add("func"), getDB().strings.add("ON"));
 
-  q.addOperator(std::make_shared<Inclusion>(db), n2, n4);
-  q.addOperator(std::make_shared<Pointing>(db, "", "anaphoric"), n4, n7);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n1, n3);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n3, n2);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n5, n6);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n6, n7);
+  q.addOperator(std::make_shared<Inclusion>(getDB()), n2, n4);
+  q.addOperator(std::make_shared<Pointing>(getDB(), "", "anaphoric"), n4, n7);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", funcOnAnno), n1, n3);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", 1, uintmax), n3, n2);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", funcOnAnno), n5, n6);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", 1, uintmax), n6, n7);
 
   unsigned int counter=0;
   while(q.hasNext() && counter < 10u)

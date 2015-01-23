@@ -18,11 +18,11 @@ public:
 BASELINE_F(Ridges_PosNNIncludesNormBlumen, Fallback, RidgesFallbackFixture, 5, 1)
 {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "norm", "Blumen"));
 
-  q.addOperator(std::make_shared<annis::Inclusion>(db), 1, 0);
+  q.addOperator(std::make_shared<annis::Inclusion>(getDB()), 1, 0);
 
   while(q.hasNext())
   {
@@ -34,11 +34,11 @@ BASELINE_F(Ridges_PosNNIncludesNormBlumen, Fallback, RidgesFallbackFixture, 5, 1
 BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, Optimized, RidgesFixture, 5, 1)
 {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "norm", "Blumen"));
 
-  q.addOperator(std::make_shared<annis::Inclusion>(db), 1, 0);
+  q.addOperator(std::make_shared<annis::Inclusion>(getDB()), 1, 0);
 
   while(q.hasNext())
   {
@@ -51,10 +51,10 @@ BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, Optimized, RidgesFixture, 5, 1)
 // pos="NN" & norm="Blumen" & #1 _o_ #2
 BASELINE_F(Ridges_PosNNOverlapsNormBlumen, Fallback, RidgesFallbackFixture, 5, 1) {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
-  q.addOperator(std::make_shared<Overlap>(db), 0, 1);
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "norm", "Blumen"));
+  q.addOperator(std::make_shared<Overlap>(getDB()), 0, 1);
 
   while(q.hasNext())
   {
@@ -66,10 +66,10 @@ BASELINE_F(Ridges_PosNNOverlapsNormBlumen, Fallback, RidgesFallbackFixture, 5, 1
 
 BENCHMARK_F(Ridges_PosNNOverlapsNormBlumen, Optimized, RidgesFixture, 5, 1) {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
-  q.addOperator(std::make_shared<Overlap>(db), 0, 1);
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "norm", "Blumen"));
+  q.addOperator(std::make_shared<Overlap>(getDB()), 0, 1);
 
   while(q.hasNext())
   {
@@ -82,11 +82,11 @@ BENCHMARK_F(Ridges_PosNNOverlapsNormBlumen, Optimized, RidgesFixture, 5, 1) {
 // pos="NN" .2,10 pos="ART"
 BASELINE_F(Ridges_NNPreceedingART, Fallback, RidgesFallbackFixture, 5, 1) {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "ART"));
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "pos", "ART"));
 
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(getDB(), 2, 10), 0, 1);
   while(q.hasNext())
   {
     q.next();
@@ -96,11 +96,11 @@ BASELINE_F(Ridges_NNPreceedingART, Fallback, RidgesFallbackFixture, 5, 1) {
 }
 BENCHMARK_F(Ridges_NNPreceedingART, Optimized, RidgesFixture, 5, 1) {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "ART"));
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "default_ns", "pos", "ART"));
 
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(getDB(), 2, 10), 0, 1);
   while(q.hasNext())
   {
     q.next();
@@ -112,12 +112,12 @@ BENCHMARK_F(Ridges_NNPreceedingART, Optimized, RidgesFixture, 5, 1) {
 // tok .2,10 tok
 BASELINE_F(Ridges_TokPreceedingTok, Fallback, RidgesFallbackFixture, 5, 1) {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis::annis_ns,annis::annis_tok));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis::annis_ns,annis::annis_tok));
 
 
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(getDB(), 2, 10), 0, 1);
   while(q.hasNext())
   {
     q.next();
@@ -127,12 +127,12 @@ BASELINE_F(Ridges_TokPreceedingTok, Fallback, RidgesFallbackFixture, 5, 1) {
 }
 BENCHMARK_F(Ridges_TokPreceedingTok, Optimized, RidgesFixture, 5, 1) {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis::annis_ns,annis::annis_tok));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis::annis_ns,annis::annis_tok));
 
 
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(getDB(), 2, 10), 0, 1);
   while(q.hasNext())
   {
     q.next();

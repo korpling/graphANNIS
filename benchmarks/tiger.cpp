@@ -16,7 +16,7 @@ public:
 
 BASELINE_F(Tiger_Cat, Fallback, TigerFallbackFixture, 5, 1)
 {
-  AnnotationNameSearch search(db, "cat");
+  AnnotationNameSearch search(getDB(), "cat");
   counter=0;
   while(search.hasNext())
   {
@@ -28,7 +28,7 @@ BASELINE_F(Tiger_Cat, Fallback, TigerFallbackFixture, 5, 1)
 
 BENCHMARK_F(Tiger_Cat, Optimized, TigerFixture, 5, 1)
 {
-  AnnotationNameSearch search(db, "cat");
+  AnnotationNameSearch search(getDB(), "cat");
   counter=0;
   while(search.hasNext())
   {
@@ -41,11 +41,11 @@ BENCHMARK_F(Tiger_Cat, Optimized, TigerFixture, 5, 1)
 // cat="S" & tok="Bilharziose" & #1 >* #2
 BASELINE_F(Tiger_BilharzioseSentence,  Fallback, TigerFallbackFixture, 5, 1)
 {
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
+  Query q(getDB());
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "tiger", "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_tok, "Bilharziose"));
 
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", 1, uintmax), n1, n2);
 
   while(q.hasNext())
   {
@@ -57,11 +57,11 @@ BASELINE_F(Tiger_BilharzioseSentence,  Fallback, TigerFallbackFixture, 5, 1)
 }
 BENCHMARK_F(Tiger_BilharzioseSentence, Optimized, TigerFixture, 5, 1)
 {
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "cat", "S"));
-  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_tok, "Bilharziose"));
+  Query q(getDB());
+  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "tiger", "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), annis_ns, annis_tok, "Bilharziose"));
 
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", 1, uintmax), n1, n2);
 
   while(q.hasNext())
   {
@@ -75,13 +75,13 @@ BENCHMARK_F(Tiger_BilharzioseSentence, Optimized, TigerFixture, 5, 1)
 // pos="NN" .2,10 pos="ART" . pos="NN"
 BASELINE_F(Tiger_NNPreARTPreNN, Fallback, TigerFallbackFixture, 5, 1) {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "tiger", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "tiger", "pos", "ART"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "tiger", "pos", "NN"));
 
-  q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
-  q.addOperator(std::make_shared<Precedence>(db), 1, 2);
+  q.addOperator(std::make_shared<Precedence>(getDB(), 2,10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(getDB()), 1, 2);
   while(q.hasNext())
   {
     q.next();
@@ -92,13 +92,13 @@ BASELINE_F(Tiger_NNPreARTPreNN, Fallback, TigerFallbackFixture, 5, 1) {
 
 BENCHMARK_F(Tiger_NNPreARTPreNN, Optimized, TigerFixture, 5, 1) {
 
-  Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "ART"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "tiger", "pos", "NN"));
+  Query q(getDB());
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "tiger", "pos", "NN"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "tiger", "pos", "ART"));
+  q.addNode(std::make_shared<AnnotationNameSearch>(getDB(), "tiger", "pos", "NN"));
 
-  q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
-  q.addOperator(std::make_shared<Precedence>(db), 1, 2);
+  q.addOperator(std::make_shared<Precedence>(getDB(), 2,10), 0, 1);
+  q.addOperator(std::make_shared<Precedence>(getDB()), 1, 2);
   while(q.hasNext())
   {
     q.next();
@@ -110,14 +110,14 @@ BENCHMARK_F(Tiger_NNPreARTPreNN, Optimized, TigerFixture, 5, 1) {
 // cat=/(.P)/ >* /A.*/
 BASELINE_F(Tiger_RegexDom, Fallback, TigerFallbackFixture , 5, 1) {
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
+  Query q(getDB());
+  auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(getDB(),
                                                         "cat",".P"));
-  auto n2 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
+  auto n2 = q.addNode(std::make_shared<RegexAnnoSearch>(getDB(),
                                                         annis_ns, annis_tok,
                                                        "A.*"));
 
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", 1, uintmax), n1, n2);
 
   while(q.hasNext())
   {
@@ -129,14 +129,14 @@ BASELINE_F(Tiger_RegexDom, Fallback, TigerFallbackFixture , 5, 1) {
 
 BENCHMARK_F(Tiger_RegexDom, Optimized, TigerFixture , 5, 1) {
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
+  Query q(getDB());
+  auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(getDB(),
                                                         "cat",".P"));
-  auto n2 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
+  auto n2 = q.addNode(std::make_shared<RegexAnnoSearch>(getDB(),
                                                         annis_ns, annis_tok,
                                                        "A.*"));
 
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+  q.addOperator(std::make_shared<Dominance>(getDB(), "", "", 1, uintmax), n1, n2);
 
   while(q.hasNext())
   {

@@ -27,21 +27,14 @@ class CorpusFixture : public ::celero::TestFixture
 {
 public:
   CorpusFixture()
-    : corpus(corpusName),
-      db(optimized)
+    : corpus(corpusName)
   {
 
   }
 
   virtual void setUp(int64_t experimentValue)
   {
-    char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
-    std::string dataDir("data");
-    if(testDataEnv != NULL)
-    {
-      dataDir = testDataEnv;
-    }
-    dbLoaded = db.load(dataDir + "/" + corpus);
+
     counter = 0;
   }
 
@@ -50,15 +43,31 @@ public:
      HL_INFO(logger, (boost::format("result %1%") % counter).str());
   }
 
+  DB initDB()
+  {
+    DB result(optimized);
+    char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
+    std::string dataDir("data");
+    if(testDataEnv != NULL)
+    {
+      dataDir = testDataEnv;
+    }
+    result.load(dataDir + "/" + corpus);
+    return result;
+  }
+
+  DB& getDB()
+  {
+    static DB db = initDB();
+    return db;
+  }
+
   virtual ~CorpusFixture() {}
 
 public:
-  DB db;
   unsigned int counter;
 private:
   const std::string corpus;
-
-  bool dbLoaded;
 
 };
 
