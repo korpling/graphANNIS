@@ -86,7 +86,7 @@ void PrePostOrderStorage::calculateIndex()
   {
     unsigned int lastDistance = 0;
 
-    std::stack<NodeStackEntry> nodeStack;
+    NStack nodeStack;
 
     enterNode(currentOrder, startNode, startNode, 0, nodeStack);
 
@@ -125,7 +125,7 @@ void PrePostOrderStorage::calculateIndex()
 }
 
 void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode,
-                                        int level, std::stack<NodeStackEntry>& nodeStack)
+                                        int level, NStack& nodeStack)
 {
   NodeStackEntry newEntry;
   newEntry.id = nodeID;
@@ -135,7 +135,7 @@ void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nod
   nodeStack.push(newEntry);
 }
 
-void PrePostOrderStorage::exitNode(uint32_t& currentOrder, std::stack<NodeStackEntry> &nodeStack)
+void PrePostOrderStorage::exitNode(uint32_t& currentOrder, NStack &nodeStack)
 {
   // find the correct pre/post entry and update the post-value
   auto& entry = nodeStack.top();

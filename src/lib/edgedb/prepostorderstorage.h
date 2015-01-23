@@ -63,6 +63,7 @@ struct NodeStackEntry
 class PrePostOrderStorage : public FallbackEdgeDB
 {  
 friend class PrePostIterator;
+using NStack = std::stack<NodeStackEntry, std::list<NodeStackEntry> >;
 
 public:
   PrePostOrderStorage(StringStorage& strings, const Component& component);
@@ -84,8 +85,8 @@ private:
   stx::btree_map<PrePost, nodeid_t> order2node;
 
 
-  void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, std::stack<NodeStackEntry> &nodeStack);
-  void exitNode(uint32_t &currentOrder, std::stack<NodeStackEntry> &nodeStack);
+  void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, NStack &nodeStack);
+  void exitNode(uint32_t &currentOrder, NStack &nodeStack);
 
 };
 
