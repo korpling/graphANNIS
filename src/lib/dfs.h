@@ -60,6 +60,32 @@ private:
 
 };
 
+/**
+ * @brief Traverses a graph and visits any node at maximum once.
+ */
+class UniqueDFS : public DFS
+{
+public:
+
+  UniqueDFS(const EdgeDB& edb,
+               std::uint32_t startNode,
+               unsigned int minDistance, unsigned int maxDistance);
+  virtual ~UniqueDFS();
+protected:
+  virtual void reset();
+  virtual bool enterNode(nodeid_t node, unsigned int distance);
+  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance);
+
+
+private:
+
+  std::set<nodeid_t> visited;
+};
+
+
+/**
+ * @brief A cycle safe implementation of depth first traversal
+ */
 class CycleSafeDFS : public DFS
 {
 public:

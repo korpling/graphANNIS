@@ -16,7 +16,6 @@
 namespace annis
 {
 
-
 class FallbackEdgeDB : public EdgeDB
 {
 

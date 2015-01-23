@@ -69,7 +69,7 @@ std::unique_ptr<EdgeIterator> FallbackEdgeDB::findConnected(nodeid_t sourceNode,
                                                  unsigned int maxDistance) const
 {
   return std::unique_ptr<EdgeIterator>(
-        new CycleSafeDFS(*this, sourceNode, minDistance, maxDistance));
+        new UniqueDFS(*this, sourceNode, minDistance, maxDistance));
 }
 
 int FallbackEdgeDB::distance(const Edge &edge) const

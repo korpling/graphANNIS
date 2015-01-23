@@ -168,3 +168,32 @@ CycleSafeDFS::~CycleSafeDFS()
 {
 
 }
+
+
+UniqueDFS::UniqueDFS(const EdgeDB &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
+  : DFS(edb, startNode, minDistance, maxDistance)
+{
+
+}
+
+UniqueDFS::~UniqueDFS()
+{
+
+}
+
+void UniqueDFS::reset()
+{
+  DFS::reset();
+  visited.clear();
+}
+
+bool UniqueDFS::enterNode(nodeid_t node, unsigned int distance)
+{
+  visited.insert(node);
+  return DFS::enterNode(node, distance);
+}
+
+bool UniqueDFS::beforeEnterNode(nodeid_t node, unsigned int distance)
+{
+  return visited.find(node) == visited.end();
+}
