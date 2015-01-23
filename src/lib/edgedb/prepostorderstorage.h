@@ -114,7 +114,9 @@ private:
   std::stack<SearchRange, std::list<SearchRange> > ranges;
   OrderIt currentNode;
 
-  std::set<nodeid_t> visited;
+  stx::btree_set<nodeid_t> visited;
+
+  void init();
 
 };
 

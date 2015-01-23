@@ -232,7 +232,7 @@ PrePostIterator::PrePostIterator(const PrePostOrderStorage &storage, std::uint32
   : storage(storage), startNode(startNode),
     minDistance(minDistance), maxDistance(maxDistance)
 {
-  reset();
+  init();
 }
 
 std::pair<bool, nodeid_t> PrePostIterator::next()
@@ -289,13 +289,8 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
   return result;
 }
 
-void PrePostIterator::reset()
+void PrePostIterator::init()
 {
-  while(!ranges.empty())
-  {
-    ranges.pop();
-  }
-
   auto subComponentsLower = storage.node2order.lower_bound(startNode);
   auto subComponentsUpper = storage.node2order.upper_bound(startNode);
 
@@ -308,14 +303,22 @@ void PrePostIterator::reset()
 
     ranges.push({lowerIt, upperIt, post, it->second.level});
   }
-
   if(!ranges.empty())
   {
     currentNode = ranges.top().lower;
   }
+}
+
+void PrePostIterator::reset()
+{
+  while(!ranges.empty())
+  {
+    ranges.pop();
+  }
 
   visited.clear();
 
+  init();
 }
 
 PrePostIterator::~PrePostIterator()
