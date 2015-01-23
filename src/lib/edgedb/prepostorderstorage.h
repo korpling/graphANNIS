@@ -6,6 +6,7 @@
 #include <stx/btree_map>
 #include <stx/btree_multimap>
 #include <stack>
+#include <list>
 
 
 namespace annis
@@ -109,7 +110,7 @@ private:
   unsigned int maxDistance;
   std::uint32_t startNode;
 
-  std::stack<SearchRange> ranges;
+  std::stack<SearchRange, std::list<SearchRange> > ranges;
   OrderIt currentNode;
 
   std::set<nodeid_t> visited;
