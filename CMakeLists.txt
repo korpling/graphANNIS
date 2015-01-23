@@ -46,7 +46,6 @@ target_link_libraries("a4_runner" humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARI
 
 file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
 set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
-include_directories(SYSTEM "ext/hayai/src/")
 include_directories(SYSTEM "ext/Celero-1.0.8/include/")
 include_directories("src/lib/")
 add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
