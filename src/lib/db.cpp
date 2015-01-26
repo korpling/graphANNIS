@@ -125,6 +125,10 @@ bool DB::save(string dirPath)
     }
     boost::filesystem::create_directories(finalPath);
     it->second->save(finalPath);
+    // put an identification file to the output directory that contains the name of the graph storage implementation
+    out.open(finalPath + "/implementation.txt");
+    out << it->second->getName() << std::endl;
+    out.close();
   }
 
 

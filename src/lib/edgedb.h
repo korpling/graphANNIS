@@ -22,6 +22,7 @@ public:
   virtual ~EdgeDB() {}
 
   virtual void copy(const DB& db, const EdgeDB& orig) = 0;
+  virtual std::string getName() = 0;
 
   virtual void addEdge(const Edge& edge) = 0;
   virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;

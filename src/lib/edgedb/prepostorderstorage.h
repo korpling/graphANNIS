@@ -69,6 +69,8 @@ public:
   PrePostOrderStorage(StringStorage& strings, const Component& component);
   virtual ~PrePostOrderStorage();
 
+  virtual std::string getName() {return "prepostorder";}
+
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
 

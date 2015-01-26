@@ -11,6 +11,8 @@ class CoverageEdgeDB  : public FallbackEdgeDB
 public:
   CoverageEdgeDB(StringStorage& strings, const Component& component);
 
+  virtual std::string getName() {return "coverage";}
+
   virtual void calculateIndex();
 
   virtual bool save(std::string dirPath);

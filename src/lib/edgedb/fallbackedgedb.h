@@ -23,6 +23,7 @@ public:
   FallbackEdgeDB(StringStorage& strings, const Component& component);
 
   virtual void copy(const DB& db, const EdgeDB& orig);
+  virtual std::string getName() {return "fallback";};
 
   virtual void addEdge(const Edge& edge);
   virtual void addEdgeAnnotation(const Edge &edge, const Annotation& anno);
