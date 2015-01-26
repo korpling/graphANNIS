@@ -16,6 +16,7 @@
 #include "comparefunctions.h"
 #include "edgedb.h"
 #include "stringstorage.h"
+#include "graphstorageregistry.h"
 
 namespace annis
 {
@@ -141,6 +142,7 @@ private:
   stx::btree_multimap<Annotation, nodeid_t> inverseNodeAnnotations;
 
   std::map<Component, EdgeDB*> edgeDatabases;
+  GraphStorageRegistry registry;
 
   std::uint32_t annisNamespaceStringID;
   std::uint32_t annisEmptyStringID;

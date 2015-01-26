@@ -16,8 +16,6 @@ friend class LinearIterator;
 public:
   LinearEdgeDB(StringStorage& strings, const Component& component);
 
-  virtual std::string getName() {return "linear";}
-
   virtual void clear();
   virtual void calculateIndex();
 
