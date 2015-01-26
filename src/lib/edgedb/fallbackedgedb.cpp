@@ -1,6 +1,7 @@
 #include "fallbackedgedb.h"
 
 #include "../dfs.h"
+#include "../annotationsearch.h"
 
 #include <fstream>
 #include <limits>
@@ -11,6 +12,30 @@ using namespace std;
 FallbackEdgeDB::FallbackEdgeDB(StringStorage &strings, const Component &component)
   : strings(strings), component(component)
 {
+}
+
+void FallbackEdgeDB::copy(const DB &db, const EdgeDB &orig)
+{
+  clear();
+
+  AnnotationNameSearch nodes(db, annis_ns, annis_node_name);
+  while(nodes.hasNext())
+  {
+    nodeid_t source = nodes.next().node;
+    std::vector<nodeid_t> outEdges = orig.getOutgoingEdges(source);
+    for(auto target : outEdges)
+    {
+      Edge e = {source, target};
+      addEdge(e);
+      std::vector<Annotation> edgeAnnos = orig.getEdgeAnnotations(e);
+      for(auto a : edgeAnnos)
+      {
+        addEdgeAnnotation(e, a);
+      }
+    }
+  }
+
+  calculateIndex();
 }
 
 void FallbackEdgeDB::addEdge(const Edge &edge)
