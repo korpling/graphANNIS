@@ -591,23 +591,15 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
 
     // TODO: decide which implementation to use
     EdgeDB* edgeDB = NULL;
-
-    if(useSpecializedEdgeDB && c.type == ComponentType::ORDERING)
+    if(useSpecializedEdgeDB)
     {
-      edgeDB = new LinearEdgeDB(strings, c);
-    }
-    else if(useSpecializedEdgeDB && c.type == ComponentType::COVERAGE)
-    {
-      edgeDB = new CoverageEdgeDB(strings, c);
-    }
-    else if(useSpecializedEdgeDB && c.type == ComponentType::DOMINANCE)
-    {
-      edgeDB = new PrePostOrderStorage(strings, c);
+      edgeDB = registry.createEdgeDB(strings, c);
     }
     else
     {
-      edgeDB= new FallbackEdgeDB(strings, c);
+      edgeDB = registry.createEdgeDB(registry.fallback, strings, c);
     }
+
     // register the used implementation
     edgeDatabases.insert(pair<Component,EdgeDB*>(c,edgeDB));
     return edgeDB;
