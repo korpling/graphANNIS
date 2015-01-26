@@ -22,6 +22,7 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 & #6 >* #7
 & #4 ->anaphoric #7
 */
+/*
 BASELINE_F(Tueba_Complex1, Fallback, TuebaFallbackFixture, 5, 1) {
 
   Query q(getDB());
@@ -51,6 +52,7 @@ BASELINE_F(Tueba_Complex1, Fallback, TuebaFallbackFixture, 5, 1) {
   }
   assert(counter == 0u);
 }
+*/
 
 /*
 node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax:relation="anaphoric"
@@ -61,6 +63,7 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 & #6 >* #7
 & #4 ->anaphoric #7
 */
+/*
 BENCHMARK_F(Tueba_Complex1, Optimized, TuebaFixture, 5, 1) {
 
   Query q(getDB());
@@ -90,3 +93,4 @@ BENCHMARK_F(Tueba_Complex1, Optimized, TuebaFixture, 5, 1) {
   }
   assert(counter == 0u);
 }
+*/
