@@ -42,14 +42,17 @@ void LinearEdgeDB::copy(const DB& db, const ReadableGraphStorage& orig)
   while(nodes.hasNext())
   {
     nodeid_t n = nodes.next().node;
-    roots.insert(n);
+    // insert all nodes to the root candidate list which are part of this component
+    if(!orig.getOutgoingEdges(n).empty())
+    {
+      roots.insert(n);
+    }
   }
 
   nodes.reset();
   while(nodes.hasNext())
   {
     nodeid_t source = nodes.next().node;
-
 
     std::vector<nodeid_t> outEdges = orig.getOutgoingEdges(source);
     for(auto target : outEdges)
