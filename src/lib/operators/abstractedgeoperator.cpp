@@ -93,7 +93,7 @@ void AbstractEdgeOperator::initEdgeDB()
   else
   {
     // directly add the only known edge storage
-    const EdgeDB* e = db.getEdgeDB(componentType, ns, name);
+    const ReadableGraphStorage* e = db.getEdgeDB(componentType, ns, name);
     if(e != nullptr)
     {
       edb.push_back(e);
@@ -101,7 +101,7 @@ void AbstractEdgeOperator::initEdgeDB()
   }
 }
 
-bool AbstractEdgeOperator::checkEdgeAnnotation(const EdgeDB* e, nodeid_t source, nodeid_t target)
+bool AbstractEdgeOperator::checkEdgeAnnotation(const ReadableGraphStorage* e, nodeid_t source, nodeid_t target)
 {
   if(edgeAnno == anyAnno)
   {

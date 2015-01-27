@@ -21,7 +21,7 @@ GraphStorageRegistry::~GraphStorageRegistry()
 
 }
 
-std::string annis::GraphStorageRegistry::getName(const annis::EdgeDB *db)
+std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStorage *db)
 {
   if(dynamic_cast<const CoverageEdgeDB*>(db) != nullptr)
   {
@@ -42,7 +42,7 @@ std::string annis::GraphStorageRegistry::getName(const annis::EdgeDB *db)
   return "";
 }
 
-EdgeDB *GraphStorageRegistry::createEdgeDB(std::string name, StringStorage& strings, const Component& component)
+ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, StringStorage& strings, const Component& component)
 {
   if(name == coverage)
   {
@@ -97,7 +97,7 @@ std::string GraphStorageRegistry::getOptimizedImpl(const Component &component)
   return result;
 }
 
-EdgeDB *GraphStorageRegistry::createEdgeDB(StringStorage &strings, const Component &component)
+ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(StringStorage &strings, const Component &component)
 {
   std::string implName = getOptimizedImpl(component);
   return createEdgeDB(implName, strings, component);

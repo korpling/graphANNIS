@@ -4,7 +4,7 @@
 
 using namespace annis;
 
-DFS::DFS(const EdgeDB &edb,
+DFS::DFS(const ReadableGraphStorage &edb,
                                                      std::uint32_t startNode,
                                                      unsigned int minDistance,
                                                      unsigned int maxDistance)
@@ -89,7 +89,7 @@ void DFS::reset()
 }
 
 
-CycleSafeDFS::CycleSafeDFS(const EdgeDB &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
+CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
   : DFS(edb, startNode, minDistance, maxDistance)
 {
 
@@ -170,7 +170,7 @@ CycleSafeDFS::~CycleSafeDFS()
 }
 
 
-UniqueDFS::UniqueDFS(const EdgeDB &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
+UniqueDFS::UniqueDFS(const ReadableGraphStorage &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
   : DFS(edb, startNode, minDistance, maxDistance)
 {
 

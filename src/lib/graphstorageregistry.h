@@ -14,11 +14,11 @@ public:
   GraphStorageRegistry();
   ~GraphStorageRegistry();
 
-  std::string getName(const EdgeDB* db);
-  EdgeDB* createEdgeDB(std::string name, StringStorage &strings, const Component &component);
+  std::string getName(const ReadableGraphStorage *db);
+  ReadableGraphStorage* createEdgeDB(std::string name, StringStorage &strings, const Component &component);
 
   std::string getOptimizedImpl(const Component& component);
-  EdgeDB* createEdgeDB(StringStorage &strings, const Component &component);
+  ReadableGraphStorage* createEdgeDB(StringStorage &strings, const Component &component);
 
   void setImplementation(std::string implName, ComponentType type);
   void setImplementation(std::string implName, ComponentType type, std::string layer);

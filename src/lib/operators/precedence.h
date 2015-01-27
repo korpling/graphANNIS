@@ -23,8 +23,8 @@ public:
   virtual ~Precedence();
 private:
   TokenHelper tokHelper;
-  const EdgeDB* edbOrder;
-  const EdgeDB* edbLeft;
+  const ReadableGraphStorage* edbOrder;
+  const ReadableGraphStorage* edbLeft;
   Annotation anyTokAnno;
   Annotation anyNodeAnno;
 

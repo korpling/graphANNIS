@@ -23,10 +23,10 @@ public:
 private:
 
   const DB& db;
-  std::vector<const EdgeDB*> edbCoverage;
-  const EdgeDB* edbOrder;
-  const EdgeDB* edbLeftToken;
-  const EdgeDB* edbRightToken;
+  std::vector<const ReadableGraphStorage*> edbCoverage;
+  const ReadableGraphStorage* edbOrder;
+  const ReadableGraphStorage* edbLeftToken;
+  const ReadableGraphStorage* edbRightToken;
 
   Annotation anyNodeAnno;
 

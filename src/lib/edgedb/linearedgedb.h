@@ -3,13 +3,13 @@
 
 #include <stx/btree_map>
 #include "../edgedb.h"
-#include "fallbackedgedb.h"
+#include "../edgeannotationstorage.h"
 
 namespace annis
 {
 
 
-class LinearEdgeDB : public FallbackEdgeDB
+class LinearEdgeDB : public ReadableGraphStorage
 {
 friend class LinearIterator;
 
@@ -17,7 +17,7 @@ public:
   LinearEdgeDB(StringStorage& strings, const Component& component);
 
   virtual void clear();
-  virtual void calculateIndex();
+  virtual void copy(const DB& db, const ReadableGraphStorage& orig);
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const;
   virtual std::unique_ptr<EdgeIterator> findConnected(
@@ -30,11 +30,29 @@ public:
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
 
+  virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const
+  {
+    return edgeAnno.getEdgeAnnotations(edge);
+  }
+  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const;
+  virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const;
+
+  virtual std::uint32_t numberOfEdges() const
+  {
+    return node2pos.size();
+  }
+  virtual std::uint32_t numberOfEdgeAnnotations() const
+  {
+    return edgeAnno.numberOfEdgeAnnotations();
+  }
+
   virtual ~LinearEdgeDB();
 
 private:
   stx::btree_map<nodeid_t, RelativePosition> node2pos;
   std::map<nodeid_t, std::vector<nodeid_t> > nodeChains;
+
+  EdgeAnnotationStorage edgeAnno;
 };
 
 class LinearIterator : public EdgeIterator

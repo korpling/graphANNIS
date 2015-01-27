@@ -36,10 +36,10 @@ private:
   Annotation anyAnno;
   const Annotation edgeAnno;
 
-  std::vector<const EdgeDB*> edb;
+  std::vector<const ReadableGraphStorage*> edb;
 
   void initEdgeDB();
-  bool checkEdgeAnnotation(const EdgeDB *e, nodeid_t source, nodeid_t target);
+  bool checkEdgeAnnotation(const ReadableGraphStorage *e, nodeid_t source, nodeid_t target);
 };
 
 } // end namespace annis

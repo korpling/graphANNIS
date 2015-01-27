@@ -55,20 +55,19 @@ namespace annis
         return "UNKNOWN";
       }
     }
-
-    /*
-     static ComponentType fromString(const std::string& typeAsString)
-     {
-       for(unsigned int t = (unsigned int)ComponentType::COVERAGE; t < (unsigned int) ComponentType::ComponentType_MAX; t++)
-       {
-         if(ComponentTypeToString((ComponentType) t) == typeAsString)
-         {
-           return (ComponentType) t;
-         }
-       }
-       return ComponentType::ComponentType_MAX;
-     }
-     */
+/*
+    static ComponentType fromString(const std::string& typeAsString)
+    {
+      for(unsigned int t = (unsigned int)ComponentType::COVERAGE; t < (unsigned int) ComponentType::ComponentType_MAX; t++)
+      {
+        if(toString((ComponentType) t) == typeAsString)
+        {
+          return (ComponentType) t;
+        }
+      }
+      return ComponentType::ComponentType_MAX;
+    }
+*/
   };
 
 

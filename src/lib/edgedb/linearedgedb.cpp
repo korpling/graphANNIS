@@ -1,5 +1,6 @@
 #include "linearedgedb.h"
 #include "../dfs.h"
+#include "../annotationsearch.h"
 
 #include <fstream>
 #include <set>
@@ -20,41 +21,52 @@ using namespace annis;
 using namespace std;
 
 LinearEdgeDB::LinearEdgeDB(StringStorage& strings, const Component& component)
-  : FallbackEdgeDB(strings, component)
 {
 }
 
 void LinearEdgeDB::clear()
 {
-  FallbackEdgeDB::clear();
+  edgeAnno.clear();
   node2pos.clear();
   nodeChains.clear();
 }
 
-void LinearEdgeDB::calculateIndex()
+void LinearEdgeDB::copy(const DB& db, const ReadableGraphStorage& orig)
 {
-  typedef stx::btree_set<Edge>::const_iterator EdgeIt;
   // find all root nodes
   set<nodeid_t> roots;
 
   // add all nodes to root list
-  for(EdgeIt it=getEdgesBegin();
-      it != getEdgesEnd(); it++)
+  AnnotationNameSearch nodes(db, annis_ns, annis_node_name);
 
+  while(nodes.hasNext())
   {
-    roots.insert((*it).source);
+    nodeid_t n = nodes.next().node;
+    roots.insert(n);
   }
-  // remove the ones that have an ingoing edge
-  for(EdgeIt edgeIt=getEdgesBegin();
-      edgeIt != getEdgesEnd(); edgeIt++)
 
+  nodes.reset();
+  while(nodes.hasNext())
   {
-    set<nodeid_t>::const_iterator rootIt = roots.find((*edgeIt).target);
-    if(rootIt != roots.end())
+    nodeid_t source = nodes.next().node;
+
+
+    std::vector<nodeid_t> outEdges = orig.getOutgoingEdges(source);
+    for(auto target : outEdges)
     {
-      roots.erase(rootIt);
+      Edge e = {source, target};
+
+      // remove the nodes that have an incoming edge from the root list
+      roots.erase(target);
+
+      std::vector<Annotation> edgeAnnos = orig.getEdgeAnnotations(e);
+      for(auto a : edgeAnnos)
+      {
+        edgeAnno.addEdgeAnnotation(e, a);
+      }
     }
   }
+
 
   for(auto& rootNode : roots)
   {
@@ -129,7 +141,7 @@ int LinearEdgeDB::distance(const Edge &edge) const
 
 bool LinearEdgeDB::save(string dirPath)
 {
-  bool result = FallbackEdgeDB::save(dirPath);
+  bool result = edgeAnno.save(dirPath);
 
   ofstream out;
 
@@ -145,9 +157,23 @@ bool LinearEdgeDB::save(string dirPath)
   return result;
 }
 
+std::vector<nodeid_t> LinearEdgeDB::getOutgoingEdges(nodeid_t node) const
+{
+  // TODO
+  std::vector<nodeid_t> result;
+  return result;
+}
+
+std::vector<nodeid_t> LinearEdgeDB::getIncomingEdges(nodeid_t node) const
+{
+  // TODO
+  std::vector<nodeid_t> result;
+  return result;
+}
+
 bool LinearEdgeDB::load(string dirPath)
 {
-  bool result = FallbackEdgeDB::load(dirPath);
+  bool result = edgeAnno.save(dirPath);
   ifstream in;
 
 

@@ -74,8 +74,8 @@ public:
 
 private:
   const DB& db;
-  const EdgeDB* leftEdges;
-  const EdgeDB* rightEdges;
+  const ReadableGraphStorage* leftEdges;
+  const ReadableGraphStorage* rightEdges;
 };
 
 class Helper

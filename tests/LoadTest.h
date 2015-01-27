@@ -128,7 +128,7 @@ TEST_F(LoadTest, OutgoingEdges) {
 
   Match cppNode = catSearch.next();
 
-  const EdgeDB* edbDom = db.getEdgeDB(annis::ComponentType::DOMINANCE, "tiger", "edge");
+  const ReadableGraphStorage* edbDom = db.getEdgeDB(annis::ComponentType::DOMINANCE, "tiger", "edge");
   std::vector<nodeid_t> outEdges = edbDom->getOutgoingEdges(cppNode.node);
   EXPECT_EQ(3, outEdges.size());
 
@@ -165,7 +165,7 @@ TEST_F(LoadTest, Ordering) {
 
   annis::Component componentOrdering = annis::Init::initComponent(annis::ComponentType::ORDERING,
                                                                  annis::annis_ns, "");
-  const annis::EdgeDB* edb = db.getEdgeDB(componentOrdering);
+  const annis::ReadableGraphStorage* edb = db.getEdgeDB(componentOrdering);
   ASSERT_TRUE(edb != NULL);
   // tok . tok
   EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(0, 1)));
@@ -232,7 +232,7 @@ TEST_F(LoadTest, IsConnected)
 
   annis::Component component = annis::Init::initComponent(annis::ComponentType::DOMINANCE,
                                                                  "tiger", "");
-  const annis::EdgeDB* edb = db.getEdgeDB(component);
+  const annis::ReadableGraphStorage* edb = db.getEdgeDB(component);
 
   EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 1, uintmax));
   EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 1, 2));
@@ -247,7 +247,7 @@ TEST_F(LoadTest, Distance)
 
   annis::Component component = annis::Init::initComponent(annis::ComponentType::DOMINANCE,
                                                                  "tiger", "");
-  const annis::EdgeDB* edb = db.getEdgeDB(component);
+  const annis::ReadableGraphStorage* edb = db.getEdgeDB(component);
 
   EXPECT_EQ(2, edb->distance(Init::initEdge(387, 16)));
 

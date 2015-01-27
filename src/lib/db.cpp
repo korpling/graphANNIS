@@ -67,9 +67,9 @@ bool DB::load(string dirPath)
         // try to load the component with the empty name
         Component emptyNameComponent = Init::initComponent((ComponentType) componentType,
             layerPath.filename().string(), "");
-        EdgeDB* edbEmptyName = registry.createEdgeDB(implName, strings, emptyNameComponent);
+        ReadableGraphStorage* edbEmptyName = registry.createEdgeDB(implName, strings, emptyNameComponent);
         edbEmptyName->load(layerPath.string());
-        edgeDatabases.insert(std::pair<Component,EdgeDB*>(emptyNameComponent,edbEmptyName));
+        edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(emptyNameComponent,edbEmptyName));
 
         // also load all named components
         boost::filesystem::directory_iterator itNamedComponents(layerPath);
@@ -83,9 +83,9 @@ bool DB::load(string dirPath)
             Component namedComponent = Init::initComponent((ComponentType) componentType,
                                                            layerPath.filename().string(),
                                                            namedComponentPath.filename().string());
-            EdgeDB* edbNamed = registry.createEdgeDB(implName, strings, namedComponent);
+            ReadableGraphStorage* edbNamed = registry.createEdgeDB(implName, strings, namedComponent);
             edbNamed->load(namedComponentPath.string());
-            edgeDatabases.insert(std::pair<Component,EdgeDB*>(namedComponent,edbNamed));
+            edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(namedComponent,edbNamed));
           }
           itNamedComponents++;
         } // end for each file/directory in layer directory
@@ -174,7 +174,9 @@ bool DB::loadRelANNIS(string dirPath)
     uint32_t componentID = Helper::uint32FromString(line[0]);
     if(line[1] != "NULL")
     {
-      EdgeDB* edb = createEdgeDBForComponent(line[1], line[2], line[3]);
+      ComponentType ctype = componentTypeFromShortName(line[1]);
+      EdgeDB* edb = new FallbackEdgeDB(strings,
+                                       Init::initComponent(ctype, line[2], line[3]));
       componentToEdgeDB[componentID] = edb;
     }
   }
@@ -191,7 +193,11 @@ bool DB::loadRelANNIS(string dirPath)
                      % ComponentTypeHelper::toString(c.type)
                      % c.layer
                      % c.name).str());
-    ed.second->calculateIndex();
+    EdgeDB* asEdgeDB = dynamic_cast<EdgeDB*>(ed.second);
+    if(asEdgeDB != nullptr)
+    {
+      asEdgeDB->calculateIndex();
+    }
   }
   HL_INFO(logger, "Finished loading relANNIS");
   return result;
@@ -322,9 +328,9 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   if(!tokenByIndex.empty())
   {
     HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
-    EdgeDB* edbOrder = createEdgeDBForComponent(ComponentType::ORDERING, annis_ns, "");
-    EdgeDB* edbLeft = createEdgeDBForComponent(ComponentType::LEFT_TOKEN, annis_ns, "");
-    EdgeDB* edbRight = createEdgeDBForComponent(ComponentType::RIGHT_TOKEN, annis_ns, "");
+    EdgeDB* edbOrder = new FallbackEdgeDB(strings, Init::initComponent(ComponentType::ORDERING, annis_ns, ""));
+    EdgeDB* edbLeft = new FallbackEdgeDB(strings, Init::initComponent(ComponentType::LEFT_TOKEN, annis_ns, ""));
+    EdgeDB* edbRight = new FallbackEdgeDB(strings, Init::initComponent(ComponentType::RIGHT_TOKEN, annis_ns, ""));
 
     map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
     uint32_t lastTextID = numeric_limits<uint32_t>::max();
@@ -375,7 +381,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   }
 
   // add explicit coverage edges for each node in the special annis namespace coverage component
-  EdgeDB* edbCoverage = createEdgeDBForComponent(ComponentType::COVERAGE, annis_ns, "");
+  FallbackEdgeDB* edbCoverage = new FallbackEdgeDB(strings, Init::initComponent(ComponentType::COVERAGE, annis_ns, ""));
   HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
   for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
       itLeftToNode != leftToNode.end(); itLeftToNode++)
@@ -558,9 +564,59 @@ void DB::addDefaultStrings()
   annisNodeNameStringID = strings.add(annis_node_name);
 }
 
-EdgeDB *DB::createEdgeDBForComponent(const string &shortType, const string &layer, const string &name)
+ReadableGraphStorage *DB::createEdgeDBForComponent(const string &shortType, const string &layer, const string &name)
 {
   // fill the component variable
+  ComponentType ctype = componentTypeFromShortName(shortType);
+  return createEdgeDBForComponent(ctype, layer, name);
+
+}
+
+ReadableGraphStorage *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, const string &name)
+{
+  Component c = Init::initComponent(ctype, layer, name);
+
+  // check if there is already an edge DB for this component
+  map<Component,ReadableGraphStorage*>::const_iterator itDB =
+      edgeDatabases.find(c);
+  if(itDB == edgeDatabases.end())
+  {
+
+    // TODO: decide which implementation to use
+    ReadableGraphStorage* edgeDB = NULL;
+    if(useSpecializedEdgeDB)
+    {
+      edgeDB = registry.createEdgeDB(strings, c);
+    }
+    else
+    {
+      edgeDB = registry.createEdgeDB(registry.fallback, strings, c);
+    }
+
+    // register the used implementation
+    edgeDatabases.insert(pair<Component,ReadableGraphStorage*>(c,edgeDB));
+    return edgeDB;
+  }
+  else
+  {
+    return itDB->second;
+  }
+}
+
+string DB::getImplNameForPath(string directory)
+{
+  std::string result = registry.fallback;
+  std::ifstream in(directory + "/implementation.cfg");
+  if(in.is_open())
+  {
+    in >> result;
+  }
+  in.close();
+  return result;
+}
+
+ComponentType DB::componentTypeFromShortName(string shortType)
+{
   ComponentType ctype;
   if(shortType == "c")
   {
@@ -582,51 +638,7 @@ EdgeDB *DB::createEdgeDBForComponent(const string &shortType, const string &laye
   {
     throw("Unknown component type \"" + shortType + "\"");
   }
-  return createEdgeDBForComponent(ctype, layer, name);
-
-}
-
-EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, const string &name)
-{
-  Component c = Init::initComponent(ctype, layer, name);
-
-  // check if there is already an edge DB for this component
-  map<Component,EdgeDB*>::const_iterator itDB =
-      edgeDatabases.find(c);
-  if(itDB == edgeDatabases.end())
-  {
-
-    // TODO: decide which implementation to use
-    EdgeDB* edgeDB = NULL;
-    if(useSpecializedEdgeDB)
-    {
-      edgeDB = registry.createEdgeDB(strings, c);
-    }
-    else
-    {
-      edgeDB = registry.createEdgeDB(registry.fallback, strings, c);
-    }
-
-    // register the used implementation
-    edgeDatabases.insert(pair<Component,EdgeDB*>(c,edgeDB));
-    return edgeDB;
-  }
-  else
-  {
-    return itDB->second;
-  }
-}
-
-string DB::getImplNameForPath(string directory)
-{
-  std::string result = registry.fallback;
-  std::ifstream in(directory + "/implementation.cfg");
-  if(in.is_open())
-  {
-    in >> result;
-  }
-  in.close();
-  return result;
+  return ctype;
 }
 
 bool DB::hasNode(nodeid_t id)
@@ -651,7 +663,7 @@ string DB::info()
   for(EdgeDBIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
   {
     const Component& c = it->first;
-    const EdgeDB* edb = it->second;
+    const ReadableGraphStorage* edb = it->second;
     ss << "Component " << ComponentTypeHelper::toString(c.type) << "|" << c.layer
        << "|" << c.name << ": " << edb->numberOfEdges() << " edges and "
        << edb->numberOfEdgeAnnotations() << " annotations" << endl;
@@ -664,11 +676,11 @@ string DB::info()
 std::vector<Component> DB::getDirectConnected(const Edge &edge)
 {
   std::vector<Component> result;
-  map<Component, EdgeDB*>::const_iterator itEdgeDB = edgeDatabases.begin();
+  map<Component, ReadableGraphStorage*>::const_iterator itEdgeDB = edgeDatabases.begin();
 
   while(itEdgeDB != edgeDatabases.end())
   {
-    EdgeDB* edb = itEdgeDB->second;
+    ReadableGraphStorage* edb = itEdgeDB->second;
     if(edb != NULL)
     {
       if(edb->isConnected(edge))
@@ -682,9 +694,9 @@ std::vector<Component> DB::getDirectConnected(const Edge &edge)
   return result;
 }
 
-const EdgeDB* DB::getEdgeDB(const Component &component) const
+const ReadableGraphStorage* DB::getEdgeDB(const Component &component) const
 {
-  map<Component, EdgeDB*>::const_iterator itEdgeDB = edgeDatabases.find(component);
+  map<Component, ReadableGraphStorage*>::const_iterator itEdgeDB = edgeDatabases.find(component);
   if(itEdgeDB != edgeDatabases.end())
   {
     return itEdgeDB->second;
@@ -692,15 +704,15 @@ const EdgeDB* DB::getEdgeDB(const Component &component) const
   return NULL;
 }
 
-const EdgeDB *DB::getEdgeDB(ComponentType type, const string &layer, const string &name) const
+const ReadableGraphStorage *DB::getEdgeDB(ComponentType type, const string &layer, const string &name) const
 {
   Component c = Init::initComponent(type, layer, name);
   return getEdgeDB(c);
 }
 
-std::vector<const EdgeDB *> DB::getEdgeDB(ComponentType type, const string &name) const
+std::vector<const ReadableGraphStorage *> DB::getEdgeDB(ComponentType type, const string &name) const
 {
-  std::vector<const EdgeDB* > result;
+  std::vector<const ReadableGraphStorage* > result;
 
   Component componentKey;
   componentKey.type = type;
@@ -721,9 +733,9 @@ std::vector<const EdgeDB *> DB::getEdgeDB(ComponentType type, const string &name
   return result;
 }
 
-std::vector<const EdgeDB* > DB::getAllEdgeDBForType(ComponentType type) const
+std::vector<const ReadableGraphStorage *> DB::getAllEdgeDBForType(ComponentType type) const
 {
-  std::vector<const EdgeDB* > result;
+  std::vector<const ReadableGraphStorage* > result;
 
   Component c;
   c.type = type;
@@ -731,7 +743,7 @@ std::vector<const EdgeDB* > DB::getAllEdgeDBForType(ComponentType type) const
   c.name[0] = '\0';
 
   for(
-      map<Component, EdgeDB*>::const_iterator itEdgeDB = edgeDatabases.lower_bound(c);
+      map<Component, ReadableGraphStorage*>::const_iterator itEdgeDB = edgeDatabases.lower_bound(c);
       itEdgeDB != edgeDatabases.end() && itEdgeDB->first.type == type;
       itEdgeDB++)
   {
@@ -744,10 +756,10 @@ std::vector<const EdgeDB* > DB::getAllEdgeDBForType(ComponentType type) const
 vector<Annotation> DB::getEdgeAnnotations(const Component &component,
                                           const Edge &edge)
 {
-  std::map<Component,EdgeDB*>::const_iterator it = edgeDatabases.find(component);
+  std::map<Component,ReadableGraphStorage*>::const_iterator it = edgeDatabases.find(component);
   if(it != edgeDatabases.end() && it->second != NULL)
   {
-    EdgeDB* edb = it->second;
+    ReadableGraphStorage* edb = it->second;
     return edb->getEdgeAnnotations(edge);
   }
 

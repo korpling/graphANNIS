@@ -26,8 +26,8 @@ private:
   DB& db;
   TokenHelper tokHelper;
   Annotation anyNodeAnno;
-  const EdgeDB* edbOrder;
-  const EdgeDB* edbCoverage;
+  const ReadableGraphStorage* edbOrder;
+  const ReadableGraphStorage* edbCoverage;
 };
 } // end namespace annis
 #endif // OVERLAP_H

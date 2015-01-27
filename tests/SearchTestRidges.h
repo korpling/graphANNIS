@@ -140,7 +140,7 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
     Component cOrder = Init::initComponent(ComponentType::ORDERING, annis_ns, "");
 
 
-    const EdgeDB* edbOrder = db.getEdgeDB(cOrder);
+    const ReadableGraphStorage* edbOrder = db.getEdgeDB(cOrder);
     if(edbOrder != NULL)
     {
       while(n1.hasNext())

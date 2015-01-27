@@ -25,7 +25,7 @@ class DB
   friend class AnnotationNameSearch;
   friend class RegexAnnoSearch;
 
-  typedef std::map<Component, EdgeDB*>::const_iterator EdgeDBIt;
+  typedef std::map<Component, ReadableGraphStorage*>::const_iterator EdgeDBIt;
 public:
   DB(bool useSpecializedEdgeDB = true);
 
@@ -118,10 +118,10 @@ public:
   }
 
   std::vector<Component> getDirectConnected(const Edge& edge);
-  const EdgeDB* getEdgeDB(const Component& component) const;
-  const EdgeDB* getEdgeDB(ComponentType type, const std::string& layer, const std::string& name) const;
-  std::vector<const EdgeDB *> getEdgeDB(ComponentType type, const std::string& name) const;
-  std::vector<const EdgeDB *> getAllEdgeDBForType(ComponentType type) const;
+  const ReadableGraphStorage *getEdgeDB(const Component& component) const;
+  const ReadableGraphStorage *getEdgeDB(ComponentType type, const std::string& layer, const std::string& name) const;
+  std::vector<const ReadableGraphStorage *> getEdgeDB(ComponentType type, const std::string& name) const;
+  std::vector<const ReadableGraphStorage *> getAllEdgeDBForType(ComponentType type) const;
 
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);
@@ -141,7 +141,7 @@ private:
   stx::btree_multimap<nodeid_t, Annotation> nodeAnnotations;
   stx::btree_multimap<Annotation, nodeid_t> inverseNodeAnnotations;
 
-  std::map<Component, EdgeDB*> edgeDatabases;
+  std::map<Component, ReadableGraphStorage*> edgeDatabases;
   GraphStorageRegistry registry;
 
   std::uint32_t annisNamespaceStringID;
@@ -169,12 +169,14 @@ private:
   void clear();
   void addDefaultStrings();
 
-  EdgeDB *createEdgeDBForComponent(const std::string& shortType, const std::string& layer,
+  ReadableGraphStorage *createEdgeDBForComponent(const std::string& shortType, const std::string& layer,
                        const std::string& name);
-  EdgeDB *createEdgeDBForComponent(ComponentType ctype, const std::string& layer,
+  ReadableGraphStorage *createEdgeDBForComponent(ComponentType ctype, const std::string& layer,
                        const std::string& name);
 
   std::string getImplNameForPath(std::string directory);
+
+  ComponentType componentTypeFromShortName(std::string shortType);
 };
 
 } // end namespace annis
