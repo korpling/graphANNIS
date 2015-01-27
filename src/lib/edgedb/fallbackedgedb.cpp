@@ -14,7 +14,7 @@ FallbackEdgeDB::FallbackEdgeDB(StringStorage &strings, const Component &componen
 {
 }
 
-void FallbackEdgeDB::copy(const DB &db, const EdgeDB &orig)
+void FallbackEdgeDB::copy(const DB &db, const ReadableGraphStorage &orig)
 {
   clear();
 

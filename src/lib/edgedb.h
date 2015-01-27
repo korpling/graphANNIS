@@ -15,18 +15,15 @@ namespace annis
 {
 class DB;
 
-class EdgeDB
+class ReadableGraphStorage
 {
 public:
 
-  virtual ~EdgeDB() {}
+  virtual ~ReadableGraphStorage() {}
 
-  virtual void copy(const DB& db, const EdgeDB& orig) = 0;
+  virtual void copy(const DB& db, const ReadableGraphStorage& orig) = 0;
 
-  virtual void addEdge(const Edge& edge) = 0;
-  virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;
   virtual void clear() = 0;
-  virtual void calculateIndex() {}
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance = 1, unsigned int maxDistance = 1) const = 0;
   /**
@@ -52,6 +49,18 @@ public:
 
   virtual std::uint32_t numberOfEdges() const = 0;
   virtual std::uint32_t numberOfEdgeAnnotations() const = 0;
+};
+
+class EdgeDB : public ReadableGraphStorage
+{
+public:
+
+  virtual ~EdgeDB() {}
+
+  virtual void addEdge(const Edge& edge) = 0;
+  virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;
+
+  virtual void calculateIndex() {}
 };
 
 
