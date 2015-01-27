@@ -79,7 +79,7 @@ void LinearEdgeDB::copy(const DB& db, const ReadableGraphStorage& orig)
     chain.push_back(rootNode);
     node2pos[rootNode] = Init::initRelativePosition(rootNode,chain.size()-1);
 
-    CycleSafeDFS it(*this, rootNode, 1, uintmax);
+    CycleSafeDFS it(orig, rootNode, 1, uintmax);
 
     uint32_t pos=1;
     for(pair<bool, nodeid_t> node = it.next(); node.first; node = it.next(), pos++)
