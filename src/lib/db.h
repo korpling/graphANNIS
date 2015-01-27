@@ -173,6 +173,10 @@ private:
                        const std::string& name);
   ReadableGraphStorage *createEdgeDBForComponent(ComponentType ctype, const std::string& layer,
                        const std::string& name);
+  annis::EdgeDB* createWritableEdgeDB(ComponentType ctype, const std::string& layer,
+                       const std::string& name);
+
+  void convertToOptimized(Component c);
 
   std::string getImplNameForPath(std::string directory);
 

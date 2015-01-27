@@ -185,19 +185,20 @@ bool DB::loadRelANNIS(string dirPath)
 
   bool result = loadRelANNISRank(dirPath, componentToEdgeDB);
 
+
   // construct the complex indexes for all components
+  std::list<Component> componentCopy;
   for(auto& ed : edgeDatabases)
   {
-    Component c = ed.first;
+    componentCopy.push_back(ed.first);
+  }
+  for(auto c : componentCopy)
+  {
     HL_INFO(logger, (boost::format("component calculations %1%|%2%|%3%")
                      % ComponentTypeHelper::toString(c.type)
                      % c.layer
                      % c.name).str());
-    EdgeDB* asEdgeDB = dynamic_cast<EdgeDB*>(ed.second);
-    if(asEdgeDB != nullptr)
-    {
-      asEdgeDB->calculateIndex();
-    }
+    convertToOptimized(c);
   }
   HL_INFO(logger, "Finished loading relANNIS");
   return result;
@@ -328,9 +329,9 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   if(!tokenByIndex.empty())
   {
     HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
-    EdgeDB* edbOrder = new FallbackEdgeDB(strings, Init::initComponent(ComponentType::ORDERING, annis_ns, ""));
-    EdgeDB* edbLeft = new FallbackEdgeDB(strings, Init::initComponent(ComponentType::LEFT_TOKEN, annis_ns, ""));
-    EdgeDB* edbRight = new FallbackEdgeDB(strings, Init::initComponent(ComponentType::RIGHT_TOKEN, annis_ns, ""));
+    EdgeDB* edbOrder = createWritableEdgeDB(ComponentType::ORDERING, annis_ns, "");
+    EdgeDB* edbLeft = createWritableEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
+    EdgeDB* edbRight = createWritableEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
     map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
     uint32_t lastTextID = numeric_limits<uint32_t>::max();
@@ -381,7 +382,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   }
 
   // add explicit coverage edges for each node in the special annis namespace coverage component
-  FallbackEdgeDB* edbCoverage = new FallbackEdgeDB(strings, Init::initComponent(ComponentType::COVERAGE, annis_ns, ""));
+  EdgeDB* edbCoverage = createWritableEdgeDB(ComponentType::COVERAGE, annis_ns, "");
   HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
   for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
       itLeftToNode != leftToNode.end(); itLeftToNode++)
@@ -600,6 +601,63 @@ ReadableGraphStorage *DB::createEdgeDBForComponent(ComponentType ctype, const st
   else
   {
     return itDB->second;
+  }
+}
+
+EdgeDB* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const string &name)
+{
+  Component c = Init::initComponent(ctype, layer, name);
+
+  // check if there is already an edge DB for this component
+  map<Component,ReadableGraphStorage*>::const_iterator itDB =
+      edgeDatabases.find(c);
+  if(itDB != edgeDatabases.end())
+  {
+    // check if the current implementation is writeable
+    EdgeDB* writable = dynamic_cast<EdgeDB*>(itDB->second);
+    if(writable != nullptr)
+    {
+      return writable;
+    }
+    else
+    {
+      ReadableGraphStorage* old = itDB->second;
+      edgeDatabases.erase(itDB);
+      delete old;
+    }
+  }
+
+  EdgeDB* edgeDB = new FallbackEdgeDB(strings, c);
+  // register the used implementation
+  edgeDatabases.insert(pair<Component,ReadableGraphStorage*>(c,edgeDB));
+  return edgeDB;
+
+}
+
+void DB::convertToOptimized(Component c)
+{
+  map<Component, ReadableGraphStorage*>::const_iterator
+      it = edgeDatabases.find(c);
+  if(it != edgeDatabases.end())
+  {
+    ReadableGraphStorage* oldStorage = it->second;
+
+    std::string currentImpl = registry.getName(oldStorage);
+    std::string optimizedImpl = registry.getOptimizedImpl(c);
+    if(currentImpl != optimizedImpl)
+    {
+      ReadableGraphStorage* newStorage = registry.createEdgeDB(strings, c);
+      newStorage->copy(*this, *oldStorage);
+      edgeDatabases.insert(std::pair<Component, ReadableGraphStorage*>(c, newStorage));
+      delete oldStorage;
+
+      // perform index calculations
+      EdgeDB* asEdgeDB = dynamic_cast<EdgeDB*>(newStorage);
+      if(asEdgeDB != nullptr)
+      {
+        asEdgeDB->calculateIndex();
+      }
+    }
   }
 }
 
