@@ -23,7 +23,7 @@ HUMBLE_LOGGER(logger, "default");
 
 using namespace annis;
 
-#define DBGETTER DB& getDB() {static DB db = initDB(); return db;}
+#define DBGETTER virtual DB& getDB() {static DB db = initDB(); return db;}
 
 template<bool optimized, char const* corpusName>
 class CorpusFixture : public ::celero::TestFixture
@@ -84,6 +84,8 @@ public:
 
     return result;
   }
+
+  virtual DB& getDB() = 0;
 
   virtual ~CorpusFixture() {}
 

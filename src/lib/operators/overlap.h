@@ -16,14 +16,14 @@ class Overlap : public Operator
 {
 public:
 
-  Overlap(DB &db);
+  Overlap(const DB &db);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs);
   virtual bool filter(const Match& lhs, const Match& rhs);
 
   virtual ~Overlap();
 private:
-  DB& db;
+  const DB& db;
   TokenHelper tokHelper;
   Annotation anyNodeAnno;
   const ReadableGraphStorage* edbOrder;

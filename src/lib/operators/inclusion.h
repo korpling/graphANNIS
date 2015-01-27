@@ -14,7 +14,7 @@ namespace annis
 class Inclusion : public Operator
 {
 public:
-  Inclusion(DB &db);
+  Inclusion(const DB &db);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs);
   virtual bool filter(const Match& lhs, const Match& rhs);

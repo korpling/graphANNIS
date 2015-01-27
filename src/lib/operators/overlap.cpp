@@ -4,7 +4,7 @@
 #include <stx/btree_set>
 using namespace annis;
 
-Overlap::Overlap(DB &db)
+Overlap::Overlap(const DB &db)
   : db(db), tokHelper(db), anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {
   edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");

@@ -41,6 +41,12 @@ public:
     }
     bool loadedDB = db.load(dataDir + "/ridges");
     EXPECT_EQ(true, loadedDB);
+//    // manually convert all components to fallback implementation
+//    auto components = db.getAllComponents();
+//    for(auto c : components)
+//    {
+//      db.convertComponent(c, "fallback");
+//    }
   }
 
   virtual void TearDown() {

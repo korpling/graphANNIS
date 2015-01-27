@@ -4,7 +4,7 @@
 
 using namespace annis;
 
-Inclusion::Inclusion(DB &db)
+Inclusion::Inclusion(const DB &db)
   : db(db),
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     tokHelper(db)
