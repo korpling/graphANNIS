@@ -34,9 +34,6 @@ public:
 protected:
   const nodeid_t startNode;
 
-
-  void initStack();
-
   virtual bool enterNode(nodeid_t node, unsigned int distance);
 
   virtual bool beforeEnterNode(nodeid_t node, unsigned int distance)
@@ -95,7 +92,6 @@ public:
                unsigned int minDistance, unsigned int maxDistance);
   virtual ~CycleSafeDFS();
 protected:
-  virtual void initStack();
   virtual void reset();
   virtual bool enterNode(nodeid_t node, unsigned int distance);
   virtual bool beforeEnterNode(nodeid_t node, unsigned int distance);

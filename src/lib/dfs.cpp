@@ -10,7 +10,8 @@ DFS::DFS(const ReadableGraphStorage &edb,
                                                      unsigned int maxDistance)
   : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode)
 {
-  initStack();
+  // add the initial value to the stack
+  traversalStack.push({startNode, 0});
 }
 
 DFSIteratorResult DFS::nextDFS()
@@ -71,11 +72,6 @@ std::pair<bool, nodeid_t> DFS::next()
   return std::pair<bool, nodeid_t>(result.found, result.node);
 }
 
-void DFS::initStack()
-{
-  // add the initial value to the stack
-  traversalStack.push({startNode, 0});
-}
 
 void DFS::reset()
 {
@@ -85,25 +81,17 @@ void DFS::reset()
     traversalStack.pop();
   }
 
-  initStack();
+  traversalStack.push({startNode, 0});
 }
 
 
 CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
   : DFS(edb, startNode, minDistance, maxDistance), lastDistance(0)
 {
-
-}
-
-void CycleSafeDFS::initStack()
-{
-  DFS::initStack();
-
-  lastDistance = 0;
-
   nodesInCurrentPath.insert(startNode);
   distanceToNode.insert({0, startNode});
 }
+
 
 void CycleSafeDFS::reset()
 {
@@ -111,6 +99,9 @@ void CycleSafeDFS::reset()
   distanceToNode.clear();
 
   DFS::reset();
+
+  nodesInCurrentPath.insert(startNode);
+  distanceToNode.insert({0, startNode});
 }
 
 bool CycleSafeDFS::enterNode(nodeid_t node, unsigned int distance)
