@@ -197,7 +197,7 @@ bool DB::loadRelANNIS(string dirPath)
                      % ComponentTypeHelper::toString(c.type)
                      % c.layer
                      % c.name).str());
-    convertToOptimized(c);
+    convertComponent(c);
   }
   HL_INFO(logger, "Finished loading relANNIS");
   return result;
@@ -633,7 +633,7 @@ EdgeDB* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const
 
 }
 
-void DB::convertToOptimized(Component c)
+void DB::convertComponent(Component c, std::string optimizedImpl)
 {
   map<Component, ReadableGraphStorage*>::const_iterator
       it = edgeDatabases.find(c);
@@ -642,11 +642,17 @@ void DB::convertToOptimized(Component c)
     ReadableGraphStorage* oldStorage = it->second;
 
     std::string currentImpl = registry.getName(oldStorage);
-    std::string optimizedImpl = registry.getOptimizedImpl(c);
+    if(optimizedImpl == "")
+    {
+      optimizedImpl = registry.getOptimizedImpl(c);
+    }
     ReadableGraphStorage* newStorage = oldStorage;
     if(currentImpl != optimizedImpl)
     {
-      newStorage = registry.createEdgeDB(strings, c);
+
+      std::cerr << "converting component " << ComponentTypeHelper::toString(c.type)
+                << " " << c.layer << ":" << c.name << " from " << currentImpl << " to " << optimizedImpl << std::endl;
+      newStorage = registry.createEdgeDB(optimizedImpl, strings, c);
       newStorage->copy(*this, *oldStorage);
       edgeDatabases[c] = newStorage;
       delete oldStorage;
@@ -731,7 +737,7 @@ string DB::info()
 }
 
 
-std::vector<Component> DB::getDirectConnected(const Edge &edge)
+std::vector<Component> DB::getDirectConnected(const Edge &edge) const
 {
   std::vector<Component> result;
   map<Component, ReadableGraphStorage*>::const_iterator itEdgeDB = edgeDatabases.begin();
@@ -746,6 +752,20 @@ std::vector<Component> DB::getDirectConnected(const Edge &edge)
         result.push_back(itEdgeDB->first);
       }
     }
+    itEdgeDB++;
+  }
+
+  return result;
+}
+
+std::vector<Component> DB::getAllComponents() const
+{
+  std::vector<Component> result;
+  map<Component, ReadableGraphStorage*>::const_iterator itEdgeDB = edgeDatabases.begin();
+
+  while(itEdgeDB != edgeDatabases.end())
+  {
+    result.push_back(itEdgeDB->first);
     itEdgeDB++;
   }
 

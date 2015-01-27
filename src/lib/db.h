@@ -117,7 +117,8 @@ public:
     return noResult;
   }
 
-  std::vector<Component> getDirectConnected(const Edge& edge);
+  std::vector<Component> getDirectConnected(const Edge& edge) const;
+  std::vector<Component> getAllComponents() const;
   const ReadableGraphStorage *getEdgeDB(const Component& component) const;
   const ReadableGraphStorage *getEdgeDB(ComponentType type, const std::string& layer, const std::string& name) const;
   std::vector<const ReadableGraphStorage *> getEdgeDB(ComponentType type, const std::string& name) const;
@@ -132,8 +133,10 @@ public:
   inline std::uint32_t getEmptyStringID() const {return annisEmptyStringID;}
   inline std::uint32_t getTokStringID() const {return annisTokStringID;}
 
-  virtual ~DB();
+  void convertComponent(Component c, std::string optimizedImpl = "");
 
+  virtual ~DB();
+public:
 
   StringStorage strings;
 
@@ -176,7 +179,6 @@ private:
   annis::EdgeDB* createWritableEdgeDB(ComponentType ctype, const std::string& layer,
                        const std::string& name);
 
-  void convertToOptimized(Component c);
 
   std::string getImplNameForPath(std::string directory);
 

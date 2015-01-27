@@ -53,6 +53,17 @@ public:
       dataDir = testDataEnv;
     }
     result.load(dataDir + "/" + corpus);
+
+    if(!optimized)
+    {
+      // manually convert all components to fallback implementation
+      auto components = result.getAllComponents();
+      for(auto c : components)
+      {
+        result.convertComponent(c, "fallback");
+      }
+    }
+
     return result;
   }
 
