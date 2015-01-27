@@ -76,7 +76,7 @@ std::string GraphStorageRegistry::getOptimizedImpl(const Component &component)
   else
   {
     // try without the name
-    Component withoutName = Init::initComponent(component.type, component.layer, "");
+    Component withoutName = {component.type, component.layer, ""};
     it = componentToImpl.find(withoutName);
     if(it != componentToImpl.end())
     {
@@ -85,7 +85,7 @@ std::string GraphStorageRegistry::getOptimizedImpl(const Component &component)
     else
     {
       // try only the component type
-      Component onlyType = Init::initComponent(component.type, "", "");
+      Component onlyType = {component.type, "", ""};
       it = componentToImpl.find(onlyType);
       if(it != componentToImpl.end())
       {
@@ -105,18 +105,18 @@ ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(StringStorage &strings,
 
 void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type)
 {
-  Component c = Init::initComponent(type, "", "");
+  Component c = {type, "", ""};
   componentToImpl[c] = implName;
 }
 
 void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type, std::string layer)
 {
-  Component c = Init::initComponent(type, layer, "");
+  Component c = {type, layer, ""};
   componentToImpl[c] = implName;
 }
 
 void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type, std::string layer, std::string name)
 {
-  Component c = Init::initComponent(type, layer, name);
+  Component c = {type, layer, name};
   componentToImpl[c] = implName;
 }

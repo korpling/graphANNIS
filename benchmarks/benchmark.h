@@ -43,6 +43,14 @@ public:
      HL_INFO(logger, (boost::format("result %1%") % counter).str());
   }
 
+  void addOverride(ComponentType ctype, std::string layer, std::string name, std::string implementation)
+  {
+    overrideImpl.insert(
+          std::pair<Component, std::string>(
+    {ctype, layer, name}, implementation)
+          );
+  }
+
   DB initDB()
   {
     DB result(optimized);
@@ -63,6 +71,16 @@ public:
         result.convertComponent(c, "fallback");
       }
     }
+    else
+    {
+      // check if we want to override some implementations
+      for(auto it=overrideImpl.begin(); it != overrideImpl.end(); it++)
+      {
+
+        std::cerr << "OVERRIDE called" << std::endl;
+        result.convertComponent(it->first, it->second);
+      }
+    }
 
     return result;
   }
@@ -77,9 +95,10 @@ public:
 
 public:
   unsigned int counter;
+
 private:
   const std::string corpus;
-
+  std::map<Component, std::string> overrideImpl;
 };
 
 

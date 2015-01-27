@@ -137,7 +137,7 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
   std::pair<bool, uint32_t> n2_nameID = db.strings.findID("tok");
   if(n2_nameID.first && n2_namespaceID.first)
   {
-    Component cOrder = Init::initComponent(ComponentType::ORDERING, annis_ns, "");
+    Component cOrder = {ComponentType::ORDERING, annis_ns, ""};
 
 
     const ReadableGraphStorage* edbOrder = db.getEdgeDB(cOrder);

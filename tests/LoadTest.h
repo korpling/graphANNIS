@@ -89,35 +89,35 @@ TEST_F(LoadTest, Edges) {
   ASSERT_EQ(3u, components.size());
 
   EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
-  EXPECT_STREQ(annis_ns.c_str(), components[0].layer);
-  EXPECT_STREQ("", components[0].name);
+  EXPECT_STREQ(annis_ns.c_str(), components[0].layer.c_str());
+  EXPECT_STREQ("", components[0].name.c_str());
 
   EXPECT_EQ(annis::ComponentType::COVERAGE, components[1].type);
-  EXPECT_STREQ("exmaralda", components[1].layer);
-  EXPECT_STREQ("", components[1].name);
+  EXPECT_STREQ("exmaralda", components[1].layer.c_str());
+  EXPECT_STREQ("", components[1].name.c_str());
 
   EXPECT_EQ(annis::ComponentType::LEFT_TOKEN, components[2].type);
-  EXPECT_STREQ(annis::annis_ns.c_str(), components[2].layer);
-  EXPECT_STREQ("", components[2].name);
+  EXPECT_STREQ(annis::annis_ns.c_str(), components[2].layer.c_str());
+  EXPECT_STREQ("", components[2].name.c_str());
 
   components = db.getDirectConnected(annis::Init::initEdge(371, 126));
   ASSERT_EQ(4u, components.size());
 
   EXPECT_EQ(annis::ComponentType::COVERAGE, components[0].type);
-  EXPECT_STREQ(annis_ns.c_str(), components[0].layer);
-  EXPECT_STREQ("", components[0].name);
+  EXPECT_STREQ(annis_ns.c_str(), components[0].layer.c_str());
+  EXPECT_STREQ("", components[0].name.c_str());
 
   EXPECT_EQ(annis::ComponentType::DOMINANCE, components[1].type);
-  EXPECT_STREQ("tiger", components[1].layer);
-  EXPECT_STREQ("", components[1].name);
+  EXPECT_STREQ("tiger", components[1].layer.c_str());
+  EXPECT_STREQ("", components[1].name.c_str());
 
   EXPECT_EQ(annis::ComponentType::DOMINANCE, components[2].type);
-  EXPECT_STREQ("tiger", components[2].layer);
-  EXPECT_STREQ("edge", components[2].name);
+  EXPECT_STREQ("tiger", components[2].layer.c_str());
+  EXPECT_STREQ("edge", components[2].name.c_str());
 
   EXPECT_EQ(annis::ComponentType::LEFT_TOKEN, components[3].type);
-  EXPECT_STREQ(annis::annis_ns.c_str(), components[3].layer);
-  EXPECT_STREQ("", components[3].name);
+  EXPECT_STREQ(annis::annis_ns.c_str(), components[3].layer.c_str());
+  EXPECT_STREQ("", components[3].name.c_str());
 }
 
 TEST_F(LoadTest, OutgoingEdges) {
@@ -163,8 +163,8 @@ TEST_F(LoadTest, EdgeAnnos) {
 
 TEST_F(LoadTest, Ordering) {
 
-  annis::Component componentOrdering = annis::Init::initComponent(annis::ComponentType::ORDERING,
-                                                                 annis::annis_ns, "");
+  annis::Component componentOrdering = {annis::ComponentType::ORDERING,
+                                                                 annis::annis_ns, ""};
   const annis::ReadableGraphStorage* edb = db.getEdgeDB(componentOrdering);
   ASSERT_TRUE(edb != NULL);
   // tok . tok
@@ -180,8 +180,8 @@ TEST_F(LoadTest, Ordering) {
   // span . span
   EXPECT_FALSE(edb->isConnected(annis::Init::initEdge(152, 61)));
 
-  annis::Component componentLeftToken = annis::Init::initComponent(annis::ComponentType::LEFT_TOKEN,
-                                                                  annis::annis_ns, "");
+  annis::Component componentLeftToken = {annis::ComponentType::LEFT_TOKEN,
+                                                                  annis::annis_ns, ""};
   edb = db.getEdgeDB(componentLeftToken);
   ASSERT_TRUE(edb != NULL);
   // span _l_ tok (both direcctions)
@@ -190,8 +190,8 @@ TEST_F(LoadTest, Ordering) {
   EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(61, 49)));
   EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(49, 61)));
 
-  annis::Component componentRightToken = annis::Init::initComponent(annis::ComponentType::RIGHT_TOKEN,
-                                                                   annis::annis_ns, "");
+  annis::Component componentRightToken = {annis::ComponentType::RIGHT_TOKEN,
+                                                                   annis::annis_ns, ""};
   edb = db.getEdgeDB(componentRightToken);
   ASSERT_TRUE(edb != NULL);
   // span _r_ tok (both direcctions)
@@ -230,8 +230,8 @@ TEST_F(LoadTest, Dom)
 TEST_F(LoadTest, IsConnected)
 {
 
-  annis::Component component = annis::Init::initComponent(annis::ComponentType::DOMINANCE,
-                                                                 "tiger", "");
+  annis::Component component = {annis::ComponentType::DOMINANCE,
+                                                                 "tiger", ""};
   const annis::ReadableGraphStorage* edb = db.getEdgeDB(component);
 
   EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 1, uintmax));
@@ -245,8 +245,7 @@ TEST_F(LoadTest, IsConnected)
 TEST_F(LoadTest, Distance)
 {
 
-  annis::Component component = annis::Init::initComponent(annis::ComponentType::DOMINANCE,
-                                                                 "tiger", "");
+  annis::Component component = {annis::ComponentType::DOMINANCE, "tiger", ""};
   const annis::ReadableGraphStorage* edb = db.getEdgeDB(component);
 
   EXPECT_EQ(2, edb->distance(Init::initEdge(387, 16)));

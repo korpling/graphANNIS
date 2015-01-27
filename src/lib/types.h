@@ -70,16 +70,11 @@ namespace annis
 */
   };
 
-
-
-
-  const size_t MAX_COMPONENT_NAME_SIZE = 255;
-
   struct Component
   {
     ComponentType type;
-    char layer[MAX_COMPONENT_NAME_SIZE];
-    char name[MAX_COMPONENT_NAME_SIZE];
+    std::string layer;
+    std::string name;
   };
 
   struct Annotation
@@ -145,27 +140,6 @@ namespace annis
       return result;
     }
 
-    static Component initComponent(ComponentType type, const std::string& layer, const std::string& name)
-    {
-      Component c;
-      c.type = type;
-      if(layer.size() < MAX_COMPONENT_NAME_SIZE-1 && name.size() < MAX_COMPONENT_NAME_SIZE-1)
-      {
-        memset(c.layer, 0, MAX_COMPONENT_NAME_SIZE);
-        memset(c.name, 0, MAX_COMPONENT_NAME_SIZE);
-        layer.copy(c.layer, layer.size());
-        if(name != "NULL")
-        {
-          name.copy(c.name, name.size());
-        }
-      }
-      else
-      {
-        throw("Component name or namespace are too long");
-      }
-      return c;
-    }
-
     static RelativePosition initRelativePosition(nodeid_t node, u_int32_t pos)
     {
       RelativePosition result;
@@ -217,12 +191,10 @@ struct less<annis::Component>
     ANNIS_STRUCT_COMPARE(a.type, b.type);
 
     // if equal compare by namespace
-    int nsCompare = strncmp(a.layer, b.layer, annis::MAX_COMPONENT_NAME_SIZE);
-    ANNIS_STRUCT_COMPARE(nsCompare, 0);
+    ANNIS_STRUCT_COMPARE(a.layer, b.layer);
 
     // if still equal compare by name
-    int nameCompare = strncmp(a.name, b.name, annis::MAX_COMPONENT_NAME_SIZE);
-    ANNIS_STRUCT_COMPARE(nameCompare, 0);
+    ANNIS_STRUCT_COMPARE(a.name, b.name);
 
     // they are equal
     return false;

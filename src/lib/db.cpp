@@ -65,8 +65,8 @@ bool DB::load(string dirPath)
         std::string implName = getImplNameForPath(layerPath.string());
 
         // try to load the component with the empty name
-        Component emptyNameComponent = Init::initComponent((ComponentType) componentType,
-            layerPath.filename().string(), "");
+        Component emptyNameComponent = {(ComponentType) componentType,
+            layerPath.filename().string(), ""};
         ReadableGraphStorage* edbEmptyName = registry.createEdgeDB(implName, strings, emptyNameComponent);
         edbEmptyName->load(layerPath.string());
         edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(emptyNameComponent,edbEmptyName));
@@ -80,9 +80,10 @@ bool DB::load(string dirPath)
           {
             // try to load the named component
             implName = getImplNameForPath(namedComponentPath.string());
-            Component namedComponent = Init::initComponent((ComponentType) componentType,
+            Component namedComponent = {(ComponentType) componentType,
                                                            layerPath.filename().string(),
-                                                           namedComponentPath.filename().string());
+                                                           namedComponentPath.filename().string()
+                                       };
             ReadableGraphStorage* edbNamed = registry.createEdgeDB(implName, strings, namedComponent);
             edbNamed->load(namedComponentPath.string());
             edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(namedComponent,edbNamed));
@@ -122,7 +123,7 @@ bool DB::save(string dirPath)
   {
     const Component& c = it->first;
     string finalPath;
-    if(c.name == NULL)
+    if(c.name.empty())
     {
       finalPath = edgeDBParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer;
     }
@@ -574,7 +575,7 @@ ReadableGraphStorage *DB::createEdgeDBForComponent(const string &shortType, cons
 
 ReadableGraphStorage *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, const string &name)
 {
-  Component c = Init::initComponent(ctype, layer, name);
+  Component c = {ctype, layer, name};
 
   // check if there is already an edge DB for this component
   map<Component,ReadableGraphStorage*>::const_iterator itDB =
@@ -605,7 +606,7 @@ ReadableGraphStorage *DB::createEdgeDBForComponent(ComponentType ctype, const st
 
 EdgeDB* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const string &name)
 {
-  Component c = Init::initComponent(ctype, layer, name);
+  Component c = {ctype, layer, name};
 
   // check if there is already an edge DB for this component
   map<Component,ReadableGraphStorage*>::const_iterator itDB =
@@ -784,7 +785,7 @@ const ReadableGraphStorage* DB::getEdgeDB(const Component &component) const
 
 const ReadableGraphStorage *DB::getEdgeDB(ComponentType type, const string &layer, const string &name) const
 {
-  Component c = Init::initComponent(type, layer, name);
+  Component c = {type, layer, name};
   return getEdgeDB(c);
 }
 
