@@ -1,6 +1,7 @@
 #include "prepostorderstorage.h"
 
 #include "../dfs.h"
+#include "../annotationsearch.h"
 
 #include <set>
 #include <stack>
@@ -14,7 +15,6 @@
 using namespace annis;
 
 PrePostOrderStorage::PrePostOrderStorage(StringStorage &strings, const Component &component)
- : FallbackEdgeDB(strings, component)
 {
 
 }
@@ -29,7 +29,7 @@ bool PrePostOrderStorage::load(std::string dirPath)
   node2order.clear();
   order2node.clear();
 
-  bool result = FallbackEdgeDB::load(dirPath);
+  bool result = edgeAnno.load(dirPath);
   std::ifstream in;
 
   in.open(dirPath + "/node2order.btree", std::ios::binary);
@@ -45,7 +45,7 @@ bool PrePostOrderStorage::load(std::string dirPath)
 
 bool PrePostOrderStorage::save(std::string dirPath)
 {
-  bool result = FallbackEdgeDB::save(dirPath);
+  bool result = edgeAnno.save(dirPath);
 
   std::ofstream out;
 
@@ -61,24 +61,46 @@ bool PrePostOrderStorage::save(std::string dirPath)
 
 }
 
-void PrePostOrderStorage::calculateIndex()
+void PrePostOrderStorage::copy(const DB& db, const ReadableGraphStorage& orig)
 {
   using ItType = stx::btree_set<Edge>::const_iterator;
-  node2order.clear();
-  order2node.clear();
+  clear();
 
   // find all roots of the component
   std::set<nodeid_t> roots;
+  AnnotationNameSearch nodes(db, annis_ns, annis_node_name);
   // first add all nodes that are a source of an edge as possible roots
-  for(ItType it = getEdgesBegin(); it != getEdgesEnd(); it++)
+  while(nodes.hasNext())
   {
-    roots.insert(it->source);
+    nodeid_t n = nodes.next().node;
+    // insert all nodes to the root candidate list which are part of this component
+    if(!orig.getOutgoingEdges(n).empty())
+    {
+      roots.insert(n);
+    }
   }
-  // second delete the ones that have an outgoing edge
-  for(ItType it = getEdgesBegin(); it != getEdgesEnd(); it++)
+
+  nodes.reset();
+  while(nodes.hasNext())
   {
-    roots.erase(it->target);
+    nodeid_t source = nodes.next().node;
+
+    std::vector<nodeid_t> outEdges = orig.getOutgoingEdges(source);
+    for(auto target : outEdges)
+    {
+      Edge e = {source, target};
+
+      // remove the nodes that have an incoming edge from the root list
+      roots.erase(target);
+
+      std::vector<Annotation> edgeAnnos = orig.getEdgeAnnotations(e);
+      for(auto a : edgeAnnos)
+      {
+        edgeAnno.addEdgeAnnotation(e, a);
+      }
+    }
   }
+
   uint32_t currentOrder = 0;
 
   // traverse the graph for each sub-component
@@ -90,7 +112,7 @@ void PrePostOrderStorage::calculateIndex()
 
     enterNode(currentOrder, startNode, startNode, 0, nodeStack);
 
-    CycleSafeDFS dfs(*this, startNode, 1, uintmax);
+    CycleSafeDFS dfs(orig, startNode, 1, uintmax);
     for(DFSIteratorResult step = dfs.nextDFS(); step.found;
           step = dfs.nextDFS())
     {
@@ -124,6 +146,13 @@ void PrePostOrderStorage::calculateIndex()
   } // end for each root
 }
 
+void PrePostOrderStorage::clear()
+{
+  node2order.clear();
+  order2node.clear();
+  edgeAnno.clear();
+}
+
 void PrePostOrderStorage::enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode,
                                         int level, NStack& nodeStack)
 {
@@ -143,16 +172,6 @@ void PrePostOrderStorage::exitNode(uint32_t& currentOrder, NStack &nodeStack)
 
   node2order.insert2(entry.id, entry.order);
   order2node[entry.order] = entry.id;
-
-//  if(entry.id == 750)
-//  {
-//    std::cerr << "debug component " << getComponent().layer << ":" << getComponent().name << std::endl;
-//    for(auto it = node2order.lower_bound(750); it != node2order.upper_bound(750); it++)
-//    {
-//      std::cerr << it->second.pre << "-" << it->second.post << " (" << it->second.level << ")" << std::endl;
-//    }
-//    std::cerr << "-------------" << std::endl;
-//  }
 
   nodeStack.pop();
 }
@@ -224,6 +243,54 @@ std::unique_ptr<EdgeIterator> PrePostOrderStorage::findConnected(nodeid_t source
 {
   return std::unique_ptr<EdgeIterator>(
         new PrePostIterator(*this, sourceNode, minDistance, maxDistance));
+}
+
+std::vector<nodeid_t> PrePostOrderStorage::getOutgoingEdges(nodeid_t node) const
+{
+  std::vector<nodeid_t> result;
+  result.reserve(10);
+
+  auto connectedIt = findConnected(node, 1, 1);
+  for(auto c=connectedIt->next(); c.first; c=connectedIt->next())
+  {
+    result.push_back(c.second);
+  }
+
+  return result;
+}
+
+std::vector<nodeid_t> PrePostOrderStorage::getIncomingEdges(nodeid_t node) const
+{
+  std::set<nodeid_t> sources;
+  auto itRange = node2order.equal_range(node);
+  for(auto itTarget=itRange.first; itTarget != itRange.second; itTarget++)
+  {
+    const auto& targetOrder = itTarget->second;
+    // get all nodes that are potential predecessors
+    PrePost minPrePost = {0, 0, 0};
+    PrePost maxPrePost = {targetOrder.pre-1, uintmax, std::numeric_limits<int32_t>::max()};
+    auto itMin = order2node.lower_bound(minPrePost);
+    auto itMax = order2node.upper_bound(maxPrePost);
+    for(auto itSource=itMin; itSource != itMax; itSource++)
+    {
+      const PrePost& sourceOrder = itSource->first;
+      if(sourceOrder.level == targetOrder.level-1
+         && targetOrder.post < sourceOrder.post
+         && sourceOrder.pre < targetOrder.pre)
+      {
+        sources.insert(itSource->second);
+      }
+    }
+  }
+
+  std::vector<nodeid_t> result;
+  result.reserve(sources.size());
+  for(auto n : sources)
+  {
+    result.push_back(n);
+  }
+  return result;
+
 }
 
 

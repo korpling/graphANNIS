@@ -2,6 +2,7 @@
 #define PREPOSTORDERSTORAGE_H
 
 #include "fallbackedgedb.h"
+#include "edgeannotationstorage.h"
 
 #include <stx/btree_map>
 #include <stx/btree_multimap>
@@ -60,7 +61,7 @@ struct NodeStackEntry
   PrePost order;
 };
 
-class PrePostOrderStorage : public FallbackEdgeDB
+class PrePostOrderStorage : public ReadableGraphStorage
 {  
 friend class PrePostIterator;
 using NStack = std::stack<NodeStackEntry, std::list<NodeStackEntry> >;
@@ -72,7 +73,14 @@ public:
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
 
-  virtual void calculateIndex();
+  virtual void copy(const DB& db, const ReadableGraphStorage& orig);
+
+  virtual void clear();
+
+  virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const
+  {
+    return edgeAnno.getEdgeAnnotations(edge);
+  }
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance = 1, unsigned int maxDistance = 1) const;
   virtual int distance(const Edge &edge) const;
@@ -80,10 +88,22 @@ public:
                                            unsigned int minDistance = 1,
                                            unsigned int maxDistance = 1) const;
 
+  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const;
+  virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const;
+
+  virtual std::uint32_t numberOfEdges() const
+  {
+    return order2node.size();
+  }
+  virtual std::uint32_t numberOfEdgeAnnotations() const
+  {
+    return edgeAnno.numberOfEdgeAnnotations();
+  }
+
 private:
   stx::btree_multimap<nodeid_t, PrePost> node2order;
   stx::btree_map<PrePost, nodeid_t> order2node;
-
+  EdgeAnnotationStorage edgeAnno;
 
   void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, NStack &nodeStack);
   void exitNode(uint32_t &currentOrder, NStack &nodeStack);
