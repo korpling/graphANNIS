@@ -48,13 +48,13 @@ void FallbackEdgeDB::addEdge(const Edge &edge)
 
 void FallbackEdgeDB::addEdgeAnnotation(const Edge& edge, const Annotation &anno)
 {
-  edgeAnnotations.insert2(edge, anno);
+  edgeAnnos.addEdgeAnnotation(edge, anno);
 }
 
 void FallbackEdgeDB::clear()
 {
   edges.clear();
-  edgeAnnotations.clear();
+  edgeAnnos.clear();
 }
 
 bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
@@ -114,19 +114,7 @@ int FallbackEdgeDB::distance(const Edge &edge) const
 
 std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) const
 {
-  typedef stx::btree_multimap<Edge, Annotation>::const_iterator ItType;
-
-  std::vector<Annotation> result;
-
-  std::pair<ItType, ItType> range =
-      edgeAnnotations.equal_range(edge);
-
-  for(ItType it=range.first; it != range.second; ++it)
-  {
-    result.push_back(it->second);
-  }
-
-  return result;
+  return edgeAnnos.getEdgeAnnotations(edge);
 }
 
 std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t node) const
@@ -174,9 +162,7 @@ bool FallbackEdgeDB::load(std::string dirPath)
   edges.restore(in);
   in.close();
 
-  in.open(dirPath + "/edgeAnnotations.btree");
-  edgeAnnotations.restore(in);
-  in.close();
+  edgeAnnos.load(dirPath);
 
   return true;
 
@@ -190,9 +176,7 @@ bool FallbackEdgeDB::save(std::string dirPath)
   edges.dump(out);
   out.close();
 
-  out.open(dirPath + "/edgeAnnotations.btree");
-  edgeAnnotations.dump(out);
-  out.close();
+  edgeAnnos.save(dirPath);
 
   return true;
 }
@@ -204,5 +188,5 @@ std::uint32_t FallbackEdgeDB::numberOfEdges() const
 
 std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
 {
-  return edgeAnnotations.size();
+  return edgeAnnos.numberOfEdgeAnnotations();
 }

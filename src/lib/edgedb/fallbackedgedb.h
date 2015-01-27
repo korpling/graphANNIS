@@ -7,6 +7,7 @@
 #include "../edgedb.h"
 #include "../db.h"
 #include "../comparefunctions.h"
+#include "../edgeannotationstorage.h"
 
 #include <stack>
 #include <list>
@@ -60,7 +61,7 @@ private:
   Component component;
 
   stx::btree_set<Edge> edges;
-  stx::btree_multimap<Edge, Annotation> edgeAnnotations;
+  EdgeAnnotationStorage edgeAnnos;
 
 };
 
