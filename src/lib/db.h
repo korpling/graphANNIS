@@ -173,6 +173,8 @@ private:
                        const std::string& name);
   EdgeDB *createEdgeDBForComponent(ComponentType ctype, const std::string& layer,
                        const std::string& name);
+
+  std::string getImplNameForPath(std::string directory);
 };
 
 } // end namespace annis

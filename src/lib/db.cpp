@@ -62,10 +62,14 @@ bool DB::load(string dirPath)
       {
         const boost::filesystem::path layerPath = *itLayers;
 
+        std::string implName = getImplNameForPath(layerPath.string());
+
         // try to load the component with the empty name
-        EdgeDB* edbEmptyName = createEdgeDBForComponent((ComponentType) componentType,
-                                               layerPath.filename().string(), "");
+        Component emptyNameComponent = Init::initComponent((ComponentType) componentType,
+            layerPath.filename().string(), "");
+        EdgeDB* edbEmptyName = registry.createEdgeDB(implName, strings, emptyNameComponent);
         edbEmptyName->load(layerPath.string());
+        edgeDatabases.insert(std::pair<Component,EdgeDB*>(emptyNameComponent,edbEmptyName));
 
         // also load all named components
         boost::filesystem::directory_iterator itNamedComponents(layerPath);
@@ -75,10 +79,13 @@ bool DB::load(string dirPath)
           if(boost::filesystem::is_directory(namedComponentPath))
           {
             // try to load the named component
-            EdgeDB* edbNamed = createEdgeDBForComponent((ComponentType) componentType,
-                                                   layerPath.filename().string(),
-                                                   namedComponentPath.filename().string());
+            implName = getImplNameForPath(namedComponentPath.string());
+            Component namedComponent = Init::initComponent((ComponentType) componentType,
+                                                           layerPath.filename().string(),
+                                                           namedComponentPath.filename().string());
+            EdgeDB* edbNamed = registry.createEdgeDB(implName, strings, namedComponent);
             edbNamed->load(namedComponentPath.string());
+            edgeDatabases.insert(std::pair<Component,EdgeDB*>(namedComponent,edbNamed));
           }
           itNamedComponents++;
         } // end for each file/directory in layer directory
@@ -608,6 +615,18 @@ EdgeDB *DB::createEdgeDBForComponent(ComponentType ctype, const string &layer, c
   {
     return itDB->second;
   }
+}
+
+string DB::getImplNameForPath(string directory)
+{
+  std::string result = registry.fallback;
+  std::ifstream in(directory + "/implementation.cfg");
+  if(in.is_open())
+  {
+    in >> result;
+  }
+  in.close();
+  return result;
 }
 
 bool DB::hasNode(nodeid_t id)
