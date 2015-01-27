@@ -159,15 +159,41 @@ bool LinearEdgeDB::save(string dirPath)
 
 std::vector<nodeid_t> LinearEdgeDB::getOutgoingEdges(nodeid_t node) const
 {
-  // TODO
   std::vector<nodeid_t> result;
+  auto it = node2pos.find(node);
+  if(it != node2pos.end())
+  {
+    auto pos = it->second;
+    auto chainIt = nodeChains.find(pos.root);
+    if(chainIt != nodeChains.end())
+    {
+      const std::vector<nodeid_t>& chain = chainIt->second;
+      if(pos.pos < (chain.size()-1))
+      {
+        result.push_back(chain[pos.pos+1]);
+      }
+    }
+  }
   return result;
 }
 
 std::vector<nodeid_t> LinearEdgeDB::getIncomingEdges(nodeid_t node) const
 {
-  // TODO
   std::vector<nodeid_t> result;
+  auto it = node2pos.find(node);
+  if(it != node2pos.end())
+  {
+    auto pos = it->second;
+    auto chainIt = nodeChains.find(pos.root);
+    if(chainIt != nodeChains.end())
+    {
+      const std::vector<nodeid_t>& chain = chainIt->second;
+      if(pos.pos - 1 > 0 && !chain.empty())
+      {
+        result.push_back(chain[pos.pos-1]);
+      }
+    }
+  }
   return result;
 }
 
