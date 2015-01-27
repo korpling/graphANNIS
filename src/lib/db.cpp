@@ -175,8 +175,7 @@ bool DB::loadRelANNIS(string dirPath)
     if(line[1] != "NULL")
     {
       ComponentType ctype = componentTypeFromShortName(line[1]);
-      EdgeDB* edb = new FallbackEdgeDB(strings,
-                                       Init::initComponent(ctype, line[2], line[3]));
+      EdgeDB* edb = createWritableEdgeDB(ctype, line[2], line[3]);
       componentToEdgeDB[componentID] = edb;
     }
   }
@@ -644,19 +643,20 @@ void DB::convertToOptimized(Component c)
 
     std::string currentImpl = registry.getName(oldStorage);
     std::string optimizedImpl = registry.getOptimizedImpl(c);
+    ReadableGraphStorage* newStorage = registry.createEdgeDB(strings, c);
     if(currentImpl != optimizedImpl)
     {
-      ReadableGraphStorage* newStorage = registry.createEdgeDB(strings, c);
-      newStorage->copy(*this, *oldStorage);
-      edgeDatabases.insert(std::pair<Component, ReadableGraphStorage*>(c, newStorage));
-      delete oldStorage;
 
-      // perform index calculations
-      EdgeDB* asEdgeDB = dynamic_cast<EdgeDB*>(newStorage);
-      if(asEdgeDB != nullptr)
-      {
-        asEdgeDB->calculateIndex();
-      }
+      newStorage->copy(*this, *oldStorage);
+      edgeDatabases[c] = newStorage;
+      delete oldStorage;
+    }
+
+    // perform index calculations
+    EdgeDB* asEdgeDB = dynamic_cast<EdgeDB*>(newStorage);
+    if(asEdgeDB != nullptr)
+    {
+      asEdgeDB->calculateIndex();
     }
   }
 }
