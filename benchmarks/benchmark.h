@@ -4,6 +4,7 @@
 #include <celero/Celero.h>
 
 #include <boost/format.hpp>
+#include <memory>
 
 #include <humblelogging/api.h>
 
@@ -22,6 +23,8 @@ HUMBLE_LOGGER(logger, "default");
 
 using namespace annis;
 
+#define DBGETTER DB& getDB() {static DB db = initDB(); return db;}
+
 template<bool optimized, char const* corpusName>
 class CorpusFixture : public ::celero::TestFixture
 {
@@ -29,12 +32,10 @@ public:
   CorpusFixture()
     : corpus(corpusName)
   {
-
   }
 
   virtual void setUp(int64_t experimentValue)
   {
-
     counter = 0;
   }
 
@@ -47,13 +48,14 @@ public:
   {
     overrideImpl.insert(
           std::pair<Component, std::string>(
-    {ctype, layer, name}, implementation)
-          );
+           {ctype, layer, name}, implementation)
+    );
   }
 
   DB initDB()
   {
     DB result(optimized);
+
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
     std::string dataDir("data");
     if(testDataEnv != NULL)
@@ -76,8 +78,6 @@ public:
       // check if we want to override some implementations
       for(auto it=overrideImpl.begin(); it != overrideImpl.end(); it++)
       {
-
-        std::cerr << "OVERRIDE called" << std::endl;
         result.convertComponent(it->first, it->second);
       }
     }
@@ -85,16 +85,13 @@ public:
     return result;
   }
 
-  DB& getDB()
-  {
-    static DB db = initDB();
-    return db;
-  }
-
   virtual ~CorpusFixture() {}
 
 public:
   unsigned int counter;
+
+protected:
+
 
 private:
   const std::string corpus;

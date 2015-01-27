@@ -5,7 +5,7 @@ char ridgesCorpus[] = "ridges";
 class RidgesFixture : public CorpusFixture<true, ridgesCorpus>
 {
 public:
-
+  DBGETTER
   virtual ~RidgesFixture() {}
 };
 
@@ -20,12 +20,16 @@ public:
     addOverride(ComponentType::COVERAGE, "default_ns", "", "prepostorder");
   }
 
+  DBGETTER
+
   virtual ~RidgesPrePostFixture() {}
 };
 
 class RidgesFallbackFixture : public CorpusFixture<false, ridgesCorpus>
 {
 public:
+  DBGETTER
+
   virtual ~RidgesFallbackFixture() {}
 };
 

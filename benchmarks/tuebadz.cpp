@@ -5,11 +5,21 @@ char tuebaCorpus[] = "tuebadz6";
 class TuebaFixture : public CorpusFixture<true, tuebaCorpus>
 {
 public:
+  DBGETTER
+
   virtual ~TuebaFixture() {}
 };
 class TuebaFallbackFixture : public CorpusFixture<false, tuebaCorpus>
 {
 public:
+
+
+  DB& getDB()
+  {
+    static DB dbHolder = initDB();
+    return dbHolder;
+  }
+
   virtual ~TuebaFallbackFixture() {}
 };
 
