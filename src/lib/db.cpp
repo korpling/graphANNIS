@@ -643,10 +643,10 @@ void DB::convertToOptimized(Component c)
 
     std::string currentImpl = registry.getName(oldStorage);
     std::string optimizedImpl = registry.getOptimizedImpl(c);
-    ReadableGraphStorage* newStorage = registry.createEdgeDB(strings, c);
+    ReadableGraphStorage* newStorage = oldStorage;
     if(currentImpl != optimizedImpl)
     {
-
+      newStorage = registry.createEdgeDB(strings, c);
       newStorage->copy(*this, *oldStorage);
       edgeDatabases[c] = newStorage;
       delete oldStorage;

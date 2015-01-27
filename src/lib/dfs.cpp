@@ -90,7 +90,7 @@ void DFS::reset()
 
 
 CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
-  : DFS(edb, startNode, minDistance, maxDistance)
+  : DFS(edb, startNode, minDistance, maxDistance), lastDistance(0)
 {
 
 }
