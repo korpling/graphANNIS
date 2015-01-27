@@ -15,9 +15,11 @@ public:
 
   RidgesPrePostFixture()
   {
-    Component test = {ComponentType::COVERAGE, annis_ns, ""};
-    addOverride(ComponentType::COVERAGE, annis_ns, "", "prepostorder");
-    addOverride(ComponentType::COVERAGE, "default_ns", "", "prepostorder");
+//    addOverride(ComponentType::COVERAGE, annis_ns, "", "prepostorder");
+//    addOverride(ComponentType::COVERAGE, "default_ns", "", "prepostorder");
+//    addOverride(ComponentType::ORDERING, annis_ns, "", "prepostorder");
+    addOverride(ComponentType::LEFT_TOKEN, annis_ns, "", "prepostorder");
+    addOverride(ComponentType::RIGHT_TOKEN, annis_ns, "", "prepostorder");
   }
 
   DBGETTER
@@ -35,7 +37,7 @@ public:
 
 
 // pos="NN" & norm="Blumen" & #1 _i_ #2
-BASELINE_F(Ridges_PosNNIncludesNormBlumen, Fallback, RidgesFallbackFixture, 5, 1)
+BASELINE_F(Ridges_PosNNIncludesNormBlumen, Fallback, RidgesFallbackFixture, 5, 5)
 {
 
   Query q(getDB());
@@ -51,7 +53,7 @@ BASELINE_F(Ridges_PosNNIncludesNormBlumen, Fallback, RidgesFallbackFixture, 5, 1
   }
   assert(counter == 152u);
 }
-BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, Optimized, RidgesFixture, 5, 1)
+BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, Optimized, RidgesFixture, 5, 5)
 {
 
   Query q(getDB());
@@ -69,7 +71,7 @@ BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, Optimized, RidgesFixture, 5, 1)
 }
 
 
-BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, PrePost, RidgesPrePostFixture, 5, 1)
+BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, PrePost, RidgesPrePostFixture, 5, 5)
 {
 
   Query q(getDB());

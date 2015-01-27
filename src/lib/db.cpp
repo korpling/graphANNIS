@@ -650,6 +650,9 @@ void DB::convertComponent(Component c, std::string optimizedImpl)
     ReadableGraphStorage* newStorage = oldStorage;
     if(currentImpl != optimizedImpl)
     {
+
+//      std::cerr << "converting component " << ComponentTypeHelper::toString(c.type)
+//                << " " << c.layer << ":" << c.name << " from " << currentImpl << " to " << optimizedImpl << std::endl;
       newStorage = registry.createEdgeDB(optimizedImpl, strings, c);
       newStorage->copy(*this, *oldStorage);
       edgeDatabases[c] = newStorage;
