@@ -26,7 +26,8 @@ bool Inclusion::filter(const Match &lhs, const Match &rhs)
   nodeid_t rhsRightToken = tokHelper.rightTokenForNode(rhs.node);
 
   if(edbOrder->isConnected(Init::initEdge(lhsLeftToken, rhsLeftToken), 0, spanLength)
-     && edbOrder->isConnected(Init::initEdge(lhsLeftToken, rhsRightToken)), 0, spanLength)
+     && edbOrder->isConnected(Init::initEdge(lhsLeftToken, rhsRightToken), 0, spanLength)
+    )
   {
     return true;
   }
