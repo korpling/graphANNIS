@@ -179,7 +179,6 @@ void PrePostOrderStorage::exitNode(uint32_t& currentOrder, NStack &nodeStack)
 
 bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
-
   const auto itSourceBegin = node2order.lower_bound(edge.source);
   const auto itSourceEnd = node2order.upper_bound(edge.source);
 
@@ -205,6 +204,11 @@ bool PrePostOrderStorage::isConnected(const Edge &edge, unsigned int minDistance
 
 int PrePostOrderStorage::distance(const Edge &edge) const
 {
+  if(edge.source == edge.target)
+  {
+    return 0;
+  }
+
   const auto itSourceBegin = node2order.lower_bound(edge.source);
   const auto itSourceEnd = node2order.upper_bound(edge.source);
 
@@ -321,7 +325,7 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
       int diffLevel = currentLevel - startLevel;
 
       // check post order and level as well
-      if(currentPost < maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance
+      if(currentPost <= maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance
          && visited.find(currentNode->second) == visited.end())
       {
         // success
