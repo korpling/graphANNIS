@@ -13,31 +13,6 @@ namespace annis
 {
 
 /** A join that takes the left argument as a seed, finds all connected nodes (matching the distance) and checks the condition for each node. */
-class AnyNodeSeedJoin : public BinaryIt
-{
-public:
-  AnyNodeSeedJoin(const DB& db, std::shared_ptr<Operator> op,
-           std::shared_ptr<AnnoIt> lhs);
-  virtual ~AnyNodeSeedJoin();
-
-  virtual BinaryMatch next();
-  virtual void reset();
-private:
-  const DB& db;
-  std::shared_ptr<Operator> op;
-
-  std::shared_ptr<AnnoIt> left;
-  unsigned int minDistance;
-  unsigned int maxDistance;
-
-  std::unique_ptr<AnnoIt> matchesByOperator;
-  BinaryMatch currentMatch;
-  bool currentMatchValid;
-
-  bool nextLeftMatch();
-};
-
-/** A join that takes the left argument as a seed, finds all connected nodes (matching the distance) and checks the condition for each node. */
 class AnnoKeySeedJoin : public BinaryIt
 {
 public:
