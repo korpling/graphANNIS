@@ -23,6 +23,7 @@ namespace annis
 class DB
 {
   friend class ExactAnnoSearch;
+  friend class ExactAnnoKeySearch;
   friend class RegexAnnoSearch;
 
   typedef std::map<Component, ReadableGraphStorage*>::const_iterator EdgeDBIt;

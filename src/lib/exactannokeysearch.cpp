@@ -1,19 +1,20 @@
-#include "exactannosearch.h"
+#include "exactannokeysearch.h"
 
 #include "db.h"
 
 using namespace annis;
 using namespace std;
 
-ExactAnnoSearch::ExactAnnoSearch(const DB &db)
-  : db(db), currentMatchValid(false), validAnnotationInitialized(false)
+ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
+  : db(db), currentMatchValid(false),
+    validAnnotationKeysInitialized(false)
 {
   itBegin = db.inverseNodeAnnotations.begin();
   itEnd = db.inverseNodeAnnotations.end();
 }
 
-ExactAnnoSearch::ExactAnnoSearch(const DB& db, const string& annoName)
-  : db(db), validAnnotationInitialized(false)
+ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
+  : db(db)
 {
   std::pair<bool, uint32_t> searchResult = db.strings.findID(annoName);
 
@@ -41,8 +42,8 @@ ExactAnnoSearch::ExactAnnoSearch(const DB& db, const string& annoName)
   }
 }
 
-ExactAnnoSearch::ExactAnnoSearch(const DB &db, const string &annoNamspace, const string &annoName)
-  : db(db),validAnnotationInitialized(false)
+ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace, const string &annoName)
+  : db(db), validAnnotationKeysInitialized(false)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> namespaceID = db.strings.findID(annoNamspace);
@@ -71,33 +72,7 @@ ExactAnnoSearch::ExactAnnoSearch(const DB &db, const string &annoNamspace, const
   }
 }
 
-ExactAnnoSearch::ExactAnnoSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
-  :db(db),validAnnotationInitialized(false)
-{
-  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
-  std::pair<bool, uint32_t> namspaceID = db.strings.findID(annoNamspace);
-  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
-
-  if(nameID.first && namspaceID.first && valueID.first)
-  {
-    Annotation key;
-    key.name = nameID.second;
-    key.ns = namspaceID.second;
-    key.val = valueID.second;
-
-    itBegin = db.inverseNodeAnnotations.lower_bound(key);
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.upper_bound(key);
-  }
-  else
-  {
-    itBegin = db.inverseNodeAnnotations.end();
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.end();
-  }
-}
-
-Match ExactAnnoSearch::next()
+Match ExactAnnoKeySearch::next()
 {
   Match result;
   currentMatchValid = false;
@@ -112,22 +87,22 @@ Match ExactAnnoSearch::next()
   return result;
 }
 
-void ExactAnnoSearch::reset()
+void ExactAnnoKeySearch::reset()
 {
   it = itBegin;
 }
 
-void ExactAnnoSearch::initializeValidAnnotations()
+void ExactAnnoKeySearch::initializeValidAnnotationKeys()
 {
   for(ItType annoIt = itBegin; annoIt != itEnd; annoIt++)
   {
-    validAnnotations.insert(annoIt->first);
+    const Annotation& anno = annoIt->first;
+    validAnnotationKeys.insert({anno.name, anno.ns});
   }
-  validAnnotationInitialized = true;
+  validAnnotationKeysInitialized = true;
 }
 
-
-ExactAnnoSearch::~ExactAnnoSearch()
+ExactAnnoKeySearch::~ExactAnnoKeySearch()
 {
 
 }

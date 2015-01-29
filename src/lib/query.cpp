@@ -107,8 +107,8 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
     }
     else
     {
-      j = std::make_shared<SeedJoin>(db, e.op, source[e.idxLeft],
-          nodes[e.idxRight]->getValidAnnotations(), emptyAnnoKeySet);
+      j = std::make_shared<MaterializedSeedJoin>(db, e.op, source[e.idxLeft],
+          nodes[e.idxRight]->getValidAnnotations());
     }
   }
 

@@ -45,15 +45,6 @@ public:
     return validAnnotations;
   }
 
-  const std::set<AnnotationKey>& getValidAnnotationKeys()
-  {
-    if(!validAnnotationKeysInitialized)
-    {
-      initializeValidAnnotationKeys();
-    }
-    return validAnnotationKeys;
-  }
-
 private:
   const DB& db;
 
@@ -64,14 +55,10 @@ private:
   bool validAnnotationInitialized;
   std::unordered_set<Annotation> validAnnotations;
 
-  bool validAnnotationKeysInitialized;
-  std::set<AnnotationKey> validAnnotationKeys;
-
   bool currentMatchValid;
   Match currentMatch;
 
   void initializeValidAnnotations();
-  void initializeValidAnnotationKeys();
 
 };
 
