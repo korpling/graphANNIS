@@ -52,32 +52,30 @@ TEST_F(LoadTest, NodeAnnotations) {
   std::copy(annosAsList.begin(), annosAsList.end(), annos.begin());
   ASSERT_EQ(6u, annos.size());
 
+  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[0].ns).c_str());
+  EXPECT_STREQ("tok", db.strings.str(annos[0].name).c_str());
+  EXPECT_STREQ("so", db.strings.str(annos[0].val).c_str());
 
-  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[5].ns).c_str());
-  EXPECT_STREQ("node_name", db.strings.str(annos[5].name).c_str());
-  EXPECT_STREQ("tok_13", db.strings.str(annos[5].val).c_str());
+  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[1].ns).c_str());
+  EXPECT_STREQ("node_name", db.strings.str(annos[1].name).c_str());
+  EXPECT_STREQ("tok_13", db.strings.str(annos[1].val).c_str());
 
-  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[4].ns).c_str());
-  EXPECT_STREQ("document", db.strings.str(annos[4].name).c_str());
-  EXPECT_STREQ("4282", db.strings.str(annos[4].val).c_str());
+  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[2].ns).c_str());
+  EXPECT_STREQ("document", db.strings.str(annos[2].name).c_str());
+  EXPECT_STREQ("4282", db.strings.str(annos[2].val).c_str());
 
-
-  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[3].ns).c_str());
-  EXPECT_STREQ("tok", db.strings.str(annos[3].name).c_str());
+  EXPECT_STREQ("tiger", db.strings.str(annos[3].ns).c_str());
+  EXPECT_STREQ("lemma", db.strings.str(annos[3].name).c_str());
   EXPECT_STREQ("so", db.strings.str(annos[3].val).c_str());
 
-  EXPECT_STREQ("tiger", db.strings.str(annos[2].ns).c_str());
-  EXPECT_STREQ("lemma", db.strings.str(annos[2].name).c_str());
-  EXPECT_STREQ("so", db.strings.str(annos[2].val).c_str());
-
-  EXPECT_STREQ("tiger", db.strings.str(annos[1].ns).c_str());
-  EXPECT_STREQ("morph", db.strings.str(annos[1].name).c_str());
-  EXPECT_STREQ("--", db.strings.str(annos[1].val).c_str());
+  EXPECT_STREQ("tiger", db.strings.str(annos[4].ns).c_str());
+  EXPECT_STREQ("morph", db.strings.str(annos[4].name).c_str());
+  EXPECT_STREQ("--", db.strings.str(annos[4].val).c_str());
 
 
-  EXPECT_STREQ("tiger", db.strings.str(annos[0].ns).c_str());
-  EXPECT_STREQ("pos", db.strings.str(annos[0].name).c_str());
-  EXPECT_STREQ("ADV", db.strings.str(annos[0].val).c_str());
+  EXPECT_STREQ("tiger", db.strings.str(annos[5].ns).c_str());
+  EXPECT_STREQ("pos", db.strings.str(annos[5].name).c_str());
+  EXPECT_STREQ("ADV", db.strings.str(annos[5].val).c_str());
 
 }
 

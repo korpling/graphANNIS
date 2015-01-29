@@ -36,14 +36,22 @@ public:
   bool hasNode(nodeid_t id);
   inline std::list<Annotation> getNodeAnnotationsByID(const nodeid_t &id) const
   {
-    typedef stx::btree_multimap<nodeid_t, Annotation>::const_iterator AnnoIt;
+    typedef stx::btree_map<NodeAnnotationKey, uint32_t>::const_iterator AnnoIt;
+
+    NodeAnnotationKey lowerAnno = {id, 0, 0};
+    NodeAnnotationKey upperAnno = {id, uintmax, uintmax};
 
     std::list<Annotation> result;
-    std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
-    for(AnnoIt itAnnos = itRange.first;
-        itAnnos != itRange.second; itAnnos++)
+    std::pair<AnnoIt,AnnoIt> itRange = {
+      nodeAnnotations.lower_bound(lowerAnno),
+      nodeAnnotations.upper_bound(upperAnno)
+    };
+
+    for(AnnoIt it = itRange.first;
+        it != itRange.second; it++)
     {
-      result.push_back(itAnnos->second);
+      const NodeAnnotationKey& key = it->first;
+      result.push_back({key.anno_name, key.anno_ns, it->second});
     }
 
     return result;
@@ -83,21 +91,19 @@ public:
 
   inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
   {
-    using AnnoIt = stx::btree_multimap<nodeid_t, Annotation>::const_iterator;
+    using AnnoIt = stx::btree_map<NodeAnnotationKey, uint32_t>::const_iterator;
 
     std::pair<bool, Annotation> result;
     result.first = false;
 
-    std::pair<AnnoIt,AnnoIt> itRange = nodeAnnotations.equal_range(id);
-    for(AnnoIt itAnnos = itRange.first;
-        itAnnos != itRange.second; itAnnos++)
+    NodeAnnotationKey key = {id, nameID, nsID};
+
+    AnnoIt it = nodeAnnotations.find(key);
+
+    if(it != nodeAnnotations.end())
     {
-      Annotation anno = itAnnos->second;
-      if(anno.ns == nsID && anno.name == nameID)
-      {
-        result.first = true;
-        result.second = anno;
-      }
+      result.first = true;
+      result.second =  {nameID, nsID, it->second};
     }
     return result;
   }
@@ -141,7 +147,10 @@ public:
   StringStorage strings;
 
 private:
-  stx::btree_multimap<nodeid_t, Annotation> nodeAnnotations;
+  /**
+   * @brief Maps a fully qualified annotation name for a node to an annotation value
+   */
+  stx::btree_map<NodeAnnotationKey, uint32_t> nodeAnnotations;
   stx::btree_multimap<Annotation, nodeid_t> inverseNodeAnnotations;
 
   std::map<Component, ReadableGraphStorage*> edgeDatabases;
@@ -165,7 +174,7 @@ private:
 
   void addNodeAnnotation(nodeid_t nodeID, Annotation& anno)
   {
-    nodeAnnotations.insert2(nodeID, anno);
+    nodeAnnotations.insert2({nodeID, anno.name, anno.ns}, anno.val);
     inverseNodeAnnotations.insert2(anno, nodeID);
   }
 

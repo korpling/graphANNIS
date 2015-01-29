@@ -84,10 +84,11 @@ namespace annis
     std::uint32_t val;
   };
 
-  struct NodeAnnotation
+  struct NodeAnnotationKey
   {
     nodeid_t node;
-    Annotation anno;
+    std::uint32_t anno_name;
+    std::uint32_t anno_ns;
   };
 
   struct TextProperty
@@ -227,21 +228,18 @@ struct less<annis::Annotation>
 };
 
 template<>
-struct less<annis::NodeAnnotation>
+struct less<annis::NodeAnnotationKey>
 {
-  bool operator()(const annis::NodeAnnotation& a,  const annis::NodeAnnotation& b) const
+  bool operator()(const annis::NodeAnnotationKey& a,  const annis::NodeAnnotationKey& b) const
   {
     // compare by node ID
     ANNIS_STRUCT_COMPARE(a.node, b.node);
 
     // compare by name (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.anno.name, b.anno.name);
+    ANNIS_STRUCT_COMPARE(a.anno_name, b.anno_name);
 
     // if equal, compare by namespace (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.anno.ns, b.anno.ns);
-
-    // if still equal compare by value (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.anno.val, b.anno.val);
+    ANNIS_STRUCT_COMPARE(a.anno_ns, b.anno_ns);
 
     // they are equal
     return false;

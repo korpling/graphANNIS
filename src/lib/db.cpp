@@ -706,19 +706,6 @@ ComponentType DB::componentTypeFromShortName(string shortType)
   return ctype;
 }
 
-bool DB::hasNode(nodeid_t id)
-{
-  stx::btree_multimap<nodeid_t, Annotation>::const_iterator itNode = nodeAnnotations.find(id);
-  if(itNode == nodeAnnotations.end())
-  {
-    return false;
-  }
-  else
-  {
-    return true;
-  }
-}
-
 string DB::info()
 {
   stringstream ss;
