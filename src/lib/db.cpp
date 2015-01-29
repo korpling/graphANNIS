@@ -606,7 +606,7 @@ ReadableGraphStorage *DB::createEdgeDBForComponent(ComponentType ctype, const st
 
 EdgeDB* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const string &name)
 {
-  Component c = {ctype, layer, name};
+  Component c = {ctype, layer, name == "NULL" ? "" : name};
 
   // check if there is already an edge DB for this component
   map<Component,ReadableGraphStorage*>::const_iterator itDB =
