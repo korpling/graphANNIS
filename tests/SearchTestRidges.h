@@ -58,7 +58,7 @@ public:
 };
 
 TEST_F(SearchTestRidges, DiplNameSearch) {
-  ExactAnnoSearch search(db, "dipl");
+  ExactAnnoKeySearch search(db, "dipl");
   unsigned int counter=0;
   while(search.hasNext() && counter < MAX_COUNT)
   {
@@ -116,8 +116,8 @@ TEST_F(SearchTestRidges, Benchmark2) {
 
   Query q(db);
 
-  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis::annis_ns, annis::annis_tok));
-  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis::annis_ns,annis::annis_tok));
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns, annis::annis_tok));
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns,annis::annis_tok));
 
   q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
   while(q.hasNext() && counter < MAX_COUNT)
@@ -135,7 +135,7 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
 
   unsigned int counter=0;
 
-  ExactAnnoSearch n1(db, annis::annis_ns, "tok");
+  ExactAnnoKeySearch n1(db, annis::annis_ns, "tok");
 
   Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
 
@@ -184,7 +184,7 @@ TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "PTKANT"));
-  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis::annis_ns,annis::annis_node_name));
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns,annis::annis_node_name));
 
   q.addOperator(std::make_shared<Precedence>(db, 1, 1), 0, 1);
   while(q.hasNext() && counter < 100u)

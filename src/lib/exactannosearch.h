@@ -12,18 +12,12 @@ class ExactAnnoSearch : public AnnotationSearch
   using ItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
 
 public:
-  /**
-   * @brief Find all annotations.
-   * @param db
-   */
-  ExactAnnoSearch(const DB& db);
+
   /**
    * @brief Find annotations by name
    * @param db
    * @param annoName
    */
-  ExactAnnoSearch(const DB& db, const std::string& annoName);
-  ExactAnnoSearch(const DB& db, const std::string& annoNamspace, const std::string& annoName);
   ExactAnnoSearch(const DB &db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
 
   virtual ~ExactAnnoSearch();

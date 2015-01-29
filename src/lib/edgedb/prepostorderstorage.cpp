@@ -2,6 +2,7 @@
 
 #include "../dfs.h"
 #include "../exactannosearch.h"
+#include "../exactannokeysearch.h"
 
 #include <set>
 #include <stack>
@@ -68,7 +69,7 @@ void PrePostOrderStorage::copy(const DB& db, const ReadableGraphStorage& orig)
 
   // find all roots of the component
   std::set<nodeid_t> roots;
-  ExactAnnoSearch nodes(db, annis_ns, annis_node_name);
+  ExactAnnoKeySearch nodes(db, annis_ns, annis_node_name);
   // first add all nodes that are a source of an edge as possible roots
   while(nodes.hasNext())
   {

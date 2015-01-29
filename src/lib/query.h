@@ -34,6 +34,7 @@ public:
    * @return new node number
    */
   size_t addNode(std::shared_ptr<AnnotationSearch> n);
+  size_t addNode(std::shared_ptr<AnnotationKeySearch> n);
 
   /**
    * @brief add an operator to the execution queue

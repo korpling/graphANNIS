@@ -22,6 +22,15 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n)
   return idx;
 }
 
+size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n)
+{
+  initialized = false;
+
+  size_t idx = nodes.size();
+  nodes.push_back(n);
+  return idx;
+}
+
 void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool useNestedLoop)
 {
   initialized = false;
@@ -122,6 +131,11 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
       {
         j = std::make_shared<MaterializedSeedJoin>(db, e.op, source[e.idxLeft],
             annoSearch->getValidAnnotations());
+      }
+      else
+      {
+        // fallback to nested loop
+        j = std::make_shared<NestedLoopJoin>(e.op, source[e.idxLeft], source[e.idxRight]);
       }
     }
   }

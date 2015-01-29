@@ -1,6 +1,6 @@
 #include "linearedgedb.h"
 #include "../dfs.h"
-#include "../exactannosearch.h"
+#include "../exactannokeysearch.h"
 
 #include <fstream>
 #include <set>
@@ -37,7 +37,7 @@ void LinearEdgeDB::copy(const DB& db, const ReadableGraphStorage& orig)
   set<nodeid_t> roots;
 
   // add all nodes to root list
-  ExactAnnoSearch nodes(db, annis_ns, annis_node_name);
+  ExactAnnoKeySearch nodes(db, annis_ns, annis_node_name);
 
   while(nodes.hasNext())
   {

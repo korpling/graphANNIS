@@ -2,7 +2,7 @@
 #define REGEXANNOSEARCH_H
 
 #include "annotationsearch.h"
-#include "exactannosearch.h"
+#include "exactannokeysearch.h"
 
 #include <re2/re2.h>
 
@@ -52,7 +52,7 @@ private:
     std::string valRegex;
     RE2 compiledValRegex;
     Annotation annoTemplate;
-    ExactAnnoSearch innerSearch;
+    ExactAnnoKeySearch innerSearch;
 
 
     Match currentMatch;

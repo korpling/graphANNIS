@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "exactannosearch.h"
+#include "exactannokeysearch.h"
 #include <cstdlib>
 #include <boost/format.hpp>
 #include "query.h"
@@ -258,7 +259,7 @@ TEST_F(LoadTest, RangedDom) {
 
   Query q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "cat", "AP"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 3, 5), n1, n2);
 

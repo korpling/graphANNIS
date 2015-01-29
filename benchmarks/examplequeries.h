@@ -4,6 +4,7 @@
 #include <db.h>
 #include <query.h>
 #include <exactannosearch.h>
+#include <exactannokeysearch.h>
 #include <regexannosearch.h>
 #include <operators/precedence.h>
 #include <operators/inclusion.h>
@@ -64,8 +65,8 @@ public:
   {
 
     Query q(db);
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, annis::annis_ns,annis::annis_tok));
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, annis::annis_ns,annis::annis_tok));
+    q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns,annis::annis_tok));
+    q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns,annis::annis_tok));
 
 
     q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
@@ -76,7 +77,7 @@ public:
   static Query Cat(const DB& db)
   {
     Query q(db);
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, "cat"));
+    q.addNode(std::make_shared<ExactAnnoKeySearch>(db, "cat"));
     return q;
   }
 

@@ -8,6 +8,7 @@
 #include "operators/precedence.h"
 #include "operators/dominance.h"
 #include "exactannosearch.h"
+#include "exactannokeysearch.h"
 #include "wrapper.h"
 
 #include <vector>
@@ -56,7 +57,7 @@ public:
 
 TEST_F(SearchTestTiger, CatSearch) {
 
-  ExactAnnoSearch search(db, "cat");
+  ExactAnnoKeySearch search(db, "cat");
   unsigned int counter=0;
   while(search.hasNext() && counter < MAX_COUNT)
   {

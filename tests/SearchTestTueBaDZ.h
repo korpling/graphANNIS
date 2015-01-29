@@ -63,12 +63,12 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 TEST_F(SearchTestTueBaDZ, Benchmark1) {
 
   Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
+  auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
   auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "merged", "pos", "PPER"));
-  auto n3 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
+  auto n3 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
   auto n4 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "mmax", "relation", "anaphoric"));
-  auto n5 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
-  auto n6 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
+  auto n5 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+  auto n6 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
   auto n7 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "mmax", "relation", "anaphoric"));
 
   Annotation funcOnAnno =

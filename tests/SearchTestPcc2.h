@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 #include "db.h"
 #include "exactannosearch.h"
+#include "exactannokeysearch.h"
 #include "regexannosearch.h"
 #include "operators/overlap.h"
 #include "operators/inclusion.h"
@@ -53,7 +54,7 @@ class SearchTestPcc2 : public ::testing::Test {
 };
 
 TEST_F(SearchTestPcc2, CatSearch) {
-  ExactAnnoSearch search(db, "cat");
+  ExactAnnoKeySearch search(db, "cat");
   unsigned int counter=0;
   while(search.hasNext())
   {
@@ -141,7 +142,7 @@ TEST_F(SearchTestPcc2, DepthFirst) {
 
   Query q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_tok, "Tiefe"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_tok));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
   q.addOperator(std::make_shared<Precedence>(db, 2, 10), n1, n2);
 
@@ -159,7 +160,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 
   Query q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "exmaralda", "Inf-Stat", "new"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "exmaralda", "PP"));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, "exmaralda", "PP"));
   q.addOperator(std::make_shared<Overlap>(db), n1, n2);
 
   unsigned int counter=0;
@@ -375,7 +376,7 @@ TEST_F(SearchTestPcc2, RangedDominance) {
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "cat", "S"));
-  q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "cat"));
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, "tiger", "cat"));
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 2, 4), 0, 1);
 
@@ -397,9 +398,9 @@ TEST_F(SearchTestPcc2, MultiDominance) {
   unsigned int counter=0;
 
   Query q(db);
-  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns,
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns,
                                                    annis_node_name));
-  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns,
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns,
                                                    annis_node_name));
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 2, 4), 0, 1);
@@ -441,9 +442,9 @@ TEST_F(SearchTestPcc2, Profile) {
   unsigned int counter=0;
 
   Query q(db);
-  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns,
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns,
                                                    annis_node_name));
-  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns,
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns,
                                                    annis_node_name));
 
   q.addOperator(std::make_shared<Pointing>(db, "", "dep", Init::initAnnotation(db.strings.add("func"), db.strings.add("sbj"))), 0, 1);
