@@ -54,6 +54,19 @@ BinaryMatch SeedJoin::next()
         }
         return currentMatch;
       }
+      else if(right.size() == 1)
+      {
+        // directly get the one node annotation
+        const Annotation& rightAnno = *(right.begin());
+        std::pair<bool, Annotation> foundAnno =
+            db.getNodeAnnotation(currentMatch.rhs.node, rightAnno.ns, rightAnno.name);
+        if(foundAnno.first && foundAnno.second.val == rightAnno.val)
+        {
+          currentMatch.found = true;
+          currentMatch.rhs.anno = foundAnno.second;
+          return currentMatch;
+        }
+      }
       else
       {
         // check all annotations which of them matches
@@ -65,6 +78,7 @@ BinaryMatch SeedJoin::next()
             matchingRightAnnos.push_back(a);
           }
         }
+
         if(nextRightAnnotation())
         {
           return currentMatch;
