@@ -1,7 +1,7 @@
 #include "fallbackedgedb.h"
 
 #include "../dfs.h"
-#include "../annotationsearch.h"
+#include "../exactannosearch.h"
 
 #include <fstream>
 #include <limits>
@@ -18,7 +18,7 @@ void FallbackEdgeDB::copy(const DB &db, const ReadableGraphStorage &orig)
 {
   clear();
 
-  AnnotationNameSearch nodes(db, annis_ns, annis_node_name);
+  ExactAnnoSearch nodes(db, annis_ns, annis_node_name);
   while(nodes.hasNext())
   {
     nodeid_t source = nodes.next().node;

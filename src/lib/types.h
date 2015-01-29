@@ -77,6 +77,12 @@ namespace annis
     std::string name;
   };
 
+  struct AnnotationKey
+  {
+    std::uint32_t name;
+    std::uint32_t ns;
+  };
+
   struct Annotation
   {
     std::uint32_t name;
@@ -202,6 +208,22 @@ struct less<annis::Component>
 
     // if still equal compare by name
     ANNIS_STRUCT_COMPARE(a.name, b.name);
+
+    // they are equal
+    return false;
+  }
+};
+
+template<>
+struct less<annis::AnnotationKey>
+{
+  bool operator()(const annis::AnnotationKey& a,  const annis::AnnotationKey& b) const
+  {
+    // compare by name (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.name, b.name);
+
+    // if equal, compare by namespace (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.ns, b.ns);
 
     // they are equal
     return false;

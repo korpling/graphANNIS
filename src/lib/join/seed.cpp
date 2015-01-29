@@ -3,11 +3,12 @@
 
 using namespace annis;
 
-SeedJoin::SeedJoin(const DB &db, std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, const std::unordered_set<Annotation>& rightAnno)
+SeedJoin::SeedJoin(const DB &db, std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs,
+                   const std::unordered_set<Annotation>& rightAnno,
+                   const std::set<AnnotationKey> &rightAnnoKeys)
   : db(db), op(op), currentMatchValid(false), anyNodeShortcut(false),
-    left(lhs), right(rightAnno)
+    left(lhs), right(rightAnno), rightAnnoKeys(rightAnnoKeys)
 {
-  anyNodeShortcut = false;
   Annotation anyNodeAnno = Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID());
 
   if(right.size() == 1)
@@ -67,15 +68,44 @@ BinaryMatch SeedJoin::next()
           return currentMatch;
         }
       }
+      else if(rightAnnoKeys.size() == 1)
+      {
+        // only check the annotation key, not the value
+        const AnnotationKey& key = *(rightAnnoKeys.begin());
+        std::pair<bool, Annotation> foundAnno =
+            db.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
+        if(foundAnno.first)
+        {
+          currentMatch.found = true;
+          currentMatch.rhs.anno = foundAnno.second;
+          return currentMatch;
+        }
+      }
       else
       {
-        // check all annotations which of them matches
-        std::list<Annotation> annos = db.getNodeAnnotationsByID(currentMatch.rhs.node);
-        for(const auto& a : annos)
+        if(rightAnnoKeys.empty())
         {
-          if(right.find(a) != right.end())
+          // check all annotations which of them matches
+          std::list<Annotation> annos = db.getNodeAnnotationsByID(currentMatch.rhs.node);
+          for(const auto& a : annos)
           {
-            matchingRightAnnos.push_back(a);
+            if(right.find(a) != right.end())
+            {
+              matchingRightAnnos.push_back(a);
+            }
+          }
+        }
+        else
+        {
+          // use the annotation keys as filter
+          for(const auto& key : rightAnnoKeys)
+          {
+            std::pair<bool, Annotation> foundAnno =
+                db.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
+            if(foundAnno.first)
+            {
+              matchingRightAnnos.push_back(foundAnno.second);
+            }
           }
         }
 

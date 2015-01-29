@@ -2,6 +2,7 @@
 #define REGEXANNOSEARCH_H
 
 #include "annotationsearch.h"
+#include "exactannosearch.h"
 
 #include <re2/re2.h>
 
@@ -22,6 +23,11 @@ public:
     return validAnnotations;
   }
 
+  virtual const std::set<AnnotationKey>& getValidAnnotationKeys()
+  {
+    return validAnnotationKeys;
+  }
+
   virtual bool hasNext()
   {
     if(!currentMatchValid)
@@ -39,10 +45,14 @@ private:
     const DB& db;
     std::unordered_set<Annotation> validAnnotations;
     bool validAnnotationsInitialized;
+
+    // always empty
+    std::set<AnnotationKey> validAnnotationKeys;
+
     std::string valRegex;
     RE2 compiledValRegex;
     Annotation annoTemplate;
-    AnnotationNameSearch innerSearch;
+    ExactAnnoSearch innerSearch;
 
 
     Match currentMatch;

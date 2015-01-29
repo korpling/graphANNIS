@@ -17,7 +17,9 @@ class SeedJoin : public BinaryIt
 {
 public:
   SeedJoin(const DB& db, std::shared_ptr<Operator> op,
-           std::shared_ptr<AnnoIt> lhs, const std::unordered_set<Annotation> &rightAnno);
+           std::shared_ptr<AnnoIt> lhs,
+           const std::unordered_set<Annotation> &rightAnno,
+           const std::set<AnnotationKey> &rightAnnoKeys);
   virtual ~SeedJoin();
 
   virtual BinaryMatch next();
@@ -28,6 +30,7 @@ private:
 
   std::shared_ptr<AnnoIt> left;
   const std::unordered_set<Annotation>& right;
+  const std::set<AnnotationKey>& rightAnnoKeys;
   unsigned int minDistance;
   unsigned int maxDistance;
 

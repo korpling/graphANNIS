@@ -8,7 +8,7 @@
 #include "operators/inclusion.h"
 #include "operators/pointing.h"
 #include "operators/dominance.h"
-#include "annotationsearch.h"
+#include "exactannosearch.h"
 #include "query.h"
 
 #include <vector>
@@ -63,13 +63,13 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 TEST_F(SearchTestTueBaDZ, Benchmark1) {
 
   Query q(db);
-  auto n1 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n2 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "merged", "pos", "PPER"));
-  auto n3 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n4 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
-  auto n5 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n6 = q.addNode(std::make_shared<AnnotationNameSearch>(db, annis_ns, annis_node_name));
-  auto n7 = q.addNode(std::make_shared<AnnotationNameSearch>(db, "mmax", "relation", "anaphoric"));
+  auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "merged", "pos", "PPER"));
+  auto n3 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
+  auto n4 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "mmax", "relation", "anaphoric"));
+  auto n5 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
+  auto n6 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_node_name));
+  auto n7 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "mmax", "relation", "anaphoric"));
 
   Annotation funcOnAnno =
       Init::initAnnotation(db.strings.add("func"), db.strings.add("ON"));

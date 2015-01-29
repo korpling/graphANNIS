@@ -58,7 +58,9 @@ private:
   bool initialized;
 
   std::map<int, int> querynode2component;
+  std::set<AnnotationKey> emptyAnnoKeySet;
 
+private:
   void internalInit();
 
   void addJoin(OperatorEntry &e, bool filterOnly = false);

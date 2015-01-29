@@ -1,7 +1,7 @@
 #include "prepostorderstorage.h"
 
 #include "../dfs.h"
-#include "../annotationsearch.h"
+#include "../exactannosearch.h"
 
 #include <set>
 #include <stack>
@@ -68,7 +68,7 @@ void PrePostOrderStorage::copy(const DB& db, const ReadableGraphStorage& orig)
 
   // find all roots of the component
   std::set<nodeid_t> roots;
-  AnnotationNameSearch nodes(db, annis_ns, annis_node_name);
+  ExactAnnoSearch nodes(db, annis_ns, annis_node_name);
   // first add all nodes that are a source of an edge as possible roots
   while(nodes.hasNext())
   {

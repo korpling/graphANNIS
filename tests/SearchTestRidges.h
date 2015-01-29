@@ -58,7 +58,7 @@ public:
 };
 
 TEST_F(SearchTestRidges, DiplNameSearch) {
-  AnnotationNameSearch search(db, "dipl");
+  ExactAnnoSearch search(db, "dipl");
   unsigned int counter=0;
   while(search.hasNext() && counter < MAX_COUNT)
   {
@@ -72,7 +72,7 @@ TEST_F(SearchTestRidges, DiplNameSearch) {
 }
 
 TEST_F(SearchTestRidges, PosValueSearch) {
-  AnnotationNameSearch search(db, "default_ns", "pos", "NN");
+  ExactAnnoSearch search(db, "default_ns", "pos", "NN");
   unsigned int counter=0;
   while(search.hasNext() && counter < MAX_COUNT)
   {
@@ -93,8 +93,8 @@ TEST_F(SearchTestRidges, Benchmark1) {
   unsigned int counter=0;
 
   Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "ART"));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "ART"));
 
   q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
 
@@ -116,8 +116,8 @@ TEST_F(SearchTestRidges, Benchmark2) {
 
   Query q(db);
 
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns, annis::annis_tok));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_tok));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis::annis_ns, annis::annis_tok));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis::annis_ns,annis::annis_tok));
 
   q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
   while(q.hasNext() && counter < MAX_COUNT)
@@ -135,7 +135,7 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
 
   unsigned int counter=0;
 
-  AnnotationNameSearch n1(db, annis::annis_ns, "tok");
+  ExactAnnoSearch n1(db, annis::annis_ns, "tok");
 
   Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
 
@@ -183,8 +183,8 @@ TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
   unsigned int counter=0;
 
   Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "PTKANT"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, annis::annis_ns,annis::annis_node_name));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "PTKANT"));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, annis::annis_ns,annis::annis_node_name));
 
   q.addOperator(std::make_shared<Precedence>(db, 1, 1), 0, 1);
   while(q.hasNext() && counter < 100u)
@@ -205,8 +205,8 @@ TEST_F(SearchTestRidges, NestedOverlap) {
   unsigned int counter=0;
 
   Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "norm", "Blumen"));
 
   q.addOperator(std::make_shared<Overlap>(db), 0, 1, true);
 
@@ -228,8 +228,8 @@ TEST_F(SearchTestRidges, SeedOverlap) {
   unsigned int counter=0;
 
   Query q(db);
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "NN"));
+  q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "norm", "Blumen"));
 
   q.addOperator(std::make_shared<Overlap>(db), 0, 1, false);
 
@@ -250,8 +250,8 @@ TEST_F(SearchTestRidges, Inclusion) {
 
   unsigned int counter=0;
 
-  std::shared_ptr<AnnotationSearch> n1(std::make_shared<AnnotationNameSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnotationSearch> n2(std::make_shared<AnnotationNameSearch>(db, "default_ns", "norm", "Blumen"));
+  std::shared_ptr<AnnotationSearch> n1(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "NN"));
+  std::shared_ptr<AnnotationSearch> n2(std::make_shared<ExactAnnoSearch>(db, "default_ns", "norm", "Blumen"));
 
   annis::Query q(db);
   q.addNode(n1);
