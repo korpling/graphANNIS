@@ -60,7 +60,7 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 & #6 >* #7
 & #4 ->anaphoric #7
 */
-TEST_F(SearchTestTueBaDZ, Benchmark1) {
+TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
 
   Query q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
