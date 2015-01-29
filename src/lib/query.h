@@ -52,7 +52,7 @@ private:
   const DB& db;
 
   std::vector<std::shared_ptr<AnnoIt>> source;
-  std::vector<std::shared_ptr<AnnotationSearch>> nodes;
+  std::vector<std::shared_ptr<AnnoIt>> nodes;
   std::list<OperatorEntry> operators;
 
   bool initialized;

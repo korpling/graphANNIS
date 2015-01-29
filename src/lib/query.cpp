@@ -107,8 +107,22 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
     }
     else
     {
-      j = std::make_shared<MaterializedSeedJoin>(db, e.op, source[e.idxLeft],
-          nodes[e.idxRight]->getValidAnnotations());
+      std::shared_ptr<AnnoIt> rightIt = nodes[e.idxRight];
+      std::shared_ptr<AnnotationKeySearch> keySearch =
+          std::dynamic_pointer_cast<AnnotationKeySearch>(rightIt);
+      std::shared_ptr<AnnotationSearch> annoSearch =
+          std::dynamic_pointer_cast<AnnotationSearch>(rightIt);
+
+      if(keySearch)
+      {
+        j = std::make_shared<AnnoKeySeedJoin>(db, e.op, source[e.idxLeft],
+            keySearch->getValidAnnotationKeys());
+      }
+      else if(annoSearch)
+      {
+        j = std::make_shared<MaterializedSeedJoin>(db, e.op, source[e.idxLeft],
+            annoSearch->getValidAnnotations());
+      }
     }
   }
 
