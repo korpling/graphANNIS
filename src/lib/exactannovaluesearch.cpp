@@ -1,11 +1,11 @@
-#include "exactannosearch.h"
+#include "exactannovaluesearch.h"
 
 #include "db.h"
 
 using namespace annis;
 using namespace std;
 
-ExactAnnoSearch::ExactAnnoSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
+ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
   :db(db),validAnnotationInitialized(false)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
@@ -31,7 +31,7 @@ ExactAnnoSearch::ExactAnnoSearch(const DB &db, const string &annoNamspace, const
   }
 }
 
-Match ExactAnnoSearch::next()
+Match ExactAnnoValueSearch::next()
 {
   Match result;
   currentMatchValid = false;
@@ -46,12 +46,12 @@ Match ExactAnnoSearch::next()
   return result;
 }
 
-void ExactAnnoSearch::reset()
+void ExactAnnoValueSearch::reset()
 {
   it = itBegin;
 }
 
-void ExactAnnoSearch::initializeValidAnnotations()
+void ExactAnnoValueSearch::initializeValidAnnotations()
 {
   for(ItType annoIt = itBegin; annoIt != itEnd; annoIt++)
   {
@@ -61,7 +61,7 @@ void ExactAnnoSearch::initializeValidAnnotations()
 }
 
 
-ExactAnnoSearch::~ExactAnnoSearch()
+ExactAnnoValueSearch::~ExactAnnoValueSearch()
 {
 
 }

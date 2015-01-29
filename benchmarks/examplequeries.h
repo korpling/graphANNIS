@@ -3,7 +3,7 @@
 
 #include <db.h>
 #include <query.h>
-#include <exactannosearch.h>
+#include <exactannovaluesearch.h>
 #include <exactannokeysearch.h>
 #include <regexannosearch.h>
 #include <operators/precedence.h>
@@ -35,8 +35,8 @@ public:
   static Query PosNNIncludesNormBlumen(const DB& db)
   {
     Query q(db);
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "NN"));
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "norm", "Blumen"));
+    q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
+    q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
 
     q.addOperator(std::make_shared<annis::Inclusion>(db), 1, 0);
     return q;
@@ -45,8 +45,8 @@ public:
   static Query PosNNOverlapsNormBlumen(const DB& db)
   {
     Query q(db);
-    auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "NN"));
-    auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "norm", "Blumen"));
+    auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
+    auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
     q.addOperator(std::make_shared<Overlap>(db), n2, n1);
     return q;
   }
@@ -54,8 +54,8 @@ public:
   static Query NNPreceedingART(const DB& db)
   {
     Query q(db);
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "NN"));
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, "default_ns", "pos", "ART"));
+    q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
+    q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "ART"));
 
     q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
     return q;
@@ -84,8 +84,8 @@ public:
   static Query BilharzioseSentence(const DB& db)
   {
     Query q(db);
-    auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "cat", "S"));
-    auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_tok, "Bilharziose"));
+    auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
+    auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Bilharziose"));
 
     q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
 
@@ -96,9 +96,9 @@ public:
   {
 
     Query q(db);
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "pos", "NN"));
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "pos", "ART"));
-    q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "pos", "NN"));
+    q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "NN"));
+    q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "ART"));
+    q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "NN"));
 
     q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
     q.addOperator(std::make_shared<Precedence>(db), 1, 2);

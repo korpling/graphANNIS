@@ -1,5 +1,5 @@
-#ifndef ExactAnnoSearch_H
-#define ExactAnnoSearch_H
+#ifndef ExactAnnoValueSearch_H
+#define ExactAnnoValueSearch_H
 
 #include "annotationsearch.h"
 #include <stx/btree_map>
@@ -7,7 +7,7 @@
 namespace annis
 {
 
-class ExactAnnoSearch : public AnnotationSearch
+class ExactAnnoValueSearch : public AnnotationSearch
 {
   using ItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
 
@@ -18,9 +18,9 @@ public:
    * @param db
    * @param annoName
    */
-  ExactAnnoSearch(const DB &db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
+  ExactAnnoValueSearch(const DB &db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
 
-  virtual ~ExactAnnoSearch();
+  virtual ~ExactAnnoValueSearch();
 
   virtual bool hasNext()
   {
@@ -58,4 +58,4 @@ private:
 
 
 } // end namespace annis
-#endif // ExactAnnoSearch_H
+#endif // ExactAnnoValueSearch_H

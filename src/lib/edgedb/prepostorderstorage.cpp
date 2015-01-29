@@ -1,7 +1,7 @@
 #include "prepostorderstorage.h"
 
 #include "../dfs.h"
-#include "../exactannosearch.h"
+#include "../exactannovaluesearch.h"
 #include "../exactannokeysearch.h"
 
 #include <set>

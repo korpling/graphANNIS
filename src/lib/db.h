@@ -22,7 +22,7 @@ namespace annis
 {
 class DB
 {
-  friend class ExactAnnoSearch;
+  friend class ExactAnnoValueSearch;
   friend class ExactAnnoKeySearch;
   friend class RegexAnnoSearch;
 

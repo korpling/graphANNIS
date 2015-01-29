@@ -3,7 +3,7 @@
 
 #include "gtest/gtest.h"
 #include "db.h"
-#include "exactannosearch.h"
+#include "exactannovaluesearch.h"
 #include "exactannokeysearch.h"
 #include <cstdlib>
 #include <boost/format.hpp>
@@ -122,7 +122,7 @@ TEST_F(LoadTest, Edges) {
 TEST_F(LoadTest, OutgoingEdges) {
 
 
-  ExactAnnoSearch catSearch(db, "tiger", "cat", "CPP");
+  ExactAnnoValueSearch catSearch(db, "tiger", "cat", "CPP");
   EXPECT_TRUE(catSearch.hasNext());
 
   Match cppNode = catSearch.next();
@@ -209,8 +209,8 @@ TEST_F(LoadTest, Dom)
   unsigned int counter=0;
 
   Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "cat", "S"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_tok, "Tiefe"));
+  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
   q.addOperator(std::make_shared<Dominance>(db, "tiger", "", 1, uintmax), n1, n2);
 
@@ -258,7 +258,7 @@ TEST_F(LoadTest, RangedDom) {
   unsigned int counter=0;
 
   Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "cat", "AP"));
+  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "AP"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 3, 5), n1, n2);
@@ -282,8 +282,8 @@ TEST_F(LoadTest, SecEdge) {
   unsigned int counter=0;
 
   Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoSearch>(db, "tiger", "cat", "S"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoSearch>(db, annis_ns, annis_tok, "was"));
+  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "was"));
 
   q.addOperator(std::make_shared<Dominance>(db, "", ""), n1, n2);
 
