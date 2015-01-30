@@ -368,8 +368,8 @@ void PrePostIterator::init()
 
   for(auto it=subComponentsLower; it != subComponentsUpper; it++)
   {
-    auto pre = it->second.pre;
-    auto post = it->second.post;
+    const auto& pre = it->second.pre;
+    const auto& post = it->second.post;
     auto lowerIt = storage.order2node.lower_bound({pre, 0, 0});
     auto upperIt = storage.order2node.upper_bound({post, uintmax, std::numeric_limits<int32_t>::max()});
 
