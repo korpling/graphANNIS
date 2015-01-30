@@ -120,6 +120,40 @@ public:
     return q;
   }
 
+
+  /*
+  node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax:relation="anaphoric"
+  & #1 >[func="ON"] #3
+  & #3 >* #2
+  & #2 _i_ #4
+  & #5 >[func="ON"] #6
+  & #6 >* #7
+  & #4 ->anaphoric #7
+  */
+  static Query Mixed1(const DB& db)
+  {
+    Query q(db);
+    auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+    auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "merged", "pos", "PPER"));
+    auto n3 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+    auto n4 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "relation", "anaphoric"));
+    auto n5 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+    auto n6 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+    auto n7 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "relation", "anaphoric"));
+
+    Annotation funcOnAnno =
+        Init::initAnnotation(db.strings.findID("func").first, db.strings.findID("ON").first);
+
+    q.addOperator(std::make_shared<Inclusion>(db), n2, n4);
+    q.addOperator(std::make_shared<Pointing>(db, "", "anaphoric"), n4, n7);
+    q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n1, n3);
+    q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n3, n2);
+    q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n5, n6);
+    q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n6, n7);
+
+    return q;
+  }
+
 };
 } // end namespace annis;
 #endif // EXAMPLEQUERIES
