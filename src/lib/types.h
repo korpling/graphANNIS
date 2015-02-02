@@ -126,6 +126,22 @@ namespace annis
     Match rhs;
   };
 
+  /** Some general statistical numbers specific to a graph component */
+  struct GraphStatistic
+  {
+    /** Average fan out  */
+    double avgFanOut;
+    /** maximal number of children of a node */
+    uint32_t maxFanOut;
+    /** average length from a root node to a terminal node */
+    double avgDepth;
+    /** maximum length from a root node to a terminal node */
+    uint32_t maxDepth;
+
+    /** Flag to indicate whether the statistics was set */
+    bool valid;
+  };
+
   class Init
   {
   public:

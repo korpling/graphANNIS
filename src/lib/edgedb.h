@@ -19,6 +19,11 @@ class ReadableGraphStorage
 {
 public:
 
+  ReadableGraphStorage()
+  {
+    statistics.valid = false;
+  }
+
   virtual ~ReadableGraphStorage() {}
 
   virtual void copy(const DB& db, const ReadableGraphStorage& orig) = 0;
@@ -49,6 +54,13 @@ public:
 
   virtual std::uint32_t numberOfEdges() const = 0;
   virtual std::uint32_t numberOfEdgeAnnotations() const = 0;
+
+  virtual GraphStatistic getStatistics() const
+  {
+    return statistics;
+  }
+protected:
+  GraphStatistic statistics;
 };
 
 class EdgeDB : public ReadableGraphStorage
