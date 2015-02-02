@@ -81,13 +81,13 @@ BENCHMARK_F(Tueba_Mixed1, Optimized, TuebaFixture, 5, 1)
 
 BASELINE_F(Tueba_RegexDom, Fallback, TuebaFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(RegexDom, getDB(), 12u);
+  ANNIS_EXEC_QUERY(RegexDom, getDB(), 1u);
 }
 
 
 BENCHMARK_F(Tueba_RegexDom, Optimized, TuebaFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(RegexDom, getDB(), 12u);
+  ANNIS_EXEC_QUERY(RegexDom, getDB(), 1u);
 }
 
 BASELINE_F(Tueba_Inclusion, Fallback, TuebaFallbackFixture, 5, 1)
@@ -103,13 +103,13 @@ BENCHMARK_F(Tueba_Inclusion, Optimized, TuebaFixture, 5, 1)
 
 BASELINE_F(Tueba_DomEdgeAnno, Fallback, TuebaFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(DomFuncON, getDB(), 153u);
+  ANNIS_EXEC_QUERY(DomFuncON, getDB(), 76748u);
 }
 
 
 BENCHMARK_F(Tueba_DomEdgeAnno, Optimized, TuebaFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(DomFuncON, getDB(), 153u);
+  ANNIS_EXEC_QUERY(DomFuncON, getDB(), 76748u);
 }
 
 BASELINE_F(Tueba_NodeDom, Fallback, TuebaFallbackFixtureVar, 5, 1)
