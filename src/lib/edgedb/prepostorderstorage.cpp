@@ -364,16 +364,16 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
 
 void PrePostIterator::init()
 {
-  auto subComponents = storage.node2order.equal_range(startNode);
+  auto subComponentBegin = storage.node2order.lower_bound(startNode);
 
-  for(auto it=subComponents.first; it != subComponents.second; it++)
+  for(auto it=subComponentBegin; it != storage.node2order.end() && it->first == startNode; it++)
   {
     const auto& pre = it->second.pre;
     const auto& post = it->second.post;
-    auto lowerIt = storage.order2node.lower_bound({pre, 0, 0});
-    auto upperIt = storage.order2node.upper_bound({post, uintmax, std::numeric_limits<int32_t>::max()});
 
-    ranges.push({lowerIt, upperIt, post, it->second.level});
+    ranges.push({storage.order2node.lower_bound({pre, 0, 0}),
+                 storage.order2node.upper_bound({post, uintmax, std::numeric_limits<int32_t>::max()}),
+                 post, it->second.level});
   }
   if(!ranges.empty())
   {
