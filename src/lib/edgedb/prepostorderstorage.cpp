@@ -364,10 +364,9 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
 
 void PrePostIterator::init()
 {
-  auto subComponentsLower = storage.node2order.lower_bound(startNode);
-  auto subComponentsUpper = storage.node2order.upper_bound(startNode);
+  auto subComponents = storage.node2order.equal_range(startNode);
 
-  for(auto it=subComponentsLower; it != subComponentsUpper; it++)
+  for(auto it=subComponents.first; it != subComponents.second; it++)
   {
     const auto& pre = it->second.pre;
     const auto& post = it->second.post;
