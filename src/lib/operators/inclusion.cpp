@@ -9,7 +9,6 @@ Inclusion::Inclusion(const DB &db)
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     tokHelper(db)
 {
-  edbCoverage = db.getAllEdgeDBForType(ComponentType::COVERAGE);
   edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
   edbLeftToken = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
   edbRightToken = db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "");

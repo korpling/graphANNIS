@@ -23,7 +23,6 @@ public:
 private:
 
   const DB& db;
-  std::vector<const ReadableGraphStorage*> edbCoverage;
   const ReadableGraphStorage* edbOrder;
   const ReadableGraphStorage* edbLeftToken;
   const ReadableGraphStorage* edbRightToken;
