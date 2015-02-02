@@ -200,7 +200,7 @@ void FallbackEdgeDB::calculateStatistics()
 {
   statistics.valid = false;
   statistics.maxFanOut = 0;
-  statistics.maxDepth = 0;
+  statistics.maxDepth = 1;
   statistics.avgFanOut = 0.0;
   statistics.cyclic = false;
 
@@ -236,17 +236,31 @@ void FallbackEdgeDB::calculateStatistics()
     }
   }
 
-  for(const auto& rootNode : roots)
+  if(roots.empty() && !edges.empty())
   {
-    CycleSafeDFS dfs(*this, rootNode, 0, uintmax, false);
-    for(auto n = dfs.nextDFS(); n.found; n = dfs.nextDFS())
+    // if we have edges but no roots at all there must be a cycle
+    statistics.cyclic = true;
+  }
+  else
+  {
+    for(const auto& rootNode : roots)
     {
-      statistics.maxDepth = std::max(statistics.maxDepth, n.distance);
+      CycleSafeDFS dfs(*this, rootNode, 0, uintmax, false);
+      for(auto n = dfs.nextDFS(); n.found; n = dfs.nextDFS())
+      {
+        statistics.maxDepth = std::max(statistics.maxDepth, n.distance);
+      }
+      if(dfs.cyclic())
+      {
+        statistics.cyclic = true;
+      }
     }
-    if(dfs.cyclic())
-    {
-      statistics.cyclic = true;
-    }
+  }
+
+  if(statistics.cyclic)
+  {
+    // it's infinite
+    statistics.maxDepth = 0;
   }
 
   if(sumFanOut > 0 && numOfNodes > 0)
