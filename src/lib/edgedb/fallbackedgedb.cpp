@@ -35,6 +35,8 @@ void FallbackEdgeDB::copy(const DB &db, const ReadableGraphStorage &orig)
     }
   }
 
+  statistics = orig.getStatistics();
+
   calculateIndex();
 }
 

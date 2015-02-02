@@ -145,6 +145,8 @@ void PrePostOrderStorage::copy(const DB& db, const ReadableGraphStorage& orig)
     }
 
   } // end for each root
+
+  statistics = orig.getStatistics();
 }
 
 void PrePostOrderStorage::clear()

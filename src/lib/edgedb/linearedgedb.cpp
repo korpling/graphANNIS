@@ -89,7 +89,7 @@ void LinearEdgeDB::copy(const DB& db, const ReadableGraphStorage& orig)
     }
   }
 
-
+  statistics = orig.getStatistics();
 }
 
 bool LinearEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
