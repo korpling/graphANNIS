@@ -728,7 +728,8 @@ string DB::info()
     if(stat.valid)
     {
       ss << "fan-out: " << stat.avgFanOut << " (avg) / " << stat.maxFanOut << " (max)" << endl;
-      ss << "depth: " << stat.maxDepth << " (avg) / " << stat.maxDepth << " (max)" << endl;
+      ss << "depth: " << stat.maxDepth << " (max)" << endl;
+      ss << (stat.cyclic ? "cyclic" : "non-cyclic") << endl;
     }
     ss << "--------------------" << endl;
   }

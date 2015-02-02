@@ -85,8 +85,10 @@ void DFS::reset()
 }
 
 
-CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
-  : DFS(edb, startNode, minDistance, maxDistance), lastDistance(0)
+CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance, bool silentCycleErrors)
+  : DFS(edb, startNode, minDistance, maxDistance), lastDistance(0),
+    outputCycleErrors(silentCycleErrors),
+    cycleDetected(false)
 {
   nodesInCurrentPath.insert(startNode);
   distanceToNode.insert({0, startNode});
@@ -133,23 +135,27 @@ bool CycleSafeDFS::beforeEnterNode(nodeid_t node, unsigned int distance)
   else
   {
     // we detected a cycle!
-    std::cerr << "------------------------------" << std::endl;
-    std::cerr << "ERROR: cycle detected when inserting node " << node << std::endl;
-    std::cerr << "distanceToNode: ";
-    for(auto itPath = distanceToNode.begin(); itPath != distanceToNode.end(); itPath++)
+    if(outputCycleErrors)
     {
-      std::cerr << itPath->first << "->" << itPath->second << " ";
+      std::cerr << "------------------------------" << std::endl;
+      std::cerr << "ERROR: cycle detected when visting node " << node << std::endl;
+      std::cerr << "distanceToNode: ";
+      for(auto itPath = distanceToNode.begin(); itPath != distanceToNode.end(); itPath++)
+      {
+        std::cerr << itPath->first << "->" << itPath->second << " ";
+      }
+      std::cerr << std::endl;
+      std::cerr << "nodesInCurrentPath: ";
+      for(auto itPath = nodesInCurrentPath.begin(); itPath != nodesInCurrentPath.end(); itPath++)
+      {
+        std::cerr << *itPath << " ";
+      }
+      std::cerr << std::endl;
+      std::cerr << "------------------------------" << std::endl;
     }
-    std::cerr << std::endl;
-    std::cerr << "nodesInCurrentPath: ";
-    for(auto itPath = nodesInCurrentPath.begin(); itPath != nodesInCurrentPath.end(); itPath++)
-    {
-      std::cerr << *itPath << " ";
-    }
-    std::cerr << std::endl;
-    std::cerr << "------------------------------" << std::endl;
 
     lastDistance = distance;
+    cycleDetected = true;
 
     return false;
   }

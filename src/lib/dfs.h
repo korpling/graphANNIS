@@ -89,8 +89,15 @@ public:
 
   CycleSafeDFS(const ReadableGraphStorage& edb,
                std::uint32_t startNode,
-               unsigned int minDistance, unsigned int maxDistance);
+               unsigned int minDistance, unsigned int maxDistance,
+               bool outputCycleErrors = true);
   virtual ~CycleSafeDFS();
+
+  virtual bool cyclic()
+  {
+    return cycleDetected;
+  }
+
 protected:
   virtual void reset();
   virtual bool enterNode(nodeid_t node, unsigned int distance);
@@ -101,6 +108,8 @@ private:
   unsigned int lastDistance;
   std::set<nodeid_t> nodesInCurrentPath;
   std::multimap<unsigned int, nodeid_t> distanceToNode;
+  bool outputCycleErrors;
+  bool cycleDetected;
 };
 
 } // end namespace annis

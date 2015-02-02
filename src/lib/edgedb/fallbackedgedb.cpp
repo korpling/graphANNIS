@@ -199,17 +199,26 @@ void FallbackEdgeDB::calculateStatistics()
   statistics.valid = false;
   statistics.maxFanOut = 0;
   statistics.maxDepth = 0;
-  statistics.avgDepth = 0.0;
   statistics.avgFanOut = 0.0;
-
+  statistics.cyclic = false;
 
   double numOfNodes = 0.0;
   double sumFanOut = 0.0;
 
   nodeid_t lastNodeID = 0;
   uint32_t currentFanout = 0;
+
+  // find all root nodes
+  set<nodeid_t> roots;
   for(const auto& e : edges)
   {
+    roots.insert(e.source);
+  }
+
+  for(const auto& e : edges)
+  {
+    roots.erase(e.target);
+
     if(lastNodeID != e.source)
     {
       statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
@@ -224,9 +233,24 @@ void FallbackEdgeDB::calculateStatistics()
       currentFanout++;
     }
   }
+
+  for(const auto& rootNode : roots)
+  {
+    CycleSafeDFS dfs(*this, rootNode, 0, uintmax, false);
+    for(auto n = dfs.nextDFS(); n.found; n = dfs.nextDFS())
+    {
+      statistics.maxDepth = std::max(statistics.maxDepth, n.distance);
+    }
+    if(dfs.cyclic())
+    {
+      statistics.cyclic = true;
+    }
+  }
+
   if(sumFanOut > 0 && numOfNodes > 0)
   {
     statistics.avgFanOut = sumFanOut / numOfNodes;
     statistics.valid = true;
   }
+
 }

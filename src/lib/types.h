@@ -133,10 +133,10 @@ namespace annis
     double avgFanOut;
     /** maximal number of children of a node */
     uint32_t maxFanOut;
-    /** average length from a root node to a terminal node */
-    double avgDepth;
     /** maximum length from a root node to a terminal node */
     uint32_t maxDepth;
+
+    bool cyclic;
 
     /** Flag to indicate whether the statistics was set */
     bool valid;
