@@ -17,8 +17,8 @@ public:
   std::string getName(const ReadableGraphStorage *db);
   ReadableGraphStorage* createEdgeDB(std::string name, StringStorage &strings, const Component &component);
 
-  std::string getOptimizedImpl(const Component& component);
-  ReadableGraphStorage* createEdgeDB(StringStorage &strings, const Component &component);
+  std::string getOptimizedImpl(const Component& component, GraphStatistic stats);
+  ReadableGraphStorage* createEdgeDB(StringStorage &strings, const Component &component, GraphStatistic stats);
 
   void setImplementation(std::string implName, ComponentType type);
   void setImplementation(std::string implName, ComponentType type, std::string layer);

@@ -587,7 +587,7 @@ ReadableGraphStorage *DB::createEdgeDBForComponent(ComponentType ctype, const st
     ReadableGraphStorage* edgeDB = NULL;
     if(useSpecializedEdgeDB)
     {
-      edgeDB = registry.createEdgeDB(strings, c);
+      edgeDB = registry.createEdgeDB(strings, c, edgeDB->getStatistics());
     }
     else
     {
@@ -650,7 +650,7 @@ void DB::convertComponent(Component c, std::string optimizedImpl)
     std::string currentImpl = registry.getName(oldStorage);
     if(optimizedImpl == "")
     {
-      optimizedImpl = registry.getOptimizedImpl(c);
+      optimizedImpl = registry.getOptimizedImpl(c, oldStorage->getStatistics());
     }
     ReadableGraphStorage* newStorage = oldStorage;
     if(currentImpl != optimizedImpl)

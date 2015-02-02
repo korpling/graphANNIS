@@ -64,7 +64,7 @@ ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, Strin
   return nullptr;
 }
 
-std::string GraphStorageRegistry::getOptimizedImpl(const Component &component)
+std::string GraphStorageRegistry::getOptimizedImpl(const Component &component, GraphStatistic stats)
 {
   std::string result = fallback;
   // try to find a fully matching entry
@@ -97,9 +97,9 @@ std::string GraphStorageRegistry::getOptimizedImpl(const Component &component)
   return result;
 }
 
-ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(StringStorage &strings, const Component &component)
+ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(StringStorage &strings, const Component &component, GraphStatistic stats)
 {
-  std::string implName = getOptimizedImpl(component);
+  std::string implName = getOptimizedImpl(component, stats);
   return createEdgeDB(implName, strings, component);
 }
 
