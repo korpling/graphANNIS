@@ -318,7 +318,7 @@ std::pair<bool, nodeid_t> PrePostIterator::next()
     const auto& maximumPost = ranges.top().maximumPost;
     const auto& startLevel = ranges.top().startLevel;
 
-    while(currentNode != upper)
+    while(currentNode != upper && currentNode->first.pre <= maximumPost)
     {
       const auto& currentPre = currentNode->first.pre;
       const auto& currentPost = currentNode->first.post;
@@ -372,7 +372,7 @@ void PrePostIterator::init()
     const auto& post = it->second.post;
 
     ranges.push({storage.order2node.lower_bound({pre, 0, 0}),
-                 storage.order2node.upper_bound({post, uintmax, std::numeric_limits<int32_t>::max()}),
+                 storage.order2node.end(),
                  post, it->second.level});
   }
   if(!ranges.empty())
