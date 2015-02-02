@@ -116,8 +116,9 @@ class PrePostIterator : public EdgeIterator
 public:
 
   PrePostIterator(const PrePostOrderStorage& storage,
-                  std::uint32_t startNode,
-                  unsigned int minDistance, unsigned int maxDistance);
+                  const nodeid_t& startNode,
+                  const unsigned int& minDistance,
+                  const unsigned int& maxDistance);
 
   virtual std::pair<bool, nodeid_t> next();
 
@@ -127,9 +128,9 @@ public:
 private:
 
   const PrePostOrderStorage& storage;
-  unsigned int minDistance;
-  unsigned int maxDistance;
-  std::uint32_t startNode;
+  const unsigned int minDistance;
+  const unsigned int maxDistance;
+  const nodeid_t startNode;
 
   std::stack<SearchRange, std::list<SearchRange> > ranges;
   OrderIt currentNode;

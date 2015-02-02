@@ -300,7 +300,8 @@ std::vector<nodeid_t> PrePostOrderStorage::getIncomingEdges(nodeid_t node) const
 
 
 
-PrePostIterator::PrePostIterator(const PrePostOrderStorage &storage, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
+PrePostIterator::PrePostIterator(const PrePostOrderStorage &storage, const nodeid_t &startNode,
+                                 const unsigned int &minDistance, const unsigned int &maxDistance)
   : storage(storage), startNode(startNode),
     minDistance(minDistance), maxDistance(maxDistance)
 {
