@@ -10,6 +10,7 @@
 #include "operators/dominance.h"
 #include "exactannovaluesearch.h"
 #include "query.h"
+#include "../benchmarks/examplequeries.h"
 
 #include <vector>
 
@@ -89,6 +90,32 @@ TEST_F(SearchTestTueBaDZ, Benchmark1) {
   }
 
   EXPECT_EQ(0u, counter);
+}
+
+TEST_F(SearchTestTueBaDZ, RegexDom) {
+
+  Query q = ExampleQueries::RegexDom(db);
+  unsigned int counter=0;
+  while(q.hasNext() && counter < 100)
+  {
+    q.next();
+    counter++;
+  }
+
+  EXPECT_EQ(1u, counter);
+}
+
+TEST_F(SearchTestTueBaDZ, NodeDom) {
+
+  Query q = ExampleQueries::RegexDom(db);
+  unsigned int counter=0;
+  while(q.hasNext() && counter < 50000u)
+  {
+    q.next();
+    counter++;
+  }
+
+  EXPECT_EQ(47130u, counter);
 }
 
 

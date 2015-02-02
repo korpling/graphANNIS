@@ -154,6 +154,29 @@ public:
     return q;
   }
 
+  static Query NodeDom(const DB& db, unsigned int maxDistance=uintmax)
+  {
+    Query q(db);
+    auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db,
+                                                          "tiger","cat", "TOP"));
+    auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db,
+                                                          annis_ns, annis_node_name));
+
+    q.addOperator(std::make_shared<Dominance>(db, "", "", 1, maxDistance), n1, n2);
+
+    return q;
+  }
+
+  static Query PPERIncludesAnaphoric(const DB& db)
+  {
+    Query q(db);
+    auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "merged", "pos", "PPER"));
+    auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "relation", "anaphoric"));
+
+    q.addOperator(std::make_shared<Inclusion>(db), n1, n2);
+    return q;
+  }
+
 };
 } // end namespace annis;
 #endif // EXAMPLEQUERIES
