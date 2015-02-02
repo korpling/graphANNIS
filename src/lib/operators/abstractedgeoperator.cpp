@@ -13,7 +13,7 @@ AbstractEdgeOperator::AbstractEdgeOperator(
                   minDistance(minDistance), maxDistance(maxDistance),
                   anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
 {
-                  initEdgeDB();
+  initEdgeDB();
 }
 
 AbstractEdgeOperator::AbstractEdgeOperator(

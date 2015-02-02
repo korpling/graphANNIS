@@ -142,7 +142,8 @@ public:
     auto n7 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "relation", "anaphoric"));
 
     Annotation funcOnAnno =
-        Init::initAnnotation(db.strings.findID("func").first, db.strings.findID("ON").first);
+        Init::initAnnotation(db.strings.findID("func").second,
+                             db.strings.findID("ON").second);
 
     q.addOperator(std::make_shared<Inclusion>(db), n2, n4);
     q.addOperator(std::make_shared<Pointing>(db, "", "anaphoric"), n4, n7);
@@ -174,6 +175,20 @@ public:
     auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "relation", "anaphoric"));
 
     q.addOperator(std::make_shared<Inclusion>(db), n1, n2);
+    return q;
+  }
+
+  static Query DomFuncON(const DB& db)
+  {
+    Query q(db);
+    auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+    auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+
+    Annotation funcOnAnno =
+        Init::initAnnotation(db.strings.findID("func").second, db.strings.findID("ON").second, db.strings.findID("tiger").second);
+
+    q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n1, n2);
+
     return q;
   }
 

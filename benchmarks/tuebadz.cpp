@@ -2,6 +2,7 @@
 #include "examplequeries.h"
 
 char tuebaCorpus[] = "tuebadz6";
+char tuebaCorpusSmall[] = "tuebadz6_small";
 
 class TuebaFixture : public CorpusFixture<true, tuebaCorpus>
 {
@@ -98,6 +99,17 @@ BASELINE_F(Tueba_Inclusion, Fallback, TuebaFallbackFixture, 5, 1)
 BENCHMARK_F(Tueba_Inclusion, Optimized, TuebaFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY(PPERIncludesAnaphoric, getDB(), 13031u);
+}
+
+BASELINE_F(Tueba_DomEdgeAnno, Fallback, TuebaFallbackFixture, 5, 1)
+{
+  ANNIS_EXEC_QUERY(DomFuncON, getDB(), 153u);
+}
+
+
+BENCHMARK_F(Tueba_DomEdgeAnno, Optimized, TuebaFixture, 5, 1)
+{
+  ANNIS_EXEC_QUERY(DomFuncON, getDB(), 153u);
 }
 
 BASELINE_F(Tueba_NodeDom, Fallback, TuebaFallbackFixtureVar, 5, 1)
