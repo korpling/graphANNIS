@@ -59,6 +59,9 @@ public:
   {
     return statistics;
   }
+
+  virtual void calculateStatistics() {}
+
 protected:
   GraphStatistic statistics;
 };

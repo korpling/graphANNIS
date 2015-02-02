@@ -43,6 +43,7 @@ void FallbackEdgeDB::addEdge(const Edge &edge)
   if(edge.source != edge.target)
   {
     edges.insert(edge);
+    statistics.valid = false;
   }
 }
 
@@ -55,6 +56,8 @@ void FallbackEdgeDB::clear()
 {
   edges.clear();
   edgeAnnos.clear();
+
+  statistics.valid = false;
 }
 
 bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
@@ -189,4 +192,41 @@ std::uint32_t FallbackEdgeDB::numberOfEdges() const
 std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
 {
   return edgeAnnos.numberOfEdgeAnnotations();
+}
+
+void FallbackEdgeDB::calculateStatistics()
+{
+  statistics.valid = false;
+  statistics.maxFanOut = 0;
+  statistics.maxDepth = 0;
+  statistics.avgDepth = 0.0;
+  statistics.avgFanOut = 0.0;
+
+
+  double numOfNodes = 0.0;
+  double sumFanOut = 0.0;
+
+  nodeid_t lastNodeID = 0;
+  uint32_t currentFanout = 0;
+  for(const auto& e : edges)
+  {
+    if(lastNodeID != e.source)
+    {
+      statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
+      sumFanOut += currentFanout;
+
+      numOfNodes++;
+      currentFanout = 0;
+      lastNodeID = e.source;
+    }
+    else
+    {
+      currentFanout++;
+    }
+  }
+  if(sumFanOut > 0 && numOfNodes > 0)
+  {
+    statistics.avgFanOut = sumFanOut / numOfNodes;
+    statistics.valid = true;
+  }
 }

@@ -56,6 +56,8 @@ public:
   virtual std::uint32_t numberOfEdgeAnnotations() const;
   const Component& getComponent() { return component;}
 
+  virtual void calculateStatistics();
+
 private:
   StringStorage& strings;
   Component component;

@@ -642,6 +642,11 @@ void DB::convertComponent(Component c, std::string optimizedImpl)
   {
     ReadableGraphStorage* oldStorage = it->second;
 
+    if(!(oldStorage->getStatistics().valid))
+    {
+      oldStorage->calculateStatistics();
+    }
+
     std::string currentImpl = registry.getName(oldStorage);
     if(optimizedImpl == "")
     {
@@ -719,6 +724,13 @@ string DB::info()
     ss << "Component " << ComponentTypeHelper::toString(c.type) << "|" << c.layer
        << "|" << c.name << ": " << edb->numberOfEdges() << " edges and "
        << edb->numberOfEdgeAnnotations() << " annotations" << endl;
+    GraphStatistic stat = edb->getStatistics();
+    if(stat.valid)
+    {
+      ss << "fan-out: " << stat.avgFanOut << " (avg) / " << stat.maxFanOut << " (max)" << endl;
+      ss << "depth: " << stat.maxDepth << " (avg) / " << stat.maxDepth << " (max)" << endl;
+    }
+    ss << "--------------------" << endl;
   }
 
   return ss.str();
