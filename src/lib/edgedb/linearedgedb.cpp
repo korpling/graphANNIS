@@ -207,7 +207,7 @@ std::vector<nodeid_t> LinearEdgeDB::getIncomingEdges(nodeid_t node) const
 
 bool LinearEdgeDB::load(string dirPath)
 {
-  bool result = ReadableGraphStorage::save(dirPath);
+  bool result = ReadableGraphStorage::load(dirPath);
 
   result = result && edgeAnno.save(dirPath);
   ifstream in;
