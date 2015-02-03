@@ -733,9 +733,19 @@ string DB::info()
   {
     const Component& c = it->first;
     const ReadableGraphStorage* edb = it->second;
+
+
     ss << "Component " << ComponentTypeHelper::toString(c.type) << "|" << c.layer
        << "|" << c.name << ": " << edb->numberOfEdges() << " edges and "
        << edb->numberOfEdgeAnnotations() << " annotations" << endl;
+
+
+    std::string implName = registry.getName(edb);
+    if(!implName.empty())
+    {
+      ss << "implementation: " << implName << endl;
+    }
+
     GraphStatistic stat = edb->getStatistics();
     if(stat.valid)
     {

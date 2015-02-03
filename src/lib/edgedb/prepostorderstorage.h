@@ -300,7 +300,7 @@ public:
       }
     }
 
-    uint32_t currentOrder = 0;
+    order_t currentOrder = 0;
 
     // traverse the graph for each sub-component
     for(const auto& startNode : roots)
@@ -394,7 +394,7 @@ public:
     const auto itSourceEnd = node2order.upper_bound(edge.source);
 
     bool wasFound = false;
-    int32_t minLevel = std::numeric_limits<int32_t>::max();
+    level_t minLevel = std::numeric_limits<level_t>::max();
 
     for(auto itSource=itSourceBegin; itSource != itSourceEnd; itSource++)
     {
@@ -405,7 +405,7 @@ public:
            && itTarget->second.post <= itSource->second.post)
         {
           // check the level
-          int32_t diffLevel = (itTarget->second.level - itSource->second.level);
+          level_t diffLevel = (itTarget->second.level - itSource->second.level);
           if(diffLevel >= 0)
           {
             wasFound = true;
@@ -453,7 +453,9 @@ public:
       const auto& targetOrder = itTarget->second;
       // get all nodes that are potential predecessors
       PrePostSpec minPrePost = {0, 0, 0};
-      PrePostSpec maxPrePost = {targetOrder.pre-1, uintmax, std::numeric_limits<int32_t>::max()};
+      PrePostSpec maxPrePost = {targetOrder.pre-1,
+                                std::numeric_limits<order_t>::max(),
+                                std::numeric_limits<level_t>::max()};
       auto itMin = order2node.lower_bound(minPrePost);
       auto itMax = order2node.upper_bound(maxPrePost);
       for(auto itSource=itMin; itSource != itMax; itSource++)
@@ -491,7 +493,7 @@ private:
   stx::btree_map<PrePostSpec, nodeid_t> order2node;
   EdgeAnnotationStorage edgeAnno;
 
-  void enterNode(uint32_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, int32_t level, NStack &nodeStack)
+  void enterNode(order_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, level_t level, NStack &nodeStack)
   {
     NodeStackEntry<order_t, level_t> newEntry;
     newEntry.id = nodeID;
@@ -501,7 +503,7 @@ private:
     nodeStack.push(newEntry);
   }
 
-  void exitNode(uint32_t &currentOrder, NStack &nodeStack)
+  void exitNode(order_t &currentOrder, NStack &nodeStack)
   {
     // find the correct pre/post entry and update the post-value
     auto& entry = nodeStack.top();

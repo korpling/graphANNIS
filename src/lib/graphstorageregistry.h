@@ -33,6 +33,9 @@ public:
 private:
 
   std::map<Component, std::string> componentToImpl;
+private:
+  std::string getImplByRegistry(const Component& component);
+  std::string getImplByHeuristics(const Component& component, GraphStatistic stats);
 
 };
 }

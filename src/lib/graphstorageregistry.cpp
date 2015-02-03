@@ -21,8 +21,6 @@ GraphStorageRegistry::GraphStorageRegistry()
   // set default values
   setImplementation(coverage, ComponentType::COVERAGE);
   setImplementation(linear, ComponentType::ORDERING);
-  setImplementation(prepostorderO32L32, ComponentType::DOMINANCE);
-
 }
 
 GraphStorageRegistry::~GraphStorageRegistry()
@@ -43,6 +41,10 @@ std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStora
   else if(dynamic_cast<const PrePostOrderStorageO32L32*>(db) != nullptr)
   {
     return prepostorderO32L32;
+  }
+  else if(dynamic_cast<const PrePostOrderStorageO32L8*>(db) != nullptr)
+  {
+    return prepostorderO32L8;
   }
   else if(dynamic_cast<const FallbackEdgeDB*>(db) != nullptr)
   {
@@ -65,6 +67,10 @@ ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, Strin
   {
     return new PrePostOrderStorageO32L32(strings, component);
   }
+  else if(name == prepostorderO32L8)
+  {
+    return new PrePostOrderStorageO32L8(strings, component);
+  }
   else if(name == fallback)
   {
     return new FallbackEdgeDB(strings, component);
@@ -75,7 +81,46 @@ ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, Strin
 
 std::string GraphStorageRegistry::getOptimizedImpl(const Component &component, GraphStatistic stats)
 {
-  std::string result = fallback;
+  std::string result = getImplByRegistry(component);
+  if(result.empty())
+  {
+    result = getImplByHeuristics(component, stats);
+  }
+  if(result.empty())
+  {
+    result = fallback;
+  }
+
+  return result;
+}
+
+ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(StringStorage &strings, const Component &component, GraphStatistic stats)
+{
+  std::string implName = getOptimizedImpl(component, stats);
+  return createEdgeDB(implName, strings, component);
+}
+
+void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type)
+{
+  Component c = {type, "", ""};
+  componentToImpl[c] = implName;
+}
+
+void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type, std::string layer)
+{
+  Component c = {type, layer, ""};
+  componentToImpl[c] = implName;
+}
+
+void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type, std::string layer, std::string name)
+{
+  Component c = {type, layer, name};
+  componentToImpl[c] = implName;
+}
+
+std::string GraphStorageRegistry::getImplByRegistry(const Component &component)
+{
+  std::string result = "";
   // try to find a fully matching entry
   auto it = componentToImpl.find(component);
   if(it != componentToImpl.end())
@@ -106,26 +151,18 @@ std::string GraphStorageRegistry::getOptimizedImpl(const Component &component, G
   return result;
 }
 
-ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(StringStorage &strings, const Component &component, GraphStatistic stats)
+std::string GraphStorageRegistry::getImplByHeuristics(const Component &component, GraphStatistic stats)
 {
-  std::string implName = getOptimizedImpl(component, stats);
-  return createEdgeDB(implName, strings, component);
-}
+  std::string result = "";
+  if(component.type == ComponentType::DOMINANCE)
+  {
+    // decide which size to use
+    result = prepostorderO32L32;
+    if(stats.valid && stats.maxDepth < std::numeric_limits<int8_t>::max())
+    {
+      result = prepostorderO32L8;
+    }
+  }
 
-void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type)
-{
-  Component c = {type, "", ""};
-  componentToImpl[c] = implName;
-}
-
-void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type, std::string layer)
-{
-  Component c = {type, layer, ""};
-  componentToImpl[c] = implName;
-}
-
-void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type, std::string layer, std::string name)
-{
-  Component c = {type, layer, name};
-  componentToImpl[c] = implName;
+  return result;
 }
