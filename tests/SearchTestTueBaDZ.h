@@ -61,7 +61,7 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 & #6 >* #7
 & #4 ->anaphoric #7
 */
-TEST_F(SearchTestTueBaDZ, DISABLE_Benchmark1) {
+TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
 
   Query q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
@@ -92,7 +92,7 @@ TEST_F(SearchTestTueBaDZ, DISABLE_Benchmark1) {
   EXPECT_EQ(0u, counter);
 }
 
-TEST_F(SearchTestTueBaDZ, DISABLE_RegexDom) {
+TEST_F(SearchTestTueBaDZ, DISABLED_RegexDom) {
 
   Query q = ExampleQueries::RegexDom(db);
   unsigned int counter=0;
@@ -105,7 +105,7 @@ TEST_F(SearchTestTueBaDZ, DISABLE_RegexDom) {
   EXPECT_EQ(1u, counter);
 }
 
-TEST_F(SearchTestTueBaDZ, DISABLE_NodeDom) {
+TEST_F(SearchTestTueBaDZ, DISABLED_NodeDom) {
 
   Query q = ExampleQueries::RegexDom(db);
   unsigned int counter=0;
