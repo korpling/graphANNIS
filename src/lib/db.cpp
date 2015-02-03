@@ -64,17 +64,20 @@ bool DB::load(string dirPath)
 
         std::string implName = getImplNameForPath(layerPath.string());
 
-        // try to load the component with the empty name
-        Component emptyNameComponent = {(ComponentType) componentType,
-            layerPath.filename().string(), ""};
-        HL_INFO(logger, (boost::format("loading component %1%|%2%|%3%")
-                         % ComponentTypeHelper::toString(emptyNameComponent.type)
-                         % emptyNameComponent.layer
-                         % emptyNameComponent.name).str());
+        if(!implName.empty())
+        {
+          // try to load the component with the empty name
+          Component emptyNameComponent = {(ComponentType) componentType,
+              layerPath.filename().string(), ""};
+          HL_INFO(logger, (boost::format("loading component %1%|%2%|%3%")
+                           % ComponentTypeHelper::toString(emptyNameComponent.type)
+                           % emptyNameComponent.layer
+                           % emptyNameComponent.name).str());
 
-        ReadableGraphStorage* edbEmptyName = registry.createEdgeDB(implName, strings, emptyNameComponent);
-        edbEmptyName->load(layerPath.string());
-        edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(emptyNameComponent,edbEmptyName));
+          ReadableGraphStorage* edbEmptyName = registry.createEdgeDB(implName, strings, emptyNameComponent);
+          edbEmptyName->load(layerPath.string());
+          edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(emptyNameComponent,edbEmptyName));
+        }
 
         // also load all named components
         boost::filesystem::directory_iterator itNamedComponents(layerPath);
@@ -684,7 +687,7 @@ void DB::convertComponent(Component c, std::string optimizedImpl)
 
 string DB::getImplNameForPath(string directory)
 {
-  std::string result = registry.fallback;
+  std::string result = "";
   std::ifstream in(directory + "/implementation.cfg");
   if(in.is_open())
   {
