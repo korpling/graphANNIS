@@ -17,9 +17,9 @@ public:
 
   RidgesPrePostFixture()
   {
-//    addOverride(ComponentType::COVERAGE, annis_ns, "", "prepostorder");
-//    addOverride(ComponentType::COVERAGE, "default_ns", "", "prepostorder");
-    addOverride(ComponentType::ORDERING, annis_ns, "", GraphStorageRegistry::fallback);
+    addOverride(ComponentType::COVERAGE, annis_ns, "", GraphStorageRegistry::prepostorderO32L32);
+    addOverride(ComponentType::COVERAGE, "default_ns", "", GraphStorageRegistry::prepostorderO32L32);
+    addOverride(ComponentType::ORDERING, annis_ns, "", GraphStorageRegistry::prepostorderO32L32);
 //    addOverride(ComponentType::LEFT_TOKEN, annis_ns, "", "prepostorder");
 //    addOverride(ComponentType::RIGHT_TOKEN, annis_ns, "", "prepostorder");
   }
