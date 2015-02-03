@@ -26,7 +26,6 @@ GraphStorageRegistry::GraphStorageRegistry()
 {
   // set default values
   setImplementation(coverage, ComponentType::COVERAGE);
-  setImplementation(linearP32, ComponentType::ORDERING);
 }
 
 GraphStorageRegistry::~GraphStorageRegistry()
@@ -183,6 +182,22 @@ std::string GraphStorageRegistry::getImplByHeuristics(const Component &component
     if(stats.valid && stats.maxDepth < std::numeric_limits<int8_t>::max())
     {
       result = prepostorderO32L8;
+    }
+  }
+  else if(component.type == ComponentType::ORDERING)
+  {
+    result = linearP32;
+    if(stats.valid)
+    {
+      if(stats.maxDepth < std::numeric_limits<uint8_t>::max())
+      {
+        result = linearP8;
+      }
+      else if(stats.maxDepth < std::numeric_limits<uint16_t>::max())
+      {
+        result = linearP8;
+      }
+
     }
   }
 
