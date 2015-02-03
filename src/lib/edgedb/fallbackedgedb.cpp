@@ -234,29 +234,32 @@ void FallbackEdgeDB::calculateStatistics()
     }
   }
 
-
-  nodeid_t lastNodeID = edges.begin()->source;
-  uint32_t currentFanout = 0;
-
-  for(const auto& e : edges)
+  auto itFirstEdge = edges.begin();
+  if(itFirstEdge != edges.end())
   {
-    roots.erase(e.target);
+    nodeid_t lastNodeID = itFirstEdge->source;
+    uint32_t currentFanout = 0;
 
-    if(lastNodeID != e.source)
+    for(const auto& e : edges)
     {
-      statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
-      sumFanOut += currentFanout;
+      roots.erase(e.target);
 
-      numOfNodes++;
-      currentFanout = 0;
-      lastNodeID = e.source;
+      if(lastNodeID != e.source)
+      {
+        statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
+        sumFanOut += currentFanout;
+
+        numOfNodes++;
+        currentFanout = 0;
+        lastNodeID = e.source;
+      }
+      currentFanout++;
     }
-    currentFanout++;
+    // add the statistics for the last node
+    statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
+    sumFanOut += currentFanout;
+    numOfNodes++;
   }
-  // add the statistics for the last node
-  statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
-  sumFanOut += currentFanout;
-  numOfNodes++;
 
 
   if(roots.empty() && !edges.empty())

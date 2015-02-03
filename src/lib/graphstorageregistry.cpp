@@ -195,7 +195,7 @@ std::string GraphStorageRegistry::getImplByHeuristics(const Component &component
       }
       else if(stats.maxDepth < std::numeric_limits<uint16_t>::max())
       {
-        result = linearP8;
+        result = linearP16;
       }
 
     }
