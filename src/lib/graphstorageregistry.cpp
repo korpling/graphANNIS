@@ -7,12 +7,15 @@
 
 using namespace annis;
 
+using PrePostOrderStorageO32L32 = PrePostOrderStorage<uint32_t, int32_t>;
+using PrePostOrderStorageO32L8 = PrePostOrderStorage<uint32_t, int8_t>;
+
 GraphStorageRegistry::GraphStorageRegistry()
 {
   // set default values
-  setImplementation("coverage", ComponentType::COVERAGE);
-  setImplementation("linear", ComponentType::ORDERING);
-  setImplementation("prepostorder", ComponentType::DOMINANCE);
+  setImplementation(coverage, ComponentType::COVERAGE);
+  setImplementation(linear, ComponentType::ORDERING);
+  setImplementation(prepostorder, ComponentType::DOMINANCE);
 
 }
 
@@ -31,7 +34,7 @@ std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStora
   {
     return linear;
   }
-  else if(dynamic_cast<const PrePostOrderStorage*>(db) != nullptr)
+  else if(dynamic_cast<const PrePostOrderStorageO32L32*>(db) != nullptr)
   {
     return prepostorder;
   }
@@ -54,7 +57,7 @@ ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, Strin
   }
   else if(name == prepostorder)
   {
-    return new PrePostOrderStorage(strings, component);
+    return new PrePostOrderStorageO32L32(strings, component);
   }
   else if(name == fallback)
   {
