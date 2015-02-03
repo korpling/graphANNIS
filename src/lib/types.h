@@ -103,10 +103,11 @@ namespace annis
     std::uint32_t val;
   };
 
+  template<typename pos_t>
   struct RelativePosition
   {
     nodeid_t root;
-    u_int32_t pos;
+    pos_t pos;
   };
 
 
@@ -167,14 +168,6 @@ namespace annis
       Edge result;
       result.source = source;
       result.target = target;
-      return result;
-    }
-
-    static RelativePosition initRelativePosition(nodeid_t node, u_int32_t pos)
-    {
-      RelativePosition result;
-      result.root = node;
-      result.pos = pos;
       return result;
     }
 

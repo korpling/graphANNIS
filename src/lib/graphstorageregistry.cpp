@@ -10,7 +10,13 @@ using namespace annis;
 using PrePostOrderStorageO32L32 = PrePostOrderStorage<uint32_t, int32_t>;
 using PrePostOrderStorageO32L8 = PrePostOrderStorage<uint32_t, int8_t>;
 
-const std::string GraphStorageRegistry::linear = "linear";
+using LinearEdgeDBP32 = LinearEdgeDB<uint32_t>;
+using LinearEdgeDBP16 = LinearEdgeDB<uint16_t>;
+using LinearEdgeDBP8 = LinearEdgeDB<uint8_t>;
+
+const std::string GraphStorageRegistry::linearP32 = "linear";
+const std::string GraphStorageRegistry::linearP16 = "linearP16";
+const std::string GraphStorageRegistry::linearP8 = "linearP8";
 const std::string GraphStorageRegistry::coverage = "coverage";
 const std::string GraphStorageRegistry::prepostorderO32L32 = "prepostorder";
 const std::string GraphStorageRegistry::prepostorderO32L8 = "prepostorderO32L8";
@@ -20,7 +26,7 @@ GraphStorageRegistry::GraphStorageRegistry()
 {
   // set default values
   setImplementation(coverage, ComponentType::COVERAGE);
-  setImplementation(linear, ComponentType::ORDERING);
+  setImplementation(linearP32, ComponentType::ORDERING);
 }
 
 GraphStorageRegistry::~GraphStorageRegistry()
@@ -34,9 +40,17 @@ std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStora
   {
     return coverage;
   }
-  else if(dynamic_cast<const LinearEdgeDB*>(db) != nullptr)
+  else if(dynamic_cast<const LinearEdgeDBP32*>(db) != nullptr)
   {
-    return linear;
+    return linearP32;
+  }
+  else if(dynamic_cast<const LinearEdgeDBP16*>(db) != nullptr)
+  {
+    return linearP16;
+  }
+  else if(dynamic_cast<const LinearEdgeDBP8*>(db) != nullptr)
+  {
+    return linearP8;
   }
   else if(dynamic_cast<const PrePostOrderStorageO32L32*>(db) != nullptr)
   {
@@ -59,9 +73,17 @@ ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, Strin
   {
     return new CoverageEdgeDB(strings, component);
   }
-  else if(name == linear)
+  else if(name == linearP32)
   {
-    return new LinearEdgeDB(strings, component);
+    return new LinearEdgeDBP32(strings, component);
+  }
+  else if(name == linearP16)
+  {
+    return new LinearEdgeDBP16(strings, component);
+  }
+  else if(name == linearP8)
+  {
+    return new LinearEdgeDBP8(strings, component);
   }
   else if(name == prepostorderO32L32)
   {
