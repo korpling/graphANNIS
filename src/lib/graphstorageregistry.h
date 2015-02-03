@@ -39,6 +39,16 @@ private:
   std::string getImplByRegistry(const Component& component);
   std::string getImplByHeuristics(const Component& component, GraphStatistic stats);
 
+  std::string getPrePostOrderBySize(const GraphStatistic& stats)
+  {
+    std::string result = prepostorderO32L32;
+    if(stats.valid && stats.maxDepth < std::numeric_limits<int8_t>::max())
+    {
+      result = prepostorderO32L8;
+    }
+    return result;
+  }
+
 };
 }
 

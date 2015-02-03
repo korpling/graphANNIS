@@ -199,17 +199,19 @@ std::string GraphStorageRegistry::getImplByHeuristics(const Component &component
       else
       {
         // we have a real tree
-        result = prepostorderO32L32;
-        if(stats.valid && stats.maxDepth < std::numeric_limits<int8_t>::max())
-        {
-          result = prepostorderO32L8;
-        }
+        result = getPrePostOrderBySize(stats);
       }
     }
     else if(!stats.cyclic)
     {
-      // TODO: it might be still wise to use pre/post order if the graph is "almost" a tree, thus
+      // t might be still wise to use pre/post order if the graph is "almost" a tree, thus
       // does not have many exceptions
+      if(stats.dfsVisitRatio <= 1.03)
+      {
+        // there is no more than 3% overhead
+        // TODO: how to determine the border?
+        result = getPrePostOrderBySize(stats);
+      }
     }
   }
 
