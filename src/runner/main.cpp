@@ -35,6 +35,10 @@ void completion(const char *bufRaw, linenoiseCompletions *lc)
   {
     linenoiseAddCompletion(lc, "load");
   }
+  else if(boost::starts_with(buf, "o"))
+  {
+    linenoiseAddCompletion(lc, "optimize");
+  }
 }
 
 
@@ -111,6 +115,12 @@ int main(int argc, char** argv)
       else if(cmd == "info")
       {
         std::cout << db.info() << std::endl;
+      }
+      else if(cmd == "optimize")
+      {
+        std::cout << "Optimizing..." << std::endl;
+        db.optimizeAll();
+        std::cout << "Finished." << std::endl;
       }
       else if (cmd == "quit" || cmd == "exit")
       {
