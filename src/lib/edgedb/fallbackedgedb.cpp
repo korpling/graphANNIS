@@ -161,6 +161,8 @@ bool FallbackEdgeDB::load(std::string dirPath)
 {
   clear();
 
+  ReadableGraphStorage::load(dirPath);
+
   ifstream in;
 
   in.open(dirPath + "/edges.btree");
@@ -175,6 +177,8 @@ bool FallbackEdgeDB::load(std::string dirPath)
 
 bool FallbackEdgeDB::save(std::string dirPath)
 {
+  ReadableGraphStorage::save(dirPath);
+
   ofstream out;
 
   out.open(dirPath + "/edges.btree");

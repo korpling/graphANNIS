@@ -147,7 +147,9 @@ int LinearEdgeDB::distance(const Edge &edge) const
 
 bool LinearEdgeDB::save(string dirPath)
 {
-  bool result = edgeAnno.save(dirPath);
+  bool result = ReadableGraphStorage::save(dirPath);
+
+  result = result && edgeAnno.save(dirPath);
 
   ofstream out;
 
@@ -205,7 +207,9 @@ std::vector<nodeid_t> LinearEdgeDB::getIncomingEdges(nodeid_t node) const
 
 bool LinearEdgeDB::load(string dirPath)
 {
-  bool result = edgeAnno.save(dirPath);
+  bool result = ReadableGraphStorage::save(dirPath);
+
+  result = result && edgeAnno.save(dirPath);
   ifstream in;
 
 

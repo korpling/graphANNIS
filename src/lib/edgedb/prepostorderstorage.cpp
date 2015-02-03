@@ -27,6 +27,8 @@ PrePostOrderStorage::~PrePostOrderStorage()
 
 bool PrePostOrderStorage::load(std::string dirPath)
 {
+  ReadableGraphStorage::load(dirPath);
+
   node2order.clear();
   order2node.clear();
 
@@ -46,7 +48,9 @@ bool PrePostOrderStorage::load(std::string dirPath)
 
 bool PrePostOrderStorage::save(std::string dirPath)
 {
-  bool result = edgeAnno.save(dirPath);
+  bool result = ReadableGraphStorage::save(dirPath);
+
+  result = result && edgeAnno.save(dirPath);
 
   std::ofstream out;
 

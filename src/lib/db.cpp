@@ -67,6 +67,11 @@ bool DB::load(string dirPath)
         // try to load the component with the empty name
         Component emptyNameComponent = {(ComponentType) componentType,
             layerPath.filename().string(), ""};
+        HL_INFO(logger, (boost::format("loading component %1%|%2%|%3%")
+                         % ComponentTypeHelper::toString(emptyNameComponent.type)
+                         % emptyNameComponent.layer
+                         % emptyNameComponent.name).str());
+
         ReadableGraphStorage* edbEmptyName = registry.createEdgeDB(implName, strings, emptyNameComponent);
         edbEmptyName->load(layerPath.string());
         edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(emptyNameComponent,edbEmptyName));
@@ -84,6 +89,10 @@ bool DB::load(string dirPath)
                                                            layerPath.filename().string(),
                                                            namedComponentPath.filename().string()
                                        };
+            HL_INFO(logger, (boost::format("loading component %1%|%2%|%3%")
+                             % ComponentTypeHelper::toString(namedComponent.type)
+                             % namedComponent.layer
+                             % namedComponent.name).str());
             ReadableGraphStorage* edbNamed = registry.createEdgeDB(implName, strings, namedComponent);
             edbNamed->load(namedComponentPath.string());
             edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(namedComponent,edbNamed));

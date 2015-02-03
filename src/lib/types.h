@@ -187,10 +187,6 @@ namespace annis
     }
   };
 
-
-
-
-
   inline bool operator==(const Annotation& lhs, const Annotation& rhs)
   {
       return lhs.ns == rhs.ns && lhs.name == rhs.name && lhs.val == rhs.val;
@@ -315,5 +311,26 @@ struct less<annis::TextProperty>
 };
 
 } // end namespace std
+
+namespace boost
+{
+namespace serialization
+{
+template<class Archive>
+inline void serialize(
+    Archive & ar,
+    annis::GraphStatistic & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.avgFanOut;
+  ar & t.maxFanOut;
+  ar & t.maxDepth;
+  ar & t.cyclic;
+  ar & t.rootedTree;
+  ar & t.valid;
+}
+} // end namespace serialization
+} // end namespace boost
 
 #endif // ANNISTYPES_H

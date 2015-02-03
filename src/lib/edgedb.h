@@ -49,8 +49,8 @@ public:
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const = 0;
   virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const = 0;
 
-  virtual bool load(std::string dirPath) = 0;
-  virtual bool save(std::string dirPath) = 0;
+  virtual bool load(std::string dirPath);
+  virtual bool save(std::string dirPath);
 
   virtual std::uint32_t numberOfEdges() const = 0;
   virtual std::uint32_t numberOfEdgeAnnotations() const = 0;
