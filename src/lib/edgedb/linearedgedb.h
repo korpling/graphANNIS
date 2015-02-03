@@ -107,6 +107,7 @@ public:
 
 public:
   LinearEdgeDB(StringStorage& strings, const Component& component)
+    : component(component)
   {
 
   }
@@ -331,6 +332,7 @@ public:
   }
 
 private:
+  const Component& component;
   stx::btree_map<nodeid_t, RelativePosition<pos_t>> node2pos;
   std::map<nodeid_t, std::vector<nodeid_t> > nodeChains;
 

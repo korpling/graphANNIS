@@ -211,6 +211,7 @@ using PrePostSpec = PrePost<order_t, level_t>;
 
 public:
   PrePostOrderStorage(StringStorage& strings, const Component& component)
+    : component(component)
   {
 
   }
@@ -489,6 +490,7 @@ public:
   }
 
 private:
+  const Component& component;
   stx::btree_multimap<nodeid_t, PrePostSpec> node2order;
   stx::btree_map<PrePostSpec, nodeid_t> order2node;
   EdgeAnnotationStorage edgeAnno;
