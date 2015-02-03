@@ -55,7 +55,7 @@ public:
 
   DB initDB()
   {
-    DB result(optimized);
+    DB result;
 
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
     std::string dataDir("data");

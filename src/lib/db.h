@@ -28,7 +28,7 @@ class DB
 
   typedef std::map<Component, ReadableGraphStorage*>::const_iterator EdgeDBIt;
 public:
-  DB(bool useSpecializedEdgeDB = true);
+  DB();
 
   bool loadRelANNIS(std::string dirPath);
   bool load(std::string dirPath);
@@ -161,8 +161,6 @@ private:
   std::uint32_t annisEmptyStringID;
   std::uint32_t annisTokStringID;
   std::uint32_t annisNodeNameStringID;
-
-  bool useSpecializedEdgeDB;
 
   bool loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
   bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);

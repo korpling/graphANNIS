@@ -21,8 +21,7 @@ HUMBLE_LOGGER(logger, "annis4");
 using namespace annis;
 using namespace std;
 
-DB::DB(bool useSpecializedEdgeDB)
-  : useSpecializedEdgeDB(useSpecializedEdgeDB)
+DB::DB()
 {
   addDefaultStrings();
 }
@@ -595,16 +594,8 @@ ReadableGraphStorage *DB::createEdgeDBForComponent(ComponentType ctype, const st
   if(itDB == edgeDatabases.end())
   {
 
-    // TODO: decide which implementation to use
     ReadableGraphStorage* edgeDB = NULL;
-    if(useSpecializedEdgeDB)
-    {
-      edgeDB = registry.createEdgeDB(strings, c, edgeDB->getStatistics());
-    }
-    else
-    {
-      edgeDB = registry.createEdgeDB(registry.fallback, strings, c);
-    }
+    edgeDB = registry.createEdgeDB(strings, c, edgeDB->getStatistics());
 
     // register the used implementation
     edgeDatabases.insert(pair<Component,ReadableGraphStorage*>(c,edgeDB));

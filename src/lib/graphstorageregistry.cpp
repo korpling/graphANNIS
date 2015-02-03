@@ -174,32 +174,45 @@ std::string GraphStorageRegistry::getImplByRegistry(const Component &component)
 
 std::string GraphStorageRegistry::getImplByHeuristics(const Component &component, GraphStatistic stats)
 {
-  std::string result = "";
-  if(component.type == ComponentType::DOMINANCE)
-  {
-    // decide which size to use
-    result = prepostorderO32L32;
-    if(stats.valid && stats.maxDepth < std::numeric_limits<int8_t>::max())
-    {
-      result = prepostorderO32L8;
-    }
-  }
-  else if(component.type == ComponentType::ORDERING)
-  {
-    result = linearP32;
-    if(stats.valid)
-    {
-      if(stats.maxDepth < std::numeric_limits<uint8_t>::max())
-      {
-        result = linearP8;
-      }
-      else if(stats.maxDepth < std::numeric_limits<uint16_t>::max())
-      {
-        result = linearP16;
-      }
+  std::string result = fallback;
 
+  if(stats.valid)
+  {
+    if(stats.rootedTree)
+    {
+      if(stats.maxFanOut <= 1)
+      {
+        // a tree where all nodes belong to the same path
+        if(stats.maxDepth < std::numeric_limits<uint8_t>::max())
+        {
+          result = linearP8;
+        }
+        else if(stats.maxDepth < std::numeric_limits<uint16_t>::max())
+        {
+          result = linearP16;
+        }
+        else if(stats.maxDepth < std::numeric_limits<uint32_t>::max())
+        {
+          result = linearP32;
+        }
+      }
+      else
+      {
+        // we have a real tree
+        result = prepostorderO32L32;
+        if(stats.valid && stats.maxDepth < std::numeric_limits<int8_t>::max())
+        {
+          result = prepostorderO32L8;
+        }
+      }
+    }
+    else if(!stats.cyclic)
+    {
+      // TODO: it might be still wise to use pre/post order if the graph is "almost" a tree, thus
+      // does not have many exceptions
     }
   }
+
 
   return result;
 }
