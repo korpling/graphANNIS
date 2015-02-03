@@ -10,12 +10,18 @@ using namespace annis;
 using PrePostOrderStorageO32L32 = PrePostOrderStorage<uint32_t, int32_t>;
 using PrePostOrderStorageO32L8 = PrePostOrderStorage<uint32_t, int8_t>;
 
+const std::string GraphStorageRegistry::linear = "linear";
+const std::string GraphStorageRegistry::coverage = "coverage";
+const std::string GraphStorageRegistry::prepostorderO32L32 = "prepostorder";
+const std::string GraphStorageRegistry::prepostorderO32L8 = "prepostorderO32L8";
+const std::string GraphStorageRegistry::fallback = "fallback";
+
 GraphStorageRegistry::GraphStorageRegistry()
 {
   // set default values
   setImplementation(coverage, ComponentType::COVERAGE);
   setImplementation(linear, ComponentType::ORDERING);
-  setImplementation(prepostorder, ComponentType::DOMINANCE);
+  setImplementation(prepostorderO32L32, ComponentType::DOMINANCE);
 
 }
 
@@ -36,7 +42,7 @@ std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStora
   }
   else if(dynamic_cast<const PrePostOrderStorageO32L32*>(db) != nullptr)
   {
-    return prepostorder;
+    return prepostorderO32L32;
   }
   else if(dynamic_cast<const FallbackEdgeDB*>(db) != nullptr)
   {
@@ -55,7 +61,7 @@ ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, Strin
   {
     return new LinearEdgeDB(strings, component);
   }
-  else if(name == prepostorder)
+  else if(name == prepostorderO32L32)
   {
     return new PrePostOrderStorageO32L32(strings, component);
   }

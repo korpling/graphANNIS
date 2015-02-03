@@ -18,6 +18,7 @@
 #include <operators/overlap.h>
 #include <operators/pointing.h>
 #include <wrapper.h>
+#include <graphstorageregistry.h>
 
 HUMBLE_LOGGER(logger, "default");
 
@@ -70,7 +71,7 @@ public:
       auto components = result.getAllComponents();
       for(auto c : components)
       {
-        result.convertComponent(c, "fallback");
+        result.convertComponent(c, GraphStorageRegistry::fallback);
       }
     }
     else

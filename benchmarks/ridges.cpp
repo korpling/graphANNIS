@@ -1,5 +1,6 @@
 #include "benchmark.h"
 #include "examplequeries.h"
+#include "graphstorageregistry.h"
 
 char ridgesCorpus[] = "ridges";
 
@@ -18,7 +19,7 @@ public:
   {
 //    addOverride(ComponentType::COVERAGE, annis_ns, "", "prepostorder");
 //    addOverride(ComponentType::COVERAGE, "default_ns", "", "prepostorder");
-    addOverride(ComponentType::ORDERING, annis_ns, "", "fallback");
+    addOverride(ComponentType::ORDERING, annis_ns, "", GraphStorageRegistry::fallback);
 //    addOverride(ComponentType::LEFT_TOKEN, annis_ns, "", "prepostorder");
 //    addOverride(ComponentType::RIGHT_TOKEN, annis_ns, "", "prepostorder");
   }

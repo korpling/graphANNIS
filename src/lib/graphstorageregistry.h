@@ -24,17 +24,17 @@ public:
   void setImplementation(std::string implName, ComponentType type, std::string layer);
   void setImplementation(std::string implName, ComponentType type, std::string layer, std::string name);
 public:
-  const std::string linear = "linear";
-  const std::string coverage = "coverage";
-  const std::string prepostorder = "prepostorder";
-  const std::string fallback = "fallback";
+  static const std::string linear;
+  static const std::string coverage;
+  static const std::string prepostorderO32L32;
+  static const std::string prepostorderO32L8;
+  static const std::string fallback;
 
 private:
 
   std::map<Component, std::string> componentToImpl;
 
 };
-
 }
 
 #endif // GRAPHSTORAGEREGISTRY_H
