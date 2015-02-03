@@ -203,7 +203,7 @@ void FallbackEdgeDB::calculateStatistics()
   statistics.maxDepth = 1;
   statistics.avgFanOut = 0.0;
   statistics.cyclic = false;
-  statistics.tree = true;
+  statistics.rootedTree = true;
 
   unsigned int numOfNodes = 0;
   unsigned int sumFanOut = 0;
@@ -216,7 +216,7 @@ void FallbackEdgeDB::calculateStatistics()
   for(const auto& e : edges)
   {
     roots.insert(e.source);
-    if(statistics.tree)
+    if(statistics.rootedTree)
     {
       auto findTarget = hasIncomingEdge.find(e.target);
       if(findTarget == hasIncomingEdge.end())
@@ -225,7 +225,7 @@ void FallbackEdgeDB::calculateStatistics()
       }
       else
       {
-        statistics.tree = false;
+        statistics.rootedTree = false;
       }
     }
   }
