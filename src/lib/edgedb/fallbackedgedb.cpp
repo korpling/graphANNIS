@@ -205,11 +205,8 @@ void FallbackEdgeDB::calculateStatistics()
   statistics.cyclic = false;
   statistics.tree = true;
 
-  double numOfNodes = 0.0;
-  double sumFanOut = 0.0;
-
-  nodeid_t lastNodeID = 0;
-  uint32_t currentFanout = 0;
+  unsigned int numOfNodes = 0;
+  unsigned int sumFanOut = 0;
 
 
   std::unordered_set<nodeid_t> hasIncomingEdge;
@@ -234,6 +231,9 @@ void FallbackEdgeDB::calculateStatistics()
   }
 
 
+  nodeid_t lastNodeID = edges.begin()->source;
+  uint32_t currentFanout = 0;
+
   for(const auto& e : edges)
   {
     roots.erase(e.target);
@@ -247,11 +247,13 @@ void FallbackEdgeDB::calculateStatistics()
       currentFanout = 0;
       lastNodeID = e.source;
     }
-    else
-    {
-      currentFanout++;
-    }
+    currentFanout++;
   }
+  // add the statistics for the last node
+  statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
+  sumFanOut += currentFanout;
+  numOfNodes++;
+
 
   if(roots.empty() && !edges.empty())
   {
@@ -282,7 +284,7 @@ void FallbackEdgeDB::calculateStatistics()
 
   if(sumFanOut > 0 && numOfNodes > 0)
   {
-    statistics.avgFanOut = sumFanOut / numOfNodes;
+    statistics.avgFanOut =  (double) sumFanOut / (double) numOfNodes;
     statistics.valid = true;
   }
 
