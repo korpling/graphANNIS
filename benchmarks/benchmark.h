@@ -26,7 +26,7 @@ using namespace annis;
 
 #define DBGETTER virtual DB& getDB() {static DB db = initDB(); return db;}
 
-template<bool optimized, char const* corpusName>
+template<bool forceFallback, char const* corpusName>
 class CorpusFixture : public ::celero::TestFixture
 {
 public:
@@ -65,7 +65,7 @@ public:
     }
     result.load(dataDir + "/" + corpus);
 
-    if(!optimized)
+    if(forceFallback)
     {
       // manually convert all components to fallback implementation
       auto components = result.getAllComponents();
@@ -76,11 +76,7 @@ public:
     }
     else
     {
-      // check if we want to override some implementations
-      for(auto it=overrideImpl.begin(); it != overrideImpl.end(); it++)
-      {
-        result.convertComponent(it->first, it->second);
-      }
+      result.optimizeAll(overrideImpl);
     }
 
     return result;

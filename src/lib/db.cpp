@@ -68,10 +68,8 @@ bool DB::load(string dirPath)
           // try to load the component with the empty name
           Component emptyNameComponent = {(ComponentType) componentType,
               layerPath.filename().string(), ""};
-          HL_INFO(logger, (boost::format("loading component %1%|%2%|%3%")
-                           % ComponentTypeHelper::toString(emptyNameComponent.type)
-                           % emptyNameComponent.layer
-                           % emptyNameComponent.name).str());
+          HL_INFO(logger, (boost::format("loading component %1%")
+                           % debugComponentString(emptyNameComponent)).str());
 
           ReadableGraphStorage* edbEmptyName = registry.createEdgeDB(implName, strings, emptyNameComponent);
           edbEmptyName->load(layerPath.string());
@@ -91,10 +89,8 @@ bool DB::load(string dirPath)
                                                            layerPath.filename().string(),
                                                            namedComponentPath.filename().string()
                                        };
-            HL_INFO(logger, (boost::format("loading component %1%|%2%|%3%")
-                             % ComponentTypeHelper::toString(namedComponent.type)
-                             % namedComponent.layer
-                             % namedComponent.name).str());
+            HL_INFO(logger, (boost::format("loading component %1%")
+                             % debugComponentString(namedComponent)).str());
             ReadableGraphStorage* edbNamed = registry.createEdgeDB(implName, strings, namedComponent);
             edbNamed->load(namedComponentPath.string());
             edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(namedComponent,edbNamed));
@@ -205,10 +201,6 @@ bool DB::loadRelANNIS(string dirPath)
   }
   for(auto c : componentCopy)
   {
-    HL_INFO(logger, (boost::format("component calculations %1%|%2%|%3%")
-                     % ComponentTypeHelper::toString(c.type)
-                     % c.layer
-                     % c.name).str());
     convertComponent(c);
   }
   HL_INFO(logger, "Finished loading relANNIS");
@@ -637,7 +629,7 @@ EdgeDB* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const
 
 }
 
-void DB::convertComponent(Component c, std::string optimizedImpl)
+void DB::convertComponent(Component c, std::string impl)
 {
   map<Component, ReadableGraphStorage*>::const_iterator
       it = edgeDatabases.find(c);
@@ -651,17 +643,19 @@ void DB::convertComponent(Component c, std::string optimizedImpl)
     }
 
     std::string currentImpl = registry.getName(oldStorage);
-    if(optimizedImpl == "")
+    if(impl == "")
     {
-      optimizedImpl = registry.getOptimizedImpl(c, oldStorage->getStatistics());
+      impl = registry.getOptimizedImpl(c, oldStorage->getStatistics());
     }
     ReadableGraphStorage* newStorage = oldStorage;
-    if(currentImpl != optimizedImpl)
+    if(currentImpl != impl)
     {
+      HL_INFO(logger, (boost::format("converting component %1% from %2% to %3%")
+                       % debugComponentString(c)
+                       % currentImpl
+                       % impl).str());
 
-//      std::cerr << "converting component " << ComponentTypeHelper::toString(c.type)
-//                << " " << c.layer << ":" << c.name << " from " << currentImpl << " to " << optimizedImpl << std::endl;
-      newStorage = registry.createEdgeDB(optimizedImpl, strings, c);
+      newStorage = registry.createEdgeDB(impl, strings, c);
       newStorage->copy(*this, *oldStorage);
       edgeDatabases[c] = newStorage;
       delete oldStorage;
@@ -672,6 +666,23 @@ void DB::convertComponent(Component c, std::string optimizedImpl)
     if(asEdgeDB != nullptr)
     {
       asEdgeDB->calculateIndex();
+    }
+  }
+}
+
+void DB::optimizeAll(const std::map<Component, string>& manualExceptions)
+{
+  for(const auto& c : getAllComponents())
+  {
+    auto find = manualExceptions.find(c);
+    if(find == manualExceptions.end())
+    {
+      // get the automatic calculated best implementation
+      convertComponent(c);
+    }
+    else
+    {
+      convertComponent(c, find->second);
     }
   }
 }
@@ -726,8 +737,7 @@ string DB::info()
     const ReadableGraphStorage* edb = it->second;
 
 
-    ss << "Component " << ComponentTypeHelper::toString(c.type) << "|" << c.layer
-       << "|" << c.name << ": " << edb->numberOfEdges() << " edges and "
+    ss << "Component " << debugComponentString(c) << ": " << edb->numberOfEdges() << " edges and "
        << edb->numberOfEdgeAnnotations() << " annotations" << endl;
 
 

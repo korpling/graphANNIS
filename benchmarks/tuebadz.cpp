@@ -4,7 +4,7 @@
 char tuebaCorpus[] = "tuebadz6";
 char tuebaCorpusSmall[] = "tuebadz6_small";
 
-class TuebaFixture : public CorpusFixture<true, tuebaCorpus>
+class TuebaFixture : public CorpusFixture<false, tuebaCorpus>
 {
 public:
   DBGETTER
@@ -12,7 +12,7 @@ public:
   virtual ~TuebaFixture() {}
 
 };
-class TuebaFallbackFixture : public CorpusFixture<false, tuebaCorpus>
+class TuebaFallbackFixture : public CorpusFixture<true, tuebaCorpus>
 {
 public:
   DBGETTER
@@ -21,7 +21,7 @@ public:
   virtual ~TuebaFallbackFixture() {}
 };
 
-class TuebaFixtureVar : public CorpusFixture<true, tuebaCorpus>
+class TuebaFixtureVar : public CorpusFixture<false, tuebaCorpus>
 {
 public:
   DBGETTER
@@ -41,7 +41,7 @@ public:
 
   unsigned int maxDistance;
 };
-class TuebaFallbackFixtureVar : public CorpusFixture<false, tuebaCorpus>
+class TuebaFallbackFixtureVar : public CorpusFixture<true, tuebaCorpus>
 {
 public:
 

@@ -140,7 +140,9 @@ public:
   inline std::uint32_t getEmptyStringID() const {return annisEmptyStringID;}
   inline std::uint32_t getTokStringID() const {return annisTokStringID;}
 
-  void convertComponent(Component c, std::string optimizedImpl = "");
+  void convertComponent(Component c, std::string impl = "");
+
+  void optimizeAll(const std::map<Component, std::string> &manualExceptions = std::map<Component, std::string>());
 
   virtual ~DB();
 public:
@@ -191,6 +193,15 @@ private:
   std::string getImplNameForPath(std::string directory);
 
   ComponentType componentTypeFromShortName(std::string shortType);
+
+  std::string debugComponentString(const Component& c)
+  {
+    std::stringstream ss;
+    ss << ComponentTypeHelper::toString(c.type) << "|" << c.layer
+       << "|" << c.name;
+    return ss.str();
+
+  }
 };
 
 } // end namespace annis

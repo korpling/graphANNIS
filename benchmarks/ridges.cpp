@@ -4,14 +4,14 @@
 
 char ridgesCorpus[] = "ridges";
 
-class RidgesFixture : public CorpusFixture<true, ridgesCorpus>
+class RidgesFixture : public CorpusFixture<false, ridgesCorpus>
 {
 public:
   DBGETTER
   virtual ~RidgesFixture() {}
 };
 
-class RidgesPrePostFixture : public CorpusFixture<true, ridgesCorpus>
+class RidgesPrePostFixture : public CorpusFixture<false, ridgesCorpus>
 {
 public:
 
@@ -29,7 +29,7 @@ public:
   virtual ~RidgesPrePostFixture() {}
 };
 
-class RidgesFallbackFixture : public CorpusFixture<false, ridgesCorpus>
+class RidgesFallbackFixture : public CorpusFixture<true, ridgesCorpus>
 {
 public:
   DBGETTER

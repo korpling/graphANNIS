@@ -3,14 +3,14 @@
 
 char tigerCorpus[] = "tiger2";
 
-class TigerFixture : public CorpusFixture<true, tigerCorpus>
+class TigerFixture : public CorpusFixture<false, tigerCorpus>
 {
 public:
   DBGETTER
 
   virtual ~TigerFixture() {}
 };
-class TigerFallbackFixture : public CorpusFixture<false, tigerCorpus>
+class TigerFallbackFixture : public CorpusFixture<true, tigerCorpus>
 {
 public:
   DBGETTER
