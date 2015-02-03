@@ -736,6 +736,10 @@ string DB::info()
       {
         ss << "non-cyclic, max. depth: " << stat.maxDepth << endl;
       }
+      if(stat.tree)
+      {
+        ss << "tree" << endl;
+      }
     }
     ss << "--------------------" << endl;
   }

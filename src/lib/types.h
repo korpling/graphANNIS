@@ -137,6 +137,7 @@ namespace annis
     uint32_t maxDepth;
 
     bool cyclic;
+    bool tree;
 
     /** Flag to indicate whether the statistics was set */
     bool valid;

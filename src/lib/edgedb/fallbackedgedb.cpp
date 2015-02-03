@@ -203,6 +203,7 @@ void FallbackEdgeDB::calculateStatistics()
   statistics.maxDepth = 1;
   statistics.avgFanOut = 0.0;
   statistics.cyclic = false;
+  statistics.tree = true;
 
   double numOfNodes = 0.0;
   double sumFanOut = 0.0;
@@ -210,12 +211,28 @@ void FallbackEdgeDB::calculateStatistics()
   nodeid_t lastNodeID = 0;
   uint32_t currentFanout = 0;
 
+
+  std::unordered_set<nodeid_t> hasIncomingEdge;
+
   // find all root nodes
   set<nodeid_t> roots;
   for(const auto& e : edges)
   {
     roots.insert(e.source);
+    if(statistics.tree)
+    {
+      auto findTarget = hasIncomingEdge.find(e.target);
+      if(findTarget == hasIncomingEdge.end())
+      {
+        hasIncomingEdge.insert(e.target);
+      }
+      else
+      {
+        statistics.tree = false;
+      }
+    }
   }
+
 
   for(const auto& e : edges)
   {
