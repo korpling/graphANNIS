@@ -178,7 +178,12 @@ std::string GraphStorageRegistry::getImplByHeuristics(const Component &component
 
   if(stats.valid)
   {
-    if(stats.rootedTree)
+    if(stats.maxDepth <= 1)
+    {
+      // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
+      result = fallback;
+    }
+    else if(stats.rootedTree)
     {
       if(stats.maxFanOut <= 1)
       {
