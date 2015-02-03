@@ -130,6 +130,16 @@ namespace annis
   /** Some general statistical numbers specific to a graph component */
   struct GraphStatistic
   {
+
+    /** Flag to indicate whether the statistics was set */
+    bool valid;
+
+    bool cyclic;
+    bool rootedTree;
+
+    /** number of nodes */
+    uint32_t nodes;
+
     /** Average fan out  */
     double avgFanOut;
     /** maximal number of children of a node */
@@ -137,11 +147,8 @@ namespace annis
     /** maximum length from a root node to a terminal node */
     uint32_t maxDepth;
 
-    bool cyclic;
-    bool rootedTree;
-
-    /** Flag to indicate whether the statistics was set */
-    bool valid;
+    /** only for acyclic graphs: the average number of times a DFS will visit each node */
+    double dfsVisitRatio;
   };
 
   class Init
@@ -316,12 +323,17 @@ inline void serialize(
     const unsigned int file_version
     )
 {
+  ar & t.valid;
+
+  ar & t.cyclic;
+  ar & t.rootedTree;
+
+  ar & t.nodes;
+
   ar & t.avgFanOut;
   ar & t.maxFanOut;
   ar & t.maxDepth;
-  ar & t.cyclic;
-  ar & t.rootedTree;
-  ar & t.valid;
+  ar & t.dfsVisitRatio;
 }
 } // end namespace serialization
 } // end namespace boost

@@ -21,7 +21,7 @@ public:
 
   ReadableGraphStorage()
   {
-    statistics.valid = false;
+    stat.valid = false;
   }
 
   virtual ~ReadableGraphStorage() {}
@@ -57,13 +57,13 @@ public:
 
   virtual GraphStatistic getStatistics() const
   {
-    return statistics;
+    return stat;
   }
 
   virtual void calculateStatistics() {}
 
 protected:
-  GraphStatistic statistics;
+  GraphStatistic stat;
 };
 
 class EdgeDB : public ReadableGraphStorage

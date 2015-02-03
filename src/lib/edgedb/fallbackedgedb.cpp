@@ -35,7 +35,7 @@ void FallbackEdgeDB::copy(const DB &db, const ReadableGraphStorage &orig)
     }
   }
 
-  statistics = orig.getStatistics();
+  stat = orig.getStatistics();
 
   calculateIndex();
 }
@@ -45,7 +45,7 @@ void FallbackEdgeDB::addEdge(const Edge &edge)
   if(edge.source != edge.target)
   {
     edges.insert(edge);
-    statistics.valid = false;
+    stat.valid = false;
   }
 }
 
@@ -59,7 +59,7 @@ void FallbackEdgeDB::clear()
   edges.clear();
   edgeAnnos.clear();
 
-  statistics.valid = false;
+  stat.valid = false;
 }
 
 bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
@@ -202,25 +202,29 @@ std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
 
 void FallbackEdgeDB::calculateStatistics()
 {
-  statistics.valid = false;
-  statistics.maxFanOut = 0;
-  statistics.maxDepth = 1;
-  statistics.avgFanOut = 0.0;
-  statistics.cyclic = false;
-  statistics.rootedTree = true;
+  stat.valid = false;
+  stat.maxFanOut = 0;
+  stat.maxDepth = 1;
+  stat.avgFanOut = 0.0;
+  stat.cyclic = false;
+  stat.rootedTree = true;
+  stat.nodes = 0;
 
-  unsigned int numOfNodes = 0;
   unsigned int sumFanOut = 0;
 
 
   std::unordered_set<nodeid_t> hasIncomingEdge;
 
   // find all root nodes
-  set<nodeid_t> roots;
+  unordered_set<nodeid_t> roots;
+  unordered_set<nodeid_t> allNodes;
   for(const auto& e : edges)
   {
     roots.insert(e.source);
-    if(statistics.rootedTree)
+    allNodes.insert(e.source);
+    allNodes.insert(e.target);
+
+    if(stat.rootedTree)
     {
       auto findTarget = hasIncomingEdge.find(e.target);
       if(findTarget == hasIncomingEdge.end())
@@ -229,43 +233,46 @@ void FallbackEdgeDB::calculateStatistics()
       }
       else
       {
-        statistics.rootedTree = false;
+        stat.rootedTree = false;
       }
     }
   }
 
+  stat.nodes = allNodes.size();
+  allNodes.clear();
+
   auto itFirstEdge = edges.begin();
   if(itFirstEdge != edges.end())
   {
-    nodeid_t lastNodeID = itFirstEdge->source;
+    nodeid_t lastSourceID = itFirstEdge->source;
     uint32_t currentFanout = 0;
 
     for(const auto& e : edges)
     {
       roots.erase(e.target);
 
-      if(lastNodeID != e.source)
+      if(lastSourceID != e.source)
       {
-        statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
+
+        stat.maxFanOut = std::max(stat.maxFanOut, currentFanout);
         sumFanOut += currentFanout;
 
-        numOfNodes++;
         currentFanout = 0;
-        lastNodeID = e.source;
+        lastSourceID = e.source;
       }
       currentFanout++;
     }
     // add the statistics for the last node
-    statistics.maxFanOut = std::max(statistics.maxFanOut, currentFanout);
+    stat.maxFanOut = std::max(stat.maxFanOut, currentFanout);
     sumFanOut += currentFanout;
-    numOfNodes++;
   }
 
 
+  uint64_t numberOfVisits = 0;
   if(roots.empty() && !edges.empty())
   {
     // if we have edges but no roots at all there must be a cycle
-    statistics.cyclic = true;
+    stat.cyclic = true;
   }
   else
   {
@@ -274,25 +281,37 @@ void FallbackEdgeDB::calculateStatistics()
       CycleSafeDFS dfs(*this, rootNode, 0, uintmax, false);
       for(auto n = dfs.nextDFS(); n.found; n = dfs.nextDFS())
       {
-        statistics.maxDepth = std::max(statistics.maxDepth, n.distance);
+        numberOfVisits++;
+
+
+        stat.maxDepth = std::max(stat.maxDepth, n.distance);
       }
       if(dfs.cyclic())
       {
-        statistics.cyclic = true;
+        stat.cyclic = true;
       }
     }
   }
 
-  if(statistics.cyclic)
+  if(stat.cyclic)
   {
     // it's infinite
-    statistics.maxDepth = 0;
+    stat.maxDepth = 0;
+    stat.dfsVisitRatio = 0.0;
+  }
+  else
+  {
+    if(stat.nodes > 0)
+    {
+      stat.dfsVisitRatio = (double) numberOfVisits / (double) stat.nodes;
+    }
   }
 
-  if(sumFanOut > 0 && numOfNodes > 0)
+  if(sumFanOut > 0 && stat.nodes > 0)
   {
-    statistics.avgFanOut =  (double) sumFanOut / (double) numOfNodes;
-    statistics.valid = true;
+    stat.avgFanOut =  (double) sumFanOut / (double) stat.nodes;
   }
+
+  stat.valid = true;
 
 }

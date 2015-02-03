@@ -11,14 +11,14 @@ using namespace std;
 
 bool ReadableGraphStorage::load(string dirPath)
 {
-  statistics.valid = false;
+  stat.valid = false;
   ifstream in;
 
   in.open(dirPath + "/statistics.archive");
   if(in.is_open())
   {
     boost::archive::binary_iarchive ia(in);
-    ia >> statistics;
+    ia >> stat;
     in.close();
   }
   return true;
@@ -30,7 +30,7 @@ bool ReadableGraphStorage::save(string dirPath)
 
   out.open(dirPath + "/statistics.archive");
   boost::archive::binary_oarchive oa(out);
-  oa << statistics;
+  oa << stat;
   out.close();
 
   return true;

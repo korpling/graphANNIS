@@ -177,7 +177,7 @@ public:
       }
     }
 
-    statistics = orig.getStatistics();
+    stat = orig.getStatistics();
   }
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const

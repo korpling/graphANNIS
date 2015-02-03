@@ -345,7 +345,7 @@ public:
 
     } // end for each root
 
-    statistics = orig.getStatistics();
+    stat = orig.getStatistics();
   }
 
   virtual void clear()

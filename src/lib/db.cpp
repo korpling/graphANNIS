@@ -750,6 +750,7 @@ string DB::info()
     GraphStatistic stat = edb->getStatistics();
     if(stat.valid)
     {
+      ss << "nodes: " << stat.nodes << endl;
       ss << "fan-out: " << stat.avgFanOut << " (avg) / " << stat.maxFanOut << " (max)" << endl;
       if(stat.cyclic)
       {
@@ -757,7 +758,8 @@ string DB::info()
       }
       else
       {
-        ss << "non-cyclic, max. depth: " << stat.maxDepth << endl;
+        ss << "non-cyclic, max. depth: " << stat.maxDepth << ", DFS visit ratio: " << stat.dfsVisitRatio << endl;
+
       }
       if(stat.rootedTree)
       {
