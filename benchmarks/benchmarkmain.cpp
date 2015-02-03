@@ -4,8 +4,16 @@
 HUMBLE_LOGGER(logger, "default");
 
 
-///
-/// This is the main(int argc, char** argv) for the entire celero program.
-/// You can write your own, or use this macro to insert the standard one into the project.
-///
-CELERO_MAIN
+int main(int argc, char **argv)
+{
+
+  humble::logging::Factory &fac = humble::logging::Factory::getInstance();
+
+
+  fac.setDefaultLogLevel(humble::logging::LogLevel::Info);
+  fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date]- %m (%lls, %filename:%line)\n"));
+  fac.registerAppender(new humble::logging::FileAppender("benchmark_annis4.log"));
+
+  celero::Run(argc, argv);
+  return 0;
+}
