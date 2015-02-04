@@ -454,7 +454,8 @@ public:
       const auto& targetOrder = itTarget->second;
       // get all nodes that are potential predecessors
       PrePostSpec minPrePost = {0, 0, 0};
-      PrePostSpec maxPrePost = {targetOrder.pre-1,
+      order_t upperOrder = targetOrder.pre > 0 ? targetOrder.pre-1 : 0;
+      PrePostSpec maxPrePost = {upperOrder,
                                 std::numeric_limits<order_t>::max(),
                                 std::numeric_limits<level_t>::max()};
       auto itMin = order2node.lower_bound(minPrePost);

@@ -30,6 +30,8 @@ public:
   static const std::string coverage;
   static const std::string prepostorderO32L32;
   static const std::string prepostorderO32L8;
+  static const std::string prepostorderO16L32;
+  static const std::string prepostorderO16L8;
   static const std::string fallback;
 
 private:
@@ -42,9 +44,23 @@ private:
   std::string getPrePostOrderBySize(const GraphStatistic& stats)
   {
     std::string result = prepostorderO32L32;
-    if(stats.valid && stats.maxDepth < std::numeric_limits<int8_t>::max())
+    if(stats.valid)
     {
-      result = prepostorderO32L8;
+      if(stats.nodes < std::numeric_limits<uint16_t>::max()
+         && stats.maxDepth < std::numeric_limits<int8_t>::max())
+      {
+        result = prepostorderO16L8;
+      }
+      else if(stats.nodes < std::numeric_limits<uint16_t>::max()
+              && stats.maxDepth < std::numeric_limits<int32_t>::max())
+      {
+        result = prepostorderO16L32;
+      }
+      else if( stats.nodes < std::numeric_limits<uint32_t>::max()
+              && stats.maxDepth < std::numeric_limits<int8_t>::max())
+      {
+        result = prepostorderO32L8;
+      }
     }
     return result;
   }
