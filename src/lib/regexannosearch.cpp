@@ -24,23 +24,15 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
 
   if(nameID.first && namespaceID.first)
   {
-    itBegin = db.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.upper_bound({nameID.second, namespaceID.second, uintmax});
+    auto lower = db.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
+    auto upper = db.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
+    searchRanges.push_back(Range(lower, upper));
   }
-  else if(nameID.first)
+  currentRange = searchRanges.begin();
+  if(currentRange != searchRanges.end())
   {
-    itBegin = db.inverseNodeAnnotations.lower_bound({nameID.second, 0, 0});
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.upper_bound({nameID.second, uintmax, uintmax});
+    it = currentRange->first;
   }
-  else
-  {
-    itBegin = db.inverseNodeAnnotations.end();
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.end();
-  }
-
 }
 
 
@@ -57,9 +49,20 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
   {
     annoTemplate.name = nameID.second;
 
-    itBegin = db.inverseNodeAnnotations.lower_bound({nameID.second, 0, 0});
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.upper_bound({nameID.second, uintmax, uintmax});
+    auto keysLower = db.nodeAnnoKeys.lower_bound({nameID.second, 0});
+    auto keysUpper = db.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
+    for(auto itKey = keysLower; itKey != keysUpper; itKey++)
+    {
+      auto lowerAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, 0});
+      auto upperAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, uintmax});
+      searchRanges.push_back(Range(lowerAnno, upperAnno));
+    }
+  }
+  currentRange = searchRanges.begin();
+
+  if(currentRange != searchRanges.end())
+  {
+    it = currentRange->first;
   }
 }
 
@@ -75,7 +78,11 @@ Match RegexAnnoSearch::next()
 
 void RegexAnnoSearch::reset()
 {
-  it = itBegin;
+  currentRange = searchRanges.begin();
+  if(currentRange != searchRanges.end())
+  {
+    it = currentRange->first;
+  }
   currentMatchValid = false;
 }
 
@@ -103,18 +110,22 @@ void RegexAnnoSearch::internalNextAnno()
   currentMatchValid = false;
   if(compiledValRegex.ok())
   {
-    while(it != itEnd)
+    while(currentRange != searchRanges.end())
     {
-      Match candidate = {it->second, it->first};
-      it++;
-
-      if(RE2::FullMatch(db.strings.str(candidate.anno.val), compiledValRegex))
+      while(it != currentRange->second)
       {
-        currentMatch = candidate;
-        currentMatchValid = true;
-        return;
-      }
-    }
+        Match candidate = {it->second, it->first};
+        it++;
+
+        if(RE2::FullMatch(db.strings.str(candidate.anno.val), compiledValRegex))
+        {
+          currentMatch = candidate;
+          currentMatchValid = true;
+          return;
+        }
+      } // end for each item in search range
+      currentRange++;
+    } // end for each search range
   }
 }
 
