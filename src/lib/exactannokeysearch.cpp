@@ -18,7 +18,8 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
 }
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
-  : db(db)
+  : db(db), currentMatchValid(false),
+    validAnnotationKeysInitialized(false)
 {
   std::pair<bool, uint32_t> searchResult = db.strings.findID(annoName);
 
@@ -49,7 +50,8 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
 }
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace, const string &annoName)
-  : db(db), validAnnotationKeysInitialized(false)
+  : db(db), currentMatchValid(false),
+    validAnnotationKeysInitialized(false)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> namespaceID = db.strings.findID(annoNamspace);
