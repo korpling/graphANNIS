@@ -20,13 +20,13 @@ public:
    * @param annoName
    */
   ExactAnnoValueSearch(const DB &db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
- // ExactAnnoValueSearch(const DB &db, const std::string& annoName, const std::string& annoValue);
+  ExactAnnoValueSearch(const DB &db, const std::string& annoName, const std::string& annoValue);
 
   virtual ~ExactAnnoValueSearch();
 
   virtual bool hasNext()
   {
-    return it != db.inverseNodeAnnotations.end() && it != itEnd;
+    return currentRange != searchRanges.end() && it != currentRange->second;
   }
 
   virtual Match next();
@@ -44,9 +44,9 @@ public:
 private:
   const DB& db;
 
+  std::list<Range> searchRanges;
+  std::list<Range>::const_iterator currentRange;
   ItType it;
-  ItType itBegin;
-  ItType itEnd;
 
   bool validAnnotationInitialized;
   std::unordered_set<Annotation> validAnnotations;

@@ -19,24 +19,35 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamsp
     key.ns = namspaceID.second;
     key.val = valueID.second;
 
-    itBegin = db.inverseNodeAnnotations.lower_bound(key);
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.upper_bound(key);
+    searchRanges.push_back(Range(db.inverseNodeAnnotations.equal_range(key)));
+    it = searchRanges.begin()->first;
   }
-  else
-  {
-    itBegin = db.inverseNodeAnnotations.end();
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.end();
-  }
+  currentRange = searchRanges.begin();
 }
 
-//ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &annoName, const std::string &annoValue)
-//  :db(db), validAnnotationInitialized(false)
-//{
-//  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
-//  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
-//}
+ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &annoName, const std::string &annoValue)
+  :db(db), validAnnotationInitialized(false)
+{
+  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
+  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
+
+  if(nameID.first && valueID.first)
+  {
+    auto keysLower = db.nodeAnnoKeys.lower_bound({nameID.second, 0});
+    auto keysUpper = db.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
+    for(auto itKey = keysLower; itKey != keysUpper; itKey++)
+    {
+      searchRanges.push_back(Range(db.inverseNodeAnnotations.equal_range(
+      {itKey->name, itKey->ns, valueID.second})));
+    }
+  }
+  currentRange = searchRanges.begin();
+
+  if(currentRange != searchRanges.end())
+  {
+    it = currentRange->first;
+  }
+}
 
 Match ExactAnnoValueSearch::next()
 {
@@ -49,21 +60,37 @@ Match ExactAnnoValueSearch::next()
     currentMatch = result;
     currentMatchValid = true;
     it++;
+    if(it == currentRange->second)
+    {
+      currentRange++;
+      if(currentRange != searchRanges.end())
+      {
+        it = currentRange->first;
+      }
+    }
   }
   return result;
 }
 
 void ExactAnnoValueSearch::reset()
 {
-  it = itBegin;
+  currentRange = searchRanges.begin();
+  if(currentRange != searchRanges.end())
+  {
+    it = currentRange->first;
+  }
 }
 
 void ExactAnnoValueSearch::initializeValidAnnotations()
 {
-  for(ItType annoIt = itBegin; annoIt != itEnd; annoIt++)
+  for(auto range : searchRanges)
   {
-    validAnnotations.insert(annoIt->first);
+    for(ItType annoIt = range.first; annoIt != range.second; annoIt++)
+    {
+      validAnnotations.insert(annoIt->first);
+    }
   }
+
   validAnnotationInitialized = true;
 }
 
