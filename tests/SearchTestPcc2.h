@@ -376,7 +376,7 @@ TEST_F(SearchTestPcc2, RangedDominance) {
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
-  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, "tiger", "cat"));
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, "cat"));
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 2, 4), 0, 1);
 

@@ -9,7 +9,8 @@ namespace annis
 
 class ExactAnnoKeySearch : public AnnotationKeySearch
 {
-  using ItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
+  using ItAnnoNode = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
+  using ItAnnoKey = std::set<AnnotationKey>::const_iterator;
 
 public:
   /**
@@ -47,9 +48,12 @@ public:
 private:
   const DB& db;
 
-  ItType it;
-  ItType itBegin;
-  ItType itEnd;
+  ItAnnoNode it;
+  ItAnnoNode itBegin;
+  ItAnnoNode itEnd;
+
+  ItAnnoKey itKeyBegin;
+  ItAnnoKey itKeyEnd;
 
   bool validAnnotationKeysInitialized;
   std::set<AnnotationKey> validAnnotationKeys;

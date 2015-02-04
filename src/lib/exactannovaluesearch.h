@@ -10,6 +10,7 @@ namespace annis
 class ExactAnnoValueSearch : public AnnotationSearch
 {
   using ItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
+  using Range = std::pair<ItType, ItType>;
 
 public:
 
@@ -19,6 +20,7 @@ public:
    * @param annoName
    */
   ExactAnnoValueSearch(const DB &db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
+  ExactAnnoValueSearch(const DB &db, const std::string& annoName, const std::string& annoValue);
 
   virtual ~ExactAnnoValueSearch();
 

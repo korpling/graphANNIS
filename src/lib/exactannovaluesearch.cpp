@@ -31,6 +31,13 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamsp
   }
 }
 
+ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &annoName, const std::string &annoValue)
+  :db(db), validAnnotationInitialized(false)
+{
+  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
+  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
+}
+
 Match ExactAnnoValueSearch::next()
 {
   Match result;
@@ -65,3 +72,5 @@ ExactAnnoValueSearch::~ExactAnnoValueSearch()
 {
 
 }
+
+

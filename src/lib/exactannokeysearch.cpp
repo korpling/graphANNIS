@@ -11,6 +11,10 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
 {
   itBegin = db.inverseNodeAnnotations.begin();
   itEnd = db.inverseNodeAnnotations.end();
+  it = itBegin;
+
+  itKeyBegin = db.nodeAnnoKeys.begin();
+  itKeyBegin = db.nodeAnnoKeys.end();
 }
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
@@ -33,12 +37,14 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
     itBegin = db.inverseNodeAnnotations.lower_bound(lowerKey);
     it = itBegin;
     itEnd = db.inverseNodeAnnotations.upper_bound(upperKey);
+
+    itKeyBegin = db.nodeAnnoKeys.lower_bound({searchResult.second, 0});
+    itKeyEnd = db.nodeAnnoKeys.upper_bound({searchResult.second, uintmax});
   }
   else
   {
-    itBegin = db.inverseNodeAnnotations.end();
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.end();
+    itBegin = itEnd = it = db.inverseNodeAnnotations.end();
+    itKeyBegin = itKeyEnd = db.nodeAnnoKeys.end();
   }
 }
 
@@ -63,12 +69,14 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace,
     itBegin = db.inverseNodeAnnotations.lower_bound(lowerKey);
     it = itBegin;
     itEnd = db.inverseNodeAnnotations.upper_bound(upperKey);
+
+    itKeyBegin = db.nodeAnnoKeys.lower_bound({nameID.second, namespaceID.second});
+    itKeyEnd = db.nodeAnnoKeys.upper_bound({nameID.second, namespaceID.second});
   }
   else
   {
-    itBegin = db.inverseNodeAnnotations.end();
-    it = itBegin;
-    itEnd = db.inverseNodeAnnotations.end();
+    itBegin = itEnd = it = db.inverseNodeAnnotations.end();
+    itKeyBegin = itKeyEnd = db.nodeAnnoKeys.end();
   }
 }
 
@@ -94,10 +102,9 @@ void ExactAnnoKeySearch::reset()
 
 void ExactAnnoKeySearch::initializeValidAnnotationKeys()
 {
-  for(ItType annoIt = itBegin; annoIt != itEnd; annoIt++)
+  for(ItAnnoKey itKey = itKeyBegin; itKey != itKeyEnd; itKey++)
   {
-    const Annotation& anno = annoIt->first;
-    validAnnotationKeys.insert({anno.name, anno.ns});
+    validAnnotationKeys.insert(*itKey);
   }
   validAnnotationKeysInitialized = true;
 }

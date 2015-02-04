@@ -155,6 +155,7 @@ private:
    */
   stx::btree_map<NodeAnnotationKey, uint32_t> nodeAnnotations;
   stx::btree_multimap<Annotation, nodeid_t> inverseNodeAnnotations;
+  std::set<AnnotationKey> nodeAnnoKeys;
 
   std::map<Component, ReadableGraphStorage*> edgeDatabases;
   GraphStorageRegistry registry;
@@ -177,6 +178,7 @@ private:
   {
     nodeAnnotations.insert2({nodeID, anno.name, anno.ns}, anno.val);
     inverseNodeAnnotations.insert2(anno, nodeID);
+    nodeAnnoKeys.insert({anno.name, anno.ns});
   }
 
   void clear();

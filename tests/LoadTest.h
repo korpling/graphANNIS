@@ -252,7 +252,7 @@ TEST_F(LoadTest, Distance)
 }
 
 // Should test query
-// cat="CNP" >2 cat="PN"
+// cat="AP" >2 node
 TEST_F(LoadTest, RangedDom) {
 
   unsigned int counter=0;

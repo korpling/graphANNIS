@@ -8,6 +8,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/set.hpp>
+
 #include <humblelogging/api.h>
 
 #include "helper.h"
@@ -42,6 +46,11 @@ bool DB::load(string dirPath)
 
   in.open(dirPath + "/inverseNodeAnnotations.btree");
   inverseNodeAnnotations.restore(in);
+  in.close();
+
+  in.open(dirPath + "/nodeAnnoKeys.archive");
+  boost::archive::binary_iarchive iaNodeAnnoKeys(in);
+  iaNodeAnnoKeys >> nodeAnnoKeys;
   in.close();
 
   boost::filesystem::directory_iterator fileEndIt;
@@ -121,6 +130,11 @@ bool DB::save(string dirPath)
 
   out.open(dirPath + "/inverseNodeAnnotations.btree");
   inverseNodeAnnotations.dump(out);
+  out.close();
+
+  out.open(dirPath + "/nodeAnnoKeys.archive");
+  boost::archive::binary_oarchive oaNodeAnnoKeys(out);
+  oaNodeAnnoKeys << nodeAnnoKeys;
   out.close();
 
   // save each edge db separately

@@ -343,6 +343,18 @@ inline void serialize(
   ar & t.maxDepth;
   ar & t.dfsVisitRatio;
 }
+
+template<class Archive>
+inline void serialize(
+    Archive & ar,
+    annis::AnnotationKey & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.name;
+  ar & t.ns;
+}
+
 } // end namespace serialization
 } // end namespace boost
 
