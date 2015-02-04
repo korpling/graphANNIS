@@ -44,20 +44,39 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
     annoTemplate(Init::initAnnotation()),
     currentMatchValid(false)
 {
-  std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
-  if(nameID.first)
+  if(compiledValRegex.ok())
   {
-    annoTemplate.name = nameID.second;
-
-    auto keysLower = db.nodeAnnoKeys.lower_bound({nameID.second, 0});
-    auto keysUpper = db.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
-    for(auto itKey = keysLower; itKey != keysUpper; itKey++)
+    // get the size of the last element so we know how much our prefix needs to be
+    size_t prefixSize = 10;
+    if(!db.inverseNodeAnnotations.empty())
     {
-      auto lowerAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, 0});
-      auto upperAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, uintmax});
-      searchRanges.push_back(Range(lowerAnno, upperAnno));
+      const Annotation lastAnno = db.inverseNodeAnnotations.rbegin()->first;
+      size_t lastAnnoSize = db.strings.str(lastAnno.val).size()+1;
+      if(lastAnnoSize > prefixSize)
+      {
+        prefixSize = lastAnnoSize;
+      }
     }
-  }
+
+    std::string minPrefix;
+    std::string maxPrefix;
+    compiledValRegex.PossibleMatchRange(&minPrefix, &maxPrefix, prefixSize);
+
+    std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
+    if(nameID.first)
+    {
+      annoTemplate.name = nameID.second;
+
+      auto keysLower = db.nodeAnnoKeys.lower_bound({nameID.second, 0});
+      auto keysUpper = db.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
+      for(auto itKey = keysLower; itKey != keysUpper; itKey++)
+      {
+        auto lowerAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, 0});
+        auto upperAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, uintmax});
+        searchRanges.push_back(Range(lowerAnno, upperAnno));
+      }
+    }
+  } // end if the regex is ok
   currentRange = searchRanges.begin();
 
   if(currentRange != searchRanges.end())
