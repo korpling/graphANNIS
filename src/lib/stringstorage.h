@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <limits>
 
 namespace annis
 {
@@ -43,30 +44,24 @@ public:
     return result;
   }
 
-  std::pair<bool, std::uint32_t> lower_bound(const std::string& str) const
+  uint32_t lower_bound(const std::string& str) const
   {
-    std::pair<bool, std::uint32_t> result;
-    result.first = false;
     auto it = stringStorageByValue.lower_bound(str);
     if(it != stringStorageByValue.end())
     {
-      result.first = true;
-      result.second = it->second;
+      return it->second;
     }
-    return result;
+    return std::numeric_limits<uint32_t>::min();
   }
 
-  std::pair<bool, std::uint32_t> upper_bound(const std::string& str) const
+  uint32_t upper_bound(const std::string& str) const
   {
-    std::pair<bool, std::uint32_t> result;
-    result.first = false;
     auto it = stringStorageByValue.upper_bound(str);
     if(it != stringStorageByValue.end())
     {
-      result.first = true;
-      result.second = it->second;
+      return it->second;
     }
-    return result;
+    return std::numeric_limits<uint32_t>::max();
   }
 
   std::set<std::uint32_t> findRegex(const std::string& str) const;
