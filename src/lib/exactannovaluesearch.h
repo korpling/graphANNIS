@@ -20,7 +20,7 @@ public:
    * @param annoName
    */
   ExactAnnoValueSearch(const DB &db, const std::string& annoNamspace, const std::string& annoName, const std::string& annoValue);
-  ExactAnnoValueSearch(const DB &db, const std::string& annoName, const std::string& annoValue);
+ // ExactAnnoValueSearch(const DB &db, const std::string& annoName, const std::string& annoValue);
 
   virtual ~ExactAnnoValueSearch();
 
