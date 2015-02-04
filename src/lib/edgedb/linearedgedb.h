@@ -99,8 +99,8 @@ public:
     nodeid_t startNode;
 
     const std::vector<nodeid_t>* chain;
-    pos_t currentPos;
-    pos_t endPos;
+    unsigned int currentPos;
+    unsigned int endPos;
 
   };
 
