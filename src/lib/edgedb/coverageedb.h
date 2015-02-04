@@ -3,6 +3,8 @@
 
 #include "fallbackedgedb.h"
 
+#include <unordered_map>
+
 namespace annis
 {
 
@@ -25,7 +27,7 @@ public:
 
 private:
 
-  stx::btree_multimap<nodeid_t, nodeid_t> coveringNodes;
+  std::unordered_multimap<nodeid_t, nodeid_t> coveringNodes;
 
 };
 
