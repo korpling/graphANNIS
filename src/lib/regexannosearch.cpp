@@ -9,7 +9,6 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
     validAnnotationsInitialized(false), valRegex(valRegex),
     compiledValRegex(valRegex),
     annoTemplate(Init::initAnnotation()),
-    innerSearch(db, ns, name),
     currentMatchValid(false)
 {
   std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
@@ -21,6 +20,46 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
   if(namespaceID.first)
   {
     annoTemplate.ns = namespaceID.second;
+  }
+
+  if(nameID.first && namespaceID.first)
+  {
+    itBegin = db.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
+    it = itBegin;
+    itEnd = db.inverseNodeAnnotations.upper_bound({nameID.second, namespaceID.second, uintmax});
+  }
+  else if(nameID.first)
+  {
+    itBegin = db.inverseNodeAnnotations.lower_bound({nameID.second, 0, 0});
+    it = itBegin;
+    itEnd = db.inverseNodeAnnotations.upper_bound({nameID.second, uintmax, uintmax});
+  }
+  else
+  {
+    itBegin = db.inverseNodeAnnotations.end();
+    it = itBegin;
+    itEnd = db.inverseNodeAnnotations.end();
+  }
+
+}
+
+
+RegexAnnoSearch::RegexAnnoSearch(const DB &db,
+                                 const std::string& name, const std::string& valRegex)
+  : db(db),
+    validAnnotationsInitialized(false), valRegex(valRegex),
+    compiledValRegex(valRegex),
+    annoTemplate(Init::initAnnotation()),
+    currentMatchValid(false)
+{
+  std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
+  if(nameID.first)
+  {
+    annoTemplate.name = nameID.second;
+
+    itBegin = db.inverseNodeAnnotations.lower_bound({nameID.second, 0, 0});
+    it = itBegin;
+    itEnd = db.inverseNodeAnnotations.upper_bound({nameID.second, uintmax, uintmax});
   }
 }
 
@@ -36,25 +75,10 @@ Match RegexAnnoSearch::next()
 
 void RegexAnnoSearch::reset()
 {
-  innerSearch.reset();
+  it = itBegin;
   currentMatchValid = false;
 }
 
-RegexAnnoSearch::RegexAnnoSearch(const DB &db,
-                                 const std::string& name, const std::string& valRegex)
-  : db(db),
-    validAnnotationsInitialized(false), valRegex(valRegex),
-    compiledValRegex(valRegex),
-    annoTemplate(Init::initAnnotation()),
-    innerSearch(db, name),
-    currentMatchValid(false)
-{
-  std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
-  if(nameID.first)
-  {
-    annoTemplate.name = nameID.second;
-  }
-}
 
 RegexAnnoSearch::~RegexAnnoSearch()
 {
@@ -79,9 +103,11 @@ void RegexAnnoSearch::internalNextAnno()
   currentMatchValid = false;
   if(compiledValRegex.ok())
   {
-    while(innerSearch.hasNext())
+    while(it != itEnd)
     {
-      Match candidate = innerSearch.next();
+      Match candidate = {it->second, it->first};
+      it++;
+
       if(RE2::FullMatch(db.strings.str(candidate.anno.val), compiledValRegex))
       {
         currentMatch = candidate;

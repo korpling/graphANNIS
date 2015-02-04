@@ -15,7 +15,7 @@
 namespace annis
 {
 
-#define ANNIS_EXEC_QUERY(name, db, count) {\
+#define ANNIS_EXEC_QUERY_COUNT(name, db, count) {\
   counter = 0;\
   Query q=annis::ExampleQueries::name(db);\
   while(q.hasNext())\
@@ -27,6 +27,16 @@ namespace annis
   std::cerr << "FATAL ERROR: query " << #name << " should have count " << count << " but was " << counter << std::endl;\
   std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;\
   exit(-1);}\
+}
+
+#define ANNIS_EXEC_QUERY(name, db) {\
+  counter = 0;\
+  Query q=annis::ExampleQueries::name(db);\
+  while(q.hasNext())\
+  {\
+    q.next();\
+    counter++;\
+  }\
 }
 
 class ExampleQueries
@@ -188,6 +198,17 @@ public:
         Init::initAnnotation(db.strings.findID("func").second, db.strings.findID("ON").second, db.strings.findID("tiger").second);
 
     q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n1, n2);
+
+    return q;
+  }
+
+  static Query JederObwohl(const DB& db)
+  {
+    Query q(db);
+    auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db, annis_ns, annis_tok, "(jeder)|(jede)"));
+    auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "obwohl"));
+
+    q.addOperator(std::make_shared<Precedence>(db, 1, 50), n1, n2);
 
     return q;
   }

@@ -70,46 +70,46 @@ public:
 
 BASELINE_F(Tueba_Mixed1, Fallback, TuebaFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(Mixed1, getDB(), 0u);
+  ANNIS_EXEC_QUERY_COUNT(Mixed1, getDB(), 0u);
 }
 
 
 BENCHMARK_F(Tueba_Mixed1, Optimized, TuebaFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(Mixed1, getDB(), 0u);
+  ANNIS_EXEC_QUERY_COUNT(Mixed1, getDB(), 0u);
 }
 
 BASELINE_F(Tueba_RegexDom, Fallback, TuebaFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(RegexDom, getDB(), 1u);
+  ANNIS_EXEC_QUERY_COUNT(RegexDom, getDB(), 1u);
 }
 
 
 BENCHMARK_F(Tueba_RegexDom, Optimized, TuebaFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(RegexDom, getDB(), 1u);
+  ANNIS_EXEC_QUERY_COUNT(RegexDom, getDB(), 1u);
 }
 
 BASELINE_F(Tueba_Inclusion, Fallback, TuebaFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(PPERIncludesAnaphoric, getDB(), 13031u);
+  ANNIS_EXEC_QUERY_COUNT(PPERIncludesAnaphoric, getDB(), 13031u);
 }
 
 
 BENCHMARK_F(Tueba_Inclusion, Optimized, TuebaFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(PPERIncludesAnaphoric, getDB(), 13031u);
+  ANNIS_EXEC_QUERY_COUNT(PPERIncludesAnaphoric, getDB(), 13031u);
 }
 
 BASELINE_F(Tueba_DomEdgeAnno, Fallback, TuebaFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(DomFuncON, getDB(), 76748u);
+  ANNIS_EXEC_QUERY_COUNT(DomFuncON, getDB(), 76748u);
 }
 
 
 BENCHMARK_F(Tueba_DomEdgeAnno, Optimized, TuebaFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(DomFuncON, getDB(), 76748u);
+  ANNIS_EXEC_QUERY_COUNT(DomFuncON, getDB(), 76748u);
 }
 
 BASELINE_F(Tueba_NodeDom, Fallback, TuebaFallbackFixtureVar, 5, 1)

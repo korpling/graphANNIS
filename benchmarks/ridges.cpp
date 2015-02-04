@@ -41,63 +41,63 @@ public:
 // pos="NN" & norm="Blumen" & #1 _i_ #2
 BASELINE_F(Ridges_PosNNIncludesNormBlumen, Fallback, RidgesFallbackFixture, 5, 5)
 {
-  ANNIS_EXEC_QUERY(PosNNIncludesNormBlumen, getDB(), 152u);
+  ANNIS_EXEC_QUERY_COUNT(PosNNIncludesNormBlumen, getDB(), 152u);
 }
 
 BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, Optimized, RidgesFixture, 5, 5)
 {
-  ANNIS_EXEC_QUERY(PosNNIncludesNormBlumen, getDB(), 152u);
+  ANNIS_EXEC_QUERY_COUNT(PosNNIncludesNormBlumen, getDB(), 152u);
 }
 
 BENCHMARK_F(Ridges_PosNNIncludesNormBlumen, PrePost, RidgesPrePostFixture, 5, 5)
 {
-  ANNIS_EXEC_QUERY(PosNNIncludesNormBlumen, getDB(), 152u);
+  ANNIS_EXEC_QUERY_COUNT(PosNNIncludesNormBlumen, getDB(), 152u);
 }
 
 // pos="NN" & norm="Blumen" & #2 _o_ #1
 BASELINE_F(Ridges_PosNNOverlapsNormBlumen, Fallback, RidgesFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(PosNNOverlapsNormBlumen, getDB(), 152u);
+  ANNIS_EXEC_QUERY_COUNT(PosNNOverlapsNormBlumen, getDB(), 152u);
 }
 
 BENCHMARK_F(Ridges_PosNNOverlapsNormBlumen, Optimized, RidgesFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(PosNNOverlapsNormBlumen, getDB(), 152u);
+  ANNIS_EXEC_QUERY_COUNT(PosNNOverlapsNormBlumen, getDB(), 152u);
 }
 
 
 BENCHMARK_F(Ridges_PosNNOverlapsNormBlumen, PrePost, RidgesPrePostFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(PosNNOverlapsNormBlumen, getDB(), 152u);
+  ANNIS_EXEC_QUERY_COUNT(PosNNOverlapsNormBlumen, getDB(), 152u);
 }
 
 // pos="NN" .2,10 pos="ART"
 BASELINE_F(Ridges_NNPreceedingART, Fallback, RidgesFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(NNPreceedingART, getDB(), 21911u);
+  ANNIS_EXEC_QUERY_COUNT(NNPreceedingART, getDB(), 21911u);
 }
 BENCHMARK_F(Ridges_NNPreceedingART, Optimized, RidgesFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(NNPreceedingART, getDB(), 21911u);
+  ANNIS_EXEC_QUERY_COUNT(NNPreceedingART, getDB(), 21911u);
 }
 
 BENCHMARK_F(Ridges_NNPreceedingART, PrePost, RidgesPrePostFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(NNPreceedingART, getDB(), 21911u);
+  ANNIS_EXEC_QUERY_COUNT(NNPreceedingART, getDB(), 21911u);
 }
 
 // tok .2,10 tok
 BASELINE_F(Ridges_TokPreceedingTok, Fallback, RidgesFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(TokPreceedingTok, getDB(), 1386828u);
+  ANNIS_EXEC_QUERY_COUNT(TokPreceedingTok, getDB(), 1386828u);
 }
 BENCHMARK_F(Ridges_TokPreceedingTok, Optimized, RidgesFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(TokPreceedingTok, getDB(), 1386828u);
+  ANNIS_EXEC_QUERY_COUNT(TokPreceedingTok, getDB(), 1386828u);
 }
 
 BENCHMARK_F(Ridges_TokPreceedingTok, PrePost, RidgesPrePostFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY(TokPreceedingTok, getDB(), 1386828u);
+  ANNIS_EXEC_QUERY_COUNT(TokPreceedingTok, getDB(), 1386828u);
 }
 

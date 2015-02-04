@@ -10,6 +10,9 @@ namespace annis
 {
 class RegexAnnoSearch : public AnnotationSearch
 {
+
+  using AnnoItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
+
 public:
   RegexAnnoSearch(const DB& db, const std::string &name, const std::string &valRegex);
   RegexAnnoSearch(const DB& db, const std::string &ns, const std::string &name, const std::string &valRegex);
@@ -52,9 +55,12 @@ private:
     std::string valRegex;
     RE2 compiledValRegex;
     Annotation annoTemplate;
-    ExactAnnoKeySearch innerSearch;
 
+    AnnoItType it;
+    AnnoItType itBegin;
+    AnnoItType itEnd;
 
+private:
     Match currentMatch;
     bool currentMatchValid;
 
