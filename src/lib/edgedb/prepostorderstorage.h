@@ -445,41 +445,6 @@ public:
 
     return result;
   }
-  virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const
-  {
-    std::set<nodeid_t> sources;
-    auto itRange = node2order.equal_range(node);
-    for(auto itTarget=itRange.first; itTarget != itRange.second; itTarget++)
-    {
-      const auto& targetOrder = itTarget->second;
-      // get all nodes that are potential predecessors
-      PrePostSpec minPrePost = {0, 0, 0};
-      order_t upperOrder = targetOrder.pre > 0 ? targetOrder.pre-1 : 0;
-      PrePostSpec maxPrePost = {upperOrder,
-                                std::numeric_limits<order_t>::max(),
-                                std::numeric_limits<level_t>::max()};
-      auto itMin = order2node.lower_bound(minPrePost);
-      auto itMax = order2node.upper_bound(maxPrePost);
-      for(auto itSource=itMin; itSource != itMax; itSource++)
-      {
-        const PrePostSpec& sourceOrder = itSource->first;
-        if(sourceOrder.level == targetOrder.level-1
-           && targetOrder.post < sourceOrder.post
-           && sourceOrder.pre < targetOrder.pre)
-        {
-          sources.insert(itSource->second);
-        }
-      }
-    }
-
-    std::vector<nodeid_t> result;
-    result.reserve(sources.size());
-    for(auto n : sources)
-    {
-      result.push_back(n);
-    }
-    return result;
-  }
 
   virtual std::uint32_t numberOfEdges() const
   {

@@ -1,6 +1,5 @@
 #include "graphstorageregistry.h"
 
-#include "edgedb/coverageedb.h"
 #include "edgedb/fallbackedgedb.h"
 #include "edgedb/linearedgedb.h"
 #include "edgedb/prepostorderstorage.h"
@@ -19,7 +18,6 @@ using LinearEdgeDBP8 = LinearEdgeDB<uint8_t>;
 const std::string GraphStorageRegistry::linearP32 = "linear";
 const std::string GraphStorageRegistry::linearP16 = "linearP16";
 const std::string GraphStorageRegistry::linearP8 = "linearP8";
-const std::string GraphStorageRegistry::coverage = "coverage";
 const std::string GraphStorageRegistry::prepostorderO32L32 = "prepostorder";
 const std::string GraphStorageRegistry::prepostorderO32L8 = "prepostorderO32L8";
 const std::string GraphStorageRegistry::prepostorderO16L32 = "prepostorderO16L32";
@@ -28,8 +26,6 @@ const std::string GraphStorageRegistry::fallback = "fallback";
 
 GraphStorageRegistry::GraphStorageRegistry()
 {
-  // set default values
-  setImplementation(coverage, ComponentType::COVERAGE);
 }
 
 GraphStorageRegistry::~GraphStorageRegistry()
@@ -39,11 +35,7 @@ GraphStorageRegistry::~GraphStorageRegistry()
 
 std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStorage *db)
 {
-  if(dynamic_cast<const CoverageEdgeDB*>(db) != nullptr)
-  {
-    return coverage;
-  }
-  else if(dynamic_cast<const LinearEdgeDBP32*>(db) != nullptr)
+  if(dynamic_cast<const LinearEdgeDBP32*>(db) != nullptr)
   {
     return linearP32;
   }
@@ -80,11 +72,7 @@ std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStora
 
 ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, StringStorage& strings, const Component& component)
 {
-  if(name == coverage)
-  {
-    return new CoverageEdgeDB(strings, component);
-  }
-  else if(name == linearP32)
+  if(name == linearP32)
   {
     return new LinearEdgeDBP32(strings, component);
   }

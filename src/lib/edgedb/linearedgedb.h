@@ -297,25 +297,6 @@ public:
     }
     return result;
   }
-  virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const
-  {
-    std::vector<nodeid_t> result;
-    auto it = node2pos.find(node);
-    if(it != node2pos.end())
-    {
-      auto pos = it->second;
-      auto chainIt = nodeChains.find(pos.root);
-      if(chainIt != nodeChains.end())
-      {
-        const std::vector<nodeid_t>& chain = chainIt->second;
-        if(pos.pos - 1 > 0 && !chain.empty())
-        {
-          result.push_back(chain[pos.pos-1]);
-        }
-      }
-    }
-    return result;
-  }
 
   virtual std::uint32_t numberOfEdges() const
   {

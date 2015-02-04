@@ -139,24 +139,6 @@ std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t node) const
   return result;
 }
 
-std::vector<nodeid_t> FallbackEdgeDB::getIncomingEdges(nodeid_t node) const
-{
-  // this is a extremly slow approach, there should be more efficient methods for other
-  // edge databases
-  // TODO: we should also concider to add another index
-
-  std::vector<nodeid_t> result;
-  result.reserve(10);
-  for(auto& e : edges)
-  {
-    if(e.target == node)
-    {
-      result.push_back(e.source);
-    }
-  }
-  return result;
-}
-
 bool FallbackEdgeDB::load(std::string dirPath)
 {
   clear();

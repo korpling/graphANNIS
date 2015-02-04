@@ -38,7 +38,6 @@ public:
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const;
-  virtual std::vector<nodeid_t> getIncomingEdges(nodeid_t node) const;
 
   stx::btree_set<Edge>::const_iterator getEdgesBegin()
   {

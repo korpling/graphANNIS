@@ -9,6 +9,8 @@ Overlap::Overlap(const DB &db)
 {
   edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
   edbCoverage = db.getEdgeDB(ComponentType::COVERAGE, annis_ns, "");
+  edbInverseCoverage = db.getEdgeDB(ComponentType::INVERSE_COVERAGE, annis_ns, "");
+
 }
 
 std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
@@ -25,7 +27,7 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
   {
 
     // get all nodes that are covering the token
-    std::vector<nodeid_t> overlapCandidates = edbCoverage->getIncomingEdges(leftToken.second);
+    std::vector<nodeid_t> overlapCandidates = edbInverseCoverage->getOutgoingEdges(leftToken.second);
     for(const auto& c : overlapCandidates)
     {
       uniqueResultSet.insert(c);

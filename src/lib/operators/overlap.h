@@ -28,6 +28,7 @@ private:
   Annotation anyNodeAnno;
   const ReadableGraphStorage* edbOrder;
   const ReadableGraphStorage* edbCoverage;
+  const ReadableGraphStorage* edbInverseCoverage;
 };
 } // end namespace annis
 #endif // OVERLAP_H

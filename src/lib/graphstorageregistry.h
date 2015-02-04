@@ -27,7 +27,6 @@ public:
   static const std::string linearP32;
   static const std::string linearP16;
   static const std::string linearP8;
-  static const std::string coverage;
   static const std::string prepostorderO32L32;
   static const std::string prepostorderO32L8;
   static const std::string prepostorderO16L32;

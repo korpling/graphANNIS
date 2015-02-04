@@ -13,7 +13,6 @@
 #include "helper.h"
 #include "edgedb/fallbackedgedb.h"
 #include "edgedb/linearedgedb.h"
-#include "edgedb/coverageedb.h"
 #include "edgedb/prepostorderstorage.h"
 
 HUMBLE_LOGGER(logger, "annis4");
@@ -386,6 +385,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
 
   // add explicit coverage edges for each node in the special annis namespace coverage component
   EdgeDB* edbCoverage = createWritableEdgeDB(ComponentType::COVERAGE, annis_ns, "");
+  EdgeDB* edbInverseCoverage = createWritableEdgeDB(ComponentType::INVERSE_COVERAGE, annis_ns, "");
   HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
   for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
       itLeftToNode != leftToNode.end(); itLeftToNode++)
@@ -406,6 +406,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
       if(n != tokenID)
       {
         edbCoverage->addEdge(Init::initEdge(n, tokenID));
+        edbInverseCoverage->addEdge(Init::initEdge(tokenID, n));
       }
     }
   }

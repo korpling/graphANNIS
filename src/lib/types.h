@@ -22,8 +22,13 @@ namespace annis
     nodeid_t target;
   };
 
-  enum class ComponentType {COVERAGE, DOMINANCE, POINTING, ORDERING,
-                            LEFT_TOKEN, RIGHT_TOKEN,
+  enum class ComponentType {COVERAGE,
+                            INVERSE_COVERAGE,
+                            DOMINANCE,
+                            POINTING,
+                            ORDERING,
+                            LEFT_TOKEN,
+                            RIGHT_TOKEN,
                             ComponentType_MAX};
 
   class ComponentTypeHelper
@@ -35,6 +40,9 @@ namespace annis
       {
       case ComponentType::COVERAGE:
         return "COVERAGE";
+        break;
+      case ComponentType::INVERSE_COVERAGE:
+        return "INVERSE_COVERAGE";
         break;
       case ComponentType::DOMINANCE:
         return "DOMINANCE";
