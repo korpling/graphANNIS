@@ -22,7 +22,7 @@ class DFS : public EdgeIterator
 {
 public:
 
-  DFS(const ReadableGraphStorage& edb,
+  DFS(const ReadableGraphStorage& gs,
       std::uint32_t startNode,
       unsigned int minDistance, unsigned int maxDistance);
 
@@ -43,7 +43,7 @@ protected:
 
 private:
 
-  const ReadableGraphStorage& edb;
+  const ReadableGraphStorage& gs;
 
   using TraversalEntry = std::pair<nodeid_t, unsigned int>;
 
@@ -64,7 +64,7 @@ class UniqueDFS : public DFS
 {
 public:
 
-  UniqueDFS(const ReadableGraphStorage& edb,
+  UniqueDFS(const ReadableGraphStorage& gs,
                std::uint32_t startNode,
                unsigned int minDistance, unsigned int maxDistance);
   virtual ~UniqueDFS();
@@ -87,7 +87,7 @@ class CycleSafeDFS : public DFS
 {
 public:
 
-  CycleSafeDFS(const ReadableGraphStorage& edb,
+  CycleSafeDFS(const ReadableGraphStorage& gs,
                std::uint32_t startNode,
                unsigned int minDistance, unsigned int maxDistance,
                bool outputCycleErrors = true);

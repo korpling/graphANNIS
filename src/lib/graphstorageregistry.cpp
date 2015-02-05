@@ -1,8 +1,8 @@
 #include "graphstorageregistry.h"
 
-#include "edgedb/adjacencyliststorage.h"
-#include "edgedb/linearstorage.h"
-#include "edgedb/prepostorderstorage.h"
+#include "graphstorage/adjacencyliststorage.h"
+#include "graphstorage/linearstorage.h"
+#include "graphstorage/prepostorderstorage.h"
 
 using namespace annis;
 
@@ -70,7 +70,7 @@ std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStora
   return "";
 }
 
-ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, StringStorage& strings, const Component& component)
+ReadableGraphStorage *GraphStorageRegistry::createGraphStorage(std::string name, StringStorage& strings, const Component& component)
 {
   if(name == linearP32)
   {
@@ -123,10 +123,10 @@ std::string GraphStorageRegistry::getOptimizedImpl(const Component &component, G
   return result;
 }
 
-ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(StringStorage &strings, const Component &component, GraphStatistic stats)
+ReadableGraphStorage *GraphStorageRegistry::createGraphStorage(StringStorage &strings, const Component &component, GraphStatistic stats)
 {
   std::string implName = getOptimizedImpl(component, stats);
-  return createEdgeDB(implName, strings, component);
+  return createGraphStorage(implName, strings, component);
 }
 
 void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type)

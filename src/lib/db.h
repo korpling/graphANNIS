@@ -168,10 +168,10 @@ private:
   bool loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
   bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
   bool loadRelANNISRank(const std::string& dirPath,
-                        const std::map<uint32_t, WriteableGraphStorage*>& componentToEdgeDB);
+                        const std::map<uint32_t, WriteableGraphStorage*>& componentToGS);
 
   bool loadEdgeAnnotation(const std::string& dirPath,
-                          const std::map<std::uint32_t, WriteableGraphStorage* >& pre2EdgeDB,
+                          const std::map<std::uint32_t, WriteableGraphStorage* >& pre2GS,
                           const std::map<std::uint32_t, Edge>& pre2Edge);
 
   void addNodeAnnotation(nodeid_t nodeID, Annotation& anno)
@@ -184,11 +184,11 @@ private:
   void clear();
   void addDefaultStrings();
 
-  ReadableGraphStorage *createEdgeDBForComponent(const std::string& shortType, const std::string& layer,
+  ReadableGraphStorage *createGSForComponent(const std::string& shortType, const std::string& layer,
                        const std::string& name);
-  ReadableGraphStorage *createEdgeDBForComponent(ComponentType ctype, const std::string& layer,
+  ReadableGraphStorage *createGSForComponent(ComponentType ctype, const std::string& layer,
                        const std::string& name);
-  annis::WriteableGraphStorage* createWritableEdgeDB(ComponentType ctype, const std::string& layer,
+  annis::WriteableGraphStorage* createWritableGraphStorage(ComponentType ctype, const std::string& layer,
                        const std::string& name);
 
 

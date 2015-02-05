@@ -4,11 +4,11 @@
 
 using namespace annis;
 
-DFS::DFS(const ReadableGraphStorage &edb,
+DFS::DFS(const ReadableGraphStorage &gs,
                                                      std::uint32_t startNode,
                                                      unsigned int minDistance,
                                                      unsigned int maxDistance)
-  : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode)
+  : gs(gs), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode)
 {
   // add the initial value to the stack
   traversalStack.push({startNode, 0});
@@ -55,7 +55,7 @@ bool DFS::enterNode(nodeid_t node, unsigned int distance)
   if(distance < maxDistance)
   {
     // add the outgoing edges to the stack
-    auto outgoing = edb.getOutgoingEdges(node);
+    auto outgoing = gs.getOutgoingEdges(node);
     for(const auto& outNodeID : outgoing)
     {
 
@@ -85,8 +85,8 @@ void DFS::reset()
 }
 
 
-CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance, bool silentCycleErrors)
-  : DFS(edb, startNode, minDistance, maxDistance), lastDistance(0),
+CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &gs, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance, bool silentCycleErrors)
+  : DFS(gs, startNode, minDistance, maxDistance), lastDistance(0),
     outputCycleErrors(silentCycleErrors),
     cycleDetected(false)
 {
