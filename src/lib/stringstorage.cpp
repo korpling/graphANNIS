@@ -23,8 +23,23 @@ std::set<std::uint32_t> StringStorage::findRegex(const string &str) const
   RE2 re(str, RE2::Quiet);
   if(re.ok())
   {
-    for(ItType it=stringStorageByValue.begin();
-        it != stringStorageByValue.end(); it++)
+    // get the size of the last element so we know how large our prefix needs to be
+    size_t prefixSize = 10;
+    const std::string& lastString = stringStorageByValue.rbegin()->first;
+    size_t lastStringSize = lastString.size()+1;
+    if(lastStringSize > prefixSize)
+    {
+      prefixSize = lastStringSize;
+    }
+
+    std::string minPrefix;
+    std::string maxPrefix;
+    re.PossibleMatchRange(&minPrefix, &maxPrefix, prefixSize);
+
+    ItType upperBound = stringStorageByValue.upper_bound(maxPrefix);
+
+    for(ItType it=stringStorageByValue.lower_bound(minPrefix);
+        it != upperBound; it++)
     {
       if(RE2::FullMatch(it->first, re))
       {
