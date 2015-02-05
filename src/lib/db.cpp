@@ -16,7 +16,7 @@
 
 #include "helper.h"
 #include "edgedb/adjacencyliststorage.h"
-#include "edgedb/linearedgedb.h"
+#include "edgedb/linearstorage.h"
 #include "edgedb/prepostorderstorage.h"
 
 HUMBLE_LOGGER(logger, "annis4");

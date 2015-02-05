@@ -1,7 +1,7 @@
 #include "graphstorageregistry.h"
 
 #include "edgedb/adjacencyliststorage.h"
-#include "edgedb/linearedgedb.h"
+#include "edgedb/linearstorage.h"
 #include "edgedb/prepostorderstorage.h"
 
 using namespace annis;
