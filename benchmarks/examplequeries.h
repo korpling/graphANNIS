@@ -205,7 +205,8 @@ public:
   static Query JederObwohl(const DB& db)
   {
     Query q(db);
-    auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db, annis_ns, annis_tok, "(jeder)|(jede)"));
+//    auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db, annis_ns, annis_tok, "(jeder)|(jede)"));
+    auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "jeder"));
     auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "obwohl"));
 
     q.addOperator(std::make_shared<Precedence>(db, 1, 50), n1, n2);

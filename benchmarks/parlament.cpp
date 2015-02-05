@@ -21,12 +21,12 @@ public:
 
 BASELINE_F(Parlament_JederObwohl, Fallback, ParlamentFallbackFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY_COUNT(JederObwohl, getDB(), 7);
+  ANNIS_EXEC_QUERY_COUNT(JederObwohl, getDB(), 4);
 }
 
-BENCHMARK_F(Parlament_JederObwohl, Fallback, ParlamentFixture, 5, 1)
+BENCHMARK_F(Parlament_JederObwohl, Optimized, ParlamentFixture, 5, 1)
 {
-  ANNIS_EXEC_QUERY_COUNT(JederObwohl, getDB(), 7);
+  ANNIS_EXEC_QUERY_COUNT(JederObwohl, getDB(), 4);
 }
 
 
