@@ -1,5 +1,5 @@
-#ifndef LINEAREDGEDB_H
-#define LINEAREDGEDB_H
+#ifndef ANNIS_LINEARSTORAGE_H
+#define ANNIS_LINEARSTORAGE_H
 
 #include "../graphstorage.h"
 #include "../edgeannotationstorage.h"
@@ -34,8 +34,8 @@ public:
   {
   public:
 
-    LinearIterator(const LinearStorage& edb, nodeid_t startNode, unsigned int minDistance, unsigned int maxDistance)
-      : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode),
+    LinearIterator(const LinearStorage& gs, nodeid_t startNode, unsigned int minDistance, unsigned int maxDistance)
+      : gs(gs), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode),
         chain(nullptr)
     {
       reset();
@@ -60,13 +60,13 @@ public:
       typedef typename stx::btree_map<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
       typedef std::map<nodeid_t, std::vector<nodeid_t> >::const_iterator NodeChainIt;
 
-      PosIt posSourceIt = edb.node2pos.find(startNode);
-      if(posSourceIt != edb.node2pos.end())
+      PosIt posSourceIt = gs.node2pos.find(startNode);
+      if(posSourceIt != gs.node2pos.end())
       {
         const RelativePosition<pos_t>& relPos = posSourceIt->second;
         currentPos = relPos.pos;
-        NodeChainIt itNodeChain = edb.nodeChains.find(relPos.root);
-        if(itNodeChain != edb.nodeChains.end())
+        NodeChainIt itNodeChain = gs.nodeChains.find(relPos.root);
+        if(itNodeChain != gs.nodeChains.end())
         {
           chain = &(itNodeChain->second);
         }
@@ -93,7 +93,7 @@ public:
 
   private:
 
-    const LinearStorage& edb;
+    const LinearStorage& gs;
     unsigned int minDistance;
     unsigned int maxDistance;
     nodeid_t startNode;
@@ -322,4 +322,4 @@ private:
 
 } // end namespace annis
 
-#endif // LINEAREDGEDB_H
+#endif // ANNIS_LINEARSTORAGE_H

@@ -23,8 +23,8 @@ public:
   virtual ~Precedence();
 private:
   TokenHelper tokHelper;
-  const ReadableGraphStorage* edbOrder;
-  const ReadableGraphStorage* edbLeft;
+  const ReadableGraphStorage* gsOrder;
+  const ReadableGraphStorage* gsLeft;
   Annotation anyTokAnno;
   Annotation anyNodeAnno;
 

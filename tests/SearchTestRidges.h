@@ -146,15 +146,15 @@ TEST_F(SearchTestRidges, ClassicBenchmark2) {
     Component cOrder = {ComponentType::ORDERING, annis_ns, ""};
 
 
-    const ReadableGraphStorage* edbOrder = db.getGraphStorage(cOrder);
-    if(edbOrder != NULL)
+    const ReadableGraphStorage* gsOrder = db.getGraphStorage(cOrder);
+    if(gsOrder != NULL)
     {
       while(n1.hasNext())
       {
         Match m1 = n1.next();
 
         // find all token in the range 2-10
-        std::unique_ptr<EdgeIterator> itConnected = edbOrder->findConnected(m1.node, 2, 10);
+        std::unique_ptr<EdgeIterator> itConnected = gsOrder->findConnected(m1.node, 2, 10);
         for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
             tok2.first; tok2 = itConnected->next())
         {

@@ -36,9 +36,9 @@ private:
   Annotation anyAnno;
   const Annotation edgeAnno;
 
-  std::vector<const ReadableGraphStorage*> edb;
+  std::vector<const ReadableGraphStorage*> gs;
 
-  void initEdgeDB();
+  void initGraphStorage();
   bool checkEdgeAnnotation(const ReadableGraphStorage *e, nodeid_t source, nodeid_t target);
 };
 

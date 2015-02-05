@@ -7,9 +7,9 @@ using namespace annis;
 Overlap::Overlap(const DB &db)
   : db(db), tokHelper(db), anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {
-  edbOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
-  edbCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
-  edbInverseCoverage = db.getGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
+  gsOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
+  gsCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+  gsInverseCoverage = db.getGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
 
 }
 
@@ -21,13 +21,14 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
   stx::btree_set<nodeid_t> uniqueResultSet;
 
   // get covered token of lhs
-  std::unique_ptr<EdgeIterator> coveredByLeftIt = edbCoverage->findConnected(lhs.node);
+  std::unique_ptr<EdgeIterator> coveredByLeftIt
+      = gsCoverage->findConnected(lhs.node);
   for(auto leftToken = coveredByLeftIt->next();
       leftToken.first; leftToken = coveredByLeftIt->next())
   {
 
     // get all nodes that are covering the token
-    std::vector<nodeid_t> overlapCandidates = edbInverseCoverage->getOutgoingEdges(leftToken.second);
+    std::vector<nodeid_t> overlapCandidates = gsInverseCoverage->getOutgoingEdges(leftToken.second);
     for(const auto& c : overlapCandidates)
     {
       uniqueResultSet.insert(c);
@@ -52,8 +53,8 @@ bool Overlap::filter(const Match &lhs, const Match &rhs)
   nodeid_t rhsLeftToken = tokHelper.leftTokenForNode(rhs.node);
   nodeid_t rhsRightToken = tokHelper.rightTokenForNode(rhs.node);
 
-  if(edbOrder->distance(Init::initEdge(lhsLeftToken, rhsRightToken)) >= 0
-     && edbOrder->distance(Init::initEdge(rhsLeftToken, lhsRightToken)) >= 0)
+  if(gsOrder->distance(Init::initEdge(lhsLeftToken, rhsRightToken)) >= 0
+     && gsOrder->distance(Init::initEdge(rhsLeftToken, lhsRightToken)) >= 0)
   {
     return true;
   }

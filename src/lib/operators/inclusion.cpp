@@ -9,9 +9,9 @@ Inclusion::Inclusion(const DB &db)
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     tokHelper(db)
 {
-  edbOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
-  edbLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
-  edbRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
+  gsOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
+  gsLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
+  gsRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
 }
 
@@ -19,13 +19,13 @@ bool Inclusion::filter(const Match &lhs, const Match &rhs)
 {
   nodeid_t lhsLeftToken = tokHelper.leftTokenForNode(lhs.node);
   nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
-  int spanLength = spanLength = edbOrder->distance(Init::initEdge(lhsLeftToken, lhsRightToken));
+  int spanLength = spanLength = gsOrder->distance(Init::initEdge(lhsLeftToken, lhsRightToken));
 
   nodeid_t rhsLeftToken = tokHelper.leftTokenForNode(rhs.node);
   nodeid_t rhsRightToken = tokHelper.rightTokenForNode(rhs.node);
 
-  if(edbOrder->isConnected(Init::initEdge(lhsLeftToken, rhsLeftToken), 0, spanLength)
-     && edbOrder->isConnected(Init::initEdge(lhsLeftToken, rhsRightToken), 0, spanLength)
+  if(gsOrder->isConnected(Init::initEdge(lhsLeftToken, rhsLeftToken), 0, spanLength)
+     && gsOrder->isConnected(Init::initEdge(lhsLeftToken, rhsRightToken), 0, spanLength)
     )
   {
     return true;
@@ -52,13 +52,13 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
   }
   else
   {
-    leftToken = edbLeftToken->getOutgoingEdges(lhs.node)[0];
-    rightToken = edbRightToken->getOutgoingEdges(lhs.node)[0];
-    spanLength = edbOrder->distance(Init::initEdge(leftToken, rightToken));
+    leftToken = gsLeftToken->getOutgoingEdges(lhs.node)[0];
+    rightToken = gsRightToken->getOutgoingEdges(lhs.node)[0];
+    spanLength = gsOrder->distance(Init::initEdge(leftToken, rightToken));
   }
 
   // find each token which is between the left and right border
-  std::unique_ptr<EdgeIterator> itIncludedStart = edbOrder->findConnected(leftToken, 0, spanLength);
+  std::unique_ptr<EdgeIterator> itIncludedStart = gsOrder->findConnected(leftToken, 0, spanLength);
   for(std::pair<bool, nodeid_t> includedStart = itIncludedStart->next();
       includedStart.first;
       includedStart = itIncludedStart->next())
@@ -67,10 +67,10 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
     w->addMatch(Init::initMatch(anyNodeAnno, includedStart.second));
 
     // add aligned nodes
-    for(const auto& leftAlignedNode : edbLeftToken->getOutgoingEdges(includedStart.second))
+    for(const auto& leftAlignedNode : gsLeftToken->getOutgoingEdges(includedStart.second))
     {
-      nodeid_t includedEndCandiate = edbRightToken->getOutgoingEdges(leftAlignedNode)[0];
-      if(edbOrder->isConnected(Init::initEdge(includedEndCandiate, rightToken), 0, uintmax))
+      nodeid_t includedEndCandiate = gsRightToken->getOutgoingEdges(leftAlignedNode)[0];
+      if(gsOrder->isConnected(Init::initEdge(includedEndCandiate, rightToken), 0, uintmax))
       {
         w->addMatch(Init::initMatch(anyNodeAnno, leftAlignedNode));
       }

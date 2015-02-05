@@ -167,8 +167,8 @@ CycleSafeDFS::~CycleSafeDFS()
 }
 
 
-UniqueDFS::UniqueDFS(const ReadableGraphStorage &edb, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
-  : DFS(edb, startNode, minDistance, maxDistance)
+UniqueDFS::UniqueDFS(const ReadableGraphStorage &gs, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance)
+  : DFS(gs, startNode, minDistance, maxDistance)
 {
 
 }

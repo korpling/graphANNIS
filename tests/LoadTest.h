@@ -127,8 +127,8 @@ TEST_F(LoadTest, OutgoingEdges) {
 
   Match cppNode = catSearch.next();
 
-  const ReadableGraphStorage* edbDom = db.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge");
-  std::vector<nodeid_t> outEdges = edbDom->getOutgoingEdges(cppNode.node);
+  const ReadableGraphStorage* gsDom = db.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge");
+  std::vector<nodeid_t> outEdges = gsDom->getOutgoingEdges(cppNode.node);
   EXPECT_EQ(3, outEdges.size());
 
 }
@@ -164,40 +164,40 @@ TEST_F(LoadTest, Ordering) {
 
   annis::Component componentOrdering = {annis::ComponentType::ORDERING,
                                                                  annis::annis_ns, ""};
-  const annis::ReadableGraphStorage* edb = db.getGraphStorage(componentOrdering);
-  ASSERT_TRUE(edb != NULL);
+  const annis::ReadableGraphStorage* gs = db.getGraphStorage(componentOrdering);
+  ASSERT_TRUE(gs != NULL);
   // tok . tok
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(0, 1)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(0, 1)));
 
   // test the last two token
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(517, 880)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(517, 880)));
 
   // span . tok
-  EXPECT_FALSE(edb->isConnected(annis::Init::initEdge(125, 126)));
+  EXPECT_FALSE(gs->isConnected(annis::Init::initEdge(125, 126)));
   // tok . span
-  EXPECT_FALSE(edb->isConnected(annis::Init::initEdge(151, 61)));
+  EXPECT_FALSE(gs->isConnected(annis::Init::initEdge(151, 61)));
   // span . span
-  EXPECT_FALSE(edb->isConnected(annis::Init::initEdge(152, 61)));
+  EXPECT_FALSE(gs->isConnected(annis::Init::initEdge(152, 61)));
 
   annis::Component componentLeftToken = {annis::ComponentType::LEFT_TOKEN,
                                                                   annis::annis_ns, ""};
-  edb = db.getGraphStorage(componentLeftToken);
-  ASSERT_TRUE(edb != NULL);
+  gs = db.getGraphStorage(componentLeftToken);
+  ASSERT_TRUE(gs != NULL);
   // span _l_ tok (both direcctions)
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(125, 124)));
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(124, 125)));
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(61, 49)));
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(49, 61)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(125, 124)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(124, 125)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(61, 49)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(49, 61)));
 
   annis::Component componentRightToken = {annis::ComponentType::RIGHT_TOKEN,
                                                                    annis::annis_ns, ""};
-  edb = db.getGraphStorage(componentRightToken);
-  ASSERT_TRUE(edb != NULL);
+  gs = db.getGraphStorage(componentRightToken);
+  ASSERT_TRUE(gs != NULL);
   // span _r_ tok (both direcctions)
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(125, 124)));
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(124, 125)));
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(61, 60)));
-  EXPECT_TRUE(edb->isConnected(annis::Init::initEdge(60, 61)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(125, 124)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(124, 125)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(61, 60)));
+  EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(60, 61)));
 
 
 }
@@ -231,13 +231,13 @@ TEST_F(LoadTest, IsConnected)
 
   annis::Component component = {annis::ComponentType::DOMINANCE,
                                                                  "tiger", ""};
-  const annis::ReadableGraphStorage* edb = db.getGraphStorage(component);
+  const annis::ReadableGraphStorage* gs = db.getGraphStorage(component);
 
-  EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 1, uintmax));
-  EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 1, 2));
-  EXPECT_TRUE(edb->isConnected(Init::initEdge(387, 16), 2, 2));
-  EXPECT_FALSE(edb->isConnected(Init::initEdge(387, 16), 3, uintmax));
-  EXPECT_FALSE(edb->isConnected(Init::initEdge(387, 16), 5, 10));
+  EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, uintmax));
+  EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, 2));
+  EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 2, 2));
+  EXPECT_FALSE(gs->isConnected(Init::initEdge(387, 16), 3, uintmax));
+  EXPECT_FALSE(gs->isConnected(Init::initEdge(387, 16), 5, 10));
 
 }
 
@@ -245,9 +245,9 @@ TEST_F(LoadTest, Distance)
 {
 
   annis::Component component = {annis::ComponentType::DOMINANCE, "tiger", ""};
-  const annis::ReadableGraphStorage* edb = db.getGraphStorage(component);
+  const annis::ReadableGraphStorage* gs = db.getGraphStorage(component);
 
-  EXPECT_EQ(2, edb->distance(Init::initEdge(387, 16)));
+  EXPECT_EQ(2, gs->distance(Init::initEdge(387, 16)));
 
 }
 

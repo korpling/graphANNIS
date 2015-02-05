@@ -13,7 +13,7 @@ AbstractEdgeOperator::AbstractEdgeOperator(
                   minDistance(minDistance), maxDistance(maxDistance),
                   anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
 {
-  initEdgeDB();
+  initGraphStorage();
 }
 
 AbstractEdgeOperator::AbstractEdgeOperator(
@@ -23,7 +23,7 @@ AbstractEdgeOperator::AbstractEdgeOperator(
     minDistance(1), maxDistance(1),
     anyAnno(Init::initAnnotation()), edgeAnno(edgeAnno)
 {
-  initEdgeDB();
+  initGraphStorage();
 }
 
 std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
@@ -32,12 +32,12 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
 
 
   // add the rhs nodes of all of the edge storages
-  if(edb.size() == 1)
+  if(gs.size() == 1)
   {
-    std::unique_ptr<EdgeIterator> it = edb[0]->findConnected(lhs.node, minDistance, maxDistance);
+    std::unique_ptr<EdgeIterator> it = gs[0]->findConnected(lhs.node, minDistance, maxDistance);
     for(auto m = it->next(); m.first; m = it->next())
     {
-      if(checkEdgeAnnotation(edb[0], lhs.node, m.second))
+      if(checkEdgeAnnotation(gs[0], lhs.node, m.second))
       {
         // directly add the matched node since when having only one component
         // no duplicates are possible
@@ -48,7 +48,7 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
   else
   {
     stx::btree_set<nodeid_t> uniqueResult;
-    for(auto e : edb)
+    for(auto e : gs)
     {
       std::unique_ptr<EdgeIterator> it = e->findConnected(lhs.node, minDistance, maxDistance);
       for(auto m = it->next(); m.first; m = it->next())
@@ -70,7 +70,7 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
 bool AbstractEdgeOperator::filter(const Match &lhs, const Match &rhs)
 {
   // check if the two nodes are connected in *any* of the edge storages
-  for(auto e : edb)
+  for(auto e : gs)
   {
     if(e->isConnected(Init::initEdge(lhs.node, rhs.node), minDistance, maxDistance))
     {
@@ -84,11 +84,11 @@ bool AbstractEdgeOperator::filter(const Match &lhs, const Match &rhs)
 }
 
 
-void AbstractEdgeOperator::initEdgeDB()
+void AbstractEdgeOperator::initGraphStorage()
 {
   if(ns == "")
   {
-    edb = db.getGraphStorage(componentType, name);
+    gs = db.getGraphStorage(componentType, name);
   }
   else
   {
@@ -96,7 +96,7 @@ void AbstractEdgeOperator::initEdgeDB()
     const ReadableGraphStorage* e = db.getGraphStorage(componentType, ns, name);
     if(e != nullptr)
     {
-      edb.push_back(e);
+      gs.push_back(e);
     }
   }
 }

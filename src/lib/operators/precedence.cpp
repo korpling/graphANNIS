@@ -6,8 +6,8 @@ using namespace annis;
 
 Precedence::Precedence(const DB &db, unsigned int minDistance, unsigned int maxDistance)
   : tokHelper(db),
-    edbOrder(db.getGraphStorage(ComponentType::ORDERING, annis_ns, "")),
-    edbLeft(db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
+    gsOrder(db.getGraphStorage(ComponentType::ORDERING, annis_ns, "")),
+    gsLeft(db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
     anyTokAnno(Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID())),
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     minDistance(minDistance), maxDistance(maxDistance)
@@ -19,7 +19,7 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
   std::unique_ptr<AnnoIt> result(nullptr);
 
   nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
-  std::unique_ptr<EdgeIterator> edgeIterator = edbOrder->findConnected(lhsRightToken,
+  std::unique_ptr<EdgeIterator> edgeIterator = gsOrder->findConnected(lhsRightToken,
                                                        minDistance, maxDistance);
 
   ListWrapper* w = new ListWrapper();
@@ -29,7 +29,7 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
       matchedToken.first; matchedToken = edgeIterator->next())
   {
     // get all nodes that are left-aligned to this token
-    std::vector<nodeid_t> tmp = edbLeft->getOutgoingEdges(matchedToken.second);
+    std::vector<nodeid_t> tmp = gsLeft->getOutgoingEdges(matchedToken.second);
     for(const auto& n : tmp)
     {
       w->addMatch(Init::initMatch(anyNodeAnno, n));
@@ -45,7 +45,7 @@ bool Precedence::filter(const Match &lhs, const Match &rhs)
 {
   nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
   nodeid_t rhsLeftToken = tokHelper.leftTokenForNode(rhs.node);
-  if(edbOrder->isConnected(Init::initEdge(lhsRightToken, rhsLeftToken),
+  if(gsOrder->isConnected(Init::initEdge(lhsRightToken, rhsLeftToken),
                            minDistance, maxDistance))
   {
     return true;

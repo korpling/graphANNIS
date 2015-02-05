@@ -23,9 +23,9 @@ public:
 private:
 
   const DB& db;
-  const ReadableGraphStorage* edbOrder;
-  const ReadableGraphStorage* edbLeftToken;
-  const ReadableGraphStorage* edbRightToken;
+  const ReadableGraphStorage* gsOrder;
+  const ReadableGraphStorage* gsLeftToken;
+  const ReadableGraphStorage* gsRightToken;
 
   Annotation anyNodeAnno;
 
