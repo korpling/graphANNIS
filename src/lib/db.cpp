@@ -58,7 +58,7 @@ bool DB::load(string dirPath)
   for(unsigned int componentType = (unsigned int) ComponentType::COVERAGE;
       componentType < (unsigned int) ComponentType::ComponentType_MAX; componentType++)
   {
-    const boost::filesystem::path componentPath(dirPath + "/edgedb/"
+    const boost::filesystem::path componentPath(dirPath + "/gs/"
                                                 + ComponentTypeHelper::toString((ComponentType) componentType));
 
     if(boost::filesystem::is_directory(componentPath))
@@ -138,18 +138,18 @@ bool DB::save(string dirPath)
   out.close();
 
   // save each edge db separately
-  string edgeDBParent = dirPath + "/edgedb";
-  for(EdgeDBIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
+  string gsParent = dirPath + "/gs";
+  for(GraphStorageIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
   {
     const Component& c = it->first;
     string finalPath;
     if(c.name.empty())
     {
-      finalPath = edgeDBParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer;
+      finalPath = gsParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer;
     }
     else
     {
-      finalPath = edgeDBParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer + "/" + c.name;
+      finalPath = gsParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer + "/" + c.name;
     }
     boost::filesystem::create_directories(finalPath);
     it->second->save(finalPath);
@@ -189,14 +189,14 @@ bool DB::loadRelANNIS(string dirPath)
   in.open(componentTabPath, ifstream::in);
   if(!in.good()) return false;
 
-  map<uint32_t, EdgeDB*> componentToEdgeDB;
+  map<uint32_t, WriteableGraphStorage*> componentToEdgeDB;
   while((line = Helper::nextCSV(in)).size() > 0)
   {
     uint32_t componentID = Helper::uint32FromString(line[0]);
     if(line[1] != "NULL")
     {
       ComponentType ctype = componentTypeFromShortName(line[1]);
-      EdgeDB* edb = createWritableEdgeDB(ctype, line[2], line[3]);
+      WriteableGraphStorage* edb = createWritableEdgeDB(ctype, line[2], line[3]);
       componentToEdgeDB[componentID] = edb;
     }
   }
@@ -345,9 +345,9 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   if(!tokenByIndex.empty())
   {
     HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
-    EdgeDB* edbOrder = createWritableEdgeDB(ComponentType::ORDERING, annis_ns, "");
-    EdgeDB* edbLeft = createWritableEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
-    EdgeDB* edbRight = createWritableEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "");
+    WriteableGraphStorage* edbOrder = createWritableEdgeDB(ComponentType::ORDERING, annis_ns, "");
+    WriteableGraphStorage* edbLeft = createWritableEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
+    WriteableGraphStorage* edbRight = createWritableEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
     map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
     uint32_t lastTextID = numeric_limits<uint32_t>::max();
@@ -398,8 +398,8 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   }
 
   // add explicit coverage edges for each node in the special annis namespace coverage component
-  EdgeDB* edbCoverage = createWritableEdgeDB(ComponentType::COVERAGE, annis_ns, "");
-  EdgeDB* edbInverseCoverage = createWritableEdgeDB(ComponentType::INVERSE_COVERAGE, annis_ns, "");
+  WriteableGraphStorage* edbCoverage = createWritableEdgeDB(ComponentType::COVERAGE, annis_ns, "");
+  WriteableGraphStorage* edbInverseCoverage = createWritableEdgeDB(ComponentType::INVERSE_COVERAGE, annis_ns, "");
   HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
   for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
       itLeftToNode != leftToNode.end(); itLeftToNode++)
@@ -447,10 +447,10 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
 
 
 bool DB::loadRelANNISRank(const string &dirPath,
-                          const map<uint32_t, EdgeDB*>& componentToEdgeDB)
+                          const map<uint32_t, WriteableGraphStorage*>& componentToEdgeDB)
 {
   typedef stx::btree_map<uint32_t, uint32_t>::const_iterator UintMapIt;
-  typedef map<uint32_t, EdgeDB*>::const_iterator ComponentIt;
+  typedef map<uint32_t, WriteableGraphStorage*>::const_iterator ComponentIt;
   bool result = true;
 
   ifstream in;
@@ -476,7 +476,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
   in.open(rankTabPath, ifstream::in);
   if(!in.good()) return false;
 
-  map<uint32_t, EdgeDB* > pre2EdgeDB;
+  map<uint32_t, WriteableGraphStorage* > pre2EdgeDB;
 
   // second run: get the actual edges
   while((line = Helper::nextCSV(in)).size() > 0)
@@ -492,7 +492,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
         ComponentIt itEdb = componentToEdgeDB.find(Helper::uint32FromString(line[3]));
         if(itEdb != componentToEdgeDB.end())
         {
-          EdgeDB* edb = itEdb->second;
+          WriteableGraphStorage* edb = itEdb->second;
           Edge edge = Init::initEdge(it->second, Helper::uint32FromString(line[2]));
 
           edb->addEdge(edge);
@@ -520,7 +520,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
 
 
 bool DB::loadEdgeAnnotation(const string &dirPath,
-                            const map<uint32_t, EdgeDB* >& pre2EdgeDB,
+                            const map<uint32_t, WriteableGraphStorage* >& pre2EdgeDB,
                             const map<uint32_t, Edge>& pre2Edge)
 {
 
@@ -538,11 +538,11 @@ bool DB::loadEdgeAnnotation(const string &dirPath,
   while((line = Helper::nextCSV(in)).size() > 0)
   {
     uint32_t pre = Helper::uint32FromString(line[0]);
-    map<uint32_t, EdgeDB*>::const_iterator itDB = pre2EdgeDB.find(pre);
+    map<uint32_t, WriteableGraphStorage*>::const_iterator itDB = pre2EdgeDB.find(pre);
     map<uint32_t, Edge>::const_iterator itEdge = pre2Edge.find(pre);
     if(itDB != pre2EdgeDB.end() && itEdge != pre2Edge.end())
     {
-      EdgeDB* e = itDB->second;
+      WriteableGraphStorage* e = itDB->second;
       Annotation anno;
       anno.ns = strings.add(line[1]);
       anno.name = strings.add(line[2]);
@@ -614,7 +614,7 @@ ReadableGraphStorage *DB::createEdgeDBForComponent(ComponentType ctype, const st
   }
 }
 
-EdgeDB* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const string &name)
+WriteableGraphStorage* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const string &name)
 {
   Component c = {ctype, layer, name == "NULL" ? "" : name};
 
@@ -624,7 +624,7 @@ EdgeDB* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const
   if(itDB != edgeDatabases.end())
   {
     // check if the current implementation is writeable
-    EdgeDB* writable = dynamic_cast<EdgeDB*>(itDB->second);
+    WriteableGraphStorage* writable = dynamic_cast<WriteableGraphStorage*>(itDB->second);
     if(writable != nullptr)
     {
       return writable;
@@ -637,7 +637,7 @@ EdgeDB* DB::createWritableEdgeDB(ComponentType ctype, const string &layer, const
     }
   }
 
-  EdgeDB* edgeDB = new FallbackEdgeDB(strings, c);
+  WriteableGraphStorage* edgeDB = new FallbackEdgeDB(strings, c);
   // register the used implementation
   edgeDatabases.insert(pair<Component,ReadableGraphStorage*>(c,edgeDB));
   return edgeDB;
@@ -677,7 +677,7 @@ void DB::convertComponent(Component c, std::string impl)
     }
 
     // perform index calculations
-    EdgeDB* asEdgeDB = dynamic_cast<EdgeDB*>(newStorage);
+    WriteableGraphStorage* asEdgeDB = dynamic_cast<WriteableGraphStorage*>(newStorage);
     if(asEdgeDB != nullptr)
     {
       asEdgeDB->calculateIndex();
@@ -746,7 +746,7 @@ string DB::info()
   ss  << "Number of node annotations: " << nodeAnnotations.size() << endl
       << "Number of strings in storage: " << strings.size() << endl;
 
-  for(EdgeDBIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
+  for(GraphStorageIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
   {
     const Component& c = it->first;
     const ReadableGraphStorage* edb = it->second;
@@ -823,7 +823,7 @@ std::vector<Component> DB::getAllComponents() const
   return result;
 }
 
-const ReadableGraphStorage* DB::getEdgeDB(const Component &component) const
+const ReadableGraphStorage* DB::getGraphStorage(const Component &component) const
 {
   map<Component, ReadableGraphStorage*>::const_iterator itEdgeDB = edgeDatabases.find(component);
   if(itEdgeDB != edgeDatabases.end())
@@ -833,13 +833,13 @@ const ReadableGraphStorage* DB::getEdgeDB(const Component &component) const
   return NULL;
 }
 
-const ReadableGraphStorage *DB::getEdgeDB(ComponentType type, const string &layer, const string &name) const
+const ReadableGraphStorage *DB::getGraphStorage(ComponentType type, const string &layer, const string &name) const
 {
   Component c = {type, layer, name};
-  return getEdgeDB(c);
+  return getGraphStorage(c);
 }
 
-std::vector<const ReadableGraphStorage *> DB::getEdgeDB(ComponentType type, const string &name) const
+std::vector<const ReadableGraphStorage *> DB::getGraphStorage(ComponentType type, const string &name) const
 {
   std::vector<const ReadableGraphStorage* > result;
 
@@ -862,7 +862,7 @@ std::vector<const ReadableGraphStorage *> DB::getEdgeDB(ComponentType type, cons
   return result;
 }
 
-std::vector<const ReadableGraphStorage *> DB::getAllEdgeDBForType(ComponentType type) const
+std::vector<const ReadableGraphStorage *> DB::getGraphStorage(ComponentType type) const
 {
   std::vector<const ReadableGraphStorage* > result;
 

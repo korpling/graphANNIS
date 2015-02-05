@@ -65,11 +65,11 @@ protected:
   GraphStatistic stat;
 };
 
-class EdgeDB : public ReadableGraphStorage
+class WriteableGraphStorage : public ReadableGraphStorage
 {
 public:
 
-  virtual ~EdgeDB() {}
+  virtual ~WriteableGraphStorage() {}
 
   virtual void addEdge(const Edge& edge) = 0;
   virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;

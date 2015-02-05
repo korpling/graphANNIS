@@ -17,7 +17,7 @@
 namespace annis
 {
 
-class FallbackEdgeDB : public EdgeDB
+class FallbackEdgeDB : public WriteableGraphStorage
 {
 
 public:

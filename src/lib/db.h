@@ -26,7 +26,7 @@ class DB
   friend class ExactAnnoKeySearch;
   friend class RegexAnnoSearch;
 
-  typedef std::map<Component, ReadableGraphStorage*>::const_iterator EdgeDBIt;
+  using GraphStorageIt = std::map<Component, ReadableGraphStorage*>::const_iterator;
 public:
   DB();
 
@@ -126,10 +126,10 @@ public:
 
   std::vector<Component> getDirectConnected(const Edge& edge) const;
   std::vector<Component> getAllComponents() const;
-  const ReadableGraphStorage *getEdgeDB(const Component& component) const;
-  const ReadableGraphStorage *getEdgeDB(ComponentType type, const std::string& layer, const std::string& name) const;
-  std::vector<const ReadableGraphStorage *> getEdgeDB(ComponentType type, const std::string& name) const;
-  std::vector<const ReadableGraphStorage *> getAllEdgeDBForType(ComponentType type) const;
+  const ReadableGraphStorage *getGraphStorage(const Component& component) const;
+  const ReadableGraphStorage *getGraphStorage(ComponentType type, const std::string& layer, const std::string& name) const;
+  std::vector<const ReadableGraphStorage *> getGraphStorage(ComponentType type, const std::string& name) const;
+  std::vector<const ReadableGraphStorage *> getGraphStorage(ComponentType type) const;
 
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);
@@ -168,10 +168,10 @@ private:
   bool loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
   bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
   bool loadRelANNISRank(const std::string& dirPath,
-                        const std::map<uint32_t, EdgeDB*>& componentToEdgeDB);
+                        const std::map<uint32_t, WriteableGraphStorage*>& componentToEdgeDB);
 
   bool loadEdgeAnnotation(const std::string& dirPath,
-                          const std::map<std::uint32_t, EdgeDB* >& pre2EdgeDB,
+                          const std::map<std::uint32_t, WriteableGraphStorage* >& pre2EdgeDB,
                           const std::map<std::uint32_t, Edge>& pre2Edge);
 
   void addNodeAnnotation(nodeid_t nodeID, Annotation& anno)
@@ -188,7 +188,7 @@ private:
                        const std::string& name);
   ReadableGraphStorage *createEdgeDBForComponent(ComponentType ctype, const std::string& layer,
                        const std::string& name);
-  annis::EdgeDB* createWritableEdgeDB(ComponentType ctype, const std::string& layer,
+  annis::WriteableGraphStorage* createWritableEdgeDB(ComponentType ctype, const std::string& layer,
                        const std::string& name);
 
 

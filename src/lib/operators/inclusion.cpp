@@ -9,9 +9,9 @@ Inclusion::Inclusion(const DB &db)
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     tokHelper(db)
 {
-  edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
-  edbLeftToken = db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "");
-  edbRightToken = db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, "");
+  edbOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
+  edbLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
+  edbRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
 }
 

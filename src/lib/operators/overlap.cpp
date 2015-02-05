@@ -7,9 +7,9 @@ using namespace annis;
 Overlap::Overlap(const DB &db)
   : db(db), tokHelper(db), anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {
-  edbOrder = db.getEdgeDB(ComponentType::ORDERING, annis_ns, "");
-  edbCoverage = db.getEdgeDB(ComponentType::COVERAGE, annis_ns, "");
-  edbInverseCoverage = db.getEdgeDB(ComponentType::INVERSE_COVERAGE, annis_ns, "");
+  edbOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
+  edbCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+  edbInverseCoverage = db.getGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
 
 }
 

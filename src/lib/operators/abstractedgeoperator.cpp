@@ -88,12 +88,12 @@ void AbstractEdgeOperator::initEdgeDB()
 {
   if(ns == "")
   {
-    edb = db.getEdgeDB(componentType, name);
+    edb = db.getGraphStorage(componentType, name);
   }
   else
   {
     // directly add the only known edge storage
-    const ReadableGraphStorage* e = db.getEdgeDB(componentType, ns, name);
+    const ReadableGraphStorage* e = db.getGraphStorage(componentType, ns, name);
     if(e != nullptr)
     {
       edb.push_back(e);

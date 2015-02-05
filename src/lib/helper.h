@@ -29,8 +29,8 @@ class TokenHelper
 public:
 
   TokenHelper(const DB& db) : db(db),
-    leftEdges(db.getEdgeDB(ComponentType::LEFT_TOKEN, annis_ns, "")),
-    rightEdges(db.getEdgeDB(ComponentType::RIGHT_TOKEN, annis_ns, ""))
+    leftEdges(db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
+    rightEdges(db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, ""))
   {
 
   }
