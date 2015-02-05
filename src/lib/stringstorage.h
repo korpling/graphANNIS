@@ -44,26 +44,6 @@ public:
     return result;
   }
 
-  uint32_t lower_bound(const std::string& str) const
-  {
-    auto it = stringStorageByValue.lower_bound(str);
-    if(it != stringStorageByValue.end())
-    {
-      return it->second;
-    }
-    return std::numeric_limits<uint32_t>::min();
-  }
-
-  uint32_t upper_bound(const std::string& str) const
-  {
-    auto it = stringStorageByValue.upper_bound(str);
-    if(it != stringStorageByValue.end())
-    {
-      return it->second;
-    }
-    return std::numeric_limits<uint32_t>::max();
-  }
-
   std::set<std::uint32_t> findRegex(const std::string& str) const;
 
   std::uint32_t add(const std::string& str);

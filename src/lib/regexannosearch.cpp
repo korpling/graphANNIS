@@ -46,24 +46,6 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
 {
   if(compiledValRegex.ok())
   {
-    // get the size of the last element so we know how much our prefix needs to be
-    size_t prefixSize = 10;
-    if(!db.inverseNodeAnnotations.empty())
-    {
-      const Annotation lastAnno = db.inverseNodeAnnotations.rbegin()->first;
-      size_t lastAnnoSize = db.strings.str(lastAnno.val).size()+1;
-      if(lastAnnoSize > prefixSize)
-      {
-        prefixSize = lastAnnoSize;
-      }
-    }
-
-    std::string minPrefix;
-    std::string maxPrefix;
-    compiledValRegex.PossibleMatchRange(&minPrefix, &maxPrefix, prefixSize);
-    uint32_t lowerVal = db.strings.lower_bound(minPrefix);
-    uint32_t upperVal = db.strings.upper_bound(maxPrefix);
-
     std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
     if(nameID.first)
     {
@@ -73,8 +55,8 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
       auto keysUpper = db.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
       for(auto itKey = keysLower; itKey != keysUpper; itKey++)
       {
-        auto lowerAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, lowerVal});
-        auto upperAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, upperVal});
+        auto lowerAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, 0});
+        auto upperAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, uintmax});
         searchRanges.push_back(Range(lowerAnno, upperAnno));
       }
     }
