@@ -63,7 +63,7 @@ std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStora
   {
     return prepostorderO16L8;
   }
-  else if(dynamic_cast<const FallbackEdgeDB*>(db) != nullptr)
+  else if(dynamic_cast<const AdjacencyListStorage*>(db) != nullptr)
   {
     return fallback;
   }
@@ -102,7 +102,7 @@ ReadableGraphStorage *GraphStorageRegistry::createEdgeDB(std::string name, Strin
   }
   else if(name == fallback)
   {
-    return new FallbackEdgeDB(strings, component);
+    return new AdjacencyListStorage(strings, component);
   }
 
   return nullptr;

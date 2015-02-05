@@ -17,11 +17,11 @@
 namespace annis
 {
 
-class FallbackEdgeDB : public WriteableGraphStorage
+class AdjacencyListStorage : public WriteableGraphStorage
 {
 
 public:
-  FallbackEdgeDB(StringStorage& strings, const Component& component);
+  AdjacencyListStorage(StringStorage& strings, const Component& component);
 
   virtual void copy(const DB& db, const ReadableGraphStorage& orig);
 

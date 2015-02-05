@@ -637,7 +637,7 @@ WriteableGraphStorage* DB::createWritableEdgeDB(ComponentType ctype, const strin
     }
   }
 
-  WriteableGraphStorage* edgeDB = new FallbackEdgeDB(strings, c);
+  WriteableGraphStorage* edgeDB = new AdjacencyListStorage(strings, c);
   // register the used implementation
   edgeDatabases.insert(pair<Component,ReadableGraphStorage*>(c,edgeDB));
   return edgeDB;

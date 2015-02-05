@@ -9,12 +9,12 @@
 using namespace annis;
 using namespace std;
 
-FallbackEdgeDB::FallbackEdgeDB(StringStorage &strings, const Component &component)
+AdjacencyListStorage::AdjacencyListStorage(StringStorage &strings, const Component &component)
   : strings(strings), component(component)
 {
 }
 
-void FallbackEdgeDB::copy(const DB &db, const ReadableGraphStorage &orig)
+void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
 {
   clear();
 
@@ -40,7 +40,7 @@ void FallbackEdgeDB::copy(const DB &db, const ReadableGraphStorage &orig)
   calculateIndex();
 }
 
-void FallbackEdgeDB::addEdge(const Edge &edge)
+void AdjacencyListStorage::addEdge(const Edge &edge)
 {
   if(edge.source != edge.target)
   {
@@ -49,12 +49,12 @@ void FallbackEdgeDB::addEdge(const Edge &edge)
   }
 }
 
-void FallbackEdgeDB::addEdgeAnnotation(const Edge& edge, const Annotation &anno)
+void AdjacencyListStorage::addEdgeAnnotation(const Edge& edge, const Annotation &anno)
 {
   edgeAnnos.addEdgeAnnotation(edge, anno);
 }
 
-void FallbackEdgeDB::clear()
+void AdjacencyListStorage::clear()
 {
   edges.clear();
   edgeAnnos.clear();
@@ -62,7 +62,7 @@ void FallbackEdgeDB::clear()
   stat.valid = false;
 }
 
-bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
+bool AdjacencyListStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
   typedef stx::btree_set<Edge>::const_iterator EdgeIt;
   if(minDistance == 1 && maxDistance == 1)
@@ -94,7 +94,7 @@ bool FallbackEdgeDB::isConnected(const Edge &edge, unsigned int minDistance, uns
   return false;
 }
 
-std::unique_ptr<EdgeIterator> FallbackEdgeDB::findConnected(nodeid_t sourceNode,
+std::unique_ptr<EdgeIterator> AdjacencyListStorage::findConnected(nodeid_t sourceNode,
                                                  unsigned int minDistance,
                                                  unsigned int maxDistance) const
 {
@@ -102,7 +102,7 @@ std::unique_ptr<EdgeIterator> FallbackEdgeDB::findConnected(nodeid_t sourceNode,
         new UniqueDFS(*this, sourceNode, minDistance, maxDistance));
 }
 
-int FallbackEdgeDB::distance(const Edge &edge) const
+int AdjacencyListStorage::distance(const Edge &edge) const
 {
   CycleSafeDFS dfs(*this, edge.source, 0, uintmax);
   DFSIteratorResult result = dfs.nextDFS();
@@ -117,12 +117,12 @@ int FallbackEdgeDB::distance(const Edge &edge) const
   return -1;
 }
 
-std::vector<Annotation> FallbackEdgeDB::getEdgeAnnotations(const Edge& edge) const
+std::vector<Annotation> AdjacencyListStorage::getEdgeAnnotations(const Edge& edge) const
 {
   return edgeAnnos.getEdgeAnnotations(edge);
 }
 
-std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t node) const
+std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) const
 {
   typedef stx::btree_set<Edge>::const_iterator EdgeIt;
 
@@ -139,7 +139,7 @@ std::vector<nodeid_t> FallbackEdgeDB::getOutgoingEdges(nodeid_t node) const
   return result;
 }
 
-bool FallbackEdgeDB::load(std::string dirPath)
+bool AdjacencyListStorage::load(std::string dirPath)
 {
   clear();
 
@@ -157,7 +157,7 @@ bool FallbackEdgeDB::load(std::string dirPath)
 
 }
 
-bool FallbackEdgeDB::save(std::string dirPath)
+bool AdjacencyListStorage::save(std::string dirPath)
 {
   ReadableGraphStorage::save(dirPath);
 
@@ -172,17 +172,17 @@ bool FallbackEdgeDB::save(std::string dirPath)
   return true;
 }
 
-std::uint32_t FallbackEdgeDB::numberOfEdges() const
+std::uint32_t AdjacencyListStorage::numberOfEdges() const
 {
   return edges.size();
 }
 
-std::uint32_t FallbackEdgeDB::numberOfEdgeAnnotations() const
+std::uint32_t AdjacencyListStorage::numberOfEdgeAnnotations() const
 {
   return edgeAnnos.numberOfEdgeAnnotations();
 }
 
-void FallbackEdgeDB::calculateStatistics()
+void AdjacencyListStorage::calculateStatistics()
 {
   stat.valid = false;
   stat.maxFanOut = 0;
