@@ -1,5 +1,5 @@
-#ifndef FALLBACKEDGEDB_H
-#define FALLBACKEDGEDB_H
+#ifndef ANNIS_ADJACENCYLISTSTORAGE_H
+#define ANNIS_ADJACENCYLISTSTORAGE_H
 
 #include <stx/btree_map>
 #include <stx/btree_multimap>
@@ -68,4 +68,4 @@ private:
 
 
 } // end namespace annis
-#endif // FALLBACKEDGEDB_H
+#endif // ANNIS_ADJACENCYLISTSTORAGE_H

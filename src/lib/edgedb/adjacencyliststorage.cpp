@@ -1,4 +1,4 @@
-#include "fallbackedgedb.h"
+#include "adjacencyliststorage.h"
 
 #include "../dfs.h"
 #include "../exactannokeysearch.h"

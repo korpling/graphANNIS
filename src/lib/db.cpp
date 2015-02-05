@@ -15,7 +15,7 @@
 #include <humblelogging/api.h>
 
 #include "helper.h"
-#include "edgedb/fallbackedgedb.h"
+#include "edgedb/adjacencyliststorage.h"
 #include "edgedb/linearedgedb.h"
 #include "edgedb/prepostorderstorage.h"
 
