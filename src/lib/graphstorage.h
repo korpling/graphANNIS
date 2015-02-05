@@ -1,5 +1,5 @@
-#ifndef EDGEDB_H
-#define EDGEDB_H
+#ifndef ANNIS_GRAPHSTORAGE_H
+#define ANNIS_GRAPHSTORAGE_H
 
 #include <stdlib.h>
 #include <cstdint>
@@ -79,4 +79,4 @@ public:
 
 
 } // end namespace annis
-#endif // EDGEDB_H
+#endif // ANNIS_GRAPHSTORAGE_H

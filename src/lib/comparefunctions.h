@@ -1,7 +1,7 @@
 #ifndef COMPAREFUNCTIONS_H
 #define COMPAREFUNCTIONS_H
 
-#include "edgedb.h"
+#include "graphstorage.h"
 #include "types.h"
 #include <string.h>
 

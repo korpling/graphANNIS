@@ -1,7 +1,7 @@
 #ifndef LINEAREDGEDB_H
 #define LINEAREDGEDB_H
 
-#include "../edgedb.h"
+#include "../graphstorage.h"
 #include "../edgeannotationstorage.h"
 
 #include "../dfs.h"

@@ -4,7 +4,7 @@
 #include "types.h"
 #include "iterators.h"
 #include "operator.h"
-#include "edgedb.h"
+#include "../graphstorage.h"
 #include "db.h"
 
 namespace annis

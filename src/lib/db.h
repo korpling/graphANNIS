@@ -14,7 +14,7 @@
 
 #include "types.h"
 #include "comparefunctions.h"
-#include "edgedb.h"
+#include "graphstorage.h"
 #include "stringstorage.h"
 #include "graphstorageregistry.h"
 

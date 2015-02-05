@@ -1,7 +1,7 @@
 #ifndef PREPOSTORDERSTORAGE_H
 #define PREPOSTORDERSTORAGE_H
 
-#include "fallbackedgedb.h"
+#include "../graphstorage.h"
 #include "edgeannotationstorage.h"
 
 

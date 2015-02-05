@@ -4,7 +4,7 @@
 #include <stx/btree_map>
 #include <stx/btree_multimap>
 #include <stx/btree_set>
-#include "../edgedb.h"
+#include "../graphstorage.h"
 #include "../db.h"
 #include "../comparefunctions.h"
 #include "../edgeannotationstorage.h"

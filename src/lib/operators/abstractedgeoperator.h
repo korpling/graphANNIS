@@ -2,7 +2,7 @@
 #define ABSTRACTEDGEOPERATOR_H
 
 #include "../db.h"
-#include "../edgedb.h"
+#include "../graphstorage.h"
 #include "../operator.h"
 #include <vector>
 

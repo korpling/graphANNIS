@@ -1,7 +1,7 @@
 #ifndef GRAPHSTORAGEREGISTRY_H
 #define GRAPHSTORAGEREGISTRY_H
 
-#include "edgedb.h"
+#include "graphstorage.h"
 
 #include <map>
 

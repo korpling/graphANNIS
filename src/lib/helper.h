@@ -9,7 +9,7 @@
 #include <sstream>
 
 #include "db.h"
-#include "edgedb.h"
+#include "graphstorage.h"
 
 #ifdef WIN32
 #include <windows.h>

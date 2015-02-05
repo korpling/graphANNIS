@@ -1,7 +1,7 @@
 #ifndef DFS_H
 #define DFS_H
 
-#include "edgedb.h"
+#include "graphstorage.h"
 
 #include <stack>
 #include <list>

@@ -1,4 +1,4 @@
-#include "edgedb.h"
+#include "graphstorage.h"
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
