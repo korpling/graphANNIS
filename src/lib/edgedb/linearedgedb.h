@@ -27,14 +27,14 @@ namespace annis
 
 
 template<typename pos_t>
-class LinearEdgeDB : public ReadableGraphStorage
+class LinearStorage : public ReadableGraphStorage
 {
 public:
   class LinearIterator : public EdgeIterator
   {
   public:
 
-    LinearIterator(const LinearEdgeDB& edb, nodeid_t startNode, unsigned int minDistance, unsigned int maxDistance)
+    LinearIterator(const LinearStorage& edb, nodeid_t startNode, unsigned int minDistance, unsigned int maxDistance)
       : edb(edb), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode),
         chain(nullptr)
     {
@@ -93,7 +93,7 @@ public:
 
   private:
 
-    const LinearEdgeDB& edb;
+    const LinearStorage& edb;
     unsigned int minDistance;
     unsigned int maxDistance;
     nodeid_t startNode;
@@ -106,7 +106,7 @@ public:
 
 
 public:
-  LinearEdgeDB(StringStorage& strings, const Component& component)
+  LinearStorage(StringStorage& strings, const Component& component)
     : component(component)
   {
 
@@ -307,7 +307,7 @@ public:
     return edgeAnno.numberOfEdgeAnnotations();
   }
 
-  virtual ~LinearEdgeDB()
+  virtual ~LinearStorage()
   {
 
   }
