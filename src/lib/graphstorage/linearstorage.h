@@ -238,7 +238,7 @@ public:
   {
     bool result = ReadableGraphStorage::load(dirPath);
 
-    result = result && edgeAnno.save(dirPath);
+    result = result && edgeAnno.load(dirPath);
     std::ifstream in;
 
 
