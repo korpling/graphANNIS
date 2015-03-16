@@ -55,6 +55,7 @@ public:
   }
 
   virtual ~ListWrapper() {}
+
 protected:
   size_t internalListSize()
   {
@@ -92,7 +93,7 @@ public:
 
   virtual void reset();
 
-  virtual void setOther(std::shared_ptr<JoinWrapIterator> otherInnerWrapper)
+  virtual void setOther(std::weak_ptr<JoinWrapIterator> otherInnerWrapper)
   {
     JoinWrapIterator::otherInnerWrapper = otherInnerWrapper;
   }
@@ -101,7 +102,7 @@ public:
 
 private:
   std::shared_ptr<BinaryIt> wrappedJoin;
-  std::shared_ptr<JoinWrapIterator> otherInnerWrapper;
+  std::weak_ptr<JoinWrapIterator> otherInnerWrapper;
   bool wrapLeftOperand;
 
   void checkIfNextCallNeeded();

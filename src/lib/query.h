@@ -48,6 +48,11 @@ public:
   bool hasNext();
   std::vector<Match> next();
 
+  virtual ~Query()
+  {
+
+  }
+
 private:
 
   const DB& db;

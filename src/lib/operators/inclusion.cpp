@@ -36,10 +36,9 @@ bool Inclusion::filter(const Match &lhs, const Match &rhs)
 
 std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
 {
-  std::unique_ptr<AnnoIt> result(nullptr);
 
   ListWrapper* w = new ListWrapper();
-  result.reset(w);
+  std::unique_ptr<AnnoIt> result(w);
 
   nodeid_t leftToken;
   nodeid_t rightToken;

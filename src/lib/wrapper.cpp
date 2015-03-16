@@ -5,9 +5,9 @@ using namespace annis;
 void JoinWrapIterator::reset()
 {
   ListWrapper::reset();
-  if(otherInnerWrapper)
+  if(!otherInnerWrapper.expired())
   {
-    otherInnerWrapper->reset();
+    otherInnerWrapper.lock()->reset();
   }
 }
 
@@ -23,17 +23,17 @@ void JoinWrapIterator::checkIfNextCallNeeded()
       if(wrapLeftOperand)
       {
         addMatch(nextMatch.lhs);
-        if(otherInnerWrapper)
+        if(!otherInnerWrapper.expired())
         {
-          otherInnerWrapper->addMatch(nextMatch.rhs);
+          otherInnerWrapper.lock()->addMatch(nextMatch.rhs);
         }
       }
       else
       {
         addMatch(nextMatch.rhs);
-        if(otherInnerWrapper)
+        if(!otherInnerWrapper.expired())
         {
-          otherInnerWrapper->addMatch(nextMatch.lhs);
+          otherInnerWrapper.lock()->addMatch(nextMatch.lhs);
         }
       }
     }
