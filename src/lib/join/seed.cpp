@@ -76,7 +76,7 @@ void AnnoKeySeedJoin::reset()
     left->reset();
   }
 
-  matchesByOperator.release();
+  matchesByOperator.reset(nullptr);
   matchingRightAnnos.clear();
   currentMatchValid = false;
 
@@ -89,7 +89,6 @@ bool AnnoKeySeedJoin::nextLeftMatch()
 {
   if(left && left->hasNext())
   {
-    matchesByOperator.release();
     matchingRightAnnos.clear();
 
     currentMatch.lhs = left->next();
@@ -116,10 +115,6 @@ bool AnnoKeySeedJoin::nextRightAnnotation()
     return true;
   }
   return false;
-}
-
-AnnoKeySeedJoin::~AnnoKeySeedJoin()
-{
 }
 
 MaterializedSeedJoin::MaterializedSeedJoin(const DB &db, std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs,
@@ -194,7 +189,7 @@ void MaterializedSeedJoin::reset()
     left->reset();
   }
 
-  matchesByOperator.release();
+  matchesByOperator.reset(nullptr);
   matchingRightAnnos.clear();
   currentMatchValid = false;
 
@@ -207,7 +202,6 @@ bool MaterializedSeedJoin::nextLeftMatch()
 {
   if(left && left->hasNext())
   {
-    matchesByOperator.release();
     matchingRightAnnos.clear();
 
     currentMatch.lhs = left->next();
@@ -234,9 +228,4 @@ bool MaterializedSeedJoin::nextRightAnnotation()
     return true;
   }
   return false;
-}
-
-MaterializedSeedJoin::~MaterializedSeedJoin()
-{
-
 }

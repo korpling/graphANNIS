@@ -20,6 +20,7 @@ using namespace annis;
 class SearchTestRidges : public ::testing::Test {
 public:
   const unsigned int MAX_COUNT = 2000000u;
+
  protected:
   DB db;
   SearchTestRidges() {
@@ -265,8 +266,10 @@ TEST_F(SearchTestRidges, Inclusion) {
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m[0].node % m[1].node).str()) ;
     counter++;
   }
-
   EXPECT_EQ(152u, counter);
+
+  n1 = nullptr;
+  n2 = nullptr;
 }
 
 

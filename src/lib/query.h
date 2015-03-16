@@ -48,10 +48,7 @@ public:
   bool hasNext();
   std::vector<Match> next();
 
-  virtual ~Query()
-  {
-
-  }
+  virtual ~Query() {}
 
 private:
 

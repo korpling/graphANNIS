@@ -30,8 +30,7 @@ public:
 
   void addMatch(const nodeid_t& m)
   {
-    static const Annotation anyAnno = Init::initAnnotation();
-    orig.push(Init::initMatch(anyAnno, m));
+    orig.push(Init::initMatch({0, 0, 0}, m));
   }
 
   virtual bool hasNext()
@@ -54,7 +53,7 @@ public:
     }
   }
 
-  virtual ~ListWrapper() {}
+  virtual ~ListWrapper() {reset();}
 
 protected:
   size_t internalListSize()

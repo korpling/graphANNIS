@@ -38,7 +38,6 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
 {
 
   ListWrapper* w = new ListWrapper();
-  std::unique_ptr<AnnoIt> result(w);
 
   nodeid_t leftToken;
   nodeid_t rightToken;
@@ -76,7 +75,7 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
     }
   }
 
-  return result;
+  return std::unique_ptr<AnnoIt>(w);;
 }
 
 

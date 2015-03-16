@@ -19,7 +19,7 @@ public:
   AnnoKeySeedJoin(const DB& db, std::shared_ptr<Operator> op,
            std::shared_ptr<AnnoIt> lhs,
            const std::set<AnnotationKey> &rightAnnoKeys);
-  virtual ~AnnoKeySeedJoin();
+  virtual ~AnnoKeySeedJoin() {}
 
   virtual BinaryMatch next();
   virtual void reset();
@@ -50,7 +50,7 @@ public:
   MaterializedSeedJoin(const DB& db, std::shared_ptr<Operator> op,
                        std::shared_ptr<AnnoIt> lhs,
                        const std::unordered_set<Annotation> &rightAnno);
-  virtual ~MaterializedSeedJoin();
+  virtual ~MaterializedSeedJoin() {}
 
   virtual BinaryMatch next();
   virtual void reset();
