@@ -22,9 +22,24 @@
 
 HUMBLE_LOGGER(logger, "default");
 
+namespace annis
+{
+class BenchmarkDBHolder
+{
+public:
+  static std::string corpus;
+  static std::unique_ptr<DB> db;
+  static bool forceFallback;
+};
+
+} // end namespace ANNIS
+
 using namespace annis;
 
-#define DBGETTER virtual DB& getDB() {static DB db = initDB(); return db;}
+#define DBGETTER virtual const DB& getDB() {\
+  checkBenchmarkDBHolder();\
+  return *(BenchmarkDBHolder::db);\
+}
 
 template<bool forceFallback, char const* corpusName>
 class CorpusFixture : public ::celero::TestFixture
@@ -33,6 +48,17 @@ public:
   CorpusFixture()
     : corpus(corpusName)
   {
+  }
+
+  void checkBenchmarkDBHolder()
+  {
+    if(!BenchmarkDBHolder::db || BenchmarkDBHolder::corpus != corpus
+       || BenchmarkDBHolder::forceFallback != forceFallback)
+    {
+      BenchmarkDBHolder::db = initDB();
+      BenchmarkDBHolder::corpus = corpus;
+      BenchmarkDBHolder::forceFallback = forceFallback;
+    }
   }
 
   virtual void setUp(int64_t experimentValue)
@@ -53,9 +79,10 @@ public:
     );
   }
 
-  DB initDB()
+  std::unique_ptr<DB> initDB()
   {
-    DB result;
+//    std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
+    std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
 
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
     std::string dataDir("data");
@@ -63,26 +90,26 @@ public:
     {
       dataDir = testDataEnv;
     }
-    result.load(dataDir + "/" + corpus);
+    result->load(dataDir + "/" + corpus);
 
     if(forceFallback)
     {
       // manually convert all components to fallback implementation
-      auto components = result.getAllComponents();
+      auto components = result->getAllComponents();
       for(auto c : components)
       {
-        result.convertComponent(c, GraphStorageRegistry::fallback);
+        result->convertComponent(c, GraphStorageRegistry::fallback);
       }
     }
     else
     {
-      result.optimizeAll(overrideImpl);
+      result->optimizeAll(overrideImpl);
     }
 
     return result;
   }
 
-  virtual DB& getDB() = 0;
+  virtual const DB& getDB() = 0;
 
   virtual ~CorpusFixture() {}
 
@@ -91,10 +118,11 @@ public:
 
 protected:
 
-
 private:
   const std::string corpus;
   std::map<Component, std::string> overrideImpl;
+
+
 };
 
 

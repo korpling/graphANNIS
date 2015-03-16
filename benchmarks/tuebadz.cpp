@@ -46,11 +46,7 @@ class TuebaFallbackFixtureVar : public CorpusFixture<true, tuebaCorpus>
 public:
 
 
-  DB& getDB()
-  {
-    static DB dbHolder = initDB();
-    return dbHolder;
-  }
+  DBGETTER
 
   virtual std::vector<int64_t> getExperimentValues() const
   {
