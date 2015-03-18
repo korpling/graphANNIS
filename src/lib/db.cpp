@@ -744,7 +744,8 @@ string DB::info()
 {
   stringstream ss;
   ss  << "Number of node annotations: " << nodeAnnotations.size() << endl
-      << "Number of strings in storage: " << strings.size() << endl;
+      << "Number of strings in storage: " << strings.size() << endl
+      << "Average string length: " << strings.avgLength() << endl;
 
   for(GraphStorageIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
   {

@@ -52,6 +52,7 @@ public:
   bool load(const std::string& dirPath);
   bool save(const std::string &dirPath);
   size_t size() {return stringStorageByID.size();}
+  double avgLength();
 
 
 private:
