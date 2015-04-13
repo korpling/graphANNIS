@@ -188,8 +188,8 @@ public:
     PosIt posTargetIt = node2pos.find(edge.target);
     if(posSourceIt != node2pos.end() && posTargetIt != node2pos.end())
     {
-      RelativePosition<pos_t> posSource = posSourceIt->second;
-      RelativePosition<pos_t> posTarget = posTargetIt->second;
+      auto& posSource = posSourceIt->second;
+      auto& posTarget = posTargetIt->second;
       if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
       {
         unsigned int diff = posTarget.pos > posSource.pos ?
@@ -220,8 +220,8 @@ public:
     PosIt posTargetIt = node2pos.find(edge.target);
     if(posSourceIt != node2pos.end() && posTargetIt != node2pos.end())
     {
-      RelativePosition<pos_t> posSource = posSourceIt->second;
-      RelativePosition<pos_t> posTarget = posTargetIt->second;
+      auto& posSource = posSourceIt->second;
+      auto& posTarget = posTargetIt->second;
       if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
       {
         int diff = posTarget.pos - posSource.pos;
