@@ -277,6 +277,7 @@ void AdjacencyListStorage::calculateStatistics()
 
   if(stat.cyclic)
   {
+    stat.rootedTree = false;
     // it's infinite
     stat.maxDepth = 0;
     stat.dfsVisitRatio = 0.0;
