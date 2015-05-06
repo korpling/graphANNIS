@@ -40,25 +40,35 @@ private:
   std::string getImplByRegistry(const Component& component);
   std::string getImplByHeuristics(const Component& component, GraphStatistic stats);
 
-  std::string getPrePostOrderBySize(const GraphStatistic& stats)
+  std::string getPrePostOrderBySize(const GraphStatistic& stats, bool isTree)
   {
     std::string result = prepostorderO32L32;
     if(stats.valid)
     {
-      if(stats.nodes < std::numeric_limits<uint16_t>::max()
-         && stats.maxDepth < std::numeric_limits<int8_t>::max())
+      if(isTree)
       {
-        result = prepostorderO16L8;
+        if(stats.nodes < std::numeric_limits<uint16_t>::max()
+           && stats.maxDepth < std::numeric_limits<int8_t>::max())
+        {
+          result = prepostorderO16L8;
+        }
+        else if(stats.nodes < std::numeric_limits<uint16_t>::max()
+                && stats.maxDepth < std::numeric_limits<int32_t>::max())
+        {
+          result = prepostorderO16L32;
+        }
+        else if( stats.nodes < std::numeric_limits<uint32_t>::max()
+                && stats.maxDepth < std::numeric_limits<int8_t>::max())
+        {
+          result = prepostorderO32L8;
+        }
       }
-      else if(stats.nodes < std::numeric_limits<uint16_t>::max()
-              && stats.maxDepth < std::numeric_limits<int32_t>::max())
+      else
       {
-        result = prepostorderO16L32;
-      }
-      else if( stats.nodes < std::numeric_limits<uint32_t>::max()
-              && stats.maxDepth < std::numeric_limits<int8_t>::max())
-      {
-        result = prepostorderO32L8;
+        if(stats.maxDepth < std::numeric_limits<int8_t>::max())
+        {
+          result = prepostorderO32L8;
+        }
       }
     }
     return result;

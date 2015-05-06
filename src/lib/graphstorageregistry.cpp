@@ -212,7 +212,7 @@ std::string GraphStorageRegistry::getImplByHeuristics(const Component &component
       else
       {
         // we have a real tree
-        result = getPrePostOrderBySize(stats);
+        result = getPrePostOrderBySize(stats, true);
       }
     }
     else if(!stats.cyclic)
@@ -223,7 +223,7 @@ std::string GraphStorageRegistry::getImplByHeuristics(const Component &component
       {
         // there is no more than 3% overhead
         // TODO: how to determine the border?
-        result = getPrePostOrderBySize(stats);
+        result = getPrePostOrderBySize(stats, false);
       }
     }
   }
