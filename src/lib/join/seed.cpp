@@ -37,7 +37,7 @@ BinaryMatch AnnoKeySeedJoin::next()
         const AnnotationKey& key = *(rightAnnoKeys.begin());
         std::pair<bool, Annotation> foundAnno =
             db.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
-        if(foundAnno.first)
+        if(foundAnno.first && checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, foundAnno.second))
         {
           currentMatch.found = true;
           currentMatch.rhs.anno = foundAnno.second;
@@ -107,12 +107,15 @@ bool AnnoKeySeedJoin::nextLeftMatch()
 
 bool AnnoKeySeedJoin::nextRightAnnotation()
 {
-  if(matchingRightAnnos.size() > 0)
+  while(matchingRightAnnos.size() > 0)
   {
-    currentMatch.found = true;
-    currentMatch.rhs.anno = matchingRightAnnos.front();
-    matchingRightAnnos.pop_front();
-    return true;
+    if(checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, matchingRightAnnos.front()))
+    {
+      currentMatch.found = true;
+      currentMatch.rhs.anno = matchingRightAnnos.front();
+      matchingRightAnnos.pop_front();
+      return true;
+    }
   }
   return false;
 }
@@ -151,7 +154,8 @@ BinaryMatch MaterializedSeedJoin::next()
         const Annotation& rightAnno = *(right.begin());
         std::pair<bool, Annotation> foundAnno =
             db.getNodeAnnotation(currentMatch.rhs.node, rightAnno.ns, rightAnno.name);
-        if(foundAnno.first && foundAnno.second.val == rightAnno.val)
+        if(foundAnno.first && foundAnno.second.val == rightAnno.val
+           && checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, foundAnno.second))
         {
           currentMatch.found = true;
           currentMatch.rhs.anno = foundAnno.second;
@@ -220,12 +224,16 @@ bool MaterializedSeedJoin::nextLeftMatch()
 
 bool MaterializedSeedJoin::nextRightAnnotation()
 {
-  if(matchingRightAnnos.size() > 0)
+  while(matchingRightAnnos.size() > 0)
   {
-    currentMatch.found = true;
-    currentMatch.rhs.anno = matchingRightAnnos.front();
-    matchingRightAnnos.pop_front();
-    return true;
+    if(checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, matchingRightAnnos.front()))
+    {
+      currentMatch.found = true;
+      currentMatch.rhs.anno = matchingRightAnnos.front();
+      matchingRightAnnos.pop_front();
+      return true;
+    }
   }
   return false;
 }
+

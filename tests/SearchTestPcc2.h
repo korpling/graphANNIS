@@ -194,7 +194,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 }
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
-TEST_F(SearchTestPcc2, TestQueryInclude) {
+TEST_F(SearchTestPcc2, InclusionQuery) {
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "ambiguity", "not_ambig"));
@@ -211,6 +211,101 @@ TEST_F(SearchTestPcc2, TestQueryInclude) {
 
   EXPECT_EQ(23u, counter);
 }
+
+TEST_F(SearchTestPcc2, StructureInclusionSeed) {
+
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "AP"));
+
+  q.addOperator(std::make_shared<Inclusion>(db), n1, n2, false);
+
+  unsigned int counter=0;
+  while(q.hasNext())
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(2u, counter);
+}
+
+
+TEST_F(SearchTestPcc2, StructureInclusionFilter) {
+
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "S"));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "AP"));
+
+  q.addOperator(std::make_shared<Inclusion>(db), n1, n2, true);
+
+  unsigned int counter=0;
+  while(q.hasNext())
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(2u, counter);
+}
+
+TEST_F(SearchTestPcc2, AnyNodeIncludeSeed) {
+
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+
+  q.addOperator(std::make_shared<Inclusion>(db), n1, n2, false);
+
+  unsigned int counter=0;
+  while(q.hasNext())
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeDebugName(m[0].node) % db.getNodeDebugName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(14349u, counter);
+}
+
+TEST_F(SearchTestPcc2, AnyNodeIncludeFilter) {
+
+  Query q(db);
+  auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+
+  q.addOperator(std::make_shared<Inclusion>(db), n1, n2, true);
+
+  unsigned int counter=0;
+  while(q.hasNext())
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeDebugName(m[0].node) % db.getNodeDebugName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(14349u, counter);
+}
+
+
+TEST_F(SearchTestPcc2, NodeCount) {
+
+  Query q(db);
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+
+  unsigned int counter=0;
+  while(q.hasNext())
+  {
+    std::vector<Match> m = q.next();
+    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(998u, counter);
+}
+
 
 // Should test query
 // pos="NN" .2,20 pos="ART"

@@ -39,6 +39,19 @@ private:
 
   bool nextLeftMatch();
   bool nextRightAnnotation();
+
+  bool checkReflexitivity(const nodeid_t& lhsNode, const Annotation& lhsAnno, const nodeid_t& rhsNode, const Annotation& rhsAnno)
+  {
+    if(!op->isReflexive() && lhsNode == rhsNode && checkAnnotationEqual(lhsAnno, rhsAnno))
+    {
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  }
+
 };
 
 /**
@@ -70,6 +83,18 @@ private:
 
   bool nextLeftMatch();
   bool nextRightAnnotation();
+
+  bool checkReflexitivity(const nodeid_t& lhsNode, const Annotation& lhsAnno, const nodeid_t& rhsNode, const Annotation& rhsAnno)
+  {
+    if(!op->isReflexive() && lhsNode == rhsNode && checkAnnotationEqual(lhsAnno, rhsAnno))
+    {
+      return false;
+    }
+    else
+    {
+      return true;
+    }
+  }
 
 };
 

@@ -42,7 +42,15 @@ BinaryMatch NestedLoopJoin::next()
     {
       matchRight = right->next();
 
-      if(op->filter(matchLeft, matchRight))
+      bool include = true;
+      // do not include the same match if not reflexive
+      if(!op->isReflexive()
+         && matchLeft.node == matchRight.node
+         && checkAnnotationEqual(matchLeft.anno, matchRight.anno)) {
+        include = false;
+      }
+
+      if(include && op->filter(matchLeft, matchRight))
       {
         result.found = true;
         result.lhs = matchLeft;
@@ -50,7 +58,8 @@ BinaryMatch NestedLoopJoin::next()
 
         return result;
       }
-    }
+    } // end for each right
+
     if(left->hasNext())
     {
       matchLeft = left->next();
@@ -60,7 +69,7 @@ BinaryMatch NestedLoopJoin::next()
     {
       proceed = false;
     }
-  }
+  } // end while proceed
   return result;
 }
 
