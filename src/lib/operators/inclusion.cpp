@@ -25,7 +25,7 @@ bool Inclusion::filter(const Match &lhs, const Match &rhs)
   nodeid_t rhsRightToken = tokHelper.rightTokenForNode(rhs.node);
 
   if(gsOrder->isConnected(Init::initEdge(lhsLeftToken, rhsLeftToken), 0, spanLength)
-     && gsOrder->isConnected(Init::initEdge(lhsLeftToken, rhsRightToken), 0, spanLength)
+     && gsOrder->isConnected(Init::initEdge(rhsRightToken, lhsRightToken), 0, spanLength)
     )
   {
     return true;
