@@ -35,4 +35,3 @@ This software depends on libraries and code of the following projects:
 * Humble Logging Library - ???
 * ICU - Copyright by International Business Machines Corporation and others: ICU License (http://www.icu-project.org/repos/icu/icu/tags/release-55-1/license.html)
 * ncurses - Copyright Free Software Foundation, Inc.: X11 License (http://invisible-island.net/ncurses/ncurses-license.html)
-* 
