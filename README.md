@@ -23,3 +23,16 @@ The build process is not as clean and easy as it should be yet, but that's why i
 4. create a build-directory: `mkdir build && cd build`
 5. build: `cmake ../ && make`
 6. optionally run the tests if you have the necessary corpus data installed: `./test_ANNIS4`
+
+3rd party dependencies
+----------------------
+
+This software depends on libraries and code of the following projects:
+
+* Boost - Copyright by the various Boost Contributors: Boost Software License (http://www.boost.org/LICENSE_1_0.txt)
+* Celero C++ Benchmarking Library - Copyright by John Farrier, Hellebore Consulting LLC: Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+* Google Test - Copyright by Google Inc.: New BSD License (http://opensource.org/licenses/BSD-3-Clause)
+* Humble Logging Library - ???
+* ICU - Copyright by International Business Machines Corporation and others: ICU License (http://www.icu-project.org/repos/icu/icu/tags/release-55-1/license.html)
+* ncurses - Copyright Free Software Foundation, Inc.: X11 License (http://invisible-island.net/ncurses/ncurses-license.html)
+* 
