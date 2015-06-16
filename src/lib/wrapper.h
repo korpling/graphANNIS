@@ -97,7 +97,7 @@ public:
     JoinWrapIterator::otherInnerWrapper = otherInnerWrapper;
   }
 
-  virtual ~JoinWrapIterator() {};
+  virtual ~JoinWrapIterator() {}
 
 private:
   std::shared_ptr<BinaryIt> wrappedJoin;
