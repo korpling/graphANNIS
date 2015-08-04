@@ -19,12 +19,12 @@ public:
 };
 
 
-BASELINE_F(Parlament_JederObwohl, Fallback, ParlamentFallbackFixture, 5, 1)
+BASELINE_F(JPO_parlament, Fallback, ParlamentFallbackFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(JederObwohl, getDB(), 4);
 }
 
-BENCHMARK_F(Parlament_JederObwohl, Optimized, ParlamentFixture, 5, 1)
+BENCHMARK_F(JPO_parlament, Optimized, ParlamentFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(JederObwohl, getDB(), 4);
 }

@@ -64,51 +64,51 @@ public:
 };
 
 
-BASELINE_F(Tueba_Mixed1, Fallback, TuebaFallbackFixture, 5, 1)
+BASELINE_F(MIX_tuebadz6, Fallback, TuebaFallbackFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(Mixed1, getDB(), 0u);
 }
 
 
-BENCHMARK_F(Tueba_Mixed1, Optimized, TuebaFixture, 5, 1)
+BENCHMARK_F(MIX_tuebadz6, Optimized, TuebaFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(Mixed1, getDB(), 0u);
 }
 
-BASELINE_F(Tueba_RegexDom, Fallback, TuebaFallbackFixture, 5, 1)
+BASELINE_F(REG2_tuebadz6, Fallback, TuebaFallbackFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(RegexDom, getDB(), 1u);
 }
 
 
-BENCHMARK_F(Tueba_RegexDom, Optimized, TuebaFixture, 5, 1)
+BENCHMARK_F(REG2_tuebadz6, Optimized, TuebaFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(RegexDom, getDB(), 1u);
 }
 
-BASELINE_F(Tueba_Inclusion, Fallback, TuebaFallbackFixture, 5, 1)
+BASELINE_F(PIA_tuebadz6, Fallback, TuebaFallbackFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(PPERIncludesAnaphoric, getDB(), 13031u);
 }
 
 
-BENCHMARK_F(Tueba_Inclusion, Optimized, TuebaFixture, 5, 1)
+BENCHMARK_F(PIA_tuebadz6, Optimized, TuebaFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(PPERIncludesAnaphoric, getDB(), 13031u);
 }
 
-BASELINE_F(Tueba_DomEdgeAnno, Fallback, TuebaFallbackFixture, 5, 1)
+BASELINE_F(FUN_tuebadz6, Fallback, TuebaFallbackFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(DomFuncON, getDB(), 76748u);
 }
 
 
-BENCHMARK_F(Tueba_DomEdgeAnno, Optimized, TuebaFixture, 5, 1)
+BENCHMARK_F(FUN_tuebadz6, Optimized, TuebaFixture, 5, 1)
 {
   ANNIS_EXEC_QUERY_COUNT(DomFuncON, getDB(), 76748u);
 }
 
-BASELINE_F(Tueba_NodeDom, Fallback, TuebaFallbackFixtureVar, 5, 1)
+BASELINE_F(DOM_tuebadz6, Fallback, TuebaFallbackFixtureVar, 5, 1)
 {
   counter = 0;
   Query q=annis::ExampleQueries::NodeDom(getDB(), maxDistance);
@@ -120,7 +120,7 @@ BASELINE_F(Tueba_NodeDom, Fallback, TuebaFallbackFixtureVar, 5, 1)
 }
 
 
-BENCHMARK_F(Tueba_NodeDom, Optimized, TuebaFixtureVar, 5, 1)
+BENCHMARK_F(DOM_tuebadz6, Optimized, TuebaFixtureVar, 5, 1)
 {
   counter = 0;
   Query q=annis::ExampleQueries::NodeDom(getDB(), maxDistance);
