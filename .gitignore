@@ -3,3 +3,4 @@
 /data
 CMakeLists.txt.user
 *.*~
+/nbproject/private/
