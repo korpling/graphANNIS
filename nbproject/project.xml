@@ -10,11 +10,17 @@
             <sourceEncoding>UTF-8</sourceEncoding>
             <make-dep-projects/>
             <sourceRootList>
-                <sourceRootElem>.</sourceRootElem>
+                <sourceRootElem>./src/lib</sourceRootElem>
+                <sourceRootElem>./src/runner</sourceRootElem>
+                <sourceRootElem>benchmarks</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>
                     <name>Default</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>Test</name>
                     <type>0</type>
                 </confElem>
             </confList>
