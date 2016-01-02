@@ -5,3 +5,4 @@ CMakeLists.txt.user
 *.*~
 /nbproject/private/
 /annis-benchmark-generator/target/
+/annis-benchmark-generator/nbproject/
