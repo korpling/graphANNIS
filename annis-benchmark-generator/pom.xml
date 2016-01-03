@@ -89,7 +89,40 @@
       <artifactId>logback-classic</artifactId>
       <version>1.1.3</version>
     </dependency>
+    
   </dependencies>
+  
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/java</directory>
+        <includes>
+          <include>**/*.fxml</include>
+        </includes>
+      </resource>
+    </resources>
+    
+    <plugins>
+      <plugin>
+        <groupId>com.zenjava</groupId>
+        <artifactId>javafx-maven-plugin</artifactId>
+        <version>8.2.0</version>
+        <configuration>
+          <mainClass>org.korpling.annis.benchmark.generator.Main</mainClass>
+        </configuration>
+        <executions>
+          <execution>
+            <id>create-jfxjar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>build-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+    
+  </build>
 
     
 </project>
