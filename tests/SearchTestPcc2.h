@@ -21,11 +21,12 @@
 using namespace annis;
 
 class SearchTestPcc2 : public ::testing::Test {
- protected:
+protected:
   DB db;
   std::string queryDir;
-  SearchTestPcc2()
-  {
+  std::shared_ptr<Query> q;
+
+  SearchTestPcc2() {
   }
 
   virtual ~SearchTestPcc2() {
@@ -38,22 +39,31 @@ class SearchTestPcc2 : public ::testing::Test {
   virtual void SetUp() {
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
     std::string dataDir("data");
-    if(testDataEnv != NULL)
-    {
+    if (testDataEnv != NULL) {
       dataDir = testDataEnv;
     }
     bool loadedDB = db.load(dataDir + "/pcc2");
     EXPECT_EQ(true, loadedDB);
-    
+
     char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
     std::string globalQueryDir("queries");
-    if(testQueriesEnv != NULL)
-    {
+    if (testQueriesEnv != NULL) {
       globalQueryDir = testQueriesEnv;
     }
     queryDir = globalQueryDir + "/SearchTestPcc2";
 
-
+    // get test name and read the json file
+    auto info = ::testing::UnitTest::GetInstance()->current_test_info();
+    if(info != nullptr)
+    {
+      std::ifstream in;
+      std::string jsonFileName = queryDir + "/" + info->name() + ".json";
+      in.open(jsonFileName);
+      if(in.is_open()) {
+        q = JSONQueryParser::parse(db, in);
+        in.close();
+      }
+    }
   }
 
   virtual void TearDown() {
@@ -65,17 +75,9 @@ class SearchTestPcc2 : public ::testing::Test {
 };
 
 TEST_F(SearchTestPcc2, CatSearch) {
-  
-  std::ifstream in;
-  in.open(queryDir + "/CatSearch.json");
-  
-  Query q = JSONQueryParser::parse(db, in);
-  in.close();
-  
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
-    std::vector<Match> m = q.next();
+  unsigned int counter = 0;
+  while (q && q->hasNext()) {
+    std::vector<Match> m = q->next();
     ASSERT_EQ(1, m.size());
     ASSERT_STREQ("cat", db.strings.str(m[0].anno.name).c_str());
     ASSERT_STREQ("tiger", db.strings.str(m[0].anno.ns).c_str());
@@ -85,19 +87,10 @@ TEST_F(SearchTestPcc2, CatSearch) {
   EXPECT_EQ(155u, counter);
 }
 
-
 TEST_F(SearchTestPcc2, MMaxAnnos_ambiguity) {
-
-  std::ifstream in;
-  in.open(queryDir + "/MMaxAnnos_ambiguity.json");
-  
-  Query q = JSONQueryParser::parse(db, in);
-  in.close();
-  
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
-    std::vector<Match> m = q.next();
+  unsigned int counter = 0;
+  while (q && q->hasNext()) {
+    std::vector<Match> m = q->next();
     ASSERT_EQ(1, m.size());
     ASSERT_STREQ("mmax", db.strings.str(m[0].anno.ns).c_str());
     ASSERT_STREQ("ambiguity", db.strings.str(m[0].anno.name).c_str());
@@ -110,16 +103,9 @@ TEST_F(SearchTestPcc2, MMaxAnnos_ambiguity) {
 
 TEST_F(SearchTestPcc2, MMaxAnnos_complex_np) {
 
-  std::ifstream in;
-  in.open(queryDir + "/MMaxAnnos_complex_np.json");
-  
-  Query q = JSONQueryParser::parse(db, in);
-  in.close();
-  
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
-    std::vector<Match> m = q.next();
+  unsigned int counter = 0;
+  while (q && q->hasNext()) {
+    std::vector<Match> m = q->next();
     ASSERT_EQ(1, m.size());
     ASSERT_STREQ("mmax", db.strings.str(m[0].anno.ns).c_str());
     ASSERT_STREQ("complex_np", db.strings.str(m[0].anno.name).c_str());
@@ -132,17 +118,10 @@ TEST_F(SearchTestPcc2, MMaxAnnos_complex_np) {
 
 TEST_F(SearchTestPcc2, TokenIndex) {
 
-  std::ifstream in;
-  in.open(queryDir + "/TokenIndex.json");
-  
-  Query q = JSONQueryParser::parse(db, in);
-  in.close();
-  
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
-  while(q.hasNext())
-  {
-    q.next();
+  while (q && q->hasNext()) {
+    q->next();
     counter++;
   }
 
@@ -151,17 +130,10 @@ TEST_F(SearchTestPcc2, TokenIndex) {
 
 TEST_F(SearchTestPcc2, IsConnectedRange) {
 
-  Query q(db);
+  unsigned int counter = 0;
 
-  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Musikcafé"));
-
-  unsigned int counter=0;
-
-  q.addOperator(std::make_shared<Precedence>(db, 3, 10), n1 , n2);
-  while(q.hasNext())
-  {
-    q.next();
+  while (q && q->hasNext()) {
+    q->next();
     counter++;
   }
 
@@ -170,17 +142,10 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 
 TEST_F(SearchTestPcc2, DepthFirst) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Tiefe"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
-
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), n1, n2);
-
-  while(q.hasNext())
-  {
-    q.next();
+  while (q && q->hasNext()) {
+    q->next();
     counter++;
   }
 
@@ -190,15 +155,10 @@ TEST_F(SearchTestPcc2, DepthFirst) {
 // exmaralda:Inf-Stat="new" _o_ exmaralda:PP
 TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "exmaralda", "Inf-Stat", "new"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, "exmaralda", "PP"));
-  q.addOperator(std::make_shared<Overlap>(db), n1, n2);
 
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
-    auto m = q.next();
+  unsigned int counter = 0;
+  while (q && q->hasNext()) {
+    auto m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -209,15 +169,9 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 // mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "ambiguity", "not_ambig"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "complex_np", "yes"));
-  q.addOperator(std::make_shared<Overlap>(db), 0, 1);
-
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
-    std::vector<Match> m = q.next();
+  unsigned int counter = 0;
+  while (q && q->hasNext()) {
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -226,6 +180,7 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 }
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
+
 TEST_F(SearchTestPcc2, InclusionQuery) {
 
   Query q(db);
@@ -233,9 +188,8 @@ TEST_F(SearchTestPcc2, InclusionQuery) {
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "complex_np", "yes"));
   q.addOperator(std::make_shared<Inclusion>(db), 0, 1);
 
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
+  unsigned int counter = 0;
+  while (q.hasNext()) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -252,17 +206,15 @@ TEST_F(SearchTestPcc2, StructureInclusionSeed) {
 
   q.addOperator(std::make_shared<Inclusion>(db), n1, n2, false);
 
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
+  unsigned int counter = 0;
+  while (q.hasNext()) {
     std::vector<Match> m = q.next();
-    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
 
   EXPECT_EQ(2u, counter);
 }
-
 
 TEST_F(SearchTestPcc2, StructureInclusionFilter) {
 
@@ -272,11 +224,10 @@ TEST_F(SearchTestPcc2, StructureInclusionFilter) {
 
   q.addOperator(std::make_shared<Inclusion>(db), n1, n2, true);
 
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
+  unsigned int counter = 0;
+  while (q.hasNext()) {
     std::vector<Match> m = q.next();
-    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
 
@@ -291,11 +242,10 @@ TEST_F(SearchTestPcc2, AnyNodeIncludeSeed) {
 
   q.addOperator(std::make_shared<Inclusion>(db), n1, n2, false);
 
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
+  unsigned int counter = 0;
+  while (q.hasNext()) {
     std::vector<Match> m = q.next();
-    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeDebugName(m[0].node) % db.getNodeDebugName(m[1].node)).str());
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeDebugName(m[0].node) % db.getNodeDebugName(m[1].node)).str());
     counter++;
   }
 
@@ -310,28 +260,25 @@ TEST_F(SearchTestPcc2, AnyNodeIncludeFilter) {
 
   q.addOperator(std::make_shared<Inclusion>(db), n1, n2, true);
 
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
+  unsigned int counter = 0;
+  while (q.hasNext()) {
     std::vector<Match> m = q.next();
-    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeDebugName(m[0].node) % db.getNodeDebugName(m[1].node)).str());
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeDebugName(m[0].node) % db.getNodeDebugName(m[1].node)).str());
     counter++;
   }
 
   EXPECT_EQ(14349u, counter);
 }
 
-
 TEST_F(SearchTestPcc2, NodeCount) {
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
 
-  unsigned int counter=0;
-  while(q.hasNext())
-  {
+  unsigned int counter = 0;
+  while (q.hasNext()) {
     std::vector<Match> m = q.next();
-    HL_INFO (logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
 
@@ -341,9 +288,10 @@ TEST_F(SearchTestPcc2, NodeCount) {
 
 // Should test query
 // pos="NN" .2,20 pos="ART"
+
 TEST_F(SearchTestPcc2, Precedence) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "exmaralda", "Inf-Stat", "acc-sit"));
@@ -351,8 +299,7 @@ TEST_F(SearchTestPcc2, Precedence) {
 
   q.addOperator(std::make_shared<Precedence>(db, 1, 500), 0, 1);
 
-  while(q.hasNext() && counter < 2000)
-  {
+  while (q.hasNext() && counter < 2000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -363,9 +310,10 @@ TEST_F(SearchTestPcc2, Precedence) {
 
 // Should test query
 // mmax:np_form="defnp" & mmax:np_form="pper"  & #2 ->anaphor_antecedent * #1
+
 TEST_F(SearchTestPcc2, IndirectPointing) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
@@ -373,8 +321,7 @@ TEST_F(SearchTestPcc2, IndirectPointing) {
 
   q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0);
 
-  while(q.hasNext() && counter < 2000)
-  {
+  while (q.hasNext() && counter < 2000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -385,7 +332,7 @@ TEST_F(SearchTestPcc2, IndirectPointing) {
 
 TEST_F(SearchTestPcc2, IndirectPointingNested) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
@@ -393,8 +340,7 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
 
   q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0, true);
 
-  while(q.hasNext() && counter < 2000)
-  {
+  while (q.hasNext() && counter < 2000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -405,9 +351,10 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
 
 // Should test query
 // mmax:np_form="defnp" & mmax:np_form="pper"  & #2 ->anaphor_antecedent * #1
+
 TEST_F(SearchTestPcc2, DirectPointing) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
@@ -415,8 +362,7 @@ TEST_F(SearchTestPcc2, DirectPointing) {
 
   q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, 1), 1, 0);
 
-  while(q.hasNext() && counter < 2000)
-  {
+  while (q.hasNext() && counter < 2000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -427,7 +373,7 @@ TEST_F(SearchTestPcc2, DirectPointing) {
 
 TEST_F(SearchTestPcc2, DirectPointingNested) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
@@ -435,8 +381,7 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
 
   q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, 1), 1, 0, true);
 
-  while(q.hasNext() && counter < 2000)
-  {
+  while (q.hasNext() && counter < 2000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -447,22 +392,22 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
 
 // Should test query
 // pos="ADJD" & "." & #1 ->dep[func="punct"] #2
+
 TEST_F(SearchTestPcc2, DirectPointingWithAnno) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "ADJD"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "."));
 
   std::shared_ptr<Operator> op =
-      std::make_shared<Pointing>(
-        db, "", "dep",
-        Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
+          std::make_shared<Pointing>(
+          db, "", "dep",
+          Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
   q.addOperator(op, 0, 1);
 
-  while(q.hasNext() && counter < 2000)
-  {
+  while (q.hasNext() && counter < 2000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -473,20 +418,19 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnno) {
 
 TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "ADJD"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "."));
 
   std::shared_ptr<Operator> op =
-      std::make_shared<Pointing>(
-        db, "", "dep",
-        Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
+          std::make_shared<Pointing>(
+          db, "", "dep",
+          Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
   q.addOperator(op, 0, 1, true);
 
-  while(q.hasNext() && counter < 2000)
-  {
+  while (q.hasNext() && counter < 2000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -497,9 +441,10 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
 
 // Should test query
 // cat="S" >2,4 cat
+
 TEST_F(SearchTestPcc2, RangedDominance) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
@@ -507,8 +452,7 @@ TEST_F(SearchTestPcc2, RangedDominance) {
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 2, 4), 0, 1);
 
-  while(q.hasNext() && counter < 2000)
-  {
+  while (q.hasNext() && counter < 2000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -520,20 +464,20 @@ TEST_F(SearchTestPcc2, RangedDominance) {
 
 // Should test query
 // node >2,4 node
+
 TEST_F(SearchTestPcc2, MultiDominance) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns,
-                                                   annis_node_name));
+          annis_node_name));
   q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns,
-                                                   annis_node_name));
+          annis_node_name));
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 2, 4), 0, 1);
 
-  while(q.hasNext() && counter < 4000)
-  {
+  while (q.hasNext() && counter < 4000) {
     std::vector<Match> m = q.next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -544,19 +488,18 @@ TEST_F(SearchTestPcc2, MultiDominance) {
 
 TEST_F(SearchTestPcc2, Regex) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
-                                                        "cat",".P"));
+          "cat", ".P"));
   auto n2 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
-                                                        annis_ns, annis_tok,
-                                                       "A.*"));
+          annis_ns, annis_tok,
+          "A.*"));
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
 
-  while(q.hasNext() && counter < 100)
-  {
+  while (q.hasNext() && counter < 100) {
     std::vector<Match> m = q.next();
     counter++;
   }
@@ -566,18 +509,17 @@ TEST_F(SearchTestPcc2, Regex) {
 
 TEST_F(SearchTestPcc2, Profile) {
 
-  unsigned int counter=0;
+  unsigned int counter = 0;
 
   Query q(db);
   q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns,
-                                                   annis_node_name));
+          annis_node_name));
   q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns,
-                                                   annis_node_name));
+          annis_node_name));
 
   q.addOperator(std::make_shared<Pointing>(db, "", "dep", Init::initAnnotation(db.strings.add("func"), db.strings.add("sbj"))), 0, 1);
 
-  while(q.hasNext() && counter < 5000)
-  {
+  while (q.hasNext() && counter < 5000) {
     std::vector<Match> m = q.next();
     counter++;
   }

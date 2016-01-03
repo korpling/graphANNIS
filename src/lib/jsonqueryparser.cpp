@@ -21,8 +21,8 @@ using namespace annis;
 JSONQueryParser::JSONQueryParser() {
 }
 
-Query JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
-  Query q(db);
+std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
+  std::shared_ptr<Query> q = std::make_shared<Query>(db);
 
   // parse root as value
   Json::Value root;
@@ -53,7 +53,7 @@ Query JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
   return q;
 }
 
-size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, Query& q) {
+size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::shared_ptr<Query> q) {
 
   // annotation search?
   if (node["nodeAnnotations"].isArray() && node["nodeAnnotations"].size() > 0) {
@@ -84,7 +84,7 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, Query& q
 }
 
 size_t JSONQueryParser::addNodeAnnotation(const DB& db,
-        Query& q,
+        std::shared_ptr<Query> q,
         const std::shared_ptr<std::string> ns,
         const std::shared_ptr<std::string> name,
         const std::shared_ptr<std::string> value,
@@ -95,24 +95,24 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
     if (*textMatching == "EXACT_EQUAL") {
       // has namespace?
       if (ns) {
-        return q.addNode(std::make_shared<ExactAnnoValueSearch>(db,
+        return q->addNode(std::make_shared<ExactAnnoValueSearch>(db,
                 *ns,
                 *name,
                 *value));
       } else {
-        return q.addNode(std::make_shared<ExactAnnoValueSearch>(db,
+        return q->addNode(std::make_shared<ExactAnnoValueSearch>(db,
                 *name,
                 *value));
       }
     } else if (*textMatching == "REGEXP_EQUAL") {
       // has namespace?
       if (ns) {
-        return q.addNode(std::make_shared<RegexAnnoSearch>(db,
+        return q->addNode(std::make_shared<RegexAnnoSearch>(db,
                 *ns,
                 *name,
                 *value));
       } else {
-        return q.addNode(std::make_shared<RegexAnnoSearch>(db,
+        return q->addNode(std::make_shared<RegexAnnoSearch>(db,
                 *name,
                 *value));
       }
@@ -123,17 +123,17 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
     // only search for key
     // has namespace?
     if (ns) {
-      return q.addNode(std::make_shared<ExactAnnoKeySearch>(db,
+      return q->addNode(std::make_shared<ExactAnnoKeySearch>(db,
               *ns,
               *name));
     } else {
-      return q.addNode(std::make_shared<ExactAnnoKeySearch>(db,
+      return q->addNode(std::make_shared<ExactAnnoKeySearch>(db,
               *name));
     }
   }
 }
 
-void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q,
+void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::shared_ptr<Query> q,
         const std::map<std::uint64_t, size_t>& nodeIdToPos) {
   // get left and right index
   if (join["left"].isUInt64() && join["right"].isUInt64()) {
@@ -147,26 +147,26 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q,
 
       auto op = join["op"].asString();
       if (op == "Precedence") {
-        q.addOperator(std::make_shared<Precedence>(db,
+        q->addOperator(std::make_shared<Precedence>(db,
                 join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
                 itLeft->second, itRight->second, false);
       } 
       else if (op == "Inclusion") {
-        q.addOperator(std::make_shared<Inclusion>(db), itLeft->second, itRight->second, false);
+        q->addOperator(std::make_shared<Inclusion>(db), itLeft->second, itRight->second, false);
       }
       else if (op == "Overlap") {
-        q.addOperator(std::make_shared<Overlap>(db), itLeft->second, itRight->second, false);
+        q->addOperator(std::make_shared<Overlap>(db), itLeft->second, itRight->second, false);
       } else if (op == "Dominance") {
 
         std::string name = join["name"].isString() ? join["name"].asString() : "";
 
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0) {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q.addOperator(std::make_shared<Dominance>(db, "", name, anno),
+          q->addOperator(std::make_shared<Dominance>(db, "", name, anno),
                   itLeft->second, itRight->second, false);
 
         } else {
-          q.addOperator(std::make_shared<Dominance>(db,
+          q->addOperator(std::make_shared<Dominance>(db,
                   "", name,
                   join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
                   itLeft->second, itRight->second, false);
@@ -177,11 +177,11 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q,
 
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0) {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q.addOperator(std::make_shared<Pointing>(db, "", name, anno),
+          q->addOperator(std::make_shared<Pointing>(db, "", name, anno),
                   itLeft->second, itRight->second, false);
 
         } else {
-          q.addOperator(std::make_shared<Pointing>(db,
+          q->addOperator(std::make_shared<Pointing>(db,
                   "", name,
                   join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
                   itLeft->second, itRight->second, false);

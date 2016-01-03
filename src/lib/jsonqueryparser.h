@@ -19,20 +19,21 @@ namespace annis {
     JSONQueryParser(const JSONQueryParser& orig) = delete;
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
-    static Query parse(const DB& db, std::istream& json);
+    static std::shared_ptr<Query> parse(const DB& db, std::istream& json);
 
     virtual ~JSONQueryParser();
   private:
     
-    static size_t parseNode(const DB& db, const Json::Value node, Query& q);
+    static size_t parseNode(const DB& db, const Json::Value node, std::shared_ptr<Query>);
     static size_t addNodeAnnotation(const DB& db,
-        Query& q,
+        std::shared_ptr<Query> q,
         const std::shared_ptr<std::string> ns,
         const std::shared_ptr<std::string> name, 
         const std::shared_ptr<std::string> value,
         const std::shared_ptr<std::string> textMatching);
     
-    static void parseJoin(const DB& db, const Json::Value join, Query& q, const  std::map<std::uint64_t, size_t>& nodeIdToPos);
+    static void parseJoin(const DB& db, const Json::Value join, 
+      std::shared_ptr<Query> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos);
     
     static std::shared_ptr<std::string> optStr(const Json::Value& val) {
       if(val.isString()) {
