@@ -180,6 +180,8 @@
       <in>filter.cpp</in>
       <in>graphstorage.cpp</in>
       <in>graphstorageregistry.cpp</in>
+      <in>jjsonqueryparser.h</in>
+      <in>jsonqueryparser.cpp</in>
       <in>query.cpp</in>
       <in>regexannosearch.cpp</in>
       <in>stringstorage.cpp</in>
@@ -611,6 +613,8 @@
         <ccTool flags="0">
         </ccTool>
       </item>
+      <item path="src/lib/jjsonqueryparser.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
@@ -618,6 +622,8 @@
       <item path="src/lib/join/seed.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
+      </item>
+      <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="src/lib/operators/abstractedgeoperator.cpp"
             ex="false"
@@ -1084,6 +1090,8 @@
         <ccTool flags="0">
         </ccTool>
       </item>
+      <item path="src/lib/jjsonqueryparser.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
@@ -1091,6 +1099,8 @@
       <item path="src/lib/join/seed.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
+      </item>
+      <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="src/lib/operators/abstractedgeoperator.cpp"
             ex="false"
@@ -1551,6 +1561,8 @@
         <ccTool flags="0">
         </ccTool>
       </item>
+      <item path="src/lib/jjsonqueryparser.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
@@ -1558,6 +1570,8 @@
       <item path="src/lib/join/seed.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
+      </item>
+      <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="src/lib/operators/abstractedgeoperator.cpp"
             ex="false"
