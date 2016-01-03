@@ -9,6 +9,7 @@
 #define JSONQUERYPARSER_H
 
 #include "query.h"
+#include <json/json.h>
 
 namespace annis {
 
@@ -22,6 +23,30 @@ namespace annis {
 
     virtual ~JSONQueryParser();
   private:
+    
+    static void parseNode(const DB& db, const Json::Value node, Query& q);
+    static void addNodeAnnotation(const DB& db,
+        Query& q,
+        const std::shared_ptr<std::string> ns,
+        const std::shared_ptr<std::string> name, 
+        const std::shared_ptr<std::string> value,
+        const std::shared_ptr<std::string> textMatching);
+    
+    static std::shared_ptr<std::string> optStr(const Json::Value& val) {
+      if(val.isString()) {
+        return std::make_shared<std::string>(val.asString());
+      } else {
+        return std::shared_ptr<std::string>();
+      }
+    }
+    
+    static std::shared_ptr<std::string> optStr(const std::string& val) {
+      return std::make_shared<std::string>(val);
+    }
+    
+    static std::shared_ptr<std::string> optStr() {
+      return std::shared_ptr<std::string>();
+    }
 
   };
 
