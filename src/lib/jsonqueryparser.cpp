@@ -181,9 +181,18 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
                   itLeft->second, itRight->second, false);
 
         } else {
+          
+          auto minDist = join["minDistance"].asUInt();
+          auto maxDist = join["maxDistance"].asUInt();
+          
+          if(minDist == 0 && maxDist == 0) {
+            // unlimited range
+            minDist = 1;
+            maxDist = uintmax;
+          }
+          
           q->addOperator(std::make_shared<Pointing>(db,
-                  "", name,
-                  join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
+                  "", name, minDist, maxDist),
                   itLeft->second, itRight->second, false);
         }
       }

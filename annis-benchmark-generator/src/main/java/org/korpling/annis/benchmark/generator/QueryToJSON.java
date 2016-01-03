@@ -16,7 +16,6 @@
 package org.korpling.annis.benchmark.generator;
 
 import annis.model.Join;
-import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
 import annis.ql.parser.QueryData;
 import annis.sqlgen.model.Dominance;

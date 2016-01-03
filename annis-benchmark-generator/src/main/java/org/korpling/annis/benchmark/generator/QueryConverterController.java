@@ -24,7 +24,6 @@ import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
@@ -64,6 +63,7 @@ public class QueryConverterController implements Initializable
   public void initialize(URL url, ResourceBundle rb)
   {
     parser = new AnnisParserAntlr();
+    parser.setPrecedenceBound(50);
     parser.setPostProcessors(Arrays.asList(new SemanticValidator()));    
   }
   
