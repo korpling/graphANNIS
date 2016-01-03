@@ -117,7 +117,6 @@ public class QueryToJSON
       {
         JsonNode edgeAnnos = mapper.valueToTree(dom.getEdgeAnnotations());
         node.set("edgeAnnotations", edgeAnnos);
-
       }
     }
     else if (join instanceof PointingRelation)
@@ -127,6 +126,11 @@ public class QueryToJSON
       node.put("name", pointing.getName() == null ? "" : pointing.getName());
       node.put("minDistance", (long) pointing.getMinDistance());
       node.put("maxDistance", (long) pointing.getMaxDistance());
+      if (!pointing.getEdgeAnnotations().isEmpty())
+      {
+        JsonNode edgeAnnos = mapper.valueToTree(pointing.getEdgeAnnotations());
+        node.set("edgeAnnotations", edgeAnnos);
+      }
     }
     else if (join instanceof Precedence)
     {

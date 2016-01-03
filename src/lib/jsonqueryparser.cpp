@@ -150,11 +150,10 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
         q->addOperator(std::make_shared<Precedence>(db,
                 join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
                 itLeft->second, itRight->second, false);
-      } 
+      }
       else if (op == "Inclusion") {
         q->addOperator(std::make_shared<Inclusion>(db), itLeft->second, itRight->second, false);
-      }
-      else if (op == "Overlap") {
+      } else if (op == "Overlap") {
         q->addOperator(std::make_shared<Overlap>(db), itLeft->second, itRight->second, false);
       } else if (op == "Dominance") {
 
@@ -166,9 +165,18 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
                   itLeft->second, itRight->second, false);
 
         } else {
+
+          auto minDist = join["minDistance"].asUInt();
+          auto maxDist = join["maxDistance"].asUInt();
+          if (minDist == 0 && maxDist == 0) {
+            // unlimited range
+            minDist = 1;
+            maxDist = uintmax;
+          }
+
           q->addOperator(std::make_shared<Dominance>(db,
                   "", name,
-                  join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
+                  minDist, maxDist),
                   itLeft->second, itRight->second, false);
         }
       } else if (op == "Pointing") {
@@ -181,16 +189,16 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
                   itLeft->second, itRight->second, false);
 
         } else {
-          
+
           auto minDist = join["minDistance"].asUInt();
           auto maxDist = join["maxDistance"].asUInt();
-          
-          if(minDist == 0 && maxDist == 0) {
+
+          if (minDist == 0 && maxDist == 0) {
             // unlimited range
             minDist = 1;
             maxDist = uintmax;
           }
-          
+
           q->addOperator(std::make_shared<Pointing>(db,
                   "", name, minDist, maxDist),
                   itLeft->second, itRight->second, false);
@@ -211,19 +219,19 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
   if (edgeAnno["textMatching"].asString() == "EXACT_EQUAL") {
     if (edgeAnno["ns"].isString()) {
       auto search = db.strings.findID(edgeAnno["ns"].asString());
-      if(search.first) {
+      if (search.first) {
         ns = search.second;
       }
     }
     if (edgeAnno["name"].isString()) {
       auto search = db.strings.findID(edgeAnno["name"].asString());
-      if(search.first) {
+      if (search.first) {
         name = search.second;
       }
     }
     if (edgeAnno["value"].isString()) {
       auto search = db.strings.findID(edgeAnno["value"].asString());
-      if(search.first) {
+      if (search.first) {
         value = search.second;
       }
     }
