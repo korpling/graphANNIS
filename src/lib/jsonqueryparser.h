@@ -49,6 +49,8 @@ namespace annis {
     static std::shared_ptr<std::string> optStr() {
       return std::shared_ptr<std::string>();
     }
+    
+    static Annotation getEdgeAnno(const DB& db, const Json::Value& edgeAnno);
 
   };
 

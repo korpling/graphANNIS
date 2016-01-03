@@ -10,6 +10,7 @@
 #include "exactannokeysearch.h"
 #include "regexannosearch.h"
 #include "operators/precedence.h"
+#include "operators/dominance.h"
 #include <map>
 
 using namespace annis;
@@ -37,10 +38,10 @@ Query JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
       auto& n = *it;
       nodeIdToPos[std::stoull(it.name())] = parseNode(db, n, q);
     }
-    
+
     // add all joins
     const auto& joins = firstAlt["joins"];
-    for(auto it = joins.begin(); it != joins.end(); it++) {
+    for (auto it = joins.begin(); it != joins.end(); it++) {
       parseJoin(db, *it, q, nodeIdToPos);
     }
 
@@ -64,12 +65,12 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, Query& q
   else {
     // check for special non-annotation search constructs
     // token search?
-    if (node["spannedText"].isString() 
+    if (node["spannedText"].isString()
             || (node["token"].isBool() && node["token"].asBool())) {
       return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
               optStr(node["spannedText"]),
               optStr(node["spanTextMatching"]));
-    } // end if token has spanned text
+    }// end if token has spanned text
     else {
       // just search for any node
       return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_name),
@@ -129,30 +130,75 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
   }
 }
 
-void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q, 
-        const std::map<std::uint64_t, size_t>& nodeIdToPos ) {
+void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q,
+        const std::map<std::uint64_t, size_t>& nodeIdToPos) {
   // get left and right index
-  if(join["left"].isUInt64() && join["right"].isUInt64()) {
+  if (join["left"].isUInt64() && join["right"].isUInt64()) {
     auto leftID = join["left"].asUInt64();
     auto rightID = join["right"].asUInt64();
-    
+
     auto itLeft = nodeIdToPos.find(leftID);
     auto itRight = nodeIdToPos.find(rightID);
-    
-    if(itLeft != nodeIdToPos.end() && itRight != nodeIdToPos.end()) {
-      
+
+    if (itLeft != nodeIdToPos.end() && itRight != nodeIdToPos.end()) {
+
       auto op = join["op"].asString();
-      if(op == "Precedence") {
+      if (op == "Precedence") {
         q.addOperator(std::make_shared<Precedence>(db,
-         join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
+                join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
                 itLeft->second, itRight->second, false);
+      } else if (op == "Dominance") {
+
+        std::string name = join["name"].isString() ? join["name"].asString() : "";
+
+        if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0) {
+          auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
+          q.addOperator(std::make_shared<Dominance>(db, "", name, anno),
+                  itLeft->second, itRight->second, false);
+
+        } else {
+          q.addOperator(std::make_shared<Dominance>(db,
+                  "", name,
+                  join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
+                  itLeft->second, itRight->second, false);
+        }
       }
-      
+
     }
-    
+
   }
 }
 
+Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnno) {
+
+  std::uint32_t ns = 0;
+  std::uint32_t name = 0;
+  std::uint32_t value = 0;
+
+  if (edgeAnno["textMatching"].asString() == "EXACT_EQUAL") {
+    if (edgeAnno["ns"].isString()) {
+      auto search = db.strings.findID(edgeAnno["ns"].asString());
+      if(search.first) {
+        ns = search.second;
+      }
+    }
+    if (edgeAnno["name"].isString()) {
+      auto search = db.strings.findID(edgeAnno["name"].asString());
+      if(search.first) {
+        name = search.second;
+      }
+    }
+    if (edgeAnno["value"].isString()) {
+      auto search = db.strings.findID(edgeAnno["value"].asString());
+      if(search.first) {
+        value = search.second;
+      }
+    }
+  }
+  // TODO: what about regex?
+
+  return Init::initAnnotation(name, value, ns);
+}
 
 JSONQueryParser::~JSONQueryParser() {
 }
