@@ -20,6 +20,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 
 /**
@@ -32,10 +33,14 @@ public class Main extends Application
   @Override
   public void start(Stage primaryStage) throws IOException
   {
-    Parent root = FXMLLoader.load(QueryConverterController.class.getResource(
+    FXMLLoader loader = new FXMLLoader(QueryConverterController.class.getResource(
       "QueryConverter.fxml"));
+    Parent root = loader.load();
     
     Scene scene = new Scene(root);
+    QueryConverterController controller = loader.getController();
+    controller.initializeAccelerators(scene);
+    
     primaryStage.setTitle("AQL Benchmark Generator");
     primaryStage.setScene(scene);
     primaryStage.show();
