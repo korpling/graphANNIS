@@ -12,15 +12,18 @@
 #include "operators/pointing.h"
 #include "operators/dominance.h"
 #include "query.h"
+#include "jsonqueryparser.h"
 
 #include <vector>
 #include <boost/format.hpp>
+#include <fstream>
 
 using namespace annis;
 
 class SearchTestPcc2 : public ::testing::Test {
  protected:
   DB db;
+  std::string queryDir;
   SearchTestPcc2()
   {
   }
@@ -39,7 +42,7 @@ class SearchTestPcc2 : public ::testing::Test {
     {
       dataDir = testDataEnv;
     }
-//    bool loadedDB = db.loadRelANNIS(dataDir + "/pcc2_v6_relANNIS");
+    queryDir = dataDir + "/pcc2_queries";
     bool loadedDB = db.load(dataDir + "/pcc2");
     EXPECT_EQ(true, loadedDB);
 
@@ -65,6 +68,25 @@ TEST_F(SearchTestPcc2, CatSearch) {
   }
 
   EXPECT_EQ(155u, counter);
+}
+
+TEST_F(SearchTestPcc2, JSON) {
+  
+  unsigned int counter=0;
+
+  std::ifstream in;
+  in.open(queryDir + "/jugendlichen.json");
+  
+  Query q = JSONQueryParser::parse(db, in);
+  in.close();
+
+  while(q.hasNext() && counter < 1000)
+  {
+    q.next();
+    counter++;
+  }
+
+  EXPECT_EQ(2u, counter);
 }
 
 TEST_F(SearchTestPcc2, MMaxAnnos) {

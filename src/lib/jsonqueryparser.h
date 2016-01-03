@@ -18,7 +18,7 @@ namespace annis {
     JSONQueryParser(const JSONQueryParser& orig) = delete;
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
-    Query parse(const DB& db, std::istream& json);
+    static Query parse(const DB& db, std::istream& json);
 
     virtual ~JSONQueryParser();
   private:

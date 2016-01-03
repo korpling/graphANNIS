@@ -701,7 +701,7 @@
         <element flagsID="0" commonFlags="-std=c++11"/>
         <element flagsID="1" commonFlags="-std=c++11 -std=gnu++11 -O3"/>
         <element flagsID="2"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
         <element flagsID="3" commonFlags="-std=c++14"/>
         <element flagsID="4" commonFlags="-std=c++14 -std=c++14"/>
       </flagsDictionary>
@@ -734,7 +734,6 @@
         <preBuild>
           <preBuildCommandWorkingDir>../annis4-build</preBuildCommandWorkingDir>
           <preBuildCommand>cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=${IDE_CC} -DCMAKE_CXX_COMPILER=${IDE_CXX} -DCMAKE_C_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_CXX_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../annis4</preBuildCommand>
-          <preBuildFirst>true</preBuildFirst>
         </preBuild>
       </makefileType>
       <item path="benchmarks/benchmark.cpp" ex="false" tool="1" flavor2="11">
