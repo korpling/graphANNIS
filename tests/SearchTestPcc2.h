@@ -180,17 +180,10 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 }
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
-
 TEST_F(SearchTestPcc2, InclusionQuery) {
-
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "ambiguity", "not_ambig"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "complex_np", "yes"));
-  q.addOperator(std::make_shared<Inclusion>(db), 0, 1);
-
   unsigned int counter = 0;
-  while (q.hasNext()) {
-    std::vector<Match> m = q.next();
+  while (q && q->hasNext()) {
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -200,15 +193,9 @@ TEST_F(SearchTestPcc2, InclusionQuery) {
 
 TEST_F(SearchTestPcc2, StructureInclusionSeed) {
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "S"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "AP"));
-
-  q.addOperator(std::make_shared<Inclusion>(db), n1, n2, false);
-
   unsigned int counter = 0;
-  while (q.hasNext()) {
-    std::vector<Match> m = q.next();
+  while (q && q->hasNext()) {
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -236,15 +223,9 @@ TEST_F(SearchTestPcc2, StructureInclusionFilter) {
 
 TEST_F(SearchTestPcc2, AnyNodeIncludeSeed) {
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
-
-  q.addOperator(std::make_shared<Inclusion>(db), n1, n2, false);
-
   unsigned int counter = 0;
-  while (q.hasNext()) {
-    std::vector<Match> m = q.next();
+  while (q && q->hasNext()) {
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeDebugName(m[0].node) % db.getNodeDebugName(m[1].node)).str());
     counter++;
   }
@@ -272,12 +253,9 @@ TEST_F(SearchTestPcc2, AnyNodeIncludeFilter) {
 
 TEST_F(SearchTestPcc2, NodeCount) {
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
-
   unsigned int counter = 0;
-  while (q.hasNext()) {
-    std::vector<Match> m = q.next();
+  while (q && q->hasNext()) {
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -285,22 +263,12 @@ TEST_F(SearchTestPcc2, NodeCount) {
   EXPECT_EQ(998u, counter);
 }
 
-
-// Should test query
-// pos="NN" .2,20 pos="ART"
-
 TEST_F(SearchTestPcc2, Precedence) {
 
   unsigned int counter = 0;
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "exmaralda", "Inf-Stat", "acc-sit"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "exmaralda", "NP", "NP"));
-
-  q.addOperator(std::make_shared<Precedence>(db, 1, 500), 0, 1);
-
-  while (q.hasNext() && counter < 2000) {
-    std::vector<Match> m = q.next();
+  while (q && q->hasNext() && counter < 2000) {
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -310,19 +278,12 @@ TEST_F(SearchTestPcc2, Precedence) {
 
 // Should test query
 // mmax:np_form="defnp" & mmax:np_form="pper"  & #2 ->anaphor_antecedent * #1
-
 TEST_F(SearchTestPcc2, IndirectPointing) {
 
   unsigned int counter = 0;
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "pper"));
-
-  q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0);
-
-  while (q.hasNext() && counter < 2000) {
-    std::vector<Match> m = q.next();
+  while (q && q->hasNext() && counter < 2000) {
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -351,7 +312,6 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
 
 // Should test query
 // mmax:np_form="defnp" & mmax:np_form="pper"  & #2 ->anaphor_antecedent * #1
-
 TEST_F(SearchTestPcc2, DirectPointing) {
 
   unsigned int counter = 0;
