@@ -24,13 +24,15 @@ namespace annis {
     virtual ~JSONQueryParser();
   private:
     
-    static void parseNode(const DB& db, const Json::Value node, Query& q);
-    static void addNodeAnnotation(const DB& db,
+    static size_t parseNode(const DB& db, const Json::Value node, Query& q);
+    static size_t addNodeAnnotation(const DB& db,
         Query& q,
         const std::shared_ptr<std::string> ns,
         const std::shared_ptr<std::string> name, 
         const std::shared_ptr<std::string> value,
         const std::shared_ptr<std::string> textMatching);
+    
+    static void parseJoin(const DB& db, const Json::Value join, Query& q);
     
     static std::shared_ptr<std::string> optStr(const Json::Value& val) {
       if(val.isString()) {

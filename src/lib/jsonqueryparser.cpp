@@ -31,14 +31,10 @@ Query JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
     // add all nodes
     const auto& nodes = firstAlt["nodes"];
 
-    std::map<long, Json::Value> nodesByID;
+    std::map<uint64_t, size_t> nodeIdToPos;
     for (auto it = nodes.begin(); it != nodes.end(); it++) {
       auto& n = *it;
-
-      parseNode(db, n, q);
-
-      nodesByID[std::stol(it.name())] = n;
-
+      nodeIdToPos[std::stoull(it.name())] = parseNode(db, n, q);
     }
 
 
@@ -46,14 +42,14 @@ Query JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
   return q;
 }
 
-void JSONQueryParser::parseNode(const DB& db, const Json::Value node, Query& q) {
+size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, Query& q) {
 
   // annotation search?
   if (node["nodeAnnotations"].isArray() && node["nodeAnnotations"].size() > 0) {
     // get the first one
     auto nodeAnno = node["nodeAnnotations"][0];
 
-    addNodeAnnotation(db, q, optStr(nodeAnno["namespace"]),
+    return addNodeAnnotation(db, q, optStr(nodeAnno["namespace"]),
             optStr(nodeAnno["name"]), optStr(nodeAnno["value"]),
             optStr(nodeAnno["textMatching"]));
 
@@ -63,21 +59,20 @@ void JSONQueryParser::parseNode(const DB& db, const Json::Value node, Query& q) 
     // token search?
     if (node["spannedText"].isString() 
             || (node["token"].isBool() && node["token"].asBool())) {
-      addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
+      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
               optStr(node["spannedText"]),
               optStr(node["spanTextMatching"]));
     } // end if token has spanned text
     else {
       // just search for any node
-      addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_name),
+      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_name),
               optStr(), optStr());
     }
   } // end if special case
 
-
 }
 
-void JSONQueryParser::addNodeAnnotation(const DB& db,
+size_t JSONQueryParser::addNodeAnnotation(const DB& db,
         Query& q,
         const std::shared_ptr<std::string> ns,
         const std::shared_ptr<std::string> name,
@@ -89,24 +84,24 @@ void JSONQueryParser::addNodeAnnotation(const DB& db,
     if (*textMatching == "EXACT_EQUAL") {
       // has namespace?
       if (ns) {
-        q.addNode(std::make_shared<ExactAnnoValueSearch>(db,
+        return q.addNode(std::make_shared<ExactAnnoValueSearch>(db,
                 *ns,
                 *name,
                 *value));
       } else {
-        q.addNode(std::make_shared<ExactAnnoValueSearch>(db,
+        return q.addNode(std::make_shared<ExactAnnoValueSearch>(db,
                 *name,
                 *value));
       }
     } else if (*textMatching == "REGEXP_EQUAL") {
       // has namespace?
       if (ns) {
-        q.addNode(std::make_shared<RegexAnnoSearch>(db,
+        return q.addNode(std::make_shared<RegexAnnoSearch>(db,
                 *ns,
                 *name,
                 *value));
       } else {
-        q.addNode(std::make_shared<RegexAnnoSearch>(db,
+        return q.addNode(std::make_shared<RegexAnnoSearch>(db,
                 *name,
                 *value));
       }
@@ -117,15 +112,20 @@ void JSONQueryParser::addNodeAnnotation(const DB& db,
     // only search for key
     // has namespace?
     if (ns) {
-      q.addNode(std::make_shared<ExactAnnoKeySearch>(db,
+      return q.addNode(std::make_shared<ExactAnnoKeySearch>(db,
               *ns,
               *name));
     } else {
-      q.addNode(std::make_shared<ExactAnnoKeySearch>(db,
+      return q.addNode(std::make_shared<ExactAnnoKeySearch>(db,
               *name));
     }
   }
 }
+
+void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q) {
+  
+}
+
 
 JSONQueryParser::~JSONQueryParser() {
 }
