@@ -42,9 +42,17 @@ class SearchTestPcc2 : public ::testing::Test {
     {
       dataDir = testDataEnv;
     }
-    queryDir = dataDir + "/pcc2_queries";
     bool loadedDB = db.load(dataDir + "/pcc2");
     EXPECT_EQ(true, loadedDB);
+    
+    char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
+    std::string globalQueryDir("queries");
+    if(testQueriesEnv != NULL)
+    {
+      globalQueryDir = testQueriesEnv;
+    }
+    queryDir = globalQueryDir + "/SearchTestPcc2";
+
 
   }
 
@@ -57,62 +65,65 @@ class SearchTestPcc2 : public ::testing::Test {
 };
 
 TEST_F(SearchTestPcc2, CatSearch) {
-  ExactAnnoKeySearch search(db, "cat");
+  
+  std::ifstream in;
+  in.open(queryDir + "/CatSearch.json");
+  
+  Query q = JSONQueryParser::parse(db, in);
+  in.close();
+  
   unsigned int counter=0;
-  while(search.hasNext())
+  while(q.hasNext())
   {
-    Match m = search.next();
-    ASSERT_STREQ("cat", db.strings.str(m.anno.name).c_str());
-    ASSERT_STREQ("tiger", db.strings.str(m.anno.ns).c_str());
+    std::vector<Match> m = q.next();
+    ASSERT_EQ(1, m.size());
+    ASSERT_STREQ("cat", db.strings.str(m[0].anno.name).c_str());
+    ASSERT_STREQ("tiger", db.strings.str(m[0].anno.ns).c_str());
     counter++;
   }
 
   EXPECT_EQ(155u, counter);
 }
 
-TEST_F(SearchTestPcc2, JSON) {
-  
-  unsigned int counter=0;
+
+TEST_F(SearchTestPcc2, MMaxAnnos_ambiguity) {
 
   std::ifstream in;
-  in.open(queryDir + "/jugendlichen.json");
+  in.open(queryDir + "/MMaxAnnos_ambiguity.json");
   
   Query q = JSONQueryParser::parse(db, in);
   in.close();
-
-  while(q.hasNext() && counter < 1000)
-  {
-    q.next();
-    counter++;
-  }
-
-  EXPECT_EQ(2u, counter);
-}
-
-TEST_F(SearchTestPcc2, MMaxAnnos) {
-
-  ExactAnnoValueSearch n1(db, "mmax", "ambiguity", "not_ambig");
-  ExactAnnoValueSearch n2(db, "mmax", "complex_np", "yes");
-
+  
   unsigned int counter=0;
-  while(n1.hasNext())
+  while(q.hasNext())
   {
-    Match m = n1.next();
-    ASSERT_STREQ("mmax", db.strings.str(m.anno.ns).c_str());
-    ASSERT_STREQ("ambiguity", db.strings.str(m.anno.name).c_str());
-    ASSERT_STREQ("not_ambig", db.strings.str(m.anno.val).c_str());
+    std::vector<Match> m = q.next();
+    ASSERT_EQ(1, m.size());
+    ASSERT_STREQ("mmax", db.strings.str(m[0].anno.ns).c_str());
+    ASSERT_STREQ("ambiguity", db.strings.str(m[0].anno.name).c_str());
+    ASSERT_STREQ("not_ambig", db.strings.str(m[0].anno.val).c_str());
     counter++;
   }
 
   EXPECT_EQ(73u, counter);
+}
 
-  counter=0;
-  while(n2.hasNext())
+TEST_F(SearchTestPcc2, MMaxAnnos_complex_np) {
+
+  std::ifstream in;
+  in.open(queryDir + "/MMaxAnnos_complex_np.json");
+  
+  Query q = JSONQueryParser::parse(db, in);
+  in.close();
+  
+  unsigned int counter=0;
+  while(q.hasNext())
   {
-    Match m = n2.next();
-    ASSERT_STREQ("mmax", db.strings.str(m.anno.ns).c_str());
-    ASSERT_STREQ("complex_np", db.strings.str(m.anno.name).c_str());
-    ASSERT_STREQ("yes", db.strings.str(m.anno.val).c_str());
+    std::vector<Match> m = q.next();
+    ASSERT_EQ(1, m.size());
+    ASSERT_STREQ("mmax", db.strings.str(m[0].anno.ns).c_str());
+    ASSERT_STREQ("complex_np", db.strings.str(m[0].anno.name).c_str());
+    ASSERT_STREQ("yes", db.strings.str(m[0].anno.val).c_str());
     counter++;
   }
 
@@ -121,14 +132,13 @@ TEST_F(SearchTestPcc2, MMaxAnnos) {
 
 TEST_F(SearchTestPcc2, TokenIndex) {
 
+  std::ifstream in;
+  in.open(queryDir + "/TokenIndex.json");
+  
+  Query q = JSONQueryParser::parse(db, in);
+  in.close();
+  
   unsigned int counter=0;
-
-  Query q(db);
-
-  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Die"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Jugendlichen"));
-
-  q.addOperator(std::make_shared<Precedence>(db), n1, n2);
 
   while(q.hasNext())
   {
