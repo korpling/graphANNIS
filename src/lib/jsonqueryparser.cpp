@@ -9,6 +9,7 @@
 #include "exactannovaluesearch.h"
 #include "exactannokeysearch.h"
 #include "regexannosearch.h"
+#include "operators/precedence.h"
 #include <map>
 
 using namespace annis;
@@ -31,10 +32,16 @@ Query JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
     // add all nodes
     const auto& nodes = firstAlt["nodes"];
 
-    std::map<uint64_t, size_t> nodeIdToPos;
+    std::map<std::uint64_t, size_t> nodeIdToPos;
     for (auto it = nodes.begin(); it != nodes.end(); it++) {
       auto& n = *it;
       nodeIdToPos[std::stoull(it.name())] = parseNode(db, n, q);
+    }
+    
+    // add all joins
+    const auto& joins = firstAlt["joins"];
+    for(auto it = joins.begin(); it != joins.end(); it++) {
+      parseJoin(db, *it, q, nodeIdToPos);
     }
 
 
@@ -122,8 +129,28 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
   }
 }
 
-void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q) {
-  
+void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q, 
+        const std::map<std::uint64_t, size_t>& nodeIdToPos ) {
+  // get left and right index
+  if(join["left"].isUInt64() && join["right"].isUInt64()) {
+    auto leftID = join["left"].asUInt64();
+    auto rightID = join["right"].asUInt64();
+    
+    auto itLeft = nodeIdToPos.find(leftID);
+    auto itRight = nodeIdToPos.find(rightID);
+    
+    if(itLeft != nodeIdToPos.end() && itRight != nodeIdToPos.end()) {
+      
+      auto op = join["op"].asString();
+      if(op == "Precedence") {
+        q.addOperator(std::make_shared<Precedence>(db,
+         join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
+                itLeft->second, itRight->second, false);
+      }
+      
+    }
+    
+  }
 }
 
 

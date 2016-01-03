@@ -32,7 +32,7 @@ namespace annis {
         const std::shared_ptr<std::string> value,
         const std::shared_ptr<std::string> textMatching);
     
-    static void parseJoin(const DB& db, const Json::Value join, Query& q);
+    static void parseJoin(const DB& db, const Json::Value join, Query& q, const  std::map<std::uint64_t, size_t>& nodeIdToPos);
     
     static std::shared_ptr<std::string> optStr(const Json::Value& val) {
       if(val.isString()) {
