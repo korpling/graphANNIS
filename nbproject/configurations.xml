@@ -6,6 +6,17 @@
         <logicalFolder name="Celero-1.0.8"
                        displayName="Celero-1.0.8"
                        projectFiles="true">
+          <logicalFolder name="examples" displayName="examples" projectFiles="true">
+            <itemPath>ext/Celero-1.0.8/examples/DemoComparison.cpp</itemPath>
+            <itemPath>ext/Celero-1.0.8/examples/DemoDoNotOptimizeAway.cpp</itemPath>
+            <itemPath>ext/Celero-1.0.8/examples/DemoParameterPassing.cpp</itemPath>
+            <itemPath>ext/Celero-1.0.8/examples/DemoPimpl.cpp</itemPath>
+            <itemPath>ext/Celero-1.0.8/examples/DemoSimple.cpp</itemPath>
+            <itemPath>ext/Celero-1.0.8/examples/DemoSimpleJUnit.cpp</itemPath>
+            <itemPath>ext/Celero-1.0.8/examples/DemoSleep.cpp</itemPath>
+            <itemPath>ext/Celero-1.0.8/examples/DemoSort.cpp</itemPath>
+            <itemPath>ext/Celero-1.0.8/examples/DemoTransform.cpp</itemPath>
+          </logicalFolder>
           <logicalFolder name="include" displayName="include" projectFiles="true">
             <logicalFolder name="celero" displayName="celero" projectFiles="true">
               <itemPath>ext/Celero-1.0.8/include/celero/Archive.h</itemPath>
@@ -181,6 +192,7 @@
       <in>graphstorage.cpp</in>
       <in>graphstorageregistry.cpp</in>
       <in>jjsonqueryparser.h</in>
+      <in>jsoncpp.cpp</in>
       <in>jsonqueryparser.cpp</in>
       <in>query.cpp</in>
       <in>regexannosearch.cpp</in>
@@ -687,9 +699,11 @@
       </toolsSet>
       <flagsDictionary>
         <element flagsID="0" commonFlags="-std=c++11"/>
-        <element flagsID="1" commonFlags="-std=c++11 -std=c++11"/>
+        <element flagsID="1" commonFlags="-std=c++11 -std=gnu++11 -O3"/>
         <element flagsID="2"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
+        <element flagsID="3" commonFlags="-std=c++14"/>
+        <element flagsID="4" commonFlags="-std=c++14 -std=c++14"/>
       </flagsDictionary>
       <codeAssistance>
         <includeAdditional>true</includeAdditional>
@@ -723,28 +737,91 @@
           <preBuildFirst>true</preBuildFirst>
         </preBuild>
       </makefileType>
-      <item path="benchmarks/benchmark.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="benchmarks/benchmark.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="benchmarks/benchmarkmain.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="benchmarks/benchmarkmain.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="benchmarks/parlament.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="benchmarks/parlament.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="benchmarks/ridges.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="benchmarks/ridges.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="benchmarks/tiger.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="benchmarks/tiger.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoComparison.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoDoNotOptimizeAway.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoParameterPassing.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoPimpl.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoSimple.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoSimpleJUnit.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoSleep.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoSort.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-1.0.8/examples/DemoTransform.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="ext/Celero-1.0.8/src/Archive.cpp" ex="false" tool="1" flavor2="8">
@@ -833,8 +910,8 @@
         <ccTool flags="2">
         </ccTool>
       </item>
-      <item path="ext/gtest-1.7.0/src/gtest-all.cc" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+      <item path="ext/gtest-1.7.0/src/gtest-all.cc" ex="false" tool="1" flavor2="11">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-death-test.cc"
@@ -866,8 +943,8 @@
       </item>
       <item path="ext/gtest-1.7.0/src/gtest.cc" ex="true" tool="3" flavor2="0">
       </item>
-      <item path="ext/gtest-1.7.0/src/gtest_main.cc" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+      <item path="ext/gtest-1.7.0/src/gtest_main.cc" ex="false" tool="1" flavor2="11">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="ext/humble-logging-library-2.0.0/src/appender.cpp"
@@ -990,6 +1067,13 @@
             <pElem>../annis4-build/ext/Celero-1.0.8</pElem>
           </incDir>
           <preprocessorList>
+            <Elem>CELERO_EXPORTS</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-1.0.8/src">
+        <ccTool>
+          <preprocessorList>
             <Elem>CELERO_STATIC</Elem>
           </preprocessorList>
         </ccTool>
@@ -1033,126 +1117,130 @@
           </incDir>
         </ccTool>
       </folder>
-      <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/db.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/db.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/dfs.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/dfs.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/edgeannotationstorage.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/edgeannotationstorage.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/exactannokeysearch.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/exactannokeysearch.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/exactannovaluesearch.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/exactannovaluesearch.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/filter.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/filter.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/graphstorage.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/graphstorage.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/adjacencyliststorage.cpp"
             ex="false"
             tool="1"
-            flavor2="8">
-        <ccTool flags="0">
+            flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/linearstorage.cpp"
             ex="false"
             tool="1"
-            flavor2="8">
-        <ccTool flags="0">
+            flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/prepostorderstorage.cpp"
             ex="false"
             tool="1"
-            flavor2="8">
-        <ccTool flags="0">
+            flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/graphstorageregistry.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/graphstorageregistry.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/jjsonqueryparser.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/join/seed.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/join/seed.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="0">
+      <item path="src/lib/jsoncpp.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
       </item>
       <item path="src/lib/operators/abstractedgeoperator.cpp"
             ex="false"
             tool="1"
-            flavor2="8">
-        <ccTool flags="0">
+            flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/operators/dominance.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/operators/dominance.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/operators/inclusion.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/operators/inclusion.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/operators/overlap.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/operators/overlap.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/operators/pointing.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/operators/pointing.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/operators/precedence.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/operators/precedence.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/query.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/query.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/regexannosearch.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/regexannosearch.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/stringstorage.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/stringstorage.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/wrapper.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/lib/wrapper.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/runner/linenoise.c" ex="false" tool="0" flavor2="0">
+      <item path="src/runner/linenoise.c" ex="false" tool="0" flavor2="10">
       </item>
-      <item path="src/runner/main.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="src/runner/main.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="tests/testmain.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
+      <item path="tests/testmain.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
         </ccTool>
       </item>
     </conf>

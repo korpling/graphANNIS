@@ -29,11 +29,12 @@ file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp"
   "src/lib/graphstorage/*.h" "src/lib/graphstorage/*.cpp"
   "src/lib/operators/*.h" "src/lib/operators/*.cpp"
   "src/lib/join/*.h" "src/lib/join/*.cpp"
+  "src/lib/json/*.h" "src/lib/json/*.cpp"
 )
 file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "-std=c++11")
+  set(CMAKE_CXX_FLAGS "-std=c++14")
 endif()
 
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
