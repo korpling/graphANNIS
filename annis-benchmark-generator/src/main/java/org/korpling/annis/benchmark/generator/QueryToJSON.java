@@ -16,6 +16,7 @@
 package org.korpling.annis.benchmark.generator;
 
 import annis.model.Join;
+import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
 import annis.ql.parser.QueryData;
 import annis.sqlgen.model.Dominance;
@@ -24,8 +25,6 @@ import annis.sqlgen.model.Overlap;
 import annis.sqlgen.model.PointingRelation;
 import annis.sqlgen.model.Precedence;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -33,7 +32,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,7 +94,7 @@ public class QueryToJSON
           for (Join aqlJoin : n.getOutgoingJoins())
           {
             ObjectNode j = joinObject.addObject();
-            mapJoin(aqlJoin, n, j);
+            mapJoin(aqlJoin, n, j, mapper);
           }
         }
       }
@@ -105,7 +103,8 @@ public class QueryToJSON
     return root;
   }
 
-  private static void mapJoin(Join join, QueryNode source, ObjectNode node)
+  private static void mapJoin(Join join, QueryNode source, ObjectNode node,
+    ObjectMapper mapper)
   {
     // TODO: more join types and features
     if (join instanceof Dominance)
@@ -115,6 +114,12 @@ public class QueryToJSON
       node.put("name", dom.getName() == null ? "" : dom.getName());
       node.put("minDistance", (long) dom.getMinDistance());
       node.put("maxDistance", (long) dom.getMaxDistance());
+      if (!dom.getEdgeAnnotations().isEmpty())
+      {
+        JsonNode edgeAnnos = mapper.valueToTree(dom.getEdgeAnnotations());
+        node.set("edgeAnnotations", edgeAnnos);
+
+      }
     }
     else if (join instanceof PointingRelation)
     {
@@ -145,7 +150,7 @@ public class QueryToJSON
         "This join type can't be mapped yet: " + join.toAQLFragment(source));
     }
 
-    node.put("left", (long)  source.getId());
+    node.put("left", (long) source.getId());
     node.put("right", (long) join.getTarget().getId());
   }
 }
