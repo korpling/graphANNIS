@@ -11,6 +11,9 @@
 #include "regexannosearch.h"
 #include "operators/precedence.h"
 #include "operators/dominance.h"
+#include "operators/pointing.h"
+#include "operators/inclusion.h"
+#include "operators/overlap.h"
 #include <map>
 
 using namespace annis;
@@ -147,6 +150,12 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q,
         q.addOperator(std::make_shared<Precedence>(db,
                 join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
                 itLeft->second, itRight->second, false);
+      } 
+      else if (op == "Inclusion") {
+        q.addOperator(std::make_shared<Inclusion>(db), itLeft->second, itRight->second, false);
+      }
+      else if (op == "Overlap") {
+        q.addOperator(std::make_shared<Overlap>(db), itLeft->second, itRight->second, false);
       } else if (op == "Dominance") {
 
         std::string name = join["name"].isString() ? join["name"].asString() : "";
@@ -158,6 +167,21 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, Query& q,
 
         } else {
           q.addOperator(std::make_shared<Dominance>(db,
+                  "", name,
+                  join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
+                  itLeft->second, itRight->second, false);
+        }
+      } else if (op == "Pointing") {
+
+        std::string name = join["name"].asString();
+
+        if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0) {
+          auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
+          q.addOperator(std::make_shared<Pointing>(db, "", name, anno),
+                  itLeft->second, itRight->second, false);
+
+        } else {
+          q.addOperator(std::make_shared<Pointing>(db,
                   "", name,
                   join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
                   itLeft->second, itRight->second, false);
