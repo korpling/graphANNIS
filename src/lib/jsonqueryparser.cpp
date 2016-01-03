@@ -13,11 +13,11 @@ using namespace annis;
 JSONQueryParser::JSONQueryParser() {
 }
 
-Query JSONQueryParser::parse(const DB& db, const std::string& queryAsJson) {
+Query JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
   Query q(db);
   
   Json::Value parsed;
-  std::cin >> parsed;
+  jsonStream >> parsed;
    
   return q;
 }
