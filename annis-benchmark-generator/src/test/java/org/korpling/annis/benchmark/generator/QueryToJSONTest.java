@@ -17,6 +17,11 @@ package org.korpling.annis.benchmark.generator;
 
 import annis.model.QueryNode;
 import annis.ql.parser.QueryData;
+import annis.sqlgen.model.Dominance;
+import annis.sqlgen.model.Inclusion;
+import annis.sqlgen.model.Overlap;
+import annis.sqlgen.model.PointingRelation;
+import annis.sqlgen.model.Precedence;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -123,9 +128,81 @@ public class QueryToJSONTest
     ObjectNode expResult = (ObjectNode) mapper.readTree("{"
       + "\"alternatives\" : "
       + " ["
-      + "  {\"nodes\" : {\"1\": {\"id\": 1, \"root\": false, \"token\":true, \"variable\": \"1\"}}}"
+      + "  {\"nodes\" : {\"1\": {\"id\": 1, \"root\": false, \"token\":true, \"variable\": \"1\"}},"
+      + "  \"joins\":[]}"
       + " ]"
       + "}");
+    
+    ObjectNode result = QueryToJSON.queryAsJSON(queryData);
+    
+    assertEquals(expResult, result);
+    
+  }
+  
+  /**
+   * Test if query only has one alternative an one node if embeddeding the node has worked.
+   */
+  @Test
+  public void testTwoJoins() throws IOException
+  {
+    System.out.println("twoJoins");
+    
+    QueryData queryData = new QueryData();
+    List<QueryNode> alt = new ArrayList<>();
+    
+    QueryNode n1 = new QueryNode(1);
+    n1.setVariable("1");
+    
+    QueryNode n2 = new QueryNode(2);
+    n2.setVariable("2");
+    
+    QueryNode n3 = new QueryNode(3);
+    n3.setVariable("3");
+    
+    Precedence precedenceJoin = new Precedence(n2, 2, 10);
+    n1.addOutgoingJoin(precedenceJoin);
+    
+    Overlap overlapJoin = new Overlap(n3);
+    n2.addOutgoingJoin(overlapJoin);
+    
+    Inclusion inclusionJoin = new Inclusion(n3);
+    n1.addOutgoingJoin(inclusionJoin);
+    
+    Dominance dominanceJoin = new Dominance(n1, "cat", 3, 5);
+    n2.addOutgoingJoin(dominanceJoin);
+    
+    PointingRelation pointingJoin = new PointingRelation(n1, "dep", 1, 2);
+    n3.addOutgoingJoin(pointingJoin);
+    
+    alt.add(n1);
+    alt.add(n2);
+    alt.add(n3);
+    
+    queryData.addAlternative(alt);
+    
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.enable(DeserializationFeature.USE_LONG_FOR_INTS);
+   
+    String expJson = "{"
+      + "\"alternatives\" : "
+      + " ["
+      + "  {"
+      + "    \"nodes\" : {"
+      + "       \"1\": {\"id\": 1, \"root\": false, \"token\":false, \"variable\": \"1\"}, "
+      + "       \"2\": {\"id\": 2, \"root\": false, \"token\":false, \"variable\": \"2\"}, "
+      + "       \"3\": {\"id\": 3, \"root\": false, \"token\":false, \"variable\": \"3\"} "
+      + "    },"
+      + "    \"joins\": ["
+      + "      {\"op\": \"Precedence\", \"minDistance\":2, \"maxDistance\":10, \"left\": 1, \"right\": 2},"
+      + "      {\"op\": \"Inclusion\", \"left\": 1, \"right\": 3},"
+      + "      {\"op\": \"Overlap\", \"left\": 2, \"right\": 3},"
+      + "      {\"op\": \"Dominance\", \"name\": \"cat\", \"minDistance\":3, \"maxDistance\":5, \"left\": 2, \"right\": 1},"
+      + "      {\"op\": \"Pointing\", \"name\": \"dep\", \"minDistance\":1, \"maxDistance\":2, \"left\": 3, \"right\": 1}"
+      + "    ]"
+      + "  }"
+      + " ]"
+      + "}";
+    ObjectNode expResult = (ObjectNode) mapper.readTree(expJson);
     
     ObjectNode result = QueryToJSON.queryAsJSON(queryData);
     
