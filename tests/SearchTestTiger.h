@@ -23,7 +23,6 @@ public:
 
  protected:
   DB db;
-  bool loaded;
   std::shared_ptr<Query> q;
   SearchTestTiger() {
 

@@ -19,6 +19,7 @@ using namespace annis;
 class SearchTestTueBaDZ : public ::testing::Test {
  protected:
   DB db;
+  std::shared_ptr<Query> q;
   SearchTestTueBaDZ() {
 
   }
@@ -40,6 +41,26 @@ class SearchTestTueBaDZ : public ::testing::Test {
     }
     bool loadedDB = db.load(dataDir + "/tuebadz6");
     EXPECT_EQ(true, loadedDB);
+    
+    char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
+    std::string globalQueryDir("queries");
+    if (testQueriesEnv != NULL) {
+      globalQueryDir = testQueriesEnv;
+    }
+    std::string queryDir = globalQueryDir + "/SearchTestTueBaDZ";
+
+    // get test name and read the json file
+    auto info = ::testing::UnitTest::GetInstance()->current_test_info();
+    if(info != nullptr)
+    {
+      std::ifstream in;
+      std::string jsonFileName = queryDir + "/" + info->name() + ".json";
+      in.open(jsonFileName);
+      if(in.is_open()) {
+        q = JSONQueryParser::parse(db, in);
+        in.close();
+      }
+    }
   }
 
   virtual void TearDown() {
@@ -61,61 +82,45 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 & #6 >* #7
 & #4 ->anaphoric #7
 */
-TEST_F(SearchTestTueBaDZ, DISABLED_Benchmark1) {
+TEST_F(SearchTestTueBaDZ, Mix) {
 
-  Query q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "merged", "pos", "PPER"));
-  auto n3 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
-  auto n4 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "relation", "anaphoric"));
-  auto n5 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
-  auto n6 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
-  auto n7 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "relation", "anaphoric"));
-
-  Annotation funcOnAnno =
-      Init::initAnnotation(db.strings.add("func"), db.strings.add("ON"));
-
-  q.addOperator(std::make_shared<Inclusion>(db), n2, n4);
-  q.addOperator(std::make_shared<Pointing>(db, "", "anaphoric"), n4, n7);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n1, n3);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n3, n2);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n5, n6);
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n6, n7);
-
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
-  while(q.hasNext() && counter < 10u)
+  while(q->hasNext() && counter < 10u)
   {
-    q.next();
+    q->next();
     counter++;
   }
 
   EXPECT_EQ(0u, counter);
 }
 
-TEST_F(SearchTestTueBaDZ, DISABLED_RegexDom) {
+TEST_F(SearchTestTueBaDZ, RegexDom) {
 
-  Query q = ExampleQueries::RegexDom(db);
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
-  while(q.hasNext() && counter < 100)
+  while(q->hasNext() && counter < 100)
   {
-    q.next();
+    q->next();
     counter++;
   }
 
   EXPECT_EQ(1u, counter);
 }
 
-TEST_F(SearchTestTueBaDZ, DISABLED_NodeDom) {
+TEST_F(SearchTestTueBaDZ, NodeDom) {
 
-  Query q = ExampleQueries::RegexDom(db);
+ ASSERT_TRUE((bool) q);
   unsigned int counter=0;
-  while(q.hasNext() && counter < 50000u)
+  while(q->hasNext() && counter < 2200000u)
   {
-    q.next();
+    q->next();
     counter++;
   }
 
-  EXPECT_EQ(47130u, counter);
+  EXPECT_EQ(2140993u, counter);
 }
 
 
