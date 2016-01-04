@@ -3,6 +3,8 @@
 
 #include "dynamicbenchmark.h"
 
+using namespace annis;
+
 int main(int argc, char **argv)
 {
 
@@ -14,13 +16,23 @@ int main(int argc, char **argv)
   fac.registerAppender(new humble::logging::FileAppender("benchmark_annis4.log", true));
 
   char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
-  std::string queriesDir("queries");
+  std::string dir("queries");
   if (testQueriesEnv != NULL) {
-    queriesDir = testQueriesEnv;
+    dir = testQueriesEnv;
   }
   
-  annis::DynamicBenchmark benchmarksRidges("ridges");
-  benchmarksRidges.registerDefaultBenchmarks(queriesDir + "/Benchmark_ridges");
+  // RIDGES //
+  
+  DynamicBenchmark benchmarksRidges("ridges");
+  benchmarksRidges.registerDefaultFixtures(dir + "/Benchmark_ridges");
+  
+  std::map<Component, std::string> prepostRiges;
+  prepostRiges.insert({{ComponentType::COVERAGE, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
+  prepostRiges.insert({{ComponentType::COVERAGE, "default_ns", ""}, GraphStorageRegistry::prepostorderO32L32});
+  prepostRiges.insert({{ComponentType::ORDERING, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
+  
+  benchmarksRidges.registerFixture(dir + "/Benchmark_ridges", 
+          "PrePost", prepostRiges);
   
   celero::Run(argc, argv);
   return 0;

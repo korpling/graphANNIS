@@ -38,14 +38,14 @@ DynamicBenchmark::DynamicBenchmark(std::string corpusName)
 
 }
 
-void DynamicBenchmark::registerDefaultBenchmarks(std::string queriesDir) {
+void DynamicBenchmark::registerDefaultFixtures(std::string queriesDir) {
   registerFixtureInternal(true, queriesDir, "Fallback", true);
   registerFixtureInternal(false, queriesDir, "Optimized", false);
 }
 
-void DynamicBenchmark::registerFixture(std::string queriesDir, std::string fixtureName, 
-        bool forceFallback, std::map<Component, std::string> overrideImpl) {
-  registerFixtureInternal(false, queriesDir, fixtureName, forceFallback, overrideImpl);
+void DynamicBenchmark::registerFixture(std::string queriesDir, std::string fixtureName,
+        std::map<Component, std::string> overrideImpl) {
+  registerFixtureInternal(false, queriesDir, fixtureName, false, overrideImpl);
 }
 
 
@@ -61,7 +61,7 @@ void DynamicBenchmark::registerFixtureInternal(
   while (itFiles != fileEndIt) {
     const auto filePath = itFiles->path();
     if (filePath.extension().string() == ".json") {
-      addBenchmark(baseline, filePath, fixtureName, forceFallback);
+      addBenchmark(baseline, filePath, fixtureName, forceFallback, overrideImpl);
     }
     itFiles++;
   }
@@ -71,7 +71,8 @@ void DynamicBenchmark::registerFixtureInternal(
 void DynamicBenchmark::addBenchmark(
         bool baseline,
         const boost::filesystem::path& path,
-        std::string fixtureName, bool forceFallback) {
+        std::string fixtureName, bool forceFallback,
+        std::map<Component, std::string> overrideImpl) {
 
   HL_INFO(logger, (boost::format("adding benchmark %1%") % path.string()).str());
   
@@ -79,7 +80,7 @@ void DynamicBenchmark::addBenchmark(
 
   // check if we need to load the databases
   if (dbByFixture.find(fixtureName) == dbByFixture.end()) {
-    dbByFixture[fixtureName] = initDB(forceFallback);
+    dbByFixture[fixtureName] = initDB(forceFallback, overrideImpl);
   }
 
   std::string benchmarkName = path.filename().stem().string() + "_" + corpus;
@@ -118,7 +119,8 @@ void DynamicBenchmark::addBenchmark(
   }
 }
 
-std::unique_ptr<DB> DynamicBenchmark::initDB(bool forceFallback) {
+std::unique_ptr<DB> DynamicBenchmark::initDB(bool forceFallback, std::map<Component, 
+        std::string> overrideImpl) {
   //std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" << std::endl;
   std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
 

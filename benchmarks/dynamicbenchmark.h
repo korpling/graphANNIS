@@ -75,12 +75,11 @@ namespace annis {
 
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
-    void registerDefaultBenchmarks(std::string queriesDir);
+    void registerDefaultFixtures(std::string queriesDir);
     
     void registerFixture(
         std::string queriesDir, 
         std::string fixtureName,
-        bool forceFallback = false,
         std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
       );
 
@@ -96,25 +95,19 @@ namespace annis {
         bool forceFallback = false,
         std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
       );
-
-    void addOverride(ComponentType ctype, std::string layer, std::string name, std::string implementation) {
-      overrideImpl.insert(
-              std::pair<Component, std::string>({ctype, layer, name}, implementation)
-              );
-    }
+    
   private:
     std::string corpus;
     
-    std::map<Component, std::string> overrideImpl;
-
     std::map<std::string, std::unique_ptr<DB>> dbByFixture;
 
     void addBenchmark(
         bool baseline,
         const boost::filesystem::path& path,
-        std::string fixtureName, bool forceFallback);
+        std::string fixtureName, bool forceFallback,
+        std::map<Component, std::string> overrideImpl);
 
-    std::unique_ptr<DB> initDB(bool forceFallback);
+    std::unique_ptr<DB> initDB(bool forceFallback, std::map<Component, std::string> overrideImpl);
   };
 
   class DynamicCorpusFixtureFactory : public celero::Factory {
