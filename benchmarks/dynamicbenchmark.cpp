@@ -16,7 +16,6 @@ using namespace annis;
 
 void DynamicCorpusFixture::UserBenchmark() {
   counter = 0;
-  q->reset();
   
   while (q->hasNext()) {
     q->next();
@@ -81,13 +80,16 @@ void DynamicBenchmark::addBenchmark(const boost::filesystem::path& path) {
   }
 
   stream.open(path);
-  std::shared_ptr<Query> queryFallback =
-          JSONQueryParser::parse(*fallbackDB, stream);
+  std::string queryFallback(
+    (std::istreambuf_iterator<char>(stream)),
+    (std::istreambuf_iterator<char>()));
+  
   stream.close();
 
   stream.open(path);
-  std::shared_ptr<Query> queryOptimized =
-          JSONQueryParser::parse(*optimizedDB, stream);
+  std::string queryOptimized(
+    (std::istreambuf_iterator<char>(stream)),
+    (std::istreambuf_iterator<char>()));
   stream.close();
 
   // register both a fallback and an optimized benchmark

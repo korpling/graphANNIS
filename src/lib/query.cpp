@@ -216,16 +216,3 @@ std::vector<Match> Query::next()
   return std::vector<Match>(0);
 }
 
-void Query::reset() {
-  if(!initialized)
-  {
-    internalInit();
-  }
-  
-  for(const auto& s : source)
-  {
-    s->reset();
-  }
-}
-
-

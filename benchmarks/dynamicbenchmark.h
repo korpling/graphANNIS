@@ -14,26 +14,34 @@
 #ifndef DYNAMICBENCHMARK_H
 #define DYNAMICBENCHMARK_H
 
+#include "jsonqueryparser.h"
 #include "benchmark.h"
 #include "db.h"
 #include "query.h"
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
+#include <sstream>
 
 namespace annis {
 
   class DynamicCorpusFixture : public ::celero::TestFixture {
   public:
 
-    DynamicCorpusFixture(std::shared_ptr<Query> query,
+    DynamicCorpusFixture(
+            const DB& db,
+            std::string queryJson,
             std::string benchmarkName,
             boost::optional<unsigned int> expectedCount = boost::optional<unsigned int>())
-    : q(query), benchmarkName(benchmarkName), counter(0), expectedCount(expectedCount) {
+    : db(db), queryJson(queryJson), benchmarkName(benchmarkName), counter(0), expectedCount(expectedCount) {
     }
 
     virtual void setUp(int64_t experimentValue) override {
       counter = 0;
+      // create query
+      std::istringstream jsonAsStream(queryJson);
+      q = JSONQueryParser::parse(db, jsonAsStream);
+      
       if (!q) {
         std::cerr << "FATAL ERROR: no query given for benchmark " << benchmarkName << std::endl;
         std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
@@ -51,6 +59,8 @@ namespace annis {
   protected:
 
   private:
+    const DB& db;
+    std::string queryJson;
     std::shared_ptr<Query> q;
     std::string benchmarkName;
     unsigned int counter;
@@ -93,19 +103,19 @@ namespace annis {
   public:
 
     DynamicCorpusFixtureFactory(
-        std::shared_ptr<Query> query,
+        std::string queryJson,
         std::string benchmarkName, const DB& db,
         boost::optional<unsigned int> expectedCount = boost::optional<unsigned int>())
-      : query(query), benchmarkName(benchmarkName), db(db), expectedCount(expectedCount) {
+      : queryJson(queryJson), benchmarkName(benchmarkName), db(db), expectedCount(expectedCount) {
     }
 
     std::shared_ptr<celero::TestFixture> Create() override {
       return std::shared_ptr<celero::TestFixture>(
-            new DynamicCorpusFixture(query, benchmarkName, expectedCount)
+            new DynamicCorpusFixture(db, queryJson, benchmarkName, expectedCount)
             );
     }
   private:
-    std::shared_ptr<Query> query;
+    std::string queryJson;
     std::string benchmarkName;
     const DB& db;
     boost::optional<unsigned int> expectedCount;

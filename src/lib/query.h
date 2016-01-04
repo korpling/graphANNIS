@@ -48,8 +48,6 @@ public:
   bool hasNext();
   std::vector<Match> next();
   
-  void reset();
-
   virtual ~Query();
 
 private:
