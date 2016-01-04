@@ -24,6 +24,7 @@ public:
  protected:
   DB db;
   bool loaded;
+  std::shared_ptr<Query> q;
   SearchTestTiger() {
 
   }
@@ -45,6 +46,26 @@ public:
     }
     bool loadedDB = db.load(dataDir + "/tiger2");
     EXPECT_EQ(true, loadedDB);
+    
+    char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
+    std::string globalQueryDir("queries");
+    if (testQueriesEnv != NULL) {
+      globalQueryDir = testQueriesEnv;
+    }
+    std::string queryDir = globalQueryDir + "/SearchTestTiger";
+
+    // get test name and read the json file
+    auto info = ::testing::UnitTest::GetInstance()->current_test_info();
+    if(info != nullptr)
+    {
+      std::ifstream in;
+      std::string jsonFileName = queryDir + "/" + info->name() + ".json";
+      in.open(jsonFileName);
+      if(in.is_open()) {
+        q = JSONQueryParser::parse(db, in);
+        in.close();
+      }
+    }
   }
 
   virtual void TearDown() {
@@ -57,13 +78,13 @@ public:
 
 TEST_F(SearchTestTiger, CatSearch) {
 
-  ExactAnnoKeySearch search(db, "cat");
   unsigned int counter=0;
-  while(search.hasNext() && counter < MAX_COUNT)
+  while(q && q->hasNext() && counter < MAX_COUNT)
   {
-    Match m = search.next();
-    ASSERT_STREQ("cat", db.strings.str(m.anno.name).c_str());
-    ASSERT_STREQ("tiger", db.strings.str(m.anno.ns).c_str());
+    auto m = q->next();
+    ASSERT_EQ(1, m.size());
+    ASSERT_STREQ("cat", db.strings.str(m[0].anno.name).c_str());
+    ASSERT_STREQ("tiger", db.strings.str(m[0].anno.ns).c_str());
     counter++;
   }
 
@@ -71,19 +92,14 @@ TEST_F(SearchTestTiger, CatSearch) {
 }
 
 // Should test query
-// pos="NN" .2,10 pos="ART"
+// tiger:pos="NN" .2,10 tiger:pos="ART"
 TEST_F(SearchTestTiger, TokenPrecedence) {
 
   unsigned int counter=0;
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "NN"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "ART"));
-
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
-  while(q.hasNext() && counter < MAX_COUNT)
+  while(q && q->hasNext() && counter < MAX_COUNT)
   {
-    q.next();
+    q->next();
     counter++;
   }
 
@@ -91,43 +107,28 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
 }
 
 // Should test query
-// pos="NN" .2,10 pos="ART" . pos="NN"
+// tiger:pos="NN" .2,10 tiger:pos="ART" . tiger:pos="NN"
 TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 
   unsigned int counter=0;
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "NN"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "ART"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "NN"));
-
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
-  q.addOperator(std::make_shared<Precedence>(db), 1, 2);
-
-  while(q.hasNext() && counter < MAX_COUNT)
+  while(q && q->hasNext() && counter < MAX_COUNT)
   {
-    q.next();
+    q->next();
     counter++;
   }
 
   EXPECT_EQ(114042u, counter);
 }
 
-// cat="S" & tok="Bilharziose" & #1 >* #2
+// tiger:cat="S" & tok="Bilharziose" & #1 >* #2
 TEST_F(SearchTestTiger, BilharzioseSentence)
 {
   unsigned int counter=0;
 
-  Query q(db);
-
-  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Bilharziose"));
-
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
-
-  while(q.hasNext())
+  while(q && q->hasNext() && counter < MAX_COUNT)
   {
-    std::vector<Match> m = q.next();
+    auto m = q->next();
      HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%")
                       % counter
                       % db.getNodeDebugName(m[0].node)
