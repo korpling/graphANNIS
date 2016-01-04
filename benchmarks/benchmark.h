@@ -41,7 +41,7 @@ using namespace annis;
   return *(BenchmarkDBHolder::db);\
 }
 
-template<bool forceFallback, char const* corpusName>
+template<bool forceFallback, const char* corpusName >
 class CorpusFixture : public ::celero::TestFixture
 {
 public:
