@@ -14,8 +14,8 @@ int main(int argc, char **argv)
   fac.registerAppender(new humble::logging::FileAppender("benchmark_annis4.log", true));
 
   // test stuff
-//  annis::DynamicBenchmark dynamicTest("data", "queries/Benchmark_ridges", "ridges");
-  
+  //annis::DynamicBenchmark dynamicTest("data", "queries/Benchmark_ridges", "ridges");
+  //return 0;
   
   celero::Run(argc, argv);
   return 0;

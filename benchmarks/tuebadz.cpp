@@ -1,30 +1,42 @@
 #include "benchmark.h"
 #include "examplequeries.h"
 
-char tuebaCorpus[] = "tuebadz6";
-char tuebaCorpusSmall[] = "tuebadz6_small";
 
-class TuebaFixture : public CorpusFixture<false, tuebaCorpus>
+class TuebaFixture : public CorpusFixture<false>
 {
 public:
   DBGETTER
 
+  TuebaFixture() : CorpusFixture<false>("tuebadz6")
+  {
+    
+  }
+  
   virtual ~TuebaFixture() {}
 
 };
-class TuebaFallbackFixture : public CorpusFixture<true, tuebaCorpus>
+class TuebaFallbackFixture : public CorpusFixture<true>
 {
 public:
   DBGETTER
 
+  TuebaFallbackFixture() : CorpusFixture<true>("tuebadz6")
+  {
+    
+  }
 
   virtual ~TuebaFallbackFixture() {}
 };
 
-class TuebaFixtureVar : public CorpusFixture<false, tuebaCorpus>
+class TuebaFixtureVar : public CorpusFixture<false>
 {
 public:
   DBGETTER
+  
+  TuebaFixtureVar() : CorpusFixture<false>("tuebadz6")
+  {
+    
+  }
 
   virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const
   {
@@ -46,13 +58,18 @@ public:
 
   unsigned int maxDistance;
 };
-class TuebaFallbackFixtureVar : public CorpusFixture<true, tuebaCorpus>
+class TuebaFallbackFixtureVar : public CorpusFixture<true>
 {
 public:
 
 
   DBGETTER
 
+  TuebaFallbackFixtureVar() : CorpusFixture<true>("tuebadz6")
+  {
+    
+  }
+  
   virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const
   {
     std::vector<std::pair<int64_t, uint64_t>> result;

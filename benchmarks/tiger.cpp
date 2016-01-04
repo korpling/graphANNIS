@@ -1,19 +1,29 @@
 #include "benchmark.h"
 #include "examplequeries.h"
 
-char tigerCorpus[] = "tiger2";
 
-class TigerFixture : public CorpusFixture<false, tigerCorpus>
+class TigerFixture : public CorpusFixture<false>
 {
 public:
   DBGETTER
 
+  TigerFixture() :  CorpusFixture<false>("tiger2")
+  {
+    
+  }
+  
   virtual ~TigerFixture() {}
 };
-class TigerFallbackFixture : public CorpusFixture<true, tigerCorpus>
+class TigerFallbackFixture : public CorpusFixture<true>
 {
 public:
   DBGETTER
+  
+  TigerFallbackFixture() :  CorpusFixture<true>("tiger2")
+  {
+    
+  }
+  
 
   virtual ~TigerFallbackFixture() {}
 };

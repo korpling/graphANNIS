@@ -1,20 +1,29 @@
 #include "benchmark.h"
 #include "examplequeries.h"
 
-char parlamentCorpus[] = "parlament";
 
-class ParlamentFixture : public CorpusFixture<false, parlamentCorpus>
+class ParlamentFixture : public CorpusFixture<false>
 {
 public:
   DBGETTER
+  
+  ParlamentFixture() : CorpusFixture<false>("parlament")
+  {
+    
+  }
 
   virtual ~ParlamentFixture() {}
 };
-class ParlamentFallbackFixture : public CorpusFixture<true, parlamentCorpus>
+class ParlamentFallbackFixture : public CorpusFixture<true>
 {
 public:
   DBGETTER
 
+  ParlamentFallbackFixture() : CorpusFixture<true>("parlament")
+  {
+    
+  }
+  
   virtual ~ParlamentFallbackFixture() {}
 };
 

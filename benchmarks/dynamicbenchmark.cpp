@@ -6,34 +6,6 @@
  */
 
 #include "dynamicbenchmark.h"
-#include "humblelogging/api.h"
-
-#include <iostream>
-
-HUMBLE_LOGGER(logger, "default");
 
 using namespace annis;
-
-DynamicBenchmark::DynamicBenchmark(std::string dataDir, std::string queriesDir, std::string corpus)
-: dataDir(dataDir), queriesDir(queriesDir), corpus(corpus) {
-  // find all file ending with ".json" in the folder
-  boost::filesystem::directory_iterator fileEndIt;
-  
-  boost::filesystem::directory_iterator itFiles(queriesDir);
-  while (itFiles != fileEndIt) {
-    const auto filePath = itFiles->path();
-    if(filePath.extension().string() == ".json") {
-      addBenchmark(filePath);
-    }
-    itFiles++;
-  }
-}
-
-void DynamicBenchmark::addBenchmark(const boost::filesystem::path& path) {
-  HL_INFO(logger, "adding benchmark");
-}
-
-
-DynamicBenchmark::~DynamicBenchmark() {
-}
 

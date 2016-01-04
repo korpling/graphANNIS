@@ -2,20 +2,25 @@
 #include "examplequeries.h"
 #include "graphstorageregistry.h"
 
-char ridgesCorpus[] = "ridges";
 
-class RidgesFixture : public CorpusFixture<false, ridgesCorpus>
+class RidgesFixture : public CorpusFixture<false>
 {
 public:
   DBGETTER
+  
+  RidgesFixture() : CorpusFixture<false>("ridges")
+  {
+    
+  }
+  
   virtual ~RidgesFixture() {}
 };
 
-class RidgesPrePostFixture : public CorpusFixture<false, ridgesCorpus>
+class RidgesPrePostFixture : public CorpusFixture<false>
 {
 public:
-
-  RidgesPrePostFixture()
+  
+  RidgesPrePostFixture() : CorpusFixture<false>("ridges")
   {
     addOverride(ComponentType::COVERAGE, annis_ns, "", GraphStorageRegistry::prepostorderO32L32);
     addOverride(ComponentType::COVERAGE, "default_ns", "", GraphStorageRegistry::prepostorderO32L32);
@@ -29,10 +34,15 @@ public:
   virtual ~RidgesPrePostFixture() {}
 };
 
-class RidgesFallbackFixture : public CorpusFixture<true, ridgesCorpus>
+class RidgesFallbackFixture : public CorpusFixture<true>
 {
 public:
   DBGETTER
+  
+  RidgesFallbackFixture() : CorpusFixture<true>("ridges")
+  {
+    
+  }
 
   virtual ~RidgesFallbackFixture() {}
 };
