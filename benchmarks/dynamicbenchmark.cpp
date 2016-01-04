@@ -16,6 +16,14 @@ using namespace annis;
 
 void DynamicCorpusFixture::UserBenchmark() {
   counter = 0;
+  std::istringstream jsonAsStream(queryJson);
+  q = JSONQueryParser::parse(db, jsonAsStream);
+
+  if (!q) {
+    std::cerr << "FATAL ERROR: no query given for benchmark " << benchmarkName << std::endl;
+    std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
+    exit(-1);
+  }
   
   while (q->hasNext()) {
     q->next();

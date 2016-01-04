@@ -37,16 +37,16 @@ namespace annis {
     }
 
     virtual void setUp(int64_t experimentValue) override {
-      counter = 0;
-      // create query
-      std::istringstream jsonAsStream(queryJson);
-      q = JSONQueryParser::parse(db, jsonAsStream);
-      
-      if (!q) {
-        std::cerr << "FATAL ERROR: no query given for benchmark " << benchmarkName << std::endl;
-        std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
-        exit(-1);
-      }
+//      counter = 0;
+//      // create query
+//      std::istringstream jsonAsStream(queryJson);
+//      q = JSONQueryParser::parse(db, jsonAsStream);
+//      
+//      if (!q) {
+//        std::cerr << "FATAL ERROR: no query given for benchmark " << benchmarkName << std::endl;
+//        std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
+//        exit(-1);
+//      }
     }
 
     virtual void tearDown() override;

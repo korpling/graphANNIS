@@ -48,22 +48,6 @@ public:
 };
 
 
-// pos="NN" & norm="Blumen" & #1 _i_ #2
-BASELINE_F(BIN_ridges, Fallback, RidgesFallbackFixture, 5, 5)
-{
-  ANNIS_EXEC_QUERY_COUNT(PosNNIncludesNormBlumen, getDB(), 152u);
-}
-
-BENCHMARK_F(BIN_ridges, Optimized, RidgesFixture, 5, 5)
-{
-  ANNIS_EXEC_QUERY_COUNT(PosNNIncludesNormBlumen, getDB(), 152u);
-}
-
-BENCHMARK_F(BIN_ridges, PrePost, RidgesPrePostFixture, 5, 5)
-{
-  ANNIS_EXEC_QUERY_COUNT(PosNNIncludesNormBlumen, getDB(), 152u);
-}
-
 // pos="NN" & norm="Blumen" & #2 _o_ #1
 BASELINE_F(BON_ridges, Fallback, RidgesFallbackFixture, 5, 1)
 {
