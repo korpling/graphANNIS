@@ -26,9 +26,14 @@ class TuebaFixtureVar : public CorpusFixture<false, tuebaCorpus>
 public:
   DBGETTER
 
-  virtual std::vector<int64_t> getExperimentValues() const
+  virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const
   {
-    return {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    std::vector<std::pair<int64_t, uint64_t>> result;
+    for(int i=1; i <= 13; i++)
+    {
+      result.push_back({i,0});
+    }
+    return result;
   }
 
   virtual void setUp(int64_t experimentValue)
@@ -48,9 +53,14 @@ public:
 
   DBGETTER
 
-  virtual std::vector<int64_t> getExperimentValues() const
+  virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const
   {
-    return {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    std::vector<std::pair<int64_t, uint64_t>> result;
+    for(int i=1; i <= 13; i++)
+    {
+      result.push_back({i,0});
+    }
+    return result;;
   }
 
   virtual void setUp(int64_t experimentValue)
