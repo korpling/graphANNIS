@@ -13,10 +13,14 @@ int main(int argc, char **argv)
   fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date]- %m (%lls, %filename:%line)\n"));
   fac.registerAppender(new humble::logging::FileAppender("benchmark_annis4.log", true));
 
-  // test stuff
-  annis::DynamicBenchmark dynamicTest("queries/Benchmark_ridges", "ridges");
-  dynamicTest.registerBenchmarks();
-  //return 0;
+  char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
+  std::string queriesDir("queries");
+  if (testQueriesEnv != NULL) {
+    queriesDir = testQueriesEnv;
+  }
+  
+  annis::DynamicBenchmark dynamicRidges("ridges");
+  dynamicRidges.registerBenchmarks(queriesDir + "/Benchmark_ridges");
   
   celero::Run(argc, argv);
   return 0;

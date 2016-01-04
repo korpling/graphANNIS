@@ -33,12 +33,12 @@ void DynamicCorpusFixture::tearDown() {
   
 }
 
-DynamicBenchmark::DynamicBenchmark(std::string queriesDir, std::string corpusName)
-: queriesDir(queriesDir), corpus(corpusName) {
+DynamicBenchmark::DynamicBenchmark(std::string corpusName)
+:  corpus(corpusName) {
 
 }
 
-void DynamicBenchmark::registerBenchmarks() {
+void DynamicBenchmark::registerBenchmarks(std::string queriesDir) {
   // find all file ending with ".json" in the folder
   boost::filesystem::directory_iterator fileEndIt;
 

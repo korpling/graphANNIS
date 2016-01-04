@@ -71,11 +71,11 @@ namespace annis {
   class DynamicBenchmark {
   public:
 
-    DynamicBenchmark(std::string queriesDir, std::string corpusName);
+    DynamicBenchmark(std::string corpusName);
 
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
-    void registerBenchmarks();
+    void registerBenchmarks(std::string queriesDir);
 
     virtual ~DynamicBenchmark() {
     }
@@ -87,7 +87,6 @@ namespace annis {
               );
     }
   private:
-    std::string queriesDir;
     std::string corpus;
     std::map<Component, std::string> overrideImpl;
 
