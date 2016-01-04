@@ -19,8 +19,8 @@ int main(int argc, char **argv)
     queriesDir = testQueriesEnv;
   }
   
-  annis::DynamicBenchmark dynamicRidges("ridges");
-  dynamicRidges.registerBenchmarks(queriesDir + "/Benchmark_ridges");
+  annis::DynamicBenchmark benchmarksRidges("ridges");
+  benchmarksRidges.registerDefaultBenchmarks(queriesDir + "/Benchmark_ridges");
   
   celero::Run(argc, argv);
   return 0;

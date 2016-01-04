@@ -38,30 +38,48 @@ DynamicBenchmark::DynamicBenchmark(std::string corpusName)
 
 }
 
-void DynamicBenchmark::registerBenchmarks(std::string queriesDir) {
-  // find all file ending with ".json" in the folder
+void DynamicBenchmark::registerDefaultBenchmarks(std::string queriesDir) {
+  registerFixtureInternal(true, queriesDir, "Fallback", true);
+  registerFixtureInternal(false, queriesDir, "Optimized", false);
+}
+
+void DynamicBenchmark::registerFixture(std::string queriesDir, std::string fixtureName, 
+        bool forceFallback, std::map<Component, std::string> overrideImpl) {
+  registerFixtureInternal(false, queriesDir, fixtureName, forceFallback, overrideImpl);
+}
+
+
+void DynamicBenchmark::registerFixtureInternal(
+        bool baseline, std::string queriesDir, 
+        std::string fixtureName, bool forceFallback, 
+        std::map<Component, std::string> overrideImpl) {
+  
+   // find all file ending with ".json" in the folder
   boost::filesystem::directory_iterator fileEndIt;
 
   boost::filesystem::directory_iterator itFiles(queriesDir);
   while (itFiles != fileEndIt) {
     const auto filePath = itFiles->path();
     if (filePath.extension().string() == ".json") {
-      addBenchmark(filePath);
+      addBenchmark(baseline, filePath, fixtureName, forceFallback);
     }
     itFiles++;
   }
 }
 
-void DynamicBenchmark::addBenchmark(const boost::filesystem::path& path) {
+
+void DynamicBenchmark::addBenchmark(
+        bool baseline,
+        const boost::filesystem::path& path,
+        std::string fixtureName, bool forceFallback) {
 
   HL_INFO(logger, (boost::format("adding benchmark %1%") % path.string()).str());
+  
+  
 
   // check if we need to load the databases
-  if (!fallbackDB) {
-    fallbackDB = initDB(true);
-  }
-  if (!optimizedDB) {
-    optimizedDB = initDB(false);
+  if (dbByFixture.find(fixtureName) == dbByFixture.end()) {
+    dbByFixture[fixtureName] = initDB(forceFallback);
   }
 
   std::string benchmarkName = path.filename().stem().string() + "_" + corpus;
@@ -80,29 +98,24 @@ void DynamicBenchmark::addBenchmark(const boost::filesystem::path& path) {
   }
 
   stream.open(path);
-  std::string queryFallback(
+  std::string queryJSON(
     (std::istreambuf_iterator<char>(stream)),
-    (std::istreambuf_iterator<char>()));
-  
+    (std::istreambuf_iterator<char>()));  
   stream.close();
 
-  stream.open(path);
-  std::string queryOptimized(
-    (std::istreambuf_iterator<char>(stream)),
-    (std::istreambuf_iterator<char>()));
-  stream.close();
-
-  // register both a fallback and an optimized benchmark
-  celero::RegisterBaseline(benchmarkName.c_str(), "Fallback", 5, 5, 1,
-          std::make_shared<DynamicCorpusFixtureFactory> (queryFallback,
-          benchmarkName + " (Fallback)",
-          *fallbackDB,
-          expectedCount));
-  celero::RegisterTest(benchmarkName.c_str(), "Optimized", 5, 5, 1,
-          std::make_shared<DynamicCorpusFixtureFactory> (queryOptimized,
-          benchmarkName + " (Optimized)",
-          *optimizedDB,
-          expectedCount));
+  if(baseline) {
+    celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), 5, 5, 1,
+            std::make_shared<DynamicCorpusFixtureFactory> (queryJSON,
+            benchmarkName + " (" + fixtureName + ")",
+            *(dbByFixture[fixtureName]),
+            expectedCount));
+  } else {
+    celero::RegisterTest(benchmarkName.c_str(), fixtureName.c_str(), 5, 5, 1,
+            std::make_shared<DynamicCorpusFixtureFactory> (queryJSON,
+            benchmarkName + " (" + fixtureName + ")",
+            *(dbByFixture[fixtureName]),
+            expectedCount));
+  }
 }
 
 std::unique_ptr<DB> DynamicBenchmark::initDB(bool forceFallback) {

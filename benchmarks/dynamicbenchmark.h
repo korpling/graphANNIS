@@ -75,11 +75,27 @@ namespace annis {
 
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
-    void registerBenchmarks(std::string queriesDir);
+    void registerDefaultBenchmarks(std::string queriesDir);
+    
+    void registerFixture(
+        std::string queriesDir, 
+        std::string fixtureName,
+        bool forceFallback = false,
+        std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
+      );
 
     virtual ~DynamicBenchmark() {
     }
-  protected:
+    
+  private:
+    
+     void registerFixtureInternal(
+        bool baseline,
+        std::string queriesDir, 
+        std::string fixtureName,
+        bool forceFallback = false,
+        std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
+      );
 
     void addOverride(ComponentType ctype, std::string layer, std::string name, std::string implementation) {
       overrideImpl.insert(
@@ -88,12 +104,15 @@ namespace annis {
     }
   private:
     std::string corpus;
+    
     std::map<Component, std::string> overrideImpl;
 
-    std::unique_ptr<DB> fallbackDB;
-    std::unique_ptr<DB> optimizedDB;
+    std::map<std::string, std::unique_ptr<DB>> dbByFixture;
 
-    void addBenchmark(const boost::filesystem::path& path);
+    void addBenchmark(
+        bool baseline,
+        const boost::filesystem::path& path,
+        std::string fixtureName, bool forceFallback);
 
     std::unique_ptr<DB> initDB(bool forceFallback);
   };
