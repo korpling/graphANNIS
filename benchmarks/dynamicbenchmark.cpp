@@ -14,7 +14,14 @@
 
 using namespace annis;
 
-void DynamicCorpusFixture::tearDown() {
+void DynamicCorpusFixture::UserBenchmark() {
+  counter = 0;
+  q->reset();
+  
+  while (q->hasNext()) {
+    q->next();
+    counter++;
+  }
   HL_INFO(logger, (boost::format("result %1%") % counter).str());
   if (expectedCount && counter != *expectedCount) {
     std::cerr << "FATAL ERROR: query " << benchmarkName << " should have count " << *expectedCount << " but was " << counter << std::endl;
@@ -23,6 +30,9 @@ void DynamicCorpusFixture::tearDown() {
   }
 }
 
+void DynamicCorpusFixture::tearDown() {
+  
+}
 
 DynamicBenchmark::DynamicBenchmark(std::string queriesDir, std::string corpusName)
 : queriesDir(queriesDir), corpus(corpusName) {
@@ -57,21 +67,40 @@ void DynamicBenchmark::addBenchmark(const boost::filesystem::path& path) {
 
   std::string benchmarkName = path.filename().stem().string() + "_" + corpus;
 
-  boost::filesystem::ifstream jsonInput;
-  jsonInput.open(path);
-  std::shared_ptr<Query> queryFallback = JSONQueryParser::parse(*fallbackDB, jsonInput);
-  jsonInput.close();
-  
-  jsonInput.open(path);
-  std::shared_ptr<Query> queryOptimized = JSONQueryParser::parse(*optimizedDB
-          , jsonInput);
-  jsonInput.close();
-  
+  boost::optional<unsigned int> expectedCount;
+  auto countPath = path.parent_path() /= (path.stem().string() + ".count");
+
+  boost::filesystem::ifstream stream;
+
+  stream.open(countPath);
+  if (stream.is_open()) {
+    unsigned int tmp;
+    stream >> tmp;
+    stream.close();
+    expectedCount = tmp;
+  }
+
+  stream.open(path);
+  std::shared_ptr<Query> queryFallback =
+          JSONQueryParser::parse(*fallbackDB, stream);
+  stream.close();
+
+  stream.open(path);
+  std::shared_ptr<Query> queryOptimized =
+          JSONQueryParser::parse(*optimizedDB, stream);
+  stream.close();
+
   // register both a fallback and an optimized benchmark
   celero::RegisterBaseline(benchmarkName.c_str(), "Fallback", 5, 5, 1,
-          std::make_shared<DynamicCorpusFixtureFactory> (queryFallback, benchmarkName, *fallbackDB));
+          std::make_shared<DynamicCorpusFixtureFactory> (queryFallback,
+          benchmarkName + " (Fallback)",
+          *fallbackDB,
+          expectedCount));
   celero::RegisterTest(benchmarkName.c_str(), "Optimized", 5, 5, 1,
-          std::make_shared<DynamicCorpusFixtureFactory> (queryOptimized, benchmarkName, *optimizedDB));
+          std::make_shared<DynamicCorpusFixtureFactory> (queryOptimized,
+          benchmarkName + " (Optimized)",
+          *optimizedDB,
+          expectedCount));
 }
 
 std::unique_ptr<DB> DynamicBenchmark::initDB(bool forceFallback) {

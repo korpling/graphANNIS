@@ -43,13 +43,7 @@ namespace annis {
 
     virtual void tearDown() override;
   
-    virtual void UserBenchmark() override {
-      counter = 0;
-      while (q->hasNext()) {
-        q->next();
-        counter++;
-      }
-    }
+    virtual void UserBenchmark() override;
 
     virtual ~DynamicCorpusFixture() {
     }
@@ -99,20 +93,22 @@ namespace annis {
   public:
 
     DynamicCorpusFixtureFactory(
-            std::shared_ptr<Query> query,
-            std::string benchmarkName, const DB& db)
-    : query(query), benchmarkName(benchmarkName), db(db) {
+        std::shared_ptr<Query> query,
+        std::string benchmarkName, const DB& db,
+        boost::optional<unsigned int> expectedCount = boost::optional<unsigned int>())
+      : query(query), benchmarkName(benchmarkName), db(db), expectedCount(expectedCount) {
     }
 
     std::shared_ptr<celero::TestFixture> Create() override {
       return std::shared_ptr<celero::TestFixture>(
-              new DynamicCorpusFixture(query, benchmarkName)
-              );
+            new DynamicCorpusFixture(query, benchmarkName, expectedCount)
+            );
     }
   private:
     std::shared_ptr<Query> query;
     std::string benchmarkName;
     const DB& db;
+    boost::optional<unsigned int> expectedCount;
   };
 
 } // end namespace annis
