@@ -144,46 +144,77 @@
             <itemPath>ext/gtest-1.7.0/src/gtest_main.cc</itemPath>
           </logicalFolder>
         </logicalFolder>
-        <logicalFolder name="humble-logging-library-2.0.0"
-                       displayName="humble-logging-library-2.0.0"
+        <logicalFolder name="humblelogging-3.0.1"
+                       displayName="humblelogging-3.0.1"
                        projectFiles="true">
           <logicalFolder name="include" displayName="include" projectFiles="true">
             <logicalFolder name="humblelogging"
                            displayName="humblelogging"
                            projectFiles="true">
-              <logicalFolder name="util" displayName="util" projectFiles="true">
-                <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/util/mutex.h</itemPath>
-                <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/util/mutex_linux.h</itemPath>
-                <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/util/patternconfigregistry.h</itemPath>
-                <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/util/processinfo.h</itemPath>
-                <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/util/spinlock.h</itemPath>
-                <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/util/spinlock_linux.h</itemPath>
-                <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/util/ternarytree.h</itemPath>
+              <logicalFolder name="appender" displayName="appender" projectFiles="true">
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/appender/consoleappender.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/appender/fileappender.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/appender/nullappender.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/appender/rollingfileappender.h</itemPath>
               </logicalFolder>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/api.h</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/appender.h</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/configuration.h</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/defines.h</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/factory.h</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/formatter.h</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/logevent.h</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/logger.h</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/include/humblelogging/loglevel.h</itemPath>
+              <logicalFolder name="configuration"
+                             displayName="configuration"
+                             projectFiles="true">
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/configuration/defaultconfiguration.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/configuration/simpleconfiguration.h</itemPath>
+              </logicalFolder>
+              <logicalFolder name="formatter" displayName="formatter" projectFiles="true">
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/formatter/patternformatter.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/formatter/simpleformatter.h</itemPath>
+              </logicalFolder>
+              <logicalFolder name="util" displayName="util" projectFiles="true">
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/util/mutex.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/util/patternconfigregistry.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/util/processinfo.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/util/spinlock.h</itemPath>
+                <itemPath>ext/humblelogging-3.0.1/include/humblelogging/util/ternarytree.h</itemPath>
+              </logicalFolder>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/api.h</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/appender.h</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/configuration.h</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/defines.h</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/factory.h</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/formatter.h</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/logevent.h</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/logger.h</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/include/humblelogging/loglevel.h</itemPath>
             </logicalFolder>
           </logicalFolder>
           <logicalFolder name="src" displayName="src" projectFiles="true">
-            <logicalFolder name="util" displayName="util" projectFiles="true">
-              <itemPath>ext/humble-logging-library-2.0.0/src/util/mutex_linux.cpp</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/src/util/patternconfigregistry.cpp</itemPath>
-              <itemPath>ext/humble-logging-library-2.0.0/src/util/spinlock_linux.cpp</itemPath>
+            <logicalFolder name="appender" displayName="appender" projectFiles="true">
+              <itemPath>ext/humblelogging-3.0.1/src/appender/consoleappender.cpp</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/src/appender/fileappender.cpp</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/src/appender/nullappender.cpp</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/src/appender/rollingfileappender.cpp</itemPath>
             </logicalFolder>
-            <itemPath>ext/humble-logging-library-2.0.0/src/appender.cpp</itemPath>
-            <itemPath>ext/humble-logging-library-2.0.0/src/configuration.cpp</itemPath>
-            <itemPath>ext/humble-logging-library-2.0.0/src/factory.cpp</itemPath>
-            <itemPath>ext/humble-logging-library-2.0.0/src/formatter.cpp</itemPath>
-            <itemPath>ext/humble-logging-library-2.0.0/src/logevent.cpp</itemPath>
-            <itemPath>ext/humble-logging-library-2.0.0/src/logger.cpp</itemPath>
-            <itemPath>ext/humble-logging-library-2.0.0/src/loglevel.cpp</itemPath>
+            <logicalFolder name="configuration"
+                           displayName="configuration"
+                           projectFiles="true">
+              <itemPath>ext/humblelogging-3.0.1/src/configuration/defaultconfiguration.cpp</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/src/configuration/simpleconfiguration.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="formatter" displayName="formatter" projectFiles="true">
+              <itemPath>ext/humblelogging-3.0.1/src/formatter/patternformatter.cpp</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/src/formatter/simpleformatter.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="util" displayName="util" projectFiles="true">
+              <itemPath>ext/humblelogging-3.0.1/src/util/mutex_c11.cpp</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/src/util/patternconfigregistry.cpp</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/src/util/processinfo.cpp</itemPath>
+              <itemPath>ext/humblelogging-3.0.1/src/util/spinlock_c11.cpp</itemPath>
+            </logicalFolder>
+            <itemPath>ext/humblelogging-3.0.1/src/appender.cpp</itemPath>
+            <itemPath>ext/humblelogging-3.0.1/src/configuration.cpp</itemPath>
+            <itemPath>ext/humblelogging-3.0.1/src/factory.cpp</itemPath>
+            <itemPath>ext/humblelogging-3.0.1/src/formatter.cpp</itemPath>
+            <itemPath>ext/humblelogging-3.0.1/src/logevent.cpp</itemPath>
+            <itemPath>ext/humblelogging-3.0.1/src/logger.cpp</itemPath>
+            <itemPath>ext/humblelogging-3.0.1/src/loglevel.cpp</itemPath>
           </logicalFolder>
         </logicalFolder>
       </logicalFolder>
@@ -364,76 +395,6 @@
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/appender.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/configuration.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/factory.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/formatter.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/logevent.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/logger.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/loglevel.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/mutex_linux.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/patternconfigregistry.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/spinlock_linux.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
       <folder path="0">
         <ccTool>
           <incDir>
@@ -477,14 +438,6 @@
           <preprocessorList>
             <Elem>GTEST_HAS_PTHREAD=1</Elem>
           </preprocessorList>
-        </ccTool>
-      </folder>
-      <folder path="annis4/ext/humble-logging-library-2.0.0">
-        <ccTool>
-          <incDir>
-            <pElem>ext/humble-logging-library-2.0.0/include</pElem>
-            <pElem>../annis4-build/ext/humble-logging-library-2.0.0</pElem>
-          </incDir>
         </ccTool>
       </folder>
       <folder path="annis4/tests">
@@ -629,11 +582,10 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <flagsDictionary>
-        <element flagsID="0" commonFlags="-std=c++11"/>
-        <element flagsID="1"
+        <element flagsID="0"
                  commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
-        <element flagsID="2" commonFlags="-std=c++14"/>
-        <element flagsID="3" commonFlags="-std=c++14 -std=c++14"/>
+        <element flagsID="1" commonFlags="-std=c++14"/>
+        <element flagsID="2" commonFlags="-std=c++14 -std=c++14"/>
       </flagsDictionary>
       <codeAssistance>
       </codeAssistance>
@@ -664,7 +616,7 @@
         </preBuild>
       </makefileType>
       <item path="benchmarks/benchmark.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
           <incDir>
             <pElem>ext/Celero-1.0.8/include</pElem>
             <pElem>src/lib</pElem>
@@ -675,7 +627,7 @@
         </ccTool>
       </item>
       <item path="benchmarks/benchmarkmain.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
           <incDir>
             <pElem>ext/Celero-1.0.8/include</pElem>
             <pElem>src/lib</pElem>
@@ -690,7 +642,7 @@
       <item path="benchmarks/dynamicbenchmark.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="benchmarks/parlament.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
           <incDir>
             <pElem>ext/Celero-1.0.8/include</pElem>
             <pElem>src/lib</pElem>
@@ -701,7 +653,7 @@
         </ccTool>
       </item>
       <item path="benchmarks/ridges.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
           <incDir>
             <pElem>ext/Celero-1.0.8/include</pElem>
             <pElem>src/lib</pElem>
@@ -712,7 +664,7 @@
         </ccTool>
       </item>
       <item path="benchmarks/tiger.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
           <incDir>
             <pElem>ext/Celero-1.0.8/include</pElem>
             <pElem>src/lib</pElem>
@@ -723,7 +675,7 @@
         </ccTool>
       </item>
       <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
           <incDir>
             <pElem>ext/Celero-2.0.2/include</pElem>
             <pElem>src/lib</pElem>
@@ -737,167 +689,167 @@
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/DemoFileWrite/DemoFileWrite.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/DemoSimple/DemoSimple.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/DemoSimpleJUnit/DemoSimpleJUnit.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/DemoSleep/DemoSleep.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/DemoToString/DemoToString.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/DemoTransform/DemoTransform.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/ExperimentCostOfPimpl/ExperimentCostOfPimpl.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/ExperimentParameterPassing/ExperimentParameterPassing.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/experiments/ExperimentSortingRandomInts/ExperimentSortingRandomInts.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Archive.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Benchmark.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Callbacks.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Celero.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Console.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Distribution.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Executor.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Experiment.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/JUnit.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Print.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Result.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/ResultTable.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Statistics.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/TestFixture.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/TestVector.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/ThreadTestFixture.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Timer.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Utilities.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-all.cc" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-death-test.cc"
@@ -930,77 +882,7 @@
       <item path="ext/gtest-1.7.0/src/gtest.cc" ex="true" tool="3" flavor2="0">
       </item>
       <item path="ext/gtest-1.7.0/src/gtest_main.cc" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/appender.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/configuration.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/factory.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/formatter.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/logevent.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/logger.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/loglevel.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/mutex_linux.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/patternconfigregistry.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/spinlock_linux.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="0">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <folder path="0">
@@ -1145,14 +1027,6 @@
           </preprocessorList>
         </ccTool>
       </folder>
-      <folder path="annis4/ext/humble-logging-library-2.0.0">
-        <ccTool>
-          <incDir>
-            <pElem>ext/humble-logging-library-2.0.0/include</pElem>
-            <pElem>../annis4-build/ext/humble-logging-library-2.0.0</pElem>
-          </incDir>
-        </ccTool>
-      </folder>
       <folder path="annis4/tests">
         <ccTool>
           <incDir>
@@ -1168,129 +1042,129 @@
         </ccTool>
       </folder>
       <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/db.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/dfs.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/edgeannotationstorage.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/exactannokeysearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/exactannovaluesearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/filter.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/adjacencyliststorage.cpp"
             ex="false"
             tool="1"
             flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/linearstorage.cpp"
             ex="false"
             tool="1"
             flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/prepostorderstorage.cpp"
             ex="false"
             tool="1"
             flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/graphstorageregistry.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/join/seed.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/jsoncpp.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/operators/abstractedgeoperator.cpp"
             ex="false"
             tool="1"
             flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/operators/dominance.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/operators/inclusion.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/operators/overlap.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/operators/pointing.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/operators/precedence.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/query.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/regexannosearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/stringstorage.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/lib/wrapper.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="src/runner/linenoise.c" ex="false" tool="0" flavor2="10">
       </item>
       <item path="src/runner/main.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="tests/testmain.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
     </conf>
@@ -1302,9 +1176,10 @@
       </toolsSet>
       <flagsDictionary>
         <element flagsID="0" commonFlags="-O2 -g"/>
-        <element flagsID="1" commonFlags="-std=c++11 -O2"/>
+        <element flagsID="1"
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -O2"/>
         <element flagsID="2"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -O2"/>
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -O2"/>
         <element flagsID="3" commonFlags="-std=c++14 -O2"/>
         <element flagsID="4" commonFlags="-std=c++14 -O2 -std=c++14"/>
       </flagsDictionary>
@@ -1320,7 +1195,7 @@
             <standard>10</standard>
             <incDir>
               <pElem>include</pElem>
-              <pElem>ext/humble-logging-library-2.0.0/include</pElem>
+              <pElem>ext/humblelogging-3.0.1/include</pElem>
               <pElem>/usr/include/x86_64-linux-gnu</pElem>
               <pElem>ext/Celero-2.0.2/include</pElem>
               <pElem>src/lib</pElem>
@@ -1502,70 +1377,133 @@
         <ccTool flags="4">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/appender.cpp"
+      <item path="ext/humblelogging-3.0.1/src/appender.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/configuration.cpp"
+      <item path="ext/humblelogging-3.0.1/src/appender/consoleappender.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/factory.cpp"
+      <item path="ext/humblelogging-3.0.1/src/appender/fileappender.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/formatter.cpp"
+      <item path="ext/humblelogging-3.0.1/src/appender/nullappender.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/logevent.cpp"
+      <item path="ext/humblelogging-3.0.1/src/appender/rollingfileappender.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/logger.cpp"
+      <item path="ext/humblelogging-3.0.1/src/configuration.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/loglevel.cpp"
+      <item path="ext/humblelogging-3.0.1/src/configuration/defaultconfiguration.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/mutex_linux.cpp"
+      <item path="ext/humblelogging-3.0.1/src/configuration/simpleconfiguration.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/patternconfigregistry.cpp"
+      <item path="ext/humblelogging-3.0.1/src/factory.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/humble-logging-library-2.0.0/src/util/spinlock_linux.cpp"
+      <item path="ext/humblelogging-3.0.1/src/formatter.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/formatter/patternformatter.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/formatter/simpleformatter.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/logevent.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/logger.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/loglevel.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/util/mutex_c11.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/util/patternconfigregistry.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/util/processinfo.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/humblelogging-3.0.1/src/util/spinlock_c11.cpp"
             ex="false"
             tool="1"
             flavor2="8">
@@ -1576,7 +1514,7 @@
         <ccTool>
           <incDir>
             <pElem>include</pElem>
-            <pElem>ext/humble-logging-library-2.0.0/include</pElem>
+            <pElem>ext/humblelogging-3.0.1/include</pElem>
             <pElem>/usr/include/x86_64-linux-gnu</pElem>
             <pElem>ext/Celero-2.0.2/include</pElem>
             <pElem>src/lib</pElem>
@@ -1590,7 +1528,7 @@
         <ccTool>
           <incDir>
             <pElem>include</pElem>
-            <pElem>ext/humble-logging-library-2.0.0/include</pElem>
+            <pElem>ext/humblelogging-3.0.1/include</pElem>
             <pElem>/usr/include/x86_64-linux-gnu</pElem>
             <pElem>ext/Celero-2.0.2/include</pElem>
             <pElem>src/lib</pElem>
@@ -1604,7 +1542,7 @@
         <ccTool>
           <incDir>
             <pElem>include</pElem>
-            <pElem>ext/humble-logging-library-2.0.0/include</pElem>
+            <pElem>ext/humblelogging-3.0.1/include</pElem>
             <pElem>/usr/include/x86_64-linux-gnu</pElem>
             <pElem>ext/Celero-2.0.2/include</pElem>
             <pElem>src/lib</pElem>
@@ -1630,7 +1568,7 @@
         <ccTool>
           <incDir>
             <pElem>include</pElem>
-            <pElem>ext/humble-logging-library-2.0.0/include</pElem>
+            <pElem>ext/humblelogging-3.0.1/include</pElem>
             <pElem>/usr/include/x86_64-linux-gnu</pElem>
             <pElem>ext/Celero-2.0.2/include</pElem>
             <pElem>src/lib</pElem>
@@ -1643,11 +1581,11 @@
           </preprocessorList>
         </ccTool>
       </folder>
-      <folder path="annis4/ext/humble-logging-library-2.0.0">
+      <folder path="annis4/ext/humblelogging-3.0.1">
         <ccTool>
           <incDir>
-            <pElem>ext/humble-logging-library-2.0.0/include</pElem>
-            <pElem>../annis4-build/ext/humble-logging-library-2.0.0</pElem>
+            <pElem>ext/humblelogging-3.0.1/include</pElem>
+            <pElem>../annis4-build/ext/humblelogging-3.0.1</pElem>
           </incDir>
         </ccTool>
       </folder>
@@ -1655,7 +1593,7 @@
         <ccTool>
           <incDir>
             <pElem>include</pElem>
-            <pElem>ext/humble-logging-library-2.0.0/include</pElem>
+            <pElem>ext/humblelogging-3.0.1/include</pElem>
             <pElem>/usr/include/x86_64-linux-gnu</pElem>
             <pElem>ext/Celero-2.0.2/include</pElem>
             <pElem>src/lib</pElem>
@@ -1781,7 +1719,7 @@
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/runner/linenoise.c" ex="false" tool="0" flavor2="0">
+      <item path="src/runner/linenoise.c" ex="false" tool="0" flavor2="10">
         <cTool flags="0">
         </cTool>
       </item>

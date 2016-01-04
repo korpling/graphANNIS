@@ -47,7 +47,9 @@ int main(int argc, char** argv)
   char* lineBuffer = NULL;
 
   humble::logging::Factory &fac = humble::logging::Factory::getInstance();
-  fac.setDefaultLogLevel(humble::logging::LogLevel::All);
+  fac.setConfiguration(humble::logging::DefaultConfiguration::createFromString(
+    "logger.level(*)=info\n"
+  ));
   fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date] %m\n"));
   fac.registerAppender(new humble::logging::ConsoleAppender());
 

@@ -1,8 +1,8 @@
 project(ANNIS4)
 cmake_minimum_required(VERSION 2.8)
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/ext/humble-logging-library-2.0.0/cmake")
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-add_subdirectory(ext/humble-logging-library-2.0.0)
+add_subdirectory(ext/humblelogging-3.0.1)
 
 set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")
 set(CELERO_ENABLE_EXPERIMENTS OFF CACHE BOOL "Set to ON to automatically build all examples.")
@@ -15,13 +15,10 @@ find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
 find_package(Re2 REQUIRED)
 find_package (Threads REQUIRED)
 
-message(STATUS "HumbleLogging_INCLUDE_DIRS=${HumbleLogging_INCLUDE_DIRS}")
-message(STATUS "HumbleLogging_LIBRARY=${HumbleLogging_LIBRARY}")
-
 include_directories(
   SYSTEM
   "include"
-  "ext/humble-logging-library-2.0.0/include"
+  "ext/humblelogging-3.0.1/include"
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIR}
