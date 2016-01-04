@@ -23,16 +23,14 @@ int main(int argc, char **argv)
   
   // RIDGES //
   
-  DynamicBenchmark benchmarksRidges("ridges");
-  benchmarksRidges.registerDefaultFixtures(dir + "/Benchmark_ridges");
+  DynamicBenchmark benchmarksRidges(dir + "/Benchmark_ridges", "ridges");
   
-  std::map<Component, std::string> prepostRiges;
-  prepostRiges.insert({{ComponentType::COVERAGE, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
-  prepostRiges.insert({{ComponentType::COVERAGE, "default_ns", ""}, GraphStorageRegistry::prepostorderO32L32});
-  prepostRiges.insert({{ComponentType::ORDERING, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
+  std::map<Component, std::string> prepostRidges;
+  prepostRidges.insert({{ComponentType::COVERAGE, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
+  prepostRidges.insert({{ComponentType::COVERAGE, "default_ns", ""}, GraphStorageRegistry::prepostorderO32L32});
+  prepostRidges.insert({{ComponentType::ORDERING, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
   
-  benchmarksRidges.registerFixture(dir + "/Benchmark_ridges", 
-          "PrePost", prepostRiges);
+  benchmarksRidges.registerFixture("PrePost", prepostRidges);
   
   celero::Run(argc, argv);
   return 0;

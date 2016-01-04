@@ -71,14 +71,12 @@ namespace annis {
   class DynamicBenchmark {
   public:
 
-    DynamicBenchmark(std::string corpusName);
+    DynamicBenchmark(std::string queriesDir, std::string corpusName, bool registerOptimized=true);
 
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
-    void registerDefaultFixtures(std::string queriesDir);
     
     void registerFixture(
-        std::string queriesDir, 
         std::string fixtureName,
         std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
       );
@@ -90,7 +88,6 @@ namespace annis {
     
      void registerFixtureInternal(
         bool baseline,
-        std::string queriesDir, 
         std::string fixtureName,
         bool forceFallback = false,
         std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
@@ -100,6 +97,7 @@ namespace annis {
     std::string corpus;
     
     std::map<std::string, std::unique_ptr<DB>> dbByFixture;
+    std::list<boost::filesystem::path> foundJSONFiles;
 
     void addBenchmark(
         bool baseline,

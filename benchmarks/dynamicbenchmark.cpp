@@ -33,37 +33,40 @@ void DynamicCorpusFixture::tearDown() {
   
 }
 
-DynamicBenchmark::DynamicBenchmark(std::string corpusName)
+DynamicBenchmark::DynamicBenchmark(std::string queriesDir, 
+        std::string corpusName, bool registerOptimized)
 :  corpus(corpusName) {
-
-}
-
-void DynamicBenchmark::registerDefaultFixtures(std::string queriesDir) {
-  registerFixtureInternal(true, queriesDir, "Fallback", true);
-  registerFixtureInternal(false, queriesDir, "Optimized", false);
-}
-
-void DynamicBenchmark::registerFixture(std::string queriesDir, std::string fixtureName,
-        std::map<Component, std::string> overrideImpl) {
-  registerFixtureInternal(false, queriesDir, fixtureName, false, overrideImpl);
-}
-
-
-void DynamicBenchmark::registerFixtureInternal(
-        bool baseline, std::string queriesDir, 
-        std::string fixtureName, bool forceFallback, 
-        std::map<Component, std::string> overrideImpl) {
-  
-   // find all file ending with ".json" in the folder
+  // find all file ending with ".json" in the folder
   boost::filesystem::directory_iterator fileEndIt;
 
   boost::filesystem::directory_iterator itFiles(queriesDir);
   while (itFiles != fileEndIt) {
     const auto filePath = itFiles->path();
     if (filePath.extension().string() == ".json") {
-      addBenchmark(baseline, filePath, fixtureName, forceFallback, overrideImpl);
+      foundJSONFiles.push_back(filePath);
     }
     itFiles++;
+  }
+  
+  registerFixtureInternal(true, "Fallback", true);
+  if(registerOptimized) {
+    registerFixtureInternal(false, "Optimized", false);
+  }
+}
+
+void DynamicBenchmark::registerFixture(std::string fixtureName,
+        std::map<Component, std::string> overrideImpl) {
+  registerFixtureInternal(false, fixtureName, false, overrideImpl);
+}
+
+
+void DynamicBenchmark::registerFixtureInternal(
+        bool baseline, 
+        std::string fixtureName, bool forceFallback, 
+        std::map<Component, std::string> overrideImpl) {
+
+  for(const auto& filePath : foundJSONFiles) {
+    addBenchmark(baseline, filePath, fixtureName, forceFallback, overrideImpl);
   }
 }
 
