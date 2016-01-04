@@ -23,7 +23,6 @@ using namespace annis;
 class SearchTestPcc2 : public ::testing::Test {
 protected:
   DB db;
-  std::string queryDir;
   std::shared_ptr<Query> q;
 
   SearchTestPcc2() {
@@ -50,7 +49,7 @@ protected:
     if (testQueriesEnv != NULL) {
       globalQueryDir = testQueriesEnv;
     }
-    queryDir = globalQueryDir + "/SearchTestPcc2";
+    std::string queryDir = globalQueryDir + "/SearchTestPcc2";
 
     // get test name and read the json file
     auto info = ::testing::UnitTest::GetInstance()->current_test_info();
