@@ -3,66 +3,106 @@
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <logicalFolder name="annis4" displayName="annis4" projectFiles="true" root=".">
       <logicalFolder name="ext" displayName="ext" projectFiles="true">
-        <logicalFolder name="Celero-1.0.8"
-                       displayName="Celero-1.0.8"
+        <logicalFolder name="Celero-2.0.2"
+                       displayName="Celero-2.0.2"
                        projectFiles="true">
-          <logicalFolder name="examples" displayName="examples" projectFiles="true">
-            <itemPath>ext/Celero-1.0.8/examples/DemoComparison.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/examples/DemoDoNotOptimizeAway.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/examples/DemoParameterPassing.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/examples/DemoPimpl.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/examples/DemoSimple.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/examples/DemoSimpleJUnit.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/examples/DemoSleep.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/examples/DemoSort.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/examples/DemoTransform.cpp</itemPath>
+          <logicalFolder name="experiments" displayName="experiments" projectFiles="true">
+            <logicalFolder name="DemoDoNotOptimizeAway"
+                           displayName="DemoDoNotOptimizeAway"
+                           projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/DemoDoNotOptimizeAway/DemoDoNotOptimizeAway.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="DemoFileWrite"
+                           displayName="DemoFileWrite"
+                           projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/DemoFileWrite/DemoFileWrite.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="DemoSimple" displayName="DemoSimple" projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/DemoSimple/DemoSimple.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="DemoSimpleJUnit"
+                           displayName="DemoSimpleJUnit"
+                           projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/DemoSimpleJUnit/DemoSimpleJUnit.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="DemoSleep" displayName="DemoSleep" projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/DemoSleep/DemoSleep.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="DemoToString"
+                           displayName="DemoToString"
+                           projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/DemoToString/DemoToString.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="DemoTransform"
+                           displayName="DemoTransform"
+                           projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/DemoTransform/DemoTransform.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="ExperimentCostOfPimpl"
+                           displayName="ExperimentCostOfPimpl"
+                           projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/ExperimentCostOfPimpl/ExperimentCostOfPimpl.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="ExperimentParameterPassing"
+                           displayName="ExperimentParameterPassing"
+                           projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/ExperimentParameterPassing/ExperimentParameterPassing.cpp</itemPath>
+            </logicalFolder>
+            <logicalFolder name="ExperimentSortingRandomInts"
+                           displayName="ExperimentSortingRandomInts"
+                           projectFiles="true">
+              <itemPath>ext/Celero-2.0.2/experiments/ExperimentSortingRandomInts/ExperimentSortingRandomInts.cpp</itemPath>
+            </logicalFolder>
           </logicalFolder>
           <logicalFolder name="include" displayName="include" projectFiles="true">
             <logicalFolder name="celero" displayName="celero" projectFiles="true">
-              <itemPath>ext/Celero-1.0.8/include/celero/Archive.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Benchmark.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Callbacks.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Celero.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/CommandLine.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Console.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Distribution.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Executor.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Experiment.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Export.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Factory.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/FileReader.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/GenericFactory.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/JUnit.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Pimpl.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/PimplImpl.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Print.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Result.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/ResultTable.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Statistics.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/TestFixture.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/TestVector.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Timer.h</itemPath>
-              <itemPath>ext/Celero-1.0.8/include/celero/Utilities.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Archive.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Benchmark.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Callbacks.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Celero.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/CommandLine.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Console.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Distribution.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Executor.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Experiment.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Export.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Factory.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/FileReader.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/GenericFactory.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/JUnit.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Pimpl.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/PimplImpl.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Print.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Result.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/ResultTable.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Statistics.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/TestFixture.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/TestVector.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/ThreadLocal.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/ThreadTestFixture.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Timer.h</itemPath>
+              <itemPath>ext/Celero-2.0.2/include/celero/Utilities.h</itemPath>
             </logicalFolder>
           </logicalFolder>
           <logicalFolder name="src" displayName="src" projectFiles="true">
-            <itemPath>ext/Celero-1.0.8/src/Archive.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Benchmark.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Callbacks.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Celero.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Console.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Distribution.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Executor.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Experiment.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/JUnit.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Print.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Result.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/ResultTable.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Statistics.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/TestFixture.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/TestVector.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Timer.cpp</itemPath>
-            <itemPath>ext/Celero-1.0.8/src/Utilities.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Archive.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Benchmark.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Callbacks.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Celero.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Console.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Distribution.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Executor.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Experiment.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/JUnit.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Print.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Result.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/ResultTable.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Statistics.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/TestFixture.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/TestVector.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/ThreadTestFixture.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Timer.cpp</itemPath>
+            <itemPath>ext/Celero-2.0.2/src/Utilities.cpp</itemPath>
           </logicalFolder>
         </logicalFolder>
         <logicalFolder name="gtest-1.7.0" displayName="gtest-1.7.0" projectFiles="true">
@@ -191,7 +231,6 @@
       <in>filter.cpp</in>
       <in>graphstorage.cpp</in>
       <in>graphstorageregistry.cpp</in>
-      <in>jjsonqueryparser.h</in>
       <in>jsoncpp.cpp</in>
       <in>jsonqueryparser.cpp</in>
       <in>query.cpp</in>
@@ -229,11 +268,8 @@
       <flagsDictionary>
         <element flagsID="0" commonFlags="-std=c++11"/>
         <element flagsID="1" commonFlags="-std=c++11 -std=c++11"/>
-        <element flagsID="2"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
       </flagsDictionary>
       <codeAssistance>
-        <includeAdditional>true</includeAdditional>
       </codeAssistance>
       <makefileType>
         <makeTool>
@@ -246,24 +282,14 @@
             <incDir>
               <pElem>include</pElem>
               <pElem>ext/humble-logging-library-2.0.0/include</pElem>
-              <pElem>ext/Celero-1.0.8/include</pElem>
               <pElem>src/lib</pElem>
               <pElem>ext/gtest-1.7.0/include</pElem>
               <pElem>src/runner</pElem>
+              <pElem>ext/Celero-2.0.2/include</pElem>
             </incDir>
           </cTool>
           <ccTool>
             <standard>8</standard>
-            <incDir>
-              <pElem>include</pElem>
-              <pElem>ext/humble-logging-library-2.0.0/include</pElem>
-              <pElem>/usr/include/x86_64-linux-gnu</pElem>
-              <pElem>ext/Celero-1.0.8/include</pElem>
-              <pElem>src/lib</pElem>
-              <pElem>ext/gtest-1.7.0/include</pElem>
-              <pElem>ext/gtest-1.7.0</pElem>
-              <pElem>../annis4-build</pElem>
-            </incDir>
           </ccTool>
         </makeTool>
         <preBuild>
@@ -294,92 +320,6 @@
       </item>
       <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Archive.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Benchmark.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Callbacks.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Celero.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Console.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Distribution.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Executor.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Experiment.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/JUnit.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Print.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Result.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/ResultTable.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Statistics.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/TestFixture.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/TestVector.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Timer.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Utilities.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-all.cc" ex="false" tool="1" flavor2="8">
@@ -517,18 +457,6 @@
           </incDir>
         </ccTool>
       </folder>
-      <folder path="annis4/ext/Celero-1.0.8">
-        <ccTool>
-          <incDir>
-            <pElem>ext/Celero-1.0.8/include</pElem>
-            <pElem>/include</pElem>
-            <pElem>../annis4-build/ext/Celero-1.0.8</pElem>
-          </incDir>
-          <preprocessorList>
-            <Elem>CELERO_STATIC</Elem>
-          </preprocessorList>
-        </ccTool>
-      </folder>
       <folder path="annis4/ext/gtest-1.7.0">
         <ccTool>
           <incDir>
@@ -624,8 +552,6 @@
       <item path="src/lib/graphstorageregistry.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
-      </item>
-      <item path="src/lib/jjsonqueryparser.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
@@ -699,14 +625,12 @@
       </toolsSet>
       <flagsDictionary>
         <element flagsID="0" commonFlags="-std=c++11"/>
-        <element flagsID="1" commonFlags="-std=c++11 -std=gnu++11 -O3"/>
-        <element flagsID="2"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
-        <element flagsID="3" commonFlags="-std=c++14"/>
-        <element flagsID="4" commonFlags="-std=c++14 -std=c++14"/>
+        <element flagsID="1"
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
+        <element flagsID="2" commonFlags="-std=c++14"/>
+        <element flagsID="3" commonFlags="-std=c++14 -std=c++14"/>
       </flagsDictionary>
       <codeAssistance>
-        <includeAdditional>true</includeAdditional>
       </codeAssistance>
       <makefileType>
         <makeTool>
@@ -719,12 +643,10 @@
             <incDir>
               <pElem>include</pElem>
               <pElem>ext/humble-logging-library-2.0.0/include</pElem>
-              <pElem>/usr/include/x86_64-linux-gnu</pElem>
-              <pElem>ext/Celero-1.0.8/include</pElem>
               <pElem>src/lib</pElem>
               <pElem>ext/gtest-1.7.0/include</pElem>
-              <pElem>ext/gtest-1.7.0</pElem>
-              <pElem>../annis4-build</pElem>
+              <pElem>src/runner</pElem>
+              <pElem>ext/Celero-2.0.2/include</pElem>
             </incDir>
           </cTool>
           <ccTool>
@@ -734,183 +656,240 @@
         <preBuild>
           <preBuildCommandWorkingDir>../annis4-build</preBuildCommandWorkingDir>
           <preBuildCommand>cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=${IDE_CC} -DCMAKE_CXX_COMPILER=${IDE_CXX} -DCMAKE_C_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_CXX_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../annis4</preBuildCommand>
+          <preBuildFirst>true</preBuildFirst>
         </preBuild>
       </makefileType>
       <item path="benchmarks/benchmark.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
+          <incDir>
+            <pElem>ext/Celero-1.0.8/include</pElem>
+            <pElem>src/lib</pElem>
+            <pElem>ext/gtest-1.7.0/include</pElem>
+            <pElem>ext/gtest-1.7.0</pElem>
+            <pElem>../annis4-build</pElem>
+          </incDir>
         </ccTool>
       </item>
       <item path="benchmarks/benchmarkmain.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
+          <incDir>
+            <pElem>ext/Celero-1.0.8/include</pElem>
+            <pElem>src/lib</pElem>
+            <pElem>ext/gtest-1.7.0/include</pElem>
+            <pElem>ext/gtest-1.7.0</pElem>
+            <pElem>../annis4-build</pElem>
+          </incDir>
         </ccTool>
       </item>
       <item path="benchmarks/parlament.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
+          <incDir>
+            <pElem>ext/Celero-1.0.8/include</pElem>
+            <pElem>src/lib</pElem>
+            <pElem>ext/gtest-1.7.0/include</pElem>
+            <pElem>ext/gtest-1.7.0</pElem>
+            <pElem>../annis4-build</pElem>
+          </incDir>
         </ccTool>
       </item>
       <item path="benchmarks/ridges.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
+          <incDir>
+            <pElem>ext/Celero-1.0.8/include</pElem>
+            <pElem>src/lib</pElem>
+            <pElem>ext/gtest-1.7.0/include</pElem>
+            <pElem>ext/gtest-1.7.0</pElem>
+            <pElem>../annis4-build</pElem>
+          </incDir>
         </ccTool>
       </item>
       <item path="benchmarks/tiger.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
+          <incDir>
+            <pElem>ext/Celero-1.0.8/include</pElem>
+            <pElem>src/lib</pElem>
+            <pElem>ext/gtest-1.7.0/include</pElem>
+            <pElem>ext/gtest-1.7.0</pElem>
+            <pElem>../annis4-build</pElem>
+          </incDir>
         </ccTool>
       </item>
       <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
+          <incDir>
+            <pElem>ext/Celero-2.0.2/include</pElem>
+            <pElem>src/lib</pElem>
+            <pElem>ext/gtest-1.7.0/include</pElem>
+            <pElem>ext/gtest-1.7.0</pElem>
+            <pElem>../annis4-build</pElem>
+          </incDir>
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoComparison.cpp"
+      <item path="ext/Celero-2.0.2/experiments/DemoDoNotOptimizeAway/DemoDoNotOptimizeAway.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoDoNotOptimizeAway.cpp"
+      <item path="ext/Celero-2.0.2/experiments/DemoFileWrite/DemoFileWrite.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoParameterPassing.cpp"
+      <item path="ext/Celero-2.0.2/experiments/DemoSimple/DemoSimple.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoPimpl.cpp"
+      <item path="ext/Celero-2.0.2/experiments/DemoSimpleJUnit/DemoSimpleJUnit.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoSimple.cpp"
+      <item path="ext/Celero-2.0.2/experiments/DemoSleep/DemoSleep.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoSimpleJUnit.cpp"
+      <item path="ext/Celero-2.0.2/experiments/DemoToString/DemoToString.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoSleep.cpp"
+      <item path="ext/Celero-2.0.2/experiments/DemoTransform/DemoTransform.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoSort.cpp"
+      <item path="ext/Celero-2.0.2/experiments/ExperimentCostOfPimpl/ExperimentCostOfPimpl.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/examples/DemoTransform.cpp"
+      <item path="ext/Celero-2.0.2/experiments/ExperimentParameterPassing/ExperimentParameterPassing.cpp"
             ex="false"
             tool="1"
             flavor2="8">
         <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/Archive.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Benchmark.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Callbacks.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Celero.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Console.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Distribution.cpp"
+      <item path="ext/Celero-2.0.2/experiments/ExperimentSortingRandomInts/ExperimentSortingRandomInts.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/Executor.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
+      <item path="ext/Celero-2.0.2/src/Archive.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/Experiment.cpp"
+      <item path="ext/Celero-2.0.2/src/Benchmark.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/Callbacks.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/Celero.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/Console.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/Distribution.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/JUnit.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
+      <item path="ext/Celero-2.0.2/src/Executor.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/Print.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Result.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/ResultTable.cpp"
+      <item path="ext/Celero-2.0.2/src/Experiment.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/Statistics.cpp"
+      <item path="ext/Celero-2.0.2/src/JUnit.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/Print.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/Result.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/ResultTable.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/TestFixture.cpp"
+      <item path="ext/Celero-2.0.2/src/Statistics.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/TestVector.cpp"
+      <item path="ext/Celero-2.0.2/src/TestFixture.cpp"
             ex="false"
             tool="1"
             flavor2="8">
-        <ccTool flags="2">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/Timer.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
+      <item path="ext/Celero-2.0.2/src/TestVector.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
         </ccTool>
       </item>
-      <item path="ext/Celero-1.0.8/src/Utilities.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
+      <item path="ext/Celero-2.0.2/src/ThreadTestFixture.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/Timer.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+        </ccTool>
+      </item>
+      <item path="ext/Celero-2.0.2/src/Utilities.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-all.cc" ex="false" tool="1" flavor2="11">
-        <ccTool flags="4">
+        <ccTool flags="3">
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-death-test.cc"
@@ -943,7 +922,7 @@
       <item path="ext/gtest-1.7.0/src/gtest.cc" ex="true" tool="3" flavor2="0">
       </item>
       <item path="ext/gtest-1.7.0/src/gtest_main.cc" ex="false" tool="1" flavor2="11">
-        <ccTool flags="4">
+        <ccTool flags="3">
         </ccTool>
       </item>
       <item path="ext/humble-logging-library-2.0.0/src/appender.cpp"
@@ -1022,11 +1001,6 @@
             <pElem>include</pElem>
             <pElem>ext/humble-logging-library-2.0.0/include</pElem>
             <pElem>/usr/include/x86_64-linux-gnu</pElem>
-            <pElem>ext/Celero-1.0.8/include</pElem>
-            <pElem>src/lib</pElem>
-            <pElem>ext/gtest-1.7.0/include</pElem>
-            <pElem>ext/gtest-1.7.0</pElem>
-            <pElem>../annis4-build</pElem>
           </incDir>
         </ccTool>
       </folder>
@@ -1058,23 +1032,92 @@
           </incDir>
         </ccTool>
       </folder>
-      <folder path="annis4/ext/Celero-1.0.8">
+      <folder path="annis4/ext/Celero-2.0.2">
         <ccTool>
           <incDir>
-            <pElem>ext/Celero-1.0.8/include</pElem>
+            <pElem>ext/Celero-2.0.2/include</pElem>
             <pElem>/include</pElem>
-            <pElem>../annis4-build/ext/Celero-1.0.8</pElem>
           </incDir>
-          <preprocessorList>
-            <Elem>CELERO_EXPORTS</Elem>
-          </preprocessorList>
-        </ccTool>
-      </folder>
-      <folder path="annis4/ext/Celero-1.0.8/src">
-        <ccTool>
           <preprocessorList>
             <Elem>CELERO_STATIC</Elem>
           </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/DemoDoNotOptimizeAway">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/DemoDoNotOptimizeAway</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/DemoFileWrite">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/DemoFileWrite</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/DemoSimple">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/DemoSimple</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/DemoSimpleJUnit">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/DemoSimpleJUnit</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/DemoSleep">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/DemoSleep</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/DemoToString">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/DemoToString</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/DemoTransform">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/DemoTransform</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/ExperimentCostOfPimpl">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/ExperimentCostOfPimpl</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/ExperimentParameterPassing">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/ExperimentParameterPassing</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/experiments/ExperimentSortingRandomInts">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2/experiments/ExperimentSortingRandomInts</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="annis4/ext/Celero-2.0.2/src">
+        <ccTool>
+          <incDir>
+            <pElem>../annis4-build/ext/Celero-2.0.2</pElem>
+          </incDir>
         </ccTool>
       </folder>
       <folder path="annis4/ext/gtest-1.7.0">
@@ -1117,129 +1160,129 @@
         </ccTool>
       </folder>
       <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/db.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/dfs.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/edgeannotationstorage.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/exactannokeysearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/exactannovaluesearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/filter.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/adjacencyliststorage.cpp"
             ex="false"
             tool="1"
             flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/linearstorage.cpp"
             ex="false"
             tool="1"
             flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/graphstorage/prepostorderstorage.cpp"
             ex="false"
             tool="1"
             flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/graphstorageregistry.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/join/seed.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/jsoncpp.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/operators/abstractedgeoperator.cpp"
             ex="false"
             tool="1"
             flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/operators/dominance.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/operators/inclusion.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/operators/overlap.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/operators/pointing.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/operators/precedence.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/query.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/regexannosearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/stringstorage.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/lib/wrapper.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="src/runner/linenoise.c" ex="false" tool="0" flavor2="10">
       </item>
       <item path="src/runner/main.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="tests/testmain.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="2">
         </ccTool>
       </item>
     </conf>
@@ -1252,11 +1295,8 @@
       <flagsDictionary>
         <element flagsID="0" commonFlags="-std=c++11"/>
         <element flagsID="1" commonFlags="-std=c++11 -std=c++11"/>
-        <element flagsID="2"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
       </flagsDictionary>
       <codeAssistance>
-        <includeAdditional>true</includeAdditional>
       </codeAssistance>
       <makefileType>
         <makeTool>
@@ -1269,24 +1309,14 @@
             <incDir>
               <pElem>include</pElem>
               <pElem>ext/humble-logging-library-2.0.0/include</pElem>
-              <pElem>ext/Celero-1.0.8/include</pElem>
               <pElem>src/lib</pElem>
               <pElem>ext/gtest-1.7.0/include</pElem>
               <pElem>src/runner</pElem>
+              <pElem>ext/Celero-2.0.2/include</pElem>
             </incDir>
           </cTool>
           <ccTool>
             <standard>8</standard>
-            <incDir>
-              <pElem>include</pElem>
-              <pElem>ext/humble-logging-library-2.0.0/include</pElem>
-              <pElem>/usr/include/x86_64-linux-gnu</pElem>
-              <pElem>ext/Celero-1.0.8/include</pElem>
-              <pElem>src/lib</pElem>
-              <pElem>ext/gtest-1.7.0/include</pElem>
-              <pElem>ext/gtest-1.7.0</pElem>
-              <pElem>../annis4-build</pElem>
-            </incDir>
           </ccTool>
         </makeTool>
         <preBuild>
@@ -1317,92 +1347,6 @@
       </item>
       <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Archive.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Benchmark.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Callbacks.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Celero.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Console.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Distribution.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Executor.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Experiment.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/JUnit.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Print.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Result.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/ResultTable.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Statistics.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/TestFixture.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/TestVector.cpp"
-            ex="false"
-            tool="1"
-            flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Timer.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
-        </ccTool>
-      </item>
-      <item path="ext/Celero-1.0.8/src/Utilities.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="2">
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-all.cc" ex="false" tool="1" flavor2="8">
@@ -1540,18 +1484,6 @@
           </incDir>
         </ccTool>
       </folder>
-      <folder path="annis4/ext/Celero-1.0.8">
-        <ccTool>
-          <incDir>
-            <pElem>ext/Celero-1.0.8/include</pElem>
-            <pElem>/include</pElem>
-            <pElem>../annis4-build/ext/Celero-1.0.8</pElem>
-          </incDir>
-          <preprocessorList>
-            <Elem>CELERO_STATIC</Elem>
-          </preprocessorList>
-        </ccTool>
-      </folder>
       <folder path="annis4/ext/gtest-1.7.0">
         <ccTool>
           <incDir>
@@ -1647,8 +1579,6 @@
       <item path="src/lib/graphstorageregistry.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
-      </item>
-      <item path="src/lib/jjsonqueryparser.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
