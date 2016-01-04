@@ -15,16 +15,6 @@
 using namespace annis;
 
 void DynamicCorpusFixture::UserBenchmark() {
-  counter = 0;
-  std::istringstream jsonAsStream(queryJson);
-  q = JSONQueryParser::parse(db, jsonAsStream);
-
-  if (!q) {
-    std::cerr << "FATAL ERROR: no query given for benchmark " << benchmarkName << std::endl;
-    std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
-    exit(-1);
-  }
-  
   while (q->hasNext()) {
     q->next();
     counter++;
@@ -116,13 +106,13 @@ void DynamicBenchmark::addBenchmark(
   stream.close();
 
   if(baseline) {
-    celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), 5, 5, 1,
+    celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), 5, 1, 1,
             std::make_shared<DynamicCorpusFixtureFactory> (queryJSON,
             benchmarkName + " (" + fixtureName + ")",
             *(dbByFixture[fixtureName]),
             expectedCount));
   } else {
-    celero::RegisterTest(benchmarkName.c_str(), fixtureName.c_str(), 5, 5, 1,
+    celero::RegisterTest(benchmarkName.c_str(), fixtureName.c_str(), 5, 1, 1,
             std::make_shared<DynamicCorpusFixtureFactory> (queryJSON,
             benchmarkName + " (" + fixtureName + ")",
             *(dbByFixture[fixtureName]),
