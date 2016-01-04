@@ -76,8 +76,10 @@ public:
 
 TEST_F(SearchTestRidges, DiplNameSearch) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     auto m = q->next();
     ASSERT_EQ(1, m.size());
@@ -90,8 +92,10 @@ TEST_F(SearchTestRidges, DiplNameSearch) {
 }
 
 TEST_F(SearchTestRidges, PosValueSearch) {
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while( q->hasNext() && counter < MAX_COUNT)
   {
     auto m = q->next();
     ASSERT_EQ(1, m.size());
@@ -108,9 +112,11 @@ TEST_F(SearchTestRidges, PosValueSearch) {
 // default_ns:pos="NN" .2,10 default_ns:pos="ART"
 TEST_F(SearchTestRidges, Benchmark1) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
@@ -124,9 +130,11 @@ TEST_F(SearchTestRidges, Benchmark1) {
 // tok .2,10 tok
 TEST_F(SearchTestRidges, Benchmark2) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     q->next();
     counter++;
@@ -139,9 +147,11 @@ TEST_F(SearchTestRidges, Benchmark2) {
 // default_ns:pos="PTKANT" . node
 TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  while(q && q->hasNext() && counter < 100u)
+  while(q->hasNext() && counter < 100u)
   {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m[0].node)
@@ -179,9 +189,11 @@ TEST_F(SearchTestRidges, NestedOverlap) {
 // default_ns:pos="NN" & default_ns:norm="Blumen" & #1 _o_ #2
 TEST_F(SearchTestRidges, SeedOverlap) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     auto m = q->next();
     //HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m[0].node)
@@ -196,9 +208,11 @@ TEST_F(SearchTestRidges, SeedOverlap) {
 // default_ns:pos="NN" & default_ns:norm="Blumen" & #1 _i_ #2
 TEST_F(SearchTestRidges, Inclusion) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     auto m = q->next();
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m[0].node % m[1].node).str()) ;

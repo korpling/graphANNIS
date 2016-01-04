@@ -77,8 +77,10 @@ public:
 
 TEST_F(SearchTestTiger, CatSearch) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     auto m = q->next();
     ASSERT_EQ(1, m.size());
@@ -94,9 +96,11 @@ TEST_F(SearchTestTiger, CatSearch) {
 // tiger:pos="NN" .2,10 tiger:pos="ART"
 TEST_F(SearchTestTiger, TokenPrecedence) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     q->next();
     counter++;
@@ -109,9 +113,11 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
 // tiger:pos="NN" .2,10 tiger:pos="ART" . tiger:pos="NN"
 TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     q->next();
     counter++;
@@ -123,9 +129,11 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
 // tiger:cat="S" & tok="Bilharziose" & #1 >* #2
 TEST_F(SearchTestTiger, BilharzioseSentence)
 {
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  while(q && q->hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
     auto m = q->next();
      HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%")

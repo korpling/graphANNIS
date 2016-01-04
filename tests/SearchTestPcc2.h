@@ -74,8 +74,10 @@ protected:
 };
 
 TEST_F(SearchTestPcc2, CatSearch) {
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     std::vector<Match> m = q->next();
     ASSERT_EQ(1, m.size());
     ASSERT_STREQ("cat", db.strings.str(m[0].anno.name).c_str());
@@ -87,8 +89,11 @@ TEST_F(SearchTestPcc2, CatSearch) {
 }
 
 TEST_F(SearchTestPcc2, MMaxAnnos_ambiguity) {
+  
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     std::vector<Match> m = q->next();
     ASSERT_EQ(1, m.size());
     ASSERT_STREQ("mmax", db.strings.str(m[0].anno.ns).c_str());
@@ -102,8 +107,10 @@ TEST_F(SearchTestPcc2, MMaxAnnos_ambiguity) {
 
 TEST_F(SearchTestPcc2, MMaxAnnos_complex_np) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     std::vector<Match> m = q->next();
     ASSERT_EQ(1, m.size());
     ASSERT_STREQ("mmax", db.strings.str(m[0].anno.ns).c_str());
@@ -117,9 +124,11 @@ TEST_F(SearchTestPcc2, MMaxAnnos_complex_np) {
 
 TEST_F(SearchTestPcc2, TokenIndex) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     q->next();
     counter++;
   }
@@ -129,9 +138,11 @@ TEST_F(SearchTestPcc2, TokenIndex) {
 
 TEST_F(SearchTestPcc2, IsConnectedRange) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     q->next();
     counter++;
   }
@@ -141,9 +152,11 @@ TEST_F(SearchTestPcc2, IsConnectedRange) {
 
 TEST_F(SearchTestPcc2, DepthFirst) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     q->next();
     counter++;
   }
@@ -154,9 +167,10 @@ TEST_F(SearchTestPcc2, DepthFirst) {
 // exmaralda:Inf-Stat="new" _o_ exmaralda:PP
 TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 
+  ASSERT_TRUE((bool) q);
 
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     auto m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -168,8 +182,10 @@ TEST_F(SearchTestPcc2, TestQueryOverlap1) {
 // mmax:ambiguity="not_ambig" _o_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -180,8 +196,11 @@ TEST_F(SearchTestPcc2, TestQueryOverlap2) {
 
 // mmax:ambiguity="not_ambig" _i_ mmax:complex_np="yes"
 TEST_F(SearchTestPcc2, InclusionQuery) {
+  
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -192,8 +211,10 @@ TEST_F(SearchTestPcc2, InclusionQuery) {
 
 TEST_F(SearchTestPcc2, StructureInclusionSeed) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -222,8 +243,10 @@ TEST_F(SearchTestPcc2, StructureInclusionFilter) {
 
 TEST_F(SearchTestPcc2, AnyNodeIncludeSeed) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeDebugName(m[0].node) % db.getNodeDebugName(m[1].node)).str());
     counter++;
@@ -252,8 +275,10 @@ TEST_F(SearchTestPcc2, AnyNodeIncludeFilter) {
 
 TEST_F(SearchTestPcc2, NodeCount) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
-  while (q && q->hasNext()) {
+  while (q->hasNext()) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -264,9 +289,11 @@ TEST_F(SearchTestPcc2, NodeCount) {
 
 TEST_F(SearchTestPcc2, Precedence) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext() && counter < 2000) {
+  while (q->hasNext() && counter < 2000) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -279,9 +306,11 @@ TEST_F(SearchTestPcc2, Precedence) {
 // mmax:np_form="defnp" & mmax:np_form="pper"  & #2 ->anaphor_antecedent * #1
 TEST_F(SearchTestPcc2, IndirectPointing) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext() && counter < 2000) {
+  while (q->hasNext() && counter < 2000) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -313,9 +342,11 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
 // mmax:np_form="defnp" & mmax:np_form="pper"  & #2 ->anaphor_antecedent #1
 TEST_F(SearchTestPcc2, DirectPointing) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext() && counter < 2000) {
+  while (q->hasNext() && counter < 2000) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -348,9 +379,11 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
 
 TEST_F(SearchTestPcc2, DirectPointingWithAnno) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext() && counter < 2000) {
+  while (q->hasNext() && counter < 2000) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -386,9 +419,11 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
 // tiger:cat="S" >2,4 cat
 TEST_F(SearchTestPcc2, RangedDominance) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext() && counter < 2000) {
+  while (q->hasNext() && counter < 2000) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -402,9 +437,11 @@ TEST_F(SearchTestPcc2, RangedDominance) {
 // node >2,4 node
 TEST_F(SearchTestPcc2, MultiDominance) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext() && counter < 4000) {
+  while (q->hasNext() && counter < 4000) {
     std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
@@ -415,9 +452,11 @@ TEST_F(SearchTestPcc2, MultiDominance) {
 
 TEST_F(SearchTestPcc2, Regex) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext() && counter < 100) {
+  while (q->hasNext() && counter < 100) {
     std::vector<Match> m = q->next();
     counter++;
   }
@@ -427,9 +466,11 @@ TEST_F(SearchTestPcc2, Regex) {
 
 TEST_F(SearchTestPcc2, Profile) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter = 0;
 
-  while (q && q->hasNext() && counter < 5000) {
+  while (q->hasNext() && counter < 5000) {
     std::vector<Match> m = q->next();
     counter++;
   }
