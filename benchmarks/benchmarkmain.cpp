@@ -32,6 +32,8 @@ int main(int argc, char **argv)
   
   benchmarksRidges.registerFixture("PrePost", prepostRidges);
   
+  // PARLAMENT //
+  
   celero::Run(argc, argv);
   return 0;
 }
