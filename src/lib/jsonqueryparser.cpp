@@ -21,7 +21,8 @@ using namespace annis;
 JSONQueryParser::JSONQueryParser() {
 }
 
-std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, std::istream& jsonStream) {
+std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, std::istream& jsonStream,
+        bool useNestedLoop) {
   std::shared_ptr<Query> q = std::make_shared<Query>(db);
 
   // parse root as value
@@ -45,7 +46,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, std::istream& jsonSt
     // add all joins
     const auto& joins = firstAlt["joins"];
     for (auto it = joins.begin(); it != joins.end(); it++) {
-      parseJoin(db, *it, q, nodeIdToPos);
+      parseJoin(db, *it, q, nodeIdToPos, useNestedLoop);
     }
 
 
@@ -134,7 +135,8 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
 }
 
 void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::shared_ptr<Query> q,
-        const std::map<std::uint64_t, size_t>& nodeIdToPos) {
+        const std::map<std::uint64_t, size_t>& nodeIdToPos,
+        bool useNestedLoop) {
   // get left and right index
   if (join["left"].isUInt64() && join["right"].isUInt64()) {
     auto leftID = join["left"].asUInt64();
@@ -149,12 +151,12 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
       if (op == "Precedence") {
         q->addOperator(std::make_shared<Precedence>(db,
                 join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
-                itLeft->second, itRight->second, false);
+                itLeft->second, itRight->second, useNestedLoop);
       }
       else if (op == "Inclusion") {
-        q->addOperator(std::make_shared<Inclusion>(db), itLeft->second, itRight->second, false);
+        q->addOperator(std::make_shared<Inclusion>(db), itLeft->second, itRight->second, useNestedLoop);
       } else if (op == "Overlap") {
-        q->addOperator(std::make_shared<Overlap>(db), itLeft->second, itRight->second, false);
+        q->addOperator(std::make_shared<Overlap>(db), itLeft->second, itRight->second, useNestedLoop);
       } else if (op == "Dominance") {
 
         std::string name = join["name"].isString() ? join["name"].asString() : "";
@@ -162,7 +164,7 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0) {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
           q->addOperator(std::make_shared<Dominance>(db, "", name, anno),
-                  itLeft->second, itRight->second, false);
+                  itLeft->second, itRight->second, useNestedLoop);
 
         } else {
 
@@ -177,7 +179,7 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
           q->addOperator(std::make_shared<Dominance>(db,
                   "", name,
                   minDist, maxDist),
-                  itLeft->second, itRight->second, false);
+                  itLeft->second, itRight->second, useNestedLoop);
         }
       } else if (op == "Pointing") {
 
@@ -186,7 +188,7 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0) {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
           q->addOperator(std::make_shared<Pointing>(db, "", name, anno),
-                  itLeft->second, itRight->second, false);
+                  itLeft->second, itRight->second, useNestedLoop);
 
         } else {
 
@@ -201,7 +203,7 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
 
           q->addOperator(std::make_shared<Pointing>(db,
                   "", name, minDist, maxDist),
-                  itLeft->second, itRight->second, false);
+                  itLeft->second, itRight->second, useNestedLoop);
         }
       }
 
