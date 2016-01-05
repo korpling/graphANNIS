@@ -34,9 +34,12 @@ namespace annis {
             std::map<Component, std::string> overrideImpl,
             std::string queryJson,
             std::string benchmarkName,
+            unsigned int numberOfSamples,
             boost::optional<unsigned int> expectedCount = boost::optional<unsigned int>())
     : forceFallback(forceFallback), corpus(corpus), overrideImpl(overrideImpl),
-    queryJson(queryJson), benchmarkName(benchmarkName), counter(0), expectedCount(expectedCount) {
+    queryJson(queryJson), benchmarkName(benchmarkName), counter(0),
+    numberOfSamples(numberOfSamples), executionCounter(0),
+    expectedCount(expectedCount) {
     }
 
     std::unique_ptr<DB> initDB() {
@@ -54,7 +57,7 @@ namespace annis {
         std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
         exit(-1);
       }
-      
+
       if (forceFallback) {
         // manually convert all components to fallback implementation
         auto components = result->getAllComponents();
@@ -67,9 +70,9 @@ namespace annis {
 
       return result;
     }
-    
+
     const DB& getDB() {
-      if(!db) {
+      if (!db) {
         db = initDB();
       }
       return *db;
@@ -105,7 +108,10 @@ namespace annis {
     std::string queryJson;
     std::shared_ptr<Query> q;
     std::string benchmarkName;
+    unsigned int numberOfSamples;
+    unsigned int executionCounter;
     unsigned int counter;
+
     boost::optional<unsigned int> expectedCount;
 
   };

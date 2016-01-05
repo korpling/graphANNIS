@@ -28,7 +28,11 @@ void DynamicCorpusFixture::UserBenchmark() {
 }
 
 void DynamicCorpusFixture::tearDown() {
-  
+  executionCounter++;
+  if(executionCounter >= numberOfSamples) {
+    // delete the database after all runs are complete
+    db.reset(nullptr);
+  }
 }
 
 DynamicBenchmark::DynamicBenchmark(std::string queriesDir, 
@@ -77,6 +81,7 @@ void DynamicBenchmark::addBenchmark(
 
   HL_INFO(logger, (boost::format("adding benchmark %1%") % path.string()).str());
 
+  unsigned int numberOfSamples = 5;
 
   std::string benchmarkName = path.filename().stem().string() + "_" + corpus;
 
@@ -102,13 +107,14 @@ void DynamicBenchmark::addBenchmark(
   std::shared_ptr<celero::TestFixture> fixture(
     new DynamicCorpusFixture(forceFallback, corpus, overrideImpl, queryJSON,
           benchmarkName + " (" + fixtureName + ")",
+          numberOfSamples,
           expectedCount));
 
   if(baseline) {
-    celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), 5, 1, 1, 
+    celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), numberOfSamples, 1, 1, 
             std::make_shared<DynamicCorpusFixtureFactory>(fixture));
   } else {
-    celero::RegisterTest(benchmarkName.c_str(), fixtureName.c_str(), 5, 1, 1,
+    celero::RegisterTest(benchmarkName.c_str(), fixtureName.c_str(), numberOfSamples, 1, 1,
             std::make_shared<DynamicCorpusFixtureFactory>(fixture));
   }
 }
