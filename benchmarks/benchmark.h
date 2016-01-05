@@ -24,7 +24,7 @@ HUMBLE_LOGGER(logger, "default");
 
 namespace annis {
 
-  class BenchmarkDBHolder {
+  class StaticBenchmarkDBHolder {
   public:
     static std::string corpus;
     static std::unique_ptr<DB> db;
@@ -37,7 +37,7 @@ using namespace annis;
 
 #define DBGETTER virtual const DB& getDB() {\
   checkBenchmarkDBHolder();\
-  return *(BenchmarkDBHolder::db);\
+  return *(StaticBenchmarkDBHolder::db);\
 }
 
 template<bool forceFallback>
@@ -55,11 +55,11 @@ public:
   }
 
   void checkBenchmarkDBHolder() {
-    if (!BenchmarkDBHolder::db || BenchmarkDBHolder::corpus != corpus
-            || BenchmarkDBHolder::forceFallback != forceFallback) {
-      BenchmarkDBHolder::db = initDB();
-      BenchmarkDBHolder::corpus = corpus;
-      BenchmarkDBHolder::forceFallback = forceFallback;
+    if (!StaticBenchmarkDBHolder::db || StaticBenchmarkDBHolder::corpus != corpus
+            || StaticBenchmarkDBHolder::forceFallback != forceFallback) {
+      StaticBenchmarkDBHolder::db = initDB();
+      StaticBenchmarkDBHolder::corpus = corpus;
+      StaticBenchmarkDBHolder::forceFallback = forceFallback;
     }
   }
 

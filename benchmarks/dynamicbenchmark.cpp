@@ -76,13 +76,7 @@ void DynamicBenchmark::addBenchmark(
         std::map<Component, std::string> overrideImpl) {
 
   HL_INFO(logger, (boost::format("adding benchmark %1%") % path.string()).str());
-  
-  
 
-  // check if we need to load the databases
-  if (dbByFixture.find(fixtureName) == dbByFixture.end()) {
-    dbByFixture[fixtureName] = initDB(forceFallback, overrideImpl);
-  }
 
   std::string benchmarkName = path.filename().stem().string() + "_" + corpus;
 
@@ -104,43 +98,18 @@ void DynamicBenchmark::addBenchmark(
     (std::istreambuf_iterator<char>(stream)),
     (std::istreambuf_iterator<char>()));  
   stream.close();
+  
+  std::shared_ptr<celero::TestFixture> fixture(
+    new DynamicCorpusFixture(forceFallback, corpus, overrideImpl, queryJSON,
+          benchmarkName + " (" + fixtureName + ")",
+          expectedCount));
 
   if(baseline) {
-    celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), 5, 1, 1,
-            std::make_shared<DynamicCorpusFixtureFactory> (queryJSON,
-            benchmarkName + " (" + fixtureName + ")",
-            *(dbByFixture[fixtureName]),
-            expectedCount));
+    celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), 5, 1, 1, 
+            std::make_shared<DynamicCorpusFixtureFactory>(fixture));
   } else {
     celero::RegisterTest(benchmarkName.c_str(), fixtureName.c_str(), 5, 1, 1,
-            std::make_shared<DynamicCorpusFixtureFactory> (queryJSON,
-            benchmarkName + " (" + fixtureName + ")",
-            *(dbByFixture[fixtureName]),
-            expectedCount));
+            std::make_shared<DynamicCorpusFixtureFactory>(fixture));
   }
 }
 
-std::unique_ptr<DB> DynamicBenchmark::initDB(bool forceFallback, std::map<Component, 
-        std::string> overrideImpl) {
-  //std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" << std::endl;
-  std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
-
-  char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
-  std::string dataDir("data");
-  if (testDataEnv != NULL) {
-    dataDir = testDataEnv;
-  }
-  result->load(dataDir + "/" + corpus);
-
-  if (forceFallback) {
-    // manually convert all components to fallback implementation
-    auto components = result->getAllComponents();
-    for (auto c : components) {
-      result->convertComponent(c, GraphStorageRegistry::fallback);
-    }
-  } else {
-    result->optimizeAll(overrideImpl);
-  }
-
-  return result;
-}

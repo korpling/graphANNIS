@@ -33,6 +33,7 @@ int main(int argc, char **argv)
   benchmarksRidges.registerFixture("PrePost", prepostRidges);
   
   // PARLAMENT //
+   DynamicBenchmark benchmarksParlament(dir + "/Benchmark_parlament", "parlament");
   
   celero::Run(argc, argv);
   return 0;
