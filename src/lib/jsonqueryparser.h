@@ -10,6 +10,7 @@
 
 #include "query.h"
 #include <json/json.h>
+#include <boost/optional.hpp>
 
 namespace annis {
 
@@ -28,29 +29,29 @@ namespace annis {
     static size_t parseNode(const DB& db, const Json::Value node, std::shared_ptr<Query>);
     static size_t addNodeAnnotation(const DB& db,
         std::shared_ptr<Query> q,
-        const std::shared_ptr<std::string> ns,
-        const std::shared_ptr<std::string> name, 
-        const std::shared_ptr<std::string> value,
-        const std::shared_ptr<std::string> textMatching);
+        boost::optional<std::string> ns,
+        boost::optional<std::string> name, 
+        boost::optional<std::string> value,
+        boost::optional<std::string> textMatching);
     
     static void parseJoin(const DB& db, const Json::Value join, 
       std::shared_ptr<Query> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos,
       bool useNestedLoop=false);
     
-    static std::shared_ptr<std::string> optStr(const Json::Value& val) {
+    static boost::optional<std::string> optStr(const Json::Value& val) {
       if(val.isString()) {
-        return std::make_shared<std::string>(val.asString());
+        return boost::optional<std::string>(val.asString());
       } else {
-        return std::shared_ptr<std::string>();
+        return boost::optional<std::string>();
       }
     }
     
-    static std::shared_ptr<std::string> optStr(const std::string& val) {
-      return std::make_shared<std::string>(val);
+    static boost::optional<std::string> optStr(const std::string& val) {
+      return boost::optional<std::string>(val);
     }
     
-    static std::shared_ptr<std::string> optStr() {
-      return std::shared_ptr<std::string>();
+    static boost::optional<std::string> optStr() {
+      return boost::optional<std::string>();
     }
     
     static Annotation getEdgeAnno(const DB& db, const Json::Value& edgeAnno);

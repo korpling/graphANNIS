@@ -48,8 +48,13 @@ namespace annis {
       if (testDataEnv != NULL) {
         dataDir = testDataEnv;
       }
-      result->load(dataDir + "/" + corpus);
-
+      bool loaded = result->load(dataDir + "/" + corpus);
+      if (!loaded) {
+        std::cerr << "FATAL ERROR: no load corpus for benchmark " << benchmarkName << std::endl;
+        std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
+        exit(-1);
+      }
+      
       if (forceFallback) {
         // manually convert all components to fallback implementation
         auto components = result->getAllComponents();
