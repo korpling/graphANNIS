@@ -104,7 +104,7 @@ namespace annis {
           result->convertComponent(c, GraphStorageRegistry::fallback);
         }
       } else {
-        //        result->optimizeAll(key.overrideImpl);
+          result->optimizeAll(key.overrideImpl);
       }
 
       return result;
