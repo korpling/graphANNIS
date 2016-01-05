@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   benchmarksRidges.registerFixture("PrePost", prepostRidges);
 
   // PARLAMENT //
-  DynamicBenchmark benchmarksParlament(dir + "/Benchmarks/tiger2", "tiger2");
+  DynamicBenchmark benchmarksParlament(dir + "/Benchmarks/parlament", "parlament");
 
   // TIGER2 //
   DynamicBenchmark benchmarksTiger2(dir + "/Benchmarks/tiger2", "tiger2");
