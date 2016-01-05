@@ -219,8 +219,8 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
   std::uint32_t value = 0;
 
   if (edgeAnno["textMatching"].asString() == "EXACT_EQUAL") {
-    if (edgeAnno["ns"].isString()) {
-      auto search = db.strings.findID(edgeAnno["ns"].asString());
+    if (edgeAnno["namespace"].isString()) {
+      auto search = db.strings.findID(edgeAnno["namespace"].asString());
       if (search.first) {
         ns = search.second;
       }

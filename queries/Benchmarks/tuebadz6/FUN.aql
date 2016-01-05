@@ -1,2 +1,1 @@
-node & node
-& #1 >[tiger:func="ON"] #2
+node >[tiger:func="ON"] node
