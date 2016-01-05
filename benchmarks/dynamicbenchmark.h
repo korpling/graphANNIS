@@ -18,6 +18,8 @@
 #include "benchmark.h"
 #include "db.h"
 #include "query.h"
+#include "DBCache.h"
+
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
@@ -42,40 +44,8 @@ namespace annis {
     expectedCount(expectedCount) {
     }
 
-    std::unique_ptr<DB> initDB() {
-      //std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
-      std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
-
-      char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
-      std::string dataDir("data");
-      if (testDataEnv != NULL) {
-        dataDir = testDataEnv;
-      }
-      bool loaded = result->load(dataDir + "/" + corpus);
-      if (!loaded) {
-        std::cerr << "FATAL ERROR: no load corpus for benchmark " << benchmarkName << std::endl;
-        std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
-        exit(-1);
-      }
-
-      if (forceFallback) {
-        // manually convert all components to fallback implementation
-        auto components = result->getAllComponents();
-        for (auto c : components) {
-          result->convertComponent(c, GraphStorageRegistry::fallback);
-        }
-      } else {
-        result->optimizeAll(overrideImpl);
-      }
-
-      return result;
-    }
-
     const DB& getDB() {
-      if (!db) {
-        db = initDB();
-      }
-      return *db;
+      return dbCache->get(corpus, forceFallback, overrideImpl);
     }
 
     virtual void setUp(int64_t experimentValue) override {
@@ -101,7 +71,6 @@ namespace annis {
   protected:
 
   private:
-    std::unique_ptr<DB> db;
     std::string corpus;
     bool forceFallback;
     std::map<Component, std::string> overrideImpl;
@@ -113,6 +82,9 @@ namespace annis {
     unsigned int counter;
 
     boost::optional<unsigned int> expectedCount;
+    
+    
+    static std::shared_ptr<DBCache> dbCache;
 
   };
 
