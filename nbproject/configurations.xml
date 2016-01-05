@@ -252,6 +252,8 @@
         <in>pointing.cpp</in>
         <in>precedence.cpp</in>
       </df>
+      <in>DBCache.cpp</in>
+      <in>DBCache.h</in>
       <in>annotationsearch.cpp</in>
       <in>db.cpp</in>
       <in>dfs.cpp</in>
@@ -442,6 +444,10 @@
           </incDir>
         </ccTool>
       </folder>
+      <item path="src/lib/DBCache.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/lib/DBCache.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
@@ -996,6 +1002,10 @@
           </incDir>
         </ccTool>
       </folder>
+      <item path="src/lib/DBCache.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/lib/DBCache.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
         </ccTool>
@@ -1546,6 +1556,10 @@
           </incDir>
         </ccTool>
       </folder>
+      <item path="src/lib/DBCache.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/lib/DBCache.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
