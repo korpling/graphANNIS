@@ -232,8 +232,6 @@
       <in>benchmarkmain.cpp</in>
       <in>dynamicbenchmark.cpp</in>
       <in>dynamicbenchmark.h</in>
-      <in>parlament.cpp</in>
-      <in>tiger.cpp</in>
       <in>tuebadz.cpp</in>
     </df>
     <df root="src/lib" name="1">
@@ -340,14 +338,6 @@
       <item path="benchmarks/dynamicbenchmark.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="benchmarks/dynamicbenchmark.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="benchmarks/parlament.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
-      </item>
-      <item path="benchmarks/tiger.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="0">
-        </ccTool>
       </item>
       <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
@@ -635,28 +625,6 @@
       <item path="benchmarks/dynamicbenchmark.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="benchmarks/dynamicbenchmark.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="benchmarks/parlament.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="1">
-          <incDir>
-            <pElem>ext/Celero-1.0.8/include</pElem>
-            <pElem>src/lib</pElem>
-            <pElem>ext/gtest-1.7.0/include</pElem>
-            <pElem>ext/gtest-1.7.0</pElem>
-            <pElem>../annis4-build</pElem>
-          </incDir>
-        </ccTool>
-      </item>
-      <item path="benchmarks/tiger.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="1">
-          <incDir>
-            <pElem>ext/Celero-1.0.8/include</pElem>
-            <pElem>src/lib</pElem>
-            <pElem>ext/gtest-1.7.0/include</pElem>
-            <pElem>ext/gtest-1.7.0</pElem>
-            <pElem>../annis4-build</pElem>
-          </incDir>
-        </ccTool>
       </item>
       <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="1">
@@ -1212,14 +1180,6 @@
         </ccTool>
       </item>
       <item path="benchmarks/dynamicbenchmark.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="benchmarks/parlament.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="benchmarks/tiger.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>

@@ -1,0 +1,5 @@
+tiger:pos="NN"
+& tiger:pos="ART"
+& tiger:pos="NN"
+& #1 .2,10 #2
+& #2 . #3

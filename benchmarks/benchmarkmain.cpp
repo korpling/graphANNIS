@@ -5,13 +5,12 @@
 
 using namespace annis;
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 
   humble::logging::Factory &fac = humble::logging::Factory::getInstance();
   fac.setConfiguration(humble::logging::DefaultConfiguration::createFromString(
-    "logger.level(*)=info\n"
-  ));  
+          "logger.level(*)=info\n"
+          ));
   fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date]- %m (%lls, %filename:%line)\n"));
   fac.registerAppender(new humble::logging::FileAppender("benchmark_annis4.log", true));
 
@@ -20,21 +19,27 @@ int main(int argc, char **argv)
   if (testQueriesEnv != NULL) {
     dir = testQueriesEnv;
   }
-  
+
   // RIDGES //
-  
+
   DynamicBenchmark benchmarksRidges(dir + "/Benchmark_ridges", "ridges");
-  
+
   std::map<Component, std::string> prepostRidges;
-  prepostRidges.insert({{ComponentType::COVERAGE, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
-  prepostRidges.insert({{ComponentType::COVERAGE, "default_ns", ""}, GraphStorageRegistry::prepostorderO32L32});
-  prepostRidges.insert({{ComponentType::ORDERING, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
-  
+  prepostRidges.insert({
+    {ComponentType::COVERAGE, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
+  prepostRidges.insert({
+    {ComponentType::COVERAGE, "default_ns", ""}, GraphStorageRegistry::prepostorderO32L32});
+  prepostRidges.insert({
+    {ComponentType::ORDERING, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
+
   benchmarksRidges.registerFixture("PrePost", prepostRidges);
-  
+
   // PARLAMENT //
-   DynamicBenchmark benchmarksParlament(dir + "/Benchmark_parlament", "parlament");
-  
+  DynamicBenchmark benchmarksParlament(dir + "/Benchmark_tiger2", "tiger2");
+
+  // TIGER2 //
+  DynamicBenchmark benchmarksTiger2(dir + "/Benchmark_tiger2", "tiger2");
+
   celero::Run(argc, argv);
   return 0;
 }

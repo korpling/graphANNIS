@@ -40,7 +40,7 @@ namespace annis {
     }
 
     std::unique_ptr<DB> initDB() {
-      //    std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
+      //std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
       std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
 
       char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
