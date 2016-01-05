@@ -76,7 +76,7 @@ namespace annis {
       return *(it->second);
     }
 
-    void close(const std::string& corpus, bool forceFallback = false,
+    void release(const std::string& corpus, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
       cache.erase({corpus, forceFallback, overrideImpl});
     }
