@@ -272,6 +272,8 @@
       <in>linenoise.c</in>
       <in>main.cpp</in>
     </df>
+    <df root="tests" name="3">
+    </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
                    projectFiles="false"
@@ -286,6 +288,7 @@
     <Elem>./src/lib</Elem>
     <Elem>./src/runner</Elem>
     <Elem>benchmarks</Elem>
+    <Elem>tests</Elem>
   </sourceRootList>
   <projectmakefile>../annis4-build/Makefile</projectmakefile>
   <confs>
