@@ -1,0 +1,85 @@
+/*
+ * Copyright 2016 Thomas Krause.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.korpling.annis.benchmark.generator;
+
+import com.google.common.io.Files;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.stage.FileChooser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * FXML Controller class
+ *
+ * @author thomas
+ */
+public class QuerySetViewController implements Initializable
+{
+  
+  private final Logger log = LoggerFactory.getLogger(QuerySetViewController.class);
+  
+  @FXML
+  private Parent root;
+  
+  private FileChooser chooser = new FileChooser();
+  private FileChooser.ExtensionFilter logFilter =  new FileChooser.ExtensionFilter("Query log (*.log)", "*.log");
+  
+
+  /**
+   * Initializes the controller class.
+   */
+  @Override
+  public void initialize(URL url, ResourceBundle rb)
+  {
+    // TODO
+  }  
+  
+  @FXML
+  public void loadQueryLog(ActionEvent evt)
+  {
+    chooser.setTitle("Open Query Log");
+    chooser.getExtensionFilters().add(logFilter);
+    chooser.setSelectedExtensionFilter(logFilter);
+    
+    File selectedFile = chooser.showOpenDialog(root.getScene().getWindow());
+    if(selectedFile != null)
+    {
+      try
+      {
+        QuerySet queries = Files.readLines(selectedFile, StandardCharsets.UTF_8, new QueryLogParser());
+        new Alert(Alert.AlertType.INFORMATION, "Found " + queries.size() + " queries.", ButtonType.OK).showAndWait();
+      }
+      catch (IOException ex)
+      {
+        log.error(null, ex);
+        new Alert(Alert.AlertType.ERROR, "Could not parse file: " + ex.getMessage(), ButtonType.OK).showAndWait();
+        
+      }
+    }
+  }
+  
+}

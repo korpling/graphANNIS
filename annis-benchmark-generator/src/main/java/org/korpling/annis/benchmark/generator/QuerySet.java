@@ -48,4 +48,9 @@ public class QuerySet
   {
     return new LinkedList<>(queries);
   }
+  
+  public int size()
+  {
+    return queries.size();
+  }
 }

@@ -27,7 +27,7 @@ import javafx.stage.Stage;
  *
  * @author Thomas Krause <thomaskrause@posteo.de>
  */
-public class Main extends Application
+public class SingleQueryMain extends Application
 {
 
   @Override

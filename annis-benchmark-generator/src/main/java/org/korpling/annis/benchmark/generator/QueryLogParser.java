@@ -48,7 +48,7 @@ public class QueryLogParser implements LineProcessor<QuerySet>
     {
       Matcher mComplete = COMPLETE_LINE.matcher(line);
       Matcher mStart = INCOMPLETE_START.matcher(line);
-      if (COMPLETE_LINE.matcher(line).matches())
+      if (mComplete.matches())
       {
         Query q = new Query();
         q.setAql(mComplete.group("query"));
