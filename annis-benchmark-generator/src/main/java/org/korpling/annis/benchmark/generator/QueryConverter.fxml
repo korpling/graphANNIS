@@ -8,8 +8,8 @@
 
 <VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QueryConverterController">
    <children>
-      <TextArea fx:id="aqlInput" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" prefWidth="200.0" wrapText="true" />
+      <TextArea fx:id="aqlInput" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" prefWidth="200.0" wrapText="true" VBox.vgrow="ALWAYS" />
       <Button fx:id="convertButton" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#convert" prefHeight="26.0" prefWidth="617.0" text="Convert to JSON" />
-      <TextArea fx:id="jsonOutput" prefHeight="200.0" prefWidth="200.0" wrapText="true" />
+      <TextArea fx:id="jsonOutput" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="185.0" prefWidth="600.0" wrapText="true" VBox.vgrow="ALWAYS" />
    </children>
 </VBox>
