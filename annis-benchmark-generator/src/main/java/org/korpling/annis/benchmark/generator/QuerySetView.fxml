@@ -7,19 +7,19 @@
 <?import javafx.scene.layout.*?>
 
 
-<VBox fx:id="root" prefHeight="300.0" prefWidth="454.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
+<VBox fx:id="root" prefHeight="518.0" prefWidth="951.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
    <children>
       <HBox prefHeight="100.0" prefWidth="200.0">
          <children>
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
          </children>
       </HBox>
-      <TableView prefHeight="200.0" prefWidth="200.0">
+      <TableView fx:id="tableView" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
         <columns>
-          <TableColumn prefWidth="75.0" text="AQL" />
-          <TableColumn prefWidth="75.0" text="corpus" />
-            <TableColumn prefWidth="75.0" text="exec. time (ms)" />
-            <TableColumn prefWidth="75.0" text="# results" />
+          <TableColumn fx:id="aqlColumn" prefWidth="597.0" text="AQL" />
+          <TableColumn prefWidth="69.0" text="corpus" />
+            <TableColumn prefWidth="142.0" text="exec. time (ms)" />
+            <TableColumn minWidth="0.0" prefWidth="142.0" text="# results" />
         </columns>
       </TableView>
    </children>

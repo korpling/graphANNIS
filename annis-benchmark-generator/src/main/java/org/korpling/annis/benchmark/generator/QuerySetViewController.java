@@ -16,19 +16,26 @@
 package org.korpling.annis.benchmark.generator;
 
 import com.google.common.io.Files;
+import com.sun.javafx.collections.ObservableListWrapper;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.stage.FileChooser;
+import javafx.util.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +55,11 @@ public class QuerySetViewController implements Initializable
   private FileChooser chooser = new FileChooser();
   private FileChooser.ExtensionFilter logFilter =  new FileChooser.ExtensionFilter("Query log (*.log)", "*.log");
   
+  @FXML
+  private TableView<Query> tableView;
+  
+  @FXML
+  private TableColumn<Query, String> aqlColumn;
 
   /**
    * Initializes the controller class.
@@ -55,7 +67,8 @@ public class QuerySetViewController implements Initializable
   @Override
   public void initialize(URL url, ResourceBundle rb)
   {
-    // TODO
+    aqlColumn.setCellValueFactory(
+      (TableColumn.CellDataFeatures<Query, String> param) -> new SimpleObjectProperty<>(param.getValue().getAql()));
   }  
   
   @FXML
@@ -72,6 +85,10 @@ public class QuerySetViewController implements Initializable
       {
         QuerySet queries = Files.readLines(selectedFile, StandardCharsets.UTF_8, new QueryLogParser());
         new Alert(Alert.AlertType.INFORMATION, "Found " + queries.size() + " queries.", ButtonType.OK).showAndWait();
+        
+        tableView.itemsProperty().get().clear();
+        tableView.itemsProperty().get().addAll(queries.getAll());
+        
       }
       catch (IOException ex)
       {
