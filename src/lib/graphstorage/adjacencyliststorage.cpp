@@ -250,7 +250,7 @@ void AdjacencyListStorage::calculateStatistics()
   }
 
 
-  uint64_t numberOfVisits = 0;
+  std::uint64_t numberOfVisits = 0;
   if(roots.empty() && !edges.empty())
   {
     // if we have edges but no roots at all there must be a cycle

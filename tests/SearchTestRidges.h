@@ -23,6 +23,8 @@ public:
 
  protected:
   DB db;
+  std::shared_ptr<Query> q;
+  
   SearchTestRidges() {
   }
 
@@ -42,12 +44,26 @@ public:
     }
     bool loadedDB = db.load(dataDir + "/ridges");
     EXPECT_EQ(true, loadedDB);
-//    // manually convert all components to fallback implementation
-//    auto components = db.getAllComponents();
-//    for(auto c : components)
-//    {
-//      db.convertComponent(c, "fallback");
-//    }
+    
+    char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
+    std::string globalQueryDir("queries");
+    if (testQueriesEnv != NULL) {
+      globalQueryDir = testQueriesEnv;
+    }
+    std::string queryDir = globalQueryDir + "/SearchTestRidges";
+
+    // get test name and read the json file
+    auto info = ::testing::UnitTest::GetInstance()->current_test_info();
+    if(info != nullptr)
+    {
+      std::ifstream in;
+      std::string jsonFileName = queryDir + "/" + info->name() + ".json";
+      in.open(jsonFileName);
+      if(in.is_open()) {
+        q = JSONQueryParser::parse(db, in);
+        in.close();
+      }
+    }
   }
 
   virtual void TearDown() {
@@ -59,13 +75,16 @@ public:
 };
 
 TEST_F(SearchTestRidges, DiplNameSearch) {
-  ExactAnnoKeySearch search(db, "dipl");
+
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
-  while(search.hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
-    Match m = search.next();
-    ASSERT_STREQ("dipl", db.strings.str(m.anno.name).c_str());
-    ASSERT_STREQ("default_ns", db.strings.str(m.anno.ns).c_str());
+    auto m = q->next();
+    ASSERT_EQ(1, m.size());
+    ASSERT_STREQ("dipl", db.strings.str(m[0].anno.name).c_str());
+    ASSERT_STREQ("default_ns", db.strings.str(m[0].anno.ns).c_str());
     counter++;
   }
 
@@ -73,14 +92,16 @@ TEST_F(SearchTestRidges, DiplNameSearch) {
 }
 
 TEST_F(SearchTestRidges, PosValueSearch) {
-  ExactAnnoValueSearch search(db, "default_ns", "pos", "NN");
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
-  while(search.hasNext() && counter < MAX_COUNT)
+  while( q->hasNext() && counter < MAX_COUNT)
   {
-    Match m = search.next();
-    ASSERT_STREQ("pos", db.strings.str(m.anno.name).c_str());
-    ASSERT_STREQ("NN", db.strings.str(m.anno.val).c_str());
-    ASSERT_STREQ("default_ns", db.strings.str(m.anno.ns).c_str());
+    auto m = q->next();
+    ASSERT_EQ(1, m.size());
+    ASSERT_STREQ("pos", db.strings.str(m[0].anno.name).c_str());
+    ASSERT_STREQ("NN", db.strings.str(m[0].anno.val).c_str());
+    ASSERT_STREQ("default_ns", db.strings.str(m[0].anno.ns).c_str());
     counter++;
   }
 
@@ -88,20 +109,16 @@ TEST_F(SearchTestRidges, PosValueSearch) {
 }
 
 // Should test query
-// pos="VVIZU" .10000,10010 pos="ART"
+// default_ns:pos="NN" .2,10 default_ns:pos="ART"
 TEST_F(SearchTestRidges, Benchmark1) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "ART"));
-
-  q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
-
-  while(q.hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
-    std::vector<Match> m = q.next();
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -113,17 +130,13 @@ TEST_F(SearchTestRidges, Benchmark1) {
 // tok .2,10 tok
 TEST_F(SearchTestRidges, Benchmark2) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  Query q(db);
-
-  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns, annis::annis_tok));
-  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns,annis::annis_tok));
-
-  q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
-  while(q.hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
-    q.next();
+    q->next();
     counter++;
   }
 
@@ -131,66 +144,16 @@ TEST_F(SearchTestRidges, Benchmark2) {
 }
 
 // Should test query
-// tok .2,10 tok
-TEST_F(SearchTestRidges, ClassicBenchmark2) {
-
-  unsigned int counter=0;
-
-  ExactAnnoKeySearch n1(db, annis::annis_ns, "tok");
-
-  Annotation anyTokAnno = Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID());
-
-  std::pair<bool, uint32_t> n2_namespaceID = db.strings.findID(annis::annis_ns);
-  std::pair<bool, uint32_t> n2_nameID = db.strings.findID("tok");
-  if(n2_nameID.first && n2_namespaceID.first)
-  {
-    Component cOrder = {ComponentType::ORDERING, annis_ns, ""};
-
-
-    const ReadableGraphStorage* gsOrder = db.getGraphStorage(cOrder);
-    if(gsOrder != NULL)
-    {
-      while(n1.hasNext())
-      {
-        Match m1 = n1.next();
-
-        // find all token in the range 2-10
-        std::unique_ptr<EdgeIterator> itConnected = gsOrder->findConnected(m1.node, 2, 10);
-        for(std::pair<bool, std::uint32_t> tok2 = itConnected->next();
-            tok2.first; tok2 = itConnected->next())
-        {
-          // check if the node has the correct annotations
-          for(const Annotation& anno : db.getNodeAnnotationsByID(tok2.second))
-          {
-            if(checkAnnotationEqual(anyTokAnno, anno))
-            {
-              counter++;
-              break; // we don't have to search for other annotations
-            }
-          }
-        }
-      }
-    }
-  } // end if
-
-  EXPECT_EQ(1386828u, counter);
-}
-
-
-// Should test query
-// pos="PTKANT" . node
+// default_ns:pos="PTKANT" . node
 TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "PTKANT"));
-  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns,annis::annis_node_name));
-
-  q.addOperator(std::make_shared<Precedence>(db, 1, 1), 0, 1);
-  while(q.hasNext() && counter < 100u)
+  while(q->hasNext() && counter < 100u)
   {
-    std::vector<Match> m = q.next();
+    std::vector<Match> m = q->next();
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m[0].node)
                        % db.getNodeName(m[1].node)).str()) ;
     counter++;
@@ -200,7 +163,7 @@ TEST_F(SearchTestRidges, PrecedenceMixedSpanTok) {
 }
 
 // Should test query
-// pos="NN" & norm="Blumen" & #1 _o_ #2
+// default_ns:pos="NN" & default_ns:norm="Blumen" & #1 _o_ #2
 TEST_F(SearchTestRidges, NestedOverlap) {
 
   unsigned int counter=0;
@@ -223,20 +186,16 @@ TEST_F(SearchTestRidges, NestedOverlap) {
 }
 
 // Should test query
-// pos="NN" & norm="Blumen" & #1 _o_ #2
+// default_ns:pos="NN" & default_ns:norm="Blumen" & #1 _o_ #2
 TEST_F(SearchTestRidges, SeedOverlap) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  Query q(db);
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
-  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
-
-  q.addOperator(std::make_shared<Overlap>(db), 0, 1, false);
-
-  while(q.hasNext())
+  while(q->hasNext() && counter < MAX_COUNT)
   {
-    auto m = q.next();
+    auto m = q->next();
     //HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % db.getNodeName(m[0].node)
     //                 % db.getNodeName(m[1].node)).str()) ;
     counter++;
@@ -246,30 +205,21 @@ TEST_F(SearchTestRidges, SeedOverlap) {
 }
 
 // Should test query
-// pos="NN" & norm="Blumen" & #1 _i_ #2
+// default_ns:pos="NN" & default_ns:norm="Blumen" & #1 _i_ #2
 TEST_F(SearchTestRidges, Inclusion) {
 
+  ASSERT_TRUE((bool) q);
+  
   unsigned int counter=0;
 
-  std::shared_ptr<AnnotationSearch> n1(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
-  std::shared_ptr<AnnotationSearch> n2(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
-
-  annis::Query q(db);
-  q.addNode(n1);
-  q.addNode(n2);
-
-  q.addOperator(std::make_shared<Inclusion>(db), 0, 1);
-
-  while(q.hasNext() && counter < MAX_COUNT)
+  while(q->hasNext() && counter < MAX_COUNT)
   {
-    std::vector<Match> m = q.next();
+    auto m = q->next();
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m[0].node % m[1].node).str()) ;
     counter++;
   }
   EXPECT_EQ(152u, counter);
 
-  n1 = nullptr;
-  n2 = nullptr;
 }
 
 

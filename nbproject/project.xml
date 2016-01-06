@@ -13,6 +13,7 @@
                 <sourceRootElem>./src/lib</sourceRootElem>
                 <sourceRootElem>./src/runner</sourceRootElem>
                 <sourceRootElem>benchmarks</sourceRootElem>
+                <sourceRootElem>tests</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>

@@ -27,7 +27,7 @@ class Query
 {
 public:
   Query(const DB& db);
-
+  
   /**
    * @brief Add a new node to query
    * @param n The initial source
@@ -47,8 +47,8 @@ public:
 
   bool hasNext();
   std::vector<Match> next();
-
-  virtual ~Query() {}
+  
+  virtual ~Query();
 
 private:
 

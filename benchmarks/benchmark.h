@@ -22,15 +22,14 @@
 
 HUMBLE_LOGGER(logger, "default");
 
-namespace annis
-{
-class BenchmarkDBHolder
-{
-public:
-  static std::string corpus;
-  static std::unique_ptr<DB> db;
-  static bool forceFallback;
-};
+namespace annis {
+
+  class StaticBenchmarkDBHolder {
+  public:
+    static std::string corpus;
+    static std::unique_ptr<DB> db;
+    static bool forceFallback;
+  };
 
 } // end namespace ANNIS
 
@@ -38,71 +37,64 @@ using namespace annis;
 
 #define DBGETTER virtual const DB& getDB() {\
   checkBenchmarkDBHolder();\
-  return *(BenchmarkDBHolder::db);\
+  return *(StaticBenchmarkDBHolder::db);\
 }
 
-template<bool forceFallback, char const* corpusName>
-class CorpusFixture : public ::celero::TestFixture
-{
+template<bool forceFallback>
+class CorpusFixture : public ::celero::TestFixture {
 public:
+  
   CorpusFixture()
-    : corpus(corpusName)
+  : corpus("")
   {
+    
   }
 
-  void checkBenchmarkDBHolder()
-  {
-    if(!BenchmarkDBHolder::db || BenchmarkDBHolder::corpus != corpus
-       || BenchmarkDBHolder::forceFallback != forceFallback)
-    {
-      BenchmarkDBHolder::db = initDB();
-      BenchmarkDBHolder::corpus = corpus;
-      BenchmarkDBHolder::forceFallback = forceFallback;
+  CorpusFixture(std::string corpusName)
+  : corpus(corpusName) {
+  }
+
+  void checkBenchmarkDBHolder() {
+    if (!StaticBenchmarkDBHolder::db || StaticBenchmarkDBHolder::corpus != corpus
+            || StaticBenchmarkDBHolder::forceFallback != forceFallback) {
+      StaticBenchmarkDBHolder::db = initDB();
+      StaticBenchmarkDBHolder::corpus = corpus;
+      StaticBenchmarkDBHolder::forceFallback = forceFallback;
     }
   }
 
-  virtual void setUp(int64_t experimentValue)
-  {
+  virtual void setUp(int64_t experimentValue) {
     counter = 0;
   }
 
-  virtual void tearDown()
-  {
-     HL_INFO(logger, (boost::format("result %1%") % counter).str());
+  virtual void tearDown() {
+    HL_INFO(logger, (boost::format("result %1%") % counter).str());
   }
 
-  void addOverride(ComponentType ctype, std::string layer, std::string name, std::string implementation)
-  {
+  void addOverride(ComponentType ctype, std::string layer, std::string name, std::string implementation) {
     overrideImpl.insert(
-          std::pair<Component, std::string>(
-           {ctype, layer, name}, implementation)
-    );
+            std::pair<Component, std::string>({ctype, layer, name}, implementation)
+            );
   }
 
-  std::unique_ptr<DB> initDB()
-  {
-//    std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
+  std::unique_ptr<DB> initDB() {
+    //    std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
     std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
 
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
     std::string dataDir("data");
-    if(testDataEnv != NULL)
-    {
+    if (testDataEnv != NULL) {
       dataDir = testDataEnv;
     }
     result->load(dataDir + "/" + corpus);
 
-    if(forceFallback)
-    {
+    if (forceFallback) {
       // manually convert all components to fallback implementation
       auto components = result->getAllComponents();
-      for(auto c : components)
-      {
+      for (auto c : components) {
         result->convertComponent(c, GraphStorageRegistry::fallback);
       }
-    }
-    else
-    {
+    } else {
       result->optimizeAll(overrideImpl);
     }
 
@@ -111,7 +103,8 @@ public:
 
   virtual const DB& getDB() = 0;
 
-  virtual ~CorpusFixture() {}
+  virtual ~CorpusFixture() {
+  }
 
 public:
   unsigned int counter;

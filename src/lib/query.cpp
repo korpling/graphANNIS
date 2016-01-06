@@ -12,6 +12,9 @@ Query::Query(const DB &db)
 {
 }
 
+Query::~Query() {
+  
+}
 
 size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n)
 {
@@ -46,8 +49,9 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
 
 void Query::internalInit()
 {
-  // clear old internal variables
-  source.clear();
+  if(initialized) {
+    return;
+  }
 
   // 1. add all nodes
   int i=0;

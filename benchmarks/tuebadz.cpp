@@ -1,34 +1,25 @@
 #include "benchmark.h"
 #include "examplequeries.h"
 
-char tuebaCorpus[] = "tuebadz6";
-char tuebaCorpusSmall[] = "tuebadz6_small";
 
-class TuebaFixture : public CorpusFixture<false, tuebaCorpus>
+class TuebaFixtureVar : public CorpusFixture<false>
 {
 public:
   DBGETTER
-
-  virtual ~TuebaFixture() {}
-
-};
-class TuebaFallbackFixture : public CorpusFixture<true, tuebaCorpus>
-{
-public:
-  DBGETTER
-
-
-  virtual ~TuebaFallbackFixture() {}
-};
-
-class TuebaFixtureVar : public CorpusFixture<false, tuebaCorpus>
-{
-public:
-  DBGETTER
-
-  virtual std::vector<int64_t> getExperimentValues() const
+  
+  TuebaFixtureVar() : CorpusFixture<false>("tuebadz6")
   {
-    return {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    
+  }
+
+  virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const
+  {
+    std::vector<std::pair<int64_t, uint64_t>> result;
+    for(int i=1; i <= 13; i++)
+    {
+      result.push_back({i,0});
+    }
+    return result;
   }
 
   virtual void setUp(int64_t experimentValue)
@@ -41,16 +32,26 @@ public:
 
   unsigned int maxDistance;
 };
-class TuebaFallbackFixtureVar : public CorpusFixture<true, tuebaCorpus>
+class TuebaFallbackFixtureVar : public CorpusFixture<true>
 {
 public:
 
 
   DBGETTER
 
-  virtual std::vector<int64_t> getExperimentValues() const
+  TuebaFallbackFixtureVar() : CorpusFixture<true>("tuebadz6")
   {
-    return {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+    
+  }
+  
+  virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const
+  {
+    std::vector<std::pair<int64_t, uint64_t>> result;
+    for(int i=1; i <= 13; i++)
+    {
+      result.push_back({i,0});
+    }
+    return result;;
   }
 
   virtual void setUp(int64_t experimentValue)
@@ -62,51 +63,6 @@ public:
   virtual ~TuebaFallbackFixtureVar() {}
   unsigned int maxDistance;
 };
-
-
-BASELINE_F(MIX_tuebadz6, Fallback, TuebaFallbackFixture, 5, 1)
-{
-  ANNIS_EXEC_QUERY_COUNT(Mixed1, getDB(), 0u);
-}
-
-
-BENCHMARK_F(MIX_tuebadz6, Optimized, TuebaFixture, 5, 1)
-{
-  ANNIS_EXEC_QUERY_COUNT(Mixed1, getDB(), 0u);
-}
-
-BASELINE_F(REG2_tuebadz6, Fallback, TuebaFallbackFixture, 5, 1)
-{
-  ANNIS_EXEC_QUERY_COUNT(RegexDom, getDB(), 1u);
-}
-
-
-BENCHMARK_F(REG2_tuebadz6, Optimized, TuebaFixture, 5, 1)
-{
-  ANNIS_EXEC_QUERY_COUNT(RegexDom, getDB(), 1u);
-}
-
-BASELINE_F(PIA_tuebadz6, Fallback, TuebaFallbackFixture, 5, 1)
-{
-  ANNIS_EXEC_QUERY_COUNT(PPERIncludesAnaphoric, getDB(), 13031u);
-}
-
-
-BENCHMARK_F(PIA_tuebadz6, Optimized, TuebaFixture, 5, 1)
-{
-  ANNIS_EXEC_QUERY_COUNT(PPERIncludesAnaphoric, getDB(), 13031u);
-}
-
-BASELINE_F(FUN_tuebadz6, Fallback, TuebaFallbackFixture, 5, 1)
-{
-  ANNIS_EXEC_QUERY_COUNT(DomFuncON, getDB(), 76748u);
-}
-
-
-BENCHMARK_F(FUN_tuebadz6, Optimized, TuebaFixture, 5, 1)
-{
-  ANNIS_EXEC_QUERY_COUNT(DomFuncON, getDB(), 76748u);
-}
 
 BASELINE_F(DOM_tuebadz6, Fallback, TuebaFallbackFixtureVar, 5, 1)
 {

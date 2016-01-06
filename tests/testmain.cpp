@@ -15,8 +15,9 @@ int main(int argc, char **argv)
 
   humble::logging::Factory &fac = humble::logging::Factory::getInstance();
 
-
-  fac.setDefaultLogLevel(humble::logging::LogLevel::Warn);
+  fac.setConfiguration(humble::logging::DefaultConfiguration::createFromString(
+    "logger.level(*)=warn\n"
+  ));
 //  fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date] %m\n"));
   fac.registerAppender(new humble::logging::FileAppender("testexecution_annis4.log"));
 

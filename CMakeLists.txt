@@ -1,39 +1,39 @@
 project(ANNIS4)
 cmake_minimum_required(VERSION 2.8)
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/ext/humble-logging-library-2.0.0/cmake")
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-add_subdirectory(ext/humble-logging-library-2.0.0)
+add_subdirectory(ext/humblelogging-3.0.1)
 
-set(CELERO_BUILD_EXAMPLES OFF)
-set(CELERO_COMPILE_DYNAMIC_LIBRARIES OFF)
-add_subdirectory(ext/Celero-1.0.8)
+set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")
+set(CELERO_ENABLE_EXPERIMENTS OFF CACHE BOOL "Set to ON to automatically build all examples.")
+set(CELERO_COMPILE_DYNAMIC_LIBRARIES OFF CACHE BOOL "Set to ON to build Celero for dynamic linking.  Use OFF for static.")
+add_subdirectory(ext/Celero-2.0.2)
+
 
 find_package(ICU 4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
 find_package(Re2 REQUIRED)
 find_package (Threads REQUIRED)
 
-message(STATUS "HumbleLogging_INCLUDE_DIRS=${HumbleLogging_INCLUDE_DIRS}")
-message(STATUS "HumbleLogging_LIBRARY=${HumbleLogging_LIBRARY}")
-
 include_directories(
   SYSTEM
   "include"
-  "ext/humble-logging-library-2.0.0/include"
+  "ext/humblelogging-3.0.1/include"
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIR}
 )
 
-file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp"
+file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
   "src/lib/graphstorage/*.h" "src/lib/graphstorage/*.cpp"
   "src/lib/operators/*.h" "src/lib/operators/*.cpp"
   "src/lib/join/*.h" "src/lib/join/*.cpp"
+  "src/lib/json/*.h" "src/lib/json/*.cpp"
 )
 file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "-std=c++11")
+  set(CMAKE_CXX_FLAGS "-std=c++14")
 endif()
 
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
@@ -46,7 +46,7 @@ target_link_libraries("a4_runner" humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARI
 
 file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
 set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
-include_directories(SYSTEM "ext/Celero-1.0.8/include/")
+include_directories(SYSTEM "ext/Celero-2.0.2/include/")
 include_directories("src/lib/")
 add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
 target_link_libraries(${BENCHMARK_EXEC} celero ${PROJECT_NAME}  )
