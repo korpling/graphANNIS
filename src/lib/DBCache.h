@@ -69,6 +69,8 @@ namespace annis {
       DBCacheKey key = {corpus, forceFallback, overrideImpl};
       auto it = cache.find(key);
       if (it == cache.end()) {
+        // cleanup the cache
+        cleanup();
         // create a new one
         cache[key] = initDB(key);
         return *cache[key];
@@ -78,41 +80,43 @@ namespace annis {
 
     void release(const std::string& corpus, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
-      cache.erase({corpus, forceFallback, overrideImpl});
+      release({corpus, forceFallback, overrideImpl});
     }
-
-    std::unique_ptr<DB> initDB(const DBCacheKey& key) {
-      //std::cerr << "INIT DB " << corpus << " in " << (forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
-      std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
-
-      char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
-      std::string dataDir("data");
-      if (testDataEnv != NULL) {
-        dataDir = testDataEnv;
-      }
-      bool loaded = result->load(dataDir + "/" + key.corpus);
-      if (!loaded) {
-        std::cerr << "FATAL ERROR: no load corpus " << key.corpus << std::endl;
-        std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
-        exit(-1);
-      }
-
-      if (key.forceFallback) {
-        // manually convert all components to fallback implementation
-        auto components = result->getAllComponents();
-        for (auto c : components) {
-          result->convertComponent(c, GraphStorageRegistry::fallback);
+    
+    void cleanup(std::set<DBCacheKey> ignore = std::set<DBCacheKey>()) {
+      bool deletedSomething = true;
+      while(deletedSomething && !cache.empty() && loadedDBSizeTotal > maxLoadedDBSize) {
+        deletedSomething = false;
+        for(auto it=cache.begin(); it != cache.end(); it++) {
+          if(ignore.find(it->first) == ignore.end()) {
+            release(it->first);
+            deletedSomething;
+            break;
+          }
         }
-      } else {
-          result->optimizeAll(key.overrideImpl);
       }
-
-      return result;
     }
+
 
     virtual ~DBCache();
   private:
     std::map<DBCacheKey, std::unique_ptr<DB>> cache;
+    std::map<DBCacheKey, size_t> loadedDBSize;
+    size_t loadedDBSizeTotal;
+    size_t maxLoadedDBSize;
+    
+  private:
+    
+    std::unique_ptr<DB> initDB(const DBCacheKey& key);
+    void release(DBCacheKey key) {
+      cache.erase(key);
+      auto itSize = loadedDBSize.find(key);
+      if(itSize != loadedDBSize.end()) {
+        size_t oldSize = itSize->second;
+        loadedDBSize.erase(itSize);
+        loadedDBSizeTotal -= oldSize;
+      }
+    }
   };
 
 } // end namespace annis

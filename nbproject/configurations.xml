@@ -261,6 +261,7 @@
       <in>exactannokeysearch.cpp</in>
       <in>exactannovaluesearch.cpp</in>
       <in>filter.cpp</in>
+      <in>getRSS.c</in>
       <in>graphstorage.cpp</in>
       <in>graphstorageregistry.cpp</in>
       <in>jsoncpp.cpp</in>
@@ -1142,9 +1143,9 @@
       <flagsDictionary>
         <element flagsID="0" commonFlags="-O2 -g"/>
         <element flagsID="1"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -O2"/>
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -O2"/>
         <element flagsID="2"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -O2"/>
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -O2"/>
         <element flagsID="3" commonFlags="-std=c++14 -O2"/>
         <element flagsID="4" commonFlags="-std=c++14 -O2 -std=c++14"/>
       </flagsDictionary>
@@ -1556,9 +1557,9 @@
           </incDir>
         </ccTool>
       </folder>
-      <item path="src/lib/DBCache.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="src/lib/DBCache.h" ex="false" tool="3" flavor2="0">
+      <item path="src/lib/DBCache.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
       </item>
       <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
@@ -1587,6 +1588,10 @@
       <item path="src/lib/filter.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
+      </item>
+      <item path="src/lib/getRSS.c" ex="false" tool="0" flavor2="0">
+        <cTool flags="0">
+        </cTool>
       </item>
       <item path="src/lib/graphstorage.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">

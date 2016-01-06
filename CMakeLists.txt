@@ -24,7 +24,7 @@ include_directories(
   ${RE2_INCLUDE_DIR}
 )
 
-file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp"
+file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
   "src/lib/graphstorage/*.h" "src/lib/graphstorage/*.cpp"
   "src/lib/operators/*.h" "src/lib/operators/*.cpp"
   "src/lib/join/*.h" "src/lib/join/*.cpp"
