@@ -16,24 +16,23 @@
 package org.korpling.annis.benchmark.generator;
 
 import com.google.common.io.Files;
-import com.sun.javafx.collections.ObservableListWrapper;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Control;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.util.Callback;
 import org.slf4j.Logger;
@@ -67,6 +66,18 @@ public class QuerySetViewController implements Initializable
   @Override
   public void initialize(URL url, ResourceBundle rb)
   {
+//    aqlColumn.setCellFactory((TableColumn<Query, String> param) ->
+//    {
+//      TableCell<Query, String> cell = new TableCell<>();
+//      Text text = new Text();
+//      text.textProperty().bind(cell.itemProperty());
+//      text.wrappingWidthProperty().bind(cell.widthProperty());
+//      
+//      cell.setPrefHeight(Control.USE_COMPUTED_SIZE);
+//      cell.setGraphic(cell);      
+//      return cell;
+//    });
+    
     aqlColumn.setCellValueFactory(
       (TableColumn.CellDataFeatures<Query, String> param) -> new SimpleObjectProperty<>(param.getValue().getAql()));
   }  
