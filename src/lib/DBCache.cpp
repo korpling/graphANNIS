@@ -22,7 +22,7 @@ DBCache::DBCache()
 }
 
 std::unique_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
-  std::cerr << "INIT DB " << key.corpus << " in " << (key.forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
+//  std::cerr << "INIT DB " << key.corpus << " in " << (key.forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
   std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
 
   char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
