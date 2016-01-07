@@ -23,6 +23,13 @@
             <TableColumn fx:id="execTimeColumn" prefWidth="205.0" text="exec. time (ms)" />
             <TableColumn fx:id="nrResultsColumn" minWidth="0.0" prefWidth="97.0" text="# results" />
         </columns>
+         <contextMenu>
+            <ContextMenu>
+              <items>
+                <MenuItem mnemonicParsing="false" onAction="#filterByCorpusOfQuery" text="Filter by corpus of this query" />
+              </items>
+            </ContextMenu>
+         </contextMenu>
       </TableView>
 
          </children>

@@ -37,6 +37,7 @@ import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -44,6 +45,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
+import javax.xml.bind.ValidationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +88,7 @@ public class QuerySetViewController implements Initializable
 
   @FXML
   private CheckBox oneCorpusFilter;
-
+  
   private final ObservableList<Query> queries = FXCollections.
     observableArrayList();
 
@@ -177,7 +179,19 @@ public class QuerySetViewController implements Initializable
     });
     }
   }
-
+  
+  @FXML
+  public void filterByCorpusOfQuery(ActionEvent evt)
+  {
+    Query q = tableView.getSelectionModel().getSelectedItem();
+    if(q != null && !q.getCorpora().isEmpty())
+    {
+      evt.consume();
+      oneCorpusFilter.selectedProperty().set(true);
+      corpusFilter.textProperty().set(q.getCorpora().iterator().next());
+    }
+  }
+  
   @FXML
   public void loadQueryLog(ActionEvent evt)
   {
