@@ -15,8 +15,8 @@
  */
 package org.korpling.annis.benchmark.generator;
 
+import com.google.common.base.Joiner;
 import com.google.common.io.Files;
-import com.sun.javafx.collections.SortableList;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -95,6 +95,10 @@ public class QuerySetViewController implements Initializable
     aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));
     corpusColumn.setCellValueFactory(new PropertyValueFactory<>("corpus"));
 
+    corpusColumn.setCellValueFactory(val
+      -> new SimpleObjectProperty<>(
+        Joiner.on(", ").join(val.getValue().getCorpora())));
+
     execTimeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(
       param.getValue().getExecutionTime().orElse(-1l)));
 
@@ -140,8 +144,13 @@ public class QuerySetViewController implements Initializable
         filteredQueries.setPredicate(query
           -> 
           {
-            return query != null && query.getCorpus() != null && query.
-              getCorpus().toLowerCase().contains(newValue.toLowerCase());
+            if (newValue == null || newValue.isEmpty())
+            {
+              return true;
+            }
+            
+            return query != null && query.getCorpora() != null && query.
+              getCorpora().contains(newValue);
         });
     });
 

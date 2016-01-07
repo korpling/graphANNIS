@@ -15,8 +15,10 @@
  */
 package org.korpling.annis.benchmark.generator;
 
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  *
@@ -27,7 +29,7 @@ public class Query
 
   private String aql;
 
-  private String corpus;
+  private Set<String> corpora = new LinkedHashSet<>();
 
   private Optional<Long> count = Optional.empty();
 
@@ -43,15 +45,17 @@ public class Query
     this.aql = aql;
   }
 
-  public String getCorpus()
+  public Set<String> getCorpora()
   {
-    return corpus;
+    return corpora;
   }
 
-  public void setCorpus(String corpus)
+  public void setCorpora(Set<String> corpora)
   {
-    this.corpus = corpus;
+    this.corpora = corpora;
   }
+
+  
 
   public Optional<Long> getCount()
   {
@@ -77,10 +81,10 @@ public class Query
   public int hashCode()
   {
     int hash = 5;
-    hash = 19 * hash + Objects.hashCode(this.aql);
-    hash = 19 * hash + Objects.hashCode(this.corpus);
-    hash = 19 * hash + Objects.hashCode(this.count);
-    hash = 19 * hash + Objects.hashCode(this.executionTime);
+    hash = 67 * hash + Objects.hashCode(this.aql);
+    hash = 67 * hash + Objects.hashCode(this.corpora);
+    hash = 67 * hash + Objects.hashCode(this.count);
+    hash = 67 * hash + Objects.hashCode(this.executionTime);
     return hash;
   }
 
@@ -104,7 +108,7 @@ public class Query
     {
       return false;
     }
-    if (!Objects.equals(this.corpus, other.corpus))
+    if (!Objects.equals(this.corpora, other.corpora))
     {
       return false;
     }
@@ -118,6 +122,10 @@ public class Query
     }
     return true;
   }
+
+  
+
+  
 
   
 

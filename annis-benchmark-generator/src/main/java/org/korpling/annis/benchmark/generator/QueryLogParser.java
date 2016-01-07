@@ -15,9 +15,11 @@
  */
 package org.korpling.annis.benchmark.generator;
 
+import com.google.common.base.Splitter;
 import com.google.common.io.LineProcessor;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -54,7 +56,9 @@ public class QueryLogParser implements LineProcessor<List<Query>>
       {
         Query q = new Query();
         q.setAql(mComplete.group("query"));
-        q.setCorpus(mComplete.group("corpus"));
+        q.setCorpora(new LinkedHashSet<>(Splitter.on(',').omitEmptyStrings().
+          trimResults().splitToList(
+            mComplete.group("corpus"))));
         q.setExecutionTime(Optional.of(Long.parseLong(mComplete.group("time"))));
         queries.add(q);
       }
@@ -74,7 +78,9 @@ public class QueryLogParser implements LineProcessor<List<Query>>
         currentAQL.append(mEnd.group("query"));
         Query q = new Query();
         q.setAql(currentAQL.toString());
-        q.setCorpus(mEnd.group("corpus"));
+        q.setCorpora(new LinkedHashSet<>(Splitter.on(',').omitEmptyStrings().
+          trimResults().splitToList(
+            mEnd.group("corpus"))));
         q.setExecutionTime(Optional.of(Long.parseLong(mEnd.group("time"))));
         queries.add(q);
         
