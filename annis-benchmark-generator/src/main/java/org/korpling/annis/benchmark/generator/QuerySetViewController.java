@@ -28,13 +28,11 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Control;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
-import javafx.util.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,18 +43,21 @@ import org.slf4j.LoggerFactory;
  */
 public class QuerySetViewController implements Initializable
 {
-  
-  private final Logger log = LoggerFactory.getLogger(QuerySetViewController.class);
-  
+
+  private final Logger log = LoggerFactory.getLogger(
+    QuerySetViewController.class);
+
   @FXML
   private Parent root;
-  
+
   private FileChooser chooser = new FileChooser();
-  private FileChooser.ExtensionFilter logFilter =  new FileChooser.ExtensionFilter("Query log (*.log)", "*.log");
-  
+
+  private FileChooser.ExtensionFilter logFilter = new FileChooser.ExtensionFilter(
+    "Query log (*.log)", "*.log");
+
   @FXML
   private TableView<Query> tableView;
-  
+
   @FXML
   private TableColumn<Query, String> aqlColumn;
 
@@ -66,48 +67,64 @@ public class QuerySetViewController implements Initializable
   @Override
   public void initialize(URL url, ResourceBundle rb)
   {
-//    aqlColumn.setCellFactory((TableColumn<Query, String> param) ->
-//    {
-//      TableCell<Query, String> cell = new TableCell<>();
-//      Text text = new Text();
-//      text.textProperty().bind(cell.itemProperty());
-//      text.wrappingWidthProperty().bind(cell.widthProperty());
-//      
-//      cell.setPrefHeight(Control.USE_COMPUTED_SIZE);
-//      cell.setGraphic(cell);      
-//      return cell;
-//    });
-    
+
     aqlColumn.setCellValueFactory(
-      (TableColumn.CellDataFeatures<Query, String> param) -> new SimpleObjectProperty<>(param.getValue().getAql()));
-  }  
-  
+      (TableColumn.CellDataFeatures<Query, String> param) -> new SimpleObjectProperty<>(
+        param.getValue().getAql()));
+
+    aqlColumn.setCellFactory((TableColumn<Query, String> param)
+      -> 
+      {
+        final TableCell cell = new TableCell()
+        {
+          private Text text;
+
+          @Override
+          public void updateItem(Object item, boolean empty)
+          {
+            super.updateItem(item, empty);
+            if (!isEmpty())
+            {
+              text = new Text(item.toString());
+              text.wrappingWidthProperty().bind(widthProperty());
+              setGraphic(text);
+            }
+          }
+        };
+        return cell;
+
+    });
+  }
+
   @FXML
   public void loadQueryLog(ActionEvent evt)
   {
     chooser.setTitle("Open Query Log");
     chooser.getExtensionFilters().add(logFilter);
     chooser.setSelectedExtensionFilter(logFilter);
-    
+
     File selectedFile = chooser.showOpenDialog(root.getScene().getWindow());
-    if(selectedFile != null)
+    if (selectedFile != null)
     {
       try
       {
-        QuerySet queries = Files.readLines(selectedFile, StandardCharsets.UTF_8, new QueryLogParser());
-        new Alert(Alert.AlertType.INFORMATION, "Found " + queries.size() + " queries.", ButtonType.OK).showAndWait();
-        
+        QuerySet queries = Files.readLines(selectedFile, StandardCharsets.UTF_8,
+          new QueryLogParser());
+        new Alert(Alert.AlertType.INFORMATION,
+          "Found " + queries.size() + " queries.", ButtonType.OK).showAndWait();
+
         tableView.itemsProperty().get().clear();
         tableView.itemsProperty().get().addAll(queries.getAll());
-        
+
       }
       catch (IOException ex)
       {
         log.error(null, ex);
-        new Alert(Alert.AlertType.ERROR, "Could not parse file: " + ex.getMessage(), ButtonType.OK).showAndWait();
-        
+        new Alert(Alert.AlertType.ERROR, "Could not parse file: " + ex.
+          getMessage(), ButtonType.OK).showAndWait();
+
       }
     }
   }
-  
+
 }
