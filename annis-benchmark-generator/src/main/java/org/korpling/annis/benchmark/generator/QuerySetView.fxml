@@ -12,6 +12,7 @@
          <children>
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
             <TextField fx:id="corpusFilter" prefHeight="26.0" prefWidth="241.0" promptText="Corpus filter" />
+            <CheckBox fx:id="oneCorpusFilter" mnemonicParsing="false" text="only one corpus" />
          </children>
       </HBox>
  

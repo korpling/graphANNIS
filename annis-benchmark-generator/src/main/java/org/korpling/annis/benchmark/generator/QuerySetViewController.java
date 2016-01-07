@@ -23,6 +23,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.ResourceBundle;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -35,6 +36,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -81,6 +83,9 @@ public class QuerySetViewController implements Initializable
 
   @FXML
   private TextField corpusFilter;
+
+  @FXML
+  private CheckBox oneCorpusFilter;
 
   private final ObservableList<Query> queries = FXCollections.
     observableArrayList();
@@ -137,24 +142,40 @@ public class QuerySetViewController implements Initializable
 
     sortedQueries.comparatorProperty().bind(tableView.comparatorProperty());
 
-    corpusFilter.textProperty().addListener(
-      (ObservableValue<? extends String> observable, String oldValue, String newValue)
+    corpusFilter.textProperty().addListener(observable -> {setFilterPredicate(filteredQueries);});
+    oneCorpusFilter.selectedProperty().addListener(observable -> {setFilterPredicate(filteredQueries);});
+    tableView.setItems(sortedQueries);
+  }
+  
+  private void setFilterPredicate(FilteredList<Query> filteredQueries)
+  {
+    if(filteredQueries != null)
+    {
+      filteredQueries.setPredicate(query
       -> 
       {
-        filteredQueries.setPredicate(query
-          -> 
-          {
-            if (newValue == null || newValue.isEmpty())
-            {
-              return true;
-            }
-            
-            return query != null && query.getCorpora() != null && query.
-              getCorpora().contains(newValue);
-        });
-    });
 
-    tableView.setItems(sortedQueries);
+        String corpusFilterText = corpusFilter.textProperty().get();
+        boolean allowSingleCorpusOnly = oneCorpusFilter.selectedProperty().get();
+
+
+        if (query.getCorpora().size() > 1 && allowSingleCorpusOnly)
+        {
+          return false;
+        }
+
+        if (corpusFilterText != null && !corpusFilterText.isEmpty())
+        {
+          if (!query.getCorpora().contains(corpusFilterText))
+          {
+            return false;
+          }
+        }
+        
+        return true;
+
+    });
+    }
   }
 
   @FXML
