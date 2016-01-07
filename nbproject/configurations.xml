@@ -234,9 +234,9 @@
       <in>dynamicbenchmark.h</in>
       <in>tuebadz.cpp</in>
     </df>
-    <df root="benchmarks" name="4">
+    <df root="benchmarks" name="1">
     </df>
-    <df root="src/lib" name="1">
+    <df root="src/lib" name="2">
       <df name="graphstorage">
         <in>adjacencyliststorage.cpp</in>
         <in>linearstorage.cpp</in>
@@ -273,15 +273,15 @@
       <in>stringstorage.cpp</in>
       <in>wrapper.cpp</in>
     </df>
-    <df root="src/lib" name="5">
+    <df root="src/lib" name="3">
     </df>
-    <df root="src/runner" name="2">
+    <df root="src/runner" name="4">
       <in>linenoise.c</in>
       <in>main.cpp</in>
     </df>
-    <df root="src/runner" name="6">
+    <df root="src/runner" name="5">
     </df>
-    <df root="tests" name="3">
+    <df root="tests" name="6">
     </df>
     <df root="tests" name="7">
     </df>

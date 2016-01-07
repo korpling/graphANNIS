@@ -27,7 +27,7 @@ import javafx.stage.Stage;
  *
  * @author Thomas Krause <thomaskrause@posteo.de>
  */
-public class SingleQueryMain extends Application
+public class Main extends Application
 {
 
   @Override
@@ -39,13 +39,13 @@ public class SingleQueryMain extends Application
       new Image(getClass().getResourceAsStream("icon64.png")),
       new Image(getClass().getResourceAsStream("icon32.png")));
 
-    FXMLLoader loader = new FXMLLoader(QueryConverterController.class.
+    FXMLLoader loader = new FXMLLoader(MainController.class.
       getResource(
-        "QueryConverter.fxml"));
+        "Main.fxml"));
     Parent root = loader.load();
 
     Scene scene = new Scene(root);
-    QueryConverterController controller = loader.getController();
+    MainController controller = loader.getController();
     controller.initializeAccelerators(scene);
 
     primaryStage.setTitle("AQL Benchmark Generator");

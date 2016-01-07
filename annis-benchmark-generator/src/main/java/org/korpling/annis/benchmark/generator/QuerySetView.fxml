@@ -7,20 +7,22 @@
 <?import javafx.scene.layout.*?>
 
 
-<VBox fx:id="root" prefHeight="518.0" prefWidth="951.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
+<VBox fx:id="root" prefHeight="272.0" prefWidth="745.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
    <children>
       <HBox prefHeight="100.0" prefWidth="200.0">
          <children>
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
          </children>
       </HBox>
-      <TableView fx:id="tableView" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
+ 
+            <TableView fx:id="tableView" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
         <columns>
-          <TableColumn fx:id="aqlColumn" prefWidth="597.0" text="AQL" />
-          <TableColumn fx:id="corpusColumn" prefWidth="69.0" text="corpus" />
-            <TableColumn fx:id="execTimeColumn" prefWidth="142.0" text="exec. time (ms)" />
-            <TableColumn fx:id="nrResultsColumn" minWidth="0.0" prefWidth="142.0" text="# results" />
+          <TableColumn fx:id="aqlColumn" prefWidth="342.0" text="AQL" />
+          <TableColumn fx:id="corpusColumn" prefWidth="82.0" text="corpus" />
+            <TableColumn fx:id="execTimeColumn" prefWidth="205.0" text="exec. time (ms)" />
+            <TableColumn fx:id="nrResultsColumn" minWidth="0.0" prefWidth="97.0" text="# results" />
         </columns>
       </TableView>
-   </children>
+
+         </children>
 </VBox>
