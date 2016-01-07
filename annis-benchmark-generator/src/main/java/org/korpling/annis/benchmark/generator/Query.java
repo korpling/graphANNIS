@@ -26,7 +26,7 @@ import java.util.Set;
  */
 public class Query
 {
-
+  
   private String aql;
 
   private Set<String> corpora = new LinkedHashSet<>();
@@ -34,7 +34,7 @@ public class Query
   private Optional<Long> count = Optional.empty();
 
   private Optional<Long> executionTime = Optional.empty();
-
+  
   public String getAql()
   {
     return aql;
@@ -80,11 +80,11 @@ public class Query
   @Override
   public int hashCode()
   {
-    int hash = 5;
-    hash = 67 * hash + Objects.hashCode(this.aql);
-    hash = 67 * hash + Objects.hashCode(this.corpora);
-    hash = 67 * hash + Objects.hashCode(this.count);
-    hash = 67 * hash + Objects.hashCode(this.executionTime);
+    int hash = 7;
+    hash = 89 * hash + Objects.hashCode(this.aql);
+    hash = 89 * hash + Objects.hashCode(this.corpora);
+    hash = 89 * hash + Objects.hashCode(this.count);
+    hash = 89 * hash + Objects.hashCode(this.executionTime);
     return hash;
   }
 
@@ -122,11 +122,5 @@ public class Query
     }
     return true;
   }
-
-  
-
-  
-
-  
 
 }

@@ -15,13 +15,18 @@
  */
 package org.korpling.annis.benchmark.generator;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.io.LineProcessor;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,7 +37,7 @@ import java.util.regex.Pattern;
 public class QueryLogParser implements LineProcessor<List<Query>>
 {
 
-  private final List<Query> queries = new ArrayList<>();
+  private final Collection<Query> queries;
 
   private StringBuilder currentAQL;
 
@@ -45,6 +50,27 @@ public class QueryLogParser implements LineProcessor<List<Query>>
   private static final Pattern INCOMPLETE_END = Pattern.compile(
     "^(?<query>.*), corpus: \\[(?<corpus>[^\\]]+)\\], runtime: (?<time>[0-9]+) ms$");
 
+  public QueryLogParser()
+  {
+    this(true);
+  }
+  public QueryLogParser(boolean uniqueOnly)
+  {
+    if(uniqueOnly)
+    {
+      Joiner j = Joiner.on(",");
+      queries = new TreeSet<>((Query q1, Query q2) ->
+      {
+        return ComparisonChain.start().compare(q1.getAql(), q2.getAql())
+          .compare(j.join(q1.getCorpora()), j.join(q2.getCorpora())).result();
+      });
+    }
+    else
+    {
+      queries = new LinkedList<>();
+    }
+  }
+  
   @Override
   public boolean processLine(String line) throws IOException
   {
@@ -60,6 +86,7 @@ public class QueryLogParser implements LineProcessor<List<Query>>
           trimResults().splitToList(
             mComplete.group("corpus"))));
         q.setExecutionTime(Optional.of(Long.parseLong(mComplete.group("time"))));
+        
         queries.add(q);
       }
       else if (mStart.matches())
@@ -82,6 +109,7 @@ public class QueryLogParser implements LineProcessor<List<Query>>
           trimResults().splitToList(
             mEnd.group("corpus"))));
         q.setExecutionTime(Optional.of(Long.parseLong(mEnd.group("time"))));
+
         queries.add(q);
         
         currentAQL = null;
@@ -97,7 +125,7 @@ public class QueryLogParser implements LineProcessor<List<Query>>
   @Override
   public List<Query> getResult()
   {
-    return queries;
+    return new ArrayList<>(queries);
   }
 
 }

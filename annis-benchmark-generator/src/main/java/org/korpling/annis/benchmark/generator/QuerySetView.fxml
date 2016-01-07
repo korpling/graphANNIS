@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.*?>
 <?import java.lang.*?>
 <?import java.util.*?>
 <?import javafx.scene.*?>
@@ -8,11 +9,12 @@
 
 <VBox fx:id="root" prefHeight="272.0" prefWidth="745.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
    <children>
-      <HBox VBox.vgrow="NEVER">
+      <HBox spacing="10.0" VBox.vgrow="NEVER">
          <children>
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
             <TextField fx:id="corpusFilter" prefHeight="26.0" prefWidth="241.0" promptText="Corpus filter" />
-            <CheckBox fx:id="oneCorpusFilter" mnemonicParsing="false" text="only one corpus" />
+            <CheckBox fx:id="oneCorpusFilter" mnemonicParsing="false" prefHeight="26.0" prefWidth="128.0" text="only one corpus" />
+            <Button mnemonicParsing="false" onAction="#export" text="Export" />
          </children>
       </HBox>
       <HBox VBox.vgrow="NEVER">
@@ -24,7 +26,8 @@
  
             <TableView fx:id="tableView" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
         <columns>
-          <TableColumn fx:id="aqlColumn" prefWidth="342.0" text="AQL" />
+            <TableColumn fx:id="nameColumn" prefWidth="31.0" />
+          <TableColumn fx:id="aqlColumn" prefWidth="386.0" text="AQL" />
           <TableColumn fx:id="corpusColumn" prefWidth="82.0" text="corpus" />
             <TableColumn fx:id="execTimeColumn" prefWidth="205.0" text="exec. time (ms)" />
             <TableColumn fx:id="nrResultsColumn" minWidth="0.0" prefWidth="97.0" text="# results" />

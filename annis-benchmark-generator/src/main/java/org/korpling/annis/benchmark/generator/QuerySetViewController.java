@@ -23,6 +23,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.ResourceBundle;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener.Change;
@@ -43,6 +44,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.text.Text;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,13 +63,18 @@ public class QuerySetViewController implements Initializable
   @FXML
   private Parent root;
 
-  private FileChooser chooser = new FileChooser();
-
-  private FileChooser.ExtensionFilter logFilter = new FileChooser.ExtensionFilter(
+  private final FileChooser fileChooser = new FileChooser();
+  private final DirectoryChooser dirChooser = new DirectoryChooser();
+  
+  private final FileChooser.ExtensionFilter logFilter = new FileChooser.ExtensionFilter(
     "Query log (*.log)", "*.log");
+  
 
   @FXML
   private TableView<Query> tableView;
+
+  @FXML
+  private TableColumn<Query, String> nameColumn;
 
   @FXML
   private TableColumn<Query, String> aqlColumn;
@@ -86,10 +93,10 @@ public class QuerySetViewController implements Initializable
 
   @FXML
   private CheckBox oneCorpusFilter;
-  
+
   @FXML
   private Label counterLabel;
-  
+
   private final ObservableList<Query> queries = FXCollections.
     observableArrayList();
 
@@ -99,6 +106,25 @@ public class QuerySetViewController implements Initializable
   @Override
   public void initialize(URL url, ResourceBundle rb)
   {
+
+    nameColumn.setCellValueFactory(val -> new ReadOnlyObjectWrapper<>(""));
+    nameColumn.setCellFactory(param -> new TableCell<Query, String>()
+    {
+      @Override
+      protected void updateItem(String item, boolean empty)
+      {
+        super.updateItem(item, empty);
+        if(this.getTableRow() != null && item != null)
+        {
+          setText("" + this.getTableRow().getIndex());
+        }
+        else
+        {
+          setText("");
+        }
+      }
+    }
+    );
 
     aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));
     corpusColumn.setCellValueFactory(new PropertyValueFactory<>("corpus"));
@@ -145,64 +171,77 @@ public class QuerySetViewController implements Initializable
 
     sortedQueries.comparatorProperty().bind(tableView.comparatorProperty());
 
-    corpusFilter.textProperty().addListener(observable -> {setFilterPredicate(filteredQueries);});
-    oneCorpusFilter.selectedProperty().addListener(observable -> {setFilterPredicate(filteredQueries);});
-    tableView.setItems(sortedQueries);
-    
-    filteredQueries.addListener((Change<? extends Query> change) -> {counterLabel.textProperty().set("" +filteredQueries.size());});
-  }
-  
-  private void setFilterPredicate(FilteredList<Query> filteredQueries)
-  {
-    if(filteredQueries != null)
-    {
-      filteredQueries.setPredicate(query
+    corpusFilter.textProperty().addListener(observable
       -> 
       {
+        setFilterPredicate(filteredQueries);
+    });
+    oneCorpusFilter.selectedProperty().addListener(observable
+      -> 
+      {
+        setFilterPredicate(filteredQueries);
+    });
+    tableView.setItems(sortedQueries);
 
-        String corpusFilterText = corpusFilter.textProperty().get();
-        boolean allowSingleCorpusOnly = oneCorpusFilter.selectedProperty().get();
+    filteredQueries.addListener((Change<? extends Query> change)
+      -> 
+      {
+        counterLabel.textProperty().set("" + filteredQueries.size());
+    });
+  }
 
-
-        if (query.getCorpora().size() > 1 && allowSingleCorpusOnly)
+  private void setFilterPredicate(FilteredList<Query> filteredQueries)
+  {
+    if (filteredQueries != null)
+    {
+      filteredQueries.setPredicate(query
+        -> 
         {
-          return false;
-        }
 
-        if (corpusFilterText != null && !corpusFilterText.isEmpty())
-        {
-          if (!query.getCorpora().contains(corpusFilterText))
+          String corpusFilterText = corpusFilter.textProperty().get();
+          boolean allowSingleCorpusOnly = oneCorpusFilter.selectedProperty().
+            get();
+
+          if (query.getCorpora().size() > 1 && allowSingleCorpusOnly)
           {
             return false;
           }
-        }
-        
-        return true;
 
-    });
+          if (corpusFilterText != null && !corpusFilterText.isEmpty())
+          {
+            if (!query.getCorpora().contains(corpusFilterText))
+            {
+              return false;
+            }
+          }
+
+          return true;
+
+      });
     }
   }
-  
+
   @FXML
   public void filterByCorpusOfQuery(ActionEvent evt)
   {
     Query q = tableView.getSelectionModel().getSelectedItem();
-    if(q != null && !q.getCorpora().isEmpty())
+    if (q != null && !q.getCorpora().isEmpty())
     {
       evt.consume();
       oneCorpusFilter.selectedProperty().set(true);
       corpusFilter.textProperty().set(q.getCorpora().iterator().next());
     }
   }
-  
+
   @FXML
   public void loadQueryLog(ActionEvent evt)
   {
-    chooser.setTitle("Open Query Log");
-    chooser.getExtensionFilters().add(logFilter);
-    chooser.setSelectedExtensionFilter(logFilter);
+    fileChooser.setTitle("Open Query Log");
+    fileChooser.getExtensionFilters().clear();
+    fileChooser.getExtensionFilters().add(logFilter);
+    fileChooser.setSelectedExtensionFilter(logFilter);
 
-    File selectedFile = chooser.showOpenDialog(root.getScene().getWindow());
+    File selectedFile = fileChooser.showOpenDialog(root.getScene().getWindow());
     if (selectedFile != null)
     {
       try
@@ -222,6 +261,18 @@ public class QuerySetViewController implements Initializable
           getMessage(), ButtonType.OK).showAndWait();
 
       }
+    }
+  }
+  
+  @FXML
+  public void export(ActionEvent evt)
+  {
+    dirChooser.setTitle("Set export directory");
+    
+    File dir = dirChooser.showDialog(root.getScene().getWindow());
+    if(dir != null)
+    {
+      
     }
   }
 
