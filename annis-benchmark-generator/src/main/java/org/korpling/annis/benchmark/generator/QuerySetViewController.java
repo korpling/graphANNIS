@@ -15,12 +15,16 @@
  */
 package org.korpling.annis.benchmark.generator;
 
+import annis.ql.parser.AnnisParserAntlr;
+import annis.ql.parser.QueryData;
+import annis.ql.parser.SemanticValidator;
 import com.google.common.base.Joiner;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -35,6 +39,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -99,6 +104,8 @@ public class QuerySetViewController implements Initializable
 
   private final ObservableList<Query> queries = FXCollections.
     observableArrayList();
+  
+  private AnnisParserAntlr parser;
 
   /**
    * Initializes the controller class.
@@ -106,6 +113,9 @@ public class QuerySetViewController implements Initializable
   @Override
   public void initialize(URL url, ResourceBundle rb)
   {
+    parser = new AnnisParserAntlr();
+    parser.setPrecedenceBound(50);
+    parser.setPostProcessors(Arrays.asList(new SemanticValidator()));  
 
     nameColumn.setCellValueFactory(val -> new ReadOnlyObjectWrapper<>(""));
     nameColumn.setCellFactory(param -> new TableCell<Query, String>()
@@ -272,7 +282,36 @@ public class QuerySetViewController implements Initializable
     File dir = dirChooser.showDialog(root.getScene().getWindow());
     if(dir != null)
     {
-      
+      int errorCounter = 0;
+      int i =0;
+      for(Query q : tableView.getItems())
+      {
+        String name = "" + i++;
+        File fAQL = new File(dir, name + ".aql");
+        File fJSON = new File(dir, name + ".json");
+        
+        try
+        {
+          QueryData queryData = parser.parse(q.getAql(), null);
+          String asJSON = QueryToJSON.serializeQuery(queryData);
+          
+          Files.write(q.getAql(), fAQL, StandardCharsets.UTF_8);
+          Files.write(asJSON, fJSON, StandardCharsets.UTF_8);
+        }
+        catch (Exception ex)
+        {
+          log.error("not exported: " + q.getAql(), ex);
+          errorCounter++;
+        }
+      }
+      if(errorCounter == 0)
+      {
+        new Alert(AlertType.INFORMATION, "All queries exported successfully", ButtonType.OK).showAndWait();
+      }
+      else
+      {
+        new Alert(AlertType.ERROR, "" + errorCounter + " had errors", ButtonType.OK).showAndWait();
+      }
     }
   }
 
