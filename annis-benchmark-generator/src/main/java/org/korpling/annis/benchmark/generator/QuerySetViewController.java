@@ -16,12 +16,19 @@
 package org.korpling.annis.benchmark.generator;
 
 import com.google.common.io.Files;
+import com.sun.javafx.collections.SortableList;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.ResourceBundle;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -62,18 +69,21 @@ public class QuerySetViewController implements Initializable
 
   @FXML
   private TableColumn<Query, String> aqlColumn;
-  
+
   @FXML
   private TableColumn<Query, String> corpusColumn;
-  
+
   @FXML
   private TableColumn<Query, Long> execTimeColumn;
-  
+
   @FXML
   private TableColumn<Query, Long> nrResultsColumn;
-  
+
   @FXML
   private TextField corpusFilter;
+
+  private final ObservableList<Query> queries = FXCollections.
+    observableArrayList();
 
   /**
    * Initializes the controller class.
@@ -84,16 +94,14 @@ public class QuerySetViewController implements Initializable
 
     aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));
     corpusColumn.setCellValueFactory(new PropertyValueFactory<>("corpus"));
-    
-    execTimeColumn.setCellValueFactory((TableColumn.CellDataFeatures<Query, Long> param) -> new SimpleObjectProperty<>(
-        param.getValue().getExecutionTime().orElse(-1l)));
-    
-    nrResultsColumn.setCellValueFactory((TableColumn.CellDataFeatures<Query, Long> param) -> new SimpleObjectProperty<>(
-        param.getValue().getCount().orElse(-1l)));
 
-    
+    execTimeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(
+      param.getValue().getExecutionTime().orElse(-1l)));
 
-    aqlColumn.setCellFactory((TableColumn<Query, String> param)
+    nrResultsColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(
+      param.getValue().getCount().orElse(-1l)));
+
+    aqlColumn.setCellFactory(param
       -> 
       {
         final TableCell cell = new TableCell()
@@ -104,7 +112,11 @@ public class QuerySetViewController implements Initializable
           public void updateItem(Object item, boolean empty)
           {
             super.updateItem(item, empty);
-            if (!isEmpty())
+            if (isEmpty())
+            {
+              setGraphic(null);
+            }
+            else
             {
               text = new Text(item.toString());
               text.wrappingWidthProperty().bind(widthProperty());
@@ -115,6 +127,25 @@ public class QuerySetViewController implements Initializable
         return cell;
 
     });
+
+    FilteredList<Query> filteredQueries = new FilteredList<>(queries, p -> true);
+    SortedList<Query> sortedQueries = new SortedList<>(filteredQueries);
+
+    sortedQueries.comparatorProperty().bind(tableView.comparatorProperty());
+
+    corpusFilter.textProperty().addListener(
+      (ObservableValue<? extends String> observable, String oldValue, String newValue)
+      -> 
+      {
+        filteredQueries.setPredicate(query
+          -> 
+          {
+            return query != null && query.getCorpus() != null && query.
+              getCorpus().toLowerCase().contains(newValue.toLowerCase());
+        });
+    });
+
+    tableView.setItems(sortedQueries);
   }
 
   @FXML
@@ -129,11 +160,12 @@ public class QuerySetViewController implements Initializable
     {
       try
       {
-        QuerySet queries = Files.readLines(selectedFile, StandardCharsets.UTF_8,
+        List<Query> parsedQueries = Files.readLines(selectedFile,
+          StandardCharsets.UTF_8,
           new QueryLogParser());
-        
-        tableView.itemsProperty().get().clear();
-        tableView.itemsProperty().get().addAll(queries.getAll());
+
+        queries.clear();
+        queries.addAll(parsedQueries);
 
       }
       catch (IOException ex)

@@ -17,6 +17,8 @@ package org.korpling.annis.benchmark.generator;
 
 import com.google.common.io.LineProcessor;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,10 +27,10 @@ import java.util.regex.Pattern;
  *
  * @author thomas
  */
-public class QueryLogParser implements LineProcessor<QuerySet>
+public class QueryLogParser implements LineProcessor<List<Query>>
 {
 
-  private final QuerySet queries = new QuerySet();
+  private final List<Query> queries = new ArrayList<>();
 
   private StringBuilder currentAQL;
 
@@ -87,7 +89,7 @@ public class QueryLogParser implements LineProcessor<QuerySet>
   }
 
   @Override
-  public QuerySet getResult()
+  public List<Query> getResult()
   {
     return queries;
   }
