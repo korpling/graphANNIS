@@ -31,6 +31,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
@@ -70,6 +71,9 @@ public class QuerySetViewController implements Initializable
   
   @FXML
   private TableColumn<Query, Long> nrResultsColumn;
+  
+  @FXML
+  private TextField corpusFilter;
 
   /**
    * Initializes the controller class.
@@ -127,9 +131,7 @@ public class QuerySetViewController implements Initializable
       {
         QuerySet queries = Files.readLines(selectedFile, StandardCharsets.UTF_8,
           new QueryLogParser());
-        new Alert(Alert.AlertType.INFORMATION,
-          "Found " + queries.size() + " queries.", ButtonType.OK).showAndWait();
-
+        
         tableView.itemsProperty().get().clear();
         tableView.itemsProperty().get().addAll(queries.getAll());
 

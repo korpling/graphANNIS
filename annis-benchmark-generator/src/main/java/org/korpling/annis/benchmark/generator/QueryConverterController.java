@@ -26,12 +26,10 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,12 +63,17 @@ public class QueryConverterController implements Initializable
     parser = new AnnisParserAntlr();
     parser.setPrecedenceBound(50);
     parser.setPostProcessors(Arrays.asList(new SemanticValidator()));    
+   
+    
   }
   
-  public void initializeAccelerators(Scene scene)
+  @FXML
+  private void aqlKeyTyped(KeyEvent evt)
   {
-    scene.getAccelerators().put(new KeyCodeCombination(KeyCode.ENTER, KeyCombination.CONTROL_DOWN),
-      () -> {convert();});
+    if(evt.getCode() == KeyCode.ENTER && evt.isControlDown()) {
+      evt.consume();
+      convert();
+    }
   }
 
   @FXML
