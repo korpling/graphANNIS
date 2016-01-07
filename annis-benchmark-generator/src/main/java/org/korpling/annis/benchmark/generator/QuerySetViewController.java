@@ -31,6 +31,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import org.slf4j.Logger;
@@ -60,6 +61,15 @@ public class QuerySetViewController implements Initializable
 
   @FXML
   private TableColumn<Query, String> aqlColumn;
+  
+  @FXML
+  private TableColumn<Query, String> corpusColumn;
+  
+  @FXML
+  private TableColumn<Query, Long> execTimeColumn;
+  
+  @FXML
+  private TableColumn<Query, Long> nrResultsColumn;
 
   /**
    * Initializes the controller class.
@@ -68,9 +78,16 @@ public class QuerySetViewController implements Initializable
   public void initialize(URL url, ResourceBundle rb)
   {
 
-    aqlColumn.setCellValueFactory(
-      (TableColumn.CellDataFeatures<Query, String> param) -> new SimpleObjectProperty<>(
-        param.getValue().getAql()));
+    aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));
+    corpusColumn.setCellValueFactory(new PropertyValueFactory<>("corpus"));
+    
+    execTimeColumn.setCellValueFactory((TableColumn.CellDataFeatures<Query, Long> param) -> new SimpleObjectProperty<>(
+        param.getValue().getExecutionTime().orElse(-1l)));
+    
+    nrResultsColumn.setCellValueFactory((TableColumn.CellDataFeatures<Query, Long> param) -> new SimpleObjectProperty<>(
+        param.getValue().getCount().orElse(-1l)));
+
+    
 
     aqlColumn.setCellFactory((TableColumn<Query, String> param)
       -> 

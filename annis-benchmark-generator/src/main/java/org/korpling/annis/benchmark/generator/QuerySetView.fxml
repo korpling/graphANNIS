@@ -17,9 +17,9 @@
       <TableView fx:id="tableView" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
         <columns>
           <TableColumn fx:id="aqlColumn" prefWidth="597.0" text="AQL" />
-          <TableColumn prefWidth="69.0" text="corpus" />
-            <TableColumn prefWidth="142.0" text="exec. time (ms)" />
-            <TableColumn minWidth="0.0" prefWidth="142.0" text="# results" />
+          <TableColumn fx:id="corpusColumn" prefWidth="69.0" text="corpus" />
+            <TableColumn fx:id="execTimeColumn" prefWidth="142.0" text="exec. time (ms)" />
+            <TableColumn fx:id="nrResultsColumn" minWidth="0.0" prefWidth="142.0" text="# results" />
         </columns>
       </TableView>
    </children>
