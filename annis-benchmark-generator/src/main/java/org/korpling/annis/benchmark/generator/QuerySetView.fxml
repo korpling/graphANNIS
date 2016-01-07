@@ -8,11 +8,17 @@
 
 <VBox fx:id="root" prefHeight="272.0" prefWidth="745.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
    <children>
-      <HBox prefHeight="100.0" prefWidth="200.0">
+      <HBox VBox.vgrow="NEVER">
          <children>
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
             <TextField fx:id="corpusFilter" prefHeight="26.0" prefWidth="241.0" promptText="Corpus filter" />
             <CheckBox fx:id="oneCorpusFilter" mnemonicParsing="false" text="only one corpus" />
+         </children>
+      </HBox>
+      <HBox VBox.vgrow="NEVER">
+         <children>
+            <Label text="Number of queries: " />
+            <Label fx:id="counterLabel" text="0" />
          </children>
       </HBox>
  

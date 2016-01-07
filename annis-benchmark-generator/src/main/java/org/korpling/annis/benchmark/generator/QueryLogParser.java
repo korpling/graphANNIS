@@ -43,7 +43,7 @@ public class QueryLogParser implements LineProcessor<List<Query>>
     "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9](.*)function: COUNT, query: (?<query>.*)$");
 
   private static final Pattern INCOMPLETE_END = Pattern.compile(
-    "(?<query>.*)corpus: \\[(?<corpus>[^\\]]+)\\], runtime: (?<time>[0-9]+) ms$");
+    "^(?<query>.*), corpus: \\[(?<corpus>[^\\]]+)\\], runtime: (?<time>[0-9]+) ms$");
 
   @Override
   public boolean processLine(String line) throws IOException

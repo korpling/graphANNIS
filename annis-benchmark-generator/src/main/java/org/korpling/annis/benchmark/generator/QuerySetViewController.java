@@ -23,10 +23,9 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.ResourceBundle;
-import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -37,7 +36,7 @@ import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -45,7 +44,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
-import javax.xml.bind.ValidationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,6 +86,9 @@ public class QuerySetViewController implements Initializable
 
   @FXML
   private CheckBox oneCorpusFilter;
+  
+  @FXML
+  private Label counterLabel;
   
   private final ObservableList<Query> queries = FXCollections.
     observableArrayList();
@@ -147,6 +148,8 @@ public class QuerySetViewController implements Initializable
     corpusFilter.textProperty().addListener(observable -> {setFilterPredicate(filteredQueries);});
     oneCorpusFilter.selectedProperty().addListener(observable -> {setFilterPredicate(filteredQueries);});
     tableView.setItems(sortedQueries);
+    
+    filteredQueries.addListener((Change<? extends Query> change) -> {counterLabel.textProperty().set("" +filteredQueries.size());});
   }
   
   private void setFilterPredicate(FilteredList<Query> filteredQueries)
