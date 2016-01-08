@@ -54,7 +54,7 @@ private:
 
     std::string valRegex;
     RE2 compiledValRegex;
-    Annotation annoTemplate;
+    std::vector<Annotation> annoTemplates;
 
     std::list<Range> searchRanges;
     std::list<Range>::const_iterator currentRange;

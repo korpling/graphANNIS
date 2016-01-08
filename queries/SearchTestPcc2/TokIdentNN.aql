@@ -1,1 +1,1 @@
-tok=/A.*/ & tiger:pos=/NN/ & #1 _=_ #2
+tok=/A.*/ & pos=/NN/ & #1 _=_ #2

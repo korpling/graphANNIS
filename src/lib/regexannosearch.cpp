@@ -8,22 +8,14 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
   : db(db),
     validAnnotationsInitialized(false), valRegex(valRegex),
     compiledValRegex(valRegex),
-    annoTemplate(Init::initAnnotation()),
     currentMatchValid(false)
 {
   std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
-  if(nameID.first)
-  {
-    annoTemplate.name = nameID.second;
-  }
   std::pair<bool, std::uint32_t> namespaceID = db.strings.findID(ns);
-  if(namespaceID.first)
-  {
-    annoTemplate.ns = namespaceID.second;
-  }
-
   if(nameID.first && namespaceID.first)
   {
+    annoTemplates.push_back({nameID.second, namespaceID.second, 0});
+    
     auto lower = db.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
     auto upper = db.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
     searchRanges.push_back(Range(lower, upper));
@@ -41,7 +33,6 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
   : db(db),
     validAnnotationsInitialized(false), valRegex(valRegex),
     compiledValRegex(valRegex),
-    annoTemplate(Init::initAnnotation()),
     currentMatchValid(false)
 {
   if(compiledValRegex.ok())
@@ -49,12 +40,12 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
     std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
     if(nameID.first)
     {
-      annoTemplate.name = nameID.second;
-
       auto keysLower = db.nodeAnnoKeys.lower_bound({nameID.second, 0});
       auto keysUpper = db.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
       for(auto itKey = keysLower; itKey != keysUpper; itKey++)
       {
+        annoTemplates.push_back({itKey->name, itKey->ns, 0});
+        
         auto lowerAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, 0});
         auto upperAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, uintmax});
         searchRanges.push_back(Range(lowerAnno, upperAnno));
@@ -100,9 +91,11 @@ void RegexAnnoSearch::initValidAnnotations()
   auto matchedStrings = db.strings.findRegex(valRegex);
   for(const auto& id : matchedStrings)
   {
-    Annotation annoCopy = annoTemplate;
-    annoCopy.val = id;
-    validAnnotations.insert(annoCopy);
+    for(auto annoCopy : annoTemplates)
+    {
+      annoCopy.val = id;
+      validAnnotations.insert(annoCopy);
+    }
   }
 
   validAnnotationsInitialized = true;
