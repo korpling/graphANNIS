@@ -9,6 +9,8 @@
 #define IDENTICALCOVERAGE_H
 
 #include "../operator.h"
+#include <db.h>
+#include "helper.h"
 
 namespace annis
 {
@@ -16,7 +18,7 @@ namespace annis
 class IdenticalCoverage : public Operator
 {
 public:
-  IdenticalCoverage();
+  IdenticalCoverage(const DB &db);
   IdenticalCoverage(const IdenticalCoverage& orig) = delete;
   
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs);
@@ -25,6 +27,14 @@ public:
   
   virtual ~IdenticalCoverage();
 private:
+  
+  const DB &db;
+  TokenHelper tokHelper;
+  const ReadableGraphStorage* gsOrder;
+  const ReadableGraphStorage* gsLeftToken;
+  const ReadableGraphStorage* gsRightToken;
+  
+  Annotation anyNodeAnno;
 
 };
 
