@@ -20,6 +20,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.io.LineProcessor;
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -54,15 +55,17 @@ public class QueryLogParser implements LineProcessor<List<Query>>
   {
     this(true);
   }
+
   public QueryLogParser(boolean uniqueOnly)
   {
-    if(uniqueOnly)
+    if (uniqueOnly)
     {
       Joiner j = Joiner.on(",");
-      queries = new TreeSet<>((Query q1, Query q2) ->
-      {
-        return ComparisonChain.start().compare(q1.getAql(), q2.getAql())
-          .compare(j.join(q1.getCorpora()), j.join(q2.getCorpora())).result();
+      queries = new TreeSet<>((Query q1, Query q2)
+        -> 
+        {
+          return ComparisonChain.start().compare(q1.getAql(), q2.getAql())
+            .compare(j.join(q1.getCorpora()), j.join(q2.getCorpora())).result();
       });
     }
     else
@@ -70,7 +73,21 @@ public class QueryLogParser implements LineProcessor<List<Query>>
       queries = new LinkedList<>();
     }
   }
-  
+
+  private void addQuery(String aql, String corpora, String time)
+  {
+    Query q = new Query();
+    q.setAql(aql);
+    q.setCorpora(new LinkedHashSet<>(Splitter.on(',').omitEmptyStrings().
+      trimResults().splitToList(corpora)));
+    q.setExecutionTime(Optional.of(Long.parseLong(time)));
+
+    
+    q.setName(String.format("%05d",queries.size()));
+    
+    queries.add(q);
+  }
+
   @Override
   public boolean processLine(String line) throws IOException
   {
@@ -80,14 +97,7 @@ public class QueryLogParser implements LineProcessor<List<Query>>
       Matcher mStart = INCOMPLETE_START.matcher(line);
       if (mComplete.matches())
       {
-        Query q = new Query();
-        q.setAql(mComplete.group("query"));
-        q.setCorpora(new LinkedHashSet<>(Splitter.on(',').omitEmptyStrings().
-          trimResults().splitToList(
-            mComplete.group("corpus"))));
-        q.setExecutionTime(Optional.of(Long.parseLong(mComplete.group("time"))));
-        
-        queries.add(q);
+        addQuery(mComplete.group("query"), mComplete.group("corpus"), mComplete.group("time"));
       }
       else if (mStart.matches())
       {
@@ -103,15 +113,8 @@ public class QueryLogParser implements LineProcessor<List<Query>>
       {
         // query is finished
         currentAQL.append(mEnd.group("query"));
-        Query q = new Query();
-        q.setAql(currentAQL.toString());
-        q.setCorpora(new LinkedHashSet<>(Splitter.on(',').omitEmptyStrings().
-          trimResults().splitToList(
-            mEnd.group("corpus"))));
-        q.setExecutionTime(Optional.of(Long.parseLong(mEnd.group("time"))));
-
-        queries.add(q);
         
+        addQuery(currentAQL.toString(), mEnd.group("corpus"), mEnd.group("time"));
         currentAQL = null;
       }
       else

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.ResourceBundle;
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -126,24 +127,7 @@ public class QuerySetViewController implements Initializable
     parser.setPrecedenceBound(50);
     parser.setPostProcessors(Arrays.asList(new SemanticValidator()));  
 
-    nameColumn.setCellValueFactory(val -> new ReadOnlyObjectWrapper<>(""));
-    nameColumn.setCellFactory(param -> new TableCell<Query, String>()
-    {
-      @Override
-      protected void updateItem(String item, boolean empty)
-      {
-        super.updateItem(item, empty);
-        if(this.getTableRow() != null && item != null)
-        {
-          setText("" + this.getTableRow().getIndex());
-        }
-        else
-        {
-          setText("");
-        }
-      }
-    }
-    );
+    nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
 
     aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));
     corpusColumn.setCellValueFactory(new PropertyValueFactory<>("corpus"));
@@ -318,10 +302,9 @@ public class QuerySetViewController implements Initializable
     if(dir != null)
     {
       int errorCounter = 0;
-      int i =1;
       for(Query q : tableView.getItems())
       {
-        String name = "" + i++;
+        String name = q.getName();
         File fAQL = new File(dir, name + ".aql");
         File fJSON = new File(dir, name + ".json");
         

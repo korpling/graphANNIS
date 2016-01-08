@@ -32,8 +32,8 @@
  
             <TableView fx:id="tableView" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
         <columns>
-            <TableColumn fx:id="nameColumn" prefWidth="31.0" />
-          <TableColumn fx:id="aqlColumn" prefWidth="328.0" text="AQL" />
+            <TableColumn fx:id="nameColumn" prefWidth="72.0" text="name" />
+          <TableColumn fx:id="aqlColumn" prefWidth="287.0" text="AQL" />
           <TableColumn fx:id="corpusColumn" prefWidth="175.0" text="corpus" />
             <TableColumn fx:id="execTimeColumn" prefWidth="125.0" text="exec. time (ms)" />
             <TableColumn fx:id="validColumn" prefWidth="72.0" text="valid" />

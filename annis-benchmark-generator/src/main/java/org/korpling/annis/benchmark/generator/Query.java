@@ -27,6 +27,8 @@ import java.util.Set;
 public class Query
 {
   
+  private String name;
+  
   private String aql;
 
   private Set<String> corpora = new LinkedHashSet<>();
@@ -90,15 +92,26 @@ public class Query
     this.executionTime = executionTime == null ? Optional.empty() : executionTime;
   }
 
+  public String getName()
+  {
+    return name;
+  }
+
+  public void setName(String name)
+  {
+    this.name = name;
+  }
+
   @Override
   public int hashCode()
   {
     int hash = 7;
-    hash = 53 * hash + Objects.hashCode(this.aql);
-    hash = 53 * hash + Objects.hashCode(this.corpora);
-    hash = 53 * hash + Objects.hashCode(this.count);
-    hash = 53 * hash + Objects.hashCode(this.executionTime);
-    hash = 53 * hash + Objects.hashCode(this.json);
+    hash = 37 * hash + Objects.hashCode(this.name);
+    hash = 37 * hash + Objects.hashCode(this.aql);
+    hash = 37 * hash + Objects.hashCode(this.corpora);
+    hash = 37 * hash + Objects.hashCode(this.count);
+    hash = 37 * hash + Objects.hashCode(this.executionTime);
+    hash = 37 * hash + Objects.hashCode(this.json);
     return hash;
   }
 
@@ -118,6 +131,10 @@ public class Query
       return false;
     }
     final Query other = (Query) obj;
+    if (!Objects.equals(this.name, other.name))
+    {
+      return false;
+    }
     if (!Objects.equals(this.aql, other.aql))
     {
       return false;
@@ -140,7 +157,7 @@ public class Query
     }
     return true;
   }
-
+ 
   
 
 }
