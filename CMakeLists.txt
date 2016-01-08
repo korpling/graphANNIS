@@ -2,6 +2,7 @@ project(ANNIS4)
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
+set(BuildShared OFF CACHE BOOL "")
 add_subdirectory(ext/humblelogging-3.0.1)
 
 set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")

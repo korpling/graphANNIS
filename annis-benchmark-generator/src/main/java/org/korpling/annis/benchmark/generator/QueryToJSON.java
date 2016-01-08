@@ -47,7 +47,7 @@ public class QueryToJSON
   private static final JsonNodeFactory factory = new JsonNodeFactory(true);
 
   private static final JaxbAnnotationModule jaxbModule = new JaxbAnnotationModule();
-
+  
   /**
    * This will serialize the query part of the {@link QueryData} to JSON.
    *

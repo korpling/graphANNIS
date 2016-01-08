@@ -34,25 +34,43 @@ namespace annis {
             bool forceFallback,
             std::string corpus,
             std::map<Component, std::string> overrideImpl,
-            std::string queryJson,
+            std::map<int64_t, std::string> json,
             std::string benchmarkName,
             unsigned int numberOfSamples,
-            boost::optional<unsigned int> expectedCount = boost::optional<unsigned int>())
+            std::map<int64_t, unsigned int> expectedCount = std::map<int64_t, unsigned int>())
     : forceFallback(forceFallback), corpus(corpus), overrideImpl(overrideImpl),
-    queryJson(queryJson), benchmarkName(benchmarkName), counter(0),
+    json(json), benchmarkName(benchmarkName), counter(0),
     numberOfSamples(numberOfSamples), executionCounter(0),
-    expectedCount(expectedCount) {
+    expectedCountByExp(expectedCount) {
     }
 
     const DB& getDB() {
       return dbCache->get(corpus, forceFallback, overrideImpl);
     }
+    
+    virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const;
 
     virtual void setUp(int64_t experimentValue) override {
       counter = 0;
-      // create query
-      std::istringstream jsonAsStream(queryJson);
-      q = JSONQueryParser::parse(getDB(), jsonAsStream);
+      q.reset();
+      
+      // find the correct query
+      auto it = json.find(experimentValue);
+      if(it != json.end())
+      {
+        // create query
+        std::istringstream jsonAsStream(it->second);
+        q = JSONQueryParser::parse(getDB(), jsonAsStream);
+      }
+      auto itCount = expectedCountByExp.find(experimentValue);
+      if(itCount == expectedCountByExp.end())
+      {
+        expectedCount = boost::optional<unsigned int>();
+      }
+      else
+      {
+        expectedCount = itCount->second;
+      }
 
       if (!q) {
         std::cerr << "FATAL ERROR: no query given for benchmark " << benchmarkName << std::endl;
@@ -74,13 +92,14 @@ namespace annis {
     std::string corpus;
     bool forceFallback;
     std::map<Component, std::string> overrideImpl;
-    std::string queryJson;
+    std::map<int64_t, std::string> json;
     std::shared_ptr<Query> q;
     std::string benchmarkName;
     unsigned int numberOfSamples;
     unsigned int executionCounter;
     unsigned int counter;
 
+    std::map<int64_t, unsigned int> expectedCountByExp;
     boost::optional<unsigned int> expectedCount;
     
     
@@ -105,13 +124,14 @@ namespace annis {
   class DynamicBenchmark {
   public:
 
-    DynamicBenchmark(std::string queriesDir, std::string corpusName, bool registerOptimized = true);
+    DynamicBenchmark(std::string queriesDir, std::string corpusName, bool registerOptimized = true, bool multipleExperiments=false);
 
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
 
     void registerFixture(
             std::string fixtureName,
+            bool multipleExperiments=false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
             );
 
@@ -124,6 +144,7 @@ namespace annis {
             bool baseline,
             std::string fixtureName,
             bool forceFallback = false,
+            bool multipleExperiments=false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
             );
 
@@ -134,7 +155,8 @@ namespace annis {
 
     void addBenchmark(
             bool baseline,
-            const boost::filesystem::path& path,
+            std::string benchmarkName,
+            std::map<int64_t, const boost::filesystem::path>& paths,
             std::string fixtureName, bool forceFallback,
             std::map<Component, std::string> overrideImpl);
   };

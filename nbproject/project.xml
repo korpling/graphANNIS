@@ -10,18 +10,13 @@
             <sourceEncoding>UTF-8</sourceEncoding>
             <make-dep-projects/>
             <sourceRootList>
-                <sourceRootElem>./src/lib</sourceRootElem>
-                <sourceRootElem>./src/runner</sourceRootElem>
-                <sourceRootElem>benchmarks</sourceRootElem>
+                <sourceRootElem>src</sourceRootElem>
                 <sourceRootElem>tests</sourceRootElem>
+                <sourceRootElem>benchmarks</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>
                     <name>Default</name>
-                    <type>0</type>
-                </confElem>
-                <confElem>
-                    <name>Test</name>
                     <type>0</type>
                 </confElem>
                 <confElem>
@@ -30,7 +25,10 @@
                 </confElem>
             </confList>
             <formatting>
-                <project-formatting-style>false</project-formatting-style>
+                <project-formatting-style>true</project-formatting-style>
+                <c-style>ANSI|ANSI</c-style>
+                <cpp-style>Default_0|TK</cpp-style>
+                <header-style>Default_1|TK</header-style>
             </formatting>
         </data>
     </configuration>
