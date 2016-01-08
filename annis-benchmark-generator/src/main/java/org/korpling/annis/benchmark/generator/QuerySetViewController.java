@@ -48,6 +48,8 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -89,6 +91,9 @@ public class QuerySetViewController implements Initializable
 
   @FXML
   private TableColumn<Query, Long> execTimeColumn;
+  
+  @FXML
+  private TableColumn<Query, Boolean> validColumn;
 
   @FXML
   private TableColumn<Query, Long> nrResultsColumn;
@@ -98,9 +103,13 @@ public class QuerySetViewController implements Initializable
 
   @FXML
   private CheckBox oneCorpusFilter;
+  
+  @FXML
+  private CheckBox onlyValidFilter;
 
   @FXML
   private Label counterLabel;
+  
 
   private final ObservableList<Query> queries = FXCollections.
     observableArrayList();
@@ -175,6 +184,7 @@ public class QuerySetViewController implements Initializable
         return cell;
 
     });
+    validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
 
     FilteredList<Query> filteredQueries = new FilteredList<>(queries, p -> true);
     SortedList<Query> sortedQueries = new SortedList<>(filteredQueries);
@@ -191,6 +201,12 @@ public class QuerySetViewController implements Initializable
       {
         setFilterPredicate(filteredQueries);
     });
+    onlyValidFilter.selectedProperty().addListener(observable
+      -> 
+      {
+        setFilterPredicate(filteredQueries);
+    });
+    
     tableView.setItems(sortedQueries);
 
     filteredQueries.addListener((Change<? extends Query> change)
@@ -211,8 +227,14 @@ public class QuerySetViewController implements Initializable
           String corpusFilterText = corpusFilter.textProperty().get();
           boolean allowSingleCorpusOnly = oneCorpusFilter.selectedProperty().
             get();
+          boolean allowWithJsonOnly = onlyValidFilter.selectedProperty().get();
 
-          if (query.getCorpora().size() > 1 && allowSingleCorpusOnly)
+          if (allowSingleCorpusOnly && query.getCorpora().size() > 1)
+          {
+            return false;
+          }
+          
+          if(allowWithJsonOnly && query.getJson() == null)
           {
             return false;
           }
@@ -240,6 +262,19 @@ public class QuerySetViewController implements Initializable
       evt.consume();
       oneCorpusFilter.selectedProperty().set(true);
       corpusFilter.textProperty().set(q.getCorpora().iterator().next());
+    }
+  }
+  
+  @FXML
+  public void copySelectedQuery(ActionEvent evt)
+  {
+    Query q = tableView.getSelectionModel().getSelectedItem();
+    if (q != null && q.getAql() != null)
+    {
+      evt.consume();
+      ClipboardContent content = new ClipboardContent();
+      content.putString(q.getAql());
+      Clipboard.getSystemClipboard().setContent(content);
     }
   }
 
@@ -283,7 +318,7 @@ public class QuerySetViewController implements Initializable
     if(dir != null)
     {
       int errorCounter = 0;
-      int i =0;
+      int i =1;
       for(Query q : tableView.getItems())
       {
         String name = "" + i++;
@@ -291,12 +326,9 @@ public class QuerySetViewController implements Initializable
         File fJSON = new File(dir, name + ".json");
         
         try
-        {
-          QueryData queryData = parser.parse(q.getAql(), null);
-          String asJSON = QueryToJSON.serializeQuery(queryData);
-          
+        { 
           Files.write(q.getAql(), fAQL, StandardCharsets.UTF_8);
-          Files.write(asJSON, fJSON, StandardCharsets.UTF_8);
+          Files.write(q.getJson(), fJSON, StandardCharsets.UTF_8);
         }
         catch (Exception ex)
         {
@@ -313,6 +345,26 @@ public class QuerySetViewController implements Initializable
         new Alert(AlertType.ERROR, "" + errorCounter + " had errors", ButtonType.OK).showAndWait();
       }
     }
+  }
+  
+  @FXML
+  public void parseJSON(ActionEvent evt)
+  {
+    // only parse the visible items
+    tableView.getItems().stream().
+      forEach((q) ->
+    {
+      try
+      {
+        QueryData queryData = parser.parse(q.getAql(), null);
+        String asJSON = QueryToJSON.serializeQuery(queryData);
+        q.setJson(asJSON);
+      }
+      catch(Exception ex)
+      {
+        log.error("Could not create json", ex);
+      }
+    });
   }
 
 }

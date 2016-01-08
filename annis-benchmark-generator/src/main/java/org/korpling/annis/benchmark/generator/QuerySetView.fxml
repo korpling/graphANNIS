@@ -7,35 +7,43 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox fx:id="root" prefHeight="272.0" prefWidth="745.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
+<VBox fx:id="root" prefHeight="445.0" prefWidth="848.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
    <children>
       <HBox spacing="10.0" VBox.vgrow="NEVER">
          <children>
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
+            <Button mnemonicParsing="false" onAction="#parseJSON" text="Parse" />
             <TextField fx:id="corpusFilter" prefHeight="26.0" prefWidth="241.0" promptText="Corpus filter" />
             <CheckBox fx:id="oneCorpusFilter" mnemonicParsing="false" prefHeight="26.0" prefWidth="128.0" text="only one corpus" />
-            <Button mnemonicParsing="false" onAction="#export" text="Export" />
+            <CheckBox fx:id="onlyValidFilter" mnemonicParsing="false" prefHeight="25.0" prefWidth="87.0" text="only valid" />
          </children>
       </HBox>
       <HBox VBox.vgrow="NEVER">
          <children>
-            <Label text="Number of queries: " />
-            <Label fx:id="counterLabel" text="0" />
+            <Label prefHeight="26.0" prefWidth="130.0" text="Number of queries: " />
+            <Label fx:id="counterLabel" prefHeight="26.0" prefWidth="111.0" text="0">
+               <HBox.margin>
+                  <Insets right="10.0" />
+               </HBox.margin>
+            </Label>
+            <Button mnemonicParsing="false" onAction="#export" text="Export" />
          </children>
       </HBox>
  
             <TableView fx:id="tableView" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="nameColumn" prefWidth="31.0" />
-          <TableColumn fx:id="aqlColumn" prefWidth="386.0" text="AQL" />
-          <TableColumn fx:id="corpusColumn" prefWidth="82.0" text="corpus" />
-            <TableColumn fx:id="execTimeColumn" prefWidth="205.0" text="exec. time (ms)" />
-            <TableColumn fx:id="nrResultsColumn" minWidth="0.0" prefWidth="97.0" text="# results" />
+          <TableColumn fx:id="aqlColumn" prefWidth="328.0" text="AQL" />
+          <TableColumn fx:id="corpusColumn" prefWidth="175.0" text="corpus" />
+            <TableColumn fx:id="execTimeColumn" prefWidth="125.0" text="exec. time (ms)" />
+            <TableColumn fx:id="validColumn" prefWidth="72.0" text="valid" />
+            <TableColumn fx:id="nrResultsColumn" minWidth="0.0" prefWidth="145.0" text="# results" />
         </columns>
          <contextMenu>
             <ContextMenu>
               <items>
                 <MenuItem mnemonicParsing="false" onAction="#filterByCorpusOfQuery" text="Filter by corpus of this query" />
+                  <MenuItem mnemonicParsing="false" onAction="#copySelectedQuery" text="Copy query" />
               </items>
             </ContextMenu>
          </contextMenu>

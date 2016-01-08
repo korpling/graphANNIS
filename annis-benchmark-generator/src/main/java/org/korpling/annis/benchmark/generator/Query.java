@@ -35,6 +35,19 @@ public class Query
 
   private Optional<Long> executionTime = Optional.empty();
   
+    private String json;
+
+  public String getJson()
+  {
+    return json;
+  }
+
+  public void setJson(String json)
+  {
+    this.json = json;
+  }
+
+  
   public String getAql()
   {
     return aql;
@@ -81,10 +94,11 @@ public class Query
   public int hashCode()
   {
     int hash = 7;
-    hash = 89 * hash + Objects.hashCode(this.aql);
-    hash = 89 * hash + Objects.hashCode(this.corpora);
-    hash = 89 * hash + Objects.hashCode(this.count);
-    hash = 89 * hash + Objects.hashCode(this.executionTime);
+    hash = 53 * hash + Objects.hashCode(this.aql);
+    hash = 53 * hash + Objects.hashCode(this.corpora);
+    hash = 53 * hash + Objects.hashCode(this.count);
+    hash = 53 * hash + Objects.hashCode(this.executionTime);
+    hash = 53 * hash + Objects.hashCode(this.json);
     return hash;
   }
 
@@ -108,6 +122,10 @@ public class Query
     {
       return false;
     }
+    if (!Objects.equals(this.json, other.json))
+    {
+      return false;
+    }
     if (!Objects.equals(this.corpora, other.corpora))
     {
       return false;
@@ -122,5 +140,7 @@ public class Query
     }
     return true;
   }
+
+  
 
 }
