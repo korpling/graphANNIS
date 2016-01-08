@@ -48,7 +48,7 @@ namespace annis {
       return dbCache->get(corpus, forceFallback, overrideImpl);
     }
     
-    virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues();
+    virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const;
 
     virtual void setUp(int64_t experimentValue) override {
       counter = 0;

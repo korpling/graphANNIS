@@ -34,7 +34,7 @@ void DynamicCorpusFixture::UserBenchmark()
   }
 }
 
-std::vector<std::pair<int64_t, uint64_t> > DynamicCorpusFixture::getExperimentValues()
+std::vector<std::pair<int64_t, uint64_t> > DynamicCorpusFixture::getExperimentValues() const
 {
   std::vector<std::pair<int64_t, uint64_t> > result;
 
