@@ -34,12 +34,12 @@ namespace annis {
             bool forceFallback,
             std::string corpus,
             std::map<Component, std::string> overrideImpl,
-            std::string queryJson,
+            std::map<int64_t, std::string> json,
             std::string benchmarkName,
             unsigned int numberOfSamples,
             boost::optional<unsigned int> expectedCount = boost::optional<unsigned int>())
     : forceFallback(forceFallback), corpus(corpus), overrideImpl(overrideImpl),
-    queryJson(queryJson), benchmarkName(benchmarkName), counter(0),
+    json(json), benchmarkName(benchmarkName), counter(0),
     numberOfSamples(numberOfSamples), executionCounter(0),
     expectedCount(expectedCount) {
     }
@@ -47,11 +47,30 @@ namespace annis {
     const DB& getDB() {
       return dbCache->get(corpus, forceFallback, overrideImpl);
     }
+    
+    virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues();
 
     virtual void setUp(int64_t experimentValue) override {
       counter = 0;
+      
+      std::string queryForExp;
+      if(json.size() == 1)
+      {
+        // take the only query we have
+        queryForExp = json.begin()->second;
+      }
+      else
+      {
+        // find the correct query
+        auto it = json.find(experimentValue);
+        if(it != json.end())
+        {
+          queryForExp = it->second;
+        }
+      }
+      
       // create query
-      std::istringstream jsonAsStream(queryJson);
+      std::istringstream jsonAsStream(queryForExp);
       q = JSONQueryParser::parse(getDB(), jsonAsStream);
 
       if (!q) {
@@ -74,7 +93,7 @@ namespace annis {
     std::string corpus;
     bool forceFallback;
     std::map<Component, std::string> overrideImpl;
-    std::string queryJson;
+    std::map<int64_t, std::string> json;
     std::shared_ptr<Query> q;
     std::string benchmarkName;
     unsigned int numberOfSamples;

@@ -30,6 +30,18 @@ void DynamicCorpusFixture::UserBenchmark() {
   }
 }
 
+std::vector<std::pair<int64_t, uint64_t> > DynamicCorpusFixture::getExperimentValues() {
+  std::vector<std::pair<int64_t, uint64_t> > result;
+  
+  for(auto it : json)
+  {
+    result.push_back({it.first, 0});
+  }
+  
+  return result;
+}
+
+
 void DynamicCorpusFixture::tearDown() {
   executionCounter++;
   if(executionCounter >= numberOfSamples) {
@@ -107,8 +119,11 @@ void DynamicBenchmark::addBenchmark(
     (std::istreambuf_iterator<char>()));  
   stream.close();
   
+  std::map<int64_t, std::string> allQueries;
+  allQueries[0] = queryJSON;
+  
   std::shared_ptr<celero::TestFixture> fixture(
-    new DynamicCorpusFixture(forceFallback, corpus, overrideImpl, queryJSON,
+    new DynamicCorpusFixture(forceFallback, corpus, overrideImpl, allQueries,
           benchmarkName + " (" + fixtureName + ")",
           numberOfSamples,
           expectedCount));
