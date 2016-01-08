@@ -799,7 +799,7 @@
         </makeTool>
         <preBuild>
           <preBuildCommandWorkingDir>build</preBuildCommandWorkingDir>
-          <preBuildCommand>cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=${IDE_CC} -DCMAKE_CXX_COMPILER=${IDE_CXX} -DCMAKE_C_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_CXX_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..</preBuildCommand>
+          <preBuildCommand>cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=RELWITHDEBINFO  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..</preBuildCommand>
         </preBuild>
       </makefileType>
       <item path="benchmarks/benchmark.cpp" ex="false" tool="1" flavor2="11">
@@ -1196,7 +1196,7 @@
         <ccTool flags="2">
         </ccTool>
       </item>
-      <item path="src/lib/getRSS.c" ex="false" tool="0" flavor2="0">
+      <item path="src/lib/getRSS.c" ex="false" tool="0" flavor2="9">
       </item>
       <item path="src/lib/graphstorage.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="2">
@@ -1286,7 +1286,7 @@
         <ccTool flags="2">
         </ccTool>
       </item>
-      <item path="src/runner/linenoise.c" ex="false" tool="0" flavor2="0">
+      <item path="src/runner/linenoise.c" ex="false" tool="0" flavor2="9">
       </item>
       <item path="src/runner/main.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="2">
