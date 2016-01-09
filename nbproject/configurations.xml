@@ -189,6 +189,7 @@
         <df name="operators">
           <in>abstractedgeoperator.cpp</in>
           <in>dominance.cpp</in>
+          <in>identicalcoverage.cpp</in>
           <in>inclusion.cpp</in>
           <in>overlap.cpp</in>
           <in>pointing.cpp</in>
@@ -246,10 +247,8 @@
       </toolsSet>
       <flagsDictionary>
         <element flagsID="0" commonFlags="-g"/>
-        <element flagsID="1"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11"/>
-        <element flagsID="2"
-                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
+        <element flagsID="1" commonFlags="-std=c++11"/>
+        <element flagsID="2" commonFlags="-std=c++11 -std=gnu++11 -O3"/>
         <element flagsID="3" commonFlags="-std=c++14"/>
         <element flagsID="4" commonFlags="-std=c++14 -std=c++14"/>
       </flagsDictionary>
@@ -273,6 +272,8 @@
               <pElem>build</pElem>
             </incDir>
           </cTool>
+          <ccTool flags="3">
+          </ccTool>
         </makeTool>
         <preBuild>
           <preBuildCommandWorkingDir>build</preBuildCommandWorkingDir>
@@ -738,16 +739,6 @@
             tool="1"
             flavor2="11">
         <ccTool flags="3">
-          <incDir>
-            <pElem>include</pElem>
-            <pElem>ext/humblelogging-3.0.1/include</pElem>
-            <pElem>/usr/include/x86_64-linux-gnu</pElem>
-            <pElem>ext/Celero-2.0.2/include</pElem>
-            <pElem>src/lib</pElem>
-            <pElem>ext/gtest-1.7.0/include</pElem>
-            <pElem>ext/gtest-1.7.0</pElem>
-            <pElem>build</pElem>
-          </incDir>
         </ccTool>
       </item>
       <item path="src/lib/operators/inclusion.cpp" ex="false" tool="1" flavor2="11">
@@ -1200,30 +1191,6 @@
           </incDir>
         </ccTool>
       </folder>
-      <item path="include/stx/LICENSE_1_0.txt" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree.dox" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree_map" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree_map.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree_multimap" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree_multimap.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree_multiset" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree_multiset.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree_set" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree_set.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="src/lib/DBCache.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
@@ -1315,16 +1282,6 @@
       <item path="src/lib/operators/dominance.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
-      </item>
-      <item path="src/lib/operators/identicalcoverage.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="src/lib/operators/identicalcoverage.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
       </item>
       <item path="src/lib/operators/inclusion.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
