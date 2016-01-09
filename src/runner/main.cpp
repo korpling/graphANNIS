@@ -4,6 +4,7 @@
 
 #include "linenoise.h"
 #include <db.h>
+#include <jsonqueryparser.h>
 
 #include <humblelogging/api.h>
 #include <boost/algorithm/string.hpp>
@@ -38,6 +39,14 @@ void completion(const char *bufRaw, linenoiseCompletions *lc)
   else if(boost::starts_with(buf, "o"))
   {
     linenoiseAddCompletion(lc, "optimize");
+  }
+  else if(boost::starts_with(buf, "c"))
+  {
+    linenoiseAddCompletion(lc, "count");
+  }
+  else if(boost::starts_with(buf, "f"))
+  {
+    linenoiseAddCompletion(lc, "find");
   }
 }
 
@@ -123,6 +132,61 @@ int main(int argc, char** argv)
         std::cout << "Optimizing..." << std::endl;
         db.optimizeAll();
         std::cout << "Finished." << std::endl;
+      }
+      else if(cmd == "count")
+      {
+        if(args.size() > 0)
+        {
+          std::string json = boost::join(args, " ");
+          std::cout << "Counting..." << std::endl;
+          std::stringstream ss;
+          ss << json;
+          std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, ss); 
+          int counter =0;
+          while(q->hasNext())
+          {
+            q->next();
+            counter++;
+          }
+          std::cout << counter << " matches" << std::endl;
+        }
+        else
+        {
+          std::cout << "you need to give the query JSON as argument" << std::endl;
+        }
+      }
+      else if(cmd == "find")
+      {
+        if(args.size() > 0)
+        {
+          std::string json = boost::join(args, " ");
+          std::cout << "Finding..." << std::endl;
+          std::stringstream ss;
+          ss << json;
+          std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, ss); 
+          int counter =0;
+          while(q->hasNext())
+          {
+            std::vector<annis::Match> m = q->next();
+            for(auto i = 0; i < m.size(); i++)
+            {
+              const auto& n = m[i];
+              std::cout << db.getNodeDebugName(n.node) << " " << db.strings.str(n.anno.ns) 
+                << "::" << db.strings.str(n.anno.name) << "->" << db.strings.str(n.anno.val);
+              if(i < m.size()-1)
+              {
+               std::cout << ", ";
+              }
+            }
+            std::cout << std::endl;
+            counter++;
+          }
+          std::cout << counter << " matches" << std::endl;
+        }
+        else
+        {
+          std::cout << "you need to give the query JSON as argument" << std::endl;
+        }
       }
       else if (cmd == "quit" || cmd == "exit")
       {
