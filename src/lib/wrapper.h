@@ -106,6 +106,38 @@ private:
 
   void checkIfNextCallNeeded();
 };
+
+  class EmptyAnnotationWrapper : public AnnoIt
+  {
+  public:
+    
+    EmptyAnnotationWrapper(std::shared_ptr<AnnoIt> delegate)
+    : delegate(delegate)
+    {
+      
+    }
+    
+    virtual bool hasNext()
+    {
+      return delegate->hasNext();
+    }
+    virtual Match next()
+    {
+      Match m = delegate->next();
+      m.anno = {0, 0, 0};
+      return m;
+    }
+    virtual void reset()
+    {
+      delegate->reset();
+    }
+
+    virtual ~EmptyAnnotationWrapper() { }
+  private:
+    std::shared_ptr<AnnoIt> delegate;
+    Annotation emptyAnno;
+  };
+
 } // end namespace annis
 
 

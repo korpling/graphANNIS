@@ -171,8 +171,12 @@ int main(int argc, char** argv)
             for(auto i = 0; i < m.size(); i++)
             {
               const auto& n = m[i];
-              std::cout << db.getNodeDebugName(n.node) << " " << db.strings.str(n.anno.ns) 
-                << "::" << db.strings.str(n.anno.name) << "->" << db.strings.str(n.anno.val);
+              std::cout << db.getNodeDebugName(n.node);
+              if(n.anno.ns != 0 && n.anno.name != 0 != 0)
+              {
+                std::cout << " " << db.strings.str(n.anno.ns) 
+                  << "::" << db.strings.str(n.anno.name);
+              }
               if(i < m.size()-1)
               {
                std::cout << ", ";

@@ -32,7 +32,8 @@ namespace annis {
         boost::optional<std::string> ns,
         boost::optional<std::string> name, 
         boost::optional<std::string> value,
-        boost::optional<std::string> textMatching);
+        boost::optional<std::string> textMatching,
+        bool wrapEmptyAnno = false);
     
     static void parseJoin(const DB& db, const Json::Value join, 
       std::shared_ptr<Query> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos,

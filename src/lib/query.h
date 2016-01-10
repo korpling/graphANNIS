@@ -33,8 +33,8 @@ public:
    * @param n The initial source
    * @return new node number
    */
-  size_t addNode(std::shared_ptr<AnnotationSearch> n);
-  size_t addNode(std::shared_ptr<AnnotationKeySearch> n);
+  size_t addNode(std::shared_ptr<AnnotationSearch> n, bool wrapEmptyAnno = false);
+  size_t addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapEmptyAnno = false);
 
   /**
    * @brief add an operator to the execution queue

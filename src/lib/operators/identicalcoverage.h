@@ -23,7 +23,7 @@ public:
   
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs);
   virtual bool filter(const Match& lhs, const Match& rhs);
-  virtual bool isReflexive() {return true;};
+  virtual bool isReflexive() {return false;};
   
   virtual ~IdenticalCoverage();
 private:

@@ -83,13 +83,13 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::sha
     {
       return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
         optStr(node["spannedText"]),
-        optStr(node["spanTextMatching"]));
+        optStr(node["spanTextMatching"]), true);
     }// end if token has spanned text
     else
     {
       // just search for any node
       return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_name),
-        optStr(), optStr());
+        optStr(), optStr(), true);
     }
   } // end if special case
 
@@ -100,7 +100,8 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
   boost::optional<std::string> ns,
   boost::optional<std::string> name,
   boost::optional<std::string> value,
-  boost::optional<std::string> textMatching)
+  boost::optional<std::string> textMatching,
+  bool wrapEmptyAnno)
 {
 
   if (value)
@@ -114,13 +115,15 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
         return q->addNode(std::make_shared<ExactAnnoValueSearch>(db,
           *ns,
           *name,
-          *value));
+          *value),
+          wrapEmptyAnno);
       }
       else
       {
         return q->addNode(std::make_shared<ExactAnnoValueSearch>(db,
           *name,
-          *value));
+          *value),
+          wrapEmptyAnno);
       }
     }
     else if (*textMatching == "REGEXP_EQUAL")
@@ -131,13 +134,15 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
         return q->addNode(std::make_shared<RegexAnnoSearch>(db,
           *ns,
           *name,
-          *value));
+          *value),
+          wrapEmptyAnno);
       }
       else
       {
         return q->addNode(std::make_shared<RegexAnnoSearch>(db,
           *name,
-          *value));
+          *value),
+          wrapEmptyAnno);
       }
     }
 
@@ -150,12 +155,14 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
     {
       return q->addNode(std::make_shared<ExactAnnoKeySearch>(db,
         *ns,
-        *name));
+        *name),
+        wrapEmptyAnno);
     }
     else
     {
       return q->addNode(std::make_shared<ExactAnnoKeySearch>(db,
-        *name));
+        *name),
+        wrapEmptyAnno);
     }
   }
 }
