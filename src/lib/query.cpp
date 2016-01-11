@@ -138,6 +138,14 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
     else
     {
       std::shared_ptr<AnnoIt> rightIt = nodes[e.idxRight];
+      
+      std::shared_ptr<ConstAnnoWrapper> constWrapper =
+          std::dynamic_pointer_cast<ConstAnnoWrapper>(rightIt);
+      if(constWrapper)
+      {
+        rightIt = constWrapper->getDelegate();
+      }
+      
       std::shared_ptr<AnnotationKeySearch> keySearch =
           std::dynamic_pointer_cast<AnnotationKeySearch>(rightIt);
       std::shared_ptr<AnnotationSearch> annoSearch =

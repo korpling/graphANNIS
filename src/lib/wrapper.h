@@ -141,6 +141,8 @@ private:
     {
       delegate->reset();
     }
+    
+    std::shared_ptr<AnnoIt> getDelegate() { return delegate;}
 
     virtual ~ConstAnnoWrapper()
     {
