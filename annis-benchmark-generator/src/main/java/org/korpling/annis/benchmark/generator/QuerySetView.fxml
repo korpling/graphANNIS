@@ -14,6 +14,11 @@
             <Button mnemonicParsing="false" onAction="#load" text="Load Folder" />
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
             <Button mnemonicParsing="false" onAction="#parseJSON" text="Parse" />
+            <Button mnemonicParsing="false" onAction="#export" text="Export" />
+         </children>
+      </HBox>
+      <HBox>
+         <children>
             <TextField fx:id="corpusFilter" prefHeight="26.0" prefWidth="241.0" promptText="Corpus filter" />
             <CheckBox fx:id="oneCorpusFilter" mnemonicParsing="false" prefHeight="26.0" prefWidth="128.0" text="only one corpus" />
             <CheckBox fx:id="onlyValidFilter" mnemonicParsing="false" prefHeight="25.0" prefWidth="87.0" text="only valid" />
@@ -27,11 +32,10 @@
                   <Insets right="10.0" />
                </HBox.margin>
             </Label>
-            <Button mnemonicParsing="false" onAction="#export" text="Export" />
          </children>
       </HBox>
  
-            <TableView fx:id="tableView" editable="true" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
+            <TableView fx:id="tableView" editable="true" prefHeight="348.0" prefWidth="848.0" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="nameColumn" prefWidth="72.0" text="name" />
           <TableColumn fx:id="aqlColumn" prefWidth="287.0" text="AQL" />
@@ -45,6 +49,9 @@
               <items>
                 <MenuItem mnemonicParsing="false" onAction="#filterByCorpusOfQuery" text="Filter by corpus of this query" />
                   <MenuItem mnemonicParsing="false" onAction="#copySelectedQuery" text="Copy query" />
+                  <SeparatorMenuItem mnemonicParsing="false" />
+                  <MenuItem mnemonicParsing="false" onAction="#addNewQuery" text="Add new query" />
+                  <MenuItem mnemonicParsing="false" onAction="#deleteSelectedQuery" text="Delete selected" />
               </items>
             </ContextMenu>
          </contextMenu>

@@ -18,7 +18,6 @@ package org.korpling.annis.benchmark.generator;
 import annis.ql.parser.AnnisParserAntlr;
 import annis.ql.parser.QueryData;
 import annis.ql.parser.SemanticValidator;
-import com.google.common.base.Joiner;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +29,7 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
@@ -54,8 +53,7 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
-import javafx.util.StringConverter;
-import static javax.management.Query.value;
+import javafx.util.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,13 +131,16 @@ public class QuerySetViewController implements Initializable
     aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));
     corpusColumn.setCellValueFactory(new PropertyValueFactory<>("corpora"));
     execTimeColumn.setCellValueFactory(new PropertyValueFactory<>("executionTime"));
-    nrResultsColumn.setCellValueFactory(new PropertyValueFactory<>("count"));
-
+    nrResultsColumn.setCellValueFactory(new PropertyValueFactory<>("count"));    
+    
     nameColumn.setCellFactory(TextFieldTableCell.forTableColumn());
     aqlColumn.setCellFactory(TextAreaTableCell.forTableColumn());
     corpusColumn.setCellFactory(TextFieldTableCell.forTableColumn(new StringSetConverter()));
     execTimeColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
     nrResultsColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
+    validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
+
+    
     
     nameColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, String> event) ->
     {
@@ -162,8 +163,6 @@ public class QuerySetViewController implements Initializable
       event.getRowValue().setCount(event.getNewValue());
     });
     
-    
-    validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
 
     FilteredList<Query> filteredQueries = new FilteredList<>(queries, p -> true);
     SortedList<Query> sortedQueries = new SortedList<>(filteredQueries);
@@ -256,6 +255,23 @@ public class QuerySetViewController implements Initializable
       Clipboard.getSystemClipboard().setContent(content);
     }
   }
+  
+  @FXML
+  public void addNewQuery(ActionEvent evt)
+  {
+    queries.add(new Query());
+  }
+  
+  @FXML
+  public void deleteSelectedQuery(ActionEvent evt)
+  {
+    List<Query> q = tableView.getSelectionModel().getSelectedItems();
+    if (q != null && !q.isEmpty())
+    {
+      evt.consume();
+      queries.removeAll(q);
+    }
+  }
 
   @FXML
   public void loadQueryLog(ActionEvent evt)
@@ -328,7 +344,7 @@ public class QuerySetViewController implements Initializable
   public void parseJSON(ActionEvent evt)
   {
     // only parse the visible items
-    tableView.getItems().stream().
+    queries.stream().
       forEach((q) ->
     {
       try
@@ -342,6 +358,8 @@ public class QuerySetViewController implements Initializable
         log.error("Could not create json", ex);
       }
     });
+    validColumn.setVisible(false);
+    validColumn.setVisible(true);
   }
 
 }
