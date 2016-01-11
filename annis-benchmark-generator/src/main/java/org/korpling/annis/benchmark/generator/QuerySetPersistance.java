@@ -122,18 +122,6 @@ public class QuerySetPersistance
       }
     }
     
-    File fSQL = new File(parentDir, name + ".sql");
-    if(fSQL.isFile())
-    {
-      try
-      {
-        q.setSql(Files.asCharSource(fSQL, StandardCharsets.UTF_8).read());
-      }
-      catch(IOException ex)
-      {
-        log.error(null, ex);
-      }
-    }
     
     File fCorpora = new File(parentDir, name + ".corpora");
     if(fCorpora.isFile())
@@ -198,12 +186,6 @@ public class QuerySetPersistance
       File fTime = new File(parentDir, name + ".time");
       Files.write("" + q.getExecutionTime().get(), fTime, StandardCharsets.UTF_8); 
     }
-    if(q.getSql() != null)
-    {
-      File fSql = new File(parentDir, name + ".sql");
-      Files.write(q.getSql(), fSql, StandardCharsets.UTF_8); 
-    }
-    
     if(q.getCorpora() != null && !q.getCorpora().isEmpty())
     {
       File fCorpora = new File(parentDir, name + ".corpora");

@@ -39,7 +39,6 @@ public class Query
 
   private String json;
   
-  private String sql;
 
   public String getJson()
   {
@@ -104,27 +103,16 @@ public class Query
     this.name = name;
   }
 
-  public String getSql()
-  {
-    return sql;
-  }
-
-  public void setSql(String sql)
-  {
-    this.sql = sql;
-  }
-
   @Override
   public int hashCode()
   {
     int hash = 7;
-    hash = 37 * hash + Objects.hashCode(this.name);
-    hash = 37 * hash + Objects.hashCode(this.aql);
-    hash = 37 * hash + Objects.hashCode(this.corpora);
-    hash = 37 * hash + Objects.hashCode(this.count);
-    hash = 37 * hash + Objects.hashCode(this.executionTime);
-    hash = 37 * hash + Objects.hashCode(this.json);
-    hash = 37 * hash + Objects.hashCode(this.sql);
+    hash = 97 * hash + Objects.hashCode(this.name);
+    hash = 97 * hash + Objects.hashCode(this.aql);
+    hash = 97 * hash + Objects.hashCode(this.corpora);
+    hash = 97 * hash + Objects.hashCode(this.count);
+    hash = 97 * hash + Objects.hashCode(this.executionTime);
+    hash = 97 * hash + Objects.hashCode(this.json);
     return hash;
   }
 
@@ -156,10 +144,6 @@ public class Query
     {
       return false;
     }
-    if (!Objects.equals(this.sql, other.sql))
-    {
-      return false;
-    }
     if (!Objects.equals(this.corpora, other.corpora))
     {
       return false;
@@ -174,6 +158,8 @@ public class Query
     }
     return true;
   }
+
+ 
 
   
 

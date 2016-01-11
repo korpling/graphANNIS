@@ -76,9 +76,6 @@ public class QuerySetViewController implements Initializable
   private final FileChooser.ExtensionFilter logFilter = new FileChooser.ExtensionFilter(
     "Query log (*.log)", "*.log");
   
-  private QueryToSQL queryToSQL;
-  
-
   @FXML
   private TableView<Query> tableView;
 
@@ -139,7 +136,7 @@ public class QuerySetViewController implements Initializable
     corpusColumn.setCellFactory(TextFieldTableCell.forTableColumn(new StringSetConverter()));
     execTimeColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
     nrResultsColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
-    validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null && param.getValue().getSql() != null));
+    validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
 
     
     
@@ -195,15 +192,6 @@ public class QuerySetViewController implements Initializable
     });
   }
   
-  private QueryToSQL getQueryToSQL()
-  {
-    if(this.queryToSQL == null)
-    {
-      this.queryToSQL = new QueryToSQL();
-    }
-    return this.queryToSQL;
-  }
-
   private void setFilterPredicate(FilteredList<Query> filteredQueries)
   {
     if (filteredQueries != null)
@@ -222,7 +210,7 @@ public class QuerySetViewController implements Initializable
             return false;
           }
           
-          if(allowWithJsonOnly && (query.getJson() == null || query.getSql() == null))
+          if(allowWithJsonOnly && query.getJson() == null)
           {
             return false;
           }
@@ -360,13 +348,10 @@ public class QuerySetViewController implements Initializable
       try
       {
         q.setJson(null);
-        q.setSql(null);
         QueryData queryData = parser.parse(q.getAql(), null);
         queryData.setMaxWidth(queryData.getAlternatives().get(0).size());
         String asJSON = QueryToJSON.serializeQuery(queryData);
-        String asSQL = getQueryToSQL().serializeQuery(queryData, new ArrayList<>(q.getCorpora()));
         q.setJson(asJSON);
-        q.setSql(asSQL);
       }
       catch(Exception ex)
       {
