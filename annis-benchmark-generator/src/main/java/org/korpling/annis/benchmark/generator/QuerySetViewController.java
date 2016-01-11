@@ -23,13 +23,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
@@ -53,7 +53,6 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
-import javafx.util.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +75,8 @@ public class QuerySetViewController implements Initializable
   
   private final FileChooser.ExtensionFilter logFilter = new FileChooser.ExtensionFilter(
     "Query log (*.log)", "*.log");
+  
+  private QueryToSQL queryToSQL;
   
 
   @FXML
@@ -138,7 +139,7 @@ public class QuerySetViewController implements Initializable
     corpusColumn.setCellFactory(TextFieldTableCell.forTableColumn(new StringSetConverter()));
     execTimeColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
     nrResultsColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
-    validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
+    validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null && param.getValue().getSql() != null));
 
     
     
@@ -193,6 +194,15 @@ public class QuerySetViewController implements Initializable
         counterLabel.textProperty().set("" + filteredQueries.size());
     });
   }
+  
+  private QueryToSQL getQueryToSQL()
+  {
+    if(this.queryToSQL == null)
+    {
+      this.queryToSQL = new QueryToSQL();
+    }
+    return this.queryToSQL;
+  }
 
   private void setFilterPredicate(FilteredList<Query> filteredQueries)
   {
@@ -212,7 +222,7 @@ public class QuerySetViewController implements Initializable
             return false;
           }
           
-          if(allowWithJsonOnly && query.getJson() == null)
+          if(allowWithJsonOnly && (query.getJson() == null || query.getSql() == null))
           {
             return false;
           }
@@ -326,8 +336,8 @@ public class QuerySetViewController implements Initializable
     File dir = dirChooser.showDialog(root.getScene().getWindow());
     if(dir != null)
     {
-      int successCounter = QuerySetPersistance.writeQuerySet(dir, queries);
-      int errorCounter =  queries.size() - successCounter;
+      int successCounter = QuerySetPersistance.writeQuerySet(dir, tableView.getItems());
+      int errorCounter =  tableView.getItems().size() - successCounter;
 
       if(errorCounter == 0)
       {
@@ -344,15 +354,19 @@ public class QuerySetViewController implements Initializable
   public void parseJSON(ActionEvent evt)
   {
     // only parse the visible items
-    queries.stream().
+    tableView.getItems().stream().
       forEach((q) ->
     {
       try
       {
         q.setJson(null);
+        q.setSql(null);
         QueryData queryData = parser.parse(q.getAql(), null);
+        queryData.setMaxWidth(queryData.getAlternatives().get(0).size());
         String asJSON = QueryToJSON.serializeQuery(queryData);
+        String asSQL = getQueryToSQL().serializeQuery(queryData, new ArrayList<>(q.getCorpora()));
         q.setJson(asJSON);
+        q.setSql(asSQL);
       }
       catch(Exception ex)
       {

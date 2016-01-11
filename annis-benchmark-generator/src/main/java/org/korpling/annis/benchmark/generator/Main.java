@@ -15,6 +15,12 @@
  */
 package org.korpling.annis.benchmark.generator;
 
+import annis.AnnisBaseRunner;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.PatternLayout;
+import ch.qos.logback.classic.filter.ThresholdFilter;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
 import java.io.IOException;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -22,6 +28,9 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
  *
@@ -30,9 +39,15 @@ import javafx.stage.Stage;
 public class Main extends Application
 {
 
+  private Logger log = LoggerFactory.getLogger(Main.class);
+
   @Override
   public void start(Stage primaryStage) throws IOException
   {
+    SLF4JBridgeHandler.removeHandlersForRootLogger();;
+    SLF4JBridgeHandler.install();
+
+    log.info("Starting AQL Benchmark Generator");
 
     primaryStage.getIcons().addAll(
       new Image(getClass().getResourceAsStream("icon128.png")),

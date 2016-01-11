@@ -105,6 +105,33 @@ public class QuerySetPersistance
       }
     }
     
+    File fTime = new File(parentDir, name + ".time");
+    if(fTime.isFile())
+    {
+      try
+      {
+        String raw = Files.asCharSource(fTime, StandardCharsets.UTF_8).read();
+        q.setExecutionTime(Optional.of(Long.parseLong(raw.trim())));
+      }
+      catch(IOException ex)
+      {
+        log.error(null, ex);
+      }
+    }
+    
+    File fSQL = new File(parentDir, name + ".sql");
+    if(fSQL.isFile())
+    {
+      try
+      {
+        q.setSql(Files.asCharSource(fSQL, StandardCharsets.UTF_8).read());
+      }
+      catch(IOException ex)
+      {
+        log.error(null, ex);
+      }
+    }
+    
     return q;
     
   }
@@ -144,10 +171,20 @@ public class QuerySetPersistance
       File fJSON = new File(parentDir, name + ".json");
       Files.write(q.getJson(), fJSON, StandardCharsets.UTF_8); 
     }
-    if(q.getCount() != null)
+    if(q.getCount().isPresent())
     {
       File fCount = new File(parentDir, name + ".count");
       Files.write("" + q.getCount().get(), fCount, StandardCharsets.UTF_8); 
+    }
+    if(q.getExecutionTime().isPresent())
+    {
+      File fTime = new File(parentDir, name + ".time");
+      Files.write("" + q.getExecutionTime().get(), fTime, StandardCharsets.UTF_8); 
+    }
+    if(q.getSql() != null)
+    {
+      File fSql = new File(parentDir, name + ".sql");
+      Files.write(q.getSql(), fSql, StandardCharsets.UTF_8); 
     }
 
   }

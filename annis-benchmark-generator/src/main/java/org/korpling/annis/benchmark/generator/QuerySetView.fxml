@@ -13,7 +13,7 @@
          <children>
             <Button mnemonicParsing="false" onAction="#load" text="Load Folder" />
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
-            <Button mnemonicParsing="false" onAction="#parseJSON" text="Parse" />
+            <Button mnemonicParsing="false" onAction="#parseJSON" text="Parse all" />
             <Button mnemonicParsing="false" onAction="#export" text="Export" />
          </children>
       </HBox>
