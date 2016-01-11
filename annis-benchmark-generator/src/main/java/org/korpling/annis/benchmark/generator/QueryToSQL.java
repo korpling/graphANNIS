@@ -71,6 +71,7 @@ public class QueryToSQL
     {
       List<Long> corpusIDs = queryDao.mapCorpusNamesToIds(corporaNames);
       queryData.setCorpusList(corpusIDs);
+      queryData.setDocuments(null);
       return countGen.toSql(queryData);
     }
   }
