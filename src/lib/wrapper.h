@@ -2,6 +2,7 @@
 #define WRAPPER_H
 
 #include "iterators.h"
+#include "db.h"
 
 #include <queue>
 #include <list>
@@ -106,6 +107,51 @@ private:
 
   void checkIfNextCallNeeded();
 };
+
+  /**
+   * An annotation iterator that wraps another annotation iterator, but replaces
+   * the node annotation value with a constant value.
+   * The node ID will be the same as given by the wrapped iterator.
+   * @param db
+   * @param delegate
+   */
+  class ConstAnnoWrapper : public AnnoIt
+  {
+  public:
+
+    ConstAnnoWrapper(Annotation constAnno, std::shared_ptr<AnnoIt> delegate)
+      : constAnno(constAnno), delegate(delegate)
+    {
+
+    }
+
+    virtual bool hasNext()
+    {
+      return delegate->hasNext();
+    }
+
+    virtual Match next()
+    {
+      Match m = delegate->next();
+      m.anno = constAnno;
+      return m;
+    }
+
+    virtual void reset()
+    {
+      delegate->reset();
+    }
+    
+    std::shared_ptr<AnnoIt> getDelegate() { return delegate;}
+
+    virtual ~ConstAnnoWrapper()
+    {
+    }
+  private:
+    Annotation constAnno;
+    std::shared_ptr<AnnoIt> delegate;
+  };
+
 } // end namespace annis
 
 

@@ -82,7 +82,7 @@ node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax
 & #6 >* #7
 & #4 ->anaphoric #7
 */
-TEST_F(SearchTestTueBaDZ, Mix) {
+TEST_F(SearchTestTueBaDZ, DISABLED_Mix) {
 
   ASSERT_TRUE((bool) q);
   
@@ -96,7 +96,7 @@ TEST_F(SearchTestTueBaDZ, Mix) {
   EXPECT_EQ(0u, counter);
 }
 
-TEST_F(SearchTestTueBaDZ, RegexDom) {
+TEST_F(SearchTestTueBaDZ, DISABLED_RegexDom) {
 
   ASSERT_TRUE((bool) q);
   
@@ -110,7 +110,7 @@ TEST_F(SearchTestTueBaDZ, RegexDom) {
   EXPECT_EQ(1u, counter);
 }
 
-TEST_F(SearchTestTueBaDZ, NodeDom) {
+TEST_F(SearchTestTueBaDZ, DISABLED_NodeDom) {
 
  ASSERT_TRUE((bool) q);
   unsigned int counter=0;

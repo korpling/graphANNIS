@@ -23,6 +23,7 @@ import annis.sqlgen.model.Inclusion;
 import annis.sqlgen.model.Overlap;
 import annis.sqlgen.model.PointingRelation;
 import annis.sqlgen.model.Precedence;
+import annis.sqlgen.model.SameSpan;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -146,6 +147,10 @@ public class QueryToJSON
     else if (join instanceof Inclusion)
     {
       node.put("op", "Inclusion");
+    }
+    else if(join instanceof SameSpan)
+    {
+      node.put("op", "IdenticalCoverage");
     }
     else
     {

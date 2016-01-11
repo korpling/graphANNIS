@@ -302,6 +302,51 @@ TEST_F(SearchTestPcc2, Precedence) {
   EXPECT_EQ(27u, counter);
 }
 
+TEST_F(SearchTestPcc2, TokIdentCovNN) {
+
+  ASSERT_TRUE((bool) q);
+  
+  unsigned int counter = 0;
+
+  while (q->hasNext() && counter < 2000) {
+    std::vector<Match> m = q->next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(5u, counter);
+}
+
+TEST_F(SearchTestPcc2, TokIdentCovNode) {
+
+  ASSERT_TRUE((bool) q);
+  
+  unsigned int counter = 0;
+
+  while (q->hasNext() && counter < 2000) {
+    std::vector<Match> m = q->next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(2u, counter);
+}
+
+TEST_F(SearchTestPcc2, NodeIdentCovNode) {
+
+  ASSERT_TRUE((bool) q);
+  
+  unsigned int counter = 0;
+
+  while (q->hasNext() && counter < 2000) {
+    std::vector<Match> m = q->next();
+    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    counter++;
+  }
+
+  EXPECT_EQ(1078u, counter);
+}
+
 // Should test query
 // mmax:np_form="defnp" & mmax:np_form="pper"  & #2 ->anaphor_antecedent * #1
 TEST_F(SearchTestPcc2, IndirectPointing) {

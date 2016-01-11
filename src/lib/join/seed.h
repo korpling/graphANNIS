@@ -42,7 +42,7 @@ private:
 
   bool checkReflexitivity(const nodeid_t& lhsNode, const Annotation& lhsAnno, const nodeid_t& rhsNode, const Annotation& rhsAnno)
   {
-    if(!op->isReflexive() && lhsNode == rhsNode && checkAnnotationEqual(lhsAnno, rhsAnno))
+    if(!op->isReflexive() && lhsNode == rhsNode && checkAnnotationKeyEqual(lhsAnno, rhsAnno))
     {
       return false;
     }
@@ -86,7 +86,7 @@ private:
 
   bool checkReflexitivity(const nodeid_t& lhsNode, const Annotation& lhsAnno, const nodeid_t& rhsNode, const Annotation& rhsAnno)
   {
-    if(!op->isReflexive() && lhsNode == rhsNode && checkAnnotationEqual(lhsAnno, rhsAnno))
+    if(!op->isReflexive() && lhsNode == rhsNode && checkAnnotationKeyEqual(lhsAnno, rhsAnno))
     {
       return false;
     }

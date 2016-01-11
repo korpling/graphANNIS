@@ -16,21 +16,38 @@ Query::~Query() {
   
 }
 
-size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n)
+size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNodeAnno)
 {
   initialized = false;
 
   size_t idx = nodes.size();
-  nodes.push_back(n);
+  
+  if(wrapAnyNodeAnno)
+  {
+    Annotation constAnno = {db.getNodeNameStringID(), db.getNamespaceStringID(), 0};
+    nodes.push_back(std::make_shared<ConstAnnoWrapper>(constAnno, n));
+  }
+  else
+  {
+    nodes.push_back(n);
+  }
   return idx;
 }
 
-size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n)
+size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAnyNodeAnno)
 {
   initialized = false;
 
   size_t idx = nodes.size();
-  nodes.push_back(n);
+  if(wrapAnyNodeAnno)
+  {
+    Annotation constAnno = {db.getNodeNameStringID(), db.getNamespaceStringID(), 0};
+    nodes.push_back(std::make_shared<ConstAnnoWrapper>(constAnno, n));
+  }
+  else
+  {
+    nodes.push_back(n);
+  }
   return idx;
 }
 
@@ -121,6 +138,14 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
     else
     {
       std::shared_ptr<AnnoIt> rightIt = nodes[e.idxRight];
+      
+      std::shared_ptr<ConstAnnoWrapper> constWrapper =
+          std::dynamic_pointer_cast<ConstAnnoWrapper>(rightIt);
+      if(constWrapper)
+      {
+        rightIt = constWrapper->getDelegate();
+      }
+      
       std::shared_ptr<AnnotationKeySearch> keySearch =
           std::dynamic_pointer_cast<AnnotationKeySearch>(rightIt);
       std::shared_ptr<AnnotationSearch> annoSearch =
