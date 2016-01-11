@@ -15,13 +15,16 @@
  */
 package org.korpling.annis.benchmark.generator;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -132,6 +135,20 @@ public class QuerySetPersistance
       }
     }
     
+    File fCorpora = new File(parentDir, name + ".corpora");
+    if(fCorpora.isFile())
+    {
+      try
+      {
+        String raw = Files.asCharSource(fCorpora, StandardCharsets.UTF_8).read();
+        q.setCorpora(new LinkedHashSet<>(Splitter.on(",").omitEmptyStrings().trimResults().splitToList(raw)));
+      }
+      catch(IOException ex)
+      {
+        log.error(null, ex);
+      }
+    }
+    
     return q;
     
   }
@@ -185,6 +202,12 @@ public class QuerySetPersistance
     {
       File fSql = new File(parentDir, name + ".sql");
       Files.write(q.getSql(), fSql, StandardCharsets.UTF_8); 
+    }
+    
+    if(q.getCorpora() != null && !q.getCorpora().isEmpty())
+    {
+      File fCorpora = new File(parentDir, name + ".corpora");
+      Files.write(Joiner.on(",").join(q.getCorpora()), fCorpora, StandardCharsets.UTF_8); 
     }
 
   }
