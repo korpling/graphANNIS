@@ -4,6 +4,7 @@
 
 #include "linenoise.h"
 #include <db.h>
+#include <helper.h>
 #include <jsonqueryparser.h>
 
 #include <humblelogging/api.h>
@@ -143,12 +144,14 @@ int main(int argc, char** argv)
           ss << json;
           std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, ss); 
           int counter =0;
+          auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
           while(q->hasNext())
           {
             q->next();
             counter++;
           }
-          std::cout << counter << " matches" << std::endl;
+          auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+          std::cout << counter << " matches in " << (endTime - startTime) << " ms" << std::endl;
         }
         else
         {
