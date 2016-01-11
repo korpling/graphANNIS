@@ -16,15 +16,15 @@ Query::~Query() {
   
 }
 
-size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapEmptyAnno)
+size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNodeAnno)
 {
   initialized = false;
 
   size_t idx = nodes.size();
   
-  if(wrapEmptyAnno)
+  if(wrapAnyNodeAnno)
   {
-    nodes.push_back(std::make_shared<EmptyAnnotationWrapper>(n));
+    nodes.push_back(std::make_shared<AnyNodeWrapper>(db, n));
   }
   else
   {
@@ -33,14 +33,14 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapEmpty
   return idx;
 }
 
-size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapEmptyAnno)
+size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAnyNodeAnno)
 {
   initialized = false;
 
   size_t idx = nodes.size();
-  if(wrapEmptyAnno)
+  if(wrapAnyNodeAnno)
   {
-    nodes.push_back(std::make_shared<EmptyAnnotationWrapper>(n));
+    nodes.push_back(std::make_shared<AnyNodeWrapper>(db, n));
   }
   else
   {

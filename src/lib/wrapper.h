@@ -2,6 +2,7 @@
 #define WRAPPER_H
 
 #include "iterators.h"
+#include "db.h"
 
 #include <queue>
 #include <list>
@@ -107,12 +108,12 @@ private:
   void checkIfNextCallNeeded();
 };
 
-  class EmptyAnnotationWrapper : public AnnoIt
+  class AnyNodeWrapper : public AnnoIt
   {
   public:
     
-    EmptyAnnotationWrapper(std::shared_ptr<AnnoIt> delegate)
-    : delegate(delegate)
+    AnyNodeWrapper(const DB& db, std::shared_ptr<AnnoIt> delegate)
+    : delegate(delegate), anyNodeAnno({db.getNodeNameStringID(), db.getNamespaceStringID(), 0})
     {
       
     }
@@ -124,7 +125,7 @@ private:
     virtual Match next()
     {
       Match m = delegate->next();
-      m.anno = {0, 0, 0};
+      m.anno = anyNodeAnno;
       return m;
     }
     virtual void reset()
@@ -132,10 +133,10 @@ private:
       delegate->reset();
     }
 
-    virtual ~EmptyAnnotationWrapper() { }
+    virtual ~AnyNodeWrapper() { }
   private:
     std::shared_ptr<AnnoIt> delegate;
-    Annotation emptyAnno;
+    Annotation anyNodeAnno;
   };
 
 } // end namespace annis
