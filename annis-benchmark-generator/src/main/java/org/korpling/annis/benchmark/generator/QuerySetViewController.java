@@ -349,6 +349,7 @@ public class QuerySetViewController implements Initializable
     {
       try
       {
+        q.setJson(null);
         QueryData queryData = parser.parse(q.getAql(), null);
         String asJSON = QueryToJSON.serializeQuery(queryData);
         q.setJson(asJSON);

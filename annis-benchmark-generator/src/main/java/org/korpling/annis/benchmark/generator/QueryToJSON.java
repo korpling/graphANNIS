@@ -66,6 +66,11 @@ public class QueryToJSON
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(jaxbModule);
     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+    
+    if(queryData.getMetaData() != null && !queryData.getMetaData().isEmpty())
+    {
+      throw new UnsupportedOperationException("Metadata filtering not supported yet");
+    }
 
     if (queryData.getAlternatives() != null && !queryData.getAlternatives().
       isEmpty())
