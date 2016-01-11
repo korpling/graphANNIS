@@ -11,6 +11,7 @@
    <children>
       <HBox spacing="10.0" VBox.vgrow="NEVER">
          <children>
+            <Button mnemonicParsing="false" onAction="#load" text="Load Folder" />
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
             <Button mnemonicParsing="false" onAction="#parseJSON" text="Parse" />
             <TextField fx:id="corpusFilter" prefHeight="26.0" prefWidth="241.0" promptText="Corpus filter" />

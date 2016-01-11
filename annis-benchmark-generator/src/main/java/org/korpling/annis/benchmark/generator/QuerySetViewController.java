@@ -294,6 +294,20 @@ public class QuerySetViewController implements Initializable
   }
   
   @FXML
+  public void load(ActionEvent evt)
+  {
+    dirChooser.setTitle("Set directory");
+    
+    File dir = dirChooser.showDialog(root.getScene().getWindow());
+    if(dir != null)
+    {
+      List<Query> loaded = QuerySetPersistance.loadQuerySet(dir);
+      queries.clear();
+      queries.addAll(loaded);
+    }
+  }
+  
+  @FXML
   public void export(ActionEvent evt)
   {
     dirChooser.setTitle("Set export directory");
@@ -301,24 +315,9 @@ public class QuerySetViewController implements Initializable
     File dir = dirChooser.showDialog(root.getScene().getWindow());
     if(dir != null)
     {
-      int errorCounter = 0;
-      for(Query q : tableView.getItems())
-      {
-        String name = q.getName();
-        File fAQL = new File(dir, name + ".aql");
-        File fJSON = new File(dir, name + ".json");
-        
-        try
-        { 
-          Files.write(q.getAql(), fAQL, StandardCharsets.UTF_8);
-          Files.write(q.getJson(), fJSON, StandardCharsets.UTF_8);
-        }
-        catch (Exception ex)
-        {
-          log.error("not exported: " + q.getAql(), ex);
-          errorCounter++;
-        }
-      }
+      int successCounter = QuerySetPersistance.writeQuerySet(dir, queries);
+      int errorCounter =  queries.size() - successCounter;
+
       if(errorCounter == 0)
       {
         new Alert(AlertType.INFORMATION, "All queries exported successfully", ButtonType.OK).showAndWait();
