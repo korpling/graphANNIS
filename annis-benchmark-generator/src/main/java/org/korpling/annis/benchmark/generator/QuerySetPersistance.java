@@ -169,7 +169,7 @@ public class QuerySetPersistance
     
     String name = q.getName();
     File fAQL = new File(parentDir, name + ".aql");
-    Files.write(q.getAql(), fAQL, StandardCharsets.UTF_8);
+    Files.write(q.getAql() + "\n", fAQL, StandardCharsets.UTF_8);
     
     if(q.getJson() != null)
     {

@@ -18,12 +18,17 @@ package org.korpling.annis.benchmark.generator;
 import annis.ql.parser.AnnisParserAntlr;
 import annis.ql.parser.QueryData;
 import annis.ql.parser.SemanticValidator;
+import com.google.common.base.Preconditions;
+import com.google.common.io.CharSink;
 import com.google.common.io.Files;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -75,6 +80,9 @@ public class QuerySetViewController implements Initializable
   
   private final FileChooser.ExtensionFilter logFilter = new FileChooser.ExtensionFilter(
     "Query log (*.log)", "*.log");
+  
+  private final FileChooser.ExtensionFilter txtFilter = new FileChooser.ExtensionFilter(
+    "Text files (*.txt)", "*.txt");
   
   @FXML
   private TableView<Query> tableView;
@@ -317,7 +325,7 @@ public class QuerySetViewController implements Initializable
   }
   
   @FXML
-  public void export(ActionEvent evt)
+  public void exportCpp(ActionEvent evt)
   {
     dirChooser.setTitle("Set export directory");
     
@@ -334,6 +342,52 @@ public class QuerySetViewController implements Initializable
       else
       {
         new Alert(AlertType.ERROR, "" + errorCounter + " had errors", ButtonType.OK).showAndWait();
+      }
+    }
+  }
+  
+  @FXML
+  public void exportAnnis3(ActionEvent evt)
+  {
+    fileChooser.setTitle("Set export file");
+    fileChooser.getExtensionFilters().clear();
+    fileChooser.getExtensionFilters().add(txtFilter);
+    fileChooser.setSelectedExtensionFilter(txtFilter);
+    
+    File file = fileChooser.showSaveDialog(root.getScene().getWindow());
+    if(file != null)
+    {
+      try(OutputStreamWriter o = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))
+      {
+        o.write("set clear-caches to false\n");
+        o.write("record\n");
+        
+        List<Query> visibleQueries = tableView.getItems();
+        String corpusName = null;
+        for(Query q : visibleQueries)
+        {
+          Preconditions.checkState(q.getCorpora().size() == 1);
+          if(corpusName == null)
+          {
+            corpusName = q.getCorpora().iterator().next();
+          }
+          else
+          {
+            Preconditions.checkState(corpusName.equals(q.getCorpora().iterator().next()));
+          }
+        }
+        Preconditions.checkNotNull(corpusName);
+        o.write("corpus " + corpusName + "\n\n");
+        for(Query q : visibleQueries)
+        {
+          o.write("count " + q.getAql().replace('\n', ' ') + "\n");
+        }
+        o.write("\nbenchmark 20\n");
+      }
+      catch (Exception ex)
+      {
+        log.error(null, ex);
+        new Alert(AlertType.ERROR, "error on export: ", ButtonType.OK).showAndWait();
       }
     }
   }
