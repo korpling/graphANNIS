@@ -15,14 +15,10 @@
  */
 package org.korpling.annis.benchmark.generator;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
-import com.google.common.io.PatternFilenameFilter;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;

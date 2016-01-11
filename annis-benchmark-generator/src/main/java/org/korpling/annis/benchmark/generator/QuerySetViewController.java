@@ -25,9 +25,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Set;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -44,16 +45,17 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
-import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.util.StringConverter;
+import static javax.management.Query.value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,16 +90,16 @@ public class QuerySetViewController implements Initializable
   private TableColumn<Query, String> aqlColumn;
 
   @FXML
-  private TableColumn<Query, String> corpusColumn;
+  private TableColumn<Query, Set<String>> corpusColumn;
 
   @FXML
-  private TableColumn<Query, Long> execTimeColumn;
+  private TableColumn<Query, Optional<Long>> execTimeColumn;
   
   @FXML
   private TableColumn<Query, Boolean> validColumn;
 
   @FXML
-  private TableColumn<Query, Long> nrResultsColumn;
+  private TableColumn<Query, Optional<Long>> nrResultsColumn;
 
   @FXML
   private TextField corpusFilter;
@@ -128,46 +130,39 @@ public class QuerySetViewController implements Initializable
     parser.setPostProcessors(Arrays.asList(new SemanticValidator()));  
 
     nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-
     aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));
-    corpusColumn.setCellValueFactory(new PropertyValueFactory<>("corpus"));
+    corpusColumn.setCellValueFactory(new PropertyValueFactory<>("corpora"));
+    execTimeColumn.setCellValueFactory(new PropertyValueFactory<>("executionTime"));
+    nrResultsColumn.setCellValueFactory(new PropertyValueFactory<>("count"));
 
-    corpusColumn.setCellValueFactory(val
-      -> new SimpleObjectProperty<>(
-        Joiner.on(", ").join(val.getValue().getCorpora())));
-
-    execTimeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(
-      param.getValue().getExecutionTime().orElse(-1l)));
-
-    nrResultsColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(
-      param.getValue().getCount().orElse(-1l)));
-
-    aqlColumn.setCellFactory(param
-      -> 
-      {
-        final TableCell cell = new TableCell()
-        {
-          private Text text;
-
-          @Override
-          public void updateItem(Object item, boolean empty)
-          {
-            super.updateItem(item, empty);
-            if (isEmpty())
-            {
-              setGraphic(null);
-            }
-            else
-            {
-              text = new Text(item.toString());
-              text.wrappingWidthProperty().bind(widthProperty());
-              setGraphic(text);
-            }
-          }
-        };
-        return cell;
-
+    nameColumn.setCellFactory(TextFieldTableCell.forTableColumn());
+    aqlColumn.setCellFactory(TextAreaTableCell.forTableColumn());
+    corpusColumn.setCellFactory(TextFieldTableCell.forTableColumn(new StringSetConverter()));
+    execTimeColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
+    nrResultsColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
+    
+    nameColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, String> event) ->
+    {
+      event.getRowValue().setName(event.getNewValue());
     });
+    aqlColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, String> event) ->
+    {
+      event.getRowValue().setAql(event.getNewValue());
+    });
+    corpusColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, Set<String>> event) ->
+    {
+      event.getRowValue().setCorpora(event.getNewValue());
+    });
+    execTimeColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, Optional<Long>> event) ->
+    {
+      event.getRowValue().setExecutionTime(event.getNewValue());
+    });
+    nrResultsColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, Optional<Long>> event) ->
+    {
+      event.getRowValue().setCount(event.getNewValue());
+    });
+    
+    
     validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
 
     FilteredList<Query> filteredQueries = new FilteredList<>(queries, p -> true);
