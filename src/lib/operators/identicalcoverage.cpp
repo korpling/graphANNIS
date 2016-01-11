@@ -8,6 +8,10 @@
 #include "identicalcoverage.h"
 #include "wrapper.h"
 
+#include <set>
+#include <vector>
+#include <algorithm>
+
 using namespace annis;
 
 IdenticalCoverage::IdenticalCoverage(const DB &db)
@@ -31,7 +35,6 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
   
   nodeid_t leftToken;
   nodeid_t rightToken;
-  int spanLength = 0;
   if(tokHelper.isToken(lhs.node))
   {
     // is token
@@ -42,23 +45,30 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
   {
     leftToken = gsLeftToken->getOutgoingEdges(lhs.node)[0];
     rightToken = gsRightToken->getOutgoingEdges(lhs.node)[0];
-    spanLength = gsOrder->distance(Init::initEdge(leftToken, rightToken));
   }
-
-  // find each token which is between the left and right border
-  std::unique_ptr<EdgeIterator> itTokBetween = gsOrder->findConnected(leftToken, 0, spanLength);
-  for(std::pair<bool, nodeid_t> tokBetween = itTokBetween->next();
-      tokBetween.first;
-      tokBetween = itTokBetween->next())
+  
+  // add the connected token itself as a match the span covers only one token
+  if(leftToken == rightToken)
   {
-    // add the token itself
-    w->addMatch({tokBetween.second, anyNodeAnno});
-    
-    // add all right aligned nodes
-    for(const auto& rightAlignedNode : gsRightToken->getOutgoingEdges(tokBetween.second))
-    {
-      w->addMatch({rightAlignedNode, anyNodeAnno});
-    }
+    w->addMatch({leftToken, anyNodeAnno});
+  }
+  
+  // find each node that is left-aligned with the left token and right aligned with the right token
+  auto leftAligned = gsLeftToken->getOutgoingEdges(leftToken);
+  auto rightAligned = gsRightToken->getOutgoingEdges(rightToken);
+  std::sort(leftAligned.begin(), leftAligned.end());
+  std::sort(rightAligned.begin(), rightAligned.end());
+  std::vector<nodeid_t> resultIDs(std::max(leftAligned.size(), rightAligned.size()));
+  
+  auto it = 
+    std::set_intersection(leftAligned.begin(), leftAligned.end(), 
+    rightAligned.begin(), rightAligned.end(), 
+    resultIDs.begin());
+  resultIDs.resize(it - resultIDs.begin());
+
+  for(const auto& matchedID : resultIDs)
+  {
+    w->addMatch({matchedID, anyNodeAnno});
 
   }
   

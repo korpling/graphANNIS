@@ -46,7 +46,7 @@ BinaryMatch NestedLoopJoin::next()
       // do not include the same match if not reflexive
       if(!op->isReflexive()
          && matchLeft.node == matchRight.node
-         && checkAnnotationEqual(matchLeft.anno, matchRight.anno)) {
+         && checkAnnotationKeyEqual(matchLeft.anno, matchRight.anno)) {
         include = false;
       }
 

@@ -24,7 +24,8 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNo
   
   if(wrapAnyNodeAnno)
   {
-    nodes.push_back(std::make_shared<AnyNodeWrapper>(db, n));
+    Annotation constAnno = {db.getNodeNameStringID(), db.getNamespaceStringID(), 0};
+    nodes.push_back(std::make_shared<ConstAnnoWrapper>(constAnno, n));
   }
   else
   {
@@ -40,7 +41,8 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAn
   size_t idx = nodes.size();
   if(wrapAnyNodeAnno)
   {
-    nodes.push_back(std::make_shared<AnyNodeWrapper>(db, n));
+    Annotation constAnno = {db.getNodeNameStringID(), db.getNamespaceStringID(), 0};
+    nodes.push_back(std::make_shared<ConstAnnoWrapper>(constAnno, n));
   }
   else
   {
