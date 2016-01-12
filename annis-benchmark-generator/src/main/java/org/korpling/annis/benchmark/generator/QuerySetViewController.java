@@ -19,6 +19,7 @@ import annis.ql.parser.AnnisParserAntlr;
 import annis.ql.parser.QueryData;
 import annis.ql.parser.SemanticValidator;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.io.CharSink;
 import com.google.common.io.Files;
 import java.io.File;
@@ -30,6 +31,7 @@ import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -146,7 +148,8 @@ public class QuerySetViewController implements Initializable
     nrResultsColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
     validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
 
-    
+    execTimeColumn.setComparator((Optional<Long> o1, Optional<Long> o2) 
+      -> ComparisonChain.start().compare(o1.orElse(Long.MIN_VALUE), o2.orElse(Long.MIN_VALUE)).result());
     
     nameColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, String> event) ->
     {

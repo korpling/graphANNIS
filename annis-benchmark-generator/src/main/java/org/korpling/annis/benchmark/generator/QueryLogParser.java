@@ -120,6 +120,8 @@ public class QueryLogParser implements LineProcessor<List<Query>>
       else
       {
         currentAQL.append(line);
+        // instead of a newline better use space
+        currentAQL.append(" ");
       }
     }
     return true;
