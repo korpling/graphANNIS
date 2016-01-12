@@ -56,7 +56,7 @@ namespace annis {
     }
     
     static Annotation getEdgeAnno(const DB& db, const Json::Value& edgeAnno);
-
+    
   };
 
 }

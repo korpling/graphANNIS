@@ -48,6 +48,8 @@ public:
   bool hasNext();
   std::vector<Match> next();
   
+  static bool notRealRegex(const std::string& str);
+  
   virtual ~Query();
 
 private:
@@ -69,6 +71,7 @@ private:
   void addJoin(OperatorEntry &e, bool filterOnly = false);
 
   void mergeComponents(int c1, int c2);
+  
 
 };
 

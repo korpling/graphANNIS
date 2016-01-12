@@ -4,6 +4,7 @@
 #include "filter.h"
 
 #include <vector>
+#include <re2/re2.h>
 
 using namespace annis;
 
@@ -240,4 +241,23 @@ std::vector<Match> Query::next()
 
   return std::vector<Match>(0);
 }
+
+bool Query::notRealRegex(const std::string& str)
+{
+  RE2 regex(str);
+  if(regex.ok())
+  {
+    std::string minString;
+    std::string maxString;
+    if(regex.PossibleMatchRange(&minString, &maxString, str.length()))
+    {
+      if(minString == str && maxString == str)
+      {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 

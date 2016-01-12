@@ -106,8 +106,18 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
 
   if (value)
   {
+    bool exact = *textMatching == "EXACT_EQUAL";
+    bool regex = *textMatching == "REGEXP_EQUAL";
+    if(regex)
+    {
+      if(Query::notRealRegex(*value))
+      {
+        exact = true;
+      }
+    }
+    
     // search for the value
-    if (*textMatching == "EXACT_EQUAL")
+    if (exact)
     {
       // has namespace?
       if (ns)
@@ -126,7 +136,7 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
           wrapEmptyAnno);
       }
     }
-    else if (*textMatching == "REGEXP_EQUAL")
+    else if (regex)
     {
       // has namespace?
       if (ns)
