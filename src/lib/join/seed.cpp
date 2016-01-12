@@ -15,7 +15,7 @@ BinaryMatch AnnoKeySeedJoin::next()
 {
   currentMatch.found = false;
 
-  if(!op || !left || !currentMatchValid)
+  if(!op || !left || !currentMatchValid || rightAnnoKeys.empty())
   {
     return currentMatch;
   }
@@ -132,7 +132,8 @@ BinaryMatch MaterializedSeedJoin::next()
 {
   currentMatch.found = false;
 
-  if(!op || !left || !currentMatchValid)
+  // check some conditions where we can't perform a join
+  if(!op || !left || !currentMatchValid || right.empty())
   {
     return currentMatch;
   }
