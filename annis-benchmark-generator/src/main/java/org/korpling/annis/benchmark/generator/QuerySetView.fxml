@@ -13,8 +13,9 @@
          <children>
             <Button mnemonicParsing="false" onAction="#load" text="Load Folder" />
             <Button mnemonicParsing="false" onAction="#loadQueryLog" text="Load Query Log" />
-            <Button mnemonicParsing="false" onAction="#parseJSON" text="Parse" />
-            <Button mnemonicParsing="false" onAction="#export" text="Export" />
+            <Button mnemonicParsing="false" onAction="#parseJSON" text="Parse all" />
+            <Button mnemonicParsing="false" onAction="#exportCpp" text="Export C++" />
+            <Button mnemonicParsing="false" onAction="#exportAnnis3" text="Export ANNIS3" />
          </children>
       </HBox>
       <HBox>

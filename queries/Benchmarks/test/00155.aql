@@ -1,0 +1,2 @@
+LEMMA=/(mein|dein|sein|ihr|unser||euer)/. tok 
+

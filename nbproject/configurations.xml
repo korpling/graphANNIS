@@ -247,8 +247,10 @@
       </toolsSet>
       <flagsDictionary>
         <element flagsID="0" commonFlags="-g"/>
-        <element flagsID="1" commonFlags="-std=c++11"/>
-        <element flagsID="2" commonFlags="-std=c++11 -std=gnu++11 -O3"/>
+        <element flagsID="1"
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11"/>
+        <element flagsID="2"
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
         <element flagsID="3" commonFlags="-std=c++14"/>
         <element flagsID="4" commonFlags="-std=c++14 -std=c++14"/>
       </flagsDictionary>
@@ -259,7 +261,7 @@
           <buildCommandWorkingDir>build</buildCommandWorkingDir>
           <buildCommand>${MAKE} -f Makefile</buildCommand>
           <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
-          <executablePath>build/test_ANNIS4</executablePath>
+          <executablePath>build/a4_runner</executablePath>
           <cTool>
             <incDir>
               <pElem>include</pElem>
@@ -794,8 +796,10 @@
       </toolsSet>
       <flagsDictionary>
         <element flagsID="0" commonFlags="-O2 -g"/>
-        <element flagsID="1" commonFlags="-std=c++11 -O2"/>
-        <element flagsID="2" commonFlags="-std=c++11 -std=gnu++11 -O3 -O2"/>
+        <element flagsID="1"
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -O2"/>
+        <element flagsID="2"
+                 commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -O2"/>
         <element flagsID="3" commonFlags="-std=c++14 -O2"/>
         <element flagsID="4" commonFlags="-std=c++14 -O2 -std=c++14"/>
       </flagsDictionary>
@@ -1280,6 +1284,13 @@
         </ccTool>
       </item>
       <item path="src/lib/operators/dominance.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="src/lib/operators/identicalcoverage.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>

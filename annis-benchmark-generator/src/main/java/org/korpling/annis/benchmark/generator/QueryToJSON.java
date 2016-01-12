@@ -16,6 +16,7 @@
 package org.korpling.annis.benchmark.generator;
 
 import annis.model.Join;
+import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
 import annis.ql.parser.QueryData;
 import annis.sqlgen.model.Dominance;
@@ -86,6 +87,28 @@ public class QueryToJSON
         // map each node
         for (QueryNode n : alt)
         {
+          if(n.getSpanTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL || n.getSpanTextMatching() == QueryNode.TextMatching.REGEXP_NOT_EQUAL)
+          {
+            throw new UnsupportedOperationException("negation not supported yet");
+          }
+          for(QueryAnnotation anno : n.getNodeAnnotations())
+          {
+            if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
+              || anno.getTextMatching()== QueryNode.TextMatching.REGEXP_NOT_EQUAL)
+            {
+              throw new UnsupportedOperationException(
+                "negation not supported yet");
+            }
+          }
+          for(QueryAnnotation anno : n.getEdgeAnnotations())
+          {
+            if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
+              || anno.getTextMatching()== QueryNode.TextMatching.REGEXP_NOT_EQUAL)
+            {
+              throw new UnsupportedOperationException(
+                "negation not supported yet");
+            }
+          }
           JsonNode nodeObject = mapper.valueToTree(n);
           // manually remove some internal fields
           if (nodeObject instanceof ObjectNode)

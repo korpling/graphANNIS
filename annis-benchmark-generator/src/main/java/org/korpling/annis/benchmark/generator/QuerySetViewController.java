@@ -18,18 +18,25 @@ package org.korpling.annis.benchmark.generator;
 import annis.ql.parser.AnnisParserAntlr;
 import annis.ql.parser.QueryData;
 import annis.ql.parser.SemanticValidator;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
+import com.google.common.io.CharSink;
 import com.google.common.io.Files;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener.Change;
 import javafx.collections.ObservableList;
@@ -53,7 +60,6 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
-import javafx.util.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +83,9 @@ public class QuerySetViewController implements Initializable
   private final FileChooser.ExtensionFilter logFilter = new FileChooser.ExtensionFilter(
     "Query log (*.log)", "*.log");
   
-
+  private final FileChooser.ExtensionFilter txtFilter = new FileChooser.ExtensionFilter(
+    "Text files (*.txt)", "*.txt");
+  
   @FXML
   private TableView<Query> tableView;
 
@@ -140,7 +148,8 @@ public class QuerySetViewController implements Initializable
     nrResultsColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
     validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
 
-    
+    execTimeColumn.setComparator((Optional<Long> o1, Optional<Long> o2) 
+      -> ComparisonChain.start().compare(o1.orElse(Long.MIN_VALUE), o2.orElse(Long.MIN_VALUE)).result());
     
     nameColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, String> event) ->
     {
@@ -193,7 +202,7 @@ public class QuerySetViewController implements Initializable
         counterLabel.textProperty().set("" + filteredQueries.size());
     });
   }
-
+  
   private void setFilterPredicate(FilteredList<Query> filteredQueries)
   {
     if (filteredQueries != null)
@@ -319,15 +328,15 @@ public class QuerySetViewController implements Initializable
   }
   
   @FXML
-  public void export(ActionEvent evt)
+  public void exportCpp(ActionEvent evt)
   {
     dirChooser.setTitle("Set export directory");
     
     File dir = dirChooser.showDialog(root.getScene().getWindow());
     if(dir != null)
     {
-      int successCounter = QuerySetPersistance.writeQuerySet(dir, queries);
-      int errorCounter =  queries.size() - successCounter;
+      int successCounter = QuerySetPersistance.writeQuerySet(dir, tableView.getItems());
+      int errorCounter =  tableView.getItems().size() - successCounter;
 
       if(errorCounter == 0)
       {
@@ -341,16 +350,64 @@ public class QuerySetViewController implements Initializable
   }
   
   @FXML
+  public void exportAnnis3(ActionEvent evt)
+  {
+    fileChooser.setTitle("Set export file");
+    fileChooser.getExtensionFilters().clear();
+    fileChooser.getExtensionFilters().add(txtFilter);
+    fileChooser.setSelectedExtensionFilter(txtFilter);
+    
+    File file = fileChooser.showSaveDialog(root.getScene().getWindow());
+    if(file != null)
+    {
+      try(OutputStreamWriter o = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))
+      {
+        o.write("set clear-caches to false\n");
+        o.write("record\n");
+        
+        List<Query> visibleQueries = tableView.getItems();
+        String corpusName = null;
+        for(Query q : visibleQueries)
+        {
+          Preconditions.checkState(q.getCorpora().size() == 1);
+          if(corpusName == null)
+          {
+            corpusName = q.getCorpora().iterator().next();
+          }
+          else
+          {
+            Preconditions.checkState(corpusName.equals(q.getCorpora().iterator().next()));
+          }
+        }
+        Preconditions.checkNotNull(corpusName);
+        o.write("corpus " + corpusName + "\n\n");
+        for(Query q : visibleQueries)
+        {
+           o.write("benchmarkName " + q.getName() + "\n");
+          o.write("count " + q.getAql().replace('\n', ' ') + "\n");
+        }
+        o.write("\nbenchmark 5\n");
+      }
+      catch (Exception ex)
+      {
+        log.error(null, ex);
+        new Alert(AlertType.ERROR, "error on export: ", ButtonType.OK).showAndWait();
+      }
+    }
+  }
+  
+  @FXML
   public void parseJSON(ActionEvent evt)
   {
     // only parse the visible items
-    queries.stream().
+    tableView.getItems().stream().
       forEach((q) ->
     {
       try
       {
         q.setJson(null);
         QueryData queryData = parser.parse(q.getAql(), null);
+        queryData.setMaxWidth(queryData.getAlternatives().get(0).size());
         String asJSON = QueryToJSON.serializeQuery(queryData);
         q.setJson(asJSON);
       }

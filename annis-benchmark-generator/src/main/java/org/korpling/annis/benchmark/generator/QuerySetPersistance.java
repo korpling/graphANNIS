@@ -15,13 +15,16 @@
  */
 package org.korpling.annis.benchmark.generator;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -105,6 +108,35 @@ public class QuerySetPersistance
       }
     }
     
+    File fTime = new File(parentDir, name + ".time");
+    if(fTime.isFile())
+    {
+      try
+      {
+        String raw = Files.asCharSource(fTime, StandardCharsets.UTF_8).read();
+        q.setExecutionTime(Optional.of(Long.parseLong(raw.trim())));
+      }
+      catch(IOException ex)
+      {
+        log.error(null, ex);
+      }
+    }
+    
+    
+    File fCorpora = new File(parentDir, name + ".corpora");
+    if(fCorpora.isFile())
+    {
+      try
+      {
+        String raw = Files.asCharSource(fCorpora, StandardCharsets.UTF_8).read();
+        q.setCorpora(new LinkedHashSet<>(Splitter.on(",").omitEmptyStrings().trimResults().splitToList(raw)));
+      }
+      catch(IOException ex)
+      {
+        log.error(null, ex);
+      }
+    }
+    
     return q;
     
   }
@@ -137,17 +169,27 @@ public class QuerySetPersistance
     
     String name = q.getName();
     File fAQL = new File(parentDir, name + ".aql");
-    Files.write(q.getAql(), fAQL, StandardCharsets.UTF_8);
+    Files.write(q.getAql() + "\n", fAQL, StandardCharsets.UTF_8);
     
     if(q.getJson() != null)
     {
       File fJSON = new File(parentDir, name + ".json");
       Files.write(q.getJson(), fJSON, StandardCharsets.UTF_8); 
     }
-    if(q.getCount() != null)
+    if(q.getCount().isPresent())
     {
       File fCount = new File(parentDir, name + ".count");
       Files.write("" + q.getCount().get(), fCount, StandardCharsets.UTF_8); 
+    }
+    if(q.getExecutionTime().isPresent())
+    {
+      File fTime = new File(parentDir, name + ".time");
+      Files.write("" + q.getExecutionTime().get(), fTime, StandardCharsets.UTF_8); 
+    }
+    if(q.getCorpora() != null && !q.getCorpora().isEmpty())
+    {
+      File fCorpora = new File(parentDir, name + ".corpora");
+      Files.write(Joiner.on(",").join(q.getCorpora()), fCorpora, StandardCharsets.UTF_8); 
     }
 
   }
