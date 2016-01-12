@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
   
   // TEST //
   DynamicBenchmark benchmarksTest(dir + "/Benchmarks/test", "parlament", true);
-  benchmarksTest.registerFixture("Fallback", true);
+  //benchmarksTest.registerFixture("Fallback", true);
   benchmarksTest.registerFixture("Optimized");
 
   celero::Run(argc, argv);
