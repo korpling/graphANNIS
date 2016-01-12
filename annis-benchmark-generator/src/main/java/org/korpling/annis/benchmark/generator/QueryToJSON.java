@@ -86,6 +86,10 @@ public class QueryToJSON
         // map each node
         for (QueryNode n : alt)
         {
+          if(n.getSpanTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL || n.getSpanTextMatching() == QueryNode.TextMatching.REGEXP_NOT_EQUAL)
+          {
+            throw new UnsupportedOperationException("negation not supported yet");
+          }
           JsonNode nodeObject = mapper.valueToTree(n);
           // manually remove some internal fields
           if (nodeObject instanceof ObjectNode)
