@@ -28,8 +28,8 @@
             <formatting>
                 <project-formatting-style>true</project-formatting-style>
                 <c-style>ANSI|ANSI</c-style>
-                <cpp-style>Default_1|TK</cpp-style>
-                <header-style>Default_2|TK</header-style>
+                <cpp-style>Default_0|TK</cpp-style>
+                <header-style>Default_1|TK</header-style>
             </formatting>
         </data>
     </configuration>
