@@ -110,7 +110,9 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
     bool regex = *textMatching == "REGEXP_EQUAL";
     if(regex)
     {
-      if(Query::notRealRegex(*value))
+      std::string quoted = RE2::QuoteMeta(*value);
+      // if nothings needs to be quoted, no regex special characters are included
+      if(quoted == *value)
       {
         exact = true;
       }

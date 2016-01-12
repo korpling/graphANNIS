@@ -48,8 +48,6 @@ public:
   bool hasNext();
   std::vector<Match> next();
   
-  static bool notRealRegex(const std::string& str);
-  
   virtual ~Query();
 
 private:
