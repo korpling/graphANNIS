@@ -57,8 +57,8 @@ void DynamicCorpusFixture::tearDown()
 }
 
 DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
-  std::string corpusName, bool registerOptimized, bool multipleExperiments)
-  : corpus(corpusName)
+  std::string corpusName, bool multipleExperiments)
+  : corpus(corpusName), multipleExperiments(multipleExperiments)
 {
   // find all file ending with ".json" in the folder
   boost::filesystem::directory_iterator fileEndIt;
@@ -74,23 +74,19 @@ DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
     itFiles++;
   }
 
-  registerFixtureInternal(true, "Fallback", true, multipleExperiments);
-  if (registerOptimized)
-  {
-    registerFixtureInternal(false, "Optimized", false, multipleExperiments);
-  }
+  registerFixtureInternal(true, "Baseline", true);
 }
 
 void DynamicBenchmark::registerFixture(std::string fixtureName,
-  bool multipleExperiments,
+  bool forceFallback,
   std::map<Component, std::string> overrideImpl)
 {
-  registerFixtureInternal(false, fixtureName, false, multipleExperiments, overrideImpl);
+  registerFixtureInternal(false, fixtureName, forceFallback, overrideImpl);
 }
 
 void DynamicBenchmark::registerFixtureInternal(
   bool baseline,
-  std::string fixtureName, bool forceFallback, bool multipleExperiments,
+  std::string fixtureName, bool forceFallback,
   std::map<Component, std::string> overrideImpl)
 {
   if (multipleExperiments)
@@ -119,6 +115,7 @@ void DynamicBenchmark::registerFixtureInternal(
   }
 }
 
+
 void DynamicBenchmark::addBenchmark(
   bool baseline,
   std::string benchmarkName,
@@ -132,6 +129,7 @@ void DynamicBenchmark::addBenchmark(
 
   std::map<int64_t, std::string> allQueries;
   std::map<int64_t, unsigned int> expectedCount;
+  std::map<int64_t, uint64_t> fixedValues;
 
   for (auto p : paths)
   {
@@ -155,10 +153,22 @@ void DynamicBenchmark::addBenchmark(
     stream.close();
     
     allQueries.insert({p.first, queryJSON});
-
+    
+    if(baseline)
+    {
+      uint64_t timeVal = 0;
+      auto timePath = p.second.parent_path() /= (p.second.stem().string() + ".time");
+      stream.open(timePath);
+      if (stream.is_open())
+      {
+        stream >> timeVal;
+        stream.close();
+      }
+      // since celero uses microseconds an ANNIS milliseconds the value needs to be converted
+      fixedValues.insert({p.first, timeVal*1000});
+    }
   }
-
-  std::shared_ptr<celero::TestFixture> fixture(
+  std::shared_ptr<::celero::TestFixture> fixture(
     new DynamicCorpusFixture(forceFallback, corpus, overrideImpl, allQueries,
     benchmarkName + " (" + fixtureName + ")",
     numberOfSamples,
@@ -166,8 +176,18 @@ void DynamicBenchmark::addBenchmark(
 
   if (baseline)
   {
-    celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), numberOfSamples, 1, 1,
-      std::make_shared<DynamicCorpusFixtureFactory>(fixture));
+    if(fixedValues.size() > 0)
+    {
+      std::shared_ptr<::celero::TestFixture> fixedFixture(new FixedValueFixture(fixedValues));
+      celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), numberOfSamples, 1, 1,
+        std::make_shared<DynamicCorpusFixtureFactory>(fixedFixture));
+      
+    }
+    else
+    {
+     celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), numberOfSamples, 1, 1,
+        std::make_shared<DynamicCorpusFixtureFactory>(fixture));
+    }
   }
   else
   {

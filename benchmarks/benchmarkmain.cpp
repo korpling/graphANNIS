@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
   // RIDGES //
 
   DynamicBenchmark benchmarksRidges(dir + "/Benchmarks/ridges", "ridges");
+  benchmarksRidges.registerFixture("Optimized");
 
   std::map<Component, std::string> prepostRidges;
   prepostRidges.insert({
@@ -36,15 +37,20 @@ int main(int argc, char **argv) {
 
   // PARLAMENT //
   DynamicBenchmark benchmarksParlament(dir + "/Benchmarks/parlament", "parlament");
+  benchmarksParlament.registerFixture("Optimized");
 
   // TIGER2 //
   DynamicBenchmark benchmarksTiger2(dir + "/Benchmarks/tiger2", "tiger2");
+  benchmarksTiger2.registerFixture("Optimized");
   
   // TuebaDZ6 //
   DynamicBenchmark benchmarksTuebadz6(dir + "/Benchmarks/tuebadz6", "tuebadz6");
+  benchmarksTuebadz6.registerFixture("Optimized");
   
   // TEST //
-  DynamicBenchmark benchmarksTest(dir + "/Benchmarks/test", "parlament", true, true);
+  DynamicBenchmark benchmarksTest(dir + "/Benchmarks/test", "parlament", true);
+  benchmarksTest.registerFixture("Fallback", true);
+  benchmarksTest.registerFixture("Optimized");
 
   celero::Run(argc, argv);
   return 0;

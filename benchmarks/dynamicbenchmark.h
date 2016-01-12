@@ -27,6 +27,47 @@
 
 namespace annis {
 
+  class FixedValueFixture : public ::celero::TestFixture
+  {
+  public:
+
+    FixedValueFixture(std::map<int64_t, uint64_t> fixedValues)
+      : fixedValues(fixedValues), currentFixedVal(0) 
+      {
+        for(auto it=fixedValues.begin(); it != fixedValues.end(); it++)
+        {
+          expValues.push_back({it->first, 0});
+        }
+      }
+      
+    virtual uint64_t run(uint64_t threads, uint64_t iterations, int64_t experimentValue)
+    {
+      auto itFixedValue = fixedValues.find(experimentValue);
+      if(itFixedValue == fixedValues.end())
+      {
+        currentFixedVal = 0;
+      }
+      else
+      {
+        currentFixedVal = itFixedValue->second;
+      }
+      return ::celero::TestFixture::run(threads, iterations, experimentValue);
+    }
+    
+    virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const { return expValues;}
+
+    virtual uint64_t HardCodedMeasurement() const
+    {
+      return currentFixedVal;
+    }
+
+    virtual ~FixedValueFixture() {};
+  private:
+    std::map<int64_t, uint64_t> fixedValues;
+    uint64_t currentFixedVal;
+    std::vector<std::pair<int64_t, uint64_t> > expValues;
+  };
+  
   class DynamicCorpusFixture : public ::celero::TestFixture {
   public:
 
@@ -124,14 +165,15 @@ namespace annis {
   class DynamicBenchmark {
   public:
 
-    DynamicBenchmark(std::string queriesDir, std::string corpusName, bool registerOptimized = true, bool multipleExperiments=false);
+    DynamicBenchmark(std::string queriesDir, std::string corpusName, 
+       bool multipleExperiments=false);
 
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
 
     void registerFixture(
             std::string fixtureName,
-            bool multipleExperiments=false,
+            bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
             );
 
@@ -144,7 +186,6 @@ namespace annis {
             bool baseline,
             std::string fixtureName,
             bool forceFallback = false,
-            bool multipleExperiments=false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
             );
 
@@ -152,7 +193,9 @@ namespace annis {
     std::string corpus;
 
     std::list<boost::filesystem::path> foundJSONFiles;
-
+    
+    bool multipleExperiments;
+    
     void addBenchmark(
             bool baseline,
             std::string benchmarkName,
