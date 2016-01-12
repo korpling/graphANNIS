@@ -59,17 +59,9 @@ public:
     }
   }
 
-  bool isToken(nodeid_t n)
+  bool inline isToken(nodeid_t n)
   {
-    for(const Annotation& anno: db.getNodeAnnotationsByID(n))
-    {
-      if(anno.ns == db.getNamespaceStringID() && anno.name == db.getTokStringID())
-      {
-        // rhs is token by itself
-        return true;
-      }
-    }
-    return false;
+    return db.getNodeAnnotation(n, db.getNamespaceStringID(), db.getTokStringID()).first;
   }
 
 private:

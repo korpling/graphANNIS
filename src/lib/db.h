@@ -92,21 +92,13 @@ public:
 
   inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
   {
-    using AnnoIt = stx::btree_map<NodeAnnotationKey, uint32_t>::const_iterator;
-
-    std::pair<bool, Annotation> result;
-    result.first = false;
-
-    NodeAnnotationKey key = {id, nameID, nsID};
-
-    AnnoIt it = nodeAnnotations.find(key);
+    auto it = nodeAnnotations.find({id, nameID, nsID});
 
     if(it != nodeAnnotations.end())
     {
-      result.first = true;
-      result.second =  {nameID, nsID, it->second};
+      return {true, {nameID, nsID, it->second}};
     }
-    return result;
+    return {false, {0, 0, 0}};
   }
 
   inline std::pair<bool, Annotation> getNodeAnnotation(const nodeid_t &id, const std::string& ns, const std::string& name) const

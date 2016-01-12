@@ -29,8 +29,7 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
       matchedToken.first; matchedToken = edgeIterator->next())
   {
     // get all nodes that are left-aligned to this token
-    std::vector<nodeid_t> tmp = gsLeft->getOutgoingEdges(matchedToken.second);
-    for(const auto& n : tmp)
+    for(const auto& n : gsLeft->getOutgoingEdges(matchedToken.second))
     {
       w->addMatch(Init::initMatch(anyNodeAnno, n));
     }
