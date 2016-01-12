@@ -383,9 +383,10 @@ public class QuerySetViewController implements Initializable
         o.write("corpus " + corpusName + "\n\n");
         for(Query q : visibleQueries)
         {
+           o.write("benchmarkName " + q.getName() + "\n");
           o.write("count " + q.getAql().replace('\n', ' ') + "\n");
         }
-        o.write("\nbenchmark 20\n");
+        o.write("\nbenchmark 5\n");
       }
       catch (Exception ex)
       {
