@@ -51,8 +51,8 @@ public:
     for(AnnoIt it = itRange.first;
         it != itRange.second; it++)
     {
-      const NodeAnnotationKey& key = it.key();
-      result.push_back({key.anno_name, key.anno_ns, it->second});
+      const auto& key = it.key();
+      result.push_back({key.anno_name, key.anno_ns, it.data()});
     }
 
     return result;
@@ -96,7 +96,7 @@ public:
 
     if(it != nodeAnnotations.end())
     {
-      return {true, {nameID, nsID, it->second}};
+      return {true, {nameID, nsID, it.data()}};
     }
     return {false, {0, 0, 0}};
   }

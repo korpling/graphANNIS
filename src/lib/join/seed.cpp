@@ -151,8 +151,8 @@ BinaryMatch MaterializedSeedJoin::next()
       if(right.size() == 1)
       {
         // directly get the one node annotation
-        const Annotation& rightAnno = *(right.begin());
-        std::pair<bool, Annotation> foundAnno =
+        const auto& rightAnno = *(right.begin());
+        auto foundAnno =
             db.getNodeAnnotation(currentMatch.rhs.node, rightAnno.ns, rightAnno.name);
         if(foundAnno.first && foundAnno.second.val == rightAnno.val
            && checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, foundAnno.second))
