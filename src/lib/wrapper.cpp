@@ -14,7 +14,7 @@ void JoinWrapIterator::reset()
 void JoinWrapIterator::checkIfNextCallNeeded()
 {
   // if the current list of entries is empty call the underlying join
-  if(internalListSize() == 0 && wrappedJoin)
+  if(internalEmpty() && wrappedJoin)
   {
     BinaryMatch nextMatch = wrappedJoin->next();
     if(nextMatch.found)

@@ -56,9 +56,9 @@ public:
   virtual ~ListWrapper() {}
 
 protected:
-  size_t internalListSize()
+  size_t internalEmpty()
   {
-    return orig.size();
+    return orig.empty();
   }
 
 private:
