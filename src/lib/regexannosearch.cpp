@@ -110,7 +110,7 @@ void RegexAnnoSearch::internalNextAnno()
     {
       while(it != currentRange->second)
       {
-        Match candidate = {it->second, it->first};
+        Match candidate = {it.data(), it.key()};
         it++;
 
         if(RE2::FullMatch(db.strings.str(candidate.anno.val), compiledValRegex))
