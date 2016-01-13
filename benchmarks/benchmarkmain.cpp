@@ -47,9 +47,8 @@ int main(int argc, char **argv) {
   DynamicBenchmark benchmarksTuebadz6(dir + "/Benchmarks/tuebadz6", "tuebadz6");
   benchmarksTuebadz6.registerFixture("Optimized");
   
-  // TEST //
-  DynamicBenchmark benchmarksTest(dir + "/Benchmarks/test", "parlament", true);
-  //benchmarksTest.registerFixture("Fallback", true);
+  // Logs //
+  DynamicBenchmark benchmarksTest(dir + "/Benchmarks/parlament_log", "parlament", true);
   benchmarksTest.registerFixture("Optimized");
 
   celero::Run(argc, argv);
