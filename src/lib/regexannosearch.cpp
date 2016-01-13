@@ -110,17 +110,22 @@ void RegexAnnoSearch::internalNextAnno()
     {
       while(it != currentRange->second)
       {
-        Match candidate = {it.data(), it.key()};
-        it++;
-
-        if(RE2::FullMatch(db.strings.str(candidate.anno.val), compiledValRegex))
+        if(RE2::FullMatch(db.strings.str(it.key().val), compiledValRegex))
         {
-          currentMatch = candidate;
+          currentMatch = {it.data(), it.key()};
           currentMatchValid = true;
+          it++;
           return;
         }
+        // skip to the next available key (we don't want to iterate over each value of the multimap)
+        it = db.inverseNodeAnnotations.upper_bound(it.key());
+
       } // end for each item in search range
       currentRange++;
+      if(currentRange != searchRanges.end())
+      {
+        it = currentRange->first;
+      }
     } // end for each search range
   }
 }
