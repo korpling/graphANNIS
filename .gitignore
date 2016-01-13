@@ -1,5 +1,6 @@
 /ANNIS4-build
 /build
+/build-debug
 /data
 CMakeLists.txt.user
 *.*~

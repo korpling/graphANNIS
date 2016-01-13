@@ -2,6 +2,7 @@
 #define STRINGSTORAGE_H
 
 #include <string>
+#include <unordered_map>
 #include <map>
 #include <set>
 #include <limits>
@@ -17,8 +18,7 @@ public:
 
   const std::string& str(std::uint32_t id) const
   {
-    typedef std::map<std::uint32_t, std::string>::const_iterator ItType;
-    ItType it = stringStorageByID.find(id);
+    auto it = stringStorageByID.find(id);
     if(it != stringStorageByID.end())
     {
       return it->second;
@@ -56,7 +56,7 @@ public:
 
 
 private:
-  std::map<std::uint32_t, std::string> stringStorageByID;
+  std::unordered_map<std::uint32_t, std::string> stringStorageByID;
   std::map<std::string, std::uint32_t> stringStorageByValue;
 
 };

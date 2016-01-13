@@ -5,6 +5,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/map.hpp>
+#include <boost/serialization/unordered_map.hpp>
 
 #include <re2/re2.h>
 
@@ -58,10 +59,11 @@ uint32_t StringStorage::add(const string &str)
   if(it == stringStorageByValue.end())
   {
     // non-existing
-    uint32_t id = 1; // since 0 is taken as ANY value begin with 1
-    if(stringStorageByID.size() > 0)
+    uint32_t id = stringStorageByID.size() + 1; // since 0 is taken as ANY value begin with 1
+    // make sure the ID is really not taken yet
+    while(stringStorageByID.find(id) != stringStorageByID.end())
     {
-      id = ((stringStorageByID.rbegin())->first)+1;
+      id++;
     }
     stringStorageByID.insert(pair<uint32_t, string>(id, str));
     stringStorageByValue.insert(pair<string, uint32_t>(str, id));
