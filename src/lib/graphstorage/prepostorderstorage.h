@@ -112,19 +112,19 @@ public:
 
         while(currentNode != upper && currentNode->first.pre <= maximumPost)
         {
-          const auto& currentPre = currentNode->first.pre;
-          const auto& currentPost = currentNode->first.post;
-          const auto& currentLevel = currentNode->first.level;
+          const auto& currentPre = currentNode.key().pre;
+          const auto& currentPost = currentNode.key().post;
+          const auto& currentLevel = currentNode.key().level;
 
           int diffLevel = currentLevel - startLevel;
 
           // check post order and level as well
           if(currentPost <= maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance
-             && visited.find(currentNode->second) == visited.end())
+             && visited.find(currentNode.data()) == visited.end())
           {
             // success
             result.first = true;
-            result.second = currentNode->second;
+            result.second = currentNode.data();
 
             visited.insert(result.second);
 

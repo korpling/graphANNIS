@@ -63,7 +63,7 @@ public:
       PosIt posSourceIt = gs.node2pos.find(startNode);
       if(posSourceIt != gs.node2pos.end())
       {
-        const RelativePosition<pos_t>& relPos = posSourceIt->second;
+        const RelativePosition<pos_t>& relPos = posSourceIt.data();
         currentPos = relPos.pos;
         NodeChainIt itNodeChain = gs.nodeChains.find(relPos.root);
         if(itNodeChain != gs.nodeChains.end())
@@ -188,8 +188,8 @@ public:
     PosIt posTargetIt = node2pos.find(edge.target);
     if(posSourceIt != node2pos.end() && posTargetIt != node2pos.end())
     {
-      auto& posSource = posSourceIt->second;
-      auto& posTarget = posTargetIt->second;
+      auto& posSource = posSourceIt.data();
+      auto& posTarget = posTargetIt.data();
       if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
       {
         unsigned int diff = posTarget.pos > posSource.pos ?
@@ -220,8 +220,8 @@ public:
     PosIt posTargetIt = node2pos.find(edge.target);
     if(posSourceIt != node2pos.end() && posTargetIt != node2pos.end())
     {
-      auto& posSource = posSourceIt->second;
-      auto& posTarget = posTargetIt->second;
+      auto& posSource = posSourceIt.data();
+      auto& posTarget = posTargetIt.data();
       if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
       {
         int diff = posTarget.pos - posSource.pos;

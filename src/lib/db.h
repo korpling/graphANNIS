@@ -51,7 +51,7 @@ public:
     for(AnnoIt it = itRange.first;
         it != itRange.second; it++)
     {
-      const NodeAnnotationKey& key = it->first;
+      const NodeAnnotationKey& key = it.key();
       result.push_back({key.anno_name, key.anno_ns, it->second});
     }
 

@@ -55,8 +55,8 @@ Match ExactAnnoValueSearch::next()
   currentMatchValid = false;
   if(hasNext())
   {
-    result.node = it->second; // node ID
-    result.anno = it->first; // annotation itself
+    result.node = it.data(); // node ID
+    result.anno = it.key(); // annotation itself
     currentMatch = result;
     currentMatchValid = true;
     it++;

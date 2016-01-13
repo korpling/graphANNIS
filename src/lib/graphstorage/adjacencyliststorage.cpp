@@ -133,7 +133,7 @@ std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) cons
 
   for(EdgeIt it = lowerIt; it != upperIt; it++)
   {
-    result.push_back(it->target);
+    result.push_back(it.key().target);
   }
 
   return result;
