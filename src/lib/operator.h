@@ -37,6 +37,14 @@ public:
    * @return
    */
   virtual bool isReflexive() {return true;}
+  
+  /**
+   * If an operator after construction already knows it can't ever produce
+   * any results (e.g. because an edge component does not exist) it can
+   * return "false" here to indicate this to the join.
+   * @return 
+   */
+  virtual bool valid() const {return true;}
 
   virtual ~Operator() {}
 };

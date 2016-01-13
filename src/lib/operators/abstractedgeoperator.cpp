@@ -45,7 +45,7 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
       }
     }
   }
-  else
+  else if(gs.size() > 1)
   {
     stx::btree_set<nodeid_t> uniqueResult;
     for(auto e : gs)

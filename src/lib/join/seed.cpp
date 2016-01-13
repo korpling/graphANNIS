@@ -87,10 +87,9 @@ void AnnoKeySeedJoin::reset()
 
 bool AnnoKeySeedJoin::nextLeftMatch()
 {
-  if(left && left->hasNext())
+  matchingRightAnnos.clear();
+  if(op && op->valid() && left && left->hasNext())
   {
-    matchingRightAnnos.clear();
-
     currentMatch.lhs = left->next();
     currentMatchValid = true;
 
@@ -107,7 +106,7 @@ bool AnnoKeySeedJoin::nextLeftMatch()
 
 bool AnnoKeySeedJoin::nextRightAnnotation()
 {
-  while(matchingRightAnnos.size() > 0)
+  while(!matchingRightAnnos.empty())
   {
     if(checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, matchingRightAnnos.front()))
     {
@@ -204,10 +203,10 @@ void MaterializedSeedJoin::reset()
 }
 
 bool MaterializedSeedJoin::nextLeftMatch()
-{
-  if(left && left->hasNext())
+{  
+  matchingRightAnnos.clear();
+  if(op && op->valid() && left && left->hasNext())
   {
-    matchingRightAnnos.clear();
 
     currentMatch.lhs = left->next();
     currentMatchValid = true;
