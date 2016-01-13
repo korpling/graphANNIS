@@ -21,7 +21,6 @@ public:
 
   ListWrapper()
   {
-    reset();
   }
 
   void addMatch(const Match& m)
@@ -54,7 +53,7 @@ public:
     }
   }
 
-  virtual ~ListWrapper() {reset();}
+  virtual ~ListWrapper() {}
 
 protected:
   size_t internalListSize()
