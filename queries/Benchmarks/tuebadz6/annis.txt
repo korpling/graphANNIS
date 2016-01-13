@@ -1,0 +1,14 @@
+set clear-caches to false
+record
+corpus TueBa-D/Z.6.0
+
+benchmarkName PIA
+count merged:pos="PPER" & mmax:relation="anaphoric" & #1 _i_ #2 
+benchmarkName FUN
+count node >[tiger:func="ON"] node 
+benchmarkName MIX
+count node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax:relation="anaphoric" & #1 >[func="ON"] #3 & #3 >* #2 & #2 _i_ #4 & #5 >[func="ON"] #6 & #6 >* #7 & #4 ->anaphoric #7 
+benchmarkName REG2
+count cat=/.P/ & /A.*/ & #1 >* #2 
+
+benchmark 5

@@ -1,0 +1,14 @@
+set clear-caches to false
+record
+corpus tiger2
+
+benchmarkName NAN
+count tiger:pos="NN" & tiger:pos="ART" & tiger:pos="NN" & #1 .2,10 #2 & #2 . #3 
+benchmarkName REG1
+count cat=/.P/ & /A.*/ & #1 >* #2 
+benchmarkName CAT
+count cat 
+benchmarkName BIL
+count tiger:cat="S" >* "Bilharziose" 
+
+benchmark 5
