@@ -12,7 +12,7 @@
 #include <operators/pointing.h>
 #include <operators/dominance.h>
 #include <query.h>
-#include <jsonqueryparser.h>
+#include <json/jsonqueryparser.h>
 
 #include <vector>
 #include <boost/format.hpp>

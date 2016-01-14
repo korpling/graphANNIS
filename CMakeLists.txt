@@ -26,6 +26,7 @@ include_directories(
 )
 
 file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
+  "src/lib/util/*.cpp" "src/lib/util/*.c"
   "src/lib/annosearch/*.cpp"
   "src/lib/graphstorage/*.h" "src/lib/graphstorage/*.cpp"
   "src/lib/operators/*.h" "src/lib/operators/*.cpp"

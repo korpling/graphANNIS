@@ -4,10 +4,10 @@
 #include <stx/btree_map>
 #include <stx/btree_multimap>
 #include <stx/btree_set>
-#include "../graphstorage.h"
+#include "graphstorage.h"
 #include "../db.h"
-#include "../comparefunctions.h"
-#include "../edgeannotationstorage.h"
+#include <util/comparefunctions.h>
+#include <edgeannotationstorage.h>
 
 #include <stack>
 #include <list>

@@ -1,7 +1,7 @@
 #ifndef GRAPHSTORAGEREGISTRY_H
 #define GRAPHSTORAGEREGISTRY_H
 
-#include "graphstorage.h"
+#include <graphstorage/graphstorage.h>
 
 #include <map>
 

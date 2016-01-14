@@ -1,8 +1,8 @@
 #ifndef COMPAREFUNCTIONS_H
 #define COMPAREFUNCTIONS_H
 
-#include "graphstorage.h"
-#include "types.h"
+#include <graphstorage/graphstorage.h>
+#include <types.h>
 #include <string.h>
 
 #include <tuple>

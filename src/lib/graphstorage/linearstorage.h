@@ -1,10 +1,10 @@
 #ifndef ANNIS_LINEARSTORAGE_H
 #define ANNIS_LINEARSTORAGE_H
 
-#include "../graphstorage.h"
-#include "../edgeannotationstorage.h"
+#include "graphstorage.h"
+#include <edgeannotationstorage.h>
 
-#include "../dfs.h"
+#include <util/dfs.h>
 #include <annosearch/exactannokeysearch.h>
 
 #include <fstream>

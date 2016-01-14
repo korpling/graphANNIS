@@ -6,7 +6,7 @@
  */
 
 #include "dynamicbenchmark.h"
-#include "jsonqueryparser.h"
+#include <json/jsonqueryparser.h>
 
 #include <humblelogging/api.h>
 #include <boost/filesystem.hpp>

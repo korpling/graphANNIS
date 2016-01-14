@@ -14,7 +14,7 @@
 
 #include <humblelogging/api.h>
 
-#include "helper.h"
+#include <util/helper.h>
 #include "graphstorage/adjacencyliststorage.h"
 #include "graphstorage/linearstorage.h"
 #include "graphstorage/prepostorderstorage.h"

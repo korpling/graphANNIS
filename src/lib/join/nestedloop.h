@@ -1,10 +1,10 @@
 #ifndef NESTEDLOOP_H
 #define NESTEDLOOP_H
 
-#include "types.h"
-#include "iterators.h"
-#include "operator.h"
-#include "../graphstorage.h"
+#include <types.h>
+#include <iterators.h>
+#include <operators/operator.h>
+#include <graphstorage/graphstorage.h>
 #include "db.h"
 
 namespace annis

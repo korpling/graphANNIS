@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <db.h>
-#include <helper.h>
+#include <util/helper.h>
 #include <query.h>
 #include <operators/precedence.h>
 #include <operators/dominance.h>

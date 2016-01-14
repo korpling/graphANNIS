@@ -8,9 +8,9 @@
 #ifndef IDENTICALCOVERAGE_H
 #define IDENTICALCOVERAGE_H
 
-#include "../operator.h"
+#include "operator.h"
 #include <db.h>
-#include "helper.h"
+#include <util/helper.h>
 
 namespace annis
 {

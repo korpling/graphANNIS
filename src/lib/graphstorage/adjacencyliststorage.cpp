@@ -1,6 +1,6 @@
 #include "adjacencyliststorage.h"
 
-#include "../dfs.h"
+#include <util/dfs.h>
 #include <annosearch/exactannokeysearch.h>
 
 #include <fstream>

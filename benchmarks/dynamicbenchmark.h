@@ -14,7 +14,7 @@
 #ifndef DYNAMICBENCHMARK_H
 #define DYNAMICBENCHMARK_H
 
-#include "jsonqueryparser.h"
+#include <json/jsonqueryparser.h>
 #include "benchmark.h"
 #include "db.h"
 #include "query.h"

@@ -4,8 +4,8 @@
 
 #include "linenoise.h"
 #include <db.h>
-#include <helper.h>
-#include <jsonqueryparser.h>
+#include <util/helper.h>
+#include <json/jsonqueryparser.h>
 
 #include <humblelogging/api.h>
 #include <boost/algorithm/string.hpp>

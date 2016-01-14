@@ -196,18 +196,24 @@
     <df root="src" name="1">
       <df name="lib">
         <df name="annosearch">
+          <in>annotationsearch.cpp</in>
           <in>exactannokeysearch.cpp</in>
           <in>exactannovaluesearch.cpp</in>
           <in>regexannosearch.cpp</in>
         </df>
         <df name="graphstorage">
           <in>adjacencyliststorage.cpp</in>
+          <in>graphstorage.cpp</in>
           <in>linearstorage.cpp</in>
           <in>prepostorderstorage.cpp</in>
         </df>
         <df name="join">
           <in>nestedloop.cpp</in>
           <in>seed.cpp</in>
+        </df>
+        <df name="json">
+          <in>jsoncpp.cpp</in>
+          <in>jsonqueryparser.cpp</in>
         </df>
         <df name="operators">
           <in>abstractedgeoperator.cpp</in>
@@ -218,17 +224,15 @@
           <in>pointing.cpp</in>
           <in>precedence.cpp</in>
         </df>
+        <df name="util">
+          <in>dfs.cpp</in>
+          <in>getRSS.c</in>
+        </df>
         <in>DBCache.cpp</in>
-        <in>annotationsearch.cpp</in>
         <in>db.cpp</in>
-        <in>dfs.cpp</in>
         <in>edgeannotationstorage.cpp</in>
         <in>filter.cpp</in>
-        <in>getRSS.c</in>
-        <in>graphstorage.cpp</in>
         <in>graphstorageregistry.cpp</in>
-        <in>jsoncpp.cpp</in>
-        <in>jsonqueryparser.cpp</in>
         <in>query.cpp</in>
         <in>stringstorage.cpp</in>
         <in>wrapper.cpp</in>
@@ -690,6 +694,13 @@
         <ccTool flags="3">
         </ccTool>
       </item>
+      <item path="src/lib/annosearch/annotationsearch.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
       <item path="src/lib/annosearch/exactannokeysearch.cpp"
             ex="false"
             tool="1"
@@ -711,15 +722,7 @@
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
       <item path="src/lib/db.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="src/lib/dfs.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
@@ -731,15 +734,14 @@
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/getRSS.c" ex="false" tool="0" flavor2="2">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="src/lib/graphstorage.cpp" ex="false" tool="1" flavor2="11">
+      <item path="src/lib/graphstorage/adjacencyliststorage.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/graphstorage/adjacencyliststorage.cpp"
+      <item path="src/lib/graphstorage/graphstorage.cpp"
             ex="false"
             tool="1"
             flavor2="11">
@@ -772,11 +774,11 @@
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/jsoncpp.cpp" ex="false" tool="1" flavor2="11">
+      <item path="src/lib/json/jsoncpp.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
+      <item path="src/lib/json/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
@@ -821,6 +823,14 @@
       <item path="src/lib/stringstorage.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
+      </item>
+      <item path="src/lib/util/dfs.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="src/lib/util/getRSS.c" ex="false" tool="0" flavor2="2">
+        <cTool flags="0">
+        </cTool>
       </item>
       <item path="src/lib/wrapper.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
@@ -1274,6 +1284,13 @@
         <ccTool flags="3">
         </ccTool>
       </item>
+      <item path="src/lib/annosearch/annotationsearch.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
       <item path="src/lib/annosearch/exactannokeysearch.cpp"
             ex="false"
             tool="1"
@@ -1295,15 +1312,7 @@
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
       <item path="src/lib/db.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="src/lib/dfs.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
@@ -1315,15 +1324,14 @@
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/getRSS.c" ex="false" tool="0" flavor2="9">
-        <cTool flags="0">
-        </cTool>
-      </item>
-      <item path="src/lib/graphstorage.cpp" ex="false" tool="1" flavor2="11">
+      <item path="src/lib/graphstorage/adjacencyliststorage.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/graphstorage/adjacencyliststorage.cpp"
+      <item path="src/lib/graphstorage/graphstorage.cpp"
             ex="false"
             tool="1"
             flavor2="11">
@@ -1356,11 +1364,11 @@
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/jsoncpp.cpp" ex="false" tool="1" flavor2="11">
+      <item path="src/lib/json/jsoncpp.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
-      <item path="src/lib/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
+      <item path="src/lib/json/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
@@ -1405,6 +1413,14 @@
       <item path="src/lib/stringstorage.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
+      </item>
+      <item path="src/lib/util/dfs.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="src/lib/util/getRSS.c" ex="false" tool="0" flavor2="9">
+        <cTool flags="0">
+        </cTool>
       </item>
       <item path="src/lib/wrapper.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">

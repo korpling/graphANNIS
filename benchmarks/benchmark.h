@@ -10,7 +10,7 @@
 
 #include <db.h>
 #include <query.h>
-#include <annotationsearch.h>
+#include <annosearch/annotationsearch.h>
 #include <annosearch/regexannosearch.h>
 #include <operators/precedence.h>
 #include <operators/inclusion.h>

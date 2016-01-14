@@ -13,8 +13,8 @@
 #include <list>
 
 #include "types.h"
-#include "comparefunctions.h"
-#include "graphstorage.h"
+#include <util/comparefunctions.h>
+#include <graphstorage/graphstorage.h>
 #include "stringstorage.h"
 #include "graphstorageregistry.h"
 

@@ -8,9 +8,9 @@
 
 #include "db.h"
 #include "iterators.h"
-#include "operator.h"
+#include <operators/operator.h>
 #include "wrapper.h"
-#include "annotationsearch.h"
+#include <annosearch/annotationsearch.h>
 
 namespace annis
 {
