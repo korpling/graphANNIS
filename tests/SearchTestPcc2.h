@@ -3,16 +3,16 @@
 
 #include "gtest/gtest.h"
 #include "db.h"
-#include "exactannovaluesearch.h"
-#include "exactannokeysearch.h"
-#include "regexannosearch.h"
-#include "operators/overlap.h"
-#include "operators/inclusion.h"
-#include "operators/precedence.h"
-#include "operators/pointing.h"
-#include "operators/dominance.h"
-#include "query.h"
-#include "jsonqueryparser.h"
+#include <annosearch/exactannovaluesearch.h>
+#include <annosearch/exactannokeysearch.h>
+#include <annosearch/regexannosearch.h>
+#include <operators/overlap.h>
+#include <operators/inclusion.h>
+#include <operators/precedence.h>
+#include <operators/pointing.h>
+#include <operators/dominance.h>
+#include <query.h>
+#include <jsonqueryparser.h>
 
 #include <vector>
 #include <boost/format.hpp>

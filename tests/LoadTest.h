@@ -3,8 +3,8 @@
 
 #include "gtest/gtest.h"
 #include "db.h"
-#include "exactannovaluesearch.h"
-#include "exactannokeysearch.h"
+#include <annosearch/exactannovaluesearch.h>
+#include <annosearch/exactannokeysearch.h>
 #include <cstdlib>
 #include <boost/format.hpp>
 #include "query.h"

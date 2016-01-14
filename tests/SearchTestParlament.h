@@ -1,15 +1,15 @@
 #ifndef SEARCHTESTPARLAMENT_H
 #define SEARCHTESTPARLAMENT_H
 
-#include "gtest/gtest.h"
-#include "db.h"
-#include "operators/precedence.h"
-#include "operators/overlap.h"
-#include "operators/inclusion.h"
-#include "operators/pointing.h"
-#include "operators/dominance.h"
-#include "exactannovaluesearch.h"
-#include "query.h"
+#include <gtest/gtest.h>
+#include <db.h>
+#include <operators/precedence.h>
+#include <operators/overlap.h>
+#include <operators/inclusion.h>
+#include <operators/pointing.h>
+#include <operators/dominance.h>
+#include <annosearch/exactannovaluesearch.h>
+#include <query.h>
 #include "../benchmarks/examplequeries.h"
 
 #include <vector>

@@ -195,6 +195,11 @@
     </logicalFolder>
     <df root="src" name="1">
       <df name="lib">
+        <df name="annosearch">
+          <in>exactannokeysearch.cpp</in>
+          <in>exactannovaluesearch.cpp</in>
+          <in>regexannosearch.cpp</in>
+        </df>
         <df name="graphstorage">
           <in>adjacencyliststorage.cpp</in>
           <in>linearstorage.cpp</in>
@@ -218,8 +223,6 @@
         <in>db.cpp</in>
         <in>dfs.cpp</in>
         <in>edgeannotationstorage.cpp</in>
-        <in>exactannokeysearch.cpp</in>
-        <in>exactannovaluesearch.cpp</in>
         <in>filter.cpp</in>
         <in>getRSS.c</in>
         <in>graphstorage.cpp</in>
@@ -227,7 +230,6 @@
         <in>jsoncpp.cpp</in>
         <in>jsonqueryparser.cpp</in>
         <in>query.cpp</in>
-        <in>regexannosearch.cpp</in>
         <in>stringstorage.cpp</in>
         <in>wrapper.cpp</in>
       </df>
@@ -688,6 +690,27 @@
         <ccTool flags="3">
         </ccTool>
       </item>
+      <item path="src/lib/annosearch/exactannokeysearch.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="src/lib/annosearch/exactannovaluesearch.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="src/lib/annosearch/regexannosearch.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
       <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
@@ -701,14 +724,6 @@
         </ccTool>
       </item>
       <item path="src/lib/edgeannotationstorage.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="src/lib/exactannokeysearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="src/lib/exactannovaluesearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
@@ -800,10 +815,6 @@
         </ccTool>
       </item>
       <item path="src/lib/query.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="src/lib/regexannosearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
@@ -1263,6 +1274,27 @@
         <ccTool flags="3">
         </ccTool>
       </item>
+      <item path="src/lib/annosearch/exactannokeysearch.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="src/lib/annosearch/exactannovaluesearch.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
+      <item path="src/lib/annosearch/regexannosearch.cpp"
+            ex="false"
+            tool="1"
+            flavor2="11">
+        <ccTool flags="3">
+        </ccTool>
+      </item>
       <item path="src/lib/annotationsearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
@@ -1276,14 +1308,6 @@
         </ccTool>
       </item>
       <item path="src/lib/edgeannotationstorage.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="src/lib/exactannokeysearch.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="src/lib/exactannovaluesearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>
@@ -1375,10 +1399,6 @@
         </ccTool>
       </item>
       <item path="src/lib/query.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
-        </ccTool>
-      </item>
-      <item path="src/lib/regexannosearch.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
       </item>

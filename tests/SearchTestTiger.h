@@ -1,15 +1,15 @@
 #ifndef SEARCHTESTTIGER_H
 #define SEARCHTESTTIGER_H
 
-#include "gtest/gtest.h"
-#include "db.h"
-#include "helper.h"
-#include "query.h"
-#include "operators/precedence.h"
-#include "operators/dominance.h"
-#include "exactannovaluesearch.h"
-#include "exactannokeysearch.h"
-#include "wrapper.h"
+#include <gtest/gtest.h>
+#include <db.h>
+#include <helper.h>
+#include <query.h>
+#include <operators/precedence.h>
+#include <operators/dominance.h>
+#include <annosearch/exactannovaluesearch.h>
+#include <annosearch/exactannokeysearch.h>
+#include <wrapper.h>
 
 #include <vector>
 

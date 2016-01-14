@@ -3,9 +3,9 @@
 
 #include <db.h>
 #include <query.h>
-#include <exactannovaluesearch.h>
-#include <exactannokeysearch.h>
-#include <regexannosearch.h>
+#include <annosearch/exactannovaluesearch.h>
+#include <annosearch/exactannokeysearch.h>
+#include <annosearch/regexannosearch.h>
 #include <operators/precedence.h>
 #include <operators/inclusion.h>
 #include <operators/dominance.h>

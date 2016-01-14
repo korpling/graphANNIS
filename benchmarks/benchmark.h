@@ -11,7 +11,7 @@
 #include <db.h>
 #include <query.h>
 #include <annotationsearch.h>
-#include <regexannosearch.h>
+#include <annosearch/regexannosearch.h>
 #include <operators/precedence.h>
 #include <operators/inclusion.h>
 #include <operators/dominance.h>

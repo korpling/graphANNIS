@@ -6,8 +6,8 @@
 
 
 #include "../dfs.h"
-#include "../exactannovaluesearch.h"
-#include "../exactannokeysearch.h"
+#include <annosearch/exactannovaluesearch.h>
+#include <annosearch/exactannokeysearch.h>
 
 #include <set>
 #include <stx/btree_map>

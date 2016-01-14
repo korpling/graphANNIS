@@ -5,7 +5,7 @@
 #include "../edgeannotationstorage.h"
 
 #include "../dfs.h"
-#include "../exactannokeysearch.h"
+#include <annosearch/exactannokeysearch.h>
 
 #include <fstream>
 #include <set>
