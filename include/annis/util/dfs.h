@@ -1,5 +1,4 @@
-#ifndef DFS_H
-#define DFS_H
+#pragma once
 
 #include <annis/graphstorage/graphstorage.h>
 
@@ -115,4 +114,3 @@ private:
 } // end namespace annis
 
 
-#endif // DFS_H

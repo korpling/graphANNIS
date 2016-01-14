@@ -1,5 +1,4 @@
-#ifndef OVERLAP_H
-#define OVERLAP_H
+#pragma once
 
 #include <set>
 #include <list>
@@ -34,4 +33,3 @@ private:
   const ReadableGraphStorage* gsInverseCoverage;
 };
 } // end namespace annis
-#endif // OVERLAP_H

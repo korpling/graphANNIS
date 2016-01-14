@@ -1,12 +1,4 @@
-/* 
- * File:   DBCache.h
- * Author: thomas
- *
- * Created on 5. Januar 2016, 17:17
- */
-
-#ifndef DBCACHE_H
-#define DBCACHE_H
+#pragma once
 
 #include "types.h"
 #include "db.h"
@@ -120,6 +112,3 @@ namespace annis {
   };
 
 } // end namespace annis
-
-#endif /* DBCACHE_H */
-

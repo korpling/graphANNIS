@@ -1,5 +1,4 @@
-#ifndef SEED_H
-#define SEED_H
+#pragma once
 
 #include <annis/types.h>
 #include <annis/iterators.h>
@@ -102,4 +101,3 @@ private:
 
 } // end namespace annis
 
-#endif // SEED_H

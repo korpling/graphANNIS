@@ -1,5 +1,4 @@
-#ifndef PREPOSTORDERSTORAGE_H
-#define PREPOSTORDERSTORAGE_H
+#pragma once
 
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/edgeannotationstorage.h>
@@ -486,4 +485,3 @@ private:
 } // end namespace annis
 
 
-#endif // PREPOSTORDERSTORAGE_H

@@ -1,5 +1,4 @@
-#ifndef REGEXANNOSEARCH_H
-#define REGEXANNOSEARCH_H
+#pragma once
 
 #include "annotationsearch.h"
 #include "exactannokeysearch.h"
@@ -69,4 +68,3 @@ private:
 
 };
 } // end namespace annis
-#endif // REGEXANNOSEARCH_H

@@ -1,5 +1,4 @@
-#ifndef ANNISTYPES_H
-#define ANNISTYPES_H
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -358,4 +357,3 @@ inline void serialize(
 } // end namespace serialization
 } // end namespace boost
 
-#endif // ANNISTYPES_H

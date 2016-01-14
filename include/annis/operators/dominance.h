@@ -1,5 +1,4 @@
-#ifndef DOMINANCE_H
-#define DOMINANCE_H
+#pragma once
 
 #include "abstractedgeoperator.h"
 
@@ -20,4 +19,3 @@ private:
 
 };
 } // end namespace annis
-#endif // DOMINANCE_H

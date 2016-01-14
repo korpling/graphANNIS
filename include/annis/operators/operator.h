@@ -1,5 +1,4 @@
-#ifndef OPERATOR_H
-#define OPERATOR_H
+#pragma once
 
 #include <list>
 #include <memory>
@@ -50,4 +49,3 @@ public:
 };
 } // end namespace annis
 
-#endif // OPERATOR_H

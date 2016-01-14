@@ -1,5 +1,4 @@
-#ifndef ITERATORS
-#define ITERATORS
+#pragma once
 
 #include "types.h"
 
@@ -35,6 +34,3 @@ public:
 };
 
 } // end namespace annis
-
-#endif // ITERATORS
-

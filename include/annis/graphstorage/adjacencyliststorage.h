@@ -1,5 +1,4 @@
-#ifndef ANNIS_ADJACENCYLISTSTORAGE_H
-#define ANNIS_ADJACENCYLISTSTORAGE_H
+#pragma once
 
 #include <stx/btree_map>
 #include <stx/btree_multimap>
@@ -68,4 +67,3 @@ private:
 
 
 } // end namespace annis
-#endif // ANNIS_ADJACENCYLISTSTORAGE_H

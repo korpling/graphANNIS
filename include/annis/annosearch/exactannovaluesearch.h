@@ -1,5 +1,4 @@
-#ifndef ExactAnnoValueSearch_H
-#define ExactAnnoValueSearch_H
+#pragma once
 
 #include "annotationsearch.h"
 #include <stx/btree_map>
@@ -60,4 +59,4 @@ private:
 
 
 } // end namespace annis
-#endif // ExactAnnoValueSearch_H
+

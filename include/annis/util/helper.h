@@ -1,5 +1,4 @@
-#ifndef HELPER_H
-#define HELPER_H
+#pragma once
 
 #include <istream>
 #include <ostream>
@@ -152,5 +151,3 @@ public:
 
 
 } // end namespace annis
-
-#endif // HELPER_H

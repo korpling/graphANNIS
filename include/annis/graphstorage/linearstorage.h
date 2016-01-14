@@ -1,5 +1,4 @@
-#ifndef ANNIS_LINEARSTORAGE_H
-#define ANNIS_LINEARSTORAGE_H
+#pragma once
 
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/edgeannotationstorage.h>
@@ -321,4 +320,3 @@ private:
 
 } // end namespace annis
 
-#endif // ANNIS_LINEARSTORAGE_H

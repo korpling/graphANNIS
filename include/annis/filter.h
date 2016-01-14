@@ -1,5 +1,4 @@
-#ifndef FILTER_H
-#define FILTER_H
+#pragma once
 
 #include <annis/iterators.h>
 #include <annis/operators/operator.h>
@@ -25,5 +24,3 @@ private:
 };
 
 } // end namespace annis
-
-#endif // FILTER_H

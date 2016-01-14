@@ -1,5 +1,4 @@
-#ifndef INCLUSION_H
-#define INCLUSION_H
+#pragma once
 
 #include <set>
 #include <list>
@@ -36,4 +35,3 @@ private:
 
 };
 } // end namespace annis
-#endif // INCLUSION_H

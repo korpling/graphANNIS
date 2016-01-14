@@ -1,5 +1,4 @@
-#ifndef NESTEDLOOP_H
-#define NESTEDLOOP_H
+#pragma once
 
 #include <annis/types.h>
 #include <annis/iterators.h>
@@ -35,4 +34,3 @@ private:
 
 } // end namespace annis
 
-#endif // NESTEDLOOP_H

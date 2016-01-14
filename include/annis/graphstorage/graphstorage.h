@@ -1,5 +1,4 @@
-#ifndef ANNIS_GRAPHSTORAGE_H
-#define ANNIS_GRAPHSTORAGE_H
+#pragma once
 
 #include <stdlib.h>
 #include <cstdint>
@@ -79,4 +78,3 @@ public:
 
 
 } // end namespace annis
-#endif // ANNIS_GRAPHSTORAGE_H

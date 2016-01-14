@@ -1,5 +1,4 @@
-#ifndef ABSTRACTEDGEOPERATOR_H
-#define ABSTRACTEDGEOPERATOR_H
+#pragma once
 
 #include <annis/db.h>
 #include <annis/graphstorage/graphstorage.h>
@@ -45,4 +44,3 @@ private:
 };
 
 } // end namespace annis
-#endif // ABSTRACTEDGEOPERATOR_H

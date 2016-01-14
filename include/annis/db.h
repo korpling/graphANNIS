@@ -1,5 +1,4 @@
-#ifndef ANNISDB_H
-#define ANNISDB_H
+#pragma once
 
 #include <string>
 #include <stx/btree_map>
@@ -199,4 +198,3 @@ private:
 };
 
 } // end namespace annis
-#endif // ANNISDB_H

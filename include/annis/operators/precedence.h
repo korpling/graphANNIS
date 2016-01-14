@@ -1,5 +1,4 @@
-#ifndef PRECEDENCE_H
-#define PRECEDENCE_H
+#pragma once
 
 #include <annis/db.h>
 #include <annis/util/helper.h>
@@ -34,4 +33,3 @@ private:
 
 } // end namespace annis
 
-#endif // PRECEDENCE_H

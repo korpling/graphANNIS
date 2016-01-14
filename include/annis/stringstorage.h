@@ -1,5 +1,4 @@
-#ifndef STRINGSTORAGE_H
-#define STRINGSTORAGE_H
+#pragma once
 
 #include <string>
 #include <unordered_map>
@@ -62,4 +61,3 @@ private:
 };
 }
 
-#endif // STRINGSTORAGE_H

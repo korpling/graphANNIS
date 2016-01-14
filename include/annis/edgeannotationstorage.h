@@ -1,5 +1,4 @@
-#ifndef EDGEANNOTATIONSTORAGE_H
-#define EDGEANNOTATIONSTORAGE_H
+#pragma once
 
 #include "types.h"
 #include <vector>
@@ -51,5 +50,3 @@ private:
 };
 
 } // end namespace annis
-
-#endif // EDGEANNOTATIONSTORAGE_H

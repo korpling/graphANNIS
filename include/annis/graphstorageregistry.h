@@ -1,5 +1,4 @@
-#ifndef GRAPHSTORAGEREGISTRY_H
-#define GRAPHSTORAGEREGISTRY_H
+#pragma once
 
 #include <annis/graphstorage/graphstorage.h>
 
@@ -76,5 +75,3 @@ private:
 
 };
 }
-
-#endif // GRAPHSTORAGEREGISTRY_H

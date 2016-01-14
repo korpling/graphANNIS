@@ -1,5 +1,4 @@
-#ifndef WRAPPER_H
-#define WRAPPER_H
+#pragma once
 
 #include "iterators.h"
 #include "db.h"
@@ -153,5 +152,3 @@ private:
 
 } // end namespace annis
 
-
-#endif // WRAPPER_H

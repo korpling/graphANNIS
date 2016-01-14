@@ -1,5 +1,4 @@
-#ifndef COMPAREFUNCTIONS_H
-#define COMPAREFUNCTIONS_H
+#pragma once
 
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/types.h>
@@ -71,5 +70,3 @@ inline bool checkAnnotationEqual(const struct Annotation &a, const struct Annota
 } // end namespace annis
 
 
-
-#endif // COMPAREFUNCTIONS_H

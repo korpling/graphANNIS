@@ -5,8 +5,7 @@
  * Created on 3. Januar 2016, 16:05
  */
 
-#ifndef JSONQUERYPARSER_H
-#define JSONQUERYPARSER_H
+#pragma once
 
 #include <annis/query.h>
 #include <annis/json/json.h>
@@ -61,5 +60,4 @@ namespace annis {
 
 }
 
-#endif /* JSONQUERYPARSER_H */
 

@@ -1,5 +1,4 @@
-#ifndef QUERY_H
-#define QUERY_H
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -74,4 +73,3 @@ private:
 };
 
 } // end namespace annis
-#endif // QUERY_H

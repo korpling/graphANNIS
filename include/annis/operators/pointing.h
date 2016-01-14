@@ -1,5 +1,4 @@
-#ifndef POINTING_H
-#define POINTING_H
+#pragma once
 
 #include "abstractedgeoperator.h"
 
@@ -20,4 +19,3 @@ private:
 
 };
 } // end namespace annis
-#endif // POINTING_H

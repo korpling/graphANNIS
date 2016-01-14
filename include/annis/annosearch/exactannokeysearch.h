@@ -1,5 +1,4 @@
-#ifndef EXACTANNOKEYSEARCH_H
-#define EXACTANNOKEYSEARCH_H
+#pragma once
 
 #include <annis/annosearch/annotationsearch.h>
 #include <stx/btree_map>
@@ -67,4 +66,3 @@ private:
 
 
 } // end namespace annis
-#endif // EXACTANNOKEYSEARCH_H

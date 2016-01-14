@@ -1,5 +1,4 @@
-#ifndef ANNOTATIONSEARCH_H
-#define ANNOTATIONSEARCH_H
+#pragma once
 
 #include <annis/db.h>
 #include <annis/iterators.h>
@@ -28,4 +27,3 @@ public:
 };
 
 } // end namespace annis
-#endif // ANNOTATIONSEARCH_H
