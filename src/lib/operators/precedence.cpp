@@ -16,14 +16,12 @@ Precedence::Precedence(const DB &db, unsigned int minDistance, unsigned int maxD
 
 std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
 {
-  std::unique_ptr<AnnoIt> result(nullptr);
+  std::unique_ptr<ListWrapper> w = std::make_unique<ListWrapper>();
 
   nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
   std::unique_ptr<EdgeIterator> edgeIterator = gsOrder->findConnected(lhsRightToken,
                                                        minDistance, maxDistance);
 
-  ListWrapper* w = new ListWrapper();
-  result.reset(w);
   // materialize a list of all matches and wrap it
   for(std::pair<bool, nodeid_t> matchedToken = edgeIterator->next();
       matchedToken.first; matchedToken = edgeIterator->next())
@@ -37,7 +35,7 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
     w->addMatch(Init::initMatch(anyNodeAnno, matchedToken.second));
   }
 
-  return result;
+  return w;
 }
 
 bool Precedence::filter(const Match &lhs, const Match &rhs)

@@ -18,16 +18,16 @@ class ListWrapper : public AnnoIt
 {
 public:
 
-  ListWrapper();
+  ListWrapper(size_t initialCapacity=0);
 
   void addMatch(const Match& m)
   {
-    orig.push(m);
+    orig.push_back(m);
   }
 
   void addMatch(const nodeid_t& m)
   {
-    orig.push(Init::initMatch({0, 0, 0}, m));
+    orig.push_back({m, {0, 0, 0}});
   }
 
   virtual bool hasNext()
@@ -38,7 +38,7 @@ public:
   virtual Match next()
   {
     Match result = orig.front();
-    orig.pop();
+    orig.pop_back();
     return result;
   }
 
@@ -46,7 +46,7 @@ public:
   {
     while(!orig.empty())
     {
-      orig.pop();
+      orig.pop_back();
     }
   }
 
@@ -59,7 +59,7 @@ protected:
   }
 
 private:
-  std::queue<Match, std::list<Match> > orig;
+  std::vector<Match> orig;
 };
 
 

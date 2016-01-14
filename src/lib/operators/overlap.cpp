@@ -15,8 +15,7 @@ Overlap::Overlap(const DB &db)
 
 std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
 {
-  ListWrapper* w = new ListWrapper();
-  std::unique_ptr<AnnoIt> result(w);
+  std::unique_ptr<ListWrapper> w = std::make_unique<ListWrapper>();
 
   stx::btree_set<nodeid_t> uniqueResultSet;
 
@@ -43,7 +42,7 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
     w->addMatch(Init::initMatch(anyNodeAnno, m));
   }
 
-  return result;
+  return w;
 }
 
 bool Overlap::filter(const Match &lhs, const Match &rhs)

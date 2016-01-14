@@ -31,7 +31,7 @@ bool IdenticalCoverage::filter(const Match& lhs, const Match& rhs)
 
 std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
 {
-  ListWrapper* w = new ListWrapper();
+  
   
   nodeid_t leftToken;
   nodeid_t rightToken;
@@ -47,14 +47,19 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
     rightToken = gsRightToken->getOutgoingEdges(lhs.node)[0];
   }
   
+  
+  
+  // find each non-token node that is left-aligned with the left token and right aligned with the right token
+  auto leftAligned = gsLeftToken->getOutgoingEdges(leftToken);
+  
+  std::unique_ptr<ListWrapper> w = std::make_unique<ListWrapper> (leftAligned.size()+1);
+  
   // add the connected token itself as a match the span covers only one token
   if(leftToken == rightToken)
   {
     w->addMatch({leftToken, anyNodeAnno});
   }
   
-  // find each non-token node that is left-aligned with the left token and right aligned with the right token
-  auto leftAligned = gsLeftToken->getOutgoingEdges(leftToken);
   for(const auto& candidate : leftAligned)
   {
     // check if also right aligned
@@ -65,7 +70,7 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
     }
   }
 
-  return std::unique_ptr<AnnoIt>(w);
+  return w;
 }
 
 

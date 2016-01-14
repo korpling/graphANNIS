@@ -4,9 +4,12 @@
 
 using namespace annis;
 
-ListWrapper::ListWrapper()
+ListWrapper::ListWrapper(size_t initialCapacity)
 {
-
+  if(initialCapacity > 0)
+  {
+    orig.reserve(initialCapacity);
+  }
 }
 
 
