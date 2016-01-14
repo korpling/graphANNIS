@@ -64,25 +64,25 @@ public:
   unsigned int maxDistance;
 };
 
-BASELINE_F(DOM_tuebadz6, Fallback, TuebaFallbackFixtureVar, 5, 1)
-{
-  counter = 0;
-  Query q=annis::ExampleQueries::NodeDom(getDB(), maxDistance);
-  while(q.hasNext())
-  {
-    q.next();
-    counter++;
-  }
-}
-
-
-BENCHMARK_F(DOM_tuebadz6, Optimized, TuebaFixtureVar, 5, 1)
-{
-  counter = 0;
-  Query q=annis::ExampleQueries::NodeDom(getDB(), maxDistance);
-  while(q.hasNext())
-  {
-    q.next();
-    counter++;
-  }
-}
+//BASELINE_F(DOM_tuebadz6, Fallback, TuebaFallbackFixtureVar, 5, 1)
+//{
+//  counter = 0;
+//  Query q=annis::ExampleQueries::NodeDom(getDB(), maxDistance);
+//  while(q.hasNext())
+//  {
+//    q.next();
+//    counter++;
+//  }
+//}
+//
+//
+//BENCHMARK_F(DOM_tuebadz6, Optimized, TuebaFixtureVar, 5, 1)
+//{
+//  counter = 0;
+//  Query q=annis::ExampleQueries::NodeDom(getDB(), maxDistance);
+//  while(q.hasNext())
+//  {
+//    q.next();
+//    counter++;
+//  }
+//}

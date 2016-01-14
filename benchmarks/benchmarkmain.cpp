@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   prepostRidges.insert({
     {ComponentType::ORDERING, annis_ns, ""}, GraphStorageRegistry::prepostorderO32L32});
 
-  benchmarksRidges.registerFixture("PrePost", false, prepostRidges);
+  //benchmarksRidges.registerFixture("PrePost", false, prepostRidges);
 
   // PARLAMENT //
   DynamicBenchmark benchmarksParlament(dir + "/Benchmarks/parlament", "parlament");
