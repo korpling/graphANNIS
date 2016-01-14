@@ -1,6 +1,19 @@
 #include <annis/wrapper.h>
 
+
+
 using namespace annis;
+
+ListWrapper::ListWrapper()
+{
+
+}
+
+
+ListWrapper::~ListWrapper()
+{
+  
+}
 
 void JoinWrapIterator::reset()
 {

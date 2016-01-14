@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include <annis/types.h>
 
 namespace annis
 {

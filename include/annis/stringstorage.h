@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <map>
 #include <set>
-#include <limits>
 
 namespace annis
 {

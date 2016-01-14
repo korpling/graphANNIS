@@ -2,6 +2,11 @@
 #include <annis/join/nestedloop.h>
 #include <annis/join/seed.h>
 #include <annis/filter.h>
+#include <annis/operators/operator.h>
+#include <annis/db.h>
+#include <annis/iterators.h>
+#include <annis/annosearch/annotationsearch.h>
+#include <annis/wrapper.h>
 
 #include <vector>
 #include <re2/re2.h>

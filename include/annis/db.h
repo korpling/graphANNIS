@@ -12,14 +12,16 @@
 #include <list>
 
 #include <annis/types.h>
-#include <annis/util/comparefunctions.h>
-#include <annis/graphstorage/graphstorage.h>
 #include <annis/stringstorage.h>
 #include <annis/graphstorageregistry.h>
 #include <annis/nodeannostorage.h>
 
 namespace annis
 {
+  
+class ReadableGraphStorage;
+class WriteableGraphStorage;
+  
 class DB
 {
   using GraphStorageIt = std::map<Component, ReadableGraphStorage*>::const_iterator;

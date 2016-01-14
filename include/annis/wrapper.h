@@ -1,7 +1,7 @@
 #pragma once
 
-#include "iterators.h"
-#include "db.h"
+#include <annis/types.h>
+#include <annis/iterators.h>
 
 #include <queue>
 #include <list>
@@ -9,7 +9,7 @@
 
 namespace annis
 {
-
+  
 /**
  * @brief Helper class which has an internal list of matches and wraps it as a AnnoIt
  * Thus this class is a kind of materialized result
@@ -18,9 +18,7 @@ class ListWrapper : public AnnoIt
 {
 public:
 
-  ListWrapper()
-  {
-  }
+  ListWrapper();
 
   void addMatch(const Match& m)
   {
@@ -52,7 +50,7 @@ public:
     }
   }
 
-  virtual ~ListWrapper() {}
+  virtual ~ListWrapper();
 
 protected:
   size_t internalEmpty()

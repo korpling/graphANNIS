@@ -19,6 +19,8 @@
 #include <annis/graphstorage/linearstorage.h>
 #include <annis/graphstorage/prepostorderstorage.h>
 #include <annis/nodeannostorage.h>
+#include <annis/graphstorage/graphstorage.h>
+#include <annis/graphstorageregistry.h>
 
 HUMBLE_LOGGER(logger, "annis4");
 

@@ -1,6 +1,8 @@
 #include <annis/operators/abstractedgeoperator.h>
 
 #include <annis/wrapper.h>
+#include <annis/util/comparefunctions.h>
+
 #include <stx/btree_set>
 
 using namespace annis;

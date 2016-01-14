@@ -5,6 +5,7 @@
 #include <annis/operators/operator.h>
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/db.h>
+#include <annis/util/comparefunctions.h>
 
 #include <unordered_set>
 

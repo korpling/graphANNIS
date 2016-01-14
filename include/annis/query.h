@@ -4,15 +4,18 @@
 #include <vector>
 #include <list>
 #include <set>
+#include <map>
 
-#include <annis/db.h>
-#include <annis/iterators.h>
-#include <annis/operators/operator.h>
-#include <annis/wrapper.h>
-#include <annis/annosearch/annotationsearch.h>
+#include <annis/types.h>
 
 namespace annis
 {
+  
+class Operator;
+class DB;
+class AnnoIt;
+class AnnotationSearch;
+class AnnotationKeySearch;
 
 struct OperatorEntry
 {
