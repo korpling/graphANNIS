@@ -1,5 +1,5 @@
-#include "precedence.h"
-#include "../wrapper.h"
+#include <annis/operators/precedence.h>
+#include <annis/wrapper.h>
 
 using namespace annis;
 

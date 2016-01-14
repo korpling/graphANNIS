@@ -8,17 +8,17 @@
 
 #include <humblelogging/api.h>
 
-#include <db.h>
-#include <query.h>
-#include <annosearch/annotationsearch.h>
-#include <annosearch/regexannosearch.h>
-#include <operators/precedence.h>
-#include <operators/inclusion.h>
-#include <operators/dominance.h>
-#include <operators/overlap.h>
-#include <operators/pointing.h>
-#include <wrapper.h>
-#include <graphstorageregistry.h>
+#include <annis/db.h>
+#include <annis/query.h>
+#include <annis/annosearch/annotationsearch.h>
+#include <annis/annosearch/regexannosearch.h>
+#include <annis/operators/precedence.h>
+#include <annis/operators/inclusion.h>
+#include <annis/operators/dominance.h>
+#include <annis/operators/overlap.h>
+#include <annis/operators/pointing.h>
+#include <annis/wrapper.h>
+#include <annis/graphstorageregistry.h>
 
 HUMBLE_LOGGER(logger, "default");
 

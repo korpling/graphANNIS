@@ -1,4 +1,4 @@
-#include "db.h"
+#include <annis/db.h>
 
 #include <iostream>
 #include <fstream>
@@ -14,10 +14,10 @@
 
 #include <humblelogging/api.h>
 
-#include <util/helper.h>
-#include "graphstorage/adjacencyliststorage.h"
-#include "graphstorage/linearstorage.h"
-#include "graphstorage/prepostorderstorage.h"
+#include <annis/util/helper.h>
+#include <annis/graphstorage/adjacencyliststorage.h>
+#include <annis/graphstorage/linearstorage.h>
+#include <annis/graphstorage/prepostorderstorage.h>
 
 HUMBLE_LOGGER(logger, "annis4");
 

@@ -1,6 +1,6 @@
-#include "abstractedgeoperator.h"
+#include <annis/operators/abstractedgeoperator.h>
 
-#include "../wrapper.h"
+#include <annis/wrapper.h>
 #include <stx/btree_set>
 
 using namespace annis;

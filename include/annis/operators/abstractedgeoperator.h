@@ -1,9 +1,9 @@
 #ifndef ABSTRACTEDGEOPERATOR_H
 #define ABSTRACTEDGEOPERATOR_H
 
-#include "../db.h"
-#include <graphstorage/graphstorage.h>
-#include <operators/operator.h>
+#include <annis/db.h>
+#include <annis/graphstorage/graphstorage.h>
+#include <annis/operators/operator.h>
 #include <vector>
 
 namespace annis

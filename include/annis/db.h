@@ -12,11 +12,11 @@
 #include <vector>
 #include <list>
 
-#include "types.h"
-#include <util/comparefunctions.h>
-#include <graphstorage/graphstorage.h>
-#include "stringstorage.h"
-#include "graphstorageregistry.h"
+#include <annis/types.h>
+#include <annis/util/comparefunctions.h>
+#include <annis/graphstorage/graphstorage.h>
+#include <annis/stringstorage.h>
+#include <annis/graphstorageregistry.h>
 
 namespace annis
 {

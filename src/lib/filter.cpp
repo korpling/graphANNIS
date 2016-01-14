@@ -1,4 +1,4 @@
-#include "filter.h"
+#include <annis/filter.h>
 
 using namespace annis;
 

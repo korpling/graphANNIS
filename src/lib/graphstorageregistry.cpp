@@ -1,8 +1,8 @@
-#include "graphstorageregistry.h"
+#include <annis/graphstorageregistry.h>
 
-#include "graphstorage/adjacencyliststorage.h"
-#include "graphstorage/linearstorage.h"
-#include "graphstorage/prepostorderstorage.h"
+#include <annis/graphstorage/adjacencyliststorage.h>
+#include <annis/graphstorage/linearstorage.h>
+#include <annis/graphstorage/prepostorderstorage.h>
 
 using namespace annis;
 

@@ -175,24 +175,68 @@
         </logicalFolder>
       </logicalFolder>
     </logicalFolder>
-    <logicalFolder name="include" displayName="include" projectFiles="true">
-      <logicalFolder name="annis4" displayName="annis4" projectFiles="true">
-      </logicalFolder>
-      <logicalFolder name="stx" displayName="stx" projectFiles="true">
-        <itemPath>include/stx/LICENSE_1_0.txt</itemPath>
-        <itemPath>include/stx/btree</itemPath>
-        <itemPath>include/stx/btree.dox</itemPath>
-        <itemPath>include/stx/btree.h</itemPath>
-        <itemPath>include/stx/btree_map</itemPath>
-        <itemPath>include/stx/btree_map.h</itemPath>
-        <itemPath>include/stx/btree_multimap</itemPath>
-        <itemPath>include/stx/btree_multimap.h</itemPath>
-        <itemPath>include/stx/btree_multiset</itemPath>
-        <itemPath>include/stx/btree_multiset.h</itemPath>
-        <itemPath>include/stx/btree_set</itemPath>
-        <itemPath>include/stx/btree_set.h</itemPath>
-      </logicalFolder>
-    </logicalFolder>
+    <df root="include" name="3">
+      <df name="annis">
+        <df name="annosearch">
+          <in>annotationsearch.h</in>
+          <in>exactannokeysearch.h</in>
+          <in>exactannovaluesearch.h</in>
+          <in>regexannosearch.h</in>
+        </df>
+        <df name="graphstorage">
+          <in>adjacencyliststorage.h</in>
+          <in>graphstorage.h</in>
+          <in>linearstorage.h</in>
+          <in>prepostorderstorage.h</in>
+        </df>
+        <df name="join">
+          <in>nestedloop.h</in>
+          <in>seed.h</in>
+        </df>
+        <df name="json">
+          <in>json-forwards.h</in>
+          <in>json.h</in>
+          <in>jsonqueryparser.h</in>
+        </df>
+        <df name="operators">
+          <in>abstractedgeoperator.h</in>
+          <in>dominance.h</in>
+          <in>identicalcoverage.h</in>
+          <in>inclusion.h</in>
+          <in>operator.h</in>
+          <in>overlap.h</in>
+          <in>pointing.h</in>
+          <in>precedence.h</in>
+        </df>
+        <df name="util">
+          <in>comparefunctions.h</in>
+          <in>dfs.h</in>
+          <in>helper.h</in>
+        </df>
+        <in>DBCache.h</in>
+        <in>db.h</in>
+        <in>edgeannotationstorage.h</in>
+        <in>filter.h</in>
+        <in>graphstorageregistry.h</in>
+        <in>iterators.h</in>
+        <in>query.h</in>
+        <in>stringstorage.h</in>
+        <in>types.h</in>
+        <in>wrapper.h</in>
+      </df>
+      <df name="stx">
+        <in>btree</in>
+        <in>btree.h</in>
+        <in>btree_map</in>
+        <in>btree_map.h</in>
+        <in>btree_multimap</in>
+        <in>btree_multimap.h</in>
+        <in>btree_multiset</in>
+        <in>btree_multiset.h</in>
+        <in>btree_set</in>
+        <in>btree_set.h</in>
+      </df>
+    </df>
     <df root="src" name="1">
       <df name="lib">
         <df name="annosearch">
@@ -257,9 +301,9 @@
   <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
   <sourceRootList>
     <Elem>src</Elem>
+    <Elem>include</Elem>
     <Elem>tests</Elem>
     <Elem>benchmarks</Elem>
-    <Elem>include</Elem>
   </sourceRootList>
   <projectmakefile>build/Makefile</projectmakefile>
   <confs>
@@ -666,11 +710,126 @@
           </preprocessorList>
         </ccTool>
       </folder>
-      <item path="include/stx/LICENSE_1_0.txt" ex="false" tool="3" flavor2="0">
+      <item path="include/annis/DBCache.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/annosearch/annotationsearch.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/annosearch/exactannokeysearch.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/annosearch/exactannovaluesearch.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/annosearch/regexannosearch.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/db.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/edgeannotationstorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/filter.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/graphstorage/adjacencyliststorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/graphstorage/graphstorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/graphstorage/linearstorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/graphstorage/prepostorderstorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/graphstorageregistry.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/iterators.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/join/nestedloop.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/join/seed.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/json/json-forwards.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/json/json.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/json/jsonqueryparser.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/abstractedgeoperator.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/dominance.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/identicalcoverage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/inclusion.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/operator.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/operators/overlap.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/operators/pointing.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/operators/precedence.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/query.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/stringstorage.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/util/comparefunctions.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/util/dfs.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/util/helper.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/wrapper.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="include/stx/btree" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree.dox" ex="false" tool="3" flavor2="0">
       </item>
       <item path="include/stx/btree.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -1256,11 +1415,126 @@
           </incDir>
         </ccTool>
       </folder>
-      <item path="include/stx/LICENSE_1_0.txt" ex="false" tool="3" flavor2="0">
+      <item path="include/annis/DBCache.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/annosearch/annotationsearch.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/annosearch/exactannokeysearch.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/annosearch/exactannovaluesearch.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/annosearch/regexannosearch.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/db.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/edgeannotationstorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/filter.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/graphstorage/adjacencyliststorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/graphstorage/graphstorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/graphstorage/linearstorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/graphstorage/prepostorderstorage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/graphstorageregistry.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/iterators.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/join/nestedloop.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/join/seed.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/json/json-forwards.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/json/json.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/json/jsonqueryparser.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/abstractedgeoperator.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/dominance.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/identicalcoverage.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/inclusion.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/operators/operator.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/operators/overlap.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/operators/pointing.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/operators/precedence.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/query.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/stringstorage.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/util/comparefunctions.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="include/annis/util/dfs.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/util/helper.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/annis/wrapper.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="include/stx/btree" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="include/stx/btree.dox" ex="false" tool="3" flavor2="0">
       </item>
       <item path="include/stx/btree.h" ex="false" tool="3" flavor2="0">
       </item>

@@ -3,9 +3,9 @@
 #include <cstdint>
 
 #include "linenoise.h"
-#include <db.h>
-#include <util/helper.h>
-#include <json/jsonqueryparser.h>
+#include <annis/db.h>
+#include <annis/util/helper.h>
+#include <annis/json/jsonqueryparser.h>
 
 #include <humblelogging/api.h>
 #include <boost/algorithm/string.hpp>

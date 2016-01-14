@@ -1,4 +1,4 @@
-#include "regexannosearch.h"
+#include <annis/annosearch/regexannosearch.h>
 #include <limits>
 
 using namespace annis;

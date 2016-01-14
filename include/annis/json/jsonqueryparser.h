@@ -8,8 +8,8 @@
 #ifndef JSONQUERYPARSER_H
 #define JSONQUERYPARSER_H
 
-#include "query.h"
-#include <json/json.h>
+#include <annis/query.h>
+#include <annis/json/json.h>
 #include <boost/optional.hpp>
 
 namespace annis {

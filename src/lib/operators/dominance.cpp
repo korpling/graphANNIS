@@ -1,4 +1,4 @@
-#include "dominance.h"
+#include <annis/operators/dominance.h>
 
 using namespace annis;
 

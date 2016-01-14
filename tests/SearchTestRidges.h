@@ -3,12 +3,12 @@
 
 
 #include "gtest/gtest.h"
-#include "db.h"
-#include <annosearch/annotationsearch.h>
-#include "operators/precedence.h"
-#include "operators/overlap.h"
-#include "operators/inclusion.h"
-#include "query.h"
+#include <annis/db.h>
+#include <annis/annosearch/annotationsearch.h>
+#include <annis/operators/precedence.h>
+#include <annis/operators/overlap.h>
+#include <annis/operators/inclusion.h>
+#include <annis/query.h>
 
 #include <boost/format.hpp>
 #include <vector>

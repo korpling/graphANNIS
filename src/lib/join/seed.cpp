@@ -1,5 +1,5 @@
-#include "seed.h"
-#include <annosearch/annotationsearch.h>
+#include <annis/join/seed.h>
+#include <annis/annosearch/annotationsearch.h>
 
 using namespace annis;
 

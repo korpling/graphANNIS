@@ -4,7 +4,7 @@
 #include <list>
 #include <memory>
 
-#include "iterators.h"
+#include <annis/iterators.h>
 
 
 namespace annis

@@ -1,7 +1,7 @@
 #ifndef EXACTANNOKEYSEARCH_H
 #define EXACTANNOKEYSEARCH_H
 
-#include "annotationsearch.h"
+#include <annis/annosearch/annotationsearch.h>
 #include <stx/btree_map>
 
 namespace annis

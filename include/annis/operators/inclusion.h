@@ -4,9 +4,9 @@
 #include <set>
 #include <list>
 
-#include <db.h>
-#include "operator.h"
-#include <util/helper.h>
+#include <annis/db.h>
+#include <annis/operators/operator.h>
+#include <annis/util/helper.h>
 
 namespace annis
 {

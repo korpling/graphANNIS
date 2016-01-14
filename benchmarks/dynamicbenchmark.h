@@ -14,11 +14,11 @@
 #ifndef DYNAMICBENCHMARK_H
 #define DYNAMICBENCHMARK_H
 
-#include <json/jsonqueryparser.h>
+#include <annis/json/jsonqueryparser.h>
 #include "benchmark.h"
-#include "db.h"
-#include "query.h"
-#include "DBCache.h"
+#include <annis/db.h>
+#include <annis/query.h>
+#include <annis/DBCache.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>

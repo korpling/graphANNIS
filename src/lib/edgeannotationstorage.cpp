@@ -1,4 +1,4 @@
-#include "edgeannotationstorage.h"
+#include <annis/edgeannotationstorage.h>
 #include <fstream>
 
 using namespace annis;

@@ -1,7 +1,7 @@
-#include "adjacencyliststorage.h"
+#include <annis/graphstorage/adjacencyliststorage.h>
 
-#include <util/dfs.h>
-#include <annosearch/exactannokeysearch.h>
+#include <annis/util/dfs.h>
+#include <annis/annosearch/exactannokeysearch.h>
 
 #include <fstream>
 #include <limits>

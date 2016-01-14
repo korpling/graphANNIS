@@ -7,9 +7,9 @@
 #include <vector>
 #include <memory>
 
-#include "types.h"
-#include "iterators.h"
-#include "stringstorage.h"
+#include <annis/types.h>
+#include <annis/iterators.h>
+#include <annis/stringstorage.h>
 
 namespace annis
 {

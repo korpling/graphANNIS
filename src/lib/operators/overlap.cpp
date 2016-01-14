@@ -1,5 +1,5 @@
-#include "overlap.h"
-#include "../wrapper.h"
+#include <annis/operators/overlap.h>
+#include <annis/wrapper.h>
 
 #include <stx/btree_set>
 using namespace annis;

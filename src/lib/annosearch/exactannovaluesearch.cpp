@@ -1,6 +1,4 @@
-#include "exactannovaluesearch.h"
-
-#include "db.h"
+#include <annis/annosearch/exactannovaluesearch.h>
 
 using namespace annis;
 using namespace std;

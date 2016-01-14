@@ -4,10 +4,10 @@
 #include <set>
 #include <list>
 
-#include <db.h>
-#include <iterators.h>
-#include <util/helper.h>
-#include "operator.h"
+#include <annis/db.h>
+#include <annis/iterators.h>
+#include <annis/util/helper.h>
+#include <annis/operators/operator.h>
 
 namespace annis
 {

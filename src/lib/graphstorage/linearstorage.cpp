@@ -1,2 +1,2 @@
-#include "linearstorage.h"
+#include <annis/graphstorage/linearstorage.h>
 

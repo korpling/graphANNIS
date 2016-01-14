@@ -2,14 +2,14 @@
 #define SEARCHTESTTIGER_H
 
 #include <gtest/gtest.h>
-#include <db.h>
-#include <util/helper.h>
-#include <query.h>
-#include <operators/precedence.h>
-#include <operators/dominance.h>
-#include <annosearch/exactannovaluesearch.h>
-#include <annosearch/exactannokeysearch.h>
-#include <wrapper.h>
+#include <annis/db.h>
+#include <annis/util/helper.h>
+#include <annis/query.h>
+#include <annis/operators/precedence.h>
+#include <annis/operators/dominance.h>
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
+#include <annis/wrapper.h>
 
 #include <vector>
 

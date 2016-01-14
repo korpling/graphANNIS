@@ -1,10 +1,10 @@
 #ifndef COMPAREFUNCTIONS_H
 #define COMPAREFUNCTIONS_H
 
-#include <graphstorage/graphstorage.h>
-#include <types.h>
-#include <string.h>
+#include <annis/graphstorage/graphstorage.h>
+#include <annis/types.h>
 
+#include <string.h>
 #include <tuple>
 #include <functional>
 

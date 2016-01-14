@@ -1,2 +1,2 @@
-#include "prepostorderstorage.h"
+#include <annis/graphstorage/prepostorderstorage.h>
 

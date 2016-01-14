@@ -1,6 +1,6 @@
-#include "stringstorage.h"
+#include <annis/stringstorage.h>
 #include <fstream>
-#include <util/helper.h>
+#include <annis/util/helper.h>
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>

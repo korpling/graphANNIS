@@ -1,9 +1,9 @@
 #ifndef PRECEDENCE_H
 #define PRECEDENCE_H
 
-#include <db.h>
-#include <util/helper.h>
-#include <operators/operator.h>
+#include <annis/db.h>
+#include <annis/util/helper.h>
+#include <annis/operators/operator.h>
 
 #include <list>
 #include <stack>

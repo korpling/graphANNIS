@@ -8,8 +8,8 @@
 #include <boost/algorithm/string.hpp>
 #include <sstream>
 
-#include <db.h>
-#include <graphstorage/graphstorage.h>
+#include <annis/db.h>
+#include <annis/graphstorage/graphstorage.h>
 
 #ifdef WIN32
 #include <windows.h>

@@ -2,14 +2,14 @@
 #define SEARCHTESTPARLAMENT_H
 
 #include <gtest/gtest.h>
-#include <db.h>
-#include <operators/precedence.h>
-#include <operators/overlap.h>
-#include <operators/inclusion.h>
-#include <operators/pointing.h>
-#include <operators/dominance.h>
-#include <annosearch/exactannovaluesearch.h>
-#include <query.h>
+#include <annis/db.h>
+#include <annis/operators/precedence.h>
+#include <annis/operators/overlap.h>
+#include <annis/operators/inclusion.h>
+#include <annis/operators/pointing.h>
+#include <annis/operators/dominance.h>
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/query.h>
 #include "../benchmarks/examplequeries.h"
 
 #include <vector>

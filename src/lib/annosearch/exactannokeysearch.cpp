@@ -1,6 +1,6 @@
-#include "exactannokeysearch.h"
+#include <annis/annosearch/exactannokeysearch.h>
 
-#include "db.h"
+#include <annis/db.h>
 
 using namespace annis;
 using namespace std;

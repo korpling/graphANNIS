@@ -1,13 +1,11 @@
 #ifndef PREPOSTORDERSTORAGE_H
 #define PREPOSTORDERSTORAGE_H
 
-#include "graphstorage.h"
-#include <edgeannotationstorage.h>
-
-
-#include <util/dfs.h>
-#include <annosearch/exactannovaluesearch.h>
-#include <annosearch/exactannokeysearch.h>
+#include <annis/graphstorage/graphstorage.h>
+#include <annis/edgeannotationstorage.h>
+#include <annis/util/dfs.h>
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
 
 #include <set>
 #include <stx/btree_map>

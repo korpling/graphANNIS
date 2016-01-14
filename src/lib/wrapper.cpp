@@ -1,4 +1,4 @@
-#include "wrapper.h"
+#include <annis/wrapper.h>
 
 using namespace annis;
 

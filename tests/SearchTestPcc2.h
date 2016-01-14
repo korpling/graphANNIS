@@ -2,17 +2,17 @@
 #define SEARCHTESTPCC2_H
 
 #include "gtest/gtest.h"
-#include "db.h"
-#include <annosearch/exactannovaluesearch.h>
-#include <annosearch/exactannokeysearch.h>
-#include <annosearch/regexannosearch.h>
-#include <operators/overlap.h>
-#include <operators/inclusion.h>
-#include <operators/precedence.h>
-#include <operators/pointing.h>
-#include <operators/dominance.h>
-#include <query.h>
-#include <json/jsonqueryparser.h>
+#include <annis/db.h>
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
+#include <annis/annosearch/regexannosearch.h>
+#include <annis/operators/overlap.h>
+#include <annis/operators/inclusion.h>
+#include <annis/operators/precedence.h>
+#include <annis/operators/pointing.h>
+#include <annis/operators/dominance.h>
+#include <annis/query.h>
+#include <annis/json/jsonqueryparser.h>
 
 #include <vector>
 #include <boost/format.hpp>

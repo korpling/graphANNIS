@@ -6,11 +6,11 @@
 #include <list>
 #include <set>
 
-#include "db.h"
-#include "iterators.h"
-#include <operators/operator.h>
-#include "wrapper.h"
-#include <annosearch/annotationsearch.h>
+#include <annis/db.h>
+#include <annis/iterators.h>
+#include <annis/operators/operator.h>
+#include <annis/wrapper.h>
+#include <annis/annosearch/annotationsearch.h>
 
 namespace annis
 {

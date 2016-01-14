@@ -11,9 +11,9 @@
             <make-dep-projects/>
             <sourceRootList>
                 <sourceRootElem>src</sourceRootElem>
+                <sourceRootElem>include</sourceRootElem>
                 <sourceRootElem>tests</sourceRootElem>
                 <sourceRootElem>benchmarks</sourceRootElem>
-                <sourceRootElem>include</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>

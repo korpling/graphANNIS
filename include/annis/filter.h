@@ -1,8 +1,8 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-#include <iterators.h>
-#include <operators/operator.h>
+#include <annis/iterators.h>
+#include <annis/operators/operator.h>
 
 namespace annis
 {

@@ -2,13 +2,13 @@
 #define LOADTEST_H
 
 #include "gtest/gtest.h"
-#include "db.h"
-#include <annosearch/exactannovaluesearch.h>
-#include <annosearch/exactannokeysearch.h>
+#include <annis/db.h>
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
 #include <cstdlib>
 #include <boost/format.hpp>
-#include "query.h"
-#include "operators/dominance.h"
+#include <annis/query.h>
+#include <annis/operators/dominance.h>
 
 using namespace annis;
 

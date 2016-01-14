@@ -1,7 +1,7 @@
 #ifndef DFS_H
 #define DFS_H
 
-#include <graphstorage/graphstorage.h>
+#include <annis/graphstorage/graphstorage.h>
 
 #include <stack>
 #include <list>

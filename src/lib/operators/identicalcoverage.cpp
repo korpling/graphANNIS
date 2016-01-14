@@ -5,8 +5,8 @@
  * Created on 8. Januar 2016, 13:58
  */
 
-#include "identicalcoverage.h"
-#include "wrapper.h"
+#include <annis/operators/identicalcoverage.h>
+#include <annis/wrapper.h>
 
 #include <set>
 #include <vector>

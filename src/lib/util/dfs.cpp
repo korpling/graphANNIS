@@ -1,4 +1,4 @@
-#include "dfs.h"
+#include <annis/util/dfs.h>
 
 #include <iostream>
 

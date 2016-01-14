@@ -1,5 +1,5 @@
-#include "nestedloop.h"
-#include <annosearch/annotationsearch.h>
+#include <annis/join/nestedloop.h>
+#include <annis/annosearch/annotationsearch.h>
 
 using namespace annis;
 

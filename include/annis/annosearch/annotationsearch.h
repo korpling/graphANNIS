@@ -1,9 +1,9 @@
 #ifndef ANNOTATIONSEARCH_H
 #define ANNOTATIONSEARCH_H
 
-#include <db.h>
-#include <iterators.h>
-#include <util/comparefunctions.h>
+#include <annis/db.h>
+#include <annis/iterators.h>
+#include <annis/util/comparefunctions.h>
 
 #include <set>
 #include <unordered_set>

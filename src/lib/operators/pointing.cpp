@@ -1,4 +1,4 @@
-#include "pointing.h"
+#include <annis/operators/pointing.h>
 
 using namespace annis;
 

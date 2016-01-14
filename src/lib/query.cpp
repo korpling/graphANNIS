@@ -1,7 +1,7 @@
-#include "query.h"
-#include "join/nestedloop.h"
-#include "join/seed.h"
-#include "filter.h"
+#include <annis/query.h>
+#include <annis/join/nestedloop.h>
+#include <annis/join/seed.h>
+#include <annis/filter.h>
 
 #include <vector>
 #include <re2/re2.h>

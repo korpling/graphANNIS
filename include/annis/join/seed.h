@@ -1,11 +1,11 @@
 #ifndef SEED_H
 #define SEED_H
 
-#include <types.h>
-#include <iterators.h>
-#include <operators/operator.h>
-#include <graphstorage/graphstorage.h>
-#include "db.h"
+#include <annis/types.h>
+#include <annis/iterators.h>
+#include <annis/operators/operator.h>
+#include <annis/graphstorage/graphstorage.h>
+#include <annis/db.h>
 
 #include <unordered_set>
 

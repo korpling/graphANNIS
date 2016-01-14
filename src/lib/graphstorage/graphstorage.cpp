@@ -1,4 +1,4 @@
-#include "graphstorage.h"
+#include <annis/graphstorage/graphstorage.h>
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>

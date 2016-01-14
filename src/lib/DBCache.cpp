@@ -11,7 +11,7 @@
  * Created on 5. Januar 2016, 17:17
  */
 
-#include "DBCache.h"
+#include <annis/DBCache.h>
 
 using namespace annis;
 

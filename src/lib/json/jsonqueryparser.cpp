@@ -5,16 +5,16 @@
  * Created on 3. Januar 2016, 16:05
  */
 
-#include "jsonqueryparser.h"
-#include <annosearch/exactannovaluesearch.h>
-#include <annosearch/exactannokeysearch.h>
-#include <annosearch/regexannosearch.h>
-#include "operators/precedence.h"
-#include "operators/dominance.h"
-#include "operators/pointing.h"
-#include "operators/inclusion.h"
-#include "operators/overlap.h"
-#include "operators/identicalcoverage.h"
+#include <annis/json/jsonqueryparser.h>
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
+#include <annis/annosearch/regexannosearch.h>
+#include <annis/operators/precedence.h>
+#include <annis/operators/dominance.h>
+#include <annis/operators/pointing.h>
+#include <annis/operators/inclusion.h>
+#include <annis/operators/overlap.h>
+#include <annis/operators/identicalcoverage.h>
 #include <map>
 
 using namespace annis;
