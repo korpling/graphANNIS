@@ -18,6 +18,7 @@
 #include <annis/graphstorage/adjacencyliststorage.h>
 #include <annis/graphstorage/linearstorage.h>
 #include <annis/graphstorage/prepostorderstorage.h>
+#include <annis/nodeannostorage.h>
 
 HUMBLE_LOGGER(logger, "annis4");
 
@@ -25,6 +26,7 @@ using namespace annis;
 using namespace std;
 
 DB::DB()
+: nodeAnnos(strings)
 {
   addDefaultStrings();
 }
@@ -38,20 +40,11 @@ bool DB::load(string dirPath)
   strings.load(dirPath);
   HL_INFO(logger, "End loading string storage");
 
+  HL_INFO(logger, "Start loading node annotation storage");
+  nodeAnnos.load(dirPath);
+  HL_INFO(logger, "End loading node annotation storage");
+  
   ifstream in;
-
-  in.open(dirPath + "/nodeAnnotations.btree");
-  nodeAnnotations.restore(in);
-  in.close();
-
-  in.open(dirPath + "/inverseNodeAnnotations.btree");
-  inverseNodeAnnotations.restore(in);
-  in.close();
-
-  in.open(dirPath + "/nodeAnnoKeys.archive");
-  boost::archive::binary_iarchive iaNodeAnnoKeys(in);
-  iaNodeAnnoKeys >> nodeAnnoKeys;
-  in.close();
 
   boost::filesystem::directory_iterator fileEndIt;
 
@@ -121,21 +114,9 @@ bool DB::save(string dirPath)
   boost::filesystem::create_directories(dirPath);
 
   strings.save(dirPath);
-
+  nodeAnnos.save(dirPath);
+  
   ofstream out;
-
-  out.open(dirPath + "/nodeAnnotations.btree");
-  nodeAnnotations.dump(out);
-  out.close();
-
-  out.open(dirPath + "/inverseNodeAnnotations.btree");
-  inverseNodeAnnotations.dump(out);
-  out.close();
-
-  out.open(dirPath + "/nodeAnnoKeys.archive");
-  boost::archive::binary_oarchive oaNodeAnnoKeys(out);
-  oaNodeAnnoKeys << nodeAnnoKeys;
-  out.close();
 
   // save each edge db separately
   string gsParent = dirPath + "/gs";
@@ -288,13 +269,13 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
     nodeNameAnno.ns = strings.add(annis_ns);
     nodeNameAnno.name = strings.add(annis_node_name);
     nodeNameAnno.val = strings.add(line[4]);
-    addNodeAnnotation(nodeNr, nodeNameAnno);
+    nodeAnnos.addNodeAnnotation(nodeNr, nodeNameAnno);
 
     Annotation documentNameAnno;
     documentNameAnno.ns = strings.add(annis_ns);
     documentNameAnno.name = strings.add("document");
     documentNameAnno.val = corpusIDToName[corpusID];
-    addNodeAnnotation(nodeNr, documentNameAnno);
+    nodeAnnos.addNodeAnnotation(nodeNr, documentNameAnno);
 
     TextProperty left;
     left.val = Helper::uint32FromString(line[5]);
@@ -312,7 +293,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
       tokAnno.ns = strings.add(annis_ns);
       tokAnno.name = strings.add(annis_tok);
       tokAnno.val = strings.add(span);
-      addNodeAnnotation(nodeNr, tokAnno);
+      nodeAnnos.addNodeAnnotation(nodeNr, tokAnno);
 
       TextProperty index;
       index.val = Helper::uint32FromString(tokenIndexRaw);
@@ -438,7 +419,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
     anno.ns = strings.add(line[1]);
     anno.name = strings.add(line[2]);
     anno.val = strings.add(line[3]);
-    addNodeAnnotation(nodeNr, anno);
+    nodeAnnos.addNodeAnnotation(nodeNr, anno);
   }
 
   in.close();
@@ -566,12 +547,7 @@ bool DB::loadEdgeAnnotation(const string &dirPath,
 void DB::clear()
 {
   strings.clear();
-  nodeAnnotations.clear();
-  inverseNodeAnnotations.clear();
-  for(auto& ed : edgeDatabases)
-  {
-    delete ed.second;
-  }
+  nodeAnnos.clear();
   edgeDatabases.clear();
 }
 
@@ -743,7 +719,7 @@ ComponentType DB::componentTypeFromShortName(string shortType)
 string DB::info()
 {
   stringstream ss;
-  ss  << "Number of node annotations: " << nodeAnnotations.size() << endl
+  ss  << "Number of node annotations: " << nodeAnnos.nodeAnnotations.size() << endl
       << "Number of strings in storage: " << strings.size() << endl
       << "Average string length: " << strings.avgLength() << endl;
 

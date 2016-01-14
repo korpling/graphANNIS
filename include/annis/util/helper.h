@@ -60,7 +60,7 @@ public:
 
   bool inline isToken(nodeid_t n)
   {
-    return db.getNodeAnnotation(n, db.getNamespaceStringID(), db.getTokStringID()).first;
+    return db.nodeAnnos.getNodeAnnotation(n, db.getNamespaceStringID(), db.getTokStringID()).first;
   }
 
 private:

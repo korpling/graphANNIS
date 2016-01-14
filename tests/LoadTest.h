@@ -48,7 +48,7 @@ protected:
 
 TEST_F(LoadTest, NodeAnnotations) {
 
-  std::list<annis::Annotation> annosAsList = db.getNodeAnnotationsByID(0);
+  std::list<annis::Annotation> annosAsList = db.nodeAnnos.getNodeAnnotationsByID(0);
   std::vector<annis::Annotation> annos(annosAsList.size());
   std::copy(annosAsList.begin(), annosAsList.end(), annos.begin());
   ASSERT_EQ(6u, annos.size());

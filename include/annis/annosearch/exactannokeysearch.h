@@ -29,7 +29,7 @@ public:
 
   virtual bool hasNext()
   {
-    return it != db.inverseNodeAnnotations.end() && it != itEnd;
+    return it != db.nodeAnnos.inverseNodeAnnotations.end() && it != itEnd;
   }
 
   virtual Match next();

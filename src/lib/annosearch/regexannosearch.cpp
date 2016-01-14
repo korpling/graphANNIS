@@ -16,8 +16,8 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
   {
     annoTemplates.push_back({nameID.second, namespaceID.second, 0});
     
-    auto lower = db.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
-    auto upper = db.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
+    auto lower = db.nodeAnnos.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
+    auto upper = db.nodeAnnos.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
     searchRanges.push_back(Range(lower, upper));
   }
   currentRange = searchRanges.begin();
@@ -40,14 +40,14 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
     std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
     if(nameID.first)
     {
-      auto keysLower = db.nodeAnnoKeys.lower_bound({nameID.second, 0});
-      auto keysUpper = db.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
+      auto keysLower = db.nodeAnnos.nodeAnnoKeys.lower_bound({nameID.second, 0});
+      auto keysUpper = db.nodeAnnos.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
       for(auto itKey = keysLower; itKey != keysUpper; itKey++)
       {
         annoTemplates.push_back({itKey->name, itKey->ns, 0});
         
-        auto lowerAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, 0});
-        auto upperAnno = db.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, uintmax});
+        auto lowerAnno = db.nodeAnnos.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, 0});
+        auto upperAnno = db.nodeAnnos.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, uintmax});
         searchRanges.push_back(Range(lowerAnno, upperAnno));
       }
     }
@@ -118,7 +118,7 @@ void RegexAnnoSearch::internalNextAnno()
           return;
         }
         // skip to the next available key (we don't want to iterate over each value of the multimap)
-        it = db.inverseNodeAnnotations.upper_bound(it.key());
+        it = db.nodeAnnos.inverseNodeAnnotations.upper_bound(it.key());
 
       } // end for each item in search range
       currentRange++;

@@ -36,7 +36,7 @@ BinaryMatch AnnoKeySeedJoin::next()
         // only check the annotation key, not the value
         const AnnotationKey& key = *(rightAnnoKeys.begin());
         std::pair<bool, Annotation> foundAnno =
-            db.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
+            db.nodeAnnos.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
         if(foundAnno.first && checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, foundAnno.second))
         {
           currentMatch.found = true;
@@ -50,7 +50,7 @@ BinaryMatch AnnoKeySeedJoin::next()
         for(const auto& key : rightAnnoKeys)
         {
           std::pair<bool, Annotation> foundAnno =
-              db.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
+              db.nodeAnnos.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
           if(foundAnno.first)
           {
             matchingRightAnnos.push_back(foundAnno.second);
@@ -153,7 +153,7 @@ BinaryMatch MaterializedSeedJoin::next()
         // directly get the one node annotation
         const auto& rightAnno = *(right.begin());
         auto foundAnno =
-            db.getNodeAnnotation(currentMatch.rhs.node, rightAnno.ns, rightAnno.name);
+            db.nodeAnnos.getNodeAnnotation(currentMatch.rhs.node, rightAnno.ns, rightAnno.name);
         if(foundAnno.first && foundAnno.second.val == rightAnno.val
            && checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, foundAnno.second))
         {
@@ -165,7 +165,7 @@ BinaryMatch MaterializedSeedJoin::next()
       else
       {
         // check all annotations which of them matches
-        std::list<Annotation> annos = db.getNodeAnnotationsByID(currentMatch.rhs.node);
+        std::list<Annotation> annos = db.nodeAnnos.getNodeAnnotationsByID(currentMatch.rhs.node);
         for(const auto& a : annos)
         {
           if(right.find(a) != right.end())

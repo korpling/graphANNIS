@@ -9,12 +9,12 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
   : db(db), currentMatchValid(false),
     validAnnotationKeysInitialized(false)
 {
-  itBegin = db.inverseNodeAnnotations.begin();
-  itEnd = db.inverseNodeAnnotations.end();
+  itBegin = db.nodeAnnos.inverseNodeAnnotations.begin();
+  itEnd = db.nodeAnnos.inverseNodeAnnotations.end();
   it = itBegin;
 
-  itKeyBegin = db.nodeAnnoKeys.begin();
-  itKeyBegin = db.nodeAnnoKeys.end();
+  itKeyBegin = db.nodeAnnos.nodeAnnoKeys.begin();
+  itKeyBegin = db.nodeAnnos.nodeAnnoKeys.end();
 }
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
@@ -35,17 +35,17 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
     upperKey.ns = numeric_limits<uint32_t>::max();
     upperKey.val = numeric_limits<uint32_t>::max();
 
-    itBegin = db.inverseNodeAnnotations.lower_bound(lowerKey);
+    itBegin = db.nodeAnnos.inverseNodeAnnotations.lower_bound(lowerKey);
     it = itBegin;
-    itEnd = db.inverseNodeAnnotations.upper_bound(upperKey);
+    itEnd = db.nodeAnnos.inverseNodeAnnotations.upper_bound(upperKey);
 
-    itKeyBegin = db.nodeAnnoKeys.lower_bound({searchResult.second, 0});
-    itKeyEnd = db.nodeAnnoKeys.upper_bound({searchResult.second, uintmax});
+    itKeyBegin = db.nodeAnnos.nodeAnnoKeys.lower_bound({searchResult.second, 0});
+    itKeyEnd = db.nodeAnnos.nodeAnnoKeys.upper_bound({searchResult.second, uintmax});
   }
   else
   {
-    itBegin = itEnd = it = db.inverseNodeAnnotations.end();
-    itKeyBegin = itKeyEnd = db.nodeAnnoKeys.end();
+    itBegin = itEnd = it = db.nodeAnnos.inverseNodeAnnotations.end();
+    itKeyBegin = itKeyEnd = db.nodeAnnos.nodeAnnoKeys.end();
   }
 }
 
@@ -68,17 +68,17 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace,
     upperKey.ns = namespaceID.second;
     upperKey.val = numeric_limits<uint32_t>::max();
 
-    itBegin = db.inverseNodeAnnotations.lower_bound(lowerKey);
+    itBegin = db.nodeAnnos.inverseNodeAnnotations.lower_bound(lowerKey);
     it = itBegin;
-    itEnd = db.inverseNodeAnnotations.upper_bound(upperKey);
+    itEnd = db.nodeAnnos.inverseNodeAnnotations.upper_bound(upperKey);
 
-    itKeyBegin = db.nodeAnnoKeys.lower_bound({nameID.second, namespaceID.second});
-    itKeyEnd = db.nodeAnnoKeys.upper_bound({nameID.second, namespaceID.second});
+    itKeyBegin = db.nodeAnnos.nodeAnnoKeys.lower_bound({nameID.second, namespaceID.second});
+    itKeyEnd = db.nodeAnnos.nodeAnnoKeys.upper_bound({nameID.second, namespaceID.second});
   }
   else
   {
-    itBegin = itEnd = it = db.inverseNodeAnnotations.end();
-    itKeyBegin = itKeyEnd = db.nodeAnnoKeys.end();
+    itBegin = itEnd = it = db.nodeAnnos.inverseNodeAnnotations.end();
+    itKeyBegin = itKeyEnd = db.nodeAnnos.nodeAnnoKeys.end();
   }
 }
 

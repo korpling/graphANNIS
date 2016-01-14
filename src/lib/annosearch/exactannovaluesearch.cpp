@@ -17,7 +17,7 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamsp
     key.ns = namspaceID.second;
     key.val = valueID.second;
 
-    searchRanges.push_back(Range(db.inverseNodeAnnotations.equal_range(key)));
+    searchRanges.push_back(Range(db.nodeAnnos.inverseNodeAnnotations.equal_range(key)));
     it = searchRanges.begin()->first;
   }
   currentRange = searchRanges.begin();
@@ -31,11 +31,11 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &anno
 
   if(nameID.first && valueID.first)
   {
-    auto keysLower = db.nodeAnnoKeys.lower_bound({nameID.second, 0});
-    auto keysUpper = db.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
+    auto keysLower = db.nodeAnnos.nodeAnnoKeys.lower_bound({nameID.second, 0});
+    auto keysUpper = db.nodeAnnos.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
     for(auto itKey = keysLower; itKey != keysUpper; itKey++)
     {
-      searchRanges.push_back(Range(db.inverseNodeAnnotations.equal_range(
+      searchRanges.push_back(Range(db.nodeAnnos.inverseNodeAnnotations.equal_range(
       {itKey->name, itKey->ns, valueID.second})));
     }
   }

@@ -219,6 +219,7 @@
         <in>filter.h</in>
         <in>graphstorageregistry.h</in>
         <in>iterators.h</in>
+        <in>nodeannostorage.h</in>
         <in>query.h</in>
         <in>stringstorage.h</in>
         <in>types.h</in>
@@ -277,6 +278,7 @@
         <in>edgeannotationstorage.cpp</in>
         <in>filter.cpp</in>
         <in>graphstorageregistry.cpp</in>
+        <in>nodeannostorage.cpp</in>
         <in>query.cpp</in>
         <in>stringstorage.cpp</in>
         <in>wrapper.cpp</in>
@@ -781,6 +783,8 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="include/annis/nodeannostorage.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="include/annis/operators/abstractedgeoperator.h"
             ex="false"
             tool="3"
@@ -941,6 +945,8 @@
         <ccTool flags="3">
         </ccTool>
       </item>
+      <item path="src/lib/nodeannostorage.cpp" ex="false" tool="1" flavor2="0">
+      </item>
       <item path="src/lib/operators/abstractedgeoperator.cpp"
             ex="false"
             tool="1"
@@ -1055,6 +1061,7 @@
         <preBuild>
           <preBuildCommandWorkingDir>build</preBuildCommandWorkingDir>
           <preBuildCommand>cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=RelwithDebInfo  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..</preBuildCommand>
+          <preBuildFirst>true</preBuildFirst>
         </preBuild>
       </makefileType>
       <item path="benchmarks/benchmark.cpp" ex="false" tool="1" flavor2="11">
@@ -1486,6 +1493,8 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="include/annis/nodeannostorage.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="include/annis/operators/abstractedgeoperator.h"
             ex="false"
             tool="3"
@@ -1645,6 +1654,8 @@
       <item path="src/lib/json/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
+      </item>
+      <item path="src/lib/nodeannostorage.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="src/lib/operators/abstractedgeoperator.cpp"
             ex="false"

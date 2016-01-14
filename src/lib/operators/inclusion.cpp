@@ -42,7 +42,7 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
   nodeid_t leftToken;
   nodeid_t rightToken;
   int spanLength = 0;
-  if(db.getNodeAnnotation(lhs.node, annis_ns, annis_tok).first)
+  if(db.nodeAnnos.getNodeAnnotation(lhs.node, annis_ns, annis_tok).first)
   {
     // is token
     leftToken = lhs.node;
