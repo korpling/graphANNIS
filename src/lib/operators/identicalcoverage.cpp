@@ -53,25 +53,18 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
     w->addMatch({leftToken, anyNodeAnno});
   }
   
-  // find each node that is left-aligned with the left token and right aligned with the right token
+  // find each non-token node that is left-aligned with the left token and right aligned with the right token
   auto leftAligned = gsLeftToken->getOutgoingEdges(leftToken);
-  auto rightAligned = gsRightToken->getOutgoingEdges(rightToken);
-  std::sort(leftAligned.begin(), leftAligned.end());
-  std::sort(rightAligned.begin(), rightAligned.end());
-  std::vector<nodeid_t> resultIDs(std::max(leftAligned.size(), rightAligned.size()));
-  
-  auto it = 
-    std::set_intersection(leftAligned.begin(), leftAligned.end(), 
-    rightAligned.begin(), rightAligned.end(), 
-    resultIDs.begin());
-  resultIDs.resize(it - resultIDs.begin());
-
-  for(const auto& matchedID : resultIDs)
+  for(const auto& candidate : leftAligned)
   {
-    w->addMatch({matchedID, anyNodeAnno});
-
+    // check if also right aligned
+    auto candidateRight = gsRightToken->getOutgoingEdges(candidate)[0];
+    if(candidateRight == rightToken)
+    {
+      w->addMatch({candidate, anyNodeAnno});
+    }
   }
-  
+
   return std::unique_ptr<AnnoIt>(w);
 }
 
