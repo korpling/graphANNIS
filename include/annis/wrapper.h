@@ -9,100 +9,103 @@
 
 namespace annis
 {
-  
-/**
- * @brief Helper class which has an internal list of matches and wraps it as a AnnoIt
- * Thus this class is a kind of materialized result
- */
-class ListWrapper : public AnnoIt
-{
-public:
 
-  ListWrapper(size_t initialCapacity=0);
-
-  void addMatch(const Match& m)
+  /**
+   * @brief Helper class which has an internal list of matches and wraps it as a AnnoIt
+   * Thus this class is a kind of materialized result
+   */
+  class ListWrapper : public AnnoIt
   {
-    orig.push_back(m);
-  }
+  public:
 
-  void addMatch(const nodeid_t& m)
-  {
-    orig.push_back({m, {0, 0, 0}});
-  }
+    ListWrapper(size_t initialCapacity = 0);
 
-  virtual bool hasNext()
-  {
-    return !orig.empty();
-  }
-
-  virtual Match next()
-  {
-    Match result = orig.front();
-    orig.pop_back();
-    return result;
-  }
-
-  virtual void reset()
-  {
-    while(!orig.empty())
+    void addMatch(const Match& m)
     {
-      orig.pop_back();
+      orig.push_back(m);
     }
-  }
 
-  virtual ~ListWrapper();
+    void addMatch(const nodeid_t& m)
+    {
+      orig.push_back({m,
+        {0, 0, 0}});
+    }
 
-protected:
-  size_t internalEmpty()
+    virtual bool hasNext()
+    {
+      return !orig.empty();
+    }
+
+    virtual Match next()
+    {
+      Match result = orig.front();
+      orig.pop_back();
+      return result;
+    }
+
+    virtual void reset()
+    {
+      while (!orig.empty())
+      {
+        orig.pop_back();
+      }
+    }
+
+    virtual ~ListWrapper();
+
+  protected:
+
+    size_t internalEmpty()
+    {
+      return orig.empty();
+    }
+
+  private:
+    std::vector<Match> orig;
+  };
+
+  class JoinWrapIterator : public ListWrapper
   {
-    return orig.empty();
-  }
+  public:
 
-private:
-  std::vector<Match> orig;
-};
-
-
-class JoinWrapIterator : public ListWrapper
-{
-public:
-
-  JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedJoin,
-                        bool wrapLeftOperand = false)
-    : wrappedJoin(wrappedJoin),
+    JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedJoin,
+      bool wrapLeftOperand = false)
+      : wrappedJoin(wrappedJoin),
       wrapLeftOperand(wrapLeftOperand)
-  {
+    {
 
-  }
+    }
 
-  virtual Match next()
-  {
-    checkIfNextCallNeeded();
-    return ListWrapper::next();
-  }
+    virtual Match next()
+    {
+      checkIfNextCallNeeded();
+      return ListWrapper::next();
+    }
 
-  virtual bool hasNext()
-  {
-    checkIfNextCallNeeded();
-    return ListWrapper::hasNext();
-  }
+    virtual bool hasNext()
+    {
+      checkIfNextCallNeeded();
+      return ListWrapper::hasNext();
+    }
 
-  virtual void reset();
+    virtual void reset();
 
-  virtual void setOther(std::weak_ptr<JoinWrapIterator> otherInnerWrapper)
-  {
-    JoinWrapIterator::otherInnerWrapper = otherInnerWrapper;
-  }
+    virtual void setOther(std::weak_ptr<JoinWrapIterator> otherInnerWrapper)
+    {
+      JoinWrapIterator::otherInnerWrapper = otherInnerWrapper;
+    }
 
-  virtual ~JoinWrapIterator() {}
+    virtual ~JoinWrapIterator()
+    {
+    }
 
-private:
-  std::shared_ptr<BinaryIt> wrappedJoin;
-  std::weak_ptr<JoinWrapIterator> otherInnerWrapper;
-  bool wrapLeftOperand;
+  private:
+    std::shared_ptr<BinaryIt> wrappedJoin;
+    std::weak_ptr<JoinWrapIterator> otherInnerWrapper;
+    bool wrapLeftOperand;
 
-  void checkIfNextCallNeeded();
-};
+    void checkIfNextCallNeeded();
+  };
 
   /**
    * An annotation iterator that wraps another annotation iterator, but replaces
@@ -137,8 +140,11 @@ private:
     {
       delegate->reset();
     }
-    
-    std::shared_ptr<AnnoIt> getDelegate() { return delegate;}
+
+    std::shared_ptr<AnnoIt> getDelegate()
+    {
+      return delegate;
+    }
 
     virtual ~ConstAnnoWrapper()
     {
@@ -146,6 +152,77 @@ private:
   private:
     Annotation constAnno;
     std::shared_ptr<AnnoIt> delegate;
+  };
+
+  /**
+   * Similar to ListWrapper but only wraps a single element
+   */
+  class SingleElementWrapper : public AnnoIt
+  {
+  public:
+
+    SingleElementWrapper(const Match& m)
+      : m(m), valid(true)
+    {
+
+    }
+
+    virtual bool hasNext()
+    {
+      return valid;
+    }
+
+    virtual Match next()
+    {
+      valid = false;
+      return m;
+    }
+
+    virtual void reset()
+    {
+      valid = true;
+    }
+
+    virtual ~SingleElementWrapper()
+    {
+    }
+
+  private:
+    Match m;
+    bool valid;
+  };
+
+  /**
+   * Similar to ListWrapper but only wraps a no element at all
+   */
+  class NoElementWrapper : public AnnoIt
+  {
+  public:
+
+    NoElementWrapper()
+    {
+
+    }
+
+    virtual bool hasNext()
+    {
+      return false;
+    }
+
+    virtual Match next()
+    {
+      return {0, {0, 0, 0}};
+    }
+
+    virtual void reset()
+    {
+    }
+
+    virtual ~NoElementWrapper()
+    {
+    }
+
+  private:
   };
 
 } // end namespace annis

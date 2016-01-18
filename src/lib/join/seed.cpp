@@ -94,11 +94,10 @@ bool AnnoKeySeedJoin::nextLeftMatch()
     currentMatchValid = true;
 
     matchesByOperator = op->retrieveMatches(currentMatch.lhs);
-    if(!matchesByOperator)
+    if(matchesByOperator)
     {
-      std::cerr << "could not create right matches from operator!" << std::endl;
+      return true;
     }
-    return true;
   }
 
   return false;
@@ -212,11 +211,10 @@ bool MaterializedSeedJoin::nextLeftMatch()
     currentMatchValid = true;
 
     matchesByOperator = op->retrieveMatches(currentMatch.lhs);
-    if(!matchesByOperator)
+    if(matchesByOperator)
     {
-      std::cerr << "could not create right matches from operator!" << std::endl;
+      return true;
     }
-    return true;
   }
 
   return false;
