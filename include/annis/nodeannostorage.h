@@ -118,6 +118,9 @@ namespace annis {
     
     /* statistical information */
     std::map<AnnotationKey, std::vector<std::string>> histogramBounds;
+    
+    std::map<AnnotationKey, std::multiset<std::string>> mostCommonValues;
+    
   private:
     /**
      * Internal function for getting an estimation about the number of matches for a certain range of annotation value

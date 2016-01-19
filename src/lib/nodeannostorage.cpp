@@ -14,6 +14,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/set.hpp>
+#include <random>
 
 using namespace annis;
 
@@ -69,6 +70,10 @@ void NodeAnnoStorage::calculateStatistics()
   const int maxHistogramBuckets = 100;
   const int maxSampledAnnotations = 1000;
   
+  std::default_random_engine generator;
+  std::uniform_int_distribution<std::uint32_t> dist(0);
+    
+  
   histogramBounds.clear();
   
   // collect statistics for each annotation key separatly
@@ -78,16 +83,22 @@ void NodeAnnoStorage::calculateStatistics()
     histogramBounds[annoKey] = std::vector<std::string>();
     auto& valueList = globalValueList[annoKey] = std::vector<std::string>();
     
-    // do "sampling" for this annotation key
+    // get all annotations
     Annotation minAnno = {annoKey.name, annoKey.ns, 0};
     Annotation maxAnno = {annoKey.name, annoKey.ns, std::numeric_limits<std::uint32_t>::max()};
-    
-    auto upper = inverseNodeAnnotations.upper_bound(maxAnno);
-    for(auto it=inverseNodeAnnotations.lower_bound(minAnno);
-      it != upper; it++)
+    auto itUpperBound = inverseNodeAnnotations.upper_bound(maxAnno);
+    std::vector<Annotation> annos;
+    for(auto it=inverseNodeAnnotations.lower_bound(minAnno); it != itUpperBound; it++)
     {
-      valueList.push_back(strings.str(it.key().val));
+      annos.push_back(it.key());
     }
+    std::random_shuffle(annos.begin(), annos.end());
+    valueList.resize(std::min<int>(maxSampledAnnotations, annos.size()));
+    for(int i=0; i < valueList.size(); i++)
+    {
+      valueList[i] = strings.str(annos[i].val);
+    }
+    
   }
   
   // create uniformly distributed histogram bounds for each node annotation key 
