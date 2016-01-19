@@ -52,6 +52,7 @@ void completion(const char *bufRaw, linenoiseCompletions *lc)
   else if(boost::starts_with(buf, "g"))
   {
     linenoiseAddCompletion(lc, "guess");
+    linenoiseAddCompletion(lc, "guess_regex");
   }
   else if(boost::starts_with(buf, "u"))
   {
@@ -213,15 +214,30 @@ int main(int argc, char** argv)
       { 
         if(args.size() == 3)
         {
-          std::cout << "Guessed count: " << db.nodeAnnos.guessCount(args[0], args[1], args[2]) << std::endl;
+          std::cout << "Guessed maximum count: " << db.nodeAnnos.guessMaxCount(args[0], args[1], args[2]) << std::endl;
         }
         else if(args.size() == 2)
         {
-          std::cout << "Guessed count: " << db.nodeAnnos.guessCount(args[0], args[1]) << std::endl;
+          std::cout << "Guessed maximum count: " << db.nodeAnnos.guessMaxCount(args[0], args[1]) << std::endl;
         }
         else
         {
           std::cout << "Must provide at two (name and value) or three (namespace name value) arguments" << std::endl;
+        }
+      }
+      else if(cmd == "guess_regex")
+      { 
+        if(args.size() == 3)
+        {
+          std::cout << "Guessed maximum count: " << db.nodeAnnos.guessMaxCountRegex(args[0], args[1], args[2]) << std::endl;
+        }
+        else if(args.size() == 2)
+        {
+          std::cout << "Guessed maximum count: " << db.nodeAnnos.guessMaxCountRegex(args[0], args[1]) << std::endl;
+        }
+        else
+        {
+          std::cout << "Must provide at two (name and regex) or three (namespace name regex) arguments" << std::endl;
         }
       }
       else if (cmd == "quit" || cmd == "exit")

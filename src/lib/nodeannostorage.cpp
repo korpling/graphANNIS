@@ -9,6 +9,8 @@
 
 #include <annis/stringstorage.h>
 
+#include <re2/re2.h>
+
 #include <cmath>
 #include <fstream>
 #include <boost/archive/binary_iarchive.hpp>
@@ -141,7 +143,7 @@ void NodeAnnoStorage::calculateStatistics()
 }
 
 
-size_t NodeAnnoStorage::guessCount(const std::string& ns, const std::string& name, const std::string& val)
+size_t NodeAnnoStorage::guessMaxCount(const std::string& ns, const std::string& name, const std::string& val)
 {
   auto nameID = strings.findID(name);
   if(nameID.first)
@@ -150,8 +152,8 @@ size_t NodeAnnoStorage::guessCount(const std::string& ns, const std::string& nam
     if(nsID.first)
     {
       static const char minChar = std::numeric_limits<char>::min();
-      return guessCount(boost::optional<std::uint32_t>(nsID.second), nameID.second, 
-        val, val, true);
+      return guessMaxCount(boost::optional<std::uint32_t>(nsID.second), nameID.second, 
+        val, val);
     }
   }
   
@@ -160,21 +162,60 @@ size_t NodeAnnoStorage::guessCount(const std::string& ns, const std::string& nam
   return 0;
 }
 
-size_t NodeAnnoStorage::guessCount(const std::string& name, const std::string& val)
+size_t NodeAnnoStorage::guessMaxCount(const std::string& name, const std::string& val)
 {
   auto nameID = strings.findID(name);
   if(nameID.first)
   {
     static const char minChar = std::numeric_limits<char>::min();
-    return guessCount(boost::optional<std::uint32_t>(), nameID.second, val, val, true);
+    return guessMaxCount(boost::optional<std::uint32_t>(), nameID.second, val, val);
+  }
+  return 0;
+}
+
+size_t NodeAnnoStorage::guessMaxCountRegex(const std::string& ns, const std::string& name, const std::string& val)
+{
+  auto nameID = strings.findID(name);
+  if(nameID.first)
+  {
+    auto nsID = strings.findID(ns);
+    if(nsID.first)
+    {
+      re2::RE2 pattern(val);
+      if(pattern.ok())
+      {
+        std::string minMatch;
+        std::string maxMatch;
+        pattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
+        return guessMaxCount(boost::optional<std::uint32_t>(nsID.second), nameID.second, minMatch, maxMatch);
+      }
+    }
+  }
+  
+  return 0;
+}
+
+size_t NodeAnnoStorage::guessMaxCountRegex(const std::string& name, const std::string& val)
+{
+  auto nameID = strings.findID(name);
+  if(nameID.first)
+  {
+    re2::RE2 pattern(val);
+    if(pattern.ok())
+    {
+      std::string minMatch;
+      std::string maxMatch;
+      pattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
+      return guessMaxCount(boost::optional<std::uint32_t>(), nameID.second, minMatch, maxMatch);
+    }
   }
   return 0;
 }
 
 
-size_t NodeAnnoStorage::guessCount(boost::optional<std::uint32_t> nsID, 
+size_t NodeAnnoStorage::guessMaxCount(boost::optional<std::uint32_t> nsID, 
   std::uint32_t nameID, 
-  const std::string& lowerVal, const std::string& upperVal, bool upperInclusive)
+  const std::string& lowerVal, const std::string& upperVal)
 {
   std::list<AnnotationKey> keys;
   if(nsID)
@@ -214,19 +255,9 @@ size_t NodeAnnoStorage::guessCount(boost::optional<std::uint32_t> nsID,
           const auto& bucketBegin = histo[i];
           const auto& bucketEnd = histo[i+1];
           // check if the range overlaps with the search range
-          if(upperInclusive)
+          if(bucketBegin <= upperVal && lowerVal <= bucketEnd)
           {
-            if(bucketBegin <= upperVal && lowerVal <= bucketEnd)
-            {
-              countMatches++;
-            }
-          }
-          else
-          {
-            if(bucketBegin < upperVal && lowerVal < bucketEnd)
-            {
-              countMatches++;
-            }
+            countMatches++;
           }
         }
       }

@@ -98,8 +98,11 @@ namespace annis {
     }
     
     void calculateStatistics();
-    size_t guessCount(const std::string& ns, const std::string& name, const std::string& val);
-    size_t guessCount(const std::string& name, const std::string& val);
+    size_t guessMaxCount(const std::string& ns, const std::string& name, const std::string& val);
+    size_t guessMaxCount(const std::string& name, const std::string& val);
+    
+    size_t guessMaxCountRegex(const std::string& ns, const std::string& name, const std::string& val);
+    size_t guessMaxCountRegex(const std::string& name, const std::string& val);
 
     bool load(std::string dirPath);
     bool save(std::string dirPath);
@@ -127,12 +130,12 @@ namespace annis {
      * @param nsID The namespace part of the annotation key. Can be empty (in this case all annotations with the correct name are used).
      * @param nameID The name part of the annotation key.
      * @param lowerVal Inclusive starting point for the value range.
-     * @param upperVal Exclusive or inclusive end point for the value range.
+     * @param upperVal Inclusive end point for the value range.
      * @param if true upperVal is inclusive, otherwise it is exclusive
      * @return 
      */
-    size_t guessCount(boost::optional<std::uint32_t> nsID, std::uint32_t nameID, const std::string& lowerVal,
-      const std::string& upperVal, bool upperInclusive = true);
+    size_t guessMaxCount(boost::optional<std::uint32_t> nsID, std::uint32_t nameID, const std::string& lowerVal,
+      const std::string& upperVal);
   };
 }
 
