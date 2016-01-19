@@ -67,12 +67,8 @@ void NodeAnnoStorage::clear()
 void NodeAnnoStorage::calculateStatistics()
 {
   
-  const int maxHistogramBuckets = 100;
-  const int maxSampledAnnotations = 1000;
-  
-  std::default_random_engine generator;
-  std::uniform_int_distribution<std::uint32_t> dist(0);
-    
+  const int maxHistogramBuckets = 250;
+  const int maxSampledAnnotations = 2500;
   
   histogramBounds.clear();
   nodeAnnotationKeyCount.clear();
