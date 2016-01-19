@@ -11,6 +11,7 @@
 #include <stx/btree_multimap>
 #include <set>
 #include <list>
+#include <boost/optional.hpp>
 
 #include <annis/types.h>
 #include <annis/stringstorage.h>
@@ -95,6 +96,10 @@ namespace annis {
       noResult.first = false;
       return noResult;
     }
+    
+    void calculateStatistics();
+    size_t guessCount(const std::string& ns, const std::string& name, const std::string& val);
+    size_t guessCount(const std::string& name, const std::string& val);
 
     bool load(std::string dirPath);
     bool save(std::string dirPath);
@@ -110,7 +115,20 @@ namespace annis {
     std::set<AnnotationKey> nodeAnnoKeys;
 
     StringStorage& strings;
-
+    
+    /* statistical information */
+    std::map<AnnotationKey, std::vector<std::string>> histogramBounds;
+  private:
+    /**
+     * Internal function for getting an estimation about the number of matches for a certain range of annotation value
+     * @param nsID The namespace part of the annotation key. Can be empty (in this case all annotations with the correct name are used).
+     * @param nameID The name part of the annotation key.
+     * @param lowerVal Inclusive starting point for the value range.
+     * @param upperVal Exclusive end point for the value range.
+     * @return 
+     */
+    size_t guessCount(boost::optional<std::uint32_t> nsID, std::uint32_t nameID, const std::string& lowerVal,
+      const std::string& upperVal);
   };
 }
 
