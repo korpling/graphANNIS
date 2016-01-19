@@ -75,6 +75,7 @@ void NodeAnnoStorage::calculateStatistics()
     
   
   histogramBounds.clear();
+  nodeAnnotationKeyCount.clear();
   
   // collect statistics for each annotation key separatly
   std::map<AnnotationKey, std::vector<std::string>> globalValueList;
@@ -91,6 +92,7 @@ void NodeAnnoStorage::calculateStatistics()
     for(auto it=inverseNodeAnnotations.lower_bound(minAnno); it != itUpperBound; it++)
     {
       annos.push_back(it.key());
+      nodeAnnotationKeyCount.insert(annoKey);
     }
     std::random_shuffle(annos.begin(), annos.end());
     valueList.resize(std::min<int>(maxSampledAnnotations, annos.size()));
@@ -193,11 +195,13 @@ size_t NodeAnnoStorage::guessCount(boost::optional<std::uint32_t> nsID,
     }
   }
   
+  size_t universeSize = 0;
   size_t sumHistogramBuckets = 0;
   size_t countMatches = 0;
   // guess for each annotation fully qualified key and return the sum of all guesses
   for(const auto& key : keys)
   {
+    universeSize += nodeAnnotationKeyCount.count(key);
     auto itHisto = histogramBounds.find(key);
     if(itHisto != histogramBounds.end())
     {
@@ -236,7 +240,7 @@ size_t NodeAnnoStorage::guessCount(boost::optional<std::uint32_t> nsID,
   if(sumHistogramBuckets > 0)
   {
     double selectivity = ((double) countMatches) / ((double) sumHistogramBuckets);
-    return std::round(selectivity * ((double) nodeAnnotations.size()));
+    return std::round(selectivity * ((double) universeSize));
   }
   else
   {

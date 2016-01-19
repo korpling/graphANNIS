@@ -118,8 +118,8 @@ namespace annis {
     
     /* statistical information */
     std::map<AnnotationKey, std::vector<std::string>> histogramBounds;
+    std::multiset<AnnotationKey> nodeAnnotationKeyCount;
     
-    std::map<AnnotationKey, std::multiset<std::string>> mostCommonValues;
     
   private:
     /**
