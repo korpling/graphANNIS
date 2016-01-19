@@ -76,25 +76,19 @@ void NodeAnnoStorage::calculateStatistics()
   for(const auto& annoKey : nodeAnnoKeys)
   {
     histogramBounds[annoKey] = std::vector<std::string>();
-    globalValueList[annoKey] = std::vector<std::string>();
-  }
-  
-  // sample about X annotations in total
-  auto n = (int) nodeAnnotations.size();
-  if(n > 0)
-  {
-    const int stepSize = n / maxSampledAnnotations;
-    for(auto it = nodeAnnotations.begin(); 
-      it != nodeAnnotations.end(); std::advance(it, stepSize))
+    auto& valueList = globalValueList[annoKey] = std::vector<std::string>();
+    
+    // do "sampling" for this annotation key
+    Annotation minAnno = {annoKey.name, annoKey.ns, 0};
+    Annotation maxAnno = {annoKey.name, annoKey.ns, std::numeric_limits<std::uint32_t>::max()};
+    
+    auto upper = inverseNodeAnnotations.upper_bound(maxAnno);
+    for(auto it=inverseNodeAnnotations.lower_bound(minAnno);
+      it != upper; it++)
     {
-      const NodeAnnotationKey& nodeKey = it.key();
-      AnnotationKey annoKey = {nodeKey.anno_name, nodeKey.anno_ns};
-      auto& valueList = globalValueList[annoKey];
-      std::string val = strings.str(it.data());
-      valueList.push_back(val);
+      valueList.push_back(strings.str(it.key().val));
     }
   }
-  
   
   // create uniformly distributed histogram bounds for each node annotation key 
   for(auto it=globalValueList.begin(); it != globalValueList.end(); it++)
@@ -105,32 +99,32 @@ void NodeAnnoStorage::calculateStatistics()
     
     int numValues = values.size();
     
-    int numHist = maxHistogramBuckets;
-    if(numValues < numHist)
+    int numHistBounds = maxHistogramBuckets + 1;
+    if(numValues < numHistBounds)
     {
-      numHist = numValues;
+      numHistBounds = numValues;
     }
     
-    if(numHist >= 2)
+    if(numHistBounds >= 2)
     {
       auto& h = histogramBounds[it->first];
-      h.resize(numHist);
+      h.resize(numHistBounds);
 
-      int delta = (numValues-1) / (numHist -1);
-      int deltaFraction = (numValues -1) % (numHist - 1);
+      int delta = (numValues-1) / (numHistBounds -1);
+      int deltaFraction = (numValues -1) % (numHistBounds - 1);
 
       int pos = 0;
       int posFraction = 0;
-      for(int i=0; i < numHist; i++)
+      for(int i=0; i < numHistBounds; i++)
       {
         h[i] = values[pos];
         pos += delta;
         posFraction += deltaFraction;
         
-        if(posFraction >= (numHist - 1))
+        if(posFraction >= (numHistBounds - 1))
         {
           pos++;
-          posFraction -= (numHist - 1);
+          posFraction -= (numHistBounds - 1);
         }
       }
     }
@@ -211,7 +205,7 @@ size_t NodeAnnoStorage::guessCount(boost::optional<std::uint32_t> nsID,
           // check if the range overlaps with the search range
           if(upperInclusive)
           {
-            if(bucketBegin <= upperVal && lowerVal < bucketEnd)
+            if(bucketBegin <= upperVal && lowerVal <= bucketEnd)
             {
               countMatches++;
             }
