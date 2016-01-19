@@ -49,6 +49,10 @@ void completion(const char *bufRaw, linenoiseCompletions *lc)
   {
     linenoiseAddCompletion(lc, "find");
   }
+  else if(boost::starts_with(buf, "g"))
+  {
+    linenoiseAddCompletion(lc, "guess");
+  }
 }
 
 
@@ -193,6 +197,23 @@ int main(int argc, char** argv)
         else
         {
           std::cout << "you need to give the query JSON as argument" << std::endl;
+        }
+      }
+      else if(cmd == "guess")
+      {
+        std::cout << "Updating statistics..." << std::endl;
+        db.nodeAnnos.calculateStatistics();
+        if(args.size() == 3)
+        {
+          std::cout << "Guessed count: " << db.nodeAnnos.guessCount(args[0], args[1], args[2]) << std::endl;
+        }
+        else if(args.size() == 2)
+        {
+          std::cout << "Guessed count: " << db.nodeAnnos.guessCount(args[0], args[1]) << std::endl;
+        }
+        else
+        {
+          std::cout << "Must provide at two (name and value) or three (namespace name value) arguments" << std::endl;
         }
       }
       else if (cmd == "quit" || cmd == "exit")

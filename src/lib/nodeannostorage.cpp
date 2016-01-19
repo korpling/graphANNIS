@@ -147,9 +147,8 @@ size_t NodeAnnoStorage::guessCount(const std::string& ns, const std::string& nam
     if(nsID.first)
     {
       static const char minChar = std::numeric_limits<char>::min();
-      std::string exclusiveUpper = val + minChar;
       return guessCount(boost::optional<std::uint32_t>(nsID.second), nameID.second, 
-        val, exclusiveUpper);
+        val, val, true);
     }
   }
   
@@ -164,8 +163,7 @@ size_t NodeAnnoStorage::guessCount(const std::string& name, const std::string& v
   if(nameID.first)
   {
     static const char minChar = std::numeric_limits<char>::min();
-    std::string exclusiveUpper = val + minChar;
-    return guessCount(boost::optional<std::uint32_t>(), nameID.second, val, exclusiveUpper);
+    return guessCount(boost::optional<std::uint32_t>(), nameID.second, val, val, true);
   }
   return 0;
 }
@@ -173,7 +171,7 @@ size_t NodeAnnoStorage::guessCount(const std::string& name, const std::string& v
 
 size_t NodeAnnoStorage::guessCount(boost::optional<std::uint32_t> nsID, 
   std::uint32_t nameID, 
-  const std::string& lowerVal, const std::string& upperVal)
+  const std::string& lowerVal, const std::string& upperVal, bool upperInclusive)
 {
   std::list<AnnotationKey> keys;
   if(nsID)
@@ -201,19 +199,45 @@ size_t NodeAnnoStorage::guessCount(boost::optional<std::uint32_t> nsID,
       // find the range in which the value is contained
       const auto& histo = itHisto->second;
       
-      sumHistogramBuckets += histo.size();
-      
-      for(auto it=std::lower_bound(histo.begin(), histo.end(), lowerVal); 
-        it != histo.end() && *it < upperVal; it++)
+      // we need to make sure the histogram is not empty -> should have at least two bounds
+      if(histo.size() >= 2)
       {
-        countMatches++;
+        sumHistogramBuckets += (histo.size() - 1);
+        
+        for(size_t i = 0; i < (histo.size()-1); i++)
+        {
+          const auto& bucketBegin = histo[i];
+          const auto& bucketEnd = histo[i+1];
+          // check if the range overlaps with the search range
+          if(upperInclusive)
+          {
+            if(bucketBegin <= upperVal && lowerVal < bucketEnd)
+            {
+              countMatches++;
+            }
+          }
+          else
+          {
+            if(bucketBegin < upperVal && lowerVal < bucketEnd)
+            {
+              countMatches++;
+            }
+          }
+        }
       }
     }
   }
   
-  double selectivity = ((double) countMatches) / ((double) sumHistogramBuckets);
+  if(sumHistogramBuckets > 0)
+  {
+    double selectivity = ((double) countMatches) / ((double) sumHistogramBuckets);
+    return std::round(selectivity * ((double) nodeAnnotations.size()));
+  }
+  else
+  {
+    return 0;
+  }
   
-  return std::round(selectivity * ((double) nodeAnnotations.size()));
 }
 
 
