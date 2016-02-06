@@ -10,19 +10,24 @@
 namespace annis
 {
 
-class AnnotationSearch : public AnnoIt
+  class EstimatedSearch : public AnnoIt
+  {
+    virtual std::int64_t guessMaxCount() const {return -1;}
+  };
+  
+class AnnotationSearch : public EstimatedSearch
 {
 public:
   virtual const std::unordered_set<Annotation>& getValidAnnotations() = 0;
-
+  
   virtual ~AnnotationSearch() {};
 };
 
-class AnnotationKeySearch : public AnnoIt
+class AnnotationKeySearch : public EstimatedSearch
 {
 public:
   virtual const std::set<AnnotationKey>& getValidAnnotationKeys() = 0;
-
+  
   virtual ~AnnotationKeySearch() {};
 };
 

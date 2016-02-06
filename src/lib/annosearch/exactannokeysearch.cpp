@@ -111,6 +111,17 @@ void ExactAnnoKeySearch::initializeValidAnnotationKeys()
   validAnnotationKeysInitialized = true;
 }
 
+std::int64_t ExactAnnoKeySearch::guessMaxCount() const
+{ 
+  std::int64_t sum = 0;
+  for(auto itKey = itKeyBegin; itKey != itKeyEnd; itKey++)
+  {
+    sum += db.nodeAnnos.nodeAnnotationKeyCount.count(*itKey);
+  }
+  return sum;
+}
+
+
 ExactAnnoKeySearch::~ExactAnnoKeySearch()
 {
 

@@ -11,12 +11,18 @@
 #include <stx/btree_multimap>
 #include <set>
 #include <list>
+#include <memory>
 #include <boost/optional.hpp>
 
 #include <annis/types.h>
 #include <annis/stringstorage.h>
 
+#include "iterators.h"
+
 namespace annis {
+  
+  class AnnotationSearch;
+  
   class NodeAnnoStorage
   {
     friend class DB;

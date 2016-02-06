@@ -83,6 +83,7 @@ void Query::optimize()
         auto rhs = nodes[e.idxRight];
         std::int64_t estimateLHS = -1;
         std::int64_t estimateRHS = -1;
+        
 
       }
     }

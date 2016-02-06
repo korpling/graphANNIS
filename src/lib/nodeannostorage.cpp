@@ -18,6 +18,8 @@
 #include <boost/serialization/set.hpp>
 #include <random>
 
+#include "annis/annosearch/annotationsearch.h"
+
 using namespace annis;
 
 NodeAnnoStorage::NodeAnnoStorage(StringStorage& strings)

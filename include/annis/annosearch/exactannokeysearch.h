@@ -43,6 +43,8 @@ public:
     }
     return validAnnotationKeys;
   }
+  
+  virtual std::int64_t guessMaxCount() const override;
 
 private:
   const DB& db;
