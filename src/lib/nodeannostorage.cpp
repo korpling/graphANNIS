@@ -16,6 +16,8 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/set.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/vector.hpp>
 #include <random>
 
 #include "annis/annosearch/annotationsearch.h"
@@ -42,6 +44,22 @@ bool NodeAnnoStorage::load(std::string dirPath)
   boost::archive::binary_iarchive iaNodeAnnoKeys(in);
   iaNodeAnnoKeys >> nodeAnnoKeys;
   in.close();
+  
+  in.open(dirPath + "/histogramBounds.archive");
+  if(in.is_open())
+  {
+    boost::archive::binary_iarchive iaHistogramBounds(in);
+    iaHistogramBounds >> histogramBounds;
+    in.close();
+  }
+  
+  in.open(dirPath + "/nodeAnnotationKeyCount.archive");
+  if(in.is_open())
+  {
+    boost::archive::binary_iarchive iaNodeAnnotationKeyCount(in);
+    iaNodeAnnotationKeyCount >> nodeAnnotationKeyCount;
+    in.close();
+  }
 }
 
 bool NodeAnnoStorage::save(std::string dirPath)
@@ -59,6 +77,16 @@ bool NodeAnnoStorage::save(std::string dirPath)
   out.open(dirPath + "/nodeAnnoKeys.archive");
   boost::archive::binary_oarchive oaNodeAnnoKeys(out);
   oaNodeAnnoKeys << nodeAnnoKeys;
+  out.close();
+  
+  out.open(dirPath + "/histogramBounds.archive");
+  boost::archive::binary_oarchive oaHistogramBounds(out);
+  oaHistogramBounds << histogramBounds;
+  out.close();
+  
+  out.open(dirPath + "/nodeAnnotationKeyCount.archive");
+  boost::archive::binary_oarchive oaNodeAnnotationKeyCount(out);
+  oaNodeAnnotationKeyCount << nodeAnnotationKeyCount;
   out.close();
 }
 
