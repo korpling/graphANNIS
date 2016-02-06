@@ -7,6 +7,8 @@
 #include <list>
 #include <memory>
 
+#include <annis/annosearch/annotationsearch.h>
+
 namespace annis
 {
 
@@ -114,11 +116,11 @@ namespace annis
    * @param db
    * @param delegate
    */
-  class ConstAnnoWrapper : public AnnoIt
+  class ConstAnnoWrapper : public EstimatedSearch
   {
   public:
 
-    ConstAnnoWrapper(Annotation constAnno, std::shared_ptr<AnnoIt> delegate)
+    ConstAnnoWrapper(Annotation constAnno, std::shared_ptr<EstimatedSearch> delegate)
       : constAnno(constAnno), delegate(delegate)
     {
 
@@ -141,17 +143,23 @@ namespace annis
       delegate->reset();
     }
 
-    std::shared_ptr<AnnoIt> getDelegate()
+    std::shared_ptr<EstimatedSearch> getDelegate()
     {
       return delegate;
     }
+    
+    std::int64_t guessMaxCount() const override
+    {
+      return delegate->guessMaxCount();
+    }
+
 
     virtual ~ConstAnnoWrapper()
     {
     }
   private:
     Annotation constAnno;
-    std::shared_ptr<AnnoIt> delegate;
+    std::shared_ptr<EstimatedSearch> delegate;
   };
 
   /**

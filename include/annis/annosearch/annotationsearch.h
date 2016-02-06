@@ -10,11 +10,12 @@
 namespace annis
 {
 
-  class EstimatedSearch : public AnnoIt
-  {
-    virtual std::int64_t guessMaxCount() const {return -1;}
-  };
-  
+class EstimatedSearch : public AnnoIt
+{
+public:
+  virtual std::int64_t guessMaxCount() const {return -1;}
+};
+
 class AnnotationSearch : public EstimatedSearch
 {
 public:

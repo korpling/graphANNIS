@@ -75,18 +75,33 @@ void Query::optimize()
   if(db.nodeAnnos.hasStatistics())
   {
     // for each commutative operator check if is better to switch the operands
-    for(const auto& e : operators)
+    for(auto& e : operators)
     {
       if(e.op && e.op->isCommutative() && e.idxLeft < nodes.size() && e.idxRight < nodes.size())
       {
-        auto lhs = nodes[e.idxLeft];
-        auto rhs = nodes[e.idxRight];
-        std::int64_t estimateLHS = -1;
-        std::int64_t estimateRHS = -1;
+        std::shared_ptr<EstimatedSearch> lhs = 
+          std::dynamic_pointer_cast<EstimatedSearch>(nodes[e.idxLeft]);
+        std::shared_ptr<EstimatedSearch> rhs = 
+          std::dynamic_pointer_cast<EstimatedSearch>(nodes[e.idxRight]);
         
+        if(lhs && rhs)
+        {
+          std::int64_t estimateLHS = lhs->guessMaxCount();
+          std::int64_t estimateRHS = rhs->guessMaxCount();
+          
+          if(estimateLHS >= 0 && estimateRHS >= 0 && estimateLHS > estimateRHS)
+          {
+            // the left one is larger, so switch both operands
+            size_t oldLeft = e.idxLeft;
+            e.idxLeft = e.idxRight;
+            e.idxRight = oldLeft;
+          }
 
+        }
       }
     }
+    
+    // TODO: optimize join order
   }
 }
 
