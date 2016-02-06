@@ -47,6 +47,11 @@ public:
    */
   void addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool useNestedLoop = false);
 
+  /**
+   * Do some query optimizations based on simple heuristics.
+   */
+  void optimize();
+  
   bool hasNext();
   std::vector<Match> next();
   
@@ -72,7 +77,6 @@ private:
 
   void mergeComponents(int c1, int c2);
   
-
 };
 
 } // end namespace annis

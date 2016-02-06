@@ -64,7 +64,16 @@ void NodeAnnoStorage::clear()
 {
   nodeAnnotations.clear();
   inverseNodeAnnotations.clear();
+  
+  histogramBounds.clear();
+  nodeAnnotationKeyCount.clear();
 }
+
+bool NodeAnnoStorage::hasStatistics() const
+{
+  return !histogramBounds.empty() && !nodeAnnotationKeyCount.empty();
+}
+
 
 void NodeAnnoStorage::calculateStatistics()
 {
@@ -143,7 +152,7 @@ void NodeAnnoStorage::calculateStatistics()
 }
 
 
-size_t NodeAnnoStorage::guessMaxCount(const std::string& ns, const std::string& name, const std::string& val)
+std::int64_t NodeAnnoStorage::guessMaxCount(const std::string& ns, const std::string& name, const std::string& val) const
 {
   auto nameID = strings.findID(name);
   if(nameID.first)
@@ -161,7 +170,7 @@ size_t NodeAnnoStorage::guessMaxCount(const std::string& ns, const std::string& 
   return 0;
 }
 
-size_t NodeAnnoStorage::guessMaxCount(const std::string& name, const std::string& val)
+std::int64_t NodeAnnoStorage::guessMaxCount(const std::string& name, const std::string& val) const
 {
   auto nameID = strings.findID(name);
   if(nameID.first)
@@ -171,7 +180,7 @@ size_t NodeAnnoStorage::guessMaxCount(const std::string& name, const std::string
   return 0;
 }
 
-size_t NodeAnnoStorage::guessMaxCountRegex(const std::string& ns, const std::string& name, const std::string& val)
+std::int64_t NodeAnnoStorage::guessMaxCountRegex(const std::string& ns, const std::string& name, const std::string& val) const
 {
   auto nameID = strings.findID(name);
   if(nameID.first)
@@ -193,7 +202,7 @@ size_t NodeAnnoStorage::guessMaxCountRegex(const std::string& ns, const std::str
   return 0;
 }
 
-size_t NodeAnnoStorage::guessMaxCountRegex(const std::string& name, const std::string& val)
+std::int64_t NodeAnnoStorage::guessMaxCountRegex(const std::string& name, const std::string& val) const
 {
   auto nameID = strings.findID(name);
   if(nameID.first)
@@ -211,9 +220,9 @@ size_t NodeAnnoStorage::guessMaxCountRegex(const std::string& name, const std::s
 }
 
 
-size_t NodeAnnoStorage::guessMaxCount(boost::optional<std::uint32_t> nsID, 
+std::int64_t NodeAnnoStorage::guessMaxCount(boost::optional<std::uint32_t> nsID, 
   std::uint32_t nameID, 
-  const std::string& lowerVal, const std::string& upperVal)
+  const std::string& lowerVal, const std::string& upperVal) const
 {
   std::list<AnnotationKey> keys;
   if(nsID)
@@ -230,9 +239,9 @@ size_t NodeAnnoStorage::guessMaxCount(boost::optional<std::uint32_t> nsID,
     }
   }
   
-  size_t universeSize = 0;
-  size_t sumHistogramBuckets = 0;
-  size_t countMatches = 0;
+  std::int64_t universeSize = 0;
+  std::int64_t sumHistogramBuckets = 0;
+  std::int64_t countMatches = 0;
   // guess for each annotation fully qualified key and return the sum of all guesses
   for(const auto& key : keys)
   {

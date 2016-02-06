@@ -98,11 +98,13 @@ namespace annis {
     }
     
     void calculateStatistics();
-    size_t guessMaxCount(const std::string& ns, const std::string& name, const std::string& val);
-    size_t guessMaxCount(const std::string& name, const std::string& val);
+    bool hasStatistics() const;
     
-    size_t guessMaxCountRegex(const std::string& ns, const std::string& name, const std::string& val);
-    size_t guessMaxCountRegex(const std::string& name, const std::string& val);
+    std::int64_t guessMaxCount(const std::string& ns, const std::string& name, const std::string& val) const;
+    std::int64_t guessMaxCount(const std::string& name, const std::string& val) const;
+    
+    std::int64_t guessMaxCountRegex(const std::string& ns, const std::string& name, const std::string& val) const;
+    std::int64_t guessMaxCountRegex(const std::string& name, const std::string& val) const;
 
     bool load(std::string dirPath);
     bool save(std::string dirPath);
@@ -132,10 +134,10 @@ namespace annis {
      * @param lowerVal Inclusive starting point for the value range.
      * @param upperVal Inclusive end point for the value range.
      * @param if true upperVal is inclusive, otherwise it is exclusive
-     * @return 
+     * @return The estimation of -1 if invalid.
      */
-    size_t guessMaxCount(boost::optional<std::uint32_t> nsID, std::uint32_t nameID, const std::string& lowerVal,
-      const std::string& upperVal);
+    std::int64_t guessMaxCount(boost::optional<std::uint32_t> nsID, std::uint32_t nameID, const std::string& lowerVal,
+      const std::string& upperVal) const;
   };
 }
 

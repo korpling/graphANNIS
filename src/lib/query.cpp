@@ -66,9 +66,29 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
   entry.useNestedLoop = useNestedLoop;
   entry.idxLeft = idxLeft;
   entry.idxRight = idxRight;
-
+  
   operators.push_back(entry);
 }
+
+void Query::optimize()
+{
+  if(db.nodeAnnos.hasStatistics())
+  {
+    // for each commutative operator check if is better to switch the operands
+    for(const auto& e : operators)
+    {
+      if(e.op && e.op->isCommutative() && e.idxLeft < nodes.size() && e.idxRight < nodes.size())
+      {
+        auto lhs = nodes[e.idxLeft];
+        auto rhs = nodes[e.idxRight];
+        std::int64_t estimateLHS = -1;
+        std::int64_t estimateRHS = -1;
+
+      }
+    }
+  }
+}
+
 
 void Query::internalInit()
 {
