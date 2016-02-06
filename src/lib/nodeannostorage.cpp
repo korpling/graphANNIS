@@ -151,7 +151,6 @@ size_t NodeAnnoStorage::guessMaxCount(const std::string& ns, const std::string& 
     auto nsID = strings.findID(ns);
     if(nsID.first)
     {
-      static const char minChar = std::numeric_limits<char>::min();
       return guessMaxCount(boost::optional<std::uint32_t>(nsID.second), nameID.second, 
         val, val);
     }
@@ -167,7 +166,6 @@ size_t NodeAnnoStorage::guessMaxCount(const std::string& name, const std::string
   auto nameID = strings.findID(name);
   if(nameID.first)
   {
-    static const char minChar = std::numeric_limits<char>::min();
     return guessMaxCount(boost::optional<std::uint32_t>(), nameID.second, val, val);
   }
   return 0;
