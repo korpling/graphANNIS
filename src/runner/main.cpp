@@ -152,6 +152,7 @@ int main(int argc, char** argv)
           std::stringstream ss;
           ss << json;
           std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, ss); 
+          q->optimize();
           int counter =0;
           auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
           while(q->hasNext())
@@ -176,6 +177,7 @@ int main(int argc, char** argv)
           std::stringstream ss;
           ss << json;
           std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, ss); 
+          q->optimize();
           int counter =0;
           while(q->hasNext())
           {
