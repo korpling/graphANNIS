@@ -101,6 +101,19 @@ void RegexAnnoSearch::initValidAnnotations()
   validAnnotationsInitialized = true;
 }
 
+std::int64_t RegexAnnoSearch::guessMaxCount() const
+{
+  std::int64_t sum = 0;
+  
+  for(const auto& anno : annoTemplates)
+  {
+    sum += db.nodeAnnos.guessMaxCountRegex(db.strings.str(anno.ns), db.strings.str(anno.name), valRegex);
+  }
+  
+  return sum;
+}
+
+
 void RegexAnnoSearch::internalNextAnno()
 {
   currentMatchValid = false;

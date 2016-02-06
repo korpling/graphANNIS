@@ -41,6 +41,8 @@ public:
 
   virtual Match next();
   virtual void reset();
+  
+  std::int64_t guessMaxCount() const override;
 
   virtual ~RegexAnnoSearch();
 private:

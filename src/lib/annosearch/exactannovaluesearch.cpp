@@ -85,12 +85,30 @@ void ExactAnnoValueSearch::initializeValidAnnotations()
   {
     for(ItType annoIt = range.first; annoIt != range.second; annoIt++)
     {
-      validAnnotations.insert(annoIt->first);
+      validAnnotations.insert(annoIt.key());
     }
   }
 
   validAnnotationInitialized = true;
 }
+
+std::int64_t ExactAnnoValueSearch::guessMaxCount() const
+{
+  std::int64_t sum = 0;
+  
+  for(auto range : searchRanges)
+  {
+    for(ItType annoIt = range.first; annoIt != range.second; annoIt++)
+    {
+      const Annotation& anno = annoIt.key();
+      const std::string val = db.strings.str(anno.val);
+      sum += db.nodeAnnos.guessMaxCount(anno.ns, anno.name, val, val);
+    }
+  }
+  
+  return sum;
+}
+
 
 
 ExactAnnoValueSearch::~ExactAnnoValueSearch()

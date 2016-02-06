@@ -39,6 +39,9 @@ public:
     }
     return validAnnotations;
   }
+  
+  std::int64_t guessMaxCount() const override;
+
 
 private:
   const DB& db;
