@@ -21,8 +21,10 @@ public:
   virtual bool filter(const Match& lhs, const Match& rhs);
 
 
-  virtual bool isReflexive() {return false;}
+  virtual bool isReflexive() override {return false;}
+  virtual bool isCommutative() override {return true;}
 
+  
   virtual ~Overlap();
 private:
   const DB& db;

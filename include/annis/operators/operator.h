@@ -38,6 +38,12 @@ public:
   virtual bool isReflexive() {return true;}
   
   /**
+   * Return if this operator is commutative, thus both arguments can be exchanged
+   * without changing the result. Per default this is "false".
+   */
+  virtual bool isCommutative() {return false;}
+  
+  /**
    * If an operator after construction already knows it can't ever produce
    * any results (e.g. because an edge component does not exist) it can
    * return "false" here to indicate this to the join.
