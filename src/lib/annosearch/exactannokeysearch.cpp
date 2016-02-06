@@ -116,7 +116,11 @@ std::int64_t ExactAnnoKeySearch::guessMaxCount() const
   std::int64_t sum = 0;
   for(auto itKey = itKeyBegin; itKey != itKeyEnd; itKey++)
   {
-    sum += db.nodeAnnos.nodeAnnotationKeyCount.count(*itKey);
+    auto itCount = db.nodeAnnos.nodeAnnotationKeyCount.find(*itKey);
+    if(itCount != db.nodeAnnos.nodeAnnotationKeyCount.end())
+    {
+      sum += itCount->second;
+    }
   }
   return sum;
 }

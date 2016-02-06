@@ -129,7 +129,16 @@ void NodeAnnoStorage::calculateStatistics()
     for(auto it=inverseNodeAnnotations.lower_bound(minAnno); it != itUpperBound; it++)
     {
       annos.push_back(it.key());
-      nodeAnnotationKeyCount.insert(annoKey);
+      auto itKeyCount = nodeAnnotationKeyCount.find(annoKey);
+      if(itKeyCount == nodeAnnotationKeyCount.end())
+      {
+        nodeAnnotationKeyCount[annoKey] = 1;
+      }
+      else
+      {
+        auto newVal = itKeyCount->second+1;
+        nodeAnnotationKeyCount[annoKey] = newVal;
+      }
     }
     std::random_shuffle(annos.begin(), annos.end());
     valueList.resize(std::min<int>(maxSampledAnnotations, annos.size()));
@@ -275,7 +284,11 @@ std::int64_t NodeAnnoStorage::guessMaxCount(boost::optional<std::uint32_t> nsID,
   // guess for each annotation fully qualified key and return the sum of all guesses
   for(const auto& key : keys)
   {
-    universeSize += nodeAnnotationKeyCount.count(key);
+    auto itKeyCount = nodeAnnotationKeyCount.find(key);
+    if(itKeyCount != nodeAnnotationKeyCount.end())
+    {
+      universeSize += itKeyCount->second;
+    }
     auto itHisto = histogramBounds.find(key);
     if(itHisto != histogramBounds.end())
     {
