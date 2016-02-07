@@ -98,9 +98,9 @@ std::int64_t ExactAnnoValueSearch::guessMaxCount() const
   
   for(auto range : searchRanges)
   {
-    for(ItType annoIt = range.first; annoIt != range.second; annoIt++)
+    if(range.first != range.second)
     {
-      const Annotation& anno = annoIt.key();
+      const Annotation& anno = range.first.key();
       const std::string val = db.strings.str(anno.val);
       sum += db.nodeAnnos.guessMaxCount(anno.ns, anno.name, val, val);
     }
