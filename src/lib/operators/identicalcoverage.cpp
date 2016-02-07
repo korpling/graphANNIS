@@ -71,7 +71,7 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
   } // end shortcuts
   
   // use the ListWrapper as default case for matches with more than one result
-  std::unique_ptr<ListWrapper> w = std::make_unique<ListWrapper> (leftAligned.size()+1);
+  std::unique_ptr<ListWrapper> w = std::make_unique<ListWrapper> ();
   
   // add the connected token itself as a match the span covers only one token
   if(includeToken)

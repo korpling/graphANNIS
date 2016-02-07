@@ -20,16 +20,16 @@ namespace annis
   {
   public:
 
-    ListWrapper(size_t initialCapacity = 0);
+    ListWrapper();
 
     void addMatch(const Match& m)
     {
-      orig.push_back(m);
+      orig.push(m);
     }
 
     void addMatch(const nodeid_t& m)
     {
-      orig.push_back({m,
+      orig.push({m,
         {0, 0, 0}});
     }
 
@@ -41,7 +41,7 @@ namespace annis
     virtual Match next()
     {
       Match result = orig.front();
-      orig.pop_back();
+      orig.pop();
       return result;
     }
 
@@ -49,7 +49,7 @@ namespace annis
     {
       while (!orig.empty())
       {
-        orig.pop_back();
+        orig.pop();
       }
     }
 
@@ -63,7 +63,7 @@ namespace annis
     }
 
   private:
-    std::vector<Match> orig;
+    std::queue<Match, std::list<Match> > orig;
   };
 
   class JoinWrapIterator : public ListWrapper
