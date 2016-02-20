@@ -68,8 +68,8 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
     // add aligned nodes
     for(const auto& leftAlignedNode : gsLeftToken->getOutgoingEdges(includedTok))
     {
-      nodeid_t includedEndCandiate = gsRightToken->getOutgoingEdges(leftAlignedNode)[0];
-      if(gsOrder->isConnected(Init::initEdge(includedEndCandiate, rightToken), 0, spanLength))
+      const nodeid_t& includedEndCandiate = gsRightToken->getOutgoingEdges(leftAlignedNode)[0];
+      if(gsOrder->isConnected({includedEndCandiate, rightToken}, 0, spanLength))
       {
         w->addMatch(Init::initMatch(anyNodeAnno, leftAlignedNode));
       }
