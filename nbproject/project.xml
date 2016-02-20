@@ -28,7 +28,7 @@
             <formatting>
                 <project-formatting-style>true</project-formatting-style>
                 <c-style>ANSI|ANSI</c-style>
-                <cpp-style>Default_1|TK</cpp-style>
+                <cpp-style>Default_3|TK</cpp-style>
                 <header-style>Default_2|TK</header-style>
             </formatting>
         </data>

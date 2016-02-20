@@ -128,9 +128,8 @@ std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) cons
 
   vector<nodeid_t> result;
 
-  EdgeIt upperIt = edges.upper_bound({node, numeric_limits<uint32_t>::max()});
-
-  for(EdgeIt it = edges.lower_bound({node, numeric_limits<uint32_t>::min()}); it != upperIt; it++)
+  for(EdgeIt it = edges.lower_bound({node, 0}); 
+    it != edges.end() && it.key().source == node; it++)
   {
     result.push_back(it.key().target);
   }
