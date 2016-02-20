@@ -52,7 +52,7 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
   {
     leftToken = gsLeftToken->getOutgoingEdges(lhs.node)[0];
     rightToken = gsRightToken->getOutgoingEdges(lhs.node)[0];
-    spanLength = gsOrder->distance(Init::initEdge(leftToken, rightToken));
+    spanLength = gsOrder->distance({leftToken, rightToken});
   }
 
   // find each token which is between the left and right border
@@ -63,15 +63,15 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
   {
     const nodeid_t& includedTok = includedStart.second;
     // add the token itself
-    w->addMatch(Init::initMatch(anyNodeAnno, includedTok));
+    w->addMatch({includedTok, anyNodeAnno});
 
     // add aligned nodes
     for(const auto& leftAlignedNode : gsLeftToken->getOutgoingEdges(includedTok))
     {
-      const nodeid_t& includedEndCandiate = gsRightToken->getOutgoingEdges(leftAlignedNode)[0];
+      nodeid_t includedEndCandiate = gsRightToken->getOutgoingEdges(leftAlignedNode)[0];
       if(gsOrder->isConnected({includedEndCandiate, rightToken}, 0, spanLength))
       {
-        w->addMatch(Init::initMatch(anyNodeAnno, leftAlignedNode));
+        w->addMatch({leftAlignedNode, anyNodeAnno});
       }
     }
   }
