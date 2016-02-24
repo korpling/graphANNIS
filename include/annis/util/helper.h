@@ -33,8 +33,20 @@ public:
   {
 
   }
+  
+  std::pair<nodeid_t, nodeid_t> leftRightTokenForNode(const nodeid_t& n)
+  {
+    if(isToken(n))
+    {
+      return {n, n};
+    }
+    else
+    {
+      return {leftEdges->getOutgoingEdges(n)[0],  rightEdges->getOutgoingEdges(n)[0]};
+    }
+  }
 
-  nodeid_t leftTokenForNode(nodeid_t n)
+  nodeid_t leftTokenForNode(const nodeid_t& n)
   {
     if(isToken(n))
     {
@@ -46,7 +58,7 @@ public:
     }
   }
 
-  nodeid_t rightTokenForNode(nodeid_t n)
+  nodeid_t rightTokenForNode(const nodeid_t& n)
   {
     if(isToken(n))
     {
@@ -58,7 +70,7 @@ public:
     }
   }
 
-  bool inline isToken(nodeid_t n)
+  bool inline isToken(const nodeid_t& n)
   {
     return db.nodeAnnos.getNodeAnnotation(n, db.getNamespaceStringID(), db.getTokStringID()).first;
   }
