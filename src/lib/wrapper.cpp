@@ -19,7 +19,7 @@ void JoinWrapIterator::reset()
   ListWrapper::reset();
   if(!otherInnerWrapper.expired())
   {
-    otherInnerWrapper.lock()->reset();
+    otherInnerWrapper.lock()->ListWrapper::reset();
   }
 }
 

@@ -72,7 +72,7 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
 
 void Query::optimize()
 {
-  if(db.nodeAnnos.hasStatistics())
+  if(!initialized && db.nodeAnnos.hasStatistics())
   {
     // for each commutative operator check if is better to switch the operands
     for(auto& e : operators)
@@ -179,7 +179,7 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
     }
     else
     {
-      std::shared_ptr<AnnoIt> rightIt = nodes[e.idxRight];
+      std::shared_ptr<AnnoIt> rightIt = source[e.idxRight];
       
       std::shared_ptr<ConstAnnoWrapper> constWrapper =
           std::dynamic_pointer_cast<ConstAnnoWrapper>(rightIt);
