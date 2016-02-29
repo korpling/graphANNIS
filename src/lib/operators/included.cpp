@@ -17,13 +17,15 @@ Inclusion::Inclusion(const DB &db)
 
 bool Inclusion::filter(const Match &lhs, const Match &rhs)
 {
-  auto lhsTokenRange = tokHelper.leftRightTokenForNode(lhs.node);
-  int spanLength = spanLength = gsOrder->distance({lhsTokenRange.first, lhsTokenRange.second});
+  nodeid_t lhsLeftToken = tokHelper.leftTokenForNode(lhs.node);
+  nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
+  int spanLength = spanLength = gsOrder->distance(Init::initEdge(lhsLeftToken, lhsRightToken));
 
-  auto rhsTokenRange = tokHelper.leftRightTokenForNode(rhs.node);
+  nodeid_t rhsLeftToken = tokHelper.leftTokenForNode(rhs.node);
+  nodeid_t rhsRightToken = tokHelper.rightTokenForNode(rhs.node);
 
-  if(gsOrder->isConnected({lhsTokenRange.first, rhsTokenRange.first}, 0, spanLength)
-     && gsOrder->isConnected({rhsTokenRange.second, lhsTokenRange.second}, 0, spanLength)
+  if(gsOrder->isConnected(Init::initEdge(lhsLeftToken, rhsLeftToken), 0, spanLength)
+     && gsOrder->isConnected(Init::initEdge(rhsRightToken, lhsRightToken), 0, spanLength)
     )
   {
     return true;
