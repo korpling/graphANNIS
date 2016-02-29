@@ -15,7 +15,7 @@ namespace annis
   {
   public:
     NestedLoopJoin(std::shared_ptr<Operator> op,
-      std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
+      std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs, bool leftIsOuter=true);
     virtual ~NestedLoopJoin();
 
     virtual BinaryMatch next();
@@ -23,12 +23,13 @@ namespace annis
   private:
     std::shared_ptr<Operator> op;
     bool initialized;
+    bool leftIsOuter;
 
-    std::shared_ptr<AnnoIt> left;
-    std::shared_ptr<AnnoIt> right;
+    std::shared_ptr<AnnoIt> outer;
+    std::shared_ptr<AnnoIt> inner;
 
-    Match matchLeft;
-    Match matchRight;
+    Match matchOuter;
+    Match matchInner;
 
   };
 

@@ -8,9 +8,10 @@ using namespace annis;
 
 NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op,
                                std::shared_ptr<AnnoIt> lhs,
-                               std::shared_ptr<AnnoIt> rhs)
-  : op(op), initialized(false),
-    left(lhs), right(rhs)
+                               std::shared_ptr<AnnoIt> rhs,
+                               bool leftIsOuter)
+  : op(op), leftIsOuter(leftIsOuter), initialized(false),
+    outer(leftIsOuter ? lhs : rhs), inner(leftIsOuter ? rhs : lhs)
 {
 }
 
@@ -19,7 +20,7 @@ BinaryMatch NestedLoopJoin::next()
   BinaryMatch result;
   result.found = false;
 
-  if(!op || !left || !right)
+  if(!op || !outer || !inner)
   {
     return result;
   }
@@ -29,9 +30,9 @@ BinaryMatch NestedLoopJoin::next()
   if(!initialized)
   {
     proceed = false;
-    if(left->hasNext())
+    if(outer->hasNext())
     {
-      matchLeft = left->next();
+      matchOuter = outer->next();
       proceed = true;
       initialized = true;
     }
@@ -40,32 +41,50 @@ BinaryMatch NestedLoopJoin::next()
   while(proceed)
   {
 
-    while(right->hasNext())
+    while(inner->hasNext())
     {
-      matchRight = right->next();
+      matchInner = inner->next();
 
       bool include = true;
       // do not include the same match if not reflexive
       if(!op->isReflexive()
-         && matchLeft.node == matchRight.node
-         && checkAnnotationKeyEqual(matchLeft.anno, matchRight.anno)) {
+         && matchOuter.node == matchInner.node
+         && checkAnnotationKeyEqual(matchOuter.anno, matchInner.anno)) {
         include = false;
       }
-
-      if(include && op->filter(matchLeft, matchRight))
+      
+      if(include)
       {
-        result.found = true;
-        result.lhs = matchLeft;
-        result.rhs = matchRight;
+        if(leftIsOuter)
+        {
+          if(op->filter(matchOuter, matchInner))
+          {
+            result.found = true;
+            result.lhs = matchOuter;
+            result.rhs = matchInner;
 
-        return result;
-      }
+            return result;
+          }
+        }
+        else
+        {
+          if(op->filter(matchInner, matchOuter))
+          {
+            result.found = true;
+            result.lhs = matchInner;
+            result.rhs = matchOuter;
+
+            return result;
+          }
+        }
+      } // end if include
+
     } // end for each right
 
-    if(left->hasNext())
+    if(outer->hasNext())
     {
-      matchLeft = left->next();
-      right->reset();
+      matchOuter = outer->next();
+      inner->reset();
     }
     else
     {
@@ -77,8 +96,8 @@ BinaryMatch NestedLoopJoin::next()
 
 void NestedLoopJoin::reset()
 {
-  left->reset();
-  right->reset();
+  outer->reset();
+  inner->reset();
   initialized = false;
 }
 
