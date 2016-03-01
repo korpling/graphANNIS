@@ -16,17 +16,25 @@ ListWrapper::~ListWrapper()
 
 void JoinWrapIterator::reset()
 {
+  // reset all internal state
   ListWrapper::reset();
   if(!otherInnerWrapper.expired())
   {
     otherInnerWrapper.lock()->ListWrapper::reset();
+  }
+  // also reset the actual join operator
+  if(wrappedJoin)
+  {
+    wrappedJoin->reset();
   }
 }
 
 void JoinWrapIterator::checkIfNextCallNeeded()
 {
   // if the current list of entries is empty call the underlying join
-  if(internalEmpty() && wrappedJoin)
+  bool isEmpty = internalEmpty();
+  bool joinIsValid = (bool) wrappedJoin;
+  if(isEmpty && joinIsValid)
   {
     BinaryMatch nextMatch = wrappedJoin->next();
     if(nextMatch.found)
