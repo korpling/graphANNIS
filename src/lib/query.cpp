@@ -14,7 +14,7 @@
 using namespace annis;
 
 Query::Query(const DB &db)
-  : db(db), initialized(false)
+  : db(db)
 {
 }
 
@@ -24,7 +24,7 @@ Query::~Query() {
 
 size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNodeAnno)
 {
-  initialized = false;
+  bestPlan.reset();
 
   size_t idx = nodes.size();
   
@@ -42,7 +42,7 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNo
 
 size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAnyNodeAnno)
 {
-  initialized = false;
+  bestPlan.reset();
 
   size_t idx = nodes.size();
   if(wrapAnyNodeAnno)
@@ -59,7 +59,7 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAn
 
 void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool useNestedLoop)
 {
-  initialized = false;
+  bestPlan.reset();
 
   OperatorEntry entry;
   entry.op = op;
@@ -72,7 +72,7 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
 
 void Query::optimize()
 {
-  if(!initialized && db.nodeAnnos.hasStatistics())
+  if(!bestPlan && db.nodeAnnos.hasStatistics())
   {
     // for each commutative operator check if is better to switch the operands
     for(auto& e : operators)
@@ -105,13 +105,11 @@ void Query::optimize()
   }
 }
 
-
-void Query::internalInit()
+std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, const std::list<OperatorEntry>& operators, const DB& db) 
 {
-  if(initialized) {
-    return;
-  }
-
+  std::vector<std::shared_ptr<AnnoIt>> source;
+  std::map<int, int> querynode2component;
+  
   // 1. add all nodes
   int i=0;
   for(auto& n : nodes)
@@ -120,7 +118,7 @@ void Query::internalInit()
     querynode2component[i]=i;
     i++;
   }
-
+  
   // 2. add the operators which produce the results
   for(auto& e : operators)
   {
@@ -131,17 +129,17 @@ void Query::internalInit()
 
       if(leftComponent == rightComponent)
       {
-        addJoin(e, true);
+        addJoin(source, db, e, true);
       }
       else
       {
-        addJoin(e, false);
-        mergeComponents(leftComponent, rightComponent);
+        addJoin(source, db, e, false);
+        mergeComponents(querynode2component, leftComponent, rightComponent);
       }
     }
   }
-
-  // 3. check if every node is connected
+  
+   // 3. check if every node is connected
   int firstComponent;
   bool firstComponentSet = false;
   for(const auto& e : querynode2component)
@@ -151,7 +149,7 @@ void Query::internalInit()
       if(e.second != firstComponent)
       {
         std::cerr << "Node " << e.first << " is not connected" << std::endl;
-        return;
+        return std::shared_ptr<Plan>();
       }
     }
     else
@@ -160,11 +158,21 @@ void Query::internalInit()
       firstComponentSet = true;
     }
   }
-
-  initialized = true;
+  return std::make_shared<Plan>(source);
 }
 
-void Query::addJoin(OperatorEntry& e, bool filterOnly)
+
+
+void Query::internalInit()
+{
+  if(bestPlan) {
+    return;
+  }
+
+  bestPlan = createPlan(nodes, operators, db);
+}
+
+void Query::addJoin(std::vector<std::shared_ptr<AnnoIt>>& source, const DB& db, const OperatorEntry& e, bool filterOnly)
 {
   std::shared_ptr<BinaryIt> j;
   if(filterOnly)
@@ -223,7 +231,7 @@ void Query::addJoin(OperatorEntry& e, bool filterOnly)
   source[e.idxRight] = itRight;
 }
 
-void Query::mergeComponents(int c1, int c2)
+void Query::mergeComponents(std::map<int, int>& querynode2component, int c1, int c2)
 {
   if(c1 == c2)
   {
@@ -248,10 +256,11 @@ void Query::mergeComponents(int c1, int c2)
 
 bool Query::hasNext()
 {
-  if(!initialized)
+  if(!bestPlan)
   {
     internalInit();
   }
+  const auto& source = bestPlan->getSource();
 
   for(const auto& s : source)
   {
@@ -265,10 +274,12 @@ bool Query::hasNext()
 
 std::vector<Match> Query::next()
 {
-  if(!initialized)
+  if(!bestPlan)
   {
     internalInit();
   }
+  
+  const auto& source = bestPlan->getSource();
 
   std::vector<Match> result(source.size());
 

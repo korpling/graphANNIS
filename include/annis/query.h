@@ -7,6 +7,7 @@
 #include <map>
 
 #include <annis/types.h>
+#include <annis/util/plan.h>
 
 namespace annis
 {
@@ -61,21 +62,20 @@ private:
 
   const DB& db;
 
-  std::vector<std::shared_ptr<AnnoIt>> source;
+  std::shared_ptr<Plan> bestPlan;
   std::vector<std::shared_ptr<AnnoIt>> nodes;
   std::list<OperatorEntry> operators;
 
-  bool initialized;
-
-  std::map<int, int> querynode2component;
   std::set<AnnotationKey> emptyAnnoKeySet;
 
 private:
   void internalInit();
+  
+  static std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::list<OperatorEntry>& operators, const DB& db);
 
-  void addJoin(OperatorEntry &e, bool filterOnly = false);
+  static void addJoin(std::vector<std::shared_ptr<AnnoIt>>& source, const DB& db, const OperatorEntry &e, bool filterOnly = false);
 
-  void mergeComponents(int c1, int c2);
+  static void mergeComponents(std::map<int, int>& querynode2component, int c1, int c2);
   
 };
 
