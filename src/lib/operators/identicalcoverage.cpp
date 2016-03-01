@@ -25,8 +25,9 @@ IdenticalCoverage::IdenticalCoverage(const DB &db)
 
 bool IdenticalCoverage::filter(const Match& lhs, const Match& rhs)
 {
-  return tokHelper.leftTokenForNode(lhs.node) == tokHelper.leftTokenForNode(rhs.node)
-    && tokHelper.rightTokenForNode(lhs.node) == tokHelper.rightTokenForNode(rhs.node);
+  auto lhsTokRange = tokHelper.leftRightTokenForNode(lhs.node);
+  auto rhsTokRange = tokHelper.leftRightTokenForNode(rhs.node);
+  return lhsTokRange == rhsTokRange;
 }
 
 std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
