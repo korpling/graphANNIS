@@ -167,26 +167,16 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
     }
   }
   
-   // 3. check if there is only one execution node left (all nodes are connected)
-  int firstComponent;
-  bool firstComponentSet = false;
-  for(const auto& e : node2exec)
+   // 3. check if there is only one component left (all nodes are connected)
+  if(component2exec.size() == 1)
   {
-    if(firstComponentSet)
-    {
-      if(e.second->componentNr != firstComponent)
-      {
-        std::cerr << "Node " << e.first << " is not connected" << std::endl;
-        return std::shared_ptr<Plan>();
-      }
-    }
-    else
-    {
-      firstComponent = e.second->componentNr;
-      firstComponentSet = true;
-    }
+    return std::make_shared<Plan>(component2exec.begin()->second);
   }
-  return std::make_shared<Plan>(component2exec[firstComponent]);
+  else
+  {
+     std::cerr << "Nodes " << " are not completly connected, failing" << std::endl;
+        return std::shared_ptr<Plan>();
+  }
 }
 
 
