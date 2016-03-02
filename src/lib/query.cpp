@@ -175,7 +175,7 @@ void Query::internalInit()
 
 void Query::addJoin(std::vector<std::shared_ptr<AnnoIt>>& source, const DB& db, const OperatorEntry& e, bool filterOnly)
 {
-  std::shared_ptr<BinaryIt> j;
+  std::shared_ptr<Iterator> j;
   if(filterOnly)
   {
     j = std::make_shared<Filter>(e.op, source[e.idxLeft], source[e.idxRight]);

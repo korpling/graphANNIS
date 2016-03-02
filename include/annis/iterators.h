@@ -5,15 +5,6 @@
 namespace annis
 {
 
-class AnnoIt
-{
-public:
-  virtual bool next(Match& m) = 0;
-  virtual void reset() = 0;
-
-  virtual ~AnnoIt() {}
-};
-
 class EdgeIterator
 {
 public:
@@ -23,13 +14,32 @@ public:
   virtual ~EdgeIterator() {}
 };
 
-class BinaryIt
+class Iterator
 {
 public:
   virtual bool next(Match& lhsMatch, Match& rhsMatch) = 0;
   virtual void reset() = 0;
 
-  virtual ~BinaryIt() {}
+  virtual ~Iterator() {}
+};
+
+class AnnoIt : public Iterator
+{
+public:
+  virtual bool next(Match& m) = 0;
+  virtual void reset() = 0;
+  
+  virtual bool next(Match& lhsMatch, Match& rhsMatch)
+  {
+    bool found = next(lhsMatch);
+    if(found)
+    {
+      rhsMatch = lhsMatch;
+    }
+    return found;
+  }
+
+  virtual ~AnnoIt() {}
 };
 
 } // end namespace annis

@@ -72,7 +72,7 @@ namespace annis
   {
   public:
 
-    JoinWrapIterator(std::shared_ptr<BinaryIt> wrappedJoin,
+    JoinWrapIterator(std::shared_ptr<Iterator> wrappedJoin,
       bool wrapLeftOperand = false)
       : wrappedJoin(wrappedJoin),
       wrapLeftOperand(wrapLeftOperand)
@@ -98,7 +98,7 @@ namespace annis
     }
 
   private:
-    std::shared_ptr<BinaryIt> wrappedJoin;
+    std::shared_ptr<Iterator> wrappedJoin;
     std::weak_ptr<JoinWrapIterator> otherInnerWrapper;
     bool wrapLeftOperand;
 

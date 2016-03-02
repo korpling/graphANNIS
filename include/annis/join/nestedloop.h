@@ -8,10 +8,10 @@ namespace annis
 {
   class Operator;
   class AnnoIt;
-  class BinaryIt;
+  class Iterator;
 
   /** A join that checks all combinations of the left and right matches if their are connected. */
-  class NestedLoopJoin : public BinaryIt
+  class NestedLoopJoin : public Iterator
   {
   public:
     NestedLoopJoin(std::shared_ptr<Operator> op,

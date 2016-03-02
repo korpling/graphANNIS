@@ -13,7 +13,7 @@ namespace annis
 {
 
 /** A join that takes the left argument as a seed, finds all connected nodes (matching the distance) and checks the condition for each node. */
-class AnnoKeySeedJoin : public BinaryIt
+class AnnoKeySeedJoin : public Iterator
 {
 public:
   AnnoKeySeedJoin(const DB& db, std::shared_ptr<Operator> op,
@@ -58,7 +58,7 @@ private:
 /**
  * @brief The MaterializedSeedJoin class
  */
-class MaterializedSeedJoin : public BinaryIt
+class MaterializedSeedJoin : public Iterator
 {
 public:
   MaterializedSeedJoin(const DB& db, std::shared_ptr<Operator> op,

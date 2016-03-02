@@ -25,7 +25,7 @@ struct ExecutionNode
   size_t lhsIdx;
   size_t rhsIdx;
 
-  std::shared_ptr<BinaryIt> join;
+  std::shared_ptr<Iterator> join;
 };
 
 class Plan

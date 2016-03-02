@@ -6,7 +6,7 @@
 namespace annis
 {
 
-class Filter : public BinaryIt
+class Filter : public Iterator
 {
 public:
 
