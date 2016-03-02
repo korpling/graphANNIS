@@ -108,18 +108,20 @@ void Query::optimize()
 std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, 
   const std::list<OperatorEntry>& operators, const DB& db) 
 {
-  std::map<int, ExecutionNode> node2exec;
+  std::map<int, std::shared_ptr<ExecutionNode>> node2exec;
+  std::map<int, std::shared_ptr<ExecutionNode>> component2exec;
   
   // 1. add all nodes
   int i=0;
   for(auto& n : nodes)
   {
-    ExecutionNode baseNode;
-    baseNode.type = ExecutionNodeType::base;
-    baseNode.join = n;
-    baseNode.nodePos[i] = 0;
-    baseNode.componentNr = i;
+    std::shared_ptr<ExecutionNode> baseNode = std::make_shared<ExecutionNode>();
+    baseNode->type = ExecutionNodeType::base;
+    baseNode->join = n;
+    baseNode->nodePos[i] = 0;
+    baseNode->componentNr = i;
     node2exec[i] = baseNode;
+    component2exec[i] = baseNode;
     i++;
   }
   const size_t numOfNodes = i;
@@ -130,34 +132,37 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
     if(e.idxLeft < numOfNodes && e.idxRight < numOfNodes)
     {
       
-      ExecutionNode& execLeft = node2exec[e.idxLeft];
-      ExecutionNode& execRight = node2exec[e.idxRight];
+      std::shared_ptr<ExecutionNode> execLeft = node2exec[e.idxLeft];
+      std::shared_ptr<ExecutionNode> execRight = node2exec[e.idxRight];
       
-      if(execLeft.componentNr == execRight.componentNr)
+      if(execLeft->componentNr == execRight->componentNr)
       {        
         // the join is already fully completed inside a component, only filter
-        ExecutionNode joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, ExecutionNodeType::filter);
+        std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
+          *execLeft, *execRight, db, ExecutionNodeType::filter);
         // replace the old top-level exec node with the new one
         node2exec[e.idxLeft] = joinExec;
         node2exec[e.idxRight] = joinExec;
+        component2exec[execLeft->componentNr] = joinExec;
       }
       else
       {
         // this joins two components which each other
-        execRight.componentNr = execLeft.componentNr;
+        component2exec.erase(execRight->componentNr);
+        execRight->componentNr = execLeft->componentNr;
         
         ExecutionNodeType t = ExecutionNodeType::nested_loop;
         // if the right side is not another join we can use a seed join
-        if(execRight.type == ExecutionNodeType::base)
+        if(execRight->type == ExecutionNodeType::base)
         {
           t = ExecutionNodeType::seed;
         }
-        ExecutionNode joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, t);
+        std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
+          *execLeft, *execRight, db, t);
         // replace the old top-level exec node with the new one
         node2exec[e.idxLeft] = joinExec;
         node2exec[e.idxRight] = joinExec;
+        component2exec[execLeft->componentNr] = joinExec;
       }
     }
   }
@@ -169,7 +174,7 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
   {
     if(firstComponentSet)
     {
-      if(e.second.componentNr != firstComponent)
+      if(e.second->componentNr != firstComponent)
       {
         std::cerr << "Node " << e.first << " is not connected" << std::endl;
         return std::shared_ptr<Plan>();
@@ -177,11 +182,11 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
     }
     else
     {
-      firstComponent = e.second.componentNr;
+      firstComponent = e.second->componentNr;
       firstComponentSet = true;
     }
   }
-  return std::make_shared<Plan>(node2exec[0]);
+  return std::make_shared<Plan>(component2exec[firstComponent]);
 }
 
 

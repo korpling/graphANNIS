@@ -24,7 +24,7 @@
 
 using namespace annis;
 
-Plan::Plan(const ExecutionNode& root)
+Plan::Plan(std::shared_ptr<ExecutionNode> root)
 : root(root), cost(-1.0)
 {
 }
@@ -35,14 +35,14 @@ Plan::Plan(const Plan& orig)
   cost = orig.cost;
 }
 
-ExecutionNode Plan::join(
+std::shared_ptr<ExecutionNode> Plan::join(
     std::shared_ptr<Operator> op, 
     size_t lhsNode, size_t rhsNode,
     const ExecutionNode& lhs, const ExecutionNode& rhs,
     const DB& db,
     ExecutionNodeType type)
 {
-  ExecutionNode result;
+  std::shared_ptr<ExecutionNode> result = std::make_shared<ExecutionNode>();
   
   auto mappedPosLHS = lhs.nodePos.find(lhsNode);
   auto mappedPosRHS = rhs.nodePos.find(rhsNode);
@@ -60,12 +60,12 @@ ExecutionNode Plan::join(
   std::shared_ptr<Iterator> join;
   if(type == ExecutionNodeType::filter)
   {
-    result.type = ExecutionNodeType::filter;
+    result->type = ExecutionNodeType::filter;
     join = std::make_shared<Filter>(op, lhs.join, rhs.join, mappedPosLHS->second, mappedPosRHS->second);
   }
   else if(type == ExecutionNodeType::seed)
   {
-    result.type = ExecutionNodeType::seed;
+    result->type = ExecutionNodeType::seed;
       
     std::shared_ptr<Iterator> rightIt = rhs.join;
 
@@ -101,22 +101,23 @@ ExecutionNode Plan::join(
   }
   else
   {
-    result.type = ExecutionNodeType::nested_loop;
+    result->type = ExecutionNodeType::nested_loop;
     join = std::make_shared<NestedLoopJoin>(op, lhs.join, rhs.join, mappedPosLHS->second, mappedPosRHS->second);
   }
   
-  result.join = join;
+  result->join = join;
+  result->componentNr = lhs.componentNr;
   
   // merge both node positions
   for(const auto& pos : lhs.nodePos)
   {
-    result.nodePos.insert(pos);
+    result->nodePos.insert(pos);
   }
   // the RHS has an offset after the join
   size_t offset = lhs.nodePos.size();
-  for(const auto& pos : lhs.nodePos)
+  for(const auto& pos : rhs.nodePos)
   {
-    result.nodePos.insert({pos.first, pos.second + offset});
+    result->nodePos.insert({pos.first, pos.second + offset});
   }
   
   return result;
@@ -125,9 +126,9 @@ ExecutionNode Plan::join(
 
 bool Plan::executeStep(std::vector<Match>& result)
 {
-  if(root.join)
+  if(root && root->join)
   {
-    return root.join->next(result);
+    return root->join->next(result);
   }
   else
   {

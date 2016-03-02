@@ -38,7 +38,7 @@ struct ExecutionNode
 class Plan
 {
 public:
-  Plan(const ExecutionNode& root);
+  Plan(std::shared_ptr<ExecutionNode> root);
   
   Plan(const Plan& orig);
   virtual ~Plan();
@@ -46,7 +46,7 @@ public:
   bool executeStep(std::vector<Match>& result);
   double getCost();
   
-  static ExecutionNode join(
+  static std::shared_ptr<ExecutionNode> join(
     std::shared_ptr<Operator> op, 
     size_t lhsNode, size_t rhsNode,
     const ExecutionNode& lhs, const ExecutionNode& rhs,
@@ -54,7 +54,7 @@ public:
     ExecutionNodeType type);
   
 private:
-  ExecutionNode root;
+  std::shared_ptr<ExecutionNode> root;
   double cost;
   
 };
