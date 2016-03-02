@@ -105,6 +105,8 @@ ExecutionNode Plan::join(
     join = std::make_shared<NestedLoopJoin>(op, lhs.join, rhs.join, mappedPosLHS->second, mappedPosRHS->second);
   }
   
+  result.join = join;
+  
   // merge both node positions
   for(const auto& pos : lhs.nodePos)
   {
