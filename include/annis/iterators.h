@@ -27,9 +27,8 @@ class AnnoIt : public Iterator
 {
 public:
   virtual bool next(Match& m) = 0;
-  virtual void reset() = 0;
   
-  virtual bool next(Match& lhsMatch, Match& rhsMatch)
+  virtual bool next(Match& lhsMatch, Match& rhsMatch) override
   {
     bool found = next(lhsMatch);
     if(found)
