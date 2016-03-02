@@ -36,25 +36,24 @@ void JoinWrapIterator::checkIfNextCallNeeded()
   bool joinIsValid = (bool) wrappedJoin;
   if(isEmpty && joinIsValid)
   {
-    Match nextLHS;
-    Match nextRHS;
-    if(wrappedJoin->next(nextLHS, nextRHS))
+    std::vector<Match> tuple;
+    if(wrappedJoin->next(tuple))
     {
       // add the match to this list *and* to the other one which is hold by the JoinWrapIterator
       if(wrapLeftOperand)
       {
-        addMatch(nextLHS);
+        addMatch(tuple[lhsIdx]);
         if(!otherInnerWrapper.expired())
         {
-          otherInnerWrapper.lock()->addMatch(nextRHS);
+          otherInnerWrapper.lock()->addMatch(tuple[rhsIdx]);
         }
       }
       else
       {
-        addMatch(nextRHS);
+        addMatch(tuple[rhsIdx]);
         if(!otherInnerWrapper.expired())
         {
-          otherInnerWrapper.lock()->addMatch(nextLHS);
+          otherInnerWrapper.lock()->addMatch(tuple[lhsIdx]);
         }
       }
     }

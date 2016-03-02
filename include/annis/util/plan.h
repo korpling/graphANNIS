@@ -7,25 +7,38 @@
 
 #pragma once
 
+#include <annis/db.h>
+#include <annis/iterators.h>
+#include <annis/operators/operator.h>
 #include <memory>
 #include <vector>
-#include <annis/iterators.h>
+#include <map>
 
 namespace annis
 {
+
+enum ExecutionNodeType
+{
+  base,
+  nested_loop,
+  seed,
+  filter,
+  num_of_ExecutionNodeType
+};
   
 struct ExecutionNode
 {
-  size_t lhsIdx;
-  size_t rhsIdx;
-
+  ExecutionNodeType type;
+  
   std::shared_ptr<Iterator> join;
+  std::map<size_t, size_t> nodePos;
+  int componentNr;
 };
 
 class Plan
 {
 public:
-  Plan(const std::vector<std::shared_ptr<AnnoIt>>& source);
+  Plan(const ExecutionNode& root);
   
   Plan(const Plan& orig);
   virtual ~Plan();
@@ -33,9 +46,15 @@ public:
   bool executeStep(std::vector<Match>& result);
   double getCost();
   
+  static ExecutionNode join(
+    std::shared_ptr<Operator> op, 
+    size_t lhsNode, size_t rhsNode,
+    const ExecutionNode& lhs, const ExecutionNode& rhs,
+    const DB& db,
+    ExecutionNodeType type);
+  
 private:
-//  ExecutionNode root;
-  std::vector<std::shared_ptr<AnnoIt>> source;
+  ExecutionNode root;
   double cost;
   
 };

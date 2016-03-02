@@ -10,17 +10,20 @@ class Filter : public Iterator
 {
 public:
 
-  Filter(std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs);
+  Filter(std::shared_ptr<Operator> op, std::shared_ptr<Iterator> lhs, std::shared_ptr<Iterator> rhs,
+    size_t lhsIdx, size_t rhsIdx);
 
-  virtual bool next(Match& lhsMatch, Match& rhsMatch) override;
+  virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
 
   virtual ~Filter();
 
 private:
   std::shared_ptr<Operator> op;
-  std::shared_ptr<AnnoIt> lhs;
-  std::shared_ptr<AnnoIt> rhs;
+  std::shared_ptr<Iterator> lhs;
+  std::shared_ptr<Iterator> rhs;
+  size_t lhsIdx; 
+  size_t rhsIdx;
 };
 
 } // end namespace annis

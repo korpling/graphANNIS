@@ -7,17 +7,20 @@ using namespace annis;
 
 
 NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op,
-                               std::shared_ptr<AnnoIt> lhs,
-                               std::shared_ptr<AnnoIt> rhs,
+                               std::shared_ptr<Iterator> lhs,
+                               std::shared_ptr<Iterator> rhs,
+                               size_t lhsIdx, size_t rhsIdx,
                                bool leftIsOuter)
   : op(op), leftIsOuter(leftIsOuter), initialized(false),
-    outer(leftIsOuter ? lhs : rhs), inner(leftIsOuter ? rhs : lhs)
+    outer(leftIsOuter ? lhs : rhs), inner(leftIsOuter ? rhs : lhs),
+    outerIdx(leftIsOuter ? lhsIdx : rhsIdx), innerIdx(leftIsOuter ? rhsIdx : lhsIdx)
 {
 }
 
-bool NestedLoopJoin::next(Match& lhsMatch, Match& rhsMatch)
+bool NestedLoopJoin::next(std::vector<Match>& result)
 {
-
+  result.clear();
+  
   if(!op || !outer || !inner)
   {
     return false;
@@ -25,6 +28,10 @@ bool NestedLoopJoin::next(Match& lhsMatch, Match& rhsMatch)
 
   bool proceed = true;
 
+  std::vector<Match> matchOuter;
+  std::vector<Match> matchInner;
+
+  
   if(!initialized)
   {
     proceed = false;
@@ -43,8 +50,8 @@ bool NestedLoopJoin::next(Match& lhsMatch, Match& rhsMatch)
       bool include = true;
       // do not include the same match if not reflexive
       if(!op->isReflexive()
-         && matchOuter.node == matchInner.node
-         && checkAnnotationKeyEqual(matchOuter.anno, matchInner.anno)) {
+         && matchOuter[outerIdx].node == matchInner[innerIdx].node
+         && checkAnnotationKeyEqual(matchOuter[outerIdx].anno, matchInner[innerIdx].anno)) {
         include = false;
       }
       
@@ -52,20 +59,26 @@ bool NestedLoopJoin::next(Match& lhsMatch, Match& rhsMatch)
       {
         if(leftIsOuter)
         {
-          if(op->filter(matchOuter, matchInner))
+          if(op->filter(matchOuter[outerIdx], matchInner[innerIdx]))
           {
-            lhsMatch = matchOuter;
-            rhsMatch = matchInner;
+            result.reserve(matchInner.size() + matchOuter.size());
+            // return a tuple where the first values are from the outer relation and the iner relations tuples are added behind
+            
+            result.insert(result.end(), matchOuter.begin(), matchOuter.end());
+            result.insert(result.end(), matchInner.begin(), matchInner.end());
 
             return true;
           }
         }
         else
         {
-          if(op->filter(matchInner, matchOuter))
+          if(op->filter(matchInner[innerIdx], matchOuter[outerIdx]))
           {
-            lhsMatch = matchInner;
-            rhsMatch = matchOuter;
+            result.reserve(matchInner.size() + matchOuter.size());
+            // return a tuple where the first values are from the inner relation and the outer relations tuples are added behind
+            result.insert(result.end(), matchInner.begin(), matchInner.end());
+            result.insert(result.end(), matchOuter.begin(), matchOuter.end());
+           
 
             return true;
           }

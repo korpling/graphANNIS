@@ -73,9 +73,11 @@ namespace annis
   public:
 
     JoinWrapIterator(std::shared_ptr<Iterator> wrappedJoin,
+      size_t lhsIdx, size_t rhsIdx,
       bool wrapLeftOperand = false)
       : wrappedJoin(wrappedJoin),
-      wrapLeftOperand(wrapLeftOperand)
+        lhsIdx(lhsIdx), rhsIdx(rhsIdx),
+        wrapLeftOperand(wrapLeftOperand)
     {
 
     }
@@ -100,7 +102,13 @@ namespace annis
   private:
     std::shared_ptr<Iterator> wrappedJoin;
     std::weak_ptr<JoinWrapIterator> otherInnerWrapper;
+    
+    size_t lhsIdx;
+    size_t rhsIdx;
+    
     bool wrapLeftOperand;
+    
+   
 
     void checkIfNextCallNeeded();
   };

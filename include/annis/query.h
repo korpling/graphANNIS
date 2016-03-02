@@ -75,7 +75,8 @@ private:
   
   static std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::list<OperatorEntry>& operators, const DB& db);
 
-  static void addJoin(std::vector<std::shared_ptr<AnnoIt>>& source, const DB& db, const OperatorEntry &e, bool filterOnly = false);
+  static void addJoin(std::map<int, ExecutionNode>& node2exec, 
+  const DB& db, const OperatorEntry& e);
 
   static void mergeComponents(std::map<int, int>& querynode2component, int c1, int c2);
   

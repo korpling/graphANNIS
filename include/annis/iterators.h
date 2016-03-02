@@ -1,6 +1,7 @@
 #pragma once
 
 #include <annis/types.h>
+#include <vector>
 
 namespace annis
 {
@@ -17,7 +18,7 @@ public:
 class Iterator
 {
 public:
-  virtual bool next(Match& lhsMatch, Match& rhsMatch) = 0;
+  virtual bool next(std::vector<Match>& tuple) = 0;
   virtual void reset() = 0;
 
   virtual ~Iterator() {}
@@ -28,14 +29,10 @@ class AnnoIt : public Iterator
 public:
   virtual bool next(Match& m) = 0;
   
-  virtual bool next(Match& lhsMatch, Match& rhsMatch) override
+  virtual bool next(std::vector<Match>& tuple) override
   {
-    bool found = next(lhsMatch);
-    if(found)
-    {
-      rhsMatch = lhsMatch;
-    }
-    return found;
+    tuple.resize(1);
+    return next(tuple[0]);
   }
 
   virtual ~AnnoIt() {}

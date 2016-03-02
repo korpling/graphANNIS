@@ -17,23 +17,25 @@ class AnnoKeySeedJoin : public Iterator
 {
 public:
   AnnoKeySeedJoin(const DB& db, std::shared_ptr<Operator> op,
-           std::shared_ptr<AnnoIt> lhs,
+           std::shared_ptr<Iterator> lhs,
+            size_t lhsIdx,
            const std::set<AnnotationKey> &rightAnnoKeys);
   virtual ~AnnoKeySeedJoin() {}
 
-  virtual bool next(Match& lhsMatch, Match& rhsMatch) override;
+  virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
 private:
   const DB& db;
   std::shared_ptr<Operator> op;
 
-  std::shared_ptr<AnnoIt> left;
+  std::shared_ptr<Iterator> left;
+  size_t lhsIdx;
   const std::set<AnnotationKey>& rightAnnoKeys;
   unsigned int minDistance;
   unsigned int maxDistance;
 
   std::unique_ptr<AnnoIt> matchesByOperator;
-  Match currentLHSMatch;
+  std::vector<Match> currentLHSMatch;
   Match currentRHSMatch;
   bool currentMatchValid;
   std::list<Annotation> matchingRightAnnos;
@@ -62,23 +64,25 @@ class MaterializedSeedJoin : public Iterator
 {
 public:
   MaterializedSeedJoin(const DB& db, std::shared_ptr<Operator> op,
-                       std::shared_ptr<AnnoIt> lhs,
+                       std::shared_ptr<Iterator> lhs,
+                       size_t lhsIdx,
                        const std::unordered_set<Annotation> &rightAnno);
   virtual ~MaterializedSeedJoin() {}
 
-  virtual bool next(Match& lhsMatch, Match& rhsMatch) override;
+  virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
 private:
   const DB& db;
   std::shared_ptr<Operator> op;
 
-  std::shared_ptr<AnnoIt> left;
+  std::shared_ptr<Iterator> left;
+  size_t lhsIdx;
   const std::unordered_set<Annotation>& right;
   unsigned int minDistance;
   unsigned int maxDistance;
 
   std::unique_ptr<AnnoIt> matchesByOperator;
-  Match currentLHSMatch;
+  std::vector<Match> currentLHSMatch;
   Match currentRHSMatch;
   bool currentMatchValid;
   std::list<Annotation> matchingRightAnnos;
