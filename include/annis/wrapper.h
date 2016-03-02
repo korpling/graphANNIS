@@ -33,19 +33,21 @@ namespace annis
         {0, 0, 0}});
     }
 
-    virtual bool hasNext()
+    virtual bool next(Match& result) override
     {
-      return !orig.empty();
+      if(orig.empty())
+      {
+        return false;
+      }
+      else
+      {
+        result = orig.front();
+        orig.pop();
+        return true;
+      }
     }
 
-    virtual Match next()
-    {
-      Match result = orig.front();
-      orig.pop();
-      return result;
-    }
-
-    virtual void reset()
+    virtual void reset() override
     {
       while (!orig.empty())
       {
@@ -78,19 +80,13 @@ namespace annis
 
     }
 
-    virtual Match next()
+    virtual bool next(Match& result) override
     {
       checkIfNextCallNeeded();
-      return ListWrapper::next();
+      return ListWrapper::next(result);
     }
 
-    virtual bool hasNext()
-    {
-      checkIfNextCallNeeded();
-      return ListWrapper::hasNext();
-    }
-
-    virtual void reset();
+    virtual void reset() override;
 
     virtual void setOther(std::weak_ptr<JoinWrapIterator> otherInnerWrapper)
     {
@@ -126,19 +122,14 @@ namespace annis
 
     }
 
-    virtual bool hasNext()
+    virtual bool next(Match& m) override
     {
-      return delegate->hasNext();
-    }
-
-    virtual Match next()
-    {
-      Match m = delegate->next();
+      bool found = delegate->next(m);
       m.anno = constAnno;
-      return m;
+      return found;
     }
 
-    virtual void reset()
+    virtual void reset() override
     {
       delegate->reset();
     }
@@ -175,18 +166,21 @@ namespace annis
 
     }
 
-    virtual bool hasNext()
+    virtual bool next(Match& result) override
     {
-      return valid;
+      if(valid)
+      {
+        valid = false;
+        result = m;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
 
-    virtual Match next()
-    {
-      valid = false;
-      return m;
-    }
-
-    virtual void reset()
+    virtual void reset() override
     {
       valid = true;
     }

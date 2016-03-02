@@ -19,9 +19,10 @@ void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
   clear();
 
   ExactAnnoKeySearch nodes(db, annis_ns, annis_node_name);
-  while(nodes.hasNext())
+  Match match;
+  while(nodes.next(match))
   {
-    nodeid_t source = nodes.next().node;
+    nodeid_t source = match.node;
     std::vector<nodeid_t> outEdges = orig.getOutgoingEdges(source);
     for(auto target : outEdges)
     {

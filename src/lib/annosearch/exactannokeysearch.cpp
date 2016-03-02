@@ -6,7 +6,7 @@ using namespace annis;
 using namespace std;
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
-  : db(db), currentMatchValid(false),
+  : db(db),
     validAnnotationKeysInitialized(false)
 {
   itBegin = db.nodeAnnos.inverseNodeAnnotations.begin();
@@ -18,7 +18,7 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
 }
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
-  : db(db), currentMatchValid(false),
+  : db(db),
     validAnnotationKeysInitialized(false)
 {
   std::pair<bool, uint32_t> searchResult = db.strings.findID(annoName);
@@ -50,7 +50,7 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
 }
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace, const string &annoName)
-  : db(db), currentMatchValid(false),
+  : db(db),
     validAnnotationKeysInitialized(false)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
@@ -82,19 +82,19 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace,
   }
 }
 
-Match ExactAnnoKeySearch::next()
+bool ExactAnnoKeySearch::next(Match& result)
 {
-  Match result;
-  currentMatchValid = false;
-  if(hasNext())
+  if(it != db.nodeAnnos.inverseNodeAnnotations.end() && it != itEnd)
   {
     result.node = it->second; // node ID
     result.anno = it->first; // annotation itself
-    currentMatch = result;
-    currentMatchValid = true;
     it++;
+    return true;
   }
-  return result;
+  else
+  {
+    return false;
+  }
 }
 
 void ExactAnnoKeySearch::reset()

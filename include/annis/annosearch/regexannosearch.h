@@ -7,45 +7,37 @@
 
 namespace annis
 {
-class RegexAnnoSearch : public AnnotationSearch
-{
-  using AnnoItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
-  using Range = std::pair<AnnoItType, AnnoItType>;
 
-public:
-  RegexAnnoSearch(const DB& db, const std::string &name, const std::string &valRegex);
-  RegexAnnoSearch(const DB& db, const std::string &ns, const std::string &name, const std::string &valRegex);
-
-  virtual const std::unordered_set<Annotation>& getValidAnnotations()
+  class RegexAnnoSearch : public AnnotationSearch
   {
-    if(!validAnnotationsInitialized)
+    using AnnoItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
+    using Range = std::pair<AnnoItType, AnnoItType>;
+
+  public:
+    RegexAnnoSearch(const DB& db, const std::string &name, const std::string &valRegex);
+    RegexAnnoSearch(const DB& db, const std::string &ns, const std::string &name, const std::string &valRegex);
+
+    virtual const std::unordered_set<Annotation>& getValidAnnotations()
     {
-      initValidAnnotations();
+      if (!validAnnotationsInitialized)
+      {
+        initValidAnnotations();
+      }
+      return validAnnotations;
     }
-    return validAnnotations;
-  }
 
-  virtual const std::set<AnnotationKey>& getValidAnnotationKeys()
-  {
-    return validAnnotationKeys;
-  }
-
-  virtual bool hasNext()
-  {
-    if(!currentMatchValid)
+    virtual const std::set<AnnotationKey>& getValidAnnotationKeys()
     {
-      internalNextAnno();
+      return validAnnotationKeys;
     }
-    return currentMatchValid;
-  }
+    
+    virtual bool next(Match& result) override;
+    virtual void reset() override;
 
-  virtual Match next();
-  virtual void reset();
-  
-  std::int64_t guessMaxCount() const override;
+    std::int64_t guessMaxCount() const override;
 
-  virtual ~RegexAnnoSearch();
-private:
+    virtual ~RegexAnnoSearch();
+  private:
     const DB& db;
     std::unordered_set<Annotation> validAnnotations;
     bool validAnnotationsInitialized;
@@ -61,12 +53,9 @@ private:
     std::list<Range>::const_iterator currentRange;
     AnnoItType it;
 
-private:
-    Match currentMatch;
-    bool currentMatchValid;
-
+  private:
+    
     void initValidAnnotations();
-    void internalNextAnno();
-
-};
+    
+  };
 } // end namespace annis

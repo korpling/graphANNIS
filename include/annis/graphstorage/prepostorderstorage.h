@@ -266,10 +266,11 @@ public:
     // find all roots of the component
     std::set<nodeid_t> roots;
     ExactAnnoKeySearch nodes(db, annis_ns, annis_node_name);
+    Match match;
     // first add all nodes that are a source of an edge as possible roots
-    while(nodes.hasNext())
+    while(nodes.next(match))
     {
-      nodeid_t n = nodes.next().node;
+      nodeid_t n = match.node;
       // insert all nodes to the root candidate list which are part of this component
       if(!orig.getOutgoingEdges(n).empty())
       {
@@ -278,9 +279,9 @@ public:
     }
 
     nodes.reset();
-    while(nodes.hasNext())
+    while(nodes.next(match))
     {
-      nodeid_t source = nodes.next().node;
+      nodeid_t source = match.node;
 
       std::vector<nodeid_t> outEdges = orig.getOutgoingEdges(source);
       for(auto target : outEdges)

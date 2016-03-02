@@ -28,9 +28,8 @@ bool NestedLoopJoin::next(Match& lhsMatch, Match& rhsMatch)
   if(!initialized)
   {
     proceed = false;
-    if(outer->hasNext())
+    if(outer->next(matchOuter))
     {
-      matchOuter = outer->next();
       proceed = true;
       initialized = true;
     }
@@ -39,10 +38,8 @@ bool NestedLoopJoin::next(Match& lhsMatch, Match& rhsMatch)
   while(proceed)
   {
 
-    while(inner->hasNext())
+    while(inner->next(matchInner))
     {
-      matchInner = inner->next();
-
       bool include = true;
       // do not include the same match if not reflexive
       if(!op->isReflexive()
@@ -77,9 +74,8 @@ bool NestedLoopJoin::next(Match& lhsMatch, Match& rhsMatch)
 
     } // end for each right
 
-    if(outer->hasNext())
+    if(outer->next(matchOuter))
     {
-      matchOuter = outer->next();
       inner->reset();
     }
     else

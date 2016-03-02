@@ -15,11 +15,8 @@ bool Filter::next(Match& lhsMatch, Match& rhsMatch)
 
   if(op && lhs && rhs)
   {
-    while(!found && lhs->hasNext() && rhs->hasNext())
+    while(!found && lhs->next(lhsMatch) && rhs->next(rhsMatch))
     {
-      lhsMatch = lhs->next();
-      rhsMatch = rhs->next();
-
       if(op->filter(lhsMatch, rhsMatch))
       {
         found = true;

@@ -27,10 +27,8 @@ bool AnnoKeySeedJoin::next(Match& lhsMatch, Match& rhsMatch)
 
   do
   {
-    while(matchesByOperator && matchesByOperator->hasNext())
+    while(matchesByOperator && matchesByOperator->next(currentRHSMatch))
     {
-      currentRHSMatch = matchesByOperator->next();
-
       if(rightAnnoKeys.size() == 1)
       {
         // only check the annotation key, not the value
@@ -93,9 +91,8 @@ void AnnoKeySeedJoin::reset()
 bool AnnoKeySeedJoin::nextLeftMatch()
 {
   matchingRightAnnos.clear();
-  if(op && op->valid() && left && left->hasNext())
+  if(op && op->valid() && left && left->next(currentLHSMatch))
   {
-    currentLHSMatch = left->next();
     currentMatchValid = true;
 
     matchesByOperator = op->retrieveMatches(currentLHSMatch);
@@ -148,10 +145,8 @@ bool MaterializedSeedJoin::next(Match& lhsMatch, Match& rhsMatch)
 
   do
   {
-    while(matchesByOperator && matchesByOperator->hasNext())
+    while(matchesByOperator && matchesByOperator->next(currentRHSMatch))
     {
-      currentRHSMatch = matchesByOperator->next();
-
       if(right.size() == 1)
       {
         // directly get the one node annotation
@@ -212,10 +207,8 @@ void MaterializedSeedJoin::reset()
 bool MaterializedSeedJoin::nextLeftMatch()
 {  
   matchingRightAnnos.clear();
-  if(op && op->valid() && left && left->hasNext())
+  if(op && op->valid() && left && left->next(currentLHSMatch))
   {
-
-    currentLHSMatch = left->next();
     currentMatchValid = true;
 
     matchesByOperator = op->retrieveMatches(currentLHSMatch);

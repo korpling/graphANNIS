@@ -7,8 +7,7 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
                                  const std::string& name, const std::string& valRegex)
   : db(db),
     validAnnotationsInitialized(false), valRegex(valRegex),
-    compiledValRegex(valRegex),
-    currentMatchValid(false)
+    compiledValRegex(valRegex)
 {
   std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
   std::pair<bool, std::uint32_t> namespaceID = db.strings.findID(ns);
@@ -32,8 +31,7 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
                                  const std::string& name, const std::string& valRegex)
   : db(db),
     validAnnotationsInitialized(false), valRegex(valRegex),
-    compiledValRegex(valRegex),
-    currentMatchValid(false)
+    compiledValRegex(valRegex)
 {
   if(compiledValRegex.ok())
   {
@@ -60,14 +58,33 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
   }
 }
 
-Match RegexAnnoSearch::next()
+bool RegexAnnoSearch::next(Match& result)
 {
-  if(!currentMatchValid)
+  if(compiledValRegex.ok())
   {
-    internalNextAnno();
+    while(currentRange != searchRanges.end())
+    {
+      while(it != currentRange->second)
+      {
+        if(RE2::FullMatch(db.strings.str(it.key().val), compiledValRegex))
+        {
+          result = {it.data(), it.key()};
+          it++;
+          return true;
+        }
+        // skip to the next available key (we don't want to iterate over each value of the multimap)
+        it = db.nodeAnnos.inverseNodeAnnotations.upper_bound(it.key());
+
+      } // end for each item in search range
+      currentRange++;
+      if(currentRange != searchRanges.end())
+      {
+        it = currentRange->first;
+      }
+    } // end for each search range
   }
-  currentMatchValid = false;
-  return currentMatch;
+  
+  return false;
 }
 
 void RegexAnnoSearch::reset()
@@ -77,7 +94,6 @@ void RegexAnnoSearch::reset()
   {
     it = currentRange->first;
   }
-  currentMatchValid = false;
 }
 
 
@@ -111,36 +127,6 @@ std::int64_t RegexAnnoSearch::guessMaxCount() const
   }
   
   return sum;
-}
-
-
-void RegexAnnoSearch::internalNextAnno()
-{
-  currentMatchValid = false;
-  if(compiledValRegex.ok())
-  {
-    while(currentRange != searchRanges.end())
-    {
-      while(it != currentRange->second)
-      {
-        if(RE2::FullMatch(db.strings.str(it.key().val), compiledValRegex))
-        {
-          currentMatch = {it.data(), it.key()};
-          currentMatchValid = true;
-          it++;
-          return;
-        }
-        // skip to the next available key (we don't want to iterate over each value of the multimap)
-        it = db.nodeAnnos.inverseNodeAnnotations.upper_bound(it.key());
-
-      } // end for each item in search range
-      currentRange++;
-      if(currentRange != searchRanges.end())
-      {
-        it = currentRange->first;
-      }
-    } // end for each search range
-  }
 }
 
 

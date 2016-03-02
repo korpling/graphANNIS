@@ -125,9 +125,10 @@ public:
     // add all nodes to root list
     ExactAnnoKeySearch nodes(db, annis_ns, annis_node_name);
 
-    while(nodes.hasNext())
+    Match match;
+    while(nodes.next(match))
     {
-      nodeid_t n = nodes.next().node;
+      nodeid_t n = match.node;
       // insert all nodes to the root candidate list which are part of this component
       if(!orig.getOutgoingEdges(n).empty())
       {
@@ -136,9 +137,9 @@ public:
     }
 
     nodes.reset();
-    while(nodes.hasNext())
+    while(nodes.next(match))
     {
-      nodeid_t source = nodes.next().node;
+      nodeid_t source = match.node;
 
       std::vector<nodeid_t> outEdges = orig.getOutgoingEdges(source);
       for(auto target : outEdges)

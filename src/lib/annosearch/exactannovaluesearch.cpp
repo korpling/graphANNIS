@@ -47,16 +47,12 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &anno
   }
 }
 
-Match ExactAnnoValueSearch::next()
+bool ExactAnnoValueSearch::next(Match& result)
 {
-  Match result;
-  currentMatchValid = false;
-  if(hasNext())
+  if(currentRange != searchRanges.end() && it != currentRange->second)
   {
     result.node = it.data(); // node ID
     result.anno = it.key(); // annotation itself
-    currentMatch = result;
-    currentMatchValid = true;
     it++;
     if(it == currentRange->second)
     {
@@ -66,8 +62,12 @@ Match ExactAnnoValueSearch::next()
         it = currentRange->first;
       }
     }
+    return true;
   }
-  return result;
+  else
+  {
+    return false;
+  }
 }
 
 void ExactAnnoValueSearch::reset()

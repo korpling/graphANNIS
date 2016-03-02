@@ -123,9 +123,8 @@ TEST_F(LoadTest, OutgoingEdges) {
 
 
   ExactAnnoValueSearch catSearch(db, "tiger", "cat", "CPP");
-  EXPECT_TRUE(catSearch.hasNext());
-
-  Match cppNode = catSearch.next();
+  Match cppNode;
+  EXPECT_TRUE(catSearch.next(cppNode));
 
   const ReadableGraphStorage* gsDom = db.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge");
   std::vector<nodeid_t> outEdges = gsDom->getOutgoingEdges(cppNode.node);

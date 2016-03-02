@@ -23,12 +23,8 @@ public:
 
   virtual ~ExactAnnoValueSearch();
 
-  virtual bool hasNext()
-  {
-    return currentRange != searchRanges.end() && it != currentRange->second;
-  }
 
-  virtual Match next();
+  virtual bool next(Match& result) override;
   virtual void reset();
 
   const std::unordered_set<Annotation>& getValidAnnotations()
@@ -52,9 +48,6 @@ private:
 
   bool validAnnotationInitialized;
   std::unordered_set<Annotation> validAnnotations;
-
-  bool currentMatchValid;
-  Match currentMatch;
 
   void initializeValidAnnotations();
 

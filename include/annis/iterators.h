@@ -8,8 +8,7 @@ namespace annis
 class AnnoIt
 {
 public:
-  virtual bool hasNext() = 0;
-  virtual Match next() = 0;
+  virtual bool next(Match& m) = 0;
   virtual void reset() = 0;
 
   virtual ~AnnoIt() {}

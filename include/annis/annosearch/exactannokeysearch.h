@@ -27,13 +27,8 @@ public:
 
   virtual ~ExactAnnoKeySearch();
 
-  virtual bool hasNext()
-  {
-    return it != db.nodeAnnos.inverseNodeAnnotations.end() && it != itEnd;
-  }
-
-  virtual Match next();
-  virtual void reset();
+  virtual bool next(Match& result) override;
+  virtual void reset() override;
 
   const std::set<AnnotationKey>& getValidAnnotationKeys()
   {
@@ -58,9 +53,6 @@ private:
 
   bool validAnnotationKeysInitialized;
   std::set<AnnotationKey> validAnnotationKeys;
-
-  bool currentMatchValid;
-  Match currentMatch;
 
   void initializeValidAnnotationKeys();
 
