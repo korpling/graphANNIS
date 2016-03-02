@@ -84,13 +84,13 @@ std::shared_ptr<ExecutionNode> Plan::join(
     if(keySearch)
     {
       join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs.join,
-        mappedPosRHS->second,
+        mappedPosLHS->second,
         keySearch->getValidAnnotationKeys());
     }
     else if(annoSearch)
     {
       join = std::make_shared<MaterializedSeedJoin>(db, op, lhs.join,
-        mappedPosRHS->second,
+        mappedPosLHS->second,
         annoSearch->getValidAnnotations());
     }
     else
