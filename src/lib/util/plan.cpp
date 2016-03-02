@@ -26,6 +26,28 @@ Plan::Plan(const Plan& orig)
   cost = orig.cost;
 }
 
+bool Plan::executeStep(std::vector<Match>& result)
+{
+  if(result.size() != source.size())
+  {
+    return false;
+  }
+  
+  for(size_t i=0; i < source.size(); i++)
+  {
+    if(source[i]->hasNext())
+    {
+      result[i] = source[i]->next();
+    }
+    else
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 double Plan::getCost() {
   if(cost < 0.0)
   {

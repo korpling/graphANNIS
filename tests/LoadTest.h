@@ -214,9 +214,9 @@ TEST_F(LoadTest, Dom)
 
   q.addOperator(std::make_shared<Dominance>(db, "tiger", "", 1, uintmax), n1, n2);
 
-  while(q.hasNext())
+  while(q.next())
   {
-    std::vector<Match> m = q.next();
+    std::vector<Match> m = q.getCurrent();
     HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%\t%4%\t%5%")
                      % counter % m[0].node % m[1].node % db.getNodeName(m[0].node)
                      % db.getNodeName(m[1].node)).str()) ;
@@ -263,9 +263,9 @@ TEST_F(LoadTest, RangedDom) {
 
   q.addOperator(std::make_shared<Dominance>(db, "", "", 3, 5), n1, n2);
 
-  while(q.hasNext() && counter < 2000)
+  while(q.next() && counter < 2000)
   {
-    std::vector<Match> m = q.next();
+    std::vector<Match> m = q.getCurrent();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%")
                      % db.getNodeDebugName(m[0].node)
                      % db.getNodeDebugName(m[1].node)).str());
@@ -287,9 +287,9 @@ TEST_F(LoadTest, SecEdge) {
 
   q.addOperator(std::make_shared<Dominance>(db, "", ""), n1, n2);
 
-  while(q.hasNext() && counter < 2000)
+  while(q.next() && counter < 2000)
   {
-    std::vector<Match> m = q.next();
+    std::vector<Match> m = q.getCurrent();
     HL_INFO(logger, (boost::format("match\t%1%\t%2%")
                      % db.getNodeDebugName(m[0].node)
                      % db.getNodeDebugName(m[1].node)).str());

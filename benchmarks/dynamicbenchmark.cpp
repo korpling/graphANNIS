@@ -20,9 +20,8 @@ std::shared_ptr<DBCache> DynamicCorpusFixture::dbCache
 
 void DynamicCorpusFixture::UserBenchmark()
 {
-  while (q->hasNext())
+  while (q->next())
   {
-    q->next();
     counter++;
   }
   HL_INFO(logger, (boost::format("result %1%") % counter).str());

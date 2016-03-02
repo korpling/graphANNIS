@@ -75,8 +75,7 @@ TEST_F(SearchTestParlament, POS) {
   ASSERT_TRUE((bool) q);
   
   unsigned int counter = 0;
-  while (q->hasNext()) {
-    q->next();
+  while (q->next()) {
     counter++;
   }
 

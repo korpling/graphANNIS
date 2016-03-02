@@ -155,9 +155,8 @@ int main(int argc, char** argv)
           q->optimize();
           int counter =0;
           auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
-          while(q->hasNext())
+          while(q->next())
           {
-            q->next();
             counter++;
           }
           auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
@@ -179,9 +178,9 @@ int main(int argc, char** argv)
           std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, ss); 
           q->optimize();
           int counter =0;
-          while(q->hasNext())
+          while(q->next())
           {
-            std::vector<annis::Match> m = q->next();
+            std::vector<annis::Match> m = q->getCurrent();
             for(auto i = 0; i < m.size(); i++)
             {
               const auto& n = m[i];

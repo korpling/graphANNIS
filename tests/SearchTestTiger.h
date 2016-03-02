@@ -80,9 +80,9 @@ TEST_F(SearchTestTiger, CatSearch) {
   ASSERT_TRUE((bool) q);
   
   unsigned int counter=0;
-  while(q->hasNext() && counter < MAX_COUNT)
+  while(q->next() && counter < MAX_COUNT)
   {
-    auto m = q->next();
+    auto m = q->getCurrent();
     ASSERT_EQ(1, m.size());
     ASSERT_STREQ("cat", db.strings.str(m[0].anno.name).c_str());
     ASSERT_STREQ("tiger", db.strings.str(m[0].anno.ns).c_str());
@@ -100,9 +100,8 @@ TEST_F(SearchTestTiger, TokenPrecedence) {
   
   unsigned int counter=0;
 
-  while(q->hasNext() && counter < MAX_COUNT)
+  while(q->next() && counter < MAX_COUNT)
   {
-    q->next();
     counter++;
   }
 
@@ -117,9 +116,8 @@ TEST_F(SearchTestTiger, TokenPrecedenceThreeNodes) {
   
   unsigned int counter=0;
 
-  while(q->hasNext() && counter < MAX_COUNT)
+  while(q->next() && counter < MAX_COUNT)
   {
-    q->next();
     counter++;
   }
 
@@ -133,9 +131,9 @@ TEST_F(SearchTestTiger, BilharzioseSentence)
   
   unsigned int counter=0;
 
-  while(q->hasNext() && counter < MAX_COUNT)
+  while(q->next() && counter < MAX_COUNT)
   {
-    auto m = q->next();
+    auto m = q->getCurrent();
      HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%")
                       % counter
                       % db.getNodeDebugName(m[0].node)

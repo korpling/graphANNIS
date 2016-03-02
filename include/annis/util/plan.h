@@ -19,6 +19,14 @@
 
 namespace annis
 {
+  
+struct ExecutionNode
+{
+  size_t lhsIdx;
+  size_t rhsIdx;
+
+  std::shared_ptr<BinaryIt> join;
+};
 
 class Plan
 {
@@ -28,12 +36,12 @@ public:
   Plan(const Plan& orig);
   virtual ~Plan();
   
-  const std::vector<std::shared_ptr<AnnoIt>>& getSource() { return source;}
+  bool executeStep(std::vector<Match>& result);
   double getCost();
   
 private:
+//  ExecutionNode root;
   std::vector<std::shared_ptr<AnnoIt>> source;
-  
   double cost;
   
 };

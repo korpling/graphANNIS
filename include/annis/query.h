@@ -53,14 +53,16 @@ public:
    */
   void optimize();
   
-  bool hasNext();
-  std::vector<Match> next();
+  bool next();
+  
+  const std::vector<Match>& getCurrent() { return currentResult;}
   
   virtual ~Query();
 
 private:
 
   const DB& db;
+  std::vector<Match> currentResult;
 
   std::shared_ptr<Plan> bestPlan;
   std::vector<std::shared_ptr<AnnoIt>> nodes;

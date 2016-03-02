@@ -170,6 +170,7 @@ void Query::internalInit()
   }
 
   bestPlan = createPlan(nodes, operators, db);
+  currentResult.resize(nodes.size());
 }
 
 void Query::addJoin(std::vector<std::shared_ptr<AnnoIt>>& source, const DB& db, const OperatorEntry& e, bool filterOnly)
@@ -226,7 +227,7 @@ void Query::addJoin(std::vector<std::shared_ptr<AnnoIt>>& source, const DB& db, 
 
   itLeft->setOther(itRight);
   itRight->setOther(itLeft);
-
+  
   source[e.idxLeft] = itLeft;
   source[e.idxRight] = itRight;
 }
@@ -254,44 +255,15 @@ void Query::mergeComponents(std::map<int, int>& querynode2component, int c1, int
   }
 }
 
-bool Query::hasNext()
-{
-  if(!bestPlan)
-  {
-    internalInit();
-  }
-  const auto& source = bestPlan->getSource();
 
-  for(const auto& s : source)
-  {
-    if(!s->hasNext())
-    {
-      return false;
-    }
-  }
-  return true;
-}
-
-std::vector<Match> Query::next()
+bool Query::next()
 {
   if(!bestPlan)
   {
     internalInit();
   }
   
-  const auto& source = bestPlan->getSource();
-
-  std::vector<Match> result(source.size());
-
-  // call "next()" on all sources
-  for(size_t i=0; i < source.size(); i++)
-  {
-    result[i] = source[i]->next();
-  }
-
-  return result;
-
-  return std::vector<Match>(0);
+  return bestPlan->executeStep(currentResult);
 }
 
 

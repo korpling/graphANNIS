@@ -87,9 +87,8 @@ TEST_F(SearchTestTueBaDZ, DISABLED_Mix) {
   ASSERT_TRUE((bool) q);
   
   unsigned int counter=0;
-  while(q->hasNext() && counter < 10u)
+  while(q->next() && counter < 10u)
   {
-    q->next();
     counter++;
   }
 
@@ -101,9 +100,8 @@ TEST_F(SearchTestTueBaDZ, DISABLED_RegexDom) {
   ASSERT_TRUE((bool) q);
   
   unsigned int counter=0;
-  while(q->hasNext() && counter < 100)
+  while(q->next() && counter < 100)
   {
-    q->next();
     counter++;
   }
 
@@ -114,9 +112,8 @@ TEST_F(SearchTestTueBaDZ, DISABLED_NodeDom) {
 
  ASSERT_TRUE((bool) q);
   unsigned int counter=0;
-  while(q->hasNext() && counter < 2200000u)
+  while(q->next() && counter < 2200000u)
   {
-    q->next();
     counter++;
   }
 
