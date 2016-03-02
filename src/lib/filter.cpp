@@ -9,26 +9,25 @@ Filter::Filter(std::shared_ptr<Operator> op, std::shared_ptr<AnnoIt> lhs, std::s
 
 }
 
-BinaryMatch Filter::next()
+bool Filter::next(Match& lhsMatch, Match& rhsMatch)
 {
-  BinaryMatch result;
-  result.found = false;
+  bool found = false;
 
   if(op && lhs && rhs)
   {
-    while(!result.found && lhs->hasNext() && rhs->hasNext())
+    while(!found && lhs->hasNext() && rhs->hasNext())
     {
-      result.lhs = lhs->next();
-      result.rhs = rhs->next();
+      lhsMatch = lhs->next();
+      rhsMatch = rhs->next();
 
-      if(op->filter(result.lhs, result.rhs))
+      if(op->filter(lhsMatch, rhsMatch))
       {
-        result.found = true;
+        found = true;
       }
     }
   }
 
-  return result;
+  return found;
 }
 
 void Filter::reset()

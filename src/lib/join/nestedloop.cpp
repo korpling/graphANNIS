@@ -15,14 +15,12 @@ NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op,
 {
 }
 
-BinaryMatch NestedLoopJoin::next()
+bool NestedLoopJoin::next(Match& lhsMatch, Match& rhsMatch)
 {
-  BinaryMatch result;
-  result.found = false;
 
   if(!op || !outer || !inner)
   {
-    return result;
+    return false;
   }
 
   bool proceed = true;
@@ -59,22 +57,20 @@ BinaryMatch NestedLoopJoin::next()
         {
           if(op->filter(matchOuter, matchInner))
           {
-            result.found = true;
-            result.lhs = matchOuter;
-            result.rhs = matchInner;
+            lhsMatch = matchOuter;
+            rhsMatch = matchInner;
 
-            return result;
+            return true;
           }
         }
         else
         {
           if(op->filter(matchInner, matchOuter))
           {
-            result.found = true;
-            result.lhs = matchInner;
-            result.rhs = matchOuter;
+            lhsMatch = matchInner;
+            rhsMatch = matchOuter;
 
-            return result;
+            return true;
           }
         }
       } // end if include
@@ -91,7 +87,7 @@ BinaryMatch NestedLoopJoin::next()
       proceed = false;
     }
   } // end while proceed
-  return result;
+  return false;
 }
 
 void NestedLoopJoin::reset()

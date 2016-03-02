@@ -27,7 +27,7 @@ public:
 class BinaryIt
 {
 public:
-  virtual BinaryMatch next() = 0;
+  virtual bool next(Match& lhsMatch, Match& rhsMatch) = 0;
   virtual void reset() = 0;
 
   virtual ~BinaryIt() {}

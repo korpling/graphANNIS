@@ -126,14 +126,6 @@ namespace annis
     Annotation anno;
   };
 
-  /** A combination of two matches together with a flag if a result was found */
-  struct BinaryMatch
-  {
-    bool found;
-    Match lhs;
-    Match rhs;
-  };
-
   /** Some general statistical numbers specific to a graph component */
   struct GraphStatistic
   {

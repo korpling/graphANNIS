@@ -21,8 +21,8 @@ public:
            const std::set<AnnotationKey> &rightAnnoKeys);
   virtual ~AnnoKeySeedJoin() {}
 
-  virtual BinaryMatch next();
-  virtual void reset();
+  virtual bool next(Match& lhsMatch, Match& rhsMatch) override;
+  virtual void reset() override;
 private:
   const DB& db;
   std::shared_ptr<Operator> op;
@@ -33,7 +33,8 @@ private:
   unsigned int maxDistance;
 
   std::unique_ptr<AnnoIt> matchesByOperator;
-  BinaryMatch currentMatch;
+  Match currentLHSMatch;
+  Match currentRHSMatch;
   bool currentMatchValid;
   std::list<Annotation> matchingRightAnnos;
 
@@ -65,8 +66,8 @@ public:
                        const std::unordered_set<Annotation> &rightAnno);
   virtual ~MaterializedSeedJoin() {}
 
-  virtual BinaryMatch next();
-  virtual void reset();
+  virtual bool next(Match& lhsMatch, Match& rhsMatch) override;
+  virtual void reset() override;
 private:
   const DB& db;
   std::shared_ptr<Operator> op;
@@ -77,7 +78,8 @@ private:
   unsigned int maxDistance;
 
   std::unique_ptr<AnnoIt> matchesByOperator;
-  BinaryMatch currentMatch;
+  Match currentLHSMatch;
+  Match currentRHSMatch;
   bool currentMatchValid;
   std::list<Annotation> matchingRightAnnos;
 

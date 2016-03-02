@@ -36,24 +36,25 @@ void JoinWrapIterator::checkIfNextCallNeeded()
   bool joinIsValid = (bool) wrappedJoin;
   if(isEmpty && joinIsValid)
   {
-    BinaryMatch nextMatch = wrappedJoin->next();
-    if(nextMatch.found)
+    Match nextLHS;
+    Match nextRHS;
+    if(wrappedJoin->next(nextLHS, nextRHS))
     {
       // add the match to this list *and* to the other one which is hold by the JoinWrapIterator
       if(wrapLeftOperand)
       {
-        addMatch(nextMatch.lhs);
+        addMatch(nextLHS);
         if(!otherInnerWrapper.expired())
         {
-          otherInnerWrapper.lock()->addMatch(nextMatch.rhs);
+          otherInnerWrapper.lock()->addMatch(nextRHS);
         }
       }
       else
       {
-        addMatch(nextMatch.rhs);
+        addMatch(nextRHS);
         if(!otherInnerWrapper.expired())
         {
-          otherInnerWrapper.lock()->addMatch(nextMatch.lhs);
+          otherInnerWrapper.lock()->addMatch(nextLHS);
         }
       }
     }

@@ -11,37 +11,40 @@ AnnoKeySeedJoin::AnnoKeySeedJoin(const DB &db, std::shared_ptr<Operator> op, std
   nextLeftMatch();
 }
 
-BinaryMatch AnnoKeySeedJoin::next()
+bool AnnoKeySeedJoin::next(Match& lhsMatch, Match& rhsMatch)
 {
-  currentMatch.found = false;
+  bool found = false;
 
   if(!op || !left || !currentMatchValid || rightAnnoKeys.empty())
   {
-    return currentMatch;
+    return false;
   }
 
   if(nextRightAnnotation())
   {
-    return currentMatch;
+    return true;
   }
 
   do
   {
     while(matchesByOperator && matchesByOperator->hasNext())
     {
-      currentMatch.rhs = matchesByOperator->next();
+      currentRHSMatch = matchesByOperator->next();
 
       if(rightAnnoKeys.size() == 1)
       {
         // only check the annotation key, not the value
         const AnnotationKey& key = *(rightAnnoKeys.begin());
         std::pair<bool, Annotation> foundAnno =
-            db.nodeAnnos.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
-        if(foundAnno.first && checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, foundAnno.second))
+            db.nodeAnnos.getNodeAnnotation(currentRHSMatch.node, key.ns, key.name);
+        if(foundAnno.first && checkReflexitivity(currentLHSMatch.node, currentLHSMatch.anno, currentRHSMatch.node, foundAnno.second))
         {
-          currentMatch.found = true;
-          currentMatch.rhs.anno = foundAnno.second;
-          return currentMatch;
+          currentRHSMatch.anno = foundAnno.second;
+          
+          lhsMatch = currentLHSMatch;
+          rhsMatch = currentRHSMatch;
+          
+          return true;
         }
       }
       else
@@ -50,7 +53,7 @@ BinaryMatch AnnoKeySeedJoin::next()
         for(const auto& key : rightAnnoKeys)
         {
           std::pair<bool, Annotation> foundAnno =
-              db.nodeAnnos.getNodeAnnotation(currentMatch.rhs.node, key.ns, key.name);
+              db.nodeAnnos.getNodeAnnotation(currentRHSMatch.node, key.ns, key.name);
           if(foundAnno.first)
           {
             matchingRightAnnos.push_back(foundAnno.second);
@@ -59,14 +62,16 @@ BinaryMatch AnnoKeySeedJoin::next()
 
         if(nextRightAnnotation())
         {
-          return currentMatch;
+          lhsMatch = currentLHSMatch;
+          rhsMatch = currentRHSMatch;
+          return true;
         }
       }
     } // end while there are right candidates
   } while(nextLeftMatch()); // end while left has match
 
 
-  return currentMatch;
+  return false;
 }
 
 void AnnoKeySeedJoin::reset()
@@ -90,10 +95,10 @@ bool AnnoKeySeedJoin::nextLeftMatch()
   matchingRightAnnos.clear();
   if(op && op->valid() && left && left->hasNext())
   {
-    currentMatch.lhs = left->next();
+    currentLHSMatch = left->next();
     currentMatchValid = true;
 
-    matchesByOperator = op->retrieveMatches(currentMatch.lhs);
+    matchesByOperator = op->retrieveMatches(currentLHSMatch);
     if(matchesByOperator)
     {
       return true;
@@ -107,11 +112,11 @@ bool AnnoKeySeedJoin::nextRightAnnotation()
 {
   while(!matchingRightAnnos.empty())
   {
-    if(checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, matchingRightAnnos.front()))
+    if(checkReflexitivity(currentLHSMatch.node, currentLHSMatch.anno, currentRHSMatch.node, matchingRightAnnos.front()))
     {
-      currentMatch.found = true;
-      currentMatch.rhs.anno = matchingRightAnnos.front();
+      currentRHSMatch.anno = matchingRightAnnos.front();
       matchingRightAnnos.pop_front();
+      
       return true;
     }
   }
@@ -126,45 +131,46 @@ MaterializedSeedJoin::MaterializedSeedJoin(const DB &db, std::shared_ptr<Operato
   nextLeftMatch();
 }
 
-BinaryMatch MaterializedSeedJoin::next()
+bool MaterializedSeedJoin::next(Match& lhsMatch, Match& rhsMatch)
 {
-  currentMatch.found = false;
-
   // check some conditions where we can't perform a join
   if(!op || !left || !currentMatchValid || right.empty())
   {
-    return currentMatch;
+    return false;
   }
 
   if(nextRightAnnotation())
   {
-    return currentMatch;
+    lhsMatch = currentLHSMatch;
+    rhsMatch = currentRHSMatch;
+    return true;
   }
 
   do
   {
     while(matchesByOperator && matchesByOperator->hasNext())
     {
-      currentMatch.rhs = matchesByOperator->next();
+      currentRHSMatch = matchesByOperator->next();
 
       if(right.size() == 1)
       {
         // directly get the one node annotation
         const auto& rightAnno = *(right.begin());
         auto foundAnno =
-            db.nodeAnnos.getNodeAnnotation(currentMatch.rhs.node, rightAnno.ns, rightAnno.name);
+            db.nodeAnnos.getNodeAnnotation(currentRHSMatch.node, rightAnno.ns, rightAnno.name);
         if(foundAnno.first && foundAnno.second.val == rightAnno.val
-           && checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, foundAnno.second))
+           && checkReflexitivity(currentLHSMatch.node, currentLHSMatch.anno, currentRHSMatch.node, foundAnno.second))
         {
-          currentMatch.found = true;
-          currentMatch.rhs.anno = foundAnno.second;
-          return currentMatch;
+          currentRHSMatch.anno = foundAnno.second;
+          lhsMatch = currentLHSMatch;
+          rhsMatch = currentRHSMatch;
+          return true;
         }
       }
       else
       {
         // check all annotations which of them matches
-        std::list<Annotation> annos = db.nodeAnnos.getNodeAnnotationsByID(currentMatch.rhs.node);
+        std::list<Annotation> annos = db.nodeAnnos.getNodeAnnotationsByID(currentRHSMatch.node);
         for(const auto& a : annos)
         {
           if(right.find(a) != right.end())
@@ -175,14 +181,16 @@ BinaryMatch MaterializedSeedJoin::next()
 
         if(nextRightAnnotation())
         {
-          return currentMatch;
+          lhsMatch = currentLHSMatch;
+          rhsMatch = currentRHSMatch;
+          return true;
         }
       }
     } // end while there are right candidates
   } while(nextLeftMatch()); // end while left has match
 
 
-  return currentMatch;
+  return false;
 }
 
 void MaterializedSeedJoin::reset()
@@ -207,10 +215,10 @@ bool MaterializedSeedJoin::nextLeftMatch()
   if(op && op->valid() && left && left->hasNext())
   {
 
-    currentMatch.lhs = left->next();
+    currentLHSMatch = left->next();
     currentMatchValid = true;
 
-    matchesByOperator = op->retrieveMatches(currentMatch.lhs);
+    matchesByOperator = op->retrieveMatches(currentLHSMatch);
     if(matchesByOperator)
     {
       return true;
@@ -224,10 +232,9 @@ bool MaterializedSeedJoin::nextRightAnnotation()
 {
   while(matchingRightAnnos.size() > 0)
   {
-    if(checkReflexitivity(currentMatch.lhs.node, currentMatch.lhs.anno, currentMatch.rhs.node, matchingRightAnnos.front()))
+    if(checkReflexitivity(currentLHSMatch.node, currentLHSMatch.anno, currentRHSMatch.node, matchingRightAnnos.front()))
     {
-      currentMatch.found = true;
-      currentMatch.rhs.anno = matchingRightAnnos.front();
+      currentRHSMatch.anno = matchingRightAnnos.front();
       matchingRightAnnos.pop_front();
       return true;
     }

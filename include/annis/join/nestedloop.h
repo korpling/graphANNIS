@@ -18,8 +18,8 @@ namespace annis
       std::shared_ptr<AnnoIt> lhs, std::shared_ptr<AnnoIt> rhs, bool leftIsOuter=true);
     virtual ~NestedLoopJoin();
 
-    virtual BinaryMatch next();
-    virtual void reset();
+    virtual bool next(Match& lhsMatch, Match& rhsMatch) override;
+    virtual void reset() override;
   private:
     std::shared_ptr<Operator> op;
     bool initialized;
