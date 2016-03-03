@@ -117,8 +117,11 @@ std::shared_ptr<ExecutionNode> Plan::join(
   result->join = join;
   result->componentNr = lhs->componentNr;
   result->lhs = lhs;
-  result->rhs = rhs;
-  
+  if(type != ExecutionNodeType::filter)
+  {
+    // only set a rhs when this is an actual join
+    result->rhs = rhs;
+  }
   rhs->componentNr = result->componentNr;
   
   // merge both node positions
@@ -189,33 +192,48 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
       else if (node->lhs && node->rhs)
       {
         // this is a join node, the estimated number of of tuple is
-        // (count(lhs) * count(rhs)) / selectivity(op)
+        // (count(lhs) * count(rhs)) * selectivity(op)
         auto estLHS = estimateTupleSize(node->lhs);
         auto estRHS = estimateTupleSize(node->rhs);
         double selectivity = defaultSelectivity;
         // TODO: get the selectivity from the operator
 
+        double outputSize = ((estLHS->output * estRHS->output) * selectivity);
         double processedInStep;
-        double outputSize;
+
         if (node->type == ExecutionNodeType::nested_loop)
         {
-          outputSize = ((estLHS->output * estRHS->output) / selectivity);
           processedInStep = estLHS->output + (estLHS->output * estRHS->output);
         } 
         else if (node->type == ExecutionNodeType::seed)
         {
-          outputSize = ((estLHS->output * estRHS->output) / selectivity);
-          outputSize = estLHS->output + (estLHS->output / estRHS->output);
+          processedInStep = estLHS->output * ((outputSize - estLHS->output)/estLHS->output);
         } 
-        else if (node->type == ExecutionNodeType::filter)
+        else
         {
-          outputSize = (estLHS->output) / selectivity;
           processedInStep = estLHS->output;
         }
 
         // return the output of this node and the sum of all intermediate results
         node->estimate = 
           std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum + estRHS->intermediateSum);
+        return node->estimate;
+
+      }
+      else if (node->lhs)
+      {
+        // this is a filter node, the estimated number of of tuple is
+        // count(lhs) * selectivity(op)
+        auto estLHS = estimateTupleSize(node->lhs);
+        double selectivity = defaultSelectivity;
+        // TODO: get the selectivity from the operator
+
+        double processedInStep = estLHS->output;
+        double outputSize = (estLHS->output) * selectivity;
+       
+        // return the output of this node and the sum of all intermediate results
+        node->estimate = 
+          std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum);
         return node->estimate;
 
       }
