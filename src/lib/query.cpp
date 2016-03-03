@@ -109,7 +109,7 @@ void Query::optimizeOperandOrder()
 std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, 
   const std::vector<OperatorEntry>& operators) 
 {
-  std::map<int, std::shared_ptr<ExecutionNode>> node2exec;
+  std::map<nodeid_t, int> node2component;
   std::map<int, std::shared_ptr<ExecutionNode>> component2exec;
   
   // 1. add all nodes
@@ -121,7 +121,7 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
     baseNode->join = n;
     baseNode->nodePos[i] = 0;
     baseNode->componentNr = i;
-    node2exec[i] = baseNode;
+    node2component[i] = i;
     component2exec[i] = baseNode;
     i++;
   }
@@ -133,15 +133,17 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
     if(e.idxLeft < numOfNodes && e.idxRight < numOfNodes)
     {
       
-      std::shared_ptr<ExecutionNode> execLeft = node2exec[e.idxLeft];
-      std::shared_ptr<ExecutionNode> execRight = node2exec[e.idxRight];
+      int componentLeft = node2component[e.idxLeft];
+      int componentRight = node2component[e.idxRight];
+      
+      std::shared_ptr<ExecutionNode> execLeft = component2exec[componentLeft];
+      std::shared_ptr<ExecutionNode> execRight = component2exec[componentRight];
       
       std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
           execLeft, execRight, db, e.forceNestedLoop);
-      node2exec[e.idxLeft] = joinExec;
-      node2exec[e.idxRight] = joinExec;
-      component2exec[joinExec->componentNr] = joinExec;
-      
+      node2component[e.idxLeft] = joinExec->componentNr;
+      node2component[e.idxRight] = joinExec->componentNr;
+      component2exec[joinExec->componentNr] = joinExec;      
       
     }
   }
@@ -149,16 +151,16 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
    // 3. check if there is only one component left (all nodes are connected)
   bool firstComponent = true;
   int firstComponentID;
-  for(const auto& node : node2exec)
+  for(const auto& e : node2component)
   {
     if(firstComponent)
     {
       firstComponent = false;
-      firstComponentID = node.second->componentNr;
+      firstComponentID = e.second;
     }
     else
     {
-      if(firstComponentID != node.second->componentNr)
+      if(firstComponentID != e.second)
       {
         std::cerr << "Nodes  are not completly connected, failing" << std::endl;
         return std::shared_ptr<Plan>();
