@@ -31,6 +31,9 @@ namespace annis
     std::shared_ptr<Operator> op;
     bool initialized;
     bool leftIsOuter;
+    
+    std::vector<Match> matchOuter;
+    std::vector<Match> matchInner;
 
     std::shared_ptr<Iterator> outer;
     std::shared_ptr<Iterator> inner;

@@ -27,10 +27,6 @@ bool NestedLoopJoin::next(std::vector<Match>& result)
   }
 
   bool proceed = true;
-
-  std::vector<Match> matchOuter;
-  std::vector<Match> matchInner;
-
   
   if(!initialized)
   {
