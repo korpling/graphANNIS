@@ -60,6 +60,9 @@ private:
   std::shared_ptr<ExecutionNode> root;
   double cost;
   
+private:
+  double estimateTupleSize(std::shared_ptr<ExecutionNode> node);
+  
 };
 
 } // end namespace annis

@@ -142,11 +142,58 @@ bool Plan::executeStep(std::vector<Match>& result)
 double Plan::getCost() {
   if(cost < 0.0)
   {
-    // TODO: calculate the cost
+    cost = estimateTupleSize(root);
   }
   
   return cost;
 }
+
+double Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
+{
+  static const double defaultBaseTuples = 100000.0;
+  static const double defaultSelectivity = 0.5;
+  if(node)
+  {
+    std::shared_ptr<EstimatedSearch> baseEstimate =
+      std::dynamic_pointer_cast<EstimatedSearch>(node->join);
+    if(baseEstimate)
+    {
+      // directly use the estimated search this exec node
+      int guess = baseEstimate->guessMaxCount();
+      if(guess >= 0)
+      {
+        return baseEstimate->guessMaxCount();
+      }
+      else
+      {
+        return defaultBaseTuples;
+      }
+    }
+    else if(node->lhs && node->rhs)
+    {
+      // this is a join node, the estimated number of of tuple is
+      // (count(lhs) * count(rhs)) / selectivity(op)
+      double countLeft = estimateTupleSize(node->lhs);
+      double countRight = estimateTupleSize(node->lhs);
+      double selectivity = defaultSelectivity;
+      // TODO: get the selectivity from the operator
+      
+      return ((countLeft * countRight) / selectivity);
+       
+    }
+
+  }
+  else
+  {
+    // a non-existing node doesn't have any cost
+    return 0.0;
+  }
+  
+  // we don't know anything about this node, return some large estimate
+  // TODO: use DB do get a number relative to the overall number of nodes/annotations
+  return defaultBaseTuples;
+}
+
 
 
 Plan::~Plan()
