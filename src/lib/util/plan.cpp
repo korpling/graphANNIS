@@ -161,7 +161,7 @@ double Plan::getCost()
 
 std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
 {
-  static const double defaultBaseTuples = 100000.0;
+  static const std::uint64_t defaultBaseTuples = 100000;
   static const double defaultSelectivity = 0.5;
   if(node)
   {
@@ -180,7 +180,7 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         int guess = baseEstimate->guessMaxCount();
         if (guess >= 0)
         {
-          node->estimate = std::make_shared<ExecutionEstimate>((double) guess, (double) guess);
+          node->estimate = std::make_shared<ExecutionEstimate>((std::uint64_t) guess, (std::uint64_t) guess);
           return node->estimate;
         } 
         else
@@ -198,8 +198,11 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         double selectivity = defaultSelectivity;
         // TODO: get the selectivity from the operator
 
-        double outputSize = ((estLHS->output * estRHS->output) * selectivity);
-        double processedInStep;
+        std::uint64_t outLeftWithSelectivity = ((double) estLHS->output * selectivity);
+        std::uint64_t outRightWithSelectivity = ((double) estRHS->output * selectivity);
+        
+        std::uint64_t outputSize = outLeftWithSelectivity * outRightWithSelectivity;
+        std::uint64_t processedInStep;
 
         if (node->type == ExecutionNodeType::nested_loop)
         {
@@ -207,7 +210,8 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         } 
         else if (node->type == ExecutionNodeType::seed)
         {
-          processedInStep = estLHS->output * ((outputSize - estLHS->output)/estLHS->output);
+          std::uint64_t x = (((double)(outputSize - estLHS->output)) / (double) estLHS->output);
+          processedInStep = estLHS->output * x;
         } 
         else
         {
@@ -228,8 +232,8 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         double selectivity = defaultSelectivity;
         // TODO: get the selectivity from the operator
 
-        double processedInStep = estLHS->output;
-        double outputSize = (estLHS->output) * selectivity;
+        std::uint64_t processedInStep = estLHS->output;
+        std::uint64_t outputSize = ((double) estLHS->output) * selectivity;
        
         // return the output of this node and the sum of all intermediate results
         node->estimate = 
@@ -242,7 +246,7 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
   else
   {
     // a non-existing node doesn't have any cost
-    node->estimate =  std::make_shared<ExecutionEstimate>(0.0, 0.0);
+    node->estimate =  std::make_shared<ExecutionEstimate>(0, 0);
     return node->estimate;
   }
   

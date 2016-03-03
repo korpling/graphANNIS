@@ -30,15 +30,15 @@ enum ExecutionNodeType
 struct ExecutionEstimate
 {
   ExecutionEstimate()
-  : output(0.0), intermediateSum(0.0)
+  : output(0), intermediateSum(0)
   {}
   
-  ExecutionEstimate(double output, double intermediateSum)
+  ExecutionEstimate(std::uint64_t output, std::uint64_t intermediateSum)
     : output(output), intermediateSum(intermediateSum)
   {}
   
-  double output;
-  double intermediateSum;
+  std::uint64_t output;
+  std::uint64_t intermediateSum;
 };
 
 struct ExecutionNode
