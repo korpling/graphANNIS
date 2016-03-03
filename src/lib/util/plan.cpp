@@ -280,9 +280,9 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
   if(node->estimate)
   {
     result +=  "[out: " 
-      + std::to_string((int) node->estimate->output) 
+      + std::to_string((std::uint64_t) node->estimate->output) 
       + " sum: " 
-      + std::to_string((int) node->estimate->intermediateSum) 
+      + std::to_string((std::uint64_t) node->estimate->intermediateSum) 
       + "]";
   }
   
