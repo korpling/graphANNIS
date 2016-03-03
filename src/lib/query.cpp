@@ -268,6 +268,8 @@ void Query::internalInit()
     else
     {
       bestPlan = createPlan(nodes, operators);
+      // still get the cost so the estimates are calculated
+      bestPlan->getCost();
     }
   }
   else
