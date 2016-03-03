@@ -139,7 +139,7 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
       {        
         // the join is already fully completed inside a component, only filter
         std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          *execLeft, *execRight, db, ExecutionNodeType::filter);
+          execLeft, execRight, db, ExecutionNodeType::filter);
         // replace the old top-level exec node with the new one
         node2exec[e.idxLeft] = joinExec;
         node2exec[e.idxRight] = joinExec;
@@ -158,7 +158,7 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
           t = ExecutionNodeType::seed;
         }
         std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          *execLeft, *execRight, db, t);
+          execLeft, execRight, db, t);
         // replace the old top-level exec node with the new one
         node2exec[e.idxLeft] = joinExec;
         node2exec[e.idxRight] = joinExec;

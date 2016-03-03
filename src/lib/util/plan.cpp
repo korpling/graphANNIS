@@ -38,18 +38,18 @@ Plan::Plan(const Plan& orig)
 std::shared_ptr<ExecutionNode> Plan::join(
     std::shared_ptr<Operator> op, 
     size_t lhsNode, size_t rhsNode,
-    const ExecutionNode& lhs, const ExecutionNode& rhs,
+    std::shared_ptr<ExecutionNode> lhs, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     ExecutionNodeType type)
 {
   std::shared_ptr<ExecutionNode> result = std::make_shared<ExecutionNode>();
   
-  auto mappedPosLHS = lhs.nodePos.find(lhsNode);
-  auto mappedPosRHS = rhs.nodePos.find(rhsNode);
+  auto mappedPosLHS = lhs->nodePos.find(lhsNode);
+  auto mappedPosRHS = rhs->nodePos.find(rhsNode);
   
   // make sure both source nodes are contained in the previous execution nodes
-  if(mappedPosLHS == lhs.nodePos.end() || mappedPosRHS == rhs.nodePos.end()
-    || lhs.componentNr != rhs.componentNr)
+  if(mappedPosLHS == lhs->nodePos.end() || mappedPosRHS == rhs->nodePos.end()
+    || lhs->componentNr != rhs->componentNr)
   {
     // TODO: throw error?
     return result;
@@ -61,13 +61,13 @@ std::shared_ptr<ExecutionNode> Plan::join(
   if(type == ExecutionNodeType::filter)
   {
     result->type = ExecutionNodeType::filter;
-    join = std::make_shared<Filter>(op, lhs.join, rhs.join, mappedPosLHS->second, mappedPosRHS->second);
+    join = std::make_shared<Filter>(op, lhs->join, rhs->join, mappedPosLHS->second, mappedPosRHS->second);
   }
   else if(type == ExecutionNodeType::seed)
   {
     result->type = ExecutionNodeType::seed;
       
-    std::shared_ptr<Iterator> rightIt = rhs.join;
+    std::shared_ptr<Iterator> rightIt = rhs->join;
 
     std::shared_ptr<ConstAnnoWrapper> constWrapper =
         std::dynamic_pointer_cast<ConstAnnoWrapper>(rightIt);
@@ -83,39 +83,41 @@ std::shared_ptr<ExecutionNode> Plan::join(
 
     if(keySearch)
     {
-      join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs.join,
+      join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
         mappedPosLHS->second,
         keySearch->getValidAnnotationKeys());
     }
     else if(annoSearch)
     {
-      join = std::make_shared<MaterializedSeedJoin>(db, op, lhs.join,
+      join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
         mappedPosLHS->second,
         annoSearch->getValidAnnotations());
     }
     else
     {
       // fallback to nested loop
-      join = std::make_shared<NestedLoopJoin>(op, lhs.join, rhs.join, mappedPosLHS->second, mappedPosRHS->second);
+      join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join, mappedPosLHS->second, mappedPosRHS->second);
     }
   }
   else
   {
     result->type = ExecutionNodeType::nested_loop;
-    join = std::make_shared<NestedLoopJoin>(op, lhs.join, rhs.join, mappedPosLHS->second, mappedPosRHS->second);
+    join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join, mappedPosLHS->second, mappedPosRHS->second);
   }
   
   result->join = join;
-  result->componentNr = lhs.componentNr;
+  result->componentNr = lhs->componentNr;
+  result->lhs = lhs;
+  result->rhs = rhs;
   
   // merge both node positions
-  for(const auto& pos : lhs.nodePos)
+  for(const auto& pos : lhs->nodePos)
   {
     result->nodePos.insert(pos);
   }
   // the RHS has an offset after the join
-  size_t offset = lhs.nodePos.size();
-  for(const auto& pos : rhs.nodePos)
+  size_t offset = lhs->nodePos.size();
+  for(const auto& pos : rhs->nodePos)
   {
     result->nodePos.insert({pos.first, pos.second + offset});
   }

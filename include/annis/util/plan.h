@@ -33,6 +33,9 @@ struct ExecutionNode
   std::shared_ptr<Iterator> join;
   std::map<size_t, size_t> nodePos;
   int componentNr;
+  
+  std::shared_ptr<ExecutionNode> lhs;
+  std::shared_ptr<ExecutionNode> rhs;
 };
 
 class Plan
@@ -49,7 +52,7 @@ public:
   static std::shared_ptr<ExecutionNode> join(
     std::shared_ptr<Operator> op, 
     size_t lhsNode, size_t rhsNode,
-    const ExecutionNode& lhs, const ExecutionNode& rhs,
+    std::shared_ptr<ExecutionNode>, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     ExecutionNodeType type);
   
