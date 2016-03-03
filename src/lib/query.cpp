@@ -230,14 +230,20 @@ void Query::internalInit()
       std::vector<OperatorEntry> optimizedOperators = operators;
       bestPlan = createPlan(nodes, optimizedOperators);
       double bestCost = bestPlan->getCost();
+      
+      std::cout << "orig plan:" << std::endl;
+      std::cout << bestPlan->debugString() << std::endl;
+      std::cout << "-----------------------" << std::endl;
 
       // repeat until best plan is found
       const int maxUnsuccessfulTries = 5*operators.size();
       int unsuccessful = 0;
       do
       {
+        
+        std::vector<OperatorEntry> tmpOperators = optimizedOperators;
         // randomly select two joins,        
-        std::uniform_int_distribution<> dist(0, optimizedOperators.size()-1);
+        std::uniform_int_distribution<> dist(0, tmpOperators.size()-1);
         int a, b;
         do
         {
@@ -245,17 +251,23 @@ void Query::internalInit()
           b = dist(randGen);
         } while(a == b);
         
-        // switch the order of the selected joins and check if the result has a smaller cost
-        OperatorEntry tmpEntry = optimizedOperators[a];
-        optimizedOperators[a] = optimizedOperators[b];
-        optimizedOperators[b] = tmpEntry;
+       // std::cout << "try to switch op " << a << " with op " << b << std::endl;
         
-        auto altPlan = createPlan(nodes, optimizedOperators);
+        // switch the order of the selected joins and check if the result has a smaller cost
+        OperatorEntry tmpEntry = tmpOperators[a];
+        tmpOperators[a] = tmpOperators[b];
+        tmpOperators[b] = tmpEntry;
+        
+        auto altPlan = createPlan(nodes, tmpOperators);
         double altCost = altPlan->getCost();
 
         if(altCost < bestCost)
         {
           bestPlan = altPlan;
+          optimizedOperators = tmpOperators;
+          //std::cout << "new plan:" << std::endl;
+          //std::cout << bestPlan->debugString() << std::endl;
+          //std::cout << "-----------------------" << std::endl;
           bestCost = altCost;
           unsuccessful = 0;
         }
