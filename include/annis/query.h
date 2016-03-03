@@ -63,14 +63,14 @@ private:
 
   std::shared_ptr<Plan> bestPlan;
   std::vector<std::shared_ptr<AnnoIt>> nodes;
-  std::list<OperatorEntry> operators;
+  std::vector<OperatorEntry> operators;
 
   std::set<AnnotationKey> emptyAnnoKeySet;
 
 private:
   void internalInit();
   
-  std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::list<OperatorEntry>& operators);
+  std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::vector<OperatorEntry>& operators);
   
   void optimizeOperandOrder();
   

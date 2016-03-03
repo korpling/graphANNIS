@@ -9,6 +9,7 @@
 #include <annis/wrapper.h>
 
 #include <vector>
+#include <random>
 #include <re2/re2.h>
 
 using namespace annis;
@@ -106,7 +107,7 @@ void Query::optimizeOperandOrder()
 }
 
 std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, 
-  const std::list<OperatorEntry>& operators) 
+  const std::vector<OperatorEntry>& operators) 
 {
   std::map<int, std::shared_ptr<ExecutionNode>> node2exec;
   std::map<int, std::shared_ptr<ExecutionNode>> component2exec;
@@ -186,8 +187,71 @@ void Query::internalInit()
   if(bestPlan) {
     return;
   }
+  
+  if(optimize)
+  {
+    // use a constant seed to make the result deterministic
+    std::mt19937 randGen(4711);
+        
+    ///////////////////////////////////////////////////////////
+    // 1. make sure all smaller operand are on the left side //
+    ///////////////////////////////////////////////////////////
+    optimizeOperandOrder();
+    
+    if(operators.size() > 1)
+    {
+      ////////////////////////////////////
+      // 2. optimize the order of joins //
+      ////////////////////////////////////
+      std::vector<OperatorEntry> optimizedOperators = operators;
+      bestPlan = createPlan(nodes, optimizedOperators);
+      double bestCost = bestPlan->getCost();
 
-  bestPlan = createPlan(nodes, operators);
+      // repeat until best plan is found
+      const int maxUnsuccessfulTries = 10;
+      int unsuccessful = 0;
+      do
+      {
+        // randomly select two joins,        
+        std::uniform_int_distribution<> dist(0, optimizedOperators.size()-1);
+        int a, b;
+        do
+        {
+          a = dist(randGen);
+          b = dist(randGen);
+        } while(a == b);
+        
+        // switch the order of the selected joins and check if the result has a smaller cost
+        OperatorEntry tmpEntry = optimizedOperators[a];
+        optimizedOperators[a] = optimizedOperators[b];
+        optimizedOperators[b] = tmpEntry;
+        
+        auto altPlan = createPlan(nodes, optimizedOperators);
+        double altCost = altPlan->getCost();
+
+        if(altCost < bestCost)
+        {
+          bestPlan = altPlan;
+          bestCost = altCost;
+          unsuccessful = 0;
+        }
+        else
+        {        
+          unsuccessful++;
+        }
+      } while(unsuccessful < maxUnsuccessfulTries);
+    } // end optimize join order
+    else
+    {
+      bestPlan = createPlan(nodes, operators);
+    }
+  }
+  else
+  {
+    // create unoptimized plan
+    bestPlan = createPlan(nodes, operators);
+  }
+  
   currentResult.resize(nodes.size());
 }
 
@@ -199,7 +263,14 @@ bool Query::next()
     internalInit();
   }
   
-  return bestPlan->executeStep(currentResult);
+  if(bestPlan)
+  {
+    return bestPlan->executeStep(currentResult);
+  }
+  else
+  {
+    return false;
+  }
 }
 
 
