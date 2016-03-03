@@ -136,48 +136,37 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
       std::shared_ptr<ExecutionNode> execLeft = node2exec[e.idxLeft];
       std::shared_ptr<ExecutionNode> execRight = node2exec[e.idxRight];
       
-      if(execLeft->componentNr == execRight->componentNr)
-      {        
-        // the join is already fully completed inside a component, only filter
-        std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, ExecutionNodeType::filter);
-        // replace the old top-level exec node with the new one
-        node2exec[e.idxLeft] = joinExec;
-        node2exec[e.idxRight] = joinExec;
-        component2exec[execLeft->componentNr] = joinExec;
-      }
-      else
-      {
-        // this joins two components which each other
-        component2exec.erase(execRight->componentNr);
-        execRight->componentNr = execLeft->componentNr;
-        
-        ExecutionNodeType t = ExecutionNodeType::nested_loop;
-        // if the right side is not another join we can use a seed join
-        if(execRight->type == ExecutionNodeType::base && !e.forceNestedLoop)
-        {
-          t = ExecutionNodeType::seed;
-        }
-        std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, t);
-        // replace the old top-level exec node with the new one
-        node2exec[e.idxLeft] = joinExec;
-        node2exec[e.idxRight] = joinExec;
-        component2exec[execLeft->componentNr] = joinExec;
-      }
+      std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
+          execLeft, execRight, db, e.forceNestedLoop);
+      node2exec[e.idxLeft] = joinExec;
+      node2exec[e.idxRight] = joinExec;
+      component2exec[joinExec->componentNr] = joinExec;
+      
+      
     }
   }
   
    // 3. check if there is only one component left (all nodes are connected)
-  if(component2exec.size() == 1)
+  bool firstComponent = true;
+  int firstComponentID;
+  for(const auto& componentEntry : component2exec)
   {
-    return std::make_shared<Plan>(component2exec.begin()->second);
-  }
-  else
-  {
-     std::cerr << "Nodes " << " are not completly connected, failing" << std::endl;
+    if(firstComponent)
+    {
+      firstComponent = false;
+      firstComponentID = componentEntry.second->componentNr;
+    }
+    else
+    {
+      if(firstComponentID != componentEntry.second->componentNr)
+      {
+        std::cerr << "Nodes  are not completly connected, failing" << std::endl;
         return std::shared_ptr<Plan>();
+      }
+    }
   }
+  
+  return std::make_shared<Plan>(component2exec[firstComponentID]);
 }
 
 

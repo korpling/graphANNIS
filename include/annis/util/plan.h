@@ -60,7 +60,7 @@ public:
     size_t lhsNode, size_t rhsNode,
     std::shared_ptr<ExecutionNode>, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
-    ExecutionNodeType type);
+    bool forceNestedLoop);
   
 private:
   std::shared_ptr<ExecutionNode> root;

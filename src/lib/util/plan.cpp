@@ -40,7 +40,7 @@ std::shared_ptr<ExecutionNode> Plan::join(
     size_t lhsNode, size_t rhsNode,
     std::shared_ptr<ExecutionNode> lhs, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
-    ExecutionNodeType type)
+    bool forceNestedLoop)
 {
   std::shared_ptr<ExecutionNode> result = std::make_shared<ExecutionNode>();
   
@@ -48,11 +48,21 @@ std::shared_ptr<ExecutionNode> Plan::join(
   auto mappedPosRHS = rhs->nodePos.find(rhsNode);
   
   // make sure both source nodes are contained in the previous execution nodes
-  if(mappedPosLHS == lhs->nodePos.end() || mappedPosRHS == rhs->nodePos.end()
-    || lhs->componentNr != rhs->componentNr)
+  if(mappedPosLHS == lhs->nodePos.end() || mappedPosRHS == rhs->nodePos.end())
   {
     // TODO: throw error?
     return result;
+  }
+  
+  ExecutionNodeType type = ExecutionNodeType::nested_loop;
+  if(lhs->componentNr == rhs->componentNr)
+  {
+    type == ExecutionNodeType::filter;
+  }
+  else if(rhs->type == ExecutionNodeType::base && !forceNestedLoop)
+  { 
+    // if the right side is not another join we can use a seed join
+    type = ExecutionNodeType::seed;
   }
   
   // create the join iterator
@@ -109,6 +119,8 @@ std::shared_ptr<ExecutionNode> Plan::join(
   result->componentNr = lhs->componentNr;
   result->lhs = lhs;
   result->rhs = rhs;
+  
+  rhs->componentNr = result->componentNr;
   
   // merge both node positions
   for(const auto& pos : lhs->nodePos)
