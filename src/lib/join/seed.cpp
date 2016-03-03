@@ -9,7 +9,7 @@ AnnoKeySeedJoin::AnnoKeySeedJoin(const DB &db, std::shared_ptr<Operator> op,
   : db(db), op(op), currentMatchValid(false),
     left(lhs), lhsIdx(lhsIdx), rightAnnoKeys(rightAnnoKeys)
 {
-  nextLeftMatch();
+
 }
 
 bool AnnoKeySeedJoin::next(std::vector<Match>& tuple)
@@ -17,12 +17,16 @@ bool AnnoKeySeedJoin::next(std::vector<Match>& tuple)
   tuple.clear();
   bool found = false;
 
+  if(!currentMatchValid)
+  {
+    nextLeftMatch();
+  }
+  
   if(!op || !left || !currentMatchValid || rightAnnoKeys.empty())
   {
     return false;
   }
   
-
   if(nextRightAnnotation())
   {
     tuple.reserve(currentLHSMatch.size()+1);
@@ -134,12 +138,16 @@ MaterializedSeedJoin::MaterializedSeedJoin(const DB &db, std::shared_ptr<Operato
   : db(db), op(op), currentMatchValid(false),
     left(lhs), lhsIdx(lhsIdx), right(rightAnno)
 {
-  nextLeftMatch();
 }
 
 bool MaterializedSeedJoin::next(std::vector<Match>& tuple)
 {
   tuple.clear();
+  
+  if(!currentMatchValid)
+  {
+    nextLeftMatch();
+  }
   
   // check some conditions where we can't perform a join
   if(!op || !left || !currentMatchValid || right.empty())
