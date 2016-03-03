@@ -191,7 +191,7 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         // this is a join node, the estimated number of of tuple is
         // (count(lhs) * count(rhs)) / selectivity(op)
         auto estLHS = estimateTupleSize(node->lhs);
-        auto estRHS = estimateTupleSize(node->lhs);
+        auto estRHS = estimateTupleSize(node->rhs);
         double selectivity = defaultSelectivity;
         // TODO: get the selectivity from the operator
 
