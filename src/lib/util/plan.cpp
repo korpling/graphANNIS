@@ -178,10 +178,27 @@ ExecutionEstimate Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
       auto estRHS = estimateTupleSize(node->lhs);
       double selectivity = defaultSelectivity;
       // TODO: get the selectivity from the operator
-      double output = ((estLHS.output * estRHS.output) / selectivity);
+        
+      double processedInStep;
+      double outputSize;
+      if(node->type == ExecutionNodeType::nested_loop)
+      {
+        outputSize = ((estLHS.output * estRHS.output) / selectivity);
+        processedInStep = estLHS.output + (estLHS.output * estRHS.output);
+      }
+      else if(node->type == ExecutionNodeType::seed)
+      {
+        outputSize = ((estLHS.output * estRHS.output) / selectivity);
+        outputSize = estLHS.output + (estLHS.output / estRHS.output);
+      }
+      else if(node->type == ExecutionNodeType::filter)
+      {
+        outputSize = (estLHS.output) / selectivity;
+        processedInStep = estLHS.output;
+      }
       
       // return the output of this node and the sum of all intermediate results
-      return {output, output + estLHS.intermediateSum + estRHS.intermediateSum};
+      return {outputSize, processedInStep + estLHS.intermediateSum + estRHS.intermediateSum};
        
     }
 
