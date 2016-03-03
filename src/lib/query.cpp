@@ -141,8 +141,8 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
       
       std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
           execLeft, execRight, db, e.forceNestedLoop);
-      node2component[e.idxLeft] = joinExec->componentNr;
-      node2component[e.idxRight] = joinExec->componentNr;
+      updateComponentForNodes(node2component, componentLeft, joinExec->componentNr);
+      updateComponentForNodes(node2component, componentRight, joinExec->componentNr);
       component2exec[joinExec->componentNr] = joinExec;      
       
     }
@@ -169,6 +169,29 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
   }
   
   return std::make_shared<Plan>(component2exec[firstComponentID]);
+}
+
+void Query::updateComponentForNodes(std::map<nodeid_t, int>& node2component, int from, int to)
+{
+  if(from == to)
+  {
+    // nothing todo
+    return;
+  }
+
+  std::vector<int> nodeIDs2update;
+  for(const auto e : node2component)
+  {
+    if(e.second == from)
+    {
+      nodeIDs2update.push_back(e.first);
+    }
+  }
+  // set the component id for each node of the other component
+  for(auto nodeID : nodeIDs2update)
+  {
+    node2component[nodeID] = to;
+  }
 }
 
 

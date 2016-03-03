@@ -74,6 +74,8 @@ private:
   
   void optimizeOperandOrder();
   
+  void updateComponentForNodes(std::map<nodeid_t, int>& node2component, int from, int to);
+  
 };
 
 } // end namespace annis
