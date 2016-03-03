@@ -70,7 +70,7 @@ std::shared_ptr<ExecutionNode> Plan::join(
   if(type == ExecutionNodeType::filter)
   {
     result->type = ExecutionNodeType::filter;
-    join = std::make_shared<Filter>(op, lhs->join, rhs->join, mappedPosLHS->second, mappedPosRHS->second);
+    join = std::make_shared<Filter>(op, lhs->join, mappedPosLHS->second, mappedPosRHS->second);
   }
   else if(type == ExecutionNodeType::seed)
   {

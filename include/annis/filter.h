@@ -10,7 +10,7 @@ class Filter : public Iterator
 {
 public:
 
-  Filter(std::shared_ptr<Operator> op, std::shared_ptr<Iterator> lhs, std::shared_ptr<Iterator> rhs,
+  Filter(std::shared_ptr<Operator> op, std::shared_ptr<Iterator> inner,
     size_t lhsIdx, size_t rhsIdx);
 
   virtual bool next(std::vector<Match>& tuple) override;
@@ -20,8 +20,7 @@ public:
 
 private:
   std::shared_ptr<Operator> op;
-  std::shared_ptr<Iterator> lhs;
-  std::shared_ptr<Iterator> rhs;
+  std::shared_ptr<Iterator> inner;
   size_t lhsIdx; 
   size_t rhsIdx;
 };

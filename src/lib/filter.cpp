@@ -3,29 +3,28 @@
 using namespace annis;
 
 
-Filter::Filter(std::shared_ptr<Operator> op, std::shared_ptr<Iterator> lhs, std::shared_ptr<Iterator> rhs,
+Filter::Filter(std::shared_ptr<Operator> op, std::shared_ptr<Iterator> inner,
   size_t lhsIdx, size_t rhsIdx)
-  : op(op), lhs(lhs), rhs(rhs), lhsIdx(lhsIdx), rhsIdx(rhsIdx)
+  : op(op), inner(inner), lhsIdx(lhsIdx), rhsIdx(rhsIdx)
 {
 
 }
 
+// TODO: explicitly test the filter function
 bool Filter::next(std::vector<Match>& tuple)
 {
   tuple.clear();
   bool found = false;
 
-  if(op && lhs && rhs)
+  if(op && inner)
   {
-    std::vector<Match> lhsMatch;
-    std::vector<Match> rhsMatch;
-    while(!found && lhs->next(lhsMatch) && rhs->next(rhsMatch))
+    std::vector<Match> innerMatch;
+    while(!found && inner->next(innerMatch))
     {
-      if(op->filter(lhsMatch[lhsIdx], rhsMatch[rhsIdx]))
+      if(op->filter(innerMatch[lhsIdx], innerMatch[rhsIdx]))
       {
-        tuple.reserve(lhsMatch.size()+rhsMatch.size());
-        tuple.insert(tuple.end(), lhsMatch.begin(), lhsMatch.end());
-        tuple.insert(tuple.end(), rhsMatch.begin(), rhsMatch.end());
+        tuple.reserve(innerMatch.size());
+        tuple.insert(tuple.end(), innerMatch.begin(), innerMatch.end());
         found = true;
       }
     }
@@ -36,10 +35,9 @@ bool Filter::next(std::vector<Match>& tuple)
 
 void Filter::reset()
 {
-  if(lhs && rhs)
+  if(inner)
   {
-    lhs->reset();
-    rhs->reset();
+    inner->reset();
   }
 }
 
