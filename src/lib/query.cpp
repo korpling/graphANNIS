@@ -231,9 +231,9 @@ void Query::internalInit()
       bestPlan = createPlan(nodes, optimizedOperators);
       double bestCost = bestPlan->getCost();
       
-      std::cout << "orig plan:" << std::endl;
-      std::cout << bestPlan->debugString() << std::endl;
-      std::cout << "-----------------------" << std::endl;
+//      std::cout << "orig plan:" << std::endl;
+//      std::cout << bestPlan->debugString() << std::endl;
+//      std::cout << "-----------------------" << std::endl;
 
       // repeat until best plan is found
       const int maxUnsuccessfulTries = 5*operators.size();
@@ -251,7 +251,6 @@ void Query::internalInit()
           b = dist(randGen);
         } while(a == b);
         
-       // std::cout << "try to switch op " << a << " with op " << b << std::endl;
         
         // switch the order of the selected joins and check if the result has a smaller cost
         OperatorEntry tmpEntry = tmpOperators[a];
@@ -261,13 +260,21 @@ void Query::internalInit()
         auto altPlan = createPlan(nodes, tmpOperators);
         double altCost = altPlan->getCost();
 
+//        std::cout << "................................" << std::endl;
+//        std::cout << "try to switch op " << a << " with op " << b << std::endl;
+//        std::cout << altPlan->debugString() << std::endl;
+//        std::cout << "................................" << std::endl;
+
         if(altCost < bestCost)
         {
           bestPlan = altPlan;
           optimizedOperators = tmpOperators;
-          //std::cout << "new plan:" << std::endl;
-          //std::cout << bestPlan->debugString() << std::endl;
-          //std::cout << "-----------------------" << std::endl;
+          
+//          std::cout << "================================" << std::endl;
+//          std::cout << "new plan:" << std::endl;
+//          std::cout << bestPlan->debugString() << std::endl;
+//          std::cout << "================================" << std::endl;
+          
           bestCost = altCost;
           unsuccessful = 0;
         }
