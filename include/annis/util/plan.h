@@ -38,6 +38,12 @@ struct ExecutionNode
   std::shared_ptr<ExecutionNode> rhs;
 };
 
+struct ExecutionEstimate
+{
+  double output;
+  double intermediateSum;
+};
+
 class Plan
 {
 public:
@@ -61,7 +67,7 @@ private:
   double cost;
   
 private:
-  double estimateTupleSize(std::shared_ptr<ExecutionNode> node);
+  ExecutionEstimate estimateTupleSize(std::shared_ptr<ExecutionNode> node);
   
 };
 

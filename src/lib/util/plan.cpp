@@ -142,13 +142,14 @@ bool Plan::executeStep(std::vector<Match>& result)
 double Plan::getCost() {
   if(cost < 0.0)
   {
-    cost = estimateTupleSize(root);
+    ExecutionEstimate est = estimateTupleSize(root);
+    cost = est.intermediateSum;
   }
   
   return cost;
 }
 
-double Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
+ExecutionEstimate Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
 {
   static const double defaultBaseTuples = 100000.0;
   static const double defaultSelectivity = 0.5;
@@ -162,23 +163,25 @@ double Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
       int guess = baseEstimate->guessMaxCount();
       if(guess >= 0)
       {
-        return baseEstimate->guessMaxCount();
+        return {(double) guess, (double) guess};
       }
       else
       {
-        return defaultBaseTuples;
+        return {defaultBaseTuples, defaultBaseTuples};
       }
     }
     else if(node->lhs && node->rhs)
     {
       // this is a join node, the estimated number of of tuple is
       // (count(lhs) * count(rhs)) / selectivity(op)
-      double countLeft = estimateTupleSize(node->lhs);
-      double countRight = estimateTupleSize(node->lhs);
+      auto estLHS = estimateTupleSize(node->lhs);
+      auto estRHS = estimateTupleSize(node->lhs);
       double selectivity = defaultSelectivity;
       // TODO: get the selectivity from the operator
+      double output = ((estLHS.output * estRHS.output) / selectivity);
       
-      return ((countLeft * countRight) / selectivity);
+      // return the output of this node and the sum of all intermediate results
+      return {output, output + estLHS.intermediateSum + estRHS.intermediateSum};
        
     }
 
@@ -186,12 +189,12 @@ double Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
   else
   {
     // a non-existing node doesn't have any cost
-    return 0.0;
+    return {0.0, 0.0};
   }
   
   // we don't know anything about this node, return some large estimate
   // TODO: use DB do get a number relative to the overall number of nodes/annotations
-  return defaultBaseTuples;
+  return {defaultBaseTuples, defaultBaseTuples};
 }
 
 
