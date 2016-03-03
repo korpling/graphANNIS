@@ -23,9 +23,9 @@ JSONQueryParser::JSONQueryParser()
 {
 }
 
-std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, std::istream& jsonStream)
+std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, std::istream& jsonStream, bool optimize)
 {
-  std::shared_ptr<Query> q = std::make_shared<Query>(db);
+  std::shared_ptr<Query> q = std::make_shared<Query>(db, optimize);
 
   // parse root as value
   Json::Value root;
