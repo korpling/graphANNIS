@@ -25,7 +25,22 @@ enum ExecutionNodeType
   filter,
   num_of_ExecutionNodeType
 };
+
+
+struct ExecutionEstimate
+{
+  ExecutionEstimate()
+  : output(0.0), intermediateSum(0.0)
+  {}
   
+  ExecutionEstimate(double output, double intermediateSum)
+    : output(output), intermediateSum(intermediateSum)
+  {}
+  
+  double output;
+  double intermediateSum;
+};
+
 struct ExecutionNode
 {
   ExecutionNodeType type;
@@ -36,13 +51,10 @@ struct ExecutionNode
   
   std::shared_ptr<ExecutionNode> lhs;
   std::shared_ptr<ExecutionNode> rhs;
+  
+  std::shared_ptr<ExecutionEstimate> estimate;
 };
 
-struct ExecutionEstimate
-{
-  double output;
-  double intermediateSum;
-};
 
 class Plan
 {
@@ -64,10 +76,10 @@ public:
   
 private:
   std::shared_ptr<ExecutionNode> root;
-  double cost;
   
 private:
-  ExecutionEstimate estimateTupleSize(std::shared_ptr<ExecutionNode> node);
+  std::shared_ptr<ExecutionEstimate> estimateTupleSize(std::shared_ptr<ExecutionNode> node);
+  void clearCachedEstimate(std::shared_ptr<ExecutionNode> node);
   
 };
 

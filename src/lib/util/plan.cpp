@@ -25,14 +25,13 @@
 using namespace annis;
 
 Plan::Plan(std::shared_ptr<ExecutionNode> root)
-: root(root), cost(-1.0)
+: root(root)
 {
 }
 
 Plan::Plan(const Plan& orig)
 {
   root = orig.root;
-  cost = orig.cost;
 }
 
 std::shared_ptr<ExecutionNode> Plan::join(
@@ -151,80 +150,101 @@ bool Plan::executeStep(std::vector<Match>& result)
 }
 
 
-double Plan::getCost() {
-  if(cost < 0.0)
-  {
-    ExecutionEstimate est = estimateTupleSize(root);
-    cost = est.intermediateSum;
-  }
-  
-  return cost;
+double Plan::getCost() 
+{
+  // the estimation is cached in the root so multiple calls to getCost() won't do any harm
+  return estimateTupleSize(root)->intermediateSum;
 }
 
-ExecutionEstimate Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
+std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
 {
   static const double defaultBaseTuples = 100000.0;
   static const double defaultSelectivity = 0.5;
   if(node)
   {
-    std::shared_ptr<EstimatedSearch> baseEstimate =
-      std::dynamic_pointer_cast<EstimatedSearch>(node->join);
-    if(baseEstimate)
+    if (node->estimate)
     {
-      // directly use the estimated search this exec node
-      int guess = baseEstimate->guessMaxCount();
-      if(guess >= 0)
-      {
-        return {(double) guess, (double) guess};
-      }
-      else
-      {
-        return {defaultBaseTuples, defaultBaseTuples};
-      }
-    }
-    else if(node->lhs && node->rhs)
+      // return the cached estimate
+      return node->estimate;
+    } 
+    else
     {
-      // this is a join node, the estimated number of of tuple is
-      // (count(lhs) * count(rhs)) / selectivity(op)
-      auto estLHS = estimateTupleSize(node->lhs);
-      auto estRHS = estimateTupleSize(node->lhs);
-      double selectivity = defaultSelectivity;
-      // TODO: get the selectivity from the operator
-        
-      double processedInStep;
-      double outputSize;
-      if(node->type == ExecutionNodeType::nested_loop)
+      std::shared_ptr<EstimatedSearch> baseEstimate =
+        std::dynamic_pointer_cast<EstimatedSearch>(node->join);
+      if (baseEstimate)
       {
-        outputSize = ((estLHS.output * estRHS.output) / selectivity);
-        processedInStep = estLHS.output + (estLHS.output * estRHS.output);
-      }
-      else if(node->type == ExecutionNodeType::seed)
+        // directly use the estimated search this exec node
+        int guess = baseEstimate->guessMaxCount();
+        if (guess >= 0)
+        {
+          return std::make_shared<ExecutionEstimate>((double) guess, (double) guess);
+        } else
+        {
+          return std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
+        }
+      } 
+      else if (node->lhs && node->rhs)
       {
-        outputSize = ((estLHS.output * estRHS.output) / selectivity);
-        outputSize = estLHS.output + (estLHS.output / estRHS.output);
-      }
-      else if(node->type == ExecutionNodeType::filter)
-      {
-        outputSize = (estLHS.output) / selectivity;
-        processedInStep = estLHS.output;
-      }
-      
-      // return the output of this node and the sum of all intermediate results
-      return {outputSize, processedInStep + estLHS.intermediateSum + estRHS.intermediateSum};
-       
-    }
+        // this is a join node, the estimated number of of tuple is
+        // (count(lhs) * count(rhs)) / selectivity(op)
+        auto estLHS = estimateTupleSize(node->lhs);
+        auto estRHS = estimateTupleSize(node->lhs);
+        double selectivity = defaultSelectivity;
+        // TODO: get the selectivity from the operator
 
+        double processedInStep;
+        double outputSize;
+        if (node->type == ExecutionNodeType::nested_loop)
+        {
+          outputSize = ((estLHS->output * estRHS->output) / selectivity);
+          processedInStep = estLHS->output + (estLHS->output * estRHS->output);
+        } 
+        else if (node->type == ExecutionNodeType::seed)
+        {
+          outputSize = ((estLHS->output * estRHS->output) / selectivity);
+          outputSize = estLHS->output + (estLHS->output / estRHS->output);
+        } 
+        else if (node->type == ExecutionNodeType::filter)
+        {
+          outputSize = (estLHS->output) / selectivity;
+          processedInStep = estLHS->output;
+        }
+
+        // return the output of this node and the sum of all intermediate results
+        return std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum + estRHS->intermediateSum);
+
+      }
+    } // end if no cached estimate given
   }
   else
   {
     // a non-existing node doesn't have any cost
-    return {0.0, 0.0};
+    return std::make_shared<ExecutionEstimate>(0.0, 0.0);
   }
   
   // we don't know anything about this node, return some large estimate
   // TODO: use DB do get a number relative to the overall number of nodes/annotations
-  return {defaultBaseTuples, defaultBaseTuples};
+  return std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
 }
+
+void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node) 
+{
+  if(node)
+  {
+    node->estimate.reset();
+    
+    if(node->lhs)
+    {
+      clearCachedEstimate(node->lhs);
+    }
+
+    if(node->rhs)
+    {
+      clearCachedEstimate(node->rhs);
+    }
+  }
+}
+
 
 
 
