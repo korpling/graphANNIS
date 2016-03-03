@@ -74,6 +74,8 @@ public:
     const DB& db,
     bool forceNestedLoop);
   
+  std::string debugString() const;
+  
 private:
   std::shared_ptr<ExecutionNode> root;
   
@@ -81,6 +83,8 @@ private:
   std::shared_ptr<ExecutionEstimate> estimateTupleSize(std::shared_ptr<ExecutionNode> node);
   void clearCachedEstimate(std::shared_ptr<ExecutionNode> node);
   
+  std::string debugStringForNode(std::shared_ptr<const ExecutionNode> node, std::string indention) const;
+  std::string typeToString(ExecutionNodeType type) const;
 };
 
 } // end namespace annis

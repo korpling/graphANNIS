@@ -54,6 +54,10 @@ void completion(const char *bufRaw, linenoiseCompletions *lc)
     linenoiseAddCompletion(lc, "guess");
     linenoiseAddCompletion(lc, "guess_regex");
   }
+  else if(boost::starts_with(buf, "p"))
+  {
+    linenoiseAddCompletion(lc, "plan");
+  }
   else if(boost::starts_with(buf, "u"))
   {
     linenoiseAddCompletion(lc, "update_statistics");
@@ -237,6 +241,23 @@ int main(int argc, char** argv)
         else
         {
           std::cout << "Must provide at two (name and regex) or three (namespace name regex) arguments" << std::endl;
+        }
+      }
+      else if(cmd == "plan")
+      {
+        if(args.size() > 0)
+        {
+          std::string json = boost::join(args, " ");
+          std::cout << "Planning..." << std::endl;
+          std::stringstream ss;
+          ss << json;
+          std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, ss); 
+          std::cout << q->getBestPlan()->debugString() << std::endl;
+
+        }
+        else
+        {
+          std::cout << "you need to give the query JSON as argument" << std::endl;
         }
       }
       else if (cmd == "quit" || cmd == "exit")

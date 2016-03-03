@@ -106,6 +106,16 @@ void Query::optimizeOperandOrder()
   }
 }
 
+std::shared_ptr<const Plan> Query::getBestPlan() 
+{
+  if(!bestPlan)
+  {
+    internalInit();
+  }
+  return bestPlan;
+}
+
+
 std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, 
   const std::vector<OperatorEntry>& operators) 
 {

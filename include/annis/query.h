@@ -52,6 +52,8 @@ public:
   
   const std::vector<Match>& getCurrent() { return currentResult;}
   
+  std::shared_ptr<const Plan> getBestPlan();
+  
   virtual ~Query();
 
 private:

@@ -177,10 +177,13 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         int guess = baseEstimate->guessMaxCount();
         if (guess >= 0)
         {
-          return std::make_shared<ExecutionEstimate>((double) guess, (double) guess);
-        } else
+          node->estimate = std::make_shared<ExecutionEstimate>((double) guess, (double) guess);
+          return node->estimate;
+        } 
+        else
         {
-          return std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
+          node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
+          return node->estimate;
         }
       } 
       else if (node->lhs && node->rhs)
@@ -211,7 +214,9 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         }
 
         // return the output of this node and the sum of all intermediate results
-        return std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum + estRHS->intermediateSum);
+        node->estimate = 
+          std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum + estRHS->intermediateSum);
+        return node->estimate;
 
       }
     } // end if no cached estimate given
@@ -219,12 +224,14 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
   else
   {
     // a non-existing node doesn't have any cost
-    return std::make_shared<ExecutionEstimate>(0.0, 0.0);
+    node->estimate =  std::make_shared<ExecutionEstimate>(0.0, 0.0);
+    return node->estimate;
   }
   
   // we don't know anything about this node, return some large estimate
   // TODO: use DB do get a number relative to the overall number of nodes/annotations
-  return std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
+  node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
+  return node->estimate;
 }
 
 void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node) 
@@ -245,7 +252,71 @@ void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node)
   }
 }
 
+std::string Plan::debugString() const
+{
+  return debugStringForNode(root, "");
+}
 
+std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, std::string indention) const
+{
+  if(!node)
+  {
+    return "";
+  }
+  
+  std::string result = indention + "(";
+  
+  if(node->type == ExecutionNodeType::base)
+  {
+    // output the node number
+    result += "#" + std::to_string(node->nodePos.begin()->first);
+  }
+  else
+  {
+    result += typeToString(node->type);
+  }
+  result += ")";
+  
+  if(node->estimate)
+  {
+    result +=  "[out: " 
+      + std::to_string((int) node->estimate->output) 
+      + " sum: " 
+      + std::to_string((int) node->estimate->intermediateSum) 
+      + "]";
+  }
+  
+  result += "\n";
+  
+  if(node->lhs)
+  {
+    result += debugStringForNode(node->lhs, indention + "    ");
+  }
+  if(node->rhs)
+  {
+    result += debugStringForNode(node->rhs, indention + "    ");
+  }
+  
+  return result;
+}
+
+std::string Plan::typeToString(ExecutionNodeType type) const
+{
+  switch(type)
+  {
+    case ExecutionNodeType::base:
+      return "base";
+    case ExecutionNodeType::filter:
+      return "filter";
+    case ExecutionNodeType::nested_loop:
+      return "nested_loop";
+    case ExecutionNodeType::seed:
+      return "seed";
+    default:
+      return "<unknown>";
+  }
+
+}
 
 
 Plan::~Plan()
