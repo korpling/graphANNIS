@@ -58,13 +58,13 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAn
   return idx;
 }
 
-void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool useNestedLoop)
+void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool forceNestedLoop)
 {
   bestPlan.reset();
 
   OperatorEntry entry;
   entry.op = op;
-  entry.useNestedLoop = useNestedLoop;
+  entry.forceNestedLoop = forceNestedLoop;
   entry.idxLeft = idxLeft;
   entry.idxRight = idxRight;
   
@@ -154,7 +154,7 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
         
         ExecutionNodeType t = ExecutionNodeType::nested_loop;
         // if the right side is not another join we can use a seed join
-        if(execRight->type == ExecutionNodeType::base)
+        if(execRight->type == ExecutionNodeType::base && !e.forceNestedLoop)
         {
           t = ExecutionNodeType::seed;
         }

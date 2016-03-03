@@ -23,7 +23,7 @@ struct OperatorEntry
   std::shared_ptr<Operator> op;
   size_t idxLeft;
   size_t idxRight;
-  bool useNestedLoop;
+  bool forceNestedLoop;
 };
 
 class Query
@@ -44,9 +44,9 @@ public:
    * @param op
    * @param idxLeft index of LHS node
    * @param idxRight index of RHS node
-   * @param useNestedLoop if true a nested loop join is used instead of the default "seed join"
+   * @param forceNestedLoop if true a nested loop join is used instead of the default "seed join"
    */
-  void addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool useNestedLoop = false);
+  void addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool forceNestedLoop = false);
   
   bool next();
   
