@@ -232,7 +232,7 @@ void Query::internalInit()
       double bestCost = bestPlan->getCost();
 
       // repeat until best plan is found
-      const int maxUnsuccessfulTries = 10;
+      const int maxUnsuccessfulTries = 5*operators.size();
       int unsuccessful = 0;
       do
       {
