@@ -19,8 +19,7 @@ namespace annis {
     JSONQueryParser(const JSONQueryParser& orig) = delete;
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
-    static std::shared_ptr<Query> parse(const DB& db, std::istream& json,
-      bool useNestedLoop=false);
+    static std::shared_ptr<Query> parse(const DB& db, std::istream& json);
 
     virtual ~JSONQueryParser();
   private:
@@ -35,8 +34,7 @@ namespace annis {
         bool wrapEmptyAnno = false);
     
     static void parseJoin(const DB& db, const Json::Value join, 
-      std::shared_ptr<Query> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos,
-      bool useNestedLoop=false);
+      std::shared_ptr<Query> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos);
     
     static boost::optional<std::string> optStr(const Json::Value& val) {
       if(val.isString()) {

@@ -102,7 +102,6 @@ namespace annis {
         // create query
         std::istringstream jsonAsStream(it->second);
         q = JSONQueryParser::parse(getDB(), jsonAsStream);
-        q->optimize();
       }
       auto itCount = expectedCountByExp.find(experimentValue);
       if(itCount == expectedCountByExp.end())

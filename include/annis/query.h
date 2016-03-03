@@ -29,7 +29,7 @@ struct OperatorEntry
 class Query
 {
 public:
-  Query(const DB& db);
+  Query(const DB& db, bool optimize = true);
   
   /**
    * @brief Add a new node to query
@@ -47,11 +47,6 @@ public:
    * @param useNestedLoop if true a nested loop join is used instead of the default "seed join"
    */
   void addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool useNestedLoop = false);
-
-  /**
-   * Do some query optimizations based on simple heuristics.
-   */
-  void optimize();
   
   bool next();
   
@@ -62,6 +57,8 @@ public:
 private:
 
   const DB& db;
+  bool optimize;
+  
   std::vector<Match> currentResult;
 
   std::shared_ptr<Plan> bestPlan;
@@ -73,12 +70,9 @@ private:
 private:
   void internalInit();
   
-  static std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::list<OperatorEntry>& operators, const DB& db);
-
-  static void addJoin(std::map<int, ExecutionNode>& node2exec, 
-  const DB& db, const OperatorEntry& e);
-
-  static void mergeComponents(std::map<int, int>& querynode2component, int c1, int c2);
+  std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::list<OperatorEntry>& operators);
+  
+  void optimizeOperandOrder();
   
 };
 

@@ -13,8 +13,8 @@
 
 using namespace annis;
 
-Query::Query(const DB &db)
-  : db(db)
+Query::Query(const DB &db, bool optimize)
+  : db(db), optimize(optimize)
 {
 }
 
@@ -70,7 +70,7 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
   operators.push_back(entry);
 }
 
-void Query::optimize()
+void Query::optimizeOperandOrder()
 {
   if(!bestPlan && db.nodeAnnos.hasStatistics())
   {
@@ -106,7 +106,7 @@ void Query::optimize()
 }
 
 std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, 
-  const std::list<OperatorEntry>& operators, const DB& db) 
+  const std::list<OperatorEntry>& operators) 
 {
   std::map<int, std::shared_ptr<ExecutionNode>> node2exec;
   std::map<int, std::shared_ptr<ExecutionNode>> component2exec;
@@ -187,7 +187,7 @@ void Query::internalInit()
     return;
   }
 
-  bestPlan = createPlan(nodes, operators, db);
+  bestPlan = createPlan(nodes, operators);
   currentResult.resize(nodes.size());
 }
 
