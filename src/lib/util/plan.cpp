@@ -56,7 +56,7 @@ std::shared_ptr<ExecutionNode> Plan::join(
   ExecutionNodeType type = ExecutionNodeType::nested_loop;
   if(lhs->componentNr == rhs->componentNr)
   {
-    type == ExecutionNodeType::filter;
+    type = ExecutionNodeType::filter;
   }
   else if(rhs->type == ExecutionNodeType::base && !forceNestedLoop)
   { 
