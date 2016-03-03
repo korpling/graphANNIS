@@ -149,16 +149,16 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
    // 3. check if there is only one component left (all nodes are connected)
   bool firstComponent = true;
   int firstComponentID;
-  for(const auto& componentEntry : component2exec)
+  for(const auto& node : node2exec)
   {
     if(firstComponent)
     {
       firstComponent = false;
-      firstComponentID = componentEntry.second->componentNr;
+      firstComponentID = node.second->componentNr;
     }
     else
     {
-      if(firstComponentID != componentEntry.second->componentNr)
+      if(firstComponentID != node.second->componentNr)
       {
         std::cerr << "Nodes  are not completly connected, failing" << std::endl;
         return std::shared_ptr<Plan>();
