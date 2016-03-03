@@ -269,7 +269,7 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
   if(node->type == ExecutionNodeType::base)
   {
     // output the node number
-    result += "#" + std::to_string(node->nodePos.begin()->first);
+    result += "#" + std::to_string(node->nodePos.begin()->first + 1);
   }
   else
   {
