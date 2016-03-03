@@ -196,8 +196,10 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
       auto op = join["op"].asString();
       if (op == "Precedence")
       {
+        auto minDist = join["minDistance"].asUInt();
+        auto maxDist = join["maxDistance"].asUInt();
         q->addOperator(std::make_shared<Precedence>(db,
-          join["minDistance"].asUInt(), join["maxDistance"].asUInt()),
+          minDist, maxDist),
           itLeft->second, itRight->second);
       }
       else if (op == "Inclusion")
