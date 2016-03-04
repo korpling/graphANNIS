@@ -14,6 +14,12 @@ public:
   Dominance(const DB& db, std::string ns, std::string name,
                    const Annotation& edgeAnno);
 
+  virtual std::string operatorString() override
+  {
+    return ">";
+  }
+
+  
   virtual ~Dominance();
 private:
 

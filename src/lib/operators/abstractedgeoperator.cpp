@@ -124,6 +124,28 @@ bool AbstractEdgeOperator::checkEdgeAnnotation(const ReadableGraphStorage* e, no
   return false;
 }
 
+std::string AbstractEdgeOperator::description() 
+{
+  // TODO: edge anno
+  if(minDistance == 1 && maxDistance == 1)
+  {
+    return operatorString() + name;
+  }
+  else if(minDistance == 0 && maxDistance == 0)
+  {
+    return operatorString() + name + " *";
+  }
+  else if(minDistance == maxDistance)
+  {
+    return operatorString() + name + "," + std::to_string(minDistance);
+  }
+  else
+  {
+    return operatorString() + name + "," + std::to_string(minDistance) + "," + std::to_string(maxDistance);
+  }
+}
+
+
 AbstractEdgeOperator::~AbstractEdgeOperator()
 {
 

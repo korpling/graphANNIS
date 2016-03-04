@@ -25,6 +25,11 @@ public:
   virtual bool isReflexive() override {return false;};
   virtual bool isCommutative() override {return true;}
 
+  virtual std::string description() override
+  {
+    return "_=_";
+  }
+
   
   virtual ~IdenticalCoverage();
 private:

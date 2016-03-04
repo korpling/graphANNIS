@@ -26,6 +26,11 @@ public:
 
   virtual bool valid() const {return !gs.empty();}
   
+  virtual std::string operatorString() = 0;
+  
+  virtual std::string description() override;
+
+  
   virtual ~AbstractEdgeOperator();
 private:
   ComponentType componentType;

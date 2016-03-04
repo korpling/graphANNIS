@@ -19,6 +19,12 @@ public:
   virtual bool filter(const Match& lhs, const Match& rhs);
 
   virtual bool isReflexive() override {return false;}
+  
+  virtual std::string description() override
+  {
+    return "_i_";
+  }
+
 
   virtual ~Inclusion();
 private:

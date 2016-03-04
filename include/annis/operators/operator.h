@@ -50,6 +50,12 @@ public:
    * @return 
    */
   virtual bool valid() const {return true;}
+  
+  /**
+   * A descripte string of the state of the operator used for debugging.
+   * @return 
+   */
+  virtual std::string description() {return "";}
 
   virtual ~Operator() {}
 };

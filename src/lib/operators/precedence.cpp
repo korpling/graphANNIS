@@ -51,6 +51,27 @@ bool Precedence::filter(const Match &lhs, const Match &rhs)
 
 }
 
+std::string Precedence::description() 
+{
+  if(minDistance == 1 && maxDistance == 1)
+  {
+    return ".";
+  }
+  else if(minDistance == 0 && maxDistance == 0)
+  {
+    return ".*";
+  }
+  else if(minDistance == maxDistance)
+  {
+    return "." + std::to_string(minDistance);
+  }
+  else
+  {
+    return "." + std::to_string(minDistance) + "," + std::to_string(maxDistance);
+  }
+}
+
+
 Precedence::~Precedence()
 {
 
