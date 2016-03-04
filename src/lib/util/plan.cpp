@@ -105,13 +105,20 @@ std::shared_ptr<ExecutionNode> Plan::join(
     else
     {
       // fallback to nested loop
+      result->type = nested_loop;
       join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join, mappedPosLHS->second, mappedPosRHS->second);
     }
   }
   else
   {
     result->type = ExecutionNodeType::nested_loop;
-    join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join, mappedPosLHS->second, mappedPosRHS->second);
+    
+    auto leftEst = estimateTupleSize(lhs);
+    auto rightEst = estimateTupleSize(rhs);
+    
+    bool leftIsOuter = leftEst->output <= rightEst->output;
+    
+    join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join, mappedPosLHS->second, mappedPosRHS->second, leftIsOuter);
   }
   
   result->join = join;
@@ -162,10 +169,10 @@ double Plan::getCost()
   return estimateTupleSize(root)->intermediateSum;
 }
 
-std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
+  std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
 {
   static const std::uint64_t defaultBaseTuples = 100000;
-  static const double defaultSelectivity = 0.5;
+  static const double defaultSelectivity = 0.1;
   if(node)
   {
     if (node->estimate)
@@ -209,7 +216,16 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
 
         if (node->type == ExecutionNodeType::nested_loop)
         {
-          processedInStep = estLHS->output + (estLHS->output * estRHS->output);
+          if(estLHS->output < estRHS->output)
+          {
+            // we use LHS as outer
+            processedInStep = estLHS->output + (estLHS->output * estRHS->output);
+          }
+          else
+          {
+            // we use RHS as outer
+            processedInStep = estRHS->output + (estRHS->output * estLHS->output);
+          }
         } 
         else if (node->type == ExecutionNodeType::seed)
         {
