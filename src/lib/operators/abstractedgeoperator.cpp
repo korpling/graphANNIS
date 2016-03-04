@@ -137,7 +137,7 @@ double AbstractEdgeOperator::selectivity()
     return 0.0;
   }
   
-  double sumSel = 0.0;
+  double worstSel = 0.0;
   
   for(const ReadableGraphStorage* g: gs)
   {
@@ -157,11 +157,11 @@ double AbstractEdgeOperator::selectivity()
     
     std::uint32_t reachable =  reachableMax - reachableMin;
     
-    sumSel += ((double) reachable ) / ((double) stat.nodes);
+    worstSel = std::max(worstSel, ((double) reachable ) / ((double) stat.nodes));
   }
   
-  // return average selectivity
-  return sumSel / (double) gs.size();
+  // return worst selectivity
+  return worstSel;
 }
 
 
