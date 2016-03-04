@@ -25,6 +25,9 @@ public:
     return "_i_";
   }
 
+  
+  virtual double selectivity() override;
+
 
   virtual ~Inclusion();
 private:
@@ -33,6 +36,7 @@ private:
   const ReadableGraphStorage* gsOrder;
   const ReadableGraphStorage* gsLeftToken;
   const ReadableGraphStorage* gsRightToken;
+  const ReadableGraphStorage* gsCoverage;
 
   Annotation anyNodeAnno;
 

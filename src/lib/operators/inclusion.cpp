@@ -12,6 +12,7 @@ Inclusion::Inclusion(const DB &db)
   gsOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
   gsLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
   gsRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
+  gsCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
 
 }
 
@@ -76,6 +77,13 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
 
   return w;
 }
+
+double Inclusion::selectivity() 
+{
+  const auto& statsCov = gsCoverage->getStatistics();
+  return statsCov.avgFanOut / (statsCov.nodes/2.0);
+}
+
 
 
 Inclusion::~Inclusion()

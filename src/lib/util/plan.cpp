@@ -191,12 +191,12 @@ double Plan::getCost()
         int guess = baseEstimate->guessMaxCount();
         if (guess >= 0)
         {
-          node->estimate = std::make_shared<ExecutionEstimate>((std::uint64_t) guess, (std::uint64_t) guess);
+          node->estimate = std::make_shared<ExecutionEstimate>((std::uint64_t) guess, 0);
           return node->estimate;
         } 
         else
         {
-          node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
+          node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, 0);
           return node->estimate;
         }
       } 
