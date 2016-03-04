@@ -53,6 +53,8 @@ struct ExecutionNode
   std::shared_ptr<ExecutionNode> rhs;
   
   std::shared_ptr<ExecutionEstimate> estimate;
+  
+  std::string description;
 };
 
 

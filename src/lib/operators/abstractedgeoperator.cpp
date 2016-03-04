@@ -131,7 +131,7 @@ std::string AbstractEdgeOperator::description()
   {
     return operatorString() + name;
   }
-  else if(minDistance == 0 && maxDistance == 0)
+  else if(minDistance == 1 && maxDistance == std::numeric_limits<unsigned int>::max())
   {
     return operatorString() + name + " *";
   }

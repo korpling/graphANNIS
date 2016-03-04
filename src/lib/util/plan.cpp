@@ -117,6 +117,8 @@ std::shared_ptr<ExecutionNode> Plan::join(
   result->join = join;
   result->componentNr = lhs->componentNr;
   result->lhs = lhs;
+  result->description = op->description();
+  
   if(type != ExecutionNodeType::filter)
   {
     // only set a rhs when this is an actual join
@@ -298,6 +300,11 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
     result += typeToString(node->type);
   }
   result += ")";
+  
+  if(!node->description.empty())
+  {
+    result += "(" + node->description + ")";
+  }
   
   if(node->estimate)
   {
