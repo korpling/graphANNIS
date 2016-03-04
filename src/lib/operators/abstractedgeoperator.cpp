@@ -109,6 +109,11 @@ bool AbstractEdgeOperator::checkEdgeAnnotation(const ReadableGraphStorage* e, no
   {
     return true;
   }
+  else if(edgeAnno.val == 0)
+  {
+    // must be a valid value
+    return false;
+  }
   else
   {
     // check if the edge has the correct annotation first
@@ -126,23 +131,37 @@ bool AbstractEdgeOperator::checkEdgeAnnotation(const ReadableGraphStorage* e, no
 
 std::string AbstractEdgeOperator::description() 
 {
-  // TODO: edge anno
+  std::string result;
   if(minDistance == 1 && maxDistance == 1)
   {
-    return operatorString() + name;
+    result =  operatorString() + name;
   }
   else if(minDistance == 1 && maxDistance == std::numeric_limits<unsigned int>::max())
   {
-    return operatorString() + name + " *";
+    result = operatorString() + name + " *";
   }
   else if(minDistance == maxDistance)
   {
-    return operatorString() + name + "," + std::to_string(minDistance);
+    result = operatorString() + name + "," + std::to_string(minDistance);
   }
   else
   {
-    return operatorString() + name + "," + std::to_string(minDistance) + "," + std::to_string(maxDistance);
+    result = operatorString() + name + "," + std::to_string(minDistance) + "," + std::to_string(maxDistance);
   }
+  
+  if(!(edgeAnno == anyAnno))
+  {
+    if(edgeAnno.name != 0 && edgeAnno.val != 0)
+    {
+      result += "[" + db.strings.str(edgeAnno.name) + "=\"" + db.strings.str(edgeAnno.val) + "\"]";
+    }
+    else
+    {
+      result += "[invalid anno]";
+    }
+  }
+  
+  return result;
 }
 
 

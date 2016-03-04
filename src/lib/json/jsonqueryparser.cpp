@@ -291,7 +291,8 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
   {
     if (edgeAnno["namespace"].isString())
     {
-      auto search = db.strings.findID(edgeAnno["namespace"].asString());
+      std::string nsStr = edgeAnno["namespace"].asString();
+      auto search = db.strings.findID(nsStr);
       if (search.first)
       {
         ns = search.second;
@@ -299,7 +300,8 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
     }
     if (edgeAnno["name"].isString())
     {
-      auto search = db.strings.findID(edgeAnno["name"].asString());
+      std::string nameStr = edgeAnno["name"].asString();
+      auto search = db.strings.findID(nameStr);
       if (search.first)
       {
         name = search.second;
@@ -307,7 +309,8 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
     }
     if (edgeAnno["value"].isString())
     {
-      auto search = db.strings.findID(edgeAnno["value"].asString());
+      std::string valueStr = edgeAnno["value"].asString();
+      auto search = db.strings.findID(valueStr);
       if (search.first)
       {
         value = search.second;

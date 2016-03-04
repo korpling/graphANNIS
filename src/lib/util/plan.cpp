@@ -117,7 +117,8 @@ std::shared_ptr<ExecutionNode> Plan::join(
   result->join = join;
   result->componentNr = lhs->componentNr;
   result->lhs = lhs;
-  result->description = op->description();
+  result->description =  "#" + std::to_string(lhsNode+1) + " " 
+    + op->description() + " #" + std::to_string(rhsNode+1);
   
   if(type != ExecutionNodeType::filter)
   {
