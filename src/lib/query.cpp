@@ -236,7 +236,7 @@ void Query::internalInit()
 //      std::cout << "-----------------------" << std::endl;
 
       // repeat until best plan is found
-      const int maxUnsuccessfulTries = 5*operators.size();
+      const int maxUnsuccessfulTries = 20*operators.size();
       int unsuccessful = 0;
       do
       {
