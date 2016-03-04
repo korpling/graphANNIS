@@ -56,6 +56,8 @@ public:
    * @return 
    */
   virtual std::string description() {return "";}
+  
+  virtual double selectivity() { return 0.1; }
 
   virtual ~Operator() {}
 };

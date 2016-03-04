@@ -122,6 +122,7 @@ std::shared_ptr<ExecutionNode> Plan::join(
   }
   
   result->join = join;
+  result->op = op;
   result->componentNr = lhs->componentNr;
   result->lhs = lhs;
   result->description =  "#" + std::to_string(lhsNode+1) + " " 
@@ -206,12 +207,12 @@ double Plan::getCost()
         auto estLHS = estimateTupleSize(node->lhs);
         auto estRHS = estimateTupleSize(node->rhs);
         double selectivity = defaultSelectivity;
-        // TODO: get the selectivity from the operator
-
-        std::uint64_t outLeftWithSelectivity = ((double) estLHS->output * selectivity);
-        std::uint64_t outRightWithSelectivity = ((double) estRHS->output * selectivity);
+        if(node->op)
+        {
+          selectivity = node->op->selectivity();
+        }
         
-        std::uint64_t outputSize = outLeftWithSelectivity * outRightWithSelectivity;
+        std::uint64_t outputSize = ((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity);
         std::uint64_t processedInStep;
 
         if (node->type == ExecutionNodeType::nested_loop)
@@ -249,7 +250,10 @@ double Plan::getCost()
         // count(lhs) * selectivity(op)
         auto estLHS = estimateTupleSize(node->lhs);
         double selectivity = defaultSelectivity;
-        // TODO: get the selectivity from the operator
+        if(node->op)
+        {
+          selectivity = node->op->selectivity();
+        }
 
         std::uint64_t processedInStep = estLHS->output;
         std::uint64_t outputSize = ((double) estLHS->output) * selectivity;
@@ -330,6 +334,10 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
       + " sum: " 
       + std::to_string((std::uint64_t) node->estimate->intermediateSum) 
       + "]";
+  }
+  if(node->op)
+  {
+    result += "{sel: " + std::to_string(node->op->selectivity()) + "}";
   }
   
   result += "\n";

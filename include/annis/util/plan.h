@@ -45,7 +45,8 @@ struct ExecutionNode
 {
   ExecutionNodeType type;
   
-  std::shared_ptr<Iterator> join;
+  std::shared_ptr<Iterator> join;  
+  std::shared_ptr<Operator> op;
   std::map<size_t, size_t> nodePos;
   int componentNr;
   

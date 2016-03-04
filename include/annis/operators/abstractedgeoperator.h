@@ -29,6 +29,9 @@ public:
   virtual std::string operatorString() = 0;
   
   virtual std::string description() override;
+  
+  virtual double selectivity() override;
+
 
   
   virtual ~AbstractEdgeOperator();

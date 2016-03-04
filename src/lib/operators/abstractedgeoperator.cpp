@@ -129,6 +129,42 @@ bool AbstractEdgeOperator::checkEdgeAnnotation(const ReadableGraphStorage* e, no
   return false;
 }
 
+double AbstractEdgeOperator::selectivity() 
+{
+  if(gs.size() == 0)
+  {
+    // will not find anything
+    return 0.0;
+  }
+  
+  double sumSel = 0.0;
+  
+  for(const ReadableGraphStorage* g: gs)
+  {
+    const auto& stat = g->getStatistics();
+    if(stat.cyclic)
+    {
+      // can get all other nodes
+      return 1.0;
+    }
+    
+    // get number of nodes reachable from min to max distance
+    std::uint32_t maxPathLength = std::min(maxDistance, stat.maxDepth);
+    std::uint32_t minPathLength = std::max(0, (int) minDistance-1);
+    
+    std::uint32_t reachableMax = std::ceil(stat.avgFanOut * (double) maxPathLength);
+    std::uint32_t reachableMin = std::ceil(stat.avgFanOut * (double) minPathLength);
+    
+    std::uint32_t reachable =  reachableMax - reachableMin;
+    
+    sumSel += ((double) reachable ) / ((double) stat.nodes);
+  }
+  
+  // return average selectivity
+  return sumSel / (double) gs.size();
+}
+
+
 std::string AbstractEdgeOperator::description() 
 {
   std::string result;
