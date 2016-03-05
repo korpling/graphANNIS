@@ -80,6 +80,10 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
 
 double Inclusion::selectivity() 
 {
+  if(gsCoverage == nullptr)
+  {
+    return Operator::selectivity();
+  }
   const auto& statsCov = gsCoverage->getStatistics();
   return statsCov.avgFanOut / (statsCov.nodes/2.0);
 }
