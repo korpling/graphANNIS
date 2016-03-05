@@ -24,6 +24,8 @@ struct OperatorEntry
   size_t idxLeft;
   size_t idxRight;
   bool forceNestedLoop;
+  
+  size_t originalOrder;
 };
 
 class Query
@@ -69,6 +71,15 @@ private:
 
   std::set<AnnotationKey> emptyAnnoKeySet;
 
+  struct CompareOperatorEntryOrigOrder
+  {
+
+    bool operator()(const OperatorEntry& o1, const OperatorEntry& o2)
+    {
+      return (o1.originalOrder < o2.originalOrder);
+    }
+  } compare_opentry_origorder;
+
 private:
   void internalInit();
   
@@ -76,7 +87,12 @@ private:
   
   void optimizeOperandOrder();
   
+  void optimizeJoinOrderRandom();
+  void optimizeJoinOrderAllPermutations();
+  
   void updateComponentForNodes(std::map<nodeid_t, int>& node2component, int from, int to);
+  
+  std::string operatorOrderDebugString(const std::vector<OperatorEntry>& ops);
   
 };
 

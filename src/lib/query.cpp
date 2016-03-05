@@ -67,6 +67,7 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
   entry.forceNestedLoop = forceNestedLoop;
   entry.idxLeft = idxLeft;
   entry.idxRight = idxRight;
+  entry.originalOrder = operators.size();
   
   operators.push_back(entry);
 }
@@ -214,9 +215,6 @@ void Query::internalInit()
   
   if(optimize)
   {
-    // use a constant seed to make the result deterministic
-    std::mt19937 randGen(4711);
-        
     ///////////////////////////////////////////////////////////
     // 1. make sure all smaller operand are on the left side //
     ///////////////////////////////////////////////////////////
@@ -227,62 +225,15 @@ void Query::internalInit()
       ////////////////////////////////////
       // 2. optimize the order of joins //
       ////////////////////////////////////
-      std::vector<OperatorEntry> optimizedOperators = operators;
-      bestPlan = createPlan(nodes, optimizedOperators);
-      double bestCost = bestPlan->getCost();
-      
-//      std::cout << "orig plan:" << std::endl;
-//      std::cout << bestPlan->debugString() << std::endl;
-//      std::cout << "-----------------------" << std::endl;
-
-      // repeat until best plan is found
-      const int maxUnsuccessfulTries = 20*operators.size();
-      int unsuccessful = 0;
-      do
+      if(operators.size() <= 7)
       {
-        
-        std::vector<OperatorEntry> tmpOperators = optimizedOperators;
-        // randomly select two joins,        
-        std::uniform_int_distribution<> dist(0, tmpOperators.size()-1);
-        int a, b;
-        do
-        {
-          a = dist(randGen);
-          b = dist(randGen);
-        } while(a == b);
-        
-        
-        // switch the order of the selected joins and check if the result has a smaller cost
-        OperatorEntry tmpEntry = tmpOperators[a];
-        tmpOperators[a] = tmpOperators[b];
-        tmpOperators[b] = tmpEntry;
-        
-        auto altPlan = createPlan(nodes, tmpOperators);
-        double altCost = altPlan->getCost();
-
-//        std::cout << "................................" << std::endl;
-//        std::cout << "try to switch op " << a << " with op " << b << std::endl;
-//        std::cout << altPlan->debugString() << std::endl;
-//        std::cout << "................................" << std::endl;
-
-        if(altCost < bestCost)
-        {
-          bestPlan = altPlan;
-          optimizedOperators = tmpOperators;
-          
-//          std::cout << "================================" << std::endl;
-//          std::cout << "new plan:" << std::endl;
-//          std::cout << bestPlan->debugString() << std::endl;
-//          std::cout << "================================" << std::endl;
-          
-          bestCost = altCost;
-          unsuccessful = 0;
-        }
-        else
-        {        
-          unsuccessful++;
-        }
-      } while(unsuccessful < maxUnsuccessfulTries);
+        optimizeJoinOrderAllPermutations();
+      }
+      else
+      {
+        optimizeJoinOrderRandom();
+      }
+      
     } // end optimize join order
     else
     {
@@ -299,6 +250,128 @@ void Query::internalInit()
   
   currentResult.resize(nodes.size());
 }
+
+void Query::optimizeJoinOrderRandom() 
+{
+  // use a constant seed to make the result deterministic
+  std::mt19937 randGen(4711);
+    
+  std::vector<OperatorEntry> optimizedOperators = operators;
+  bestPlan = createPlan(nodes, optimizedOperators);
+  double bestCost = bestPlan->getCost();
+
+//  std::cout << "orig plan:" << std::endl;
+//  std::cout << operatorOrderDebugString(optimizedOperators) << std::endl;
+//  std::cout << bestPlan->debugString() << std::endl;
+//  std::cout << "-----------------------" << std::endl;
+
+  // repeat until best plan is found
+  const int maxUnsuccessfulTries = 20*operators.size();
+  int unsuccessful = 0;
+  do
+  {
+
+    std::vector<OperatorEntry> tmpOperators = optimizedOperators;
+    // randomly select two joins,        
+    std::uniform_int_distribution<> dist(0, tmpOperators.size()-1);
+    int a, b;
+    do
+    {
+      a = dist(randGen);
+      b = dist(randGen);
+    } while(a == b);
+
+
+    // switch the order of the selected joins and check if the result has a smaller cost
+    OperatorEntry tmpEntry = tmpOperators[a];
+    tmpOperators[a] = tmpOperators[b];
+    tmpOperators[b] = tmpEntry;
+
+    auto altPlan = createPlan(nodes, tmpOperators);
+    double altCost = altPlan->getCost();
+
+//    std::cout << "................................" << std::endl;
+//    std::cout << "try to switch op " << a << " with op " << b << std::endl;
+//    std::cout << operatorOrderDebugString(tmpOperators) << std::endl;
+//    std::cout << altPlan->debugString() << std::endl;
+//    std::cout << "................................" << std::endl;
+
+    if(altCost < bestCost)
+    {
+      bestPlan = altPlan;
+      optimizedOperators = tmpOperators;
+
+//      std::cout << "================================" << std::endl;
+//      std::cout << "new plan:" << std::endl;
+//      std::cout << operatorOrderDebugString(optimizedOperators) << std::endl;
+//      std::cout << bestPlan->debugString() << std::endl;
+//      std::cout << "================================" << std::endl;
+
+      bestCost = altCost;
+      unsuccessful = 0;
+    }
+    else
+    {        
+      unsuccessful++;
+    }
+  } while(unsuccessful < maxUnsuccessfulTries);
+}
+
+void Query::optimizeJoinOrderAllPermutations() 
+{
+  // make sure the first permutation is the sorted one
+  std::vector<OperatorEntry> testOrder = operators;
+  std::sort(testOrder.begin(), testOrder.end(), compare_opentry_origorder);
+  
+  bestPlan = createPlan(nodes, testOrder);
+
+//  std::cout << operatorOrderDebugString(testOrder) << std::endl;
+//  std::cout << bestPlan->debugString() << std::endl;
+//  std::cout << "-------------------------------" << std::endl;
+  
+  while(std::next_permutation(testOrder.begin(), testOrder.end(), compare_opentry_origorder))
+  {
+    std::shared_ptr<Plan> testPlan = createPlan(nodes, testOrder);
+//    testPlan->getCost();
+//    std::cout << operatorOrderDebugString(testOrder) << std::endl;
+//    std::cout << testPlan->debugString() << std::endl;
+    
+    if(testPlan->getCost() < bestPlan->getCost())
+    {
+      bestPlan = testPlan;
+      
+//      std::cout << "!!!new best join order!!! " << std::endl;
+    }
+//    std::cout << "-------------------------------" << std::endl;
+  }
+}
+
+
+
+std::string Query::operatorOrderDebugString(const std::vector<OperatorEntry>& ops) 
+{
+  std::string result = "";
+  for(auto it=ops.begin(); it != ops.end(); it++)
+  {
+    if(it != ops.begin())
+    {
+      result += " | ";
+    }
+    if(it->op)
+    {
+      result += "#" + std::to_string(it->idxLeft+1) + " " +
+        it->op->description()
+        + " #" + std::to_string(it->idxRight+1);
+    }
+    else
+    {
+      result += "<empty>";
+    }
+  }
+  
+  return result;
+}
+
 
 
 bool Query::next()

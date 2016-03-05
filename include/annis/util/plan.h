@@ -79,6 +79,8 @@ public:
   
   std::string debugString() const;
   
+  bool hasNestedLoop() const;
+  
 private:
   std::shared_ptr<ExecutionNode> root;
   
@@ -88,6 +90,8 @@ private:
   
   std::string debugStringForNode(std::shared_ptr<const ExecutionNode> node, std::string indention) const;
   std::string typeToString(ExecutionNodeType type) const;
+  
+  static bool descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node);
 };
 
 } // end namespace annis

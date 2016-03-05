@@ -247,7 +247,7 @@ double Plan::getCost()
 
       }
       else if (node->lhs)
-      {
+      { 
         // this is a filter node, the estimated number of of tuple is
         // count(lhs) * selectivity(op)
         auto estLHS = estimateTupleSize(node->lhs);
@@ -280,6 +280,41 @@ double Plan::getCost()
   node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
   return node->estimate;
 }
+
+bool Plan::hasNestedLoop() const 
+{
+  return descendendantHasNestedLoop(root);
+}
+
+bool Plan::descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node)
+{
+  if(node)
+  {
+    if(node->type == ExecutionNodeType::nested_loop)
+    {
+      return true;
+    }
+    
+    if(node->lhs) 
+    {
+      if(descendendantHasNestedLoop(node->lhs))
+      {
+        return true;
+      }
+    }
+    
+    if(node->rhs) 
+    {
+      if(descendendantHasNestedLoop(node->rhs))
+      {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+
 
 void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node) 
 {
