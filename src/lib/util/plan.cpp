@@ -230,7 +230,9 @@ double Plan::getCost()
         } 
         else if (node->type == ExecutionNodeType::seed)
         {
-          std::uint64_t x = (((double)(outputSize - estLHS->output)) / (double) estLHS->output);
+          std::uint64_t diffOutput = outputSize < estLHS->output 
+            ? (estLHS->output - outputSize) : (outputSize - estLHS->output);
+          std::uint64_t x = (((double) diffOutput) / (double) estLHS->output);
           processedInStep = estLHS->output * x;
         } 
         else
