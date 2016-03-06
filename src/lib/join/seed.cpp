@@ -94,10 +94,6 @@ void AnnoKeySeedJoin::reset()
   matchesByOperator.reset(nullptr);
   matchingRightAnnos.clear();
   currentMatchValid = false;
-
-  // start the iterations
-  nextLeftMatch();
-
 }
 
 bool AnnoKeySeedJoin::nextLeftMatch()
@@ -222,10 +218,6 @@ void MaterializedSeedJoin::reset()
   matchesByOperator.reset(nullptr);
   matchingRightAnnos.clear();
   currentMatchValid = false;
-
-  // start the iterations
-  nextLeftMatch();
-
 }
 
 bool MaterializedSeedJoin::nextLeftMatch()

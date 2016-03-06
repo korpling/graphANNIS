@@ -22,6 +22,7 @@ namespace annis
     NestedLoopJoin(std::shared_ptr<Operator> op,
       std::shared_ptr<Iterator> lhs, std::shared_ptr<Iterator> rhs,
       size_t lhsIdx, size_t rhsIdx,
+      bool materializeInner=true,
       bool leftIsOuter=true);
     virtual ~NestedLoopJoin();
 
@@ -30,7 +31,8 @@ namespace annis
   private:
     std::shared_ptr<Operator> op;
     bool initialized;
-    bool leftIsOuter;
+    const bool materializeInner;
+    const bool leftIsOuter;
     
     std::vector<Match> matchOuter;
     std::vector<Match> matchInner;
@@ -40,6 +42,12 @@ namespace annis
     
     size_t outerIdx;
     size_t innerIdx;
+    
+    bool firstOuterFinished;
+    std::list<std::vector<Match>> innerCache;
+    std::list<std::vector<Match>>::const_iterator itInnerCache;
+  private:
+    bool fetchNextInner();
 
   };
 
