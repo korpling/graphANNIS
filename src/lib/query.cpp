@@ -325,6 +325,7 @@ void Query::optimizeJoinOrderAllPermutations()
   
   bestPlan = createPlan(nodes, testOrder);
 
+//  bestPlan->getCost();
 //  std::cout << operatorOrderDebugString(testOrder) << std::endl;
 //  std::cout << bestPlan->debugString() << std::endl;
 //  std::cout << "-------------------------------" << std::endl;

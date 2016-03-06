@@ -29,6 +29,8 @@ public:
     return "_o_";
   }
 
+  virtual double selectivity() override;
+
   
   virtual ~Overlap();
 private:

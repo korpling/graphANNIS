@@ -80,12 +80,25 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
 
 double Inclusion::selectivity() 
 {
-  if(gsCoverage == nullptr)
+  if(gsOrder == nullptr || gsCoverage == nullptr)
   {
     return Operator::selectivity();
   }
-  const auto& statsCov = gsCoverage->getStatistics();
-  return statsCov.avgFanOut / (statsCov.nodes/2.0);
+  auto statsCov = gsCoverage->getStatistics();
+  auto statsOrder = gsOrder->getStatistics();
+  if(statsCov.nodes == 0)
+  {
+    // only token in this corpus
+    return 1.0 / (double) statsOrder.nodes;
+  }
+  else
+  {
+    // The fan-out is the selectivity for the number of covered token.
+    // Use a constant that dependends on the number of token to estimate the number of included
+    // nodes.
+    // TODO: which statistics do we need to calculate the better number?
+    return statsCov.avgFanOut * 0.5; 
+  }
 }
 
 

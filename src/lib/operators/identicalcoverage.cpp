@@ -21,6 +21,7 @@ IdenticalCoverage::IdenticalCoverage(const DB &db)
   gsOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
   gsLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
   gsRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
+  gsCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
 }
 
 bool IdenticalCoverage::filter(const Match& lhs, const Match& rhs)
@@ -93,6 +94,28 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
   return w;
 }
 
+double IdenticalCoverage::selectivity() 
+{
+  if(gsOrder == nullptr || gsCoverage == nullptr)
+  {
+    return Operator::selectivity();
+  }
+  auto statsCov = gsCoverage->getStatistics();
+  auto statsOrder = gsOrder->getStatistics();
+  if(statsCov.nodes == 0)
+  {
+    // only token in this corpus
+    return 1.0 / (double) statsOrder.nodes;
+  }
+  else
+  {
+    // The fan-out is the selectivity for the number of covered token.
+    // Use a constant that dependends on the number of token to estimate the number of included
+    // nodes.
+    // TODO: which statistics do we need to calculate the better number?
+    return statsCov.avgFanOut * 0.8; 
+  }
+}
 
 
 IdenticalCoverage::~IdenticalCoverage()

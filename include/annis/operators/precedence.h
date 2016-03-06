@@ -21,6 +21,9 @@ public:
   
   virtual std::string description() override;
 
+  virtual double selectivity() override;
+
+  
   virtual ~Precedence();
 private:
   TokenHelper tokHelper;

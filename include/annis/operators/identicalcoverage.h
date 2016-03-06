@@ -30,6 +30,8 @@ public:
     return "_=_";
   }
 
+  virtual double selectivity() override;
+
   
   virtual ~IdenticalCoverage();
 private:
@@ -39,6 +41,7 @@ private:
   const ReadableGraphStorage* gsOrder;
   const ReadableGraphStorage* gsLeftToken;
   const ReadableGraphStorage* gsRightToken;
+  const ReadableGraphStorage* gsCoverage;
   
   Annotation anyNodeAnno;
 

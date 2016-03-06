@@ -71,6 +71,19 @@ std::string Precedence::description()
   }
 }
 
+double Precedence::selectivity() 
+{
+  if(gsOrder == nullptr)
+  {
+    return Operator::selectivity();
+  }
+  
+  GraphStatistic stats = gsOrder->getStatistics();
+  unsigned int maxPossibleDist = std::min(maxDistance, stats.maxDepth);
+  unsigned int numOfDescendants = maxPossibleDist - minDistance + 1;
+  return (double) numOfDescendants / (double) (stats.nodes/2);
+}
+
 
 Precedence::~Precedence()
 {

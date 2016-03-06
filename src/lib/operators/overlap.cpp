@@ -60,6 +60,30 @@ bool Overlap::filter(const Match &lhs, const Match &rhs)
   return false;
 }
 
+double Overlap::selectivity() 
+{
+  if(gsOrder == nullptr || gsCoverage == nullptr)
+  {
+    return Operator::selectivity();
+  }
+  auto statsCov = gsCoverage->getStatistics();
+  auto statsOrder = gsOrder->getStatistics();
+  if(statsCov.nodes == 0)
+  {
+    // only token in this corpus
+    return 1.0 / (double) statsOrder.nodes;
+  }
+  else
+  {
+    // The fan-out is the selectivity for the number of covered token.
+    // Use a constant that dependends on the number of token to estimate the number of included
+    // nodes.
+    // TODO: which statistics do we need to calculate the better number?
+    return statsCov.avgFanOut * 1.5; 
+  }
+}
+
+
 Overlap::~Overlap()
 {
 
