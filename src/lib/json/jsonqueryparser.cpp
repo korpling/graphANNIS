@@ -109,9 +109,7 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
     bool regex = *textMatching == "REGEXP_EQUAL";
     if(regex)
     {
-      std::string quoted = RE2::QuoteMeta(*value);
-      // if nothings needs to be quoted, no regex special characters are included
-      if(quoted == *value)
+      if(canReplaceRegex(*value))
       {
         exact = true;
       }
@@ -321,6 +319,34 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
 
   return Init::initAnnotation(name, value, ns);
 }
+
+bool JSONQueryParser::canReplaceRegex(const std::string& str) 
+{
+  // Characters that have a meaning according to
+  // https://github.com/google/re2/wiki/Syntax
+  // Characters used in not supported functions are not included.
+  if(str.find_first_of(".[]\\|*+?{}()^$") == std::string::npos)
+  {
+    // No meta character found in string, might be replaced    
+    RE2 regex(str);
+    if(regex.ok())
+    {
+      return true;
+    }
+    else
+    {
+      // If there is an error during parsing this is still a regex (an invalid one).
+      // Treating it like a exact string would not give the same result.
+      return false;
+    }
+  }
+  else
+  {
+    // contains special regex characters
+    return false;
+  }
+}
+
 
 JSONQueryParser::~JSONQueryParser()
 {
