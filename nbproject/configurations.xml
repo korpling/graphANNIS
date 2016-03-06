@@ -262,7 +262,8 @@
         <element flagsID="2"
                  commonFlags="-std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3 -std=c++11 -std=gnu++11 -O3"/>
         <element flagsID="3" commonFlags="-std=c++14"/>
-        <element flagsID="4" commonFlags="-std=c++14 -std=c++14"/>
+        <element flagsID="4" commonFlags="-std=c++14 -pedantic -pedantic"/>
+        <element flagsID="5" commonFlags="-std=c++14 -std=c++14"/>
       </flagsDictionary>
       <codeAssistance>
       </codeAssistance>
@@ -293,19 +294,19 @@
         </preBuild>
       </makefileType>
       <item path="benchmarks/benchmark.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="benchmarks/benchmarkmain.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="benchmarks/dynamicbenchmark.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="benchmarks/tuebadz.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="ext/Celero-2.0.2/src/Archive.cpp" ex="false" tool="1" flavor2="8">
@@ -402,7 +403,7 @@
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-all.cc" ex="false" tool="1" flavor2="11">
-        <ccTool flags="4">
+        <ccTool flags="5">
         </ccTool>
       </item>
       <item path="ext/gtest-1.7.0/src/gtest-death-test.cc"
@@ -435,7 +436,7 @@
       <item path="ext/gtest-1.7.0/src/gtest.cc" ex="true" tool="3" flavor2="0">
       </item>
       <item path="ext/gtest-1.7.0/src/gtest_main.cc" ex="false" tool="1" flavor2="11">
-        <ccTool flags="4">
+        <ccTool flags="5">
         </ccTool>
       </item>
       <item path="ext/humblelogging-3.0.1/src/appender.cpp"
@@ -745,11 +746,11 @@
         </ccTool>
       </item>
       <item path="src/lib/join/nestedloop.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="src/lib/join/seed.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="src/lib/json/jsoncpp.cpp" ex="false" tool="1" flavor2="11">
@@ -757,7 +758,7 @@
         </ccTool>
       </item>
       <item path="src/lib/json/jsonqueryparser.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="src/lib/nodeannostorage.cpp" ex="false" tool="1" flavor2="11">
@@ -795,11 +796,11 @@
         </ccTool>
       </item>
       <item path="src/lib/operators/precedence.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="src/lib/query.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="src/lib/stringstorage.cpp" ex="false" tool="1" flavor2="11">
@@ -814,6 +815,10 @@
         <cTool flags="0">
         </cTool>
       </item>
+      <item path="src/lib/util/plan.cpp" ex="false" tool="1" flavor2="11">
+        <ccTool flags="4">
+        </ccTool>
+      </item>
       <item path="src/lib/wrapper.cpp" ex="false" tool="1" flavor2="11">
         <ccTool flags="3">
         </ccTool>
@@ -823,11 +828,11 @@
         </cTool>
       </item>
       <item path="src/runner/main.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
       <item path="tests/testmain.cpp" ex="false" tool="1" flavor2="11">
-        <ccTool flags="3">
+        <ccTool flags="4">
         </ccTool>
       </item>
     </conf>
