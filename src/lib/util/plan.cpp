@@ -53,7 +53,8 @@ std::shared_ptr<ExecutionNode> Plan::join(
     // if the right side is not another join we can use a seed join
     type = ExecutionNodeType::seed;
   }
-  else if(avoidNestedBySwitch && !forceNestedLoop 
+  else if(avoidNestedBySwitch && !forceNestedLoop
+    && op->isCommutative()
     && lhs->type == ExecutionNodeType::base)
   {
     // avoid a nested loop join by switching the operands
