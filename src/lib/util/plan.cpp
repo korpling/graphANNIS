@@ -39,19 +39,9 @@ std::shared_ptr<ExecutionNode> Plan::join(
     size_t lhsNode, size_t rhsNode,
     std::shared_ptr<ExecutionNode> lhs, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
-    bool forceNestedLoop)
+    bool forceNestedLoop,
+    bool avoidNestedBySwitch)
 {
-  std::shared_ptr<ExecutionNode> result = std::make_shared<ExecutionNode>();
-  
-  auto mappedPosLHS = lhs->nodePos.find(lhsNode);
-  auto mappedPosRHS = rhs->nodePos.find(rhsNode);
-  
-  // make sure both source nodes are contained in the previous execution nodes
-  if(mappedPosLHS == lhs->nodePos.end() || mappedPosRHS == rhs->nodePos.end())
-  {
-    // TODO: throw error?
-    return result;
-  }
   
   ExecutionNodeType type = ExecutionNodeType::nested_loop;
   if(lhs->componentNr == rhs->componentNr)
@@ -62,6 +52,31 @@ std::shared_ptr<ExecutionNode> Plan::join(
   { 
     // if the right side is not another join we can use a seed join
     type = ExecutionNodeType::seed;
+  }
+  else if(avoidNestedBySwitch && !forceNestedLoop 
+    && lhs->type == ExecutionNodeType::base)
+  {
+    // avoid a nested loop join by switching the operands
+    std::shared_ptr<ExecutionNode> tmp = lhs;
+    lhs = rhs;
+    rhs = tmp;
+    
+    size_t tmpNodeID = lhsNode;
+    lhsNode = rhsNode;
+    rhsNode = tmpNodeID;
+    
+    type = ExecutionNodeType::seed;
+  }
+  
+  std::shared_ptr<ExecutionNode> result = std::make_shared<ExecutionNode>();
+  auto mappedPosLHS = lhs->nodePos.find(lhsNode);
+  auto mappedPosRHS = rhs->nodePos.find(rhsNode);
+  
+  // make sure both source nodes are contained in the previous execution nodes
+  if(mappedPosLHS == lhs->nodePos.end() || mappedPosRHS == rhs->nodePos.end())
+  {
+    // TODO: throw error?
+    return result;
   }
   
   // create the join iterator

@@ -75,7 +75,8 @@ public:
     size_t lhsNode, size_t rhsNode,
     std::shared_ptr<ExecutionNode>, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
-    bool forceNestedLoop);
+    bool forceNestedLoop,
+    bool avoidNestedBySwitch);
   
   std::string debugString() const;
   

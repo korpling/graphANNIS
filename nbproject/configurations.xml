@@ -7,6 +7,8 @@
       <in>dynamicbenchmark.cpp</in>
       <in>tuebadz.cpp</in>
     </df>
+    <df root="benchmarks" name="4">
+    </df>
     <logicalFolder name="ext" displayName="ext" projectFiles="true" root="ext">
       <logicalFolder name="Celero-2.0.2"
                      displayName="Celero-2.0.2"
@@ -177,6 +179,8 @@
     </logicalFolder>
     <df root="include" name="1">
     </df>
+    <df root="include" name="5">
+    </df>
     <df root="src" name="2">
       <df name="lib">
         <df name="annosearch">
@@ -228,9 +232,21 @@
         <in>main.cpp</in>
       </df>
     </df>
+    <df root="src" name="6">
+    </df>
     <df root="tests" name="3">
       <in>testmain.cpp</in>
     </df>
+    <df root="tests" name="7">
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>CMakeLists.txt</itemPath>
+      <itemPath>build/Makefile</itemPath>
+      <itemPath>nbproject/private/launcher.properties</itemPath>
+    </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
                    projectFiles="false"
@@ -242,6 +258,10 @@
   </logicalFolder>
   <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
   <sourceRootList>
+    <Elem>src</Elem>
+    <Elem>include</Elem>
+    <Elem>tests</Elem>
+    <Elem>benchmarks</Elem>
     <Elem>src</Elem>
     <Elem>include</Elem>
     <Elem>tests</Elem>
