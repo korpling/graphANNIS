@@ -1,0 +1,1 @@
+{"alternatives":[{"nodes":{"1":{"id":1,"spannedText":"[Mm]anch.*","root":false,"token":true,"spanTextMatching":"REGEXP_EQUAL","variable":"1"},"2":{"id":2,"spannedText":"[Mm]anchmal","root":false,"token":true,"spanTextMatching":"REGEXP_EQUAL","variable":"2"}},"joins":[{"op":"IdenticalCoverage","left":1,"right":2}]}]}

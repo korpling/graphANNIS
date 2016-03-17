@@ -1,0 +1,1 @@
+POS=/ART/. tok=/(allgemeinen|starken|weiteren|ganze|unüberwindbare|einzige|alten|anderes|erster|gemeinsame|frühere|zunehmende|letzten|bisherigen|leisen|souveränen)/ . POS=/ADJA/ . tok=/(Kälte|Mandat|Kollateralschaden|Ausmaß|Hürde|Veruntreuung|Energiesysteme|Werkzeug|Impuls|Verantwortung|Ministerpräsident|Verflechtung|Jahren|Finanzierung|Bemühungen|Volkes)/

@@ -1,0 +1,1 @@
+pos. pos=/(V.VIN|VVIMP)/    . tok=/(.+es|.+er)/  _=_  pos=/ART/	      . pos

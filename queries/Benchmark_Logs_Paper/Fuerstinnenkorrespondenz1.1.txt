@@ -1,0 +1,268 @@
+set clear-caches to false
+record
+corpus Fuerstinnenkorrespondenz1.1
+
+benchmarkName 07981
+count "Abficker"
+benchmarkName 01227
+count "Augustÿ"
+benchmarkName 04809
+count "BM"
+benchmarkName 04807
+count "NOM"
+benchmarkName 07980
+count "asi"
+benchmarkName 02571
+count "eben"
+benchmarkName 01233
+count "fürst"
+benchmarkName 04808
+count "hat"
+benchmarkName 01234
+count "madame"
+benchmarkName 01231
+count "salut"
+benchmarkName 01230
+count "salutem"
+benchmarkName 03880
+count "zu"
+benchmarkName 01006
+count ( (pp#pos=/PPOSS/    & n#norm=/meine/ )   |  (pp#pos=/PPOSAT/    & n#norm=/meine/) ) & #pp _=_ #n 
+benchmarkName 01007
+count ( pp#pos=/PPOSS/    |  pp#pos=/PPOSAT/ ) & n#norm=/meine/ & #pp _=_ #n 
+benchmarkName 01005
+count ((pp#pos=/PPOSS/ & n#norm=/meine/ )  | (pp#pos=/PPOSAT/ & n#norm=/meine/) ) & #pp _=_ #n 
+benchmarkName 00582
+count (norm=/meine/ & pos=/PPOSAT/ & #1_=_#2) |  (norm=/meine/ & pos=/PPOSS/ & #3_=_#4)  
+benchmarkName 00673
+count (norm=/meine/ _=_ pos=/PPOSS/) | (norm=/meine/ _=_ pos=/PPOSAT/)
+benchmarkName 00682
+count (pos=/(APPRART)|(APPR)/&pos=/(PPOSS)|(PPOSAT)|(ART)|(PDAT)|(WDAT)/ & pos=/ADJA/ & pos=/N./ & MA#norm & #1.#2 & #2.#3 & #3.#4 & #MA_=_#1)|  (pos=/(APPRART)|(APPR)/ & pos=/ADJA/ & pos=/N./ & MA#norm & #6.#7 & #7.#8 & #MA_=_#6) 
+benchmarkName 00679
+count (pos=/(APPRART)|(APPR)/&pos=/(PPOSS)|(PPOSAT)|(ART)|(PDAT)|(WDAT)/ & pos=/ADJA/ & pos=/N./ & MA#norm & #1.#2 & #2.#3 & #3.#4 & #MA_=_#1)|  (pos=/(APPRART)|(APPR)/ & pos=/ADJA/ & pos=/N./ & OA#norm & #6.#7 & #7.#8 & #OA_=_#6) 
+benchmarkName 00681
+count (pos=/(APPRART)|(APPR)/&pos=/(PPOSS)|(PPOSAT)|(ART)|(PDAT)|(WDAT)/ & pos=/ADJA/ & pos=/N./ & MA#tok & #1.#2 & #2.#3 & #3.#4 & #MA_=_#1)|  (pos=/(APPRART)|(APPR)/ & pos=/ADJA/ & pos=/N./ & OA#norm & #6.#7 & #7.#8 & #OA_=_#6) 
+benchmarkName 00903
+count (pos=/(APPRART)|(APPR)/&pos=/(PPOSS)|(PPOSAT)|(ART)|(PDAT)|(WDAT)/ & pos=/ADJA/ & pos=/N./ & W#norm & #1.#2 & #2.#3 & #3.#4 & #W_=_#1)|  (pos=/(APPRART)|(APPR)/ & pos=/ADJA/ & pos=/N./ & W#norm & #6.#7 & #7.#8 & #W_=_#6) 
+benchmarkName 00607
+count (pos=/(PPOSAT)/_=_ norm=/meine/) | (pos=/(PPOSS)/ _=_ norm=/meine/)   
+benchmarkName 00661
+count (pos=/APPR/ &pos=/(PPOSS)|(PPOSAT)|(ART)/ & pos=/ADJA/ & pos=/N./ & norm & #1.#2 & #2.#3 & #3.#4 & #1_=_#5)|  (pos=/(APPR)|(APPRART)/& pos=/ADJA/ & pos=/N./ & norm & #6.#7 & #7.#8 & #9_=_#6) 
+benchmarkName 00659
+count (pos=/APPR/&pos=/(PPOSS)|(PPOSAT)|(ART)/ & pos=/ADJA/ & pos=/N./ & norm & #1.#2 & #2.#3 & #3.#4 & #1_=_#5)|  (pos=/APPR/ & pos=/ADJA/ & pos=/N./ & norm & #6.#7 & #7.#8 & #9_=_#6) 
+benchmarkName 00676
+count (pos=/APPR/&pos=/(PPOSS)|(PPOSAT)|(ART)|(PDAT)|(WDAT)/ & pos=/ADJA/ & pos=/N./ & MA#norm & #1.#2 & #2.#3 & #3.#4 & #1_=_#MA)|  (pos=/APPR/ & pos=/ADJA/ & pos=/N./ & OA#norm & #6.#7 & #7.#8 & #OA_=_#6) 
+benchmarkName 00678
+count (pos=/APPR/&pos=/(PPOSS)|(PPOSAT)|(ART)|(PDAT)|(WDAT)/ & pos=/ADJA/ & pos=/N./ & MA#norm & #1.#2 & #2.#3 & #3.#4 & #MA_=_#1)|  (pos=/APPR/ & pos=/ADJA/ & pos=/N./ & OA#norm & #6.#7 & #7.#8 & #OA_=_#6) 
+benchmarkName 00675
+count (pos=/APPR/&pos=/(PPOSS)|(PPOSAT)|(ART)|(PDAT)|(WDAT)/ & pos=/ADJA/ & pos=/N./ & norm & #1.#2 & #2.#3 & #3.#4 & #1_=_#5)|  (pos=/APPR/ & pos=/ADJA/ & pos=/N./ & norm & #6.#7 & #7.#8 & #9_=_#6) 
+benchmarkName 00608
+count (pos=/PPOSAT/_=_ norm=/meine/) | (pos=/PPOSS/ _=_ norm=/meine/)   
+benchmarkName 01189
+count (pos=/PPOSS/ & norm=/meine/  & #1 _=_ #2) | ( pos=/PPOSAT/ & norm=/meine/ & #3 _=_ #4 )  
+benchmarkName 00876
+count (pos=/PPOSS/ &norm=/meine/ & #1 _=_ #2) | (pos=/PPOSAT/ & norm=/meine/ & #3 _=_ #4) 
+benchmarkName 00605
+count (pos=/PPOSS/ &norm=/meine/ & #1_=_#2) | (pos=/PPOSAT/ & norm=/meine/ & #3_=_#4)  
+benchmarkName 01004
+count (pp#pos=/PPOSS/ &n#norm=/meine/ & #pp _=_ #n) | (pp#pos=/PPOSAT/ & n#norm=/meine/ & #pp _=_ #n) 
+benchmarkName 00741
+count clause-st=/.*rel.*/
+benchmarkName 04810
+count formal="BM"
+benchmarkName 04811
+count formal="BS"
+benchmarkName 04812
+count formal="GK"
+benchmarkName 04813
+count formal="GS"
+benchmarkName 04816
+count formal="KA"
+benchmarkName 04814
+count formal="MJ"
+benchmarkName 04815
+count formal="MOV"
+benchmarkName 04817
+count formal="ZS"
+benchmarkName 00600
+count grfunct= /subj/
+benchmarkName 01228
+count grfunct="subj"
+benchmarkName 01236
+count grfunct="subj" _=_ pos="PIAT"
+benchmarkName 01229
+count grfunct="subj" _i_ pos="PIAT"
+benchmarkName 01248
+count grfunct="subj" _i_ pos="PIAT" & #2 . pos="ADJA"
+benchmarkName 01009
+count grfunct=/prsimpel/. grfunct=/subj/
+benchmarkName 01255
+count grfunct=/prsimpl/ . grfunct = /subj/
+benchmarkName 01010
+count grfunct=/prsimpl/. grfunct=/subj/
+benchmarkName 04766
+count lemma ="Stein"
+benchmarkName 08205
+count lemma="was"
+benchmarkName 08204
+count lemma="was" &lemma=/(für|vor)/ & #1 .* #2 
+benchmarkName 08202
+count lemma="was" &pos="PWS" & #1 .* #2
+benchmarkName 08201
+count lemma="was" &pos="pws" & #1 .* #2
+benchmarkName 08219
+count lemma="was" &pos=/N.*/ & #1 . #2
+benchmarkName 08270
+count lemma="was" &pos=/PRELAT/ & #1 _=_ #2
+benchmarkName 08268
+count lemma="was" &pos=/PRELS/ & #1 _=_ #2
+benchmarkName 08269
+count lemma="was" &pos=/PWS/ & #1 _=_ #2
+benchmarkName 00599
+count lemma=/erfordern/
+benchmarkName 01241
+count lemma=/erfordern/ & pos=/VVFIN/ &#1 _=_ #2
+benchmarkName 01237
+count lemma=/erfordern/ _=_ pos = /VVFIN/
+benchmarkName 01246
+count lemma=/erfordern/ _=_ pos=/VVFIN/ 
+benchmarkName 01238
+count lemma=/erfordern/ _o_ pos = /VVFIN/
+benchmarkName 01188
+count lemma=/erfordern/& pos=/VVFIN/ & #1 _=_ #2
+benchmarkName 01243
+count lemma=/erfordern/& pos=/VVFIN/ & #1.#2  
+benchmarkName 00601
+count lemma=/erfordern/& pos=/VVFIN/ & #1_=_#2
+benchmarkName 01244
+count lemma=/erfordern/& pos=/VVFIN/ & #1_=_#2  
+benchmarkName 00564
+count lemma=/erfordern/_=_ pos=/VVFIN/ 
+benchmarkName 01247
+count lemma=/erfordern/_=_ pos=/VVFIN/   
+benchmarkName 08223
+count lemma=/für|for/
+benchmarkName 08224
+count lemma=/für|for/ &morph=/.*Gen.*/ & #1 . #2 
+benchmarkName 08225
+count lemma=/für|for/ &morph=/.*Nom.*/ & #1 . #2 
+benchmarkName 08231
+count lemma=/für|vor/ &morph=/.*Nom.*/ & #1 . #2  
+benchmarkName 08230
+count lemma=/für|vor/ &pos=/A.*/ & #1 . #2  
+benchmarkName 01235
+count lemma=/schreiben/
+benchmarkName 04818
+count lex_gr="WB"
+benchmarkName 05258
+count morph
+benchmarkName 05257
+count morph="*.*.*"
+benchmarkName 00906
+count morph=/.*Sg/_=_ pos=/ADJA/ . pos=/N./ _=_ morph=/.*Sg/ 
+benchmarkName 01232
+count norm 
+benchmarkName 00931
+count norm . norm . norm &pos=/ART/ & pos=/ADJA/ & pos=/NN/ & morph=/.*Sg/ & morph=/.*Sg/ & #4_=_#1 & #5_=_#2 & #6_=_#3 & #7_=_#2 & #8_=_#3  
+benchmarkName 02182
+count norm= /erfordert/
+benchmarkName 00904
+count norm=""
+benchmarkName 08203
+count norm="Kommissionen"
+benchmarkName 00905
+count norm=/[ ]*/
+benchmarkName 01271
+count norm=/d.*/ . norm=/S.*/
+benchmarkName 01267
+count norm=/die/. norm . norm
+benchmarkName 01268
+count norm=/die/. norm . norm _=_ pos=/N./
+benchmarkName 01269
+count norm=/die/. norm _=_ pos=/ADJA/ . norm _=_ pos=/N./
+benchmarkName 00563
+count norm=/erfordert/
+benchmarkName 04332
+count norm=/und/
+benchmarkName 01008
+count phras
+benchmarkName 01261
+count pos= /(PPOSAT)|(PPOSS)/ _=_ norm =/meine/
+benchmarkName 00927
+count pos="NN"
+benchmarkName 01258
+count pos=/(PPOSAT)|(PPOSS)/
+benchmarkName 01001
+count pos=/(PPOSAT)|(PPOSS)/ 
+benchmarkName 00586
+count pos=/(PPOSAT)|(PPOSS)/  
+benchmarkName 01002
+count pos=/(PPOSAT)|(PPOSS)/& norm=/meine/ & #1 _=_ #2
+benchmarkName 01260
+count pos=/(PPOSAT)|(PPOSS)/& norm=/meine/ & #1 _=_ #2  
+benchmarkName 01003
+count pos=/(PPOSAT)|(PPOSS)/_=_ norm=/meine/   
+benchmarkName 01257
+count pos=/(PPOSAT|PPOSS)/
+benchmarkName 00603
+count pos=/(PPOSAT|PPOSS)/ 
+benchmarkName 00875
+count pos=/(PPOSAT|PPOSS)/& norm=/meine/ & #1 _=_ #2  
+benchmarkName 00604
+count pos=/(PPOSAT|PPOSS)/& norm=/meine/ & #1_=_#2  
+benchmarkName 00606
+count pos=/(PPOSAT|PPOSS)/_=_ norm=/meine/   
+benchmarkName 01100
+count pos=/(PPOSS)/
+benchmarkName 01099
+count pos=/(PPOSS)/& norm=/meine/ & #1 _=_ #2
+benchmarkName 00638
+count pos=/(PPOSS)|(PPOSAT)/ &norm & pos=/ADJA/ & pos=/N./ & norm & #1_=_#2 & #1.#3 & #3.#4 & #5_=_#3
+benchmarkName 07149
+count pos=/.*/
+benchmarkName 00646
+count pos=/APPR/&pos=/(PPOSS)|(PPOSAT)(ART)/ & pos=/ADJA/ & pos=/N./ & #1.#2 & #2.#3 & #3.#4 
+benchmarkName 00645
+count pos=/APPR/&pos=/(PPOSS)|(PPOSAT)(ART)/ & pos=/ADJA/ & pos=/N./ & norm & #1.#2 & #2.#3 & #3.#4 & #1_=_#5 
+benchmarkName 00647
+count pos=/APPR/&pos=/(PPOSS)|(PPOSAT)|(ART)/ & pos=/ADJA/ & pos=/N./ & norm & #1.#2 & #2.#3 & #3.#4 & #1_=_#5 
+benchmarkName 00677
+count pos=/APPR/. norm
+benchmarkName 04349
+count pos=/ART/ . pos=/ADJA/ . pos=/NN/
+benchmarkName 06029
+count pos=/N.*/
+benchmarkName 01250
+count pos=/PPOSAT/ . pos = /ADJA/ . pos = /NN/
+benchmarkName 00941
+count pos=/PPOSAT/ . pos=/ADJA/ . pos=/NN/
+benchmarkName 00567
+count pos=/PPOSAT/& pos=/ADJA/ & pos=/NN/ & #1 . #2 & #2 . #3 
+benchmarkName 01251
+count pos=/PPOSAT/& pos=/ADJA/ & pos=/NN/ & #1.#2 & #2.#3   
+benchmarkName 00568
+count pos=/PPOSAT/. pos=/ADJA/ . pos=/NN/
+benchmarkName 00602
+count pos=/PPOSAT/. pos=/ADJA/ . pos=/NN/ 
+benchmarkName 01256
+count pos=/PPOSAT|PPOSS/
+benchmarkName 01259
+count pos=/PPOSAT|PPOSS/ _=_ norm=/meine/
+benchmarkName 00537
+count tok
+benchmarkName 06056
+count tok=/.*/ &tok=/.*/ & pos=/N.*/ & #1 . #2 & #3 _i_ #1 & #3 _i_ #2
+benchmarkName 06048
+count tok=/.*/ &tok=/.*/ & pos=/N.*/ & #3 _i_ #1 & #3 _i_ #2
+benchmarkName 04353
+count tok=/.*/_o_ norm=/und/ 
+benchmarkName 04325
+count tok=/Kraͤuter/
+benchmarkName 04326
+count tok=/kindligen/
+benchmarkName 03671
+count tok=/sehr/. pos=/ADJ.*/ . pos=/ADJ.*/ . tok=/.*end.*/ . pos=/NN/
+benchmarkName 04328
+count tok=/vnnd/
+
+benchmark 5

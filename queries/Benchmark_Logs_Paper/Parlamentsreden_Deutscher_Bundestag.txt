@@ -1,0 +1,1474 @@
+set clear-caches to false
+record
+corpus Parlamentsreden_Deutscher_Bundestag
+
+benchmarkName 00801
+count "Deutschland"
+benchmarkName 00670
+count "Wahlperiode"
+benchmarkName 03863
+count "sehr"
+benchmarkName 04539
+count "sehr" . POS
+benchmarkName 03864
+count "sehr" . POS=/ADJ./ . POS=/ADJ./ . POS="NN" 
+benchmarkName 03862
+count "sehr" . POS=/ADJ./ . POS=/ADJ./ . POS="NN" & #1 .2 #3
+benchmarkName 04455
+count "sehr" . tok
+benchmarkName 03825
+count (LEMMA=/Grüne/|LEMMA=/Abgeordnete/|LEMMA=/Linke/)
+benchmarkName 02927
+count (n1#LEMMA="Abfertigungsbeamte"|n1#LEMMA="Abgeordnete"|n1#LEMMA="Abgesandte")
+benchmarkName 02926
+count (n1#LEMMA=/Abfertigungsbeamte/|n1#LEMMA=/Abgeordnete/| n1#LEMMA=/Abgesandte/| n1#LEMMA=/Abnahmebeamte/| n1#LEMMA=/Abschnittsbevollmächtigte/| n1#LEMMA=/Abstinente/| n1#LEMMA=/Abwehrbeamte/| n1#LEMMA=/Abwesende/| n1#LEMMA=/Ähnliche/| n1#LEMMA=/Akrokephale/| n1#LEMMA=/Akrozephale/| n1#LEMMA=/Akutkranke/| n1#LEMMA=/Alkoholkranke/| n1#LEMMA=/Alleinreisende/| n1#LEMMA=/Alleinstehende/| n1#LEMMA=/Allerheiligste/| n1#LEMMA=/Allerwerteste/| n1#LEMMA=/Allgütige/| n1#LEMMA=/Alliierte/| n1#LEMMA=/Allmächtige/| n1#LEMMA=/Alte/| n1#LEMMA=/Alternative/| n1#LEMMA=/Älteste/| n1#LEMMA=/Altinternationale/| n1#LEMMA=/Amerikadeutsche/| n1#LEMMA=/Amputierte/| n1#LEMMA=/Andersdenkende/| n1#LEMMA=/Angehörige/| n1#LEMMA=/Angeklagte/| LEMMA)
+benchmarkName 02925
+count (n1#LEMMA=/Abfertigungsbeamte/|n1#LEMMA=/Abgeordnete/| n1#LEMMA=/Abgesandte/| n1#LEMMA=/Abnahmebeamte/| n1#LEMMA=/Abschnittsbevollmächtigte/| n1#LEMMA=/Abstinente/| n1#LEMMA=/Abwehrbeamte/| n1#LEMMA=/Abwesende/| n1#LEMMA=/Ähnliche/| n1#LEMMA=/Akrokephale/| n1#LEMMA=/Akrozephale/| n1#LEMMA=/Akutkranke/| n1#LEMMA=/Alkoholkranke/| n1#LEMMA=/Alleinreisende/| n1#LEMMA=/Alleinstehende/| n1#LEMMA=/Allerheiligste/| n1#LEMMA=/Allerwerteste/| n1#LEMMA=/Allgütige/| n1#LEMMA=/Alliierte/| n1#LEMMA=/Allmächtige/| n1#LEMMA=/Alte/| n1#LEMMA=/Alternative/| n1#LEMMA=/Älteste/| n1#LEMMA=/Altinternationale/| n1#LEMMA=/Amerikadeutsche/| n1#LEMMA=/Amputierte/| n1#LEMMA=/Andersdenkende/| n1#LEMMA=/Angehörige/| n1#LEMMA=/Angeklagte/| n1#LEMMA=/Angestellte/| n1#LEMMA=/Angetraute/| n1#LEMMA=/Anstaltsgeistliche/| n1#LEMMA=/Anwesende/| n1#LEMMA=/Arbeitslose/| n1#LEMMA=/Arbeitsuchende/| n1#LEMMA=/Archivbeamte/| n1#LEMMA=/Arge/| n1#LEMMA=/Arme/| n1#LEMMA=/Armeeangehörige/| n1#LEMMA=/Asylberechtigte/| n1#LEMMA=/Asylsuchende/| n1#LEMMA=/Aufsichtführende/| n1#LEMMA=/Aufsichtsbeamte/| n1#LEMMA=/Aufsichtsratvorsitzende/| n1#LEMMA=/Aufständische/| n1#LEMMA=/Auserwählte/| n1#LEMMA=/Auskunftsbeamte/| n1#LEMMA=/Ausländerbeauftragte/| n1#LEMMA=/Ausschussvorsitzende/| n1#LEMMA=/Aussenstehende/| n1#LEMMA=/Äussere/| n1#LEMMA=/Australide/| n1#LEMMA=/Australoide/| n1#LEMMA=/Auszubildende/| n1#LEMMA=/Bahnbeamte/| n1#LEMMA=/Bahnreisende/| n1#LEMMA=/Bankangestellte/| n1#LEMMA=/Bankbeamte/| n1#LEMMA=/Bausachverständige/| n1#LEMMA=/Bauschaffende/| n1#LEMMA=/Beamte/| n1#LEMMA=/Beauftragte/| n1#LEMMA=/Bedienstete/| n1#LEMMA=/Begabte/| n1#LEMMA=/Behinderte/| n1#LEMMA=/Behördenangestellte/| n1#LEMMA=/Beichtwillige/| n1#LEMMA=/Bekannte/| n1#LEMMA=/Beklagte/| n1#LEMMA=/Berechtigte/| n1#LEMMA=/Bergbaubeflissene/| n1#LEMMA=/Berufsbeamte/| n1#LEMMA=/Berufsjugendliche/| n1#LEMMA=/Berufstätige/| n1#LEMMA=/Berufungsbeklagte/| n1#LEMMA=/Berührungsgerade/| n1#LEMMA=/Beschädigte/| n1#LEMMA=/Beschäftigte/| n1#LEMMA=/Beschwerdeführende/| n1#LEMMA=/Besserverdienende/| n1#LEMMA=/Beste/| n1#LEMMA=/Betagte/| n1#LEMMA=/Beteiligte/| n1#LEMMA=/Betreibungsbeamte/| n1#LEMMA=/Betriebsangehörige/| n1#LEMMA=/Betriebsratsvorsitzende/| n1#LEMMA=/Betrunkene/| n1#LEMMA=/Beutedeutsche/| n1#LEMMA=/Bevollmächtigte/| n1#LEMMA=/Bewaffnete/| n1#LEMMA=/Bewusste/| n1#LEMMA=/Bezirksbeamte/| n1#LEMMA=/Bezirksverordnete/| n1#LEMMA=/Bezogene/| n1#LEMMA=/Bibliophage/| n1#LEMMA=/Bibliophile/| LEMMA)
+benchmarkName 02928
+count (n1#LEMMA=/Abfertigungsbeamte/|n1#LEMMA=/Abgeordnete/| n1#LEMMA=/Abgesandte/| n1#LEMMA=/Abnahmebeamte/| n1#LEMMA=/Abschnittsbevollmächtigte/| n1#LEMMA=/Abstinente/| n1#LEMMA=/Abwehrbeamte/| n1#LEMMA=/Abwesende/| n1#LEMMA=/Ähnliche/| n1#LEMMA=/Akrokephale/| n1#LEMMA=/Akrozephale/| n1#LEMMA=/Akutkranke/| n1#LEMMA=/Alkoholkranke/| n1#LEMMA=/Alleinreisende/| n1#LEMMA=/Alleinstehende/| n1#LEMMA=/Allerheiligste/| n1#LEMMA=/Allerwerteste/| n1#LEMMA=/Allgütige/| n1#LEMMA=/Alliierte/| n1#LEMMA=/Allmächtige/| n1#LEMMA=/Alte/| n1#LEMMA=/Alternative/| n1#LEMMA=/Älteste/| n1#LEMMA=/Altinternationale/| n1#LEMMA=/Amerikadeutsche/| n1#LEMMA=/Amputierte/| n1#LEMMA=/Andersdenkende/| n1#LEMMA=/Angehörige/| n1#LEMMA=/Angeklagte/| n1#LEMMA=/Angestellte/| n1#LEMMA=/Angetraute/| n1#LEMMA=/Anstaltsgeistliche/| n1#LEMMA=/Anwesende/| n1#LEMMA=/Arbeitslose/| n1#LEMMA=/Arbeitsuchende/| n1#LEMMA=/Archivbeamte/| n1#LEMMA=/Arge/| n1#LEMMA=/Arme/| n1#LEMMA=/Armeeangehörige/| n1#LEMMA=/Asylberechtigte/| n1#LEMMA=/Asylsuchende/| n1#LEMMA=/Aufsichtführende/| n1#LEMMA=/Aufsichtsbeamte/| n1#LEMMA=/Aufsichtsratvorsitzende/| n1#LEMMA=/Aufständische/| n1#LEMMA=/Auserwählte/| n1#LEMMA=/Auskunftsbeamte/| n1#LEMMA=/Ausländerbeauftragte/| n1#LEMMA=/Ausschussvorsitzende/| n1#LEMMA=/Aussenstehende/| n1#LEMMA=/Äussere/| n1#LEMMA=/Australide/| n1#LEMMA=/Australoide/| n1#LEMMA=/Auszubildende/| n1#LEMMA=/Bahnbeamte/| n1#LEMMA=/Bahnreisende/| n1#LEMMA=/Bankangestellte/| n1#LEMMA=/Bankbeamte/| n1#LEMMA=/Bausachverständige/| n1#LEMMA=/Bauschaffende/| n1#LEMMA=/Beamte/| n1#LEMMA=/Beauftragte/| n1#LEMMA=/Bedienstete/| n1#LEMMA=/Begabte/| n1#LEMMA=/Behinderte/| n1#LEMMA=/Behördenangestellte/| n1#LEMMA=/Beichtwillige/| n1#LEMMA=/Bekannte/| n1#LEMMA=/Beklagte/| n1#LEMMA=/Berechtigte/| n1#LEMMA=/Bergbaubeflissene/| n1#LEMMA=/Berufsbeamte/| n1#LEMMA=/Berufsjugendliche/| n1#LEMMA=/Berufstätige/| n1#LEMMA=/Berufungsbeklagte/| n1#LEMMA=/Berührungsgerade/| n1#LEMMA=/Beschädigte/| n1#LEMMA=/Beschäftigte/| n1#LEMMA=/Beschwerdeführende/| n1#LEMMA=/Besserverdienende/| n1#LEMMA=/Beste/| n1#LEMMA=/Betagte/| n1#LEMMA=/Beteiligte/| n1#LEMMA=/Betreibungsbeamte/| n1#LEMMA=/Betriebsangehörige/| n1#LEMMA=/Betriebsratsvorsitzende/| n1#LEMMA=/Betrunkene/| n1#LEMMA=/Beutedeutsche/| n1#LEMMA=/Bevollmächtigte/| n1#LEMMA=/Bewaffnete/| n1#LEMMA=/Bewusste/| n1#LEMMA=/Bezirksbeamte/| n1#LEMMA=/Bezirksverordnete/| n1#LEMMA=/Bezogene/| n1#LEMMA=/Bibliophage/| n1#LEMMA=/Bibliophile/| n1#LEMMA=/Bibliophobe/| n1#LEMMA=/Bibliotheksangestellte/| n1#LEMMA=/Bibliotheksbeamte/| n1#LEMMA=/Bisexuelle/| n1#LEMMA=/Bittere/| n1#LEMMA=/Bittre/| n1#LEMMA=/Blinde/| n1#LEMMA=/Blindgeborene/| n1#LEMMA=/Blindgeborne/| n1#LEMMA=/Blonde/| n1#LEMMA=/Blutsverwandte/| n1#LEMMA=/Böse/| n1#LEMMA=/Breite/| n1#LEMMA=/Brotgelehrte/| n1#LEMMA=/Brückenheilige/| n1#LEMMA=/Bühnenschaffende/| n1#LEMMA=/Bundesangestellte/| n1#LEMMA=/Bundesbeamte/| n1#LEMMA=/Bundestagsabgeordnete/| n1#LEMMA=/Bündnisgrüne/| n1#LEMMA=/Bürgerbeauftragte/| n1#LEMMA=/Bürgerliche/| n1#LEMMA=/Büroangestellte/| n1#LEMMA=/Chefbeamte/| n1#LEMMA=/Chefdelegierte/| n1#LEMMA=/Cinephile/| n1#LEMMA=/Daheimgebliebene/| n1#LEMMA=/Datenschutzbeauftragte/| n1#LEMMA=/Dauerarbeitslose/| n1#LEMMA=/Deichgeschworene/| n1#LEMMA=/Deichgeschworne/| n1#LEMMA=/Delegierte/| n1#LEMMA=/Denkende/| n1#LEMMA=/Deputierte/| n1#LEMMA=/Deutsche/| n1#LEMMA=/Dezimale/| n1#LEMMA=/Diagonale/| n1#LEMMA=/Dienstälteste/| n1#LEMMA=/Dorfälteste/| n1#LEMMA=/Dorfschöne/| n1#LEMMA=/Dritte/| n1#LEMMA=/Drogenbeauftragte/| n1#LEMMA=/Drogentote/| n1#LEMMA=/Dumme/| n1#LEMMA=/Dunkle/| n1#LEMMA=/Edle/| n1#LEMMA=/Eheliebste/| n1#LEMMA=/Ehrenvorsitzende/| n1#LEMMA=/Einfache/| n1#LEMMA=/Eingeborene/| n1#LEMMA=/Eingemachte/| n1#LEMMA=/Eingesessene/| n1#LEMMA=/Eingesottene/| n1#LEMMA=/Einhebungsbeamte/| n1#LEMMA=/Einheimische/| n1#LEMMA=/Einzelreisende/| n1#LEMMA=/Einzelstehende/| n1#LEMMA=/Eisenbahnbeamte/| n1#LEMMA=/Eisenbahnbedienstete/| n1#LEMMA=/Eisheiligen/| n1#LEMMA=/Elefantenjunge/| n1#LEMMA=/Emigrierte/| n1#LEMMA=/Endesunterzeichnete/| n1#LEMMA=/Energiebeauftragte/| n1#LEMMA=/Entdeckungsreisende/| n1#LEMMA=/Entlassene/| n1#LEMMA=/Entschlossene/| n1#LEMMA=/Entschlossne/| n1#LEMMA=/Erbrochene/| n1#LEMMA=/Erdinnere/| n1#LEMMA=/Erholungsuchende/)
+benchmarkName 02924
+count (n1#LEMMA=/Abfertigungsbeamte/|n1#LEMMA=/Abgeordnete/| n1#LEMMA=/Abgesandte/| n1#LEMMA=/Abnahmebeamte/| n1#LEMMA=/Abschnittsbevollmächtigte/| n1#LEMMA=/Abstinente/| n1#LEMMA=/Abwehrbeamte/| n1#LEMMA=/Abwesende/| n1#LEMMA=/Ähnliche/| n1#LEMMA=/Akrokephale/| n1#LEMMA=/Akrozephale/| n1#LEMMA=/Akutkranke/| n1#LEMMA=/Alkoholkranke/| n1#LEMMA=/Alleinreisende/| n1#LEMMA=/Alleinstehende/| n1#LEMMA=/Allerheiligste/| n1#LEMMA=/Allerwerteste/| n1#LEMMA=/Allgütige/| n1#LEMMA=/Alliierte/| n1#LEMMA=/Allmächtige/| n1#LEMMA=/Alte/| n1#LEMMA=/Alternative/| n1#LEMMA=/Älteste/| n1#LEMMA=/Altinternationale/| n1#LEMMA=/Amerikadeutsche/| n1#LEMMA=/Amputierte/| n1#LEMMA=/Andersdenkende/| n1#LEMMA=/Angehörige/| n1#LEMMA=/Angeklagte/| n1#LEMMA=/Angestellte/| n1#LEMMA=/Angetraute/| n1#LEMMA=/Anstaltsgeistliche/| n1#LEMMA=/Anwesende/| n1#LEMMA=/Arbeitslose/| n1#LEMMA=/Arbeitsuchende/| n1#LEMMA=/Archivbeamte/| n1#LEMMA=/Arge/| n1#LEMMA=/Arme/| n1#LEMMA=/Armeeangehörige/| n1#LEMMA=/Asylberechtigte/| n1#LEMMA=/Asylsuchende/| n1#LEMMA=/Aufsichtführende/| n1#LEMMA=/Aufsichtsbeamte/| n1#LEMMA=/Aufsichtsratvorsitzende/| n1#LEMMA=/Aufständische/| n1#LEMMA=/Auserwählte/| n1#LEMMA=/Auskunftsbeamte/| n1#LEMMA=/Ausländerbeauftragte/| n1#LEMMA=/Ausschussvorsitzende/| n1#LEMMA=/Aussenstehende/| n1#LEMMA=/Äussere/| n1#LEMMA=/Australide/| n1#LEMMA=/Australoide/| n1#LEMMA=/Auszubildende/| n1#LEMMA=/Bahnbeamte/| n1#LEMMA=/Bahnreisende/| n1#LEMMA=/Bankangestellte/| n1#LEMMA=/Bankbeamte/| n1#LEMMA=/Bausachverständige/| n1#LEMMA=/Bauschaffende/| n1#LEMMA=/Beamte/| n1#LEMMA=/Beauftragte/| n1#LEMMA=/Bedienstete/| n1#LEMMA=/Begabte/| n1#LEMMA=/Behinderte/| n1#LEMMA=/Behördenangestellte/| n1#LEMMA=/Beichtwillige/| n1#LEMMA=/Bekannte/| n1#LEMMA=/Beklagte/| n1#LEMMA=/Berechtigte/| n1#LEMMA=/Bergbaubeflissene/| n1#LEMMA=/Berufsbeamte/| n1#LEMMA=/Berufsjugendliche/| n1#LEMMA=/Berufstätige/| n1#LEMMA=/Berufungsbeklagte/| n1#LEMMA=/Berührungsgerade/| n1#LEMMA=/Beschädigte/| n1#LEMMA=/Beschäftigte/| n1#LEMMA=/Beschwerdeführende/| n1#LEMMA=/Besserverdienende/| n1#LEMMA=/Beste/| n1#LEMMA=/Betagte/| n1#LEMMA=/Beteiligte/| n1#LEMMA=/Betreibungsbeamte/| n1#LEMMA=/Betriebsangehörige/| n1#LEMMA=/Betriebsratsvorsitzende/| n1#LEMMA=/Betrunkene/| n1#LEMMA=/Beutedeutsche/| n1#LEMMA=/Bevollmächtigte/| n1#LEMMA=/Bewaffnete/| n1#LEMMA=/Bewusste/| n1#LEMMA=/Bezirksbeamte/| n1#LEMMA=/Bezirksverordnete/| n1#LEMMA=/Bezogene/| n1#LEMMA=/Bibliophage/| n1#LEMMA=/Bibliophile/| n1#LEMMA=/Bibliophobe/| n1#LEMMA=/Bibliotheksangestellte/| n1#LEMMA=/Bibliotheksbeamte/| n1#LEMMA=/Bisexuelle/| n1#LEMMA=/Bittere/| n1#LEMMA=/Bittre/| n1#LEMMA=/Blinde/| n1#LEMMA=/Blindgeborene/| n1#LEMMA=/Blindgeborne/| n1#LEMMA=/Blonde/| n1#LEMMA=/Blutsverwandte/| n1#LEMMA=/Böse/| n1#LEMMA=/Breite/| n1#LEMMA=/Brotgelehrte/| n1#LEMMA=/Brückenheilige/| n1#LEMMA=/Bühnenschaffende/| n1#LEMMA=/Bundesangestellte/| n1#LEMMA=/Bundesbeamte/| n1#LEMMA=/Bundestagsabgeordnete/| n1#LEMMA=/Bündnisgrüne/| n1#LEMMA=/Bürgerbeauftragte/| n1#LEMMA=/Bürgerliche/| n1#LEMMA=/Büroangestellte/| n1#LEMMA=/Chefbeamte/| n1#LEMMA=/Chefdelegierte/| n1#LEMMA=/Cinephile/| n1#LEMMA=/Daheimgebliebene/| n1#LEMMA=/Datenschutzbeauftragte/| n1#LEMMA=/Dauerarbeitslose/| n1#LEMMA=/Deichgeschworene/| n1#LEMMA=/Deichgeschworne/| n1#LEMMA=/Delegierte/| n1#LEMMA=/Denkende/| n1#LEMMA=/Deputierte/| n1#LEMMA=/Deutsche/| n1#LEMMA=/Dezimale/| n1#LEMMA=/Diagonale/| n1#LEMMA=/Dienstälteste/| n1#LEMMA=/Dorfälteste/| n1#LEMMA=/Dorfschöne/| n1#LEMMA=/Dritte/| n1#LEMMA=/Drogenbeauftragte/| n1#LEMMA=/Drogentote/| n1#LEMMA=/Dumme/| n1#LEMMA=/Dunkle/| n1#LEMMA=/Edle/| n1#LEMMA=/Eheliebste/| n1#LEMMA=/Ehrenvorsitzende/| n1#LEMMA=/Einfache/| n1#LEMMA=/Eingeborene/| n1#LEMMA=/Eingemachte/| n1#LEMMA=/Eingesessene/| n1#LEMMA=/Eingesottene/| n1#LEMMA=/Einhebungsbeamte/| n1#LEMMA=/Einheimische/| n1#LEMMA=/Einzelreisende/| n1#LEMMA=/Einzelstehende/| n1#LEMMA=/Eisenbahnbeamte/| n1#LEMMA=/Eisenbahnbedienstete/| n1#LEMMA=/Eisheiligen/| n1#LEMMA=/Elefantenjunge/| n1#LEMMA=/Emigrierte/| n1#LEMMA=/Endesunterzeichnete/| n1#LEMMA=/Energiebeauftragte/| n1#LEMMA=/Entdeckungsreisende/| n1#LEMMA=/Entlassene/| n1#LEMMA=/Entschlossene/| n1#LEMMA=/Entschlossne/| n1#LEMMA=/Erbrochene/| n1#LEMMA=/Erdinnere/| n1#LEMMA=/Erholungsuchende/| LEMMA)
+benchmarkName 02930
+count (n1#LEMMA=/Ermittlungsbeamte/|n1#LEMMA=/Ersatzdienstleistende/| n1#LEMMA=/Erste/| n1#LEMMA=/Erstgebärende/| n1#LEMMA=/Erstverstorbene/| n1#LEMMA=/Erwachsene/| n1#LEMMA=/Erziehbare/| n1#LEMMA=/Ewiggestrige/| n1#LEMMA=/Ewiggleiche/| n1#LEMMA=/Ewigweibliche/| n1#LEMMA=/Exekutivbeamte/| n1#LEMMA=/Exerziergefreite/| n1#LEMMA=/Externe/| n1#LEMMA=/Fachgelehrte/| n1#LEMMA=/Fahnenflüchtige/| n1#LEMMA=/Familiare/| n1#LEMMA=/Familienangehörige/| n1#LEMMA=/Farbige/| n1#LEMMA=/Feldgeistliche/| n1#LEMMA=/Feldgraue/| n1#LEMMA=/Ferienreisende/| n1#LEMMA=/Fernerstehende/| n1#LEMMA=/Fernreisende/| n1#LEMMA=/Fernsehgewaltige/| n1#LEMMA=/Festangestellte/| n1#LEMMA=/Fieberkranke/| n1#LEMMA=/Filmillustrierte/| n1#LEMMA=/Filmschaffende/| n1#LEMMA=/Finanzbeamte/| n1#LEMMA=/Finanzgewaltige/| n1#LEMMA=/Fixangestellte/| n1#LEMMA=/Flugreisende/| n1#LEMMA=/Forschungsreisende/| n1#LEMMA=/Forstbeamte/| n1#LEMMA=/Forstbetriebsbeamte/| n1#LEMMA=/Fortgeschrittene/| n1#LEMMA=/Fraktionsvorsitzende/| n1#LEMMA=/Frauenbeauftragte/| n1#LEMMA=/Freie/| n1#LEMMA=/Freiwillige/| n1#LEMMA=/Fremde/| n1#LEMMA=/Friedensbewegte/| n1#LEMMA=/Frühinvalide/| n1#LEMMA=/Führende/| n1#LEMMA=/Ganze/| n1#LEMMA=/Gastote/| n1#LEMMA=/Geächtete/| n1#LEMMA=/Gebackene/| n1#LEMMA=/Gebärende/| n1#LEMMA=/Gebenedeite/| n1#LEMMA=/Geborene/| n1#LEMMA=/Geborne/| n1#LEMMA=/Gedruckte/| n1#LEMMA=/Gefallene/| n1#LEMMA=/Gefangene/| n1#LEMMA=/Gefängnisbeamte/| n1#LEMMA=/Gefängnisgeistliche/| n1#LEMMA=/Gefolgschaftsangehörige/| n1#LEMMA=/Gefreite/| n1#LEMMA=/Gegengerade/| n1#LEMMA=/Gehörgebrechliche/| n1#LEMMA=/Gehörlose/| n1#LEMMA=/Geistesschaffende/| n1#LEMMA=/Geistliche/| n1#LEMMA=/Gelehrte/| n1#LEMMA=/Geliebte/| n1#LEMMA=/Gemeindebeamte/| n1#LEMMA=/Gemütskranke/| n1#LEMMA=/Gendarmeriebeamte/| n1#LEMMA=/Generalbevollmächtigte/| n1#LEMMA=/Generalobere/| n1#LEMMA=/Geophage/| n1#LEMMA=/Gerade/| n1#LEMMA=/Geräucherte/| n1#LEMMA=/Gerichtsangestellte/| n1#LEMMA=/Gerichtsbeamte/| n1#LEMMA=/Gerichtssachverständige/| n1#LEMMA=/Gerichtsvorsitzende/| n1#LEMMA=/Geringqualifizierte/| n1#LEMMA=/Geringste/| n1#LEMMA=/Germanophile/| n1#LEMMA=/Gesandte/| n1#LEMMA=/Geschädigte/| n1#LEMMA=/Geschäftsfähige/| n1#LEMMA=/Geschnetzelte/| n1#LEMMA=/Geschworene/| n1#LEMMA=/Geschworne/| n1#LEMMA=/Gesinnte/| n1#LEMMA=/Gewaltige/| n1#LEMMA=/Gewerbetreibende/| n1#LEMMA=/Gewerkschaftsvorsitzende/| n1#LEMMA=/Gewesene/| n1#LEMMA=/Gewünschte/| n1#LEMMA=/Gläubige/| n1#LEMMA=/Gleiche/| n1#LEMMA=/Gleichgesinnte/| n1#LEMMA=/Glossolale/| n1#LEMMA=/Glottolale/| n1#LEMMA=/Gottesgelehrte/| n1#LEMMA=/Gottlose/| n1#LEMMA=/Graduierte/| n1#LEMMA=/Grenzbeamte/| n1#LEMMA=/Grippekranke/| n1#LEMMA=/Grosse/| n1#LEMMA=/Grossindustrielle/| n1#LEMMA=/Grundholde/| n1#LEMMA=/Grundwehrdienstleistende/| n1#LEMMA=/Grüne/| n1#LEMMA=/Grünenabgeordnete/| n1#LEMMA=/Gruppenratsvorsitzende/| n1#LEMMA=/Gruppenvorsitzende/| n1#LEMMA=/Gute/| n1#LEMMA=/Gutgesinnte/| n1#LEMMA=/Haftentlassene/| n1#LEMMA=/Handelsbevollmächtigte/| n1#LEMMA=/Handelsreisende/| n1#LEMMA=/Handlungsbevollmächtigte/| n1#LEMMA=/Handlungsreisende/| n1#LEMMA=/Handschriftenkundige/| n1#LEMMA=/Hangende/| n1#LEMMA=/Hauptangeklagte/| n1#LEMMA=/Hauptgefreite/| n1#LEMMA=/Hauptschuldige/| n1#LEMMA=/Hauptverantwortliche/| n1#LEMMA=/Hausangestellte/| n1#LEMMA=/Hausgewerbetreibende/| n1#LEMMA=/Heilige/| n1#LEMMA=/Helle/| n1#LEMMA=/Heranwachsende/| n1#LEMMA=/Herzkranke/| n1#LEMMA=/Heterosexuelle/| n1#LEMMA=/Heurige/| n1#LEMMA=/Hilfsgeistliche/| n1#LEMMA=/Hingeschiedene/| n1#LEMMA=/Hinterbliebene/| n1#LEMMA=/Hochdruckkranke/| n1#LEMMA=/Höchstbietende/| n1#LEMMA=/Homosexuelle/| n1#LEMMA=/Hörige/| n1#LEMMA=/Hotelangestellte/| n1#LEMMA=/Hundeartige/| n1#LEMMA=/Illustrierte/| n1#LEMMA=/Industrielle/| n1#LEMMA=/Innere/| n1#LEMMA=/Intellektuelle/| n1#LEMMA=/Internationale/| n1#LEMMA=/Invalide/| n1#LEMMA=/Irre/| n1#LEMMA=/Journalbeamte/| n1#LEMMA=/Jugendliche/| n1#LEMMA=/Jungdeutsche/| n1#LEMMA=/Junge/| n1#LEMMA=/Jungliberale/| n1#LEMMA=/Jüngste/| n1#LEMMA=/Jungverheiratete/| n1#LEMMA=/Jungvermählte/| n1#LEMMA=/Justizangestellte/| n1#LEMMA=/Justizbeamte/| n1#LEMMA=/Kalbsgeschnetzelte/| n1#LEMMA=/Kanzleibeamte/| n1#LEMMA=/Karnivore/| n1#LEMMA=/Kassenbeamte/| n1#LEMMA=/Katzenjunge/| n1#LEMMA=/Kirchenälteste/| n1#LEMMA=/Kirchenheilige/| n1#LEMMA=/Klare/)
+benchmarkName 02929
+count (n1#LEMMA=/Ermittlungsbeamte/|n1#LEMMA=/Ersatzdienstleistende/| n1#LEMMA=/Erste/| n1#LEMMA=/Erstgebärende/| n1#LEMMA=/Erstverstorbene/| n1#LEMMA=/Erwachsene/| n1#LEMMA=/Erziehbare/| n1#LEMMA=/Ewiggestrige/| n1#LEMMA=/Ewiggleiche/| n1#LEMMA=/Ewigweibliche/| n1#LEMMA=/Exekutivbeamte/| n1#LEMMA=/Exerziergefreite/| n1#LEMMA=/Externe/| n1#LEMMA=/Fachgelehrte/| n1#LEMMA=/Fahnenflüchtige/| n1#LEMMA=/Familiare/| n1#LEMMA=/Familienangehörige/| n1#LEMMA=/Farbige/| n1#LEMMA=/Feldgeistliche/| n1#LEMMA=/Feldgraue/| n1#LEMMA=/Ferienreisende/| n1#LEMMA=/Fernerstehende/| n1#LEMMA=/Fernreisende/| n1#LEMMA=/Fernsehgewaltige/| n1#LEMMA=/Festangestellte/| n1#LEMMA=/Fieberkranke/| n1#LEMMA=/Filmillustrierte/| n1#LEMMA=/Filmschaffende/| n1#LEMMA=/Finanzbeamte/| n1#LEMMA=/Finanzgewaltige/| n1#LEMMA=/Fixangestellte/| n1#LEMMA=/Flugreisende/| n1#LEMMA=/Forschungsreisende/| n1#LEMMA=/Forstbeamte/| n1#LEMMA=/Forstbetriebsbeamte/| n1#LEMMA=/Fortgeschrittene/| n1#LEMMA=/Fraktionsvorsitzende/| n1#LEMMA=/Frauenbeauftragte/| n1#LEMMA=/Freie/| n1#LEMMA=/Freiwillige/| n1#LEMMA=/Fremde/| n1#LEMMA=/Friedensbewegte/| n1#LEMMA=/Frühinvalide/| n1#LEMMA=/Führende/| n1#LEMMA=/Ganze/| n1#LEMMA=/Gastote/| n1#LEMMA=/Geächtete/| n1#LEMMA=/Gebackene/| n1#LEMMA=/Gebärende/| n1#LEMMA=/Gebenedeite/| n1#LEMMA=/Geborene/| n1#LEMMA=/Geborne/| n1#LEMMA=/Gedruckte/| n1#LEMMA=/Gefallene/| n1#LEMMA=/Gefangene/| n1#LEMMA=/Gefängnisbeamte/| n1#LEMMA=/Gefängnisgeistliche/| n1#LEMMA=/Gefolgschaftsangehörige/| n1#LEMMA=/Gefreite/| n1#LEMMA=/Gegengerade/| n1#LEMMA=/Gehörgebrechliche/| n1#LEMMA=/Gehörlose/| n1#LEMMA=/Geistesschaffende/| n1#LEMMA=/Geistliche/| n1#LEMMA=/Gelehrte/| n1#LEMMA=/Geliebte/| n1#LEMMA=/Gemeindebeamte/| n1#LEMMA=/Gemütskranke/| n1#LEMMA=/Gendarmeriebeamte/| n1#LEMMA=/Generalbevollmächtigte/| n1#LEMMA=/Generalobere/| n1#LEMMA=/Geophage/| n1#LEMMA=/Gerade/| n1#LEMMA=/Geräucherte/| n1#LEMMA=/Gerichtsangestellte/| n1#LEMMA=/Gerichtsbeamte/| n1#LEMMA=/Gerichtssachverständige/| n1#LEMMA=/Gerichtsvorsitzende/| n1#LEMMA=/Geringqualifizierte/| n1#LEMMA=/Geringste/| n1#LEMMA=/Germanophile/| n1#LEMMA=/Gesandte/| n1#LEMMA=/Geschädigte/| n1#LEMMA=/Geschäftsfähige/| n1#LEMMA=/Geschnetzelte/| n1#LEMMA=/Geschworene/| n1#LEMMA=/Geschworne/| n1#LEMMA=/Gesinnte/| n1#LEMMA=/Gewaltige/| n1#LEMMA=/Gewerbetreibende/| n1#LEMMA=/Gewerkschaftsvorsitzende/| n1#LEMMA=/Gewesene/| n1#LEMMA=/Gewünschte/| n1#LEMMA=/Gläubige/| n1#LEMMA=/Gleiche/| n1#LEMMA=/Gleichgesinnte/| n1#LEMMA=/Glossolale/| n1#LEMMA=/Glottolale/| n1#LEMMA=/Gottesgelehrte/| n1#LEMMA=/Gottlose/| n1#LEMMA=/Graduierte/| n1#LEMMA=/Grenzbeamte/| n1#LEMMA=/Grippekranke/| n1#LEMMA=/Grosse/| n1#LEMMA=/Grossindustrielle/| n1#LEMMA=/Grundholde/| n1#LEMMA=/Grundwehrdienstleistende/| n1#LEMMA=/Grüne/| n1#LEMMA=/Grünenabgeordnete/| n1#LEMMA=/Gruppenratsvorsitzende/| n1#LEMMA=/Gruppenvorsitzende/| n1#LEMMA=/Gute/| n1#LEMMA=/Gutgesinnte/| n1#LEMMA=/Haftentlassene/| n1#LEMMA=/Handelsbevollmächtigte/| n1#LEMMA=/Handelsreisende/| n1#LEMMA=/Handlungsbevollmächtigte/| n1#LEMMA=/Handlungsreisende/| n1#LEMMA=/Handschriftenkundige/| n1#LEMMA=/Hangende/| n1#LEMMA=/Hauptangeklagte/| n1#LEMMA=/Hauptgefreite/| n1#LEMMA=/Hauptschuldige/| n1#LEMMA=/Hauptverantwortliche/| n1#LEMMA=/Hausangestellte/| n1#LEMMA=/Hausgewerbetreibende/| n1#LEMMA=/Heilige/| n1#LEMMA=/Helle/| n1#LEMMA=/Heranwachsende/| n1#LEMMA=/Herzkranke/| n1#LEMMA=/Heterosexuelle/| n1#LEMMA=/Heurige/| n1#LEMMA=/Hilfsgeistliche/| n1#LEMMA=/Hingeschiedene/| n1#LEMMA=/Hinterbliebene/| n1#LEMMA=/Hochdruckkranke/| n1#LEMMA=/Höchstbietende/| n1#LEMMA=/Homosexuelle/| n1#LEMMA=/Hörige/| n1#LEMMA=/Hotelangestellte/| n1#LEMMA=/Hundeartige/| n1#LEMMA=/Illustrierte/| n1#LEMMA=/Industrielle/| n1#LEMMA=/Innere/| n1#LEMMA=/Intellektuelle/| n1#LEMMA=/Internationale/| n1#LEMMA=/Invalide/| n1#LEMMA=/Irre/| n1#LEMMA=/Journalbeamte/| n1#LEMMA=/Jugendliche/| n1#LEMMA=/Jungdeutsche/| n1#LEMMA=/Junge/| n1#LEMMA=/Jungliberale/| n1#LEMMA=/Jüngste/| n1#LEMMA=/Jungverheiratete/| n1#LEMMA=/Jungvermählte/| n1#LEMMA=/Justizangestellte/| n1#LEMMA=/Justizbeamte/| n1#LEMMA=/Kalbsgeschnetzelte/| n1#LEMMA=/Kanzleibeamte/| n1#LEMMA=/Karnivore/| n1#LEMMA=/Kassenbeamte/| n1#LEMMA=/Katzenjunge/| n1#LEMMA=/Kirchenälteste/| n1#LEMMA=/Kirchenheilige/| n1#LEMMA=/Klare/| n1#LEMMA=/Klassenälteste/)
+benchmarkName 03835
+count (n1#LEMMA=/Grüne/|n1#LEMMA=/Abgeordnete/|n1#LEMMA=/Linke/)
+benchmarkName 03000
+count (n1#LEMMA=/Klassenälteste/|n1#LEMMA=/Klassenbeste/| n1#LEMMA=/Klassenerste/| n1#LEMMA=/Kleine/| n1#LEMMA=/Kleingedruckte/| n1#LEMMA=/Kleinkriminelle/| n1#LEMMA=/Knappschaftsälteste/| n1#LEMMA=/Kolchosvorsitzende/| n1#LEMMA=/Kollaterale/| n1#LEMMA=/Kollateralverwandte/| n1#LEMMA=/Kolonialbeamte/| n1#LEMMA=/Kommandierende/| n1#LEMMA=/Kommunalbeamte/| n1#LEMMA=/Konföderierte/| n1#LEMMA=/Kongressabgeordnete/| n1#LEMMA=/Konsularbeamte/| n1#LEMMA=/Kontaktbeamte/| n1#LEMMA=/Kontaktbereichsbeamte/| n1#LEMMA=/Konviktuale/| n1#LEMMA=/Konvive/| n1#LEMMA=/Konzeptsbeamte/| n1#LEMMA=/Körperbehinderte/| n1#LEMMA=/Korporierte/| n1#LEMMA=/Krachlederne/| n1#LEMMA=/Kranke/| n1#LEMMA=/Krankenversicherte/| n1#LEMMA=/Krebskranke/| n1#LEMMA=/Krebstote/| n1#LEMMA=/Kreistagsabgeordnete/| n1#LEMMA=/Kriegsbeschädigte/| n1#LEMMA=/Kriegsblinde/| n1#LEMMA=/Kriegsfreiwillige/| n1#LEMMA=/Kriegsgefangene/| n1#LEMMA=/Kriegsgeschädigte/| n1#LEMMA=/Kriegshinterbliebene/| n1#LEMMA=/Kriegsinvalide/| n1#LEMMA=/Kriegstote/| n1#LEMMA=/Kriegsverletzte/| n1#LEMMA=/Kriegsversehrte/| n1#LEMMA=/Kriminalbeamte/| n1#LEMMA=/Kriminale/| n1#LEMMA=/Kriminelle/| n1#LEMMA=/Kripobeamte/| n1#LEMMA=/Krumme/| n1#LEMMA=/Kulturschaffende/| n1#LEMMA=/Kundige/| n1#LEMMA=/Kunstbeflissene/| n1#LEMMA=/Kunstgelehrte/| n1#LEMMA=/Kunstschaffende/| n1#LEMMA=/Kurzentschlossene/| n1#LEMMA=/Lachsartige/| n1#LEMMA=/Ladenangestellte/| n1#LEMMA=/Landesinnere/| n1#LEMMA=/Landtagsabgeordnete/| n1#LEMMA=/Lange/| n1#LEMMA=/Langzeitarbeitslose/| n1#LEMMA=/Langzeitkranke/| n1#LEMMA=/Laufende/| n1#LEMMA=/Lebendgeborene/| n1#LEMMA=/Lebenslängliche/| n1#LEMMA=/Leckere/| n1#LEMMA=/Ledige/| n1#LEMMA=/Lehrbeauftragte/| n1#LEMMA=/Leibeigene/| n1#LEMMA=/Leibhaftige/| n1#LEMMA=/Leichtbewaffnete/| n1#LEMMA=/Leichtverletzte/| n1#LEMMA=/Leichtverwundete/| n1#LEMMA=/Leidende/| n1#LEMMA=/Leistende/| n1#LEMMA=/Leprakranke/| n1#LEMMA=/Leptokephale/| n1#LEMMA=/Leptosome/| n1#LEMMA=/Leptozephale/| n1#LEMMA=/Lernbehinderte/| n1#LEMMA=/Lernende/| n1#LEMMA=/Letzte/| n1#LEMMA=/Letztgeborene/| n1#LEMMA=/Letztgeborne/| n1#LEMMA=/Liberale/| n1#LEMMA=/Liebende/| n1#LEMMA=/Liebste/| n1#LEMMA=/Liegende/| n1#LEMMA=/Liierte/| n1#LEMMA=/Linke/| n1#LEMMA=/Linksintellektuelle/| n1#LEMMA=/Linksradikale/| n1#LEMMA=/Linksunterzeichnete/| n1#LEMMA=/Lohnabhängige/| n1#LEMMA=/Lotrechte/| n1#LEMMA=/Löwenjunge/| n1#LEMMA=/Lungenkranke/| n1#LEMMA=/Mageninnere/| n1#LEMMA=/Magistratsbeamte/| n1#LEMMA=/Makrokephale/| n1#LEMMA=/Makrozephale/| n1#LEMMA=/Märzgefallene/| n1#LEMMA=/Massenillustrierte/| n1#LEMMA=/Medizinalbeamte/| n1#LEMMA=/Megalozephale/| n1#LEMMA=/Mehrfachbehinderte/| n1#LEMMA=/Meineidige/| n1#LEMMA=/Meistbietende/| n1#LEMMA=/Melaneside/| n1#LEMMA=/Menschenartige/| n1#LEMMA=/Menschenmögliche/| n1#LEMMA=/Menschliche/| n1#LEMMA=/Mesokephale/| n1#LEMMA=/Mesozephale/| n1#LEMMA=/Mikrokephale/| n1#LEMMA=/Mikrozephale/| n1#LEMMA=/Milieugeschädigte/| n1#LEMMA=/Militärangehörige/| n1#LEMMA=/Militärgeistliche/| n1#LEMMA=/Minderbegabte/| n1#LEMMA=/Minderbemittelte/| n1#LEMMA=/Minderqualifizierte/| n1#LEMMA=/Mindestbietende/| n1#LEMMA=/Ministerialbeamte/| n1#LEMMA=/Ministeriale/| n1#LEMMA=/Mitangeklagte/| n1#LEMMA=/Mitbeklagte/| n1#LEMMA=/Mitgefangene/| n1#LEMMA=/Mitreisende/| n1#LEMMA=/Mitschuldige/| n1#LEMMA=/Mitunterzeichnete/| n1#LEMMA=/Mitverschworene/| n1#LEMMA=/Mitverschworne/| n1#LEMMA=/Mitwirkende/| n1#LEMMA=/Mixolydische/| n1#LEMMA=/Möglichste/| n1#LEMMA=/Monatserste/| n1#LEMMA=/Monatsletzte/| n1#LEMMA=/Mondsüchtige/| n1#LEMMA=/Mongolide/| n1#LEMMA=/Mongoloide/| n1#LEMMA=/Monohybride/| n1#LEMMA=/Monokline/| n1#LEMMA=/Monomere/| n1#LEMMA=/Monophage/| n1#LEMMA=/Morphiumsüchtige/| n1#LEMMA=/MS-kranke/| n1#LEMMA=/Münzbeamte/| n1#LEMMA=/Myope/| n1#LEMMA=/Nachgeborene/| n1#LEMMA=/Nächstbeste/| n1#LEMMA=/Nächste/| n1#LEMMA=/Naive/| n1#LEMMA=/Naturheilkundige/| n1#LEMMA=/Naturkundige/| n1#LEMMA=/Negroide/| n1#LEMMA=/Nervenkranke/| n1#LEMMA=/Nestjunge/| n1#LEMMA=/Neubekehrte/| n1#LEMMA=/Neunfache/| n1#LEMMA=/Neutrale/| n1#LEMMA=/Nichtgewünschte/| n1#LEMMA=/Nichtzutreffende/| n1#LEMMA=/Niedere/| n1#LEMMA=/Niedergelassene/| n1#LEMMA=/Normale/| n1#LEMMA=/Normalsterbliche/| n1#LEMMA=/Notleidende/| n1#LEMMA=/Numinose/| n1#LEMMA=/Nutzungsberechtigte/| n1#LEMMA=/Obdachlose/)
+benchmarkName 03002
+count (n1#LEMMA=/Obere/|n1#LEMMA=/Obergefreite/| n1#LEMMA=/Oberkommandierende/| n1#LEMMA=/Okkulte/| n1#LEMMA=/Olympiazweite/| n1#LEMMA=/Ordensgeistliche/| n1#LEMMA=/Orthozephale/| n1#LEMMA=/Ortsälteste/| n1#LEMMA=/Pädophile/| n1#LEMMA=/Pädosexuelle/| n1#LEMMA=/Parallele/| n1#LEMMA=/Parlamentsabgeordnete/| n1#LEMMA=/Parteilose/| n1#LEMMA=/Parteivorsitzende/| n1#LEMMA=/Pauschalreisende/| n1#LEMMA=/Pflegebedürftige/| n1#LEMMA=/Pflegebefohlene/| n1#LEMMA=/Pflichtversicherte/| n1#LEMMA=/Polare/| n1#LEMMA=/Politische/| n1#LEMMA=/Polizeibeamte/| n1#LEMMA=/Polyglotte/| n1#LEMMA=/Polymere/| n1#LEMMA=/Postangestellte/| n1#LEMMA=/Postbeamte/| n1#LEMMA=/Postbedienstete/| n1#LEMMA=/Postgraduierte/| n1#LEMMA=/Privatgelehrte/| n1#LEMMA=/Privatversicherte/| n1#LEMMA=/Profane/| n1#LEMMA=/Professe/| n1#LEMMA=/Prominente/| n1#LEMMA=/Prostituierte/| n1#LEMMA=/Provisionsreisende/| n1#LEMMA=/Prozessbevollmächtigte/| n1#LEMMA=/Pygmide/| n1#LEMMA=/Querschnittgelähmte/| n1#LEMMA=/Radikale/| n1#LEMMA=/Randständige/| n1#LEMMA=/Rangälteste/| n1#LEMMA=/Ranghöchste/| n1#LEMMA=/Rangniedere/| n1#LEMMA=/Ratsvorsitzende/| n1#LEMMA=/Raumdiagonale/| n1#LEMMA=/Rauschgiftsüchtige/| n1#LEMMA=/Rauschgifttote/| n1#LEMMA=/Rechte/| n1#LEMMA=/Rechtsgelehrte/| n1#LEMMA=/Rechtsradikale/| n1#LEMMA=/Rechtsunterzeichnete/| n1#LEMMA=/Reformierte/| n1#LEMMA=/Regierungsbeamte/| n1#LEMMA=/Regulargeistliche/| n1#LEMMA=/Reiche/| n1#LEMMA=/Reichstagsabgeordnete/| n1#LEMMA=/Reine/| n1#LEMMA=/Reisende/| n1#LEMMA=/Reisige/| n1#LEMMA=/Rekordinternationale/| n1#LEMMA=/Religiose/| n1#LEMMA=/Remigrierte/| n1#LEMMA=/Renitente/| n1#LEMMA=/Republikflüchtige/| n1#LEMMA=/Revierkranke/| n1#LEMMA=/Rindsgeschnetzelte/| n1#LEMMA=/Rotliegende/| n1#LEMMA=/Rückkehrwillige/| n1#LEMMA=/Ruhestandsbeamte/| n1#LEMMA=/Russlanddeutsche/| n1#LEMMA=/Sachverständige/| n1#LEMMA=/Sanitätsgefreite/| n1#LEMMA=/Satzganze/| n1#LEMMA=/Säulenheilige/| n1#LEMMA=/Schädellose/| n1#LEMMA=/Schaffende/| n1#LEMMA=/Schalterangestellte/| n1#LEMMA=/Schalterbeamte/| n1#LEMMA=/Schaulustige/| n1#LEMMA=/Scheidungswillige/| n1#LEMMA=/Scheinselbständige/| n1#LEMMA=/Scheintote/| n1#LEMMA=/Schiffbrüchige/| n1#LEMMA=/Schizoide/| n1#LEMMA=/Schizophrene/| n1#LEMMA=/Schizothyme/| n1#LEMMA=/Schmalzgebackene/| n1#LEMMA=/Schnellste/| n1#LEMMA=/Schnittgerade/| n1#LEMMA=/Schöne/| n1#LEMMA=/Schriftgelehrte/| n1#LEMMA=/Schriftkundige/| n1#LEMMA=/Schriftsachverständige/| n1#LEMMA=/Schuldige/| n1#LEMMA=/Schuldtragende/| n1#LEMMA=/Schulentlassene/| n1#LEMMA=/Schulfremde/| n1#LEMMA=/Schutzbefohlene/| n1#LEMMA=/Schutzheilige/| n1#LEMMA=/Schwangere/| n1#LEMMA=/Schwarze/| n1#LEMMA=/Schwarzgeräucherte/| n1#LEMMA=/Schweinerne/| n1#LEMMA=/Schweinsgeschnetzelte/| n1#LEMMA=/Schwerbehinderte/| n1#LEMMA=/Schwerbewaffnete/| n1#LEMMA=/Schwererziehbare/| n1#LEMMA=/Schwerhörige/| n1#LEMMA=/Schwerindustrielle/| n1#LEMMA=/Schwerkranke/| n1#LEMMA=/Schwerkriegsbeschädigte/| n1#LEMMA=/Schwerstbehinderte/| n1#LEMMA=/Schwerstkranke/| n1#LEMMA=/Schwerstkriminelle/| n1#LEMMA=/Schwerstverletzte/| n1#LEMMA=/Schwerverletzte/| n1#LEMMA=/Schwerverwundete/| n1#LEMMA=/Schwindsüchtige/| n1#LEMMA=/Schwule/| n1#LEMMA=/Seelenverwandte/| n1#LEMMA=/Seereisende/| n1#LEMMA=/Seiende/| n1#LEMMA=/Seitenhalbierende/| n1#LEMMA=/Selbständige/| n1#LEMMA=/Selige/| n1#LEMMA=/Sensible/| n1#LEMMA=/Sesshafte/| n1#LEMMA=/Sicherheitsbeauftragte/| n1#LEMMA=/Sicherungsverwahrte/| n1#LEMMA=/Sieche/| n1#LEMMA=/Sinide/| n1#LEMMA=/Sklerophylle/| n1#LEMMA=/Slavophile/| n1#LEMMA=/Slawophile/| n1#LEMMA=/Sodale/| n1#LEMMA=/Somnambule/| n1#LEMMA=/Sonderbeauftragte/| n1#LEMMA=/Sonderbevollmächtigte/| n1#LEMMA=/Sorgeberechtigte/| n1#LEMMA=/Sozialbevollmächtigte/| n1#LEMMA=/Spätgebärende/| n1#LEMMA=/Spätgeborene/| n1#LEMMA=/Spitalgeistliche/| n1#LEMMA=/Spitzenbeamte/| n1#LEMMA=/Sportinvalide/| n1#LEMMA=/Spritzgebackene/| n1#LEMMA=/Staatenlose/| n1#LEMMA=/Staatsangehörige/| n1#LEMMA=/Staatsangestellte/| n1#LEMMA=/Staatsbeamte/| n1#LEMMA=/Staatsratvorsitzende/| n1#LEMMA=/Stabsgefreite/| n1#LEMMA=/Stadtillustrierte/| n1#LEMMA=/Stadtinnere/| n1#LEMMA=/Stadtverordnete/| n1#LEMMA=/Stammesälteste/| n1#LEMMA=/Standesbeamte/| n1#LEMMA=/Standortälteste/| n1#LEMMA=/Standortgeistliche/| n1#LEMMA=/Staubgeborene/| n1#LEMMA=/Stehende/| n1#LEMMA=/Stellenlose/| n1#LEMMA=/Stellungslose/| n1#LEMMA=/Stellungssuchende/)
+benchmarkName 02923
+count (n1#LEMMA=/Obergefreite/|n1#LEMMA=/Oberkommandierende/| n1#LEMMA=/Okkulte/| n1#LEMMA=/Abgeordnete/) 
+benchmarkName 03004
+count (n1#LEMMA=/Stellungsuchende/|n1#LEMMA=/Sterbliche/| n1#LEMMA=/Steuerbeamte/| n1#LEMMA=/Steuerbevollmächtigte/| n1#LEMMA=/Steuerpflichtige/| n1#LEMMA=/Stimmberechtigte/| n1#LEMMA=/Strafentlassene/| n1#LEMMA=/Strafgefangene/| n1#LEMMA=/Strafvollzugsbeamte/| n1#LEMMA=/Streifenbeamte/| n1#LEMMA=/Stubenälteste/| n1#LEMMA=/Stubengelehrte/| n1#LEMMA=/Stumme/| n1#LEMMA=/Subalternbeamte/| n1#LEMMA=/Subalterne/| n1#LEMMA=/Subnormale/| n1#LEMMA=/Suchende/| n1#LEMMA=/Sympetale/| n1#LEMMA=/Synodale/| n1#LEMMA=/Tabellenerste/| n1#LEMMA=/Tabellenletzte/| n1#LEMMA=/Tablettenabhängige/| n1#LEMMA=/Tarifangestellte/| n1#LEMMA=/Taube/| n1#LEMMA=/Taubstumme/| n1#LEMMA=/Taufgesinnte/| n1#LEMMA=/Telegraphenbeamte/| n1#LEMMA=/Theaterschaffende/| n1#LEMMA=/Todkranke/| n1#LEMMA=/Tote/| n1#LEMMA=/Totgeborene/| n1#LEMMA=/Totgeglaubte/| n1#LEMMA=/Totgesagte/| n1#LEMMA=/Trainingsschnellste/| n1#LEMMA=/Transitreisende/| n1#LEMMA=/Transsexuelle/| n1#LEMMA=/Transversale/| n1#LEMMA=/Treffgerade/| n1#LEMMA=/Trockene/| n1#LEMMA=/Trübe/| n1#LEMMA=/Tuberkulosekranke/| n1#LEMMA=/Typhuskranke/| n1#LEMMA=/Überlebende/| n1#LEMMA=/Überlegene/| n1#LEMMA=/Ultramontane/| n1#LEMMA=/Unbekannte/| n1#LEMMA=/Unberührbare/| n1#LEMMA=/Unbewusste/| n1#LEMMA=/Uneingeweihte/| n1#LEMMA=/Unfallbeteiligte/| n1#LEMMA=/Unfallgeschädigte/| n1#LEMMA=/Unfalltote/| n1#LEMMA=/Unfallverletzte/| n1#LEMMA=/Ungediente/| n1#LEMMA=/Ungelernte/| n1#LEMMA=/Ungewisse/| n1#LEMMA=/Ungläubige/| n1#LEMMA=/Uniformierte/| n1#LEMMA=/Unklare/| n1#LEMMA=/Unschuldige/| n1#LEMMA=/Unterbeschäftigte/| n1#LEMMA=/Unterbevollmächtigte/| n1#LEMMA=/Unterfertigte/| n1#LEMMA=/Untergebene/| n1#LEMMA=/Unterhaltsberechtigte/| n1#LEMMA=/Unterhaltspflichtige/| n1#LEMMA=/Unterlegene/| n1#LEMMA=/Unterprivilegierte/| n1#LEMMA=/Untersuchungsbeamte/| n1#LEMMA=/Untersuchungsgefangene/| n1#LEMMA=/Unterzeichnete/| n1#LEMMA=/Untote/| n1#LEMMA=/Urkundsbeamte/| n1#LEMMA=/Urlaubsreisende/| n1#LEMMA=/Variable/| n1#LEMMA=/Veränderliche/| n1#LEMMA=/Verantwortliche/| n1#LEMMA=/Verbandsvorsitzende/| n1#LEMMA=/Verbannte/| n1#LEMMA=/Verblichene/| n1#LEMMA=/Verbündete/| n1#LEMMA=/Verdächtige/| n1#LEMMA=/Verdächtigte/| n1#LEMMA=/Verdammte/| n1#LEMMA=/Verdienende/| n1#LEMMA=/Vereinsvorsitzende/| n1#LEMMA=/Verfahrensbeteiligte/| n1#LEMMA=/Vergnügungsreisende/| n1#LEMMA=/Verhaftete/| n1#LEMMA=/Verheiratete/| n1#LEMMA=/Verkehrstote/| n1#LEMMA=/Verletzte/| n1#LEMMA=/Verliebte/| n1#LEMMA=/Verlobte/| n1#LEMMA=/Vermählte/| n1#LEMMA=/Vermisste/| n1#LEMMA=/Verordnete/| n1#LEMMA=/Versehrte/| n1#LEMMA=/Versicherte/| n1#LEMMA=/Versicherungsälteste/| n1#LEMMA=/Versicherungsangestellte/| n1#LEMMA=/Versorgungsberechtigte/| n1#LEMMA=/Verstorbene/| n1#LEMMA=/Vertikale/| n1#LEMMA=/Vertriebene/| n1#LEMMA=/Verwaltungsangestellte/| n1#LEMMA=/Verwaltungsbeamte/| n1#LEMMA=/Verwandte/| n1#LEMMA=/Verwundete/| n1#LEMMA=/Veterinärbeamte/| n1#LEMMA=/Volksdeutsche/| n1#LEMMA=/Vollinvalide/| n1#LEMMA=/Vollstreckungsbeamte/| n1#LEMMA=/Vollzeitbeschäftigte/| n1#LEMMA=/Vollziehungsbeamte/| n1#LEMMA=/Vollzugsbeamte/| n1#LEMMA=/Vorbewusste/| n1#LEMMA=/Vorgesetzte/| n1#LEMMA=/Vorsitzende/| n1#LEMMA=/Vorstandsvorsitzende/| n1#LEMMA=/Waagerechte/| n1#LEMMA=/Waagrechte/| n1#LEMMA=/Wachebeamte/| n1#LEMMA=/Wahlbeamte/| n1#LEMMA=/Wahlberechtigte/| n1#LEMMA=/Wahre/| n1#LEMMA=/Waldinnere/| n1#LEMMA=/Wehrbeauftragte/| n1#LEMMA=/Wehrmachtangehörige/| n1#LEMMA=/Wehrmachtsangehörige/| n1#LEMMA=/Wehrpflichtige/| n1#LEMMA=/Weissliegende/| n1#LEMMA=/Weltgeistliche/| n1#LEMMA=/Weltranglistendritte/| n1#LEMMA=/Weltranglistenerste/| n1#LEMMA=/Weltranglistenzweite/| n1#LEMMA=/Weltreisende/| n1#LEMMA=/Werkangehörige/| n1#LEMMA=/Werksangehörige/| n1#LEMMA=/Winkelhalbierende/| n1#LEMMA=/Wolfsjunge/| n1#LEMMA=/x-Beliebige/| n1#LEMMA=/X-fache/| n1#LEMMA=/Zahlengerade/| n1#LEMMA=/Zahnarme/| n1#LEMMA=/Zeitreisende/| n1#LEMMA=/Zellengefangene/| n1#LEMMA=/Zentralide/| n1#LEMMA=/Zielgerade/| n1#LEMMA=/Zivilangestellte/| n1#LEMMA=/Zivilbeschädigte/| n1#LEMMA=/Zivilbeschäftigte/| n1#LEMMA=/Zivildienstbeauftragte/| n1#LEMMA=/Zivildienstleistende/| n1#LEMMA=/Zivilgefangene/| n1#LEMMA=/Zollbeamte/| n1#LEMMA=/Zufallsvariable/| n1#LEMMA=/Zuhausegebliebene/| n1#LEMMA=/Zunächstliegende/| n1#LEMMA=/Zutreffende/| n1#LEMMA=/Zweite/)
+benchmarkName 03026
+count (tok=/Beifall/. tok=/bei/ . LEMMA=/Abgeordnete/| tok=/Lachen/ . tok=/bei/ . LEMMA=/Abgeordnete/)
+benchmarkName 03009
+count (tok=/des/| tok=/im/. LEMMA=/Innere/) 
+benchmarkName 04086
+count /[Dd]ienstag/
+benchmarkName 03334
+count LEMMA
+benchmarkName 03335
+count LEMMA . LEMMA
+benchmarkName 07615
+count LEMMA="<unknown>"
+benchmarkName 00042
+count LEMMA="Kind"
+benchmarkName 00041
+count LEMMA="Kinder"
+benchmarkName 00691
+count LEMMA=/(mein|dein|sein|ihr|unser||euer)/. tok 
+benchmarkName 02701
+count LEMMA=/-/
+benchmarkName 03186
+count LEMMA=/.*-.*-(.*-)?/
+benchmarkName 03196
+count LEMMA=/.*-.*-(.*-)?/_=_POS=/NN/
+benchmarkName 03213
+count LEMMA=/.*-.*-(.*-)?/_=_POS=/TRUNC/
+benchmarkName 02764
+count LEMMA=/.*-.*-.*(.-*)?(.-*)?/
+benchmarkName 03187
+count LEMMA=/.*-.*-.*-(.*-)?/
+benchmarkName 02765
+count LEMMA=/.*-.*-.*.-*.-*/
+benchmarkName 02750
+count LEMMA=/.*-.*-.*/
+benchmarkName 02768
+count LEMMA=/.+-.+-.+-.+-.+-/
+benchmarkName 02771
+count LEMMA=/.+-.+-.+-.+-.+/
+benchmarkName 02775
+count LEMMA=/.+-.+-.+-.+/
+benchmarkName 02766
+count LEMMA=/.+-.+-.+.-+.-+/
+benchmarkName 02776
+count LEMMA=/.+-.+-.+/
+benchmarkName 00805
+count LEMMA=/<unknown>/
+benchmarkName 03799
+count LEMMA=/ADJD/ _=_LEMMA . POS=/ADJA/ _=_ LEMMA
+benchmarkName 03036
+count LEMMA=/Arbeitslose/
+benchmarkName 00820
+count LEMMA=/Biographie/
+benchmarkName 03008
+count LEMMA=/Innere/
+benchmarkName 02921
+count LEMMA=/Obergefreite/|LEMMA=/Oberkommandierende/| LEMMA=/Okkulte/| LEMMA=/Olympiazweite/| LEMMA=/Ordensgeistliche/| LEMMA=/Orthozephale/| LEMMA=/Ortsälteste/| LEMMA=/Pädophile/| LEMMA=/Pädosexuelle/| LEMMA=/Parallele/| LEMMA=/Parlamentsabgeordnete/| LEMMA=/Parteilose/| LEMMA=/Parteivorsitzende/| LEMMA=/Pauschalreisende/| LEMMA=/Pflegebedürftige/
+benchmarkName 02922
+count LEMMA=/Obergefreite/|LEMMA=/Oberkommandierende/| LEMMA=/Okkulte/| LEMMA=/Olympiazweite/| LEMMA=/Ordensgeistliche/| LEMMA=/Orthozephale/| LEMMA=/Ortsälteste/| LEMMA=/Pädophile/| LEMMA=/Pädosexuelle/| LEMMA=/Parallele/| LEMMA=/Parlamentsabgeordnete/| LEMMA=/Parteilose/| LEMMA=/Parteivorsitzende/| LEMMA=/Pauschalreisende/| LEMMA=/Pflegebedürftige/| LEMMA=/Pflegebefohlene/| LEMMA=/Pflichtversicherte/| LEMMA=/Polare/| LEMMA=/Politische/| LEMMA=/Polizeibeamte/| LEMMA=/Polyglotte/| LEMMA=/Polymere/| LEMMA=/Postangestellte/| LEMMA=/Postbeamte/| LEMMA=/Postbedienstete/| LEMMA=/Postgraduierte/| LEMMA=/Privatgelehrte/| LEMMA=/Privatversicherte/| LEMMA=/Profane/| LEMMA=/Professe/| LEMMA=/Prominente/| LEMMA=/Prostituierte/| LEMMA=/Provisionsreisende/| LEMMA=/Prozessbevollmächtigte/| LEMMA=/Pygmide/| LEMMA=/Querschnittgelähmte/| LEMMA=/Radikale/| LEMMA=/Randständige/| LEMMA=/Rangälteste/| LEMMA=/Ranghöchste/| LEMMA=/Rangniedere/| LEMMA=/Ratsvorsitzende/| LEMMA=/Raumdiagonale/| LEMMA=/Rauschgiftsüchtige/| LEMMA=/Rauschgifttote/| LEMMA=/Rechte/| LEMMA=/Rechtsgelehrte/| LEMMA=/Rechtsradikale/| LEMMA=/Rechtsunterzeichnete/| LEMMA=/Reformierte/ 
+benchmarkName 00822
+count LEMMA=/Soldat/_=_ tok=/Soldat.*/
+benchmarkName 00823
+count LEMMA=/Soldat/_=_ tok=/Soldatin*/
+benchmarkName 00821
+count LEMMA=/Soldatinnen/
+benchmarkName 02700
+count LEMMA=/\\-/
+benchmarkName 05009
+count LEMMA=/alt/.1,2 POS=/N./	
+benchmarkName 00830
+count LEMMA=/d/
+benchmarkName 02014
+count LEMMA=/d/. POS=/VVFIN/ _=_ tok
+benchmarkName 05019
+count LEMMA=/deutlich/.1,2 POS=/N./	
+benchmarkName 03795
+count LEMMA=/genügend/
+benchmarkName 03796
+count LEMMA=/genügend/. POS=/ADJA/
+benchmarkName 05005
+count LEMMA=/groß/.1,2 POS=/N./	
+benchmarkName 06632
+count LEMMA=/helfend/_=_ POS
+benchmarkName 01164
+count LEMMA=/in/. POS=/N./ _=_ tok
+benchmarkName 01165
+count LEMMA=/in/. POS=/NE/ _=_ tok
+benchmarkName 01640
+count LEMMA=/in/. POS=/NN/ . tok 
+benchmarkName 01639
+count LEMMA=/in/. POS=/NN/ _=_ tok 
+benchmarkName 05011
+count LEMMA=/interessant/.1,2 POS=/N./	
+benchmarkName 01663
+count LEMMA=/in|In/. POS=/NE/ _=_ tok
+benchmarkName 01662
+count LEMMA=/in|In/. POS=/NN/ _=_ tok
+benchmarkName 04130
+count LEMMA=/kein/. tok=/sehr/ . POS=/ADJD/ . POS=/ADJA/ . POS=/NN/ 
+benchmarkName 04071
+count LEMMA=/laufen/
+benchmarkName 05016
+count LEMMA=/laut/.1,2 POS=/N./	
+benchmarkName 05007
+count LEMMA=/lieb/.1,2 POS=/N./	
+benchmarkName 05008
+count LEMMA=/lt/.1,2 POS=/N./	
+benchmarkName 00665
+count LEMMA=/mein/
+benchmarkName 04091
+count LEMMA=/mein/. tok=/sehr/ . POS=/ADJ./ . POS=/NN/ & #2 .2 #4 
+benchmarkName 04095
+count LEMMA=/mein/. tok=/sehr/ . POS=/ADJA/ _=_ tok=/ge.*t.*|ver.*t.*/ . POS=/NN/ & #2 .2 #5
+benchmarkName 05010
+count LEMMA=/rot/.1,2 POS=/N./	
+benchmarkName 00858
+count LEMMA=/sagen$,/
+benchmarkName 00857
+count LEMMA=/sagen$,/. POS=/$,/
+benchmarkName 00856
+count LEMMA=/sagen/. POS=/$,/
+benchmarkName 00855
+count LEMMA=/sagen/. POS=/$./
+benchmarkName 06633
+count LEMMA=/schlafend/_=_ POS
+benchmarkName 05004
+count LEMMA=/schnell/.1,2 POS=/N./
+benchmarkName 05017
+count LEMMA=/schnell/.1,2 POS=/N./	
+benchmarkName 05134
+count LEMMA=/schnell/_=_ POS=/ADJA/ . POS=/NN/
+benchmarkName 05135
+count LEMMA=/schnell/_=_ POS=/ADJD/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 06634
+count LEMMA=/schreiend/_=_ POS
+benchmarkName 00489
+count LEMMA=/schön/
+benchmarkName 05013
+count LEMMA=/schön/.1,2 POS=/N./	
+benchmarkName 00664
+count LEMMA=/sein/
+benchmarkName 05018
+count LEMMA=/sicher/.1,2 POS=/N./	
+benchmarkName 05136
+count LEMMA=/stark/_=_ POS=/ADJA/ . POS=/NN/
+benchmarkName 05137
+count LEMMA=/stark/_=_ POS=/ADJD/ . POS=/ADJA/ . POS=/NN/ 
+benchmarkName 05006
+count LEMMA=/süß/.1,2 POS=/N./	
+benchmarkName 06685
+count LEMMA=/vermutlich/_=_ POS
+benchmarkName 06686
+count LEMMA=/vermutlich/_=_ POS=/ADJA/
+benchmarkName 00853
+count LEMMA=/verärgern/. POS=/$./
+benchmarkName 00490
+count LEMMA=/viele/
+benchmarkName 05012
+count LEMMA=/vorsichtig/.1,2 POS=/N./	
+benchmarkName 02940
+count LEMMA=/§,/
+benchmarkName 03815
+count LEMMA=/§./
+benchmarkName 06665
+count LEMMA=/überrasch/
+benchmarkName 06662
+count LEMMA=/überraschen/
+benchmarkName 02918
+count POS
+benchmarkName 03331
+count POS . POS
+benchmarkName 03332
+count POS . POS . POS
+benchmarkName 03572
+count POS . POS=/N./
+benchmarkName 03023
+count POS. LEMMA=/Abgeordnete/
+benchmarkName 03037
+count POS. LEMMA=/Arbeitslose/ 
+benchmarkName 03011
+count POS. LEMMA=/Grüne/
+benchmarkName 07650
+count POS. POS=/ADJA/ . tok=/Vorteile/
+benchmarkName 07991
+count POS. tok=/(als|und|dass)/ . POS=/ADJD/ . POS=/ADJA/ . tok=/(Weg|Steuerwettbewerbs|Menschen|System|Sachverhalte|Menschen)/
+benchmarkName 07993
+count POS. tok=/(inhaltlich|wirklich|wissenschaftlich|gut|ungewollt|dynamisch)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07992
+count POS. tok=/(international|Prozent|Belangen|Zahl|Gesellschaft)/ . POS=/ADJD/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 00115
+count POS= /KOU./
+benchmarkName 02794
+count POS="$("
+benchmarkName 02789
+count POS="$("_=_ tok
+benchmarkName 02792
+count POS="$("_=_ tok="."
+benchmarkName 02790
+count POS="$("_=_ tok=/"/
+benchmarkName 02783
+count POS="$,"
+benchmarkName 02785
+count POS="$,"_=_ tok
+benchmarkName 03810
+count POS="ADJD" _=_LEMMA . POS="ADJA" _=_ LEMMA="gut"
+benchmarkName 03808
+count POS="ADJD" _=_LEMMA="gut" . POS="ADJA"
+benchmarkName 03809
+count POS="ADJD" _=_LEMMA="gut" . POS="ADJA" _=_ LEMMA
+benchmarkName 03805
+count POS="ADJD" _=_LEMMA="gut" . POS="ADJA" _=_ LEMMA & #1.2#4
+benchmarkName 04029
+count POS="ART". POS="ADJA" . POS="ADJA" & #1 .2 #3
+benchmarkName 04026
+count POS="ART". POS="ADJA" . POS="NN" & #1 .2 #3
+benchmarkName 04028
+count POS="ART". POS="ADJA" . POS="VVFIN" & #1 .2 #3
+benchmarkName 07044
+count POS="PDAT"
+benchmarkName 07045
+count POS="PDS"
+benchmarkName 00831
+count POS=/$./
+benchmarkName 00810
+count POS=/$/
+benchmarkName 05170
+count POS=/(ADJD|ADJA)/_=_ LEMMA=/gut/
+benchmarkName 07617
+count POS=/(NN|ADJA|ADV|ADJD|PDAT|PIAT||PPER|PPOSAT|KON|PRF|ARTAPPR|APPRART)/_=_ tok . POS=/ADJA/ _=_ tok . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok
+benchmarkName 07618
+count POS=/(NN|ADJA|ADV|ADJD|PDAT|PIAT||PPER|PPOSAT|KON|PRF|ARTAPPR|APPRART)/_=_ tok . POS=/Written language tends to be more complex and intricate than speech with longer sentences and many subordinate clauses./ _=_ tok . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok
+benchmarkName 07619
+count POS=/(NN|ADJA|ADV|ADJD|PDAT|PIAT||PPER|PPOSAT|KON|PRF|ARTAPPR|APPRART)/_=_ tok . POS=/werdenden/ _=_ tok . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok
+benchmarkName 07904
+count POS=/(der|bis)/. POS=/PAV/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07903
+count POS=/(der|bis)/. tok=/(daraus|dahin)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 02748
+count POS=/-/
+benchmarkName 00864
+count POS=/./
+benchmarkName 00802
+count POS=/<unknown>/
+benchmarkName 03339
+count POS=/ADJ./
+benchmarkName 03857
+count POS=/ADJ./ &POS=/ADJ./ & POS=/ADJ./ & POS="NN" & #1 . #2 & #2 . #3 & #3 . #4 & #1 .3 #4
+benchmarkName 03856
+count POS=/ADJ./ &POS=/ADJ./ & POS=/ADJ./ & POS="NN" & #1.#2 & #2.#3 & #3.#4 & #1.3#4
+benchmarkName 04150
+count POS=/ADJ./ _=_ LEMMA 
+benchmarkName 01793
+count POS=/ADJ./& tok=/.*er/ & POS=/NN/ & tok=/.*er/  & #1_=_#2 & #3_=_#4 & #1.#3
+benchmarkName 01792
+count POS=/ADJ./& tok=/.*er/ & POS=/NN/ & tok=/.*er/  & #1_=_#2 & #3_=_#4 & #1.1,3#3
+benchmarkName 05003
+count POS=/ADJ./_=_ LEMMA=/schnell/
+benchmarkName 02931
+count POS=/ADJA/
+benchmarkName 01901
+count POS=/ADJA/& tok=/.*em/ & POS=/NN/ & tok=/.*em/  & #1_=_#2 & #3_=_#4 & #1.1,3#3
+benchmarkName 07654
+count POS=/ADJA/. POS . POS=/ADJA/ . tok=/(Früchte|Initiative|Konzept|Seite|Sprache|Strategie|Zwischenfrage)/
+benchmarkName 07657
+count POS=/ADJA/. POS . POS=/neoliberale/ . tok=/(Früchte|Initiative|Konzept|Seite|Sprache|Strategie|Zwischenfrage)/
+benchmarkName 07658
+count POS=/ADJA/. POS . POS=/neoliberale/ . tok=/NN/
+benchmarkName 07653
+count POS=/ADJA/. POS . tok=/(Früchte|Initiative|Konzept|Seite|Sprache|Strategie|Zwischenfrage)/
+benchmarkName 07660
+count POS=/ADJA/. POS . tok=/frische/ . POS=/NN/
+benchmarkName 07659
+count POS=/ADJA/. POS . tok=/neoliberale/ . POS=/NN/
+benchmarkName 07661
+count POS=/ADJA/. POS . tok=/wertigeren/ . POS=/NN/
+benchmarkName 07666
+count POS=/ADJA/. POS=/KON/ . POS=/ADJA/ _=_ tok . POS=/Altersvorsorge/
+benchmarkName 07667
+count POS=/ADJA/. POS=/KON/ . POS=/ADJA/ _=_ tok . tok=/Altersvorsorge/
+benchmarkName 07664
+count POS=/ADJA/. POS=/KON/ . POS=/ADJA/ _=_ tok=/(betrieblichen|sauberes|rechtsstaatlichen|gewaltsame|kulturellen|intensive|humanitäre|regenerativen|sozialpolitische|klare|menschliche|entschiedenes|gesellschaftlichen|transparenten|individuelle|preisgünstige|ökologische|richtige|dritte|bewiesene|ethische|grobem|wichtige)/ . POS=/NN/
+benchmarkName 07668
+count POS=/ADJA/. POS=/NE/ . POS=/ADJA/ _=_ tok . tok=/Vorgehen/
+benchmarkName 07669
+count POS=/ADJA/. POS=/NN/ _=_ tok=/(Eigentumsmodell|Berichtungsbericht|Vereinbarungen|Erfassung|Zukunft|Anteil|Einsatz|Straßenverkehr|Charité|Strafrecht|Ausstellung|Sicherung|Parteien|Koalition|Bereichen|Tisch|Nachbarn|Verbraucher|Stabilisierung)/ . POS=/ADJA/ _=_ tok . POS=/NN/
+benchmarkName 07641
+count POS=/ADJA/. tok=/Anlagen/
+benchmarkName 07642
+count POS=/ADJA/. tok=/Defizite/
+benchmarkName 07639
+count POS=/ADJA/. tok=/Steuergeldern/
+benchmarkName 07640
+count POS=/ADJA/. tok=/Wissenschaftler/
+benchmarkName 07663
+count POS=/ADJA/. tok=/wertigeren/ . POS . POS=/NN/
+benchmarkName 07662
+count POS=/ADJA/. tok=/wertigeren/ . POS=/NN/
+benchmarkName 07776
+count POS=/ADJA/_=_ tok=/(längeres|ausgegrenzte|extra|fehlender|lebenden|funktionierende|wertvollen|sonstige|beschlossene|teilweise|jährlichen|bewährten|zahlreiche)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07665
+count POS=/ADJA/_=_ tok=/(privaten|klares|menschenwürdigen|kriegerische|politischen|heftige|gesellschaftliche|erneuerbaren|wirtschaftspolitische|knappe|moderne|zielgerichtetes|demografischen|effizienten|bedarfsorientierte|unabhängige|soziale|normale|zweite|erklärte|medizinische|wiederholtem|richtigen)/ . POS=/KON/ . POS=/ADJA/ _=_ tok=/(betrieblichen|sauberes|rechtsstaatlichen|gewaltsame|kulturellen|intensive|humanitäre|regenerativen|sozialpolitische|klare|menschliche|entschiedenes|gesellschaftlichen|transparenten|individuelle|preisgünstige|ökologische|richtige|dritte|bewiesene|ethische|grobem|wichtige)/ . POS=/NN/
+benchmarkName 03050
+count POS=/ADJA/_=_ tok=/.*em/ . POS=/ADJA/ _=_ tok=/.*em/
+benchmarkName 03051
+count POS=/ADJA/_=_ tok=/.*em/ . POS=/ADJA/ _=_ tok=/.*en/
+benchmarkName 03049
+count POS=/ADJA/_=_ tok=/.*er/ . POS=/ADJA/ _=_ tok=/.*en/
+benchmarkName 03048
+count POS=/ADJA/_=_ tok=/.*er/ . POS=/ADJA/ _=_ tok=/.*er/
+benchmarkName 03800
+count POS=/ADJD/ _=_LEMMA . POS=/ADJA/ _=_ LEMMA
+benchmarkName 03801
+count POS=/ADJD/ _=_LEMMA=/gut/ 
+benchmarkName 06657
+count POS=/ADJD/. POS=/ADV/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 06658
+count POS=/ADJD/. POS=/ADV/ . POS=/ADJA/ .1,2 POS=/NN/
+benchmarkName 06659
+count POS=/ADJD/. POS=/ADV/ . POS=/ADJA/ .1,3 POS=/NN/
+benchmarkName 06660
+count POS=/ADJD/. POS=/ADV/ . POS=/ADJA/ .2,3 POS=/NN/
+benchmarkName 06661
+count POS=/ADJD/. POS=/ADV/ . POS=/ADJA/ .3,4 POS=/NN/
+benchmarkName 07777
+count POS=/ADJD/_=_ tok=/(verstärkt| weit| recht| fachlich| straßenund| verfassungsrechtlich| dreifach| ursprünglich| längt| tief| willkürlich| völlig| direkt| langfristig|bewusst| gut|begegnet|hoch|gentechnisch|vollkommen|stark|stark)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07778
+count POS=/ADJD/_=_ tok=/(verstärkt| weit| recht| fachlich| straßenund| verfassungsrechtlich| dreifach| ursprünglich| längt| tief| willkürlich| völlig| direkt| langfristig|bewusst| gut|begegnet|hoch|gentechnisch|vollkommen|stark|stark)/ . POS=/ADJA/ _=_ tok=/(fortgeschrittene| engem| zuständige| fahrzeugseitigen| geforderte| höhere| beabsichtigten| überfälligen| konservative| gegriffene| falscher| gewählten| stabilen| streitigen| ausgestattete| deutliche| deutsches| radioaktiven| zweite| veränderte| neue| vernetzten| gehebelten)/ . POS=/NN/
+benchmarkName 07779
+count POS=/ADJD/_=_ tok=/(verstärkt| weit| recht| fachlich| straßenund| verfassungsrechtlich| dreifach| ursprünglich| längt| tief| willkürlich| völlig| direkt| langfristig|bewusst| gut|begegnet|hoch|gentechnisch|vollkommen|stark|stark)/ . POS=/ADJA/ _=_ tok=/(fortgeschrittene| engem| zuständige| fahrzeugseitigen| geforderte| höhere| beabsichtigten| überfälligen| konservative| gegriffene| falscher| gewählten| stabilen| streitigen| ausgestattete| radioaktiven| veränderte| neue| vernetzten| gehebelten)/ . POS=/NN/
+benchmarkName 03341
+count POS=/ADV/
+benchmarkName 07797
+count POS=/ADV/. POS=/ADJA/ _=_ tok=/(hohe|islamische|schlechtem|voller|weiterer|wirkungsvolle|großes|deutliche|verschiedenen|neuen|bekannter|schwere|sozialer|wichtigen|größeren|guten|zügige|eingetretene|schwierige|genannte|guten|aufnehmenden|dauerhafte|rechtsfreien)/ . POS=/NN/
+benchmarkName 07801
+count POS=/ADV/. POS=/ADJA/ _=_ tok=/(hohe|islamische|schlechtem|voller|weiterer|wirkungsvolle|großes|deutliche|verschiedenen|neuen|bekannter|schwere|sozialer|wichtigen|größeren|guten|zügige|eingetretene|schwierige|genannte|guten|aufnehmenden|dauerhafte|rechtsfreien)/ . tok=/(Hass|Problem|Signale|Agenden)/
+benchmarkName 07798
+count POS=/ADV/. POS=/ADJA/ _=_ tok=/(hohe|islamische|schlechtem|voller|weiterer|wirkungsvolle|großes|deutliche|verschiedenen|neuen|bekannter|schwere|sozialer|wichtigen|größeren|guten|zügige|eingetretene|schwierige|genannte|guten|aufnehmenden|dauerhafte|rechtsfreien)/ . tok=/Beitrage/
+benchmarkName 07800
+count POS=/ADV/. POS=/ADJA/ _=_ tok=/(hohe|islamische|schlechtem|voller|weiterer|wirkungsvolle|großes|deutliche|verschiedenen|neuen|bekannter|schwere|sozialer|wichtigen|größeren|guten|zügige|eingetretene|schwierige|genannte|guten|aufnehmenden|dauerhafte|rechtsfreien)/ . tok=/Geld/
+benchmarkName 07802
+count POS=/ADV/. POS=/ADJA/ _=_ tok=/(hohe|islamische|schlechtem|voller|weiterer|wirkungsvolle|großes|deutliche|verschiedenen|neuen|bekannter|schwere|sozialer|wichtigen|größeren|guten|zügige|eingetretene|schwierige|genannte|guten|aufnehmenden|dauerhafte|rechtsfreien)/ . tok=/Gestezen/
+benchmarkName 07799
+count POS=/ADV/. POS=/ADJA/ _=_ tok=/(hohe|islamische|schlechtem|voller|weiterer|wirkungsvolle|großes|deutliche|verschiedenen|neuen|bekannter|schwere|sozialer|wichtigen|größeren|guten|zügige|eingetretene|schwierige|genannte|guten|aufnehmenden|dauerhafte|rechtsfreien)/ . tok=/Zentren/
+benchmarkName 07803
+count POS=/ADV/. POS=/ADJA/ _=_ tok=/neuen/ . tok=/Gestezen/
+benchmarkName 07882
+count POS=/ADV/. tok=/Paare/ . POS=/ADJA/ . tok=/Angst/
+benchmarkName 07837
+count POS=/ADV/. tok=/anderen/ . tok=/Kraftwerkstrukturen/
+benchmarkName 07838
+count POS=/ADV/. tok=/anderer/ . tok=/Kraftwerkstrukturen/
+benchmarkName 07820
+count POS=/ADV/. tok=/aufnehmenden/ . tok=/Länder/
+benchmarkName 07807
+count POS=/ADV/. tok=/bekannter/ . tok=/Vielfalt/
+benchmarkName 07839
+count POS=/ADV/. tok=/besondere/ . tok=/Prozesse/
+benchmarkName 07821
+count POS=/ADV/. tok=/dauerhafte/ . tok=/L/
+benchmarkName 07822
+count POS=/ADV/. tok=/dauerhafte/ . tok=/Lösung/
+benchmarkName 07844
+count POS=/ADV/. tok=/deutsches/ . tok=/Phänomen/
+benchmarkName 07816
+count POS=/ADV/. tok=/eingetretene/ . tok=/Folge/
+benchmarkName 07835
+count POS=/ADV/. tok=/gefällter/ . tok=/Entscheidung/
+benchmarkName 07836
+count POS=/ADV/. tok=/gefällter/ . tok=/Entscheidungen/
+benchmarkName 07818
+count POS=/ADV/. tok=/genannte/ . tok=/GKV-Pauschale/
+benchmarkName 07849
+count POS=/ADV/. tok=/gesetzliche/ . tok=/Regelungen/
+benchmarkName 07828
+count POS=/ADV/. tok=/größere/ . tok=/Erbschaften/
+benchmarkName 07848
+count POS=/ADV/. tok=/größere/ . tok=/Erfolge/
+benchmarkName 07813
+count POS=/ADV/. tok=/größeren/ . tok=/Engagement/
+benchmarkName 07826
+count POS=/ADV/. tok=/größten/ . tok=/Vertreibung/
+benchmarkName 07814
+count POS=/ADV/. tok=/guten/ . tok=/Engagement/
+benchmarkName 07815
+count POS=/ADV/. tok=/guten/ . tok=/Erfahrungen/
+benchmarkName 07819
+count POS=/ADV/. tok=/guten/ . tok=/Hauptschulabschluss/
+benchmarkName 07827
+count POS=/ADV/. tok=/hauptamtlichen/ . tok=/Mitarbeitern/
+benchmarkName 07833
+count POS=/ADV/. tok=/heftige/ . tok=/Debatte/
+benchmarkName 07834
+count POS=/ADV/. tok=/heftige/ . tok=/Debatten/
+benchmarkName 07812
+count POS=/ADV/. tok=/hohe/ . tok=/Beiträge/
+benchmarkName 07825
+count POS=/ADV/. tok=/kleinen/ . tok=/Verspätung/
+benchmarkName 07805
+count POS=/ADV/. tok=/neuen/ . tok=/Gesetzen/
+benchmarkName 07804
+count POS=/ADV/. tok=/neuen/ . tok=/Gestezen/
+benchmarkName 07823
+count POS=/ADV/. tok=/rechtsfreien/ . tok=/Raumes/
+benchmarkName 07830
+count POS=/ADV/. tok=/sachkundiger/ . tok=/Kollege/
+benchmarkName 07829
+count POS=/ADV/. tok=/sachkundiger/ . tok=/Kollegen/
+benchmarkName 07808
+count POS=/ADV/. tok=/schwere/ . tok=/Abwägungsentscheidung/
+benchmarkName 07817
+count POS=/ADV/. tok=/schwierige/ . tok=/Frage/
+benchmarkName 07846
+count POS=/ADV/. tok=/soziale/ . tok=/Gerechtigkeit/
+benchmarkName 07845
+count POS=/ADV/. tok=/soziale/ . tok=/Phänomen/
+benchmarkName 07809
+count POS=/ADV/. tok=/sozialer/ . tok=/Aspekt/
+benchmarkName 07832
+count POS=/ADV/. tok=/spätere/ . tok=/Politikerinnen/
+benchmarkName 07842
+count POS=/ADV/. tok=/steigende/ . tok=/Zinslasten/
+benchmarkName 07843
+count POS=/ADV/. tok=/unterschiedliche/ . tok=/Stimmen/
+benchmarkName 07806
+count POS=/ADV/. tok=/verschiedenen/ . tok=/Agenden/
+benchmarkName 07840
+count POS=/ADV/. tok=/veränderte/ . tok=/ProRechtsprechungzesse/
+benchmarkName 07841
+count POS=/ADV/. tok=/veränderte/ . tok=/Rechtsprechung/
+benchmarkName 07831
+count POS=/ADV/. tok=/weitere/ . tok=/Entlastungen/
+benchmarkName 07824
+count POS=/ADV/. tok=/weitgreifender/ . tok=/Verbraucherschutz/
+benchmarkName 07810
+count POS=/ADV/. tok=/wichtigen/ . tok=/Beitrag/
+benchmarkName 07811
+count POS=/ADV/. tok=/wirkungsvolle/ . tok=/Maßnahmen/
+benchmarkName 07626
+count POS=/ADV/_=_ tok . POS=/ADJA/ . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok
+benchmarkName 07627
+count POS=/ADV/_=_ tok=/(so|ganz|auch|für)/ . POS=/ADJA/ . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok
+benchmarkName 07628
+count POS=/ADV/_=_ tok=/(so|ganz|auch|ohnehin)/ . POS=/ADJA/ . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok
+benchmarkName 07629
+count POS=/ADV/_=_ tok=/(so|ganz|auch|ohnehin)/ . POS=/ADJA/ _=_ tok=/(absehbare|genannten|starken|langjährigen)/ . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok
+benchmarkName 07630
+count POS=/ADV/_=_ tok=/(so|ganz|auch|ohnehin)/ . POS=/ADJA/ _=_ tok=/langjährige/ . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok
+benchmarkName 03024
+count POS=/APPR/. LEMMA=/Abgeordnete/
+benchmarkName 07985
+count POS=/APPR/. POS=/ADJA/ . POS=/NN/
+benchmarkName 07671
+count POS=/APPR/. POS=/ADJA/ _=_ tok=/(akuten|beachtlichen|besserer|wichtigen|neuen)/ . POS=/ADJA/ _=_ tok . POS=/NN/
+benchmarkName 07783
+count POS=/APPR/. POS=/ADJD/ _=_ tok=/(verstärkt|weit|recht|fachlich|straßenund|verfassungsrechtlich|dreifach|ursprünglich|längt|tief|willkürlich|völlig|direkt|langfristig|bewusst|gut|begegnet|hoch|gentechnisch|vollkommen|stark)/ . POS=/ADJA/ . POS=/NN/ _=_ tok=/(Verantwortung|Gespräche|Zusammenhang|Abteilung|Auswirkungen|Minimum|Nettokreditaufnahme|Regelung|Streichung|Struktur|Zahl|Zungenschlag|Kandidaten|Finanzierungskonzeptes|Fragestellung|Bildungseinrichtungen|Grenzen|Jahr|Müll|Orientierung)/
+benchmarkName 04475
+count POS=/APPR/. POS=/ART/ . tok=/sehr/ . POS=/ADJ.*/ . POS=/NN/ 
+benchmarkName 04476
+count POS=/APPR/. POS=/ART/ _=_ LEMMA=/d/ . tok=/sehr/ . POS=/ADJ.*/ . POS=/NN/ 
+benchmarkName 04477
+count POS=/APPR/. POS=/ART/ _=_ LEMMA=/ein/ . tok=/sehr/ . POS=/ADJ.*/ . POS=/NN/ 
+benchmarkName 07868
+count POS=/APPR/. POS=/NE/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07877
+count POS=/APPR/. POS=/NE/ . tok=/(lebende|beschlossenen|soziale|entsprechende|eingeforderten)/ . POS=/NN/
+benchmarkName 07907
+count POS=/APPR/. POS=/PDAT/ . tok=/(Großen|neuen|politischen|offene|gewalttätigen|ersten|europäischen)/ . POS=/NN/
+benchmarkName 03722
+count POS=/APPR/. POS=/PREL.+/
+benchmarkName 07880
+count POS=/APPR/. tok=/(Sachen|Partnerschaft|Anführungszeichen|Einholung|Handschellen|Jahr|Sandsteinformationen|Saisonarbeiter|Gang|Rede)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07881
+count POS=/APPR/. tok=/(Sachen|Partnerschaft|Anführungszeichen|Einholung|Handschellen|Jahr|Sandsteinformationen|Saisonarbeiter|Gang|Rede)/ . POS=/ADJA/ . tok=/Begegnung/
+benchmarkName 07986
+count POS=/APPR/. tok=/(angeblich|nachhaltig|häufig|gleichzeitig|regelmäßig|wirtschaftlich)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07987
+count POS=/APPR/. tok=/(rechtlich)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 03654
+count POS=/APPR/. tok=/sehr/
+benchmarkName 03657
+count POS=/APPR/. tok=/sehr/ . POS=/ADJ.*/ . POS=/ADJ.*/ . POS=/NN/
+benchmarkName 03655
+count POS=/APPR/. tok=/sehr/ . POS=/ADJ.*/ . POS=/NN/
+benchmarkName 03025
+count POS=/APPR/_=_ tok=/bei/ . LEMMA=/Abgeordnete/
+benchmarkName 07672
+count POS=/APPRART/. POS=/ADJA/ _=_ tok=/sonstigen/ . POS=/ADJA/ _=_ tok . POS=/NN/
+benchmarkName 07883
+count POS=/APPRART/. POS=/NN/ _=_ tok=/(Jahre|Flugsteig|BKM|Parlament|Annahme|Beispiel|Vermeidung|Privatleben|Thematik|Aufbau|Besitz)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07988
+count POS=/APPRART/. tok=/(rechtlich)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07965
+count POS=/ART/. POS=/ADJA/ . tok=/(allgemeinen starken weiteren ganze unüberwindbare einzige alten anderes erster gemeinsame frühere zunehmende letzten bisherigen leisen souveränen )/ . POS=/NN/
+benchmarkName 07966
+count POS=/ART/. POS=/ADJA/ . tok=/(allgemeinen| starken| weiteren| ganze| unüberwindbare| einzige| alten| anderes| erster| gemeinsame| frühere| zunehmende| letzten| bisherigen| leisen| souveränen )/ . POS=/NN/
+benchmarkName 07967
+count POS=/ART/. POS=/ADJA/ . tok=/(allgemeinen|starken|weiteren|ganze|unüberwindbare|einzige|alten|anderes|erster|gemeinsame|frühere|zunehmende|letzten|bisherigen|leisen|souveränen)/ . POS=/NN/
+benchmarkName 07780
+count POS=/ART/. POS=/ADJD/ _=_ tok=/(verstärkt| weit| recht| fachlich| straßenund| verfassungsrechtlich| dreifach| ursprünglich| längt| tief| willkürlich| völlig| direkt| langfristig|bewusst| gut|begegnet|hoch|gentechnisch|vollkommen|stark|stark)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07782
+count POS=/ART/. POS=/ADJD/ _=_ tok=/(verstärkt|weit|recht|fachlich|straßenund|verfassungsrechtlich|dreifach|ursprünglich|längt|tief|willkürlich|völlig|direkt|langfristig|bewusst|gut|begegnet|hoch|gentechnisch|vollkommen|stark)/ . POS=/ADJA/ . POS=/NN/ _=_ tok=/(Verantwortung|Gespräche|Zusammenhang|Abteilung|Auswirkungen|Minimum|Nettokreditaufnahme|Regelung|Streichung|Struktur|Zahl|Zungenschlag|Kandidaten|Finanzierungskonzeptes|Fragestellung|Bildungseinrichtungen|Grenzen|Jahr|Müll|Orientierung)/
+benchmarkName 07781
+count POS=/ART/. POS=/ADJD/ _=_ tok=/(verstärkt|weit|recht|fachlich|straßenund|verfassungsrechtlich|dreifach|ursprünglich|längt|tief|willkürlich|völlig|direkt|langfristig|bewusst|gut|begegnet|hoch|gentechnisch|vollkommen|stark|stark)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07897
+count POS=/ART/. POS=/NN/ . tok=/Einhundertneunundfünfzigste/ . POS=/NN/
+benchmarkName 07886
+count POS=/ART/. POS=/NN/ _=_ tok=/(Planungssicherheit| Arbeitszeitkonten)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07889
+count POS=/ART/. POS=/NN/ _=_ tok=/(Regierung|Opfer)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07884
+count POS=/ART/. POS=/NN/ _=_ tok=/(Wohnungsunternehmen|Linksfraktion|Hama-Massaker|Region|Fusion|Not|Staat)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07887
+count POS=/ART/. POS=/NN/ _=_ tok=/Arbeitszeitkonten/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07891
+count POS=/ART/. POS=/NN/ _=_ tok=/Dresdner/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07892
+count POS=/ART/. POS=/NN/ _=_ tok=/Gerichten/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07896
+count POS=/ART/. POS=/NN/ _=_ tok=/Herstellung/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07895
+count POS=/ART/. POS=/NN/ _=_ tok=/Lehre/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07885
+count POS=/ART/. POS=/NN/ _=_ tok=/Not/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07888
+count POS=/ART/. POS=/NN/ _=_ tok=/Projektgruppe/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07890
+count POS=/ART/. POS=/NN/ _=_ tok=/Regierung/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07894
+count POS=/ART/. POS=/NN/ _=_ tok=/dena-Lehre/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07893
+count POS=/ART/. POS=/NN/ _=_ tok=/dena-Netzstudie/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07679
+count POS=/ART/. tok . POS=/ADJA/ . POS=/NN/ _=_ tok=/Ausnahmefall/
+benchmarkName 07675
+count POS=/ART/. tok . POS=/ADJA/ . POS=/NN/ _=_ tok=/Gesetzen/
+benchmarkName 07677
+count POS=/ART/. tok . POS=/ADJA/ . POS=/NN/ _=_ tok=/Komponente/
+benchmarkName 07678
+count POS=/ART/. tok . POS=/ADJA/ . POS=/NN/ _=_ tok=/Militärflügen/
+benchmarkName 07676
+count POS=/ART/. tok . POS=/ADJA/ . POS=/NN/ _=_ tok=/zugelassenen/
+benchmarkName 07968
+count POS=/ART/. tok=/(allgemeinen|starken|weiteren|ganze|unüberwindbare|einzige|alten|anderes|erster|gemeinsame|frühere|zunehmende|letzten|bisherigen|leisen|souveränen)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07969
+count POS=/ART/. tok=/(allgemeinen|starken|weiteren|ganze|unüberwindbare|einzige|alten|anderes|erster|gemeinsame|frühere|zunehmende|letzten|bisherigen|leisen|souveränen)/ . POS=/ADJA/ . tok=/(Kälte|Mandat|Kollateralschaden|Ausmaß|Hürde|Veruntreuung|Energiesysteme|Werkzeug|Impuls|Verantwortung|Ministerpräsident|Verflechtung|Jahren|Finanzierung|Bemühungen|Volkes)/
+benchmarkName 07989
+count POS=/ART/. tok=/(entsprechend|ungleichgewichtig|klug|schnell|landesseitig|lückenhaft|wiederholt|überraschend|völlig|nachfolgend)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07990
+count POS=/ART/. tok=/(entsprechend|ungleichgewichtig|klug|schnell|landesseitig|lückenhaft|wiederholt|überraschend|völlig|nachfolgend)/ . POS=/ADJA/ . tok=/(Haushalt|Rolle|Petitionsrecht|Lösungsvorschläge|Lehrstuhl|Studien|Forderung|Antworten|Basis|Auswirkungen)/
+benchmarkName 07673
+count POS=/ART/. tok=/(präzisere||30-prozentigen|wichtige|eigentlichen|stärkere|sogenannten|zentralen|ganzen|derzeitige|Linke|Russlanddeutschen|auskömmliche|jährliche|zugelassenen|größte| anderen|größte|große|mangelnde|deutsche|anderes|konsensual|internationale|ungenehmigten|verbindliche|zweiten|weiteres|wichtiges|genannten|einzige|sogenannten)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07674
+count POS=/ART/. tok=/(präzisere||30-prozentigen|wichtige|eigentlichen|stärkere|sogenannten|zentralen|ganzen|derzeitige|Linke|Russlanddeutschen|auskömmliche|jährliche|zugelassenen|größte| anderen|größte|große|mangelnde|deutsche|anderes|konsensual|internationale|ungenehmigten|verbindliche|zweiten|weiteres|wichtiges|genannten|einzige|sogenannten)/ . POS=/ADJA/ . POS=/NN/ _=_ tok=/(Abgrenzung|Absetzbarkeit|Alternative|Aufgabe|Ausnahmefall|Beteiligung|Bildungsbündnisse|Datenbank|Debatte|Entwicklung|Entwurf|Familienbindungen|Förderung|Förderung|Fraktionen|Geber|Gesetzen|Herausforderung|Idee|Komponente|Kontaktstelle|Land|Leistung|Marktwirtschaft|Militärflügen|Positivliste|Präsidentschaftswahlen|Problem|Signal|Tätigkeiten|Unterschied|Wirtschaftsrechnung)/
+benchmarkName 04125
+count POS=/ART/. tok=/sehr/ . POS=/ADJ.*/ . POS=/NN/      
+benchmarkName 04126
+count POS=/ART/. tok=/sehr/ . POS=/ADJ./ . POS=/NN/
+benchmarkName 04129
+count POS=/ART/_=_ LEMMA=/d/ . tok=/sehr/ . POS=/ADJ./ . POS=/NN/ 
+benchmarkName 04128
+count POS=/ART/_=_ LEMMA=/ein/ . tok=/sehr/ . POS=/ADJ./ . POS=/NN/ 
+benchmarkName 02891
+count POS=/Beamt.*/
+benchmarkName 07652
+count POS=/KOKOM/. POS=/ADJA/ . tok=/(Beispiel|Rednerin|Verhandlungspartner)/
+benchmarkName 00051
+count POS=/KOU(I|S)/
+benchmarkName 00050
+count POS=/KOU*/
+benchmarkName 00031
+count POS=/KOU./
+benchmarkName 07908
+count POS=/KOU./. POS=/PDAT/ . tok=/(militärischen|neue)/ . POS=/NN/
+benchmarkName 00049
+count POS=/KOUI/
+benchmarkName 07643
+count POS=/KOUI/. POS=/ADJA/ . tok=/Defizite/
+benchmarkName 07644
+count POS=/KOUI/. POS=/ADJA/ . tok=/Löhne/
+benchmarkName 07645
+count POS=/KOUI/. POS=/ADJA/ . tok=/Personen/
+benchmarkName 07646
+count POS=/KOUI/. POS=/ADJA/ . tok=/Steuergeschenke/
+benchmarkName 00048
+count POS=/KOUS/
+benchmarkName 00829
+count POS=/N./
+benchmarkName 00872
+count POS=/N./ & POS=/N./  & #1->coref #2
+benchmarkName 00870
+count POS=/N./ &POS=/N./ & #1 ->coref #2
+benchmarkName 00871
+count POS=/N./ &POS=/N./ & #1->coref #2
+benchmarkName 03336
+count POS=/N./ . POS=/N./
+benchmarkName 00839
+count POS=/N./. LEMMA=/$,/
+benchmarkName 00863
+count POS=/N./. LEMMA=/\\./   
+benchmarkName 00838
+count POS=/N./. LEMMA=/§,/
+benchmarkName 03690
+count POS=/N./. POS . POS=/PRE.+/
+benchmarkName 03692
+count POS=/N./. POS . POS=/PRE.+/ .1,2 POS=/PRE.+/
+benchmarkName 03693
+count POS=/N./. POS . POS=/PRE.+/ .1,3 POS=/PRE.+/
+benchmarkName 03694
+count POS=/N./. POS . POS=/PRE.+/ .1,4 POS=/PRE.+/
+benchmarkName 03695
+count POS=/N./. POS . POS=/PRE.+/ .1,5 POS=/PRE.+/
+benchmarkName 03709
+count POS=/N./. POS=/N./
+benchmarkName 03710
+count POS=/N./. POS=/NE/
+benchmarkName 03689
+count POS=/N./. POS=/PRE.+/
+benchmarkName 03708
+count POS=/N./. POS=/PRE.+/ .1,5 POS=/PRE.+/
+benchmarkName 00862
+count POS=/N./. POS=/\\./   
+benchmarkName 00836
+count POS=/N./. POS=/§,/
+benchmarkName 00861
+count POS=/N./. tok=/\\./   
+benchmarkName 00837
+count POS=/N./. tok=/§,/
+benchmarkName 00832
+count POS=/N./_=_ /§./
+benchmarkName 00840
+count POS=/N./_=_ LEMMA=/$,/
+benchmarkName 00808
+count POS=/N./_=_ LEMMA=/<unknown>/ _=_ tok
+benchmarkName 00841
+count POS=/N./_=_ POS=/$,/
+benchmarkName 00834
+count POS=/N./_=_ POS=/§,/
+benchmarkName 00833
+count POS=/N./_=_ POS=/§./
+benchmarkName 03705
+count POS=/N./_=_ tok . POS . POS=/PRE.+/
+benchmarkName 03704
+count POS=/N./_=_ tok . POS . POS=/PRE.+/ .1,5 POS=/PRE.+/
+benchmarkName 00860
+count POS=/N./_=_ tok=/\\./   
+benchmarkName 00859
+count POS=/N.\\./  
+benchmarkName 03012
+count POS=/NE/. LEMMA=/Grüne/
+benchmarkName 03691
+count POS=/NE/. POS . POS=/PRE.+/
+benchmarkName 03711
+count POS=/NE/. POS=/NE/
+benchmarkName 07900
+count POS=/NE/. tok=/(Singhammer|Steinbrück)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 03019
+count POS=/NE/_=_ POS . LEMMA=/Grüne/
+benchmarkName 03020
+count POS=/NE/_=_ tok . LEMMA=/Grüne/
+benchmarkName 00849
+count POS=/NN$./
+benchmarkName 00070
+count POS=/NN/
+benchmarkName 03526
+count POS=/NN/ _=_ tok=/.*-.*-(-.*)*/
+benchmarkName 03528
+count POS=/NN/ _=_ tok=/.*-.*-.*(-.)*(-.)*/
+benchmarkName 03524
+count POS=/NN/ _=_ tok=/.*-.*-.*(-.)*/
+benchmarkName 03527
+count POS=/NN/ _=_ tok=/.*-.*-.*(-.*)*/
+benchmarkName 07922
+count POS=/NN/. POS . tok=/(gezielte|gutes|liebe|erweiterten|gefährliche|bessere|größere|fairen|selbstgenutztes)/ . POS=/NN/
+benchmarkName 02858
+count POS=/NN/. POS="$," . POS=/NN/ 
+benchmarkName 02859
+count POS=/NN/. POS="$," . tok=/der/ . POS=/NN/ 
+benchmarkName 03789
+count POS=/NN/. POS="$," . tok=/der/ . POS=/NN/ & #1.3#4 
+benchmarkName 00848
+count POS=/NN/. POS=/$./
+benchmarkName 07647
+count POS=/NN/. POS=/ADJA/ . tok=/Kompetenzen/
+benchmarkName 07648
+count POS=/NN/. POS=/ADJA/ . tok=/Praktiken/
+benchmarkName 07909
+count POS=/NN/. POS=/PDAT/ . tok=/(gr?oßen)/ . POS=/NN/
+benchmarkName 07860
+count POS=/NN/. tok=/(und|oder)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07901
+count POS=/NN/. tok=/Verbraucherschutz/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 00847
+count POS=/NN/_=_ POS=/$./
+benchmarkName 02705
+count POS=/NN\\-NN*/
+benchmarkName 02704
+count POS=/NN\\-NN../
+benchmarkName 02703
+count POS=/NN\\-NN./
+benchmarkName 02702
+count POS=/NN\\-NN/
+benchmarkName 07902
+count POS=/P.AT/. tok=/(Zeitpunkt|Situation|Tag)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07649
+count POS=/PDAT/. POS=/ADJA/ . tok=/Praktiken/
+benchmarkName 06666
+count POS=/PIAT/
+benchmarkName 03662
+count POS=/PIAT/. tok=/sehr/ . POS=/ADJ.*/ . POS=/ADJ.*/ . POS=/NN/
+benchmarkName 04134
+count POS=/PIAT/. tok=/sehr/ . POS=/ADJ.*/ . POS=/ADJ.*/ . POS=/NN/   
+benchmarkName 03661
+count POS=/PIAT/. tok=/sehr/ . POS=/ADJ.*/ . POS=/NN/
+benchmarkName 04133
+count POS=/PIAT/. tok=/sehr/ . POS=/ADJ./ . POS=/NN/  
+benchmarkName 04136
+count POS=/PIAT/. tok=/sehr/ . POS=/ADJA/ . POS=/ADJA/ . POS=/NN/   
+benchmarkName 04135
+count POS=/PIAT/. tok=/sehr/ . POS=/ADJD/ . POS=/ADJA/ . POS=/NN/   
+benchmarkName 03022
+count POS=/POS/. LEMMA=/Grüne/
+benchmarkName 00671
+count POS=/PPOSAT/
+benchmarkName 07043
+count POS=/PPOSAT/ & tok & POS=/	VVIMP/ & #1 .  #2 & #3 _=_ #2
+benchmarkName 07008
+count POS=/PPOSAT/ & tok & POS=/NN/& #1 .  #2 & #3 _=_ #2
+benchmarkName 07041
+count POS=/PPOSAT/ & tok & POS=/VVFIN/& #1 .  #2 & #3 _=_ #2
+benchmarkName 07040
+count POS=/PPOSAT/ & tok & POS=/VVIZU/& #1 .  #2 & #3 _=_ #2
+benchmarkName 07013
+count POS=/PPOSAT/ & tok="Dank" & POS=/NN/& #1 .  #2 & #3 _=_ #2
+benchmarkName 07009
+count POS=/PPOSAT/ & tok=/Da.*/ & POS=/NN/& #1 .  #2 & #3 _=_ #2
+benchmarkName 07010
+count POS=/PPOSAT/ & tok=/Dank.*/ & POS=/NN/& #1 .  #2 & #3 _=_ #2
+benchmarkName 07012
+count POS=/PPOSAT/ & tok=/Danke.*/ & POS=/NN/& #1 .  #2 & #3 _=_ #2
+benchmarkName 07011
+count POS=/PPOSAT/ & tok=/Dankes.*/ & POS=/NN/& #1 .  #2 & #3 _=_ #2
+benchmarkName 05133
+count POS=/PPOSAT/& tok="sehr" & POS="NN" & #1.#2 & #2.1,4#3   
+benchmarkName 00694
+count POS=/PPOSAT/. LEMMA _=_ POS=/N./  
+benchmarkName 00693
+count POS=/PPOSAT/. LEMMA _=_ POS=/NN/  
+benchmarkName 00793
+count POS=/PPOSAT/. POS=/N./
+benchmarkName 00794
+count POS=/PPOSAT/. POS=/N./ 
+benchmarkName 00795
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA
+benchmarkName 00796
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA 
+benchmarkName 00803
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/<unknown>/
+benchmarkName 00806
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/<unknown>/ 
+benchmarkName 00812
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/<unknown>/ _=_  tok
+benchmarkName 00809
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/<unknown>/ _=_ tok
+benchmarkName 00811
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/<unknown>/ _=_ tok 
+benchmarkName 00818
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/Biografie/
+benchmarkName 00819
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/Biographie/
+benchmarkName 00817
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/EU-Ratspräsidentschaft/
+benchmarkName 00814
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/Positionierung/
+benchmarkName 00813
+count POS=/PPOSAT/. POS=/N./ _=_ LEMMA=/Soldatinnen/
+benchmarkName 00674
+count POS=/PPOSAT/. POS=/N./ _=_ tok
+benchmarkName 00672
+count POS=/PPOSAT/. POS=/NE/
+benchmarkName 00767
+count POS=/PPOSAT/. tok
+benchmarkName 07605
+count POS=/PPOSAT/. tok _=_ POS=/NN/
+benchmarkName 00690
+count POS=/PPOSAT/. tok _=_ POS=/NN/  
+benchmarkName 04874
+count POS=/PPOSAT/. tok="sehr" . POS=/ADJ./ . POS="NN"   
+benchmarkName 03651
+count POS=/PPOSAT/. tok=/sehr/     
+benchmarkName 03688
+count POS=/PRE.+/
+benchmarkName 03701
+count POS=/PRE.+/. POS=/APPR/ .1,5 POS=/PRE.+/
+benchmarkName 03696
+count POS=/PRE.+/.1,5 POS=/PRE.+/
+benchmarkName 03698
+count POS=/PRE.+/.1,5 POS=/PRE.+/ . POS=/PRE.+/
+benchmarkName 03699
+count POS=/PRE.+/.1,5 POS=/PRE.+/ .1,5 POS=/PRE.+/
+benchmarkName 03700
+count POS=/PRE.+/.1,5 POS=/PRE.+/ .1,5 POS=/PRE.+/ .1,5 POS=/PRE.+/
+benchmarkName 03697
+count POS=/PRE.+/.1,6 POS=/PRE.+/
+benchmarkName 03721
+count POS=/PREL.+/
+benchmarkName 03733
+count POS=/PREL.+/. POS=/APPR/
+benchmarkName 03724
+count POS=/PREL.+/_=_ POS=/ART/
+benchmarkName 03725
+count POS=/PREL.+/_=_ tok=/ein.+/
+benchmarkName 03727
+count POS=/PREL.+/_=_ tok=/ein../
+benchmarkName 03728
+count POS=/PREL.+/_=_ tok=/eine/
+benchmarkName 03726
+count POS=/PREL.+/_=_ tok=/eines/
+benchmarkName 03736
+count POS=/PRELAT/
+benchmarkName 07651
+count POS=/PRELAT/. POS=/ADJA/ . tok=/Vorteile/
+benchmarkName 03745
+count POS=/PRELAT/. tok
+benchmarkName 03750
+count POS=/PRELAT/. tok 
+benchmarkName 03746
+count POS=/PRELAT/. tok _i_ POS=/V.+/
+benchmarkName 00662
+count POS=/PRELS/
+benchmarkName 03340
+count POS=/V.*/
+benchmarkName 07851
+count POS=/V.FIN/. POS=/ADV/ . tok=/(notwendige|klare|wichtige|unzählige|verschiedene|schlichte|folgende|verbindlichere andere)/ . POS=/NN/
+benchmarkName 03633
+count POS=/VAPP/
+benchmarkName 03635
+count POS=/VMPP/
+benchmarkName 07042
+count POS=/VVFIN/
+benchmarkName 03632
+count POS=/VVPP/
+benchmarkName 02747
+count POS=/\\-/
+benchmarkName 01163
+count POS=/in/. POS=/N./ _=_ tok
+benchmarkName 00804
+count POS=/unknown/
+benchmarkName 03871
+count tok
+benchmarkName 03567
+count tok . tok
+benchmarkName 02791
+count tok="$("
+benchmarkName 02807
+count tok="$/"
+benchmarkName 02860
+count tok="(". tok="A" . tok=")"
+benchmarkName 02672
+count tok="(". tok=/A/ . tok=")"
+benchmarkName 02793
+count tok="."
+benchmarkName 02780
+count tok=".\\"
+benchmarkName 02778
+count tok="2\\"
+benchmarkName 07614
+count tok="<unknown>"
+benchmarkName 02617
+count tok="Anlage"
+benchmarkName 02616
+count tok="Beifall"
+benchmarkName 02618
+count tok="Berichtigungen"
+benchmarkName 03017
+count tok="BÜNDNIS	90/DIE". LEMMA=/Grüne/
+benchmarkName 03018
+count tok="BÜNDNIS 90/DIE"
+benchmarkName 03016
+count tok="BÜNDNIS 90/DIE". LEMMA=/Grüne/
+benchmarkName 03015
+count tok="BÜNDNIS 90/Die". LEMMA=/Grüne/
+benchmarkName 03014
+count tok="Bündnis 90/Die". LEMMA=/Grüne/
+benchmarkName 03013
+count tok="Bündnis... 90/Die". LEMMA=/Grüne/
+benchmarkName 03870
+count tok="Plenarprotokoll"
+benchmarkName 02615
+count tok="["
+benchmarkName 02779
+count tok="\\."
+benchmarkName 04113
+count tok="sehr"
+benchmarkName 04076
+count tok="sehr" 
+benchmarkName 04549
+count tok="sehr"  
+benchmarkName 04081
+count tok="sehr" &POS=/ADJ./ & POS="NN" & #1 . #2 & #2 . #3 & #1 .2 #3
+benchmarkName 04079
+count tok="sehr" . POS="ADJD" . POS="ADJA" . POS="NN" & #1 .2 #3 & #1 .3 #4   
+benchmarkName 04078
+count tok="sehr" . POS="ADJD" . POS="NN" & #1 .2 #3   
+benchmarkName 03861
+count tok="sehr" . POS=/ADJ./ . POS=/ADJ./ . POS="NN" & #1 .2 #3
+benchmarkName 04077
+count tok="sehr" . POS=/ADJA/  
+benchmarkName 04099
+count tok="sehr"& POS=/ADJA/ & POS="NN" & #1.#2 & #2.#3 & #1.2#3
+benchmarkName 04065
+count tok="sehr"& POS=/ADJD/ & POS="NN" & #1.#2& #2.1,2#3
+benchmarkName 04066
+count tok="sehr"& POS=/ADJD/ & POS=/ADJ./ & POS="NN" & #1.#2& #2.#3& #3.1,2#4
+benchmarkName 04147
+count tok="sehr"& POS=/ADJD/ & POS=/ADJA/ & tok=/.*end.*/ & POS="NN" & #1.#2 & #2.#3 & #3.#4 & #4.#5   
+benchmarkName 04141
+count tok="sehr"& POS=/ADJD/ & tok=/.*end.*/ & POS="NN" & #1.#2 & #2.#3 & #3.#4
+benchmarkName 04145
+count tok="sehr"& POS=/ADJD/ & tok=/.*end.*/ & POS="NN" & #1.#2 & #2.#3 & #3.#4   
+benchmarkName 04146
+count tok="sehr"& POS=/ADJD/ & tok=/.*end.*/ & POS=/ADJA/ & POS="NN" & #1.#2 & #2.#3 & #3.#4 & #4.#5   
+benchmarkName 03675
+count tok="sehr"& tok=".*end.*"& #1.1,4#2 
+benchmarkName 03674
+count tok="sehr"& tok=".*end.*"& #1.1,6#2 
+benchmarkName 04063
+count tok="sehr". POS=/ADJ./ . POS="NN" & #1 .1 #3
+benchmarkName 04061
+count tok="sehr". POS=/ADJ./ . POS="NN" & #1 .2 #3
+benchmarkName 04062
+count tok="sehr". POS=/ADJ./ . POS="NN" & #1 .4 #3
+benchmarkName 04112
+count tok="sehr". POS=/ADJ./ . POS="NN" & #1.2#3 
+benchmarkName 04064
+count tok="sehr". POS=/ADJ./ . POS="NN" & #2 .2 #3
+benchmarkName 04547
+count tok="sehr". POS=/ADJA/ . POS="NN"  
+benchmarkName 04542
+count tok="sehr". POS=/ADJA/ . POS="NN" & #1.2#3
+benchmarkName 04117
+count tok="sehr". POS=/ADJA/ . POS="NN" & #1.2#3   
+benchmarkName 04109
+count tok="sehr". POS=/ADJA/ _=_ LEMMA & POS="NN" & #1.2#4 
+benchmarkName 04111
+count tok="sehr". POS=/ADJA/ _=_ LEMMA & POS="NN" & #1.3#4
+benchmarkName 04101
+count tok="sehr". POS=/ADJA/ _=_ LEMMA & POS="NN" & #1.3#4 
+benchmarkName 04546
+count tok="sehr". POS=/ADJA/ _=_ LEMMA . POS="NN"  
+benchmarkName 04110
+count tok="sehr". POS=/ADJA/ _=_ LEMMA . POS="NN" & #1.2#4
+benchmarkName 04108
+count tok="sehr". POS=/ADJA/ _=_ LEMMA . POS="NN" & #1.2#4 
+benchmarkName 04100
+count tok="sehr". POS=/ADJA/ _=_ LEMMA . POS="NN" & #1.3#4
+benchmarkName 04107
+count tok="sehr". POS=/ADJA/ _=_ LEMMA . POS="NN" & #1.3#4 
+benchmarkName 04122
+count tok="sehr". POS=/ADJD/ . POS="NN" & #1.2#3   
+benchmarkName 04140
+count tok="sehr". POS=/ADJD/ . tok=/.*end.*/ . POS="NN" & #1.2#3 & #1.3#4 & #2.2#4    
+benchmarkName 04103
+count tok="sehr". POS=/ADJD/ _=_ LEMMA & POS=/ADJA/ _=_ LEMMA & POS="NN" & #1.3#4 & #1.5#6 
+benchmarkName 04106
+count tok="sehr". POS=/ADJD/ _=_ LEMMA . POS=/ADJA/ _=_ LEMMA . POS="NN" & #1.2#4 & #1.3#6 
+benchmarkName 04105
+count tok="sehr". POS=/ADJD/ _=_ LEMMA . POS=/ADJA/ _=_ LEMMA . POS="NN" & #1.3#4 & #1.4#6 
+benchmarkName 04104
+count tok="sehr". POS=/ADJD/ _=_ LEMMA . POS=/ADJA/ _=_ LEMMA . POS="NN" & #1.3#4 & #1.5#6 
+benchmarkName 04102
+count tok="sehr". POS=/ADJD/ _=_ LEMMA . POS=/ADJA/ _=_ LEMMA . POS="NN" & #1.5#6 
+benchmarkName 04478
+count tok="sehr". POS=/VVFIN/ . POS=/ADJA/ . POS="NN"  
+benchmarkName 02786
+count tok=/!/
+benchmarkName 02782
+count tok=/"\\/
+benchmarkName 02784
+count tok=/$"/
+benchmarkName 00866
+count tok=/$./
+benchmarkName 07898
+count tok=/(2,2|20|4)/. POS=/NN/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07862
+count tok=/(Ausbildung|Verspätungen|Weizen||Landschaften|Rechtstraditionen|Religionsgemeinschaften|Schießsimulatoren|Aktivitäten|Grundsätze|Aktien|Verhältnismäßigkeit)/. tok=/(und|oder)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07858
+count tok=/(Aussprache|Sommer)/. tok=/(vier|2007)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07973
+count tok=/(Betreuung|Auftrag|Absicherung|Lebensqualität|Quote)/. POS=/ADJA/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07859
+count tok=/(Morgen|selber|Berlin|Kosovo|Detuschland|Praktikanten|mich)/. tok=/als/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07960
+count tok=/(Qualitativ|völlig)/. POS=/ADJA/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07861
+count tok=/(Reis|Behinderungen|Folter|Frieden|Gewalt|Kind|Schulen|ERC-Milliarden|Marktanreizprogramm)/. tok=/(und|oder)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07917
+count tok=/(an)/. tok=/sich/ . tok=/(gesunde)/ . POS=/NN/
+benchmarkName 07918
+count tok=/(an)/. tok=/sich/ . tok=/(gesundem)/ . POS=/NN/
+benchmarkName 07913
+count tok=/(aus|oder)/. POS=/PIS/ . tok=/(afrikanischen|träumerische)/ . POS=/NN/
+benchmarkName 07912
+count tok=/(aus|oder)/. POS=/PIS/ . tok=/(kulturelle|aktuelle)/ . POS=/NN/
+benchmarkName 07994
+count tok=/(dafür|damit|kein|viele|sich)/. tok=/(inhaltlich|wirklich|wissenschaftlich|gut|ungewollt|dynamisch)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07915
+count tok=/(denen)/. tok=/wir/ . tok=/(besondere)/ . POS=/NN/
+benchmarkName 07856
+count tok=/(derzeit|also|von|seit)/. POS=/CARD/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07857
+count tok=/(derzeit|also|von|seit)/. tok=/(90|zwei|acht|1990)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07905
+count tok=/(der|bis)/. POS=/PAV/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07906
+count tok=/(der|bis)/. tok=/(dahin|daraus)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07997
+count tok=/(ganz)/. POS=/ADJA/ _=_ tok=/(billige)/ 
+benchmarkName 07962
+count tok=/(hier|kaum|sehr)/. POS=/ADJA/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07963
+count tok=/(hier|kaum|sehr)/. POS=/ADJA/ . tok=/(junge|legalen|soziale)/ . POS=/NN/
+benchmarkName 07961
+count tok=/(international)/. POS=/ADJA/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07866
+count tok=/(kosten-|öffnen|festigen)/. tok=/(und|oder)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07916
+count tok=/(sich)/. tok=/uns/ . tok=/(enorme)/ . POS=/NN/
+benchmarkName 07983
+count tok=/(statistisch)/. POS=/ADJD/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07975
+count tok=/(statistisch|nachweislich|möglicherweise|schon|auch)/. POS=/ADJD/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07964
+count tok=/(um|Angesichts|trotz|auf|zu)/. POS=/ADJA/ . tok=/(nationale|tatsächlicher|internationaler|gemeinnützige|neuen)/ . POS=/NN/
+benchmarkName 07914
+count tok=/(von)/. tok=/uns/ . tok=/(betriebenen|eingesetzten)/ . POS=/NN/
+benchmarkName 07911
+count tok=/(wir|nicht)/. POS=/PDAT/ . tok=/(kulturelle|aktuelle)/ . POS=/NN/
+benchmarkName 03525
+count tok=/.*-.*-(-.*)*/ _=_ POS=/NN/
+benchmarkName 03185
+count tok=/.*-.*-(.*-)?/
+benchmarkName 04458
+count tok=/.*-.*-.*(-.*)?/_=_POS=/NN/
+benchmarkName 03195
+count tok=/.*-.*-.*-(.*-)?/
+benchmarkName 02532
+count tok=/.*bar/
+benchmarkName 02531
+count tok=/.*bar/. POS=/N.*/
+benchmarkName 02907
+count tok=/.*beamt.*/_=_ POS=/NN/ 
+benchmarkName 03668
+count tok=/.*end.*/
+benchmarkName 00001
+count tok=/.*mandat.*/
+benchmarkName 02905
+count tok=/.*suchend*/_=_ POS=/NN/ 
+benchmarkName 02906
+count tok=/.*suchend.*/_=_ POS=/NN/ 
+benchmarkName 02894
+count tok=/.*t../_=_ POS=/NN/
+benchmarkName 02893
+count tok=/.*t/_=_ POS=/NN/
+benchmarkName 03184
+count tok=/.-*.-*(.-*)?/
+benchmarkName 00865
+count tok=/./
+benchmarkName 02801
+count tok=/./_=_ POS
+benchmarkName 00800
+count tok=/<unknown>/
+benchmarkName 02895
+count tok=/Abgeordnet.*/
+benchmarkName 02899
+count tok=/Abgeordnet.*/_=_ POS=/NN/ 
+benchmarkName 02902
+count tok=/Alt*/_=_ POS=/NN/ 
+benchmarkName 02903
+count tok=/Alt.*/_=_ POS=/NN/ 
+benchmarkName 02908
+count tok=/Ange.*t.*/_=_ POS=/NN/ 
+benchmarkName 02910
+count tok=/Angehörig.*/_=_ POS=/NN/ 
+benchmarkName 02909
+count tok=/Angestellt.*/_=_ POS=/NN/ 
+benchmarkName 00799
+count tok=/Antrag/
+benchmarkName 02896
+count tok=/Arbeitslos*/
+benchmarkName 02897
+count tok=/Arbeitslos.*/
+benchmarkName 02898
+count tok=/Arbeitslos.*/_=_ POS=/NN/ 
+benchmarkName 02904
+count tok=/Arbeitssuchend*/_=_ POS=/NN/ 
+benchmarkName 02915
+count tok=/Arm.*/_=_ POS=/NN/ 
+benchmarkName 02892
+count tok=/Beamt.*/
+benchmarkName 02900
+count tok=/Beamt.*/_=_ POS=/NN/ 
+benchmarkName 03720
+count tok=/Das/. tok=/heißt/
+benchmarkName 02728
+count tok=/Deutscher/. tok=/Bundestag/ . tok=/-/
+benchmarkName 02729
+count tok=/Deutscher/. tok=/Bundestag/ . tok=/–/
+benchmarkName 07792
+count tok=/Deutschland/. tok=/gut/
+benchmarkName 07878
+count tok=/FDP/. tok=/politische/
+benchmarkName 02866
+count tok=/Folgende/& POS=/NN/ & tok=/.*e/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02872
+count tok=/Folgende/& POS=/NN/ & tok=/.*en/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02869
+count tok=/Folgendem/& POS=/NN/ & tok=/.*em/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02868
+count tok=/Folgenden/& POS=/NN/ & tok=/.*en/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02871
+count tok=/Folgender/& POS=/NN/ & tok=/.*e/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02873
+count tok=/Folgender/& POS=/NN/ & tok=/.*en/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02867
+count tok=/Folgender/& POS=/NN/ & tok=/.*er/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02875
+count tok=/Folgendes/& POS=/NN/ & tok=/.*e/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02874
+count tok=/Folgendes/& POS=/NN/ & tok=/.*en/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02870
+count tok=/Folgendes/& POS=/NN/ & tok=/.*es/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02852
+count tok=/Herr/
+benchmarkName 02857
+count tok=/Herr/. POS=/NN/ 
+benchmarkName 07631
+count tok=/Impulse/
+benchmarkName 02901
+count tok=/Jung.*/_=_ POS=/NN/ 
+benchmarkName 07879
+count tok=/Krieg/. tok=/qua/
+benchmarkName 07984
+count tok=/Mittelfristig/. POS=/ADJA/ . POS=/NN/
+benchmarkName 00846
+count tok=/NN/_=_ POS=/$./
+benchmarkName 02920
+count tok=/Obergefreite.*/|tok=/Oberkommandierend.*/| tok=/Abgeordnet.*/ 
+benchmarkName 02919
+count tok=/Obergefreite.*/|tok=/Oberkommandierend.*/| tok=/Okkult.*/ 
+benchmarkName 03869
+count tok=/Plenarprotokoll/
+benchmarkName 00816
+count tok=/Soldatinnen/
+benchmarkName 07637
+count tok=/Stellungnahmen/
+benchmarkName 07638
+count tok=/Steuergeldern/
+benchmarkName 00815
+count tok=/Trägermittel/
+benchmarkName 02865
+count tok=/[Ff]olgende/& POS=/NN/ & tok=/.*e/  & #1.1,3#2 & #2_=_#3
+benchmarkName 02882
+count tok=/[Mm]ehrer.*/
+benchmarkName 02890
+count tok=/[Vv]iel/& POS=/NN/ & tok=/.*/ & #1.1,3#2 & #2_=_#3
+benchmarkName 02888
+count tok=/[Vv]ielem/& POS=/NN/ & tok=/.*em/ & #1.1,3#2 & #2_=_#3
+benchmarkName 02889
+count tok=/[Vv]ielem/& POS=/NN/ & tok=/.*en/ & #1.1,3#2 & #2_=_#3
+benchmarkName 02883
+count tok=/[Ww]enigem/& POS=/NN/ & tok=/.*em/ & #1.1,3#2 & #2_=_#3
+benchmarkName 02863
+count tok=/[fF]olgend.*/
+benchmarkName 02864
+count tok=/[fF]olgend.*/& POS=/NN/ & #1.1,3#2
+benchmarkName 03066
+count tok=/[fF]olgend.*/&POS=/NN/&#1.1,3#2
+benchmarkName 02781
+count tok=/\\"/
+benchmarkName 02699
+count tok=/\\-/
+benchmarkName 00867
+count tok=/\\./
+benchmarkName 07971
+count tok=/abgeschobene/	. tok=/togolesische/
+benchmarkName 06574
+count tok=/allerlei/
+benchmarkName 03734
+count tok=/als/
+benchmarkName 03735
+count tok=/als/_=_ POS=/KOKOM/
+benchmarkName 07919
+count tok=/an/. tok=/sich/ . tok=/(gesunden)/ . POS=/NN/
+benchmarkName 00798
+count tok=/antrag/
+benchmarkName 03032
+count tok=/bei/& LEMMA=/Abgeordnete/ & #1.#2
+benchmarkName 06576
+count tok=/bisschen/
+benchmarkName 06577
+count tok=/bisschen/.1,3 POS=/NN/
+benchmarkName 04456
+count tok=/ca./
+benchmarkName 07974
+count tok=/dadurch/. POS=/ADJA/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 06578
+count tok=/damalig/
+benchmarkName 07926
+count tok=/darum/. tok . tok=/klimapolitische/
+benchmarkName 03712
+count tok=/das/. tok=/heißt/
+benchmarkName 00000
+count tok=/der/
+benchmarkName 03788
+count tok=/der/ . POS=/NN/ 
+benchmarkName 00828
+count tok=/des/
+benchmarkName 07785
+count tok=/drei/. tok=/direkt/
+benchmarkName 07784
+count tok=/drei/. tok=/direkte/
+benchmarkName 00827
+count tok=/eines/
+benchmarkName 00779
+count tok=/ernst/. tok=/den/
+benchmarkName 00780
+count tok=/ernst/. tok=/der/
+benchmarkName 07634
+count tok=/fiskalpolitische/
+benchmarkName 01919
+count tok=/folgende/& POS=/NN/ & tok=/.*e/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01916
+count tok=/folgende/& POS=/NN/ & tok=/.*en/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01921
+count tok=/folgendem/& POS=/NN/ & tok=/.*em/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01917
+count tok=/folgendem/& POS=/NN/ & tok=/.*en/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01920
+count tok=/folgenden/& POS=/NN/ & tok=/.*en/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01913
+count tok=/folgender/& POS=/NN/ & tok=/.*e/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01914
+count tok=/folgender/& POS=/NN/ & tok=/.*en/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01912
+count tok=/folgender/& POS=/NN/ & tok=/.*er/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01911
+count tok=/folgender/& POS=/NN/ & tok=/er/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01918
+count tok=/folgendes/& POS=/NN/ & tok=/.*e/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01922
+count tok=/folgendes/& POS=/NN/ & tok=/.*es/  & #1.1,3#2 & #2_=_#3
+benchmarkName 07852
+count tok=/fordert/. POS=/ADV/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07853
+count tok=/gab/. POS=/ADV/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 03667
+count tok=/ge.*t/
+benchmarkName 03666
+count tok=/ge...t/
+benchmarkName 04069
+count tok=/gehen/
+benchmarkName 06631
+count tok=/helfend/_=_ POS
+benchmarkName 02849
+count tok=/herr/
+benchmarkName 06579
+count tok=/heutig/
+benchmarkName 06580
+count tok=/heutige/
+benchmarkName 07790
+count tok=/hoch/. tok=/radioaktiven/
+benchmarkName 07789
+count tok=/hoch/. tok=/radioatkiven/
+benchmarkName 03570
+count tok=/ich-*/
+benchmarkName 03571
+count tok=/ich-+/
+benchmarkName 03569
+count tok=/ich-.*/
+benchmarkName 03568
+count tok=/ich-/
+benchmarkName 07920
+count tok=/in/. tok=/nicht/ . tok=/unbeträchtlicher/ . POS=/NN/
+benchmarkName 07795
+count tok=/inzwischen/. tok=/weit/
+benchmarkName 01931
+count tok=/irgendwelch.*/& POS=/NN/ & tok=/.*/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01932
+count tok=/irgendwelch.*/& POS=/NN/ & tok=/.*beamt*/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01933
+count tok=/irgendwelch.*/& POS=/NN/ & tok=/.*beamt.*/  & #1.1,3#2 & #2_=_#3
+benchmarkName 03650
+count tok=/kein.*/. tok=/sehr/ . POS=/ADJD/ . POS=/ADJA/ . POS=/NN/     
+benchmarkName 04070
+count tok=/laufen/
+benchmarkName 06629
+count tok=/leuchtend/_=_ POS
+benchmarkName 04072
+count tok=/lief/
+benchmarkName 05001
+count tok=/lustig+/
+benchmarkName 05000
+count tok=/lustig.+/
+benchmarkName 04999
+count tok=/lustig/
+benchmarkName 07633
+count tok=/mittelstandsorientierten/
+benchmarkName 04457
+count tok=/n?/
+benchmarkName 07793
+count tok=/neue/. tok=/Weichen/
+benchmarkName 07854
+count tok=/nicht/. POS=/ADV/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07910
+count tok=/nicht/. POS=/PDAT/ . tok=/(kulturelle|aktuelln)/ . POS=/NN/
+benchmarkName 07855
+count tok=/nicht/. tok=/lediglich/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 02541
+count tok=/nicht/. tok=/un.*/ _=_ POS=/ADJ.*/  
+benchmarkName 06575
+count tok=/paar/
+benchmarkName 06630
+count tok=/schlafend/_=_ POS
+benchmarkName 03833
+count tok=/sehr/
+benchmarkName 02725
+count tok=/sehr/ 
+benchmarkName 02726
+count tok=/sehr/  
+benchmarkName 03644
+count tok=/sehr/    
+benchmarkName 04074
+count tok=/sehr/ &POS=/ADJ./ & POS=/NN/ & #1.#2 & #2.#3 & #1 .2 #3
+benchmarkName 04075
+count tok=/sehr/ . POS=/ADJ./ _=_ LEMMA. POS=/NN/ & #1 .2 #3
+benchmarkName 03678
+count tok=/sehr/& tok=/.*end.*/ & #1.1,4#2 . POS=/NN/
+benchmarkName 03676
+count tok=/sehr/& tok=/.*end.*/& #1.1,4#2 
+benchmarkName 03677
+count tok=/sehr/& tok=/.*end.*/& #1.1,4#2 . POS=/NN/
+benchmarkName 03680
+count tok=/sehr/& tok=/ge.*t.*/ & #1.1,4#2 . POS=/NN/ 
+benchmarkName 03682
+count tok=/sehr/& tok=/ge.*t.*/ & #1.2,4#2 . POS=/NN/ 
+benchmarkName 03681
+count tok=/sehr/& tok=/ge.*t.*/ _=_ tok=/geehrten/ & #1.1,4#2 . POS=/NN/ 
+benchmarkName 03679
+count tok=/sehr/&tok=/.*end.*/& #1.1,4#2 . POS=/NN/
+benchmarkName 05138
+count tok=/sehr/. LEMMA=/gut/ . POS=/ADJA/ . POS=/NN/ 
+benchmarkName 05140
+count tok=/sehr/. LEMMA=/gut/ _=_ POS=/ADJA/ . POS=/ADJA/ . POS=/NN/ 
+benchmarkName 05139
+count tok=/sehr/. LEMMA=/gut/ _=_ POS=/ADJD/ . POS=/ADJA/ . POS=/NN/ 
+benchmarkName 02736
+count tok=/sehr/. POS=/ADJ.*/   
+benchmarkName 03673
+count tok=/sehr/. POS=/ADJ.*/ . tok=/ge.*t.*/ . POS=/NN/
+benchmarkName 04073
+count tok=/sehr/. POS=/ADJ./ . POS=/NN/ & #1 .2 #3
+benchmarkName 04089
+count tok=/sehr/. POS=/ADJ./ . POS=/NN/ & #1 .2 #3 . LEMMA=/mein/ 
+benchmarkName 03834
+count tok=/sehr/. POS=/ADJA/
+benchmarkName 02727
+count tok=/sehr/. POS=/ADJA/  
+benchmarkName 04093
+count tok=/sehr/. POS=/ADJA/ . POS=/NN/ & #1 .2 #3
+benchmarkName 04094
+count tok=/sehr/. POS=/ADJA/ _=_ tok=/ge.*t.*|ver.*t.*/ . POS=/NN/ & #1 .2 #4
+benchmarkName 03640
+count tok=/sehr/. POS=/ADJD/ . POS=/ADJA/ . POS=/ADJA/ . POS=/NN/    
+benchmarkName 04124
+count tok=/sehr/. POS=/ADJD/ . POS=/ADJA/ . POS=/ADJA/ . POS=/NN/     
+benchmarkName 03636
+count tok=/sehr/. POS=/ADJD/ . POS=/ADJA/ . POS=/NN/ 
+benchmarkName 02738
+count tok=/sehr/. POS=/ADJD/ . POS=/ADJA/ . POS=/NN/   
+benchmarkName 04138
+count tok=/sehr/. POS=/ADJD/ . tok=/ge.*t.*/ . POS=/NN/
+benchmarkName 03645
+count tok=/sehr/. POS=/NN/     
+benchmarkName 03634
+count tok=/sehr/. POS=/VAPP/
+benchmarkName 04544
+count tok=/sehr/. POS=/VVPP/ . POS=/ADJ./ . POS=/NN/ 
+benchmarkName 04543
+count tok=/sehr/. POS=/VVPP/ . POS=/NN/ 
+benchmarkName 00824
+count tok=/sein/
+benchmarkName 00825
+count tok=/sein/_=_ POS=/PPOSAT/
+benchmarkName 06684
+count tok=/sogar/_=_ POS
+benchmarkName 01934
+count tok=/solch*/& POS=/NN/ & tok=/.*/  & #1.1,3#2 & #2_=_#3
+benchmarkName 01935
+count tok=/solch.*/& POS=/NN/ & tok=/.*/  & #1.1,3#2 & #2_=_#3
+benchmarkName 07970
+count tok=/spannende/. tok=/politische/
+benchmarkName 04556
+count tok=/super/
+benchmarkName 07635
+count tok=/tiefer/
+benchmarkName 05002
+count tok=/toll+/
+benchmarkName 07921
+count tok=/um/. tok=/zu/ . tok=/modernen/ . POS=/NN/
+benchmarkName 07899
+count tok=/und/. tok=/(nitiierung|Herrn|Entwicklung|Verfolgung|Schädigungen)/ . POS=/ADJA/ . POS=/NN/
+benchmarkName 07786
+count tok=/und/. tok=/langfristig/
+benchmarkName 07636
+count tok=/ungewohnt/
+benchmarkName 06582
+count tok=/vermutlich/
+benchmarkName 07794
+count tok=/verstärkt/. tok=/internationale/
+benchmarkName 00850
+count tok=/verärgert/. POS=/$./
+benchmarkName 00842
+count tok=/verärgert/_=_ POS=/$./
+benchmarkName 07632
+count tok=/weiterer/. tok=/Abgeordneter/
+benchmarkName 06626
+count tok=/ziemlich/_=_ POS
+benchmarkName 07796
+count tok=/zugelassenen/. tok=/iranischen/
+
+benchmark 5

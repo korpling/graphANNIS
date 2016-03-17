@@ -1,0 +1,1 @@
+tok=/(statistisch|nachweislich|möglicherweise|schon|auch)/. POS=/ADJD/ . POS=/ADJA/ . POS=/NN/

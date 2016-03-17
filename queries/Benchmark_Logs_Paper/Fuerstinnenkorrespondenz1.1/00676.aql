@@ -1,0 +1,1 @@
+(pos=/APPR/&pos=/(PPOSS)|(PPOSAT)|(ART)|(PDAT)|(WDAT)/ & pos=/ADJA/ & pos=/N./ & MA#norm & #1.#2 & #2.#3 & #3.#4 & #1_=_#MA)|  (pos=/APPR/ & pos=/ADJA/ & pos=/N./ & OA#norm & #6.#7 & #7.#8 & #OA_=_#6) 

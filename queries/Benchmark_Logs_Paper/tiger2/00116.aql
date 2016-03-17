@@ -1,0 +1,1 @@
+pos="APPR" & tok="an" & #1_=_#2 &pos="NN" & cat="PP" & #4 > #3 & #4 > #1 & tok & #5 _=_#3

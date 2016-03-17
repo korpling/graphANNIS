@@ -1,0 +1,1 @@
+POS=/APPR/. POS=/ADJA/ _=_ tok=/(akuten|beachtlichen|besserer|wichtigen|neuen)/ . POS=/ADJA/ _=_ tok . POS=/NN/

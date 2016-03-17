@@ -1,0 +1,68 @@
+set clear-caches to false
+record
+corpus KAJUK
+
+benchmarkName 03850
+count J="J" & Paradigma="V" & lb="lb" & #1 . #2 & #3 _i_ #1 & #3 _i_ #2
+benchmarkName 06933
+count Wortgruppenkategorie="ADJGr"
+benchmarkName 08365
+count E="E" & lb & lb_type="WR" & Satzglied="subj" & #2_=_#3 & #2 _i_#1 & #1_=_#4
+benchmarkName 00165
+count J="J" & J_type="AP" & IR="kaus" & #1 _=_ #2 & #2 _=_ #3
+benchmarkName 00454
+count /[Jj]ahr/
+benchmarkName 05495
+count tok
+benchmarkName 04444
+count J="J" & J_type="AP" & #1 _=_ #2
+benchmarkName 04833
+count /[Aa]usländer/
+benchmarkName 01473
+count /[Dd]a/
+benchmarkName 05057
+count /n*an/
+benchmarkName 04832
+count /[Aa]usland/
+benchmarkName 05446
+count /[Ss]ex/
+benchmarkName 05058
+count /n*l/
+benchmarkName 04448
+count Paradigma=/V/
+benchmarkName 03849
+count J="J"
+benchmarkName 05056
+count /in*an/
+benchmarkName 05023
+count "in" 
+benchmarkName 04445
+count Wortgruppenkategorie=/(NGr)|(ADJGr)/ & Vorfeld=/null/& #1 . #2
+benchmarkName 04613
+count "in"
+benchmarkName 05020
+count "Hello world" 
+benchmarkName 04834
+count /Ausländer/
+benchmarkName 05022
+count "Hallo" 
+benchmarkName 05031
+count "Bahn"
+benchmarkName 05033
+count "Ist mir egal"
+benchmarkName 05032
+count "Is mir egal"
+benchmarkName 05030
+count "U Bahn"
+benchmarkName 04446
+count Ellipse=/noE/
+benchmarkName 04447
+count Ellipse=/null/
+benchmarkName 05055
+count /in/
+benchmarkName 05021
+count "Hello" 
+benchmarkName 08367
+count Ellipse="noE"
+
+benchmark 5

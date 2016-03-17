@@ -1,0 +1,1 @@
+lemma="was" &lemma=/(für|vor)/ & #1 .* #2 

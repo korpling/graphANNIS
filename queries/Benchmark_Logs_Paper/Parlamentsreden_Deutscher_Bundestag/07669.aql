@@ -1,0 +1,1 @@
+POS=/ADJA/. POS=/NN/ _=_ tok=/(Eigentumsmodell|Berichtungsbericht|Vereinbarungen|Erfassung|Zukunft|Anteil|Einsatz|Straßenverkehr|Charité|Strafrecht|Ausstellung|Sicherung|Parteien|Koalition|Bereichen|Tisch|Nachbarn|Verbraucher|Stabilisierung)/ . POS=/ADJA/ _=_ tok . POS=/NN/

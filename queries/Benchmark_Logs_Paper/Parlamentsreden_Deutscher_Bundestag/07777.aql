@@ -1,0 +1,1 @@
+POS=/ADJD/_=_ tok=/(verstärkt| weit| recht| fachlich| straßenund| verfassungsrechtlich| dreifach| ursprünglich| längt| tief| willkürlich| völlig| direkt| langfristig|bewusst| gut|begegnet|hoch|gentechnisch|vollkommen|stark|stark)/ . POS=/ADJA/ . POS=/NN/

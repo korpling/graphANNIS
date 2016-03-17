@@ -1,0 +1,1 @@
+(instructor_dipl=/äh.?/ . break) |(instructor_dipl=/äh.?/ . instructor_dipl) | (instructor_dipl=/äh.?/ . instructee_dipl)

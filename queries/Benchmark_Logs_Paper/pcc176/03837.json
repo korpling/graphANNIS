@@ -1,0 +1,1 @@
+{"alternatives":[{"nodes":{"1":{"id":1,"nodeAnnotations":[{"name":"pos","value":"ADJA","textMatching":"REGEXP_EQUAL","qualifiedName":"pos"}],"root":false,"token":false,"variable":"1"},"2":{"id":2,"spannedText":"folgend.*","root":false,"token":true,"spanTextMatching":"REGEXP_EQUAL","variable":"2"}},"joins":[{"op":"Precedence","minDistance":1,"maxDistance":1,"left":1,"right":2}]}]}

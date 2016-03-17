@@ -1,0 +1,1 @@
+POS=/(NN|ADJA|ADV|ADJD|PDAT|PIAT||PPER|PPOSAT|KON|PRF|ARTAPPR|APPRART)/_=_ tok . POS=/werdenden/ _=_ tok . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok

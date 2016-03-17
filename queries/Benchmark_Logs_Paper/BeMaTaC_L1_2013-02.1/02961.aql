@@ -1,0 +1,1 @@
+( n1#instructor_pos = "NN" _=_ instructor_dipl ) | ( n1#instructee_pos = "NN" _=_ instructee_dipl )

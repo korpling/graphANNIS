@@ -1,0 +1,1 @@
+tok=/(an)/. tok=/sich/ . tok=/(gesundem)/ . POS=/NN/

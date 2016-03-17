@@ -1,0 +1,1 @@
+tok=/(dafür|damit|kein|viele|sich)/. tok=/(inhaltlich|wirklich|wissenschaftlich|gut|ungewollt|dynamisch)/ . POS=/ADJA/ . POS=/NN/

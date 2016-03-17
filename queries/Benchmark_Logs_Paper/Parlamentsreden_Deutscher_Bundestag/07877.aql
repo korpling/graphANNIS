@@ -1,0 +1,1 @@
+POS=/APPR/. POS=/NE/ . tok=/(lebende|beschlossenen|soziale|entsprechende|eingeforderten)/ . POS=/NN/

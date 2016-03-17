@@ -1,0 +1,494 @@
+set clear-caches to false
+record
+corpus RIDGES_Herbology_Version4.1
+
+benchmarkName 04056
+count "anstatt"
+benchmarkName 04652
+count "arm"
+benchmarkName 08008
+count "du"
+benchmarkName 08004
+count "ich"
+benchmarkName 04650
+count "leer"
+benchmarkName 04651
+count "los"
+benchmarkName 04554
+count "sehr"
+benchmarkName 04553
+count "sehr" _o_ node
+benchmarkName 08007
+count "treu"
+benchmarkName 08006
+count "triu"
+benchmarkName 08000
+count "triuwe"
+benchmarkName 08005
+count "triuwen"
+benchmarkName 08003
+count "triwe"
+benchmarkName 08111
+count "öl" . "aus"
+benchmarkName 08113
+count "öl" . "des"
+benchmarkName 08112
+count "öl" . "mit"
+benchmarkName 08110
+count "öl" . "von"
+benchmarkName 08154
+count /.*/
+benchmarkName 04330
+count attr_gen="gpost"
+benchmarkName 08194
+count bemerkung
+benchmarkName 02968
+count clean="/"
+benchmarkName 08188
+count clean="Kräuteren"
+benchmarkName 07955
+count clean="bistu"
+benchmarkName 07956
+count clean="hastu"
+benchmarkName 08191
+count clean="vast"
+benchmarkName 01966
+count clean=/Feuchtblattern/
+benchmarkName 01965
+count clean=/Schlaffkraut/
+benchmarkName 06620
+count clean=/blütend/
+benchmarkName 06627
+count clean=/blütend/ . clean=/machen/
+benchmarkName 06628
+count clean=/blütend/ . clean=/machend/
+benchmarkName 06621
+count clean=/dz/ . clean=/mit/
+benchmarkName 06622
+count clean=/man/ . clean=/dz/
+benchmarkName 04626
+count clean=/zaslich/
+benchmarkName 04627
+count clean=/zaslicht/
+benchmarkName 02065
+count default_ns:pos="NN" .2,10 default_ns:pos="ART"
+benchmarkName 05255
+count definition="fig"
+benchmarkName 00305
+count dipl = /Wermuth/
+benchmarkName 00292
+count dipl = /W|wermuth?/
+benchmarkName 05296
+count dipl="Kraut"
+benchmarkName 05301
+count dipl="Kraut" & dipl="und"& #2 . #1
+benchmarkName 05302
+count dipl="Kraut" . pos="VVFIN"
+benchmarkName 05303
+count dipl="Kraut" . pos="VVFIN" . norm="aus"
+benchmarkName 05304
+count dipl="Kraut" . pos="VVFIN" . norm="aus"& hi_font=/gothic/ & #2_=_#4
+benchmarkName 05306
+count dipl="Kraut" . pos=/V.*/ . norm="aus"& hi_font=/gothic/ & #2_=_#4
+benchmarkName 05305
+count dipl="Kraut" . pos=/V:*/ . norm="aus"& hi_font=/gothic/ & #2_=_#4
+benchmarkName 06739
+count dipl="Kraͤutern"
+benchmarkName 06738
+count dipl="Kreuter"
+benchmarkName 06740
+count dipl="Kreutern"
+benchmarkName 06741
+count dipl="Kreutter"
+benchmarkName 06735
+count dipl="aac"
+benchmarkName 07953
+count dipl="bistu"
+benchmarkName 07954
+count dipl="biſtu"
+benchmarkName 05891
+count dipl="es"
+benchmarkName 05893
+count dipl="es" &dipl="gibt" & #1 . #2
+benchmarkName 05892
+count dipl="es" &pos=/V.FIN/ & #1 . #2
+benchmarkName 05890
+count dipl="ez"
+benchmarkName 08189
+count dipl="gesotten"
+benchmarkName 07957
+count dipl="haſtu"
+benchmarkName 06737
+count dipl="kreüter"
+benchmarkName 06734
+count dipl="yſ=" & dipl="aac" & #1 . #2 
+benchmarkName 01011
+count dipl=/.*/
+benchmarkName 01948
+count dipl=/Bingelkraut/
+benchmarkName 01967
+count dipl=/Feuchtblattern/
+benchmarkName 04324
+count dipl=/Kraͤuter/
+benchmarkName 06744
+count dipl=/Kraͤuteren/
+benchmarkName 06742
+count dipl=/Kreut.*/
+benchmarkName 04321
+count dipl=/Kreuter/
+benchmarkName 06743
+count dipl=/Kreutt.*/
+benchmarkName 04319
+count dipl=/Kreutter/
+benchmarkName 04320
+count dipl=/Kräutter/
+benchmarkName 06736
+count dipl=/aac/
+benchmarkName 04322
+count dipl=/kreutter/
+benchmarkName 04335
+count dipl=/meint?/
+benchmarkName 04334
+count dipl=/r(a|o)t/
+benchmarkName 04327
+count dipl=/vnnd/
+benchmarkName 04336
+count dipl=/vnnd/ 
+benchmarkName 02958
+count form_kraeutername
+benchmarkName 08172
+count form_kraeutername="??"
+benchmarkName 08151
+count form_krankheit=/Phrase/
+benchmarkName 08152
+count form_krankheit=/phrase/
+benchmarkName 08173
+count form_nomen="???"
+benchmarkName 08150
+count form_zubereitung="kompNN"
+benchmarkName 08149
+count form_zubereitung="phraseGEN"
+benchmarkName 08147
+count form_zubereitung="phraseVON"
+benchmarkName 08148
+count form_zubereitung="phraseVon"
+benchmarkName 08155
+count head="null"
+benchmarkName 04337
+count head=/head/_o_ dipl=/Wermut/
+benchmarkName 05163
+count head=/head/_o_ dipl=/Wermut/ 
+benchmarkName 05307
+count head=/head/_o_ pos=/NN/
+benchmarkName 08153
+count head_n="8,000000"
+benchmarkName 04602
+count hyperlemma="Heumonat"
+benchmarkName 04600
+count hyperlemma="Heumonat" &pos="NN" & #1_=_#2
+benchmarkName 04604
+count hyperlemma="Kraut"
+benchmarkName 04601
+count hyperlemma="Kraut" &pos="NN" & #1_=_#2
+benchmarkName 04603
+count hyperlemma="Tisch"
+benchmarkName 08157
+count komp="k"
+benchmarkName 08156
+count komp="null"
+benchmarkName 00172
+count komp=/k/
+benchmarkName 02912
+count kraeutername_normiert
+benchmarkName 02911
+count kraeutername_normiert="artemisia vulgaris"
+benchmarkName 08174
+count kraeuterzubereitung="null"
+benchmarkName 08134
+count kraeuterzubereitung=/Eppichsamen/
+benchmarkName 08135
+count kraeuterzubereitung=/Feigenblätter/
+benchmarkName 08136
+count kraeuterzubereitung=/die wurczel von eppich/
+benchmarkName 08138
+count kraeuterzubereitung=/eppichwurczel/
+benchmarkName 08133
+count kraeuterzubereitung=/null/
+benchmarkName 08140
+count krankheitsname=/Kopfschmerzen/
+benchmarkName 08145
+count krankheitsname=/Lendenstein/
+benchmarkName 08144
+count krankheitsname=/Lendenweh/
+benchmarkName 08142
+count krankheitsname=/Lungenentzündung/
+benchmarkName 08143
+count krankheitsname=/Totgeburt/
+benchmarkName 08141
+count krankheitsname=/Verstopfung der Glieder/
+benchmarkName 03319
+count lemma
+benchmarkName 03320
+count lemma . lemma
+benchmarkName 03321
+count lemma . lemma . lemma
+benchmarkName 03327
+count lemma . pos=/N./
+benchmarkName 03328
+count lemma _=_ pos=/ADJ./
+benchmarkName 03329
+count lemma _=_ pos=/ADV/
+benchmarkName 03330
+count lemma _=_ pos=/V.*/
+benchmarkName 05607
+count lemma="absinthium"
+benchmarkName 04596
+count lemma="alchimist" &pos=/V.*/ & #1.#2
+benchmarkName 04589
+count lemma="alchimistisch" &pos=/V.*/ & #1_=_#2 & #1.#2
+benchmarkName 04592
+count lemma="alchymistisch" &pos=/V.*/ & #1.#2
+benchmarkName 04590
+count lemma="alchymistisch" &pos=/V.*/ & #1_=_#2 & #1.#2
+benchmarkName 04593
+count lemma="baum" &pos=/V.*/ & #1.#2
+benchmarkName 04595
+count lemma="blume" &pos=/V.*/ & #1.#2
+benchmarkName 07220
+count lemma="d" &pos="PRELS" & #1 _=_ #2 
+benchmarkName 07216
+count lemma="d" &pos=/V.FIN/ & pos="PRELS" & #1 . #2 & #1 _=_ #3 
+benchmarkName 04585
+count lemma="kraut"
+benchmarkName 04598
+count lemma="kraut" &pos="NN" & #1_=_#2
+benchmarkName 04588
+count lemma="kraut" &pos="NN" & pos=/V.*/ & #1_=_#2 & #2.#3
+benchmarkName 04591
+count lemma="kraut" &pos=/V.*/ & #1.#2
+benchmarkName 05608
+count lemma="kräuter"
+benchmarkName 04594
+count lemma="kräuter" &pos=/V.*/ & #1.#2
+benchmarkName 04599
+count lemma="publication" &pos="NN" & #1_=_#2
+benchmarkName 04611
+count lemma="was"
+benchmarkName 03806
+count lemma="was" & lemma=/(für|vor)/ & #1 .* #2 
+benchmarkName 04548
+count lemma="was" &lemma=/(für|vor)/ & #1 .* #2
+benchmarkName 04612
+count lemma="was" &lemma=/(für|vor)/ & #1 .* #2 
+benchmarkName 08266
+count lemma="was" &pos=/.*/ & #1 _=_ #2
+benchmarkName 08218
+count lemma="was" &pos=/N.*/ & #1 . #2
+benchmarkName 08267
+count lemma="was" &pos=/PI.*/ & #1 _=_ #2
+benchmarkName 07218
+count lemma="welch" &pos="PRELS" & #1 _=_ #2 
+benchmarkName 07217
+count lemma="welch" &pos=/V.FIN/ & pos="PRELS" & #1 . #2 & #1 _=_ #3 
+benchmarkName 05606
+count lemma="wermut"
+benchmarkName 01947
+count lemma=/Bingelkraut/
+benchmarkName 01959
+count lemma=/Einzelwesen/
+benchmarkName 01968
+count lemma=/Feuchtblattern/
+benchmarkName 01969
+count lemma=/Gelbsucht/
+benchmarkName 04323
+count lemma=/Kraut/_o_ dipl
+benchmarkName 01963
+count lemma=/Schlaffkraut/
+benchmarkName 01964
+count lemma=/Schlafkraut/
+benchmarkName 04573
+count lemma=/[Mm]al/
+benchmarkName 04572
+count lemma=/bald/
+benchmarkName 07948
+count lemma=/zusammensetzen/
+benchmarkName 04803
+count nomen="kraut"
+benchmarkName 04555
+count norm
+benchmarkName 03564
+count norm . norm
+benchmarkName 00291
+count norm = "Wermut"
+benchmarkName 00301
+count norm = /Wermut/
+benchmarkName 00260
+count norm="-nis" 
+benchmarkName 00262
+count norm=".*nis" 
+benchmarkName 00253
+count norm="Erkenntnis" 
+benchmarkName 00256
+count norm="Erkenntnis(_*)" 
+benchmarkName 00254
+count norm="Erkenntnis*" 
+benchmarkName 00255
+count norm="Erkenntnis_*" 
+benchmarkName 00257
+count norm="Erkenntnise" 
+benchmarkName 00258
+count norm="Erkenntnisse" 
+benchmarkName 00259
+count norm="Erkenntnisses" 
+benchmarkName 08187
+count norm="Kräuteren"
+benchmarkName 00261
+count norm="_*nis" 
+benchmarkName 08190
+count norm="gesotten"
+benchmarkName 07958
+count norm="hast". norm="du"
+benchmarkName 05254
+count norm="hat" & dipl="hats" & #2 _o_ #1
+benchmarkName 07952
+count norm="hat". norm="es"
+benchmarkName 06733
+count norm="kreüter"
+benchmarkName 00268
+count norm=/.*nis.*/
+benchmarkName 00263
+count norm=/.*nis/ 
+benchmarkName 00270
+count norm=/.*nise/
+benchmarkName 00269
+count norm=/.*nisse/
+benchmarkName 07015
+count norm=/Kohlenfeuer/
+benchmarkName 05128
+count norm=/Winterspinat/
+benchmarkName 04333
+count norm=/g.b./
+benchmarkName 04331
+count norm=/und/
+benchmarkName 04628
+count norm=/zas.*/
+benchmarkName 05129
+count norm=/zusammengesetzt/
+benchmarkName 08162
+count plant=/pl/
+benchmarkName 03314
+count pos
+benchmarkName 03315
+count pos . pos
+benchmarkName 03316
+count pos . pos . pos
+benchmarkName 03317
+count pos . pos . pos . pos
+benchmarkName 03318
+count pos . pos . pos . pos . pos
+benchmarkName 04647
+count pos="AD"
+benchmarkName 04646
+count pos="ADJ"
+benchmarkName 04649
+count pos="ADJA"
+benchmarkName 04605
+count pos="ADV" & pos="VVINF" &  lb="lb" &  #1 . #2 &  #3 _i_ #1 &  #3 _i_ #2
+benchmarkName 04607
+count pos="ADV" &pos="VVINF" & lb="lb" & #1.#2 & #3_i_#1 & #3_i_#2
+benchmarkName 04648
+count pos="AP"
+benchmarkName 08116
+count pos="APPR"
+benchmarkName 08265
+count pos="NE"
+benchmarkName 08163
+count pos="NE" & pos=/APPR/ & pos=/NE/& #1 . #2 & #2 . #3
+benchmarkName 04597
+count pos="NN"
+benchmarkName 04317
+count pos="NN" & pos=/V.*/ & #1 . #2
+benchmarkName 04586
+count pos="NN" & pos=/V.*/ & pb="pb" & #1 . #2 & #3 _i_ #1 & #3 _i_ #2
+benchmarkName 04587
+count pos="NN" &pos=/V.*/ & #1.#2
+benchmarkName 07215
+count pos="PRELS" &pos=/V.FIN/ & #1 . #2 
+benchmarkName 07214
+count pos="PRELS" &pos=/V.FIN/ & #1 .2 #2 
+benchmarkName 06750
+count pos="kraut"
+benchmarkName 07151
+count pos=/.*REL.*/
+benchmarkName 04348
+count pos=/ART/ . pos=/ADJA/ . pos=/NN/
+benchmarkName 07150
+count pos=/N.*/
+benchmarkName 03322
+count pos=/N./
+benchmarkName 03573
+count pos=/N./ . pos=/N./
+benchmarkName 03323
+count pos=/N./ _=_ lemma
+benchmarkName 03574
+count pos=/N./_=_lemma . pos=/N./_=_lemma
+benchmarkName 06018
+count pos=/NE/
+benchmarkName 08161
+count pos=/NE/ & pos=/APPR/ & plant=/pl/& #1 . #2 & #2 . #3
+benchmarkName 05308
+count pos=/NN/_i_ head=/head/
+benchmarkName 08181
+count pos_klein="N" & norm="an" & pos_klein=/N/& #1 . #2 & #2 .1,2 #3
+benchmarkName 08179
+count pos_klein="N" & norm="aus" & pos_klein=/N/& #1 . #2 & #2 .1,2 #3
+benchmarkName 08182
+count pos_klein="N" & norm="in" & pos_klein=/N/& #1 . #2 & #2 .1,2 #3
+benchmarkName 08180
+count pos_klein="N" & norm="mit" & pos_klein=/N/& #1 . #2 & #2 .1,2 #3
+benchmarkName 08177
+count pos_klein="N" & norm="von" & pos_klein=/N/& #1 . #2 & #2 .1,2 #3
+benchmarkName 08313
+count pos_klein="N" & norm=/von/ & pos_klein=/N/& #1 . #2 & #2 .1,2 #3
+benchmarkName 08164
+count pos_klein="N" & pos=/APPR/ & pos_klein="N"& #1 . #2 & #2 . #3
+benchmarkName 08171
+count pos_klein=/N/ & norm="aus" & plant="pl"& #1 . #2 & #2 .1,2 #3
+benchmarkName 08170
+count pos_klein=/N/ & norm="von" & plant="pl"& #1 . #2 & #2 .1,2 #3
+benchmarkName 08169
+count pos_klein=/N/ & pos="APPR" & plant="pl"& #1 . #2 & #2 .1,2 #3
+benchmarkName 08168
+count pos_klein=/N/ & pos="APPR" & pos_klein=/N/& #1 . #2 & #2 .* #3
+benchmarkName 08167
+count pos_klein=/N/ & pos="APPR" & pos_klein=/N/& #1 . #2 & #2 .1,2 #3
+benchmarkName 08166
+count pos_klein=/N/ & pos=/(APPR)|(APPR)/ & pos_klein=/N/& #1 . #2 & #2 . #3
+benchmarkName 08165
+count pos_klein=/N/ & pos=/APPR/ & pos_klein=/N/& #1 . #2 & #2 . #3
+benchmarkName 08131
+count pos_klein=/N/ & pos_klein=/APPR/ & pos_klein=/N/ & kraeutername="Kamille"& #1 . #2 & #2 . #3 & #3_=_#4
+benchmarkName 08129
+count pos_klein=/N/ & pos_klein=/APPR/ & pos_klein=/N/ & kraeutername="null"& #1 . #2 & #2 . #3 & #3_=_#4
+benchmarkName 08132
+count pos_klein=/N/ & pos_klein=/APPR/ & pos_klein=/N/ & kraeuterzubereitung="fenchelsafft"& #1 . #2 & #2 . #3 & #3_=_#4
+benchmarkName 08123
+count pos_klein=/N/ & pos_klein=/APPR/ & pos_klein=/N/& #1 . #2 & #2 . #3
+benchmarkName 08158
+count prot="prot1"
+benchmarkName 08159
+count prot="prot2"
+benchmarkName 08160
+count prot="prot3"
+benchmarkName 06747
+count term="d"
+benchmarkName 06746
+count term="h"
+benchmarkName 00166
+count term="t"
+benchmarkName 04318
+count tok
+benchmarkName 03561
+count tok . tok
+
+benchmark 5

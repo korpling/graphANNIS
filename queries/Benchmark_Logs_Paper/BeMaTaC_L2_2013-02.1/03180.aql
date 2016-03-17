@@ -1,0 +1,1 @@
+instructor_dipl = /.*ung.*/ _=_ instructor_lemma = /<unknown>/ | instructee_dipl = /.*ung.*/ _=_ instructee_lemma = /<unknown>/

@@ -1,0 +1,1 @@
+{"alternatives":[{"nodes":{"1":{"id":1,"spannedText":"meintest","root":false,"token":false,"spanTextMatching":"EXACT_EQUAL","variable":"1"},"2":{"id":2,"spannedText":"du","root":false,"token":false,"spanTextMatching":"EXACT_EQUAL","variable":"2"}},"joins":[{"op":"Precedence","minDistance":1,"maxDistance":1,"left":1,"right":2}]}]}

@@ -1,0 +1,62 @@
+set clear-caches to false
+record
+corpus HIPKON
+
+benchmarkName 00787
+count "Kiezdeutsch"
+benchmarkName 02611
+count "Tot"
+benchmarkName 00401
+count /[Gg]niezzin/
+benchmarkName 06724
+count CAT="VP"
+benchmarkName 08235
+count CLEAN="für" &CLEAN="ein" & #1 . #2 
+benchmarkName 08234
+count CLEAN="vor" &CLEAN="ein" & #1 . #2 
+benchmarkName 02695
+count FOKUS=/.*/ &VERLINKUNG=/UNLINK/ &  #1 _i_ #2
+benchmarkName 02168
+count FOKUS=/.*/ &VERLINKUNG=/UNLINK/ & #2 _i_ #1  
+benchmarkName 02686
+count GF=/.*/ &VERLINKUNG=/UNLINK/ &  #1 _i_ #2
+benchmarkName 02158
+count GF=/.*/ &VERLINKUNG=/UNLINK/ & #2 _i_ #1 
+benchmarkName 02150
+count GF=/.*SUBJ.*/
+benchmarkName 02151
+count GF=/.*SUBJ.*/ &VERLINKUNG=/.*LINK/ & #1 . #2
+benchmarkName 02152
+count GF=/.*SUBJ.*/ &VERLINKUNG=/.*LINK/ & #1 .* #2
+benchmarkName 02154
+count GF=/.*SUBJ.*/ &VERLINKUNG=/.*LINK/ & #1 .* #2 & #2 _i_ #1 
+benchmarkName 02155
+count GF=/.*SUBJ.*/ &VERLINKUNG=/.*LINK/ & #2 _i_ #1 
+benchmarkName 02153
+count GF=/.*SUBJ.*/ &VERLINKUNG=/.*LINK/ & SATZSTATUS=/.*/ & #1 .* #2 & #3 _i_ #1 
+benchmarkName 02156
+count GF=/.*SUBJ.*/ &VERLINKUNG=/LINK/ & #2 _i_ #1 
+benchmarkName 02157
+count GF=/.*SUBJ.*/ &VERLINKUNG=/UNLINK/ & #2 _i_ #1 
+benchmarkName 02690
+count IS=/.*/ &VERLINKUNG=/UNLINK/ &  #1 _i_ #2 
+benchmarkName 02164
+count IS=/.*/ &VERLINKUNG=/UNLINK/ & #2 _i_ #1  
+benchmarkName 02167
+count IS=/.*ACC.*/ &VERLINKUNG=/UNLINK/ & #2 _i_ #1  
+benchmarkName 02166
+count IS=/.*GIV.*/ &VERLINKUNG=/UNLINK/ & #2 _i_ #1  
+benchmarkName 02165
+count IS=/.*NEW.*/ &VERLINKUNG=/UNLINK/ & #2 _i_ #1  
+benchmarkName 00035
+count POS="NA"
+benchmarkName 07147
+count POS=/.*/
+benchmarkName 08233
+count POS=/.*N.*/
+benchmarkName 00274
+count POS=/N.*/
+benchmarkName 05496
+count tok
+
+benchmark 5

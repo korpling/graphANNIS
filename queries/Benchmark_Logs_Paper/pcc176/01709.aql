@@ -1,0 +1,1 @@
+pos=/KOUS/ _=_ tok . tok=/(.+es|.+er)/  _=_  pos=/ART/	      . pos

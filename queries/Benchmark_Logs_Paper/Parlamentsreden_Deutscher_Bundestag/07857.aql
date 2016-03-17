@@ -1,0 +1,1 @@
+tok=/(derzeit|also|von|seit)/. tok=/(90|zwei|acht|1990)/ . POS=/ADJA/ . POS=/NN/

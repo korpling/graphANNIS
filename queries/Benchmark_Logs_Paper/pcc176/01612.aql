@@ -1,0 +1,1 @@
+tok. pos=/(N.|ART)/		 _=_ tok=/Absicht/ . tok=/(von|vom)/	 . tok . tok . tok

@@ -1,0 +1,62 @@
+set clear-caches to false
+record
+corpus FalkoWHIGL2v2.1
+
+benchmarkName 01502
+count  ctokpos = "NN" _=_ ctokrfMorph = /.*Nom.*/ _=_ /.*Pl.*/ _=_ ZH0Diff = "CHA"
+benchmarkName 01499
+count  ctokpos = "NN" _=_ ctokrfMorph = /.*Pl.*/ _=_ ZH0Diff = "CHA"
+benchmarkName 01501
+count  ctokpos = "NN" _=_ ctokrfMorph = /.Pl*./ _=_ ZH0Diff = "CHA"
+benchmarkName 01500
+count  ctokpos = "NN" _=_ ctokrfMorph = /.Pl./ _=_ ZH0Diff = "CHA"
+benchmarkName 00561
+count "NN" _=_ ZH0rfMorph = /.*Pl.*/ _=_ ZH0Diff ="CHA"
+benchmarkName 08457
+count "Studenten"
+benchmarkName 04575
+count "Wörtern"
+benchmarkName 04576
+count "arbeiten"
+benchmarkName 02621
+count "denn"
+benchmarkName 02573
+count "doch"
+benchmarkName 02568
+count "eben"
+benchmarkName 02092
+count "eigentlich"
+benchmarkName 04482
+count "gehabt"
+benchmarkName 02093
+count "halt"
+benchmarkName 02192
+count "ja"
+benchmarkName 05544
+count "köchten wir"
+benchmarkName 08561
+count "lernt er weiterhin"
+benchmarkName 02623
+count "nur"
+benchmarkName 05621
+count "nähmlich"
+benchmarkName 00164
+count "praxisorientiert"
+benchmarkName 02620
+count "wohl"
+benchmarkName 03529
+count "überzuleben"
+benchmarkName 00163
+count /[Dd]ie/
+benchmarkName 00562
+count ctokpos = "NN" _=_ ZH0rfMorph = /.*Pl.*/ _=_ ZH0Diff ="CHA" 
+benchmarkName 00560
+count ctokpos = "NN" _=_ ctokrfMorph = /.*Pl.*/
+benchmarkName 01497
+count ctokpos = "NN" _=_ ctokrfMorph = /.*Pl.*/ _=_ ZH0Diff = "CHA"
+benchmarkName 01498
+count node
+benchmarkName 05323
+count tok
+
+benchmark 5

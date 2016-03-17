@@ -1,0 +1,1 @@
+{"alternatives":[{"nodes":{"1":{"id":1,"nodeAnnotations":[{"name":"POS","value":"Beamt.*","textMatching":"REGEXP_EQUAL","qualifiedName":"POS"}],"root":false,"token":false,"variable":"1"}},"joins":[]}]}

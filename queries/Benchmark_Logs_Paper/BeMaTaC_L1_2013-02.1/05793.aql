@@ -1,0 +1,1 @@
+a#instructor_dipl = /äh.?/ & (#a . instructor_pos = /.*/ | #a .  break)& (#a . instructor_pos = /.*/ | #a .  break| #a _o_ instructee_pos) 

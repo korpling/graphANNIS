@@ -1,0 +1,1 @@
+POS=/ADV/_=_ tok=/(so|ganz|auch|ohnehin)/ . POS=/ADJA/ _=_ tok=/langjährige/ . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok

@@ -1,0 +1,1 @@
+ZH1pos=/ADJ.*/ & ZH1pos=/N.*/ & node & node & #1 _=_ #3 & #2 _=_ #4 & #1 ->dep #2

@@ -1,0 +1,1 @@
+POS=/(der|bis)/. tok=/(daraus|dahin)/ . POS=/ADJA/ . POS=/NN/

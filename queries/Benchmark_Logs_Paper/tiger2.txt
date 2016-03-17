@@ -1,0 +1,34 @@
+set clear-caches to false
+record
+corpus tiger2
+
+benchmarkName 07323
+count "Folgen" . "der" . tiger:pos="NN"
+benchmarkName 07322
+count "Folgen" . tiger:pos="ART" . tiger:pos="NN"
+benchmarkName 00388
+count "Tische"
+benchmarkName 00390
+count "die" . pos="NN"
+benchmarkName 00389
+count cat="S" >*"Tische"
+benchmarkName 00006
+count cat=/(S|.P)/ >[func=/M(O|NR)/] cat="PP" &#2 >[func="AC"] lemma="an" & #3 _=_ pos=/APPR(ART)?/ & #2 >[func="NK"] pos="NN"
+benchmarkName 08184
+count node
+benchmarkName 00116
+count pos="APPR" & tok="an" & #1_=_#2 &pos="NN" & cat="PP" & #4 > #3 & #4 > #1 & tok & #5 _=_#3
+benchmarkName 02083
+count tiger:cat="S" & tok="Bilharziose" & #1 >* #2
+benchmarkName 07318
+count tiger:pos="ART" . tiger:pos="NN"
+benchmarkName 07319
+count tiger:pos="NN"
+benchmarkName 07321
+count tiger:pos="NN" . tiger:pos="ART" . tiger:pos="NN"
+benchmarkName 07320
+count tiger:pos="NN" .2,10 tiger:pos="ART" . tiger:pos="NN"
+benchmarkName 08183
+count tok
+
+benchmark 5

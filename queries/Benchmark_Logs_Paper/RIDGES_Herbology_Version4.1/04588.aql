@@ -1,0 +1,1 @@
+lemma="kraut" &pos="NN" & pos=/V.*/ & #1_=_#2 & #2.#3

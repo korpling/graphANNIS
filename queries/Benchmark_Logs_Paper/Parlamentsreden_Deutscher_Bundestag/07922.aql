@@ -1,0 +1,1 @@
+POS=/NN/. POS . tok=/(gezielte|gutes|liebe|erweiterten|gefährliche|bessere|größere|fairen|selbstgenutztes)/ . POS=/NN/

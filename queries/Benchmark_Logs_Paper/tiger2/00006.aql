@@ -1,0 +1,1 @@
+cat=/(S|.P)/ >[func=/M(O|NR)/] cat="PP" &#2 >[func="AC"] lemma="an" & #3 _=_ pos=/APPR(ART)?/ & #2 >[func="NK"] pos="NN"

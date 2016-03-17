@@ -1,0 +1,394 @@
+set clear-caches to false
+record
+corpus BeMaTaC_L1_2013-02.1
+
+benchmarkName 05802
+count instructor_dipl = /\B/
+benchmarkName 06723
+count instructor_dipl=/Punkt/
+benchmarkName 05393
+count  instructor_repair = "ir"
+benchmarkName 05794
+count instructor_dipl = ""
+benchmarkName 05804
+count instructor_dipl = /NULL/
+benchmarkName 05803
+count instructor_dipl = /\b/
+benchmarkName 06616
+count instructor_dipl=/Linie/
+benchmarkName 06408
+count instructor_repair
+benchmarkName 05390
+count instructor_repair = /äh.?/
+benchmarkName 06407
+count instructor_repair2 = "rd" | instructee_repair2 = "rd"
+benchmarkName 07003
+count instructor_dipl=/Blattrand/
+benchmarkName 07004
+count instructor_dipl=/Männchen/
+benchmarkName 00159
+count instructor_dipl=/\x2f/
+benchmarkName 05790
+count a#instructor_dipl = /äh.?/  
+benchmarkName 00157
+count instructor_dipl="du"
+benchmarkName 00082
+count instructor_dipl="g"
+benchmarkName 00081
+count instructor_dipl="g\/"
+benchmarkName 00085
+count instructor_repair=/geh[^(a-z)(A-Z)]/
+benchmarkName 00084
+count instructor_repair=/geh[^a-zA-Z]/
+benchmarkName 00087
+count instructor_repair=/geh[^a-z]/
+benchmarkName 06612
+count instructor_repair=/rs/ _i_ instructor_dipl=/triffst/
+benchmarkName 06611
+count instructor_repair=/rs/ _i_ instructor_repair=/triffst/
+benchmarkName 05376
+count instructor_subrep = /r.*/
+benchmarkName 05317
+count "vorbei" .1,3 "äh"
+benchmarkName 04643
+count instructor_dipl = /gehst/
+benchmarkName 06617
+count instructor_dipl=/Linie/ . instructor_dipl=/nach/
+benchmarkName 06619
+count instructor_dipl=/Linie/ . instructor_dipl=/von/
+benchmarkName 06635
+count instructor_dipl=/Nägel/ . instructor_dipl=/und/
+benchmarkName 00086
+count instructor_repair=/geh[^A-Z]/
+benchmarkName 05316
+count "vorbei" .1,20 "äh"
+benchmarkName 02222
+count instructor_dipl=/NN/ . instructor_pos=/APPR/
+benchmarkName 00158
+count instructor_dipl=/du/
+benchmarkName 00089
+count instructor_dipl=/geh[^a-zA-Z]/
+benchmarkName 00088
+count instructor_dipl=/geh[^a-z]/
+benchmarkName 05395
+count  instructor_repair = "ir" _i_ instructor_df = /f.*/
+benchmarkName 05383
+count  instructor_repair = "rs" _i_ instructor_subrep = /s.*/
+benchmarkName 06478
+count n1#instructor_pos="NN"|n2#instructee_pos="NN"
+benchmarkName 07000
+count instructor_dipl=/anderthalb/
+benchmarkName 05849
+count instructor_dipl=/äh.?/ . instructor_utt
+benchmarkName 05392
+count instructor_repair = /ir/ _i_ instructor_dipl = /äh.?/ 
+benchmarkName 06614
+count instructor_repair=/rs/ _i_ instructor_dipl=/wenn/
+benchmarkName 05850
+count instructor_utt . instructor_dipl=/äh.?/ 
+benchmarkName 00074
+count instructee_dipl="haste"
+benchmarkName 08275
+count instructee_repair="rd"
+benchmarkName 02600
+count n1#instructor_pos = "NN" | n1#instructee_pos = "NN"
+benchmarkName 05385
+count  instructor_repair = "rs" _i_ instructor_subrep = /s.*/ & #2 _i_ instructor_subrep = /i.*/
+benchmarkName 06720
+count instructor_dipl=/Laborantin/
+benchmarkName 06615
+count instructee_dipl=/flacher/
+benchmarkName 06583
+count instructor_dipl="b/"
+benchmarkName 05386
+count  instructor_repair = "rs" _i_ instructor_subrep = /s.*/ & #1 _i_ instructor_subrep = /i.*/
+benchmarkName 00441
+count "dann"
+benchmarkName 07005
+count instructee_dipl=/Männchen/
+benchmarkName 06721
+count instructor_dipl=/parallel/
+benchmarkName 06581
+count instructor_dipl="Knick"
+benchmarkName 06613
+count instructor_repair=/rs/ _i_ instructor_dipl=/Zahnbürste/
+benchmarkName 06722
+count instructor_dipl=/anner/
+benchmarkName 06999
+count instructor_dipl=/biste/
+benchmarkName 05381
+count instructor_repair = "ir" . instructor_repair = "rs" _i_ instructor_subrep = /s.*/
+benchmarkName 01974
+count instructor_repair="ir"
+benchmarkName 01329
+count instructor_dipl=/äh.?/ . instructor_dipl
+benchmarkName 05838
+count break .  instructor_pos 
+benchmarkName 00073
+count instructor_dipl="haste"
+benchmarkName 02223
+count instructor_pos=/NN/ . instructor_pos=/APPR/
+benchmarkName 06609
+count instructor_subrep = /s.*/ _=_ instructor_dipl = "gehst"
+benchmarkName 07002
+count instructor_dipl=/eh/
+benchmarkName 04452
+count "gibt"
+benchmarkName 05315
+count "vorbei" . "äh"
+benchmarkName 02967
+count ( n1#instructor_dipl _=_ instructor_pos = "NN" _=_ instructor_lemma = "<unknown>" ) | ( n1#instructee_dipl _=_ instructee_pos = "NN" _=_ instructee_lemma = "<unknown>")
+benchmarkName 05839
+count instructor_utt . break .  instructor_pos 
+benchmarkName 02966
+count ( instructor_dipl _=_ instructor_pos = "NN" _=_ instructor_lemma = "<unknown>" ) | ( instructee_dipl _=_ instructee_pos = "NN" _=_ instructee_lemma = "<unknown>")
+benchmarkName 02221
+count instructee_dipl=/NN/ . instructee_pos=/APPR/
+benchmarkName 06003
+count instructee_dipl=/äh.?/
+benchmarkName 00075
+count instructor_dipl="schlägste"
+benchmarkName 06604
+count instructor_repair = "rd" _i_ instructor_dipl="rechts"
+benchmarkName 05394
+count  instructor_repair = "ir" _i_ instructor_df = /f?f.*/
+benchmarkName 01215
+count instructee_pos="NN" & instructee_lemma="unknown" & #1 _i_ #2
+benchmarkName 08256
+count instructor_df
+benchmarkName 05374
+count instructor_subrep = /s.*/
+benchmarkName 02072
+count instructee_dipl="ja"
+benchmarkName 05819
+count "ja"
+benchmarkName 02964
+count ( instructor_pos = "NN" _=_ instructor_lemma = "unknown" ) | ( instructee_pos = "NN" _=_ instructee_lemma = "unknown")
+benchmarkName 04660
+count instructee_norm = /.*e/ _=_ instructee_pos = /V.*/
+benchmarkName 06637
+count "ich"
+benchmarkName 06605
+count instructor_repair = "rd" _i_ instructor_dipl="links"
+benchmarkName 02962
+count ( instructor_pos = "NN" _=_ n1#instructor_dipl ) | ( instructee_pos = "NN" _=_ n1#instructee_dipl )
+benchmarkName 02217
+count instructor_dipl=/Bild.*/ . instructor_pos=/APPR/
+benchmarkName 05846
+count instructor_utt _i_ break
+benchmarkName 02963
+count ( instructor_pos = "NN" _=_ n1#instructor_lemma ) | ( instructee_pos = "NN" _=_ n1#instructee_lemma )
+benchmarkName 05384
+count instructor_repair = "ir" . instructor_repair = "rs" _i_ instructor_subrep = /s.*/ & #2 _i_ instructor_subrep = /i.*/
+benchmarkName 00080
+count break="0.7"
+benchmarkName 07001
+count instructor_dipl=/Blatt/
+benchmarkName 06725
+count instructor_dipl=/von/ . instructor_dipl=/an/
+benchmarkName 02076
+count instructee_pos="NN" & instructee_lemma=/<unknown>/& instructee_dipl & #1 _=_ #2 & #1 _=_ #3
+benchmarkName 02215
+count instructor_dipl=/Bild/ . instructor_pos=/APPR/ & instructor_dipl & #1 _=_ #3
+benchmarkName 00083
+count instructor_repair="rd"
+benchmarkName 05373
+count instructor_subrep = /i.*/
+benchmarkName 00106
+count "wo"
+benchmarkName 02218
+count instructee_dipl=/Bild.*/ . instructee_pos=/APPR/
+benchmarkName 05397
+count instructor_repair = /ir/ _i_ break
+benchmarkName 00440
+count "ann"
+benchmarkName 01276
+count tok=/das/
+benchmarkName 04486
+count "gehabt"
+benchmarkName 06997
+count instructor_dipl=/Norden/
+benchmarkName 06719
+count instructor_dipl=/dre\x2F/
+benchmarkName 06608
+count instructor_subrep = /s.*/ _=_ instructor_dipl = "machst"
+benchmarkName 05841
+count instructor_utt . break .  instructee_utt 
+benchmarkName 06477
+count n1#instructor_pos=/NN/|n2#instructee_pos=/NN/
+benchmarkName 01327
+count (id#instructor_dipl=/äh.?/ . b#break) |(instructor_dipl=/äh.?/ . instructor_dipl) | (instructor_dipl=/äh.?/ . instructee_dipl)
+benchmarkName 01328
+count (id#instructor_dipl=/äh.?/ . b#break) |(id#instructor_dipl=/äh.?/ . id2#instructor_dipl) | (id#instructor_dipl=/äh.?/ . idee#instructee_dipl)
+benchmarkName 05798
+count instructor_dipl = /[:blank:]/
+benchmarkName 05799
+count instructor_dipl = /[:cntrl:]/
+benchmarkName 05805
+count instructor_dipl = /[:null:]/
+benchmarkName 05795
+count instructor_dipl = /\W/
+benchmarkName 05800
+count instructor_dipl = /[:print:]/
+benchmarkName 05797
+count instructor_dipl = /[:space:]/
+benchmarkName 00738
+count instructor_dipl=/hallo/
+benchmarkName 01223
+count instructor_pos="NN"
+benchmarkName 01196
+count instructee_pos="NN" 
+benchmarkName 01216
+count instructee_pos="NN" & instructee_lemma="unknown" & #1 _=_ #2
+benchmarkName 05801
+count instructor_dipl = /[:alnum:]/
+benchmarkName 05806
+count instructor_dipl = /[:null:].*/
+benchmarkName 06998
+count instructor_dipl=/Startebene/
+benchmarkName 04578
+count instructor_repair | instructee_repair
+benchmarkName 05836
+count break .  instructor_pos
+benchmarkName 05380
+count instructor_repair = /ir/
+benchmarkName 05796
+count instructor_dipl = /\w/
+benchmarkName 05808
+count a#instructor_dipl = /äh.?/ .  instructor_pos = /.*/
+benchmarkName 05809
+count instructor_dipl = /äh.?/ .  instructor_pos = /.*/
+benchmarkName 05787
+count instructor_dipl = /äh.?/ . instructor_pos = /.*/
+benchmarkName 00153
+count instructor_dipl=/.*\\/
+benchmarkName 00152
+count instructor_dipl=/.*/
+benchmarkName 00105
+count instructor_dipl=/.*\x2F/
+benchmarkName 00160
+count instructor_dipl=/.*\x2f/
+benchmarkName 02599
+count instructor_pos = "NN" | instructee_pos = "NN"
+benchmarkName 00154
+count instructor_dipl=/.*\./
+benchmarkName 00090
+count instructor_dipl=/.*[^a-zA-Z]/
+benchmarkName 03100
+count instructor_dipl=/gut/
+benchmarkName 05786
+count instructor_dipl = /äh.?/ . instructor_pos
+benchmarkName 02213
+count instructor_pos=/ART/ .1,4 instructor_pos=/NN/ 
+benchmarkName 05391
+count instructor_dipl = /äh.?/
+benchmarkName 03338
+count tok
+benchmarkName 02965
+count ( instructor_pos = "NN" _=_ instructor_lemma = "<unknown>" ) | ( instructee_pos = "NN" _=_ instructee_lemma = "<unknown>")
+benchmarkName 05845
+count instructor_utt . len .  instructee_utt 
+benchmarkName 04655
+count instructor_norm = /.*ie/ | instructee_norm = /.*ie/
+benchmarkName 05789
+count a#instructor_dipl = /äh.?/ & (#a . instructor_pos = /.*/ | #a .  break) 
+benchmarkName 00076
+count instructor_dipl=/.*ste/
+benchmarkName 04653
+count instructor_norm = /.*e/ | instructee_norm = /.*e/
+benchmarkName 02831
+count n1#instructor_dipl = /.*ung/| n1#instructee_dipl = /.*ung/
+benchmarkName 03784
+count instructor_repair=/rs/
+benchmarkName 05314
+count "vorbei"
+benchmarkName 04623
+count instructor_utt _o_ instructee_utt
+benchmarkName 02601
+count instructor_pos = "NN" _=_ instructor_norm
+benchmarkName 04564
+count instructor_repair = /rd/
+benchmarkName 05842
+count instructor_utt . break .  instructee_utt _=_ instructee_dipl
+benchmarkName 02224
+count instructor_pos=/NN/ . instructor_pos=/APPR/ & instructor_dipl & #1 _=_ #3
+benchmarkName 05843
+count instructor_utt . break .  instructee_utt _o_ instructee_dipl
+benchmarkName 00030
+count instructor_utt | instructee_utt
+benchmarkName 05253
+count instructee_dipl
+benchmarkName 01330
+count break . instructor_dipl=/äh.?/ . instructor_dipl
+benchmarkName 04657
+count instructor_norm = /.*e/ _=_ instructor_pos = /V.*/
+benchmarkName 02598
+count instructor_norm = /.*ung/ | instructee_norm = /.*ung/
+benchmarkName 02597
+count instructor_dipl = /.*ung/ | instructee_dipl = /.*ung/
+benchmarkName 01325
+count instructor_dipl=/äh.?/
+benchmarkName 01218
+count instructor_pos="NN" & instructor_lemma=/<unknown>/ & #1 _=_ #2
+benchmarkName 02829
+count instructor_dipl = /.*ung/| instructee_dipl = /.*ung/
+benchmarkName 02826
+count instructor_norm = /.*ung/| instructee_norm = /.*ung/
+benchmarkName 02602
+count instructee_pos = "NN" _=_ instructee_norm
+benchmarkName 01326
+count (instructor_dipl=/äh.?/ . break) |(instructor_dipl=/äh.?/ . instructor_dipl) | (instructor_dipl=/äh.?/ . instructee_dipl)
+benchmarkName 02063
+count instructor_pos="NN" & instructor_lemma=/<unknown>/& instructor_dipl & #1 _=_ #2 & #1 _=_ #3
+benchmarkName 06607
+count instructor_subrep = /s.*/ _=_ instructor_dipl
+benchmarkName 04538
+count instructee_dipl _o_ instructor_dipl
+benchmarkName 06398
+count instructor_repair = /rd/ _i_ instructor_dipl =/.*\x2F/
+benchmarkName 01217
+count instructee_pos="NN" & instructee_lemma=/<unknown>/ & #1 _=_ #2
+benchmarkName 02961
+count ( n1#instructor_pos = "NN" _=_ instructor_dipl ) | ( n1#instructee_pos = "NN" _=_ instructee_dipl )
+benchmarkName 05810
+count instructor_dipl = /äh.?/ .  instructor_pos = /.*/ _=_ instructor_dipl
+benchmarkName 01331
+count break . instructor_df=/pr/ _=_ instructor_dipl . instructor_dipl
+benchmarkName 02075
+count instructor_pos="NN" & instructor_lemma=/.*/& instructor_dipl & #1 _=_ #2 & #1 _=_ #3
+benchmarkName 03179
+count instructor_dipl = /.*ung.*/ _=_ instructor_lemma = /<unknown>/ | instructee_dipl = /.*ung.*/ _=_ instructee_lemma = /<unknown>/
+benchmarkName 05788
+count a#instructor_dipl = /äh.?/ & (#a . instructor_pos = /.*/) & (#a .  break)
+benchmarkName 02214
+count instructor_pos=/ART/ .1,4 instructor_pos=/NN/ & instructor_dipl & #1 _=_ #3
+benchmarkName 00208
+count /[11]0/
+benchmarkName 05840
+count instructor_utt . break .  instructor_utt 
+benchmarkName 02596
+count /.*ung/
+benchmarkName 04537
+count instructor_dipl _o_ instructee_dipl _o_ instructor_dipl
+benchmarkName 04645
+count instructor_pos = /.*/ _i_ instructee_pos = /.*/
+benchmarkName 04644
+count instructor_dipl = /.*/ _i_ instructee_dipl = /.*/
+benchmarkName 05791
+count a#instructor_dipl = /äh.?/ & (#a . instructor_pos = /.*/ | #a .  break)& (#a . instructor_pos = /.*/ | #a .  break| #a . instructee_pos)  
+benchmarkName 05807
+count a#instructor_dipl = /äh.?/ & (#a . instructor_pos = /.*/ | #a .  break)& (#a . instructor_pos = /.*/ | #a .  break| #a _o_ instructee_pos)
+benchmarkName 05792
+count a#instructor_dipl = /äh.?/ & (#a . instructor_dipl = /.*/ | #a .  break)& (#a . instructor_pos = /.*/ | #a .  break| #a . instructee_pos)  
+benchmarkName 05793
+count a#instructor_dipl = /äh.?/ & (#a . instructor_pos = /.*/ | #a .  break)& (#a . instructor_pos = /.*/ | #a .  break| #a _o_ instructee_pos) 
+benchmarkName 02216
+count instructor_dipl=/Bild/ . instructor_pos=/APPR/
+benchmarkName 04536
+count instructor_dipl _o_ instructee_dipl
+benchmarkName 02212
+count instructor_pos=/NN/ & instructor_dipl=/.*/ & #1 _=_ #2
+benchmarkName 02211
+count instructee_pos=/NN/ & instructee_dipl=/.*/ & #1 _=_ #2
+
+benchmark 5

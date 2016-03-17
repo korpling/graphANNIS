@@ -1,0 +1,1 @@
+syntax:cat=/NP/& syntax:cat=/AP/ & syntax:cat=/NP/ & pos=/NN/ & tok=/.*[erlsmn]tem/ & #1_i_#2 & #1_i_#3 & #3_=_#4 & #4_=_#5 

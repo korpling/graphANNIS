@@ -1,0 +1,1 @@
+pos=/(PTK.*|ITJ)/ &pos="PTKNEG" & #1 _=_ #2  

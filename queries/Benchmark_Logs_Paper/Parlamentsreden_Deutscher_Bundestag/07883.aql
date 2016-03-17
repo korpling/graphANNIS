@@ -1,0 +1,1 @@
+POS=/APPRART/. POS=/NN/ _=_ tok=/(Jahre|Flugsteig|BKM|Parlament|Annahme|Beispiel|Vermeidung|Privatleben|Thematik|Aufbau|Besitz)/ . POS=/ADJA/ . POS=/NN/

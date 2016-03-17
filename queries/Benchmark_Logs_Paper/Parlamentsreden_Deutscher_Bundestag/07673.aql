@@ -1,0 +1,1 @@
+POS=/ART/. tok=/(präzisere||30-prozentigen|wichtige|eigentlichen|stärkere|sogenannten|zentralen|ganzen|derzeitige|Linke|Russlanddeutschen|auskömmliche|jährliche|zugelassenen|größte| anderen|größte|große|mangelnde|deutsche|anderes|konsensual|internationale|ungenehmigten|verbindliche|zweiten|weiteres|wichtiges|genannten|einzige|sogenannten)/ . POS=/ADJA/ . POS=/NN/

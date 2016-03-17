@@ -1,0 +1,1 @@
+{"alternatives":[{"nodes":{"1":{"id":1,"nodeAnnotations":[{"name":"instructor_dipl","value":"\\B","textMatching":"REGEXP_EQUAL","qualifiedName":"instructor_dipl"}],"root":false,"token":false,"variable":"1"}},"joins":[]}]}

@@ -1,0 +1,1 @@
+tok. pos=/(N.|ART)/		 _=_ tok=/Bürgerverein/ . tok=/(von|vom)/	 . tok . tok . tok

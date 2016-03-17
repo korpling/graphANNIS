@@ -1,0 +1,1 @@
+pos=/APPR/&pos=/(PPOSS)|(PPOSAT)(ART)/ & pos=/ADJA/ & pos=/N./ & norm & #1.#2 & #2.#3 & #3.#4 & #1_=_#5 

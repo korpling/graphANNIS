@@ -1,0 +1,726 @@
+set clear-caches to false
+record
+corpus kobaltL2v1.4
+
+benchmarkName 06290
+count   ZH1 & ZH1 & #1->dep[func="ATTR"]#2     
+benchmarkName 06295
+count   ZH1 & ZH1 & #1->dep[func="ATTR"]#2 & ZH1pos=/NN/ & #1_=_#3     
+benchmarkName 05596
+count  ZH1Diff="CHA"
+benchmarkName 05597
+count  ZH1Diff="CHA" _=_ ZH1pos=/V.*/
+benchmarkName 05595
+count  ZH1sfPosDiff="CHA"
+benchmarkName 05131
+count "Jetzt"
+benchmarkName 05132
+count "Lebensqualität"
+benchmarkName 02197
+count "also"
+benchmarkName 02089
+count "doch"
+benchmarkName 02576
+count "eben"
+benchmarkName 02090
+count "eigentlich"
+benchmarkName 02619
+count "es"
+benchmarkName 04484
+count "gehabt"
+benchmarkName 05130
+count "jetzt"
+benchmarkName 05550
+count "köchten"
+benchmarkName 02196
+count "schon"
+benchmarkName 02039
+count /[Gg]enerationen/
+benchmarkName 06474
+count /[Hh]eute/
+benchmarkName 05602
+count ZH1 & ZH1 & #1 ->dep[fun="OBJA"]#2
+benchmarkName 05599
+count ZH1 & ZH1 & #1 ->dep[fun="OBJD"]#2
+benchmarkName 06335
+count ZH1 & ZH1 & #1 ->dep[func="ADV"] #2 & ZH1pos=/V.*/ & #1 _=_ #3
+benchmarkName 06270
+count ZH1 & ZH1 & #1 ->dep[func="ATTR"] #2
+benchmarkName 06291
+count ZH1 & ZH1 & #1 ->dep[func="ATTR"] #2 & ZH1pos=/NN/ & #1 _=_ #3
+benchmarkName 06327
+count ZH1 & ZH1 & #1 ->dep[func="ATTR"] #2 & ZH1pos=/V.*/ & #1 _=_ #3
+benchmarkName 06308
+count ZH1 & ZH1 & #1 ->dep[func="DET"] #2 & ZH1=/d.*/ & #1 _=_ #3
+benchmarkName 06305
+count ZH1 & ZH1 & #1 ->dep[func="DET"] #2 & ZH1=/d.*/ & #2 _=_ #3
+benchmarkName 06309
+count ZH1 & ZH1 & #1 ->dep[func="DET"] #2 & ZH1pos=/ART/ & ZH1=/d.*/ & #1 _=_ #3 & #3 _=_ #4
+benchmarkName 06301
+count ZH1 & ZH1 & #1 ->dep[func="DET"] #2 & ZH1pos=/d.*/ & #1 _=_ #3
+benchmarkName 06302
+count ZH1 & ZH1 & #1 ->dep[func="DET"] #2 & ZH1pos=/d.*/ & #2 _=_ #3
+benchmarkName 06316
+count ZH1 & ZH1 & #1 ->dep[func="DET"]#2 & ZH1pos="ART" & ZH1=/d.*/ & #1 _=_ #3 & #3 _=_ #4
+benchmarkName 06320
+count ZH1 & ZH1 & #1 ->dep[func="DET"]#2 & ZH1pos="ART" & ZH1=/d.*/ & #2 _=_ #3 & #3 _=_ #4
+benchmarkName 06317
+count ZH1 & ZH1 & #1 ->dep[func="DET"]#2 & ZH1pos="ART" & ZH1=/d.*/ & #2_=_#3 & #3_=_#4    
+benchmarkName 06315
+count ZH1 & ZH1 & #1 ->dep[func="DET"]#2 & ZH1pos=/ART/ & ZH1=/d.*/ & #1 _=_ #3 & #3 _=_ #4
+benchmarkName 06250
+count ZH1 & ZH1 & #1 ->dep[func="OBJD"]#2
+benchmarkName 06251
+count ZH1 & ZH1 & #1 ->dep[func="OBJD"]#2    
+benchmarkName 06271
+count ZH1 & ZH1 & #1 ->dep[func="PRED"] #2
+benchmarkName 06275
+count ZH1 & ZH1 & #1 ->dep[func="PRED"] #2 & ZH1pos="ADJD" & #2 _=_#3
+benchmarkName 06337
+count ZH1 & ZH1 & #1 ->dep[func="PRED"] #2 & ZH1pos=/ADJ./ & #2 _=_ #3
+benchmarkName 06338
+count ZH1 & ZH1 & #1 ->dep[func="PRED"]#2 &  ZH1pos=/ADJ.*/ & #2_=_#3    
+benchmarkName 05603
+count ZH1 & ZH1 & #1->dep[fun="OBJA"]#2
+benchmarkName 06287
+count ZH1 & ZH1 & #1->dep[func="ATTR"]#2
+benchmarkName 06292
+count ZH1 & ZH1 & #1->dep[func="ATTR"]#2 & ZH1pos=/NN.*/ & #1_=_#3
+benchmarkName 06289
+count ZH1 & ZH1 & #1->dep[func="ATTR"]#2 & ZH1pos=/NN.*/ & #2_=_#3
+benchmarkName 06294
+count ZH1 & ZH1 & #1->dep[func="ATTR"]#2& ZH1pos=/NN.*/ & #1 _=_ #3
+benchmarkName 06310
+count ZH1 & ZH1 & #1->dep[func="DET"]#2 & ZH1pos="ART" & ZH1=/d.*/ & #2_=_#3 & #3 _=_ #4
+benchmarkName 06311
+count ZH1 & ZH1 & #1->dep[func="DET"]#2 & ZH1pos="ART" & ZH1=/d.*/ & #2_=_#3 & #3 _=_#4
+benchmarkName 06313
+count ZH1 & ZH1 & #1->dep[func="DET"]#2 &ZH1pos="ART" & ZH1=/d.*/ & #2 _=_ #3 & #3 _=_ #4
+benchmarkName 05604
+count ZH1 & ZH1 & #1->dep[func="OBJA"]#2
+benchmarkName 06249
+count ZH1 & ZH1 & #1->dep[func="OBJD"]#2
+benchmarkName 06332
+count ZH1 & ZH1 & #1->dep[func="PRED"]#2 & ZH1pos=/ADJ.*/ & #2_=_#3
+benchmarkName 05897
+count ZH1 & node & #1 ->dep #2
+benchmarkName 05901
+count ZH1 & node & #1->dep #2
+benchmarkName 06157
+count ZH1 . ZH1 
+benchmarkName 06156
+count ZH1 . ZH1 . ZH1
+benchmarkName 06158
+count ZH1 . ZH1. ZH1 . ZH1
+benchmarkName 06306
+count ZH1&ZH1&#1->dep[func="ATTR"]#2&ZH1pos=/NN.*/&#1_=_#3 
+benchmarkName 06319
+count ZH1&ZH1&#1->dep[func="DET"]#2&ZH1pos="ART"&ZH1=/d.*/&#2_=_#3&#3_=_#4  
+benchmarkName 06159
+count ZH1. ZH1 . ZH1  
+benchmarkName 05999
+count ZH1="," _=_ZH1Diff="INS"
+benchmarkName 06000
+count ZH1="," _=_ZH1Diff="INS" . tok
+benchmarkName 06324
+count ZH1="ADJ"
+benchmarkName 06326
+count ZH1="ADJ.*"
+benchmarkName 06296
+count ZH1="der"
+benchmarkName 06103
+count ZH1=/$,/
+benchmarkName 06106
+count ZH1=/,/
+benchmarkName 06111
+count ZH1=/,/   
+benchmarkName 06135
+count ZH1=/,/ & ZH1Diff=/(CHA)|(INS)/ & #1_=_#2
+benchmarkName 06143
+count ZH1=/,/ & ZH1Diff=/(CHA)|(INS)/ & #1_=_#2  & tok & #2 . #3
+benchmarkName 06142
+count ZH1=/,/ & ZH1Diff=/(CHA)|(INS)/ & #1_=_#2 & tok & #2 . #3
+benchmarkName 06139
+count ZH1=/,/ & ZH1Diff=/(CHA)|(INS)/& #1 _=_ #2 & tok & #2 . #3
+benchmarkName 06127
+count ZH1=/,/ & ZH1Diff=/(INS)|(CHA)/& #1 _=_ #2
+benchmarkName 06122
+count ZH1=/,/ & ZH1Diff=/CHA/ & #1_=_#2
+benchmarkName 06120
+count ZH1=/,/ & ZH1Diff=/CHA/& #1 _=_ #2
+benchmarkName 06152
+count ZH1=/,/ & ZH1Diff=/CHA/& #1 _=_ #2 & ctok & #2 . #3
+benchmarkName 06124
+count ZH1=/,/ & ZH1Diff=/INS/ & #1_=_#2
+benchmarkName 06123
+count ZH1=/,/ & ZH1Diff=/INS/& #1 _=_ #2
+benchmarkName 06149
+count ZH1=/,/ & ZH1Diff=/INS/& #1 _=_ #2 & ctok & #2 . #3
+benchmarkName 06148
+count ZH1=/,/ & ZH1Diff=/INS/& #1 _=_ #2 & ctok &#2 . #3
+benchmarkName 06119
+count ZH1=/,/ _=_ ZH1Diff="CHA"
+benchmarkName 06155
+count ZH1=/,/ _=_ ZH1Diff=/(CHA)/ . ctok
+benchmarkName 06150
+count ZH1=/,/ _=_ ZH1Diff=/(CHA)|(INS)/ . ctok
+benchmarkName 06154
+count ZH1=/,/ _=_ ZH1Diff=/(INS)/ . ctok
+benchmarkName 06136
+count ZH1=/,/ _=_ ZH1Diff=/(INS)|(CHA)/ & #1 _=_ #2    
+benchmarkName 06140
+count ZH1=/,/ _=_ ZH1Diff=/(INS)|(CHA)/ & #1 _=_ #2& tok & #2 . #3     
+benchmarkName 06128
+count ZH1=/,/ _=_ ZH1Diff=/INS/    
+benchmarkName 06133
+count ZH1=/,/ _=_ ZH1Diff=/INS/ & #1 _=_ #2    
+benchmarkName 06137
+count ZH1=/,/& ZH1Diff=/(CHA)|(INS)/ & #1_=_#2  
+benchmarkName 06146
+count ZH1=/,/& ZH1Diff=/(CHA)|(INS)/ & #1_=_#2 & ctok & #2.#3  
+benchmarkName 06153
+count ZH1=/,/& ZH1Diff=/(INS)|(CHA)/ & #1_=_#2 & ctok & #2.#3  
+benchmarkName 06125
+count ZH1=/,/& ZH1Diff=/CHA/ & #1_=_#2  
+benchmarkName 06130
+count ZH1=/,/& ZH1Diff=/INS/ & #1_=_#2  
+benchmarkName 06138
+count ZH1=/./& ZH1Diff=/(CHA)|(INS)/ & #1 _=_ #2 
+benchmarkName 06145
+count ZH1=/./& ZH1Diff=/(CHA)|(INS)/ & #1 _=_ #2 & ctok & #2 . #3
+benchmarkName 06141
+count ZH1=/./& ZH1Diff=/(CHA)|(INS)/ & #1 _=_ #2 & tok & #2 . #3
+benchmarkName 06129
+count ZH1=/./& ZH1Diff=/(INS)|(CHA)/ & #1 _=_ #2 
+benchmarkName 06151
+count ZH1=/./& ZH1Diff=/(INS)|(CHA)/ & #1 _=_ #2 & ctok & #2 . #3
+benchmarkName 06132
+count ZH1=/./& ZH1Diff=/INS/ & #1 _=_ #2 
+benchmarkName 06266
+count ZH1=/ADJA/
+benchmarkName 06299
+count ZH1=/ART/
+benchmarkName 06293
+count ZH1=/NN/ & ZH1 & #1 ->dep[func="ATTR"] #2
+benchmarkName 06037
+count ZH1=/PTKVZ/
+benchmarkName 06053
+count ZH1=/PTKVZ/_=_ pos=/ctok/
+benchmarkName 06072
+count ZH1=/V*/ _=_ ZH1Diff="CHA" . tok
+benchmarkName 06092
+count ZH1=/V*/ _=_ ZH1Diff="CHA" . tok 
+benchmarkName 06084
+count ZH1=/V*/_=_ZH1Diff="CHA"   
+benchmarkName 06090
+count ZH1=/V*/_=_ZH1Diff="CHA" . tok 
+benchmarkName 06089
+count ZH1=/V*/_=_ZH1Diff="CHA". tok  
+benchmarkName 06019
+count ZH1=/V.*/
+benchmarkName 06007
+count ZH1=/V.*/ & ZH1Diff="CHA" . tok& #1 _=_ #2 & #2 . #3
+benchmarkName 06081
+count ZH1=/V.*/ _=_ ZH1Diff="CHA"
+benchmarkName 06085
+count ZH1=/V.*/ _=_ ZH1Diff="CHA"   
+benchmarkName 06098
+count ZH1=/V.*/ _=_ ZH1Diff="CHA" . ctok
+benchmarkName 06095
+count ZH1=/V.*/ _=_ ZH1Diff="CHA" . ctok 
+benchmarkName 06097
+count ZH1=/V.*/ _=_ ZH1Diff="CHA" . ctok . ctok 
+benchmarkName 06073
+count ZH1=/V.*/ _=_ ZH1Diff="CHA" . tok
+benchmarkName 06091
+count ZH1=/V.*/ _=_ ZH1Diff="CHA" . tok 
+benchmarkName 06086
+count ZH1=/V.*/ _=_ ZH1Diff="CHA" . tok   
+benchmarkName 06100
+count ZH1=/V.*/ _=_ZH1Diff="CHA" . tok
+benchmarkName 06112
+count ZH1=/\$,/
+benchmarkName 06113
+count ZH1=/\,/
+benchmarkName 06117
+count ZH1=/\./
+benchmarkName 06022
+count ZH1=/d.*/
+benchmarkName 06023
+count ZH1=/d.*s/
+benchmarkName 06031
+count ZH1=/d.*s/ _=_ ZH1pos=/KON/
+benchmarkName 06032
+count ZH1=/d.*s/ _=_ ZH1pos=/KONJ/
+benchmarkName 06024
+count ZH1=/d.s/
+benchmarkName 06021
+count ZH1=/das/
+benchmarkName 06336
+count ZH1=/schnell/
+benchmarkName 06334
+count ZH1=/schön/
+benchmarkName 06264
+count ZH1=/schöner/ 
+benchmarkName 06268
+count ZH1=/schönes/ 
+benchmarkName 06020
+count ZH1=/v.*/
+benchmarkName 06094
+count ZH1=/v.*/&ZH1Diff="CHA"&tok&#1_=_#2 &#2.#3 
+benchmarkName 06078
+count ZH1=/v.*/_=_ ZH1Diff="CHA" . tok
+benchmarkName 06105
+count ZH1=/§,/
+benchmarkName 05871
+count ZH1Diff _=_ ZH1lemma
+benchmarkName 06028
+count ZH1Diff="CHA"
+benchmarkName 06371
+count ZH1lemma & ZH1lemma=/gehen/ & #2->dep#1  
+benchmarkName 05904
+count ZH1lemma="gehen" _=_ ZH1 & ZH1 _=_ ZH1lemma & #2 ->dep #3
+benchmarkName 06386
+count ZH1lemma="gehen" _=_ ZH1 & ZH1 _=_ ZH1lemma & #2 ->dep #3   
+benchmarkName 06378
+count ZH1lemma="gehen" _=_ ZH1 & ZH1 _=_ ZH1lemma & #2->dep #3 
+benchmarkName 06379
+count ZH1lemma="gehen" _=_ ZH1 & ZH1lemma & #2 ->dep #3   
+benchmarkName 06377
+count ZH1lemma="gehen" _=_ ZH1 & ZH1lemma &#2 ->dep#3   
+benchmarkName 05903
+count ZH1lemma="gehen" _=_ ZH1 & node & #2 ->dep #3
+benchmarkName 06382
+count ZH1lemma="gehen" _=_ ZH1 _=_ ZH1lemma & #2 ->dep #3   
+benchmarkName 06384
+count ZH1lemma="gehen"_=_ZH1&ZH1lemma&#2->dep#3
+benchmarkName 05894
+count ZH1pos   & node & node & #1 _=_ #2 & #2->dep #3
+benchmarkName 05900
+count ZH1pos & node & #1->dep #2
+benchmarkName 05902
+count ZH1pos _=_ ZH1 & node & #2 ->dep #3
+benchmarkName 06107
+count ZH1pos="$,"
+benchmarkName 06330
+count ZH1pos="ADJ"
+benchmarkName 06328
+count ZH1pos="ADJ.*"
+benchmarkName 06260
+count ZH1pos="ADJA"
+benchmarkName 06274
+count ZH1pos="ADJA" 
+benchmarkName 06223
+count ZH1pos="ART.*"_=_ ZH1lemma   
+benchmarkName 06052
+count ZH1pos="PTKVZ"
+benchmarkName 06050
+count ZH1pos="PTKZU"
+benchmarkName 06104
+count ZH1pos=/$,/
+benchmarkName 06147
+count ZH1pos=/,/ & ZH1Diff=/INS/& #1 _=_ #2 & ctok &#2 . #3
+benchmarkName 06259
+count ZH1pos=/A.*/
+benchmarkName 06261
+count ZH1pos=/AD.*/
+benchmarkName 05887
+count ZH1pos=/ADJ.*/
+benchmarkName 06279
+count ZH1pos=/ADJ.*/ & ZH1pos=/N.*/ & node & node & #1 _=_ #3 & #2 _=_ #4 & #1 ->dep #2
+benchmarkName 06283
+count ZH1pos=/ADJ.*/ & ZH1pos=/N.*/ & node & node & #1 _=_ #3 & #2 _=_ #4 & #3 ->dep #4
+benchmarkName 06286
+count ZH1pos=/ADJ.*/ & ZH1pos=/V.*/ & node & node & #1 _=_ #3 & #2 _=_ #4 & #3 ->dep #4
+benchmarkName 06267
+count ZH1pos=/ADJ.*/ & node & node & #1 _=_ #2 & #2 ->dep #3
+benchmarkName 06325
+count ZH1pos=/ADJ./
+benchmarkName 06331
+count ZH1pos=/ADJ/
+benchmarkName 06272
+count ZH1pos=/ADJA.*/
+benchmarkName 06269
+count ZH1pos=/ADJA/ 
+benchmarkName 06278
+count ZH1pos=/ADJA/ & node & node & #1_=_#2 & #2 ->dep #3
+benchmarkName 06265
+count ZH1pos=/ADJA/ . ZH1pos=/NN/     
+benchmarkName 06333
+count ZH1pos=/ADJD/
+benchmarkName 06282
+count ZH1pos=/ADJD/ 
+benchmarkName 06329
+count ZH1pos=/ADJD/     
+benchmarkName 06323
+count ZH1pos=/ADJP/
+benchmarkName 06263
+count ZH1pos=/AJD.*/
+benchmarkName 07046
+count ZH1pos=/APPRART/
+benchmarkName 06196
+count ZH1pos=/ART.*/ . ZH1pos=/NN.*/
+benchmarkName 06195
+count ZH1pos=/ART.*/ _=_ ZH1 . ZH1pos=/N.*/ _=_ ZH1
+benchmarkName 06214
+count ZH1pos=/ART.*/ _=_ ZH1 . ZH1pos=/NN.*/ _=_ ZH1
+benchmarkName 06224
+count ZH1pos=/ART.*/_=_ ZH1lemma   
+benchmarkName 06298
+count ZH1pos=/ART/
+benchmarkName 06284
+count ZH1pos=/ART/ 
+benchmarkName 06194
+count ZH1pos=/ART/ . ZH1pos=/NN/
+benchmarkName 06318
+count ZH1pos=/ART/ _=_ ZH1=/d.*/
+benchmarkName 06303
+count ZH1pos=/ART/ _=_ ZH1=/d.*/    
+benchmarkName 06220
+count ZH1pos=/ART/ _=_ ZH1lemma . ZH1pos=/NN/
+benchmarkName 06312
+count ZH1pos=/ART/ _=_ tok=/d.*/
+benchmarkName 06162
+count ZH1pos=/N*/ . ZH1=/PP.*/
+benchmarkName 06164
+count ZH1pos=/N*/ . ZH1pos=/PP.*/
+benchmarkName 06166
+count ZH1pos=/N*/ . ZH1pos=/PP.*/ _=_ ZH1
+benchmarkName 06353
+count ZH1pos=/N.*/ & ZH1 & ZH1 & #1 _=_ #2 & #2 ->dep #3
+benchmarkName 06307
+count ZH1pos=/N.*/ & ZH1 & ZH1 & #1 _=_ #2 & #2 ->dep[func="ATTR"] #3
+benchmarkName 06352
+count ZH1pos=/N.*/ & ZH1 & ZH1 & #1_=_ #2 ->dep #3
+benchmarkName 06348
+count ZH1pos=/N.*/ & ZH1 & ZH1 & #1_=_#2 & #2 ->dep #3
+benchmarkName 06349
+count ZH1pos=/N.*/ & ZH1 & ZH1 & #1_=_#2 & #2 ->dep#3
+benchmarkName 06351
+count ZH1pos=/N.*/ & ZH1 & ZH1 & #1_=_#2 & #2 ->dep#3   
+benchmarkName 06342
+count ZH1pos=/N.*/ & node & #1 ->dep #2
+benchmarkName 06277
+count ZH1pos=/N.*/ & node & #1 ->dep[func="ATTR"]#2
+benchmarkName 06280
+count ZH1pos=/N.*/ & node & #2 ->dep[func="ATTR"]#1
+benchmarkName 06257
+count ZH1pos=/N.*/ & node & node &  #1  _=_ #2  ->dep #3
+benchmarkName 06258
+count ZH1pos=/N.*/ & node & node &  #1 _=_ #2 & #2 ->dep #3
+benchmarkName 06254
+count ZH1pos=/N.*/ & node & node & #1 _=_ #2 & #2 ->dep #3
+benchmarkName 06344
+count ZH1pos=/N.*/ & node & node & #1_=_ #2 ->dep #3
+benchmarkName 06345
+count ZH1pos=/N.*/ & node & node & #1_=_#2 & #1 ->dep#3
+benchmarkName 05884
+count ZH1pos=/N.*/ & node & node & #1_=_#2 & #2 ->dep #3
+benchmarkName 06339
+count ZH1pos=/N.*/ & node & node & #1_=_#2 & #2 ->dep#3
+benchmarkName 06340
+count ZH1pos=/N.*/ & node & node & #1_=_#2 & #2 ->dep#3   
+benchmarkName 06343
+count ZH1pos=/N.*/ & node & node & #1_=_#2 ->dep #3
+benchmarkName 06347
+count ZH1pos=/N.*/ & node & node& #1 _=_ #2 & #2 ->dep #3
+benchmarkName 06253
+count ZH1pos=/N.*/ &node & node & #1_=_#2 & #2->dep#3
+benchmarkName 06255
+count ZH1pos=/N.*/ &node & node & #1_=_#2 & #2->dep[func="DET"]#3
+benchmarkName 06256
+count ZH1pos=/N.*/ &node & node & #1_=_#2 & #2->dep[func=/OBJ./]#3
+benchmarkName 06346
+count ZH1pos=/N.*/ ->dep tok
+benchmarkName 06160
+count ZH1pos=/N.*/ . ZH1
+benchmarkName 06161
+count ZH1pos=/N.*/ . ZH1pos=/PP.*/
+benchmarkName 06163
+count ZH1pos=/N.*/ . ZH1pos=/PP.*/    
+benchmarkName 06165
+count ZH1pos=/N.*/ . ZH1pos=/PP.*/ _=_ ZH1
+benchmarkName 06167
+count ZH1pos=/N.*/ . ZH1pos=/PP.*/ _=_ ZH1    
+benchmarkName 06172
+count ZH1pos=/N.*/ _=_ ZH1 .  ZH1pos=/PP.*/ _=_ ZH1    
+benchmarkName 06169
+count ZH1pos=/N.*/ _=_ ZH1 . ZH1pos=/PP.*/ _=_ ZH1
+benchmarkName 06171
+count ZH1pos=/N.*/ _=_ ZH1. ZH1pos=/PP.*/ _=_ ZH1
+benchmarkName 06341
+count ZH1pos=/N.*/& node & node & #1_=_#2 & #2->dep#3  
+benchmarkName 06168
+count ZH1pos=/N.*/. ZH1pos=/PP.*/ _=_ ZH1  
+benchmarkName 06173
+count ZH1pos=/N.*/_=_ ZH1 . ZH1pos=/PP.*/ _=_ ZH1  
+benchmarkName 06276
+count ZH1pos=/N.*N/ & node & #1 ->dep[func="ATTR"]#2
+benchmarkName 06354
+count ZH1pos=/NN.*/&ZH1& ZH1& #1_=_#2& #2->dep#3
+benchmarkName 06350
+count ZH1pos=/NN.*/&node& node& #1_=_#2& #2->dep#3
+benchmarkName 06033
+count ZH1pos=/PTKVZ/
+benchmarkName 06058
+count ZH1pos=/PTKVZ/ 
+benchmarkName 06062
+count ZH1pos=/PTKVZ/_=_ ZH1=/a.*/
+benchmarkName 05592
+count ZH1pos=/V*/
+benchmarkName 05593
+count ZH1pos=/V.*/
+benchmarkName 05896
+count ZH1pos=/V.*/ 
+benchmarkName 05898
+count ZH1pos=/V.*/ & ZH1 & #1 ->dep #2
+benchmarkName 05878
+count ZH1pos=/V.*/ & ZH1 & #1 ->dep[func="OBJA"]#2
+benchmarkName 05899
+count ZH1pos=/V.*/ & ZH1 & #1 ->dep[func=/.*/] #2
+benchmarkName 05594
+count ZH1pos=/V.*/ & ZH1sfPosDiff="CHA" & #1_=_#2
+benchmarkName 05895
+count ZH1pos=/V.*/ & node & #1 ->dep #2
+benchmarkName 05881
+count ZH1pos=/V.*/ & node & node & #1_=_#2 & #2 ->dep[func="OBJA"]#3
+benchmarkName 06110
+count ZH1pos=/\$,/
+benchmarkName 06115
+count ZH1pos=/\$,/   
+benchmarkName 06131
+count ZH1pos=/\$,/ & ZH1Diff=/(INS|CHA)/& #1 _=_ #2
+benchmarkName 06134
+count ZH1pos=/\$,/ & ZH1Diff=/INS/& #1 _=_ #2
+benchmarkName 06144
+count ZH1pos=/\$,/ & ZH1Diff=/INS/& #1 _=_ #2 & ctok &#2 . #3
+benchmarkName 06108
+count ZH1pos=/\,/
+benchmarkName 06114
+count ZH1pos=/\./
+benchmarkName 06116
+count ZH1pos=/\§,/
+benchmarkName 06045
+count ZH2pos=/PTKVZ/
+benchmarkName 06051
+count ctok=/PTKVZ/
+benchmarkName 06038
+count ctok=/PTKVZ/ 
+benchmarkName 06027
+count ctok=/d.*r/
+benchmarkName 06030
+count ctok=/d.*r/ _=_  ZH1Diff="CHA"
+benchmarkName 06026
+count ctok=/d.*s/
+benchmarkName 06067
+count ctokpos="PTKVZ" _=_ ctok=/a.*/
+benchmarkName 06064
+count ctokpos="PTKVZ" _=_ctok=/a.*/
+benchmarkName 06060
+count ctokpos="PTKVZ". ctok=/a*/
+benchmarkName 06061
+count ctokpos="PTKVZ"_=_ ctok=/a*/
+benchmarkName 06063
+count ctokpos="PTKVZ"_=_ ctok=/a.*/
+benchmarkName 06043
+count ctokpos="PTKZU"
+benchmarkName 06262
+count ctokpos=/ADJ./
+benchmarkName 06273
+count ctokpos=/ADJA/
+benchmarkName 06034
+count ctokpos=/PTKVZ/
+benchmarkName 06039
+count ctokpos=/PTKVZ/ 
+benchmarkName 06057
+count ctokpos=/PTKVZ/ _=_ ctok=/a.*/
+benchmarkName 06069
+count ctokpos=/PTKVZ/ _=_ ctok=/a.*/ 
+benchmarkName 06047
+count ctokpos=/PTKVZ/_=_ ZH1pos=/PTKVZ/
+benchmarkName 06059
+count ctokpos=/PTKVZ/_=_ ctok=/a.*/
+benchmarkName 06066
+count ctokpos=/PTKVZ/_=_ ctok=/a.*/  
+benchmarkName 06055
+count ctokpos=/PTKVZ/_=_ tok=/a.*/
+benchmarkName 04405
+count lemma="an"."das"
+benchmarkName 04385
+count lemma="an"."dem"
+benchmarkName 04410
+count lemma="ans"
+benchmarkName 04389
+count lemma="auf"."das"
+benchmarkName 04412
+count lemma="aufs"
+benchmarkName 04391
+count lemma="bei"."dem"
+benchmarkName 04390
+count lemma="bei"."der"
+benchmarkName 04407
+count lemma="durch"."das"
+benchmarkName 04413
+count lemma="durchs"
+benchmarkName 04388
+count lemma="für"."das"
+benchmarkName 04387
+count lemma="in"."das"
+benchmarkName 04381
+count lemma="in"."dem"
+benchmarkName 04392
+count lemma="um"."das"
+benchmarkName 04384
+count lemma="von"."dem"
+benchmarkName 04406
+count lemma="vor"."das"
+benchmarkName 04403
+count lemma="vor"."dem"
+benchmarkName 04415
+count lemma="vorm"
+benchmarkName 04411
+count lemma="vors"
+benchmarkName 04383
+count lemma="z."."dem"
+benchmarkName 04382
+count lemma="zu"."dem"
+benchmarkName 04386
+count lemma="zu"."der"
+benchmarkName 04408
+count lemma="über"."das"
+benchmarkName 04404
+count lemma="über"."dem"
+benchmarkName 04414
+count lemma="überm"
+benchmarkName 04409
+count lemma="übers"
+benchmarkName 05877
+count node & node & #1 ->dep #2
+benchmarkName 06232
+count node & node & #1 ->dep#2
+benchmarkName 05601
+count node & node & #1 ->dep[fun="OBJA"]#2
+benchmarkName 05600
+count node & node & #1 ->dep[fun="OBJAD"]#2
+benchmarkName 06297
+count node & node & #1 ->dep[func="ART"]#2
+benchmarkName 06288
+count node & node & #1 ->dep[func="ATTR"]#2
+benchmarkName 06304
+count node & node & #1 ->dep[func="DET"]#2
+benchmarkName 06314
+count node & node & #1 ->dep[func="DET"]#2 & ZH1pos="ART" & ZH1=/d.*/ &#2_=_#3 & #3 _=_ #4
+benchmarkName 06242
+count node & node & #1 ->dep[func="OB"]#2
+benchmarkName 06239
+count node & node & #1 ->dep[func="OBJA"] #2
+benchmarkName 05879
+count node & node & #1 ->dep[func="OBJA"]#2
+benchmarkName 06243
+count node & node & #1 ->dep[func="OBJD"] #2
+benchmarkName 06241
+count node & node & #1 ->dep[func="OBJD"]#2
+benchmarkName 06248
+count node & node & #1 ->dep[func="OBJD"]#2    
+benchmarkName 05889
+count node & node & #1 ->dep[func="PRED"] #2
+benchmarkName 05872
+count node & node & #1 ->dep[func=/.*/] #2
+benchmarkName 06240
+count node & node & #1 ->dep[funx="OBJD"]#2
+benchmarkName 06229
+count node & node & #1->dep#2
+benchmarkName 06244
+count node & node & #1->dep[func="OBJA"]#2
+benchmarkName 06236
+count node & node & #1->dep[func="OBJD"]#2
+benchmarkName 06231
+count node & node& #1->dep#2
+benchmarkName 06237
+count node & node& #1->dep[func="OBJD"]#2
+benchmarkName 06235
+count node & node& #1->dep[func="OBJG"]#2
+benchmarkName 06233
+count node& node & #1->dep#2  
+benchmarkName 06281
+count node& node & #1->dep[func="ATTR"]#2
+benchmarkName 06285
+count node& node & #1->dep[func="DET"]#2
+benchmarkName 06252
+count node& node & #1->dep[func="OBJD"]#2  
+benchmarkName 01190
+count pos="APPRART"
+benchmarkName 06322
+count pos=/ADJP/
+benchmarkName 07138
+count pos=/APPART/
+benchmarkName 03895
+count pos=/APPR/
+benchmarkName 03894
+count pos=/APPRART/
+benchmarkName 06731
+count pos=/APPRART/ _=_ lemma
+benchmarkName 04361
+count pos=/APPRART/& ctoklemma=/am/ & #1_=_#2
+benchmarkName 04365
+count pos=/APPRART/& ctoklemma=/aufs/ & #1_=_#2
+benchmarkName 04366
+count pos=/APPRART/& ctoklemma=/beim/ & #1_=_#2
+benchmarkName 04364
+count pos=/APPRART/& ctoklemma=/fürs/ & #1_=_#2
+benchmarkName 04355
+count pos=/APPRART/& ctoklemma=/im/ & #1_=_#2
+benchmarkName 04363
+count pos=/APPRART/& ctoklemma=/ins/ & #1_=_#2
+benchmarkName 04367
+count pos=/APPRART/& ctoklemma=/ums/ & #1_=_#2
+benchmarkName 04360
+count pos=/APPRART/& ctoklemma=/vom/ & #1_=_#2
+benchmarkName 04358
+count pos=/APPRART/& ctoklemma=/zum/ & #1_=_#2
+benchmarkName 04362
+count pos=/APPRART/& ctoklemma=/zur/ & #1_=_#2
+benchmarkName 04380
+count pos=/APPRART/& lemma=/z./ & #1_=_#2
+benchmarkName 05753
+count pos=/APPRART/_=_ tok
+benchmarkName 05609
+count pos=/APRART/
+benchmarkName 06300
+count pos=/ART/_=_ lemma=/d/
+benchmarkName 03893
+count pos=/PAV/
+benchmarkName 06727
+count pos=/PTKA/
+benchmarkName 06035
+count pos=/PTKVZ/
+benchmarkName 04442
+count tok
+benchmarkName 07278
+count tok =/Respekt/ . tok=/zu/ . tok=/ihren/ 
+benchmarkName 07279
+count tok =/Respekte/ . tok=/zu/ . tok=/ihren/ 
+benchmarkName 07229
+count tok =/bessere/ . tok=/Perspektive/ . tok=/zu/ . tok=/bekommen/
+benchmarkName 07284
+count tok =/innerhalb/ . tok=/der/ . tok=/Grenzen/ 
+benchmarkName 07298
+count tok =/niemand/ . tok=/interessiert/ . tok=/sich/ 
+benchmarkName 07239
+count tok =/ungeachtet/ . tok=/der/ . tok=/Bedingungen/ 
+benchmarkName 07141
+count tok =/zum/ . tok=/Essen/
+benchmarkName 07133
+count tok=/Bekommen/. tok =/und/ . tok=/Verloren/
+benchmarkName 07132
+count tok=/Bekommen/. tok =/und/ . tok=/verloren/
+benchmarkName 07134
+count tok=/Entwirklung/. tok =/der/ . tok=/Wirtschaft/
+benchmarkName 07135
+count tok=/Im/. tok =/vergleichen/ . tok=/zu/
+benchmarkName 07136
+count tok=/Im/. tok =/vergleichen/ . tok=/zum/
+benchmarkName 06025
+count tok=/d.*s/
+
+benchmark 5

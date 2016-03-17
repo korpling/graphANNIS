@@ -1,0 +1,1 @@
+POS=/APPR/. tok=/(angeblich|nachhaltig|häufig|gleichzeitig|regelmäßig|wirtschaftlich)/ . POS=/ADJA/ . POS=/NN/
