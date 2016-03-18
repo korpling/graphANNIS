@@ -2,6 +2,7 @@
 /build
 /build-debug
 /data
+/relannis
 CMakeLists.txt.user
 *.*~
 /nbproject/private/
