@@ -175,7 +175,7 @@ bool DB::loadRelANNIS(string dirPath)
     return false;
   }
 
-  if(loadRelANNISNode(dirPath, corpusIDToName) == false)
+  if(loadRelANNISNode(dirPath, corpusIDToName, isANNIS33Format) == false)
   {
     return false;
   }
@@ -203,7 +203,7 @@ bool DB::loadRelANNIS(string dirPath)
 
   in.close();
 
-  bool result = loadRelANNISRank(dirPath, componentToGS);
+  bool result = loadRelANNISRank(dirPath, componentToGS, isANNIS33Format);
 
 
   // construct the complex indexes for all components
@@ -246,7 +246,8 @@ bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& cor
   return true;
 }
 
-bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName)
+bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName,
+  bool isANNIS33Format)
 {
   typedef multimap<TextProperty, uint32_t>::const_iterator TextPropIt;
 
@@ -265,14 +266,16 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   // maps a character position to it's token
   map<TextProperty, nodeid_t> tokenByTextPosition;
 
-  string nodeTabPath = dirPath + "/node.tab";
+  string nodeTabPath = dirPath + "/node" + (isANNIS33Format ? ".annis" : ".tab");
   HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
 
   ifstream in;
   in.open(nodeTabPath, ifstream::in);
   if(!in.good())
   {
-    HL_ERROR(logger, "Can't find node.tab");
+    std::string msg = "Can't find node";
+    msg += isANNIS33Format ? ".annis" : ".tab";
+    HL_ERROR(logger, msg);
     return false;
   }
   vector<string> line;
@@ -428,7 +431,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
     }
   }
 
-  string nodeAnnoTabPath = dirPath + "/node_annotation.tab";
+  string nodeAnnoTabPath = dirPath + "/node_annotation"  + (isANNIS33Format ? ".annis" : ".tab");
   HL_INFO(logger, (boost::format("loading %1%") % nodeAnnoTabPath).str());
 
   in.open(nodeAnnoTabPath, ifstream::in);
@@ -450,14 +453,15 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
 
 
 bool DB::loadRelANNISRank(const string &dirPath,
-                          const map<uint32_t, WriteableGraphStorage*>& componentToEdgeGS)
+                          const map<uint32_t, WriteableGraphStorage*>& componentToEdgeGS,
+                          bool isANNIS33Format)
 {
   typedef stx::btree_map<uint32_t, uint32_t>::const_iterator UintMapIt;
   typedef map<uint32_t, WriteableGraphStorage*>::const_iterator ComponentIt;
   bool result = true;
 
   ifstream in;
-  string rankTabPath = dirPath + "/rank.tab";
+  string rankTabPath = dirPath + "/rank" + (isANNIS33Format ? ".annis" : ".tab");
   HL_INFO(logger, (boost::format("loading %1%") % rankTabPath).str());
 
   in.open(rankTabPath, ifstream::in);
@@ -515,7 +519,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
   if(result)
   {
 
-    result = loadEdgeAnnotation(dirPath, pre2GS, pre2Edge);
+    result = loadEdgeAnnotation(dirPath, pre2GS, pre2Edge, isANNIS33Format);
   }
 
   return result;
@@ -524,13 +528,14 @@ bool DB::loadRelANNISRank(const string &dirPath,
 
 bool DB::loadEdgeAnnotation(const string &dirPath,
                             const map<uint32_t, WriteableGraphStorage* >& pre2GS,
-                            const map<uint32_t, Edge>& pre2Edge)
+                            const map<uint32_t, Edge>& pre2Edge,
+                            bool isANNIS33Format)
 {
 
   bool result = true;
 
   ifstream in;
-  string edgeAnnoTabPath = dirPath + "/edge_annotation.tab";
+  string edgeAnnoTabPath = dirPath + "/edge_annotation" + (isANNIS33Format ? ".annis" : ".tab");
   HL_INFO(logger, (boost::format("loading %1%") % edgeAnnoTabPath).str());
 
   in.open(edgeAnnoTabPath, ifstream::in);

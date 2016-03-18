@@ -105,13 +105,16 @@ private:
 
   bool loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName,
     bool isANNIS33Format);
-  bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
+  bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName,
+    bool isANNIS33Format);
   bool loadRelANNISRank(const std::string& dirPath,
-                        const std::map<uint32_t, WriteableGraphStorage*>& componentToGS);
+                        const std::map<uint32_t, WriteableGraphStorage*>& componentToGS,
+                        bool isANNIS33Format);
 
   bool loadEdgeAnnotation(const std::string& dirPath,
                           const std::map<std::uint32_t, WriteableGraphStorage* >& pre2GS,
-                          const std::map<std::uint32_t, Edge>& pre2Edge);
+                          const std::map<std::uint32_t, Edge>& pre2Edge,
+                          bool isANNIS33Format);
 
   
   void clear();
