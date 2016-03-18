@@ -175,9 +175,9 @@
         </logicalFolder>
       </logicalFolder>
     </logicalFolder>
-    <df root="include" name="2">
+    <df root="include" name="1">
     </df>
-    <df root="src" name="4">
+    <df root="src" name="2">
       <df name="lib">
         <df name="annosearch">
           <in>annotationsearch.cpp</in>
@@ -228,7 +228,7 @@
         <in>main.cpp</in>
       </df>
     </df>
-    <df root="tests" name="6">
+    <df root="tests" name="3">
       <in>testmain.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
