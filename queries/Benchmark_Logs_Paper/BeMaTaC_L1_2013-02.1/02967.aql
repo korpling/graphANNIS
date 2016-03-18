@@ -1,1 +1,0 @@
-( n1#instructor_dipl _=_ instructor_pos = "NN" _=_ instructor_lemma = "<unknown>" ) | ( n1#instructee_dipl _=_ instructee_pos = "NN" _=_ instructee_lemma = "<unknown>")

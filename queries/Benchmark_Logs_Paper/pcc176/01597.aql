@@ -1,1 +1,0 @@
-tok. pos=/(N.|ART)/		 _=_ tok=/Hennigsdorf/ . tok=/(von|vom)/	 . tok . tok . tok

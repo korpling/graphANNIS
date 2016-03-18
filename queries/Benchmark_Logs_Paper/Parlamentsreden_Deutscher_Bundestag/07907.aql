@@ -1,1 +1,0 @@
-POS=/APPR/. POS=/PDAT/ . tok=/(Großen|neuen|politischen|offene|gewalttätigen|ersten|europäischen)/ . POS=/NN/

@@ -1,1 +1,0 @@
-tok=/(hier|kaum|sehr)/. POS=/ADJA/ . tok=/(junge|legalen|soziale)/ . POS=/NN/

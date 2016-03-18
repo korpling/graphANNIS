@@ -1,1 +1,0 @@
-pos=/(N.|ART)/		. tok=/(von|vom)/	 . pos

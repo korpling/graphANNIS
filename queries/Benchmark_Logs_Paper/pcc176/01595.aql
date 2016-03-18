@@ -1,1 +1,0 @@
-tok. pos=/(N.|ART)/		 _=_ tok=/Umrechnung/ . tok=/(von|vom)/	 . tok . tok . tok

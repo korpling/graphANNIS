@@ -1,1 +1,0 @@
-POS=/P.AT/. tok=/(Zeitpunkt|Situation|Tag)/ . POS=/ADJA/ . POS=/NN/

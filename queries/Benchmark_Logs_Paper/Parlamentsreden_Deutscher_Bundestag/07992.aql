@@ -1,1 +1,0 @@
-POS. tok=/(international|Prozent|Belangen|Zahl|Gesellschaft)/ . POS=/ADJD/ . POS=/ADJA/ . POS=/NN/

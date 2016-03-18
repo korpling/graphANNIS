@@ -1,1 +1,0 @@
-tok. pos=/(N.|ART)/		 _=_ tok . tok=/(von|vom)/	 . tok=/Langen/ . tok . tok

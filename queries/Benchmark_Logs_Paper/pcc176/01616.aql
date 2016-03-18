@@ -1,1 +1,0 @@
-tok. pos=/(N.|ART)/		 _=_ tok=/Unglück/ . tok=/(von|vom)/	 . tok . tok . tok

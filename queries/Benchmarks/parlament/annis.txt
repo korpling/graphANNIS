@@ -1,8 +1,0 @@
-set clear-caches to false
-record
-corpus Parlamentsreden_Deutscher_Bundestag
-
-benchmarkName JPO
-count "jeder" .1,50 "obwohl" 
-
-benchmark 5

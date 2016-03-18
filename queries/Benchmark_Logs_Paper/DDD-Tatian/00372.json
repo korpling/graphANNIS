@@ -1,1 +1,0 @@
-{"alternatives":[{"nodes":{"1":{"id":1,"nodeAnnotations":[{"name":"pos","value":"(PTK.*|ITJ)","textMatching":"REGEXP_EQUAL","qualifiedName":"pos"}],"root":false,"token":false,"variable":"1"}},"joins":[]}]}

@@ -1,1 +1,0 @@
-tok=/(wir|nicht)/. POS=/PDAT/ . tok=/(kulturelle|aktuelle)/ . POS=/NN/

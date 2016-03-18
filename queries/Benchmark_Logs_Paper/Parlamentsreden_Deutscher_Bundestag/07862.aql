@@ -1,1 +1,0 @@
-tok=/(Ausbildung|Verspätungen|Weizen||Landschaften|Rechtstraditionen|Religionsgemeinschaften|Schießsimulatoren|Aktivitäten|Grundsätze|Aktien|Verhältnismäßigkeit)/. tok=/(und|oder)/ . POS=/ADJA/ . POS=/NN/

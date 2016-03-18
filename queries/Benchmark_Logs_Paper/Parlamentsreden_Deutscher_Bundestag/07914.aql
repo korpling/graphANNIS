@@ -1,1 +1,0 @@
-tok=/(von)/. tok=/uns/ . tok=/(betriebenen|eingesetzten)/ . POS=/NN/

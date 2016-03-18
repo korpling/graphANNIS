@@ -1,1 +1,0 @@
-tok=/(Betreuung|Auftrag|Absicherung|Lebensqualität|Quote)/. POS=/ADJA/ . POS=/ADJA/ . POS=/NN/

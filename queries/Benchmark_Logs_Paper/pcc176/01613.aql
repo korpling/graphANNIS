@@ -1,1 +1,0 @@
-tok. pos=/(N.|ART)/		 _=_ tok=/Einbau/ . tok=/(von|vom)/	 . tok . tok . tok

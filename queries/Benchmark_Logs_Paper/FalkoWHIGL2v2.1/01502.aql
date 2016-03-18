@@ -1,1 +1,0 @@
- ctokpos = "NN" _=_ ctokrfMorph = /.*Nom.*/ _=_ /.*Pl.*/ _=_ ZH0Diff = "CHA"

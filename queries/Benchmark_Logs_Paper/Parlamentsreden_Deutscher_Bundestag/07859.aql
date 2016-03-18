@@ -1,1 +1,0 @@
-tok=/(Morgen|selber|Berlin|Kosovo|Detuschland|Praktikanten|mich)/. tok=/als/ . POS=/ADJA/ . POS=/NN/

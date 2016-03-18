@@ -1,1 +1,0 @@
-tok. pos=/(N.|ART)/		 _=_ tok=/Regierung/ . tok=/(von|vom)/	 . tok . tok . tok

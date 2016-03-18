@@ -1,1 +1,0 @@
-POS=/ADJA/_=_ tok=/(längeres|ausgegrenzte|extra|fehlender|lebenden|funktionierende|wertvollen|sonstige|beschlossene|teilweise|jährlichen|bewährten|zahlreiche)/ . POS=/ADJA/ . POS=/NN/

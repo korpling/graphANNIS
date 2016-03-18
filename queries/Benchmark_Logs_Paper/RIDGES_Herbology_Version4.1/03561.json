@@ -1,1 +1,0 @@
-{"alternatives":[{"nodes":{"1":{"id":1,"root":false,"token":true,"variable":"1"},"2":{"id":2,"root":false,"token":true,"variable":"2"}},"joins":[{"op":"Precedence","minDistance":1,"maxDistance":1,"left":1,"right":2}]}]}

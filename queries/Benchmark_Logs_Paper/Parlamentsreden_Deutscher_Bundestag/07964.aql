@@ -1,1 +1,0 @@
-tok=/(um|Angesichts|trotz|auf|zu)/. POS=/ADJA/ . tok=/(nationale|tatsächlicher|internationaler|gemeinnützige|neuen)/ . POS=/NN/

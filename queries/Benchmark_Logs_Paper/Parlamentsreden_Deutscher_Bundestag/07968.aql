@@ -1,1 +1,0 @@
-POS=/ART/. tok=/(allgemeinen|starken|weiteren|ganze|unüberwindbare|einzige|alten|anderes|erster|gemeinsame|frühere|zunehmende|letzten|bisherigen|leisen|souveränen)/ . POS=/ADJA/ . POS=/NN/

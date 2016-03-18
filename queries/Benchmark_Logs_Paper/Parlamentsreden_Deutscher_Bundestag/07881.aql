@@ -1,1 +1,0 @@
-POS=/APPR/. tok=/(Sachen|Partnerschaft|Anführungszeichen|Einholung|Handschellen|Jahr|Sandsteinformationen|Saisonarbeiter|Gang|Rede)/ . POS=/ADJA/ . tok=/Begegnung/

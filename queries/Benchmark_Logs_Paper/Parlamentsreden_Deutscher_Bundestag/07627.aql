@@ -1,1 +1,0 @@
-POS=/ADV/_=_ tok=/(so|ganz|auch|für)/ . POS=/ADJA/ . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok

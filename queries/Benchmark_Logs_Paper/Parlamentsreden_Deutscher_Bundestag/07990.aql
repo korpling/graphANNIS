@@ -1,1 +1,0 @@
-POS=/ART/. tok=/(entsprechend|ungleichgewichtig|klug|schnell|landesseitig|lückenhaft|wiederholt|überraschend|völlig|nachfolgend)/ . POS=/ADJA/ . tok=/(Haushalt|Rolle|Petitionsrecht|Lösungsvorschläge|Lehrstuhl|Studien|Forderung|Antworten|Basis|Auswirkungen)/

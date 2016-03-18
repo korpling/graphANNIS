@@ -1,1 +1,0 @@
-POS. tok=/(inhaltlich|wirklich|wissenschaftlich|gut|ungewollt|dynamisch)/ . POS=/ADJA/ . POS=/NN/

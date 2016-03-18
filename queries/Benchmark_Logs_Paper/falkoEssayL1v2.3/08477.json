@@ -1,1 +1,0 @@
-{"alternatives":[{"nodes":{"1":{"id":1,"spannedText":"denk.*","root":false,"token":false,"spanTextMatching":"REGEXP_EQUAL","variable":"1"},"2":{"id":2,"spannedText":"dass*","root":false,"token":false,"spanTextMatching":"REGEXP_EQUAL","variable":"2"}},"joins":[{"op":"Precedence","minDistance":1,"maxDistance":1,"left":1,"right":2}]}]}

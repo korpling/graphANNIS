@@ -1,1 +1,0 @@
-tok=/irgendwelch.* /& pos=/NN/ & tok=/.*/  & #1.1,3#2 & #2_=_#3

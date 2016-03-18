@@ -1,1 +1,0 @@
-tok=/(derzeit|also|von|seit)/. POS=/CARD/ . POS=/ADJA/ . POS=/NN/

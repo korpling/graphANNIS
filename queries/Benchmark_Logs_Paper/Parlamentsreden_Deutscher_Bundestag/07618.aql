@@ -1,1 +1,0 @@
-POS=/(NN|ADJA|ADV|ADJD|PDAT|PIAT||PPER|PPOSAT|KON|PRF|ARTAPPR|APPRART)/_=_ tok . POS=/Written language tends to be more complex and intricate than speech with longer sentences and many subordinate clauses./ _=_ tok . POS=/ADJA/ _=_ tok . POS=/NN/ _=_ tok

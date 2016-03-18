@@ -1,1 +1,0 @@
-tok=/(aus|oder)/. POS=/PIS/ . tok=/(afrikanischen|träumerische)/ . POS=/NN/

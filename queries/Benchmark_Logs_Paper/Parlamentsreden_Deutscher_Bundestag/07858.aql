@@ -1,1 +1,0 @@
-tok=/(Aussprache|Sommer)/. tok=/(vier|2007)/ . POS=/ADJA/ . POS=/NN/

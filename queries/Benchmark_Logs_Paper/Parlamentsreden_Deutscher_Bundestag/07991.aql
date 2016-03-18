@@ -1,1 +1,0 @@
-POS. tok=/(als|und|dass)/ . POS=/ADJD/ . POS=/ADJA/ . tok=/(Weg|Steuerwettbewerbs|Menschen|System|Sachverhalte|Menschen)/

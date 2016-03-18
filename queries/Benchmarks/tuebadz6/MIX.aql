@@ -1,8 +1,0 @@
-node & merged:pos="PPER" & node & mmax:relation="anaphoric" & node & node & mmax:relation="anaphoric"
-& #1 >[func="ON"] #3
-& #3 >* #2
-& #2 _i_ #4
-& #5 >[func="ON"] #6
-& #6 >* #7
-& #4 ->anaphoric #7
-
