@@ -103,7 +103,8 @@ private:
   std::uint32_t annisTokStringID;
   std::uint32_t annisNodeNameStringID;
 
-  bool loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
+  bool loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName,
+    bool isANNIS33Format);
   bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName);
   bool loadRelANNISRank(const std::string& dirPath,
                         const std::map<uint32_t, WriteableGraphStorage*>& componentToGS);

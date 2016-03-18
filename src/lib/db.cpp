@@ -152,8 +152,25 @@ bool DB::loadRelANNIS(string dirPath)
   clear();
   addDefaultStrings();
 
+  // check if this is the ANNIS 3.3 import format
+  bool isANNIS33Format = false;
+  if(boost::filesystem::is_regular_file(dirPath + "/annis.version"))
+  {
+    ifstream inVersion;
+    inVersion.open(dirPath + "/annis.version", ifstream::in);
+    if (inVersion.good())
+    {
+      std::string versionStr;
+      inVersion >> versionStr;
+      if(versionStr == "3.3")
+      {
+        isANNIS33Format = true;
+      }
+    }
+  }
+  
   map<uint32_t, std::uint32_t> corpusIDToName;
-  if(loadRelANNISCorpusTab(dirPath, corpusIDToName) == false)
+  if(loadRelANNISCorpusTab(dirPath, corpusIDToName, isANNIS33Format) == false)
   {
     return false;
   }
@@ -163,7 +180,7 @@ bool DB::loadRelANNIS(string dirPath)
     return false;
   }
 
-  string componentTabPath = dirPath + "/component.tab";
+  string componentTabPath = dirPath + "/component" + (isANNIS33Format ? ".annis" : ".tab");
   HL_INFO(logger, (boost::format("loading %1%") % componentTabPath).str());
 
   ifstream in;
@@ -204,16 +221,19 @@ bool DB::loadRelANNIS(string dirPath)
 }
 
 
-bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName)
+bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName,
+  bool isANNIS33Format)
 {
-  string corpusTabPath = dirPath + "/corpus.tab";
+  string corpusTabPath = dirPath + "/corpus" + (isANNIS33Format ? ".annis" : ".tab");
   HL_INFO(logger, (boost::format("loading %1%") % corpusTabPath).str());
 
   ifstream in;
   in.open(corpusTabPath, ifstream::in);
   if(!in.good())
   {
-    HL_ERROR(logger, "Can't find corpus.tab");
+    string msg = "Can't find corpus";
+    msg += (isANNIS33Format ? ".annis" : ".tab");
+    HL_ERROR(logger, msg);
     return false;
   }
   vector<string> line;
