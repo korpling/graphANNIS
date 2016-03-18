@@ -469,13 +469,17 @@ bool DB::loadRelANNISRank(const string &dirPath,
 
   vector<string> line;
 
+  const size_t nodeRefPos = isANNIS33Format ? 3 : 2;
+  const size_t componentRefPos = isANNIS33Format ? 4 : 3;
+  const size_t parentPos = isANNIS33Format ? 5 : 4;
+  
   // first run: collect all pre-order values for a node
   stx::btree_map<uint32_t, uint32_t> pre2NodeID;
   map<uint32_t, Edge> pre2Edge;
 
   while((line = Helper::nextCSV(in)).size() > 0)
   {
-    pre2NodeID.insert2(Helper::uint32FromString(line[0]),Helper::uint32FromString(line[2]));
+    pre2NodeID.insert2(Helper::uint32FromString(line[0]),Helper::uint32FromString(line[nodeRefPos]));
   }
 
   in.close();
@@ -488,7 +492,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
   // second run: get the actual edges
   while((line = Helper::nextCSV(in)).size() > 0)
   {
-    std::string parentAsString = line[4];
+    std::string parentAsString = line[parentPos];
     if(parentAsString != "NULL")
     {
       uint32_t parent = Helper::uint32FromString(parentAsString);
@@ -496,11 +500,11 @@ bool DB::loadRelANNISRank(const string &dirPath,
       if(it != pre2NodeID.end())
       {
         // find the responsible edge database by the component ID
-        ComponentIt itGS = componentToEdgeGS.find(Helper::uint32FromString(line[3]));
+        ComponentIt itGS = componentToEdgeGS.find(Helper::uint32FromString(line[componentRefPos]));
         if(itGS != componentToEdgeGS.end())
         {
           WriteableGraphStorage* gs = itGS->second;
-          Edge edge = Init::initEdge(it->second, Helper::uint32FromString(line[2]));
+          Edge edge = Init::initEdge(it->second, Helper::uint32FromString(line[nodeRefPos]));
 
           gs->addEdge(edge);
           pre2Edge[Helper::uint32FromString(line[0])] = edge;
