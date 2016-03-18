@@ -34,7 +34,7 @@ protected:
     {
       dataDir = testDataEnv;
     }
-    bool loadedDB = db.loadRelANNIS(dataDir + "/pcc2_relannis");
+    bool loadedDB = db.loadRelANNIS(dataDir + "/../relannis/pcc2");
     ASSERT_EQ(true, loadedDB);
   }
 

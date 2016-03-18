@@ -12,6 +12,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <string>
+#include <stddef.h>
 
 using namespace annis;
 
@@ -51,13 +52,13 @@ void DynamicCorpusFixture::tearDown()
   if (executionCounter >= numberOfSamples)
   {
     // delete the database after all runs are complete
-    dbCache->release(corpus, forceFallback, overrideImpl);
+    dbCache->release(corpusPath, forceFallback, overrideImpl);
   }
 }
 
 DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
-  std::string corpusName, bool multipleExperiments)
-  : corpus(corpusName), multipleExperiments(multipleExperiments)
+  std::string corpusPath, std::string benchmarkName, bool multipleExperimentsParam)
+  : corpusPath(corpusPath), benchmarkName(benchmarkName), multipleExperiments(multipleExperimentsParam)
 {
   // find all file ending with ".json" in the folder
   boost::filesystem::directory_iterator fileEndIt;
@@ -68,9 +69,29 @@ DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
     const auto filePath = itFiles->path();
     if (filePath.extension().string() == ".json")
     {
+      if(multipleExperiments)
+      {
+        // check if the file name is a valid number
+        std::string name = filePath.filename().stem().string();
+        try
+        {
+          long val = std::stol(name);
+        }
+        catch(std::invalid_argument invalid)
+        {
+          // not a number, don't assume we have multiple experiments
+          multipleExperiments = false;
+        }
+      }
+       
       foundJSONFiles.push_back(filePath);
     }
     itFiles++;
+  }
+  
+  if(foundJSONFiles.empty())
+  {
+    multipleExperiments = false;
   }
 
   registerFixtureInternal(true, "Baseline", true);
@@ -90,14 +111,12 @@ void DynamicBenchmark::registerFixtureInternal(
 {
   if (multipleExperiments)
   {
-    std::string benchmarkName = "multiple";
     std::map<int64_t, const boost::filesystem::path> paths;
     for (const auto& filePath : foundJSONFiles)
     {
-      benchmarkName = filePath.parent_path().stem().string() + "_" + corpus;
       // try to get a numerical ID from the file name
       std::string name = filePath.filename().stem().string();
-      auto id = std::strtol(name.c_str(), nullptr, 10);
+      auto id = std::stol(name);
       paths.insert({id, filePath});
     }
     addBenchmark(baseline, benchmarkName, paths, fixtureName, forceFallback, overrideImpl);
@@ -108,8 +127,8 @@ void DynamicBenchmark::registerFixtureInternal(
     {
       std::map<int64_t, const boost::filesystem::path> paths;
       paths.insert({0, filePath});
-      auto benchmarkName = filePath.stem().string() + "_" + corpus;
-      addBenchmark(baseline, benchmarkName, paths, fixtureName, forceFallback, overrideImpl);
+      auto subBenchmarkName = benchmarkName + "_" + filePath.stem().string();
+      addBenchmark(baseline, subBenchmarkName, paths, fixtureName, forceFallback, overrideImpl);
     }
   }
 }
@@ -168,7 +187,7 @@ void DynamicBenchmark::addBenchmark(
     }
   }
   std::shared_ptr<::celero::TestFixture> fixture(
-    new DynamicCorpusFixture(forceFallback, corpus, overrideImpl, allQueries,
+    new DynamicCorpusFixture(forceFallback, corpusPath, overrideImpl, allQueries,
     benchmarkName + " (" + fixtureName + ")",
     numberOfSamples,
     expectedCount));

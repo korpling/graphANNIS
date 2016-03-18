@@ -8,7 +8,7 @@
 namespace annis {
 
   struct DBCacheKey {
-    std::string corpus;
+    std::string corpusPath;
     bool forceFallback;
     std::map<Component, std::string> overrideImpl;
   };
@@ -20,7 +20,7 @@ namespace std {
   struct less<annis::DBCacheKey> {
 
     bool operator()(const struct annis::DBCacheKey &a, const struct annis::DBCacheKey &b) const {
-      ANNIS_STRUCT_COMPARE(a.corpus, b.corpus);
+      ANNIS_STRUCT_COMPARE(a.corpusPath, b.corpusPath);
       ANNIS_STRUCT_COMPARE(a.forceFallback, b.forceFallback);
       const auto& mapA = a.overrideImpl;
       const auto& mapB = b.overrideImpl;
@@ -56,9 +56,9 @@ namespace annis {
     DBCache();
     DBCache(const DBCache& orig) = delete;
 
-    DB& get(const std::string& corpus, bool forceFallback = false,
+    DB& get(const std::string& corpusPath, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
-      DBCacheKey key = {corpus, forceFallback, overrideImpl};
+      DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
       auto it = cache.find(key);
       if (it == cache.end()) {
         // cleanup the cache
@@ -70,9 +70,9 @@ namespace annis {
       return *(it->second);
     }
 
-    void release(const std::string& corpus, bool forceFallback = false,
+    void release(const std::string& corpusPath, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
-      release({corpus, forceFallback, overrideImpl});
+      release({corpusPath, forceFallback, overrideImpl});
     }
     
     void cleanup(std::set<DBCacheKey> ignore = std::set<DBCacheKey>()) {

@@ -25,16 +25,10 @@ std::unique_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
 //  std::cerr << "INIT DB " << key.corpus << " in " << (key.forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
   std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
 
-  char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
-  std::string dataDir("data");
-  if (testDataEnv != NULL) {
-    dataDir = testDataEnv;
-  }
-
   size_t oldProcessRss = getCurrentRSS();
-  bool loaded = result->load(dataDir + "/" + key.corpus);
+  bool loaded = result->load(key.corpusPath);
   if (!loaded) {
-    std::cerr << "FATAL ERROR: no load corpus " << key.corpus << std::endl;
+    std::cerr << "FATAL ERROR: coult not load corpus from " << key.corpusPath << std::endl;
     std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
     exit(-1);
   }

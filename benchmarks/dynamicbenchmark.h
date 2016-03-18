@@ -73,20 +73,20 @@ namespace annis {
 
     DynamicCorpusFixture(
             bool forceFallback,
-            std::string corpus,
+            std::string corpusPath,
             std::map<Component, std::string> overrideImpl,
             std::map<int64_t, std::string> json,
             std::string benchmarkName,
             unsigned int numberOfSamples,
             std::map<int64_t, unsigned int> expectedCount = std::map<int64_t, unsigned int>())
-    : forceFallback(forceFallback), corpus(corpus), overrideImpl(overrideImpl),
+    : forceFallback(forceFallback), corpusPath(corpusPath), overrideImpl(overrideImpl),
     json(json), benchmarkName(benchmarkName), counter(0),
     numberOfSamples(numberOfSamples), executionCounter(0),
     expectedCountByExp(expectedCount) {
     }
 
     const DB& getDB() {
-      return dbCache->get(corpus, forceFallback, overrideImpl);
+      return dbCache->get(corpusPath, forceFallback, overrideImpl);
     }
     
     virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const;
@@ -130,7 +130,7 @@ namespace annis {
   protected:
 
   private:
-    std::string corpus;
+    std::string corpusPath;
     bool forceFallback;
     std::map<Component, std::string> overrideImpl;
     std::map<int64_t, std::string> json;
@@ -165,7 +165,7 @@ namespace annis {
   class DynamicBenchmark {
   public:
 
-    DynamicBenchmark(std::string queriesDir, std::string corpusName, 
+    DynamicBenchmark(std::string queriesDir, std::string corpusPath, std::string benchmarkName,
        bool multipleExperiments=false);
 
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
@@ -190,7 +190,8 @@ namespace annis {
             );
 
   private:
-    std::string corpus;
+    std::string corpusPath;
+    std::string benchmarkName;
 
     std::list<boost::filesystem::path> foundJSONFiles;
     
