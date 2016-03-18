@@ -105,15 +105,14 @@ public:
     std::string line;
 
     std::getline(in, line);
-    std::stringstream lineStream(line);
-    std::string cell;
-
-    while(std::getline(lineStream, cell, '\t'))
+    if(!line.empty())
     {
-      boost::replace_all(cell, "\\\\", "\\");
-      boost::replace_all(cell, "\\t", "\t");
-      boost::replace_all(cell, "\\n", "\n");
-      result.push_back(cell);
+      boost::split(result, line, boost::is_any_of("\t"), boost::token_compress_off);
+
+      for(auto& cell : result)
+      {
+        boost::replace_all(cell, "\\\\", "\\");
+      }
     }
     return result;
   }
