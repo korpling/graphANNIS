@@ -82,7 +82,7 @@ namespace annis {
         for(auto it=cache.begin(); it != cache.end(); it++) {
           if(ignore.find(it->first) == ignore.end()) {
             release(it->first);
-            deletedSomething;
+            deletedSomething = true;
             break;
           }
         }
