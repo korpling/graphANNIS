@@ -25,6 +25,10 @@ include_directories(
   ${RE2_INCLUDE_DIR}
 )
 
+# make sure QtCreator shows the include files
+FILE(GLOB_RECURSE IncludeFiles "include/*.h")
+add_custom_target(headers SOURCES ${IncludeFiles})
+
 file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
   "src/lib/util/*.cpp" "src/lib/util/*.c"
   "src/lib/annosearch/*.cpp"
