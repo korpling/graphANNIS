@@ -62,6 +62,10 @@ void completion(const char *bufRaw, linenoiseCompletions *lc)
   {
     linenoiseAddCompletion(lc, "update_statistics");
   }
+  else if(boost::starts_with(buf, "m"))
+  {
+    linenoiseAddCompletion(lc, "memory");
+  }
 }
 
 int main(int argc, char** argv)

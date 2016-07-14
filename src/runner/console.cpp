@@ -1,6 +1,7 @@
 #include "console.h"
 
 #include <humblelogging/api.h>
+#include <iomanip>
 
 HUMBLE_LOGGER(logger, "default");
 
@@ -17,61 +18,63 @@ bool Console::execute(const std::string &cmd, const std::vector<std::string> &ar
 {
   try
   {
-    if(auto db = dbPtr.lock())
+    if (cmd == "import")
     {
-      if (cmd == "import")
-      {
-        import(args);
-      }
-      else if(cmd == "save")
-      {
-        save(args);
-      }
-      else if(cmd == "load")
-      {
-        load(args);
-      }
-      else if(cmd == "info")
-      {
-        info();
-      }
-      else if(cmd == "optimize")
-      {
-        optimize();
-      }
-      else if(cmd == "count")
-      {
-        count(args);
-      }
-      else if(cmd == "find")
-      {
-        find(args);
-      }
-      else if(cmd == "update_statistics")
-      {
-        updateStatistics();
-      }
-      else if(cmd == "guess")
-      {
-        guess(args);
-      }
-      else if(cmd == "guess_regex")
-      {
-        guessRegex(args);
-      }
-      else if(cmd == "plan")
-      {
-        plan(args);
-      }
-      else if (cmd == "quit" || cmd == "exit")
-      {
-        return true;
-      }
-      else
-      {
-        std::cout << "Unknown command \"" << cmd << "\"" << std::endl;
-      }
+      import(args);
     }
+    else if(cmd == "save")
+    {
+      save(args);
+    }
+    else if(cmd == "load")
+    {
+      load(args);
+    }
+    else if(cmd == "info")
+    {
+      info();
+    }
+    else if(cmd == "optimize")
+    {
+      optimize();
+    }
+    else if(cmd == "count")
+    {
+      count(args);
+    }
+    else if(cmd == "find")
+    {
+      find(args);
+    }
+    else if(cmd == "update_statistics")
+    {
+      updateStatistics();
+    }
+    else if(cmd == "guess")
+    {
+      guess(args);
+    }
+    else if(cmd == "guess_regex")
+    {
+      guessRegex(args);
+    }
+    else if(cmd == "plan")
+    {
+      plan(args);
+    }
+    else if(cmd == "memory")
+    {
+      memory();
+    }
+    else if (cmd == "quit" || cmd == "exit")
+    {
+      return true;
+    }
+    else
+    {
+      std::cout << "Unknown command \"" << cmd << "\"" << std::endl;
+    }
+
   }
   catch(std::string ex)
   {
@@ -115,18 +118,17 @@ void Console::save(const std::vector<std::string> &args)
 
 void Console::load(const std::vector<std::__cxx11::string> &args)
 {
-  if(auto db = dbPtr.lock())
+
+  if(args.size() > 0)
   {
-    if(args.size() > 0)
-    {
-      std::cout << "Loading from " << args[0] << std::endl;
-      dbPtr = dbCache.get(args[0]);
-    }
-    else
-    {
-      std::cout << "You have to give a path as argument" << std::endl;
-    }
+    std::cout << "Loading from " << args[0] << std::endl;
+    dbPtr = dbCache.get(args[0]);
   }
+  else
+  {
+    std::cout << "You have to give a path as argument" << std::endl;
+  }
+
 }
 
 void Console::info()
@@ -282,5 +284,21 @@ void Console::plan(const std::vector<std::string> &args)
       std::cout << "you need to give the query JSON as argument" << std::endl;
     }
   }
+}
+
+void Console::memory()
+{
+  for(auto it = dbCache.corpusSizes().begin();
+      it != dbCache.corpusSizes().end(); it++)
+
+  {
+    if(it->second > 0)
+    {
+      double corpusSizeMB = (double) it->second / (double) 1048576.0;
+      std::cout << it->first.corpusPath << ": " << corpusSizeMB << " MB" << std::endl;
+    }
+  }
+  double totalSize = (double) dbCache.size() / (double) 1048576.0;
+  std::cout << "Used total memory: "  << totalSize << " MB" << std::endl;
 }
 
