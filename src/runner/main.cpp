@@ -4,11 +4,13 @@
 
 #include "linenoise.h"
 #include <annis/db.h>
+#include <annis/DBCache.h>
 #include <annis/util/helper.h>
 #include <annis/json/jsonqueryparser.h>
 
 #include <humblelogging/api.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 using namespace std;
 
@@ -79,8 +81,14 @@ int main(int argc, char** argv)
   linenoiseHistoryLoad("annis4_history.txt");
   linenoiseSetCompletionCallback(completion);
 
+
   // our main database
-  annis::DB db;
+  boost::filesystem::path currentDBPath = boost::filesystem::unique_path(
+        boost::filesystem::temp_directory_path().string() + "/annis-temporary-workspace-%%%%-%%%%-%%%%-%%%%");
+  HL_INFO(logger, "Using " + currentDBPath.string() + " as temporary path");
+  annis::DBCache dbCache;
+
+  annis::DB& db = dbCache.get(currentDBPath.string());
 
 
   bool exit = false;

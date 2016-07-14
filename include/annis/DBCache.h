@@ -89,6 +89,9 @@ namespace annis {
       }
     }
 
+    size_t size() { return loadedDBSizeTotal;}
+    const std::map<DBCacheKey, size_t>& corpusSizes() const { return loadedDBSize;}
+
 
     virtual ~DBCache();
   private:

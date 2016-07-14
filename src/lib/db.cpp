@@ -38,13 +38,9 @@ bool DB::load(string dirPath)
   clear();
   addDefaultStrings();
 
-  HL_INFO(logger, "Start loading string storage");
   strings.load(dirPath);
-  HL_INFO(logger, "End loading string storage");
 
-  HL_INFO(logger, "Start loading node annotation storage");
   nodeAnnos.load(dirPath);
-  HL_INFO(logger, "End loading node annotation storage");
   
   ifstream in;
 
@@ -106,7 +102,6 @@ bool DB::load(string dirPath)
   } // end for each component
 
   // TODO: return false on failure
-  HL_INFO(logger, "Finished loading");
   return true;
 }
 
