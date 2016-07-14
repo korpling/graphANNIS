@@ -33,18 +33,27 @@ bool NodeAnnoStorage::load(std::string dirPath)
 {
   std::ifstream in;
   in.open(dirPath + "/nodeAnnotations.btree");
-  nodeAnnotations.restore(in);
-  in.close();
+  if(in.is_open())
+  {
+    nodeAnnotations.restore(in);
+    in.close();
+  }
 
   in.open(dirPath + "/inverseNodeAnnotations.btree");
-  inverseNodeAnnotations.restore(in);
-  in.close();
+  if(in.is_open())
+  {
+    inverseNodeAnnotations.restore(in);
+    in.close();
+  }
 
   in.open(dirPath + "/nodeAnnoKeys.archive");
-  boost::archive::binary_iarchive iaNodeAnnoKeys(in);
-  iaNodeAnnoKeys >> nodeAnnoKeys;
-  in.close();
-  
+  if(in.is_open())
+  {
+    boost::archive::binary_iarchive iaNodeAnnoKeys(in);
+    iaNodeAnnoKeys >> nodeAnnoKeys;
+    in.close();
+  }
+
   in.open(dirPath + "/histogramBounds.archive");
   if(in.is_open())
   {

@@ -90,15 +90,20 @@ bool StringStorage::load(const string &dirPath)
   ifstream in;
 
   in.open(dirPath + "/stringStorageByID.archive", ios::binary);
-  boost::archive::binary_iarchive iaByID(in);
-  iaByID >> stringStorageByID;
-  in.close();
+  if(in.is_open())
+  {
+    boost::archive::binary_iarchive iaByID(in);
+    iaByID >> stringStorageByID;
+    in.close();
+  }
 
   in.open(dirPath + "/stringStorageByValue.archive", ios::binary);
-  boost::archive::binary_iarchive iaByValue(in);
-  iaByValue >> stringStorageByValue;
-  in.close();
-
+  if(in.is_open())
+  {
+    boost::archive::binary_iarchive iaByValue(in);
+    iaByValue >> stringStorageByValue;
+    in.close();
+  }
   return true;
 }
 
