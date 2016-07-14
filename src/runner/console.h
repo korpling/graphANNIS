@@ -21,6 +21,18 @@ public:
 
   bool execute(const std::string& cmd, const std::vector<std::string>& args);
 
+  void import(const std::vector<std::string>& args);
+  void save(const std::vector<std::string>& args);
+  void load(const std::vector<std::string>& args);
+  void info();
+  void optimize();
+  void count(const std::vector<std::string>& args);
+  void find(const std::vector<std::string>& args);
+  void updateStatistics();
+  void guess(const std::vector<std::string>& args);
+  void guessRegex(const std::vector<std::string>& args);
+  void plan(const std::vector<std::string>& args);
+
 private:
   // our main database
   boost::filesystem::path currentDBPath;

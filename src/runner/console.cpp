@@ -21,162 +21,47 @@ bool Console::execute(const std::string &cmd, const std::vector<std::string> &ar
     {
       if (cmd == "import")
       {
-        if(args.size() > 0)
-        {
-          std::cout << "Import relANNIS from " << args[0] << std::endl;
-          db->loadRelANNIS(args[0]);
-        }
-        else
-        {
-          std::cout << "You have to give a path as argument" << std::endl;
-        }
+        import(args);
       }
       else if(cmd == "save")
       {
-        if(args.size() > 0)
-        {
-          std::cout << "Save to " << args[0] << std::endl;
-          db->save(args[0]);
-        }
-        else
-        {
-          std::cout << "You have to give a path as argument" << std::endl;
-        }
+        save(args);
       }
       else if(cmd == "load")
       {
-        if(args.size() > 0)
-        {
-          std::cout << "Loading from " << args[0] << std::endl;
-          dbPtr = dbCache.get(args[0]);
-        }
-        else
-        {
-          std::cout << "You have to give a path as argument" << std::endl;
-        }
+        load(args);
       }
       else if(cmd == "info")
       {
-        std::cout << db->info() << std::endl;
+        info();
       }
       else if(cmd == "optimize")
       {
-        std::cout << "Optimizing..." << std::endl;
-        db->optimizeAll();
-        std::cout << "Finished." << std::endl;
+        optimize();
       }
       else if(cmd == "count")
       {
-        if(args.size() > 0)
-        {
-          std::string json = boost::join(args, " ");
-          std::cout << "Counting..." << std::endl;
-          std::stringstream ss;
-          ss << json;
-          std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
-          int counter =0;
-          auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
-          while(q->next())
-          {
-            counter++;
-          }
-          auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
-          std::cout << counter << " matches in " << (endTime - startTime) << " ms" << std::endl;
-        }
-        else
-        {
-          std::cout << "you need to give the query JSON as argument" << std::endl;
-        }
+        count(args);
       }
       else if(cmd == "find")
       {
-        if(args.size() > 0)
-        {
-          std::string json = boost::join(args, " ");
-          std::cout << "Finding..." << std::endl;
-          std::stringstream ss;
-          ss << json;
-          std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
-          int counter =0;
-          while(q->next())
-          {
-            std::vector<annis::Match> m = q->getCurrent();
-            for(auto i = 0; i < m.size(); i++)
-            {
-              const auto& n = m[i];
-              std::cout << db->getNodeDebugName(n.node);
-              if(n.anno.ns != 0 && n.anno.name != 0 != 0)
-              {
-                std::cout << " " << db->strings.str(n.anno.ns)
-                  << "::" << db->strings.str(n.anno.name);
-              }
-              if(i < m.size()-1)
-              {
-               std::cout << ", ";
-              }
-            }
-            std::cout << std::endl;
-            counter++;
-          }
-          std::cout << counter << " matches" << std::endl;
-        }
-        else
-        {
-          std::cout << "you need to give the query JSON as argument" << std::endl;
-        }
+        find(args);
       }
       else if(cmd == "update_statistics")
       {
-        std::cout << "Updating statistics...";
-        db->nodeAnnos.calculateStatistics();
-        std::cout << " Done" << std::endl;
+        updateStatistics();
       }
       else if(cmd == "guess")
       {
-        if(args.size() == 3)
-        {
-          std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(args[0], args[1], args[2]) << std::endl;
-        }
-        else if(args.size() == 2)
-        {
-          std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(args[0], args[1]) << std::endl;
-        }
-        else
-        {
-          std::cout << "Must provide at two (name and value) or three (namespace name value) arguments" << std::endl;
-        }
+        guess(args);
       }
       else if(cmd == "guess_regex")
       {
-        if(args.size() == 3)
-        {
-          std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(args[0], args[1], args[2]) << std::endl;
-        }
-        else if(args.size() == 2)
-        {
-          std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(args[0], args[1]) << std::endl;
-        }
-        else
-        {
-          std::cout << "Must provide at two (name and regex) or three (namespace name regex) arguments" << std::endl;
-        }
+        guessRegex(args);
       }
       else if(cmd == "plan")
       {
-        if(args.size() > 0)
-        {
-          std::string json = boost::join(args, " ");
-          std::cout << "Planning..." << std::endl;
-          std::stringstream ss;
-          ss << json;
-          std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
-          std::cout << q->getBestPlan()->debugString() << std::endl;
-
-        }
-        else
-        {
-          std::cout << "you need to give the query JSON as argument" << std::endl;
-        }
+        plan(args);
       }
       else if (cmd == "quit" || cmd == "exit")
       {
@@ -195,3 +80,207 @@ bool Console::execute(const std::string &cmd, const std::vector<std::string> &ar
 
   return false;
 }
+
+void Console::import(const std::vector<std::string> &args)
+{
+  if(auto db = dbPtr.lock())
+  {
+    if(args.size() > 0)
+    {
+      std::cout << "Import relANNIS from " << args[0] << std::endl;
+      db->loadRelANNIS(args[0]);
+    }
+    else
+    {
+      std::cout << "You have to give a path as argument" << std::endl;
+    }
+  }
+}
+
+void Console::save(const std::vector<std::string> &args)
+{
+  if(auto db = dbPtr.lock())
+  {
+    if(args.size() > 0)
+    {
+      std::cout << "Save to " << args[0] << std::endl;
+      db->save(args[0]);
+    }
+    else
+    {
+      std::cout << "You have to give a path as argument" << std::endl;
+    }
+  }
+}
+
+void Console::load(const std::vector<std::__cxx11::string> &args)
+{
+  if(auto db = dbPtr.lock())
+  {
+    if(args.size() > 0)
+    {
+      std::cout << "Loading from " << args[0] << std::endl;
+      dbPtr = dbCache.get(args[0]);
+    }
+    else
+    {
+      std::cout << "You have to give a path as argument" << std::endl;
+    }
+  }
+}
+
+void Console::info()
+{
+  if(auto db = dbPtr.lock())
+  {
+    std::cout << db->info() << std::endl;
+  }
+}
+
+void Console::optimize()
+{
+  if(auto db = dbPtr.lock())
+  {
+    std::cout << "Optimizing..." << std::endl;
+    db->optimizeAll();
+    std::cout << "Finished." << std::endl;
+  }
+}
+
+void Console::count(const std::vector<std::string> &args)
+{
+  if(auto db = dbPtr.lock())
+  {
+    if(args.size() > 0)
+    {
+      std::string json = boost::join(args, " ");
+      std::cout << "Counting..." << std::endl;
+      std::stringstream ss;
+      ss << json;
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      int counter =0;
+      auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
+      while(q->next())
+      {
+        counter++;
+      }
+      auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+      std::cout << counter << " matches in " << (endTime - startTime) << " ms" << std::endl;
+    }
+    else
+    {
+      std::cout << "you need to give the query JSON as argument" << std::endl;
+    }
+  }
+}
+
+void Console::find(const std::vector<std::__cxx11::string> &args)
+{
+  if(auto db = dbPtr.lock())
+  {
+    if(args.size() > 0)
+    {
+      std::string json = boost::join(args, " ");
+      std::cout << "Finding..." << std::endl;
+      std::stringstream ss;
+      ss << json;
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      int counter =0;
+      while(q->next())
+      {
+        std::vector<annis::Match> m = q->getCurrent();
+        for(auto i = 0; i < m.size(); i++)
+        {
+          const auto& n = m[i];
+          std::cout << db->getNodeDebugName(n.node);
+          if(n.anno.ns != 0 && n.anno.name != 0 != 0)
+          {
+            std::cout << " " << db->strings.str(n.anno.ns)
+              << "::" << db->strings.str(n.anno.name);
+          }
+          if(i < m.size()-1)
+          {
+           std::cout << ", ";
+          }
+        }
+        std::cout << std::endl;
+        counter++;
+      }
+      std::cout << counter << " matches" << std::endl;
+    }
+    else
+    {
+      std::cout << "you need to give the query JSON as argument" << std::endl;
+    }
+  }
+}
+
+void Console::updateStatistics()
+{
+  if(auto db = dbPtr.lock())
+  {
+    std::cout << "Updating statistics...";
+    db->nodeAnnos.calculateStatistics();
+    std::cout << " Done" << std::endl;
+  }
+}
+
+void Console::guess(const std::vector<std::string> &args)
+{
+  if(auto db = dbPtr.lock())
+  {
+    if(args.size() == 3)
+    {
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(args[0], args[1], args[2]) << std::endl;
+    }
+    else if(args.size() == 2)
+    {
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(args[0], args[1]) << std::endl;
+    }
+    else
+    {
+      std::cout << "Must provide at two (name and value) or three (namespace name value) arguments" << std::endl;
+    }
+  }
+}
+
+void Console::guessRegex(const std::vector<std::string> &args)
+{
+  if(auto db = dbPtr.lock())
+  {
+    if(args.size() == 3)
+    {
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(args[0], args[1], args[2]) << std::endl;
+    }
+    else if(args.size() == 2)
+    {
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(args[0], args[1]) << std::endl;
+    }
+    else
+    {
+      std::cout << "Must provide at two (name and regex) or three (namespace name regex) arguments" << std::endl;
+    }
+  }
+}
+
+void Console::plan(const std::vector<std::string> &args)
+{
+  if(auto db = dbPtr.lock())
+  {
+    if(args.size() > 0)
+    {
+      std::string json = boost::join(args, " ");
+      std::cout << "Planning..." << std::endl;
+      std::stringstream ss;
+      ss << json;
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      std::cout << q->getBestPlan()->debugString() << std::endl;
+
+    }
+    else
+    {
+      std::cout << "you need to give the query JSON as argument" << std::endl;
+    }
+  }
+}
+
