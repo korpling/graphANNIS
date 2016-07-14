@@ -53,7 +53,7 @@ namespace annis {
 
   class DBCache {
   public:
-    DBCache();
+    DBCache(size_t maxSizeBytes=1073741824);
     DBCache(const DBCache& orig) = delete;
 
     DB& get(const std::string& corpusPath, bool forceFallback = false,
@@ -95,7 +95,7 @@ namespace annis {
     std::map<DBCacheKey, std::unique_ptr<DB>> cache;
     std::map<DBCacheKey, size_t> loadedDBSize;
     size_t loadedDBSizeTotal;
-    size_t maxLoadedDBSize;
+    const size_t maxLoadedDBSize;
     
   private:
     

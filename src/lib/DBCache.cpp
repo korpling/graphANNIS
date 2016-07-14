@@ -17,8 +17,8 @@ using namespace annis;
 
 extern "C" size_t getCurrentRSS( );
 
-DBCache::DBCache()
-: loadedDBSizeTotal(0), maxLoadedDBSize(1073741824) {
+DBCache::DBCache(size_t maxSizeBytes)
+: loadedDBSizeTotal(0), maxLoadedDBSize(maxSizeBytes) {
 }
 
 std::unique_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
