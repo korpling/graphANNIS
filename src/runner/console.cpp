@@ -292,7 +292,7 @@ void Console::memory()
       it != dbCache.corpusSizes().end(); it++)
 
   {
-    if(it->second > 0)
+    if(!it->first.corpusPath.empty())
     {
       double corpusSizeMB = (double) it->second / (double) 1048576.0;
       std::cout << it->first.corpusPath << ": " << corpusSizeMB << " MB" << std::endl;
