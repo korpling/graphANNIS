@@ -21,9 +21,9 @@ DBCache::DBCache(size_t maxSizeBytes)
 : loadedDBSizeTotal(0), maxLoadedDBSize(maxSizeBytes) {
 }
 
-std::unique_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
+std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
 //  std::cerr << "INIT DB " << key.corpus << " in " << (key.forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
-  std::unique_ptr<DB> result = std::unique_ptr<DB>(new DB());
+  std::shared_ptr<DB> result = std::make_shared<DB>();
 
   size_t oldProcessRss = getCurrentRSS();
   bool loaded = result->load(key.corpusPath);

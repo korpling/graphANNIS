@@ -85,7 +85,7 @@ namespace annis {
     expectedCountByExp(expectedCount) {
     }
 
-    const DB& getDB() {
+    const std::weak_ptr<DB> getDB() {
       return dbCache->get(corpusPath, forceFallback, overrideImpl);
     }
     
@@ -101,7 +101,11 @@ namespace annis {
       {
         // create query
         std::istringstream jsonAsStream(it->second);
-        q = JSONQueryParser::parse(getDB(), jsonAsStream);
+        if(auto dbPtr = getDB().lock())
+        {
+          const DB& db = *dbPtr ;
+          q = JSONQueryParser::parse(db, jsonAsStream);
+        }
       }
       auto itCount = expectedCountByExp.find(experimentValue);
       if(itCount == expectedCountByExp.end())

@@ -56,7 +56,7 @@ namespace annis {
     DBCache(size_t maxSizeBytes=1073741824);
     DBCache(const DBCache& orig) = delete;
 
-    DB& get(const std::string& corpusPath, bool forceFallback = false,
+    std::weak_ptr<DB> get(const std::string& corpusPath, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
       DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
       auto it = cache.find(key);
@@ -65,9 +65,9 @@ namespace annis {
         cleanup();
         // create a new one
         cache[key] = initDB(key);
-        return *cache[key];
+        return cache[key];
       }
-      return *(it->second);
+      return it->second;
     }
 
     void release(const std::string& corpusPath, bool forceFallback = false,
@@ -95,14 +95,14 @@ namespace annis {
 
     virtual ~DBCache();
   private:
-    std::map<DBCacheKey, std::unique_ptr<DB>> cache;
+    std::map<DBCacheKey, std::shared_ptr<DB>> cache;
     std::map<DBCacheKey, size_t> loadedDBSize;
     size_t loadedDBSizeTotal;
     const size_t maxLoadedDBSize;
     
   private:
     
-    std::unique_ptr<DB> initDB(const DBCacheKey& key);
+    std::shared_ptr<DB> initDB(const DBCacheKey& key);
     void release(DBCacheKey key) {
       cache.erase(key);
       auto itSize = loadedDBSize.find(key);
