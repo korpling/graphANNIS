@@ -141,7 +141,7 @@ int main(int argc, char** argv)
           if(args.size() > 0)
           {
             std::cout << "Loading from " << args[0] << std::endl;
-            db->load(args[0]);
+            dbPtr = dbCache.get(args[0]);
           }
           else
           {
