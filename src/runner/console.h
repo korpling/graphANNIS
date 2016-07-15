@@ -32,7 +32,7 @@ public:
   void guess(const std::vector<std::string>& args);
   void guessRegex(const std::vector<std::string>& args);
   void plan(const std::vector<std::string>& args);
-  void memory();
+  void memory(const std::vector<std::string> args);
 
 private:
   // our main database

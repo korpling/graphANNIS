@@ -74,6 +74,12 @@ namespace annis {
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
       release({corpusPath, forceFallback, overrideImpl});
     }
+
+    void releaseAll() {
+      cache.clear();
+      loadedDBSize.clear();
+      loadedDBSizeTotal = 0l;
+    }
     
     void cleanup(std::set<DBCacheKey> ignore = std::set<DBCacheKey>()) {
       bool deletedSomething = true;

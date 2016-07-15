@@ -64,7 +64,7 @@ bool Console::execute(const std::string &cmd, const std::vector<std::string> &ar
     }
     else if(cmd == "memory")
     {
-      memory();
+      memory(args);
     }
     else if (cmd == "quit" || cmd == "exit")
     {
@@ -286,19 +286,28 @@ void Console::plan(const std::vector<std::string> &args)
   }
 }
 
-void Console::memory()
+void Console::memory(const std::vector<std::string> args)
 {
-  for(auto it = dbCache.corpusSizes().begin();
-      it != dbCache.corpusSizes().end(); it++)
-
+  if(args.empty())
   {
-    if(!it->first.corpusPath.empty())
+    for(auto it = dbCache.corpusSizes().begin();
+        it != dbCache.corpusSizes().end(); it++)
+
     {
-      double corpusSizeMB = (double) it->second / (double) 1048576.0;
-      std::cout << it->first.corpusPath << ": " << corpusSizeMB << " MB" << std::endl;
+      if(!it->first.corpusPath.empty())
+      {
+        double corpusSizeMB = (double) it->second / (double) 1048576.0;
+        std::cout << it->first.corpusPath << ": " << corpusSizeMB << " MB" << std::endl;
+      }
     }
+    double totalSize = (double) dbCache.size() / (double) 1048576.0;
+    std::cout << "Used total memory: "  << totalSize << " MB" << std::endl;
   }
-  double totalSize = (double) dbCache.size() / (double) 1048576.0;
-  std::cout << "Used total memory: "  << totalSize << " MB" << std::endl;
+  else if(args[0] == "clear")
+  {
+    dbCache.releaseAll();
+    double totalSize = (double) dbCache.size() / (double) 1048576.0;
+    std::cout << "Used total memory: "  << totalSize << " MB" << std::endl;
+  }
 }
 
