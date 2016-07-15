@@ -12,7 +12,6 @@
 
 using namespace std;
 
-HUMBLE_LOGGER(logger, "default");
 
 void completion(const char *bufRaw, linenoiseCompletions *lc)
 {

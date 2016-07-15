@@ -174,6 +174,8 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
         wrapEmptyAnno);
     }
   }
+  // should never happen
+  assert(false);
 }
 
 void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::shared_ptr<Query> q,

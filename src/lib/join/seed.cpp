@@ -6,8 +6,9 @@ using namespace annis;
 AnnoKeySeedJoin::AnnoKeySeedJoin(const DB &db, std::shared_ptr<Operator> op, 
                     std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                    const std::set<AnnotationKey> &rightAnnoKeys)
-  : db(db), op(op), currentMatchValid(false),
-    left(lhs), lhsIdx(lhsIdx), rightAnnoKeys(rightAnnoKeys)
+  : db(db), op(op),
+    left(lhs), lhsIdx(lhsIdx), rightAnnoKeys(rightAnnoKeys),
+    currentMatchValid(false)
 {
 
 }
@@ -15,7 +16,6 @@ AnnoKeySeedJoin::AnnoKeySeedJoin(const DB &db, std::shared_ptr<Operator> op,
 bool AnnoKeySeedJoin::next(std::vector<Match>& tuple)
 {
   tuple.clear();
-  bool found = false;
 
   if(!currentMatchValid)
   {
@@ -131,8 +131,9 @@ bool AnnoKeySeedJoin::nextRightAnnotation()
 MaterializedSeedJoin::MaterializedSeedJoin(const DB &db, std::shared_ptr<Operator> op, 
                     std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                    const std::unordered_set<Annotation>& rightAnno)
-  : db(db), op(op), currentMatchValid(false),
-    left(lhs), lhsIdx(lhsIdx), right(rightAnno)
+  : db(db), op(op),
+    left(lhs), lhsIdx(lhsIdx), right(rightAnno),
+    currentMatchValid(false)
 {
 }
 

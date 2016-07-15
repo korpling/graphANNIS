@@ -24,6 +24,8 @@ bool EdgeAnnotationStorage::load(std::string dirPath)
   in.open(dirPath + "/edgeAnnotations.btree");
   edgeAnnotations.restore(in);
   in.close();
+
+  return true;
 }
 
 bool EdgeAnnotationStorage::save(std::string dirPath)
@@ -33,5 +35,6 @@ bool EdgeAnnotationStorage::save(std::string dirPath)
   edgeAnnotations.dump(out);
   out.close();
 
+  return true;
 }
 

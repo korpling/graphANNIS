@@ -75,7 +75,7 @@ DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
         std::string name = filePath.filename().stem().string();
         try
         {
-          long val = std::stol(name);
+          std::stol(name);
         }
         catch(std::invalid_argument invalid)
         {

@@ -68,7 +68,7 @@ target_link_libraries(${BENCHMARK_EXEC} celero ${PROJECT_NAME}  )
 ################################
 add_subdirectory(ext/gtest-1.7.0)
 enable_testing()
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR} "src/lib/")
+include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR} "src/lib/")
 
 file(GLOB TEST_SRC_LIST "tests/*.cpp" "tests/*.h")
 

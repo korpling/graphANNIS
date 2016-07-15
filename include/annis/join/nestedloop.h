@@ -30,9 +30,10 @@ namespace annis
     virtual void reset() override;
   private:
     std::shared_ptr<Operator> op;
-    bool initialized;
+
     const bool materializeInner;
     const bool leftIsOuter;
+    bool initialized;
     
     std::vector<Match> matchOuter;
     std::vector<Match> matchInner;

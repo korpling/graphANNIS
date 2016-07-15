@@ -191,11 +191,11 @@ void Console::find(const std::vector<std::__cxx11::string> &args)
       while(q->next())
       {
         std::vector<annis::Match> m = q->getCurrent();
-        for(auto i = 0; i < m.size(); i++)
+        for(size_t i = 0; i < m.size(); i++)
         {
           const auto& n = m[i];
           std::cout << db->getNodeDebugName(n.node);
-          if(n.anno.ns != 0 && n.anno.name != 0 != 0)
+          if(n.anno.ns != 0 && n.anno.name != 0)
           {
             std::cout << " " << db->strings.str(n.anno.ns)
               << "::" << db->strings.str(n.anno.name);

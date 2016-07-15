@@ -19,7 +19,7 @@ Inclusion::Inclusion(const DB &db)
 bool Inclusion::filter(const Match &lhs, const Match &rhs)
 {
   auto lhsTokenRange = tokHelper.leftRightTokenForNode(lhs.node);
-  int spanLength = spanLength = gsOrder->distance({lhsTokenRange.first, lhsTokenRange.second});
+  int spanLength = gsOrder->distance({lhsTokenRange.first, lhsTokenRange.second});
 
   auto rhsTokenRange = tokHelper.leftRightTokenForNode(rhs.node);
 

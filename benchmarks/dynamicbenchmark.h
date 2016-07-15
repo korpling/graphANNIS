@@ -134,15 +134,16 @@ namespace annis {
   protected:
 
   private:
-    std::string corpusPath;
+
     bool forceFallback;
+    std::string corpusPath;
     std::map<Component, std::string> overrideImpl;
     std::map<int64_t, std::string> json;
     std::shared_ptr<Query> q;
     std::string benchmarkName;
+    unsigned int counter;
     unsigned int numberOfSamples;
     unsigned int executionCounter;
-    unsigned int counter;
 
     std::map<int64_t, unsigned int> expectedCountByExp;
     boost::optional<unsigned int> expectedCount;

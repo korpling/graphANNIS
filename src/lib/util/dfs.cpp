@@ -8,7 +8,7 @@ DFS::DFS(const ReadableGraphStorage &gs,
                                                      std::uint32_t startNode,
                                                      unsigned int minDistance,
                                                      unsigned int maxDistance)
-  : gs(gs), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode)
+  : startNode(startNode), gs(gs), minDistance(minDistance), maxDistance(maxDistance)
 {
   // add the initial value to the stack
   traversalStack.push({startNode, 0});

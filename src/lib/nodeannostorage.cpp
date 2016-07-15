@@ -69,6 +69,8 @@ bool NodeAnnoStorage::load(std::string dirPath)
     iaNodeAnnotationKeyCount >> nodeAnnotationKeyCount;
     in.close();
   }
+
+  return true;
 }
 
 bool NodeAnnoStorage::save(std::string dirPath)
@@ -97,6 +99,8 @@ bool NodeAnnoStorage::save(std::string dirPath)
   boost::archive::binary_oarchive oaNodeAnnotationKeyCount(out);
   oaNodeAnnotationKeyCount << nodeAnnotationKeyCount;
   out.close();
+
+  return true;
 }
 
 void NodeAnnoStorage::clear()
@@ -151,7 +155,7 @@ void NodeAnnoStorage::calculateStatistics()
     }
     std::random_shuffle(annos.begin(), annos.end());
     valueList.resize(std::min<int>(maxSampledAnnotations, annos.size()));
-    for(int i=0; i < valueList.size(); i++)
+    for(size_t i=0; i < valueList.size(); i++)
     {
       valueList[i] = strings.str(annos[i].val);
     }
