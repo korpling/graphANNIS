@@ -13,6 +13,10 @@
 
 #include <annis/DBCache.h>
 
+#include <humblelogging/api.h>
+
+HUMBLE_LOGGER(logger, "default");
+
 using namespace annis;
 
 extern "C" size_t getCurrentVirtualMemory( );
@@ -44,8 +48,15 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
 
   auto newProcessMemory = getCurrentVirtualMemory();
 
-  size_t loadedSize = newProcessMemory > oldProcessMemory ? newProcessMemory - oldProcessMemory : 0;
-
+  size_t loadedSize = 0L;
+  if(newProcessMemory >  oldProcessMemory)
+  {
+    loadedSize = newProcessMemory - oldProcessMemory;
+  }
+  else
+  {
+    HL_WARN(logger, "Invalid size for new corpus");
+  }
   loadedDBSize[key] = loadedSize;
   loadedDBSizeTotal += loadedSize;
   
