@@ -15,17 +15,16 @@
 
 using namespace annis;
 
-extern "C" size_t getCurrentRSS( );
+extern "C" size_t getCurrentVirtualMemory( );
 
 DBCache::DBCache(size_t maxSizeBytes)
 : loadedDBSizeTotal(0), maxLoadedDBSize(maxSizeBytes) {
 }
 
 std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
-//  std::cerr << "INIT DB " << key.corpus << " in " << (key.forceFallback ? "fallback" : "default") << " mode" <<  std::endl;
   std::shared_ptr<DB> result = std::make_shared<DB>();
 
-  size_t oldProcessRss = getCurrentRSS();
+  auto oldProcessMemory = getCurrentVirtualMemory();
   bool loaded = result->load(key.corpusPath);
   if (!loaded) {
     std::cerr << "FATAL ERROR: coult not load corpus from " << key.corpusPath << std::endl;
@@ -42,9 +41,10 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
   } else {
     result->optimizeAll(key.overrideImpl);
   }
-  
-  size_t newProcessRss = getCurrentRSS();
-  size_t loadedSize = newProcessRss > oldProcessRss ? newProcessRss - oldProcessRss : 0;
+
+  auto newProcessMemory = getCurrentVirtualMemory();
+
+  size_t loadedSize = newProcessMemory > oldProcessMemory ? newProcessMemory - oldProcessMemory : 0;
 
   loadedDBSize[key] = loadedSize;
   loadedDBSizeTotal += loadedSize;

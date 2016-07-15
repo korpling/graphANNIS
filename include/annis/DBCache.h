@@ -103,6 +103,7 @@ namespace annis {
   private:
     
     std::shared_ptr<DB> initDB(const DBCacheKey& key);
+
     void release(DBCacheKey key) {
       cache.erase(key);
       auto itSize = loadedDBSize.find(key);
