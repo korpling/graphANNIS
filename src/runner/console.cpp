@@ -306,8 +306,7 @@ void Console::memory(const std::vector<std::string> args)
   else if(args[0] == "clear")
   {
     dbCache.releaseAll();
-    double totalSize = (double) dbCache.size() / (double) 1048576.0;
-    std::cout << "Used total memory: "  << totalSize << " MB" << std::endl;
+    std::cout << "Cleared cache" << std::endl;
   }
 }
 

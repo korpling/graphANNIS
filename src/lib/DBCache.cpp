@@ -52,6 +52,8 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
   if(newProcessMemory >  oldProcessMemory)
   {
     loadedSize = newProcessMemory - oldProcessMemory;
+    double usedSize = (double) loadedSize / (double) 1048576.0;
+    std::cout << "Used memory for corpus: "  << usedSize << " MB" << std::endl;
   }
   else
   {
