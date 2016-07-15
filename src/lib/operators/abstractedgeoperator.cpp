@@ -30,7 +30,7 @@ AbstractEdgeOperator::AbstractEdgeOperator(
 
 std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
 {
-  std::unique_ptr<ListWrapper> w = std::make_unique<ListWrapper>();
+  std::unique_ptr<ListWrapper> w = std::unique_ptr<ListWrapper>(new ListWrapper());
 
 
   // add the rhs nodes of all of the edge storages

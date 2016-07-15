@@ -55,7 +55,7 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
   if(includeToken && leftAligned.empty())
   {
     // we only need to return a single match
-    return std::make_unique<SingleElementWrapper>(Init::initMatch(anyNodeAnno, leftToken));
+    return std::unique_ptr<SingleElementWrapper>(new SingleElementWrapper(Init::initMatch(anyNodeAnno, leftToken)));
   }
   else if(!includeToken &&  leftAligned.size() == 1)
   {
@@ -63,7 +63,7 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
     auto candidateRight = gsRightToken->getOutgoingEdges(leftAligned[0])[0];
     if(candidateRight == rightToken)
     {
-      return std::make_unique<SingleElementWrapper>(Init::initMatch(anyNodeAnno, leftAligned[0]));
+      return std::unique_ptr<SingleElementWrapper>(new SingleElementWrapper(Init::initMatch(anyNodeAnno, leftAligned[0])));
     }
     else
     {
@@ -73,7 +73,7 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
   } // end shortcuts
   
   // use the ListWrapper as default case for matches with more than one result
-  std::unique_ptr<ListWrapper> w = std::make_unique<ListWrapper> ();
+  std::unique_ptr<ListWrapper> w = std::unique_ptr<ListWrapper>(new ListWrapper());
   
   // add the connected token itself as a match the span covers only one token
   if(includeToken)

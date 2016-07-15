@@ -2,6 +2,12 @@ project(ANNIS4)
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
+set(needed_features
+  cxx_auto_type
+  cxx_override
+  cxx_nullptr
+  cxx_long_long_type)
+
 set(BuildShared OFF CACHE BOOL "")
 add_subdirectory(ext/humblelogging-3.0.1)
 
@@ -39,15 +45,13 @@ file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
 )
 file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "-std=c++14")
-endif()
-
 add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
+target_compile_features(${PROJECT_NAME} PRIVATE ${needed_features})
 target_link_libraries(${PROJECT_NAME} humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 
 add_executable("a4_runner" ${SRC_LIST_RUNNER})
+target_compile_features("a4_runner" PRIVATE ${needed_features})
 target_link_libraries("a4_runner" humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${PROJECT_NAME})
 
 
@@ -56,6 +60,7 @@ set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
 include_directories(SYSTEM "ext/Celero-2.0.2/include/")
 include_directories("src/lib/")
 add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
+target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
 target_link_libraries(${BENCHMARK_EXEC} celero ${PROJECT_NAME}  )
 
 ################################
@@ -69,5 +74,6 @@ file(GLOB TEST_SRC_LIST "tests/*.cpp" "tests/*.h")
 
 set(TEST_EXEC "test_${PROJECT_NAME}")
 add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
+target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
 target_link_libraries(${TEST_EXEC} ${PROJECT_NAME} gtest gtest_main)
 add_test( ${TEST_EXEC} ${TEST_EXEC} )

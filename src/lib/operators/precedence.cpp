@@ -16,7 +16,7 @@ Precedence::Precedence(const DB &db, unsigned int minDistance, unsigned int maxD
 
 std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
 {
-  std::unique_ptr<ListWrapper> w = std::make_unique<ListWrapper>();
+  std::unique_ptr<ListWrapper> w = std::unique_ptr<ListWrapper>(new ListWrapper());
 
   nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
   std::unique_ptr<EdgeIterator> edgeIterator = gsOrder->findConnected(lhsRightToken,
