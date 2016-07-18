@@ -8,6 +8,7 @@ HUMBLE_LOGGER(logger, "default");
 using namespace annis;
 
 Console::Console()
+ : dbCache(1073741824l*8l)
 {
   currentDBPath = boost::filesystem::unique_path(
           boost::filesystem::temp_directory_path().string() + "/annis-temporary-workspace-%%%%-%%%%-%%%%-%%%%");

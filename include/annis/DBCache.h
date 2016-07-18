@@ -5,6 +5,10 @@
 #include <map>
 #include <memory>
 
+#if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+  #include <malloc.h>
+#endif // LINUX
+
 namespace annis {
 
   struct DBCacheKey {
@@ -79,6 +83,14 @@ namespace annis {
       cache.clear();
       loadedDBSize.clear();
       loadedDBSizeTotal = 0l;
+
+      #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+        // HACK: to make the estimates accurate we have to give back the used memory after each release
+        if(malloc_trim(0) != 1)
+        {
+          std::cerr << "Could not release overhead memory." << std::endl;
+        }
+      #endif // LINUX
     }
     
     void cleanup(std::set<DBCacheKey> ignore = std::set<DBCacheKey>()) {
@@ -118,6 +130,14 @@ namespace annis {
         loadedDBSize.erase(itSize);
         loadedDBSizeTotal -= oldSize;
       }
+
+      #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+        // HACK: to make the estimates accurate we have to give back the used memory after each release
+        if(malloc_trim(0) != 1)
+        {
+          std::cerr << "Could not release overhead memory." << std::endl;
+        }
+      #endif // LINUX
     }
   };
 

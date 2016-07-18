@@ -19,6 +19,7 @@ HUMBLE_LOGGER(logger, "default");
 
 using namespace annis;
 
+extern "C" size_t getCurrentRSS( );
 extern "C" size_t getCurrentVirtualMemory( );
 
 DBCache::DBCache(size_t maxSizeBytes)
@@ -28,7 +29,7 @@ DBCache::DBCache(size_t maxSizeBytes)
 std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
   std::shared_ptr<DB> result = std::make_shared<DB>();
 
-  auto oldProcessMemory = getCurrentVirtualMemory();
+  auto oldProcessMemory = getCurrentRSS();
   bool loaded = result->load(key.corpusPath);
   if (!loaded) {
     std::cerr << "FATAL ERROR: coult not load corpus from " << key.corpusPath << std::endl;
@@ -46,7 +47,7 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
     result->optimizeAll(key.overrideImpl);
   }
 
-  auto newProcessMemory = getCurrentVirtualMemory();
+  auto newProcessMemory = getCurrentRSS();
 
   size_t loadedSize = 0L;
   if(newProcessMemory >  oldProcessMemory)
