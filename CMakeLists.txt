@@ -23,8 +23,11 @@ find_package(Re2 REQUIRED)
 find_package (Threads REQUIRED)
 
 include_directories(
-  SYSTEM
   "include"
+)
+
+include_directories(
+  SYSTEM
   "ext/humblelogging-3.0.1/include"
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}

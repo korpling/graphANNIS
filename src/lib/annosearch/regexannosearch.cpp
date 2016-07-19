@@ -66,14 +66,14 @@ bool RegexAnnoSearch::next(Match& result)
     {
       while(it != currentRange->second)
       {
-        if(RE2::FullMatch(db.strings.str(it.key().val), compiledValRegex))
+        if(RE2::FullMatch(db.strings.str(it->first.val), compiledValRegex))
         {
-          result = {it.data(), it.key()};
+          result = {it->second, it->first};
           it++;
           return true;
         }
         // skip to the next available key (we don't want to iterate over each value of the multimap)
-        it = db.nodeAnnos.inverseNodeAnnotations.upper_bound(it.key());
+        it = db.nodeAnnos.inverseNodeAnnotations.upper_bound(it->first);
 
       } // end for each item in search range
       currentRange++;

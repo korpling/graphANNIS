@@ -1,14 +1,15 @@
 #pragma once
 
 #include "annotationsearch.h"
-#include <stx/btree_map>
+
+#include <boost/container/flat_map.hpp>
 
 namespace annis
 {
 
 class ExactAnnoValueSearch : public AnnotationSearch
 {
-  using ItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
+  using ItType = boost::container::flat_multimap<Annotation, nodeid_t>::const_iterator;
   using Range = std::pair<ItType, ItType>;
 
 public:

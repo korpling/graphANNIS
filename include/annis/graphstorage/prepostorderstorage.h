@@ -260,7 +260,6 @@ public:
 
   virtual void copy(const DB& db, const ReadableGraphStorage& orig)
   {
-    using ItType = stx::btree_set<Edge>::const_iterator;
     clear();
 
     // find all roots of the component

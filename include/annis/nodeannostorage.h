@@ -7,12 +7,12 @@
 
 #pragma once
 
-#include <stx/btree_map>
-#include <stx/btree_multimap>
 #include <set>
 #include <list>
 #include <memory>
+
 #include <boost/optional.hpp>
+#include <boost/container/flat_map.hpp>
 
 #include <annis/types.h>
 #include <annis/stringstorage.h>
@@ -20,11 +20,17 @@
 #include "iterators.h"
 
 namespace annis {
-  
+
+  namespace bc = boost::container;
+
+
   class AnnotationSearch;
   
   class NodeAnnoStorage
   {
+
+
+
     friend class DB;
     friend class ExactAnnoValueSearch;
     friend class ExactAnnoKeySearch;
@@ -37,14 +43,35 @@ namespace annis {
 
     void addNodeAnnotation(nodeid_t nodeID, Annotation& anno)
     {
-      nodeAnnotations.insert2({nodeID, anno.name, anno.ns}, anno.val);
-      inverseNodeAnnotations.insert2(anno, nodeID);
+      nodeAnnotations.insert(std::pair<NodeAnnotationKey, uint32_t>({nodeID, anno.name, anno.ns}, anno.val));
+      inverseNodeAnnotations.insert(std::pair<Annotation, nodeid_t>(anno, nodeID));
       nodeAnnoKeys.insert({anno.name, anno.ns});
+    }
+
+    void addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKey, uint32_t>> annos)
+    {
+      annos.sort();
+      nodeAnnotations.reserve(nodeAnnotations.size() + annos.size());
+      nodeAnnotations.insert(bc::ordered_unique_range, annos.begin(), annos.end());
+
+      std::list<std::pair<Annotation, nodeid_t>> inverseAnnos;
+
+      for(const auto& entry : annos)
+      {
+        const NodeAnnotationKey& key = entry.first;
+        inverseAnnos.push_back(std::pair<Annotation, nodeid_t>({key.anno_ns, key.anno_name, entry.second}, key.node));
+        nodeAnnoKeys.insert({key.anno_name, key.anno_ns});
+      }
+
+      inverseAnnos.sort();
+
+      inverseNodeAnnotations.reserve(inverseNodeAnnotations.size() + inverseAnnos.size());
+      inverseNodeAnnotations.insert(bc::ordered_range, inverseAnnos.begin(), inverseAnnos.end());
     }
 
     inline std::list<Annotation> getNodeAnnotationsByID(const nodeid_t &id) const
     {
-      typedef stx::btree_map<NodeAnnotationKey, uint32_t>::const_iterator AnnoIt;
+      typedef bc::flat_map<NodeAnnotationKey, uint32_t>::const_iterator AnnoIt;
 
       NodeAnnotationKey lowerAnno = {id, 0, 0};
       NodeAnnotationKey upperAnno = {id, uintmax, uintmax};
@@ -58,8 +85,8 @@ namespace annis {
       for (AnnoIt it = itRange.first;
         it != itRange.second; it++)
       {
-        const auto& key = it.key();
-        result.push_back({key.anno_name, key.anno_ns, it.data()});
+        const auto& key = it->first;
+        result.push_back({key.anno_name, key.anno_ns, it->second});
       }
 
       return result;
@@ -75,7 +102,7 @@ namespace annis {
         {
           true,
           {
-            nameID, nsID, it.data()
+            nameID, nsID, it->second
           }
         };
       }
@@ -121,8 +148,8 @@ namespace annis {
     /**
      * @brief Maps a fully qualified annotation name for a node to an annotation value
      */
-    stx::btree_map<NodeAnnotationKey, uint32_t> nodeAnnotations;
-    stx::btree_multimap<Annotation, nodeid_t> inverseNodeAnnotations;
+    boost::container::flat_map<NodeAnnotationKey, uint32_t> nodeAnnotations;
+    boost::container::flat_multimap<Annotation, nodeid_t> inverseNodeAnnotations;
     std::set<AnnotationKey> nodeAnnoKeys;
 
     StringStorage& strings;

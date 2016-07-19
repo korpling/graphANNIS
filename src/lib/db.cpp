@@ -273,72 +273,77 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
     HL_ERROR(logger, msg);
     return false;
   }
-  vector<string> line;
-  while((line = Helper::nextCSV(in)).size() > 0)
+
+  std::list<std::pair<NodeAnnotationKey, uint32_t>> annoList;
+
   {
-    uint32_t nodeNr;
-    stringstream nodeNrStream(line[0]);
-    nodeNrStream >> nodeNr;
-
-    bool hasSegmentations = line.size() > 10;
-    string tokenIndexRaw = line[7];
-    uint32_t textID = Helper::uint32FromString(line[1]);
-    uint32_t corpusID = Helper::uint32FromString(line[2]);
-
-    Annotation nodeNameAnno;
-    nodeNameAnno.ns = strings.add(annis_ns);
-    nodeNameAnno.name = strings.add(annis_node_name);
-    nodeNameAnno.val = strings.add(line[4]);
-    nodeAnnos.addNodeAnnotation(nodeNr, nodeNameAnno);
-
-    Annotation documentNameAnno;
-    documentNameAnno.ns = strings.add(annis_ns);
-    documentNameAnno.name = strings.add("document");
-    documentNameAnno.val = corpusIDToName[corpusID];
-    nodeAnnos.addNodeAnnotation(nodeNr, documentNameAnno);
-
-    TextProperty left;
-    left.val = Helper::uint32FromString(line[5]);
-    left.textID = textID;
-
-    TextProperty right;
-    right.val = Helper::uint32FromString(line[6]);
-    right.textID = textID;
-
-    if(tokenIndexRaw != "NULL")
+    vector<string> line;
+    while((line = Helper::nextCSV(in)).size() > 0)
     {
-      string span = hasSegmentations ? line[12] : line[9];
+      uint32_t nodeNr;
+      stringstream nodeNrStream(line[0]);
+      nodeNrStream >> nodeNr;
 
-      Annotation tokAnno;
-      tokAnno.ns = strings.add(annis_ns);
-      tokAnno.name = strings.add(annis_tok);
-      tokAnno.val = strings.add(span);
-      nodeAnnos.addNodeAnnotation(nodeNr, tokAnno);
+      bool hasSegmentations = line.size() > 10;
+      string tokenIndexRaw = line[7];
+      uint32_t textID = Helper::uint32FromString(line[1]);
+      uint32_t corpusID = Helper::uint32FromString(line[2]);
 
-      TextProperty index;
-      index.val = Helper::uint32FromString(tokenIndexRaw);
-      index.textID = textID;
+      Annotation nodeNameAnno;
+      nodeNameAnno.ns = strings.add(annis_ns);
+      nodeNameAnno.name = strings.add(annis_node_name);
+      nodeNameAnno.val = strings.add(line[4]);
+      annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeNameAnno.name, nodeNameAnno.ns }, nodeNameAnno.val));
 
-      tokenByIndex[index] = nodeNr;
 
-      TextProperty textPos;
-      textPos.textID = textID;
-      for(uint32_t i=left.val; i <= right.val; i++)
+      Annotation documentNameAnno;
+      documentNameAnno.ns = strings.add(annis_ns);
+      documentNameAnno.name = strings.add("document");
+      documentNameAnno.val = corpusIDToName[corpusID];
+      annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, documentNameAnno.name, documentNameAnno.ns }, documentNameAnno.val));
+
+      TextProperty left;
+      left.val = Helper::uint32FromString(line[5]);
+      left.textID = textID;
+
+      TextProperty right;
+      right.val = Helper::uint32FromString(line[6]);
+      right.textID = textID;
+
+      if(tokenIndexRaw != "NULL")
       {
-        textPos.val = i;
-        tokenByTextPosition[textPos] = nodeNr;
-      }
+        string span = hasSegmentations ? line[12] : line[9];
 
-    } // end if token
+        Annotation tokAnno;
+        tokAnno.ns = strings.add(annis_ns);
+        tokAnno.name = strings.add(annis_tok);
+        tokAnno.val = strings.add(span);
+        annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, tokAnno.name, tokAnno.ns }, tokAnno.val));
 
-    leftToNode.insert(pair<TextProperty, uint32_t>(left, nodeNr));
-    rightToNode.insert(pair<TextProperty, uint32_t>(right, nodeNr));
-    nodeToLeft[nodeNr] = left.val;
-    nodeToRight[nodeNr] = right.val;
+        TextProperty index;
+        index.val = Helper::uint32FromString(tokenIndexRaw);
+        index.textID = textID;
 
+        tokenByIndex[index] = nodeNr;
+
+        TextProperty textPos;
+        textPos.textID = textID;
+        for(uint32_t i=left.val; i <= right.val; i++)
+        {
+          textPos.val = i;
+          tokenByTextPosition[textPos] = nodeNr;
+        }
+
+      } // end if token
+
+      leftToNode.insert(pair<TextProperty, uint32_t>(left, nodeNr));
+      rightToNode.insert(pair<TextProperty, uint32_t>(right, nodeNr));
+      nodeToLeft[nodeNr] = left.val;
+      nodeToRight[nodeNr] = right.val;
+    }
+
+    in.close();
   }
-
-  in.close();
 
   // TODO: cleanup, better variable naming and put this into it's own function
   // iterate over all token by their order, find the nodes with the same
@@ -426,23 +431,31 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
     }
   }
 
-  string nodeAnnoTabPath = dirPath + "/node_annotation"  + (isANNIS33Format ? ".annis" : ".tab");
-  HL_INFO(logger, (boost::format("loading %1%") % nodeAnnoTabPath).str());
-
-  in.open(nodeAnnoTabPath, ifstream::in);
-  if(!in.good()) return false;
-
-  while((line = Helper::nextCSV(in)).size() > 0)
   {
-    u_int32_t nodeNr = Helper::uint32FromString(line[0]);
-    Annotation anno;
-    anno.ns = strings.add(line[1]);
-    anno.name = strings.add(line[2]);
-    anno.val = strings.add(line[3]);
-    nodeAnnos.addNodeAnnotation(nodeNr, anno);
+    string nodeAnnoTabPath = dirPath + "/node_annotation"  + (isANNIS33Format ? ".annis" : ".tab");
+    HL_INFO(logger, (boost::format("loading %1%") % nodeAnnoTabPath).str());
+
+    in.open(nodeAnnoTabPath, ifstream::in);
+    if(!in.good()) return false;
+
+    vector<string> line;
+    while((line = Helper::nextCSV(in)).size() > 0)
+    {
+      NodeAnnotationKey key;
+      key.node = Helper::uint32FromString(line[0]);
+      key.anno_ns = strings.add(line[1]);
+      key.anno_name = strings.add(line[2]);
+
+      uint32_t annoVal = strings.add(line[3]);
+      annoList.push_back({key, annoVal});
+    }
+
+    in.close();
   }
 
-  in.close();
+  HL_INFO(logger, "bulk inserting node annotations");
+  nodeAnnos.addNodeAnnotationBulk(annoList);
+
   return true;
 }
 

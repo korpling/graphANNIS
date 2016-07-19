@@ -51,8 +51,8 @@ bool ExactAnnoValueSearch::next(Match& result)
 {
   if(currentRange != searchRanges.end() && it != currentRange->second)
   {
-    result.node = it.data(); // node ID
-    result.anno = it.key(); // annotation itself
+    result.node = it->second; // node ID
+    result.anno = it->first; // annotation itself
     it++;
     if(it == currentRange->second)
     {
@@ -85,7 +85,7 @@ void ExactAnnoValueSearch::initializeValidAnnotations()
   {
     for(ItType annoIt = range.first; annoIt != range.second; annoIt++)
     {
-      validAnnotations.insert(annoIt.key());
+      validAnnotations.insert(annoIt->first);
     }
   }
 
@@ -100,7 +100,7 @@ std::int64_t ExactAnnoValueSearch::guessMaxCount() const
   {
     if(range.first != range.second)
     {
-      const Annotation& anno = range.first.key();
+      const Annotation& anno = range.first->first;
       const std::string val = db.strings.str(anno.val);
       sum += db.nodeAnnos.guessMaxCount(anno.ns, anno.name, val, val);
     }

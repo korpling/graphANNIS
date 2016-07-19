@@ -10,7 +10,7 @@ namespace annis
 
   class RegexAnnoSearch : public AnnotationSearch
   {
-    using AnnoItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
+    using AnnoItType = boost::container::flat_multimap<Annotation, nodeid_t>::const_iterator;
     using Range = std::pair<AnnoItType, AnnoItType>;
 
   public:

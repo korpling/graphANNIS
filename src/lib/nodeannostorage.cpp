@@ -17,12 +17,17 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/set.hpp>
 #include <boost/serialization/map.hpp>
+#include <boost/serialization/forward_list.hpp>
 #include <boost/serialization/vector.hpp>
 #include <random>
 
 #include "annis/annosearch/annotationsearch.h"
 
+#include <annis/serializers.h>
+
+
 using namespace annis;
+
 
 NodeAnnoStorage::NodeAnnoStorage(StringStorage& strings)
 : strings(strings)
@@ -32,17 +37,19 @@ NodeAnnoStorage::NodeAnnoStorage(StringStorage& strings)
 bool NodeAnnoStorage::load(std::string dirPath)
 {
   std::ifstream in;
-  in.open(dirPath + "/nodeAnnotations.btree");
+  in.open(dirPath + "/nodeAnnotations.archive");
   if(in.is_open())
   {
-    nodeAnnotations.restore(in);
+    boost::archive::binary_iarchive iaNodeAnnotations(in);
+    iaNodeAnnotations >> nodeAnnotations;
     in.close();
   }
 
-  in.open(dirPath + "/inverseNodeAnnotations.btree");
+  in.open(dirPath + "/inverseNodeAnnotations.archive");
   if(in.is_open())
   {
-    inverseNodeAnnotations.restore(in);
+    boost::archive::binary_iarchive iaInverseNodeAnnotations(in);
+    iaInverseNodeAnnotations >> inverseNodeAnnotations;
     in.close();
   }
 
@@ -77,12 +84,14 @@ bool NodeAnnoStorage::save(std::string dirPath)
 {
   std::ofstream out;
 
-  out.open(dirPath + "/nodeAnnotations.btree");
-  nodeAnnotations.dump(out);
+  out.open(dirPath + "/nodeAnnotations.archive");
+  boost::archive::binary_oarchive oaNodeAnnotations(out);
+  oaNodeAnnotations << nodeAnnotations;
   out.close();
 
-  out.open(dirPath + "/inverseNodeAnnotations.btree");
-  inverseNodeAnnotations.dump(out);
+  out.open(dirPath + "/inverseNodeAnnotations.archive");
+  boost::archive::binary_oarchive oaIiverseNodeAnnotations(out);
+  oaIiverseNodeAnnotations << inverseNodeAnnotations;
   out.close();
 
   out.open(dirPath + "/nodeAnnoKeys.archive");
@@ -141,7 +150,7 @@ void NodeAnnoStorage::calculateStatistics()
     std::vector<Annotation> annos;
     for(auto it=inverseNodeAnnotations.lower_bound(minAnno); it != itUpperBound; it++)
     {
-      annos.push_back(it.key());
+      annos.push_back(it->first);
       auto itKeyCount = nodeAnnotationKeyCount.find(annoKey);
       if(itKeyCount == nodeAnnotationKeyCount.end())
       {
