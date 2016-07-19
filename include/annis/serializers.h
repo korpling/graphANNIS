@@ -117,6 +117,8 @@ inline void load(Archive & ar, boost::container::flat_map<Key, Type, Compare, Al
       }
   }
 
+  s.shrink_to_fit();
+
 }
 
 template<class Archive, class Type, class Key, class Compare, class Allocator >
@@ -168,6 +170,8 @@ inline void load(Archive & ar, boost::container::flat_multimap<Key, Type, Compar
         buffer.clear();
       }
   }
+
+  s.shrink_to_fit();
 }
 template<class Archive, class Type, class Key, class Compare, class Allocator >
 inline void serialize(Archive & ar,boost::container::flat_multimap<Key, Type, Compare, Allocator> &t, const unsigned int file_version){
@@ -216,6 +220,8 @@ inline void load(Archive & ar, boost::container::flat_set<Key, Compare, Allocato
         buffer.clear();
       }
   }
+
+  s.shrink_to_fit();
 }
 // split non-intrusive serialization function member into separate
 // non intrusive save/load member functions
