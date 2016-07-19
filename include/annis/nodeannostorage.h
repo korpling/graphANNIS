@@ -41,6 +41,10 @@ namespace annis {
     NodeAnnoStorage(StringStorage& strings);
     NodeAnnoStorage(const NodeAnnoStorage& orig) = delete;
 
+    template<typename Key, typename Value> using map_t = bc::flat_map<Key, Value>;
+
+    template<typename Key, typename Value>using multimap_t = bc::flat_multimap<Key, Value>;
+
     void addNodeAnnotation(nodeid_t nodeID, Annotation& anno)
     {
       nodeAnnotations.insert(std::pair<NodeAnnotationKey, uint32_t>({nodeID, anno.name, anno.ns}, anno.val));
@@ -48,30 +52,11 @@ namespace annis {
       nodeAnnoKeys.insert({anno.name, anno.ns});
     }
 
-    void addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKey, uint32_t>> annos)
-    {
-      annos.sort();
-      nodeAnnotations.reserve(nodeAnnotations.size() + annos.size());
-      nodeAnnotations.insert(bc::ordered_unique_range, annos.begin(), annos.end());
-
-      std::list<std::pair<Annotation, nodeid_t>> inverseAnnos;
-
-      for(const auto& entry : annos)
-      {
-        const NodeAnnotationKey& key = entry.first;
-        inverseAnnos.push_back(std::pair<Annotation, nodeid_t>({key.anno_ns, key.anno_name, entry.second}, key.node));
-        nodeAnnoKeys.insert({key.anno_name, key.anno_ns});
-      }
-
-      inverseAnnos.sort();
-
-      inverseNodeAnnotations.reserve(inverseNodeAnnotations.size() + inverseAnnos.size());
-      inverseNodeAnnotations.insert(bc::ordered_range, inverseAnnos.begin(), inverseAnnos.end());
-    }
+    void addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKey, uint32_t>> annos);
 
     inline std::list<Annotation> getNodeAnnotationsByID(const nodeid_t &id) const
     {
-      typedef bc::flat_map<NodeAnnotationKey, uint32_t>::const_iterator AnnoIt;
+      using AnnoIt =  NodeAnnoMap_t::const_iterator;
 
       NodeAnnotationKey lowerAnno = {id, 0, 0};
       NodeAnnotationKey upperAnno = {id, uintmax, uintmax};
@@ -145,11 +130,16 @@ namespace annis {
 
     virtual ~NodeAnnoStorage();
   private:
+
     /**
      * @brief Maps a fully qualified annotation name for a node to an annotation value
      */
-    boost::container::flat_map<NodeAnnotationKey, uint32_t> nodeAnnotations;
-    boost::container::flat_multimap<Annotation, nodeid_t> inverseNodeAnnotations;
+    using NodeAnnoMap_t = map_t<NodeAnnotationKey, uint32_t>;
+    NodeAnnoMap_t nodeAnnotations;
+
+    using InverseNodeAnnoMap_t = multimap_t<Annotation, nodeid_t>;
+    InverseNodeAnnoMap_t inverseNodeAnnotations;
+
     std::set<AnnotationKey> nodeAnnoKeys;
 
     StringStorage& strings;
