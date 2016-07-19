@@ -113,7 +113,7 @@ public:
           const auto& currentPost = currentNode.key().post;
           const auto& currentLevel = currentNode.key().level;
 
-          int diffLevel = currentLevel - startLevel;
+          unsigned int diffLevel = std::abs(currentLevel - startLevel);
 
           // check post order and level as well
           if(currentPost <= maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance
@@ -171,9 +171,10 @@ public:
   private:
 
     const PrePostOrderStorageSpec& storage;
+    const nodeid_t startNode;
     const unsigned int minDistance;
     const unsigned int maxDistance;
-    const nodeid_t startNode;
+
 
     std::stack<SearchRangeSpec, std::list<SearchRangeSpec> > ranges;
     OrderIt currentNode;
@@ -371,7 +372,7 @@ public:
            && itTarget->second.post <= itSource->second.post)
         {
           // check the level
-          int diffLevel = (itTarget->second.level - itSource->second.level);
+          unsigned int diffLevel = std::abs(itTarget->second.level - itSource->second.level);
           if(minDistance <= diffLevel && diffLevel <= maxDistance)
           {
             return true;
