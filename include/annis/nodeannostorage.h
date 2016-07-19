@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <map>
 #include <set>
 #include <list>
 #include <memory>
@@ -14,6 +15,8 @@
 #include <boost/optional.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
+#include <boost/container/map.hpp>
+#include <boost/container/set.hpp>
 
 #include <annis/types.h>
 #include <annis/stringstorage.h>
@@ -46,7 +49,7 @@ namespace annis {
 
     template<typename Key, typename Value>using multimap_t = bc::flat_multimap<Key, Value>;
 
-    template<typename Value>using set_t = bc::flat_set<Value>;
+    template<typename Value>using set_t = std::set<Value>;
 
     using NodeAnnoMap_t = map_t<NodeAnnotationKey, uint32_t>;
     using InverseNodeAnnoMap_t = multimap_t<Annotation, nodeid_t>;

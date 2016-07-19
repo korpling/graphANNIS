@@ -2,14 +2,14 @@
 
 #include "annotationsearch.h"
 
-#include <boost/container/flat_map.hpp>
+#include <annis/nodeannostorage.h>
 
 namespace annis
 {
 
 class ExactAnnoValueSearch : public AnnotationSearch
 {
-  using ItType = boost::container::flat_multimap<Annotation, nodeid_t>::const_iterator;
+  using ItType = NodeAnnoStorage::InverseNodeAnnoMap_t::const_iterator;
   using Range = std::pair<ItType, ItType>;
 
 public:

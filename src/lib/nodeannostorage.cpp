@@ -37,8 +37,7 @@ NodeAnnoStorage::NodeAnnoStorage(StringStorage& strings)
 void NodeAnnoStorage::addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKey, uint32_t> > annos)
 {
   annos.sort();
-  nodeAnnotations.reserve(nodeAnnotations.size() + annos.size());
-  nodeAnnotations.insert(bc::ordered_unique_range, annos.begin(), annos.end());
+  nodeAnnotations.insert(annos.begin(), annos.end());
 
   std::list<std::pair<Annotation, nodeid_t>> inverseAnnos;
   std::list<AnnotationKey> annoKeyList;
@@ -52,10 +51,8 @@ void NodeAnnoStorage::addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKe
 
   inverseAnnos.sort();
 
-  inverseNodeAnnotations.reserve(inverseNodeAnnotations.size() + inverseAnnos.size());
   inverseNodeAnnotations.insert(bc::ordered_range, inverseAnnos.begin(), inverseAnnos.end());
 
-  nodeAnnoKeys.reserve(nodeAnnoKeys.size() + annoKeyList.size());
   nodeAnnoKeys.insert(annoKeyList.begin(), annoKeyList.end());
 
 }

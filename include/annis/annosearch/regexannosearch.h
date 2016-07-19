@@ -3,6 +3,8 @@
 #include "annotationsearch.h"
 #include "exactannokeysearch.h"
 
+#include <annis/nodeannostorage.h>
+
 #include <re2/re2.h>
 
 namespace annis
@@ -10,7 +12,7 @@ namespace annis
 
   class RegexAnnoSearch : public AnnotationSearch
   {
-    using AnnoItType = boost::container::flat_multimap<Annotation, nodeid_t>::const_iterator;
+    using AnnoItType = NodeAnnoStorage::InverseNodeAnnoMap_t::const_iterator;
     using Range = std::pair<AnnoItType, AnnoItType>;
 
   public:
