@@ -41,18 +41,23 @@ void NodeAnnoStorage::addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKe
   nodeAnnotations.insert(bc::ordered_unique_range, annos.begin(), annos.end());
 
   std::list<std::pair<Annotation, nodeid_t>> inverseAnnos;
+  std::list<AnnotationKey> annoKeyList;
 
   for(const auto& entry : annos)
   {
     const NodeAnnotationKey& key = entry.first;
     inverseAnnos.push_back(std::pair<Annotation, nodeid_t>({key.anno_ns, key.anno_name, entry.second}, key.node));
-    nodeAnnoKeys.insert({key.anno_name, key.anno_ns});
+    annoKeyList.push_back({key.anno_name, key.anno_ns});
   }
 
   inverseAnnos.sort();
 
   inverseNodeAnnotations.reserve(inverseNodeAnnotations.size() + inverseAnnos.size());
   inverseNodeAnnotations.insert(bc::ordered_range, inverseAnnos.begin(), inverseAnnos.end());
+
+  nodeAnnoKeys.reserve(nodeAnnoKeys.size() + annoKeyList.size());
+  nodeAnnoKeys.insert(annoKeyList.begin(), annoKeyList.end());
+
 }
 
 bool NodeAnnoStorage::load(std::string dirPath)

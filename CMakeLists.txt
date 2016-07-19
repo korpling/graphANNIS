@@ -36,7 +36,6 @@ include_directories(
 
 # make sure QtCreator shows the include files
 FILE(GLOB_RECURSE IncludeFiles "include/*.h")
-add_custom_target(headers SOURCES ${IncludeFiles})
 
 file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
   "src/lib/util/*.cpp" "src/lib/util/*.c"
@@ -48,7 +47,7 @@ file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
 )
 file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
 
-add_library(${PROJECT_NAME} ${SRC_LIST_LIB})
+add_library(${PROJECT_NAME} ${SRC_LIST_LIB} ${IncludeFiles})
 target_compile_features(${PROJECT_NAME} PRIVATE ${needed_features})
 target_link_libraries(${PROJECT_NAME} humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 

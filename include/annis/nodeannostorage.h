@@ -13,6 +13,7 @@
 
 #include <boost/optional.hpp>
 #include <boost/container/flat_map.hpp>
+#include <boost/container/flat_set.hpp>
 
 #include <annis/types.h>
 #include <annis/stringstorage.h>
@@ -44,6 +45,12 @@ namespace annis {
     template<typename Key, typename Value> using map_t = bc::flat_map<Key, Value>;
 
     template<typename Key, typename Value>using multimap_t = bc::flat_multimap<Key, Value>;
+
+    template<typename Value>using set_t = bc::flat_set<Value>;
+
+    using NodeAnnoMap_t = map_t<NodeAnnotationKey, uint32_t>;
+    using InverseNodeAnnoMap_t = multimap_t<Annotation, nodeid_t>;
+
 
     void addNodeAnnotation(nodeid_t nodeID, Annotation& anno)
     {
@@ -134,13 +141,10 @@ namespace annis {
     /**
      * @brief Maps a fully qualified annotation name for a node to an annotation value
      */
-    using NodeAnnoMap_t = map_t<NodeAnnotationKey, uint32_t>;
     NodeAnnoMap_t nodeAnnotations;
-
-    using InverseNodeAnnoMap_t = multimap_t<Annotation, nodeid_t>;
     InverseNodeAnnoMap_t inverseNodeAnnotations;
 
-    std::set<AnnotationKey> nodeAnnoKeys;
+    set_t<AnnotationKey> nodeAnnoKeys;
 
     StringStorage& strings;
     

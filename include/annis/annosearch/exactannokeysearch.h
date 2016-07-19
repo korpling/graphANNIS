@@ -1,14 +1,15 @@
 #pragma once
 
 #include <annis/annosearch/annotationsearch.h>
+#include <annis/nodeannostorage.h>
 
 namespace annis
 {
 
 class ExactAnnoKeySearch : public AnnotationKeySearch
 {
-  using ItAnnoNode = boost::container::flat_multimap<Annotation, nodeid_t>::const_iterator;
-  using ItAnnoKey = std::set<AnnotationKey>::const_iterator;
+  using ItAnnoNode = NodeAnnoStorage::InverseNodeAnnoMap_t::const_iterator;
+  using ItAnnoKey = NodeAnnoStorage::set_t<AnnotationKey>::const_iterator;
 
 public:
   /**
