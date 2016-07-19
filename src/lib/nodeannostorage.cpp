@@ -46,7 +46,7 @@ void NodeAnnoStorage::addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKe
   for(const auto& entry : annos)
   {
     const NodeAnnotationKey& key = entry.first;
-    inverseAnnos.push_back(std::pair<Annotation, nodeid_t>({key.anno_ns, key.anno_name, entry.second}, key.node));
+    inverseAnnos.push_back(std::pair<Annotation, nodeid_t>({key.anno_name, key.anno_ns, entry.second}, key.node));
     annoKeyList.push_back({key.anno_name, key.anno_ns});
   }
 
