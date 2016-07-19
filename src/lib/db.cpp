@@ -5,6 +5,10 @@
 #include <sstream>
 #include <limits>
 
+#if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+#include <malloc.h>
+#endif // LINUX
+
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
@@ -100,6 +104,7 @@ bool DB::load(string dirPath)
       } // for each layers
     }
   } // end for each component
+
 
   // TODO: return false on failure
   return true;
@@ -211,6 +216,11 @@ bool DB::loadRelANNIS(string dirPath)
   {
     convertComponent(c);
   }
+
+  #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+  malloc_trim(0);
+  #endif // LINUX
+
   HL_INFO(logger, "Finished loading relANNIS");
   return result;
 }
