@@ -48,10 +48,10 @@ namespace annis {
     NodeAnnoStorage(StringStorage& strings);
     NodeAnnoStorage(const NodeAnnoStorage& orig) = delete;
 
-    template<typename Key, typename Value> using map_t  = stx::btree_map<Key, Value>;
-    template<typename Key, typename Value> using multimap_t  = stx::btree_multimap<Key, Value>;
+    template<typename Key, typename Value> using map_t  = bc::flat_map<Key, Value>;
+    template<typename Key, typename Value> using multimap_t  = bc::flat_multimap<Key, Value>;
 
-    template<typename Value>using set_t = std::set<Value>;
+    template<typename Value> using set_t = bc::flat_set<Value>;
 
     using NodeAnnoMap_t = map_t<NodeAnnotationKey, uint32_t>;
     using InverseNodeAnnoMap_t = multimap_t<Annotation, nodeid_t>;
