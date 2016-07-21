@@ -1,5 +1,7 @@
 #pragma once
 
+#include <google/btree_map.h>
+
 #include <stx/btree_map>
 #include <stx/btree_multimap>
 #include <stx/btree_set>
@@ -15,6 +17,24 @@
 
 namespace boost{
 namespace serialization{
+
+////////////////////
+/// Google BTree ///
+////////////////////
+
+template<class Archive, class Type, class Key, class Compare, class Allocator >
+inline void save(Archive & ar, const btree::btree_map<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */)
+{
+  boost::serialization::stl::save_collection<Archive, btree::btree_map<Key, Type, Compare, Allocator> >(ar, t);
+}
+template<class Archive, class Type, class Key, class Compare, class Allocator >
+inline void load(Archive & ar, btree::btree_map<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */){
+  load_map_collection(ar, t);
+}
+template<class Archive, class Type, class Key, class Compare, class Allocator >
+inline void serialize(Archive & ar, btree::btree_map<Key, Type, Compare, Allocator> &t, const unsigned int file_version){
+  boost::serialization::split_free(ar, t, file_version);
+}
 
 ///////////
 /// STX ///

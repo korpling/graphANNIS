@@ -16,7 +16,6 @@ set(CELERO_ENABLE_EXPERIMENTS OFF CACHE BOOL "Set to ON to automatically build a
 set(CELERO_COMPILE_DYNAMIC_LIBRARIES OFF CACHE BOOL "Set to ON to build Celero for dynamic linking.  Use OFF for static.")
 add_subdirectory(ext/Celero-2.0.2)
 
-
 find_package(ICU 4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
 find_package(Re2 REQUIRED)
@@ -29,6 +28,7 @@ include_directories(
 include_directories(
   SYSTEM
   "ext/humblelogging-3.0.1/include"
+  "ext/cpp-btree-1.0.1/"
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIR}
