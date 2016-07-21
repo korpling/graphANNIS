@@ -1,9 +1,7 @@
 #pragma once
 
 #include <string>
-#include <stx/btree_map>
-#include <stx/btree_multimap>
-#include <stx/btree_set>
+#include <google/btree_map.h>
 #include <cstdint>
 #include <iostream>
 #include <sstream>

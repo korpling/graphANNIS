@@ -477,7 +477,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
                           const map<uint32_t, WriteableGraphStorage*>& componentToEdgeGS,
                           bool isANNIS33Format)
 {
-  typedef stx::btree_map<uint32_t, uint32_t>::const_iterator UintMapIt;
+  typedef btree::btree_map<uint32_t, uint32_t>::const_iterator UintMapIt;
   typedef map<uint32_t, WriteableGraphStorage*>::const_iterator ComponentIt;
   bool result = true;
 
@@ -495,12 +495,12 @@ bool DB::loadRelANNISRank(const string &dirPath,
   const size_t parentPos = isANNIS33Format ? 5 : 4;
   
   // first run: collect all pre-order values for a node
-  stx::btree_map<uint32_t, uint32_t> pre2NodeID;
+  btree::btree_map<uint32_t, uint32_t> pre2NodeID;
   map<uint32_t, Edge> pre2Edge;
 
   while((line = Helper::nextCSV(in)).size() > 0)
   {
-    pre2NodeID.insert2(Helper::uint32FromString(line[0]),Helper::uint32FromString(line[nodeRefPos]));
+    pre2NodeID.insert({Helper::uint32FromString(line[0]),Helper::uint32FromString(line[nodeRefPos])});
   }
 
   in.close();

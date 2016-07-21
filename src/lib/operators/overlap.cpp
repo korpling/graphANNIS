@@ -1,7 +1,8 @@
 #include <annis/operators/overlap.h>
 #include <annis/wrapper.h>
 
-#include <stx/btree_set>
+#include <unordered_set>
+
 using namespace annis;
 
 Overlap::Overlap(const DB &db)
@@ -17,7 +18,7 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
 {
   std::unique_ptr<ListWrapper> w = std::unique_ptr<ListWrapper>(new ListWrapper());
 
-  stx::btree_set<nodeid_t> uniqueResultSet;
+  std::unordered_set<nodeid_t> uniqueResultSet;
 
   // get covered token of lhs
   std::unique_ptr<EdgeIterator> coveredByLeftIt
