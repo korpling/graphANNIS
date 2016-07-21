@@ -217,6 +217,9 @@ bool DB::loadRelANNIS(string dirPath)
     convertComponent(c);
   }
 
+  HL_INFO(logger, "Updating statistics");
+  nodeAnnos.calculateStatistics();
+
   #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
   malloc_trim(0);
   #endif // LINUX

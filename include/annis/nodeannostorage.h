@@ -39,9 +39,6 @@ namespace annis {
   
   class NodeAnnoStorage
   {
-
-
-
     friend class DB;
     friend class ExactAnnoValueSearch;
     friend class ExactAnnoKeySearch;
@@ -52,7 +49,7 @@ namespace annis {
     NodeAnnoStorage(StringStorage& strings);
     NodeAnnoStorage(const NodeAnnoStorage& orig) = delete;
 
-    template<typename Key, typename Value> using map_t  = btree::btree_map<Key, Value>;
+    template<typename Key, typename Value> using map_t  = bc::flat_map<Key, Value>;
     template<typename Key, typename Value> using multimap_t  = bc::flat_multimap<Key, Value>;
     template<typename Value> using set_t = bc::flat_set<Value>;
 
