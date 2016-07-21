@@ -400,6 +400,17 @@ inline void serialize(
   ar & t.val;
 }
 
+template<class Archive>
+inline void serialize(
+    Archive & ar,
+    annis::Edge & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.source;
+  ar & t.target;
+}
+
 } // end namespace serialization
 } // end namespace boost
 

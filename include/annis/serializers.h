@@ -1,6 +1,7 @@
 #pragma once
 
 #include <google/btree_map.h>
+#include <google/btree_set.h>
 
 #include <stx/btree_map>
 #include <stx/btree_multimap>
