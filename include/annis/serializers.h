@@ -22,6 +22,8 @@ namespace serialization{
 /// Google BTree ///
 ////////////////////
 
+// map (based on STL)
+
 template<class Archive, class Type, class Key, class Compare, class Allocator >
 inline void save(Archive & ar, const btree::btree_map<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */)
 {
@@ -33,6 +35,37 @@ inline void load(Archive & ar, btree::btree_map<Key, Type, Compare, Allocator> &
 }
 template<class Archive, class Type, class Key, class Compare, class Allocator >
 inline void serialize(Archive & ar, btree::btree_map<Key, Type, Compare, Allocator> &t, const unsigned int file_version){
+  boost::serialization::split_free(ar, t, file_version);
+}
+
+// multimap (based on STL)
+
+template<class Archive, class Type, class Key, class Compare, class Allocator >
+inline void save(Archive & ar, const btree::btree_multimap<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */)
+{
+  boost::serialization::stl::save_collection<Archive, btree::btree_multimap<Key, Type, Compare, Allocator> >(ar, t);
+}
+template<class Archive, class Type, class Key, class Compare, class Allocator >
+inline void load(Archive & ar, btree::btree_multimap<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */){
+  load_map_collection(ar, t);
+}
+template<class Archive, class Type, class Key, class Compare, class Allocator >
+inline void serialize(Archive & ar, btree::btree_multimap<Key, Type, Compare, Allocator> &t, const unsigned int file_version){
+  boost::serialization::split_free(ar, t, file_version);
+}
+
+//  set (based on STL)
+template<class Archive, class Key, class Compare >
+inline void save(Archive & ar, const btree::btree_set<Key, Compare> &t, const unsigned int /* file_version */){
+  boost::serialization::stl::save_collection<Archive, btree::btree_set<Key, Compare>>(ar, t);
+}
+template<class Archive, class Key, class Compare >
+inline void load(Archive & ar, btree::btree_set<Key, Compare> &t, const unsigned int /* file_version */){
+  load_set_collection(ar, t);
+}
+
+template<class Archive, class Type, class Key, class Compare >
+inline void serialize(Archive & ar, btree::btree_set<Key, Type, Compare> &t, const unsigned int file_version){
   boost::serialization::split_free(ar, t, file_version);
 }
 

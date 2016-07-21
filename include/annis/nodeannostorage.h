@@ -16,6 +16,7 @@
 #include <stx/btree_multimap>
 
 #include <google/btree_map.h>
+#include <google/btree_set.h>
 
 #include <boost/optional.hpp>
 #include <boost/container/flat_map.hpp>
@@ -51,9 +52,9 @@ namespace annis {
     NodeAnnoStorage(const NodeAnnoStorage& orig) = delete;
 
     template<typename Key, typename Value> using map_t  = btree::btree_map<Key, Value>;
-    template<typename Key, typename Value> using multimap_t  = bc::flat_multimap<Key, Value>;
+    template<typename Key, typename Value> using multimap_t  = btree::btree_multimap<Key, Value>;
 
-    template<typename Value> using set_t = bc::flat_set<Value>;
+    template<typename Value> using set_t = btree::btree_set<Value>;
 
     using NodeAnnoMap_t = map_t<NodeAnnotationKey, uint32_t>;
     using InverseNodeAnnoMap_t = multimap_t<Annotation, nodeid_t>;
