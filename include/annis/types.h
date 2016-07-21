@@ -411,6 +411,17 @@ inline void serialize(
   ar & t.target;
 }
 
+template<class Archive, typename T>
+inline void serialize(
+    Archive & ar,
+    annis::RelativePosition<T> & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.root;
+  ar & t.pos;
+}
+
 } // end namespace serialization
 } // end namespace boost
 
