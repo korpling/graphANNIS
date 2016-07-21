@@ -7,8 +7,7 @@
 #include <annis/annosearch/exactannokeysearch.h>
 
 #include <set>
-#include <stx/btree_map>
-#include <stx/btree_multimap>
+#include <google/btree_map.h>
 #include <stack>
 #include <list>
 
@@ -18,7 +17,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/map.hpp>
 
-
+#include <annis/serializers.h>
 
 namespace annis
 {
@@ -31,6 +30,24 @@ struct PrePost
   level_t level;
 };
 } // end namespace annis
+
+namespace boost
+{
+namespace serialization
+{
+template<class Archive, typename order_t, typename level_t>
+inline void serialize(
+    Archive & ar,
+    annis::PrePost<order_t, level_t> & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.level;
+  ar & t.pre;
+  ar & t.post;
+}
+}
+}
 
 namespace std
 {
@@ -61,8 +78,8 @@ namespace annis
 template<typename order_t, typename level_t>
 struct SearchRange
 {
-  typename stx::btree_map<PrePost<order_t, level_t>, nodeid_t>::const_iterator lower;
-  typename stx::btree_map<PrePost<order_t, level_t>, nodeid_t>::const_iterator upper;
+  typename btree::btree_map<PrePost<order_t, level_t>, nodeid_t>::const_iterator lower;
+  typename btree::btree_map<PrePost<order_t, level_t>, nodeid_t>::const_iterator upper;
   order_t maximumPost;
   level_t startLevel;
 };
@@ -80,11 +97,18 @@ class PrePostOrderStorage : public ReadableGraphStorage
 
 public:
 
+  template<typename Key, typename Value>
+  using map_t = btree::btree_map<Key, Value>;
+
+  template<typename Key, typename Value>
+  using multimap_t = btree::btree_multimap<Key, Value>;
+
   class PrePostIterator : public EdgeIterator
   {
+
     using PrePostOrderStorageSpec = PrePostOrderStorage<order_t, level_t>;
     using SearchRangeSpec = SearchRange<order_t, level_t>;
-    using OrderIt = typename stx::btree_map<PrePost<order_t, level_t>, nodeid_t>::const_iterator;
+    using OrderIt = typename map_t<PrePost<order_t, level_t>, nodeid_t>::const_iterator;
   public:
 
     PrePostIterator(const PrePostOrderStorageSpec& storage,
@@ -117,11 +141,11 @@ public:
 
           // check post order and level as well
           if(currentPost <= maximumPost && minDistance <= diffLevel && diffLevel <= maxDistance
-             && visited.find(currentNode.data()) == visited.end())
+             && visited.find(currentNode->second) == visited.end())
           {
             // success
             result.first = true;
-            result.second = currentNode.data();
+            result.second = currentNode->second;
 
             visited.insert(result.second);
 
@@ -179,7 +203,7 @@ public:
     std::stack<SearchRangeSpec, std::list<SearchRangeSpec> > ranges;
     OrderIt currentNode;
 
-    stx::btree_set<nodeid_t> visited;
+    std::unordered_set<nodeid_t> visited;
 
   private:
     void init()
@@ -229,13 +253,29 @@ public:
     bool result = edgeAnno.load(dirPath);
     std::ifstream in;
 
-    in.open(dirPath + "/node2order.btree", std::ios::binary);
-    result = result && node2order.restore(in);
-    in.close();
+    in.open(dirPath + "/node2order.archive", std::ios::binary);
+    if(in.is_open())
+    {
+      boost::archive::binary_iarchive iaNode2Order(in);
+      iaNode2Order >> node2order;
+      in.close();
+    }
+    else
+    {
+      result = false;
+    }
 
-    in.open(dirPath + "/order2node.btree", std::ios::binary);
-    result = result && order2node.restore(in);
-    in.close();
+    in.open(dirPath + "/order2node.archive", std::ios::binary);
+    if(in.is_open())
+    {
+      boost::archive::binary_iarchive iaOrder2node(in);
+      iaOrder2node >> order2node;
+      in.close();
+    }
+    else
+    {
+      result = false;
+    }
 
     return result;
   }
@@ -248,12 +288,14 @@ public:
 
     std::ofstream out;
 
-    out.open(dirPath + "/node2order.btree", std::ios::binary);
-    node2order.dump(out);
+    out.open(dirPath + "/node2order.archive", std::ios::binary);
+    boost::archive::binary_oarchive oaNode2Order(out);
+    oaNode2Order << node2order;
     out.close();
 
-    out.open(dirPath + "/order2node.btree", std::ios::binary);
-    order2node.dump(out);
+    out.open(dirPath + "/order2node.archive", std::ios::binary);
+    boost::archive::binary_oarchive oaOrder2Node(out);
+    oaOrder2Node << order2node;
     out.close();
 
     return result;
@@ -455,8 +497,8 @@ public:
 
 private:
   const Component& component;
-  stx::btree_multimap<nodeid_t, PrePostSpec> node2order;
-  stx::btree_map<PrePostSpec, nodeid_t> order2node;
+  multimap_t<nodeid_t, PrePostSpec> node2order;
+  map_t<PrePostSpec, nodeid_t> order2node;
   EdgeAnnotationStorage edgeAnno;
 
   void enterNode(order_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, level_t level, NStack &nodeStack)
@@ -475,7 +517,7 @@ private:
     auto& entry = nodeStack.top();
     entry.order.post = currentOrder++;
 
-    node2order.insert2(entry.id, entry.order);
+    node2order.insert({entry.id, entry.order});
     order2node[entry.order] = entry.id;
 
     nodeStack.pop();
