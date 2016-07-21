@@ -44,7 +44,7 @@ bench_desc <- function(d) {
 
 bench_plot <- function(d) {
   h <- sort(d$Baseline)
-  result <- barplot(h, main=paste("speedup distribution"), log="y")
+  result <- barplot(h, main=paste("speedup distribution"), log="y", ylim=c(min(h),max(h) * 10 ))
   lines(x=c(0, max(result)), y=c(1.0, 1.0), col="red")
   lines(x=c(0, max(result)), y=c(0.1, 0.1), col="blue", lty=2)
   lines(x=c(0, max(result)), y=c(0.01, 0.01), col="green", lty=3)
