@@ -93,11 +93,17 @@ double Inclusion::selectivity()
   }
   else
   {
-    // The fan-out is the selectivity for the number of covered token.
-    // Use a constant that dependends on the number of token to estimate the number of included
-    // nodes.
-    // TODO: which statistics do we need to calculate the better number?
-    return statsCov.avgFanOut * 0.5; 
+    // The fan-out is the selectivity for the number of covered token n.
+    // A node B is included in A if each covered token of B is also covered in A.
+
+    double numOfSpans = statsCov.nodes - statsOrder.nodes;
+    double p_anyTokenInA = statsCov.avgFanOut / numOfSpans;
+
+    double numOfToken = statsOrder.avgFanOut;
+
+    double p_allTokenInA = std::pow(p_anyTokenInA, numOfToken);
+
+    return p_allTokenInA;
   }
 }
 
