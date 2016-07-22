@@ -3,7 +3,7 @@
 #include <annis/wrapper.h>
 #include <annis/util/comparefunctions.h>
 
-#include <unordered_set>
+#include <google/btree_set.h>
 
 using namespace annis;
 
@@ -49,7 +49,7 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
   }
   else if(gs.size() > 1)
   {
-    std::unordered_set<nodeid_t> uniqueResult;
+    btree::btree_set<nodeid_t> uniqueResult;
     for(auto e : gs)
     {
       std::unique_ptr<EdgeIterator> it = e->findConnected(lhs.node, minDistance, maxDistance);

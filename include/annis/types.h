@@ -231,7 +231,8 @@ template <>
 class hash<annis::Annotation>{
 public :
   size_t operator()(const annis::Annotation &a ) const{
-    return hash<uint32_t>()(a.ns) ^ hash<uint32_t>()(a.name) ^ hash<uint32_t>()(a.val);
+    static hash<uint32_t> hash_uint32;
+    return hash_uint32(a.ns) ^ hash_uint32(a.name) ^ hash_uint32(a.val);
   }
 };
 

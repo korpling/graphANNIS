@@ -8,6 +8,7 @@
 
 #include <set>
 #include <google/btree_map.h>
+#include <google/btree_set.h>
 #include <stack>
 #include <list>
 
@@ -203,7 +204,7 @@ public:
     std::stack<SearchRangeSpec, std::list<SearchRangeSpec> > ranges;
     OrderIt currentNode;
 
-    std::unordered_set<nodeid_t> visited;
+    btree::btree_set<nodeid_t> visited;
 
   private:
     void init()

@@ -11,6 +11,8 @@
 #include <fstream>
 #include <limits>
 
+#include <google/btree_set.h>
+
 using namespace annis;
 using namespace std;
 
@@ -205,11 +207,11 @@ void AdjacencyListStorage::calculateStatistics()
   unsigned int sumFanOut = 0;
 
 
-  std::unordered_set<nodeid_t> hasIncomingEdge;
+  btree::btree_set<nodeid_t> hasIncomingEdge;
 
   // find all root nodes
-  unordered_set<nodeid_t> roots;
-  unordered_set<nodeid_t> allNodes;
+  btree::btree_set<nodeid_t> roots;
+  btree::btree_set<nodeid_t> allNodes;
   for(const auto& e : edges)
   {
     roots.insert(e.source);
