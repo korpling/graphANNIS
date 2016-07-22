@@ -84,10 +84,14 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
   for(const auto& candidate : leftAligned)
   {
     // check if also right aligned
-    auto candidateRight = gsRightToken->getOutgoingEdges(candidate)[0];
-    if(candidateRight == rightToken)
+    std::vector<nodeid_t>  outEdges = gsRightToken->getOutgoingEdges(candidate);
+    if(!outEdges.empty())
     {
-      w->addMatch({candidate, anyNodeAnno});
+      auto candidateRight = outEdges[0];
+      if(candidateRight == rightToken)
+      {
+        w->addMatch({candidate, anyNodeAnno});
+      }
     }
   }
 
