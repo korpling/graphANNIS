@@ -15,9 +15,11 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include <annis/serializers.h>
+
 #include <boost/format.hpp>
 
-#include <stx/btree_map>
+#include <google/btree_map.h>
 
 
 namespace annis
@@ -28,9 +30,14 @@ template<typename pos_t>
 class LinearStorage : public ReadableGraphStorage
 {
 public:
+
+  template<typename Key, typename Value>
+  using map_t = btree::btree_map<Key, Value>;
+
   class LinearIterator : public EdgeIterator
   {
   public:
+
 
     LinearIterator(const LinearStorage& gs, nodeid_t startNode, unsigned int minDistance, unsigned int maxDistance)
       : gs(gs), minDistance(minDistance), maxDistance(maxDistance), startNode(startNode),
@@ -55,13 +62,13 @@ public:
 
     virtual void reset()
     {
-      typedef typename stx::btree_map<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
-      typedef std::map<nodeid_t, std::vector<nodeid_t> >::const_iterator NodeChainIt;
+      typedef typename map_t<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
+      typedef map_t<nodeid_t, std::vector<nodeid_t> >::const_iterator NodeChainIt;
 
       PosIt posSourceIt = gs.node2pos.find(startNode);
       if(posSourceIt != gs.node2pos.end())
       {
-        const RelativePosition<pos_t>& relPos = posSourceIt.data();
+        const RelativePosition<pos_t>& relPos = posSourceIt->second;
         currentPos = relPos.pos;
         NodeChainIt itNodeChain = gs.nodeChains.find(relPos.root);
         if(itNodeChain != gs.nodeChains.end())
@@ -181,14 +188,14 @@ public:
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const
   {
-    typedef typename stx::btree_map<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
+    typedef typename map_t<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
 
     PosIt posSourceIt = node2pos.find(edge.source);
     PosIt posTargetIt = node2pos.find(edge.target);
     if(posSourceIt != node2pos.end() && posTargetIt != node2pos.end())
     {
-      auto& posSource = posSourceIt.data();
-      auto& posTarget = posTargetIt.data();
+      auto& posSource = posSourceIt->second;
+      auto& posTarget = posTargetIt->second;
       if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
       {
         unsigned int diff = posTarget.pos > posSource.pos ?
@@ -213,14 +220,14 @@ public:
 
   virtual int distance(const Edge &edge) const
   {
-    typedef typename stx::btree_map<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
+    typedef typename map_t<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
 
     PosIt posSourceIt = node2pos.find(edge.source);
     PosIt posTargetIt = node2pos.find(edge.target);
     if(posSourceIt != node2pos.end() && posTargetIt != node2pos.end())
     {
-      auto& posSource = posSourceIt.data();
-      auto& posTarget = posTargetIt.data();
+      auto& posSource = posSourceIt->second;
+      auto& posTarget = posTargetIt->second;
       if(posSource.root == posTarget.root && posSource.pos <= posTarget.pos)
       {
         int diff = posTarget.pos - posSource.pos;
@@ -241,14 +248,29 @@ public:
     std::ifstream in;
 
 
-    in.open(dirPath + "/node2pos.btree");
-    result = result && node2pos.restore(in);
-    in.close();
+    in.open(dirPath + "/node2pos.archive");
+    if(in.is_open())
+    {
+      boost::archive::binary_iarchive iaNode2Pos(in);
+      iaNode2Pos >> node2pos;
+      in.close();
+    }
+    else
+    {
+      result = false;
+    }
 
     in.open(dirPath + "/nodeChains.archive", std::ios::binary);
-    boost::archive::binary_iarchive ia(in);
-    ia >> nodeChains;
-    in.close();
+    if(in.is_open())
+    {
+      boost::archive::binary_iarchive ia(in);
+      ia >> nodeChains;
+      in.close();
+    }
+    else
+    {
+      result = false;
+    }
 
     return result;
   }
@@ -261,13 +283,14 @@ public:
 
     std::ofstream out;
 
-    out.open(dirPath + "/node2pos.btree");
-    node2pos.dump(out);
+    out.open(dirPath + "/node2pos.archive");
+    boost::archive::binary_oarchive oaNode2Pos(out);
+    oaNode2Pos << node2pos;
     out.close();
 
     out.open(dirPath + "/nodeChains.archive", std::ios::binary);
-    boost::archive::binary_oarchive oa(out);
-    oa << nodeChains;
+    boost::archive::binary_oarchive oaNodeChains(out);
+    oaNodeChains << nodeChains;
     out.close();
 
     return result;
@@ -313,8 +336,8 @@ public:
 
 private:
   const Component& component;
-  stx::btree_map<nodeid_t, RelativePosition<pos_t>> node2pos;
-  std::map<nodeid_t, std::vector<nodeid_t> > nodeChains;
+  map_t<nodeid_t, RelativePosition<pos_t>> node2pos;
+  map_t<nodeid_t, std::vector<nodeid_t> > nodeChains;
 
   EdgeAnnotationStorage edgeAnno;
 };

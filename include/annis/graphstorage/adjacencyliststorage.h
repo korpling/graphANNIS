@@ -13,6 +13,8 @@
 #include <set>
 #include <map>
 
+#include <google/btree_set.h>
+
 namespace annis
 {
 
@@ -20,6 +22,9 @@ class AdjacencyListStorage : public WriteableGraphStorage
 {
 
 public:
+
+  template<typename Key> using set_t = btree::btree_set<Key>;
+
   AdjacencyListStorage(StringStorage& strings, const Component& component);
 
   virtual void copy(const DB& db, const ReadableGraphStorage& orig);
@@ -38,11 +43,11 @@ public:
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const;
 
-  stx::btree_set<Edge>::const_iterator getEdgesBegin()
+  set_t<Edge>::const_iterator getEdgesBegin()
   {
     return edges.begin();
   }
-  stx::btree_set<Edge>::const_iterator getEdgesEnd()
+  set_t<Edge>::const_iterator getEdgesEnd()
   {
     return edges.end();
   }
@@ -60,7 +65,7 @@ private:
   StringStorage& strings;
   Component component;
 
-  stx::btree_set<Edge> edges;
+  set_t<Edge> edges;
   EdgeAnnotationStorage edgeAnnos;
 
 };

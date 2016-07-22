@@ -1,10 +1,17 @@
 #include <annis/graphstorage/adjacencyliststorage.h>
 
+#include <annis/serializers.h>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+
+
 #include <annis/util/dfs.h>
 #include <annis/annosearch/exactannokeysearch.h>
 
 #include <fstream>
 #include <limits>
+
+#include <google/btree_set.h>
 
 using namespace annis;
 using namespace std;
@@ -65,7 +72,7 @@ void AdjacencyListStorage::clear()
 
 bool AdjacencyListStorage::isConnected(const Edge &edge, unsigned int minDistance, unsigned int maxDistance) const
 {
-  typedef stx::btree_set<Edge>::const_iterator EdgeIt;
+  typedef set_t<Edge>::const_iterator EdgeIt;
   if(minDistance == 1 && maxDistance == 1)
   {
     EdgeIt it = edges.find(edge);
@@ -125,7 +132,7 @@ std::vector<Annotation> AdjacencyListStorage::getEdgeAnnotations(const Edge& edg
 
 std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) const
 {
-  typedef stx::btree_set<Edge>::const_iterator EdgeIt;
+  typedef set_t<Edge>::const_iterator EdgeIt;
 
   vector<nodeid_t> result;
 
@@ -146,9 +153,14 @@ bool AdjacencyListStorage::load(std::string dirPath)
 
   ifstream in;
 
-  in.open(dirPath + "/edges.btree");
-  edges.restore(in);
-  in.close();
+  in.open(dirPath + "/edges.archive");
+  if(in.is_open())
+  {
+    boost::archive::binary_iarchive iaEdges(in);
+    iaEdges >> edges;
+    in.close();
+  }
+
 
   edgeAnnos.load(dirPath);
 
@@ -162,8 +174,9 @@ bool AdjacencyListStorage::save(std::string dirPath)
 
   ofstream out;
 
-  out.open(dirPath + "/edges.btree");
-  edges.dump(out);
+  out.open(dirPath + "/edges.archive");
+  boost::archive::binary_oarchive oaEdges(out);
+  oaEdges << edges;
   out.close();
 
   edgeAnnos.save(dirPath);
@@ -194,11 +207,11 @@ void AdjacencyListStorage::calculateStatistics()
   unsigned int sumFanOut = 0;
 
 
-  std::unordered_set<nodeid_t> hasIncomingEdge;
+  btree::btree_set<nodeid_t> hasIncomingEdge;
 
   // find all root nodes
-  unordered_set<nodeid_t> roots;
-  unordered_set<nodeid_t> allNodes;
+  btree::btree_set<nodeid_t> roots;
+  btree::btree_set<nodeid_t> allNodes;
   for(const auto& e : edges)
   {
     roots.insert(e.source);

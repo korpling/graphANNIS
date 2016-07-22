@@ -2,7 +2,7 @@
 
 #include "types.h"
 #include <vector>
-#include <stx/btree_multimap>
+#include <google/btree_map.h>
 
 namespace annis
 {
@@ -10,19 +10,23 @@ namespace annis
 class EdgeAnnotationStorage
 {
 public:
+
+  template<typename Key, typename Value>
+  using multimap_t = btree::btree_multimap<Key, Value>;
+
   EdgeAnnotationStorage();
   virtual ~EdgeAnnotationStorage();
 
   virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno)
   {
-    edgeAnnotations.insert2(edge, anno);
+    edgeAnnotations.insert({edge, anno});
   }
 
   virtual void clear();
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const
   {
-    typedef stx::btree_multimap<Edge, Annotation>::const_iterator ItType;
+    typedef multimap_t<Edge, Annotation>::const_iterator ItType;
 
     std::vector<Annotation> result;
 
@@ -46,7 +50,7 @@ public:
   virtual bool save(std::string dirPath);
 
 private:
-  stx::btree_multimap<Edge, Annotation> edgeAnnotations;
+  multimap_t<Edge, Annotation> edgeAnnotations;
 };
 
 } // end namespace annis

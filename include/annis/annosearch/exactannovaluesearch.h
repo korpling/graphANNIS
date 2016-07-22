@@ -1,14 +1,15 @@
 #pragma once
 
 #include "annotationsearch.h"
-#include <stx/btree_map>
+
+#include <annis/nodeannostorage.h>
 
 namespace annis
 {
 
 class ExactAnnoValueSearch : public AnnotationSearch
 {
-  using ItType = stx::btree_multimap<Annotation, nodeid_t>::const_iterator;
+  using ItType = NodeAnnoStorage::InverseNodeAnnoMap_t::const_iterator;
   using Range = std::pair<ItType, ItType>;
 
 public:

@@ -21,7 +21,7 @@ class AnnotationSearch : public EstimatedSearch
 public:
   virtual const std::unordered_set<Annotation>& getValidAnnotations() = 0;
   
-  virtual ~AnnotationSearch() {};
+  virtual ~AnnotationSearch() {}
 };
 
 class AnnotationKeySearch : public EstimatedSearch
@@ -29,7 +29,7 @@ class AnnotationKeySearch : public EstimatedSearch
 public:
   virtual const std::set<AnnotationKey>& getValidAnnotationKeys() = 0;
   
-  virtual ~AnnotationKeySearch() {};
+  virtual ~AnnotationKeySearch() {}
 };
 
 } // end namespace annis

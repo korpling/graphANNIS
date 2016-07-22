@@ -5,6 +5,9 @@
 #include <cstring>
 #include <limits>
 
+// add implemtations for the types defined here to the std::less operator (and some for the std::hash)
+#define ANNIS_STRUCT_COMPARE(a, b) {if(a < b) {return true;} else if(a > b) {return false;}}
+
 namespace annis
 {
   typedef std::uint32_t nodeid_t;
@@ -95,6 +98,22 @@ namespace annis
     std::uint32_t name;
     std::uint32_t ns;
     std::uint32_t val;
+
+    bool operator<( const Annotation& rhs ) const
+    {
+      // compare by name (non lexical but just by the ID)
+      ANNIS_STRUCT_COMPARE(name, rhs.name);
+
+      // if equal, compare by namespace (non lexical but just by the ID)
+      ANNIS_STRUCT_COMPARE(ns, rhs.ns);
+
+      // if still equal compare by value (non lexical but just by the ID)
+      ANNIS_STRUCT_COMPARE(val, rhs.val);
+
+      // they are equal
+      return false;
+    }
+
   };
 
   struct NodeAnnotationKey
@@ -102,6 +121,18 @@ namespace annis
     nodeid_t node;
     std::uint32_t anno_name;
     std::uint32_t anno_ns;
+
+    bool operator<( const NodeAnnotationKey& rhs ) const
+    {
+      ANNIS_STRUCT_COMPARE(node, rhs.node);
+
+      ANNIS_STRUCT_COMPARE(anno_name, rhs.anno_name);
+
+      ANNIS_STRUCT_COMPARE(anno_ns, rhs.anno_ns);
+
+      // they are equal
+      return false;
+    }
   };
 
   struct TextProperty
@@ -193,8 +224,6 @@ namespace annis
 
 } // end namespace annis
 
-// add implemtations for the types defined here to the std::less operator (and some for the std::hash)
-#define ANNIS_STRUCT_COMPARE(a, b) {if(a < b) {return true;} else if(a > b) {return false;}}
 namespace std
 {
 
@@ -202,7 +231,8 @@ template <>
 class hash<annis::Annotation>{
 public :
   size_t operator()(const annis::Annotation &a ) const{
-    return hash<uint32_t>()(a.ns) ^ hash<uint32_t>()(a.name) ^ hash<uint32_t>()(a.val);
+    static hash<uint32_t> hash_uint32;
+    return hash_uint32(a.ns) ^ hash_uint32(a.name) ^ hash_uint32(a.val);
   }
 };
 
@@ -344,6 +374,53 @@ inline void serialize(
 {
   ar & t.name;
   ar & t.ns;
+}
+
+
+template<class Archive>
+inline void serialize(
+    Archive & ar,
+    annis::NodeAnnotationKey & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.anno_ns;
+  ar & t.anno_name;
+  ar & t.node;
+}
+
+template<class Archive>
+inline void serialize(
+    Archive & ar,
+    annis::Annotation & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.ns;
+  ar & t.name;
+  ar & t.val;
+}
+
+template<class Archive>
+inline void serialize(
+    Archive & ar,
+    annis::Edge & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.source;
+  ar & t.target;
+}
+
+template<class Archive, typename T>
+inline void serialize(
+    Archive & ar,
+    annis::RelativePosition<T> & t,
+    const unsigned int file_version
+    )
+{
+  ar & t.root;
+  ar & t.pos;
 }
 
 } // end namespace serialization
