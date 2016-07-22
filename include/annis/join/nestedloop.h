@@ -3,12 +3,11 @@
 #include <annis/types.h>
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/db.h>
+#include <annis/iterators.h>
 
 namespace annis 
 {
   class Operator;
-  class AnnoIt;
-  class Iterator;
 
   /** 
    * A join that checks all combinations of the left and right matches if their are connected. 

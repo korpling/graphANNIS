@@ -12,6 +12,7 @@
  */
 
 #include <annis/DBCache.h>
+#include <annis/db.h>
 
 #include <humblelogging/api.h>
 

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "types.h"
-#include "db.h"
+
 #include <map>
+#include <set>
 #include <memory>
+#include <iostream>
 
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
   #include <malloc.h>
@@ -54,6 +56,8 @@ namespace std {
 }
 
 namespace annis {
+
+  class DB;
 
   class DBCache {
   public:

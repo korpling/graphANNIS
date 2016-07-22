@@ -1,7 +1,6 @@
 #pragma once
 
 #include "annotationsearch.h"
-#include "exactannokeysearch.h"
 
 #include <annis/nodeannostorage.h>
 

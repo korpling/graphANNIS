@@ -35,8 +35,6 @@ namespace annis {
   namespace bc = boost::container;
 
 
-  class AnnotationSearch;
-  
   class NodeAnnoStorage
   {
     friend class DB;
