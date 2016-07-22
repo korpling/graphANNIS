@@ -93,6 +93,12 @@ void Console::import(const std::vector<std::string> &args)
     {
       std::cout << "Import relANNIS from " << args[0] << std::endl;
       db->loadRelANNIS(args[0]);
+      if(args.size() > 1)
+      {
+        // directly save the imported corpus to directory
+        HL_INFO(logger, "saving to " +  args[1]);
+        db->save(args[1]);
+      }
     }
     else
     {

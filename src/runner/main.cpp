@@ -69,8 +69,6 @@ void completion(const char *bufRaw, linenoiseCompletions *lc)
 
 int main(int argc, char** argv)
 {
-  char* lineBuffer = NULL;
-
   humble::logging::Factory &fac = humble::logging::Factory::getInstance();
   fac.setConfiguration(humble::logging::DefaultConfiguration::createFromString(
     "logger.level(*)=info\n"
@@ -78,34 +76,54 @@ int main(int argc, char** argv)
   fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date] %m\n"));
   fac.registerAppender(new humble::logging::ConsoleAppender());
 
-  linenoiseHistoryLoad("annis4_history.txt");
-  linenoiseSetCompletionCallback(completion);
 
   annis::Console console;
 
-
-  bool exit = false;
-  while(!exit && (lineBuffer = linenoise("annis4> ")) != NULL)
+  if(argc > 1)
   {
-    std::string line(lineBuffer);
-    linenoiseHistoryAdd(lineBuffer);
-    linenoiseHistorySave("annis4_history.txt");
+    // command line mode
+    std::string cmd(argv[1]);
+    std::vector<std::string> args;
 
-    // split the line into it's components
-    vector<string> args;
-    boost::split(args,line, boost::is_any_of(" "));
-    std::string cmd = "";
-    if(args.size() > 0)
+    for(int i=2; i < argc; i++)
     {
-      cmd = args[0];
-      args.erase(args.begin());
+      args.push_back(std::string(argv[i]));
     }
-
-    exit = console.execute(cmd, args);
-
-    free(lineBuffer);
+    console.execute(cmd, args);
   }
-  std::cout << "Exiting" << std::endl;
+  else
+  {
+    // interactive mode
+
+    char* lineBuffer = NULL;
+
+    linenoiseHistoryLoad("annis4_history.txt");
+    linenoiseSetCompletionCallback(completion);
+
+    bool exit = false;
+    while(!exit && (lineBuffer = linenoise("annis4> ")) != NULL)
+    {
+      std::string line(lineBuffer);
+      linenoiseHistoryAdd(lineBuffer);
+      linenoiseHistorySave("annis4_history.txt");
+
+      // split the line into it's components
+      vector<string> args;
+      boost::split(args,line, boost::is_any_of(" "));
+      std::string cmd = "";
+      if(args.size() > 0)
+      {
+        cmd = args[0];
+        args.erase(args.begin());
+      }
+
+      exit = console.execute(cmd, args);
+
+      free(lineBuffer);
+    }
+    std::cout << "Exiting" << std::endl;
+
+  }
 
 
   return 0;
