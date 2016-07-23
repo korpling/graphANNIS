@@ -229,6 +229,11 @@ double Plan::getCost()
         }
         
         std::uint64_t outputSize = ((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity);
+        if(outputSize < 1)
+        {
+          // always assume at least one output item otherwise very small selectivity can fool the planner
+          outputSize = 1;
+        }
         std::uint64_t processedInStep;
 
         if (node->type == ExecutionNodeType::nested_loop)
