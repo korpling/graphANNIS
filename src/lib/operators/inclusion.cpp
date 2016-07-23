@@ -67,10 +67,14 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
     // add aligned nodes
     for(const auto& leftAlignedNode : gsLeftToken->getOutgoingEdges(includedTok))
     {
-      nodeid_t includedEndCandiate = gsRightToken->getOutgoingEdges(leftAlignedNode)[0];
-      if(gsOrder->isConnected({includedEndCandiate, rightToken}, 0, spanLength))
+      std::vector<nodeid_t> outEdges = gsRightToken->getOutgoingEdges(leftAlignedNode);
+      if(!outEdges.empty())
       {
-        w->addMatch({leftAlignedNode, anyNodeAnno});
+        nodeid_t includedEndCandiate = outEdges[0];
+        if(gsOrder->isConnected({includedEndCandiate, rightToken}, 0, spanLength))
+        {
+          w->addMatch({leftAlignedNode, anyNodeAnno});
+        }
       }
     }
   }
@@ -101,9 +105,15 @@ double Inclusion::selectivity()
 
     double numOfToken = statsOrder.avgFanOut;
 
+    double p_nodeIsToken = (double) statsOrder.nodes / (double) statsCov.nodes;
+    double p_nodeNotToken = 1.0 - p_nodeIsToken;
+
     double p_allTokenInA = std::pow(p_anyTokenInA, numOfToken);
 
-    return p_allTokenInA;
+
+    // P(included) = P(included | isToken) * P(isToken) + P(included | !isToken) * P(!isToken)
+
+    return (p_anyTokenInA * p_nodeIsToken) + (p_allTokenInA * p_nodeNotToken);
   }
 }
 
