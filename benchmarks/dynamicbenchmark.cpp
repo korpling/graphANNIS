@@ -17,7 +17,7 @@
 using namespace annis;
 
 std::shared_ptr<DBCache> DynamicCorpusFixture::dbCache
-  = std::make_shared<DBCache>();
+  = std::make_shared<DBCache>(0);
 
 void DynamicCorpusFixture::UserBenchmark()
 {
@@ -48,12 +48,6 @@ std::vector<std::pair<int64_t, uint64_t> > DynamicCorpusFixture::getExperimentVa
 
 void DynamicCorpusFixture::tearDown()
 {
-  executionCounter++;
-  if (executionCounter >= numberOfSamples)
-  {
-    // delete the database after all runs are complete
-    dbCache->release(corpusPath, forceFallback, overrideImpl);
-  }
 }
 
 DynamicBenchmark::DynamicBenchmark(std::string queriesDir,

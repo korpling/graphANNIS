@@ -50,7 +50,7 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
 
   auto newProcessMemory = getCurrentRSS();
 
-  size_t loadedSize = 0L;
+  size_t loadedSize = 1L;
   if(newProcessMemory >  oldProcessMemory)
   {
     loadedSize = newProcessMemory - oldProcessMemory;
