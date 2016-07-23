@@ -520,4 +520,10 @@ TEST_F(SearchTestPcc2, Profile) {
   EXPECT_EQ(38, counter);
 }
 
+TEST_F(SearchTestPcc2, InvalidReflexivity) {
+  ASSERT_TRUE((bool) q);
+
+  EXPECT_FALSE(q->next());
+}
+
 #endif // SEARCHTESTPCC2_H

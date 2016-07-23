@@ -240,13 +240,17 @@ bool MaterializedSeedJoin::nextLeftMatch()
 
 bool MaterializedSeedJoin::nextRightAnnotation()
 {
-  while(matchingRightAnnos.size() > 0)
+  while(!matchingRightAnnos.empty())
   {
     if(checkReflexitivity(currentLHSMatch[lhsIdx].node, currentLHSMatch[lhsIdx].anno, currentRHSMatch.node, matchingRightAnnos.front()))
     {
       currentRHSMatch.anno = matchingRightAnnos.front();
       matchingRightAnnos.pop_front();
       return true;
+    }
+    else
+    {
+      matchingRightAnnos.pop_front();
     }
   }
   return false;
