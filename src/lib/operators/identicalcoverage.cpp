@@ -104,21 +104,20 @@ double IdenticalCoverage::selectivity()
   {
     return Operator::selectivity();
   }
-  auto statsCov = gsCoverage->getStatistics();
   auto statsOrder = gsOrder->getStatistics();
-  if(statsCov.nodes == 0)
-  {
-    // only token in this corpus
-    return 1.0 / (double) statsOrder.nodes;
-  }
-  else
-  {
-    // The fan-out is the selectivity for the number of covered token.
-    // Use a constant that dependends on the number of token to estimate the number of included
-    // nodes.
-    // TODO: which statistics do we need to calculate the better number?
-    return statsCov.avgFanOut * 0.8; 
-  }
+
+  double numOfToken = statsOrder.nodes;
+
+
+  // Assume two nodes have same identical coverage if they have the same
+  // left covered token and the same length (right covered token is not independent
+  // of the left one, this is why we should use length).
+  // The probability for the same length is taken is assumed to be 1.0, histograms
+  // of the distribution would help here.
+
+  return 1.0 / numOfToken;
+
+
 }
 
 

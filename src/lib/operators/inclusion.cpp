@@ -88,32 +88,24 @@ double Inclusion::selectivity()
   {
     return Operator::selectivity();
   }
+
   auto statsCov = gsCoverage->getStatistics();
   auto statsOrder = gsOrder->getStatistics();
+
+
+  double numOfToken = statsOrder.nodes;
+
   if(statsCov.nodes == 0)
   {
     // only token in this corpus
-    return 1.0 / (double) statsOrder.nodes;
+    return 1.0 / numOfToken;
   }
   else
   {
-    // The fan-out is the selectivity for the number of covered token n.
-    // A node B is included in A if each covered token of B is also covered in A.
 
-    double numOfSpans = statsCov.nodes - statsOrder.nodes;
-    double p_anyTokenInA = statsCov.avgFanOut / numOfSpans;
-
-    double numOfToken = statsOrder.avgFanOut;
-
-    double p_nodeIsToken = (double) statsOrder.nodes / (double) statsCov.nodes;
-    double p_nodeNotToken = 1.0 - p_nodeIsToken;
-
-    double p_allTokenInA = std::pow(p_anyTokenInA, numOfToken);
-
-
-    // P(included) = P(included | isToken) * P(isToken) + P(included | !isToken) * P(!isToken)
-
-    return (p_anyTokenInA * p_nodeIsToken) + (p_allTokenInA * p_nodeNotToken);
+    // Assume two nodes have inclusion coverage if the left- and right-most covered token is inside the
+    // covered range of the other node.
+    return ((statsCov.avgFanOut) / numOfToken);
   }
 }
 

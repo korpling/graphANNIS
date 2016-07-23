@@ -67,21 +67,26 @@ double Overlap::selectivity()
   {
     return Operator::selectivity();
   }
+
   auto statsCov = gsCoverage->getStatistics();
   auto statsOrder = gsOrder->getStatistics();
+
+
+  double numOfToken = statsOrder.nodes;
+
   if(statsCov.nodes == 0)
   {
     // only token in this corpus
-    return 1.0 / (double) statsOrder.nodes;
+    return 1.0 / numOfToken;
   }
   else
   {
-    // The fan-out is the selectivity for the number of covered token.
-    // Use a constant that dependends on the number of token to estimate the number of included
-    // nodes.
-    // TODO: which statistics do we need to calculate the better number?
-    return statsCov.avgFanOut * 1.5; 
+
+    // Assume two nodes have overlapping coverage if the left- or right-most covered token is inside the
+    // covered range of the other node.
+    return ((statsCov.avgFanOut*2.0) / numOfToken);
   }
+
 }
 
 
