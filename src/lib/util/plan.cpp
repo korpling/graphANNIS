@@ -253,8 +253,8 @@ double Plan::getCost()
         {
           std::uint64_t diffOutput = outputSize < estLHS->output 
             ? (estLHS->output - outputSize) : (outputSize - estLHS->output);
-          double x = (((double) diffOutput) / (double) estLHS->output);
-          processedInStep = (double) estLHS->output * x;
+          std::uint64_t x = (((double) diffOutput) / (double) estLHS->output);
+          processedInStep = estLHS->output * x;
         } 
         else
         {
