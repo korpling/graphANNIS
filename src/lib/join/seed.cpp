@@ -139,7 +139,7 @@ MaterializedSeedJoin::MaterializedSeedJoin(const DB &db, std::shared_ptr<Operato
 
 bool MaterializedSeedJoin::next(std::vector<Match>& tuple)
 {
-  tuple.clear();
+  tuple.resize(0);
   
   if(!currentMatchValid)
   {
