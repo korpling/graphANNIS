@@ -25,9 +25,9 @@ public:
    ~API() {}
 
   /**
-   * @brief Count all occurences of an AQL query in a single corpus
+   * Count all occurences of an AQL query in a single corpus.
    *
-   * @param corpora
+   * @param corpus
    * @param queryAsJSON
    * @return
    */

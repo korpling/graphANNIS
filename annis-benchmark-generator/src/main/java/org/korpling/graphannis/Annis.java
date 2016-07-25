@@ -36,9 +36,9 @@ public class Annis extends org.korpling.graphannis.presets.AnnisApiInfo {
   private native void allocate();
 
   /**
-   * \brief Count all occurences of an AQL query in a single corpus
+   * Count all occurences of an AQL query in a single corpus.
    *
-   * @param corpora
+   * @param corpus
    * @param queryAsJSON
    * @return
    */
