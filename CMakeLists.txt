@@ -10,6 +10,7 @@ set(needed_features
 
 set(BuildShared OFF CACHE BOOL "")
 add_subdirectory(ext/humblelogging-3.0.1)
+set_property(TARGET humblelogging PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 
 set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")
 set(CELERO_ENABLE_EXPERIMENTS OFF CACHE BOOL "Set to ON to automatically build all examples.")

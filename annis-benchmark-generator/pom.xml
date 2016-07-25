@@ -171,6 +171,7 @@
 					</includePaths>
 					<linkPaths>
 						<linkPath>${basedir}/../build/</linkPath>
+						<linkPath>${basedir}/../build/ext/humblelogging-3.0.1/</linkPath>
 					</linkPaths>
 					<!-- <preloadPath>${basedir}/cppbuild/${javacpp.platform}/bin/</preloadPath> -->
 					
