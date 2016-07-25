@@ -125,6 +125,48 @@
 		</resources>
 
 		<plugins>
+
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.0.1</version>
+				<executions>
+					<execution>
+						<id>javacpp.parser</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>resources</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.5.1</version>
+				<executions>
+					<execution>
+						<id>default-compile</id>
+						<configuration>
+							<excludes>
+							<exclude>org/korpling/graphannis/presets/*.java</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+					<execution>
+						<id>javacpp.parser</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<skipMain>${javacpp.parser.skip}</skipMain>
+							<includes>
+								<include>org/korpling/graphannis/presets/*.java</include>
+							</includes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 			<plugin>
 				<groupId>com.zenjava</groupId>
 				<artifactId>javafx-maven-plugin</artifactId>
@@ -174,7 +216,7 @@
 						<linkPath>${basedir}/../build/ext/humblelogging-3.0.1/</linkPath>
 					</linkPaths>
 					<!-- <preloadPath>${basedir}/cppbuild/${javacpp.platform}/bin/</preloadPath> -->
-					
+
 				</configuration>
 				<executions>
 					<execution>
@@ -186,7 +228,7 @@
 						<configuration>
 							<skip>${javacpp.parser.skip}</skip>
 							<outputDirectory>${project.build.sourceDirectory}</outputDirectory>
-							<classOrPackageName>org.korpling.graphannis.*</classOrPackageName>
+							<classOrPackageName>org.korpling.graphannis.presets.*</classOrPackageName>
 						</configuration>
 					</execution>
 					<execution>

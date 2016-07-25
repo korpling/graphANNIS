@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <vector>
+#include <list>
 
 #include <annis/db.h>
 #include <annis/DBCache.h>
@@ -12,6 +14,9 @@ namespace annis
 class API
 {
 public:
+
+  typedef std::vector<std::string> StringVector;
+
   API()
     : databaseDir("/tmp/graphANNIS")
   {
@@ -22,24 +27,28 @@ public:
   /**
    * @brief Count all occurences of an AQL query in a single corpus
    *
-   * @param corpus
+   * @param corpora
    * @param queryAsJSON
    * @return
    */
-  std::int64_t count(std::string corpus, std::string queryAsJSON)
+  long long count(std::string corpus,
+                  std::string queryAsJSON)
   {
-    std::int64_t result = 0;
+    long long result = 0;
 
-    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + corpus);
-    if(std::shared_ptr<DB> db = dbWeakPtr.lock())
-    {
-      std::stringstream ss;
-      ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
-      while(q->next())
+
+      std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + corpus);
+
+      if(std::shared_ptr<DB> db = dbWeakPtr.lock())
       {
-        result++;
-      }
+        std::stringstream ss;
+        ss << queryAsJSON;
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+        while(q->next())
+        {
+          result++;
+        }
+
     }
 
     return result;
