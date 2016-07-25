@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <list>
 
 #include <annis/db.h>
 #include <annis/DBCache.h>
@@ -21,29 +20,28 @@ public:
    ~API() {}
 
   /**
-   * @brief Count all occurences of an AQL query in a list of databases.
+   * @brief Count all occurences of an AQL query in a single corpus
    *
-   * @param corpora
+   * @param corpus
    * @param queryAsJSON
    * @return
    */
-  std::int64_t count(std::list<std::string> corpora, std::string queryAsJSON)
+  std::int64_t count(std::string corpus, std::string queryAsJSON)
   {
     std::int64_t result = 0;
-    for(const std::string& c : corpora)
+
+    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + corpus);
+    if(std::shared_ptr<DB> db = dbWeakPtr.lock())
     {
-      std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c);
-      if(std::shared_ptr<DB> db = dbWeakPtr.lock())
+      std::stringstream ss;
+      ss << queryAsJSON;
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      while(q->next())
       {
-        std::stringstream ss;
-        ss << queryAsJSON;
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
-        while(q->next())
-        {
-          result++;
-        }
+        result++;
       }
     }
+
     return result;
   }
 
