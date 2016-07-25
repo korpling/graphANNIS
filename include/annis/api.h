@@ -12,8 +12,8 @@ namespace annis
 class API
 {
 public:
-  API(const std::string databaseDir)
-    : databaseDir(databaseDir)
+  API()
+    : databaseDir("/tmp/graphANNIS")
   {
     cache = std::unique_ptr<DBCache>(new DBCache());
   }
@@ -46,7 +46,7 @@ public:
   }
 
 private:
-  const std::string databaseDir;
+  std::string databaseDir;
   std::unique_ptr<DBCache> cache;
 };
 
