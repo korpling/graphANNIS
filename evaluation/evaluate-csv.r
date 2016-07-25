@@ -1,8 +1,8 @@
-bench_getaql <- function(x, querydir) {
+bench_getaql <- function(x, querydir, named=FALSE) {
   aqlFile <- ""
   group <- x[1]
   problemSpace = as.numeric(x[2])
-  if(problemSpace == 0) {
+  if(named && problemSpace == 0) {
     corpus <- sub("_[^_]+$", "", group)
     fn <- substr(group, nchar(corpus)+2, nchar(group))
     
