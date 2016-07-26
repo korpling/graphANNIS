@@ -6,7 +6,8 @@ set(needed_features
   cxx_auto_type
   cxx_override
   cxx_nullptr
-  cxx_long_long_type)
+  cxx_long_long_type
+  cxx_deleted_functions)
 
 set(BuildShared OFF CACHE BOOL "")
 add_subdirectory(ext/humblelogging-3.0.1)
