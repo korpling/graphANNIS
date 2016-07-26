@@ -26,7 +26,7 @@ public:
    ~Search();
 
   /**
-   * Count all occurences of an AQL query in a single corpus.
+   * Count all occurrences of an AQL query in a single corpus.
    *
    * @param corpus
    * @param queryAsJSON
