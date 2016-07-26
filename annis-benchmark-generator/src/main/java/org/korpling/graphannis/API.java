@@ -6,7 +6,7 @@ import java.nio.*;
 import org.bytedeco.javacpp.*;
 import org.bytedeco.javacpp.annotation.*;
 
-public class Annis extends org.korpling.graphannis.presets.AnnisApiInfo {
+public class API extends org.korpling.graphannis.info.AnnisApiInfo {
     static { Loader.load(); }
 
 @Name("std::vector<std::string>") public static class StringVector extends Pointer {
@@ -45,7 +45,7 @@ public class Annis extends org.korpling.graphannis.presets.AnnisApiInfo {
     }
 }
 
-// Parsed from annis/api.h
+// Parsed from annis/api/search.h
 
 // #pragma once
 
@@ -56,19 +56,22 @@ public class Annis extends org.korpling.graphannis.presets.AnnisApiInfo {
 // #include <annis/db.h>
 // #include <annis/DBCache.h>
 // #include <annis/json/jsonqueryparser.h>
-@Namespace("annis") @NoOffset public static class API extends Pointer {
+/**
+ * An API for searching in a corpus.
+ */
+@Namespace("annis::api") @NoOffset public static class Search extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public API(Pointer p) { super(p); }
+    public Search(Pointer p) { super(p); }
     /** Native array allocator. Access with {@link Pointer#position(long)}. */
-    public API(long size) { super((Pointer)null); allocateArray(size); }
+    public Search(long size) { super((Pointer)null); allocateArray(size); }
     private native void allocateArray(long size);
-    @Override public API position(long position) {
-        return (API)super.position(position);
+    @Override public Search position(long position) {
+        return (Search)super.position(position);
     }
 
 
-  public API() { super((Pointer)null); allocate(); }
+  public Search() { super((Pointer)null); allocate(); }
   private native void allocate();
 
   /**

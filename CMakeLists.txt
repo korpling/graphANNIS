@@ -41,6 +41,7 @@ FILE(GLOB_RECURSE IncludeFiles "include/*.h")
 file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
   "src/lib/util/*.cpp" "src/lib/util/*.c"
   "src/lib/annosearch/*.cpp"
+  "src/lib/api/*.cpp"
   "src/lib/graphstorage/*.cpp"
   "src/lib/operators/*.cpp"
   "src/lib/join/*.cpp"

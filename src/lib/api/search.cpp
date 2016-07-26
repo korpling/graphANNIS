@@ -1,16 +1,17 @@
-#include <annis/api.h>
+#include <annis/api/search.h>
 
 using namespace annis;
+using namespace annis::api;
 
-API::API()
+Search::Search()
   : databaseDir("/tmp/graphANNIS")
 {
   cache = std::unique_ptr<DBCache>(new DBCache());
 }
 
-API::~API() {}
+Search::~Search() {}
 
-long long API::count(std::vector<std::string> corpora, std::string queryAsJSON)
+long long Search::count(std::vector<std::string> corpora, std::string queryAsJSON)
 {
   long long result = 0;
 
@@ -34,7 +35,7 @@ long long API::count(std::vector<std::string> corpora, std::string queryAsJSON)
   return result;
 }
 
-std::vector<std::string> API::find(std::vector<std::string> corpora, std::string queryAsJSON)
+std::vector<std::string> Search::find(std::vector<std::string> corpora, std::string queryAsJSON)
 {
   std::vector<std::string> result;
 

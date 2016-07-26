@@ -147,7 +147,7 @@
 						<id>default-compile</id>
 						<configuration>
 							<excludes>
-							<exclude>org/korpling/graphannis/presets/*.java</exclude>
+							<exclude>org/korpling/graphannis/info/*.java</exclude>
 							</excludes>
 						</configuration>
 					</execution>
@@ -160,7 +160,7 @@
 						<configuration>
 							<skipMain>${javacpp.parser.skip}</skipMain>
 							<includes>
-								<include>org/korpling/graphannis/presets/*.java</include>
+								<include>org/korpling/graphannis/info/*.java</include>
 							</includes>
 						</configuration>
 					</execution>
@@ -228,7 +228,7 @@
 						<configuration>
 							<skip>${javacpp.parser.skip}</skip>
 							<outputDirectory>${project.build.sourceDirectory}</outputDirectory>
-							<classOrPackageName>org.korpling.graphannis.presets.*</classOrPackageName>
+							<classOrPackageName>org.korpling.graphannis.info.*</classOrPackageName>
 						</configuration>
 					</execution>
 					<execution>

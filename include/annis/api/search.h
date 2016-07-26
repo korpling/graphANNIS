@@ -11,14 +11,19 @@
 
 namespace annis
 {
-class API
+namespace api
+{
+/**
+ * An API for searching in a corpus.
+ */
+class Search
 {
 public:
 
   typedef std::vector<std::string> StringVector;
 
-  API();
-   ~API();
+  Search();
+   ~Search();
 
   /**
    * Count all occurences of an AQL query in a single corpus.
@@ -37,4 +42,4 @@ private:
   std::unique_ptr<DBCache> cache;
 };
 
-} // end namespace annis
+}} // end namespace annis
