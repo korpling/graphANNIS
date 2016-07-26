@@ -60,6 +60,8 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+
+import org.korpling.graphannis.QueryToJSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

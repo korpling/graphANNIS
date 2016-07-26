@@ -30,6 +30,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+
+import org.korpling.graphannis.QueryToJSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

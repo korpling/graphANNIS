@@ -1,7 +1,5 @@
 package org.korpling.graphannis;
 
-import org.korpling.annis.benchmark.generator.QueryToJSON;
-
 import annis.ql.parser.AnnisParserAntlr;
 import annis.ql.parser.QueryData;
 

@@ -2,11 +2,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.korpling</groupId>
 	<artifactId>annis-benchmark-generator</artifactId>
-	<version>0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>AQL Benchmark Generator</name>
+	
+	<parent>
+		<groupId>org.korpling</groupId>
+		<artifactId>graphannis-root</artifactId>
+		<version>0.1-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
@@ -67,22 +73,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-core</artifactId>
-			<version>2.6.4</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>2.6.4</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.module</groupId>
-			<artifactId>jackson-module-jaxb-annotations</artifactId>
-			<version>2.6.4</version>
-		</dependency>
-
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
@@ -105,9 +95,9 @@
 			<version>19.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.bytedeco</groupId>
-			<artifactId>javacpp</artifactId>
-			<version>1.2.2</version>
+			<groupId>org.korpling</groupId>
+			<artifactId>graphannis-api</artifactId>
+			<version>0.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 
@@ -125,48 +115,6 @@
 		</resources>
 
 		<plugins>
-
-			<plugin>
-				<artifactId>maven-resources-plugin</artifactId>
-				<version>3.0.1</version>
-				<executions>
-					<execution>
-						<id>javacpp.parser</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>resources</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.5.1</version>
-				<executions>
-					<execution>
-						<id>default-compile</id>
-						<configuration>
-							<excludes>
-							<exclude>org/korpling/graphannis/info/*.java</exclude>
-							</excludes>
-						</configuration>
-					</execution>
-					<execution>
-						<id>javacpp.parser</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>compile</goal>
-						</goals>
-						<configuration>
-							<skipMain>${javacpp.parser.skip}</skipMain>
-							<includes>
-								<include>org/korpling/graphannis/info/*.java</include>
-							</includes>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
 			<plugin>
 				<groupId>com.zenjava</groupId>
 				<artifactId>javafx-maven-plugin</artifactId>
@@ -186,67 +134,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
-			<plugin>
-				<groupId>org.bytedeco</groupId>
-				<artifactId>javacpp</artifactId>
-				<version>1.2.2</version>
-				<configuration>
-					<properties>${javacpp.platform}</properties>
-					<propertyKeysAndValues>
-						<property>
-							<name>platform.root</name>
-							<value>${javacpp.platform.root}</value>
-						</property>
-						<property>
-							<name>platform.compiler</name>
-							<value>${javacpp.platform.compiler}</value>
-						</property>
-					</propertyKeysAndValues>
-					<classPath>${project.build.outputDirectory}</classPath>
-					<compilerOptions>
-						<compilerOption>-std=c++11</compilerOption>
-					</compilerOptions>
-					<includePaths>
-						<includePath>${basedir}/../include/</includePath>
-						<includePath>${basedir}/../ext/cpp-btree-1.0.1/</includePath>
-					</includePaths>
-					<linkPaths>
-						<linkPath>${basedir}/../build/</linkPath>
-						<linkPath>${basedir}/../build/ext/humblelogging-3.0.1/</linkPath>
-					</linkPaths>
-					<!-- <preloadPath>${basedir}/cppbuild/${javacpp.platform}/bin/</preloadPath> -->
-
-				</configuration>
-				<executions>
-					<execution>
-						<id>javacpp.parser</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>build</goal>
-						</goals>
-						<configuration>
-							<skip>${javacpp.parser.skip}</skip>
-							<outputDirectory>${project.build.sourceDirectory}</outputDirectory>
-							<classOrPackageName>org.korpling.graphannis.info.*</classOrPackageName>
-						</configuration>
-					</execution>
-					<execution>
-						<id>javacpp.compiler</id>
-						<phase>process-classes</phase>
-						<goals>
-							<goal>build</goal>
-						</goals>
-						<configuration>
-							<skip>${javacpp.compiler.skip}</skip>
-							<classOrPackageName>org.korpling.graphannis.*</classOrPackageName>
-							<copyLibs>true</copyLibs>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-
 		</plugins>
 
 	</build>
