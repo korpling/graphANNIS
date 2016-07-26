@@ -730,6 +730,12 @@ void DB::optimizeAll(const std::map<Component, string>& manualExceptions)
   }
 }
 
+size_t DB::estimateMemorySize()
+{
+  // TODO: add IGS sizes
+  return nodeAnnos.estimateMemorySize();
+}
+
 string DB::getImplNameForPath(string directory)
 {
   std::string result = "";

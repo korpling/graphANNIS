@@ -3,6 +3,8 @@
 #include <humblelogging/api.h>
 #include <iomanip>
 
+#include <annis/util/helper.h>
+
 HUMBLE_LOGGER(logger, "default");
 
 using namespace annis;
@@ -297,18 +299,24 @@ void Console::memory(const std::vector<std::string> args)
 {
   if(args.empty())
   {
+
     for(auto it = dbCache.corpusSizes().begin();
         it != dbCache.corpusSizes().end(); it++)
 
     {
       if(!it->first.corpusPath.empty())
       {
-        double corpusSizeMB = (double) it->second / (double) 1048576.0;
-        std::cout << it->first.corpusPath << ": " << corpusSizeMB << " MB" << std::endl;
+        std::cout << it->first.corpusPath << " (measured): " << Helper::inMB(it->second) << " MB";
+        auto itEstimated = dbCache.estimatedCorpusSizes().find(it->first);
+        if(itEstimated != dbCache.estimatedCorpusSizes().end())
+        {
+          std::cout << " " << itEstimated->first.corpusPath << " (estimated): " << Helper::inMB(itEstimated->second) << " MB";
+        }
+        std::cout << std::endl;
       }
     }
-    double totalSize = (double) dbCache.size() / (double) 1048576.0;
-    std::cout << "Used total memory: "  << totalSize << " MB" << std::endl;
+    std::cout << "Used total memory (measured): "  << Helper::inMB(dbCache.size()) << " MB" << std::endl;
+    std::cout << "Used total memory (estimated): "  << Helper::inMB(dbCache.estimatedSize()) << " MB" << std::endl;
   }
   else if(args[0] == "clear")
   {

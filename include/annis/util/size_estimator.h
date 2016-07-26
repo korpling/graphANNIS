@@ -16,9 +16,7 @@ namespace annis
  */
 namespace size_estimation
 {
-/**
- * Estimate the memory usage of a map in bytes.
- */
+
 template<typename Key, typename Value>
 size_t memory(const std::map<Key, Value>& m)
 {

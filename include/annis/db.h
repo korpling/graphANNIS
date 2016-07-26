@@ -85,6 +85,8 @@ public:
 
   void optimizeAll(const std::map<Component, std::string> &manualExceptions = std::map<Component, std::string>());
 
+  size_t estimateMemorySize();
+
   virtual ~DB();
 public:
 

@@ -24,7 +24,7 @@ extern "C" size_t getCurrentRSS( );
 extern "C" size_t getCurrentVirtualMemory( );
 
 DBCache::DBCache(size_t maxSizeBytes)
-: loadedDBSizeTotal(0), maxLoadedDBSize(maxSizeBytes) {
+: measuredLoadedDBSizeTotal(0), estimatedLoadedDBSizeTotal(0), maxLoadedDBSize(maxSizeBytes) {
 }
 
 std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
@@ -59,8 +59,12 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
   {
     HL_WARN(logger, "Invalid size for new corpus");
   }
-  loadedDBSize[key] = loadedSize;
-  loadedDBSizeTotal += loadedSize;
+  measuredLoadedDBSize[key] = loadedSize;
+  measuredLoadedDBSizeTotal += loadedSize;
+
+  size_t estimatedSize = result->estimateMemorySize();
+  estimatedLoadedDBSize[key] = estimatedSize;
+  estimatedLoadedDBSizeTotal += estimatedSize;
   
   return result;
 }

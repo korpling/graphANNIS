@@ -157,6 +157,11 @@ public:
     }
 #endif
   }//end getSystemTimeInMilliSeconds
+
+  static double inMB(size_t inBytes)
+  {
+    return (double) inBytes / (double) 1048576.0;
+  }
 };
 
 
