@@ -82,6 +82,14 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
   public native long count(@ByVal StringVector corpora,
                     @StdString String queryAsJSON);
 
+  /**
+   * Find occurrences of an AQL query in a single corpus.
+   * @param corpora
+   * @param queryAsJSON
+   * @param offset
+   * @param limit
+   * @return
+   */
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON, long offset/*=0*/, long limit/*=10*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON, long offset/*=0*/, long limit/*=10*/);

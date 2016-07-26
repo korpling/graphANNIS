@@ -35,6 +35,14 @@ public:
   long long count(std::vector<std::string> corpora,
                   std::string queryAsJSON);
 
+  /**
+   * Find occurrences of an AQL query in a single corpus.
+   * @param corpora
+   * @param queryAsJSON
+   * @param offset
+   * @param limit
+   * @return
+   */
   std::vector<std::string> find(std::vector< std::string > corpora, std::string queryAsJSON, long long offset=0, long long limit=10);
 
 private:
