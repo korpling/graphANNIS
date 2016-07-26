@@ -60,6 +60,8 @@ public:
 
   virtual void calculateStatistics() {}
 
+  virtual size_t estimateMemorySize() = 0;
+
 protected:
   GraphStatistic stat;
 };

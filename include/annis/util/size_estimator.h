@@ -18,55 +18,52 @@ namespace size_estimation
 {
 
 template<typename Key, typename Value>
-size_t memory(const std::map<Key, Value>& m)
+size_t element_size(const std::map<Key, Value>& m)
 {
-  return (sizeof(typename std::map<Key, Value>::value_type) + sizeof(std::_Rb_tree_node_base)) * m.size() + sizeof(m);
+  return (sizeof(typename std::map<Key, Value>::value_type) + sizeof(std::_Rb_tree_node_base)) * m.size();
 }
 
 template<typename Key, typename Value>
-size_t memory(const std::unordered_map<Key, Value>& m)
+size_t element_size(const std::unordered_map<Key, Value>& m)
 {
   return (m.size() * sizeof(typename std::unordered_map<Key, Value>::value_type)) // actual elements stored
       + (m.bucket_count() * (sizeof(size_t) + sizeof(void*))) // head pointer per bucket
-      + (m.size() * sizeof(void*)) // pointer for list entry of each element
-      + sizeof(m);
+      + (m.size() * sizeof(void*)); // pointer for list entry of each element
+;
 }
 
 template<typename Key>
-size_t memory(const boost::container::flat_set<Key>& m)
+size_t element_size(const boost::container::flat_set<Key>& m)
 {
-  return (m.size() * sizeof(typename  boost::container::flat_set<Key>::value_type)) // actual elements stored
-      + sizeof(m);
+  return (m.size() * sizeof(typename  boost::container::flat_set<Key>::value_type)); // actual elements stored;
 }
 
 template<typename Key, typename Value>
-size_t memory(const boost::container::flat_map<Key, Value>& m)
+size_t element_size(const boost::container::flat_map<Key, Value>& m)
 {
-  return (m.size() * sizeof(typename boost::container::flat_map<Key, Value>::value_type)) // actual elements stored
-      + sizeof(m);
+  return (m.size() * sizeof(typename boost::container::flat_map<Key, Value>::value_type)); // actual elements stored;
 }
 
 template<typename Key, typename Value>
-size_t memory(const boost::container::flat_multimap<Key, Value>& m)
+size_t element_size(const boost::container::flat_multimap<Key, Value>& m)
 {
-  return (m.size() * sizeof(typename boost::container::flat_multimap<Key, Value>::value_type)) // actual elements stored
-      + sizeof(m);
+  return (m.size() * sizeof(typename boost::container::flat_multimap<Key, Value>::value_type)); // actual elements stored;
 }
 
 template<typename Key, typename Value>
-size_t memory(const btree::btree_map<Key, Value>& m)
+size_t element_size(const btree::btree_map<Key, Value>& m)
 {
   return m.bytes_used();
 }
 
 template<typename Key, typename Value>
-size_t memory(const btree::btree_multimap<Key, Value>& m)
+size_t element_size(const btree::btree_multimap<Key, Value>& m)
 {
   return m.bytes_used();
 }
 
 template<typename Key>
-size_t memory(const  btree::btree_set<Key>& m)
+size_t element_size(const  btree::btree_set<Key>& m)
 {
   return m.bytes_used();
 }

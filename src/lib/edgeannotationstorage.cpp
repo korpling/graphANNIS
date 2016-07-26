@@ -55,7 +55,7 @@ bool EdgeAnnotationStorage::save(std::string dirPath)
 size_t EdgeAnnotationStorage::estimateMemorySize()
 {
   return
-      + size_estimation::memory(edgeAnnotations)
+      + size_estimation::element_size(edgeAnnotations)
       + sizeof(EdgeAnnotationStorage);
 }
 

@@ -19,6 +19,7 @@
 #include <boost/serialization/map.hpp>
 
 #include <annis/serializers.h>
+#include <annis/util/size_estimator.h>
 
 namespace annis
 {
@@ -494,6 +495,15 @@ public:
   virtual std::uint32_t numberOfEdgeAnnotations() const
   {
     return edgeAnno.numberOfEdgeAnnotations();
+  }
+
+  virtual size_t estimateMemorySize() override
+  {
+    return
+        size_estimation::element_size(node2order)
+        + size_estimation::element_size(order2node)
+        + edgeAnno.estimateMemorySize()
+        + sizeof(PrePostOrderStorage<order_t, level_t>);
   }
 
 private:

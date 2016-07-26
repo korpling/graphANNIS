@@ -16,6 +16,7 @@
 #include <boost/serialization/vector.hpp>
 
 #include <annis/serializers.h>
+#include <annis/util/size_estimator.h>
 
 #include <boost/format.hpp>
 
@@ -327,6 +328,17 @@ public:
   virtual std::uint32_t numberOfEdgeAnnotations() const
   {
     return edgeAnno.numberOfEdgeAnnotations();
+  }
+
+
+
+  virtual size_t estimateMemorySize() override
+  {
+    return
+        size_estimation::element_size(node2pos)
+        + size_estimation::element_size(nodeChains)
+        + edgeAnno.estimateMemorySize()
+        + sizeof(LinearStorage<pos_t>);
   }
 
   virtual ~LinearStorage()

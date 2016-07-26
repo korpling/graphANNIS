@@ -316,7 +316,7 @@ void AdjacencyListStorage::calculateStatistics()
 size_t AdjacencyListStorage::estimateMemorySize()
 {
   return
-      size_estimation::memory(edges)
+      size_estimation::element_size(edges)
       + edgeAnnos.estimateMemorySize()
       + sizeof(AdjacencyListStorage);
 }

@@ -143,5 +143,5 @@ double annis::StringStorage::avgLength()
 
 size_t StringStorage::estimateMemorySize()
 {
-  return size_estimation::memory(stringStorageByID) + size_estimation::memory(stringStorageByValue);
+  return size_estimation::element_size(stringStorageByID) + size_estimation::element_size(stringStorageByValue);
 }

@@ -732,9 +732,14 @@ void DB::optimizeAll(const std::map<Component, string>& manualExceptions)
 
 size_t DB::estimateMemorySize()
 {
-  // TODO: add IGS sizes
-  return nodeAnnos.estimateMemorySize();
-}
+  size_t result = nodeAnnos.estimateMemorySize();
+
+  for(std::pair<Component, ReadableGraphStorage*> e : edgeDatabases)
+  {
+    result += e.second->estimateMemorySize();
+  }
+
+  return result;}
 
 string DB::getImplNameForPath(string directory)
 {

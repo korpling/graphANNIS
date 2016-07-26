@@ -61,7 +61,7 @@ public:
 
   virtual void calculateStatistics();
 
-  virtual size_t estimateMemorySize();
+  virtual size_t estimateMemorySize() override;
 
 private:
   StringStorage& strings;
