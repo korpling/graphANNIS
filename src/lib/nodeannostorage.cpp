@@ -25,6 +25,7 @@
 
 #include <annis/serializers.h>
 
+#include <annis/util/size_estimator.h>
 
 using namespace annis;
 
@@ -143,6 +144,17 @@ void NodeAnnoStorage::clear()
   
   histogramBounds.clear();
   nodeAnnotationKeyCount.clear();
+}
+
+size_t NodeAnnoStorage::estimateMemorySize()
+{
+  return
+      size_estimation::memory(nodeAnnotations)
+      + size_estimation::memory(inverseNodeAnnotations)
+      + size_estimation::memory(nodeAnnoKeys)
+      + strings.estimateMemorySize()
+      + size_estimation::memory(histogramBounds)
+      + size_estimation::memory(nodeAnnotationKeyCount);
 }
 
 bool NodeAnnoStorage::hasStatistics() const

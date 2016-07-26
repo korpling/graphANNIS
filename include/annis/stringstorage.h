@@ -52,6 +52,8 @@ public:
   size_t size() {return stringStorageByID.size();}
   double avgLength();
 
+  size_t estimateMemorySize();
+
 
 private:
   std::unordered_map<std::uint32_t, std::string> stringStorageByID;

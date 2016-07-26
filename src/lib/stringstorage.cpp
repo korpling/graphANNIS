@@ -9,6 +9,8 @@
 
 #include <re2/re2.h>
 
+#include <annis/util/size_estimator.h>
+
 using namespace annis;
 using namespace std;
 
@@ -137,4 +139,9 @@ double annis::StringStorage::avgLength()
     sum += v.first.size();
   }
   return (double) sum / (double) stringStorageByValue.size();
+}
+
+size_t StringStorage::estimateMemorySize()
+{
+  return size_estimation::memory(stringStorageByID) + size_estimation::memory(stringStorageByValue);
 }

@@ -138,6 +138,8 @@ namespace annis {
     bool save(std::string dirPath);
     void clear();
 
+    size_t estimateMemorySize();
+
     virtual ~NodeAnnoStorage();
   private:
 
