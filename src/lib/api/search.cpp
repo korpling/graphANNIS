@@ -50,20 +50,26 @@ std::vector<std::string> Search::find(std::vector<std::string> corpora, std::str
       std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
       while(q->next())
       {
-        const std::vector<annis::Match>& m = q->getCurrent();
+        const std::vector<Match>& m = q->getCurrent();
         std::stringstream matchDesc;
         for(size_t i = 0; i < m.size(); i++)
         {
-          const auto& n = m[i];
-          matchDesc << db->getNodeDebugName(n.node);
-          if(n.anno.ns != 0 && n.anno.name != 0)
+          const Match& n = m[i];
+
+          if(n.anno.ns != 0 && n.anno.name != 0
+             && n.anno.ns != db->getNamespaceStringID() && n.anno.name != db->getNodeNameStringID())
           {
-            matchDesc << " " << db->strings.str(n.anno.ns)
-              << "::" << db->strings.str(n.anno.name);
+            matchDesc << db->strings.str(n.anno.ns)
+              << "::" << db->strings.str(n.anno.name)
+              << "::";
           }
+
+          matchDesc << "salt://" << c << "/";
+          matchDesc << db->getNodeDocument(n.node) << "/#" << db->getNodeName(n.node);
+
           if(i < m.size()-1)
           {
-           matchDesc << ", ";
+           matchDesc << " ";
           }
         }
         result.push_back(matchDesc.str());
