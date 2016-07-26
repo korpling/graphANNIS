@@ -49,6 +49,8 @@ public:
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
 
+  size_t estimateMemorySize();
+
 private:
   multimap_t<Edge, Annotation> edgeAnnotations;
 };

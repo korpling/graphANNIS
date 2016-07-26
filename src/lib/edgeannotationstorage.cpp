@@ -1,6 +1,7 @@
 #include <annis/edgeannotationstorage.h>
 
 #include <annis/serializers.h>
+#include <annis/util/size_estimator.h>
 
 #include <fstream>
 
@@ -49,5 +50,12 @@ bool EdgeAnnotationStorage::save(std::string dirPath)
   out.close();
 
   return true;
+}
+
+size_t EdgeAnnotationStorage::estimateMemorySize()
+{
+  return
+      + size_estimation::memory(edgeAnnotations)
+      + sizeof(EdgeAnnotationStorage);
 }
 

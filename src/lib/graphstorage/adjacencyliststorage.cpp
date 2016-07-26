@@ -1,5 +1,7 @@
 #include <annis/graphstorage/adjacencyliststorage.h>
 
+#include <annis/util/size_estimator.h>
+
 #include <annis/serializers.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -309,4 +311,12 @@ void AdjacencyListStorage::calculateStatistics()
 
   stat.valid = true;
 
+}
+
+size_t AdjacencyListStorage::estimateMemorySize()
+{
+  return
+      size_estimation::memory(edges)
+      + edgeAnnos.estimateMemorySize()
+      + sizeof(AdjacencyListStorage);
 }

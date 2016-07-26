@@ -61,6 +61,8 @@ public:
 
   virtual void calculateStatistics();
 
+  virtual size_t estimateMemorySize();
+
 private:
   StringStorage& strings;
   Component component;
