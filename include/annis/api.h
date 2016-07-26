@@ -17,12 +17,8 @@ public:
 
   typedef std::vector<std::string> StringVector;
 
-  API()
-    : databaseDir("/tmp/graphANNIS")
-  {
-    cache = std::unique_ptr<DBCache>(new DBCache());
-  }
-   ~API() {}
+  API();
+   ~API();
 
   /**
    * Count all occurences of an AQL query in a single corpus.
@@ -31,28 +27,10 @@ public:
    * @param queryAsJSON
    * @return
    */
-  long long count(std::string corpus,
-                  std::string queryAsJSON)
-  {
-    long long result = 0;
+  long long count(std::vector<std::string> corpora,
+                  std::string queryAsJSON);
 
-
-      std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + corpus);
-
-      if(std::shared_ptr<DB> db = dbWeakPtr.lock())
-      {
-        std::stringstream ss;
-        ss << queryAsJSON;
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
-        while(q->next())
-        {
-          result++;
-        }
-
-    }
-
-    return result;
-  }
+  std::vector<std::string> find(std::vector< std::string > corpora, std::string queryAsJSON);
 
 private:
   std::string databaseDir;

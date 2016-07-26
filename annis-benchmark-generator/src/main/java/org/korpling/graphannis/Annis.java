@@ -9,6 +9,42 @@ import org.bytedeco.javacpp.annotation.*;
 public class Annis extends org.korpling.graphannis.presets.AnnisApiInfo {
     static { Loader.load(); }
 
+@Name("std::vector<std::string>") public static class StringVector extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public StringVector(Pointer p) { super(p); }
+    public StringVector(BytePointer ... array) { this(array.length); put(array); }
+    public StringVector(String ... array) { this(array.length); put(array); }
+    public StringVector()       { allocate();  }
+    public StringVector(long n) { allocate(n); }
+    private native void allocate();
+    private native void allocate(@Cast("size_t") long n);
+    public native @Name("operator=") @ByRef StringVector put(@ByRef StringVector x);
+
+    public native long size();
+    public native void resize(@Cast("size_t") long n);
+
+    @Index public native @StdString BytePointer get(@Cast("size_t") long i);
+    public native StringVector put(@Cast("size_t") long i, BytePointer value);
+    @ValueSetter @Index public native StringVector put(@Cast("size_t") long i, @StdString String value);
+
+    public StringVector put(BytePointer ... array) {
+        if (size() != array.length) { resize(array.length); }
+        for (int i = 0; i < array.length; i++) {
+            put(i, array[i]);
+        }
+        return this;
+    }
+
+    public StringVector put(String ... array) {
+        if (size() != array.length) { resize(array.length); }
+        for (int i = 0; i < array.length; i++) {
+            put(i, array[i]);
+        }
+        return this;
+    }
+}
+
 // Parsed from annis/api.h
 
 // #pragma once
@@ -42,10 +78,13 @@ public class Annis extends org.korpling.graphannis.presets.AnnisApiInfo {
    * @param queryAsJSON
    * @return
    */
-  public native long count(@StdString BytePointer corpus,
+  public native long count(@ByVal StringVector corpora,
                     @StdString BytePointer queryAsJSON);
-  public native long count(@StdString String corpus,
+  public native long count(@ByVal StringVector corpora,
                     @StdString String queryAsJSON);
+
+  public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON);
+  public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON);
 }
 
  // end namespace annis

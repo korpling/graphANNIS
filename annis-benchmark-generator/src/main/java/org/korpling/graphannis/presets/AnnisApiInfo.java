@@ -10,7 +10,7 @@ import org.bytedeco.javacpp.tools.InfoMapper;
 @Namespace("annis")
 @Properties(target="org.korpling.graphannis.Annis",
     value={@Platform(
-        include="annis/api.h", 
+        include={"annis/api.h"}, 
         link={"re2", "boost_system", "boost_filesystem", "boost_serialization", "humblelogging", "ANNIS4"}
         )})
 public class AnnisApiInfo implements InfoMapper
@@ -19,6 +19,7 @@ public class AnnisApiInfo implements InfoMapper
   @Override
   public void map(InfoMap infoMap)
   {
+	  infoMap.put(new Info("std::vector<std::string>").pointerTypes("StringVector").define());
   }
 
 }
