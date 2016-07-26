@@ -306,17 +306,13 @@ void Console::memory(const std::vector<std::string> args)
     {
       if(!it->first.corpusPath.empty())
       {
-        std::cout << it->first.corpusPath << " (measured): " << Helper::inMB(it->second) << " MB";
-        auto itEstimated = dbCache.estimatedCorpusSizes().find(it->first);
-        if(itEstimated != dbCache.estimatedCorpusSizes().end())
-        {
-          std::cout << " " << itEstimated->first.corpusPath << " (estimated): " << Helper::inMB(itEstimated->second) << " MB";
-        }
-        std::cout << std::endl;
+        const DBCache::CorpusSize& size = it->second;
+        std::cout << it->first.corpusPath << " (estimated): " << Helper::inMB(size.estimated) << " MB (measured): " << Helper::inMB(size.measured) << std::endl;
       }
     }
-    std::cout << "Used total memory (measured): "  << Helper::inMB(dbCache.size()) << " MB" << std::endl;
-    std::cout << "Used total memory (estimated): "  << Helper::inMB(dbCache.estimatedSize()) << " MB" << std::endl;
+    std::cout << "Used total memory (estimated): "  << Helper::inMB(dbCache.loadedSize().estimated) << " MB" << std::endl;
+    std::cout << "Used total memory (measured): "  << Helper::inMB(dbCache.loadedSize().measured) << " MB" << std::endl;
+
   }
   else if(args[0] == "clear")
   {

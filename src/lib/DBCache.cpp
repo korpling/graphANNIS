@@ -14,17 +14,13 @@
 #include <annis/DBCache.h>
 #include <annis/db.h>
 
-#include <humblelogging/api.h>
-
-HUMBLE_LOGGER(logger, "default");
-
 using namespace annis;
 
 extern "C" size_t getCurrentRSS( );
 extern "C" size_t getCurrentVirtualMemory( );
 
 DBCache::DBCache(size_t maxSizeBytes)
-: measuredLoadedDBSizeTotal(0), estimatedLoadedDBSizeTotal(0), maxLoadedDBSize(maxSizeBytes) {
+  : loadedDBSizeTotal({0,0}), maxLoadedDBSize(maxSizeBytes) {
 }
 
 std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
@@ -50,22 +46,17 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
 
   auto newProcessMemory = getCurrentRSS();
 
-  size_t loadedSize = 1L;
+  size_t measuredSize = 1L;
   if(newProcessMemory >  oldProcessMemory)
   {
-    loadedSize = newProcessMemory - oldProcessMemory;
+    measuredSize = newProcessMemory - oldProcessMemory;
   }
-  else
-  {
-    HL_WARN(logger, "Invalid size for new corpus");
-  }
-  measuredLoadedDBSize[key] = loadedSize;
-  measuredLoadedDBSizeTotal += loadedSize;
 
   size_t estimatedSize = result->estimateMemorySize();
-  estimatedLoadedDBSize[key] = estimatedSize;
-  estimatedLoadedDBSizeTotal += estimatedSize;
-  
+  loadedDBSize[key] = {measuredSize, estimatedSize};
+  loadedDBSizeTotal.measured += measuredSize;
+  loadedDBSizeTotal.estimated += estimatedSize;
+
   return result;
 }
 

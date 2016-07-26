@@ -61,6 +61,14 @@ namespace annis {
 
   class DBCache {
   public:
+
+    struct CorpusSize
+    {
+      size_t measured;
+      size_t estimated;
+    };
+
+  public:
     DBCache(size_t maxSizeBytes=1073741824);
     DBCache(const DBCache& orig) = delete;
 
@@ -85,8 +93,8 @@ namespace annis {
 
     void releaseAll() {
       cache.clear();
-      measuredLoadedDBSize.clear();
-      measuredLoadedDBSizeTotal = 0l;
+      loadedDBSize.clear();
+      loadedDBSizeTotal = {0l, 0l};
 
       #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
         // HACK: to make the estimates accurate we have to give back the used memory after each release
@@ -99,7 +107,7 @@ namespace annis {
     
     void cleanup(std::set<DBCacheKey> ignore = std::set<DBCacheKey>()) {
       bool deletedSomething = true;
-      while(deletedSomething && !cache.empty() && measuredLoadedDBSizeTotal > maxLoadedDBSize) {
+      while(deletedSomething && !cache.empty() && loadedDBSizeTotal.estimated > maxLoadedDBSize) {
         deletedSomething = false;
         for(auto it=cache.begin(); it != cache.end(); it++) {
           if(ignore.find(it->first) == ignore.end()) {
@@ -111,19 +119,15 @@ namespace annis {
       }
     }
 
-    size_t size() { return measuredLoadedDBSizeTotal;}
-    size_t estimatedSize() { return estimatedLoadedDBSizeTotal;}
-    const std::map<DBCacheKey, size_t>& corpusSizes() const { return measuredLoadedDBSize;}
-    const std::map<DBCacheKey, size_t>& estimatedCorpusSizes() const { return estimatedLoadedDBSize;}
+    CorpusSize loadedSize() { return loadedDBSizeTotal;}
+    const std::map<DBCacheKey, CorpusSize>& corpusSizes() const { return loadedDBSize;}
 
 
     virtual ~DBCache();
   private:
     std::map<DBCacheKey, std::shared_ptr<DB>> cache;
-    std::map<DBCacheKey, size_t> measuredLoadedDBSize;
-    std::map<DBCacheKey, size_t> estimatedLoadedDBSize;
-    size_t measuredLoadedDBSizeTotal;
-    size_t estimatedLoadedDBSizeTotal;
+    std::map<DBCacheKey, CorpusSize> loadedDBSize;
+    CorpusSize loadedDBSizeTotal;
     const size_t maxLoadedDBSize;
     
   private:
@@ -132,22 +136,13 @@ namespace annis {
 
     void release(DBCacheKey key) {
       cache.erase(key);
-      {
-        auto itSizeMeasured = measuredLoadedDBSize.find(key);
-        if(itSizeMeasured != measuredLoadedDBSize.end()) {
-          size_t oldSize = itSizeMeasured->second;
-          measuredLoadedDBSize.erase(itSizeMeasured);
-          measuredLoadedDBSizeTotal -= oldSize;
-        }
-      }
 
-      {
-        auto itSizeEstimated = estimatedLoadedDBSize.find(key);
-        if(itSizeEstimated != estimatedLoadedDBSize.end()) {
-          size_t oldSize = itSizeEstimated->second;
-          estimatedLoadedDBSize.erase(itSizeEstimated);
-          estimatedLoadedDBSizeTotal -= oldSize;
-        }
+      auto itSize = loadedDBSize.find(key);
+      if(itSize != loadedDBSize.end()) {
+        const CorpusSize& oldSize = itSize->second;
+        loadedDBSize.erase(itSize);
+        loadedDBSizeTotal.measured -= oldSize.measured;
+        loadedDBSizeTotal.estimated -= oldSize.estimated;
       }
 
       #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
