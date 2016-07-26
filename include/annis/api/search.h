@@ -22,7 +22,7 @@ public:
 
   typedef std::vector<std::string> StringVector;
 
-  Search();
+  Search(std::string databaseDir);
    ~Search();
 
   /**
@@ -35,10 +35,10 @@ public:
   long long count(std::vector<std::string> corpora,
                   std::string queryAsJSON);
 
-  std::vector<std::string> find(std::vector< std::string > corpora, std::string queryAsJSON);
+  std::vector<std::string> find(std::vector< std::string > corpora, std::string queryAsJSON, long long offset=0, long long limit=10);
 
 private:
-  std::string databaseDir;
+  const std::string databaseDir;
   std::unique_ptr<DBCache> cache;
 };
 

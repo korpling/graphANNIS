@@ -7,7 +7,7 @@ public class Main
 {
   public static void main(String[] args)
   {
-	API.Search search = new API.Search();
+	API.Search search = new API.Search("/tmp/graphANNIS");
 
     AnnisParserAntlr parser = new AnnisParserAntlr();
 

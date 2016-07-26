@@ -63,16 +63,12 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
     public Search(Pointer p) { super(p); }
-    /** Native array allocator. Access with {@link Pointer#position(long)}. */
-    public Search(long size) { super((Pointer)null); allocateArray(size); }
-    private native void allocateArray(long size);
-    @Override public Search position(long position) {
-        return (Search)super.position(position);
-    }
 
 
-  public Search() { super((Pointer)null); allocate(); }
-  private native void allocate();
+  public Search(@StdString BytePointer databaseDir) { super((Pointer)null); allocate(databaseDir); }
+  private native void allocate(@StdString BytePointer databaseDir);
+  public Search(@StdString String databaseDir) { super((Pointer)null); allocate(databaseDir); }
+  private native void allocate(@StdString String databaseDir);
 
   /**
    * Count all occurrences of an AQL query in a single corpus.
@@ -86,7 +82,9 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
   public native long count(@ByVal StringVector corpora,
                     @StdString String queryAsJSON);
 
+  public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON, long offset/*=0*/, long limit/*=10*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON);
+  public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON, long offset/*=0*/, long limit/*=10*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON);
 }
 
