@@ -307,7 +307,7 @@ void Console::memory(const std::vector<std::string> args)
       if(!it->first.corpusPath.empty())
       {
         const DBCache::CorpusSize& size = it->second;
-        std::cout << it->first.corpusPath << " (estimated): " << Helper::inMB(size.estimated) << " MB (measured): " << Helper::inMB(size.measured) << std::endl;
+        std::cout << it->first.corpusPath << ": " << Helper::inMB(size.estimated) << " MB (estimated) " << Helper::inMB(size.measured) << " MB (measured)" << std::endl;
       }
     }
     std::cout << "Used total memory (estimated): "  << Helper::inMB(dbCache.loadedSize().estimated) << " MB" << std::endl;
