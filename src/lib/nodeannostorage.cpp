@@ -152,7 +152,6 @@ size_t NodeAnnoStorage::estimateMemorySize()
       size_estimation::element_size(nodeAnnotations)
       + size_estimation::element_size(inverseNodeAnnotations)
       + size_estimation::element_size(nodeAnnoKeys)
-      + strings.estimateMemorySize()
       + size_estimation::element_size(histogramBounds)
       + size_estimation::element_size(nodeAnnotationKeyCount);
 }
