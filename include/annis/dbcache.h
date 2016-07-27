@@ -2,6 +2,8 @@
 
 #include "types.h"
 
+#include <annis/db.h>
+
 #include <map>
 #include <set>
 #include <memory>
@@ -75,13 +77,19 @@ namespace annis {
     std::weak_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
       DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
-      auto it = cache.find(key);
+      std::map<DBCacheKey, std::shared_ptr<DB>>::iterator it = cache.find(key);
       if (it == cache.end()) {
         // cleanup the cache
         cleanup();
         // create a new one
         cache[key] = initDB(key, preloadEdges);
         return cache[key];
+      }
+      // already in cache
+      if(preloadEdges)
+      {
+        std::shared_ptr<DB>& db = it->second;
+        db->ensureAllComponentsLoaded();
       }
       return it->second;
     }

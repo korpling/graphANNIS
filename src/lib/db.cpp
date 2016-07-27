@@ -573,6 +573,7 @@ void DB::optimizeAll(const std::map<Component, string>& manualExceptions)
 {
   for(const auto& c : getAllComponents())
   {
+    edges.ensureComponentIsLoaded(c);
     auto find = manualExceptions.find(c);
     if(find == manualExceptions.end())
     {
@@ -583,6 +584,14 @@ void DB::optimizeAll(const std::map<Component, string>& manualExceptions)
     {
       convertComponent(c, find->second);
     }
+  }
+}
+
+void DB::ensureAllComponentsLoaded()
+{
+  for(const auto& c : getAllComponents())
+  {
+    edges.ensureComponentIsLoaded(c);
   }
 }
 
