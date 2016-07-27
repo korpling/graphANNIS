@@ -177,7 +177,7 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
 
           if(preloadComponents)
           {
-            HL_INFO(logger, (boost::format("loading component %1%")
+            HL_DEBUG(logger, (boost::format("loading component %1%")
                              % debugComponentString(emptyNameComponent)).str());
             gsEmptyName->load(layerPath.string());
           }
@@ -206,7 +206,7 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
             std::shared_ptr<ReadableGraphStorage> gsNamed = registry.createGraphStorage(implName, strings, namedComponent);
             if(preloadComponents)
             {
-              HL_INFO(logger, (boost::format("loading component %1%")
+              HL_DEBUG(logger, (boost::format("loading component %1%")
                                % debugComponentString(namedComponent)).str());
               gsNamed->load(namedComponentPath.string());
             }
@@ -267,7 +267,7 @@ void GraphStorageHolder::ensureComponentIsLoaded(const Component &c)
     auto itLocation = notLoadedLocations.find(c);
     if(itLocation != notLoadedLocations.end())
     {
-      HL_INFO(logger, (boost::format("loading component %1%")
+      HL_DEBUG(logger, (boost::format("loading component %1%")
                        % debugComponentString(itLocation->first)).str());
       itGS->second->load(itLocation->second);
     }
