@@ -12,6 +12,7 @@
 #include <annis/types.h>
 #include <annis/stringstorage.h>
 #include <annis/graphstorageregistry.h>
+#include <annis/graphstorageholder.h>
 #include <annis/nodeannostorage.h>
 
 namespace annis
@@ -22,12 +23,11 @@ class WriteableGraphStorage;
   
 class DB
 {
-  using GraphStorageIt = std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator;
 public:
   DB();
 
   bool loadRelANNIS(std::string dirPath);
-  bool load(std::string dirPath);
+  bool load(std::string dirPath, bool preloadComponents=true);
   bool save(std::string dirPath);
 
   bool hasNode(nodeid_t id);
@@ -67,10 +67,6 @@ public:
 
   std::vector<Component> getDirectConnected(const Edge& edge) const;
   std::vector<Component> getAllComponents() const;
-  std::weak_ptr<const ReadableGraphStorage> getGraphStorage(const Component& component) const;
-  std::weak_ptr<const ReadableGraphStorage> getGraphStorage(ComponentType type, const std::string& layer, const std::string& name) const;
-  std::vector<std::weak_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type, const std::string& name) const;
-  std::vector<std::weak_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type) const;
 
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);
@@ -93,16 +89,17 @@ public:
   StringStorage strings;
   NodeAnnoStorage nodeAnnos;
 
+  GraphStorageHolder edges;
+
 private:
-  
-  std::map<Component, std::shared_ptr<ReadableGraphStorage>> edgeDatabases;
-  GraphStorageRegistry registry;
+
 
   std::uint32_t annisNamespaceStringID;
   std::uint32_t annisEmptyStringID;
   std::uint32_t annisTokStringID;
   std::uint32_t annisNodeNameStringID;
 
+private:
   bool loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName,
     bool isANNIS33Format);
   bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName,
@@ -120,26 +117,6 @@ private:
   void clear();
   void addDefaultStrings();
 
-  std::shared_ptr<ReadableGraphStorage> createGSForComponent(const std::string& shortType, const std::string& layer,
-                       const std::string& name);
-  std::shared_ptr<ReadableGraphStorage> createGSForComponent(ComponentType ctype, const std::string& layer,
-                       const std::string& name);
-  std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
-                       const std::string& name);
-
-
-  std::string getImplNameForPath(std::string directory);
-
-  ComponentType componentTypeFromShortName(std::string shortType);
-
-  std::string debugComponentString(const Component& c)
-  {
-    std::stringstream ss;
-    ss << ComponentTypeHelper::toString(c.type) << "|" << c.layer
-       << "|" << c.name;
-    return ss.str();
-
-  }
 };
 
 } // end namespace annis

@@ -15,7 +15,7 @@ class Overlap : public Operator
 {
 public:
 
-  Overlap(const DB &db);
+  Overlap(const DB &db, GraphStorageHolder &gsh);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs);
   virtual bool filter(const Match& lhs, const Match& rhs);

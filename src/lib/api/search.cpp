@@ -26,7 +26,7 @@ long long Search::count(std::vector<std::string> corpora, std::string queryAsJSO
     {
       std::stringstream ss;
       ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
       while(q->next())
       {
         result++;
@@ -54,7 +54,7 @@ std::vector<std::string> Search::find(std::vector<std::string> corpora, std::str
     {
       std::stringstream ss;
       ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
       while(counter < (offset + limit) && q->next())
       {
         if(counter >= offset)

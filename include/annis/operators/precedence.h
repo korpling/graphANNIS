@@ -14,7 +14,7 @@ class Precedence : public Operator
 {
 public:
 
-  Precedence(const DB& db, unsigned int minDistance=1, unsigned int maxDistance=1);
+  Precedence(const DB& db, GraphStorageHolder &gsh, unsigned int minDistance=1, unsigned int maxDistance=1);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
   virtual bool filter(const Match& lhs, const Match& rhs) override;

@@ -7,21 +7,20 @@
 
 using namespace annis;
 
-AbstractEdgeOperator::AbstractEdgeOperator(
-    ComponentType componentType,
-    const DB &db, std::string ns, std::string name,
-    unsigned int minDistance, unsigned int maxDistance)
-  : componentType(componentType), db(db), ns(ns), name(name),
+AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType,
+                                           GraphStorageHolder &gsh,
+                                           const StringStorage &strings, std::string ns, std::string name,
+                                           unsigned int minDistance, unsigned int maxDistance)
+  : componentType(componentType), gsh(gsh), strings(strings), ns(ns), name(name),
                   minDistance(minDistance), maxDistance(maxDistance),
                   anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
 {
   initGraphStorage();
 }
 
-AbstractEdgeOperator::AbstractEdgeOperator(
-    ComponentType componentType,
-    const DB &db, std::string ns, std::string name, const Annotation &edgeAnno)
-  : componentType(componentType), db(db), ns(ns), name(name),
+AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType,
+    GraphStorageHolder &gsh, const StringStorage &strings, std::string ns, std::string name, const Annotation &edgeAnno)
+  : componentType(componentType), gsh(gsh), strings(strings), ns(ns), name(name),
     minDistance(1), maxDistance(1),
     anyAnno(Init::initAnnotation()), edgeAnno(edgeAnno)
 {
@@ -92,7 +91,7 @@ void AbstractEdgeOperator::initGraphStorage()
   gs.clear();
   if(ns == "")
   {
-    auto listOfGS = db.getGraphStorage(componentType, name);
+    auto listOfGS = gsh.getGraphStorage(componentType, name);
     for(auto ePtr : listOfGS)
     {
       gs.push_back(ePtr.lock());
@@ -101,7 +100,7 @@ void AbstractEdgeOperator::initGraphStorage()
   else
   {
     // directly add the only known edge storage
-    if(auto e = db.getGraphStorage(componentType, ns, name).lock())
+    if(auto e = gsh.getGraphStorage(componentType, ns, name).lock())
     {
       gs.push_back(e);
     }
@@ -198,7 +197,7 @@ std::string AbstractEdgeOperator::description()
   {
     if(edgeAnno.name != 0 && edgeAnno.val != 0)
     {
-      result += "[" + db.strings.str(edgeAnno.name) + "=\"" + db.strings.str(edgeAnno.val) + "\"]";
+      result += "[" + strings.str(edgeAnno.name) + "=\"" + strings.str(edgeAnno.val) + "\"]";
     }
     else
     {

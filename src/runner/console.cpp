@@ -168,7 +168,7 @@ void Console::count(const std::vector<std::string> &args)
       std::cout << "Counting..." << std::endl;
       std::stringstream ss;
       ss << json;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
       int counter =0;
       auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
       while(q->next())
@@ -195,7 +195,7 @@ void Console::find(const std::vector<std::__cxx11::string> &args)
       std::cout << "Finding..." << std::endl;
       std::stringstream ss;
       ss << json;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
       int counter =0;
       while(q->next())
       {
@@ -284,7 +284,7 @@ void Console::plan(const std::vector<std::string> &args)
       std::cout << "Planning..." << std::endl;
       std::stringstream ss;
       ss << json;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
       std::cout << q->getBestPlan()->debugString() << std::endl;
 
     }

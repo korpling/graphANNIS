@@ -11,14 +11,13 @@ namespace annis
 class AbstractEdgeOperator : public Operator
 {
 public:
-  AbstractEdgeOperator(
-      ComponentType componentType,
-      const DB& db, std::string ns, std::string name,
+  AbstractEdgeOperator(ComponentType componentType,
+      GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
       unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   AbstractEdgeOperator(
       ComponentType componentType,
-      const DB& db, std::string ns, std::string name,
+      GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
       const Annotation& edgeAnno = Init::initAnnotation());
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs);
@@ -37,7 +36,8 @@ public:
   virtual ~AbstractEdgeOperator();
 private:
   ComponentType componentType;
-  const DB& db;
+  GraphStorageHolder& gsh;
+  const StringStorage& strings;
   std::string ns;
   std::string name;
   unsigned int minDistance;

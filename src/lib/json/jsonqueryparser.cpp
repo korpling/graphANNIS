@@ -23,7 +23,7 @@ JSONQueryParser::JSONQueryParser()
 {
 }
 
-std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, std::istream& jsonStream, bool optimize)
+std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& edges, std::istream& jsonStream, bool optimize)
 {
   std::shared_ptr<Query> q = std::make_shared<Query>(db, optimize);
 
@@ -51,7 +51,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, std::istream& jsonSt
     const auto& joins = firstAlt["joins"];
     for (auto it = joins.begin(); it != joins.end(); it++)
     {
-      parseJoin(db, *it, q, nodeIdToPos);
+      parseJoin(db, edges, *it, q, nodeIdToPos);
     }
 
 
@@ -179,7 +179,7 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
   return 0;
 }
 
-void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::shared_ptr<Query> q,
+void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const Json::Value join, std::shared_ptr<Query> q,
   const std::map<std::uint64_t, size_t>& nodeIdToPos)
 {
   // get left and right index
@@ -199,21 +199,21 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
       {
         auto minDist = join["minDistance"].asUInt();
         auto maxDist = join["maxDistance"].asUInt();
-        q->addOperator(std::make_shared<Precedence>(db,
+        q->addOperator(std::make_shared<Precedence>(db, edges,
           minDist, maxDist),
           itLeft->second, itRight->second);
       }
       else if (op == "Inclusion")
       {
-        q->addOperator(std::make_shared<Inclusion>(db), itLeft->second, itRight->second);
+        q->addOperator(std::make_shared<Inclusion>(db, edges), itLeft->second, itRight->second);
       }
       else if (op == "Overlap")
       {
-        q->addOperator(std::make_shared<Overlap>(db), itLeft->second, itRight->second);
+        q->addOperator(std::make_shared<Overlap>(db, edges), itLeft->second, itRight->second);
       }
       else if (op == "IdenticalCoverage")
       {
-        q->addOperator(std::make_shared<IdenticalCoverage>(db), itLeft->second, itRight->second);
+        q->addOperator(std::make_shared<IdenticalCoverage>(db, edges), itLeft->second, itRight->second);
       }
       else if (op == "Dominance")
       {
@@ -223,7 +223,7 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0)
         {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q->addOperator(std::make_shared<Dominance>(db, "", name, anno),
+          q->addOperator(std::make_shared<Dominance>(edges, db.strings, "", name, anno),
             itLeft->second, itRight->second);
 
         }
@@ -239,7 +239,7 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
             maxDist = uintmax;
           }
 
-          q->addOperator(std::make_shared<Dominance>(db,
+          q->addOperator(std::make_shared<Dominance>(edges, db.strings,
             "", name,
             minDist, maxDist),
             itLeft->second, itRight->second);
@@ -253,7 +253,7 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0)
         {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q->addOperator(std::make_shared<Pointing>(db, "", name, anno),
+          q->addOperator(std::make_shared<Pointing>(edges, db.strings, "", name, anno),
             itLeft->second, itRight->second);
 
         }
@@ -270,7 +270,7 @@ void JSONQueryParser::parseJoin(const DB& db, const Json::Value join, std::share
             maxDist = uintmax;
           }
 
-          q->addOperator(std::make_shared<Pointing>(db,
+          q->addOperator(std::make_shared<Pointing>(edges, db.strings,
             "", name, minDist, maxDist),
             itLeft->second, itRight->second);
         }

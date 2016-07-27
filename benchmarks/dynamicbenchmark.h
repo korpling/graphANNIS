@@ -103,8 +103,8 @@ namespace annis {
         std::istringstream jsonAsStream(it->second);
         if(auto dbPtr = getDB().lock())
         {
-          const DB& db = *dbPtr ;
-          q = JSONQueryParser::parse(db, jsonAsStream);
+          DB& db = *dbPtr ;
+          q = JSONQueryParser::parse(db, db.edges, jsonAsStream);
         }
       }
       auto itCount = expectedCountByExp.find(experimentValue);

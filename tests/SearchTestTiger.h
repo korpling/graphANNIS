@@ -61,7 +61,7 @@ public:
       std::string jsonFileName = queryDir + "/" + info->name() + ".json";
       in.open(jsonFileName);
       if(in.is_open()) {
-        q = JSONQueryParser::parse(db, in);
+        q = JSONQueryParser::parse(db, db.edges, in);
         in.close();
       }
     }

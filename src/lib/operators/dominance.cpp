@@ -2,16 +2,16 @@
 
 using namespace annis;
 
-Dominance::Dominance(const DB &db, std::string ns, std::string name,
+Dominance::Dominance(GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
                                    unsigned int minDistance, unsigned int maxDistance)
   : AbstractEdgeOperator(ComponentType::DOMINANCE,
-                         db, ns, name, minDistance, maxDistance)
+                         gsh, strings, ns, name, minDistance, maxDistance)
 {
 }
 
-Dominance::Dominance(const DB &db, std::string ns, std::string name, const Annotation &edgeAnno)
+Dominance::Dominance(GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name, const Annotation &edgeAnno)
   : AbstractEdgeOperator(ComponentType::DOMINANCE,
-                         db, ns, name, edgeAnno)
+                         gsh, strings, ns, name, edgeAnno)
 {
 }
 

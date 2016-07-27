@@ -59,7 +59,7 @@ protected:
       std::string jsonFileName = queryDir + "/" + info->name() + ".json";
       in.open(jsonFileName);
       if(in.is_open()) {
-        q = JSONQueryParser::parse(db, in);
+        q = JSONQueryParser::parse(db, db.edges, in);
         in.close();
       }
     }
@@ -226,7 +226,7 @@ TEST_F(SearchTestPcc2, StructureInclusionFilter) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "AP"));
 
-  q.addOperator(std::make_shared<Inclusion>(db), n1, n2, true);
+  q.addOperator(std::make_shared<Inclusion>(db, db.edges), n1, n2, true);
 
   unsigned int counter = 0;
   while (q.next()) {
@@ -258,7 +258,7 @@ TEST_F(SearchTestPcc2, AnyNodeIncludeFilter) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
 
-  q.addOperator(std::make_shared<Inclusion>(db), n1, n2, true);
+  q.addOperator(std::make_shared<Inclusion>(db, db.edges), n1, n2, true);
 
   unsigned int counter = 0;
   while (q.next()) {
@@ -369,7 +369,7 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "pper"));
 
-  q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, uintmax), 1, 0, true);
+  q.addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "anaphor_antecedent", 1, uintmax), 1, 0, true);
 
   while (q.next() && counter < 2000) {
     std::vector<Match> m = q.getCurrent();
@@ -405,7 +405,7 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "pper"));
 
-  q.addOperator(std::make_shared<Pointing>(db, "", "anaphor_antecedent", 1, 1), 1, 0, true);
+  q.addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "anaphor_antecedent", 1, 1), 1, 0, true);
 
   while (q.next() && counter < 2000) {
     std::vector<Match> m = q.getCurrent();
@@ -444,7 +444,7 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
 
   std::shared_ptr<Operator> op =
           std::make_shared<Pointing>(
-          db, "", "dep",
+          db.edges, db.strings, "", "dep",
           Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
   q.addOperator(op, 0, 1, true);
 

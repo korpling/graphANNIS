@@ -19,7 +19,7 @@ namespace annis {
     JSONQueryParser(const JSONQueryParser& orig) = delete;
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
-    static std::shared_ptr<Query> parse(const DB& db, std::istream& json, bool optimize=true);
+    static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder &edges, std::istream& json, bool optimize=true);
 
     virtual ~JSONQueryParser();
   private:
@@ -33,7 +33,7 @@ namespace annis {
         boost::optional<std::string> textMatching,
         bool wrapEmptyAnno = false);
     
-    static void parseJoin(const DB& db, const Json::Value join, 
+    static void parseJoin(const DB& db, GraphStorageHolder &edges, const Json::Value join,
       std::shared_ptr<Query> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos);
     
     static boost::optional<std::string> optStr(const Json::Value& val) {

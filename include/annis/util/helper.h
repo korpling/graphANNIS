@@ -9,6 +9,7 @@
 
 #include <annis/db.h>
 #include <annis/graphstorage/graphstorage.h>
+#include <annis/graphstorageholder.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -27,9 +28,9 @@ class TokenHelper
 {
 public:
 
-  TokenHelper(const DB& db) : db(db),
-    leftEdges(db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock()),
-    rightEdges(db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock())
+  TokenHelper(GraphStorageHolder& gsh, const DB& db) : db(db),
+    leftEdges(gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock()),
+    rightEdges(gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock())
   {
 
   }

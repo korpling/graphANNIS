@@ -14,14 +14,14 @@
 
 using namespace annis;
 
-IdenticalCoverage::IdenticalCoverage(const DB &db)
-: db(db), tokHelper(db),
+IdenticalCoverage::IdenticalCoverage(const DB &db, GraphStorageHolder& gsh)
+: db(db), tokHelper(gsh, db),
   anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {
-  gsOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock();
-  gsLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock();
-  gsRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock();
-  gsCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "").lock();
+  gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock();
+  gsLeftToken = gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock();
+  gsRightToken = gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock();
+  gsCoverage = gsh.getGraphStorage(ComponentType::COVERAGE, annis_ns, "").lock();
 }
 
 bool IdenticalCoverage::filter(const Match& lhs, const Match& rhs)

@@ -126,7 +126,7 @@ TEST_F(LoadTest, OutgoingEdges) {
   Match cppNode;
   EXPECT_TRUE(catSearch.next(cppNode));
 
-  std::shared_ptr<const ReadableGraphStorage> gsDom = db.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge").lock();
+  std::shared_ptr<const ReadableGraphStorage> gsDom = db.edges.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge").lock();
   std::vector<nodeid_t> outEdges = gsDom->getOutgoingEdges(cppNode.node);
   EXPECT_EQ(3, outEdges.size());
 
@@ -163,7 +163,7 @@ TEST_F(LoadTest, Ordering) {
 
   annis::Component componentOrdering = {annis::ComponentType::ORDERING,
                                                                  annis::annis_ns, ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(componentOrdering).lock();
+  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(componentOrdering).lock();
   ASSERT_TRUE(gs != NULL);
   // tok . tok
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(0, 1)));
@@ -180,7 +180,7 @@ TEST_F(LoadTest, Ordering) {
 
   annis::Component componentLeftToken = {annis::ComponentType::LEFT_TOKEN,
                                                                   annis::annis_ns, ""};
-  gs = db.getGraphStorage(componentLeftToken).lock();
+  gs = db.edges.getGraphStorage(componentLeftToken).lock();
   ASSERT_TRUE(gs != NULL);
   // span _l_ tok (both direcctions)
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(125, 124)));
@@ -190,7 +190,7 @@ TEST_F(LoadTest, Ordering) {
 
   annis::Component componentRightToken = {annis::ComponentType::RIGHT_TOKEN,
                                                                    annis::annis_ns, ""};
-  gs = db.getGraphStorage(componentRightToken).lock();
+  gs = db.edges.getGraphStorage(componentRightToken).lock();
   ASSERT_TRUE(gs != NULL);
   // span _r_ tok (both direcctions)
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(125, 124)));
@@ -211,7 +211,7 @@ TEST_F(LoadTest, Dom)
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
-  q.addOperator(std::make_shared<Dominance>(db, "tiger", "", 1, uintmax), n1, n2);
+  q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "tiger", "", 1, uintmax), n1, n2);
 
   while(q.next())
   {
@@ -230,7 +230,7 @@ TEST_F(LoadTest, IsConnected)
 
   annis::Component component = {annis::ComponentType::DOMINANCE,
                                                                  "tiger", ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(component).lock();
+  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(component).lock();
 
   EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, uintmax));
   EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, 2));
@@ -244,7 +244,7 @@ TEST_F(LoadTest, Distance)
 {
 
   annis::Component component = {annis::ComponentType::DOMINANCE, "tiger", ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(component).lock();
+  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(component).lock();
 
   EXPECT_EQ(2, gs->distance(Init::initEdge(387, 16)));
 
@@ -260,7 +260,7 @@ TEST_F(LoadTest, RangedDom) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "AP"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
 
-  q.addOperator(std::make_shared<Dominance>(db, "", "", 3, 5), n1, n2);
+  q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", 3, 5), n1, n2);
 
   while(q.next() && counter < 2000)
   {
@@ -284,7 +284,7 @@ TEST_F(LoadTest, SecEdge) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "was"));
 
-  q.addOperator(std::make_shared<Dominance>(db, "", ""), n1, n2);
+  q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", ""), n1, n2);
 
   while(q.next() && counter < 2000)
   {

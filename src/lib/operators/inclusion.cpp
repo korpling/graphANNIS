@@ -4,15 +4,15 @@
 
 using namespace annis;
 
-Inclusion::Inclusion(const DB &db)
+Inclusion::Inclusion(const DB &db, GraphStorageHolder& gsh)
   : db(db),
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
-    tokHelper(db)
+    tokHelper(gsh, db)
 {
-  gsOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock();
-  gsLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock();
-  gsRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock();
-  gsCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "").lock();
+  gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock();
+  gsLeftToken = gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock();
+  gsRightToken = gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock();
+  gsCoverage = gsh.getGraphStorage(ComponentType::COVERAGE, annis_ns, "").lock();
 
 }
 

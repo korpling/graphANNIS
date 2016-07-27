@@ -42,36 +42,36 @@ namespace annis
 class ExampleQueries
 {
 public:
-  static Query PosNNIncludesNormBlumen(const DB& db)
+  static Query PosNNIncludesNormBlumen(DB& db)
   {
     Query q(db);
     q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
     q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
 
-    q.addOperator(std::make_shared<annis::Inclusion>(db), 1, 0);
+    q.addOperator(std::make_shared<annis::Inclusion>(db, db.edges), 1, 0);
     return q;
   }
 
-  static Query PosNNOverlapsNormBlumen(const DB& db)
+  static Query PosNNOverlapsNormBlumen(DB& db)
   {
     Query q(db);
     auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
     auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
-    q.addOperator(std::make_shared<Overlap>(db), n2, n1);
+    q.addOperator(std::make_shared<Overlap>(db, db.edges), n2, n1);
     return q;
   }
 
-  static Query NNPreceedingART(const DB& db)
+  static Query NNPreceedingART(DB& db)
   {
     Query q(db);
     q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
     q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "ART"));
 
-    q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+    q.addOperator(std::make_shared<Precedence>(db, db.edges, 2, 10), 0, 1);
     return q;
   }
 
-  static Query TokPreceedingTok(const DB& db)
+  static Query TokPreceedingTok(DB& db)
   {
 
     Query q(db);
@@ -79,7 +79,7 @@ public:
     q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis::annis_ns,annis::annis_tok));
 
 
-    q.addOperator(std::make_shared<Precedence>(db, 2, 10), 0, 1);
+    q.addOperator(std::make_shared<Precedence>(db, db.edges, 2, 10), 0, 1);
 
     return q;
   }
@@ -91,18 +91,18 @@ public:
     return q;
   }
 
-  static Query BilharzioseSentence(const DB& db)
+  static Query BilharzioseSentence(DB& db)
   {
     Query q(db);
     auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
     auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Bilharziose"));
 
-    q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+    q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", 1, uintmax), n1, n2);
 
     return q;
   }
 
-  static Query NNPreARTPreNN(const DB& db)
+  static Query NNPreARTPreNN(DB& db)
   {
 
     Query q(db);
@@ -110,13 +110,13 @@ public:
     q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "ART"));
     q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "NN"));
 
-    q.addOperator(std::make_shared<Precedence>(db, 2,10), 0, 1);
-    q.addOperator(std::make_shared<Precedence>(db), 1, 2);
+    q.addOperator(std::make_shared<Precedence>(db, db.edges, 2,10), 0, 1);
+    q.addOperator(std::make_shared<Precedence>(db, db.edges), 1, 2);
 
     return q;
   }
 
-  static Query RegexDom(const DB& db)
+  static Query RegexDom(DB& db)
   {
     Query q(db);
     auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db,
@@ -125,7 +125,7 @@ public:
                                                           annis_ns, annis_tok,
                                                          "A.*"));
 
-    q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n1, n2);
+    q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", 1, uintmax), n1, n2);
 
     return q;
   }
@@ -140,7 +140,7 @@ public:
   & #6 >* #7
   & #4 ->anaphoric #7
   */
-  static Query Mixed1(const DB& db)
+  static Query Mixed1(DB& db)
   {
     Query q(db);
     auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
@@ -155,17 +155,17 @@ public:
         Init::initAnnotation(db.strings.findID("func").second,
                              db.strings.findID("ON").second);
 
-    q.addOperator(std::make_shared<Inclusion>(db), n2, n4);
-    q.addOperator(std::make_shared<Pointing>(db, "", "anaphoric"), n4, n7);
-    q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n1, n3);
-    q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n3, n2);
-    q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n5, n6);
-    q.addOperator(std::make_shared<Dominance>(db, "", "", 1, uintmax), n6, n7);
+    q.addOperator(std::make_shared<Inclusion>(db, db.edges), n2, n4);
+    q.addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "anaphoric"), n4, n7);
+    q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", funcOnAnno), n1, n3);
+    q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", 1, uintmax), n3, n2);
+    q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", funcOnAnno), n5, n6);
+    q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", 1, uintmax), n6, n7);
 
     return q;
   }
 
-  static Query NodeDom(const DB& db, unsigned int maxDistance=uintmax)
+  static Query NodeDom(DB& db, unsigned int maxDistance=uintmax)
   {
     Query q(db);
     auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db,
@@ -173,22 +173,22 @@ public:
     auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db,
                                                           annis_ns, annis_node_name));
 
-    q.addOperator(std::make_shared<Dominance>(db, "", "", 1, maxDistance), n1, n2);
+    q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", 1, maxDistance), n1, n2);
 
     return q;
   }
 
-  static Query PPERIncludesAnaphoric(const DB& db)
+  static Query PPERIncludesAnaphoric(DB& db)
   {
     Query q(db);
     auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "merged", "pos", "PPER"));
     auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "relation", "anaphoric"));
 
-    q.addOperator(std::make_shared<Inclusion>(db), n1, n2);
+    q.addOperator(std::make_shared<Inclusion>(db, db.edges), n1, n2);
     return q;
   }
 
-  static Query DomFuncON(const DB& db)
+  static Query DomFuncON(DB& db)
   {
     Query q(db);
     auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
@@ -197,19 +197,19 @@ public:
     Annotation funcOnAnno =
         Init::initAnnotation(db.strings.findID("func").second, db.strings.findID("ON").second, db.strings.findID("tiger").second);
 
-    q.addOperator(std::make_shared<Dominance>(db, "", "", funcOnAnno), n1, n2);
+    q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", funcOnAnno), n1, n2);
 
     return q;
   }
 
-  static Query JederObwohl(const DB& db)
+  static Query JederObwohl(DB& db)
   {
     Query q(db);
 //    auto n1 = q.addNode(std::make_shared<RegexAnnoSearch>(db, annis_ns, annis_tok, "(jeder)|(jede)"));
     auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "jeder"));
     auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "obwohl"));
 
-    q.addOperator(std::make_shared<Precedence>(db, 1, 50), n1, n2);
+    q.addOperator(std::make_shared<Precedence>(db, db.edges, 1, 50), n1, n2);
 
     return q;
   }
