@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <annis/db.h>
-#include <annis/DBCache.h>
+#include <annis/dbcache.h>
 #include <annis/util/helper.h>
 #include <annis/json/jsonqueryparser.h>
 

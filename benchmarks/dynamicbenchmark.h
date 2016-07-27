@@ -18,7 +18,7 @@
 #include "benchmark.h"
 #include <annis/db.h>
 #include <annis/query.h>
-#include <annis/DBCache.h>
+#include <annis/dbcache.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>

@@ -5,7 +5,7 @@
 #include <list>
 
 #include <annis/db.h>
-#include <annis/DBCache.h>
+#include <annis/dbcache.h>
 #include <annis/json/jsonqueryparser.h>
 
 
