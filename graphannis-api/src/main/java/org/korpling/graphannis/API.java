@@ -54,7 +54,7 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
 // #include <list>
 
 // #include <annis/db.h>
-// #include <annis/DBCache.h>
+// #include <annis/dbcache.h>
 // #include <annis/json/jsonqueryparser.h>
 /**
  * An API for searching in a corpus.
