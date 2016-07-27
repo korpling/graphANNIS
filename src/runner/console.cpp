@@ -300,8 +300,9 @@ void Console::memory(const std::vector<std::string> args)
   if(args.empty())
   {
 
-    for(auto it = dbCache.corpusSizes().begin();
-        it != dbCache.corpusSizes().end(); it++)
+    auto corpusSizes = dbCache.estimateCorpusSizes();
+    for(auto it = corpusSizes.begin();
+        it != corpusSizes.end(); it++)
 
     {
       if(!it->first.corpusPath.empty())

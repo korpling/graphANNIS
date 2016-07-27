@@ -23,7 +23,7 @@ DBCache::DBCache(size_t maxSizeBytes)
   : maxLoadedDBSize(maxSizeBytes) {
 }
 
-DBCache::CorpusSize DBCache::calculateTotalSize()
+DBCache::CorpusSize DBCache::calculateTotalSize() const
 {
   CorpusSize total = {0,0};
   for(const std::pair<DBCacheKey, CorpusSize>& c : loadedDBSize)
@@ -32,6 +32,23 @@ DBCache::CorpusSize DBCache::calculateTotalSize()
     total.measured += c.second.measured;
   }
   return total;
+}
+
+const std::map<DBCacheKey, DBCache::CorpusSize> DBCache::estimateCorpusSizes()
+{
+  for(auto itLoaded = loadedDBSize.begin(); itLoaded != loadedDBSize.end(); itLoaded++)
+  {
+    CorpusSize& c = itLoaded->second;
+    std::map<DBCacheKey, std::shared_ptr<DB>>::const_iterator itCache = cache.find(itLoaded->first);
+    if(itCache != cache.end())
+    {
+      // corpus is also contained in the cache
+      c.estimated = itCache->second->estimateMemorySize();
+    }
+
+
+  }
+  return loadedDBSize;
 }
 
 std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key, bool preloadEdges) {

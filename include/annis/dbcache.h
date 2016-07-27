@@ -118,8 +118,8 @@ namespace annis {
       }
     }
 
-    CorpusSize calculateTotalSize();
-    const std::map<DBCacheKey, CorpusSize>& corpusSizes() const { return loadedDBSize;}
+    CorpusSize calculateTotalSize() const;
+    const std::map<DBCacheKey, CorpusSize> estimateCorpusSizes();
 
 
     virtual ~DBCache();
