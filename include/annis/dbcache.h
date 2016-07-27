@@ -79,7 +79,9 @@ namespace annis {
       DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
       std::map<DBCacheKey, std::shared_ptr<DB>>::iterator it = cache.find(key);
       if (it == cache.end()) {
-        // cleanup the cache
+        // not included yet, we have to load this database
+
+        // make sure we don't exceed the maximal allowed memory size
         cleanup();
         // create a new one
         cache[key] = initDB(key, preloadEdges);
@@ -114,6 +116,9 @@ namespace annis {
     
     void cleanup(std::set<DBCacheKey> ignore = std::set<DBCacheKey>()) {
       bool deletedSomething = true;
+
+      updateCorpusSizeEstimations();
+
       while(deletedSomething && !cache.empty() && calculateTotalSize().estimated > maxLoadedDBSize) {
         deletedSomething = false;
         for(auto it=cache.begin(); it != cache.end(); it++) {
@@ -127,7 +132,11 @@ namespace annis {
     }
 
     CorpusSize calculateTotalSize() const;
-    const std::map<DBCacheKey, CorpusSize> estimateCorpusSizes();
+    const std::map<DBCacheKey, CorpusSize>& estimateCorpusSizes()
+    {
+      updateCorpusSizeEstimations();
+      return loadedDBSize;
+    }
 
 
     virtual ~DBCache();
@@ -139,6 +148,8 @@ namespace annis {
   private:
     
     std::shared_ptr<DB> initDB(const DBCacheKey& key, bool preloadEdges);
+
+    void updateCorpusSizeEstimations();
 
     void release(DBCacheKey key) {
       cache.erase(key);
