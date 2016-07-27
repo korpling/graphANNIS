@@ -1,8 +1,5 @@
 #pragma once
 
-#include <stx/btree_map>
-#include <stx/btree_multimap>
-#include <stx/btree_set>
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/db.h>
 #include <annis/util/comparefunctions.h>

@@ -12,10 +12,6 @@
 #include <list>
 #include <memory>
 
-#include <stx/btree_map>
-#include <stx/btree_multimap>
-#include <stx/btree_set>
-
 #include <google/btree_map.h>
 #include <google/btree_set.h>
 

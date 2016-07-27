@@ -31,7 +31,9 @@ This software depends on libraries and code of the following projects:
 
 * Boost - Copyright by the various Boost Contributors: Boost Software License (http://www.boost.org/LICENSE_1_0.txt)
 * Celero C++ Benchmarking Library - Copyright by John Farrier, Hellebore Consulting LLC: Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+* Google C++ B-tree - Copyright by Google Inc.: Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 * Google Test - Copyright by Google Inc.: New BSD License (http://opensource.org/licenses/BSD-3-Clause)
 * Humble Logging Library - "THE BEER-WARE LICENSE" (Revision 42) (https://raw.githubusercontent.com/mfreiholz/humblelogging/master/LICENSE)
 * ICU - Copyright by International Business Machines Corporation and others: ICU License (http://www.icu-project.org/repos/icu/icu/tags/release-55-1/license.html)
+* linenoise - Copyright by Salvatore Sanfilippo (antirez at gmail dot com), Pieter Noordhuis (pcnoordhuis at gmail dot com) : BSD-style license (https://raw.githubusercontent.com/antirez/linenoise/master/LICENSE)
 * ncurses - Copyright Free Software Foundation, Inc.: X11 License (http://invisible-island.net/ncurses/ncurses-license.html)
