@@ -609,6 +609,7 @@ string DB::info()
   ss  << "Number of node annotations: " << nodeAnnos.nodeAnnotations.size() << endl
       << "Number of strings in storage: " << strings.size() << endl
       << "Average string length: " << strings.avgLength() << endl
+      << "--------------------" << std::endl
       << edges.info() << std::endl;
 
   return ss.str();
