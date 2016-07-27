@@ -6,8 +6,8 @@ using namespace annis;
 
 Precedence::Precedence(const DB &db, unsigned int minDistance, unsigned int maxDistance)
   : tokHelper(db),
-    gsOrder(db.getGraphStorage(ComponentType::ORDERING, annis_ns, "")),
-    gsLeft(db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
+    gsOrder(db.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock()),
+    gsLeft(db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock()),
     anyTokAnno(Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID())),
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     minDistance(minDistance), maxDistance(maxDistance)

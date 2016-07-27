@@ -9,10 +9,10 @@ Inclusion::Inclusion(const DB &db)
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     tokHelper(db)
 {
-  gsOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
-  gsLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
-  gsRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
-  gsCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+  gsOrder = db.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock();
+  gsLeftToken = db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock();
+  gsRightToken = db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock();
+  gsCoverage = db.getGraphStorage(ComponentType::COVERAGE, annis_ns, "").lock();
 
 }
 

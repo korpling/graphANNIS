@@ -37,8 +37,8 @@ private:
   const DB& db;
   TokenHelper tokHelper;
   Annotation anyNodeAnno;
-  const ReadableGraphStorage* gsOrder;
-  const ReadableGraphStorage* gsCoverage;
-  const ReadableGraphStorage* gsInverseCoverage;
+  std::shared_ptr<const ReadableGraphStorage> gsOrder;
+  std::shared_ptr<const ReadableGraphStorage> gsCoverage;
+  std::shared_ptr<const ReadableGraphStorage> gsInverseCoverage;
 };
 } // end namespace annis

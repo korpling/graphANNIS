@@ -13,11 +13,11 @@ public:
   GraphStorageRegistry();
   ~GraphStorageRegistry();
 
-  std::string getName(const ReadableGraphStorage *db);
-  ReadableGraphStorage* createGraphStorage(std::string name, StringStorage &strings, const Component &component);
+  std::string getName(std::weak_ptr<const ReadableGraphStorage> weakDB);
+  std::unique_ptr<ReadableGraphStorage> createGraphStorage(std::string name, StringStorage &strings, const Component &component);
 
   std::string getOptimizedImpl(const Component& component, GraphStatistic stats);
-  ReadableGraphStorage* createGraphStorage(StringStorage &strings, const Component &component, GraphStatistic stats);
+  std::unique_ptr<ReadableGraphStorage> createGraphStorage(StringStorage &strings, const Component &component, GraphStatistic stats);
 
   void setImplementation(std::string implName, ComponentType type);
   void setImplementation(std::string implName, ComponentType type, std::string layer);

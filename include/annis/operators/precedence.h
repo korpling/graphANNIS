@@ -27,8 +27,8 @@ public:
   virtual ~Precedence();
 private:
   TokenHelper tokHelper;
-  const ReadableGraphStorage* gsOrder;
-  const ReadableGraphStorage* gsLeft;
+  std::shared_ptr<const ReadableGraphStorage> gsOrder;
+  std::shared_ptr<const ReadableGraphStorage> gsLeft;
   Annotation anyTokAnno;
   Annotation anyNodeAnno;
 

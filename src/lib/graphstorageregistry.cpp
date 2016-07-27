@@ -4,6 +4,8 @@
 #include <annis/graphstorage/linearstorage.h>
 #include <annis/graphstorage/prepostorderstorage.h>
 
+#include <memory>
+
 using namespace annis;
 
 using PrePostOrderO32L32 = PrePostOrderStorage<uint32_t, int32_t>;
@@ -33,79 +35,82 @@ GraphStorageRegistry::~GraphStorageRegistry()
 
 }
 
-std::string annis::GraphStorageRegistry::getName(const annis::ReadableGraphStorage *db)
+std::string annis::GraphStorageRegistry::getName(std::weak_ptr<const ReadableGraphStorage> weakDB)
 {
-  if(dynamic_cast<const LinearP32*>(db) != nullptr)
+  if(auto db =  weakDB.lock())
   {
-    return linearP32;
-  }
-  else if(dynamic_cast<const LinearP16*>(db) != nullptr)
-  {
-    return linearP16;
-  }
-  else if(dynamic_cast<const LinearP8*>(db) != nullptr)
-  {
-    return linearP8;
-  }
-  else if(dynamic_cast<const PrePostOrderO32L32*>(db) != nullptr)
-  {
-    return prepostorderO32L32;
-  }
-  else if(dynamic_cast<const PrePostOrderO32L8*>(db) != nullptr)
-  {
-    return prepostorderO32L8;
-  }
-  else if(dynamic_cast<const PrePostOrderO16L32*>(db) != nullptr)
-  {
-    return prepostorderO16L32;
-  }
-  else if(dynamic_cast<const PrePostOrderO16L8*>(db) != nullptr)
-  {
-    return prepostorderO16L8;
-  }
-  else if(dynamic_cast<const AdjacencyListStorage*>(db) != nullptr)
-  {
-    return fallback;
+    if(std::dynamic_pointer_cast<const LinearP32>(db) != nullptr)
+    {
+      return linearP32;
+    }
+    else if(std::dynamic_pointer_cast<const LinearP16>(db) != nullptr)
+    {
+      return linearP16;
+    }
+    else if(std::dynamic_pointer_cast<const LinearP8>(db) != nullptr)
+    {
+      return linearP8;
+    }
+    else if(std::dynamic_pointer_cast<const PrePostOrderO32L32>(db) != nullptr)
+    {
+      return prepostorderO32L32;
+    }
+    else if(std::dynamic_pointer_cast<const PrePostOrderO32L8>(db) != nullptr)
+    {
+      return prepostorderO32L8;
+    }
+    else if(std::dynamic_pointer_cast<const PrePostOrderO16L32>(db) != nullptr)
+    {
+      return prepostorderO16L32;
+    }
+    else if(std::dynamic_pointer_cast<const PrePostOrderO16L8>(db) != nullptr)
+    {
+      return prepostorderO16L8;
+    }
+    else if(std::dynamic_pointer_cast<const AdjacencyListStorage>(db) != nullptr)
+    {
+      return fallback;
+    }
   }
   return "";
 }
 
-ReadableGraphStorage *GraphStorageRegistry::createGraphStorage(std::string name, StringStorage& strings, const Component& component)
+std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(std::string name, StringStorage& strings, const Component& component)
 {
   if(name == linearP32)
   {
-    return new LinearP32(strings, component);
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP32(strings, component));
   }
   else if(name == linearP16)
   {
-    return new LinearP16(strings, component);
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP16(strings, component));
   }
   else if(name == linearP8)
   {
-    return new LinearP8(strings, component);
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP8(strings, component));
   }
   else if(name == prepostorderO32L32)
   {
-    return new PrePostOrderO32L32(strings, component);
+    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO32L32(strings, component));
   }
   else if(name == prepostorderO32L8)
   {
-    return new PrePostOrderO32L8(strings, component);
+    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO32L8(strings, component));
   }
   else if(name == prepostorderO16L32)
   {
-    return new PrePostOrderO16L32(strings, component);
+    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO16L32(strings, component));
   }
   else if(name == prepostorderO16L8)
   {
-    return new PrePostOrderO16L8(strings, component);
+    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO16L8(strings, component));
   }
   else if(name == fallback)
   {
-    return new AdjacencyListStorage(strings, component);
+    return std::unique_ptr<ReadableGraphStorage>(new AdjacencyListStorage(strings, component));
   }
 
-  return nullptr;
+  return std::unique_ptr<ReadableGraphStorage>();
 }
 
 std::string GraphStorageRegistry::getOptimizedImpl(const Component &component, GraphStatistic stats)
@@ -123,7 +128,7 @@ std::string GraphStorageRegistry::getOptimizedImpl(const Component &component, G
   return result;
 }
 
-ReadableGraphStorage *GraphStorageRegistry::createGraphStorage(StringStorage &strings, const Component &component, GraphStatistic stats)
+std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(StringStorage &strings, const Component &component, GraphStatistic stats)
 {
   std::string implName = getOptimizedImpl(component, stats);
   return createGraphStorage(implName, strings, component);

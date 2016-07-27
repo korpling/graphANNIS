@@ -22,7 +22,7 @@ class WriteableGraphStorage;
   
 class DB
 {
-  using GraphStorageIt = std::map<Component, ReadableGraphStorage*>::const_iterator;
+  using GraphStorageIt = std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator;
 public:
   DB();
 
@@ -67,10 +67,10 @@ public:
 
   std::vector<Component> getDirectConnected(const Edge& edge) const;
   std::vector<Component> getAllComponents() const;
-  const ReadableGraphStorage *getGraphStorage(const Component& component) const;
-  const ReadableGraphStorage *getGraphStorage(ComponentType type, const std::string& layer, const std::string& name) const;
-  std::vector<const ReadableGraphStorage *> getGraphStorage(ComponentType type, const std::string& name) const;
-  std::vector<const ReadableGraphStorage *> getGraphStorage(ComponentType type) const;
+  std::weak_ptr<const ReadableGraphStorage> getGraphStorage(const Component& component) const;
+  std::weak_ptr<const ReadableGraphStorage> getGraphStorage(ComponentType type, const std::string& layer, const std::string& name) const;
+  std::vector<std::weak_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type, const std::string& name) const;
+  std::vector<std::weak_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type) const;
 
   std::vector<Annotation> getEdgeAnnotations(const Component& component,
                                              const Edge& edge);
@@ -95,7 +95,7 @@ public:
 
 private:
   
-  std::map<Component, ReadableGraphStorage*> edgeDatabases;
+  std::map<Component, std::shared_ptr<ReadableGraphStorage>> edgeDatabases;
   GraphStorageRegistry registry;
 
   std::uint32_t annisNamespaceStringID;
@@ -108,11 +108,11 @@ private:
   bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::uint32_t>& corpusIDToName,
     bool isANNIS33Format);
   bool loadRelANNISRank(const std::string& dirPath,
-                        const std::map<uint32_t, WriteableGraphStorage*>& componentToGS,
+                        const std::map<uint32_t, std::shared_ptr<WriteableGraphStorage> > &componentToGS,
                         bool isANNIS33Format);
 
   bool loadEdgeAnnotation(const std::string& dirPath,
-                          const std::map<std::uint32_t, WriteableGraphStorage* >& pre2GS,
+                          const std::map<uint32_t, std::shared_ptr<WriteableGraphStorage> > &pre2GS,
                           const std::map<std::uint32_t, Edge>& pre2Edge,
                           bool isANNIS33Format);
 
@@ -120,11 +120,11 @@ private:
   void clear();
   void addDefaultStrings();
 
-  ReadableGraphStorage *createGSForComponent(const std::string& shortType, const std::string& layer,
+  std::shared_ptr<ReadableGraphStorage> createGSForComponent(const std::string& shortType, const std::string& layer,
                        const std::string& name);
-  ReadableGraphStorage *createGSForComponent(ComponentType ctype, const std::string& layer,
+  std::shared_ptr<ReadableGraphStorage> createGSForComponent(ComponentType ctype, const std::string& layer,
                        const std::string& name);
-  annis::WriteableGraphStorage* createWritableGraphStorage(ComponentType ctype, const std::string& layer,
+  std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
                        const std::string& name);
 
 

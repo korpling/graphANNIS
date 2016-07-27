@@ -33,10 +33,10 @@ public:
 private:
 
   const DB& db;
-  const ReadableGraphStorage* gsOrder;
-  const ReadableGraphStorage* gsLeftToken;
-  const ReadableGraphStorage* gsRightToken;
-  const ReadableGraphStorage* gsCoverage;
+  std::shared_ptr<const ReadableGraphStorage>  gsOrder;
+  std::shared_ptr<const ReadableGraphStorage>  gsLeftToken;
+  std::shared_ptr<const ReadableGraphStorage>  gsRightToken;
+  std::shared_ptr<const ReadableGraphStorage>  gsCoverage;
 
   Annotation anyNodeAnno;
 

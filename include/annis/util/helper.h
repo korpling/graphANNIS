@@ -28,8 +28,8 @@ class TokenHelper
 public:
 
   TokenHelper(const DB& db) : db(db),
-    leftEdges(db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
-    rightEdges(db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, ""))
+    leftEdges(db.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock()),
+    rightEdges(db.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock())
   {
 
   }
@@ -77,8 +77,8 @@ public:
 
 private:
   const DB& db;
-  const ReadableGraphStorage* leftEdges;
-  const ReadableGraphStorage* rightEdges;
+  std::shared_ptr<const ReadableGraphStorage> leftEdges;
+  std::shared_ptr<const ReadableGraphStorage> rightEdges;
 };
 
 class Helper

@@ -74,9 +74,9 @@ bool DB::load(string dirPath)
           HL_INFO(logger, (boost::format("loading component %1%")
                            % debugComponentString(emptyNameComponent)).str());
 
-          ReadableGraphStorage* gsEmptyName = registry.createGraphStorage(implName, strings, emptyNameComponent);
+          std::shared_ptr<ReadableGraphStorage> gsEmptyName = registry.createGraphStorage(implName, strings, emptyNameComponent);
           gsEmptyName->load(layerPath.string());
-          edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(emptyNameComponent,gsEmptyName));
+          edgeDatabases.insert({emptyNameComponent,gsEmptyName});
         }
 
         // also load all named components
@@ -94,9 +94,9 @@ bool DB::load(string dirPath)
                                        };
             HL_INFO(logger, (boost::format("loading component %1%")
                              % debugComponentString(namedComponent)).str());
-            ReadableGraphStorage* gsNamed = registry.createGraphStorage(implName, strings, namedComponent);
+            std::shared_ptr<ReadableGraphStorage> gsNamed = registry.createGraphStorage(implName, strings, namedComponent);
             gsNamed->load(namedComponentPath.string());
-            edgeDatabases.insert(std::pair<Component,ReadableGraphStorage*>(namedComponent,gsNamed));
+            edgeDatabases.insert({namedComponent,gsNamed});
           }
           itNamedComponents++;
         } // end for each file/directory in layer directory
@@ -189,14 +189,14 @@ bool DB::loadRelANNIS(string dirPath)
   in.open(componentTabPath, ifstream::in);
   if(!in.good()) return false;
 
-  map<uint32_t, WriteableGraphStorage*> componentToGS;
+  map<uint32_t, std::shared_ptr<WriteableGraphStorage>> componentToGS;
   while((line = Helper::nextCSV(in)).size() > 0)
   {
     uint32_t componentID = Helper::uint32FromString(line[0]);
     if(line[1] != "NULL")
     {
       ComponentType ctype = componentTypeFromShortName(line[1]);
-      WriteableGraphStorage* gs = createWritableGraphStorage(ctype, line[2], line[3]);
+      std::shared_ptr<WriteableGraphStorage> gs = createWritableGraphStorage(ctype, line[2], line[3]);
       componentToGS[componentID] = gs;
     }
   }
@@ -364,9 +364,9 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   if(!tokenByIndex.empty())
   {
     HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
-    WriteableGraphStorage* gsOrder = createWritableGraphStorage(ComponentType::ORDERING, annis_ns, "");
-    WriteableGraphStorage* gsLeft = createWritableGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
-    WriteableGraphStorage* gsRight = createWritableGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
+    std::shared_ptr<WriteableGraphStorage> gsOrder = createWritableGraphStorage(ComponentType::ORDERING, annis_ns, "");
+    std::shared_ptr<WriteableGraphStorage> gsLeft = createWritableGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
+    std::shared_ptr<WriteableGraphStorage> gsRight = createWritableGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
     map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
     uint32_t lastTextID = numeric_limits<uint32_t>::max();
@@ -417,8 +417,8 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   }
 
   // add explicit coverage edges for each node in the special annis namespace coverage component
-  WriteableGraphStorage* gsCoverage = createWritableGraphStorage(ComponentType::COVERAGE, annis_ns, "");
-  WriteableGraphStorage* gsInverseCoverage = createWritableGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
+  std::shared_ptr<WriteableGraphStorage> gsCoverage = createWritableGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+  std::shared_ptr<WriteableGraphStorage> gsInverseCoverage = createWritableGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
   HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
   for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
       itLeftToNode != leftToNode.end(); itLeftToNode++)
@@ -474,11 +474,11 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
 
 
 bool DB::loadRelANNISRank(const string &dirPath,
-                          const map<uint32_t, WriteableGraphStorage*>& componentToEdgeGS,
+                          const map<uint32_t, std::shared_ptr<WriteableGraphStorage>>& componentToEdgeGS,
                           bool isANNIS33Format)
 {
   typedef btree::btree_map<uint32_t, uint32_t>::const_iterator UintMapIt;
-  typedef map<uint32_t, WriteableGraphStorage*>::const_iterator ComponentIt;
+  typedef map<uint32_t, std::shared_ptr<WriteableGraphStorage>>::const_iterator ComponentIt;
   bool result = true;
 
   ifstream in;
@@ -508,7 +508,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
   in.open(rankTabPath, ifstream::in);
   if(!in.good()) return false;
 
-  map<uint32_t, WriteableGraphStorage* > pre2GS;
+  map<uint32_t, std::shared_ptr<WriteableGraphStorage> > pre2GS;
 
   // second run: get the actual edges
   while((line = Helper::nextCSV(in)).size() > 0)
@@ -524,7 +524,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
         ComponentIt itGS = componentToEdgeGS.find(Helper::uint32FromString(line[componentRefPos]));
         if(itGS != componentToEdgeGS.end())
         {
-          WriteableGraphStorage* gs = itGS->second;
+          std::shared_ptr<WriteableGraphStorage> gs = itGS->second;
           Edge edge = Init::initEdge(it->second, Helper::uint32FromString(line[nodeRefPos]));
 
           gs->addEdge(edge);
@@ -552,7 +552,7 @@ bool DB::loadRelANNISRank(const string &dirPath,
 
 
 bool DB::loadEdgeAnnotation(const string &dirPath,
-                            const map<uint32_t, WriteableGraphStorage* >& pre2GS,
+                            const map<uint32_t, std::shared_ptr<WriteableGraphStorage> >& pre2GS,
                             const map<uint32_t, Edge>& pre2Edge,
                             bool isANNIS33Format)
 {
@@ -571,11 +571,11 @@ bool DB::loadEdgeAnnotation(const string &dirPath,
   while((line = Helper::nextCSV(in)).size() > 0)
   {
     uint32_t pre = Helper::uint32FromString(line[0]);
-    map<uint32_t, WriteableGraphStorage*>::const_iterator itDB = pre2GS.find(pre);
+    map<uint32_t, std::shared_ptr<WriteableGraphStorage>>::const_iterator itDB = pre2GS.find(pre);
     map<uint32_t, Edge>::const_iterator itEdge = pre2Edge.find(pre);
     if(itDB != pre2GS.end() && itEdge != pre2Edge.end())
     {
-      WriteableGraphStorage* e = itDB->second;
+      std::shared_ptr<WriteableGraphStorage> e = itDB->second;
       Annotation anno;
       anno.ns = strings.add(line[1]);
       anno.name = strings.add(line[2]);
@@ -611,7 +611,7 @@ void DB::addDefaultStrings()
   annisNodeNameStringID = strings.add(annis_node_name);
 }
 
-ReadableGraphStorage *DB::createGSForComponent(const string &shortType, const string &layer, const string &name)
+std::shared_ptr<ReadableGraphStorage> DB::createGSForComponent(const string &shortType, const string &layer, const string &name)
 {
   // fill the component variable
   ComponentType ctype = componentTypeFromShortName(shortType);
@@ -619,21 +619,20 @@ ReadableGraphStorage *DB::createGSForComponent(const string &shortType, const st
 
 }
 
-ReadableGraphStorage *DB::createGSForComponent(ComponentType ctype, const string &layer, const string &name)
+std::shared_ptr<ReadableGraphStorage> DB::createGSForComponent(ComponentType ctype, const string &layer, const string &name)
 {
   Component c = {ctype, layer, name};
 
   // check if there is already an edge DB for this component
-  map<Component,ReadableGraphStorage*>::const_iterator itDB =
+  map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator itDB =
       edgeDatabases.find(c);
   if(itDB == edgeDatabases.end())
   {
 
-    ReadableGraphStorage* gs = NULL;
-    gs = registry.createGraphStorage(strings, c, gs->getStatistics());
+    std::shared_ptr<ReadableGraphStorage> gs = registry.createGraphStorage(strings, c, gs->getStatistics());
 
     // register the used implementation
-    edgeDatabases.insert(pair<Component,ReadableGraphStorage*>(c,gs));
+    edgeDatabases.insert({c,gs});
     return gs;
   }
   else
@@ -642,43 +641,37 @@ ReadableGraphStorage *DB::createGSForComponent(ComponentType ctype, const string
   }
 }
 
-WriteableGraphStorage* DB::createWritableGraphStorage(ComponentType ctype, const string &layer, const string &name)
+std::shared_ptr<WriteableGraphStorage> DB::createWritableGraphStorage(ComponentType ctype, const string &layer, const string &name)
 {
   Component c = {ctype, layer, name == "NULL" ? "" : name};
 
   // check if there is already an edge DB for this component
-  map<Component,ReadableGraphStorage*>::const_iterator itDB =
+  map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator itDB =
       edgeDatabases.find(c);
   if(itDB != edgeDatabases.end())
   {
     // check if the current implementation is writeable
-    WriteableGraphStorage* writable = dynamic_cast<WriteableGraphStorage*>(itDB->second);
-    if(writable != nullptr)
+    std::shared_ptr<WriteableGraphStorage> writable = std::dynamic_pointer_cast<WriteableGraphStorage>(itDB->second);
+    if(writable)
     {
       return writable;
     }
-    else
-    {
-      ReadableGraphStorage* old = itDB->second;
-      edgeDatabases.erase(itDB);
-      delete old;
-    }
   }
 
-  WriteableGraphStorage* gs = new AdjacencyListStorage(strings, c);
+  std::shared_ptr<WriteableGraphStorage> gs = std::shared_ptr<WriteableGraphStorage>(new AdjacencyListStorage(strings, c));
   // register the used implementation
-  edgeDatabases.insert(pair<Component,ReadableGraphStorage*>(c,gs));
+  edgeDatabases[c] = gs;
   return gs;
 
 }
 
 void DB::convertComponent(Component c, std::string impl)
 {
-  map<Component, ReadableGraphStorage*>::const_iterator
+  map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator
       it = edgeDatabases.find(c);
   if(it != edgeDatabases.end())
   {
-    ReadableGraphStorage* oldStorage = it->second;
+    std::shared_ptr<ReadableGraphStorage> oldStorage = it->second;
 
     if(!(oldStorage->getStatistics().valid))
     {
@@ -690,7 +683,7 @@ void DB::convertComponent(Component c, std::string impl)
     {
       impl = registry.getOptimizedImpl(c, oldStorage->getStatistics());
     }
-    ReadableGraphStorage* newStorage = oldStorage;
+    std::shared_ptr<ReadableGraphStorage> newStorage = oldStorage;
     if(currentImpl != impl)
     {
       HL_INFO(logger, (boost::format("converting component %1% from %2% to %3%")
@@ -701,12 +694,11 @@ void DB::convertComponent(Component c, std::string impl)
       newStorage = registry.createGraphStorage(impl, strings, c);
       newStorage->copy(*this, *oldStorage);
       edgeDatabases[c] = newStorage;
-      delete oldStorage;
     }
 
     // perform index calculations
-    WriteableGraphStorage* asWriteableGS = dynamic_cast<WriteableGraphStorage*>(newStorage);
-    if(asWriteableGS != nullptr)
+    std::shared_ptr<WriteableGraphStorage> asWriteableGS = std::dynamic_pointer_cast<WriteableGraphStorage>(newStorage);
+    if(asWriteableGS)
     {
       asWriteableGS->calculateIndex();
     }
@@ -734,7 +726,7 @@ size_t DB::estimateMemorySize()
 {
   size_t result = nodeAnnos.estimateMemorySize();
 
-  for(std::pair<Component, ReadableGraphStorage*> e : edgeDatabases)
+  for(std::pair<Component, std::shared_ptr<ReadableGraphStorage>> e : edgeDatabases)
   {
     result += e.second->estimateMemorySize();
   }
@@ -789,7 +781,7 @@ string DB::info()
   for(GraphStorageIt it = edgeDatabases.begin(); it != edgeDatabases.end(); it++)
   {
     const Component& c = it->first;
-    const ReadableGraphStorage* gs = it->second;
+    const std::shared_ptr<ReadableGraphStorage> gs = it->second;
 
 
     ss << "Component " << debugComponentString(c) << ": " << gs->numberOfEdges() << " edges and "
@@ -831,11 +823,11 @@ string DB::info()
 std::vector<Component> DB::getDirectConnected(const Edge &edge) const
 {
   std::vector<Component> result;
-  map<Component, ReadableGraphStorage*>::const_iterator itGS = edgeDatabases.begin();
+  map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = edgeDatabases.begin();
 
   while(itGS != edgeDatabases.end())
   {
-    ReadableGraphStorage* gs = itGS->second;
+    std::shared_ptr<ReadableGraphStorage> gs = itGS->second;
     if(gs != NULL)
     {
       if(gs->isConnected(edge))
@@ -852,7 +844,7 @@ std::vector<Component> DB::getDirectConnected(const Edge &edge) const
 std::vector<Component> DB::getAllComponents() const
 {
   std::vector<Component> result;
-  map<Component, ReadableGraphStorage*>::const_iterator itGS = edgeDatabases.begin();
+  map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = edgeDatabases.begin();
 
   while(itGS != edgeDatabases.end())
   {
@@ -863,25 +855,25 @@ std::vector<Component> DB::getAllComponents() const
   return result;
 }
 
-const ReadableGraphStorage* DB::getGraphStorage(const Component &component) const
+std::weak_ptr<const ReadableGraphStorage> DB::getGraphStorage(const Component &component) const
 {
-  map<Component, ReadableGraphStorage*>::const_iterator itGS = edgeDatabases.find(component);
+  map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = edgeDatabases.find(component);
   if(itGS != edgeDatabases.end())
   {
     return itGS->second;
   }
-  return NULL;
+  return std::weak_ptr<const ReadableGraphStorage>();
 }
 
-const ReadableGraphStorage *DB::getGraphStorage(ComponentType type, const string &layer, const string &name) const
+std::weak_ptr<const ReadableGraphStorage> DB::getGraphStorage(ComponentType type, const string &layer, const string &name) const
 {
   Component c = {type, layer, name};
   return getGraphStorage(c);
 }
 
-std::vector<const ReadableGraphStorage *> DB::getGraphStorage(ComponentType type, const string &name) const
+std::vector<std::weak_ptr<const ReadableGraphStorage> > DB::getGraphStorage(ComponentType type, const string &name) const
 {
-  std::vector<const ReadableGraphStorage* > result;
+  std::vector<std::weak_ptr<const ReadableGraphStorage> > result;
 
   Component componentKey;
   componentKey.type = type;
@@ -902,9 +894,9 @@ std::vector<const ReadableGraphStorage *> DB::getGraphStorage(ComponentType type
   return result;
 }
 
-std::vector<const ReadableGraphStorage *> DB::getGraphStorage(ComponentType type) const
+std::vector<std::weak_ptr<const ReadableGraphStorage> > DB::getGraphStorage(ComponentType type) const
 {
-  std::vector<const ReadableGraphStorage* > result;
+  std::vector<std::weak_ptr<const ReadableGraphStorage>> result;
 
   Component c;
   c.type = type;
@@ -912,7 +904,7 @@ std::vector<const ReadableGraphStorage *> DB::getGraphStorage(ComponentType type
   c.name[0] = '\0';
 
   for(
-      map<Component, ReadableGraphStorage*>::const_iterator itGS = edgeDatabases.lower_bound(c);
+      map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = edgeDatabases.lower_bound(c);
       itGS != edgeDatabases.end() && itGS->first.type == type;
       itGS++)
   {
@@ -925,10 +917,10 @@ std::vector<const ReadableGraphStorage *> DB::getGraphStorage(ComponentType type
 vector<Annotation> DB::getEdgeAnnotations(const Component &component,
                                           const Edge &edge)
 {
-  std::map<Component,ReadableGraphStorage*>::const_iterator it = edgeDatabases.find(component);
+  std::map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator it = edgeDatabases.find(component);
   if(it != edgeDatabases.end() && it->second != NULL)
   {
-    ReadableGraphStorage* gs = it->second;
+    std::shared_ptr<ReadableGraphStorage> gs = it->second;
     return gs->getEdgeAnnotations(edge);
   }
 
@@ -938,9 +930,5 @@ vector<Annotation> DB::getEdgeAnnotations(const Component &component,
 
 DB::~DB()
 {
-  for(auto& ed : edgeDatabases)
-  {
-    delete ed.second;
-  }
 }
 

@@ -45,10 +45,10 @@ private:
   Annotation anyAnno;
   const Annotation edgeAnno;
 
-  std::vector<const ReadableGraphStorage*> gs;
+  std::vector<std::shared_ptr<const ReadableGraphStorage>> gs;
 
   void initGraphStorage();
-  bool checkEdgeAnnotation(const ReadableGraphStorage *e, nodeid_t source, nodeid_t target);
+  bool checkEdgeAnnotation(std::shared_ptr<const ReadableGraphStorage> gs, nodeid_t source, nodeid_t target);
 };
 
 } // end namespace annis

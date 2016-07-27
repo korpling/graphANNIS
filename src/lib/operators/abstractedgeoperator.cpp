@@ -36,16 +36,16 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
   // add the rhs nodes of all of the edge storages
   if(gs.size() == 1)
   {
-    std::unique_ptr<EdgeIterator> it = gs[0]->findConnected(lhs.node, minDistance, maxDistance);
-    for(auto m = it->next(); m.first; m = it->next())
-    {
-      if(checkEdgeAnnotation(gs[0], lhs.node, m.second))
-      {
-        // directly add the matched node since when having only one component
-        // no duplicates are possible
-        w->addMatch(m.second);
-      }
-    }
+     std::unique_ptr<EdgeIterator> it = gs[0]->findConnected(lhs.node, minDistance, maxDistance);
+     for(auto m = it->next(); m.first; m = it->next())
+     {
+       if(checkEdgeAnnotation(gs[0], lhs.node, m.second))
+       {
+         // directly add the matched node since when having only one component
+         // no duplicates are possible
+         w->addMatch(m.second);
+       }
+     }
   }
   else if(gs.size() > 1)
   {
@@ -81,6 +81,7 @@ bool AbstractEdgeOperator::filter(const Match &lhs, const Match &rhs)
         return true;
       }
     }
+
   }
   return false;
 }
@@ -88,22 +89,26 @@ bool AbstractEdgeOperator::filter(const Match &lhs, const Match &rhs)
 
 void AbstractEdgeOperator::initGraphStorage()
 {
+  gs.clear();
   if(ns == "")
   {
-    gs = db.getGraphStorage(componentType, name);
+    auto listOfGS = db.getGraphStorage(componentType, name);
+    for(auto ePtr : listOfGS)
+    {
+      gs.push_back(ePtr.lock());
+    }
   }
   else
   {
     // directly add the only known edge storage
-    const ReadableGraphStorage* e = db.getGraphStorage(componentType, ns, name);
-    if(e != nullptr)
+    if(auto e = db.getGraphStorage(componentType, ns, name).lock())
     {
       gs.push_back(e);
     }
   }
 }
 
-bool AbstractEdgeOperator::checkEdgeAnnotation(const ReadableGraphStorage* e, nodeid_t source, nodeid_t target)
+bool AbstractEdgeOperator::checkEdgeAnnotation(std::shared_ptr<const ReadableGraphStorage> e, nodeid_t source, nodeid_t target)
 {
   if(edgeAnno == anyAnno)
   {
@@ -125,6 +130,7 @@ bool AbstractEdgeOperator::checkEdgeAnnotation(const ReadableGraphStorage* e, no
         return true;
       }
     } // end for each annotation of candidate edge
+
   }
   return false;
 }
@@ -139,25 +145,28 @@ double AbstractEdgeOperator::selectivity()
   
   double worstSel = 0.0;
   
-  for(const ReadableGraphStorage* g: gs)
+  for(std::weak_ptr<const ReadableGraphStorage> gPtr: gs)
   {
-    const auto& stat = g->getStatistics();
-    if(stat.cyclic)
+    if(auto g = gPtr.lock())
     {
-      // can get all other nodes
-      return 1.0;
+      const auto& stat = g->getStatistics();
+      if(stat.cyclic)
+      {
+        // can get all other nodes
+        return 1.0;
+      }
+
+      // get number of nodes reachable from min to max distance
+      std::uint32_t maxPathLength = std::min(maxDistance, stat.maxDepth);
+      std::uint32_t minPathLength = std::max(0, (int) minDistance-1);
+
+      std::uint32_t reachableMax = std::ceil(stat.avgFanOut * (double) maxPathLength);
+      std::uint32_t reachableMin = std::ceil(stat.avgFanOut * (double) minPathLength);
+
+      std::uint32_t reachable =  reachableMax - reachableMin;
+
+      worstSel = std::max(worstSel, ((double) reachable ) / ((double) stat.nodes));
     }
-    
-    // get number of nodes reachable from min to max distance
-    std::uint32_t maxPathLength = std::min(maxDistance, stat.maxDepth);
-    std::uint32_t minPathLength = std::max(0, (int) minDistance-1);
-    
-    std::uint32_t reachableMax = std::ceil(stat.avgFanOut * (double) maxPathLength);
-    std::uint32_t reachableMin = std::ceil(stat.avgFanOut * (double) minPathLength);
-    
-    std::uint32_t reachable =  reachableMax - reachableMin;
-    
-    worstSel = std::max(worstSel, ((double) reachable ) / ((double) stat.nodes));
   }
   
   // return worst selectivity
