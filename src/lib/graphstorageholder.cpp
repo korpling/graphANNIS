@@ -1,6 +1,7 @@
 #include <annis/graphstorageholder.h>
 
 #include <annis/graphstorage/adjacencyliststorage.h>
+#include <annis/util/helper.h>
 
 #include <sstream>
 
@@ -113,30 +114,37 @@ std::string GraphStorageHolder::info()
     ss << "Component " << debugComponentString(c) << ": " << gs->numberOfEdges() << " edges and "
        << gs->numberOfEdgeAnnotations() << " annotations" << std::endl;
 
-
-    std::string implName = registry.getName(gs);
-    if(!implName.empty())
+    if(notLoadedLocations.find(c) != notLoadedLocations.end())
     {
-      ss << "implementation: " << implName << std::endl;
+      ss << "(not loaded yet)" << std::endl;
     }
-
-    GraphStatistic stat = gs->getStatistics();
-    if(stat.valid)
+    else
     {
-      ss << "nodes: " << stat.nodes << std::endl;
-      ss << "fan-out: " << stat.avgFanOut << " (avg) / " << stat.maxFanOut << " (max)" << std::endl;
-      if(stat.cyclic)
+      std::string implName = registry.getName(gs);
+      if(!implName.empty())
       {
-        ss << "cyclic" << std::endl;
+        ss << "implementation: " << implName << std::endl;
+        ss << "size: " << Helper::inMB(gs->estimateMemorySize()) << " MB" << std::endl;
       }
-      else
-      {
-        ss << "non-cyclic, max. depth: " << stat.maxDepth << ", DFS visit ratio: " << stat.dfsVisitRatio << std::endl;
 
-      }
-      if(stat.rootedTree)
+      GraphStatistic stat = gs->getStatistics();
+      if(stat.valid)
       {
-        ss << "rooted tree" << std::endl;
+        ss << "nodes: " << stat.nodes << std::endl;
+        ss << "fan-out: " << stat.avgFanOut << " (avg) / " << stat.maxFanOut << " (max)" << std::endl;
+        if(stat.cyclic)
+        {
+          ss << "cyclic" << std::endl;
+        }
+        else
+        {
+          ss << "non-cyclic, max. depth: " << stat.maxDepth << ", DFS visit ratio: " << stat.dfsVisitRatio << std::endl;
+
+        }
+        if(stat.rootedTree)
+        {
+          ss << "rooted tree" << std::endl;
+        }
       }
     }
     ss << "--------------------" << std::endl;
