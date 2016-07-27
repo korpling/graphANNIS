@@ -39,7 +39,7 @@ private:
   boost::filesystem::path currentDBPath;
   annis::DBCache dbCache;
 
-  std::weak_ptr<annis::DB> dbPtr = dbCache.get(currentDBPath.string());
+  std::weak_ptr<annis::DB> dbPtr;
 };
 
 }

@@ -72,7 +72,7 @@ namespace annis {
     DBCache(size_t maxSizeBytes=1073741824);
     DBCache(const DBCache& orig) = delete;
 
-    std::weak_ptr<DB> get(const std::string& corpusPath, bool forceFallback = false,
+    std::weak_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
       DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
       auto it = cache.find(key);
@@ -80,7 +80,7 @@ namespace annis {
         // cleanup the cache
         cleanup();
         // create a new one
-        cache[key] = initDB(key);
+        cache[key] = initDB(key, preloadEdges);
         return cache[key];
       }
       return it->second;
@@ -94,7 +94,6 @@ namespace annis {
     void releaseAll() {
       cache.clear();
       loadedDBSize.clear();
-      loadedDBSizeTotal = {0l, 0l};
 
       #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
         // HACK: to make the estimates accurate we have to give back the used memory after each release
@@ -107,7 +106,7 @@ namespace annis {
     
     void cleanup(std::set<DBCacheKey> ignore = std::set<DBCacheKey>()) {
       bool deletedSomething = true;
-      while(deletedSomething && !cache.empty() && loadedDBSizeTotal.estimated > maxLoadedDBSize) {
+      while(deletedSomething && !cache.empty() && calculateTotalSize().estimated > maxLoadedDBSize) {
         deletedSomething = false;
         for(auto it=cache.begin(); it != cache.end(); it++) {
           if(ignore.find(it->first) == ignore.end()) {
@@ -119,7 +118,7 @@ namespace annis {
       }
     }
 
-    CorpusSize loadedSize() { return loadedDBSizeTotal;}
+    CorpusSize calculateTotalSize();
     const std::map<DBCacheKey, CorpusSize>& corpusSizes() const { return loadedDBSize;}
 
 
@@ -127,22 +126,18 @@ namespace annis {
   private:
     std::map<DBCacheKey, std::shared_ptr<DB>> cache;
     std::map<DBCacheKey, CorpusSize> loadedDBSize;
-    CorpusSize loadedDBSizeTotal;
     const size_t maxLoadedDBSize;
     
   private:
     
-    std::shared_ptr<DB> initDB(const DBCacheKey& key);
+    std::shared_ptr<DB> initDB(const DBCacheKey& key, bool preloadEdges);
 
     void release(DBCacheKey key) {
       cache.erase(key);
 
       auto itSize = loadedDBSize.find(key);
       if(itSize != loadedDBSize.end()) {
-        const CorpusSize& oldSize = itSize->second;
         loadedDBSize.erase(itSize);
-        loadedDBSizeTotal.measured -= oldSize.measured;
-        loadedDBSizeTotal.estimated -= oldSize.estimated;
       }
 
       #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)

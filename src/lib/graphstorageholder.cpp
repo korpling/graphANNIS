@@ -147,8 +147,6 @@ std::string GraphStorageHolder::info()
 bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
 {
   clear();
-  std::ifstream in;
-
   boost::filesystem::directory_iterator fileEndIt;
 
   for(unsigned int componentType = (unsigned int) ComponentType::COVERAGE;
@@ -259,7 +257,7 @@ bool GraphStorageHolder::save(const std::string& dirPath)
 }
 
 
-void GraphStorageHolder::ensureComponentIsLoaded(const Component &c)
+bool GraphStorageHolder::ensureComponentIsLoaded(const Component &c)
 {
   auto itGS = container.find(c);
   if(itGS != container.end())
@@ -270,8 +268,12 @@ void GraphStorageHolder::ensureComponentIsLoaded(const Component &c)
       HL_DEBUG(logger, (boost::format("loading component %1%")
                        % debugComponentString(itLocation->first)).str());
       itGS->second->load(itLocation->second);
+      notLoadedLocations.erase(itLocation);
+
+      return true;
     }
   }
+  return false;
 }
 
 std::string GraphStorageHolder::debugComponentString(const Component &c)

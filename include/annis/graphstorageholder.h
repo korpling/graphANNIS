@@ -34,7 +34,7 @@ private:
   bool save(const std::string &dirPath);
   void clear();
 
-  void ensureComponentIsLoaded(const Component& c);
+  bool ensureComponentIsLoaded(const Component& c);
 
   std::string debugComponentString(const Component& c);
   std::string getImplNameForPath(std::string directory);

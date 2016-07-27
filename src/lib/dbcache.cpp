@@ -20,14 +20,25 @@ extern "C" size_t getCurrentRSS( );
 extern "C" size_t getCurrentVirtualMemory( );
 
 DBCache::DBCache(size_t maxSizeBytes)
-  : loadedDBSizeTotal({0,0}), maxLoadedDBSize(maxSizeBytes) {
+  : maxLoadedDBSize(maxSizeBytes) {
 }
 
-std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
+DBCache::CorpusSize DBCache::calculateTotalSize()
+{
+  CorpusSize total = {0,0};
+  for(const std::pair<DBCacheKey, CorpusSize>& c : loadedDBSize)
+  {
+    total.estimated += c.second.estimated;
+    total.measured += c.second.measured;
+  }
+  return total;
+}
+
+std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key, bool preloadEdges) {
   std::shared_ptr<DB> result = std::make_shared<DB>();
 
   auto oldProcessMemory = getCurrentRSS();
-  bool loaded = result->load(key.corpusPath);
+  bool loaded = result->load(key.corpusPath, preloadEdges);
   if (!loaded) {
     std::cerr << "FATAL ERROR: coult not load corpus from " << key.corpusPath << std::endl;
     std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
@@ -40,8 +51,6 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
     for (auto c : components) {
       result->convertComponent(c, GraphStorageRegistry::fallback);
     }
-  } else {
-    result->optimizeAll(key.overrideImpl);
   }
 
   auto newProcessMemory = getCurrentRSS();
@@ -54,8 +63,6 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key) {
 
   size_t estimatedSize = result->estimateMemorySize();
   loadedDBSize[key] = {measuredSize, estimatedSize};
-  loadedDBSizeTotal.measured += measuredSize;
-  loadedDBSizeTotal.estimated += estimatedSize;
 
   return result;
 }

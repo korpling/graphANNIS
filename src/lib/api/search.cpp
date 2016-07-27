@@ -20,7 +20,7 @@ long long Search::count(std::vector<std::string> corpora, std::string queryAsJSO
 
   for(const std::string& c : corpora)
   {
-    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c);
+    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c, true);
 
     if(std::shared_ptr<DB> db = dbWeakPtr.lock())
     {
@@ -48,7 +48,7 @@ std::vector<std::string> Search::find(std::vector<std::string> corpora, std::str
 
   for(const std::string& c : corpora)
   {
-    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c);
+    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c, false);
 
     if(std::shared_ptr<DB> db = dbWeakPtr.lock())
     {

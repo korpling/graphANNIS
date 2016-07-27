@@ -550,7 +550,7 @@ void DB::convertComponent(Component c, std::string impl)
     std::shared_ptr<ReadableGraphStorage> newStorage = oldStorage;
     if(currentImpl != impl)
     {
-      HL_INFO(logger, (boost::format("converting component %1% from %2% to %3%")
+      HL_DEBUG(logger, (boost::format("converting component %1% from %2% to %3%")
                        % edges.debugComponentString(c)
                        % currentImpl
                        % impl).str());

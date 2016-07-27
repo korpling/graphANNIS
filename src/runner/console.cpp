@@ -10,7 +10,7 @@ HUMBLE_LOGGER(logger, "default");
 using namespace annis;
 
 Console::Console()
- : dbCache(1073741824l*8l)
+ : dbCache(1073741824l*8l), dbPtr(dbCache.get(currentDBPath.string(), true))
 {
   currentDBPath = boost::filesystem::unique_path(
           boost::filesystem::temp_directory_path().string() + "/annis-temporary-workspace-%%%%-%%%%-%%%%-%%%%");
@@ -125,13 +125,13 @@ void Console::save(const std::vector<std::string> &args)
   }
 }
 
-void Console::load(const std::vector<std::__cxx11::string> &args)
+void Console::load(const std::vector<std::string> &args)
 {
 
   if(args.size() > 0)
   {
     std::cout << "Loading from " << args[0] << std::endl;
-    dbPtr = dbCache.get(args[0]);
+    dbPtr = dbCache.get(args[0], args.size() > 1 && args[1] == "preload");
   }
   else
   {
@@ -310,8 +310,9 @@ void Console::memory(const std::vector<std::string> args)
         std::cout << it->first.corpusPath << ": " << Helper::inMB(size.estimated) << " MB (estimated) " << Helper::inMB(size.measured) << " MB (measured)" << std::endl;
       }
     }
-    std::cout << "Used total memory (estimated): "  << Helper::inMB(dbCache.loadedSize().estimated) << " MB" << std::endl;
-    std::cout << "Used total memory (measured): "  << Helper::inMB(dbCache.loadedSize().measured) << " MB" << std::endl;
+    DBCache::CorpusSize total = dbCache.calculateTotalSize();
+    std::cout << "Used total memory (estimated): "  << Helper::inMB(total.estimated) << " MB" << std::endl;
+    std::cout << "Used total memory (measured): "  << Helper::inMB(total.measured) << " MB" << std::endl;
 
   }
   else if(args[0] == "clear")
