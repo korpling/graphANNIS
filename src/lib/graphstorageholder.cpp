@@ -124,7 +124,7 @@ std::string GraphStorageHolder::info()
       if(!implName.empty())
       {
         ss << "implementation: " << implName << std::endl;
-        ss << "size: " << Helper::inMB(gs->estimateMemorySize()) << " MB" << std::endl;
+        ss << "estimated size: " << Helper::inMB(gs->estimateMemorySize()) << " MB" << std::endl;
       }
 
       GraphStatistic stat = gs->getStatistics();
