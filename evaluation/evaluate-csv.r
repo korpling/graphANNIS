@@ -42,13 +42,13 @@ bench_desc <- function(d) {
                sumTime=sum(d$us.Iteration)))
 }
 
-bench_plot <- function(d) {
-  h <- sort(d$Baseline)
-  result <- barplot(h, main=paste("speedup distribution"), log="y", ylim=c(min(h),max(h) * 10 ))
-  lines(x=c(0, max(result)), y=c(1.0, 1.0), col="red")
-  lines(x=c(0, max(result)), y=c(0.1, 0.1), col="blue", lty=2)
-  lines(x=c(0, max(result)), y=c(0.01, 0.01), col="green", lty=3)
-  return (result)
+bench_plot <- function(d, header=NULL) {
+  h <- sort(1.0/ d$Baseline)
+  plot(h, log="y", type="p", pch="*", xaxt="n", ylim=c(min(h),max(h) * 10), 
+       xlab="query",
+       ylab="times faster than baseline", main=header)
+  grid()
+  lines(x=c(0, nrow(d)), y=c(1.0, 1.0), col="red")
 }
 
 
