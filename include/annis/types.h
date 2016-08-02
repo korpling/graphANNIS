@@ -4,6 +4,7 @@
 #include <string>
 #include <cstring>
 #include <limits>
+#include <unordered_map>
 
 // add implemtations for the types defined here to the std::less operator (and some for the std::hash)
 #define ANNIS_STRUCT_COMPARE(a, b) {if(a < b) {return true;} else if(a > b) {return false;}}
