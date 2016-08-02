@@ -26,9 +26,9 @@ public:
 
 
   virtual bool next(Match& result) override;
-  virtual void reset();
+  virtual void reset() override;
 
-  const std::unordered_set<Annotation>& getValidAnnotations()
+  const std::unordered_set<Annotation>& getValidAnnotations() override
   {
     if(!validAnnotationInitialized)
     {

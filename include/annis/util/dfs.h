@@ -26,9 +26,9 @@ public:
       unsigned int minDistance, unsigned int maxDistance);
 
   virtual DFSIteratorResult nextDFS();
-  virtual std::pair<bool, nodeid_t> next();
+  virtual std::pair<bool, nodeid_t> next() override;
 
-  void reset();
+  void reset() override;
   virtual ~DFS() {}
 protected:
   const nodeid_t startNode;
@@ -68,9 +68,9 @@ public:
                unsigned int minDistance, unsigned int maxDistance);
   virtual ~UniqueDFS();
 protected:
-  virtual void reset();
-  virtual bool enterNode(nodeid_t node, unsigned int distance);
-  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance);
+  virtual void reset() override;
+  virtual bool enterNode(nodeid_t node, unsigned int distance) override;
+  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance) override;
 
 
 private:
@@ -98,9 +98,9 @@ public:
   }
 
 protected:
-  virtual void reset();
-  virtual bool enterNode(nodeid_t node, unsigned int distance);
-  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance);
+  virtual void reset() override;
+  virtual bool enterNode(nodeid_t node, unsigned int distance) override;
+  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance) override;
 
 
 private:

@@ -224,7 +224,7 @@ namespace annis
       return {0, {0, 0, 0}};
     }
 
-    virtual void reset()
+    virtual void reset() override
     {
     }
 

@@ -47,7 +47,7 @@ public:
       reset();
     }
 
-    virtual std::pair<bool, nodeid_t> next()
+    virtual std::pair<bool, nodeid_t> next() override
     {
       bool found = false;
       nodeid_t node = 0;
@@ -61,7 +61,7 @@ public:
       return std::pair<bool, nodeid_t>(found, node);
     }
 
-    virtual void reset()
+    virtual void reset() override
     {
       typedef typename map_t<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
       typedef map_t<nodeid_t, std::vector<nodeid_t> >::const_iterator NodeChainIt;
@@ -118,14 +118,14 @@ public:
 
   }
 
-  virtual void clear()
+  virtual void clear() override
   {
     edgeAnno.clear();
     node2pos.clear();
     nodeChains.clear();
   }
 
-  virtual void copy(const DB& db, const ReadableGraphStorage& orig)
+  virtual void copy(const DB& db, const ReadableGraphStorage& orig) override
   {
     // find all root nodes
     std::set<nodeid_t> roots;
@@ -187,7 +187,7 @@ public:
     stat = orig.getStatistics();
   }
 
-  virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const
+  virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const override
   {
     typedef typename map_t<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
 
@@ -214,12 +214,12 @@ public:
   virtual std::unique_ptr<EdgeIterator> findConnected(
                                            nodeid_t sourceNode,
                                            unsigned int minDistance,
-                                           unsigned int maxDistance) const
+                                           unsigned int maxDistance) const override
   {
     return std::unique_ptr<EdgeIterator>(new LinearIterator(*this, sourceNode, minDistance, maxDistance));
   }
 
-  virtual int distance(const Edge &edge) const
+  virtual int distance(const Edge &edge) const override
   {
     typedef typename map_t<nodeid_t, RelativePosition<pos_t> >::const_iterator PosIt;
 
@@ -241,7 +241,7 @@ public:
     return -1;
   }
 
-  virtual bool load(std::string dirPath)
+  virtual bool load(std::string dirPath) override
   {
     bool result = ReadableGraphStorage::load(dirPath);
 
@@ -276,7 +276,7 @@ public:
     return result;
   }
 
-  virtual bool save(std::string dirPath)
+  virtual bool save(std::string dirPath) override
   {
     bool result = ReadableGraphStorage::save(dirPath);
 
@@ -297,11 +297,11 @@ public:
     return result;
   }
 
-  virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const
+  virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const override
   {
     return edgeAnno.getEdgeAnnotations(edge);
   }
-  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const
+  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const override
   {
     std::vector<nodeid_t> result;
     auto it = node2pos.find(node);
@@ -321,11 +321,11 @@ public:
     return result;
   }
 
-  virtual std::uint32_t numberOfEdges() const
+  virtual std::uint32_t numberOfEdges() const override
   {
     return node2pos.size();
   }
-  virtual std::uint32_t numberOfEdgeAnnotations() const
+  virtual std::uint32_t numberOfEdgeAnnotations() const override
   {
     return edgeAnno.numberOfEdgeAnnotations();
   }

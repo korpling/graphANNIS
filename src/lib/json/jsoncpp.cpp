@@ -1867,7 +1867,7 @@ public:
   {}
   virtual bool parse(
       char const* beginDoc, char const* endDoc,
-      Value* root, std::string* errs) {
+      Value* root, std::string* errs) override {
     bool ok = reader_.parse(beginDoc, endDoc, *root, collectComments_);
     if (errs) {
       *errs = reader_.getFormattedErrorMessages();
@@ -4516,7 +4516,7 @@ struct BuiltStyledStreamWriter : public StreamWriter
       std::string const& colonSymbol,
       std::string const& nullSymbol,
       std::string const& endingLineFeedSymbol);
-  virtual int write(Value const& root, std::ostream* sout);
+  virtual int write(Value const& root, std::ostream* sout) override;
 private:
   void writeValue(Value const& value);
   void writeArrayValue(Value const& value);

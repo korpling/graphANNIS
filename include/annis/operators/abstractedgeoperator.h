@@ -20,10 +20,10 @@ public:
       GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
       const Annotation& edgeAnno = Init::initAnnotation());
 
-  virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs);
-  virtual bool filter(const Match& lhs, const Match& rhs);
+  virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
+  virtual bool filter(const Match& lhs, const Match& rhs) override;
 
-  virtual bool valid() const {return !gs.empty();}
+  virtual bool valid() const override {return !gs.empty();}
   
   virtual std::string operatorString() = 0;
   

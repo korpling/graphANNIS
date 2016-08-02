@@ -391,7 +391,7 @@ class JSON_API Exception : public std::exception {
 public:
   Exception(std::string const& msg);
   virtual ~Exception() throw();
-  virtual char const* what() const throw();
+  virtual char const* what() const throw() override;
 protected:
   std::string const msg_;
 };
@@ -1484,7 +1484,7 @@ public:
   CharReaderBuilder();
   virtual ~CharReaderBuilder();
 
-  virtual CharReader* newCharReader() const;
+  virtual CharReader* newCharReader() const override;
 
   /** \return true if 'settings' are legal and consistent;
    *   otherwise, indicate bad settings via 'invalid'.
@@ -1680,7 +1680,7 @@ public:
   /**
    * \throw std::exception if something goes wrong (e.g. invalid settings)
    */
-  virtual StreamWriter* newStreamWriter() const;
+  virtual StreamWriter* newStreamWriter() const override;
 
   /** \return true if 'settings' are legal and consistent;
    *   otherwise, indicate bad settings via 'invalid'.
@@ -1726,7 +1726,7 @@ public:
   void enableYAMLCompatibility();
 
 public: // overridden from Writer
-  virtual std::string write(const Value& root);
+  virtual std::string write(const Value& root) override;
 
 private:
   void writeValue(const Value& value);
@@ -1769,7 +1769,7 @@ public: // overridden from Writer
    * \param root Value to serialize.
    * \return String containing the JSON document that represents the root value.
    */
-  virtual std::string write(const Value& root);
+  virtual std::string write(const Value& root) override;
 
 private:
   void writeValue(const Value& value);

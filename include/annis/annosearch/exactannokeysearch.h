@@ -30,7 +30,7 @@ public:
   virtual bool next(Match& result) override;
   virtual void reset() override;
 
-  const std::set<AnnotationKey>& getValidAnnotationKeys()
+  const std::set<AnnotationKey>& getValidAnnotationKeys() override
   {
     if(!validAnnotationKeysInitialized)
     {

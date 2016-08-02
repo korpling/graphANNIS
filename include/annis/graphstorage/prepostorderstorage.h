@@ -123,7 +123,7 @@ public:
       init();
     }
 
-    virtual std::pair<bool, nodeid_t> next()
+    virtual std::pair<bool, nodeid_t> next() override
     {
       std::pair<bool, nodeid_t> result(0, false);
 
@@ -177,7 +177,7 @@ public:
       return result;
     }
 
-    virtual void reset()
+    virtual void reset() override
     {
       while(!ranges.empty())
       {
@@ -245,7 +245,7 @@ public:
 
   }
 
-  virtual bool load(std::string dirPath)
+  virtual bool load(std::string dirPath) override
   {
     ReadableGraphStorage::load(dirPath);
 
@@ -282,7 +282,7 @@ public:
     return result;
   }
 
-  virtual bool save(std::string dirPath)
+  virtual bool save(std::string dirPath) override
   {
     bool result = ReadableGraphStorage::save(dirPath);
 
@@ -303,7 +303,7 @@ public:
     return result;
   }
 
-  virtual void copy(const DB& db, const ReadableGraphStorage& orig)
+  virtual void copy(const DB& db, const ReadableGraphStorage& orig) override
   {
     clear();
 
@@ -390,19 +390,19 @@ public:
     stat = orig.getStatistics();
   }
 
-  virtual void clear()
+  virtual void clear() override
   {
     node2order.clear();
     order2node.clear();
     edgeAnno.clear();
   }
 
-  virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const
+  virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const override
   {
     return edgeAnno.getEdgeAnnotations(edge);
   }
 
-  virtual bool isConnected(const Edge& edge, unsigned int minDistance = 1, unsigned int maxDistance = 1) const
+  virtual bool isConnected(const Edge& edge, unsigned int minDistance = 1, unsigned int maxDistance = 1) const override
   {
     const auto itSourceBegin = node2order.lower_bound(edge.source);
     const auto itSourceEnd = node2order.upper_bound(edge.source);
@@ -426,7 +426,7 @@ public:
     }
     return false;
   }
-  virtual int distance(const Edge &edge) const
+  virtual int distance(const Edge &edge) const override
   {
     if(edge.source == edge.target)
     {
@@ -468,13 +468,13 @@ public:
   }
   virtual std::unique_ptr<EdgeIterator> findConnected(nodeid_t sourceNode,
                                            unsigned int minDistance = 1,
-                                           unsigned int maxDistance = 1) const
+                                           unsigned int maxDistance = 1) const override
   {
     return std::unique_ptr<EdgeIterator>(
           new PrePostIterator(*this, sourceNode, minDistance, maxDistance));
   }
 
-  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const
+  virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const override
   {
     std::vector<nodeid_t> result;
     result.reserve(10);
@@ -488,11 +488,11 @@ public:
     return result;
   }
 
-  virtual std::uint32_t numberOfEdges() const
+  virtual std::uint32_t numberOfEdges() const override
   {
     return order2node.size();
   }
-  virtual std::uint32_t numberOfEdgeAnnotations() const
+  virtual std::uint32_t numberOfEdgeAnnotations() const override
   {
     return edgeAnno.numberOfEdgeAnnotations();
   }

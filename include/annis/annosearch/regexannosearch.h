@@ -18,7 +18,7 @@ namespace annis
     RegexAnnoSearch(const DB& db, const std::string &name, const std::string &valRegex);
     RegexAnnoSearch(const DB& db, const std::string &ns, const std::string &name, const std::string &valRegex);
 
-    virtual const std::unordered_set<Annotation>& getValidAnnotations()
+    virtual const std::unordered_set<Annotation>& getValidAnnotations() override
     {
       if (!validAnnotationsInitialized)
       {
