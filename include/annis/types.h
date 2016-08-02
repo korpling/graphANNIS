@@ -228,11 +228,10 @@ namespace std
 {
 
 template <>
-class hash<annis::Annotation>{
+struct hash<annis::Annotation>{
 public :
   size_t operator()(const annis::Annotation &a ) const{
-    static const hash<uint32_t> hash_uint32;
-    return hash_uint32(a.ns) ^ hash_uint32(a.name) ^ hash_uint32(a.val);
+    return hash<uint32_t>()(a.ns) ^ hash<uint32_t>()(a.name) ^ hash<uint32_t>()(a.val);
   }
 };
 
