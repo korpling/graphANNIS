@@ -43,7 +43,7 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
     w->addMatch(Init::initMatch(anyNodeAnno, m));
   }
 
-  return w;
+  return std::move(w);
 }
 
 bool Overlap::filter(const Match &lhs, const Match &rhs)

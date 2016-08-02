@@ -65,7 +65,7 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
       w->addMatch(n);
     }
   }
-  return w;
+  return std::move(w);
 }
 
 bool AbstractEdgeOperator::filter(const Match &lhs, const Match &rhs)

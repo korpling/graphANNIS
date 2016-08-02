@@ -35,7 +35,7 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
     w->addMatch(Init::initMatch(anyNodeAnno, matchedToken.second));
   }
 
-  return w;
+  return std::move(w);
 }
 
 bool Precedence::filter(const Match &lhs, const Match &rhs)

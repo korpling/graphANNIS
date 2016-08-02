@@ -79,7 +79,7 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
     }
   }
 
-  return w;
+  return std::move(w);
 }
 
 double Inclusion::selectivity() 

@@ -95,7 +95,7 @@ std::unique_ptr<AnnoIt> IdenticalCoverage::retrieveMatches(const Match& lhs)
     }
   }
 
-  return w;
+  return std::move(w);
 }
 
 double IdenticalCoverage::selectivity() 
