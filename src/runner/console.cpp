@@ -185,7 +185,7 @@ void Console::count(const std::vector<std::string> &args)
   }
 }
 
-void Console::find(const std::vector<std::__cxx11::string> &args)
+void Console::find(const std::vector<std::string> &args)
 {
   if(auto db = dbPtr.lock())
   {
