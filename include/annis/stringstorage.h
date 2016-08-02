@@ -5,6 +5,8 @@
 #include <map>
 #include <set>
 
+#include <google/btree_map.h>
+
 namespace annis
 {
 const std::uint32_t STRING_STORAGE_ANY = 0;
@@ -29,7 +31,7 @@ public:
 
   std::pair<bool, std::uint32_t> findID(const std::string& str) const
   {
-    typedef std::map<std::string, std::uint32_t>::const_iterator ItType;
+    typedef btree::btree_map<std::string, std::uint32_t>::const_iterator ItType;
     std::pair<bool, std::uint32_t> result;
     result.first = false;
     result.second = 0;
@@ -57,7 +59,7 @@ public:
 
 private:
   std::unordered_map<std::uint32_t, std::string> stringStorageByID;
-  std::map<std::string, std::uint32_t> stringStorageByValue;
+  btree::btree_map<std::string, std::uint32_t> stringStorageByValue;
 
 };
 }

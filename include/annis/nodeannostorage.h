@@ -150,8 +150,8 @@ namespace annis {
     StringStorage& strings;
     
     /* statistical information */
-    std::map<AnnotationKey, std::vector<std::string>> histogramBounds;
-    std::map<AnnotationKey, std::uint64_t> nodeAnnotationKeyCount;
+    btree::btree_map<AnnotationKey, std::vector<std::string>> histogramBounds;
+    btree::btree_map<AnnotationKey, std::uint64_t> nodeAnnotationKeyCount;
     
     
   private:

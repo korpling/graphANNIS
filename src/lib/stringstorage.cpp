@@ -10,6 +10,7 @@
 #include <re2/re2.h>
 
 #include <annis/util/size_estimator.h>
+#include <annis/serializers.h>
 
 using namespace annis;
 using namespace std;
@@ -20,7 +21,7 @@ StringStorage::StringStorage()
 
 std::set<std::uint32_t> StringStorage::findRegex(const string &str) const
 {
-  using ItType = map<string, uint32_t>::const_iterator;
+  using ItType = btree::btree_map<string, uint32_t>::const_iterator;
   std::set<std::uint32_t> result;
 
   RE2 re(str, RE2::Quiet);
@@ -56,7 +57,7 @@ std::set<std::uint32_t> StringStorage::findRegex(const string &str) const
 
 uint32_t StringStorage::add(const string &str)
 {
-  typedef map<string, uint32_t>::const_iterator ItType;
+  typedef btree::btree_map<string, uint32_t>::const_iterator ItType;
   ItType it = stringStorageByValue.find(str);
   if(it == stringStorageByValue.end())
   {

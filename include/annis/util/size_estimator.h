@@ -18,12 +18,6 @@ namespace size_estimation
 {
 
 template<typename Key, typename Value>
-size_t element_size(const std::map<Key, Value>& m)
-{
-  return (sizeof(typename std::map<Key, Value>::value_type) + sizeof(std::_Rb_tree_node_base)) * m.size();
-}
-
-template<typename Key, typename Value>
 size_t element_size(const std::unordered_map<Key, Value>& m)
 {
   return (m.size() * sizeof(typename std::unordered_map<Key, Value>::value_type)) // actual elements stored
