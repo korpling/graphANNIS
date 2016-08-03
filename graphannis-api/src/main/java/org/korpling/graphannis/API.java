@@ -102,6 +102,8 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
 // Parsed from annis/api/admin.h
 
 // #pragma once
+
+// #include <string>
   @Namespace("annis::api") public static class Admin extends Pointer {
       static { Loader.load(); }
       /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
@@ -121,8 +123,8 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
     * @param sourceFolder
     * @param targetFolder
     */
-   public native void importRelANNIS(@StdString BytePointer sourceFolder, @StdString BytePointer targetFolder);
-   public native void importRelANNIS(@StdString String sourceFolder, @StdString String targetFolder);
+   public static native void importRelANNIS(@StdString BytePointer sourceFolder, @StdString BytePointer targetFolder);
+   public static native void importRelANNIS(@StdString String sourceFolder, @StdString String targetFolder);
   }
  // end namespace annis::api
 

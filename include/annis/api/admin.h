@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace annis
 {
 namespace api
@@ -15,6 +17,6 @@ namespace api
     * @param sourceFolder
     * @param targetFolder
     */
-   void importRelANNIS(std::string sourceFolder, std::string targetFolder);
+   static void importRelANNIS(std::string sourceFolder, std::string targetFolder);
   };
 }} // end namespace annis::api

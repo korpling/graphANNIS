@@ -14,7 +14,7 @@ Admin::~Admin()
 
 }
 
-void Admin::import(std::string sourceFolder, std::string targetFolder)
+void Admin::importRelANNIS(std::string sourceFolder, std::string targetFolder)
 {
   DB targetDB;
   targetDB.loadRelANNIS(sourceFolder);
