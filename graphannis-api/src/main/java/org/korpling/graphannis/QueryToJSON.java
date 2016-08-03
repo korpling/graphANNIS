@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 
+import annis.exceptions.AnnisQLSyntaxException;
 import annis.model.Join;
 import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
@@ -69,7 +70,7 @@ public class QueryToJSON
     
     if(metaData != null && !metaData.isEmpty())
     {
-      throw new UnsupportedOperationException("Metadata filtering not supported yet");
+      throw new AnnisQLSyntaxException("Metadata filtering not supported yet");
     }
 
     if (query != null && !query.isEmpty())
@@ -87,14 +88,14 @@ public class QueryToJSON
         {
           if(n.getSpanTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL || n.getSpanTextMatching() == QueryNode.TextMatching.REGEXP_NOT_EQUAL)
           {
-            throw new UnsupportedOperationException("negation not supported yet");
+            throw new AnnisQLSyntaxException("negation not supported yet");
           }
           for(QueryAnnotation anno : n.getNodeAnnotations())
           {
             if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
               || anno.getTextMatching()== QueryNode.TextMatching.REGEXP_NOT_EQUAL)
             {
-              throw new UnsupportedOperationException(
+              throw new AnnisQLSyntaxException(
                 "negation not supported yet");
             }
           }
@@ -103,7 +104,7 @@ public class QueryToJSON
             if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
               || anno.getTextMatching()== QueryNode.TextMatching.REGEXP_NOT_EQUAL)
             {
-              throw new UnsupportedOperationException(
+              throw new AnnisQLSyntaxException(
                 "negation not supported yet");
             }
           }
@@ -180,7 +181,7 @@ public class QueryToJSON
     }
     else
     {
-      throw new UnsupportedOperationException(
+      throw new AnnisQLSyntaxException(
         "This join type can't be mapped yet: " + join.toAQLFragment(source));
     }
 
