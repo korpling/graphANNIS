@@ -99,4 +99,32 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
  // end namespace annis
 
 
+// Parsed from annis/api/admin.h
+
+// #pragma once
+  @Namespace("annis::api") public static class Admin extends Pointer {
+      static { Loader.load(); }
+      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+      public Admin(Pointer p) { super(p); }
+      /** Native array allocator. Access with {@link Pointer#position(long)}. */
+      public Admin(long size) { super((Pointer)null); allocateArray(size); }
+      private native void allocateArray(long size);
+      @Override public Admin position(long position) {
+          return (Admin)super.position(position);
+      }
+  
+    public Admin() { super((Pointer)null); allocate(); }
+    private native void allocate();
+
+    /**
+    * Imports data in the relANNIS format to the internal format used by graphANNIS.
+    * @param sourceFolder
+    * @param targetFolder
+    */
+   public native void importRelANNIS(@StdString BytePointer sourceFolder, @StdString BytePointer targetFolder);
+   public native void importRelANNIS(@StdString String sourceFolder, @StdString String targetFolder);
+  }
+ // end namespace annis::api
+
+
 }

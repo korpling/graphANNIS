@@ -10,7 +10,7 @@ import org.bytedeco.javacpp.tools.InfoMapper;
 @Namespace("annis::api")
 @Properties(target="org.korpling.graphannis.API",
     value={@Platform(
-        include={"annis/api/search.h"}, 
+        include={"annis/api/search.h", "annis/api/admin.h"}, 
         link={"re2", "boost_system", "boost_filesystem", "boost_serialization", "humblelogging", "ANNIS4"}
         )})
 public class AnnisApiInfo implements InfoMapper
