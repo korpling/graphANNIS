@@ -119,6 +119,11 @@
 #define NDEBUG 1
 #endif
 
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 namespace btree {
 
 // Inside a btree method, if we just call swap(), it will choose the
