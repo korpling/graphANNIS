@@ -20,7 +20,11 @@ class Search
 {
 public:
 
-  typedef std::vector<std::string> StringVector;
+  struct CountResult
+  {
+    long long matchCount;
+    long long documentCount;
+  };
 
   Search(std::string databaseDir);
    ~Search();
@@ -34,6 +38,18 @@ public:
    */
   long long count(std::vector<std::string> corpora,
                   std::string queryAsJSON);
+
+
+  /**
+   * Count all occurrences of an AQL query in a single corpus.
+   *
+   * @param corpus
+   * @param queryAsJSON
+   * @return
+   */
+  CountResult countExtra(std::vector<std::string> corpora,
+                  std::string queryAsJSON);
+
 
   /**
    * Find occurrences of an AQL query in a single corpus.

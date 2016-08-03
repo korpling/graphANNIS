@@ -33,7 +33,45 @@ long long Search::count(std::vector<std::string> corpora, std::string queryAsJSO
       }
     }
   }
+  return result;
+}
 
+Search::CountResult Search::countExtra(std::vector<std::string> corpora, std::string queryAsJSON)
+{
+  CountResult result = {0,0};
+
+  std::set<std::uint32_t> documents;
+
+  // sort corpora by their name
+  std::sort(corpora.begin(), corpora.end());
+
+  for(const std::string& c : corpora)
+  {
+    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c, true);
+
+    if(std::shared_ptr<DB> db = dbWeakPtr.lock())
+    {
+      std::stringstream ss;
+      ss << queryAsJSON;
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+      while(q->next())
+      {
+        result.matchCount++;
+        const std::vector<Match>& m = q->getCurrent();
+        if(!m.empty())
+        {
+          const Match& n  = m[0];
+          std::pair<bool, Annotation> anno = db->nodeAnnos.getNodeAnnotation(n.node, annis_ns, "document");
+          if(anno.first)
+          {
+            documents.insert(anno.second.val);
+          }
+        }
+      }
+    }
+  }
+
+  result.documentCount = documents.size();
   return result;
 }
 

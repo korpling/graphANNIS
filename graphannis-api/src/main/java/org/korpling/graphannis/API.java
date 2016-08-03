@@ -65,6 +65,24 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
     public Search(Pointer p) { super(p); }
 
 
+  public static class CountResult extends Pointer {
+      static { Loader.load(); }
+      /** Default native constructor. */
+      public CountResult() { super((Pointer)null); allocate(); }
+      /** Native array allocator. Access with {@link Pointer#position(long)}. */
+      public CountResult(long size) { super((Pointer)null); allocateArray(size); }
+      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+      public CountResult(Pointer p) { super(p); }
+      private native void allocate();
+      private native void allocateArray(long size);
+      @Override public CountResult position(long position) {
+          return (CountResult)super.position(position);
+      }
+  
+    public native long matchCount(); public native CountResult matchCount(long matchCount);
+    public native long documentCount(); public native CountResult documentCount(long documentCount);
+  }
+
   public Search(@StdString BytePointer databaseDir) { super((Pointer)null); allocate(databaseDir); }
   private native void allocate(@StdString BytePointer databaseDir);
   public Search(@StdString String databaseDir) { super((Pointer)null); allocate(databaseDir); }
@@ -81,6 +99,20 @@ public class API extends org.korpling.graphannis.info.AnnisApiInfo {
                     @StdString BytePointer queryAsJSON);
   public native long count(@ByVal StringVector corpora,
                     @StdString String queryAsJSON);
+
+
+  /**
+   * Count all occurrences of an AQL query in a single corpus.
+   *
+   * @param corpus
+   * @param queryAsJSON
+   * @return
+   */
+  public native @ByVal CountResult countExtra(@ByVal StringVector corpora,
+                    @StdString BytePointer queryAsJSON);
+  public native @ByVal CountResult countExtra(@ByVal StringVector corpora,
+                    @StdString String queryAsJSON);
+
 
   /**
    * Find occurrences of an AQL query in a single corpus.
