@@ -29,7 +29,6 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import annis.model.Join;
 import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
-import annis.ql.parser.QueryData;
 import annis.sqlgen.model.Dominance;
 import annis.sqlgen.model.Inclusion;
 import annis.sqlgen.model.Overlap;
@@ -54,28 +53,29 @@ public class QueryToJSON
    * @param queryData
    * @return
    */
-  public static String serializeQuery(QueryData queryData)
+  public static String serializeQuery(List<List<QueryNode>> query, 
+      List<QueryAnnotation> metaData)
   {
-    return queryAsJSON(queryData).toString();
+    return queryAsJSON(query, metaData).toString();
   }
 
-  public static ObjectNode queryAsJSON(QueryData queryData)
+  public static ObjectNode queryAsJSON(List<List<QueryNode>> query, 
+      List<QueryAnnotation> metaData)
   {
     ObjectNode root = factory.objectNode();
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(jaxbModule);
     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
     
-    if(queryData.getMetaData() != null && !queryData.getMetaData().isEmpty())
+    if(metaData != null && !metaData.isEmpty())
     {
       throw new UnsupportedOperationException("Metadata filtering not supported yet");
     }
 
-    if (queryData.getAlternatives() != null && !queryData.getAlternatives().
-      isEmpty())
+    if (query != null && !query.isEmpty())
     {
       ArrayNode alternatives = root.putArray("alternatives");
-      for (List<QueryNode> alt : queryData.getAlternatives())
+      for (List<QueryNode> alt : query)
       {
         ObjectNode altNode = alternatives.addObject();
 
