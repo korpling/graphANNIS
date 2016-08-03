@@ -111,7 +111,7 @@ std::vector<std::string> Search::find(std::vector<std::string> corpora, std::str
                 << "::";
             }
 
-            matchDesc << "salt://" << c << "/";
+            matchDesc << "salt:/" << c << "/";
             matchDesc << db->getNodeDocument(n.node) << "/#" << db->getNodeName(n.node);
 
             if(i < m.size()-1)
