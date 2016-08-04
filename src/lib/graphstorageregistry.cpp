@@ -107,7 +107,7 @@ std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(s
   }
   else if(name == fallback)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new AdjacencyListStorage(strings, component));
+    return std::unique_ptr<ReadableGraphStorage>(new AdjacencyListStorage(component));
   }
 
   return std::unique_ptr<ReadableGraphStorage>();

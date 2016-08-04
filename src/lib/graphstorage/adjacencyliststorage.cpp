@@ -18,8 +18,8 @@
 using namespace annis;
 using namespace std;
 
-AdjacencyListStorage::AdjacencyListStorage(StringStorage &strings, const Component &component)
-  : strings(strings), component(component)
+AdjacencyListStorage::AdjacencyListStorage(const Component &component)
+ : component(component)
 {
 }
 

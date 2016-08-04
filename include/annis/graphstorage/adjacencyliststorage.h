@@ -22,7 +22,7 @@ public:
 
   template<typename Key> using set_t = btree::btree_set<Key>;
 
-  AdjacencyListStorage(StringStorage& strings, const Component& component);
+  AdjacencyListStorage(const Component& component);
 
   virtual void copy(const DB& db, const ReadableGraphStorage& orig) override;
 
@@ -61,7 +61,6 @@ public:
   virtual size_t estimateMemorySize() override;
 
 private:
-  StringStorage& strings;
   Component component;
 
   set_t<Edge> edges;

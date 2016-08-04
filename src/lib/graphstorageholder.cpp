@@ -323,7 +323,7 @@ std::shared_ptr<WriteableGraphStorage> GraphStorageHolder::createWritableGraphSt
     }
   }
 
-  std::shared_ptr<WriteableGraphStorage> gs = std::shared_ptr<WriteableGraphStorage>(new AdjacencyListStorage(strings, c));
+  std::shared_ptr<WriteableGraphStorage> gs = std::shared_ptr<WriteableGraphStorage>(new AdjacencyListStorage(c));
   // register the used implementation
   container[c] = gs;
   return gs;

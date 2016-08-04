@@ -12,7 +12,7 @@
 namespace annis
 {
 
-/** A join that takes the left argument as a seed, finds all connected nodes (matching the distance) and checks the condition for each node. */
+/** A join that takes the left argument as a seed, finds all connected nodes and checks the condition for each node. */
 class AnnoKeySeedJoin : public Iterator
 {
 public:
@@ -31,8 +31,6 @@ private:
   std::shared_ptr<Iterator> left;
   size_t lhsIdx;
   const std::set<AnnotationKey>& rightAnnoKeys;
-  unsigned int minDistance;
-  unsigned int maxDistance;
 
   std::unique_ptr<AnnoIt> matchesByOperator;
   std::vector<Match> currentLHSMatch;
@@ -78,8 +76,6 @@ private:
   std::shared_ptr<Iterator> left;
   size_t lhsIdx;
   const std::unordered_set<Annotation>& right;
-  unsigned int minDistance;
-  unsigned int maxDistance;
 
   std::unique_ptr<AnnoIt> matchesByOperator;
   std::vector<Match> currentLHSMatch;
