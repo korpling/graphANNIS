@@ -15,7 +15,7 @@
 using namespace annis;
 
 IdenticalCoverage::IdenticalCoverage(const DB &db, GraphStorageHolder& gsh)
-: db(db), tokHelper(gsh, db),
+: tokHelper(gsh, db),
   anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {
   gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock();

@@ -34,7 +34,6 @@ public:
   
   virtual ~Overlap();
 private:
-  const DB& db;
   TokenHelper tokHelper;
   Annotation anyNodeAnno;
   std::shared_ptr<const ReadableGraphStorage> gsOrder;

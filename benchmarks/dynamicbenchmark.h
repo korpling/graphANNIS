@@ -77,11 +77,9 @@ namespace annis {
             std::map<Component, std::string> overrideImpl,
             std::map<int64_t, std::string> json,
             std::string benchmarkName,
-            unsigned int numberOfSamples,
             std::map<int64_t, unsigned int> expectedCount = std::map<int64_t, unsigned int>())
     : forceFallback(forceFallback), corpusPath(corpusPath), overrideImpl(overrideImpl),
     json(json), benchmarkName(benchmarkName), counter(0),
-    numberOfSamples(numberOfSamples), executionCounter(0),
     expectedCountByExp(expectedCount) {
     }
 
@@ -89,7 +87,7 @@ namespace annis {
       return dbCache->get(corpusPath, true, forceFallback, overrideImpl);
     }
     
-    virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const;
+    virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const override;
 
     virtual void setUp(int64_t experimentValue) override {
       counter = 0;
@@ -142,8 +140,6 @@ namespace annis {
     std::shared_ptr<Query> q;
     std::string benchmarkName;
     unsigned int counter;
-    unsigned int numberOfSamples;
-    unsigned int executionCounter;
 
     std::map<int64_t, unsigned int> expectedCountByExp;
     boost::optional<unsigned int> expectedCount;

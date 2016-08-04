@@ -90,9 +90,9 @@ namespace annis
 
     virtual void reset() override;
 
-    virtual void setOther(std::weak_ptr<JoinWrapIterator> otherInnerWrapper)
+    virtual void setOther(std::weak_ptr<JoinWrapIterator> other)
     {
-      JoinWrapIterator::otherInnerWrapper = otherInnerWrapper;
+      otherInnerWrapper = other;
     }
 
     virtual ~JoinWrapIterator()
@@ -200,39 +200,6 @@ namespace annis
   private:
     Match m;
     bool valid;
-  };
-
-  /**
-   * Similar to ListWrapper but only wraps a no element at all
-   */
-  class NoElementWrapper : public AnnoIt
-  {
-  public:
-
-    NoElementWrapper()
-    {
-
-    }
-
-    virtual bool hasNext()
-    {
-      return false;
-    }
-
-    virtual Match next()
-    {
-      return {0, {0, 0, 0}};
-    }
-
-    virtual void reset() override
-    {
-    }
-
-    virtual ~NoElementWrapper()
-    {
-    }
-
-  private:
   };
 
 } // end namespace annis

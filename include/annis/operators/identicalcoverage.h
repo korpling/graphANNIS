@@ -36,7 +36,6 @@ public:
   virtual ~IdenticalCoverage();
 private:
   
-  const DB &db;
   TokenHelper tokHelper;
   std::shared_ptr<const ReadableGraphStorage> gsOrder;
   std::shared_ptr<const ReadableGraphStorage> gsLeftToken;

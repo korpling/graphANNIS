@@ -183,7 +183,6 @@ void DynamicBenchmark::addBenchmark(
   std::shared_ptr<::celero::TestFixture> fixture(
     new DynamicCorpusFixture(forceFallback, corpusPath, overrideImpl, allQueries,
     benchmarkName + " (" + fixtureName + ")",
-    numberOfSamples,
     expectedCount));
 
   if (baseline)
