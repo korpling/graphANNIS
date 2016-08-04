@@ -305,35 +305,6 @@ std::string GraphStorageHolder::getImplNameForPath(std::string directory)
   return result;
 }
 
-std::shared_ptr<ReadableGraphStorage> GraphStorageHolder::createGSForComponent(const std::string &shortType, const std::string &layer, const std::string &name)
-{
-  // fill the component variable
-  ComponentType ctype = componentTypeFromShortName(shortType);
-  return createGSForComponent(ctype, layer, name);
-
-}
-
-std::shared_ptr<ReadableGraphStorage> GraphStorageHolder::createGSForComponent(ComponentType ctype, const std::string &layer, const std::string &name)
-{
-  Component c = {ctype, layer, name};
-
-  // check if there is already an edge DB for this component
-  std::map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator itDB =
-      container.find(c);
-  if(itDB == container.end())
-  {
-
-    std::shared_ptr<ReadableGraphStorage> gs = registry.createGraphStorage(strings, c, gs->getStatistics());
-
-    // register the used implementation
-    container.insert({c,gs});
-    return gs;
-  }
-  else
-  {
-    return itDB->second;
-  }
-}
 
 std::shared_ptr<WriteableGraphStorage> GraphStorageHolder::createWritableGraphStorage(ComponentType ctype, const std::string &layer, const std::string &name)
 {

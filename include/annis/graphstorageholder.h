@@ -39,10 +39,6 @@ private:
   std::string debugComponentString(const Component& c);
   std::string getImplNameForPath(std::string directory);
 
-  std::shared_ptr<ReadableGraphStorage> createGSForComponent(const std::string& shortType, const std::string& layer,
-                       const std::string& name);
-  std::shared_ptr<ReadableGraphStorage> createGSForComponent(ComponentType ctype, const std::string& layer,
-                       const std::string& name);
   std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
                        const std::string& name);
 
