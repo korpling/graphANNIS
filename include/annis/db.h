@@ -30,8 +30,6 @@ public:
   bool load(std::string dirPath, bool preloadComponents=true);
   bool save(std::string dirPath);
 
-  bool hasNode(nodeid_t id);
-  
   inline std::string getNodeName(const nodeid_t &id) const
   {
     std::string result = "";
