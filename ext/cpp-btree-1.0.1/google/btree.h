@@ -1376,29 +1376,15 @@ class btree : public Params::key_compare {
   empty_base_handle<internal_allocator_type, node_type*> root_;
 
  private:
-  // A never instantiated helper function that returns big_ if we have a
-  // key-compare-to functor or if R is bool and small_ otherwise.
-  template <typename R>
-  static typename if_<
-   if_<is_key_compare_to::value,
-             std::is_same<R, int>,
-             std::is_same<R, bool> >::type::value,
-   big_, small_>::type key_compare_checker(R);
 
   // A never instantiated helper function that returns the key comparison
   // functor.
   static key_compare key_compare_helper();
 
-  // Verify that key_compare returns a bool. This is similar to the way
-  // is_convertible in base/type_traits.h works. Note that key_compare_checker
-  // is never actually invoked. The compiler will select which
-  // key_compare_checker() to instantiate and then figure out the size of the
-  // return type of key_compare_checker() at compile time which we then check
-  // against the sizeof of big_.
-  static_assert(
-      sizeof(key_compare_checker(key_compare_helper()(key_type(), key_type()))) ==
-      sizeof(big_),
-      "key_comparison_function_must_return_bool");
+
+  // Verify that key_compare returns a bool.
+  // This is an adoption of the old way but using C++ 11 constructs.
+  static_assert(std::is_same<typename std::conditional<is_key_compare_to::value,int,bool>::type, decltype(key_compare_helper()(key_type(), key_type()))>::value, "key_comparison_function_must_return_bool");
 
   // Note: We insist on kTargetValues, which is computed from
   // Params::kTargetNodeSize, must fit the base_fields::field_type.
