@@ -25,6 +25,18 @@ namespace annis
     nodeid_t target;
   };
 
+  inline bool operator<(const struct Edge &a, const struct Edge &b)
+  {
+    // compare by source id
+    ANNIS_STRUCT_COMPARE(a.source, b.source);
+
+    // if equal compare by target id
+    ANNIS_STRUCT_COMPARE(a.target, b.target);
+
+    // they are equal
+    return false;
+  }
+
   enum class ComponentType {COVERAGE,
                             INVERSE_COVERAGE,
                             DOMINANCE,
@@ -87,6 +99,20 @@ namespace annis
     std::string layer;
     std::string name;
   };
+  inline bool operator<(const struct Component &a, const struct Component &b)
+  {
+    // compare by type
+    ANNIS_STRUCT_COMPARE(a.type, b.type);
+
+    // if equal compare by namespace
+    ANNIS_STRUCT_COMPARE(a.layer, b.layer);
+
+    // if still equal compare by name
+    ANNIS_STRUCT_COMPARE(a.name, b.name);
+
+    // they are equal
+    return false;
+  }
 
   struct AnnotationKey
   {
@@ -94,53 +120,79 @@ namespace annis
     std::uint32_t ns;
   };
 
+  inline bool operator<(const AnnotationKey& a,  const AnnotationKey& b)
+  {
+    // compare by name (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.name, b.name);
+
+    // if equal, compare by namespace (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.ns, b.ns);
+
+    // they are equal
+    return false;
+  }
+
   struct Annotation
   {
     std::uint32_t name;
     std::uint32_t ns;
     std::uint32_t val;
-
-    bool operator<( const Annotation& rhs ) const
-    {
-      // compare by name (non lexical but just by the ID)
-      ANNIS_STRUCT_COMPARE(name, rhs.name);
-
-      // if equal, compare by namespace (non lexical but just by the ID)
-      ANNIS_STRUCT_COMPARE(ns, rhs.ns);
-
-      // if still equal compare by value (non lexical but just by the ID)
-      ANNIS_STRUCT_COMPARE(val, rhs.val);
-
-      // they are equal
-      return false;
-    }
-
   };
+
+  inline bool operator<(const Annotation& a,  const Annotation& b)
+  {
+    // compare by name (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.name, b.name);
+
+    // if equal, compare by namespace (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.ns, b.ns);
+
+    // if still equal compare by value (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.val, b.val);
+
+    // they are equal
+    return false;
+  }
+
+  inline bool operator==(const Annotation& lhs, const Annotation& rhs)
+  {
+      return lhs.ns == rhs.ns && lhs.name == rhs.name && lhs.val == rhs.val;
+  }
 
   struct NodeAnnotationKey
   {
     nodeid_t node;
     std::uint32_t anno_name;
     std::uint32_t anno_ns;
-
-    bool operator<( const NodeAnnotationKey& rhs ) const
-    {
-      ANNIS_STRUCT_COMPARE(node, rhs.node);
-
-      ANNIS_STRUCT_COMPARE(anno_name, rhs.anno_name);
-
-      ANNIS_STRUCT_COMPARE(anno_ns, rhs.anno_ns);
-
-      // they are equal
-      return false;
-    }
   };
+  inline bool operator<(const NodeAnnotationKey& a,  const NodeAnnotationKey& b)
+  {
+    // compare by node ID
+    ANNIS_STRUCT_COMPARE(a.node, b.node);
+
+    // compare by name (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.anno_name, b.anno_name);
+
+    // if equal, compare by namespace (non lexical but just by the ID)
+    ANNIS_STRUCT_COMPARE(a.anno_ns, b.anno_ns);
+
+    // they are equal
+    return false;
+  }
 
   struct TextProperty
   {
     std::uint32_t textID;
     std::uint32_t val;
   };
+  inline bool operator<(const struct TextProperty &a, const struct TextProperty &b)
+  {
+    ANNIS_STRUCT_COMPARE(a.textID, b.textID);
+    ANNIS_STRUCT_COMPARE(a.val, b.val);
+
+    // they are equal
+    return false;
+  }
 
   template<typename pos_t>
   struct RelativePosition
@@ -218,12 +270,11 @@ namespace annis
     }
   };
 
-  inline bool operator==(const Annotation& lhs, const Annotation& rhs)
-  {
-      return lhs.ns == rhs.ns && lhs.name == rhs.name && lhs.val == rhs.val;
-  }
-
 } // end namespace annis
+
+
+
+
 
 namespace std
 {
@@ -233,109 +284,6 @@ struct hash<annis::Annotation>{
 public :
   size_t operator()(const annis::Annotation &a ) const{
     return hash<uint32_t>()(a.ns) ^ hash<uint32_t>()(a.name) ^ hash<uint32_t>()(a.val);
-  }
-};
-
-
-template<>
-struct less<annis::Component>
-{
-  bool operator()(const struct annis::Component &a, const struct annis::Component &b) const
-  {
-    // compare by type
-    ANNIS_STRUCT_COMPARE(a.type, b.type);
-
-    // if equal compare by namespace
-    ANNIS_STRUCT_COMPARE(a.layer, b.layer);
-
-    // if still equal compare by name
-    ANNIS_STRUCT_COMPARE(a.name, b.name);
-
-    // they are equal
-    return false;
-  }
-};
-
-template<>
-struct less<annis::AnnotationKey>
-{
-  bool operator()(const annis::AnnotationKey& a,  const annis::AnnotationKey& b) const
-  {
-    // compare by name (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.name, b.name);
-
-    // if equal, compare by namespace (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.ns, b.ns);
-
-    // they are equal
-    return false;
-  }
-};
-
-template<>
-struct less<annis::Annotation>
-{
-  bool operator()(const annis::Annotation& a,  const annis::Annotation& b) const
-  {
-    // compare by name (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.name, b.name);
-
-    // if equal, compare by namespace (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.ns, b.ns);
-
-    // if still equal compare by value (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.val, b.val);
-
-    // they are equal
-    return false;
-  }
-};
-
-template<>
-struct less<annis::NodeAnnotationKey>
-{
-  bool operator()(const annis::NodeAnnotationKey& a,  const annis::NodeAnnotationKey& b) const
-  {
-    // compare by node ID
-    ANNIS_STRUCT_COMPARE(a.node, b.node);
-
-    // compare by name (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.anno_name, b.anno_name);
-
-    // if equal, compare by namespace (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.anno_ns, b.anno_ns);
-
-    // they are equal
-    return false;
-  }
-};
-
-template<>
-struct less<annis::Edge>
-{
-  bool operator()(const struct annis::Edge &a, const struct annis::Edge &b) const
-  {
-    // compare by source id
-    ANNIS_STRUCT_COMPARE(a.source, b.source);
-
-    // if equal compare by target id
-    ANNIS_STRUCT_COMPARE(a.target, b.target);
-
-    // they are equal
-    return false;
-  }
-};
-
-template<>
-struct less<annis::TextProperty>
-{
-  bool operator()(const struct annis::TextProperty &a, const struct annis::TextProperty &b) const
-  {
-    ANNIS_STRUCT_COMPARE(a.textID, b.textID);
-    ANNIS_STRUCT_COMPARE(a.val, b.val);
-
-    // they are equal
-    return false;
   }
 };
 
