@@ -57,7 +57,7 @@ set_property(TARGET annis PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 add_definitions(-DBOOST_NO_CXX11_HDR_UNORDERED_MAP -DBOOST_NO_CXX11_HDR_UNORDERED_SET)
 if (MSVC)
 	# the min/max defines get in our way when using std::min/std::max
-    add_definitions(annis /DNOMINMAX)
+    add_definitions(/DNOMINMAX)
 elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.1.0 )
     set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
 endif (MSVC)
