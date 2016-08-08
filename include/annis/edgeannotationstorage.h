@@ -41,7 +41,7 @@ public:
     return result;
   }
 
-  virtual std::uint32_t numberOfEdgeAnnotations() const
+  virtual size_t numberOfEdgeAnnotations() const
   {
     return edgeAnnotations.size();
   }

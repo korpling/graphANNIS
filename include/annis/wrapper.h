@@ -59,7 +59,7 @@ namespace annis
 
   protected:
 
-    size_t internalEmpty()
+    bool internalEmpty()
     {
       return orig.empty();
     }

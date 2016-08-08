@@ -35,7 +35,7 @@ protected:
 
   virtual bool enterNode(nodeid_t node, unsigned int distance);
 
-  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance)
+  virtual bool beforeEnterNode(nodeid_t /* node */, unsigned int /* distance */)
   {
     return true;
   }

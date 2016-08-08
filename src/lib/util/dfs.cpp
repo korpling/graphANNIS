@@ -190,7 +190,7 @@ bool UniqueDFS::enterNode(nodeid_t node, unsigned int distance)
   return DFS::enterNode(node, distance);
 }
 
-bool UniqueDFS::beforeEnterNode(nodeid_t node, unsigned int distance)
+bool UniqueDFS::beforeEnterNode(nodeid_t node, unsigned int /* distance */)
 {
   return visited.find(node) == visited.end();
 }

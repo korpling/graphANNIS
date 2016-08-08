@@ -317,7 +317,7 @@ template<class Archive>
 inline void serialize(
     Archive & ar,
     annis::AnnotationKey & t,
-    const unsigned int file_version
+    const unsigned int /* file_version */
     )
 {
   ar & t.name;
@@ -329,7 +329,7 @@ template<class Archive>
 inline void serialize(
     Archive & ar,
     annis::NodeAnnotationKey & t,
-    const unsigned int file_version
+    const unsigned int /* file_version */
     )
 {
   ar & t.anno_ns;
@@ -341,7 +341,7 @@ template<class Archive>
 inline void serialize(
     Archive & ar,
     annis::Annotation & t,
-    const unsigned int file_version
+    const unsigned int /* file_version */
     )
 {
   ar & t.ns;
@@ -353,7 +353,7 @@ template<class Archive>
 inline void serialize(
     Archive & ar,
     annis::Edge & t,
-    const unsigned int file_version
+    const unsigned int /* file_version */
     )
 {
   ar & t.source;
@@ -364,7 +364,7 @@ template<class Archive, typename T>
 inline void serialize(
     Archive & ar,
     annis::RelativePosition<T> & t,
-    const unsigned int file_version
+    const unsigned int /* file_version */
     )
 {
   ar & t.root;

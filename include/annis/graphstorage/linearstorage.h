@@ -112,7 +112,7 @@ public:
 
 
 public:
-  LinearStorage(StringStorage& strings, const Component& component)
+  LinearStorage(const Component& component)
     : component(component)
   {
 
@@ -321,11 +321,11 @@ public:
     return result;
   }
 
-  virtual std::uint32_t numberOfEdges() const override
+  virtual size_t numberOfEdges() const override
   {
     return node2pos.size();
   }
-  virtual std::uint32_t numberOfEdgeAnnotations() const override
+  virtual size_t numberOfEdgeAnnotations() const override
   {
     return edgeAnno.numberOfEdgeAnnotations();
   }

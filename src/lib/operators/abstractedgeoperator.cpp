@@ -159,8 +159,8 @@ double AbstractEdgeOperator::selectivity()
       std::uint32_t maxPathLength = std::min(maxDistance, stat.maxDepth);
       std::uint32_t minPathLength = std::max(0, (int) minDistance-1);
 
-      std::uint32_t reachableMax = std::ceil(stat.avgFanOut * (double) maxPathLength);
-      std::uint32_t reachableMin = std::ceil(stat.avgFanOut * (double) minPathLength);
+      std::uint32_t reachableMax = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) maxPathLength));
+      std::uint32_t reachableMin = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) minPathLength));
 
       std::uint32_t reachable =  reachableMax - reachableMin;
 

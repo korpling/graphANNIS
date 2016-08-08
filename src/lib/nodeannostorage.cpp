@@ -165,8 +165,8 @@ bool NodeAnnoStorage::hasStatistics() const
 void NodeAnnoStorage::calculateStatistics()
 {
   
-  const int maxHistogramBuckets = 250;
-  const int maxSampledAnnotations = 2500;
+  const size_t maxHistogramBuckets = 250;
+  const size_t maxSampledAnnotations = 2500;
   
   histogramBounds.clear();
   nodeAnnotationKeyCount.clear();
@@ -198,7 +198,7 @@ void NodeAnnoStorage::calculateStatistics()
       }
     }
     std::random_shuffle(annos.begin(), annos.end());
-    valueList.resize(std::min<int>(maxSampledAnnotations, annos.size()));
+    valueList.resize(std::min<size_t>(maxSampledAnnotations, annos.size()));
     for(size_t i=0; i < valueList.size(); i++)
     {
       valueList[i] = strings.str(annos[i].val);
@@ -213,9 +213,9 @@ void NodeAnnoStorage::calculateStatistics()
     
     std::sort(values.begin(), values.end());
     
-    int numValues = values.size();
+    size_t numValues = values.size();
     
-    int numHistBounds = maxHistogramBuckets + 1;
+    size_t numHistBounds = maxHistogramBuckets + 1;
     if(numValues < numHistBounds)
     {
       numHistBounds = numValues;
@@ -226,12 +226,12 @@ void NodeAnnoStorage::calculateStatistics()
       auto& h = histogramBounds[it->first];
       h.resize(numHistBounds);
 
-      int delta = (numValues-1) / (numHistBounds -1);
-      int deltaFraction = (numValues -1) % (numHistBounds - 1);
+      std::int64_t delta = (numValues-1) / (numHistBounds -1);
+      std::int64_t deltaFraction = (numValues -1) % (numHistBounds - 1);
 
-      int pos = 0;
-      int posFraction = 0;
-      for(int i=0; i < numHistBounds; i++)
+	  std::int64_t pos = 0;
+	  size_t posFraction = 0;
+      for(size_t i=0; i < numHistBounds; i++)
       {
         h[i] = values[pos];
         pos += delta;

@@ -52,8 +52,8 @@ public:
   virtual bool load(std::string dirPath) override;
   virtual bool save(std::string dirPath) override;
 
-  virtual std::uint32_t numberOfEdges() const override;
-  virtual std::uint32_t numberOfEdgeAnnotations() const override;
+  virtual size_t numberOfEdges() const override;
+  virtual size_t numberOfEdgeAnnotations() const override;
   const Component& getComponent() { return component;}
 
   virtual void calculateStatistics() override;

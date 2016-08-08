@@ -183,7 +183,7 @@ bool Plan::executeStep(std::vector<Match>& result)
 double Plan::getCost() 
 {
   // the estimation is cached in the root so multiple calls to getCost() won't do any harm
-  return estimateTupleSize(root)->intermediateSum;
+  return static_cast<double>(estimateTupleSize(root)->intermediateSum);
 }
 
   std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
@@ -204,7 +204,7 @@ double Plan::getCost()
       if (baseEstimate)
       {
         // directly use the estimated search this exec node
-        int guess = baseEstimate->guessMaxCount();
+		std::int64_t guess = baseEstimate->guessMaxCount();
         if (guess >= 0)
         {
           node->estimate = std::make_shared<ExecutionEstimate>((std::uint64_t) guess, 0);
@@ -228,7 +228,7 @@ double Plan::getCost()
           selectivity = node->op->selectivity();
         }
         
-        std::uint64_t outputSize = ((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity);
+        std::uint64_t outputSize = static_cast<std::uint64_t>(((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity));
         if(outputSize < 1)
         {
           // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -253,7 +253,7 @@ double Plan::getCost()
         {
           std::uint64_t diffOutput = outputSize < estLHS->output 
             ? (estLHS->output - outputSize) : (outputSize - estLHS->output);
-          std::uint64_t x = (((double) diffOutput) / (double) estLHS->output);
+          std::uint64_t x = static_cast<std::uint64_t>((((double) diffOutput) / (double) estLHS->output));
           processedInStep = estLHS->output * x;
         } 
         else
@@ -279,7 +279,7 @@ double Plan::getCost()
         }
 
         std::uint64_t processedInStep = estLHS->output;
-        std::uint64_t outputSize = ((double) estLHS->output) * selectivity;
+        std::uint64_t outputSize = static_cast<std::uint64_t>(((double) estLHS->output) * selectivity);
        
         // return the output of this node and the sum of all intermediate results
         node->estimate = 

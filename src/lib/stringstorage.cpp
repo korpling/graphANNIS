@@ -134,7 +134,7 @@ bool StringStorage::save(const std::string& dirPath)
 
 double annis::StringStorage::avgLength()
 {
-  unsigned int sum=0.0;
+  size_t sum=0;
   for(const auto& v : stringStorageByValue)
   {
     sum += v.first.size();

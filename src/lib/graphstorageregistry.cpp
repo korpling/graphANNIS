@@ -79,15 +79,15 @@ std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(s
 {
   if(name == linearP32)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new LinearP32(strings, component));
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP32(component));
   }
   else if(name == linearP16)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new LinearP16(strings, component));
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP16(component));
   }
   else if(name == linearP8)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new LinearP8(strings, component));
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP8(component));
   }
   else if(name == prepostorderO32L32)
   {

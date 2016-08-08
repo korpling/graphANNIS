@@ -90,7 +90,7 @@ private:
   void optimizeJoinOrderRandom();
   void optimizeJoinOrderAllPermutations();
   
-  void updateComponentForNodes(std::map<nodeid_t, int>& node2component, int from, int to);
+  void updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to);
   
   std::string operatorOrderDebugString(const std::vector<OperatorEntry>& ops);
   

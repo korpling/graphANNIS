@@ -47,24 +47,24 @@ private:
       if(isTree)
       {
         if(stats.nodes < std::numeric_limits<uint16_t>::max()
-           && stats.maxDepth < std::numeric_limits<int8_t>::max())
+           && static_cast<int64_t>(stats.maxDepth) < std::numeric_limits<int8_t>::max())
         {
           result = prepostorderO16L8;
         }
         else if(stats.nodes < std::numeric_limits<uint16_t>::max()
-                && stats.maxDepth < std::numeric_limits<int32_t>::max())
+                && static_cast<int64_t>(stats.maxDepth) < std::numeric_limits<int32_t>::max())
         {
           result = prepostorderO16L32;
         }
         else if( stats.nodes < std::numeric_limits<uint32_t>::max()
-                && stats.maxDepth < std::numeric_limits<int8_t>::max())
+                && static_cast<int64_t>(stats.maxDepth) < std::numeric_limits<int8_t>::max())
         {
           result = prepostorderO32L8;
         }
       }
       else
       {
-        if(stats.maxDepth < std::numeric_limits<int8_t>::max())
+        if(static_cast<int64_t>(stats.maxDepth) < std::numeric_limits<int8_t>::max())
         {
           result = prepostorderO32L8;
         }

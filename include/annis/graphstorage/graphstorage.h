@@ -50,8 +50,8 @@ public:
   virtual bool load(std::string dirPath);
   virtual bool save(std::string dirPath);
 
-  virtual std::uint32_t numberOfEdges() const = 0;
-  virtual std::uint32_t numberOfEdgeAnnotations() const = 0;
+  virtual size_t numberOfEdges() const = 0;
+  virtual size_t numberOfEdgeAnnotations() const = 0;
 
   virtual GraphStatistic getStatistics() const
   {

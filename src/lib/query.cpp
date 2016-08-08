@@ -120,11 +120,11 @@ std::shared_ptr<const Plan> Query::getBestPlan()
 std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, 
   const std::vector<OperatorEntry>& operators) 
 {
-  std::map<nodeid_t, int> node2component;
-  std::map<int, std::shared_ptr<ExecutionNode>> component2exec;
+  std::map<nodeid_t, size_t> node2component;
+  std::map<size_t, std::shared_ptr<ExecutionNode>> component2exec;
   
   // 1. add all nodes
-  int i=0;
+  size_t i=0;
   for(auto& n : nodes)
   {
     std::shared_ptr<ExecutionNode> baseNode = std::make_shared<ExecutionNode>();
@@ -144,8 +144,8 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
     if(e.idxLeft < numOfNodes && e.idxRight < numOfNodes)
     {
       
-      int componentLeft = node2component[e.idxLeft];
-      int componentRight = node2component[e.idxRight];
+      size_t componentLeft = node2component[e.idxLeft];
+	  size_t componentRight = node2component[e.idxRight];
       
       std::shared_ptr<ExecutionNode> execLeft = component2exec[componentLeft];
       std::shared_ptr<ExecutionNode> execRight = component2exec[componentRight];
@@ -160,18 +160,16 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
   }
   
    // 3. check if there is only one component left (all nodes are connected)
-  bool firstComponent = true;
-  int firstComponentID;
+  boost::optional<size_t> firstComponentID;
   for(const auto& e : node2component)
   {
-    if(firstComponent)
+    if(!firstComponentID)
     {
-      firstComponent = false;
       firstComponentID = e.second;
     }
     else
     {
-      if(firstComponentID != e.second)
+      if(firstComponentID && *firstComponentID != e.second)
       {
         std::cerr << "Nodes  are not completly connected, failing" << std::endl;
         return std::shared_ptr<Plan>();
@@ -179,10 +177,10 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
     }
   }
   
-  return std::make_shared<Plan>(component2exec[firstComponentID]);
+  return std::make_shared<Plan>(component2exec[*firstComponentID]);
 }
 
-void Query::updateComponentForNodes(std::map<nodeid_t, int>& node2component, int from, int to)
+void Query::updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to)
 {
   if(from == to)
   {
@@ -266,14 +264,14 @@ void Query::optimizeJoinOrderRandom()
 //  std::cout << "-----------------------" << std::endl;
 
   // repeat until best plan is found
-  const int maxUnsuccessfulTries = 20*operators.size();
-  int unsuccessful = 0;
+  const size_t maxUnsuccessfulTries = 20*operators.size();
+  size_t unsuccessful = 0;
   do
   {
 
     std::vector<OperatorEntry> tmpOperators = optimizedOperators;
     // randomly select two joins,        
-    std::uniform_int_distribution<> dist(0, tmpOperators.size()-1);
+    std::uniform_int_distribution<> dist(0, static_cast<int>(tmpOperators.size()-1));
     int a, b;
     do
     {

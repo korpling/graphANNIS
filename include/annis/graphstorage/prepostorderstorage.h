@@ -41,7 +41,7 @@ template<class Archive, typename order_t, typename level_t>
 inline void serialize(
     Archive & ar,
     annis::PrePost<order_t, level_t> & t,
-    const unsigned int file_version
+    const unsigned int /* file_version */
     )
 {
   ar & t.level;
@@ -488,11 +488,11 @@ public:
     return result;
   }
 
-  virtual std::uint32_t numberOfEdges() const override
+  virtual size_t numberOfEdges() const override
   {
     return order2node.size();
   }
-  virtual std::uint32_t numberOfEdgeAnnotations() const override
+  virtual size_t numberOfEdgeAnnotations() const override
   {
     return edgeAnno.numberOfEdgeAnnotations();
   }
@@ -512,7 +512,7 @@ private:
   map_t<PrePostSpec, nodeid_t> order2node;
   EdgeAnnotationStorage edgeAnno;
 
-  void enterNode(order_t& currentOrder, nodeid_t nodeID, nodeid_t rootNode, level_t level, NStack &nodeStack)
+  void enterNode(order_t& currentOrder, nodeid_t nodeID, nodeid_t /* rootNode */, level_t level, NStack &nodeStack)
   {
     NodeStackEntry<order_t, level_t> newEntry;
     newEntry.id = nodeID;

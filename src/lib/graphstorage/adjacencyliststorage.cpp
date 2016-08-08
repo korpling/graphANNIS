@@ -37,8 +37,8 @@ void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
     {
       Edge e = {source, target};
       addEdge(e);
-      std::vector<Annotation> edgeAnnos = orig.getEdgeAnnotations(e);
-      for(auto a : edgeAnnos)
+      std::vector<Annotation> annos = orig.getEdgeAnnotations(e);
+      for(auto a : annos)
       {
         addEdgeAnnotation(e, a);
       }
@@ -186,12 +186,12 @@ bool AdjacencyListStorage::save(std::string dirPath)
   return true;
 }
 
-std::uint32_t AdjacencyListStorage::numberOfEdges() const
+size_t AdjacencyListStorage::numberOfEdges() const
 {
   return edges.size();
 }
 
-std::uint32_t AdjacencyListStorage::numberOfEdgeAnnotations() const
+size_t AdjacencyListStorage::numberOfEdgeAnnotations() const
 {
   return edgeAnnos.numberOfEdgeAnnotations();
 }
@@ -234,7 +234,7 @@ void AdjacencyListStorage::calculateStatistics()
     }
   }
 
-  stat.nodes = allNodes.size();
+  stat.nodes = static_cast<uint32_t>(allNodes.size());
   allNodes.clear();
 
   auto itFirstEdge = edges.begin();
