@@ -53,8 +53,11 @@ file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
 
 add_library(annis ${SRC_LIST_LIB} ${IncludeFiles})
 set_property(TARGET annis PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+# newer Boost serialization versions are otherwise incompatible with BTree
+add_definitions(-DBOOST_NO_CXX11_HDR_UNORDERED_MAP -DBOOST_NO_CXX11_HDR_UNORDERED_SET)
 if (MSVC)
-        add_definitions(annis /DNOMINMAX)
+	# the min/max defines get in our way when using std::min/std::max
+    add_definitions(annis /DNOMINMAX)
 elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.1.0 )
     set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
 endif (MSVC)
