@@ -129,7 +129,7 @@ size_t  getCurrentVirtualMemory( )
 {
 #if defined(_WIN32)
   /* Windows -------------------------------------------------- */
-  PROCESS_MEMORY_COUNTERS info;
+  PROCESS_MEMORY_COUNTERS_EX info;
   GetProcessMemoryInfo( GetCurrentProcess( ), &info, sizeof(info) );
   return (size_t)info.PrivateUsage;
 
