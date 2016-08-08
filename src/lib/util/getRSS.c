@@ -130,7 +130,7 @@ size_t  getCurrentVirtualMemory( )
 #if defined(_WIN32)
   /* Windows -------------------------------------------------- */
   PROCESS_MEMORY_COUNTERS_EX info;
-  GetProcessMemoryInfo( GetCurrentProcess( ), &info, sizeof(info) );
+  GetProcessMemoryInfo( GetCurrentProcess( ), (PROCESS_MEMORY_COUNTERS*) &info, sizeof(info) );
   return (size_t)info.PrivateUsage;
 
 #elif defined(__APPLE__) && defined(__MACH__)
