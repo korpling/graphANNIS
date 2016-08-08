@@ -1,4 +1,4 @@
-project(ANNIS4)
+project(graphANNIS)
 cmake_minimum_required(VERSION 3.5)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
@@ -51,20 +51,20 @@ file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
 )
 file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
 
-add_library(${PROJECT_NAME} ${SRC_LIST_LIB} ${IncludeFiles})
-set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+add_library(annis ${SRC_LIST_LIB} ${IncludeFiles})
+set_property(TARGET annis PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 if (MSVC)
-	add_definitions(${PROJECT_NAME} /DNOMINMAX)
+        add_definitions(annis /DNOMINMAX)
 elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.1.0 )
-    set_property( TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
+    set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
 endif (MSVC)
 
-target_link_libraries(${PROJECT_NAME} humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(annis humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 
-add_executable("a4_runner" ${SRC_LIST_RUNNER})
-target_compile_features("a4_runner" PRIVATE ${needed_features})
-target_link_libraries("a4_runner" humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${PROJECT_NAME})
+add_executable(annis_runner ${SRC_LIST_RUNNER})
+target_compile_features(annis_runner PRIVATE ${needed_features})
+target_link_libraries(annis_runner humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
 
 
 file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
@@ -73,7 +73,7 @@ include_directories(SYSTEM "ext/Celero-2.0.2/include/")
 include_directories("src/lib/")
 add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
 target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
-target_link_libraries(${BENCHMARK_EXEC} celero ${PROJECT_NAME}  )
+target_link_libraries(${BENCHMARK_EXEC} celero annis  )
 
 ################################
 # Testing with Google Test
@@ -87,5 +87,5 @@ file(GLOB TEST_SRC_LIST "tests/*.cpp" "tests/*.h")
 set(TEST_EXEC "test_${PROJECT_NAME}")
 add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
 target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
-target_link_libraries(${TEST_EXEC} ${PROJECT_NAME} gtest gtest_main)
+target_link_libraries(${TEST_EXEC} annis gtest gtest_main)
 add_test( ${TEST_EXEC} ${TEST_EXEC} )
