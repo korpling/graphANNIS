@@ -121,10 +121,16 @@
 					<includePaths>
 						<includePath>${basedir}/../include/</includePath>
 						<includePath>${basedir}/../ext/cpp-btree-1.0.1/</includePath>
+						<includePath>${CMAKE_PREFIX_PATH}/include/</includePath>
 					</includePaths>
 					<linkPaths>
 						<linkPath>${basedir}/../build/</linkPath>
 						<linkPath>${basedir}/../build/ext/humblelogging-3.0.1/</linkPath>
+						<!-- TODO: this is for windows only, make it active only on windows -->
+    					<linkPath>${basedir}/../build/RelWithDebInfo/</linkPath>
+						<linkPath>${basedir}/../build/ext/humblelogging-3.0.1/RelWithDebInfo/</linkPath>
+						<includePath>${CMAKE_PREFIX_PATH}/lib/</includePath>
+
 					</linkPaths>
 					<!-- <preloadPath>${basedir}/cppbuild/${javacpp.platform}/bin/</preloadPath> -->
 
