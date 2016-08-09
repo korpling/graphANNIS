@@ -1,6 +1,9 @@
 project(graphANNIS)
 cmake_minimum_required(VERSION 3.5)
+
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+
 
 set(needed_features
   cxx_auto_type
@@ -10,9 +13,9 @@ set(needed_features
   cxx_deleted_functions
   cxx_static_assert)
 
-set(BuildShared OFF CACHE BOOL "")
-add_subdirectory(ext/humblelogging-3.0.1)
-set_property(TARGET humblelogging PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+include(ExternalProject)
+include(cmake/humblelogging.cmake)
+link_directories(${GLOBAL_OUTPUT_PATH})
 
 set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")
 set(CELERO_ENABLE_EXPERIMENTS OFF CACHE BOOL "Set to ON to automatically build all examples.")
@@ -30,8 +33,8 @@ include_directories(
 
 include_directories(
   SYSTEM
-  "ext/humblelogging-3.0.1/include"
   "ext/cpp-btree-1.0.1/"
+  ${HumbleLogging_INCLUDE_DIRS}
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIR}
@@ -63,7 +66,7 @@ elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 
 endif (MSVC)
 
 target_link_libraries(annis humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-
+add_dependencies(annis HumbleLogging)
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
