@@ -6,8 +6,7 @@
 #include <limits>
 #include <unordered_map>
 
-// add implemtations for the types defined here to the std::less operator (and some for the std::hash)
-#define ANNIS_STRUCT_COMPARE(a, b) {if(a < b) {return true;} else if(a > b) {return false;}}
+#include <tuple>
 
 namespace annis
 {
@@ -27,14 +26,7 @@ namespace annis
 
   inline bool operator<(const struct Edge &a, const struct Edge &b)
   {
-    // compare by source id
-    ANNIS_STRUCT_COMPARE(a.source, b.source);
-
-    // if equal compare by target id
-    ANNIS_STRUCT_COMPARE(a.target, b.target);
-
-    // they are equal
-    return false;
+    return std::tie(a.source, a.target) < std::tie(b.source, b.target);
   }
 
   enum class ComponentType {COVERAGE,
@@ -101,17 +93,7 @@ namespace annis
   };
   inline bool operator<(const struct Component &a, const struct Component &b)
   {
-    // compare by type
-    ANNIS_STRUCT_COMPARE(a.type, b.type);
-
-    // if equal compare by namespace
-    ANNIS_STRUCT_COMPARE(a.layer, b.layer);
-
-    // if still equal compare by name
-    ANNIS_STRUCT_COMPARE(a.name, b.name);
-
-    // they are equal
-    return false;
+    return std::tie(a.type, a.layer, a.name) < std::tie(b.type, b.layer, b.name);
   }
 
   struct AnnotationKey
@@ -122,14 +104,7 @@ namespace annis
 
   inline bool operator<(const AnnotationKey& a,  const AnnotationKey& b)
   {
-    // compare by name (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.name, b.name);
-
-    // if equal, compare by namespace (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.ns, b.ns);
-
-    // they are equal
-    return false;
+    return std::tie(a.name, a.ns) < std::tie(b.name, b.ns);
   }
 
   struct Annotation
@@ -141,17 +116,7 @@ namespace annis
 
   inline bool operator<(const Annotation& a,  const Annotation& b)
   {
-    // compare by name (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.name, b.name);
-
-    // if equal, compare by namespace (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.ns, b.ns);
-
-    // if still equal compare by value (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.val, b.val);
-
-    // they are equal
-    return false;
+    return std::tie(a.name, a.ns, a.val) < std::tie(b.name, b.ns, b.val);
   }
 
   inline bool operator==(const Annotation& lhs, const Annotation& rhs)
@@ -167,17 +132,7 @@ namespace annis
   };
   inline bool operator<(const NodeAnnotationKey& a,  const NodeAnnotationKey& b)
   {
-    // compare by node ID
-    ANNIS_STRUCT_COMPARE(a.node, b.node);
-
-    // compare by name (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.anno_name, b.anno_name);
-
-    // if equal, compare by namespace (non lexical but just by the ID)
-    ANNIS_STRUCT_COMPARE(a.anno_ns, b.anno_ns);
-
-    // they are equal
-    return false;
+    return std::tie(a.node, a.anno_name, a.anno_ns) < std::tie(b.node, b.anno_name, b.anno_ns);
   }
 
   struct TextProperty
@@ -187,11 +142,7 @@ namespace annis
   };
   inline bool operator<(const struct TextProperty &a, const struct TextProperty &b)
   {
-    ANNIS_STRUCT_COMPARE(a.textID, b.textID);
-    ANNIS_STRUCT_COMPARE(a.val, b.val);
-
-    // they are equal
-    return false;
+    return std::tie(a.textID, a.val) < std::tie(b.textID, b.val);
   }
 
   template<typename pos_t>

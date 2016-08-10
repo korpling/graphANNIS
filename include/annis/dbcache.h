@@ -9,6 +9,8 @@
 #include <memory>
 #include <iostream>
 
+#include <tuple>
+
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
   #include <malloc.h>
 #endif // LINUX
@@ -20,44 +22,11 @@ namespace annis {
     bool forceFallback;
     std::map<Component, std::string> overrideImpl;
   };
-}
 
-namespace std {
-
-  template<>
-  struct less<annis::DBCacheKey> {
-
-    bool operator()(const struct annis::DBCacheKey &a, const struct annis::DBCacheKey &b) const {
-      ANNIS_STRUCT_COMPARE(a.corpusPath, b.corpusPath);
-      ANNIS_STRUCT_COMPARE(a.forceFallback, b.forceFallback);
-      const auto& mapA = a.overrideImpl;
-      const auto& mapB = b.overrideImpl;
-      ANNIS_STRUCT_COMPARE(mapA.size(), mapB.size());
-      // more expensive checks using the actual entries
-      auto itA = mapA.begin();
-      auto itB = mapB.begin();
-      while(itA != mapA.end() && itB != mapB.end()) {
-        
-        // compare key
-        std::less<annis::Component> lessCmp;
-        const auto& compA = itA->first;
-        const auto& compB = itB->first;        
-        {if(lessCmp(compA, compB)) {return true;} else if(lessCmp(compB, compA)) {return false;}}
-        
-        // compare value
-        ANNIS_STRUCT_COMPARE(itA->second, itB->second);
-        
-        itA++;
-        itB++;
-      }
-      
-      // they are equal
-      return false;
-    }
-  };
-}
-
-namespace annis {
+  inline bool operator<(const struct DBCacheKey &a, const struct DBCacheKey &b)
+  {
+    return std::tie(a.corpusPath, a.forceFallback, a.overrideImpl) < std::tie(b.corpusPath, b.forceFallback, b.overrideImpl);
+  }
 
   class DB;
 
