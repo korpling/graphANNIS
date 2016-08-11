@@ -125,7 +125,7 @@
 					</includePaths>
 					<linkPaths>
 						<linkPath>${basedir}/../build/</linkPath>
-						<linkPath>${basedir}/../build/ext/humblelogging-3.0.1/</linkPath>
+						<linkPath>${basedir}/../build/bin/</linkPath>
 						<!-- TODO: this is for windows only, make it active only on windows -->
     					<linkPath>${basedir}/../build/RelWithDebInfo/</linkPath>
 						<linkPath>${basedir}/../build/ext/humblelogging-3.0.1/RelWithDebInfo/</linkPath>

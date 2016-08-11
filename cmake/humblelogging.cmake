@@ -12,10 +12,11 @@ ExternalProject_Add(
   PATCH_COMMAND ""
 
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/ext/humblelogging"
-  CMAKE_ARGS -DBuildShared=OFF -DBuildExamples=OFF -DCMAKE_INSTALL_PREFIX=${GLOBAL_OUTPUT_PATH}/humblelogging
+  CMAKE_ARGS -DBuildShared=OFF -DBuildExamples=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=True -DCMAKE_INSTALL_PREFIX=${GLOBAL_OUTPUT_PATH}/humblelogging
 
   TEST_COMMAND ""
 )
+
 
 ExternalProject_Add_Step(
   HumbleLogging CopyToBin
