@@ -410,7 +410,7 @@ public class QuerySetViewController implements Initializable
         q.setJson(null);
         QueryData queryData = parser.parse(q.getAql(), null);
         queryData.setMaxWidth(queryData.getAlternatives().get(0).size());
-        String asJSON = QueryToJSON.serializeQuery(queryData);
+        String asJSON = QueryToJSON.serializeQuery(queryData.getAlternatives(), queryData.getMetaData());
         q.setJson(asJSON);
       }
       catch(Exception ex)

@@ -86,7 +86,7 @@ public class QueryToJSONTest
     
     QueryData queryData = new QueryData();
     String expResult = "{}";
-    String result = QueryToJSON.serializeQuery(queryData);
+    String result = QueryToJSON.serializeQuery(queryData.getAlternatives(), queryData.getMetaData());
     assertEquals(expResult, result);
   }
 
@@ -101,7 +101,7 @@ public class QueryToJSONTest
     
     ObjectNode expResult = nodeFactory.objectNode();
     
-    ObjectNode result = QueryToJSON.queryAsJSON(queryData);
+    ObjectNode result = QueryToJSON.queryAsJSON(queryData.getAlternatives(), queryData.getMetaData());
     assertEquals(expResult, result);
   }
   
@@ -135,7 +135,7 @@ public class QueryToJSONTest
       + " ]"
       + "}");
     
-    ObjectNode result = QueryToJSON.queryAsJSON(queryData);
+    ObjectNode result = QueryToJSON.queryAsJSON(queryData.getAlternatives(), queryData.getMetaData());
     
     assertEquals(expResult, result);
     
@@ -206,7 +206,7 @@ public class QueryToJSONTest
       + "}";
     ObjectNode expResult = (ObjectNode) mapper.readTree(expJson);
     
-    ObjectNode result = QueryToJSON.queryAsJSON(queryData);
+    ObjectNode result = QueryToJSON.queryAsJSON(queryData.getAlternatives(), queryData.getMetaData());
     
     assertEquals(expResult, result);
     

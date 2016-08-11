@@ -15,13 +15,18 @@
  */
 package org.korpling.annis.benchmark.generator;
 
-import annis.ql.parser.AnnisParserAntlr;
-import annis.ql.parser.QueryData;
-import annis.ql.parser.SemanticValidator;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
+
+import org.korpling.graphannis.QueryToJSON;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import annis.ql.parser.AnnisParserAntlr;
+import annis.ql.parser.QueryData;
+import annis.ql.parser.SemanticValidator;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -30,10 +35,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-
-import org.korpling.graphannis.QueryToJSON;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * FXML Controller class
@@ -91,7 +92,7 @@ public class QueryConverterController implements Initializable
       {
         QueryData queryData = parser.parse(aqlInput.textProperty().get(), null);
         
-        return QueryToJSON.serializeQuery(queryData);
+        return QueryToJSON.serializeQuery(queryData.getAlternatives(), queryData.getMetaData());
       }
 
       @Override
