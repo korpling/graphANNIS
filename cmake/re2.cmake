@@ -1,0 +1,36 @@
+#####################
+# RE2 regex library #
+#####################
+
+ExternalProject_Add(
+  RE2
+
+  GIT_REPOSITORY "https://github.com/google/re2.git"
+  GIT_TAG "2016-08-01"
+
+  UPDATE_COMMAND ""
+  PATCH_COMMAND ""
+
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/ext/re2"
+  CMAKE_ARGS -BUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=True
+
+  INSTALL_COMMAND ""
+  TEST_COMMAND ""
+)
+
+
+set(RE2_LIBRARIES "${CMAKE_STATIC_LIBRARY_PREFIX}re2${CMAKE_STATIC_LIBRARY_SUFFIX}")
+set(RE2_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ext/re2/")
+
+ExternalProject_Get_Property(RE2 BINARY_DIR)
+
+ExternalProject_Add_Step(
+  RE2 CopyToBin
+  COMMAND ${CMAKE_COMMAND} -E copy ${BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}re2${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${GLOBAL_OUTPUT_PATH}/${CMAKE_STATIC_LIBRARY_PREFIX}re2${CMAKE_STATIC_LIBRARY_SUFFIX}
+  DEPENDEES build
+)
+
+
+
+include_directories(${HumbleLogging_INCLUDE_DIRS})

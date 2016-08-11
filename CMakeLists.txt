@@ -15,6 +15,8 @@ set(needed_features
 
 include(ExternalProject)
 include(cmake/humblelogging.cmake)
+include(cmake/re2.cmake)
+
 link_directories(${GLOBAL_OUTPUT_PATH})
 
 set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")
@@ -24,7 +26,6 @@ add_subdirectory(ext/Celero-2.0.2)
 
 find_package(ICU 4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
-find_package(Re2 REQUIRED)
 find_package (Threads REQUIRED)
 
 include_directories(
@@ -37,7 +38,7 @@ include_directories(
   ${HumbleLogging_INCLUDE_DIRS}
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${RE2_INCLUDE_DIR}
+  ${RE2_INCLUDE_DIRS}
 )
 
 # make sure QtCreator shows the include files

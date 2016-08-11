@@ -19,7 +19,7 @@ The build process is not as clean and easy as it should be yet, but that's why i
 
 1. get the code and change the working directory to the source folder: `cd <graphanniscode>`
 2. install CMake build system: `sudo apt-get install cmake`
-3. install dependencies: `sudo apt-get install build-essential libicu-dev libre2-dev libboost-dev libboost-system-dev libboost-filesystem-dev libboost-serialization-dev libncurses5-dev`
+3. install dependencies: `sudo apt-get install build-essential libicu-dev libboost-dev libboost-system-dev libboost-filesystem-dev libboost-serialization-dev libncurses5-dev`
 4. create a build-directory: `mkdir build && cd build`
 5. build: `cmake ../ && make`
 6. optionally run the tests if you have the necessary corpus data installed: `./test_ANNIS4`
