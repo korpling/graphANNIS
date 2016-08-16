@@ -2,11 +2,8 @@ graphANNIS
 ==========
 
 This is a prototype for a new backend implementation of the ANNIS linguistic search and visualization system (http://github.com/korpling/ANNIS/). 
-It is part of my ongoing thesis and while there are test cases it is **highly experimental code**!
 
-**Don't use this for real linguistic research!**
-
-There will be a technical report that describes how this prototype works.
+It is part of my ongoing thesis and while there are test cases it is **highly experimental code and it is not ready to be used by end-users yet**!
 
 How to compile
 ---------------
