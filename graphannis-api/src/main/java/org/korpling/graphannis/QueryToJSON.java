@@ -30,6 +30,7 @@ import annis.exceptions.AnnisQLSyntaxException;
 import annis.model.Join;
 import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
+import annis.model.QueryNode.TextMatching;
 import annis.sqlgen.model.CommonAncestor;
 import annis.sqlgen.model.Dominance;
 import annis.sqlgen.model.Inclusion;
@@ -157,6 +158,15 @@ public class QueryToJSON
       node.put("maxDistance", (long) dom.getMaxDistance());
       if (!dom.getEdgeAnnotations().isEmpty())
       {
+        for(QueryAnnotation anno : dom.getEdgeAnnotations())
+        {
+          if(anno.getTextMatching() != TextMatching.EXACT_EQUAL)
+          {
+            throw new AnnisQLSyntaxException(
+                "Only non-regex and non-negated edge annotations are supported yet");
+          }
+        }
+        
         JsonNode edgeAnnos = mapper.valueToTree(dom.getEdgeAnnotations());
         node.set("edgeAnnotations", edgeAnnos);
       }
@@ -170,6 +180,15 @@ public class QueryToJSON
       node.put("maxDistance", (long) pointing.getMaxDistance());
       if (!pointing.getEdgeAnnotations().isEmpty())
       {
+        for(QueryAnnotation anno : pointing.getEdgeAnnotations())
+        {
+          if(anno.getTextMatching() != TextMatching.EXACT_EQUAL)
+          {
+            throw new AnnisQLSyntaxException(
+                "Only non-regex and non-negated edge annotations are supported yet");
+          }
+        }
+        
         JsonNode edgeAnnos = mapper.valueToTree(pointing.getEdgeAnnotations());
         node.set("edgeAnnotations", edgeAnnos);
       }
