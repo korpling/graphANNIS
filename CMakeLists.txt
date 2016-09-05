@@ -19,10 +19,14 @@ include(cmake/re2.cmake)
 
 link_directories(${GLOBAL_OUTPUT_PATH})
 
-set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")
-set(CELERO_ENABLE_EXPERIMENTS OFF CACHE BOOL "Set to ON to automatically build all examples.")
-set(CELERO_COMPILE_DYNAMIC_LIBRARIES OFF CACHE BOOL "Set to ON to build Celero for dynamic linking.  Use OFF for static.")
-add_subdirectory(ext/Celero-2.0.2)
+
+
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+  option(GRAPHANNIS_BUILD_BENCHMARKS "If ON build the benchmarks" OFF)
+ELSE()
+  option(GRAPHANNIS_BUILD_BENCHMARKS "If ON build the benchmarks" ON)
+ENDIF()
+
 
 find_package(ICU 4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
@@ -56,6 +60,7 @@ file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
 file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
 
 add_library(annis ${SRC_LIST_LIB} ${IncludeFiles})
+target_compile_features(annis PRIVATE ${needed_features})
 set_property(TARGET annis PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 # newer Boost serialization versions are otherwise incompatible with BTree
 add_definitions(-DBOOST_NO_CXX11_HDR_UNORDERED_MAP -DBOOST_NO_CXX11_HDR_UNORDERED_SET)
@@ -73,15 +78,6 @@ add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
 target_link_libraries(annis_runner humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
 
-
-file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
-set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
-include_directories(SYSTEM "ext/Celero-2.0.2/include/")
-include_directories("src/lib/")
-add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
-target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
-target_link_libraries(${BENCHMARK_EXEC} celero annis  )
-
 ################################
 # Testing with Google Test
 ################################
@@ -96,3 +92,20 @@ add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
 target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
 target_link_libraries(${TEST_EXEC} annis gtest gtest_main)
 add_test( ${TEST_EXEC} ${TEST_EXEC} )
+
+IF(GRAPHANNIS_BUILD_BENCHMARKS)
+
+  set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")
+  set(CELERO_ENABLE_EXPERIMENTS OFF CACHE BOOL "Set to ON to automatically build all examples.")
+  set(CELERO_COMPILE_DYNAMIC_LIBRARIES OFF CACHE BOOL "Set to ON to build Celero for dynamic linking.  Use OFF for static.")
+  add_subdirectory(ext/Celero-2.0.2)
+
+  file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
+  set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
+  include_directories(SYSTEM "ext/Celero-2.0.2/include/")
+  include_directories("src/lib/")
+  add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
+  target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
+  target_link_libraries(${BENCHMARK_EXEC} celero annis  )
+
+ENDIF()
