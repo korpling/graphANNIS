@@ -30,12 +30,16 @@ import annis.exceptions.AnnisQLSyntaxException;
 import annis.model.Join;
 import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
+import annis.sqlgen.model.CommonAncestor;
 import annis.sqlgen.model.Dominance;
 import annis.sqlgen.model.Inclusion;
+import annis.sqlgen.model.LeftDominance;
 import annis.sqlgen.model.Overlap;
 import annis.sqlgen.model.PointingRelation;
 import annis.sqlgen.model.Precedence;
+import annis.sqlgen.model.RightDominance;
 import annis.sqlgen.model.SameSpan;
+import annis.sqlgen.model.Sibling;
 
 /**
  *
@@ -134,7 +138,17 @@ public class QueryToJSON
     ObjectMapper mapper)
   {
     // TODO: more join types and features
-    if (join instanceof Dominance)
+    if(join instanceof CommonAncestor
+        || join instanceof LeftDominance
+        || join instanceof RightDominance
+        || join instanceof Sibling)
+    {
+      // these are specializations of Dominance we explicitly don't support yet
+      throw new AnnisQLSyntaxException(
+          "This join type can't be mapped yet: " + join.toAQLFragment(source));
+      
+    }
+    else if (join instanceof Dominance)
     {
       node.put("op", "Dominance");
       Dominance dom = (Dominance) join;
