@@ -85,9 +85,9 @@ void DFS::reset()
 }
 
 
-CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &gs, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance, bool silentCycleErrors)
+CycleSafeDFS::CycleSafeDFS(const ReadableGraphStorage &gs, std::uint32_t startNode, unsigned int minDistance, unsigned int maxDistance, bool outputCycleErrors)
   : DFS(gs, startNode, minDistance, maxDistance), lastDistance(0),
-    outputCycleErrors(silentCycleErrors),
+    outputCycleErrors(outputCycleErrors),
     cycleDetected(false)
 {
   nodesInCurrentPath.insert(startNode);

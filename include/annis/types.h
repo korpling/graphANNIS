@@ -137,12 +137,13 @@ namespace annis
 
   struct TextProperty
   {
+    std::uint32_t corpusID;
     std::uint32_t textID;
     std::uint32_t val;
   };
   inline bool operator<(const struct TextProperty &a, const struct TextProperty &b)
   {
-    return std::tie(a.textID, a.val) < std::tie(b.textID, b.val);
+    return std::tie(a.corpusID, a.textID, a.val) < std::tie(b.corpusID, b.textID, b.val);
   }
 
   template<typename pos_t>

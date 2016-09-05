@@ -236,10 +236,12 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
       TextProperty left;
       left.val = Helper::uint32FromString(line[5]);
       left.textID = textID;
+      left.corpusID = corpusID;
 
       TextProperty right;
       right.val = Helper::uint32FromString(line[6]);
       right.textID = textID;
+      right.corpusID = corpusID;
 
       if(tokenIndexRaw != "NULL")
       {
@@ -254,11 +256,13 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
         TextProperty index;
         index.val = Helper::uint32FromString(tokenIndexRaw);
         index.textID = textID;
+        index.corpusID = corpusID;
 
         tokenByIndex[index] = nodeNr;
 
         TextProperty textPos;
         textPos.textID = textID;
+        textPos.corpusID = corpusID;
         for(uint32_t i=left.val; i <= right.val; i++)
         {
           textPos.val = i;
@@ -288,17 +292,21 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
 
     map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
     uint32_t lastTextID = numeric_limits<uint32_t>::max();
+    uint32_t lastCorpusID = numeric_limits<uint32_t>::max();
     uint32_t lastToken = numeric_limits<uint32_t>::max();
 
     while(tokenIt != tokenByIndex.end())
     {
       uint32_t currentToken = tokenIt->second;
       uint32_t currentTextID = tokenIt->first.textID;
+      uint32_t currentCorpusID = tokenIt->first.corpusID;
 
       // find all nodes that start together with the current token
       TextProperty currentTokenLeft;
       currentTokenLeft.textID = currentTextID;
+      currentTokenLeft.corpusID = currentCorpusID;
       currentTokenLeft.val = nodeToLeft[currentToken];
+
       pair<TextPropIt, TextPropIt> leftAlignedNodes = leftToNode.equal_range(currentTokenLeft);
       for(TextPropIt itLeftAligned=leftAlignedNodes.first; itLeftAligned != leftAlignedNodes.second; itLeftAligned++)
       {
@@ -309,16 +317,23 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
       // find all nodes that end together with the current token
       TextProperty currentTokenRight;
       currentTokenRight.textID = currentTextID;
+      currentTokenRight.corpusID = currentCorpusID;
       currentTokenRight.val = nodeToRight[currentToken];
+
+
       pair<TextPropIt, TextPropIt> rightAlignedNodes = rightToNode.equal_range(currentTokenRight);
-      for(TextPropIt itRightAligned=rightAlignedNodes.first; itRightAligned != rightAlignedNodes.second; itRightAligned++)
+      for(TextPropIt itRightAligned=rightAlignedNodes.first;
+          itRightAligned != rightAlignedNodes.second;
+          itRightAligned++)
       {
         gsRight->addEdge(Init::initEdge(itRightAligned->second, currentToken));
         gsRight->addEdge(Init::initEdge(currentToken, itRightAligned->second));
       }
 
       // if the last token/text value is valid and we are still in the same text
-      if(tokenIt != tokenByIndex.begin() && currentTextID == lastTextID)
+      if(tokenIt != tokenByIndex.begin()
+         && currentCorpusID == lastCorpusID
+         && currentTextID == lastTextID)
       {
         // we are still in the same text
         uint32_t nextToken = tokenIt->second;
@@ -329,6 +344,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
 
       // update the iterator and other variables
       lastTextID = currentTextID;
+      lastCorpusID = currentCorpusID;
       lastToken = tokenIt->second;
       tokenIt++;
     } // end for each token
@@ -345,6 +361,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
 
     TextProperty textPos;
     textPos.textID = itLeftToNode->first.textID;
+    textPos.corpusID = itLeftToNode->first.corpusID;
 
     uint32_t left = itLeftToNode->first.val;
     uint32_t right = nodeToRight[n];

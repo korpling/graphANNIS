@@ -10,6 +10,7 @@ HUMBLE_LOGGER(logger, "default");
 #include "SearchTestTiger.h"
 #include "SearchTestTueBaDZ.h"
 #include "SearchTestParlament.h"
+#include "SearchTestGUM.h"
 
 int main(int argc, char **argv)
 {
