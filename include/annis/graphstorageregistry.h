@@ -46,17 +46,19 @@ private:
     {
       if(isTree)
       {
-        if(stats.nodes < std::numeric_limits<uint16_t>::max()
+        // There are exactly two order values per node and there can be only one order value per node
+        // in a tree.
+        if(stats.nodes < (std::numeric_limits<uint16_t>::max() / 2)
            && static_cast<int64_t>(stats.maxDepth) < std::numeric_limits<int8_t>::max())
         {
           result = prepostorderO16L8;
         }
-        else if(stats.nodes < std::numeric_limits<uint16_t>::max()
+        else if(stats.nodes < (std::numeric_limits<uint16_t>::max() / 2)
                 && static_cast<int64_t>(stats.maxDepth) < std::numeric_limits<int32_t>::max())
         {
           result = prepostorderO16L32;
         }
-        else if( stats.nodes < std::numeric_limits<uint32_t>::max()
+        else if( stats.nodes < (std::numeric_limits<uint32_t>::max() / 2)
                 && static_cast<int64_t>(stats.maxDepth) < std::numeric_limits<int8_t>::max())
         {
           result = prepostorderO32L8;
