@@ -5,13 +5,10 @@
 ExternalProject_Add(
   RE2
 
-  GIT_REPOSITORY "https://github.com/google/re2.git"
-  GIT_TAG "2016-08-01"
-
   UPDATE_COMMAND ""
   PATCH_COMMAND ""
 
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/ext/re2"
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/ext/re2-2016-09-01"
   CMAKE_ARGS -BUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=True
 
   INSTALL_COMMAND ""
@@ -20,7 +17,7 @@ ExternalProject_Add(
 
 
 set(RE2_LIBRARIES "${CMAKE_STATIC_LIBRARY_PREFIX}re2${CMAKE_STATIC_LIBRARY_SUFFIX}")
-set(RE2_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ext/re2/")
+set(RE2_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ext/re2-2016-09-01/")
 
 ExternalProject_Get_Property(RE2 BINARY_DIR)
 
@@ -33,4 +30,4 @@ ExternalProject_Add_Step(
 
 
 
-include_directories(${HumbleLogging_INCLUDE_DIRS})
+include_directories(${RE2_INCLUDE_DIRS})

@@ -73,6 +73,7 @@ endif (MSVC)
 
 target_link_libraries(annis humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_dependencies(annis HumbleLogging)
+add_dependencies(annis RE2)
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
