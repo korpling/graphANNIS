@@ -112,6 +112,8 @@ public:
 
       for(auto& cell : result)
       {
+        boost::replace_all(cell, "\\t", "\t");
+        boost::replace_all(cell, "\\'", "'");
         boost::replace_all(cell, "\\\\", "\\");
       }
     }
