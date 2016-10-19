@@ -77,7 +77,7 @@
 						<id>default-compile</id>
 						<configuration>
 							<!-- <excludes> -->
-							<!-- <exclude>org/korpling/graphannis/info/*.java</exclude> -->
+							<!-- <exclude>org/corpus_tools/graphannis/info/*.java</exclude> -->
 							<!-- </excludes> -->
 						</configuration>
 					</execution>
@@ -90,7 +90,7 @@
 						<configuration>
 							<skipMain>${javacpp.parser.skip}</skipMain>
 							<includes>
-								<include>org/korpling/graphannis/info/*.java</include>
+								<include>org/corpus_tools/graphannis/info/*.java</include>
 							</includes>
 						</configuration>
 					</execution>
@@ -145,7 +145,7 @@
 						<configuration>
 							<skip>${javacpp.parser.skip}</skip>
 							<outputDirectory>${project.build.sourceDirectory}</outputDirectory>
-							<classOrPackageName>org.korpling.graphannis.info.*</classOrPackageName>
+							<classOrPackageName>org.corpus_tools.graphannis.info.*</classOrPackageName>
 						</configuration>
 					</execution>
 					<execution>
@@ -156,7 +156,7 @@
 						</goals>
 						<configuration>
 							<skip>${javacpp.compiler.skip}</skip>
-							<classOrPackageName>org.korpling.graphannis.*</classOrPackageName>
+							<classOrPackageName>org.corpus_tools.graphannis.*</classOrPackageName>
 							<copyLibs>true</copyLibs>
 						</configuration>
 					</execution>
@@ -177,11 +177,11 @@
 						</goals>
 						<configuration>
 							<excludes>
-								<exclude>org/korpling/graphannis/*.h</exclude>
-								<exclude>org/korpling/graphannis/linux-*/</exclude>
-								<exclude>org/korpling/graphannis/macosx-*/</exclude>
-								<exclude>org/korpling/graphannis/windows-*/</exclude>
-								<exclude>org/korpling/graphannis/${javacpp.platform}/</exclude>
+								<exclude>org/corpus_tools/graphannis/*.h</exclude>
+								<exclude>org/corpus_tools/graphannis/linux-*/</exclude>
+								<exclude>org/corpus_tools/graphannis/macosx-*/</exclude>
+								<exclude>org/corpus_tools/graphannis/windows-*/</exclude>
+								<exclude>org/corpus_tools/graphannis/${javacpp.platform}/</exclude>
 							</excludes>
 						</configuration>
 					</execution>
@@ -196,7 +196,7 @@
 							<skipIfEmpty>true</skipIfEmpty>
 							<includes>
 								<include>${javacpp.platform.library.path}/</include>
-								<include>org/korpling/graphannis/${javacpp.platform}/</include>
+								<include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
 							</includes>
 						</configuration>
 					</execution>

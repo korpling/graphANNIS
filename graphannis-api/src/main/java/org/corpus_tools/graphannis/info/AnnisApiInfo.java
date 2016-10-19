@@ -8,7 +8,7 @@ import org.bytedeco.javacpp.tools.InfoMap;
 import org.bytedeco.javacpp.tools.InfoMapper;
 
 @Namespace("annis::api")
-@Properties(target="org.korpling.graphannis.API",
+@Properties(target="org.corpus_tools.graphannis.API",
     value={@Platform(
         include={"annis/api/search.h", "annis/api/admin.h"}, 
         link={"boost_system", "boost_filesystem", "boost_serialization", "annis"}
