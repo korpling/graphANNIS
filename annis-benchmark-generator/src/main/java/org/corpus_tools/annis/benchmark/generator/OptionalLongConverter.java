@@ -13,31 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.korpling.annis.benchmark.generator;
+package org.corpus_tools.annis.benchmark.generator;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.Optional;
 import javafx.util.StringConverter;
 
 /**
  *
  * @author thomas
  */
-public class StringSetConverter extends StringConverter<Set<String>>
+public class OptionalLongConverter extends StringConverter<Optional<Long>>
 {
 
   @Override
-  public String toString(Set<String> object)
+  public String toString(Optional<Long> object)
   {
-    return Joiner.on(",").join(object);
+    return object == null || !object.isPresent() ? "" : "" + object.get();
   }
 
   @Override
-  public Set<String> fromString(String string)
+  public Optional<Long> fromString(String string)
   {
-    return new LinkedHashSet<>(Splitter.on(",").omitEmptyStrings().trimResults().splitToList(string));
+    Optional<Long> result = Optional.empty();
+    if(string != null)
+    {
+      try
+      {
+        result = Optional.of(Long.parseLong(string.trim()));
+      }
+      catch(NumberFormatException ex)
+      {
+        
+      }
+    }
+    return result;
   }
   
 }

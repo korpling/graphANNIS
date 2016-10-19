@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.korpling.annis.benchmark.generator;
+package org.corpus_tools.annis.benchmark.generator;
 
 import annis.ql.parser.AnnisParserAntlr;
 import annis.ql.parser.QueryData;
@@ -61,7 +61,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 
-import org.korpling.graphannis.QueryToJSON;
+import org.corpus_tools.graphannis.QueryToJSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

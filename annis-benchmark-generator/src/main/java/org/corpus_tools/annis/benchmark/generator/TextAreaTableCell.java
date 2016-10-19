@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.korpling.annis.benchmark.generator;
+package org.corpus_tools.annis.benchmark.generator;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;

@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.korpling.annis.benchmark.generator;
+package org.corpus_tools.annis.benchmark.generator;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
 
-import org.korpling.graphannis.QueryToJSON;
+import org.corpus_tools.graphannis.QueryToJSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

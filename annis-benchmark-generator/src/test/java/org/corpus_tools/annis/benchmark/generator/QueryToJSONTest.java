@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.korpling.annis.benchmark.generator;
+package org.corpus_tools.annis.benchmark.generator;
 
 import annis.model.QueryNode;
 import annis.ql.parser.QueryData;
@@ -36,7 +36,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.korpling.graphannis.QueryToJSON;
+import org.corpus_tools.graphannis.QueryToJSON;
 
 import static org.junit.Assert.*;
 

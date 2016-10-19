@@ -13,36 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.korpling.annis.benchmark.generator;
+package org.corpus_tools.annis.benchmark.generator;
 
-import java.net.URL;
-import java.util.ResourceBundle;
-import javafx.fxml.Initializable;
-import javafx.scene.Scene;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import javafx.util.StringConverter;
 
 /**
- * FXML Controller class
  *
  * @author thomas
  */
-public class MainController implements Initializable
+public class StringSetConverter extends StringConverter<Set<String>>
 {
 
-  /**
-   * Initializes the controller class.
-   */
   @Override
-  public void initialize(URL url, ResourceBundle rb)
+  public String toString(Set<String> object)
   {
-    // TODO
+    return Joiner.on(",").join(object);
   }
 
-  public void initializeAccelerators(Scene scene)
+  @Override
+  public Set<String> fromString(String string)
   {
-   
+    return new LinkedHashSet<>(Splitter.on(",").omitEmptyStrings().trimResults().splitToList(string));
   }
-
+  
 }
