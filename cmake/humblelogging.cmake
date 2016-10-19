@@ -22,6 +22,6 @@ ExternalProject_Add_Step(
   DEPENDEES install
 )
 
-set(HumbleLogging_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/ext/humblelogging-3.0.1/include")
+set(HumbleLogging_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/humblelogging/include")
 set(HumbleLogging_LIBRARIES "${CMAKE_SHARED_LIBRARY_PREFIX}humblelogging${CMAKE_SHARED_LIBRARY_SUFFIX}")
 include_directories(${HumbleLogging_INCLUDE_DIRS})

@@ -2,7 +2,7 @@ project(graphANNIS)
 cmake_minimum_required(VERSION 3.5)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/output)
 
 
 set(needed_features

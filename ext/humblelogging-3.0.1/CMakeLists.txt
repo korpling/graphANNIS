@@ -117,7 +117,8 @@ install(TARGETS humblelogging
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-install(FILES ${headers} DESTINATION include/humblelogging)
+#install(FILES ${headers} DESTINATION include/humblelogging) --> this will not copy the directory hierarchy
+install(DIRECTORY include/humblelogging/ DESTINATION include/humblelogging)
 
 # Examples
 macro(humblelogging_POSTBUILD_COPY target_)
