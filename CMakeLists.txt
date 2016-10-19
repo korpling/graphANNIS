@@ -32,6 +32,13 @@ find_package(ICU 4.4 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
 find_package (Threads REQUIRED)
 
+# write found packages to property file which is used by maven
+file(WRITE "${GLOBAL_OUTPUT_PATH}/libdirs.properties" "Boost_INCLUDE_DIRS=${Boost_INCLUDE_DIRS}\n")
+file(APPEND "${GLOBAL_OUTPUT_PATH}/libdirs.properties" "ICU_INCLUDE_DIRS=${ICU_INCLUDE_DIRS}\n")
+file(APPEND "${GLOBAL_OUTPUT_PATH}/libdirs.properties" "Boost_LIBRARY_DIRS=${Boost_LIBRARY_DIRS}\n")
+
+
+
 include_directories(
   "include"
 )

@@ -14,7 +14,7 @@ import org.bytedeco.javacpp.tools.InfoMapper;
         link={"re2" ,"boost_system", "boost_filesystem", "boost_serialization", "humblelogging", "annis"}
         ),
         @Platform(value = "windows",
-		  link={"libre2", "boost_system-vc140-mt-1_61", "boost_filesystem-vc140-mt-1_61", "boost_serialization-vc140-mt-1_61", "humblelogging", "annis"}
+		  link={"re2", "boost_system-vc140-mt-1_61", "boost_filesystem-vc140-mt-1_61", "boost_serialization-vc140-mt-1_61", "humblelogging", "annis"}
 		)})
 public class AnnisApiInfo implements InfoMapper
 {
