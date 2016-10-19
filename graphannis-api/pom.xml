@@ -1,231 +1,262 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<artifactId>graphannis-api</artifactId>
-	<name>graphANNIS API</name>
-	<description>A wrapper around the C++ API of graphANNIS</description>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>graphannis-api</artifactId>
+  <name>graphANNIS API</name>
+  <description>A wrapper around the C++ API of graphANNIS</description>
 
-	<parent>
-		<groupId>org.corpus-tools</groupId>
-		<artifactId>graphannis-root</artifactId>
-		<version>0.1-SNAPSHOT</version>
-		<relativePath>../pom.xml</relativePath>
-	</parent>
-
-
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
-
-		<javacpp.cppbuild.skip>false</javacpp.cppbuild.skip> <!-- To skip execution of cppbuild.sh: -Djavacpp.cppbuild.skip=true -->
-		<javacpp.parser.skip>false</javacpp.parser.skip>     <!-- To skip header file parsing phase: -Djavacpp.parser.skip=true -->
-		<javacpp.compiler.skip>false</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
-	</properties>
+  <parent>
+    <groupId>org.corpus-tools</groupId>
+    <artifactId>graphannis-root</artifactId>
+    <version>0.1-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
 
 
-	<dependencies>
-		<dependency>
-			<groupId>org.bytedeco</groupId>
-			<artifactId>javacpp</artifactId>
-			<version>1.2.4</version>
-		</dependency>
-		<dependency>
-			<groupId>de.hu-berlin.german.korpling.annis</groupId>
-			<artifactId>annis-interfaces</artifactId>
-			<version>3.4.4</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-core</artifactId>
-			<version>2.6.4</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>2.6.4</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.module</groupId>
-			<artifactId>jackson-module-jaxb-annotations</artifactId>
-			<version>2.6.4</version>
-		</dependency>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
 
-	</dependencies>
+    <javacpp.cppbuild.skip>false</javacpp.cppbuild.skip> <!-- To skip execution of cppbuild.sh: -Djavacpp.cppbuild.skip=true -->
+    <javacpp.parser.skip>false</javacpp.parser.skip>     <!-- To skip header file parsing phase: -Djavacpp.parser.skip=true -->
+    <javacpp.compiler.skip>false</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
+  </properties>
 
-	<build>
 
-		<plugins>
-			<plugin>
-				<artifactId>maven-resources-plugin</artifactId>
-				<version>3.0.1</version>
-				<executions>
-					<execution>
-						<id>javacpp.parser</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>resources</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.5.1</version>
-				<executions>
-					<execution>
-						<id>default-compile</id>
-						<configuration>
-							<!-- <excludes> -->
-							<!-- <exclude>org/corpus_tools/graphannis/info/*.java</exclude> -->
-							<!-- </excludes> -->
-						</configuration>
-					</execution>
-					<execution>
-						<id>javacpp.parser</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>compile</goal>
-						</goals>
-						<configuration>
-							<skipMain>${javacpp.parser.skip}</skipMain>
-							<includes>
-								<include>org/corpus_tools/graphannis/info/*.java</include>
-							</includes>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+  <dependencies>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>javacpp</artifactId>
+      <version>1.2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>de.hu-berlin.german.korpling.annis</groupId>
+      <artifactId>annis-interfaces</artifactId>
+      <version>3.4.4</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <version>2.6.4</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.6.4</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-jaxb-annotations</artifactId>
+      <version>2.6.4</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+
+    <plugins>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>javacpp.parser</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>resources</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <configuration>
+              <!-- <excludes> -->
+              <!-- <exclude>org/corpus_tools/graphannis/info/*.java</exclude> -->
+              <!-- </excludes> -->
+            </configuration>
+          </execution>
+          <execution>
+            <id>javacpp.parser</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <skipMain>${javacpp.parser.skip}</skipMain>
+              <includes>
+                <include>org/corpus_tools/graphannis/info/*.java</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 			
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>properties-maven-plugin</artifactId>
-				<version>1.0.0</version>
-				<executions>
-				  <execution>
-					<phase>initialize</phase>
-					<goals>
-					  <goal>read-project-properties</goal>
-					</goals>
-					<configuration>
-					  <files>
-						<file>${basedir}/../build/output/libdirs.properties</file>
-					  </files>
-					</configuration>
-				  </execution>
-				</executions>
-			  </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+            <configuration>
+              <files>
+                <file>${basedir}/../build/output/libdirs.properties</file>
+              </files>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
 
-			<plugin>
-				<groupId>org.bytedeco</groupId>
-				<artifactId>javacpp</artifactId>
-				<version>1.2.4</version>
-				<configuration>
-					<properties>${javacpp.platform}</properties>
-					<propertyKeysAndValues>
-						<property>
-							<name>platform.root</name>
-							<value>${javacpp.platform.root}</value>
-						</property>
-						<property>
-							<name>platform.compiler</name>
-							<value>${javacpp.platform.compiler}</value>
-						</property>
-					</propertyKeysAndValues>
-					<classPath>${project.build.outputDirectory}</classPath>
-					<compilerOptions>
-						<compilerOption>-std=c++11</compilerOption>
-					</compilerOptions>
-					<includePaths>
-						<includePath>${basedir}/../include/</includePath>
-						<includePath>${basedir}/../ext/cpp-btree-1.0.1/</includePath>
-						<includePath>${ICU_INCLUDE_DIRS}</includePath>
-						<includePath>${Boost_INCLUDE_DIRS}</includePath>
-					</includePaths>
-					<linkPaths>
-						<linkPath>${basedir}/../build/</linkPath>
-						<linkPath>${basedir}/../build/output/</linkPath>
-						<!-- TODO: this is for windows only, make it active only on windows -->
-    					<linkPath>${basedir}/../build/RelWithDebInfo/</linkPath>
-						<linkPath>${basedir}/../build/ext/humblelogging-3.0.1/RelWithDebInfo/</linkPath>
-						<linkPath>${Boost_LIBRARY_DIRS}</linkPath>
+      <plugin>
+        <groupId>org.bytedeco</groupId>
+        <artifactId>javacpp</artifactId>
+        <version>1.2.4</version>
+        <configuration>
+          <properties>${javacpp.platform}</properties>
+          <propertyKeysAndValues>
+            <property>
+              <name>platform.root</name>
+              <value>${javacpp.platform.root}</value>
+            </property>
+            <property>
+              <name>platform.compiler</name>
+              <value>${javacpp.platform.compiler}</value>
+            </property>
+          </propertyKeysAndValues>
+          <classPath>${project.build.outputDirectory}</classPath>
+          <compilerOptions>
+            <compilerOption>-std=c++11</compilerOption>
+          </compilerOptions>
+          <includePaths>
+            <includePath>${basedir}/../include/</includePath>
+            <includePath>${basedir}/../ext/cpp-btree-1.0.1/</includePath>
+            <includePath>${ICU_INCLUDE_DIRS}</includePath>
+            <includePath>${Boost_INCLUDE_DIRS}</includePath>
+          </includePaths>
+          <linkPaths>
+            <linkPath>${basedir}/../build/</linkPath>
+            <linkPath>${basedir}/../build/output/</linkPath>
+            <!-- TODO: this is for windows only, make it active only on windows -->
+            <linkPath>${basedir}/../build/RelWithDebInfo/</linkPath>
+            <linkPath>${basedir}/../build/ext/humblelogging-3.0.1/RelWithDebInfo/</linkPath>
+            <linkPath>${Boost_LIBRARY_DIRS}</linkPath>
 
-					</linkPaths>
-					<!-- <preloadPath>${basedir}/cppbuild/${javacpp.platform}/bin/</preloadPath> -->
+          </linkPaths>
+          <!-- <preloadPath>${basedir}/cppbuild/${javacpp.platform}/bin/</preloadPath> -->
 
-				</configuration>
-				<executions>
-					<execution>
-						<id>javacpp.parser</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>build</goal>
-						</goals>
-						<configuration>
-							<skip>${javacpp.parser.skip}</skip>
-							<outputDirectory>${project.build.sourceDirectory}</outputDirectory>
-							<classOrPackageName>org.corpus_tools.graphannis.info.*</classOrPackageName>
-						</configuration>
-					</execution>
-					<execution>
-						<id>javacpp.compiler</id>
-						<phase>process-classes</phase>
-						<goals>
-							<goal>build</goal>
-						</goals>
-						<configuration>
-							<skip>${javacpp.compiler.skip}</skip>
-							<classOrPackageName>org.corpus_tools.graphannis.*</classOrPackageName>
-							<copyLibs>true</copyLibs>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-
-
-			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.6</version>
-				<executions>
-					<execution>
-						<id>default-jar</id>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-						<configuration>
-							<excludes>
-								<exclude>org/corpus_tools/graphannis/*.h</exclude>
-								<exclude>org/corpus_tools/graphannis/linux-*/</exclude>
-								<exclude>org/corpus_tools/graphannis/macosx-*/</exclude>
-								<exclude>org/corpus_tools/graphannis/windows-*/</exclude>
-								<exclude>org/corpus_tools/graphannis/${javacpp.platform}/</exclude>
-							</excludes>
-						</configuration>
-					</execution>
-					<execution>
-						<id>native-platform</id>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-						<configuration>
-							<classifier>${javacpp.platform}</classifier>
-							<skipIfEmpty>true</skipIfEmpty>
-							<includes>
-								<include>${javacpp.platform.library.path}/</include>
-								<include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
-							</includes>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+        </configuration>
+        <executions>
+          <execution>
+            <id>javacpp.parser</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <skip>${javacpp.parser.skip}</skip>
+              <outputDirectory>${project.build.sourceDirectory}</outputDirectory>
+              <classOrPackageName>org.corpus_tools.graphannis.info.*</classOrPackageName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>javacpp.compiler</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <skip>${javacpp.compiler.skip}</skip>
+              <classOrPackageName>org.corpus_tools.graphannis.*</classOrPackageName>
+              <copyLibs>true</copyLibs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
 
-		</plugins>
 
-	</build>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.6</version>
+        <executions>
+          <execution>
+            <id>default-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <excludes>
+                <exclude>org/corpus_tools/graphannis/*.h</exclude>
+                <exclude>org/corpus_tools/graphannis/linux-*/</exclude>
+                <exclude>org/corpus_tools/graphannis/macosx-*/</exclude>
+                <exclude>org/corpus_tools/graphannis/windows-*/</exclude>
+                <exclude>org/corpus_tools/graphannis/${javacpp.platform}/</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+          <execution>
+            <id>native-platform</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <classifier>${javacpp.platform}</classifier>
+              <skipIfEmpty>true</skipIfEmpty>
+              <includes>
+                <include>${javacpp.platform.library.path}/</include>
+                <include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+
+    </plugins>
+
+  </build>
+  
+  <profiles>
+    <profile>
+      <id>native</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <version>2.6</version>
+            <executions>
+              <execution>
+                <id>default-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+                <configuration>
+                  <classifier>${javacpp.platform}</classifier>
+                  <skipIfEmpty>true</skipIfEmpty>
+                  <includes>
+                    <include>${javacpp.platform.library.path}/</include>
+                    <include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
+                  </includes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
