@@ -168,15 +168,23 @@ void Console::count(const std::vector<std::string> &args)
       std::cout << "Counting..." << std::endl;
       std::stringstream ss;
       ss << json;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
-      int counter =0;
-      auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
-      while(q->next())
+      try
       {
-        counter++;
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+        int counter =0;
+        auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
+        while(q->next())
+        {
+          counter++;
+        }
+        auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+        std::cout << counter << " matches in " << (endTime - startTime) << " ms" << std::endl;
       }
-      auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
-      std::cout << counter << " matches in " << (endTime - startTime) << " ms" << std::endl;
+      catch(Json::RuntimeError err)
+      {
+        std::cout << "JSON error: " << err.what() << std::endl;
+      }
+
     }
     else
     {
@@ -195,29 +203,38 @@ void Console::find(const std::vector<std::string> &args)
       std::cout << "Finding..." << std::endl;
       std::stringstream ss;
       ss << json;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
-      int counter =0;
-      while(q->next())
+      try
       {
-        std::vector<annis::Match> m = q->getCurrent();
-        for(size_t i = 0; i < m.size(); i++)
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+        int counter =0;
+        while(q->next())
         {
-          const auto& n = m[i];
-          std::cout << db->getNodeDebugName(n.node);
-          if(n.anno.ns != 0 && n.anno.name != 0)
+          std::vector<annis::Match> m = q->getCurrent();
+          for(size_t i = 0; i < m.size(); i++)
           {
-            std::cout << " " << db->strings.str(n.anno.ns)
-              << "::" << db->strings.str(n.anno.name);
+            const auto& n = m[i];
+            std::cout << db->getNodeDebugName(n.node);
+            if(n.anno.ns != 0 && n.anno.name != 0)
+            {
+              std::cout << " " << db->strings.str(n.anno.ns)
+                << "::" << db->strings.str(n.anno.name);
+            }
+            if(i < m.size()-1)
+            {
+             std::cout << ", ";
+            }
           }
-          if(i < m.size()-1)
-          {
-           std::cout << ", ";
-          }
+          std::cout << std::endl;
+          counter++;
         }
-        std::cout << std::endl;
-        counter++;
+        std::cout << counter << " matches" << std::endl;
+
       }
-      std::cout << counter << " matches" << std::endl;
+      catch(Json::RuntimeError err)
+      {
+        std::cout << "JSON error: " << err.what() << std::endl;
+      }
+
     }
     else
     {
@@ -284,8 +301,15 @@ void Console::plan(const std::vector<std::string> &args)
       std::cout << "Planning..." << std::endl;
       std::stringstream ss;
       ss << json;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
-      std::cout << q->getBestPlan()->debugString() << std::endl;
+      try
+      {
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+        std::cout << q->getBestPlan()->debugString() << std::endl;
+      }
+      catch(Json::RuntimeError err)
+      {
+        std::cout << "JSON error: " << err.what() << std::endl;
+      }
 
     }
     else
