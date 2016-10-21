@@ -1,5 +1,8 @@
 #include <annis/api/search.h>
 
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/shared_lock_guard.hpp>
+
 using namespace annis;
 using namespace annis::api;
 
@@ -20,10 +23,12 @@ long long Search::count(std::vector<std::string> corpora, std::string queryAsJSO
 
   for(const std::string& c : corpora)
   {
-    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c, true);
+    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, true);
 
-    if(std::shared_ptr<DB> db = dbWeakPtr.lock())
+    if(db)
     {
+      boost::shared_lock_guard<DB> lock(*db);
+
       std::stringstream ss;
       ss << queryAsJSON;
       std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
@@ -47,10 +52,12 @@ Search::CountResult Search::countExtra(std::vector<std::string> corpora, std::st
 
   for(const std::string& c : corpora)
   {
-    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c, true);
+    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, true);
 
-    if(std::shared_ptr<DB> db = dbWeakPtr.lock())
+    if(db)
     {
+      boost::shared_lock_guard<DB> lock(*db);
+
       std::stringstream ss;
       ss << queryAsJSON;
       std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
@@ -86,10 +93,12 @@ std::vector<std::string> Search::find(std::vector<std::string> corpora, std::str
 
   for(const std::string& c : corpora)
   {
-    std::weak_ptr<DB> dbWeakPtr = cache->get(databaseDir + "/" + c, false);
+    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, false);
 
-    if(std::shared_ptr<DB> db = dbWeakPtr.lock())
+    if(db)
     {
+      boost::shared_lock_guard<DB> lock(*db);
+
       std::stringstream ss;
       ss << queryAsJSON;
       std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
