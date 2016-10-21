@@ -3,6 +3,9 @@
 #include <humblelogging/api.h>
 #include <iomanip>
 
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/shared_lock_guard.hpp>
+
 #include <annis/util/helper.h>
 
 HUMBLE_LOGGER(logger, "default");
@@ -10,7 +13,7 @@ HUMBLE_LOGGER(logger, "default");
 using namespace annis;
 
 Console::Console()
- : dbCache(1073741824l*8l), dbPtr(dbCache.get(currentDBPath.string(), true))
+ : dbCache(1073741824l*8l), db(dbCache.get(currentDBPath.string(), true))
 {
   currentDBPath = boost::filesystem::unique_path(
           boost::filesystem::temp_directory_path().string() + "/annis-temporary-workspace-%%%%-%%%%-%%%%-%%%%");
@@ -89,8 +92,9 @@ bool Console::execute(const std::string &cmd, const std::vector<std::string> &ar
 
 void Console::import(const std::vector<std::string> &args)
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::lock_guard<DB> lock(*db);
     if(args.size() > 0)
     {
       std::cout << "Import relANNIS from " << args[0] << std::endl;
@@ -111,8 +115,9 @@ void Console::import(const std::vector<std::string> &args)
 
 void Console::save(const std::vector<std::string> &args)
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::shared_lock_guard<DB> lock(*db);
     if(args.size() > 0)
     {
       std::cout << "Save to " << args[0] << std::endl;
@@ -131,7 +136,7 @@ void Console::load(const std::vector<std::string> &args)
   if(args.size() > 0)
   {
     std::cout << "Loading from " << args[0] << std::endl;
-    dbPtr = dbCache.get(args[0], args.size() > 1 && args[1] == "preload");
+    db  = dbCache.get(args[0], args.size() > 1 && args[1] == "preload");
   }
   else
   {
@@ -142,16 +147,18 @@ void Console::load(const std::vector<std::string> &args)
 
 void Console::info()
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::shared_lock_guard<DB> lock(*db);
     std::cout << db->info() << std::endl;
   }
 }
 
 void Console::optimize()
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::lock_guard<DB> lock(*db);
     std::cout << "Optimizing..." << std::endl;
     db->optimizeAll();
     std::cout << "Finished." << std::endl;
@@ -160,8 +167,9 @@ void Console::optimize()
 
 void Console::count(const std::vector<std::string> &args)
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::shared_lock_guard<DB> lock(*db);
     if(args.size() > 0)
     {
       std::string json = boost::join(args, " ");
@@ -195,8 +203,9 @@ void Console::count(const std::vector<std::string> &args)
 
 void Console::find(const std::vector<std::string> &args)
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::shared_lock_guard<DB> lock(*db);
     if(args.size() > 0)
     {
       std::string json = boost::join(args, " ");
@@ -245,8 +254,9 @@ void Console::find(const std::vector<std::string> &args)
 
 void Console::updateStatistics()
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::lock_guard<DB> lock(*db);
     std::cout << "Updating statistics...";
     db->nodeAnnos.calculateStatistics();
     std::cout << " Done" << std::endl;
@@ -255,8 +265,9 @@ void Console::updateStatistics()
 
 void Console::guess(const std::vector<std::string> &args)
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::shared_lock_guard<DB> lock(*db);
     if(args.size() == 3)
     {
       std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(args[0], args[1], args[2]) << std::endl;
@@ -274,8 +285,10 @@ void Console::guess(const std::vector<std::string> &args)
 
 void Console::guessRegex(const std::vector<std::string> &args)
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::shared_lock_guard<DB> lock(*db);
+
     if(args.size() == 3)
     {
       std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(args[0], args[1], args[2]) << std::endl;
@@ -293,8 +306,10 @@ void Console::guessRegex(const std::vector<std::string> &args)
 
 void Console::plan(const std::vector<std::string> &args)
 {
-  if(auto db = dbPtr.lock())
+  if(db)
   {
+    boost::shared_lock_guard<DB> lock(*db);
+
     if(args.size() > 0)
     {
       std::string json = boost::join(args, " ");

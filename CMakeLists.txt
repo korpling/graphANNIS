@@ -29,7 +29,7 @@ ENDIF()
 
 
 find_package(ICU 4.4 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system filesystem serialization)
+find_package(Boost REQUIRED COMPONENTS system filesystem serialization thread)
 find_package (Threads REQUIRED)
 
 # write found packages to property file which is used by maven

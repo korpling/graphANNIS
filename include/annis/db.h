@@ -24,7 +24,7 @@ namespace annis
 class ReadableGraphStorage;
 class WriteableGraphStorage;
   
-class DB : public boost::basic_lockable_adapter<boost::shared_mutex>
+class DB : public boost::shared_lockable_adapter<boost::shared_mutex>
 {
 public:
   DB();

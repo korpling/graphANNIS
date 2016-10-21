@@ -43,7 +43,7 @@ namespace annis {
     DBCache(size_t maxSizeBytes=1073741824);
     DBCache(const DBCache& orig) = delete;
 
-    std::weak_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, bool forceFallback = false,
+    std::shared_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
       DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
       std::map<DBCacheKey, std::shared_ptr<DB>>::iterator it = cache.find(key);
