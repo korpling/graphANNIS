@@ -9,6 +9,9 @@
 #include <vector>
 #include <list>
 
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+
 #include <annis/types.h>
 #include <annis/stringstorage.h>
 #include <annis/graphstorageregistry.h>
@@ -21,7 +24,7 @@ namespace annis
 class ReadableGraphStorage;
 class WriteableGraphStorage;
   
-class DB
+class DB : public boost::basic_lockable_adapter<boost::shared_mutex>
 {
 public:
   DB();
