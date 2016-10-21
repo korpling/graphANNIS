@@ -56,7 +56,8 @@ public class QueryToJSON
   /**
    * This will serialize the query part of the {@link QueryData} to JSON.
    *
-   * @param queryData
+   * @param query
+   * @param metaData
    * @return
    */
   public static String serializeQuery(List<List<QueryNode>> query, 

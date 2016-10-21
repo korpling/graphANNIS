@@ -15,6 +15,12 @@
  */
 package org.corpus_tools.graphannis;
 
+import annis.model.QueryAnnotation;
+import annis.model.QueryNode;
+import java.util.LinkedList;
+import java.util.List;
+import static org.corpus_tools.graphannis.QueryToJSON.queryAsJSON;
+
 /**
  *
  * @author thomas
@@ -30,7 +36,30 @@ public class Main
     if(args.length > 0)
     {
       API.Search search = new API.Search(args[0]);
-      
+      if(args.length > 1)
+      {
+        List<List<QueryNode>> query = new LinkedList<>();
+        List<QueryNode> alternative = new LinkedList<>();
+        
+        QueryNode n1 = new QueryNode(1);
+        n1.setToken(true);
+        
+        alternative.add(n1);
+        query.add(alternative);
+        
+        API.StringVector result = search.find(new API.StringVector(args[1]), 
+          QueryToJSON.serializeQuery(query, new LinkedList<>()));
+        
+        for(int i=0; i < result.size(); i++)
+        {
+          System.out.println(result.get(i).getString());
+        }
+        
+      }
+      else
+      {
+        System.err.println("You need to give a corpus name as second argument.");
+      }
     }
     else
     {
