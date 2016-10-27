@@ -24,4 +24,4 @@ ExternalProject_Add_Step(
 
 set(HumbleLogging_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/humblelogging/include")
 set(HumbleLogging_LIBRARIES "${CMAKE_SHARED_LIBRARY_PREFIX}humblelogging${CMAKE_SHARED_LIBRARY_SUFFIX}")
-include_directories(${HumbleLogging_INCLUDE_DIRS})
+include_directories(SYSTEM ${HumbleLogging_INCLUDE_DIRS})

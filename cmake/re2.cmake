@@ -28,4 +28,4 @@ ExternalProject_Add_Step(
 
 
 
-include_directories(${RE2_INCLUDE_DIRS})
+include_directories(SYSTEM ${RE2_INCLUDE_DIRS})
