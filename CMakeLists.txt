@@ -17,6 +17,7 @@ include(ExternalProject)
 include(cmake/humblelogging.cmake)
 include(cmake/re2.cmake)
 include(cmake/celero.cmake)
+include(cmake/googletest.cmake)
 
 link_directories(${GLOBAL_OUTPUT_PATH})
 
@@ -168,7 +169,6 @@ target_link_libraries(annis_runner humblelogging ${Boost_LIBRARIES} ${RE2_LIBRAR
 ################################
 # Testing with Google Test
 ################################
-add_subdirectory(ext/gtest-1.7.0)
 enable_testing()
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
@@ -177,6 +177,8 @@ file(GLOB TEST_SRC_LIST "tests/*.cpp" "tests/*.h")
 set(TEST_EXEC "test_${PROJECT_NAME}")
 
 add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
+add_dependencies(${TEST_EXEC} GoogleTest)
+
 target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
 target_link_libraries(${TEST_EXEC} annis gtest gtest_main)
 add_test( ${TEST_EXEC} ${TEST_EXEC} )
