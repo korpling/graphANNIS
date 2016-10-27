@@ -158,13 +158,13 @@ elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 
     set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
 endif (MSVC)
 
-target_link_libraries(annis humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
-target_link_libraries(annis_runner humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
+target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
 
 ################################
 # Testing with Google Test
@@ -180,7 +180,7 @@ add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
 add_dependencies(${TEST_EXEC} GoogleTest)
 
 target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
-target_link_libraries(${TEST_EXEC} annis gtest gtest_main)
+target_link_libraries(${TEST_EXEC} annis ${GoogleTest_LIBRARIES})
 add_test( ${TEST_EXEC} ${TEST_EXEC} )
 
 
@@ -191,6 +191,6 @@ if(GRAPHANNIS_BUILD_BENCHMARKS)
   add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
   add_dependencies(${BENCHMARK_EXEC} Celero)
   target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
-  target_link_libraries(${BENCHMARK_EXEC} celero annis  )
+  target_link_libraries(${BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
 
 endif()
