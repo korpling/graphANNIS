@@ -53,18 +53,94 @@ include_directories(
 )
 
 # make sure QtCreator shows the include files
-FILE(GLOB_RECURSE IncludeFiles "src/lib/*.h")
-
-file(GLOB_RECURSE SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
-  "src/lib/util/*.cpp" "src/lib/util/*.c"
-  "src/lib/annosearch/*.cpp"
-  "src/lib/api/*.cpp"
-  "src/lib/graphstorage/*.cpp"
-  "src/lib/operators/*.cpp"
-  "src/lib/join/*.cpp"
-  "src/lib/json/*.cpp"
+set(IncludeFiles
+  src/lib/annis/wrapper.h
+  src/lib/annis/edgeannotationstorage.h
+  src/lib/annis/stringstorage.h
+  src/lib/annis/json/jsonqueryparser.h
+  src/lib/annis/json/json.h
+  src/lib/annis/json/json-forwards.h
+  src/lib/annis/db.h
+  src/lib/annis/graphstorage/prepostorderstorage.h
+  src/lib/annis/graphstorage/adjacencyliststorage.h
+  src/lib/annis/graphstorage/graphstorage.h
+  src/lib/annis/graphstorage/linearstorage.h
+  src/lib/annis/iterators.h
+  src/lib/annis/types.h
+  src/lib/annis/graphstorageholder.h
+  src/lib/annis/filter.h
+  src/lib/annis/operators/precedence.h
+  src/lib/annis/operators/operator.h
+  src/lib/annis/operators/inclusion.h
+  src/lib/annis/operators/dominance.h
+  src/lib/annis/operators/overlap.h
+  src/lib/annis/operators/pointing.h
+  src/lib/annis/operators/identicalcoverage.h
+  src/lib/annis/operators/abstractedgeoperator.h
+  src/lib/annis/dbcache.h
+  src/lib/annis/api/search.h
+  src/lib/annis/api/admin.h
+  src/lib/annis/serializers.h
+  src/lib/annis/graphstorageregistry.h
+  src/lib/annis/nodeannostorage.h
+  src/lib/annis/util/helper.h
+  src/lib/annis/util/plan.h
+  src/lib/annis/util/dfs.h
+  src/lib/annis/util/size_estimator.h
+  src/lib/annis/util/comparefunctions.h
+  src/lib/annis/query.h
+  src/lib/annis/join/seed.h
+  src/lib/annis/join/nestedloop.h
+  src/lib/annis/annosearch/exactannovaluesearch.h
+  src/lib/annis/annosearch/annotationsearch.h
+  src/lib/annis/annosearch/exactannokeysearch.h
+  src/lib/annis/annosearch/regexannosearch.h
 )
-file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
+
+set(SRC_LIST_LIB
+  src/lib/annis/filter.cpp
+  src/lib/annis/json/jsoncpp.cpp
+  src/lib/annis/json/jsonqueryparser.cpp
+  src/lib/annis/db.cpp
+  src/lib/annis/wrapper.cpp
+  src/lib/annis/graphstorage/adjacencyliststorage.cpp
+  src/lib/annis/graphstorage/prepostorderstorage.cpp
+  src/lib/annis/graphstorage/linearstorage.cpp
+  src/lib/annis/graphstorage/graphstorage.cpp
+  src/lib/annis/dbcache.cpp
+  src/lib/annis/stringstorage.cpp
+  src/lib/annis/graphstorageholder.cpp
+  src/lib/annis/operators/overlap.cpp
+  src/lib/annis/operators/pointing.cpp
+  src/lib/annis/operators/precedence.cpp
+  src/lib/annis/operators/identicalcoverage.cpp
+  src/lib/annis/operators/inclusion.cpp
+  src/lib/annis/operators/dominance.cpp
+  src/lib/annis/operators/abstractedgeoperator.cpp
+  src/lib/annis/api/search.cpp
+  src/lib/annis/api/admin.cpp
+  src/lib/annis/edgeannotationstorage.cpp
+  src/lib/annis/query.cpp
+  src/lib/annis/util/dfs.cpp
+  src/lib/annis/util/plan.cpp
+  src/lib/annis/nodeannostorage.cpp
+  src/lib/annis/graphstorageregistry.cpp
+  src/lib/annis/join/nestedloop.cpp
+  src/lib/annis/join/seed.cpp
+  src/lib/annis/annosearch/exactannokeysearch.cpp
+  src/lib/annis/annosearch/exactannovaluesearch.cpp
+  src/lib/annis/annosearch/regexannosearch.cpp
+  src/lib/annis/annosearch/annotationsearch.cpp
+  src/lib/annis/util/getRSS.c
+)
+
+set(SRC_LIST_RUNNER
+  src/runner/console.h
+  src/runner/main.cpp
+  src/runner/linenoise.h
+  src/runner/linenoise.c
+  src/runner/console.cpp
+)
 
 add_library(annis ${SRC_LIST_LIB} ${IncludeFiles})
 target_compile_features(annis PRIVATE ${needed_features})
