@@ -4,6 +4,11 @@ cmake_minimum_required(VERSION 3.5)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/output)
 
+# make sure a build type is selected
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 set(needed_features
   cxx_auto_type
@@ -16,6 +21,8 @@ set(needed_features
 include(ExternalProject)
 include(cmake/humblelogging.cmake)
 include(cmake/re2.cmake)
+include(cmake/celero.cmake)
+include(cmake/googletest.cmake)
 
 link_directories(${GLOBAL_OUTPUT_PATH})
 
@@ -53,18 +60,96 @@ include_directories(
 )
 
 # make sure QtCreator shows the include files
-FILE(GLOB_RECURSE IncludeFiles "include/*.h")
-
-file(GLOB SRC_LIST_LIB "src/lib/*.h" "src/lib/*.cpp" "src/lib/*.c"
-  "src/lib/util/*.cpp" "src/lib/util/*.c"
-  "src/lib/annosearch/*.cpp"
-  "src/lib/api/*.cpp"
-  "src/lib/graphstorage/*.cpp"
-  "src/lib/operators/*.cpp"
-  "src/lib/join/*.cpp"
-  "src/lib/json/*.cpp"
+set(IncludeFiles
+  src/lib/annis/wrapper.h
+  src/lib/annis/edgeannotationstorage.h
+  src/lib/annis/stringstorage.h
+  src/lib/annis/json/jsonqueryparser.h
+  src/lib/annis/json/json.h
+  src/lib/annis/json/json-forwards.h
+  src/lib/annis/db.h
+  src/lib/annis/graphstorage/prepostorderstorage.h
+  src/lib/annis/graphstorage/adjacencyliststorage.h
+  src/lib/annis/graphstorage/graphstorage.h
+  src/lib/annis/graphstorage/linearstorage.h
+  src/lib/annis/iterators.h
+  src/lib/annis/types.h
+  src/lib/annis/graphstorageholder.h
+  src/lib/annis/filter.h
+  src/lib/annis/operators/precedence.h
+  src/lib/annis/operators/operator.h
+  src/lib/annis/operators/inclusion.h
+  src/lib/annis/operators/dominance.h
+  src/lib/annis/operators/overlap.h
+  src/lib/annis/operators/pointing.h
+  src/lib/annis/operators/identicalcoverage.h
+  src/lib/annis/operators/abstractedgeoperator.h
+  src/lib/annis/dbcache.h
+  src/lib/annis/api/search.h
+  src/lib/annis/api/admin.h
+  src/lib/annis/serializers.h
+  src/lib/annis/graphstorageregistry.h
+  src/lib/annis/nodeannostorage.h
+  src/lib/annis/util/helper.h
+  src/lib/annis/util/plan.h
+  src/lib/annis/util/dfs.h
+  src/lib/annis/util/size_estimator.h
+  src/lib/annis/util/comparefunctions.h
+  src/lib/annis/query.h
+  src/lib/annis/join/seed.h
+  src/lib/annis/join/nestedloop.h
+  src/lib/annis/annosearch/exactannovaluesearch.h
+  src/lib/annis/annosearch/annotationsearch.h
+  src/lib/annis/annosearch/exactannokeysearch.h
+  src/lib/annis/annosearch/regexannosearch.h
 )
-file(GLOB SRC_LIST_RUNNER "src/runner/*.h" "src/runner/*.cpp" "src/runner/*.c" )
+
+set(SRC_LIST_LIB
+  src/lib/annis/filter.cpp
+  src/lib/annis/json/jsoncpp.cpp
+  src/lib/annis/json/jsonqueryparser.cpp
+  src/lib/annis/db.cpp
+  src/lib/annis/wrapper.cpp
+  src/lib/annis/graphstorage/adjacencyliststorage.cpp
+  src/lib/annis/graphstorage/prepostorderstorage.cpp
+  src/lib/annis/graphstorage/linearstorage.cpp
+  src/lib/annis/graphstorage/graphstorage.cpp
+  src/lib/annis/dbcache.cpp
+  src/lib/annis/stringstorage.cpp
+  src/lib/annis/graphstorageholder.cpp
+  src/lib/annis/operators/overlap.cpp
+  src/lib/annis/operators/pointing.cpp
+  src/lib/annis/operators/precedence.cpp
+  src/lib/annis/operators/identicalcoverage.cpp
+  src/lib/annis/operators/inclusion.cpp
+  src/lib/annis/operators/dominance.cpp
+  src/lib/annis/operators/abstractedgeoperator.cpp
+  src/lib/annis/api/search.cpp
+  src/lib/annis/api/admin.cpp
+  src/lib/annis/edgeannotationstorage.cpp
+  src/lib/annis/query.cpp
+  src/lib/annis/util/dfs.cpp
+  src/lib/annis/util/plan.cpp
+  src/lib/annis/nodeannostorage.cpp
+  src/lib/annis/graphstorageregistry.cpp
+  src/lib/annis/join/nestedloop.cpp
+  src/lib/annis/join/seed.cpp
+  src/lib/annis/annosearch/exactannokeysearch.cpp
+  src/lib/annis/annosearch/exactannovaluesearch.cpp
+  src/lib/annis/annosearch/regexannosearch.cpp
+  src/lib/annis/annosearch/annotationsearch.cpp
+  src/lib/annis/util/getRSS.c
+)
+
+set(SRC_LIST_RUNNER
+  src/runner/console.h
+  src/runner/main.cpp
+  src/runner/linenoise.h
+  src/runner/linenoise.c
+  src/runner/console.cpp
+)
+
+include_directories( "src/lib")
 
 add_library(annis ${SRC_LIST_LIB} ${IncludeFiles})
 target_compile_features(annis PRIVATE ${needed_features})
@@ -78,42 +163,39 @@ elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 
     set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
 endif (MSVC)
 
-target_link_libraries(annis humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_dependencies(annis HumbleLogging)
-add_dependencies(annis RE2)
+add_dependencies(annis RE2)	
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
-target_link_libraries(annis_runner humblelogging ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
+target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
 
 ################################
 # Testing with Google Test
 ################################
-add_subdirectory(ext/gtest-1.7.0)
 enable_testing()
-include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR} "src/lib/")
+include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 file(GLOB TEST_SRC_LIST "tests/*.cpp" "tests/*.h")
 
 set(TEST_EXEC "test_${PROJECT_NAME}")
+
 add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
+add_dependencies(${TEST_EXEC} GoogleTest)
+
 target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
-target_link_libraries(${TEST_EXEC} annis gtest gtest_main)
+target_link_libraries(${TEST_EXEC} annis ${GoogleTest_LIBRARIES})
 add_test( ${TEST_EXEC} ${TEST_EXEC} )
 
-IF(GRAPHANNIS_BUILD_BENCHMARKS)
 
-  set(CELERO_RUN_EXAMPLE_ON_BUILD OFF CACHE BOOL "Set to ON to automatically run the example after a successful build.")
-  set(CELERO_ENABLE_EXPERIMENTS OFF CACHE BOOL "Set to ON to automatically build all examples.")
-  set(CELERO_COMPILE_DYNAMIC_LIBRARIES OFF CACHE BOOL "Set to ON to build Celero for dynamic linking.  Use OFF for static.")
-  add_subdirectory(ext/Celero-2.0.2)
-
+if(GRAPHANNIS_BUILD_BENCHMARKS)
   file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
-  set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
-  include_directories(SYSTEM "ext/Celero-2.0.2/include/")
-  include_directories("src/lib/")
-  add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
-  target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
-  target_link_libraries(${BENCHMARK_EXEC} celero annis  )
 
-ENDIF()
+  set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
+  add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
+  add_dependencies(${BENCHMARK_EXEC} Celero)
+  target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
+  target_link_libraries(${BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
+
+endif()

@@ -121,7 +121,10 @@ void Console::save(const std::vector<std::string> &args)
     if(args.size() > 0)
     {
       std::cout << "Save to " << args[0] << std::endl;
+      auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
       db->save(args[0]);
+      auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+      std::cout << "Saved in " << (endTime - startTime) << " ms" << std::endl;
     }
     else
     {
