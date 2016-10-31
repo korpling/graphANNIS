@@ -21,6 +21,10 @@
 #include <boost/serialization/vector.hpp>
 #include <random>
 
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
+
 #include "annis/annosearch/annotationsearch.h"
 
 #include <annis/serializers.h>

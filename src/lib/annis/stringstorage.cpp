@@ -2,15 +2,9 @@
 #include <fstream>
 #include <annis/util/helper.h>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/unordered_map.hpp>
-
 #include <re2/re2.h>
 
 #include <annis/util/size_estimator.h>
-#include <annis/serializers.h>
 
 using namespace annis;
 using namespace std;
@@ -86,50 +80,6 @@ void StringStorage::clear()
   stringStorageByValue.clear();
 
 }
-
-bool StringStorage::load(const string &dirPath)
-{
-
-  ifstream in;
-
-  in.open(dirPath + "/stringStorageByID.archive", ios::binary);
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaByID(in);
-    iaByID >> stringStorageByID;
-    in.close();
-  }
-
-  in.open(dirPath + "/stringStorageByValue.archive", ios::binary);
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaByValue(in);
-    iaByValue >> stringStorageByValue;
-    in.close();
-  }
-  return true;
-}
-
-
-bool StringStorage::save(const std::string& dirPath)
-{
-  ofstream out;
-
-  out.open(dirPath + "/stringStorageByID.archive", ios::binary);
-  boost::archive::binary_oarchive oaByID(out);
-  oaByID << stringStorageByID;
-  out.close();
-
-  out.open(dirPath + "/stringStorageByValue.archive", ios::binary);
-  boost::archive::binary_oarchive oaByValue(out);
-  oaByValue << stringStorageByValue;
-  out.close();
-
-
-  return true;
-}
-
-
 
 
 double annis::StringStorage::avgLength()

@@ -21,8 +21,15 @@
 #include <boost/container/map.hpp>
 #include <boost/container/set.hpp>
 
+#include <cereal/cereal.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/vector.hpp>
+
+
 #include <annis/types.h>
 #include <annis/stringstorage.h>
+#include <annis/serializers_cereal.h>
 
 #include "iterators.h"
 
@@ -137,6 +144,13 @@ namespace annis {
     size_t estimateMemorySize();
 
     virtual ~NodeAnnoStorage();
+
+    template <class Archive>
+    void serialize( Archive & ar )
+    {
+      ar(nodeAnnotations, inverseNodeAnnotations, nodeAnnoKeys, histogramBounds, nodeAnnotationKeyCount);
+    }
+
   private:
 
     /**

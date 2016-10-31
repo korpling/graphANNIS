@@ -102,6 +102,14 @@ namespace annis
     std::uint32_t ns;
   };
 
+  template<class Archive>
+  void serialize(Archive & archive,
+                 AnnotationKey & m)
+  {
+    archive(m.name, m.ns );
+  }
+
+
   inline bool operator<(const AnnotationKey& a,  const AnnotationKey& b)
   {
     return std::tie(a.name, a.ns) < std::tie(b.name, b.ns);
@@ -113,6 +121,13 @@ namespace annis
     std::uint32_t ns;
     std::uint32_t val;
   };
+
+  template<class Archive>
+  void serialize(Archive & archive,
+                 Annotation & m)
+  {
+    archive(m.name, m.ns, m.val);
+  }
 
   inline bool operator<(const Annotation& a,  const Annotation& b)
   {
@@ -130,9 +145,17 @@ namespace annis
     std::uint32_t anno_name;
     std::uint32_t anno_ns;
   };
+
   inline bool operator<(const NodeAnnotationKey& a,  const NodeAnnotationKey& b)
   {
     return std::tie(a.node, a.anno_name, a.anno_ns) < std::tie(b.node, b.anno_name, b.anno_ns);
+  }
+
+  template<class Archive>
+  void serialize(Archive & archive,
+                 NodeAnnotationKey & m)
+  {
+    archive(m.node, m.anno_name, m.anno_ns);
   }
 
   struct TextProperty
@@ -276,7 +299,6 @@ inline void serialize(
   ar & t.ns;
 }
 
-
 template<class Archive>
 inline void serialize(
     Archive & ar,
@@ -287,6 +309,13 @@ inline void serialize(
   ar & t.anno_ns;
   ar & t.anno_name;
   ar & t.node;
+}
+
+template<class Archive>
+void serialize(Archive & archive,
+               annis::NodeAnnotationKey & t)
+{
+  archive(t.anno_ns, t.anno_name, t.node);
 }
 
 template<class Archive>

@@ -52,11 +52,12 @@ include_directories(
 
 include_directories(
   SYSTEM
-  "ext/cpp-btree-1.0.1/"
+  "ext/cpp-btree-1.0.1"
   ${HumbleLogging_INCLUDE_DIRS}
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIRS}
+  "ext/cereal-1.2.1/include"
 )
 
 # make sure QtCreator shows the include files
@@ -88,6 +89,7 @@ set(IncludeFiles
   src/lib/annis/api/search.h
   src/lib/annis/api/admin.h
   src/lib/annis/serializers.h
+  src/lib/annis/serializers_cereal.h
   src/lib/annis/graphstorageregistry.h
   src/lib/annis/nodeannostorage.h
   src/lib/annis/util/helper.h
