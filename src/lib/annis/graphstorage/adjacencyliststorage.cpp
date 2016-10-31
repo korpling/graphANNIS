@@ -147,44 +147,6 @@ std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) cons
   return result;
 }
 
-bool AdjacencyListStorage::load(std::string dirPath)
-{
-  clear();
-
-  ReadableGraphStorage::load(dirPath);
-
-  ifstream in;
-
-  in.open(dirPath + "/edges.archive");
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaEdges(in);
-    iaEdges >> edges;
-    in.close();
-  }
-
-
-  edgeAnnos.load(dirPath);
-
-  return true;
-
-}
-
-bool AdjacencyListStorage::save(std::string dirPath)
-{
-  ReadableGraphStorage::save(dirPath);
-
-  ofstream out;
-
-  out.open(dirPath + "/edges.archive");
-  boost::archive::binary_oarchive oaEdges(out);
-  oaEdges << edges;
-  out.close();
-
-  edgeAnnos.save(dirPath);
-
-  return true;
-}
 
 size_t AdjacencyListStorage::numberOfEdges() const
 {

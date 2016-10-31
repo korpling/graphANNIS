@@ -49,8 +49,6 @@ public:
     return edges.end();
   }
 
-  virtual bool load(std::string dirPath) override;
-  virtual bool save(std::string dirPath) override;
 
   virtual size_t numberOfEdges() const override;
   virtual size_t numberOfEdgeAnnotations() const override;
@@ -59,6 +57,13 @@ public:
   virtual void calculateStatistics() override;
 
   virtual size_t estimateMemorySize() override;
+
+  template<class Archive>
+  void serialize(Archive & archive)
+  {
+    ReadableGraphStorage::serialize(archive);
+    archive(edges, edgeAnnos);
+  }
 
 private:
   Component component;

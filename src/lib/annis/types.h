@@ -24,6 +24,15 @@ namespace annis
     nodeid_t target;
   };
 
+
+  template<class Archive>
+  void serialize(Archive & archive,
+                 Edge & m)
+  {
+    archive( m.source, m.target);
+  }
+
+
   inline bool operator<(const struct Edge &a, const struct Edge &b)
   {
     return std::tie(a.source, a.target) < std::tie(b.source, b.target);

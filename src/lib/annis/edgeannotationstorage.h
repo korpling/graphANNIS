@@ -4,6 +4,8 @@
 #include <vector>
 #include <google/btree_map.h>
 
+#include <annis/serializers_cereal.h>
+
 namespace annis
 {
 
@@ -46,8 +48,11 @@ public:
     return edgeAnnotations.size();
   }
 
-  virtual bool load(std::string dirPath);
-  virtual bool save(std::string dirPath);
+  template<class Archive>
+  void serialize(Archive & archive)
+  {
+    archive(edgeAnnotations);
+  }
 
   size_t estimateMemorySize();
 

@@ -9,6 +9,8 @@
 #include <boost/format.hpp>
 #include <humblelogging/api.h>
 
+#include <cereal/archives/binary.hpp>
+
 HUMBLE_LOGGER(logger, "annis4");
 
 using namespace annis;
@@ -185,7 +187,13 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
           {
             HL_DEBUG(logger, (boost::format("loading component %1%")
                              % debugComponentString(emptyNameComponent)).str());
-            gsEmptyName->load(layerPath.string());
+            auto inputFile = layerPath / "component.cereal";
+            std::ifstream is(inputFile.string(), std::ios::binary);
+            if(is.is_open())
+            {
+              cereal::BinaryInputArchive ar(is);
+              ar(*gsEmptyName);
+            }
           }
           else
           {
@@ -214,7 +222,13 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
             {
               HL_DEBUG(logger, (boost::format("loading component %1%")
                                % debugComponentString(namedComponent)).str());
-              gsNamed->load(namedComponentPath.string());
+              auto inputFile = namedComponentPath / "component.cereal";
+              std::ifstream is(inputFile.string(), std::ios::binary);
+              if(is.is_open())
+              {
+                cereal::BinaryInputArchive ar(is);
+                ar(*gsNamed);
+              }
             }
             else
             {
@@ -236,7 +250,6 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
 
 bool GraphStorageHolder::save(const std::string& dirPath)
 {
-  std::ofstream out;
 
   // save each edge db separately
   std::string gsParent = dirPath + "/gs";
@@ -253,11 +266,15 @@ bool GraphStorageHolder::save(const std::string& dirPath)
       finalPath = gsParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer + "/" + c.name;
     }
     boost::filesystem::create_directories(finalPath);
-    it->second->save(finalPath);
+    auto outputFile = finalPath + "/component.cereal";
+    std::ofstream os(outputFile, std::ios::binary);
+    cereal::BinaryOutputArchive ar(os);
+    ar(*(it->second));
+
+    std::ofstream outIdent(finalPath + "/implementation.cfg");
     // put an identification file to the output directory that contains the name of the graph storage implementation
-    out.open(finalPath + "/implementation.cfg");
-    out << registry.getName(it->second) << std::endl;
-    out.close();
+    outIdent << registry.getName(it->second) << std::endl;
+    outIdent.close();
   }
 
   // TODO: return false if failed.
@@ -275,10 +292,15 @@ bool GraphStorageHolder::ensureComponentIsLoaded(const Component &c)
     {
       HL_DEBUG(logger, (boost::format("loading component %1%")
                        % debugComponentString(itLocation->first)).str());
-      itGS->second->load(itLocation->second);
-      notLoadedLocations.erase(itLocation);
+      std::ifstream is(itLocation->second + "/component.cereal");
+      if(is.is_open() && itGS->second)
+      {
+        cereal::BinaryInputArchive ar(is);
+        ar(*(itGS->second));
+        notLoadedLocations.erase(itLocation);
 
-      return true;
+        return true;
+      }
     }
   }
   return false;

@@ -31,25 +31,15 @@ struct PrePost
   order_t post;
   level_t level;
 };
-} // end namespace annis
 
-namespace boost
-{
-namespace serialization
-{
 template<class Archive, typename order_t, typename level_t>
-inline void serialize(
-    Archive & ar,
-    annis::PrePost<order_t, level_t> & t,
-    const unsigned int /* file_version */
-    )
+void serialize(Archive & archive,
+               PrePost<order_t, level_t> & m)
 {
-  ar & t.level;
-  ar & t.pre;
-  ar & t.post;
+  archive(m.pre, m.post, m.level);
 }
-}
-}
+
+} // end namespace annis
 
 namespace std
 {
@@ -245,62 +235,11 @@ public:
 
   }
 
-  virtual bool load(std::string dirPath) override
+  template<class Archive>
+  void serialize(Archive & archive)
   {
-    ReadableGraphStorage::load(dirPath);
-
-    node2order.clear();
-    order2node.clear();
-
-    bool result = edgeAnno.load(dirPath);
-    std::ifstream in;
-
-    in.open(dirPath + "/node2order.archive", std::ios::binary);
-    if(in.is_open())
-    {
-      boost::archive::binary_iarchive iaNode2Order(in);
-      iaNode2Order >> node2order;
-      in.close();
-    }
-    else
-    {
-      result = false;
-    }
-
-    in.open(dirPath + "/order2node.archive", std::ios::binary);
-    if(in.is_open())
-    {
-      boost::archive::binary_iarchive iaOrder2node(in);
-      iaOrder2node >> order2node;
-      in.close();
-    }
-    else
-    {
-      result = false;
-    }
-
-    return result;
-  }
-
-  virtual bool save(std::string dirPath) override
-  {
-    bool result = ReadableGraphStorage::save(dirPath);
-
-    result = result && edgeAnno.save(dirPath);
-
-    std::ofstream out;
-
-    out.open(dirPath + "/node2order.archive", std::ios::binary);
-    boost::archive::binary_oarchive oaNode2Order(out);
-    oaNode2Order << node2order;
-    out.close();
-
-    out.open(dirPath + "/order2node.archive", std::ios::binary);
-    boost::archive::binary_oarchive oaOrder2Node(out);
-    oaOrder2Node << order2node;
-    out.close();
-
-    return result;
+    ReadableGraphStorage::serialize(archive);
+    archive(edgeAnno, node2order, order2node);
   }
 
   virtual void copy(const DB& db, const ReadableGraphStorage& orig) override
