@@ -1,7 +1,6 @@
 #include <annis/graphstorage/graphstorage.h>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+#include <cereal/archives/binary.hpp>
 
 #include <fstream>
 
@@ -14,12 +13,11 @@ bool ReadableGraphStorage::load(string dirPath)
   stat.valid = false;
   ifstream in;
 
-  in.open(dirPath + "/statistics.archive");
+  in.open(dirPath + "/statistics.cereal");
   if(in.is_open())
   {
-    boost::archive::binary_iarchive ia(in);
-    ia >> stat;
-    in.close();
+    cereal::BinaryInputArchive ar(in);
+    ar(stat);
   }
   return true;
 }
@@ -28,10 +26,9 @@ bool ReadableGraphStorage::save(string dirPath)
 {
   ofstream out;
 
-  out.open(dirPath + "/statistics.archive");
-  boost::archive::binary_oarchive oa(out);
-  oa << stat;
-  out.close();
+  out.open(dirPath + "/statistics.cereal");
+  cereal::BinaryOutputArchive ar(out);
+  ar(stat);
 
   return true;
 }

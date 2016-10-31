@@ -209,6 +209,13 @@ namespace annis
     double dfsVisitRatio;
   };
 
+  template<class Archive>
+  void serialize(Archive & archive,
+                 GraphStatistic & m)
+  {
+    archive(m.valid, m.cyclic, m.rootedTree, m.nodes, m.avgFanOut, m.maxFanOut, m.maxDepth, m.dfsVisitRatio);
+  }
+
   class Init
   {
   public:
