@@ -24,6 +24,13 @@ namespace annis
     nodeid_t target;
   };
 
+  template<class Archive>
+  void serialize(Archive & archive,
+                 Edge & m)
+  {
+    archive( m.source, m.target);
+  }
+
   inline bool operator<(const struct Edge &a, const struct Edge &b)
   {
     return std::tie(a.source, a.target) < std::tie(b.source, b.target);
@@ -102,6 +109,14 @@ namespace annis
     std::uint32_t ns;
   };
 
+  template<class Archive>
+  void serialize(Archive & archive,
+                 AnnotationKey & m)
+  {
+    archive(m.name, m.ns );
+  }
+
+
   inline bool operator<(const AnnotationKey& a,  const AnnotationKey& b)
   {
     return std::tie(a.name, a.ns) < std::tie(b.name, b.ns);
@@ -113,6 +128,13 @@ namespace annis
     std::uint32_t ns;
     std::uint32_t val;
   };
+
+  template<class Archive>
+  void serialize(Archive & archive,
+                 Annotation & m)
+  {
+    archive(m.name, m.ns, m.val);
+  }
 
   inline bool operator<(const Annotation& a,  const Annotation& b)
   {
@@ -130,9 +152,17 @@ namespace annis
     std::uint32_t anno_name;
     std::uint32_t anno_ns;
   };
+
   inline bool operator<(const NodeAnnotationKey& a,  const NodeAnnotationKey& b)
   {
     return std::tie(a.node, a.anno_name, a.anno_ns) < std::tie(b.node, b.anno_name, b.anno_ns);
+  }
+
+  template<class Archive>
+  void serialize(Archive & archive,
+                 NodeAnnotationKey & m)
+  {
+    archive(m.node, m.anno_name, m.anno_ns);
   }
 
   struct TextProperty
@@ -152,6 +182,14 @@ namespace annis
     nodeid_t root;
     pos_t pos;
   };
+
+  template<class Archive, typename pos_t>
+  void serialize(Archive & archive,
+                 RelativePosition<pos_t> & m)
+  {
+    archive(m.root, m.pos );
+  }
+
 
 
   /** combines a node ID and the matched annotation */
@@ -185,6 +223,13 @@ namespace annis
     /** only for acyclic graphs: the average number of times a DFS will visit each node */
     double dfsVisitRatio;
   };
+
+  template<class Archive>
+  void serialize(Archive & archive,
+                 GraphStatistic & m)
+  {
+    archive(m.valid, m.cyclic, m.rootedTree, m.nodes, m.avgFanOut, m.maxFanOut, m.maxDepth, m.dfsVisitRatio);
+  }
 
   class Init
   {
@@ -223,8 +268,6 @@ namespace annis
   };
 
 } // end namespace annis
-
-
 
 
 
@@ -276,7 +319,6 @@ inline void serialize(
   ar & t.ns;
 }
 
-
 template<class Archive>
 inline void serialize(
     Archive & ar,
@@ -287,6 +329,13 @@ inline void serialize(
   ar & t.anno_ns;
   ar & t.anno_name;
   ar & t.node;
+}
+
+template<class Archive>
+void serialize(Archive & archive,
+               annis::NodeAnnotationKey & t)
+{
+  archive(t.anno_ns, t.anno_name, t.node);
 }
 
 template<class Archive>

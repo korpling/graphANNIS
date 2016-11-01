@@ -13,17 +13,13 @@
 
 #include <cmath>
 #include <fstream>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/set.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/forward_list.hpp>
-#include <boost/serialization/vector.hpp>
 #include <random>
 
-#include "annis/annosearch/annotationsearch.h"
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
 
-#include <annis/serializers.h>
+#include "annis/annosearch/annotationsearch.h"
 
 #include <annis/util/size_estimator.h>
 
@@ -57,84 +53,6 @@ void NodeAnnoStorage::addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKe
 
   nodeAnnoKeys.insert(annoKeyList.begin(), annoKeyList.end());
 
-}
-
-bool NodeAnnoStorage::load(std::string dirPath)
-{
-  std::ifstream in;
-  in.open(dirPath + "/nodeAnnotations.archive");
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaNodeAnnotations(in);
-    iaNodeAnnotations >> nodeAnnotations;
-    in.close();
-  }
-
-  in.open(dirPath + "/inverseNodeAnnotations.archive");
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaInverseNodeAnnotations(in);
-    iaInverseNodeAnnotations >> inverseNodeAnnotations;
-    in.close();
-  }
-
-  in.open(dirPath + "/nodeAnnoKeys.archive");
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaNodeAnnoKeys(in);
-    iaNodeAnnoKeys >> nodeAnnoKeys;
-    in.close();
-  }
-
-  in.open(dirPath + "/histogramBounds.archive");
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaHistogramBounds(in);
-    iaHistogramBounds >> histogramBounds;
-    in.close();
-  }
-  
-  in.open(dirPath + "/nodeAnnotationKeyCount.archive");
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaNodeAnnotationKeyCount(in);
-    iaNodeAnnotationKeyCount >> nodeAnnotationKeyCount;
-    in.close();
-  }
-
-  return true;
-}
-
-bool NodeAnnoStorage::save(std::string dirPath)
-{
-  std::ofstream out;
-
-  out.open(dirPath + "/nodeAnnotations.archive");
-  boost::archive::binary_oarchive oaNodeAnnotations(out);
-  oaNodeAnnotations << nodeAnnotations;
-  out.close();
-
-  out.open(dirPath + "/inverseNodeAnnotations.archive");
-  boost::archive::binary_oarchive oaIiverseNodeAnnotations(out);
-  oaIiverseNodeAnnotations << inverseNodeAnnotations;
-  out.close();
-
-  out.open(dirPath + "/nodeAnnoKeys.archive");
-  boost::archive::binary_oarchive oaNodeAnnoKeys(out);
-  oaNodeAnnoKeys << nodeAnnoKeys;
-  out.close();
-  
-  out.open(dirPath + "/histogramBounds.archive");
-  boost::archive::binary_oarchive oaHistogramBounds(out);
-  oaHistogramBounds << histogramBounds;
-  out.close();
-  
-  out.open(dirPath + "/nodeAnnotationKeyCount.archive");
-  boost::archive::binary_oarchive oaNodeAnnotationKeyCount(out);
-  oaNodeAnnotationKeyCount << nodeAnnotationKeyCount;
-  out.close();
-
-  return true;
 }
 
 void NodeAnnoStorage::clear()

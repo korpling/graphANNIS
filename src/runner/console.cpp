@@ -139,7 +139,10 @@ void Console::load(const std::vector<std::string> &args)
   if(args.size() > 0)
   {
     std::cout << "Loading from " << args[0] << std::endl;
-    db  = dbCache.get(args[0], args.size() > 1 && args[1] == "preload");
+    auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
+    db = dbCache.get(args[0], args.size() > 1 && args[1] == "preload");
+    auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+    std::cout << "Loaded in " << (endTime - startTime) << " ms" << std::endl;
   }
   else
   {

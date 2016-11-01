@@ -6,6 +6,8 @@
 #include <vector>
 #include <memory>
 
+#include <cereal/types/polymorphic.hpp>
+
 #include <annis/types.h>
 #include <annis/iterators.h>
 #include <annis/stringstorage.h>
@@ -47,8 +49,6 @@ public:
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const = 0;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const = 0;
 
-  virtual bool load(std::string dirPath);
-  virtual bool save(std::string dirPath);
 
   virtual size_t numberOfEdges() const = 0;
   virtual size_t numberOfEdgeAnnotations() const = 0;
@@ -61,6 +61,12 @@ public:
   virtual void calculateStatistics() {}
 
   virtual size_t estimateMemorySize() = 0;
+
+  template<class Archive>
+  void serialize(Archive & archive)
+  {
+    archive(stat);
+  }
 
 protected:
   GraphStatistic stat;
@@ -76,6 +82,13 @@ public:
   virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;
 
   virtual void calculateIndex() {}
+
+  template<class Archive>
+  void serialize(Archive & archive)
+  {
+    archive(cereal::base_class<ReadableGraphStorage>(this));
+  }
+
 };
 
 

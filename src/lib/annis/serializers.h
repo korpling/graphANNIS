@@ -1,266 +1,226 @@
 #pragma once
 
+#include <list>
+
+#include <cereal/cereal.hpp>
+
+#include <cereal/types/set.hpp>
+
 #include <google/btree_map.h>
 #include <google/btree_set.h>
-
-
 #include <boost/container/flat_map.hpp>
-#include <boost/container/flat_set.hpp>
-#include <boost/container/map.hpp>
-#include <boost/container/set.hpp>
 
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/set.hpp>
-#include <boost/serialization/list.hpp>
 
-namespace boost{
-namespace serialization{
-
-////////////////////
-/// Google BTree ///
-////////////////////
-
-// map (based on STL)
-
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void save(Archive & ar, const btree::btree_map<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */)
+namespace cereal
 {
-  boost::serialization::stl::save_collection<Archive, btree::btree_map<Key, Type, Compare, Allocator> >(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void load(Archive & ar, btree::btree_map<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */){
-  load_map_collection(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void serialize(Archive & ar, btree::btree_map<Key, Type, Compare, Allocator> &t, const unsigned int file_version){
-  boost::serialization::split_free(ar, t, file_version);
-}
-
-// multimap (based on STL)
-
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void save(Archive & ar, const btree::btree_multimap<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */)
-{
-  boost::serialization::stl::save_collection<Archive, btree::btree_multimap<Key, Type, Compare, Allocator> >(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void load(Archive & ar, btree::btree_multimap<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */){
-  load_map_collection(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void serialize(Archive & ar, btree::btree_multimap<Key, Type, Compare, Allocator> &t, const unsigned int file_version){
-  boost::serialization::split_free(ar, t, file_version);
-}
-
-//  set (based on STL)
-template<class Archive, class Key, class Compare >
-inline void save(Archive & ar, const btree::btree_set<Key, Compare> &t, const unsigned int /* file_version */){
-  boost::serialization::stl::save_collection<Archive, btree::btree_set<Key, Compare>>(ar, t);
-}
-template<class Archive, class Key, class Compare >
-inline void load(Archive & ar, btree::btree_set<Key, Compare> &t, const unsigned int /* file_version */){
-  load_set_collection(ar, t);
-}
-
-template<class Archive, class Type, class Key, class Compare >
-inline void serialize(Archive & ar, btree::btree_set<Key, Type, Compare> &t, const unsigned int file_version){
-  boost::serialization::split_free(ar, t, file_version);
-}
+  namespace  set_detail {
 
 
-/////////////
-/// Boost ///
-/////////////
+    //! @internal
+    template <class Archive, class SetT> inline
+    void load_noemplacehint( Archive & ar, SetT & set )
+    {
+      size_type size;
+      ar( make_size_tag( size ) );
 
+      set.clear();
 
-// flat map (based on STL)
+      auto hint = set.begin();
+      for( size_type i = 0; i < size; ++i )
+      {
+        typename SetT::key_type key;
 
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void save(Archive & ar, const boost::container::flat_map<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */)
-{
-  boost::serialization::stl::save_collection<Archive,boost::container::flat_map<Key, Type, Compare, Allocator> >(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void load(Archive & ar, boost::container::flat_map<Key, Type, Compare, Allocator> &s, const unsigned int /* file_version */){
-
-  // This is an adaption of the load_map_collection() function with a sorted buffer
-  // The stored map is already sorted and unique and we can use this to save
-  // search time when inserting the elments to the flat map.
-
-  using type=typename container::flat_map<Key, Type, Compare, Allocator>::value_type;
-
-  s.clear();
-  const boost::archive::library_version_type library_version(
-      ar.get_library_version()
-  );
-  // retrieve number of elements
-  item_version_type item_version(0);
-  collection_size_type count;
-  ar >> BOOST_SERIALIZATION_NVP(count);
-  if(boost::archive::library_version_type(3) < library_version){
-      ar >> BOOST_SERIALIZATION_NVP(item_version);
+        ar( key );
+        hint = set.insert( hint, std::move( key ) );
+      }
+    }
   }
 
-  std::list<type> buffer;
+  /**
+   * Save for BTree Maps (which does not have emplace_hint)
+   */
+  template <class Archive, typename KeyType, typename ValueType>
+  void save( Archive & ar, btree::btree_map<KeyType, ValueType> const & map )
+  {
+    ar( make_size_tag( static_cast<size_type>(map.size()) ) );
 
-  while(count-- > 0){
+    for( const auto & i : map )
+      ar( make_map_item(i.first, i.second) );
+  }
 
-      detail::stack_construct<Archive, type> t(ar, item_version);
-      // borland fails silently w/o full namespace
-      ar >> boost::serialization::make_nvp("item", t.reference());
+  /**
+   * Load for BTree Maps (which does not have emplace_hint)
+   */
+  template <class Archive, typename KeyType, typename ValueType>
+  void load( Archive & ar, btree::btree_map<KeyType, ValueType> & map )
+  {
+    size_type size;
+    ar( make_size_tag( size ) );
 
-      buffer.push_back(t.reference());
+    map.clear();
+
+    auto hint = map.begin();
+    for( size_t i = 0; i < size; ++i )
+    {
+      typename btree::btree_map<KeyType, ValueType>::key_type key;
+      typename btree::btree_map<KeyType, ValueType>::mapped_type value;
+
+      ar( make_map_item(key, value) );
+      hint = map.insert( hint, std::make_pair(std::move(key), std::move(value)) );
+    }
+  }
+
+  /**
+   * Save for BTree Multimaps (which does not have emplace_hint)
+   */
+  template <class Archive, typename KeyType, typename ValueType>
+  void save( Archive & ar, btree::btree_multimap<KeyType, ValueType> const & map )
+  {
+    ar( make_size_tag( static_cast<size_type>(map.size()) ) );
+
+    for( const auto & i : map )
+      ar( make_map_item(i.first, i.second) );
+  }
+
+  /**
+   * Load for BTree Multimaps (which does not have emplace_hint)
+   */
+  template <class Archive, typename KeyType, typename ValueType>
+  void load( Archive & ar, btree::btree_multimap<KeyType, ValueType> & map )
+  {
+    size_type size;
+    ar( make_size_tag( size ) );
+
+    map.clear();
+
+    auto hint = map.begin();
+    for( size_t i = 0; i < size; ++i )
+    {
+      typename btree::btree_multimap<KeyType, ValueType>::key_type key;
+      typename btree::btree_multimap<KeyType, ValueType>::mapped_type value;
+
+      ar( make_map_item(key, value) );
+      hint = map.insert( hint, std::make_pair(std::move(key), std::move(value)) );
+    }
+  }
+
+  //! Saving for boost::container::flat_set
+  template <class Archive, class K, class C, class A> inline
+  void CEREAL_SAVE_FUNCTION_NAME( Archive & ar, boost::container::flat_set<K, C, A> const & set )
+  {
+    set_detail::save( ar, set );
+  }
+
+  //! Loading for boost::container::flat_set
+  template <class Archive, class K, class C, class A> inline
+  void CEREAL_LOAD_FUNCTION_NAME( Archive & ar, boost::container::flat_set<K, C, A> & set )
+  {
+    set_detail::load( ar, set );
+  }
+
+  //! Saving for boost::container::flat_multiset
+  template <class Archive, class K, class C, class A> inline
+  void CEREAL_SAVE_FUNCTION_NAME( Archive & ar, boost::container::flat_multiset<K, C, A> const & multiset )
+  {
+    set_detail::save( ar, multiset );
+  }
+
+  //! Loading for boost::container::flat_multiset
+  template <class Archive, class K, class C, class A> inline
+  void CEREAL_LOAD_FUNCTION_NAME( Archive & ar, boost::container::flat_multiset<K, C, A> & multiset )
+  {
+    set_detail::load( ar, multiset );
+  }
+
+  //! Saving for btree::btree_set
+  template <class Archive, class K, class C, class A> inline
+  void CEREAL_SAVE_FUNCTION_NAME( Archive & ar, btree::btree_set<K, C, A> const & set )
+  {
+    set_detail::save( ar, set );
+  }
+
+  //! Loading for btree::btree_set
+  template <class Archive, class K, class C, class A> inline
+  void CEREAL_LOAD_FUNCTION_NAME( Archive & ar,btree::btree_set<K, C, A> & set )
+  {
+    set_detail::load_noemplacehint( ar, set );
+  }
+
+
+  /**
+   * Specialized Load Boost Container Flat Map.
+   */
+  template <class Archive, typename KeyType, typename ValueType>
+  void load( Archive & ar, boost::container::flat_map<KeyType, ValueType> & map )
+  {
+    // This is an adaption of the original load function with a sorted buffer.
+    // The stored map is already sorted and unique and  we can use this to save
+    // search time when inserting the elments to the flat map.
+
+    using type=typename boost::container::flat_map<KeyType, ValueType>::value_type;
+
+    size_type count;
+    ar( make_size_tag( count ) );
+
+    map.clear();
+
+    std::list<std::pair<KeyType, ValueType>> buffer;
+
+    while(count-- > 0){
+
+      KeyType key;
+      ValueType value;
+
+      ar( make_map_item(key, value) );
+
+      buffer.push_back({key, value});
 
       if(buffer.size() >= 1000000 || count == 0)
       {
-        s.insert(container::ordered_unique_range, buffer.begin(), buffer.end());
+        map.insert(boost::container::ordered_unique_range, buffer.begin(), buffer.end());
         buffer.clear();
       }
+    }
+
+    map.shrink_to_fit();
   }
 
-  s.shrink_to_fit();
+  /**
+   * Specialized Load Boost Container Flat MultiMap.
+   */
+  template <class Archive, typename KeyType, typename ValueType>
+  void load( Archive & ar, boost::container::flat_multimap<KeyType, ValueType> & map )
+  {
+    // This is an adaption of the original load function with a sorted buffer.
+    // The stored multimap is already sorted and  we can use this to save
+    // search time when inserting the elments to the flat multimap.
 
-}
+    using type=typename boost::container::flat_multimap<KeyType, ValueType>::value_type;
 
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void serialize(Archive & ar,boost::container::flat_map<Key, Type, Compare, Allocator> &t, const unsigned int file_version){
-  boost::serialization::split_free(ar, t, file_version);
-}
+    size_type count;
+    ar( make_size_tag( count ) );
 
-// flat multimap (based on STL)
+    map.clear();
 
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void save(Archive & ar, const boost::container::flat_multimap<Key, Type, Compare, Allocator> &t, const unsigned int /* file_version */)
-{
-  boost::serialization::stl::save_collection<Archive,boost::container::flat_multimap<Key, Type, Compare, Allocator> >(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void load(Archive & ar, boost::container::flat_multimap<Key, Type, Compare, Allocator> &s, const unsigned int /* file_version */ ){
+    std::list<std::pair<KeyType, ValueType>> buffer;
 
-  // This is an adaption of the load_map_collection() function with a sorted buffer
-  // The stored multimap is already sorted and  we can use this to save
-  // search time when inserting the elments to the flat multimap.
+    while(count-- > 0){
 
-  using type=typename container::flat_map<Key, Type, Compare, Allocator>::value_type;
+      KeyType key;
+      ValueType value;
 
-  s.clear();
-  const boost::archive::library_version_type library_version(
-      ar.get_library_version()
-  );
-  // retrieve number of elements
-  item_version_type item_version(0);
-  collection_size_type count;
-  ar >> BOOST_SERIALIZATION_NVP(count);
-  if(boost::archive::library_version_type(3) < library_version){
-      ar >> BOOST_SERIALIZATION_NVP(item_version);
-  }
+      ar( make_map_item(key, value) );
 
-  std::list<type> buffer;
-
-  while(count-- > 0){
-
-      detail::stack_construct<Archive, type> t(ar, item_version);
-      // borland fails silently w/o full namespace
-      ar >> boost::serialization::make_nvp("item", t.reference());
-
-      buffer.push_back(t.reference());
+      buffer.push_back({key, value});
 
       if(buffer.size() >= 1000000 || count == 0)
       {
-        s.insert(container::ordered_range, buffer.begin(), buffer.end());
+        map.insert(boost::container::ordered_range, buffer.begin(), buffer.end());
         buffer.clear();
       }
+    }
+
+    map.shrink_to_fit();
   }
 
-  s.shrink_to_fit();
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator >
-inline void serialize(Archive & ar,boost::container::flat_multimap<Key, Type, Compare, Allocator> &t, const unsigned int file_version){
-  boost::serialization::split_free(ar, t, file_version);
-}
-
-// flat set (based on STL)
-template<class Archive, class Key, class Compare, class Allocator >
-inline void save(Archive & ar, const boost::container::flat_set<Key, Compare, Allocator> &t, const unsigned int /* file_version */){
-  boost::serialization::stl::save_collection<Archive, boost::container::flat_set<Key, Compare, Allocator>>(ar, t);
-}
-template<class Archive, class Key, class Compare, class Allocator >
-inline void load(Archive & ar, boost::container::flat_set<Key, Compare, Allocator> &s, const unsigned int /* file_version */){
-
-  // This is an adaption of the load_set_collection() function with a sorted buffer
-  // The stored set is already sorted and unique so we can use this to save
-  // search time when inserting the elments to the flat multimap.
-
-  using type=typename container::flat_set<Key, Compare, Allocator>::value_type;
-
-  s.clear();
-  const boost::archive::library_version_type library_version(
-      ar.get_library_version()
-  );
-  // retrieve number of elements
-  item_version_type item_version(0);
-  collection_size_type count;
-  ar >> BOOST_SERIALIZATION_NVP(count);
-  if(boost::archive::library_version_type(3) < library_version){
-      ar >> BOOST_SERIALIZATION_NVP(item_version);
-  }
-
-  std::list<type> buffer;
-
-  while(count-- > 0){
-
-      detail::stack_construct<Archive, type> t(ar, item_version);
-      // borland fails silently w/o full namespace
-      ar >> boost::serialization::make_nvp("item", t.reference());
-
-      buffer.push_back(t.reference());
-
-      if(buffer.size() >= 1000000 || count == 0)
-      {
-        s.insert(container::ordered_unique_range, buffer.begin(), buffer.end());
-        buffer.clear();
-      }
-  }
-
-  s.shrink_to_fit();
-}
-// split non-intrusive serialization function member into separate
-// non intrusive save/load member functions
-template<class Archive, class Key, class Compare, class Allocator >
-inline void serialize( Archive & ar, boost::container::flat_set<Key, Compare, Allocator> & t,const unsigned int file_version){
-  boost::serialization::split_free(ar, t, file_version);
-}
-
-// boost map (based on STL)
-
-template<class Archive, class Type, class Key, class Compare, class Allocator, class MapOptions >
-inline void save(Archive & ar, const boost::container::map<Key, Type, Compare, Allocator, MapOptions> &t, const unsigned int /* file_version */)
-{
-  boost::serialization::stl::save_collection<Archive,boost::container::map<Key, Type, Compare, Allocator, MapOptions> >(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator, class MapOptions >
-inline void load(Archive & ar, boost::container::map<Key, Type, Compare, Allocator, MapOptions> &t, const unsigned int /* file_version */){
-  load_map_collection(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator, class MapOptions >
-inline void serialize(Archive & ar,boost::container::map<Key, Type, Compare, Allocator, MapOptions> &t, const unsigned int file_version){
-  boost::serialization::split_free(ar, t, file_version);
-}
-
-// boost multimap (based on STL)
-
-template<class Archive, class Type, class Key, class Compare, class Allocator, class MapOptions >
-inline void save(Archive & ar, const boost::container::multimap<Key, Type, Compare, Allocator, MapOptions> &t, const unsigned int /* file_version */)
-{
-  boost::serialization::stl::save_collection<Archive,boost::container::multimap<Key, Type, Compare, Allocator, MapOptions> >(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator, class MapOptions >
-inline void load(Archive & ar, boost::container::multimap<Key, Type, Compare, Allocator, MapOptions> &t, const unsigned int /* file_version */){
-  load_map_collection(ar, t);
-}
-template<class Archive, class Type, class Key, class Compare, class Allocator, class MapOptions >
-inline void serialize(Archive & ar,boost::container::multimap<Key, Type, Compare, Allocator, MapOptions> &t, const unsigned int file_version){
-  boost::serialization::split_free(ar, t, file_version);
-}
-
-}}
+} // namespace cereal

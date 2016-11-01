@@ -5,6 +5,11 @@
 #include <map>
 #include <set>
 
+#include <cereal/types/string.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <annis/serializers.h>
+
+
 #include <google/btree_map.h>
 
 namespace annis
@@ -49,13 +54,17 @@ public:
   std::uint32_t add(const std::string& str);
 
   void clear();
-  bool load(const std::string& dirPath);
-  bool save(const std::string &dirPath);
+
   size_t size() {return stringStorageByID.size();}
   double avgLength();
 
   size_t estimateMemorySize();
 
+  template<class Archive>
+  void serialize(Archive & archive)
+  {
+    archive(stringStorageByID, stringStorageByValue);
+  }
 
 private:
   std::unordered_map<std::uint32_t, std::string> stringStorageByID;

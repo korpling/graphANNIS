@@ -12,9 +12,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/set.hpp>
 
 #include <humblelogging/api.h>
 
@@ -25,6 +22,8 @@
 #include <annis/nodeannostorage.h>
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/graphstorageregistry.h>
+
+#include <cereal/archives/binary.hpp>
 
 HUMBLE_LOGGER(logger, "annis4");
 
@@ -42,9 +41,12 @@ bool DB::load(string dirPath, bool preloadComponents)
   clear();
   addDefaultStrings();
 
-  strings.load(dirPath);
-
-  nodeAnnos.load(dirPath);
+  std::ifstream is(dirPath + "/nodes.cereal", std::ios::binary);
+  if(is.is_open())
+  {
+    cereal::BinaryInputArchive archive(is);
+    archive(strings, nodeAnnos);
+  }
 
   edges.load(dirPath, preloadComponents);
 
@@ -57,8 +59,10 @@ bool DB::save(string dirPath)
 
   boost::filesystem::create_directories(dirPath);
 
-  strings.save(dirPath);
-  nodeAnnos.save(dirPath);
+  std::ofstream os(dirPath + "/nodes.cereal", std::ios::binary);
+  cereal::BinaryOutputArchive archive( os );
+  archive(strings, nodeAnnos);
+
   edges.save(dirPath);
 
   // TODO: return false on failure

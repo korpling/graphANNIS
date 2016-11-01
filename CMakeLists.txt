@@ -36,7 +36,7 @@ ENDIF()
 
 
 find_package(ICU 4.4 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system filesystem serialization thread)
+find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package (Threads REQUIRED)
 
 # write found packages to property file which is used by maven
@@ -52,11 +52,12 @@ include_directories(
 
 include_directories(
   SYSTEM
-  "ext/cpp-btree-1.0.1/"
+  "ext/cpp-btree-1.0.1"
   ${HumbleLogging_INCLUDE_DIRS}
   ${ICU_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIRS}
+  "ext/cereal-1.2.1/include"
 )
 
 # make sure QtCreator shows the include files

@@ -37,7 +37,6 @@ private:
   bool ensureComponentIsLoaded(const Component& c);
 
   std::string debugComponentString(const Component& c);
-  std::string getImplNameForPath(std::string directory);
 
   std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
                        const std::string& name);

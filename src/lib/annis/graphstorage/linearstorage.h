@@ -9,13 +9,10 @@
 #include <set>
 #include <limits>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/vector.hpp>
-
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/vector.hpp>
 #include <annis/serializers.h>
+
 #include <annis/util/size_estimator.h>
 
 #include <boost/format.hpp>
@@ -112,11 +109,8 @@ public:
 
 
 public:
-  LinearStorage(const Component& component)
-    : component(component)
-  {
 
-  }
+  LinearStorage() {}
 
   virtual void clear() override
   {
@@ -241,61 +235,13 @@ public:
     return -1;
   }
 
-  virtual bool load(std::string dirPath) override
+  template<class Archive>
+  void serialize(Archive & archive)
   {
-    bool result = ReadableGraphStorage::load(dirPath);
-
-    result = result && edgeAnno.load(dirPath);
-    std::ifstream in;
-
-
-    in.open(dirPath + "/node2pos.archive");
-    if(in.is_open())
-    {
-      boost::archive::binary_iarchive iaNode2Pos(in);
-      iaNode2Pos >> node2pos;
-      in.close();
-    }
-    else
-    {
-      result = false;
-    }
-
-    in.open(dirPath + "/nodeChains.archive", std::ios::binary);
-    if(in.is_open())
-    {
-      boost::archive::binary_iarchive ia(in);
-      ia >> nodeChains;
-      in.close();
-    }
-    else
-    {
-      result = false;
-    }
-
-    return result;
+    archive(cereal::base_class<ReadableGraphStorage>(this),
+            edgeAnno, node2pos, nodeChains);
   }
 
-  virtual bool save(std::string dirPath) override
-  {
-    bool result = ReadableGraphStorage::save(dirPath);
-
-    result = result && edgeAnno.save(dirPath);
-
-    std::ofstream out;
-
-    out.open(dirPath + "/node2pos.archive");
-    boost::archive::binary_oarchive oaNode2Pos(out);
-    oaNode2Pos << node2pos;
-    out.close();
-
-    out.open(dirPath + "/nodeChains.archive", std::ios::binary);
-    boost::archive::binary_oarchive oaNodeChains(out);
-    oaNodeChains << nodeChains;
-    out.close();
-
-    return result;
-  }
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const override
   {
@@ -347,7 +293,7 @@ public:
   }
 
 private:
-  const Component& component;
+
   map_t<nodeid_t, RelativePosition<pos_t>> node2pos;
   map_t<nodeid_t, std::vector<nodeid_t> > nodeChains;
 
@@ -356,3 +302,11 @@ private:
 
 } // end namespace annis
 
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/archives/json.hpp>
+
+CEREAL_REGISTER_TYPE(annis::LinearStorage<uint32_t>)
+CEREAL_REGISTER_TYPE(annis::LinearStorage<uint16_t>)
+CEREAL_REGISTER_TYPE(annis::LinearStorage<uint8_t>)

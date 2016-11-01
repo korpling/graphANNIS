@@ -2,11 +2,6 @@
 
 #include <annis/util/size_estimator.h>
 
-#include <annis/serializers.h>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-
-
 #include <annis/util/dfs.h>
 #include <annis/annosearch/exactannokeysearch.h>
 
@@ -18,10 +13,6 @@
 using namespace annis;
 using namespace std;
 
-AdjacencyListStorage::AdjacencyListStorage(const Component &component)
- : component(component)
-{
-}
 
 void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
 {
@@ -147,44 +138,6 @@ std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) cons
   return result;
 }
 
-bool AdjacencyListStorage::load(std::string dirPath)
-{
-  clear();
-
-  ReadableGraphStorage::load(dirPath);
-
-  ifstream in;
-
-  in.open(dirPath + "/edges.archive");
-  if(in.is_open())
-  {
-    boost::archive::binary_iarchive iaEdges(in);
-    iaEdges >> edges;
-    in.close();
-  }
-
-
-  edgeAnnos.load(dirPath);
-
-  return true;
-
-}
-
-bool AdjacencyListStorage::save(std::string dirPath)
-{
-  ReadableGraphStorage::save(dirPath);
-
-  ofstream out;
-
-  out.open(dirPath + "/edges.archive");
-  boost::archive::binary_oarchive oaEdges(out);
-  oaEdges << edges;
-  out.close();
-
-  edgeAnnos.save(dirPath);
-
-  return true;
-}
 
 size_t AdjacencyListStorage::numberOfEdges() const
 {
