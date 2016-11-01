@@ -192,7 +192,7 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
             if(is.is_open())
             {
               cereal::BinaryInputArchive ar(is);
-              ar(*gsEmptyName);
+              ar(gsEmptyName);
             }
           }
           else
@@ -227,7 +227,7 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
               if(is.is_open())
               {
                 cereal::BinaryInputArchive ar(is);
-                ar(*gsNamed);
+                ar(gsNamed);
               }
             }
             else
@@ -269,7 +269,7 @@ bool GraphStorageHolder::save(const std::string& dirPath)
     auto outputFile = finalPath + "/component.cereal";
     std::ofstream os(outputFile, std::ios::binary);
     cereal::BinaryOutputArchive ar(os);
-    ar(*(it->second));
+    ar(it->second);
 
     std::ofstream outIdent(finalPath + "/implementation.cfg");
     // put an identification file to the output directory that contains the name of the graph storage implementation
@@ -296,7 +296,7 @@ bool GraphStorageHolder::ensureComponentIsLoaded(const Component &c)
       if(is.is_open() && itGS->second)
       {
         cereal::BinaryInputArchive ar(is);
-        ar(*(itGS->second));
+        ar(itGS->second);
         notLoadedLocations.erase(itLocation);
 
         return true;
@@ -345,7 +345,7 @@ std::shared_ptr<WriteableGraphStorage> GraphStorageHolder::createWritableGraphSt
     }
   }
 
-  std::shared_ptr<WriteableGraphStorage> gs = std::shared_ptr<WriteableGraphStorage>(new AdjacencyListStorage(c));
+  std::shared_ptr<WriteableGraphStorage> gs = std::shared_ptr<WriteableGraphStorage>(new AdjacencyListStorage());
   // register the used implementation
   container[c] = gs;
   return gs;

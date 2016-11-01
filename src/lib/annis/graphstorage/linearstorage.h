@@ -9,6 +9,7 @@
 #include <set>
 #include <limits>
 
+#include <cereal/types/polymorphic.hpp>
 #include <cereal/types/vector.hpp>
 #include <annis/serializers_cereal.h>
 
@@ -108,11 +109,8 @@ public:
 
 
 public:
-  LinearStorage(const Component& component)
-    : component(component)
-  {
 
-  }
+  LinearStorage() {}
 
   virtual void clear() override
   {
@@ -240,8 +238,8 @@ public:
   template<class Archive>
   void serialize(Archive & archive)
   {
-    ReadableGraphStorage::serialize(archive);
-    archive(edgeAnno, node2pos, nodeChains);
+    archive(cereal::base_class<ReadableGraphStorage>(this),
+            edgeAnno, node2pos, nodeChains);
   }
 
 
@@ -295,7 +293,7 @@ public:
   }
 
 private:
-  const Component& component;
+
   map_t<nodeid_t, RelativePosition<pos_t>> node2pos;
   map_t<nodeid_t, std::vector<nodeid_t> > nodeChains;
 
@@ -304,3 +302,11 @@ private:
 
 } // end namespace annis
 
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/archives/json.hpp>
+
+CEREAL_REGISTER_TYPE(annis::LinearStorage<uint32_t>)
+CEREAL_REGISTER_TYPE(annis::LinearStorage<uint16_t>)
+CEREAL_REGISTER_TYPE(annis::LinearStorage<uint8_t>)

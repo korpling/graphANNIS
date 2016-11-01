@@ -6,6 +6,8 @@
 #include <vector>
 #include <memory>
 
+#include <cereal/types/polymorphic.hpp>
+
 #include <annis/types.h>
 #include <annis/iterators.h>
 #include <annis/stringstorage.h>
@@ -80,6 +82,13 @@ public:
   virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;
 
   virtual void calculateIndex() {}
+
+  template<class Archive>
+  void serialize(Archive & archive)
+  {
+    archive(cereal::base_class<ReadableGraphStorage>(this));
+  }
+
 };
 
 

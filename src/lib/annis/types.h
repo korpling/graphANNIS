@@ -24,14 +24,12 @@ namespace annis
     nodeid_t target;
   };
 
-
   template<class Archive>
   void serialize(Archive & archive,
                  Edge & m)
   {
     archive( m.source, m.target);
   }
-
 
   inline bool operator<(const struct Edge &a, const struct Edge &b)
   {
@@ -185,6 +183,14 @@ namespace annis
     pos_t pos;
   };
 
+  template<class Archive, typename pos_t>
+  void serialize(Archive & archive,
+                 RelativePosition<pos_t> & m)
+  {
+    archive(m.root, m.pos );
+  }
+
+
 
   /** combines a node ID and the matched annotation */
   struct Match
@@ -262,8 +268,6 @@ namespace annis
   };
 
 } // end namespace annis
-
-
 
 
 

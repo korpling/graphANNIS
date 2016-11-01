@@ -7,12 +7,35 @@
 #include <cereal/types/set.hpp>
 
 #include <google/btree_map.h>
+#include <google/btree_set.h>
 #include <boost/container/flat_map.hpp>
-
 
 
 namespace cereal
 {
+  namespace  set_detail {
+
+
+    //! @internal
+    template <class Archive, class SetT> inline
+    void load_noemplacehint( Archive & ar, SetT & set )
+    {
+      size_type size;
+      ar( make_size_tag( size ) );
+
+      set.clear();
+
+      auto hint = set.begin();
+      for( size_type i = 0; i < size; ++i )
+      {
+        typename SetT::key_type key;
+
+        ar( key );
+        hint = set.insert( hint, std::move( key ) );
+      }
+    }
+  }
+
   /**
    * Save for BTree Maps (which does not have emplace_hint)
    */
@@ -47,6 +70,40 @@ namespace cereal
     }
   }
 
+  /**
+   * Save for BTree Multimaps (which does not have emplace_hint)
+   */
+  template <class Archive, typename KeyType, typename ValueType>
+  void save( Archive & ar, btree::btree_multimap<KeyType, ValueType> const & map )
+  {
+    ar( make_size_tag( static_cast<size_type>(map.size()) ) );
+
+    for( const auto & i : map )
+      ar( make_map_item(i.first, i.second) );
+  }
+
+  /**
+   * Load for BTree Multimaps (which does not have emplace_hint)
+   */
+  template <class Archive, typename KeyType, typename ValueType>
+  void load( Archive & ar, btree::btree_multimap<KeyType, ValueType> & map )
+  {
+    size_type size;
+    ar( make_size_tag( size ) );
+
+    map.clear();
+
+    auto hint = map.begin();
+    for( size_t i = 0; i < size; ++i )
+    {
+      typename btree::btree_multimap<KeyType, ValueType>::key_type key;
+      typename btree::btree_multimap<KeyType, ValueType>::mapped_type value;
+
+      ar( make_map_item(key, value) );
+      hint = map.insert( hint, std::make_pair(std::move(key), std::move(value)) );
+    }
+  }
+
   //! Saving for boost::container::flat_set
   template <class Archive, class K, class C, class A> inline
   void CEREAL_SAVE_FUNCTION_NAME( Archive & ar, boost::container::flat_set<K, C, A> const & set )
@@ -74,6 +131,21 @@ namespace cereal
   {
     set_detail::load( ar, multiset );
   }
+
+  //! Saving for btree::btree_set
+  template <class Archive, class K, class C, class A> inline
+  void CEREAL_SAVE_FUNCTION_NAME( Archive & ar, btree::btree_set<K, C, A> const & set )
+  {
+    set_detail::save( ar, set );
+  }
+
+  //! Loading for btree::btree_set
+  template <class Archive, class K, class C, class A> inline
+  void CEREAL_LOAD_FUNCTION_NAME( Archive & ar,btree::btree_set<K, C, A> & set )
+  {
+    set_detail::load_noemplacehint( ar, set );
+  }
+
 
   /**
    * Specialized Load Boost Container Flat Map.

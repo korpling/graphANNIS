@@ -79,35 +79,35 @@ std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(s
 {
   if(name == linearP32)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new LinearP32(component));
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP32());
   }
   else if(name == linearP16)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new LinearP16(component));
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP16());
   }
   else if(name == linearP8)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new LinearP8(component));
+    return std::unique_ptr<ReadableGraphStorage>(new LinearP8());
   }
   else if(name == prepostorderO32L32)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO32L32(strings, component));
+    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO32L32());
   }
   else if(name == prepostorderO32L8)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO32L8(strings, component));
+    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO32L8());
   }
   else if(name == prepostorderO16L32)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO16L32(strings, component));
+    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO16L32());
   }
   else if(name == prepostorderO16L8)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO16L8(strings, component));
+    return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO16L8());
   }
   else if(name == fallback)
   {
-    return std::unique_ptr<ReadableGraphStorage>(new AdjacencyListStorage(component));
+    return std::unique_ptr<ReadableGraphStorage>(new AdjacencyListStorage());
   }
 
   return std::unique_ptr<ReadableGraphStorage>();

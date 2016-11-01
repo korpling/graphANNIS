@@ -14,11 +14,10 @@
 
 
 #include <fstream>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/map.hpp>
 
-#include <annis/serializers.h>
+#include <cereal/types/polymorphic.hpp>
+
+#include <annis/serializers_cereal.h>
 #include <annis/util/size_estimator.h>
 
 namespace annis
@@ -224,8 +223,7 @@ using NStack = std::stack<NodeStackEntry<order_t, level_t>, std::list<NodeStackE
 using PrePostSpec = PrePost<order_t, level_t>;
 
 public:
-  PrePostOrderStorage(StringStorage& strings, const Component& component)
-    : component(component)
+  PrePostOrderStorage()
   {
 
   }
@@ -238,8 +236,8 @@ public:
   template<class Archive>
   void serialize(Archive & archive)
   {
-    ReadableGraphStorage::serialize(archive);
-    archive(edgeAnno, node2order, order2node);
+    archive(cereal::base_class<ReadableGraphStorage>(this),
+            edgeAnno, node2order, order2node);
   }
 
   virtual void copy(const DB& db, const ReadableGraphStorage& orig) override
@@ -446,7 +444,6 @@ public:
   }
 
 private:
-  const Component& component;
   multimap_t<nodeid_t, PrePostSpec> node2order;
   map_t<PrePostSpec, nodeid_t> order2node;
   EdgeAnnotationStorage edgeAnno;
@@ -477,4 +474,14 @@ private:
 
 } // end namespace annis
 
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/archives/json.hpp>
+
+
+CEREAL_REGISTER_TYPE(annis::PrePostOrderStorage<uint32_t, int32_t>)
+CEREAL_REGISTER_TYPE(annis::PrePostOrderStorage<uint32_t, int8_t>)
+CEREAL_REGISTER_TYPE(annis::PrePostOrderStorage<uint16_t, int32_t>)
+CEREAL_REGISTER_TYPE(annis::PrePostOrderStorage<uint16_t, int8_t>)
 

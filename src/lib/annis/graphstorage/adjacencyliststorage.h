@@ -9,8 +9,12 @@
 #include <list>
 #include <set>
 #include <map>
+#include <sstream>
 
 #include <google/btree_set.h>
+
+#include <cereal/types/polymorphic.hpp>
+#include <annis/serializers_cereal.h>
 
 namespace annis
 {
@@ -22,7 +26,8 @@ public:
 
   template<typename Key> using set_t = btree::btree_set<Key>;
 
-  AdjacencyListStorage(const Component& component);
+
+  AdjacencyListStorage() {}
 
   virtual void copy(const DB& db, const ReadableGraphStorage& orig) override;
 
@@ -52,7 +57,6 @@ public:
 
   virtual size_t numberOfEdges() const override;
   virtual size_t numberOfEdgeAnnotations() const override;
-  const Component& getComponent() { return component;}
 
   virtual void calculateStatistics() override;
 
@@ -61,17 +65,26 @@ public:
   template<class Archive>
   void serialize(Archive & archive)
   {
-    ReadableGraphStorage::serialize(archive);
-    archive(edges, edgeAnnos);
+    archive(cereal::base_class<WriteableGraphStorage>(this),
+            edges, edgeAnnos);
   }
 
 private:
-  Component component;
 
   set_t<Edge> edges;
   EdgeAnnotationStorage edgeAnnos;
+
+private:
+  friend class cereal::access;
 
 };
 
 
 } // end namespace annis
+
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/archives/json.hpp>
+
+CEREAL_REGISTER_TYPE(annis::AdjacencyListStorage)

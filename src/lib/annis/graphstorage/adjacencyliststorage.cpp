@@ -18,10 +18,6 @@
 using namespace annis;
 using namespace std;
 
-AdjacencyListStorage::AdjacencyListStorage(const Component &component)
- : component(component)
-{
-}
 
 void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
 {
