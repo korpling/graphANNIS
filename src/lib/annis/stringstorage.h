@@ -7,7 +7,7 @@
 
 #include <cereal/types/string.hpp>
 #include <cereal/types/unordered_map.hpp>
-#include <annis/serializers_cereal.h>
+#include <annis/serializers.h>
 
 
 #include <google/btree_map.h>

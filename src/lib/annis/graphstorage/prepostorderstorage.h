@@ -17,7 +17,7 @@
 
 #include <cereal/types/polymorphic.hpp>
 
-#include <annis/serializers_cereal.h>
+#include <annis/serializers.h>
 #include <annis/util/size_estimator.h>
 
 namespace annis

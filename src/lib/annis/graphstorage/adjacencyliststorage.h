@@ -14,7 +14,7 @@
 #include <google/btree_set.h>
 
 #include <cereal/types/polymorphic.hpp>
-#include <annis/serializers_cereal.h>
+#include <annis/serializers.h>
 
 namespace annis
 {

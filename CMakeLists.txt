@@ -88,7 +88,7 @@ set(IncludeFiles
   src/lib/annis/dbcache.h
   src/lib/annis/api/search.h
   src/lib/annis/api/admin.h
-  src/lib/annis/serializers_cereal.h
+  src/lib/annis/serializers.h
   src/lib/annis/graphstorageregistry.h
   src/lib/annis/nodeannostorage.h
   src/lib/annis/util/helper.h

@@ -29,7 +29,7 @@
 
 #include <annis/types.h>
 #include <annis/stringstorage.h>
-#include <annis/serializers_cereal.h>
+#include <annis/serializers.h>
 
 #include "iterators.h"
 

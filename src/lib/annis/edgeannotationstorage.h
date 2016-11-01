@@ -4,7 +4,7 @@
 #include <vector>
 #include <google/btree_map.h>
 
-#include <annis/serializers_cereal.h>
+#include <annis/serializers.h>
 
 namespace annis
 {
