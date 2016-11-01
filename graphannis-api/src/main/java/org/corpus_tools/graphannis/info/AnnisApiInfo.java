@@ -11,7 +11,6 @@ import org.bytedeco.javacpp.tools.InfoMapper;
 @Properties(target="org.corpus_tools.graphannis.API",
     value={@Platform(
         include={
-          "annis/types.h",
           "annis/api/search.h", 
           "annis/api/admin.h"}, 
         link={"re2" ,"boost_system", "boost_filesystem", "humblelogging", "annis"}
