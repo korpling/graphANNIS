@@ -1,13 +1,8 @@
 #include <annis/edgeannotationstorage.h>
 
-#include <annis/serializers.h>
 #include <annis/util/size_estimator.h>
 
 #include <fstream>
-
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-
 
 using namespace annis;
 

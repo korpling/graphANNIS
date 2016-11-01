@@ -2,11 +2,6 @@
 
 #include <annis/util/size_estimator.h>
 
-#include <annis/serializers.h>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-
-
 #include <annis/util/dfs.h>
 #include <annis/annosearch/exactannokeysearch.h>
 

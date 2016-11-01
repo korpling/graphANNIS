@@ -137,8 +137,6 @@ namespace annis {
     std::int64_t guessMaxCountRegex(const std::string& ns, const std::string& name, const std::string& val) const;
     std::int64_t guessMaxCountRegex(const std::string& name, const std::string& val) const;
 
-    bool load(std::string dirPath);
-    bool save(std::string dirPath);
     void clear();
 
     size_t estimateMemorySize();
