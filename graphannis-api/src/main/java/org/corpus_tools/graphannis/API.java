@@ -161,4 +161,35 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
  // end namespace annis::api
 
 
+// Parsed from annis/api/graph.h
+
+// #pragma once
+
+// #include <string>
+// #include <memory>
+// #include <annis/db.h>
+
+@Namespace("annis::api") @NoOffset public static class Graph extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public Graph(Pointer p) { super(p); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public Graph(long size) { super((Pointer)null); allocateArray(size); }
+    private native void allocateArray(long size);
+    @Override public Graph position(long position) {
+        return (Graph)super.position(position);
+    }
+
+  public Graph() { super((Pointer)null); allocate(); }
+  private native void allocate();
+
+  public native void addNode(@StdString BytePointer name);
+  public native void addNode(@StdString String name);
+}
+
+
+
+
+
+
 }

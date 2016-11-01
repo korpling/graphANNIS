@@ -12,7 +12,8 @@ import org.bytedeco.javacpp.tools.InfoMapper;
     value={@Platform(
         include={
           "annis/api/search.h", 
-          "annis/api/admin.h"}, 
+          "annis/api/admin.h",
+          "annis/api/graph.h"}, 
         link={"re2" ,"boost_system", "boost_filesystem", "humblelogging", "annis"}
         ),
         @Platform(value = "windows",
