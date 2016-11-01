@@ -11,10 +11,10 @@ import org.bytedeco.javacpp.tools.InfoMapper;
 @Properties(target="org.corpus_tools.graphannis.API",
     value={@Platform(
         include={"annis/api/search.h", "annis/api/admin.h"}, 
-        link={"re2" ,"boost_system", "boost_filesystem", "boost_serialization", "humblelogging", "annis"}
+        link={"re2" ,"boost_system", "boost_filesystem", "humblelogging", "annis"}
         ),
         @Platform(value = "windows",
-		  link={"re2", "boost_system-vc140-mt-1_61", "boost_filesystem-vc140-mt-1_61", "boost_serialization-vc140-mt-1_61", "humblelogging", "annis"}
+		  link={"re2", "boost_system-vc140-mt-1_61", "boost_filesystem-vc140-mt-1_61", "humblelogging", "annis"}
 		)})
 public class AnnisApiInfo implements InfoMapper
 {
