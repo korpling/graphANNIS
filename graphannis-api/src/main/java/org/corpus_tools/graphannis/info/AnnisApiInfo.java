@@ -10,7 +10,10 @@ import org.bytedeco.javacpp.tools.InfoMapper;
 @Namespace("annis::api")
 @Properties(target="org.corpus_tools.graphannis.API",
     value={@Platform(
-        include={"annis/api/search.h", "annis/api/admin.h"}, 
+        include={
+          "annis/types.h",
+          "annis/api/search.h", 
+          "annis/api/admin.h"}, 
         link={"re2" ,"boost_system", "boost_filesystem", "humblelogging", "annis"}
         ),
         @Platform(value = "windows",
@@ -23,6 +26,10 @@ public class AnnisApiInfo implements InfoMapper
   public void map(InfoMap infoMap)
   {
 	  infoMap.put(new Info("std::vector<std::string>").pointerTypes("StringVector").define());
+    infoMap.put(new Info("annis::Init").skip());
+    infoMap.put(new Info("std::uint32_t").valueTypes("long"));
+    infoMap.put(new Info("uint32_t").valueTypes("long"));
+    infoMap.put(new Info("hash<annis::Annotation>").skip());
   }
 
 }
