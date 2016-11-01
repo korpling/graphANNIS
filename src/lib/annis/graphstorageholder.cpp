@@ -99,7 +99,10 @@ size_t GraphStorageHolder::estimateMemorySize() const
   size_t result = 0;
   for(std::pair<Component, std::shared_ptr<ReadableGraphStorage>> e : container)
   {
-    result += e.second->estimateMemorySize();
+    if(e.second)
+    {
+      result += e.second->estimateMemorySize();
+    }
   }
   return result;
 }
@@ -112,16 +115,15 @@ std::string GraphStorageHolder::info()
     const Component& c = it->first;
     const std::shared_ptr<ReadableGraphStorage> gs = it->second;
 
-
-    ss << "Component " << debugComponentString(c) << ": " << gs->numberOfEdges() << " edges and "
-       << gs->numberOfEdgeAnnotations() << " annotations" << std::endl;
-
-    if(notLoadedLocations.find(c) != notLoadedLocations.end())
+    if(!gs)
     {
-      ss << "(not loaded yet)" << std::endl;
+      ss << "Component " << debugComponentString(c) << std::endl << "(not loaded yet)" << std::endl;
     }
     else
     {
+      ss << "Component " << debugComponentString(c) << ": " << gs->numberOfEdges() << " edges and "
+         << gs->numberOfEdgeAnnotations() << " annotations" << std::endl;
+
       std::string implName = registry.getName(gs);
       if(!implName.empty())
       {
@@ -173,34 +175,32 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
       {
         const boost::filesystem::path layerPath = *itLayers;
 
-        std::string implName = getImplNameForPath(layerPath.string());
 
-        if(!implName.empty())
+
+        // try to load the component with the empty name
+        Component emptyNameComponent = {(ComponentType) componentType,
+            layerPath.filename().string(), ""};
+
+        std::shared_ptr<ReadableGraphStorage> gsEmptyName;
+
+        if(preloadComponents)
         {
-          // try to load the component with the empty name
-          Component emptyNameComponent = {(ComponentType) componentType,
-              layerPath.filename().string(), ""};
-
-          std::shared_ptr<ReadableGraphStorage> gsEmptyName = registry.createGraphStorage(implName, strings, emptyNameComponent);
-
-          if(preloadComponents)
+          HL_DEBUG(logger, (boost::format("loading component %1%")
+                           % debugComponentString(emptyNameComponent)).str());
+          auto inputFile = layerPath / "component.cereal";
+          std::ifstream is(inputFile.string(), std::ios::binary);
+          if(is.is_open())
           {
-            HL_DEBUG(logger, (boost::format("loading component %1%")
-                             % debugComponentString(emptyNameComponent)).str());
-            auto inputFile = layerPath / "component.cereal";
-            std::ifstream is(inputFile.string(), std::ios::binary);
-            if(is.is_open())
-            {
-              cereal::BinaryInputArchive ar(is);
-              ar(gsEmptyName);
-            }
+            cereal::BinaryInputArchive ar(is);
+            ar(gsEmptyName);
           }
-          else
-          {
-            notLoadedLocations.insert({emptyNameComponent, layerPath.string()});
-          }
-          container.insert({emptyNameComponent,gsEmptyName});
         }
+        else
+        {
+          notLoadedLocations.insert({emptyNameComponent, layerPath.string()});
+        }
+        container[emptyNameComponent] = gsEmptyName;
+
 
         // also load all named components
         boost::filesystem::directory_iterator itNamedComponents(layerPath);
@@ -210,14 +210,13 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
           if(boost::filesystem::is_directory(namedComponentPath))
           {
             // try to load the named component
-            implName = getImplNameForPath(namedComponentPath.string());
             Component namedComponent = {(ComponentType) componentType,
                                                            layerPath.filename().string(),
                                                            namedComponentPath.filename().string()
                                        };
 
 
-            std::shared_ptr<ReadableGraphStorage> gsNamed = registry.createGraphStorage(implName, strings, namedComponent);
+            std::shared_ptr<ReadableGraphStorage> gsNamed;
             if(preloadComponents)
             {
               HL_DEBUG(logger, (boost::format("loading component %1%")
@@ -234,7 +233,7 @@ bool GraphStorageHolder::load(std::string dirPath, bool preloadComponents)
             {
               notLoadedLocations.insert({namedComponent, namedComponentPath.string()});
             }
-            container.insert({namedComponent,gsNamed});
+            container[namedComponent] = gsNamed;
           }
           itNamedComponents++;
         } // end for each file/directory in layer directory
@@ -270,11 +269,6 @@ bool GraphStorageHolder::save(const std::string& dirPath)
     std::ofstream os(outputFile, std::ios::binary);
     cereal::BinaryOutputArchive ar(os);
     ar(it->second);
-
-    std::ofstream outIdent(finalPath + "/implementation.cfg");
-    // put an identification file to the output directory that contains the name of the graph storage implementation
-    outIdent << registry.getName(it->second) << std::endl;
-    outIdent.close();
   }
 
   // TODO: return false if failed.
@@ -293,7 +287,7 @@ bool GraphStorageHolder::ensureComponentIsLoaded(const Component &c)
       HL_DEBUG(logger, (boost::format("loading component %1%")
                        % debugComponentString(itLocation->first)).str());
       std::ifstream is(itLocation->second + "/component.cereal");
-      if(is.is_open() && itGS->second)
+      if(is.is_open())
       {
         cereal::BinaryInputArchive ar(is);
         ar(itGS->second);
@@ -314,19 +308,6 @@ std::string GraphStorageHolder::debugComponentString(const Component &c)
   return ss.str();
 
 }
-
-std::string GraphStorageHolder::getImplNameForPath(std::string directory)
-{
-  std::string result = "";
-  std::ifstream in(directory + "/implementation.cfg");
-  if(in.is_open())
-  {
-    in >> result;
-  }
-  in.close();
-  return result;
-}
-
 
 std::shared_ptr<WriteableGraphStorage> GraphStorageHolder::createWritableGraphStorage(ComponentType ctype, const std::string &layer, const std::string &name)
 {
