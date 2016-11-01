@@ -141,6 +141,11 @@ namespace annis {
 
     size_t estimateMemorySize();
 
+    nodeid_t nextFreeID() const
+    {
+      return nodeAnnotations.empty() ? 0 : (nodeAnnotations.rbegin()->first.node) + 1;
+    }
+
     virtual ~NodeAnnoStorage();
 
     template <class Archive>

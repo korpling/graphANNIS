@@ -88,6 +88,7 @@ set(IncludeFiles
   src/lib/annis/dbcache.h
   src/lib/annis/api/search.h
   src/lib/annis/api/admin.h
+  src/lib/annis/api/graph.h
   src/lib/annis/serializers.h
   src/lib/annis/graphstorageregistry.h
   src/lib/annis/nodeannostorage.h
@@ -127,6 +128,7 @@ set(SRC_LIST_LIB
   src/lib/annis/operators/abstractedgeoperator.cpp
   src/lib/annis/api/search.cpp
   src/lib/annis/api/admin.cpp
+  src/lib/annis/api/graph.cpp
   src/lib/annis/edgeannotationstorage.cpp
   src/lib/annis/query.cpp
   src/lib/annis/util/dfs.cpp
