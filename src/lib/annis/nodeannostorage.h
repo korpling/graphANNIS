@@ -67,6 +67,21 @@ namespace annis {
 
     void addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKey, uint32_t>> annos);
 
+    void deleteNodeAnotation(nodeid_t nodeID, AnnotationKey& anno)
+    {
+       auto it = nodeAnnotations.find({nodeID, anno.ns, anno.name});
+       if(it != nodeAnnotations.end())
+       {
+          Annotation oldAnno = {anno.name, anno.ns, it->second};
+          nodeAnnotations.erase(it);
+
+          // also delete the inverse annotation
+          inverseNodeAnnotations.erase(oldAnno);
+
+          // TODO: if there is no entry with this key left delete it as well
+       }
+    }
+
     inline std::list<Annotation> getNodeAnnotationsByID(const nodeid_t &id) const
     {
       using AnnoIt =  NodeAnnoMap_t::const_iterator;

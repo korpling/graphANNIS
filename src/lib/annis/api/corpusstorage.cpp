@@ -162,12 +162,22 @@ void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
                   {
                      nodeid_t newNodeID = nodeAnnos.nextFreeID();
                      Annotation newAnno =
-                     {db->getNamespaceStringID(), db->getNodeNameStringID(), strings.add(change.arg0)};
+                        {db->getNamespaceStringID(), db->getNodeNameStringID(), strings.add(change.arg0)};
                      nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
                   }
                }
                break;
             case GraphUpdate::delete_node:
+               {
+
+               }
+               break;
+            case GraphUpdate::add_label:
+               {
+
+               }
+               break;
+            case GraphUpdate::delete_label:
                {
 
                }
