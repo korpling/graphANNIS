@@ -9,6 +9,8 @@
 #include <vector>
 #include <list>
 
+#include <boost/optional.hpp>
+
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
 
@@ -43,6 +45,22 @@ public:
       result = strings.str(anno.second.val);
     }
     return result;
+  }
+
+  inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName)
+  {
+    std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
+    if(nodeNameID.first)
+    {
+      auto it = nodeAnnos.inverseNodeAnnotations.find(
+         {annisNodeNameStringID, annisNamespaceStringID, nodeNameID.second});
+
+      if(it != nodeAnnos.inverseNodeAnnotations.end())
+      {
+         return boost::optional<nodeid_t>(it->second);
+      }
+    }
+    return boost::optional<nodeid_t>();
   }
 
   inline std::string getNodeDocument(const nodeid_t &id) const

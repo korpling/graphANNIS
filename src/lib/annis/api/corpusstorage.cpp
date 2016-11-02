@@ -23,7 +23,7 @@ long long CorpusStorage::count(std::vector<std::string> corpora, std::string que
 
   for(const std::string& c : corpora)
   {
-    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, true);
+    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, false);
 
     if(db)
     {
@@ -52,7 +52,7 @@ CorpusStorage::CountResult CorpusStorage::countExtra(std::vector<std::string> co
 
   for(const std::string& c : corpora)
   {
-    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, true);
+    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, false);
 
     if(db)
     {
@@ -136,4 +136,58 @@ std::vector<std::string> CorpusStorage::find(std::vector<std::string> corpora, s
   }
 
   return result;
+}
+
+void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
+{
+   // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
+   std::shared_ptr<DB> db = cache->get(databaseDir + "/" + corpus, true);
+
+   if(db)
+   {
+      boost::shared_lock_guard<DB> lock(*db);
+
+      StringStorage& strings = db->strings;
+      NodeAnnoStorage& nodeAnnos = db->nodeAnnos;
+
+      for(const auto& change : update.diffs)
+      {
+         switch(change.type)
+         {
+            case GraphUpdate::add_node:
+               {
+                  auto existingNodeID = db->getNodeID(change.arg0);
+                  // only add node if it does not exist yet
+                  if(!existingNodeID)
+                  {
+                     nodeid_t newNodeID = nodeAnnos.nextFreeID();
+                     Annotation newAnno =
+                     {db->getNamespaceStringID(), db->getNodeNameStringID(), strings.add(change.arg0)};
+                     nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
+                  }
+               }
+               break;
+            case GraphUpdate::delete_node:
+               {
+
+               }
+               break;
+            default:
+               throw "Unknown change type";
+         }
+
+         // TODO: apply each change
+      }
+      // TODO: if successfull write log
+      // TODO: start background task to write the complete new version without log on the disk
+
+      try {
+
+      } catch (...)
+      {
+         // TODO: on exception reload the original corpus from disk
+
+      }
+
+   }
 }

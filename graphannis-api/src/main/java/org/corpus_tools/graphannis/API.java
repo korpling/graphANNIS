@@ -56,6 +56,8 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <annis/db.h>
 // #include <annis/dbcache.h>
 // #include <annis/json/jsonqueryparser.h>
+
+// #include <annis/api/graphupdate.h>
 /**
  * An API for managing corpora stored in a common location on the file system.
  */
@@ -122,10 +124,14 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    * @param limit
    * @return
    */
-  public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON, long offset/*=0*/, long limit/*=10*/);
+  public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON, long offset/*=0*/,
+                                  long limit/*=10*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON);
-  public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON, long offset/*=0*/, long limit/*=10*/);
+  public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON, long offset/*=0*/,
+                                  long limit/*=10*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON);
+
+  public native void applyUpdate(@Const @ByRef GraphUpdate update);
 }
 
  // end namespace annis
@@ -169,13 +175,19 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <memory>
 // #include <annis/db.h>
 
+// #include <list>
+// #include <string>
+
+// #include <cereal/types/list.hpp>
+
+
 /**
  * \brief Lists updated that can be performed on a graph.
  *
  * This class is intended to make atomical updates to a graph (as represented by
  * the \class DB class possible.
  */
-@Namespace("annis::api") public static class GraphUpdate extends Pointer {
+@Namespace("annis::api") @NoOffset public static class GraphUpdate extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
     public GraphUpdate(Pointer p) { super(p); }
@@ -189,9 +201,48 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
   public GraphUpdate() { super((Pointer)null); allocate(); }
   private native void allocate();
 
+  /**
+   * \brief Adds an empty node with the given name to the graph.
+   * If an node with this name already exists, nothing is done.
+   *
+   * @param name
+   */
   public native void addNode(@StdString BytePointer name);
   public native void addNode(@StdString String name);
 
+  /**
+   * \brief Delete a node with the give name from the graph.
+   *
+   * This will delete all node labels as well. If this node does not exist, nothing is done.
+   * @param name
+   */
+  public native void deleteNode(@StdString BytePointer name);
+  public native void deleteNode(@StdString String name);
+
+  /**
+   * \brief Adds a label to an existing node.
+   *
+   * If the node does not exists or there is already a label with the same namespace and name, nothing is done.
+   *
+   * @param nodeName
+   * @param ns The namespace of the label
+   * @param name
+   * @param value
+   */
+  public native void addLabel(@StdString BytePointer nodeName, @StdString BytePointer ns, @StdString BytePointer name, @StdString BytePointer value);
+  public native void addLabel(@StdString String nodeName, @StdString String ns, @StdString String name, @StdString String value);
+
+  /**
+   * \brief Delete an existing label from a node.
+   *
+   * If the node or the label does not exist, nothing is done.
+   *
+   * @param nodeName
+   * @param ns
+   * @param name
+   */
+  public native void deleteLabel(@StdString BytePointer nodeName, @StdString BytePointer ns, @StdString BytePointer name);
+  public native void deleteLabel(@StdString String nodeName, @StdString String ns, @StdString String name);
 }
 
 
