@@ -45,7 +45,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     }
 }
 
-// Parsed from annis/api/search.h
+// Parsed from annis/api/corpusstorage.h
 
 // #pragma once
 
@@ -57,12 +57,12 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <annis/dbcache.h>
 // #include <annis/json/jsonqueryparser.h>
 /**
- * An API for searching in a corpus.
+ * An API for managing corpora stored in a common location on the file system.
  */
-@Namespace("annis::api") @NoOffset public static class Search extends Pointer {
+@Namespace("annis::api") @NoOffset public static class CorpusStorage extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public Search(Pointer p) { super(p); }
+    public CorpusStorage(Pointer p) { super(p); }
 
 
   public static class CountResult extends Pointer {
@@ -83,9 +83,9 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     public native long documentCount(); public native CountResult documentCount(long documentCount);
   }
 
-  public Search(@StdString BytePointer databaseDir) { super((Pointer)null); allocate(databaseDir); }
+  public CorpusStorage(@StdString BytePointer databaseDir) { super((Pointer)null); allocate(databaseDir); }
   private native void allocate(@StdString BytePointer databaseDir);
-  public Search(@StdString String databaseDir) { super((Pointer)null); allocate(databaseDir); }
+  public CorpusStorage(@StdString String databaseDir) { super((Pointer)null); allocate(databaseDir); }
   private native void allocate(@StdString String databaseDir);
 
   /**
@@ -161,7 +161,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
  // end namespace annis::api
 
 
-// Parsed from annis/api/graph.h
+// Parsed from annis/api/graphupdate.h
 
 // #pragma once
 
@@ -169,22 +169,29 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <memory>
 // #include <annis/db.h>
 
-@Namespace("annis::api") @NoOffset public static class Graph extends Pointer {
+/**
+ * \brief Lists updated that can be performed on a graph.
+ *
+ * This class is intended to make atomical updates to a graph (as represented by
+ * the \class DB class possible.
+ */
+@Namespace("annis::api") public static class GraphUpdate extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public Graph(Pointer p) { super(p); }
+    public GraphUpdate(Pointer p) { super(p); }
     /** Native array allocator. Access with {@link Pointer#position(long)}. */
-    public Graph(long size) { super((Pointer)null); allocateArray(size); }
+    public GraphUpdate(long size) { super((Pointer)null); allocateArray(size); }
     private native void allocateArray(long size);
-    @Override public Graph position(long position) {
-        return (Graph)super.position(position);
+    @Override public GraphUpdate position(long position) {
+        return (GraphUpdate)super.position(position);
     }
 
-  public Graph() { super((Pointer)null); allocate(); }
+  public GraphUpdate() { super((Pointer)null); allocate(); }
   private native void allocate();
 
   public native void addNode(@StdString BytePointer name);
   public native void addNode(@StdString String name);
+
 }
 
 

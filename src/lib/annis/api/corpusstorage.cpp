@@ -1,4 +1,4 @@
-#include <annis/api/search.h>
+#include "corpusstorage.h"
 
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
@@ -6,15 +6,15 @@
 using namespace annis;
 using namespace annis::api;
 
-Search::Search(std::string databaseDir)
+CorpusStorage::CorpusStorage(std::string databaseDir)
   : databaseDir(databaseDir)
 {
   cache = std::unique_ptr<DBCache>(new DBCache());
 }
 
-Search::~Search() {}
+CorpusStorage::~CorpusStorage() {}
 
-long long Search::count(std::vector<std::string> corpora, std::string queryAsJSON)
+long long CorpusStorage::count(std::vector<std::string> corpora, std::string queryAsJSON)
 {
   long long result = 0;
 
@@ -41,7 +41,7 @@ long long Search::count(std::vector<std::string> corpora, std::string queryAsJSO
   return result;
 }
 
-Search::CountResult Search::countExtra(std::vector<std::string> corpora, std::string queryAsJSON)
+CorpusStorage::CountResult CorpusStorage::countExtra(std::vector<std::string> corpora, std::string queryAsJSON)
 {
   CountResult result = {0,0};
 
@@ -82,7 +82,7 @@ Search::CountResult Search::countExtra(std::vector<std::string> corpora, std::st
   return result;
 }
 
-std::vector<std::string> Search::find(std::vector<std::string> corpora, std::string queryAsJSON, long long offset, long long limit)
+std::vector<std::string> CorpusStorage::find(std::vector<std::string> corpora, std::string queryAsJSON, long long offset, long long limit)
 {
   std::vector<std::string> result;
 

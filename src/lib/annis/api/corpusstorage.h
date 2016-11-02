@@ -14,9 +14,9 @@ namespace annis
 namespace api
 {
 /**
- * An API for searching in a corpus.
+ * An API for managing corpora stored in a common location on the file system.
  */
-class Search
+class CorpusStorage
 {
 public:
 
@@ -26,8 +26,8 @@ public:
     long long documentCount;
   };
 
-  Search(std::string databaseDir);
-   ~Search();
+  CorpusStorage(std::string databaseDir);
+   ~CorpusStorage();
 
   /**
    * Count all occurrences of an AQL query in a single corpus.
