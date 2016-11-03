@@ -106,7 +106,7 @@ void ExactAnnoKeySearch::initializeValidAnnotationKeys()
 {
   for(ItAnnoKey itKey = itKeyBegin; itKey != itKeyEnd; itKey++)
   {
-    validAnnotationKeys.insert(*itKey);
+    validAnnotationKeys.insert(itKey->first);
   }
   validAnnotationKeysInitialized = true;
 }
@@ -116,11 +116,7 @@ std::int64_t ExactAnnoKeySearch::guessMaxCount() const
   std::int64_t sum = 0;
   for(auto itKey = itKeyBegin; itKey != itKeyEnd; itKey++)
   {
-    auto itCount = db.nodeAnnos.nodeAnnotationKeyCount.find(*itKey);
-    if(itCount != db.nodeAnnos.nodeAnnotationKeyCount.end())
-    {
-      sum += itCount->second;
-    }
+    sum += itKey->second;
   }
   return sum;
 }

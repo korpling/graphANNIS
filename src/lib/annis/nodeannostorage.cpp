@@ -51,7 +51,18 @@ void NodeAnnoStorage::addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKe
 
   inverseNodeAnnotations.insert(inverseAnnos.begin(), inverseAnnos.end());
 
-  nodeAnnoKeys.insert(annoKeyList.begin(), annoKeyList.end());
+  for(auto annoKey : annoKeyList)
+  {
+    btree::btree_map<AnnotationKey, size_t>::iterator itKey = nodeAnnoKeys.find(annoKey);
+    if(itKey == nodeAnnoKeys.end())
+    {
+       nodeAnnoKeys.insert({annoKey, 1});
+    }
+    else
+    {
+       itKey->second++;
+    }
+  }
 
 }
 
@@ -59,9 +70,9 @@ void NodeAnnoStorage::clear()
 {
   nodeAnnotations.clear();
   inverseNodeAnnotations.clear();
+  nodeAnnoKeys.clear();
   
   histogramBounds.clear();
-  nodeAnnotationKeyCount.clear();
 }
 
 size_t NodeAnnoStorage::estimateMemorySize()
@@ -70,13 +81,12 @@ size_t NodeAnnoStorage::estimateMemorySize()
       size_estimation::element_size(nodeAnnotations)
       + size_estimation::element_size(inverseNodeAnnotations)
       + size_estimation::element_size(nodeAnnoKeys)
-      + size_estimation::element_size(histogramBounds)
-      + size_estimation::element_size(nodeAnnotationKeyCount);
+      + size_estimation::element_size(histogramBounds);
 }
 
 bool NodeAnnoStorage::hasStatistics() const
 {
-  return !histogramBounds.empty() && !nodeAnnotationKeyCount.empty();
+  return !histogramBounds.empty();
 }
 
 
@@ -87,33 +97,22 @@ void NodeAnnoStorage::calculateStatistics()
   const size_t maxSampledAnnotations = 2500;
   
   histogramBounds.clear();
-  nodeAnnotationKeyCount.clear();
-  
+
   // collect statistics for each annotation key separatly
   std::map<AnnotationKey, std::vector<std::string>> globalValueList;
   for(const auto& annoKey : nodeAnnoKeys)
   {
-    histogramBounds[annoKey] = std::vector<std::string>();
-    auto& valueList = globalValueList[annoKey] = std::vector<std::string>();
-    
+    histogramBounds[annoKey.first] = std::vector<std::string>();
+    auto& valueList = globalValueList[annoKey.first] = std::vector<std::string>();
+
     // get all annotations
-    Annotation minAnno = {annoKey.name, annoKey.ns, 0};
-    Annotation maxAnno = {annoKey.name, annoKey.ns, std::numeric_limits<std::uint32_t>::max()};
+    Annotation minAnno = {annoKey.first.name, annoKey.first.ns, 0};
+    Annotation maxAnno = {annoKey.first.name, annoKey.first.ns, std::numeric_limits<std::uint32_t>::max()};
     auto itUpperBound = inverseNodeAnnotations.upper_bound(maxAnno);
     std::vector<Annotation> annos;
     for(auto it=inverseNodeAnnotations.lower_bound(minAnno); it != itUpperBound; it++)
     {
       annos.push_back(it->first);
-      auto itKeyCount = nodeAnnotationKeyCount.find(annoKey);
-      if(itKeyCount == nodeAnnotationKeyCount.end())
-      {
-        nodeAnnotationKeyCount[annoKey] = 1;
-      }
-      else
-      {
-        auto newVal = itKeyCount->second+1;
-        nodeAnnotationKeyCount[annoKey] = newVal;
-      }
     }
     std::random_shuffle(annos.begin(), annos.end());
     valueList.resize(std::min<size_t>(maxSampledAnnotations, annos.size()));
@@ -121,9 +120,9 @@ void NodeAnnoStorage::calculateStatistics()
     {
       valueList[i] = strings.str(annos[i].val);
     }
-    
+
   }
-  
+
   // create uniformly distributed histogram bounds for each node annotation key 
   for(auto it=globalValueList.begin(); it != globalValueList.end(); it++)
   {
@@ -238,33 +237,30 @@ std::int64_t NodeAnnoStorage::guessMaxCount(boost::optional<std::uint32_t> nsID,
   std::uint32_t nameID, 
   const std::string& lowerVal, const std::string& upperVal) const
 {
-  std::list<AnnotationKey> keys;
+
+  btree::btree_map<AnnotationKey, std::uint64_t>::const_iterator itBegin;
+  btree::btree_map<AnnotationKey, std::uint64_t>::const_iterator itEnd;
   if(nsID)
   {
-    keys.push_back({nameID, *nsID});
+     itBegin = nodeAnnoKeys.lower_bound({nameID, *nsID});
+     itEnd = nodeAnnoKeys.upper_bound({nameID, *nsID});
   }
   else
   {
     // find all complete keys which have the given name
-    auto itKeyUpper = nodeAnnoKeys.upper_bound({nameID, std::numeric_limits<std::uint32_t>::max()});
-    for(auto itKeys = nodeAnnoKeys.lower_bound({nameID, 0}); itKeys != itKeyUpper; itKeys++)
-    {
-      keys.push_back(*itKeys);
-    }
+     itBegin = nodeAnnoKeys.lower_bound({nameID, 0});
+     itEnd = nodeAnnoKeys.upper_bound({nameID, std::numeric_limits<std::uint32_t>::max()});
   }
   
   std::int64_t universeSize = 0;
   std::int64_t sumHistogramBuckets = 0;
   std::int64_t countMatches = 0;
   // guess for each annotation fully qualified key and return the sum of all guesses
-  for(const auto& key : keys)
+  for(auto itKeyCount = itBegin; itKeyCount != itEnd; itKeyCount++)
   {
-    auto itKeyCount = nodeAnnotationKeyCount.find(key);
-    if(itKeyCount != nodeAnnotationKeyCount.end())
-    {
-      universeSize += itKeyCount->second;
-    }
-    auto itHisto = histogramBounds.find(key);
+    universeSize += itKeyCount->second;
+
+    auto itHisto = histogramBounds.find(itKeyCount->first);
     if(itHisto != histogramBounds.end())
     {
       // find the range in which the value is contained
