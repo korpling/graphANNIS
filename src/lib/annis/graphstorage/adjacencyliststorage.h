@@ -33,6 +33,11 @@ public:
 
   virtual void addEdge(const Edge& edge) override;
   virtual void addEdgeAnnotation(const Edge &edge, const Annotation& anno) override;
+
+  virtual void deleteEdge(const Edge& edge) override;
+  virtual void deleteNode(nodeid_t node) override;
+  virtual void deleteEdgeAnnotation(const Edge& edge, const AnnotationKey& anno) override;
+
   virtual void clear() override;
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const override;
@@ -66,12 +71,14 @@ public:
   void serialize(Archive & archive)
   {
     archive(cereal::base_class<WriteableGraphStorage>(this),
-            edges, edgeAnnos);
+            edges, inverseEdges, edgeAnnos);
   }
 
 private:
 
   set_t<Edge> edges;
+  set_t<Edge> inverseEdges;
+
   EdgeAnnotationStorage edgeAnnos;
 
 private:

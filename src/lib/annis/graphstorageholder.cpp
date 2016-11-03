@@ -43,6 +43,7 @@ std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(
   return std::shared_ptr<const ReadableGraphStorage>();
 }
 
+
 std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &layer, const std::string &name)
 {
   Component c = {type, layer, name};

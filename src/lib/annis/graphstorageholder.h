@@ -20,9 +20,13 @@ public:
   virtual ~GraphStorageHolder();
 
   std::shared_ptr<const ReadableGraphStorage> getGraphStorage(const Component& component);
+
   std::shared_ptr<const ReadableGraphStorage> getGraphStorage(ComponentType type, const std::string& layer, const std::string& name);
   std::vector<std::shared_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type, const std::string& name);
   std::vector<std::shared_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type);
+
+  std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
+                       const std::string& name);
 
   size_t estimateMemorySize() const;
   std::string info();
@@ -37,10 +41,6 @@ private:
   bool ensureComponentIsLoaded(const Component& c);
 
   std::string debugComponentString(const Component& c);
-
-  std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
-                       const std::string& name);
-
 
   ComponentType componentTypeFromShortName(std::string shortType);
 

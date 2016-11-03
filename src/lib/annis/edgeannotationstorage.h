@@ -24,6 +24,18 @@ public:
     edgeAnnotations.insert({edge, anno});
   }
 
+  virtual void deleteEdgeAnnotation(const Edge& edge, const AnnotationKey& anno)
+  {
+    auto range = edgeAnnotations.equal_range(edge);
+    for(auto it = range.first; it != range.second; it++)
+    {
+       if(it->second.ns == anno.ns && it->second.name == anno.name)
+       {
+          edgeAnnotations.erase(it);
+       }
+    }
+  }
+
   virtual void clear();
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const

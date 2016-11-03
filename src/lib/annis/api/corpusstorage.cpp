@@ -3,6 +3,8 @@
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
 
+#include <annis/db.h>
+
 using namespace annis;
 using namespace annis::api;
 
@@ -169,7 +171,25 @@ void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
                break;
             case GraphUpdate::delete_node:
                {
+                  auto existingNodeID = db->getNodeID(change.arg0);
+                  if(existingNodeID)
+                  {
+                     // add all annotations
+                     std::list<Annotation> annoList = db->nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
+                     for(Annotation anno : annoList)
+                     {
+                        AnnotationKey annoKey = {anno.name, anno.ns};
+                        db->nodeAnnos.deleteNodeAnotation(*existingNodeID, annoKey);
+                     }
+                     // delete all edges pointing to this node either as source or target
+                     for(Component c : db->getAllComponents())
+                     {
+                        std::shared_ptr<WriteableGraphStorage> gs =
+                          db->edges.createWritableGraphStorage(c.type, c.layer, c.name);
+                        gs->deleteNode(*existingNodeID);
+                     }
 
+                  }
                }
                break;
             case GraphUpdate::add_label:
