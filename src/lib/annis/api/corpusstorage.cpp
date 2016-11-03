@@ -3,6 +3,9 @@
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
 
+#include <fstream>
+#include <cereal/archives/binary.hpp>
+
 #include <annis/db.h>
 
 using namespace annis;
@@ -221,15 +224,18 @@ void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
 
          // TODO: apply each change
       }
-      // TODO: if successfull write log
+      // if successfull write log
+      std::ofstream logStream(databaseDir + "/" + corpus + "/update_log.cereal");
+      cereal::BinaryOutputArchive ar(logStream);
+      ar(update);
+
       // TODO: start background task to write the complete new version without log on the disk
 
       try {
 
       } catch (...)
       {
-         // TODO: on exception reload the original corpus from disk
-
+         db->load(databaseDir + "/" + corpus);
       }
 
    }

@@ -7,6 +7,7 @@
 #include <list>
 #include <string>
 
+#include <cereal/types/string.hpp>
 #include <cereal/types/list.hpp>
 
 namespace annis {
@@ -21,6 +22,21 @@ namespace api {
  */
 class GraphUpdate
 {
+public:
+   enum Type
+   {
+     add_node, delete_node, add_node_label, delete_node_label
+   };
+
+   struct Event
+   {
+     Type type;
+     std::string arg0;
+     std::string arg1;
+     std::string arg2;
+     std::string arg3;
+   };
+
 public:
   GraphUpdate();
 
@@ -63,41 +79,26 @@ public:
    */
   void deleteNodeLabel(std::string nodeName, std::string ns, std::string name);
 
-private:
-
-  friend class CorpusStorage;
-
-  enum Type
-  {
-    add_node, delete_node, add_node_label, delete_node_label
-  };
-
-  struct Event
-  {
-    Type type;
-    std::string arg0;
-    std::string arg1;
-    std::string arg2;
-    std::string arg3;
-  };
-
-  template<class Archive>
-  void serialize(Archive & archive,
-                 Event & evt)
-  {
-    archive(evt.type, evt.arg0, evt.arg1, evt.arg2, evt.arg3);
-  }
-
   template<class Archive>
   void serialize(Archive & archive)
   {
     archive(diffs);
   }
 
+private:
+
+  friend class CorpusStorage;
 
 private:
   std::list<Event> diffs;
 };
+
+template<class Archive>
+void serialize(Archive & archive,
+               GraphUpdate::Event & evt)
+{
+  archive(evt.type, evt.arg0, evt.arg1, evt.arg2, evt.arg3);
+}
 
 }
 }

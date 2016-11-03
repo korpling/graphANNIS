@@ -131,7 +131,8 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
                                   long limit/*=10*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON);
 
-  public native void applyUpdate(@Const @ByRef GraphUpdate update);
+  public native void applyUpdate(@StdString BytePointer corpus, @Const @ByRef GraphUpdate update);
+  public native void applyUpdate(@StdString String corpus, @Const @ByRef GraphUpdate update);
 }
 
  // end namespace annis
@@ -178,6 +179,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <list>
 // #include <string>
 
+// #include <cereal/types/string.hpp>
 // #include <cereal/types/list.hpp>
 
 
@@ -198,6 +200,30 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
         return (GraphUpdate)super.position(position);
     }
 
+   /** enum annis::api::GraphUpdate::Type */
+   public static final int
+     add_node = 0, delete_node = 1, add_node_label = 2, delete_node_label = 3;
+
+   public static class Event extends Pointer {
+       static { Loader.load(); }
+       /** Default native constructor. */
+       public Event() { super((Pointer)null); allocate(); }
+       /** Native array allocator. Access with {@link Pointer#position(long)}. */
+       public Event(long size) { super((Pointer)null); allocateArray(size); }
+       /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+       public Event(Pointer p) { super(p); }
+       private native void allocate();
+       private native void allocateArray(long size);
+       @Override public Event position(long position) {
+           return (Event)super.position(position);
+       }
+   
+     public native @Cast("annis::api::GraphUpdate::Type") int type(); public native Event type(int type);
+     public native @StdString BytePointer arg0(); public native Event arg0(BytePointer arg0);
+     public native @StdString BytePointer arg1(); public native Event arg1(BytePointer arg1);
+     public native @StdString BytePointer arg2(); public native Event arg2(BytePointer arg2);
+     public native @StdString BytePointer arg3(); public native Event arg3(BytePointer arg3);
+   }
   public GraphUpdate() { super((Pointer)null); allocate(); }
   private native void allocate();
 
@@ -229,8 +255,8 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    * @param name
    * @param value
    */
-  public native void addLabel(@StdString BytePointer nodeName, @StdString BytePointer ns, @StdString BytePointer name, @StdString BytePointer value);
-  public native void addLabel(@StdString String nodeName, @StdString String ns, @StdString String name, @StdString String value);
+  public native void addNodeLabel(@StdString BytePointer nodeName, @StdString BytePointer ns, @StdString BytePointer name, @StdString BytePointer value);
+  public native void addNodeLabel(@StdString String nodeName, @StdString String ns, @StdString String name, @StdString String value);
 
   /**
    * \brief Delete an existing label from a node.
@@ -241,8 +267,8 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    * @param ns
    * @param name
    */
-  public native void deleteLabel(@StdString BytePointer nodeName, @StdString BytePointer ns, @StdString BytePointer name);
-  public native void deleteLabel(@StdString String nodeName, @StdString String ns, @StdString String name);
+  public native void deleteNodeLabel(@StdString BytePointer nodeName, @StdString BytePointer ns, @StdString BytePointer name);
+  public native void deleteNodeLabel(@StdString String nodeName, @StdString String ns, @StdString String name);
 }
 
 
