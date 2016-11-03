@@ -50,7 +50,7 @@ public:
    * @param name
    * @param value
    */
-  void addLabel(std::string nodeName, std::string ns, std::string name, std::string value);
+  void addNodeLabel(std::string nodeName, std::string ns, std::string name, std::string value);
 
   /**
    * @brief Delete an existing label from a node.
@@ -61,7 +61,7 @@ public:
    * @param ns
    * @param name
    */
-  void deleteLabel(std::string nodeName, std::string ns, std::string name);
+  void deleteNodeLabel(std::string nodeName, std::string ns, std::string name);
 
 private:
 
@@ -69,7 +69,7 @@ private:
 
   enum Type
   {
-    add_node, delete_node, add_label, delete_label
+    add_node, delete_node, add_node_label, delete_node_label
   };
 
   struct Event

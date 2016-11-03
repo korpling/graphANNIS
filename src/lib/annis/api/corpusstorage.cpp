@@ -179,7 +179,7 @@ void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
                      for(Annotation anno : annoList)
                      {
                         AnnotationKey annoKey = {anno.name, anno.ns};
-                        db->nodeAnnos.deleteNodeAnotation(*existingNodeID, annoKey);
+                        db->nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
                      }
                      // delete all edges pointing to this node either as source or target
                      for(Component c : db->getAllComponents())
@@ -192,14 +192,27 @@ void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
                   }
                }
                break;
-            case GraphUpdate::add_label:
+            case GraphUpdate::add_node_label:
                {
-
+                  auto existingNodeID = db->getNodeID(change.arg0);
+                  if(existingNodeID)
+                  {
+                    Annotation anno = {db->strings.add(change.arg1),
+                                       db->strings.add(change.arg2),
+                                       db->strings.add(change.arg3)};
+                    db->nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
+                  }
                }
                break;
-            case GraphUpdate::delete_label:
+            case GraphUpdate::delete_node_label:
                {
-
+                  auto existingNodeID = db->getNodeID(change.arg0);
+                  if(existingNodeID)
+                  {
+                    AnnotationKey annoKey = {db->strings.add(change.arg1),
+                                       db->strings.add(change.arg2)};
+                    db->nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+                  }
                }
                break;
             default:

@@ -74,7 +74,7 @@ namespace annis {
 
     void addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKey, uint32_t>> annos);
 
-    void deleteNodeAnotation(nodeid_t nodeID, AnnotationKey& anno)
+    void deleteNodeAnnotation(nodeid_t nodeID, AnnotationKey& anno)
     {
        auto it = nodeAnnotations.find({nodeID, anno.ns, anno.name});
        if(it != nodeAnnotations.end())
