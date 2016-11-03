@@ -94,13 +94,13 @@ void AbstractEdgeOperator::initGraphStorage()
     auto listOfGS = gsh.getGraphStorage(componentType, name);
     for(auto ePtr : listOfGS)
     {
-      gs.push_back(ePtr.lock());
+      gs.push_back(ePtr);
     }
   }
   else
   {
     // directly add the only known edge storage
-    if(auto e = gsh.getGraphStorage(componentType, ns, name).lock())
+    if(auto e = gsh.getGraphStorage(componentType, ns, name))
     {
       gs.push_back(e);
     }

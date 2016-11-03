@@ -19,10 +19,10 @@ public:
   GraphStorageHolder(StringStorage& strings);
   virtual ~GraphStorageHolder();
 
-  std::weak_ptr<const ReadableGraphStorage> getGraphStorage(const Component& component);
-  std::weak_ptr<const ReadableGraphStorage> getGraphStorage(ComponentType type, const std::string& layer, const std::string& name);
-  std::vector<std::weak_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type, const std::string& name);
-  std::vector<std::weak_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type);
+  std::shared_ptr<const ReadableGraphStorage> getGraphStorage(const Component& component);
+  std::shared_ptr<const ReadableGraphStorage> getGraphStorage(ComponentType type, const std::string& layer, const std::string& name);
+  std::vector<std::shared_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type, const std::string& name);
+  std::vector<std::shared_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type);
 
   size_t estimateMemorySize() const;
   std::string info();

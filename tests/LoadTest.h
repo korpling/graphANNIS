@@ -126,7 +126,7 @@ TEST_F(LoadTest, OutgoingEdges) {
   Match cppNode;
   EXPECT_TRUE(catSearch.next(cppNode));
 
-  std::shared_ptr<const ReadableGraphStorage> gsDom = db.edges.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge").lock();
+  std::shared_ptr<const ReadableGraphStorage> gsDom = db.edges.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge");
   std::vector<nodeid_t> outEdges = gsDom->getOutgoingEdges(cppNode.node);
   EXPECT_EQ(3, outEdges.size());
 
@@ -163,7 +163,7 @@ TEST_F(LoadTest, Ordering) {
 
   annis::Component componentOrdering = {annis::ComponentType::ORDERING,
                                                                  annis::annis_ns, ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(componentOrdering).lock();
+  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(componentOrdering);
   ASSERT_TRUE(gs != NULL);
   // tok . tok
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(0, 1)));
@@ -180,7 +180,7 @@ TEST_F(LoadTest, Ordering) {
 
   annis::Component componentLeftToken = {annis::ComponentType::LEFT_TOKEN,
                                                                   annis::annis_ns, ""};
-  gs = db.edges.getGraphStorage(componentLeftToken).lock();
+  gs = db.edges.getGraphStorage(componentLeftToken);
   ASSERT_TRUE(gs != NULL);
   // span _l_ tok (both direcctions)
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(125, 124)));
@@ -190,7 +190,7 @@ TEST_F(LoadTest, Ordering) {
 
   annis::Component componentRightToken = {annis::ComponentType::RIGHT_TOKEN,
                                                                    annis::annis_ns, ""};
-  gs = db.edges.getGraphStorage(componentRightToken).lock();
+  gs = db.edges.getGraphStorage(componentRightToken);
   ASSERT_TRUE(gs != NULL);
   // span _r_ tok (both direcctions)
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(125, 124)));
@@ -230,7 +230,7 @@ TEST_F(LoadTest, IsConnected)
 
   annis::Component component = {annis::ComponentType::DOMINANCE,
                                                                  "tiger", ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(component).lock();
+  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(component);
 
   EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, uintmax));
   EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, 2));
@@ -244,7 +244,7 @@ TEST_F(LoadTest, Distance)
 {
 
   annis::Component component = {annis::ComponentType::DOMINANCE, "tiger", ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(component).lock();
+  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(component);
 
   EXPECT_EQ(2, gs->distance(Init::initEdge(387, 16)));
 

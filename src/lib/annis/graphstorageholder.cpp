@@ -32,7 +32,7 @@ void GraphStorageHolder::clear()
   container.clear();
 }
 
-std::weak_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(const Component &component)
+std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(const Component &component)
 {
   std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = container.find(component);
   if(itGS != container.end())
@@ -40,18 +40,18 @@ std::weak_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(co
     ensureComponentIsLoaded(itGS->first);
     return itGS->second;
   }
-  return std::weak_ptr<const ReadableGraphStorage>();
+  return std::shared_ptr<const ReadableGraphStorage>();
 }
 
-std::weak_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &layer, const std::string &name)
+std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &layer, const std::string &name)
 {
   Component c = {type, layer, name};
   return getGraphStorage(c);
 }
 
-std::vector<std::weak_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &name)
+std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &name)
 {
-  std::vector<std::weak_ptr<const ReadableGraphStorage> > result;
+  std::vector<std::shared_ptr<const ReadableGraphStorage> > result;
 
   Component componentKey;
   componentKey.type = type;
@@ -73,9 +73,9 @@ std::vector<std::weak_ptr<const ReadableGraphStorage> > GraphStorageHolder::getG
   return result;
 }
 
-std::vector<std::weak_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type)
+std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type)
 {
-  std::vector<std::weak_ptr<const ReadableGraphStorage>> result;
+  std::vector<std::shared_ptr<const ReadableGraphStorage>> result;
 
   Component c;
   c.type = type;
