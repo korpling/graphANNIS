@@ -11,6 +11,20 @@
 
 namespace annis { namespace api {
 
+enum UpdateEventType
+{
+  add_node, delete_node, add_node_label, delete_node_label
+};
+
+struct UpdateEvent
+{
+  std::uint64_t changeID;
+  UpdateEventType type;
+  std::string arg0;
+  std::string arg1;
+  std::string arg2;
+  std::string arg3;
+};
 
 /**
  * @brief Lists updated that can be performed on a graph.
@@ -21,20 +35,8 @@ namespace annis { namespace api {
 class GraphUpdate
 {
 public:
-   enum Type
-   {
-     add_node, delete_node, add_node_label, delete_node_label
-   };
 
-   struct Event
-   {
-     std::uint64_t changeID;
-     Type type;
-     std::string arg0;
-     std::string arg1;
-     std::string arg2;
-     std::string arg3;
-   };
+
 
 public:
   GraphUpdate();
@@ -89,7 +91,7 @@ public:
     archive(diffs, lastConsistentChangeID);
   }
 
-  const std::list<Event>& getDiffs() const
+  const std::list<UpdateEvent>& getDiffs() const
   {
      return diffs;
   }
@@ -100,14 +102,14 @@ public:
   }
 
 private:
-  std::list<Event> diffs;
+  std::list<UpdateEvent> diffs;
 
   std::uint64_t lastConsistentChangeID;
 };
 
 template<class Archive>
 void serialize(Archive & archive,
-               GraphUpdate::Event & evt)
+               UpdateEvent & evt)
 {
   archive(evt.changeID, evt.type, evt.arg0, evt.arg1, evt.arg2, evt.arg3);
 }

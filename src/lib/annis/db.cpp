@@ -706,13 +706,13 @@ vector<Annotation> DB::getEdgeAnnotations(const Component &component,
 
 void DB::update(const api::GraphUpdate& u)
 {
-   for(const api::GraphUpdate::Event& change : u.getDiffs())
+   for(const api::UpdateEvent& change : u.getDiffs())
    {
       if(change.changeID <= u.getLastConsistentChangeID())
       {
          switch(change.type)
          {
-            case api::GraphUpdate::add_node:
+            case api::add_node:
                {
                   auto existingNodeID = getNodeID(change.arg0);
                   // only add node if it does not exist yet
@@ -725,7 +725,7 @@ void DB::update(const api::GraphUpdate& u)
                   }
                }
                break;
-            case api::GraphUpdate::delete_node:
+            case api::delete_node:
                {
                   auto existingNodeID = getNodeID(change.arg0);
                   if(existingNodeID)
@@ -748,7 +748,7 @@ void DB::update(const api::GraphUpdate& u)
                   }
                }
                break;
-            case api::GraphUpdate::add_node_label:
+            case api::add_node_label:
                {
                   auto existingNodeID = getNodeID(change.arg0);
                   if(existingNodeID)
@@ -760,7 +760,7 @@ void DB::update(const api::GraphUpdate& u)
                   }
                }
                break;
-            case api::GraphUpdate::delete_node_label:
+            case api::delete_node_label:
                {
                   auto existingNodeID = getNodeID(change.arg0);
                   if(existingNodeID)
