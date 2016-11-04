@@ -15,11 +15,9 @@
  */
 package org.corpus_tools.graphannis;
 
-import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
 import java.util.LinkedList;
 import java.util.List;
-import static org.corpus_tools.graphannis.QueryToJSON.queryAsJSON;
 
 /**
  *

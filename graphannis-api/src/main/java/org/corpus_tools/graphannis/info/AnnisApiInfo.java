@@ -31,7 +31,8 @@ public class AnnisApiInfo implements InfoMapper
     infoMap.put(new Info("std::uint64_t").valueTypes("long"));
     infoMap.put(new Info("hash<annis::Annotation>").skip());
     infoMap.put(new Info("annis::api::GraphUpdate::getLastConsistentChangeID").skip());
-    infoMap.put(new Info("annis::api::GraphUpdate::getDiffs").skip());
+    infoMap.put(new Info("std::list<annis::api::UpdateEvent>").pointerTypes("UpdateEventList").define());
+    //infoMap.put(new Info("annis::api::GraphUpdate::getDiffs").skip());
   }
 
 }

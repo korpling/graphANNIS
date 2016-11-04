@@ -9,6 +9,32 @@ import org.bytedeco.javacpp.annotation.*;
 public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     static { Loader.load(); }
 
+@Name("std::list<annis::api::UpdateEvent>") public static class UpdateEventList extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public UpdateEventList(Pointer p) { super(p); }
+    public UpdateEventList(UpdateEvent ... array) { this(array.length); put(array); }
+    public UpdateEventList()       { allocate();  }
+    public UpdateEventList(long n) { allocate(n); }
+    private native void allocate();
+    private native void allocate(@Cast("size_t") long n);
+    public native @Name("operator=") @ByRef UpdateEventList put(@ByRef UpdateEventList x);
+
+    public native long size();
+    public native void resize(@Cast("size_t") long n);
+
+    @Index public native @ByRef UpdateEvent get(@Cast("size_t") long i);
+    public native UpdateEventList put(@Cast("size_t") long i, UpdateEvent value);
+
+    public UpdateEventList put(UpdateEvent ... array) {
+        if (size() != array.length) { resize(array.length); }
+        for (int i = 0; i < array.length; i++) {
+            put(i, array[i]);
+        }
+        return this;
+    }
+}
+
 @Name("std::vector<std::string>") public static class StringVector extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
@@ -181,6 +207,31 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <cereal/types/string.hpp>
 // #include <cereal/types/list.hpp>
 
+/** enum annis::api::UpdateEventType */
+public static final int
+  add_node = 0, delete_node = 1, add_node_label = 2, delete_node_label = 3;
+
+@Namespace("annis::api") public static class UpdateEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public UpdateEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public UpdateEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public UpdateEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public UpdateEvent position(long position) {
+        return (UpdateEvent)super.position(position);
+    }
+
+  public native long changeID(); public native UpdateEvent changeID(long changeID);
+  public native @Cast("annis::api::UpdateEventType") int type(); public native UpdateEvent type(int type);
+  public native @StdString BytePointer arg0(); public native UpdateEvent arg0(BytePointer arg0);
+  public native @StdString BytePointer arg1(); public native UpdateEvent arg1(BytePointer arg1);
+  public native @StdString BytePointer arg2(); public native UpdateEvent arg2(BytePointer arg2);
+  public native @StdString BytePointer arg3(); public native UpdateEvent arg3(BytePointer arg3);
+}
 
 /**
  * \brief Lists updated that can be performed on a graph.
@@ -199,31 +250,6 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
         return (GraphUpdate)super.position(position);
     }
 
-   /** enum annis::api::GraphUpdate::Type */
-   public static final int
-     add_node = 0, delete_node = 1, add_node_label = 2, delete_node_label = 3;
-
-   public static class Event extends Pointer {
-       static { Loader.load(); }
-       /** Default native constructor. */
-       public Event() { super((Pointer)null); allocate(); }
-       /** Native array allocator. Access with {@link Pointer#position(long)}. */
-       public Event(long size) { super((Pointer)null); allocateArray(size); }
-       /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-       public Event(Pointer p) { super(p); }
-       private native void allocate();
-       private native void allocateArray(long size);
-       @Override public Event position(long position) {
-           return (Event)super.position(position);
-       }
-   
-     public native long changeID(); public native Event changeID(long changeID);
-     public native @Cast("annis::api::GraphUpdate::Type") int type(); public native Event type(int type);
-     public native @StdString BytePointer arg0(); public native Event arg0(BytePointer arg0);
-     public native @StdString BytePointer arg1(); public native Event arg1(BytePointer arg1);
-     public native @StdString BytePointer arg2(); public native Event arg2(BytePointer arg2);
-     public native @StdString BytePointer arg3(); public native Event arg3(BytePointer arg3);
-   }
   public GraphUpdate() { super((Pointer)null); allocate(); }
   private native void allocate();
 
@@ -275,7 +301,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    */
   public native void finish();
 
-  
+  public native @Const @ByRef UpdateEventList getDiffs();
 
   
 }
