@@ -2,7 +2,6 @@
 
 #include <string>
 #include <memory>
-#include <annis/db.h>
 
 #include <list>
 #include <string>
@@ -10,8 +9,7 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/list.hpp>
 
-namespace annis {
-namespace api {
+namespace annis { namespace api {
 
 
 /**
@@ -85,9 +83,10 @@ public:
     archive(diffs);
   }
 
-private:
-
-  friend class CorpusStorage;
+  const std::list<Event>& getDiffs() const
+  {
+     return diffs;
+  }
 
 private:
   std::list<Event> diffs;

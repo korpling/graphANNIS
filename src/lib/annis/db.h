@@ -20,6 +20,8 @@
 #include <annis/graphstorageholder.h>
 #include <annis/nodeannostorage.h>
 
+#include "api/graphupdate.h"
+
 namespace annis
 {
   
@@ -103,6 +105,9 @@ public:
   void ensureAllComponentsLoaded();
 
   size_t estimateMemorySize();
+
+
+  void update(const api::GraphUpdate& u);
 
   virtual ~DB();
 public:

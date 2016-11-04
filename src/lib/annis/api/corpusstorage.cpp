@@ -152,78 +152,8 @@ void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
    {
       boost::shared_lock_guard<DB> lock(*db);
 
-      StringStorage& strings = db->strings;
-      NodeAnnoStorage& nodeAnnos = db->nodeAnnos;
+      db->update(update);
 
-      for(const auto& change : update.diffs)
-      {
-         switch(change.type)
-         {
-            case GraphUpdate::add_node:
-               {
-                  auto existingNodeID = db->getNodeID(change.arg0);
-                  // only add node if it does not exist yet
-                  if(!existingNodeID)
-                  {
-                     nodeid_t newNodeID = nodeAnnos.nextFreeID();
-                     Annotation newAnno =
-                        {db->getNamespaceStringID(), db->getNodeNameStringID(), strings.add(change.arg0)};
-                     nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
-                  }
-               }
-               break;
-            case GraphUpdate::delete_node:
-               {
-                  auto existingNodeID = db->getNodeID(change.arg0);
-                  if(existingNodeID)
-                  {
-                     // add all annotations
-                     std::list<Annotation> annoList = db->nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
-                     for(Annotation anno : annoList)
-                     {
-                        AnnotationKey annoKey = {anno.name, anno.ns};
-                        db->nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
-                     }
-                     // delete all edges pointing to this node either as source or target
-                     for(Component c : db->getAllComponents())
-                     {
-                        std::shared_ptr<WriteableGraphStorage> gs =
-                          db->edges.createWritableGraphStorage(c.type, c.layer, c.name);
-                        gs->deleteNode(*existingNodeID);
-                     }
-
-                  }
-               }
-               break;
-            case GraphUpdate::add_node_label:
-               {
-                  auto existingNodeID = db->getNodeID(change.arg0);
-                  if(existingNodeID)
-                  {
-                    Annotation anno = {db->strings.add(change.arg1),
-                                       db->strings.add(change.arg2),
-                                       db->strings.add(change.arg3)};
-                    db->nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
-                  }
-               }
-               break;
-            case GraphUpdate::delete_node_label:
-               {
-                  auto existingNodeID = db->getNodeID(change.arg0);
-                  if(existingNodeID)
-                  {
-                    AnnotationKey annoKey = {db->strings.add(change.arg1),
-                                       db->strings.add(change.arg2)};
-                    db->nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
-                  }
-               }
-               break;
-            default:
-               throw "Unknown change type";
-         }
-
-         // TODO: apply each change
-      }
       // if successfull write log
       std::ofstream logStream(databaseDir + "/" + corpus + "/update_log.cereal");
       cereal::BinaryOutputArchive ar(logStream);

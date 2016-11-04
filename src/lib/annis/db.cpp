@@ -25,6 +25,7 @@
 
 #include <cereal/archives/binary.hpp>
 
+
 HUMBLE_LOGGER(logger, "annis4");
 
 using namespace annis;
@@ -49,6 +50,16 @@ bool DB::load(string dirPath, bool preloadComponents)
   }
 
   edges.load(dirPath, preloadComponents);
+
+  // check if we have to apply a log file to get to the last stable snapshot version
+  std::ifstream logStream(dirPath + "/update_log.cereal", std::ios::binary);
+  if(logStream.is_open())
+  {
+     cereal::BinaryInputArchive log(logStream);
+     api::GraphUpdate update;
+     log(update);
+
+  }
 
   // TODO: return false on failure
   return true;
@@ -683,6 +694,80 @@ vector<Annotation> DB::getEdgeAnnotations(const Component &component,
   }
 
   return vector<Annotation>();
+
+}
+
+void DB::update(const api::GraphUpdate& u)
+{
+   for(const auto& change : u.getDiffs())
+   {
+      switch(change.type)
+      {
+         case api::GraphUpdate::add_node:
+            {
+               auto existingNodeID = getNodeID(change.arg0);
+               // only add node if it does not exist yet
+               if(!existingNodeID)
+               {
+                  nodeid_t newNodeID = nodeAnnos.nextFreeID();
+                  Annotation newAnno =
+                     {getNamespaceStringID(), getNodeNameStringID(), strings.add(change.arg0)};
+                  nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
+               }
+            }
+            break;
+         case api::GraphUpdate::delete_node:
+            {
+               auto existingNodeID = getNodeID(change.arg0);
+               if(existingNodeID)
+               {
+                  // add all annotations
+                  std::list<Annotation> annoList = nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
+                  for(Annotation anno : annoList)
+                  {
+                     AnnotationKey annoKey = {anno.name, anno.ns};
+                     nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+                  }
+                  // delete all edges pointing to this node either as source or target
+                  for(Component c : getAllComponents())
+                  {
+                     std::shared_ptr<WriteableGraphStorage> gs =
+                       edges.createWritableGraphStorage(c.type, c.layer, c.name);
+                     gs->deleteNode(*existingNodeID);
+                  }
+
+               }
+            }
+            break;
+         case api::GraphUpdate::add_node_label:
+            {
+               auto existingNodeID = getNodeID(change.arg0);
+               if(existingNodeID)
+               {
+                 Annotation anno = {strings.add(change.arg1),
+                                    strings.add(change.arg2),
+                                    strings.add(change.arg3)};
+                 nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
+               }
+            }
+            break;
+         case api::GraphUpdate::delete_node_label:
+            {
+               auto existingNodeID = getNodeID(change.arg0);
+               if(existingNodeID)
+               {
+                 AnnotationKey annoKey = {strings.add(change.arg1),
+                                          strings.add(change.arg2)};
+                 nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+               }
+            }
+            break;
+         default:
+            throw "Unknown change type";
+      }
+
+      // TODO: apply each change
+   }
 
 }
 
