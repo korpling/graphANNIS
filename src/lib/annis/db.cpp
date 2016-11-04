@@ -22,6 +22,7 @@
 #include <annis/nodeannostorage.h>
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/graphstorageregistry.h>
+#include <annis/api/graphupdate.h>
 
 #include <cereal/archives/binary.hpp>
 

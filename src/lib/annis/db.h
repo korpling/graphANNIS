@@ -20,10 +20,12 @@
 #include <annis/graphstorageholder.h>
 #include <annis/nodeannostorage.h>
 
-#include "api/graphupdate.h"
-
 namespace annis
 {
+
+   namespace api {
+      class GraphUpdate;
+   }
   
 class ReadableGraphStorage;
 class WriteableGraphStorage;
