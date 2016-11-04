@@ -9,32 +9,6 @@ import org.bytedeco.javacpp.annotation.*;
 public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     static { Loader.load(); }
 
-@Name("std::list<annis::api::UpdateEvent>") public static class UpdateEventList extends Pointer {
-    static { Loader.load(); }
-    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public UpdateEventList(Pointer p) { super(p); }
-    public UpdateEventList(UpdateEvent ... array) { this(array.length); put(array); }
-    public UpdateEventList()       { allocate();  }
-    public UpdateEventList(long n) { allocate(n); }
-    private native void allocate();
-    private native void allocate(@Cast("size_t") long n);
-    public native @Name("operator=") @ByRef UpdateEventList put(@ByRef UpdateEventList x);
-
-    public native long size();
-    public native void resize(@Cast("size_t") long n);
-
-    @Index public native @ByRef UpdateEvent get(@Cast("size_t") long i);
-    public native UpdateEventList put(@Cast("size_t") long i, UpdateEvent value);
-
-    public UpdateEventList put(UpdateEvent ... array) {
-        if (size() != array.length) { resize(array.length); }
-        for (int i = 0; i < array.length; i++) {
-            put(i, array[i]);
-        }
-        return this;
-    }
-}
-
 @Name("std::vector<std::string>") public static class StringVector extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
@@ -63,6 +37,32 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     }
 
     public StringVector put(String ... array) {
+        if (size() != array.length) { resize(array.length); }
+        for (int i = 0; i < array.length; i++) {
+            put(i, array[i]);
+        }
+        return this;
+    }
+}
+
+@Name("std::vector<annis::api::UpdateEvent>") public static class UpdateEventList extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public UpdateEventList(Pointer p) { super(p); }
+    public UpdateEventList(UpdateEvent ... array) { this(array.length); put(array); }
+    public UpdateEventList()       { allocate();  }
+    public UpdateEventList(long n) { allocate(n); }
+    private native void allocate();
+    private native void allocate(@Cast("size_t") long n);
+    public native @Name("operator=") @ByRef UpdateEventList put(@ByRef UpdateEventList x);
+
+    public native long size();
+    public native void resize(@Cast("size_t") long n);
+
+    @Index public native @ByRef UpdateEvent get(@Cast("size_t") long i);
+    public native UpdateEventList put(@Cast("size_t") long i, UpdateEvent value);
+
+    public UpdateEventList put(UpdateEvent ... array) {
         if (size() != array.length) { resize(array.length); }
         for (int i = 0; i < array.length; i++) {
             put(i, array[i]);
@@ -201,7 +201,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <string>
 // #include <memory>
 
-// #include <list>
+// #include <vector>
 // #include <string>
 
 // #include <cereal/types/string.hpp>

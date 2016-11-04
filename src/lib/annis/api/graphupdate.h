@@ -3,11 +3,11 @@
 #include <string>
 #include <memory>
 
-#include <list>
+#include <vector>
 #include <string>
 
 #include <cereal/types/string.hpp>
-#include <cereal/types/list.hpp>
+#include <cereal/types/vector.hpp>
 
 namespace annis { namespace api {
 
@@ -91,7 +91,7 @@ public:
     archive(diffs, lastConsistentChangeID);
   }
 
-  const std::list<UpdateEvent>& getDiffs() const
+  const std::vector<UpdateEvent>& getDiffs() const
   {
      return diffs;
   }
@@ -102,7 +102,7 @@ public:
   }
 
 private:
-  std::list<UpdateEvent> diffs;
+  std::vector<UpdateEvent> diffs;
 
   std::uint64_t lastConsistentChangeID;
 };
