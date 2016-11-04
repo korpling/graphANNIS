@@ -174,7 +174,6 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
 // #include <string>
 // #include <memory>
-// #include <annis/db.h>
 
 // #include <list>
 // #include <string>
@@ -218,6 +217,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
            return (Event)super.position(position);
        }
    
+     public native long changeID(); public native Event changeID(long changeID);
      public native @Cast("annis::api::GraphUpdate::Type") int type(); public native Event type(int type);
      public native @StdString BytePointer arg0(); public native Event arg0(BytePointer arg0);
      public native @StdString BytePointer arg1(); public native Event arg1(BytePointer arg1);
@@ -269,6 +269,15 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    */
   public native void deleteNodeLabel(@StdString BytePointer nodeName, @StdString BytePointer ns, @StdString BytePointer name);
   public native void deleteNodeLabel(@StdString String nodeName, @StdString String ns, @StdString String name);
+
+  /**
+   * \brief Mark the current state as consistent.
+   */
+  public native void finish();
+
+  
+
+  
 }
 
 

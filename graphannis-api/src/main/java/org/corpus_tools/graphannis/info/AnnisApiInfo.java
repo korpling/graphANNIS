@@ -28,8 +28,10 @@ public class AnnisApiInfo implements InfoMapper
 	  infoMap.put(new Info("std::vector<std::string>").pointerTypes("StringVector").define());
     infoMap.put(new Info("annis::Init").skip());
     infoMap.put(new Info("std::uint32_t").valueTypes("long"));
-    infoMap.put(new Info("uint32_t").valueTypes("long"));
+    infoMap.put(new Info("std::uint64_t").valueTypes("long"));
     infoMap.put(new Info("hash<annis::Annotation>").skip());
+    infoMap.put(new Info("annis::api::GraphUpdate::getLastConsistentChangeID").skip());
+    infoMap.put(new Info("annis::api::GraphUpdate::getDiffs").skip());
   }
 
 }
