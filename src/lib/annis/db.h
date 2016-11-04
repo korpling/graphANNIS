@@ -117,6 +117,8 @@ public:
 
   GraphStorageHolder edges;
 
+  std::uint64_t currentChangeID;
+
 private:
 
 

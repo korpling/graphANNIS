@@ -28,6 +28,7 @@ public:
 
    struct Event
    {
+     std::uint64_t changeID;
      Type type;
      std::string arg0;
      std::string arg1;
@@ -77,10 +78,15 @@ public:
    */
   void deleteNodeLabel(std::string nodeName, std::string ns, std::string name);
 
+  /**
+   * @brief Mark the current state as consistent.
+   */
+  void finish();
+
   template<class Archive>
   void serialize(Archive & archive)
   {
-    archive(diffs);
+    archive(diffs, lastConsistentChangeID);
   }
 
   const std::list<Event>& getDiffs() const
@@ -88,15 +94,22 @@ public:
      return diffs;
   }
 
+  std::uint64_t getLastConsistentChangeID() const
+  {
+     return lastConsistentChangeID;
+  }
+
 private:
   std::list<Event> diffs;
+
+  std::uint64_t lastConsistentChangeID;
 };
 
 template<class Archive>
 void serialize(Archive & archive,
                GraphUpdate::Event & evt)
 {
-  archive(evt.type, evt.arg0, evt.arg1, evt.arg2, evt.arg3);
+  archive(evt.changeID, evt.type, evt.arg0, evt.arg1, evt.arg2, evt.arg3);
 }
 
 }

@@ -32,7 +32,7 @@ using namespace annis;
 using namespace std;
 
 DB::DB()
-: nodeAnnos(strings), edges(strings)
+: nodeAnnos(strings), edges(strings), currentChangeID(0)
 {
   addDefaultStrings();
 }
@@ -58,7 +58,14 @@ bool DB::load(string dirPath, bool preloadComponents)
      cereal::BinaryInputArchive log(logStream);
      api::GraphUpdate u;
      log(u);
-     update(u);
+     if(u.getLastConsistentChangeID() > currentChangeID)
+     {
+      update(u);
+     }
+  }
+  else
+  {
+    currentChangeID = 0;
   }
 
   // TODO: return false on failure
@@ -699,71 +706,74 @@ vector<Annotation> DB::getEdgeAnnotations(const Component &component,
 
 void DB::update(const api::GraphUpdate& u)
 {
-   for(const auto& change : u.getDiffs())
+   for(const api::GraphUpdate::Event& change : u.getDiffs())
    {
-      switch(change.type)
+      if(change.changeID <= u.getLastConsistentChangeID())
       {
-         case api::GraphUpdate::add_node:
-            {
-               auto existingNodeID = getNodeID(change.arg0);
-               // only add node if it does not exist yet
-               if(!existingNodeID)
+         switch(change.type)
+         {
+            case api::GraphUpdate::add_node:
                {
-                  nodeid_t newNodeID = nodeAnnos.nextFreeID();
-                  Annotation newAnno =
-                     {getNamespaceStringID(), getNodeNameStringID(), strings.add(change.arg0)};
-                  nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
+                  auto existingNodeID = getNodeID(change.arg0);
+                  // only add node if it does not exist yet
+                  if(!existingNodeID)
+                  {
+                     nodeid_t newNodeID = nodeAnnos.nextFreeID();
+                     Annotation newAnno =
+                        {getNamespaceStringID(), getNodeNameStringID(), strings.add(change.arg0)};
+                     nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
+                  }
                }
-            }
-            break;
-         case api::GraphUpdate::delete_node:
-            {
-               auto existingNodeID = getNodeID(change.arg0);
-               if(existingNodeID)
+               break;
+            case api::GraphUpdate::delete_node:
                {
-                  // add all annotations
-                  std::list<Annotation> annoList = nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
-                  for(Annotation anno : annoList)
+                  auto existingNodeID = getNodeID(change.arg0);
+                  if(existingNodeID)
                   {
-                     AnnotationKey annoKey = {anno.name, anno.ns};
-                     nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
-                  }
-                  // delete all edges pointing to this node either as source or target
-                  for(Component c : getAllComponents())
-                  {
-                     std::shared_ptr<WriteableGraphStorage> gs =
-                       edges.createWritableGraphStorage(c.type, c.layer, c.name);
-                     gs->deleteNode(*existingNodeID);
-                  }
+                     // add all annotations
+                     std::list<Annotation> annoList = nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
+                     for(Annotation anno : annoList)
+                     {
+                        AnnotationKey annoKey = {anno.name, anno.ns};
+                        nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+                     }
+                     // delete all edges pointing to this node either as source or target
+                     for(Component c : getAllComponents())
+                     {
+                        std::shared_ptr<WriteableGraphStorage> gs =
+                          edges.createWritableGraphStorage(c.type, c.layer, c.name);
+                        gs->deleteNode(*existingNodeID);
+                     }
 
+                  }
                }
-            }
-            break;
-         case api::GraphUpdate::add_node_label:
-            {
-               auto existingNodeID = getNodeID(change.arg0);
-               if(existingNodeID)
+               break;
+            case api::GraphUpdate::add_node_label:
                {
-                 Annotation anno = {strings.add(change.arg1),
-                                    strings.add(change.arg2),
-                                    strings.add(change.arg3)};
-                 nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
+                  auto existingNodeID = getNodeID(change.arg0);
+                  if(existingNodeID)
+                  {
+                    Annotation anno = {strings.add(change.arg1),
+                                       strings.add(change.arg2),
+                                       strings.add(change.arg3)};
+                    nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
+                  }
                }
-            }
-            break;
-         case api::GraphUpdate::delete_node_label:
-            {
-               auto existingNodeID = getNodeID(change.arg0);
-               if(existingNodeID)
+               break;
+            case api::GraphUpdate::delete_node_label:
                {
-                 AnnotationKey annoKey = {strings.add(change.arg1),
-                                          strings.add(change.arg2)};
-                 nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+                  auto existingNodeID = getNodeID(change.arg0);
+                  if(existingNodeID)
+                  {
+                    AnnotationKey annoKey = {strings.add(change.arg1),
+                                             strings.add(change.arg2)};
+                    nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+                  }
                }
-            }
-            break;
-         default:
-            throw "Unknown change type";
+               break;
+            default:
+               throw "Unknown change type";
+         }
       }
 
       // TODO: apply each change
