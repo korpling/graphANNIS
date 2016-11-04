@@ -16,8 +16,8 @@
 
 using namespace annis;
 
-extern "C" size_t getCurrentRSS( );
-extern "C" size_t getCurrentVirtualMemory( );
+extern size_t getCurrentRSS( );
+extern size_t getCurrentVirtualMemory( );
 
 DBCache::DBCache(size_t maxSizeBytes)
   : maxLoadedDBSize(maxSizeBytes) {

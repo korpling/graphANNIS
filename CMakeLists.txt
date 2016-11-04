@@ -133,6 +133,7 @@ set(SRC_LIST_LIB
   src/lib/annis/query.cpp
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
+  src/lib/annis/util/getRSS.cpp
   src/lib/annis/nodeannostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
@@ -141,7 +142,6 @@ set(SRC_LIST_LIB
   src/lib/annis/annosearch/exactannovaluesearch.cpp
   src/lib/annis/annosearch/regexannosearch.cpp
   src/lib/annis/annosearch/annotationsearch.cpp
-  src/lib/annis/util/getRSS.c
 )
 
 set(SRC_LIST_RUNNER
@@ -154,7 +154,7 @@ set(SRC_LIST_RUNNER
 
 include_directories( "src/lib")
 
-add_library(annis ${SRC_LIST_LIB} ${IncludeFiles})
+add_library(annis ${SRC_LIST_LIB})
 target_compile_features(annis PRIVATE ${needed_features})
 set_property(TARGET annis PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 # newer Boost serialization versions are otherwise incompatible with BTree
