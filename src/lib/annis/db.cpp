@@ -56,9 +56,9 @@ bool DB::load(string dirPath, bool preloadComponents)
   if(logStream.is_open())
   {
      cereal::BinaryInputArchive log(logStream);
-     api::GraphUpdate update;
-     log(update);
-
+     api::GraphUpdate u;
+     log(u);
+     update(u);
   }
 
   // TODO: return false on failure
