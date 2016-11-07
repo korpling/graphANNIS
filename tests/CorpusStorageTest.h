@@ -108,4 +108,21 @@ TEST_F(CorpusStorageTest, DeleteNode) {
   ASSERT_EQ(0, numOfTestAnnos);
 }
 
+TEST_F(CorpusStorageTest, AddEdge) {
+
+  api::GraphUpdate updateInsert;
+  updateInsert.addNode("node1");
+  updateInsert.addNode("node2");
+  updateInsert.addEdge("node1", "node2", "", "POINTING", "dep");
+  updateInsert.finish();
+
+  storage->applyUpdate("testCorpus", updateInsert);
+
+  auto depEdges = storage->count({"testCorpus"},
+                                  "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"left\":1,\"right\":2}]}]}");
+  ASSERT_EQ(1, depEdges);
+
+
+}
+
 

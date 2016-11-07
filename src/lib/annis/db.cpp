@@ -711,8 +711,6 @@ void DB::update(const api::GraphUpdate& u)
    {
       if(change->changeID <= u.getLastConsistentChangeID())
       {
-         std::shared_ptr<api::AddNodeEvent> test = std::dynamic_pointer_cast<api::AddNodeEvent>(change);
-
          if(std::shared_ptr<api::AddNodeEvent> evt = std::dynamic_pointer_cast<api::AddNodeEvent>(change))
          {
             auto existingNodeID = getNodeID(evt->nodeName);
@@ -766,6 +764,22 @@ void DB::update(const api::GraphUpdate& u)
               AnnotationKey annoKey = {strings.add(evt->annoName),
                                        strings.add(evt->annoNs)};
               nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+            }
+         }
+         else if(std::shared_ptr<api::AddEdgeEvent> evt = std::dynamic_pointer_cast<api::AddEdgeEvent>(change))
+         {
+            auto existingSourceID = getNodeID(evt->sourceNode);
+            auto existingTargetID = getNodeID(evt->targetNode);
+            // only add edge if both nodes already exist
+            if(existingSourceID && existingTargetID)
+            {
+               ComponentType type = ComponentTypeHelper::fromString(evt->componentType);
+               if(type < ComponentType::ComponentType_MAX)
+               {
+                  std::shared_ptr<WriteableGraphStorage> gs =
+                    edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+                  gs->addEdge({*existingSourceID, *existingTargetID});
+               }
             }
          }
       }

@@ -77,7 +77,7 @@ namespace annis
         return "UNKNOWN";
       }
     }
-/*
+
     static ComponentType fromString(const std::string& typeAsString)
     {
       for(unsigned int t = (unsigned int)ComponentType::COVERAGE; t < (unsigned int) ComponentType::ComponentType_MAX; t++)
@@ -89,7 +89,7 @@ namespace annis
       }
       return ComponentType::ComponentType_MAX;
     }
-*/
+
   };
 
   struct Component
