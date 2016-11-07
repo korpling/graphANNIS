@@ -120,7 +120,7 @@
 				<artifactId>javafx-maven-plugin</artifactId>
 				<version>8.2.0</version>
 				<configuration>
-					<mainClass>org.korpling.annis.benchmark.generator.Main</mainClass>
+					<mainClass>org.corpus_tools.annis.benchmark.generator.Main</mainClass>
 					<appName>annis-benchmark-generator</appName>
 					<vendor>Thomas Krause &lt;thomaskrause@posteo.de&gt;</vendor>
 				</configuration>

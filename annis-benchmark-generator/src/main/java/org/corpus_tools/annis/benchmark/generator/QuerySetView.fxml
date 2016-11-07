@@ -7,7 +7,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox fx:id="root" prefHeight="445.0" prefWidth="848.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.korpling.annis.benchmark.generator.QuerySetViewController">
+<VBox fx:id="root" prefHeight="445.0" prefWidth="848.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.corpus_tools.annis.benchmark.generator.QuerySetViewController">
    <children>
       <HBox spacing="10.0" VBox.vgrow="NEVER">
          <children>

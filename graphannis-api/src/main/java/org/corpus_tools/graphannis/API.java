@@ -205,7 +205,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <string>
 
 // #include <cereal/types/string.hpp>
-// #include <cereal/types/list.hpp>
+// #include <cereal/types/vector.hpp>
 
 /** enum annis::api::UpdateEventType */
 public static final int
