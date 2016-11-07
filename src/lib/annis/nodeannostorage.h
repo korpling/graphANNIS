@@ -76,7 +76,7 @@ namespace annis {
 
     void deleteNodeAnnotation(nodeid_t nodeID, AnnotationKey& anno)
     {
-       auto it = nodeAnnotations.find({nodeID, anno.ns, anno.name});
+       auto it = nodeAnnotations.find({nodeID, anno.name, anno.ns});
        if(it != nodeAnnotations.end())
        {
           Annotation oldAnno = {anno.name, anno.ns, it->second};

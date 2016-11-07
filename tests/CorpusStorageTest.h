@@ -84,4 +84,28 @@ TEST_F(CorpusStorageTest, AddNodeLabel) {
   ASSERT_EQ(1, numOfTestAnnos);
 }
 
+TEST_F(CorpusStorageTest, DeleteNode) {
+
+  api::GraphUpdate updateInsert;
+  updateInsert.addNode("node1");
+  updateInsert.addNodeLabel("node1", "test", "anno", "testVal");
+  updateInsert.finish();
+
+  storage->applyUpdate("testCorpus", updateInsert);
+
+  api::GraphUpdate updateDelete;
+  updateDelete.deleteNode("node1");
+  updateDelete.finish();
+  storage->applyUpdate("testCorpus", updateDelete);
+
+
+  auto numOfNodes = storage->count({"testCorpus"},
+                                  "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
+  ASSERT_EQ(0, numOfNodes);
+
+  auto numOfTestAnnos = storage->count({"testCorpus"},
+                                       "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"nodeAnnotations\":[{\"namespace\":\"test\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"test:anno\"}],\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
+  ASSERT_EQ(0, numOfTestAnnos);
+}
+
 
