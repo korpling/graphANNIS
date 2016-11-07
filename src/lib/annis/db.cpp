@@ -721,7 +721,7 @@ void DB::update(const api::GraphUpdate& u)
                   {
                      nodeid_t newNodeID = nodeAnnos.nextFreeID();
                      Annotation newAnno =
-                        {getNamespaceStringID(), getNodeNameStringID(), strings.add(change.arg0)};
+                        {getNodeNameStringID(), getNamespaceStringID(), strings.add(change.arg0)};
                      nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
                   }
                }

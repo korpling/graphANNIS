@@ -1,16 +1,19 @@
 #pragma once
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include <annis/db.h>
 #include <annis/api/graphupdate.h>
 
+#include <annis/query.h>
+#include <annis/annosearch/exactannokeysearch.h>
 
 using namespace annis;
 
 class GraphUpdateTest : public ::testing::Test {
 protected:
-  annis::DB db;
   std::string dataDir;
+  annis::DB db;
+
   GraphUpdateTest()
     : dataDir("data")
   {
@@ -29,8 +32,8 @@ protected:
     {
       dataDir = testDataEnv;
     }
-    bool loadedDB = db.load(dataDir + "/../relannis/pcc2");
-    ASSERT_EQ(true, loadedDB);
+//    bool loadedDB = db.load(dataDir + "/../relannis/pcc2");
+//    ASSERT_EQ(true, loadedDB);
   }
 
   virtual void TearDown() {
@@ -45,10 +48,22 @@ TEST_F(GraphUpdateTest, DiffSize) {
 
   api::GraphUpdate u;
   u.addNode("node1");
+  u.addNodeLabel("node1", "test", "anno", "testVal");
+  u.finish();
 
+  ASSERT_EQ(2, u.getDiffs().size());
 
-  ASSERT_EQ(u.getDiffs().size());
+  db.update(u);
 
+  annis::Query q(db);
+  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+
+  size_t counter = 0;
+  while(q.next())
+  {
+     counter++;
+  }
+  ASSERT_EQ(1, counter);
 
 }
 

@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 
 #include <humblelogging/api.h>
@@ -11,6 +11,7 @@ HUMBLE_LOGGER(logger, "default");
 #include "SearchTestTueBaDZ.h"
 #include "SearchTestParlament.h"
 #include "SearchTestGUM.h"
+#include "GraphUpdateTest.h"
 
 int main(int argc, char **argv)
 {
