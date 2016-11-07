@@ -11,7 +11,7 @@ HUMBLE_LOGGER(logger, "default");
 #include "SearchTestTueBaDZ.h"
 #include "SearchTestParlament.h"
 #include "SearchTestGUM.h"
-#include "GraphUpdateTest.h"
+#include "CorpusStorageTest.h"
 
 int main(int argc, char **argv)
 {

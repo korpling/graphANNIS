@@ -3,23 +3,30 @@
 #include <gtest/gtest.h>
 #include <annis/db.h>
 #include <annis/api/graphupdate.h>
+#include <annis/api/corpusstorage.h>
 
 #include <annis/query.h>
 #include <annis/annosearch/exactannokeysearch.h>
 
+#include <memory>
+#include <boost/filesystem.hpp>
+
+#include <humblelogging/api.h>
+
 using namespace annis;
 
-class GraphUpdateTest : public ::testing::Test {
+class CorpusStorageTest : public ::testing::Test {
 protected:
   std::string dataDir;
-  annis::DB db;
+  boost::filesystem::path tmpDBPath;
+  std::unique_ptr<api::CorpusStorage> storage;
 
-  GraphUpdateTest()
+  CorpusStorageTest()
     : dataDir("data")
   {
   }
 
-  virtual ~GraphUpdateTest() {
+  virtual ~CorpusStorageTest() {
     // You can do clean-up work that doesn't throw exceptions here.
   }
 
@@ -32,8 +39,15 @@ protected:
     {
       dataDir = testDataEnv;
     }
-//    bool loadedDB = db.load(dataDir + "/../relannis/pcc2");
-//    ASSERT_EQ(true, loadedDB);
+
+    tmpDBPath = boost::filesystem::unique_path(
+            boost::filesystem::temp_directory_path().string() + "/annis-temporary-workspace-%%%%-%%%%-%%%%-%%%%");
+    HL_INFO(logger, "Using " + tmpDBPath.string() + " as temporary path");
+
+
+    storage = std::unique_ptr<api::CorpusStorage>(new api::CorpusStorage(dataDir));
+    ASSERT_EQ(true, (bool) storage);
+
   }
 
   virtual void TearDown() {
@@ -44,7 +58,9 @@ protected:
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-TEST_F(GraphUpdateTest, DiffSize) {
+TEST_F(CorpusStorageTest, DiffSize) {
+
+
 
   api::GraphUpdate u;
   u.addNode("node1");
@@ -53,17 +69,12 @@ TEST_F(GraphUpdateTest, DiffSize) {
 
   ASSERT_EQ(2, u.getDiffs().size());
 
-  db.update(u);
+  storage->applyUpdate("testCorpus", u);
 
-  annis::Query q(db);
-  q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+  auto numOfNodes = storage->count({"testCorpus"},
+                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
 
-  size_t counter = 0;
-  while(q.next())
-  {
-     counter++;
-  }
-  ASSERT_EQ(1, counter);
+  ASSERT_EQ(1, numOfNodes);
 
 }
 
