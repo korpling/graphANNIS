@@ -42,10 +42,12 @@ protected:
 
     tmpDBPath = boost::filesystem::unique_path(
             boost::filesystem::temp_directory_path().string() + "/annis-temporary-workspace-%%%%-%%%%-%%%%-%%%%");
+
+    boost::filesystem::create_directories(tmpDBPath);
     HL_INFO(logger, "Using " + tmpDBPath.string() + " as temporary path");
 
 
-    storage = std::unique_ptr<api::CorpusStorage>(new api::CorpusStorage(dataDir));
+    storage = std::unique_ptr<api::CorpusStorage>(new api::CorpusStorage(tmpDBPath.string()));
     ASSERT_EQ(true, (bool) storage);
 
   }
@@ -69,11 +71,12 @@ TEST_F(CorpusStorageTest, DiffSize) {
 
   ASSERT_EQ(2, u.getDiffs().size());
 
+
   storage->applyUpdate("testCorpus", u);
 
-  auto numOfNodes = storage->count({"testCorpus"},
-                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
 
+  auto numOfNodes = storage->count({"testCorpus"},
+                                  "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
   ASSERT_EQ(1, numOfNodes);
 
 }

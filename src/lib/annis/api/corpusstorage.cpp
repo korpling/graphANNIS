@@ -2,6 +2,7 @@
 
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
+#include <boost/filesystem.hpp>
 
 #include <fstream>
 #include <cereal/archives/binary.hpp>
@@ -152,16 +153,19 @@ void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
    {
       boost::shared_lock_guard<DB> lock(*db);
 
-      db->update(update);
-
-      // if successfull write log
-      std::ofstream logStream(databaseDir + "/" + corpus + "/update_log.cereal");
-      cereal::BinaryOutputArchive ar(logStream);
-      ar(update);
-
-      // TODO: start background task to write the complete new version without log on the disk
 
       try {
+         db->update(update);
+
+         // if successfull write log
+         boost::filesystem::path corpusDir(databaseDir);
+         corpusDir = corpusDir / corpus;
+         boost::filesystem::create_directories(corpusDir);
+         std::ofstream logStream((corpusDir / "update_log.cereal").string());
+         cereal::BinaryOutputArchive ar(logStream);
+         ar(update);
+
+         // TODO: start background task to write the complete new version without log on the disk
 
       } catch (...)
       {
