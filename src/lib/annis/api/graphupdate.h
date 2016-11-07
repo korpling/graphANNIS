@@ -97,6 +97,21 @@ struct AddEdgeEvent : UpdateEvent
    }
 };
 
+struct DeleteEdgeEvent : UpdateEvent
+{
+   std::string sourceNode;
+   std::string targetNode;
+   std::string layer;
+   std::string componentType;
+   std::string componentName;
+
+   template<class Archive>
+   void serialize( Archive & ar )
+   {
+      ar(cereal::base_class<UpdateEvent>(this), sourceNode, targetNode, layer, componentType, componentName);
+   }
+};
+
 
 /**
  * @brief Lists updated that can be performed on a graph.
@@ -156,6 +171,10 @@ public:
                std::string layer,
                std::string componentType, std::string componentName);
 
+  void deleteEdge(std::string sourceNode, std::string targetNode,
+               std::string layer,
+               std::string componentType, std::string componentName);
+
   /**
    * @brief Mark the current state as consistent.
    */
@@ -195,3 +214,4 @@ CEREAL_REGISTER_TYPE(annis::api::DeleteNodeEvent);
 CEREAL_REGISTER_TYPE(annis::api::AddNodeLabelEvent);
 CEREAL_REGISTER_TYPE(annis::api::DeleteNodeLabelEvent);
 CEREAL_REGISTER_TYPE(annis::api::AddEdgeEvent);
+CEREAL_REGISTER_TYPE(annis::api::DeleteEdgeEvent);

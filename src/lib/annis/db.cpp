@@ -782,6 +782,22 @@ void DB::update(const api::GraphUpdate& u)
                }
             }
          }
+         else if(std::shared_ptr<api::DeleteEdgeEvent> evt = std::dynamic_pointer_cast<api::DeleteEdgeEvent>(change))
+         {
+            auto existingSourceID = getNodeID(evt->sourceNode);
+            auto existingTargetID = getNodeID(evt->targetNode);
+            // only delete edge if both nodes actually exist
+            if(existingSourceID && existingTargetID)
+            {
+               ComponentType type = ComponentTypeHelper::fromString(evt->componentType);
+               if(type < ComponentType::ComponentType_MAX)
+               {
+                  std::shared_ptr<WriteableGraphStorage> gs =
+                    edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+                  gs->deleteEdge({*existingSourceID, *existingTargetID});
+               }
+            }
+         }
       }
 
       // TODO: apply each change

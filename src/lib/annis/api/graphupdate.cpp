@@ -67,6 +67,20 @@ void GraphUpdate::addEdge(std::string sourceNode, std::string targetNode, std::s
    diffs.push_back(evt);
 }
 
+void GraphUpdate::deleteEdge(std::string sourceNode, std::string targetNode, std::string layer,
+                             std::string componentType, std::string componentName)
+{
+   std::shared_ptr<DeleteEdgeEvent> evt = std::make_shared<DeleteEdgeEvent>();
+   evt->changeID = lastConsistentChangeID + diffs.size() + 1;
+   evt->sourceNode = sourceNode;
+   evt->targetNode = targetNode;
+   evt->layer = layer;
+   evt->componentType = componentType;
+   evt->componentName = componentName;
+
+   diffs.push_back(evt);
+}
+
 void GraphUpdate::finish()
 {
    if(!diffs.empty())

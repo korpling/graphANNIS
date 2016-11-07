@@ -327,6 +327,27 @@ public static final int
    public native @StdString BytePointer componentName(); public native AddEdgeEvent componentName(BytePointer componentName);
 }
 
+@Namespace("annis::api") @NoOffset public static class DeleteEdgeEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public DeleteEdgeEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public DeleteEdgeEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public DeleteEdgeEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public DeleteEdgeEvent position(long position) {
+        return (DeleteEdgeEvent)super.position(position);
+    }
+
+   public native @StdString BytePointer sourceNode(); public native DeleteEdgeEvent sourceNode(BytePointer sourceNode);
+   public native @StdString BytePointer targetNode(); public native DeleteEdgeEvent targetNode(BytePointer targetNode);
+   public native @StdString BytePointer layer(); public native DeleteEdgeEvent layer(BytePointer layer);
+   public native @StdString BytePointer componentType(); public native DeleteEdgeEvent componentType(BytePointer componentType);
+   public native @StdString BytePointer componentName(); public native DeleteEdgeEvent componentName(BytePointer componentName);
+}
+
 
 /**
  * \brief Lists updated that can be performed on a graph.
@@ -398,6 +419,13 @@ public static final int
                  @StdString String layer,
                  @StdString String componentType, @StdString String componentName);
 
+  public native void deleteEdge(@StdString BytePointer sourceNode, @StdString BytePointer targetNode,
+                 @StdString BytePointer layer,
+                 @StdString BytePointer componentType, @StdString BytePointer componentName);
+  public native void deleteEdge(@StdString String sourceNode, @StdString String targetNode,
+                 @StdString String layer,
+                 @StdString String componentType, @StdString String componentName);
+
   /**
    * \brief Mark the current state as consistent.
    */
@@ -414,6 +442,7 @@ public static final int
 // #include <cereal/archives/binary.hpp>
 // #include <cereal/archives/xml.hpp>
 // #include <cereal/archives/json.hpp>
+
 
 
 
