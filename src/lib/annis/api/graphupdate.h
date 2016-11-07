@@ -196,6 +196,8 @@ public:
      return lastConsistentChangeID;
   }
 
+  bool isConsistent() const;
+
 private:
   std::vector<std::shared_ptr<UpdateEvent>> diffs;
 

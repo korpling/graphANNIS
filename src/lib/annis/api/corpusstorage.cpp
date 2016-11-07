@@ -144,8 +144,14 @@ std::vector<std::string> CorpusStorage::find(std::vector<std::string> corpora, s
   return result;
 }
 
-void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
+void CorpusStorage::applyUpdate(std::string corpus, GraphUpdate &update)
 {
+   if(!update.isConsistent())
+   {
+      // Always mark the update state as consistent, even if caller forgot this.
+      update.finish();
+   }
+
    // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + corpus, true);
 
@@ -155,6 +161,7 @@ void CorpusStorage::applyUpdate(std::string corpus, const GraphUpdate &update)
 
 
       try {
+
          db->update(update);
 
          // if successfull write log

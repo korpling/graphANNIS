@@ -85,7 +85,20 @@ void GraphUpdate::finish()
 {
    if(!diffs.empty())
    {
-      std::shared_ptr<UpdateEvent> evt = *(diffs.rbegin());
-      lastConsistentChangeID = evt->changeID;
+      std::shared_ptr<UpdateEvent> lastEvent = *(diffs.rbegin());
+      lastConsistentChangeID = lastEvent->changeID;
+   }
+}
+
+bool GraphUpdate::isConsistent() const
+{
+   if(diffs.empty())
+   {
+      return true;
+   }
+   else
+   {
+      std::shared_ptr<UpdateEvent> lastEvent = *(diffs.rbegin());
+      return lastConsistentChangeID == lastEvent->changeID;
    }
 }

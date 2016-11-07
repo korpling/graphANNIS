@@ -67,7 +67,6 @@ TEST_F(CorpusStorageTest, AddNodeLabel) {
   api::GraphUpdate u;
   u.addNode("node1");
   u.addNodeLabel("node1", "test", "anno", "testVal");
-  u.finish();
 
   ASSERT_EQ(2, u.getDiffs().size());
 
@@ -89,13 +88,11 @@ TEST_F(CorpusStorageTest, DeleteNode) {
   api::GraphUpdate updateInsert;
   updateInsert.addNode("node1");
   updateInsert.addNodeLabel("node1", "test", "anno", "testVal");
-  updateInsert.finish();
 
   storage->applyUpdate("testCorpus", updateInsert);
 
   api::GraphUpdate updateDelete;
   updateDelete.deleteNode("node1");
-  updateDelete.finish();
   storage->applyUpdate("testCorpus", updateDelete);
 
 
@@ -114,7 +111,6 @@ TEST_F(CorpusStorageTest, AddEdge) {
   updateInsert.addNode("node1");
   updateInsert.addNode("node2");
   updateInsert.addEdge("node1", "node2", "", "POINTING", "dep");
-  updateInsert.finish();
 
   storage->applyUpdate("testCorpus", updateInsert);
 
@@ -134,13 +130,11 @@ TEST_F(CorpusStorageTest, DeleteEdge) {
   updateInsert.addNode("n3");
   updateInsert.addNode("n4");
   updateInsert.addEdge("n3", "n4", "", "POINTING", "dep");
-  updateInsert.finish();
 
   storage->applyUpdate("testCorpus", updateInsert);
 
   api::GraphUpdate updateDelete;
   updateDelete.deleteEdge("n1", "n2", "", "POINTING", "dep");
-  updateDelete.finish();
 
   storage->applyUpdate("testCorpus", updateDelete);
 

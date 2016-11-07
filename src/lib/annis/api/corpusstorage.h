@@ -63,7 +63,7 @@ public:
   std::vector<std::string> find(std::vector< std::string > corpora, std::string queryAsJSON, long long offset=0,
                                 long long limit=10);
 
-  void applyUpdate(std::string corpus, const GraphUpdate& update);
+  void applyUpdate(std::string corpus, GraphUpdate &update);
 
 private:
   const std::string databaseDir;
