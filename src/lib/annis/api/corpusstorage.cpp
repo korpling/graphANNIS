@@ -181,3 +181,20 @@ void CorpusStorage::applyUpdate(std::string corpus, GraphUpdate &update)
 
    }
 }
+
+void CorpusStorage::loadExternalCorpus(std::string pathToCorpus, std::string newCorpusName)
+{
+   boost::filesystem::path internalPath = boost::filesystem::path(databaseDir) / newCorpusName;
+
+
+   // load an existing corpus or create a our common database directory
+   std::shared_ptr<DB> db = cache->get(internalPath.string(), true);
+   if(db)
+   {
+      boost::shared_lock_guard<DB> lock(*db);
+      // load the corpus data from the external location
+      db->load(pathToCorpus);
+      // make sure the corpus is properly saved at least once (so it is in a consistent state)
+      db->save(internalPath.string());
+   }
+}

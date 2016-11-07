@@ -65,6 +65,8 @@ public:
 
   void applyUpdate(std::string corpus, GraphUpdate &update);
 
+  void loadExternalCorpus(std::string pathToCorpus, std::string newCorpusName);
+
 private:
   const std::string databaseDir;
   std::unique_ptr<DBCache> cache;
