@@ -206,10 +206,12 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
 // #include <cereal/types/string.hpp>
 // #include <cereal/types/vector.hpp>
+// #include <cereal/types/polymorphic.hpp>
 
 /** enum annis::api::UpdateEventType */
 public static final int
-  add_node = 0, delete_node = 1, add_node_label = 2, delete_node_label = 3;
+  add_node = 0, delete_node = 1, add_node_label = 2, delete_node_label = 3,
+  add_edge = 4;
 
 @Namespace("annis::api") public static class UpdateEvent extends Pointer {
     static { Loader.load(); }
@@ -226,12 +228,105 @@ public static final int
     }
 
   public native long changeID(); public native UpdateEvent changeID(long changeID);
-  public native @Cast("annis::api::UpdateEventType") int type(); public native UpdateEvent type(int type);
-  public native @StdString BytePointer arg0(); public native UpdateEvent arg0(BytePointer arg0);
-  public native @StdString BytePointer arg1(); public native UpdateEvent arg1(BytePointer arg1);
-  public native @StdString BytePointer arg2(); public native UpdateEvent arg2(BytePointer arg2);
-  public native @StdString BytePointer arg3(); public native UpdateEvent arg3(BytePointer arg3);
+  // make this class polymorphic
+
 }
+
+
+@Namespace("annis::api") @NoOffset public static class AddNodeEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public AddNodeEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public AddNodeEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public AddNodeEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public AddNodeEvent position(long position) {
+        return (AddNodeEvent)super.position(position);
+    }
+
+   public native @StdString BytePointer nodeName(); public native AddNodeEvent nodeName(BytePointer nodeName);
+}
+
+@Namespace("annis::api") @NoOffset public static class DeleteNodeEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public DeleteNodeEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public DeleteNodeEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public DeleteNodeEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public DeleteNodeEvent position(long position) {
+        return (DeleteNodeEvent)super.position(position);
+    }
+
+   public native @StdString BytePointer nodeName(); public native DeleteNodeEvent nodeName(BytePointer nodeName);
+}
+
+@Namespace("annis::api") @NoOffset public static class AddNodeLabelEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public AddNodeLabelEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public AddNodeLabelEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public AddNodeLabelEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public AddNodeLabelEvent position(long position) {
+        return (AddNodeLabelEvent)super.position(position);
+    }
+
+   public native @StdString BytePointer nodeName(); public native AddNodeLabelEvent nodeName(BytePointer nodeName);
+   public native @StdString BytePointer annoNs(); public native AddNodeLabelEvent annoNs(BytePointer annoNs);
+   public native @StdString BytePointer annoName(); public native AddNodeLabelEvent annoName(BytePointer annoName);
+   public native @StdString BytePointer annoValue(); public native AddNodeLabelEvent annoValue(BytePointer annoValue);
+}
+
+@Namespace("annis::api") @NoOffset public static class DeleteNodeLabelEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public DeleteNodeLabelEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public DeleteNodeLabelEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public DeleteNodeLabelEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public DeleteNodeLabelEvent position(long position) {
+        return (DeleteNodeLabelEvent)super.position(position);
+    }
+
+   public native @StdString BytePointer nodeName(); public native DeleteNodeLabelEvent nodeName(BytePointer nodeName);
+   public native @StdString BytePointer annoNs(); public native DeleteNodeLabelEvent annoNs(BytePointer annoNs);
+   public native @StdString BytePointer annoName(); public native DeleteNodeLabelEvent annoName(BytePointer annoName);
+}
+
+@Namespace("annis::api") @NoOffset public static class AddEdgeEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public AddEdgeEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public AddEdgeEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public AddEdgeEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public AddEdgeEvent position(long position) {
+        return (AddEdgeEvent)super.position(position);
+    }
+
+   public native @StdString BytePointer sourceNode(); public native AddEdgeEvent sourceNode(BytePointer sourceNode);
+   public native @StdString BytePointer targetNode(); public native AddEdgeEvent targetNode(BytePointer targetNode);
+   public native @StdString BytePointer layer(); public native AddEdgeEvent layer(BytePointer layer);
+   public native @StdString BytePointer componentType(); public native AddEdgeEvent componentType(BytePointer componentType);
+   public native @StdString BytePointer componentName(); public native AddEdgeEvent componentName(BytePointer componentName);
+}
+
 
 /**
  * \brief Lists updated that can be performed on a graph.
@@ -296,15 +391,31 @@ public static final int
   public native void deleteNodeLabel(@StdString BytePointer nodeName, @StdString BytePointer ns, @StdString BytePointer name);
   public native void deleteNodeLabel(@StdString String nodeName, @StdString String ns, @StdString String name);
 
+  public native void addEdge(@StdString BytePointer sourceNode, @StdString BytePointer targetNode,
+                 @StdString BytePointer layer,
+                 @StdString BytePointer componentType, @StdString BytePointer componentName);
+  public native void addEdge(@StdString String sourceNode, @StdString String targetNode,
+                 @StdString String layer,
+                 @StdString String componentType, @StdString String componentName);
+
   /**
    * \brief Mark the current state as consistent.
    */
   public native void finish();
 
-  public native @Const @ByRef UpdateEventList getDiffs();
+  
 
   
 }
+
+
+
+
+// #include <cereal/archives/binary.hpp>
+// #include <cereal/archives/xml.hpp>
+// #include <cereal/archives/json.hpp>
+
+
 
 
 

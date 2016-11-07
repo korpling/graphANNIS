@@ -8,23 +8,95 @@
 
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/polymorphic.hpp>
 
 namespace annis { namespace api {
 
 enum UpdateEventType
 {
-  add_node, delete_node, add_node_label, delete_node_label
+  add_node, delete_node, add_node_label, delete_node_label,
+  add_edge
 };
 
 struct UpdateEvent
 {
   std::uint64_t changeID;
-  UpdateEventType type;
-  std::string arg0;
-  std::string arg1;
-  std::string arg2;
-  std::string arg3;
+  // make this class polymorphic
+  virtual ~UpdateEvent() {};
+
+  template<class Archive>
+  void serialize( Archive & ar )
+  {
+     ar( changeID);
+  }
+
 };
+
+
+struct AddNodeEvent : UpdateEvent
+{
+   std::string nodeName;
+
+   template<class Archive>
+   void serialize( Archive & ar )
+   {
+      ar(cereal::base_class<UpdateEvent>(this), nodeName);
+   }
+};
+
+struct DeleteNodeEvent : UpdateEvent
+{
+   std::string nodeName;
+
+   template<class Archive>
+   void serialize( Archive & ar )
+   {
+      ar(cereal::base_class<UpdateEvent>(this), nodeName);
+   }
+};
+
+struct AddNodeLabelEvent : UpdateEvent
+{
+   std::string nodeName;
+   std::string annoNs;
+   std::string annoName;
+   std::string annoValue;
+
+   template<class Archive>
+   void serialize( Archive & ar )
+   {
+      ar(cereal::base_class<UpdateEvent>(this), nodeName, annoNs, annoName, annoValue);
+   }
+};
+
+struct DeleteNodeLabelEvent : UpdateEvent
+{
+   std::string nodeName;
+   std::string annoNs;
+   std::string annoName;
+
+   template<class Archive>
+   void serialize( Archive & ar )
+   {
+      ar(cereal::base_class<UpdateEvent>(this), nodeName, annoNs, annoName);
+   }
+};
+
+struct AddEdgeEvent : UpdateEvent
+{
+   std::string sourceNode;
+   std::string targetNode;
+   std::string layer;
+   std::string componentType;
+   std::string componentName;
+
+   template<class Archive>
+   void serialize( Archive & ar )
+   {
+      ar(cereal::base_class<UpdateEvent>(this), sourceNode, targetNode, layer, componentType, componentName);
+   }
+};
+
 
 /**
  * @brief Lists updated that can be performed on a graph.
@@ -80,6 +152,10 @@ public:
    */
   void deleteNodeLabel(std::string nodeName, std::string ns, std::string name);
 
+  void addEdge(std::string sourceNode, std::string targetNode,
+               std::string layer,
+               std::string componentType, std::string componentName);
+
   /**
    * @brief Mark the current state as consistent.
    */
@@ -91,7 +167,7 @@ public:
     archive(diffs, lastConsistentChangeID);
   }
 
-  const std::vector<UpdateEvent>& getDiffs() const
+  const std::vector<std::shared_ptr<UpdateEvent>>& getDiffs() const
   {
      return diffs;
   }
@@ -102,18 +178,20 @@ public:
   }
 
 private:
-  std::vector<UpdateEvent> diffs;
+  std::vector<std::shared_ptr<UpdateEvent>> diffs;
 
   std::uint64_t lastConsistentChangeID;
 };
 
-template<class Archive>
-void serialize(Archive & archive,
-               UpdateEvent & evt)
-{
-  archive(evt.changeID, evt.type, evt.arg0, evt.arg1, evt.arg2, evt.arg3);
-}
-
 }
 }
 
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
+#include <cereal/archives/json.hpp>
+
+CEREAL_REGISTER_TYPE(annis::api::AddNodeEvent);
+CEREAL_REGISTER_TYPE(annis::api::DeleteNodeEvent);
+CEREAL_REGISTER_TYPE(annis::api::AddNodeLabelEvent);
+CEREAL_REGISTER_TYPE(annis::api::DeleteNodeLabelEvent);
+CEREAL_REGISTER_TYPE(annis::api::AddEdgeEvent);

@@ -71,7 +71,6 @@ public class SaltImportTest
     
     API.GraphUpdate result = SaltImport.map(doc.getDocumentGraph());
     
-    assertEquals(11, result.getDiffs().size());
     
     // TODO review the generated test code and remove the default call to fail.
 

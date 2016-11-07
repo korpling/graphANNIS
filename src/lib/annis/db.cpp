@@ -707,73 +707,66 @@ vector<Annotation> DB::getEdgeAnnotations(const Component &component,
 
 void DB::update(const api::GraphUpdate& u)
 {
-   for(const api::UpdateEvent& change : u.getDiffs())
+   for(std::shared_ptr<api::UpdateEvent> change : u.getDiffs())
    {
-      if(change.changeID <= u.getLastConsistentChangeID())
+      if(change->changeID <= u.getLastConsistentChangeID())
       {
-         switch(change.type)
-         {
-            case api::add_node:
-               {
-                  auto existingNodeID = getNodeID(change.arg0);
-                  // only add node if it does not exist yet
-                  if(!existingNodeID)
-                  {
-                     nodeid_t newNodeID = nodeAnnos.nextFreeID();
-                     Annotation newAnno =
-                        {getNodeNameStringID(), getNamespaceStringID(), strings.add(change.arg0)};
-                     nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
-                  }
-               }
-               break;
-            case api::delete_node:
-               {
-                  auto existingNodeID = getNodeID(change.arg0);
-                  if(existingNodeID)
-                  {
-                     // add all annotations
-                     std::list<Annotation> annoList = nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
-                     for(Annotation anno : annoList)
-                     {
-                        AnnotationKey annoKey = {anno.name, anno.ns};
-                        nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
-                     }
-                     // delete all edges pointing to this node either as source or target
-                     for(Component c : getAllComponents())
-                     {
-                        std::shared_ptr<WriteableGraphStorage> gs =
-                          edges.createWritableGraphStorage(c.type, c.layer, c.name);
-                        gs->deleteNode(*existingNodeID);
-                     }
+         std::shared_ptr<api::AddNodeEvent> test = std::dynamic_pointer_cast<api::AddNodeEvent>(change);
 
-                  }
-               }
-               break;
-            case api::add_node_label:
+         if(std::shared_ptr<api::AddNodeEvent> evt = std::dynamic_pointer_cast<api::AddNodeEvent>(change))
+         {
+            auto existingNodeID = getNodeID(evt->nodeName);
+            // only add node if it does not exist yet
+            if(!existingNodeID)
+            {
+               nodeid_t newNodeID = nodeAnnos.nextFreeID();
+               Annotation newAnno =
+                  {getNodeNameStringID(), getNamespaceStringID(), strings.add(evt->nodeName)};
+               nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
+            }
+         }
+         else if(std::shared_ptr<api::DeleteNodeEvent> evt = std::dynamic_pointer_cast<api::DeleteNodeEvent>(change))
+         {
+            auto existingNodeID = getNodeID(evt->nodeName);
+            if(existingNodeID)
+            {
+               // add all annotations
+               std::list<Annotation> annoList = nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
+               for(Annotation anno : annoList)
                {
-                  auto existingNodeID = getNodeID(change.arg0);
-                  if(existingNodeID)
-                  {
-                    Annotation anno = {strings.add(change.arg2),
-                                       strings.add(change.arg1),
-                                       strings.add(change.arg3)};
-                    nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
-                  }
+                  AnnotationKey annoKey = {anno.name, anno.ns};
+                  nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
                }
-               break;
-            case api::delete_node_label:
+               // delete all edges pointing to this node either as source or target
+               for(Component c : getAllComponents())
                {
-                  auto existingNodeID = getNodeID(change.arg0);
-                  if(existingNodeID)
-                  {
-                    AnnotationKey annoKey = {strings.add(change.arg2),
-                                             strings.add(change.arg1)};
-                    nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
-                  }
+                  std::shared_ptr<WriteableGraphStorage> gs =
+                    edges.createWritableGraphStorage(c.type, c.layer, c.name);
+                  gs->deleteNode(*existingNodeID);
                }
-               break;
-            default:
-               throw "Unknown change type";
+
+            }
+         }
+         else if(std::shared_ptr<api::AddNodeLabelEvent> evt = std::dynamic_pointer_cast<api::AddNodeLabelEvent>(change))
+         {
+            auto existingNodeID = getNodeID(evt->nodeName);
+            if(existingNodeID)
+            {
+              Annotation anno = {strings.add(evt->annoName),
+                                 strings.add(evt->annoNs),
+                                 strings.add(evt->annoValue)};
+              nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
+            }
+         }
+         else if(std::shared_ptr<api::DeleteNodeLabelEvent> evt = std::dynamic_pointer_cast<api::DeleteNodeLabelEvent>(change))
+         {
+            auto existingNodeID = getNodeID(evt->nodeName);
+            if(existingNodeID)
+            {
+              AnnotationKey annoKey = {strings.add(evt->annoName),
+                                       strings.add(evt->annoNs)};
+              nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+            }
          }
       }
 
