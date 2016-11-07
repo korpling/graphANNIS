@@ -754,8 +754,8 @@ void DB::update(const api::GraphUpdate& u)
                   auto existingNodeID = getNodeID(change.arg0);
                   if(existingNodeID)
                   {
-                    Annotation anno = {strings.add(change.arg1),
-                                       strings.add(change.arg2),
+                    Annotation anno = {strings.add(change.arg2),
+                                       strings.add(change.arg1),
                                        strings.add(change.arg3)};
                     nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
                   }
@@ -766,8 +766,8 @@ void DB::update(const api::GraphUpdate& u)
                   auto existingNodeID = getNodeID(change.arg0);
                   if(existingNodeID)
                   {
-                    AnnotationKey annoKey = {strings.add(change.arg1),
-                                             strings.add(change.arg2)};
+                    AnnotationKey annoKey = {strings.add(change.arg2),
+                                             strings.add(change.arg1)};
                     nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
                   }
                }

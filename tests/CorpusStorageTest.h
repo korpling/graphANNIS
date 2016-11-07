@@ -60,7 +60,7 @@ protected:
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-TEST_F(CorpusStorageTest, DiffSize) {
+TEST_F(CorpusStorageTest, AddNodeLabel) {
 
 
 
@@ -79,6 +79,9 @@ TEST_F(CorpusStorageTest, DiffSize) {
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
   ASSERT_EQ(1, numOfNodes);
 
+  auto numOfTestAnnos = storage->count({"testCorpus"},
+                                       "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"nodeAnnotations\":[{\"namespace\":\"test\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"test:anno\"}],\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
+  ASSERT_EQ(1, numOfTestAnnos);
 }
 
 
