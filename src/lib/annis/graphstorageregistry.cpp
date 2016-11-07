@@ -115,11 +115,8 @@ std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(s
 
 std::string GraphStorageRegistry::getOptimizedImpl(const Component &component, GraphStatistic stats)
 {
-  std::string result = getImplByRegistry(component);
-  if(result.empty())
-  {
-    result = getImplByHeuristics(component, stats);
-  }
+  std::string result = getImplByHeuristics(component, stats);
+
   if(result.empty())
   {
     result = fallback;
@@ -132,57 +129,6 @@ std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(S
 {
   std::string implName = getOptimizedImpl(component, stats);
   return createGraphStorage(implName, strings, component);
-}
-
-void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type)
-{
-  Component c = {type, "", ""};
-  componentToImpl[c] = implName;
-}
-
-void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type, std::string layer)
-{
-  Component c = {type, layer, ""};
-  componentToImpl[c] = implName;
-}
-
-void GraphStorageRegistry::setImplementation(std::string implName, ComponentType type, std::string layer, std::string name)
-{
-  Component c = {type, layer, name};
-  componentToImpl[c] = implName;
-}
-
-std::string GraphStorageRegistry::getImplByRegistry(const Component &component)
-{
-  std::string result = "";
-  // try to find a fully matching entry
-  auto it = componentToImpl.find(component);
-  if(it != componentToImpl.end())
-  {
-    result = it->second;
-  }
-  else
-  {
-    // try without the name
-    Component withoutName = {component.type, component.layer, ""};
-    it = componentToImpl.find(withoutName);
-    if(it != componentToImpl.end())
-    {
-      result = it->second;
-    }
-    else
-    {
-      // try only the component type
-      Component onlyType = {component.type, "", ""};
-      it = componentToImpl.find(onlyType);
-      if(it != componentToImpl.end())
-      {
-        result = it->second;
-      }
-    }
-  }
-
-  return result;
 }
 
 std::string GraphStorageRegistry::getImplByHeuristics(const Component &component, GraphStatistic stats)

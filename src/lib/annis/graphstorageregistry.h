@@ -19,9 +19,6 @@ public:
   std::string getOptimizedImpl(const Component& component, GraphStatistic stats);
   std::unique_ptr<ReadableGraphStorage> createGraphStorage(StringStorage &strings, const Component &component, GraphStatistic stats);
 
-  void setImplementation(std::string implName, ComponentType type);
-  void setImplementation(std::string implName, ComponentType type, std::string layer);
-  void setImplementation(std::string implName, ComponentType type, std::string layer, std::string name);
 public:
   static const std::string linearP32;
   static const std::string linearP16;
@@ -36,7 +33,6 @@ private:
 
   std::map<Component, std::string> componentToImpl;
 private:
-  std::string getImplByRegistry(const Component& component);
   std::string getImplByHeuristics(const Component& component, GraphStatistic stats);
 
   std::string getPrePostOrderBySize(const GraphStatistic& stats, bool isTree)
