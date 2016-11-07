@@ -180,7 +180,17 @@ target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES}
 enable_testing()
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-file(GLOB TEST_SRC_LIST "tests/*.cpp" "tests/*.h")
+set(TEST_SRC_LIST
+  tests/SearchTestPcc2.h
+  tests/SearchTestParlament.h
+  tests/SearchTestRidges.h
+  tests/CorpusStorageTest.h
+  tests/SearchTestGUM.h
+  tests/SearchTestTueBaDZ.h
+  tests/LoadTest.h
+  tests/SearchTestTiger.h
+  tests/testmain.cpp
+)
 
 set(TEST_EXEC "test_${PROJECT_NAME}")
 
