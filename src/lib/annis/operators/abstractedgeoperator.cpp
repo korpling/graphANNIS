@@ -149,22 +149,30 @@ double AbstractEdgeOperator::selectivity()
     if(auto g = gPtr.lock())
     {
       const auto& stat = g->getStatistics();
-      if(stat.cyclic)
+      if(stat.valid)
       {
-        // can get all other nodes
-        return 1.0;
+        if(stat.cyclic)
+        {
+          // can get all other nodes
+          return 1.0;
+        }
+
+        // get number of nodes reachable from min to max distance
+        std::uint32_t maxPathLength = std::min(maxDistance, stat.maxDepth);
+        std::uint32_t minPathLength = std::max(0, (int) minDistance-1);
+
+        std::uint32_t reachableMax = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) maxPathLength));
+        std::uint32_t reachableMin = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) minPathLength));
+
+        std::uint32_t reachable =  reachableMax - reachableMin;
+        worstSel = std::max(worstSel, ((double) reachable ) / ((double) stat.nodes));
+      }
+      else
+      {
+         // assume a default selecivity for this graph storage operator
+         worstSel = std::max(worstSel, 0.01);
       }
 
-      // get number of nodes reachable from min to max distance
-      std::uint32_t maxPathLength = std::min(maxDistance, stat.maxDepth);
-      std::uint32_t minPathLength = std::max(0, (int) minDistance-1);
-
-      std::uint32_t reachableMax = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) maxPathLength));
-      std::uint32_t reachableMin = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) minPathLength));
-
-      std::uint32_t reachable =  reachableMax - reachableMin;
-
-      worstSel = std::max(worstSel, ((double) reachable ) / ((double) stat.nodes));
     }
   }
   
