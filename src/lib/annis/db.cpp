@@ -798,6 +798,29 @@ void DB::update(const api::GraphUpdate& u)
                }
             }
          }
+         else if(std::shared_ptr<api::AddEdgeLabelEvent> evt = std::dynamic_pointer_cast<api::AddEdgeLabelEvent>(change))
+         {
+           auto existingSourceID = getNodeID(evt->sourceNode);
+           auto existingTargetID = getNodeID(evt->targetNode);
+           // only add label if both nodes already exists
+           if(existingSourceID && existingTargetID)
+           {
+              ComponentType type = ComponentTypeHelper::fromString(evt->componentType);
+              if(type < ComponentType::ComponentType_MAX)
+              {
+                 std::shared_ptr<WriteableGraphStorage> gs =
+                   edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+
+                 // only add label if the edge already exists
+                 if(gs->isConnected({*existingSourceID, *existingTargetID}, 1, 1))
+                 {
+                   Annotation anno = {strings.add(evt->annoName), strings.add(evt->annoNs), strings.add(evt->annoValue)};
+                   gs->addEdgeAnnotation({*existingSourceID, *existingTargetID}, anno);
+                 }
+
+              }
+           }
+         }
       }
 
       // TODO: apply each change

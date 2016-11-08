@@ -81,6 +81,46 @@ void GraphUpdate::deleteEdge(std::string sourceNode, std::string targetNode, std
    diffs.push_back(evt);
 }
 
+void GraphUpdate::addEdgeLabel(std::string sourceNode, std::string targetNode, std::string layer,
+                               std::string componentType, std::string componentName,
+                               std::string annoNs, std::string annoName, std::string annoValue)
+{
+    std::shared_ptr<AddEdgeLabelEvent> evt = std::make_shared<AddEdgeLabelEvent>();
+    evt->changeID = lastConsistentChangeID + diffs.size() + 1;
+
+    evt->sourceNode = sourceNode;
+    evt->targetNode = targetNode;
+    evt->layer = layer;
+    evt->componentType = componentType;
+    evt->componentName = componentName;
+
+    evt->annoNs = annoNs;
+    evt->annoName = annoName;
+    evt->annoValue = annoValue;
+
+    diffs.push_back(evt);
+
+}
+
+void GraphUpdate::deleteEdgeLabel(std::string sourceNode, std::string targetNode, std::string layer,
+                                  std::string componentType, std::string componentName,
+                                  std::string annoNs, std::string annoName)
+{
+   std::shared_ptr<DeleteEdgeLabelEvent> evt = std::make_shared<DeleteEdgeLabelEvent>();
+   evt->changeID = lastConsistentChangeID + diffs.size() + 1;
+
+   evt->sourceNode = sourceNode;
+   evt->targetNode = targetNode;
+   evt->layer = layer;
+   evt->componentType = componentType;
+   evt->componentName = componentName;
+
+   evt->annoNs = annoNs;
+   evt->annoName = annoName;
+
+   diffs.push_back(evt);
+}
+
 void GraphUpdate::finish()
 {
    if(!diffs.empty())

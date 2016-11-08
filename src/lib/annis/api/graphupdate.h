@@ -112,6 +112,45 @@ struct DeleteEdgeEvent : UpdateEvent
    }
 };
 
+struct AddEdgeLabelEvent : UpdateEvent
+{
+   std::string sourceNode;
+   std::string targetNode;
+   std::string layer;
+   std::string componentType;
+   std::string componentName;
+
+   std::string annoNs;
+   std::string annoName;
+   std::string annoValue;
+
+   template<class Archive>
+   void serialize( Archive & ar )
+   {
+      ar(cereal::base_class<UpdateEvent>(this), sourceNode, targetNode, layer, componentType, componentName,
+         annoNs, annoName, annoValue);
+   }
+};
+
+struct DeleteEdgeLabelEvent : UpdateEvent
+{
+   std::string sourceNode;
+   std::string targetNode;
+   std::string layer;
+   std::string componentType;
+   std::string componentName;
+
+   std::string annoNs;
+   std::string annoName;
+
+   template<class Archive>
+   void serialize( Archive & ar )
+   {
+      ar(cereal::base_class<UpdateEvent>(this), sourceNode, targetNode, layer, componentType, componentName,
+         annoNs, annoName);
+   }
+};
+
 
 /**
  * @brief Lists updated that can be performed on a graph.
@@ -175,6 +214,17 @@ public:
                std::string layer,
                std::string componentType, std::string componentName);
 
+  void addEdgeLabel(std::string sourceNode, std::string targetNode,
+               std::string layer,
+               std::string componentType, std::string componentName,
+               std::string annoNs, std::string annoName, std::string annoValue);
+
+  void deleteEdgeLabel(std::string sourceNode, std::string targetNode,
+               std::string layer,
+               std::string componentType, std::string componentName,
+               std::string annoNs, std::string annoName);
+
+
   /**
    * @brief Mark the current state as consistent.
    */
@@ -217,3 +267,5 @@ CEREAL_REGISTER_TYPE(annis::api::AddNodeLabelEvent);
 CEREAL_REGISTER_TYPE(annis::api::DeleteNodeLabelEvent);
 CEREAL_REGISTER_TYPE(annis::api::AddEdgeEvent);
 CEREAL_REGISTER_TYPE(annis::api::DeleteEdgeEvent);
+CEREAL_REGISTER_TYPE(annis::api::AddEdgeLabelEvent);
+CEREAL_REGISTER_TYPE(annis::api::DeleteEdgeLabelEvent);
