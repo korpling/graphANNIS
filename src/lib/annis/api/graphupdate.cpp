@@ -9,6 +9,7 @@
 using namespace annis::api;
 
 GraphUpdate::GraphUpdate()
+ : lastConsistentChangeID(0)
 {
 }
 
