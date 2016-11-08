@@ -157,8 +157,11 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
                                   long limit/*=10*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON);
 
-  public native void applyUpdate(@StdString BytePointer corpus, @Const @ByRef GraphUpdate update);
-  public native void applyUpdate(@StdString String corpus, @Const @ByRef GraphUpdate update);
+  public native void applyUpdate(@StdString BytePointer corpus, @ByRef GraphUpdate update);
+  public native void applyUpdate(@StdString String corpus, @ByRef GraphUpdate update);
+
+  public native void loadExternalCorpus(@StdString BytePointer pathToCorpus, @StdString BytePointer newCorpusName);
+  public native void loadExternalCorpus(@StdString String pathToCorpus, @StdString String newCorpusName);
 }
 
  // end namespace annis
@@ -348,6 +351,55 @@ public static final int
    public native @StdString BytePointer componentName(); public native DeleteEdgeEvent componentName(BytePointer componentName);
 }
 
+@Namespace("annis::api") @NoOffset public static class AddEdgeLabelEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public AddEdgeLabelEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public AddEdgeLabelEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public AddEdgeLabelEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public AddEdgeLabelEvent position(long position) {
+        return (AddEdgeLabelEvent)super.position(position);
+    }
+
+   public native @StdString BytePointer sourceNode(); public native AddEdgeLabelEvent sourceNode(BytePointer sourceNode);
+   public native @StdString BytePointer targetNode(); public native AddEdgeLabelEvent targetNode(BytePointer targetNode);
+   public native @StdString BytePointer layer(); public native AddEdgeLabelEvent layer(BytePointer layer);
+   public native @StdString BytePointer componentType(); public native AddEdgeLabelEvent componentType(BytePointer componentType);
+   public native @StdString BytePointer componentName(); public native AddEdgeLabelEvent componentName(BytePointer componentName);
+
+   public native @StdString BytePointer annoNs(); public native AddEdgeLabelEvent annoNs(BytePointer annoNs);
+   public native @StdString BytePointer annoName(); public native AddEdgeLabelEvent annoName(BytePointer annoName);
+   public native @StdString BytePointer annoValue(); public native AddEdgeLabelEvent annoValue(BytePointer annoValue);
+}
+
+@Namespace("annis::api") @NoOffset public static class DeleteEdgeLabelEvent extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public DeleteEdgeLabelEvent() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public DeleteEdgeLabelEvent(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public DeleteEdgeLabelEvent(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public DeleteEdgeLabelEvent position(long position) {
+        return (DeleteEdgeLabelEvent)super.position(position);
+    }
+
+   public native @StdString BytePointer sourceNode(); public native DeleteEdgeLabelEvent sourceNode(BytePointer sourceNode);
+   public native @StdString BytePointer targetNode(); public native DeleteEdgeLabelEvent targetNode(BytePointer targetNode);
+   public native @StdString BytePointer layer(); public native DeleteEdgeLabelEvent layer(BytePointer layer);
+   public native @StdString BytePointer componentType(); public native DeleteEdgeLabelEvent componentType(BytePointer componentType);
+   public native @StdString BytePointer componentName(); public native DeleteEdgeLabelEvent componentName(BytePointer componentName);
+
+   public native @StdString BytePointer annoNs(); public native DeleteEdgeLabelEvent annoNs(BytePointer annoNs);
+   public native @StdString BytePointer annoName(); public native DeleteEdgeLabelEvent annoName(BytePointer annoName);
+}
+
 
 /**
  * \brief Lists updated that can be performed on a graph.
@@ -426,6 +478,25 @@ public static final int
                  @StdString String layer,
                  @StdString String componentType, @StdString String componentName);
 
+  public native void addEdgeLabel(@StdString BytePointer sourceNode, @StdString BytePointer targetNode,
+                 @StdString BytePointer layer,
+                 @StdString BytePointer componentType, @StdString BytePointer componentName,
+                 @StdString BytePointer annoNs, @StdString BytePointer annoName, @StdString BytePointer annoValue);
+  public native void addEdgeLabel(@StdString String sourceNode, @StdString String targetNode,
+                 @StdString String layer,
+                 @StdString String componentType, @StdString String componentName,
+                 @StdString String annoNs, @StdString String annoName, @StdString String annoValue);
+
+  public native void deleteEdgeLabel(@StdString BytePointer sourceNode, @StdString BytePointer targetNode,
+                 @StdString BytePointer layer,
+                 @StdString BytePointer componentType, @StdString BytePointer componentName,
+                 @StdString BytePointer annoNs, @StdString BytePointer annoName);
+  public native void deleteEdgeLabel(@StdString String sourceNode, @StdString String targetNode,
+                 @StdString String layer,
+                 @StdString String componentType, @StdString String componentName,
+                 @StdString String annoNs, @StdString String annoName);
+
+
   /**
    * \brief Mark the current state as consistent.
    */
@@ -434,6 +505,8 @@ public static final int
   
 
   
+
+  public native @Cast("bool") boolean isConsistent();
 }
 
 
@@ -442,6 +515,8 @@ public static final int
 // #include <cereal/archives/binary.hpp>
 // #include <cereal/archives/xml.hpp>
 // #include <cereal/archives/json.hpp>
+
+
 
 
 
