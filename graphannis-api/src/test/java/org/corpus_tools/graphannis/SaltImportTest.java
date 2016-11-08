@@ -15,17 +15,17 @@
  */
 package org.corpus_tools.graphannis;
 
+import com.google.common.io.Files;
+import java.io.File;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocument;
-import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.samples.SampleGenerator;
-import org.corpus_tools.salt.util.SaltUtil;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
@@ -33,6 +33,7 @@ import static org.junit.Assert.*;
  */
 public class SaltImportTest
 {
+  private API.CorpusStorage storage;
   
   public SaltImportTest()
   {
@@ -51,6 +52,9 @@ public class SaltImportTest
   @Before
   public void setUp()
   {
+    File tmpDir = Files.createTempDir();
+    
+    storage = new API.CorpusStorage(tmpDir.getAbsolutePath());
   }
   
   @After
@@ -71,6 +75,16 @@ public class SaltImportTest
     
     API.GraphUpdate result = SaltImport.map(doc.getDocumentGraph());
     
+    storage.applyUpdate("testCorpus", result);
+    
+    long numOfNodes = storage.count(new API.StringVector("testCorpus"), 
+      "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
+    
+    API.StringVector matches = storage.find(new API.StringVector("testCorpus"), 
+      "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}",
+      0, 100);
+    
+    Assert.assertEquals(11, numOfNodes);
     
     // TODO review the generated test code and remove the default call to fail.
 
