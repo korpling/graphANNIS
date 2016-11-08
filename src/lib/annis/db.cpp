@@ -821,6 +821,29 @@ void DB::update(const api::GraphUpdate& u)
               }
            }
          }
+         else if(std::shared_ptr<api::DeleteEdgeLabelEvent> evt = std::dynamic_pointer_cast<api::DeleteEdgeLabelEvent>(change))
+         {
+           auto existingSourceID = getNodeID(evt->sourceNode);
+           auto existingTargetID = getNodeID(evt->targetNode);
+           // only add label if both nodes actually exists
+           if(existingSourceID && existingTargetID)
+           {
+              ComponentType type = ComponentTypeHelper::fromString(evt->componentType);
+              if(type < ComponentType::ComponentType_MAX)
+              {
+                 std::shared_ptr<WriteableGraphStorage> gs =
+                   edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+
+                 // only delete label if the edge actually exists
+                 if(gs->isConnected({*existingSourceID, *existingTargetID}, 1, 1))
+                 {
+                   AnnotationKey annoKey = {strings.add(evt->annoName), strings.add(evt->annoNs)};
+                   gs->deleteEdgeAnnotation({*existingSourceID, *existingTargetID}, annoKey);
+                 }
+
+              }
+           }
+         }
       }
 
       // TODO: apply each change
@@ -831,4 +854,5 @@ void DB::update(const api::GraphUpdate& u)
 DB::~DB()
 {
 }
+
 

@@ -140,6 +140,13 @@ bool GraphUpdate::isConsistent() const
    else
    {
       std::shared_ptr<UpdateEvent> lastEvent = *(diffs.rbegin());
-      return lastConsistentChangeID == lastEvent->changeID;
+      if(lastEvent)
+      {
+        return lastConsistentChangeID == lastEvent->changeID;
+      }
+      else
+      {
+        return false;
+      }
    }
 }

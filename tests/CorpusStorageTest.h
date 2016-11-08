@@ -165,6 +165,31 @@ TEST_F(CorpusStorageTest, DeleteEdge) {
 
 }
 
+TEST_F(CorpusStorageTest, DeleteEdgeLabel) {
+
+  api::GraphUpdate updateInsert;
+  updateInsert.addNode("node1");
+  updateInsert.addNode("node2");
+  updateInsert.addEdge("node1", "node2", "", "POINTING", "dep");
+  updateInsert.addEdgeLabel("node1", "node2", "", "POINTING", "dep", "ns", "anno", "testVal");
+
+  storage->applyUpdate("testCorpus", updateInsert);
+
+  auto depEdgesWithAnno = storage->count({"testCorpus"},
+                                  "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"edgeAnnotations\":[{\"namespace\":\"ns\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"ns:anno\"}],\"left\":1,\"right\":2}]}]}");
+  ASSERT_EQ(1, depEdgesWithAnno);
+
+  api::GraphUpdate updateDelete;
+  updateDelete.deleteEdgeLabel("node1", "node2", "", "POINTING", "dep", "ns", "anno");
+
+  storage->applyUpdate("testCorpus", updateDelete);
+
+  depEdgesWithAnno = storage->count({"testCorpus"},
+                                    "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"edgeAnnotations\":[{\"namespace\":\"ns\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"ns:anno\"}],\"left\":1,\"right\":2}]}]}");
+
+  ASSERT_EQ(0, depEdgesWithAnno);
+}
+
 TEST_F(CorpusStorageTest, ReloadWithLog) {
 
   api::GraphUpdate updateInsert;
