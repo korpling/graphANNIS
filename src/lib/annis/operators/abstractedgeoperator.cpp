@@ -113,7 +113,7 @@ bool AbstractEdgeOperator::checkEdgeAnnotation(std::shared_ptr<const ReadableGra
   {
     return true;
   }
-  else if(edgeAnno.val == 0)
+  else if(edgeAnno.val == 0 || edgeAnno.val == std::numeric_limits<std::uint32_t>::max())
   {
     // must be a valid value
     return false;
@@ -195,7 +195,9 @@ std::string AbstractEdgeOperator::description()
   
   if(!(edgeAnno == anyAnno))
   {
-    if(edgeAnno.name != 0 && edgeAnno.val != 0)
+    if(edgeAnno.name != 0 && edgeAnno.val != 0
+       && edgeAnno.name != std::numeric_limits<std::uint32_t>::max()
+       && edgeAnno.val != std::numeric_limits<std::uint32_t>::max())
     {
       result += "[" + strings.str(edgeAnno.name) + "=\"" + strings.str(edgeAnno.val) + "\"]";
     }
