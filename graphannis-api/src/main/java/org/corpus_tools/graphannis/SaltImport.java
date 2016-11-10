@@ -18,13 +18,9 @@ package org.corpus_tools.graphannis;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.corpus_tools.salt.common.SDocumentGraph;
-import org.corpus_tools.salt.common.SDocumentGraphObject;
 import org.corpus_tools.salt.common.SDominanceRelation;
 import org.corpus_tools.salt.common.SPointingRelation;
-import org.corpus_tools.salt.common.SSpan;
-import org.corpus_tools.salt.common.SStructure;
 import org.corpus_tools.salt.common.SStructuredNode;
-import org.corpus_tools.salt.common.STextualDS;
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.core.SAnnotation;
 import org.corpus_tools.salt.core.SLayer;
@@ -37,13 +33,23 @@ import org.corpus_tools.salt.core.SNode;
  */
 public class SaltImport
 {
+  public static final String ANNIS_NS = "annis4_internal";
+  
   public static API.GraphUpdate map(SDocumentGraph g)
   {
     API.GraphUpdate u = new API.GraphUpdate();
     
+    // add all nodes and their annotations
     for(SNode n : g.getNodes())
     {
       addNode(n, u);
+    }
+    
+    // add spans for each token
+    for(SToken t : g.getSortedTokenByText())
+    {
+      String nodeName = t.getPath().fragment();
+      u.addNodeLabel(nodeName, ANNIS_NS, "tok", g.getText(t));
     }
     
     for(SDominanceRelation rel : g.getDominanceRelations())
@@ -73,6 +79,7 @@ public class SaltImport
     
     return u;
   }
+  
   
   private static Set<String> getLayerNames(Set<SLayer> layers)
   {
@@ -108,4 +115,5 @@ public class SaltImport
       }
     }
   }
+  
 }

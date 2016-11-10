@@ -22,12 +22,12 @@ import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.samples.SampleGenerator;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
+import static org.junit.Assert.assertEquals;
 
 /**
  *
@@ -79,11 +79,23 @@ public class SaltImportTest
     
     storage.applyUpdate("testCorpus", result);
     
-    long numOfNodes = storage.count(new API.StringVector("testCorpus"), aqlToJSON("node"));
+    API.StringVector corpus = new API.StringVector("testCorpus");
     
-    Assert.assertEquals(11, numOfNodes);
+    assertEquals(11, storage.count(corpus, aqlToJSON("node")));
     
-    // TODO review the generated test code and remove the default call to fail.
+    // test that the token are present and have the correct span values
+    assertEquals(11, storage.count(corpus, aqlToJSON("tok")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"Is\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"this\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"example\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"more\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"complicated\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"than\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"it\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"appears\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"to\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"be\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"?\"")));
 
   }
   
