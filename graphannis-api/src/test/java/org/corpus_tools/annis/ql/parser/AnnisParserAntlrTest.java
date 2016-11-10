@@ -51,22 +51,33 @@ public class AnnisParserAntlrTest
     Object[][] data = new Object[][]
     {
       {"tok", 
-        "ALTERNATIVES\n" +
-        "\t{node 1; bound to '1'; is a token}"
+        "tok"
       },
       {"/abc/", 
-        "ALTERNATIVES\n" +
-        "\t{node 1; bound to '1'; spans~/abc/}"
+        "/abc/"
+      },
+      {
+        "tok=/abc/",
+        "tok=/abc/"
       },
       {" (node & cat=/NP/ & #1 . #2) | (/das/ & tok!=/Haus/ & #3 . #4) ", 
-        "ALTERNATIVES\n" +
-        "\t{node 1; bound to '1'; precedes node 2 (null 1, 1)} AND {node 2; bound to '2'; node labels: [cat ~ NP]}\n" +
-        "\t{node 3; bound to '3'; spans~/das/; precedes node 4 (null 1, 1)} AND {node 4; bound to '4'; is a token; spans!~/Haus/}"
+        "(node & cat=/NP/ & #1 . #2)\n|\n(/das/ & tok!=/Haus/ & #3 . #4)"
       },
-      {" \"das\" & ( x#\"Haus\" | x#\"Schaf\") & #1 . #x", 
-        "ALTERNATIVES\n" +
-        "\t{node 1; bound to '1'; spans=\"das\"; precedes node 2 (null 1, 1)} AND {node 2; bound to 'x'; spans=\"Haus\"}\n" +
-        "\t{node 1; bound to '1'; spans=\"das\"; precedes node 3 (null 1, 1)} AND {node 3; bound to 'x'; spans=\"Schaf\"}"
+      {"\"das\" & ( x#\"Haus\" | x#\"Schaf\") & #1 . #x",
+        "(\"das\" & x#\"Haus\" & #1 . #x)\n|\n(\"das\" & x#\"Schaf\" & #1 . #x)"
+      },
+      {
+        "tok=/abc/ . pos . node", "tok=/abc/ & pos & node & #1 . #2 & #2 . #3"
+      },
+      {
+        "tok=/abc/ . right#pos",
+        "tok=/abc/ & right#pos & #1 . #right"
+      },
+      {
+        "word & word & (#1 . #2 | #2 . #1)",
+        "(word & word & #1 . #2)\n" +
+        "|\n" +
+        "(word & word & #2 . #1)"
       }
     };
     return Arrays.asList(data);
@@ -106,7 +117,7 @@ public class AnnisParserAntlrTest
     
     QueryData result = instance.parse(aql, corpusList);
     assertNotNull(result);
-    assertEquals(expected, result.toString());
+    assertEquals(expected, result.toAQL());
     
   }
 
