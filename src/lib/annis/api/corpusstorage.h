@@ -70,6 +70,16 @@ public:
 private:
   const std::string databaseDir;
   std::unique_ptr<DBCache> cache;
+private:
+
+  /**
+   * @brief Writes a new version of the corpus in the background to the disk.
+   * This will use a temporary location to store the output, than obtain a lock on the database itself for a short
+   * time and write the result to the database directory.
+   *
+   * If any new update happens before the result could be written this function will abort it's exection.
+   */
+  void writeCorpusInBackground(std::string corpus, std::shared_ptr<DB> db);
 };
 
 }} // end namespace annis
