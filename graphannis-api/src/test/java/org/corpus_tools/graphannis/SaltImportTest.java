@@ -27,6 +27,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
+
 /**
  *
  * @author thomas
@@ -77,12 +79,7 @@ public class SaltImportTest
     
     storage.applyUpdate("testCorpus", result);
     
-    long numOfNodes = storage.count(new API.StringVector("testCorpus"), 
-      "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
-    
-    API.StringVector matches = storage.find(new API.StringVector("testCorpus"), 
-      "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}",
-      0, 100);
+    long numOfNodes = storage.count(new API.StringVector("testCorpus"), aqlToJSON("node"));
     
     Assert.assertEquals(11, numOfNodes);
     
