@@ -76,7 +76,7 @@ public class SaltImportTest
     SampleGenerator.createTokens(doc);
     SampleGenerator.createMorphologyAnnotations(doc);
     
-    API.GraphUpdate result = SaltImport.map(doc.getDocumentGraph());
+    API.GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     
     storage.applyUpdate("testCorpus", result);
     
@@ -109,6 +109,11 @@ public class SaltImportTest
     assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"TO\"")));
     assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"VB\"")));
     assertEquals(1, storage.count(corpus, aqlToJSON("pos=\".\"")));
+    
+    // test that the precedence works for the token
+    assertEquals(1, storage.count(corpus, 
+      aqlToJSON("\"Is\" . \"this\" . \"example\" . \"more\" . \"complicated\" . \"than\" . \"it\" . \"appears\" . "
+        + "\"to\" . \"be\" . \"?\"")));
   }
   
 }
