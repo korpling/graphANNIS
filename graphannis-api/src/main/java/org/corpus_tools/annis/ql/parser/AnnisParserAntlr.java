@@ -55,6 +55,9 @@ public class AnnisParserAntlr
   {
     postProcessors = new LinkedList<>();
     postProcessors.add(new SemanticValidator());
+    
+    // set to "no bound" as default;
+    precedenceBound = 0;
   }
   
   public QueryData parse(String aql, List<Long> corpusList)
