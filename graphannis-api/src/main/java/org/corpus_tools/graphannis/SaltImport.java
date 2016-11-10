@@ -95,8 +95,8 @@ public class SaltImport
 
       for (String l : getLayerNames(rel.getLayers()))
       {
-        // add an edge both for the named component and for the un-named
-        updateList.addEdge(sourceName, targetName, l, "POINTING", rel.getType());
+        // add an edge both for the named component (or "null" if not named)
+        updateList.addEdge(sourceName, targetName, l, "POINTING", "" + rel.getType());
       }
     }
 

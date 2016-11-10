@@ -80,6 +80,7 @@ public class SaltImportTest
     SampleGenerator.createSyntaxStructure(doc);
     SampleGenerator.createSyntaxAnnotations(doc);
     SampleGenerator.createAnaphoricAnnotations(doc);
+    SampleGenerator.createDependencies(doc);
     
     API.GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     
@@ -140,6 +141,8 @@ public class SaltImportTest
     
     // test some of the pointing relations
     assertEquals(1, storage.count(corpus, aqlToJSON("\"it\" ->anaphoric node _o_ \"example\"")));
+    assertEquals(9, storage.count(corpus, aqlToJSON("tok ->null tok")));
+//    assertEquals(1, storage.count(corpus, aqlToJSON("\"complicated\" ->null[dependency=\"cop\"] \"Is\"")));
     
   }
   
