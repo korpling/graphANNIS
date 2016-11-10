@@ -18,8 +18,13 @@ package org.corpus_tools.graphannis;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.corpus_tools.salt.common.SDocumentGraph;
+import org.corpus_tools.salt.common.SDocumentGraphObject;
 import org.corpus_tools.salt.common.SDominanceRelation;
 import org.corpus_tools.salt.common.SPointingRelation;
+import org.corpus_tools.salt.common.SSpan;
+import org.corpus_tools.salt.common.SStructure;
+import org.corpus_tools.salt.common.SStructuredNode;
+import org.corpus_tools.salt.common.STextualDS;
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.core.SAnnotation;
 import org.corpus_tools.salt.core.SLayer;
@@ -36,16 +41,9 @@ public class SaltImport
   {
     API.GraphUpdate u = new API.GraphUpdate();
     
-    for(SToken t : g.getTokens())
+    for(SNode n : g.getNodes())
     {
-      // use the unique name
-      String name = t.getPath().fragment();
-      u.addNode(name);
-      // add all annotations
-      for(SAnnotation anno : t.getAnnotations())
-      {
-        u.addNodeLabel(name, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
-      }
+      addNode(n, u);
     }
     
     for(SDominanceRelation rel : g.getDominanceRelations())
@@ -94,5 +92,20 @@ public class SaltImport
     }
     
     return result;
+  }
+  
+  private static void addNode(SNode n, API.GraphUpdate u)
+  {
+    if(n instanceof SStructuredNode)
+    {
+      // use the unique name
+      String name = n.getPath().fragment();
+      u.addNode(name);
+      // add all annotations
+      for(SAnnotation anno : n.getAnnotations())
+      {
+        u.addNodeLabel(name, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
+      }
+    }
   }
 }
