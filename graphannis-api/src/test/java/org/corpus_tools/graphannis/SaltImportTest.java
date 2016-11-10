@@ -68,12 +68,13 @@ public class SaltImportTest
    * Test of map method, of class SaltImport.
    */
   @Test
-  public void testMap()
+  public void testMapComplexExample()
   {
     System.out.println("map");
     SDocument doc = SaltFactory.createSDocument();
     
     SampleGenerator.createTokens(doc);
+    SampleGenerator.createMorphologyAnnotations(doc);
     
     API.GraphUpdate result = SaltImport.map(doc.getDocumentGraph());
     
@@ -96,7 +97,18 @@ public class SaltImportTest
     assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"to\"")));
     assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"be\"")));
     assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"?\"")));
-
+    
+    // test that the token annotations have been added
+    assertEquals(2, storage.count(corpus, aqlToJSON("pos=\"VBZ\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"DT\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"NN\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"RBR\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"JJ\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"IN\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"PRP\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"TO\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"VB\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\".\"")));
   }
   
 }
