@@ -66,11 +66,14 @@
 	</repositories>
 
 	<dependencies>
-		<dependency>
-			<groupId>de.hu-berlin.german.korpling.annis</groupId>
-			<artifactId>annis-service</artifactId>
-			<version>3.5.0-preview1</version>
-		</dependency>
+
+    <!-- redirect all java util logging to slfj4 -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>1.7.5</version>
+      <scope>compile</scope>
+    </dependency>
 
 		<dependency>
 			<groupId>junit</groupId>

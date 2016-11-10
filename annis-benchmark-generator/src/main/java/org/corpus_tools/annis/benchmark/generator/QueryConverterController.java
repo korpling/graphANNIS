@@ -64,8 +64,7 @@ public class QueryConverterController implements Initializable
   public void initialize(URL url, ResourceBundle rb)
   {
     parser = new AnnisParserAntlr();
-    parser.setPrecedenceBound(50);
-    parser.setPostProcessors(Arrays.asList(new SemanticValidator()));    
+    parser.setPrecedenceBound(50);   
    
     
   }
