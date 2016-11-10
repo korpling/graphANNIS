@@ -30,21 +30,23 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 /**
- *
  * @author Thomas Krause <krauseto@hu-berlin.de>
  */
 @RunWith(value= Parameterized.class)
-public class AnnisParserAntlrTest
+public class AnnisParserAntlrParseTest
 {
   
-  private String aql;
-  private String expected;
+  private final AnnisParserAntlr instance = new AnnisParserAntlr();
   
-  public AnnisParserAntlrTest(String aql, String expected)
+  private final String aql;
+  private final String expected;
+  
+  public AnnisParserAntlrParseTest(String aql, String expected)
   {
     this.aql = aql;
     this.expected = expected;
   }
+  
   
   @Parameterized.Parameters
   public static Collection<Object[]> data() {
@@ -112,8 +114,6 @@ public class AnnisParserAntlrTest
     System.out.println("parse " + aql);
     List<Long> corpusList = new LinkedList<>();
     corpusList.add(1234l);
-    
-    AnnisParserAntlr instance = new AnnisParserAntlr();
     
     QueryData result = instance.parse(aql, corpusList);
     assertNotNull(result);

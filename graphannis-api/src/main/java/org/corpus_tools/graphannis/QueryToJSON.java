@@ -61,8 +61,6 @@ public class QueryToJSON
   {
     AnnisParserAntlr parser = new AnnisParserAntlr();
     
-    parser.setPostProcessors(Arrays.asList(new SemanticValidator()));
-    
     QueryData qd = parser.parse(aql, new LinkedList<>());
     return serializeQuery(qd.getAlternatives(), qd.getMetaData());
   }

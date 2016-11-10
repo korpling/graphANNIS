@@ -49,7 +49,13 @@ public class AnnisParserAntlr
   
   private static final Logger log = LoggerFactory.getLogger(AnnisParserAntlr.class);
   private int precedenceBound;
-  private List<QueryDataTransformer> postProcessors;
+  private final List<QueryDataTransformer> postProcessors;
+  
+  public AnnisParserAntlr()
+  {
+    postProcessors = new LinkedList<>();
+    postProcessors.add(new SemanticValidator());
+  }
   
   public QueryData parse(String aql, List<Long> corpusList)
   {
@@ -170,16 +176,6 @@ public class AnnisParserAntlr
     this.precedenceBound = precedenceBound;
   }
 
-  public List<QueryDataTransformer> getPostProcessors()
-  {
-    return postProcessors;
-  }
-
-  public void setPostProcessors(
-    List<QueryDataTransformer> postProcessors)
-  {
-    this.postProcessors = postProcessors;
-  }
   
   public static class StringListErrorListener extends BaseErrorListener
   {
