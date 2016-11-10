@@ -61,6 +61,12 @@
       <version>2.6.4</version>
     </dependency>
     <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+      <version>4.5.2-1</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
@@ -242,6 +248,22 @@
                 <include>${javacpp.platform.library.path}/</include>
                 <include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
               </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <version>4.5.2-1</version>
+        <executions>
+          <execution>
+           <goals>
+                <goal>antlr4</goal>
+              </goals>
+           <configuration>
+              <sourceDirectory>src/main/antlr4</sourceDirectory>
             </configuration>
           </execution>
         </executions>
