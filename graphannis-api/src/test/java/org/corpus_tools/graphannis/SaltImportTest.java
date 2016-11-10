@@ -77,6 +77,9 @@ public class SaltImportTest
     SampleGenerator.createMorphologyAnnotations(doc);
     SampleGenerator.createInformationStructureSpan(doc);
     SampleGenerator.createInformationStructureAnnotations(doc);
+    SampleGenerator.createSyntaxStructure(doc);
+    SampleGenerator.createSyntaxAnnotations(doc);
+    SampleGenerator.createAnaphoricAnnotations(doc);
     
     API.GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     
@@ -84,7 +87,7 @@ public class SaltImportTest
     
     API.StringVector corpus = new API.StringVector("testCorpus");
     
-    assertEquals(13, storage.count(corpus, aqlToJSON("node")));
+    assertEquals(26, storage.count(corpus, aqlToJSON("node")));
     
     // test that the token are present and have the correct span values
     assertEquals(11, storage.count(corpus, aqlToJSON("tok")));
@@ -130,6 +133,14 @@ public class SaltImportTest
     assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"to\"")));
     assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"be\"")));
     assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"?\"")));
+    
+    // test some of the dominance edges
+    assertEquals(1, storage.count(corpus, aqlToJSON("const=\"ROOT\" > const=\"SQ\" > \"Is\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("const=\"SQ\" >* \"this\"")));
+    
+    // test some of the pointing relations
+    assertEquals(1, storage.count(corpus, aqlToJSON("\"it\" ->anaphoric node _o_ \"example\"")));
+    
   }
   
 }

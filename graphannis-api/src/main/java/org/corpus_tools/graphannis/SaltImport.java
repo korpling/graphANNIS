@@ -59,8 +59,6 @@ public class SaltImport
   
   public SaltImport map(SDocumentGraph g)
   {
-    API.GraphUpdate u = new API.GraphUpdate();
-
     // add all nodes and their annotations
     for (SNode n : g.getNodes())
     {
@@ -82,8 +80,11 @@ public class SaltImport
       for (String l : getLayerNames(rel.getLayers()))
       {
         // add an edge both for the named component and for the un-named
-        u.addEdge(sourceName, targetName, l, "DOMINANCE", rel.getType());
-        u.addEdge(sourceName, targetName, l, "DOMINANCE", "");
+        if(rel.getType() != null)
+        {
+          updateList.addEdge(sourceName, targetName, l, "DOMINANCE", rel.getType());
+        }
+        updateList.addEdge(sourceName, targetName, l, "DOMINANCE", "");
       }
     }
 
@@ -95,7 +96,7 @@ public class SaltImport
       for (String l : getLayerNames(rel.getLayers()))
       {
         // add an edge both for the named component and for the un-named
-        u.addEdge(sourceName, targetName, l, "POINTING", rel.getType());
+        updateList.addEdge(sourceName, targetName, l, "POINTING", rel.getType());
       }
     }
 
