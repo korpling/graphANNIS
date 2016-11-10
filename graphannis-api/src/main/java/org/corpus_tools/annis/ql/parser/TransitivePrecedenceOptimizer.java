@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package annis.ql.parser;
+package org.corpus_tools.annis.ql.parser;
 
 import annis.model.Join;
 import annis.model.QueryNode;

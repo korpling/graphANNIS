@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package annis.ql.parser;
+package org.corpus_tools.annis.ql.parser;
 
 import com.google.common.base.Preconditions;
 import java.util.List;

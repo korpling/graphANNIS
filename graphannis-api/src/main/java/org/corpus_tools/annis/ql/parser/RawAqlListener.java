@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package annis.ql.parser;
+package org.corpus_tools.annis.ql.parser;
 
-import annis.ql.RawAqlPreParser;
-import annis.ql.RawAqlPreParserBaseListener;
+import org.corpus_tools.annis.ql.RawAqlPreParser;
+import org.corpus_tools.annis.ql.RawAqlPreParserBaseListener;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.LinkedList;

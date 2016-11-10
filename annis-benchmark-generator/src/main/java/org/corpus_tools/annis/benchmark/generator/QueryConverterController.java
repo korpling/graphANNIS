@@ -24,9 +24,9 @@ import org.corpus_tools.graphannis.QueryToJSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import annis.ql.parser.AnnisParserAntlr;
-import annis.ql.parser.QueryData;
-import annis.ql.parser.SemanticValidator;
+import org.corpus_tools.annis.ql.parser.AnnisParserAntlr;
+import org.corpus_tools.annis.ql.parser.QueryData;
+import org.corpus_tools.annis.ql.parser.SemanticValidator;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;

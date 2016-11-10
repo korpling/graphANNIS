@@ -15,9 +15,9 @@
  */
 package org.corpus_tools.annis.benchmark.generator;
 
-import annis.ql.parser.AnnisParserAntlr;
-import annis.ql.parser.QueryData;
-import annis.ql.parser.SemanticValidator;
+import org.corpus_tools.annis.ql.parser.AnnisParserAntlr;
+import org.corpus_tools.annis.ql.parser.QueryData;
+import org.corpus_tools.annis.ql.parser.SemanticValidator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.io.CharSink;

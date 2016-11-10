@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package annis.ql.parser;
+package org.corpus_tools.annis.ql.parser;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -37,8 +37,8 @@ import annis.exceptions.AnnisQLSemanticsException;
 import annis.model.Join;
 import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
-import annis.ql.AqlParser;
-import annis.ql.AqlParserBaseListener;
+import org.corpus_tools.annis.ql.AqlParser;
+import org.corpus_tools.annis.ql.AqlParserBaseListener;
 import annis.sqlgen.model.CommonAncestor;
 import annis.sqlgen.model.Dominance;
 import annis.sqlgen.model.EqualValue;
@@ -239,7 +239,7 @@ public class JoinListener extends AqlParserBaseListener
   }
 
   @Override
-  public void enterNotequalvalue(annis.ql.AqlParser.NotequalvalueContext ctx)
+  public void enterNotequalvalue(org.corpus_tools.annis.ql.AqlParser.NotequalvalueContext ctx)
   {
     QueryNode left = relationChain.get(relationIdx);
     QueryNode right = relationChain.get(relationIdx+1);

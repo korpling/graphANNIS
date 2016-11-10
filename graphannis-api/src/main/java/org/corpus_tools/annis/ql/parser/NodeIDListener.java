@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package annis.ql.parser;
+package org.corpus_tools.annis.ql.parser;
 
-import annis.ql.AqlParser;
-import annis.ql.AqlParserBaseListener;
+import org.corpus_tools.annis.ql.AqlParser;
+import org.corpus_tools.annis.ql.AqlParserBaseListener;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;

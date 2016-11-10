@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package annis.ql.parser;
+package org.corpus_tools.annis.ql.parser;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -36,9 +36,9 @@ import annis.exceptions.AnnisQLSemanticsException;
 import annis.exceptions.AnnisQLSyntaxException;
 import annis.model.AqlParseError;
 import annis.model.ParsedEntityLocation;
-import annis.ql.AqlLexer;
-import annis.ql.AqlParser;
-import annis.ql.RawAqlPreParser;
+import org.corpus_tools.annis.ql.AqlLexer;
+import org.corpus_tools.annis.ql.AqlParser;
+import org.corpus_tools.annis.ql.RawAqlPreParser;
 
 /**
  *
