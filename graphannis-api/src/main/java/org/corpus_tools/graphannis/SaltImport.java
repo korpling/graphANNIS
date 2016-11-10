@@ -71,7 +71,7 @@ public class SaltImport
     
     for(SNode n : g.getNodes())
     {
-      addLeftRightToken(n, g);
+      addCoverageInformation(n, g);
     }
       
     for (SDominanceRelation rel : g.getDominanceRelations())
@@ -133,12 +133,14 @@ public class SaltImport
   }
 
   /**
-   * Add an explicit edge to the left- and right-most covered token of the node.
+   * Add edges related to coverage.
    *
+   * This will add the LEFT_TOKEN, RIGHT_TOKEN, COVERAGE and INVERSE_COVERAGE edges.
+   * 
    * @param node
    * @param graph
    */
-  private void addLeftRightToken(SNode node, SDocumentGraph graph)
+  private void addCoverageInformation(SNode node, SDocumentGraph graph)
   {
     List<SToken> overlappedToken;
     if (node instanceof SToken)
@@ -153,7 +155,6 @@ public class SaltImport
     else
     {
       overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION);
-
     }
     if (overlappedToken.isEmpty())
     {
@@ -163,9 +164,10 @@ public class SaltImport
 
     // sort the token by left index
     List<SToken> sortedOverlappedToken = graph.getSortedTokenByText(overlappedToken);
-
     
     String name = nodeName(node);
+    
+    // add the LEFT_TOKEN and RIGHT_TOKEN edges
     String firstOverlappedToken = nodeName(sortedOverlappedToken.get(0));
     String lastOverlappedToken = nodeName(sortedOverlappedToken.get(sortedOverlappedToken.size() - 1));
 
@@ -175,7 +177,15 @@ public class SaltImport
     updateList.addEdge(lastOverlappedToken, name, ANNIS_NS, "RIGHT_TOKEN", "");
     updateList.addEdge(name, lastOverlappedToken, ANNIS_NS, "RIGHT_TOKEN", "");
 
+    // add the COVERAGE and INVERSE_COVERAGE edges
+    for(SToken covered : sortedOverlappedToken)
+    {
+      updateList.addEdge(name, nodeName(covered), ANNIS_NS, "COVERAGE", "");
+      updateList.addEdge(nodeName(covered), name, ANNIS_NS, "INVERSE_COVERAGE", "");
+    }
+    
   }
+  
   
   private static String nodeName(SNode node)
   {

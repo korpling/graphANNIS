@@ -75,6 +75,8 @@ public class SaltImportTest
     
     SampleGenerator.createTokens(doc);
     SampleGenerator.createMorphologyAnnotations(doc);
+    SampleGenerator.createInformationStructureSpan(doc);
+    SampleGenerator.createInformationStructureAnnotations(doc);
     
     API.GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     
@@ -82,7 +84,7 @@ public class SaltImportTest
     
     API.StringVector corpus = new API.StringVector("testCorpus");
     
-    assertEquals(11, storage.count(corpus, aqlToJSON("node")));
+    assertEquals(13, storage.count(corpus, aqlToJSON("node")));
     
     // test that the token are present and have the correct span values
     assertEquals(11, storage.count(corpus, aqlToJSON("tok")));
@@ -115,6 +117,19 @@ public class SaltImportTest
     assertEquals(1, storage.count(corpus, 
       aqlToJSON("\"Is\" . \"this\" . \"example\" . \"more\" . \"complicated\" . \"than\" . \"it\" . \"appears\" . "
         + "\"to\" . \"be\" . \"?\"")));
+    
+    // test that coverage works
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"contrast-focus\" _o_ \"Is\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"this\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"example\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"more\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"complicated\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"than\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"it\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"appears\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"to\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"be\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("Inf-Struct=\"topic\" _o_ \"?\"")));
   }
   
 }
