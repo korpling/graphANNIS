@@ -99,16 +99,17 @@ public class SaltImportTest
     assertEquals(1, storage.count(corpus, aqlToJSON("tok=\"?\"")));
     
     // test that the token annotations have been added
-    assertEquals(2, storage.count(corpus, aqlToJSON("pos=\"VBZ\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"DT\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"NN\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"RBR\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"JJ\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"IN\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"PRP\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"TO\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"VB\"")));
-    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\".\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"VBZ\" _=_ \"Is\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"DT\" _=_ \"this\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"NN\" _=_ \"example\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"RBR\" _=_ \"more\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"JJ\" _=_ \"complicated\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"IN\" _=_ \"than\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"PRP\" _=_ \"it\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"VBZ\" _=_ \"appears\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"TO\" _=_ \"to\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\"VB\" _=_ \"be\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("pos=\".\" _=_ \"?\"")));
     
     // test that the precedence works for the token
     assertEquals(1, storage.count(corpus, 
