@@ -16,11 +16,10 @@
 package org.corpus_tools.graphannis;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import org.bytedeco.javacpp.annotation.StdString;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.common.SDominanceRelation;
@@ -83,8 +82,10 @@ public class SaltImport
         if(rel.getType() != null)
         {
           updateList.addEdge(sourceName, targetName, l, "DOMINANCE", rel.getType());
+          addEdgeLabels(rel, l, "DOMINANCE", rel.getType());
         }
         updateList.addEdge(sourceName, targetName, l, "DOMINANCE", "");
+        addEdgeLabels(rel, l, "DOMINANCE", "");
       }
     }
 
@@ -97,6 +98,7 @@ public class SaltImport
       {
         // add an edge both for the named component (or "null" if not named)
         updateList.addEdge(sourceName, targetName, l, "POINTING", "" + rel.getType());
+        addEdgeLabels(rel, l, "POINTING", "" + rel.getType());
       }
     }
 
@@ -113,7 +115,6 @@ public class SaltImport
 
     if (sortedToken != null)
     {
-      long i = 0;
       for (SToken t : sortedToken)
       {
 
@@ -254,6 +255,19 @@ public class SaltImport
       if (segments.length > 0)
       {
         updateList.addNodeLabel(name, ANNIS_NS, "document", segments[segments.length - 1]);
+      }
+    }
+  }
+  
+  private void addEdgeLabels(SRelation<?,?> rel, String layer,  String componentType, String componentName)
+  {
+    Set<SAnnotation> annos = rel.getAnnotations();
+    if(annos != null)
+    {
+      for(SAnnotation anno : annos)
+      {
+        updateList.addEdgeLabel(nodeName(rel.getSource()), nodeName(rel.getTarget()), layer, componentType, 
+          componentName, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
       }
     }
   }

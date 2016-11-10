@@ -142,7 +142,7 @@ public class SaltImportTest
     // test some of the pointing relations
     assertEquals(1, storage.count(corpus, aqlToJSON("\"it\" ->anaphoric node _o_ \"example\"")));
     assertEquals(9, storage.count(corpus, aqlToJSON("tok ->null tok")));
-//    assertEquals(1, storage.count(corpus, aqlToJSON("\"complicated\" ->null[dependency=\"cop\"] \"Is\"")));
+    assertEquals(1, storage.count(corpus, aqlToJSON("\"complicated\" ->null[dependency=\"cop\"] \"Is\"")));
     
   }
   
