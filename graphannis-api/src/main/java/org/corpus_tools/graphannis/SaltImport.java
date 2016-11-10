@@ -67,11 +67,11 @@ public class SaltImport
       addNode(n);
     }
 
-    Map<SToken, Long> token2Index = addTokenInformation(g);
+    addTokenInformation(g);
     
     for(SNode n : g.getNodes())
     {
-      addLeftRightToken(n, g, token2Index);
+      addLeftRightToken(n, g);
     }
       
     for (SDominanceRelation rel : g.getDominanceRelations())
@@ -102,9 +102,8 @@ public class SaltImport
     return this;
   }
 
-  private Map<SToken, Long> addTokenInformation(SDocumentGraph g)
+  private void addTokenInformation(SDocumentGraph g)
   {
-    Map<SToken, Long> token2Index = new HashMap<>();
 
     SToken lastToken = null;
     STextualDS lastTextDS = null;
@@ -116,7 +115,6 @@ public class SaltImport
       long i = 0;
       for (SToken t : sortedToken)
       {
-        token2Index.put(t, i++);
 
         String nodeName = nodeName(t);
         // each token must have it's spanned text as label
@@ -132,7 +130,6 @@ public class SaltImport
         lastTextDS = textDS;
       }
     }
-    return token2Index;
   }
 
   /**
@@ -140,9 +137,8 @@ public class SaltImport
    *
    * @param node
    * @param graph
-   * @param token2Index
    */
-  private void addLeftRightToken(SNode node, SDocumentGraph graph, Map<SToken, Long> token2Index)
+  private void addLeftRightToken(SNode node, SDocumentGraph graph)
   {
     List<SToken> overlappedToken;
     if (node instanceof SToken)
