@@ -71,7 +71,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     }
 }
 
-// Parsed from annis/api/corpusstorage.h
+// Parsed from annis/api/corpusstoragemanager.h
 
 // #pragma once
 
@@ -87,10 +87,10 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 /**
  * An API for managing corpora stored in a common location on the file system.
  */
-@Namespace("annis::api") @NoOffset public static class CorpusStorage extends Pointer {
+@Namespace("annis::api") @NoOffset public static class CorpusStorageManager extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public CorpusStorage(Pointer p) { super(p); }
+    public CorpusStorageManager(Pointer p) { super(p); }
 
 
   public static class CountResult extends Pointer {
@@ -111,9 +111,9 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     public native long documentCount(); public native CountResult documentCount(long documentCount);
   }
 
-  public CorpusStorage(@StdString BytePointer databaseDir) { super((Pointer)null); allocate(databaseDir); }
+  public CorpusStorageManager(@StdString BytePointer databaseDir) { super((Pointer)null); allocate(databaseDir); }
   private native void allocate(@StdString BytePointer databaseDir);
-  public CorpusStorage(@StdString String databaseDir) { super((Pointer)null); allocate(databaseDir); }
+  public CorpusStorageManager(@StdString String databaseDir) { super((Pointer)null); allocate(databaseDir); }
   private native void allocate(@StdString String databaseDir);
 
   /**

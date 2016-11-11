@@ -33,7 +33,7 @@ public class Main
   {
     if(args.length > 0)
     {
-      API.CorpusStorage search = new API.CorpusStorage(args[0]);
+      API.CorpusStorageManager search = new API.CorpusStorageManager(args[0]);
       if(args.length > 1)
       {
         List<List<QueryNode>> query = new LinkedList<>();

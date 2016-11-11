@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <annis/db.h>
 #include <annis/api/graphupdate.h>
-#include <annis/api/corpusstorage.h>
+#include <annis/api/corpusstoragemanager.h>
 
 #include <annis/query.h>
 #include <annis/annosearch/exactannokeysearch.h>
@@ -15,18 +15,18 @@
 
 using namespace annis;
 
-class CorpusStorageTest : public ::testing::Test {
+class CorpusStorageManagerTest : public ::testing::Test {
 protected:
   std::string dataDir;
   boost::filesystem::path tmpDBPath;
-  std::unique_ptr<api::CorpusStorage> storage;
+  std::unique_ptr<api::CorpusStorageManager> storage;
 
-  CorpusStorageTest()
+  CorpusStorageManagerTest()
     : dataDir("data")
   {
   }
 
-  virtual ~CorpusStorageTest() {
+  virtual ~CorpusStorageManagerTest() {
     // You can do clean-up work that doesn't throw exceptions here.
   }
 
@@ -47,7 +47,7 @@ protected:
     HL_INFO(logger, "Using " + tmpDBPath.string() + " as temporary path");
 
 
-    storage = std::unique_ptr<api::CorpusStorage>(new api::CorpusStorage(tmpDBPath.string()));
+    storage = std::unique_ptr<api::CorpusStorageManager>(new api::CorpusStorageManager(tmpDBPath.string()));
     ASSERT_EQ(true, (bool) storage);
 
   }
@@ -60,7 +60,7 @@ protected:
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-TEST_F(CorpusStorageTest, AddNodeLabel) {
+TEST_F(CorpusStorageManagerTest, AddNodeLabel) {
 
 
 
@@ -83,7 +83,7 @@ TEST_F(CorpusStorageTest, AddNodeLabel) {
   ASSERT_EQ(1, numOfTestAnnos);
 }
 
-TEST_F(CorpusStorageTest, DeleteNode) {
+TEST_F(CorpusStorageManagerTest, DeleteNode) {
 
   api::GraphUpdate updateInsert;
   updateInsert.addNode("node1");
@@ -105,7 +105,7 @@ TEST_F(CorpusStorageTest, DeleteNode) {
   ASSERT_EQ(0, numOfTestAnnos);
 }
 
-TEST_F(CorpusStorageTest, AddEdge) {
+TEST_F(CorpusStorageManagerTest, AddEdge) {
 
   api::GraphUpdate updateInsert;
   updateInsert.addNode("node1");
@@ -126,7 +126,7 @@ TEST_F(CorpusStorageTest, AddEdge) {
 
 }
 
-TEST_F(CorpusStorageTest, AddEdgeLabel) {
+TEST_F(CorpusStorageManagerTest, AddEdgeLabel) {
 
   api::GraphUpdate updateInsert;
   updateInsert.addNode("node1");
@@ -142,7 +142,7 @@ TEST_F(CorpusStorageTest, AddEdgeLabel) {
 
 }
 
-TEST_F(CorpusStorageTest, DeleteEdge) {
+TEST_F(CorpusStorageManagerTest, DeleteEdge) {
 
   api::GraphUpdate updateInsert;
   updateInsert.addNode("n1");
@@ -165,7 +165,7 @@ TEST_F(CorpusStorageTest, DeleteEdge) {
 
 }
 
-TEST_F(CorpusStorageTest, DeleteEdgeLabel) {
+TEST_F(CorpusStorageManagerTest, DeleteEdgeLabel) {
 
   api::GraphUpdate updateInsert;
   updateInsert.addNode("node1");
@@ -190,7 +190,7 @@ TEST_F(CorpusStorageTest, DeleteEdgeLabel) {
   ASSERT_EQ(0, depEdgesWithAnno);
 }
 
-TEST_F(CorpusStorageTest, ReloadWithLog) {
+TEST_F(CorpusStorageManagerTest, ReloadWithLog) {
 
   api::GraphUpdate updateInsert;
   updateInsert.addNode("n1");

@@ -35,7 +35,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class SaltImportTest
 {
-  private API.CorpusStorage storage;
+  private API.CorpusStorageManager storage;
   
   public SaltImportTest()
   {
@@ -56,7 +56,7 @@ public class SaltImportTest
   {
     File tmpDir = Files.createTempDir();
     
-    storage = new API.CorpusStorage(tmpDir.getAbsolutePath());
+    storage = new API.CorpusStorageManager(tmpDir.getAbsolutePath());
   }
   
   @After

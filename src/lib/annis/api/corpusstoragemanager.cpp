@@ -1,4 +1,4 @@
-#include "corpusstorage.h"
+#include "corpusstoragemanager.h"
 
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
@@ -13,15 +13,15 @@
 using namespace annis;
 using namespace annis::api;
 
-CorpusStorage::CorpusStorage(std::string databaseDir)
+CorpusStorageManager::CorpusStorageManager(std::string databaseDir)
   : databaseDir(databaseDir)
 {
   cache = std::unique_ptr<DBCache>(new DBCache());
 }
 
-CorpusStorage::~CorpusStorage() {}
+CorpusStorageManager::~CorpusStorageManager() {}
 
-long long CorpusStorage::count(std::vector<std::string> corpora, std::string queryAsJSON)
+long long CorpusStorageManager::count(std::vector<std::string> corpora, std::string queryAsJSON)
 {
   long long result = 0;
 
@@ -48,7 +48,7 @@ long long CorpusStorage::count(std::vector<std::string> corpora, std::string que
   return result;
 }
 
-CorpusStorage::CountResult CorpusStorage::countExtra(std::vector<std::string> corpora, std::string queryAsJSON)
+CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<std::string> corpora, std::string queryAsJSON)
 {
   CountResult result = {0,0};
 
@@ -89,7 +89,7 @@ CorpusStorage::CountResult CorpusStorage::countExtra(std::vector<std::string> co
   return result;
 }
 
-std::vector<std::string> CorpusStorage::find(std::vector<std::string> corpora, std::string queryAsJSON, long long offset, long long limit)
+std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> corpora, std::string queryAsJSON, long long offset, long long limit)
 {
   std::vector<std::string> result;
 
@@ -145,7 +145,7 @@ std::vector<std::string> CorpusStorage::find(std::vector<std::string> corpora, s
   return result;
 }
 
-void CorpusStorage::applyUpdate(std::string corpus, GraphUpdate &update)
+void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
 {
    if(!update.isConsistent())
    {
@@ -181,7 +181,7 @@ void CorpusStorage::applyUpdate(std::string corpus, GraphUpdate &update)
    }
 }
 
-void CorpusStorage::loadExternalCorpus(std::string pathToCorpus, std::string newCorpusName)
+void CorpusStorageManager::loadExternalCorpus(std::string pathToCorpus, std::string newCorpusName)
 {
    boost::filesystem::path internalPath = boost::filesystem::path(databaseDir) / newCorpusName;
 

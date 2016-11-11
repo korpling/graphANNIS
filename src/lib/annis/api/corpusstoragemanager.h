@@ -17,7 +17,7 @@ namespace api
 /**
  * An API for managing corpora stored in a common location on the file system.
  */
-class CorpusStorage
+class CorpusStorageManager
 {
 public:
 
@@ -27,8 +27,8 @@ public:
     long long documentCount;
   };
 
-  CorpusStorage(std::string databaseDir);
-   ~CorpusStorage();
+  CorpusStorageManager(std::string databaseDir);
+   ~CorpusStorageManager();
 
   /**
    * Count all occurrences of an AQL query in a single corpus.

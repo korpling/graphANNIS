@@ -86,7 +86,7 @@ set(IncludeFiles
   src/lib/annis/operators/identicalcoverage.h
   src/lib/annis/operators/abstractedgeoperator.h
   src/lib/annis/dbcache.h
-  src/lib/annis/api/corpusstorage.h
+  src/lib/annis/api/corpusstoragemanager.h
   src/lib/annis/api/admin.h
   src/lib/annis/api/graphupdate.h
   src/lib/annis/serializers.h
@@ -126,7 +126,7 @@ set(SRC_LIST_LIB
   src/lib/annis/operators/inclusion.cpp
   src/lib/annis/operators/dominance.cpp
   src/lib/annis/operators/abstractedgeoperator.cpp
-  src/lib/annis/api/corpusstorage.cpp
+  src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
   src/lib/annis/api/graphupdate.cpp
   src/lib/annis/edgeannotationstorage.cpp
@@ -184,7 +184,7 @@ set(TEST_SRC_LIST
   tests/SearchTestPcc2.h
   tests/SearchTestParlament.h
   tests/SearchTestRidges.h
-  tests/CorpusStorageTest.h
+  tests/CorpusStorageManagerTest.h
   tests/SearchTestGUM.h
   tests/SearchTestTueBaDZ.h
   tests/LoadTest.h
