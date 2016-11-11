@@ -173,8 +173,6 @@ void CorpusStorage::applyUpdate(std::string corpus, GraphUpdate &update)
          cereal::BinaryOutputArchive ar(logStream);
          ar(update);
 
-         std::thread writer([=] {writeCorpusInBackground(corpus, db);});
-
       } catch (...)
       {
          db->load(databaseDir + "/" + corpus);
@@ -198,9 +196,4 @@ void CorpusStorage::loadExternalCorpus(std::string pathToCorpus, std::string new
       // make sure the corpus is properly saved at least once (so it is in a consistent state)
       db->save(internalPath.string());
    }
-}
-
-void CorpusStorage::writeCorpusInBackground(std::string corpus, std::shared_ptr<DB> db)
-{
-  // TODO: implement background task
 }
