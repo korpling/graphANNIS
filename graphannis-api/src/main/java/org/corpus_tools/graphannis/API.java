@@ -79,6 +79,9 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <vector>
 // #include <list>
 
+// #include <mutex>
+// #include <boost/thread.hpp>
+
 // #include <annis/db.h>
 // #include <annis/dbcache.h>
 // #include <annis/json/jsonqueryparser.h>
@@ -166,8 +169,10 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    */
   public native @ByVal StringVector list();
 
-  public native void loadExternalCorpus(@StdString BytePointer pathToCorpus, @StdString BytePointer newCorpusName);
-  public native void loadExternalCorpus(@StdString String pathToCorpus, @StdString String newCorpusName);
+  public native void importCorpus(@StdString BytePointer pathToCorpus, @StdString BytePointer newCorpusName);
+  public native void importCorpus(@StdString String pathToCorpus, @StdString String newCorpusName);
+  public native void exportCorpus(@StdString BytePointer corpusName, @StdString BytePointer exportPath);
+  public native void exportCorpus(@StdString String corpusName, @StdString String exportPath);
 
   public native @Cast("bool") boolean deleteCorpus(@StdString BytePointer corpusName);
   public native @Cast("bool") boolean deleteCorpus(@StdString String corpusName);
