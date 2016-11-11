@@ -8,6 +8,7 @@
 #include <set>
 #include <memory>
 #include <iostream>
+#include <mutex>
 
 #include <tuple>
 
@@ -45,6 +46,9 @@ namespace annis {
 
     std::shared_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
+
+      std::lock_guard<std::recursive_mutex> lock(exlusiveMutex);
+
       DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
       std::map<DBCacheKey, std::shared_ptr<DB>>::iterator it = cache.find(key);
       if (it == cache.end()) {
@@ -67,10 +71,16 @@ namespace annis {
 
     void release(const std::string& corpusPath, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
+
+      std::lock_guard<std::recursive_mutex> lock(exlusiveMutex);
+
       release({corpusPath, forceFallback, overrideImpl});
     }
 
     void releaseAll() {
+
+      std::lock_guard<std::recursive_mutex> lock(exlusiveMutex);
+
       cache.clear();
       loadedDBSize.clear();
 
@@ -86,6 +96,8 @@ namespace annis {
     void cleanup(std::set<DBCacheKey> ignore = std::set<DBCacheKey>()) {
       bool deletedSomething = true;
 
+      std::lock_guard<std::recursive_mutex> lock(exlusiveMutex);
+
       updateCorpusSizeEstimations();
 
       while(deletedSomething && !cache.empty() && calculateTotalSize().estimated > maxLoadedDBSize) {
@@ -100,9 +112,12 @@ namespace annis {
       }
     }
 
-    CorpusSize calculateTotalSize() const;
+    CorpusSize calculateTotalSize();
+
     const std::map<DBCacheKey, CorpusSize>& estimateCorpusSizes()
     {
+      std::lock_guard<std::recursive_mutex> lock(exlusiveMutex);
+
       updateCorpusSizeEstimations();
       return loadedDBSize;
     }
@@ -110,6 +125,9 @@ namespace annis {
 
     virtual ~DBCache();
   private:
+
+    std::recursive_mutex exlusiveMutex;
+
     std::map<DBCacheKey, std::shared_ptr<DB>> cache;
     std::map<DBCacheKey, CorpusSize> loadedDBSize;
     const size_t maxLoadedDBSize;
