@@ -65,6 +65,12 @@ public:
 
   void applyUpdate(std::string corpus, GraphUpdate &update);
 
+  /**
+   * @brief Lists the name of all corpora.
+   * @return
+   */
+  std::vector<std::string> list();
+
   void loadExternalCorpus(std::string pathToCorpus, std::string newCorpusName);
 
 private:

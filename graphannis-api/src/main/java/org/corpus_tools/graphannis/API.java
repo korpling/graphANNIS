@@ -160,6 +160,12 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
   public native void applyUpdate(@StdString BytePointer corpus, @ByRef GraphUpdate update);
   public native void applyUpdate(@StdString String corpus, @ByRef GraphUpdate update);
 
+  /**
+   * \brief Lists the name of all corpora.
+   * @return
+   */
+  public native @ByVal StringVector list();
+
   public native void loadExternalCorpus(@StdString BytePointer pathToCorpus, @StdString BytePointer newCorpusName);
   public native void loadExternalCorpus(@StdString String pathToCorpus, @StdString String newCorpusName);
 }

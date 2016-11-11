@@ -33,12 +33,12 @@ public class Main
   {
     if(args.length > 0)
     {
-      API.CorpusStorageManager search = new API.CorpusStorageManager(args[0]);
+      API.CorpusStorageManager manager = new API.CorpusStorageManager(args[0]);
       if(args.length > 1)
       {
         String aql = args.length > 2 ? args[2] : "tok";
         
-        API.StringVector result = search.find(new API.StringVector(args[1]), 
+        API.StringVector result = manager.find(new API.StringVector(args[1]), 
           QueryToJSON.aqlToJSON(aql));
 
         for(int i=0; i < result.size(); i++)
@@ -49,7 +49,11 @@ public class Main
       }
       else
       {
-        System.err.println("You need to give a corpus name as second argument.");
+        API.StringVector corpora = manager.list();
+        for(long i=0; i < corpora.size(); i++)
+        {
+          System.out.println(corpora.get(i).getString());
+        }
       }
     }
     else

@@ -181,6 +181,26 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
    }
 }
 
+std::vector<std::string> CorpusStorageManager::list()
+{
+  std::vector<std::string> result;
+
+  boost::filesystem::path root(databaseDir);
+
+  if(boost::filesystem::is_directory(root))
+  {
+    for(boost::filesystem::directory_iterator it(root); it != boost::filesystem::directory_iterator(); ++it)
+    {
+      if(boost::filesystem::is_directory(it->status()))
+      {
+        boost::filesystem::path corpusPath = it->path();
+        result.push_back(corpusPath.filename().string());
+      }
+    }
+  }
+  return result;
+}
+
 void CorpusStorageManager::loadExternalCorpus(std::string pathToCorpus, std::string newCorpusName)
 {
    boost::filesystem::path internalPath = boost::filesystem::path(databaseDir) / newCorpusName;
