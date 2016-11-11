@@ -3,6 +3,7 @@
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <fstream>
 #include <thread>
@@ -12,6 +13,8 @@
 
 using namespace annis;
 using namespace annis::api;
+
+namespace bf = boost::filesystem;
 
 CorpusStorageManager::CorpusStorageManager(std::string databaseDir)
   : databaseDir(databaseDir)
@@ -147,6 +150,12 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
 
 void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
 {
+
+   bf::path corpusPath(databaseDir);
+   corpusPath = corpusPath / corpus;
+
+   killBackgroundWriter(corpusPath.string());
+
    if(!update.isConsistent())
    {
       // Always mark the update state as consistent, even if caller forgot this.
@@ -154,30 +163,30 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
    }
 
    // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
-   std::shared_ptr<DB> db = cache->get(databaseDir + "/" + corpus, true);
+   std::shared_ptr<DB> db = cache->get(corpusPath.string(), true);
 
    if(db)
    {
       boost::lock_guard<DB> lock(*db);
 
-
       try {
 
          db->update(update);
 
-         // if successfull write log
-         boost::filesystem::path corpusDir(databaseDir);
-         corpusDir = corpusDir / corpus;
-         boost::filesystem::create_directories(corpusDir);
-         std::ofstream logStream((corpusDir / "update_log.cereal").string());
+         // if successfull write lo
+         bf::create_directories(corpusPath / "current");
+         std::ofstream logStream((corpusPath / "current" / "update_log.cereal").string());
          cereal::BinaryOutputArchive ar(logStream);
          ar(update);
+
+         // Until now only the write log is persisted. Start a background thread that writes the whole
+         // corpus to the folder (without the need to apply the write log).
+         startBackgroundWriter(corpusPath.string(), db);
 
       } catch (...)
       {
          db->load(databaseDir + "/" + corpus);
       }
-
    }
 }
 
@@ -185,15 +194,15 @@ std::vector<std::string> CorpusStorageManager::list()
 {
   std::vector<std::string> result;
 
-  boost::filesystem::path root(databaseDir);
+  bf::path root(databaseDir);
 
-  if(boost::filesystem::is_directory(root))
+  if(bf::is_directory(root))
   {
-    for(boost::filesystem::directory_iterator it(root); it != boost::filesystem::directory_iterator(); ++it)
+    for(bf::directory_iterator it(root); it != bf::directory_iterator(); ++it)
     {
-      if(boost::filesystem::is_directory(it->status()))
+      if(bf::is_directory(it->status()))
       {
-        boost::filesystem::path corpusPath = it->path();
+        bf::path corpusPath = it->path();
         result.push_back(corpusPath.filename().string());
       }
     }
@@ -201,9 +210,9 @@ std::vector<std::string> CorpusStorageManager::list()
   return result;
 }
 
-void CorpusStorageManager::loadExternalCorpus(std::string pathToCorpus, std::string newCorpusName)
+void CorpusStorageManager::importCorpus(std::string pathToCorpus, std::string newCorpusName)
 {
-   boost::filesystem::path internalPath = boost::filesystem::path(databaseDir) / newCorpusName;
+   bf::path internalPath = bf::path(databaseDir) / newCorpusName;
 
 
    // load an existing corpus or create a our common database directory
@@ -218,10 +227,25 @@ void CorpusStorageManager::loadExternalCorpus(std::string pathToCorpus, std::str
    }
 }
 
+void CorpusStorageManager::exportCorpus(std::string corpusName, std::string exportPath)
+{
+  bf::path internalPath = bf::path(databaseDir) / corpusName;
+  std::shared_ptr<DB> db = cache->get(internalPath.string(), true);
+  if(db)
+  {
+     boost::shared_lock_guard<DB> lock(*db);
+     // load the corpus data from the external location
+     db->save(exportPath);
+  }
+}
+
 bool CorpusStorageManager::deleteCorpus(std::string corpusName)
 {
-  boost::filesystem::path root(databaseDir);
-  boost::filesystem::path corpusPath  = root / corpusName;
+  bf::path root(databaseDir);
+  bf::path corpusPath  = root / corpusName;
+
+  // This will block until the internal map is available, thus do this before locking the database to avoid any deadlock
+  killBackgroundWriter(corpusPath.string());
 
   // Get the DB and hold a lock on it until we are finished.
   // Preloading all components so we are able to restore the complete DB if anything goes wrong.
@@ -233,7 +257,7 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
     try
     {
       // delete the corpus on the disk first, if we are interrupted the data is still in memory and can be restored
-      boost::filesystem::remove_all(corpusPath);
+      bf::remove_all(corpusPath);
       // delete the corpus from the cache
       cache->release(corpusPath.string());
 
@@ -246,4 +270,56 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
     }
   }
   return false;
+}
+
+void CorpusStorageManager::startBackgroundWriter(std::string corpusPath, std::shared_ptr<DB> db)
+{
+  if(db)
+  {
+    std::lock_guard<std::mutex> lock(mutex_writerThreads);
+    writerThreads[corpusPath] = boost::thread([corpusPath, db] () {
+
+      // Get a read-lock for the database. The thread is started from another function which will have the database locked,
+      // thus this thread will only really start as soon as the calling function has returned.
+      // We start as a read-lock since it is save to read the in-memory representation (and we won't change it)
+      boost::shared_lock_guard<DB> lock(*db);
+
+      // We could have been interrupted right after we waited for the lock, so check here just to be sure.
+      boost::this_thread::interruption_point();
+
+      bf::path root(corpusPath);
+
+
+      // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
+      // the backup will be used instead of the original possible corrupted files.
+      // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
+      // is possible.
+      bf::rename(root / "current", root / "backup");
+
+      // Save the complete corpus without the write log to the target location
+      db->save(root.string());
+
+      // remove the backup folder (since the new folder was completly written)
+      bf::remove_all(root / "backup");
+
+      // TODO: add as many interrupt points as possible
+
+
+    });
+  }
+}
+
+void CorpusStorageManager::killBackgroundWriter(std::string corpusPath)
+{
+  std::lock_guard<std::mutex> lock(mutex_writerThreads);
+  auto itThread = writerThreads.find(corpusPath);
+  if(itThread != writerThreads.end())
+  {
+    itThread->second.interrupt();
+
+    // wait until thread is finished
+    itThread->second.join();
+
+    writerThreads.erase(itThread);
+  }
 }

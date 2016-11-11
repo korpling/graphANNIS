@@ -12,6 +12,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <humblelogging/api.h>
 
@@ -38,30 +39,50 @@ DB::DB()
   addDefaultStrings();
 }
 
-bool DB::load(string dirPath, bool preloadComponents)
+bool DB::load(string dir, bool preloadComponents)
 {
   clear();
   addDefaultStrings();
 
-  std::ifstream is(dirPath + "/nodes.cereal", std::ios::binary);
+  boost::filesystem::path dirPath(dir);
+  boost::filesystem::path dir2load = dirPath / "current";
+
+  boost::filesystem::path backup = dirPath / "backup";
+  bool backupWasLoaded = false;
+  if(boost::filesystem::exists(backup) && boost::filesystem::is_directory(backup))
+  {
+    // load backup instead
+    dir2load = backup;
+    backupWasLoaded = true;
+  }
+
+  std::ifstream is((dir2load / "nodes.cereal").string(), std::ios::binary);
   if(is.is_open())
   {
     cereal::BinaryInputArchive archive(is);
     archive(strings, nodeAnnos);
   }
 
-  edges.load(dirPath, preloadComponents);
-
+  bool logfileExists = false;
   // check if we have to apply a log file to get to the last stable snapshot version
-  std::ifstream logStream(dirPath + "/update_log.cereal", std::ios::binary);
+  std::ifstream logStream((dir2load / "update_log.cereal").string(), std::ios::binary);
   if(logStream.is_open())
   {
+    logfileExists = true;
+  }
+
+  // If backup is active or a write log exists, always  a pre-load to get the complete corpus.
+  edges.load(dir2load.string(), backupWasLoaded || logfileExists || preloadComponents);
+
+  if(logStream.is_open())
+  {
+     // apply any outstanding log file updates
      cereal::BinaryInputArchive log(logStream);
      api::GraphUpdate u;
      log(u);
      if(u.getLastConsistentChangeID() > currentChangeID)
      {
-      update(u);
+       update(u);
      }
   }
   else
@@ -69,20 +90,55 @@ bool DB::load(string dirPath, bool preloadComponents)
     currentChangeID = 0;
   }
 
+  if(backupWasLoaded)
+  {
+    // save the current corpus under the actual location
+    save(dirPath.string());
+
+    // rename backup folder (renaming is atomic and deleting could leave an incomplete backup folder on disk)
+    boost::filesystem::path tmpDir =
+        boost::filesystem::unique_path(dirPath / "temporary-%%%%-%%%%-%%%%-%%%%");
+    boost::filesystem::rename(backup, tmpDir);
+
+    // remove it after renaming it
+    boost::filesystem::remove_all(tmpDir);
+
+  }
+
   // TODO: return false on failure
   return true;
 }
 
-bool DB::save(string dirPath)
+bool DB::save(string dir)
 {
+
+  // always save to the "current" sub-directory
+  boost::filesystem::path dirPath = boost::filesystem::path(dir) / "current";
 
   boost::filesystem::create_directories(dirPath);
 
-  std::ofstream os(dirPath + "/nodes.cereal", std::ios::binary);
+  std::ofstream os((dirPath / "nodes.cereal").string(), std::ios::binary);
   cereal::BinaryOutputArchive archive( os );
   archive(strings, nodeAnnos);
 
-  edges.save(dirPath);
+  edges.save(dirPath.string());
+
+  // this is a good time to remove all uncessary data like backups or write logs
+  for(auto fileIt = boost::filesystem::directory_iterator(dirPath);
+      fileIt != boost::filesystem::directory_iterator(); fileIt++)
+  {
+    if(boost::filesystem::is_directory(fileIt->path()))
+    {
+      if(boost::algorithm::starts_with(fileIt->path().filename().string(), "temporary-"))
+      {
+        boost::filesystem::remove_all(fileIt->path());
+      }
+    }
+    else if(fileIt->path().filename() == "update_log.cereal")
+    {
+      boost::filesystem::remove(fileIt->path());
+    }
+  }
 
   // TODO: return false on failure
   return true;

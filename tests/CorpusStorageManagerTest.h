@@ -195,10 +195,10 @@ TEST_F(CorpusStorageManagerTest, ReloadWithLog) {
   api::GraphUpdate updateInsert;
   updateInsert.addNode("n1");
   updateInsert.addNode("n2");
-  updateInsert.addEdge("n1", "n2", "", "POINTING", "dep");
+  updateInsert.addEdge("n1", "n2", "dep", "POINTING", "dep");
   updateInsert.addNode("n3");
   updateInsert.addNode("n4");
-  updateInsert.addEdge("n3", "n4", "", "POINTING", "dep");
+  updateInsert.addEdge("n3", "n4", "dep", "POINTING", "dep");
 
   storage->applyUpdate("testCorpus", updateInsert);
 
@@ -206,8 +206,14 @@ TEST_F(CorpusStorageManagerTest, ReloadWithLog) {
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"left\":1,\"right\":2}]}]}");
   ASSERT_EQ(2, depEdges);
 
+  // save the corpus to a temporary location
+  boost::filesystem::path exportPath =
+      boost::filesystem::unique_path(
+        boost::filesystem::temp_directory_path().string() + "/annis-temporary-export-%%%%-%%%%-%%%%-%%%%");
+  storage->exportCorpus("testCorpus", exportPath.string());
+
   // reload the same corpus under a different name
-  storage->loadExternalCorpus((tmpDBPath / "testCorpus").string(), "copyOfTestCorpus");
+  storage->importCorpus(exportPath.string(), "copyOfTestCorpus");
 
   // test that the edges are still there
   depEdges = storage->count({"copyOfTestCorpus"},

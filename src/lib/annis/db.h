@@ -36,8 +36,8 @@ public:
   DB();
 
   bool loadRelANNIS(std::string dirPath);
-  bool load(std::string dirPath, bool preloadComponents=true);
-  bool save(std::string dirPath);
+  bool load(std::string dir, bool preloadComponents=true);
+  bool save(std::string dir);
 
   inline std::string getNodeName(const nodeid_t &id) const
   {
@@ -146,6 +146,7 @@ private:
   
   void clear();
   void addDefaultStrings();
+
 
 };
 
