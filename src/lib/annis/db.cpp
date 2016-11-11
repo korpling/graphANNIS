@@ -117,16 +117,23 @@ bool DB::save(string dir)
 
   boost::filesystem::create_directories(dirPath);
 
+  boost::this_thread::interruption_point();
+
   std::ofstream os((dirPath / "nodes.cereal").string(), std::ios::binary);
   cereal::BinaryOutputArchive archive( os );
   archive(strings, nodeAnnos);
 
+  boost::this_thread::interruption_point();
+
   edges.save(dirPath.string());
+
+  boost::this_thread::interruption_point();
 
   // this is a good time to remove all uncessary data like backups or write logs
   for(auto fileIt = boost::filesystem::directory_iterator(dirPath);
       fileIt != boost::filesystem::directory_iterator(); fileIt++)
   {
+    boost::this_thread::interruption_point();
     if(boost::filesystem::is_directory(fileIt->path()))
     {
       if(boost::algorithm::starts_with(fileIt->path().filename().string(), "temporary-"))

@@ -296,14 +296,15 @@ void CorpusStorageManager::startBackgroundWriter(std::string corpusPath, std::sh
       // is possible.
       bf::rename(root / "current", root / "backup");
 
+      boost::this_thread::interruption_point();
+
       // Save the complete corpus without the write log to the target location
       db->save(root.string());
 
+      boost::this_thread::interruption_point();
+
       // remove the backup folder (since the new folder was completly written)
       bf::remove_all(root / "backup");
-
-      // TODO: add as many interrupt points as possible
-
 
     });
   }

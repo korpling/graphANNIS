@@ -255,6 +255,8 @@ bool GraphStorageHolder::save(const std::string& dirPath)
   std::string gsParent = dirPath + "/gs";
   for(GraphStorageIt it = container.begin(); it != container.end(); it++)
   {
+    boost::this_thread::interruption_point();
+
     const Component& c = it->first;
     std::string finalPath;
     if(c.name.empty())
