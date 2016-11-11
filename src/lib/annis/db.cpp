@@ -844,10 +844,9 @@ void DB::update(const api::GraphUpdate& u)
               }
            }
          }
-      }
-
-      // TODO: apply each change
-   }
+         currentChangeID = change->changeID;
+      } // end if changeID is behind last consistent
+   } // end for each change in update list
 
 }
 
