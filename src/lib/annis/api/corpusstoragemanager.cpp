@@ -281,7 +281,7 @@ void CorpusStorageManager::startBackgroundWriter(std::string corpusPath, std::sh
 
       // Get a read-lock for the database. The thread is started from another function which will have the database locked,
       // thus this thread will only really start as soon as the calling function has returned.
-      // We start as a read-lock since it is save to read the in-memory representation (and we won't change it)
+      // We start as a read-lock since it is safe to read the in-memory representation (and we won't change it)
       boost::shared_lock_guard<DB> lock(*db);
 
       // We could have been interrupted right after we waited for the lock, so check here just to be sure.
