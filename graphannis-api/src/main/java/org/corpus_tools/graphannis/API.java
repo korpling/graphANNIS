@@ -151,10 +151,10 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    * @return
    */
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON, long offset/*=0*/,
-                                  long limit/*=10*/);
+                                  long limit/*=0*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString BytePointer queryAsJSON);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON, long offset/*=0*/,
-                                  long limit/*=10*/);
+                                  long limit/*=0*/);
   public native @ByVal StringVector find(@ByVal StringVector corpora, @StdString String queryAsJSON);
 
   public native void applyUpdate(@StdString BytePointer corpus, @ByRef GraphUpdate update);

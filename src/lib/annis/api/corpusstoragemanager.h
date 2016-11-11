@@ -61,7 +61,7 @@ public:
    * @return
    */
   std::vector<std::string> find(std::vector< std::string > corpora, std::string queryAsJSON, long long offset=0,
-                                long long limit=10);
+                                long long limit=0);
 
   void applyUpdate(std::string corpus, GraphUpdate &update);
 

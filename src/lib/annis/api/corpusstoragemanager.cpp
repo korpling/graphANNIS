@@ -109,7 +109,7 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
       std::stringstream ss;
       ss << queryAsJSON;
       std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
-      while(counter < (offset + limit) && q->next())
+      while((limit <= 0 || counter < (offset + limit)) && q->next())
       {
         if(counter >= offset)
         {

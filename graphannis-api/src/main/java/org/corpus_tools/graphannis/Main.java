@@ -36,23 +36,16 @@ public class Main
       API.CorpusStorageManager search = new API.CorpusStorageManager(args[0]);
       if(args.length > 1)
       {
-        List<List<QueryNode>> query = new LinkedList<>();
-        List<QueryNode> alternative = new LinkedList<>();
-        
-        QueryNode n1 = new QueryNode(1);
-        n1.setToken(true);
-        
-        alternative.add(n1);
-        query.add(alternative);
+        String aql = args.length > 2 ? args[2] : "tok";
         
         API.StringVector result = search.find(new API.StringVector(args[1]), 
-          QueryToJSON.serializeQuery(query, new LinkedList<>()));
-        
+          QueryToJSON.aqlToJSON(aql));
+
         for(int i=0; i < result.size(); i++)
         {
           System.out.println(result.get(i).getString());
         }
-        
+
       }
       else
       {
