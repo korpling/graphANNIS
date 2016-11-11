@@ -292,12 +292,12 @@ void CorpusStorageManager::startBackgroundWriter(std::string corpusPath, std::sh
 
       // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
       // the backup will be used instead of the original possible corrupted files.
+      // The current version is only the real one if no backup folder exists. If there is a backup folder
+      // there is nothing to do since the backup already contains the last consistent version.
       // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
       // is possible.
       if(!bf::exists(root / "backup"))
       {
-        // The current version is only the real one if no backup folder exists. If there is a backup folder
-        // there is nothing to do since the backup already contains the last consistent version.
         bf::rename(root / "current", root / "backup");
       }
 
