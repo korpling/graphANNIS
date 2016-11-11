@@ -158,7 +158,7 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
 
    if(db)
    {
-      boost::shared_lock_guard<DB> lock(*db);
+      boost::lock_guard<DB> lock(*db);
 
 
       try {
@@ -190,7 +190,7 @@ void CorpusStorageManager::loadExternalCorpus(std::string pathToCorpus, std::str
    std::shared_ptr<DB> db = cache->get(internalPath.string(), true);
    if(db)
    {
-      boost::shared_lock_guard<DB> lock(*db);
+      boost::lock_guard<DB> lock(*db);
       // load the corpus data from the external location
       db->load(pathToCorpus);
       // make sure the corpus is properly saved at least once (so it is in a consistent state)
