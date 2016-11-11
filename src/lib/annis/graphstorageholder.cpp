@@ -252,24 +252,29 @@ bool GraphStorageHolder::save(const std::string& dirPath)
 {
 
   // save each edge db separately
-  std::string gsParent = dirPath + "/gs";
+  boost::filesystem::path gsParent = boost::filesystem::path(dirPath) / "gs";
+
+  // remove all existing files in the graph storage first, otherwise deleted graphstorages might re-appear
+  boost::filesystem::remove_all(gsParent);
+  boost::filesystem::create_directories(gsParent);
+
   for(GraphStorageIt it = container.begin(); it != container.end(); it++)
   {
     boost::this_thread::interruption_point();
 
     const Component& c = it->first;
-    std::string finalPath;
+    boost::filesystem::path finalPath;
     if(c.name.empty())
     {
-      finalPath = gsParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer;
+      finalPath = gsParent / ComponentTypeHelper::toString(c.type) / c.layer;
     }
     else
     {
-      finalPath = gsParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer + "/" + c.name;
+      finalPath = gsParent / ComponentTypeHelper::toString(c.type) / c.layer / c.name;
     }
     boost::filesystem::create_directories(finalPath);
-    auto outputFile = finalPath + "/component.cereal";
-    std::ofstream os(outputFile, std::ios::binary);
+    auto outputFile = finalPath / "component.cereal";
+    std::ofstream os(outputFile.string(), std::ios::binary);
     cereal::BinaryOutputArchive ar(os);
     ar(it->second);
   }
