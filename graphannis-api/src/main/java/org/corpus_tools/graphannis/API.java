@@ -168,6 +168,9 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
   public native void loadExternalCorpus(@StdString BytePointer pathToCorpus, @StdString BytePointer newCorpusName);
   public native void loadExternalCorpus(@StdString String pathToCorpus, @StdString String newCorpusName);
+
+  public native @Cast("bool") boolean deleteCorpus(@StdString BytePointer corpusName);
+  public native @Cast("bool") boolean deleteCorpus(@StdString String corpusName);
 }
 
  // end namespace annis

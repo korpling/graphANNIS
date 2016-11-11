@@ -73,6 +73,8 @@ public:
 
   void loadExternalCorpus(std::string pathToCorpus, std::string newCorpusName);
 
+  bool deleteCorpus(std::string corpusName);
+
 private:
   const std::string databaseDir;
   std::unique_ptr<DBCache> cache;

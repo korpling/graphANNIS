@@ -217,3 +217,33 @@ void CorpusStorageManager::loadExternalCorpus(std::string pathToCorpus, std::str
       db->save(internalPath.string());
    }
 }
+
+bool CorpusStorageManager::deleteCorpus(std::string corpusName)
+{
+  boost::filesystem::path root(databaseDir);
+  boost::filesystem::path corpusPath  = root / corpusName;
+
+  // Get the DB and hold a lock on it until we are finished.
+  // Preloading all components so we are able to restore the complete DB if anything goes wrong.
+  std::shared_ptr<DB> db = cache->get(corpusPath.string(), true);
+  if(db)
+  {
+    boost::lock_guard<DB> lock(*db);
+
+    try
+    {
+      // delete the corpus on the disk first, if we are interrupted the data is still in memory and can be restored
+      boost::filesystem::remove_all(corpusPath);
+      // delete the corpus from the cache
+      cache->release(corpusPath.string());
+
+      return true;
+    }
+    catch(...)
+    {
+      // if anything goes wrong write the corpus back to it's original location to have a consistent state
+      db->save(corpusPath.string());
+    }
+  }
+  return false;
+}
