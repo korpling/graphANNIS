@@ -86,6 +86,8 @@ public:
   void importCorpus(std::string pathToCorpus, std::string newCorpusName);
   void exportCorpus(std::string corpusName, std::string exportPath);
 
+  void importRelANNIS(std::string pathToCorpus, std::string newCorpusName);
+
   bool deleteCorpus(std::string corpusName);
 
   CorpusInfo info(std::string corpusName);

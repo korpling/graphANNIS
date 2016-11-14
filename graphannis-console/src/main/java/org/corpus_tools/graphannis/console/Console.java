@@ -16,92 +16,123 @@
 package org.corpus_tools.graphannis.console;
 
 import com.google.common.base.Splitter;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jline.console.ConsoleReader;
-import jline.console.history.MemoryHistory;
+import jline.console.completer.StringsCompleter;
+import jline.console.history.FileHistory;
 import org.corpus_tools.graphannis.API;
+
+import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 
 /**
  * An interactive console for testing the graphANNIS API.
+ *
  * @author Thomas Krause <thomaskrausse@posteo.de>
  */
 public class Console
 {
+
   private final API.CorpusStorageManager mgr;
-  
+
   public Console(String databaseDir)
   {
     mgr = new API.CorpusStorageManager(databaseDir);
   }
-  
+
   private void list()
   {
     API.StringVector result = mgr.list();
-    for(long i=0; i < result.size(); i++)
+    for (long i = 0; i < result.size(); i++)
     {
-      System.out.println(result.get(i).getString());
-    }
-  }
-  
-  private void info(String corpus)
-  {
-    if(corpus == null || corpus.isEmpty())
-    {
-      System.out.println("Must give a corpus name as argument");
-    }
-    else
-    {
+      String corpus = result.get(i).getString();
+
       API.CorpusStorageManager.CorpusInfo info = mgr.info(corpus);
-      System.out.println("Load status: " + info.loadStatus().getString());
-      System.out.println("Used memory in bytes: " + info.memoryUsageInBytes());
+      double memoryBytes = info.memoryUsageInBytes();
+      String memoryInMB = String.format("%.2f", memoryBytes / (1024.0 * 1024.0));
+      System.out.println(result.get(i).getString()
+        + ": " + info.loadStatus().getString() + " (" + memoryInMB + " MB)");
     }
   }
-  
+
+  private void count(String argsRaw)
+  {
+    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
+
+    if (args.size() != 2)
+    {
+      System.out.println("You must give the corpus name and the query as argument");
+      return;
+    }
+
+    long result = mgr.count(new API.StringVector(args.get(0)), aqlToJSON(args.get(1)));
+
+    System.out.println("" + result + " results.");
+  }
+
+  private void relannis(String argsRaw)
+  {
+    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
+    if (args.size() != 2)
+    {
+      System.out.println("You must give path to the relANNIS files  and the corpus name as argument");
+      return;
+    }
+    
+    mgr.importRelANNIS(args.get(0), args.get(1));
+
+    System.out.println("Imported.");
+  }
+
   public static void main(String[] args)
   {
-    
-    if(args.length < 1)
+
+    if (args.length < 1)
     {
       System.err.println("Must give the database directory as argument.");
       System.exit(-1);
     }
-    
+
     Console c = new Console(args[0]);
-    
+
     try
-    {      
+    {
       Splitter cmdArgSplitter = Splitter.on(" ").omitEmptyStrings().trimResults().limit(2);
-     
-      MemoryHistory history = new MemoryHistory();
+
+      FileHistory history = new FileHistory(new File(".graphannis_history.txt"));
       ConsoleReader reader = new ConsoleReader();
-      
+
       reader.setHistory(history);
       reader.setHistoryEnabled(true);
       reader.setPrompt("graphannis> ");
-      
+      reader.addCompleter(new StringsCompleter("quit", "exit", "count", "list"));
+
       boolean exit = false;
-      
+
       String line;
-      while(!exit && (line = reader.readLine()) != null)
+      while (!exit && (line = reader.readLine()) != null)
       {
         List<String> parsed = cmdArgSplitter.splitToList(line);
-        
+
         String cmd = parsed.get(0);
         String arguments = "";
-        if(parsed.size() > 1)
+        if (parsed.size() > 1)
         {
           arguments = parsed.get(1);
         }
-        switch(cmd)
+        switch (cmd)
         {
           case "list":
             c.list();
             break;
-          case "info":
-            c.info(arguments);
+          case "count":
+            c.count(arguments);
+            break;
+          case "relannis":
+            c.relannis(arguments);
             break;
           case "exit":
           case "quit":
@@ -115,6 +146,6 @@ public class Console
     {
       Logger.getLogger(Console.class.getName()).log(Level.SEVERE, null, ex);
     }
-    
+
   }
 }

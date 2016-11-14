@@ -199,6 +199,9 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
   public native void exportCorpus(@StdString BytePointer corpusName, @StdString BytePointer exportPath);
   public native void exportCorpus(@StdString String corpusName, @StdString String exportPath);
 
+  public native void importRelANNIS(@StdString BytePointer pathToCorpus, @StdString BytePointer newCorpusName);
+  public native void importRelANNIS(@StdString String pathToCorpus, @StdString String newCorpusName);
+
   public native @Cast("bool") boolean deleteCorpus(@StdString BytePointer corpusName);
   public native @Cast("bool") boolean deleteCorpus(@StdString String corpusName);
 

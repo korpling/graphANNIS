@@ -246,6 +246,20 @@ void CorpusStorageManager::exportCorpus(std::string corpusName, std::string expo
   }
 }
 
+void CorpusStorageManager::importRelANNIS(std::string pathToCorpus, std::string newCorpusName)
+{
+  std::shared_ptr<DBLoader> loader = getCorpusFromCache(newCorpusName);
+  if(loader)
+  {
+    boost::shared_lock_guard<DBLoader> lock(*loader);
+
+    DB& db = loader->get();
+    db.loadRelANNIS(pathToCorpus);
+    // make sure the corpus is properly saved at least once (so it is in a consistent state)
+    db.save((bf::path(databaseDir) / newCorpusName).string());
+  }
+}
+
 bool CorpusStorageManager::deleteCorpus(std::string corpusName)
 {
   bf::path root(databaseDir);
