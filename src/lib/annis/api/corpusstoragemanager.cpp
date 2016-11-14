@@ -361,8 +361,8 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
   if(it == corpusCache.end())
   {
     // Create a new DBLoader and put it into the cache.
-    // This will not load the database itself, this can be dann with the resulting object from the caller
-    // after he locked the DBLoader.
+    // This will not load the database itself, this can be done with the resulting object from the caller
+    // after it locked the DBLoader.
     result = std::make_shared<DBLoader>((bf::path(databaseDir) / corpusName).string(),
       [&]()
       {
@@ -433,9 +433,4 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
   }
 
   return result;
-}
-
-void CorpusStorageManager::garbageCollection(std::string ignoredCorpus)
-{
-
 }

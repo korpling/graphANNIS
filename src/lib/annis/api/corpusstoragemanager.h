@@ -110,8 +110,6 @@ private:
 
   std::shared_ptr<DBLoader> getCorpusFromCache(std::string name);
 
-  void garbageCollection(std::string ignoredCorpus);
-
 };
 
 }} // end namespace annis
