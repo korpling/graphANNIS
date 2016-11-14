@@ -380,11 +380,21 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
         {
           if(entry.first != corpusName)
           {
-            boost::shared_lock_guard<DBLoader> lock(*(entry.second));
-            size_t estimatedSize = entry.second->estimateMemorySize();
-            overallSize += estimatedSize;
-            // do not add the corpus which was just recently loaded to the list of candidates to be unloaded
-            corpusSizes.push_back({entry.second, estimatedSize});
+            std::shared_ptr<DBLoader> loader = entry.second;
+            if(loader->try_lock_shared())
+            {
+              HL_DEBUG(logger, "Locked \"" + entry.first + "\" for garbage collection size estimation.");
+              boost::shared_lock_guard<DBLoader> lock(*loader, boost::adopt_lock);
+              size_t estimatedSize = entry.second->estimateMemorySize();
+              overallSize += estimatedSize;
+              // do not add the corpus which was just recently loaded to the list of candidates to be unloaded
+              corpusSizes.push_back({entry.second, estimatedSize});
+            }
+            HL_DEBUG(logger, "Unlocked \"" + entry.first + "\" after garbage collection size estimation.");
+          }
+          else
+          {
+            HL_DEBUG(logger, "Can't lock \"" + entry.first + "\" for garbage collection since it is already locked by another thread.");
           }
         }
 
@@ -405,7 +415,7 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
         while(!corpusSizes.empty() && overallSize > maxAllowedCacheSize)
         {
           SizeListEntry& largestCorpus = corpusSizes.back();
-          boost::shared_lock_guard<DBLoader> lock(*(largestCorpus.first));
+          boost::lock_guard<DBLoader> lock(*(largestCorpus.first));
           largestCorpus.first->unload();
           overallSize -= largestCorpus.second;
           corpusSizes.pop_back();
