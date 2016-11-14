@@ -108,6 +108,8 @@ public:
 
   void update(const api::GraphUpdate& u);
 
+  void clear();
+
   virtual ~DB();
 public:
 
@@ -141,7 +143,7 @@ private:
                           bool isANNIS33Format);
 
   
-  void clear();
+
   void addDefaultStrings();
 
 

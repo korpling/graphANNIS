@@ -69,6 +69,13 @@ namespace annis
       return db;
     }
 
+    void unload()
+    {
+      dbLoaded = false;
+      // replace the database with an empty one
+      db.clear();
+    }
+
     std::string statusString()
     {
       switch(status())
