@@ -69,6 +69,7 @@ set(IncludeFiles
   src/lib/annis/json/json.h
   src/lib/annis/json/json-forwards.h
   src/lib/annis/db.h
+  src/lib/annis/dbloader.h
   src/lib/annis/graphstorage/prepostorderstorage.h
   src/lib/annis/graphstorage/adjacencyliststorage.h
   src/lib/annis/graphstorage/graphstorage.h
@@ -111,6 +112,7 @@ set(SRC_LIST_LIB
   src/lib/annis/json/jsoncpp.cpp
   src/lib/annis/json/jsonqueryparser.cpp
   src/lib/annis/db.cpp
+  src/lib/annis/dbloader.cpp
   src/lib/annis/wrapper.cpp
   src/lib/annis/graphstorage/adjacencyliststorage.cpp
   src/lib/annis/graphstorage/prepostorderstorage.cpp

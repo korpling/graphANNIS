@@ -32,15 +32,17 @@ long long CorpusStorageManager::count(std::vector<std::string> corpora, std::str
 
   for(const std::string& c : corpora)
   {
-    std::shared_ptr<DB> db = getCorpusFromCache(c, false);
+    std::shared_ptr<DBLoader> loader = getCorpusFromCache(c);
 
-    if(db)
+    if(loader)
     {
-      boost::shared_lock_guard<DB> lock(*db);
+      boost::shared_lock_guard<DBLoader> lock(*loader);
+
+      DB& db = loader->get();
 
       std::stringstream ss;
       ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, db.edges, ss);
       while(q->next())
       {
         result++;
@@ -61,15 +63,15 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
 
   for(const std::string& c : corpora)
   {
-    std::shared_ptr<DB> db = getCorpusFromCache(c, false);
+    std::shared_ptr<DBLoader> loader = getCorpusFromCache(c);
 
-    if(db)
+    if(loader)
     {
-      boost::shared_lock_guard<DB> lock(*db);
+      boost::shared_lock_guard<DBLoader> lock(*loader);
 
       std::stringstream ss;
       ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(loader->get(), loader->get().edges, ss);
       while(q->next())
       {
         result.matchCount++;
@@ -77,7 +79,7 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
         if(!m.empty())
         {
           const Match& n  = m[0];
-          std::pair<bool, Annotation> anno = db->nodeAnnos.getNodeAnnotation(n.node, annis_ns, "document");
+          std::pair<bool, Annotation> anno = loader->get().nodeAnnos.getNodeAnnotation(n.node, annis_ns, "document");
           if(anno.first)
           {
             documents.insert(anno.second.val);
@@ -102,15 +104,15 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
 
   for(const std::string& c : corpora)
   {
-    std::shared_ptr<DB> db = getCorpusFromCache(c, false);
+    std::shared_ptr<DBLoader> loader = getCorpusFromCache(c);
 
-    if(db)
+    if(loader)
     {
-      boost::shared_lock_guard<DB> lock(*db);
+      boost::shared_lock_guard<DBLoader> lock(*loader);
 
       std::stringstream ss;
       ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(loader->get(), loader->get().edges, ss);
       while((limit <= 0 || counter < (offset + limit)) && q->next())
       {
         if(counter >= offset)
@@ -121,16 +123,18 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
           {
             const Match& n = m[i];
 
+            DB& db = loader->get();
+
             if(n.anno.ns != 0 && n.anno.name != 0
-               && n.anno.ns != db->getNamespaceStringID() && n.anno.name != db->getNodeNameStringID())
+               && n.anno.ns != db.getNamespaceStringID() && n.anno.name != db.getNodeNameStringID())
             {
-              matchDesc << db->strings.str(n.anno.ns)
-                << "::" << db->strings.str(n.anno.name)
+              matchDesc << db.strings.str(n.anno.ns)
+                << "::" << db.strings.str(n.anno.name)
                 << "::";
             }
 
             matchDesc << "salt:/" << c << "/";
-            matchDesc << db->getNodeDocument(n.node) << "/#" << db->getNodeName(n.node);
+            matchDesc << db.getNodeDocument(n.node) << "/#" << db.getNodeName(n.node);
 
             if(i < m.size()-1)
             {
@@ -161,17 +165,18 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
    bf::path corpusPath = bf::path(databaseDir) / corpus;
 
    // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
-   std::shared_ptr<DB> db = getCorpusFromCache(corpus, true);
+   std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
 
-   if(db)
+   if(loader)
    {
-      boost::lock_guard<DB> lock(*db);
+      boost::lock_guard<DBLoader> lock(*loader);
 
+      DB& db = loader->getFullyLoaded();
       try {
 
-         db->update(update);
+         db.update(update);
 
-         // if successfull write lo
+         // if successfull write log
          bf::create_directories(corpusPath / "current");
          std::ofstream logStream((corpusPath / "current" / "update_log.cereal").string());
          cereal::BinaryOutputArchive ar(logStream);
@@ -179,11 +184,11 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
 
          // Until now only the write log is persisted. Start a background thread that writes the whole
          // corpus to the folder (without the need to apply the write log).
-         startBackgroundWriter(corpus, db);
+         startBackgroundWriter(corpus, loader);
 
       } catch (...)
       {
-         db->load(databaseDir + "/" + corpus);
+         db.load(databaseDir + "/" + corpus);
       }
    }
 }
@@ -212,25 +217,26 @@ void CorpusStorageManager::importCorpus(std::string pathToCorpus, std::string ne
 {
 
    // load an existing corpus or create a our common database directory
-   std::shared_ptr<DB> db = getCorpusFromCache(newCorpusName, true);
-   if(db)
+   std::shared_ptr<DBLoader> loader = getCorpusFromCache(newCorpusName);
+   if(loader)
    {
-      boost::lock_guard<DB> lock(*db);
+      boost::lock_guard<DBLoader> lock(*loader);
+      DB& db = loader->get();
       // load the corpus data from the external location
-      db->load(pathToCorpus);
+      db.load(pathToCorpus);
       // make sure the corpus is properly saved at least once (so it is in a consistent state)
-      db->save((bf::path(databaseDir) / newCorpusName).string());
+      db.save((bf::path(databaseDir) / newCorpusName).string());
    }
 }
 
 void CorpusStorageManager::exportCorpus(std::string corpusName, std::string exportPath)
 {
-  std::shared_ptr<DB> db = getCorpusFromCache(corpusName, true);
-  if(db)
+  std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpusName);
+  if(loader)
   {
-     boost::shared_lock_guard<DB> lock(*db);
+     boost::shared_lock_guard<DBLoader> lock(*loader);
      // load the corpus data from the external location
-     db->save(exportPath);
+     loader->getFullyLoaded().save(exportPath);
   }
 }
 
@@ -244,11 +250,13 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
 
   // Get the DB and hold a lock on it until we are finished.
   // Preloading all components so we are able to restore the complete DB if anything goes wrong.
-  std::shared_ptr<DB> db = getCorpusFromCache(corpusPath.string(), true);
-  if(db)
+  std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpusPath.string());
+  if(loader)
   {
 
-    boost::lock_guard<DB> lock(*db);
+    boost::lock_guard<DBLoader> lock(*loader);
+
+    DB& db = loader->getFullyLoaded();
 
     try
     {
@@ -258,7 +266,7 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
     catch(...)
     {
       // if anything goes wrong write the corpus back to it's original location to have a consistent state
-      db->save(corpusPath.string());
+      db.save(corpusPath.string());
 
       return false;
     }
@@ -274,47 +282,49 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
   return false;
 }
 
-void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared_ptr<DB> db)
+void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared_ptr<DBLoader>& loader)
 {
-  if(db)
-  {
-    bf::path root = bf::path(databaseDir) / corpus;
+  bf::path root = bf::path(databaseDir) / corpus;
 
-    std::lock_guard<std::mutex> lock(mutex_writerThreads);
-    writerThreads[corpus] = boost::thread([db, root] () {
+  std::lock_guard<std::mutex> lock(mutex_writerThreads);
+  writerThreads[corpus] = boost::thread([loader, root] () {
 
-      // Get a read-lock for the database. The thread is started from another function which will have the database locked,
-      // thus this thread will only really start as soon as the calling function has returned.
-      // We start as a read-lock since it is safe to read the in-memory representation (and we won't change it)
-      boost::shared_lock_guard<DB> lock(*db);
+    // Get a read-lock for the database. The thread is started from another function which will have the database locked,
+    // thus this thread will only really start as soon as the calling function has returned.
+    // We start as a read-lock since it is safe to read the in-memory representation (and we won't change it)
+    boost::shared_lock_guard<DBLoader> lock(*loader);
 
-      // We could have been interrupted right after we waited for the lock, so check here just to be sure.
-      boost::this_thread::interruption_point();
+    // We could have been interrupted right after we waited for the lock, so check here just to be sure.
+    boost::this_thread::interruption_point();
 
 
-      // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
-      // the backup will be used instead of the original possible corrupted files.
-      // The current version is only the real one if no backup folder exists. If there is a backup folder
-      // there is nothing to do since the backup already contains the last consistent version.
-      // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
-      // is possible.
-      if(!bf::exists(root / "backup"))
-      {
-        bf::rename(root / "current", root / "backup");
-      }
+    DB& db = loader->getFullyLoaded();
 
-      boost::this_thread::interruption_point();
+    boost::this_thread::interruption_point();
 
-      // Save the complete corpus without the write log to the target location
-      db->save(root.string());
+    // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
+    // the backup will be used instead of the original possible corrupted files.
+    // The current version is only the real one if no backup folder exists. If there is a backup folder
+    // there is nothing to do since the backup already contains the last consistent version.
+    // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
+    // is possible.
+    if(!bf::exists(root / "backup"))
+    {
+      bf::rename(root / "current", root / "backup");
+    }
 
-      boost::this_thread::interruption_point();
+    boost::this_thread::interruption_point();
 
-      // remove the backup folder (since the new folder was completly written)
-      bf::remove_all(root / "backup");
+    // Save the complete corpus without the write log to the target location
+    db.save(root.string());
 
-    });
-  }
+    boost::this_thread::interruption_point();
+
+    // remove the backup folder (since the new folder was completly written)
+    bf::remove_all(root / "backup");
+
+  });
+
 }
 
 void CorpusStorageManager::killBackgroundWriter(std::string corpus)
@@ -332,30 +342,23 @@ void CorpusStorageManager::killBackgroundWriter(std::string corpus)
   }
 }
 
-std::shared_ptr<DB> CorpusStorageManager::getCorpusFromCache(std::string name, bool preloadAllComponents)
+std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string name)
 {
   std::lock_guard<std::mutex> lock(mutex_corpusCache);
 
-  std::shared_ptr<DB> result;
+  std::shared_ptr<DBLoader> result;
 
   auto it = corpusCache.find(name);
 
   if(it == corpusCache.end())
   {
     // create a new DB, load its content from disk and put it into cache
-    result = std::make_shared<DB>();
-    result->load((bf::path(databaseDir) / name).string(), preloadAllComponents);
+    result = std::make_shared<DBLoader>((bf::path(databaseDir) / name).string());
     corpusCache[name] =  result;
   }
   else
   {
     result = it->second;
-  }
-
-  if(result && preloadAllComponents && !result->edges.allComponentsLoaded())
-  {
-    // if a preloaded corpus is requested but there are still missing edge components, force a pre-load now
-     result->load((bf::path(databaseDir) / name).string(), true);
   }
 
   return result;

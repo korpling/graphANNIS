@@ -7,6 +7,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/thread/thread.hpp>
 #include <humblelogging/api.h>
 
 #include <cereal/archives/binary.hpp>

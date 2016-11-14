@@ -94,7 +94,6 @@ void Console::import(const std::vector<std::string> &args)
 {
   if(db)
   {
-    boost::lock_guard<DB> lock(*db);
     if(args.size() > 0)
     {
       std::cout << "Import relANNIS from " << args[0] << std::endl;
@@ -117,7 +116,6 @@ void Console::save(const std::vector<std::string> &args)
 {
   if(db)
   {
-    boost::shared_lock_guard<DB> lock(*db);
     if(args.size() > 0)
     {
       std::cout << "Save to " << args[0] << std::endl;
@@ -155,7 +153,6 @@ void Console::info()
 {
   if(db)
   {
-    boost::shared_lock_guard<DB> lock(*db);
     std::cout << db->info() << std::endl;
   }
 }
@@ -164,7 +161,6 @@ void Console::optimize()
 {
   if(db)
   {
-    boost::lock_guard<DB> lock(*db);
     std::cout << "Optimizing..." << std::endl;
     db->optimizeAll();
     std::cout << "Finished." << std::endl;
@@ -175,7 +171,6 @@ void Console::count(const std::vector<std::string> &args)
 {
   if(db)
   {
-    boost::shared_lock_guard<DB> lock(*db);
     if(args.size() > 0)
     {
       std::string json = boost::join(args, " ");
@@ -211,7 +206,6 @@ void Console::find(const std::vector<std::string> &args)
 {
   if(db)
   {
-    boost::shared_lock_guard<DB> lock(*db);
     if(args.size() > 0)
     {
       std::string json = boost::join(args, " ");
@@ -262,7 +256,6 @@ void Console::updateStatistics()
 {
   if(db)
   {
-    boost::lock_guard<DB> lock(*db);
     std::cout << "Updating statistics...";
     db->nodeAnnos.calculateStatistics();
     std::cout << " Done" << std::endl;
@@ -273,7 +266,6 @@ void Console::guess(const std::vector<std::string> &args)
 {
   if(db)
   {
-    boost::shared_lock_guard<DB> lock(*db);
     if(args.size() == 3)
     {
       std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(args[0], args[1], args[2]) << std::endl;
@@ -293,7 +285,6 @@ void Console::guessRegex(const std::vector<std::string> &args)
 {
   if(db)
   {
-    boost::shared_lock_guard<DB> lock(*db);
 
     if(args.size() == 3)
     {
@@ -314,8 +305,6 @@ void Console::plan(const std::vector<std::string> &args)
 {
   if(db)
   {
-    boost::shared_lock_guard<DB> lock(*db);
-
     if(args.size() > 0)
     {
       std::string json = boost::join(args, " ");

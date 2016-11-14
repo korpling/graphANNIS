@@ -9,6 +9,8 @@
 
 #include <annis/db.h>
 #include <annis/dbcache.h>
+#include <annis/dbloader.h>
+
 #include <annis/json/jsonqueryparser.h>
 
 #include <annis/api/graphupdate.h>
@@ -85,7 +87,7 @@ private:
   const size_t maxAllowedCacheSize;
 
   std::mutex mutex_corpusCache;
-  std::map<std::string, std::shared_ptr<DB>> corpusCache;
+  std::map<std::string, std::shared_ptr<DBLoader>> corpusCache;
 
   std::mutex mutex_writerThreads;
   std::map<std::string, boost::thread> writerThreads;
@@ -98,14 +100,14 @@ private:
    * Before any update can occur, the writing thread has to be killBackgroundWriter().
    * @param corpusPath
    */
-  void startBackgroundWriter(std::string corpusPath, std::shared_ptr<DB> db);
+  void startBackgroundWriter(std::string corpusPath, std::shared_ptr<DBLoader> &loader);
   /**
    * @brief Stops a background writer for a corpus. Will return as the thread is successfully stopped.
    * @param corpusPath
    */
   void killBackgroundWriter(std::string corpus);
 
-  std::shared_ptr<DB> getCorpusFromCache(std::string name, bool preloadAllComponents);
+  std::shared_ptr<DBLoader> getCorpusFromCache(std::string name);
 
 };
 
