@@ -181,6 +181,7 @@ enable_testing()
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 set(TEST_SRC_LIST
+  tests/testlogger.h
   tests/SearchTestPcc2.h
   tests/SearchTestParlament.h
   tests/SearchTestRidges.h

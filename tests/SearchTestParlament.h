@@ -12,6 +12,8 @@
 #include <annis/query.h>
 #include "../benchmarks/examplequeries.h"
 
+#include "testlogger.h"
+
 #include <vector>
 
 using namespace annis;

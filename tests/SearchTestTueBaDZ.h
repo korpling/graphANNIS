@@ -14,6 +14,8 @@
 
 #include <vector>
 
+#include "testlogger.h"
+
 using namespace annis;
 
 class SearchTestTueBaDZ : public ::testing::Test {

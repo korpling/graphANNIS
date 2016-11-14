@@ -13,7 +13,7 @@
 #include <boost/format.hpp>
 #include <vector>
 
-#include <humblelogging/api.h>
+#include "testlogger.h"
 
 using namespace annis;
 

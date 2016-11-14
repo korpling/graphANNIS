@@ -10,6 +10,8 @@
 #include <annis/query.h>
 #include <annis/operators/dominance.h>
 
+#include "testlogger.h"
+
 using namespace annis;
 
 class LoadTest : public ::testing::Test {
