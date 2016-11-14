@@ -30,7 +30,7 @@ public:
     long long documentCount;
   };
 
-  CorpusStorageManager(std::string databaseDir);
+  CorpusStorageManager(std::string databaseDir, size_t maxAllowedCacheSize = 1073741824);
    ~CorpusStorageManager();
 
   /**
@@ -81,7 +81,10 @@ public:
 
 private:
   const std::string databaseDir;
-  std::unique_ptr<DBCache> cache;
+  const size_t maxAllowedCacheSize;
+
+  std::mutex mutex_corpusCache;
+  std::map<std::string, std::shared_ptr<DB>> corpusCache;
 
   std::mutex mutex_writerThreads;
   std::map<std::string, boost::thread> writerThreads;
@@ -99,7 +102,10 @@ private:
    * @brief Stops a background writer for a corpus. Will return as the thread is successfully stopped.
    * @param corpusPath
    */
-  void killBackgroundWriter(std::string corpusPath);
+  void killBackgroundWriter(std::string corpus);
+
+  std::shared_ptr<DB> getCorpusFromCache(std::string name, bool preloadAllComponents);
+
 };
 
 }} // end namespace annis

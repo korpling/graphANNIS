@@ -31,6 +31,11 @@ public:
   size_t estimateMemorySize() const;
   std::string info();
 
+  bool allComponentsLoaded()
+  {
+    return notLoadedLocations.empty();
+  }
+
 private:
   friend class DB;
 

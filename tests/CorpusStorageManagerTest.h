@@ -11,7 +11,7 @@
 #include <memory>
 #include <boost/filesystem.hpp>
 
-#include <humblelogging/api.h>
+#include "testlogger.h"
 
 using namespace annis;
 

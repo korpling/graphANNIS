@@ -16,10 +16,9 @@ using namespace annis::api;
 
 namespace bf = boost::filesystem;
 
-CorpusStorageManager::CorpusStorageManager(std::string databaseDir)
-  : databaseDir(databaseDir)
+CorpusStorageManager::CorpusStorageManager(std::string databaseDir, size_t maxAllowedCacheSize)
+  : databaseDir(databaseDir), maxAllowedCacheSize(maxAllowedCacheSize)
 {
-  cache = std::unique_ptr<DBCache>(new DBCache());
 }
 
 CorpusStorageManager::~CorpusStorageManager() {}
@@ -33,7 +32,7 @@ long long CorpusStorageManager::count(std::vector<std::string> corpora, std::str
 
   for(const std::string& c : corpora)
   {
-    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, false);
+    std::shared_ptr<DB> db = getCorpusFromCache(c, false);
 
     if(db)
     {
@@ -62,7 +61,7 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
 
   for(const std::string& c : corpora)
   {
-    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, false);
+    std::shared_ptr<DB> db = getCorpusFromCache(c, false);
 
     if(db)
     {
@@ -103,7 +102,7 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
 
   for(const std::string& c : corpora)
   {
-    std::shared_ptr<DB> db = cache->get(databaseDir + "/" + c, false);
+    std::shared_ptr<DB> db = getCorpusFromCache(c, false);
 
     if(db)
     {
@@ -151,10 +150,7 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
 void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
 {
 
-   bf::path corpusPath(databaseDir);
-   corpusPath = corpusPath / corpus;
-
-   killBackgroundWriter(corpusPath.string());
+   killBackgroundWriter(corpus);
 
    if(!update.isConsistent())
    {
@@ -162,8 +158,10 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
       update.finish();
    }
 
+   bf::path corpusPath = bf::path(databaseDir) / corpus;
+
    // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
-   std::shared_ptr<DB> db = cache->get(corpusPath.string(), true);
+   std::shared_ptr<DB> db = getCorpusFromCache(corpus, true);
 
    if(db)
    {
@@ -181,7 +179,7 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
 
          // Until now only the write log is persisted. Start a background thread that writes the whole
          // corpus to the folder (without the need to apply the write log).
-         startBackgroundWriter(corpusPath.string(), db);
+         startBackgroundWriter(corpus, db);
 
       } catch (...)
       {
@@ -212,25 +210,22 @@ std::vector<std::string> CorpusStorageManager::list()
 
 void CorpusStorageManager::importCorpus(std::string pathToCorpus, std::string newCorpusName)
 {
-   bf::path internalPath = bf::path(databaseDir) / newCorpusName;
-
 
    // load an existing corpus or create a our common database directory
-   std::shared_ptr<DB> db = cache->get(internalPath.string(), true);
+   std::shared_ptr<DB> db = getCorpusFromCache(newCorpusName, true);
    if(db)
    {
       boost::lock_guard<DB> lock(*db);
       // load the corpus data from the external location
       db->load(pathToCorpus);
       // make sure the corpus is properly saved at least once (so it is in a consistent state)
-      db->save(internalPath.string());
+      db->save((bf::path(databaseDir) / newCorpusName).string());
    }
 }
 
 void CorpusStorageManager::exportCorpus(std::string corpusName, std::string exportPath)
 {
-  bf::path internalPath = bf::path(databaseDir) / corpusName;
-  std::shared_ptr<DB> db = cache->get(internalPath.string(), true);
+  std::shared_ptr<DB> db = getCorpusFromCache(corpusName, true);
   if(db)
   {
      boost::shared_lock_guard<DB> lock(*db);
@@ -249,17 +244,21 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
 
   // Get the DB and hold a lock on it until we are finished.
   // Preloading all components so we are able to restore the complete DB if anything goes wrong.
-  std::shared_ptr<DB> db = cache->get(corpusPath.string(), true);
+  std::shared_ptr<DB> db = getCorpusFromCache(corpusPath.string(), true);
   if(db)
   {
+    // delete the corpus from the cache
+    {
+      std::lock_guard<std::mutex> lock(mutex_corpusCache);
+      corpusCache.erase(corpusName);
+    }
+
     boost::lock_guard<DB> lock(*db);
 
     try
     {
       // delete the corpus on the disk first, if we are interrupted the data is still in memory and can be restored
       bf::remove_all(corpusPath);
-      // delete the corpus from the cache
-      cache->release(corpusPath.string());
 
       return true;
     }
@@ -272,12 +271,14 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
   return false;
 }
 
-void CorpusStorageManager::startBackgroundWriter(std::string corpusPath, std::shared_ptr<DB> db)
+void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared_ptr<DB> db)
 {
   if(db)
   {
+    bf::path root = bf::path(databaseDir) / corpus;
+
     std::lock_guard<std::mutex> lock(mutex_writerThreads);
-    writerThreads[corpusPath] = boost::thread([corpusPath, db] () {
+    writerThreads[corpus] = boost::thread([db, root] () {
 
       // Get a read-lock for the database. The thread is started from another function which will have the database locked,
       // thus this thread will only really start as soon as the calling function has returned.
@@ -286,8 +287,6 @@ void CorpusStorageManager::startBackgroundWriter(std::string corpusPath, std::sh
 
       // We could have been interrupted right after we waited for the lock, so check here just to be sure.
       boost::this_thread::interruption_point();
-
-      bf::path root(corpusPath);
 
 
       // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
@@ -315,10 +314,10 @@ void CorpusStorageManager::startBackgroundWriter(std::string corpusPath, std::sh
   }
 }
 
-void CorpusStorageManager::killBackgroundWriter(std::string corpusPath)
+void CorpusStorageManager::killBackgroundWriter(std::string corpus)
 {
   std::lock_guard<std::mutex> lock(mutex_writerThreads);
-  auto itThread = writerThreads.find(corpusPath);
+  auto itThread = writerThreads.find(corpus);
   if(itThread != writerThreads.end())
   {
     itThread->second.interrupt();
@@ -328,4 +327,33 @@ void CorpusStorageManager::killBackgroundWriter(std::string corpusPath)
 
     writerThreads.erase(itThread);
   }
+}
+
+std::shared_ptr<DB> CorpusStorageManager::getCorpusFromCache(std::string name, bool preloadAllComponents)
+{
+  std::lock_guard<std::mutex> lock(mutex_corpusCache);
+
+  std::shared_ptr<DB> result;
+
+  auto it = corpusCache.find(name);
+
+  if(it == corpusCache.end())
+  {
+    // create a new DB, load its content from disk and put it into cache
+    result = std::make_shared<DB>();
+    result->load((bf::path(databaseDir) / name).string(), preloadAllComponents);
+    corpusCache[name] = result;
+  }
+  else
+  {
+    result = it->second;
+  }
+
+  if(result && preloadAllComponents && !result->edges.allComponentsLoaded())
+  {
+    // if a preloaded corpus is requested but there are still missing edge components, force a pre-load now
+     result->load((bf::path(databaseDir) / name).string(), true);
+  }
+
+  return result;
 }
