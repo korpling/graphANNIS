@@ -10,3 +10,5 @@ CMakeLists.txt.user
 /testexecution_annis4.log
 .Rproj.user
 /graphannis-api/nbproject/
+/graphANNIS-console/target/
+/graphannis-console/target/
