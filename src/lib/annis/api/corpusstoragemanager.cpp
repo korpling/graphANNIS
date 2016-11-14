@@ -288,6 +288,26 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
   return false;
 }
 
+CorpusStorageManager::CorpusInfo CorpusStorageManager::info(std::string corpusName)
+{
+  std::lock_guard<std::mutex> lock(mutex_corpusCache);
+
+  CorpusInfo result;
+  result.loadStatus = "NOT_IN_CACHE";
+  result.memoryUsageInBytes = 0;
+
+  auto it = corpusCache.find(corpusName);
+  if(it != corpusCache.end())
+  {
+    std::shared_ptr<DBLoader> loader = it->second;
+    boost::shared_lock_guard<DBLoader> lockDB(*loader);
+
+    result.loadStatus = loader->statusString();
+    result.memoryUsageInBytes = loader->estimateMemorySize();
+  }
+  return result;
+}
+
 void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared_ptr<DBLoader>& loader)
 {
   bf::path root = bf::path(databaseDir) / corpus;

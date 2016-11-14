@@ -78,12 +78,15 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <memory>
 // #include <vector>
 // #include <list>
+// #include <set>
 
 // #include <mutex>
 // #include <boost/thread.hpp>
 
 // #include <annis/db.h>
 // #include <annis/dbcache.h>
+// #include <annis/dbloader.h>
+
 // #include <annis/json/jsonqueryparser.h>
 
 // #include <annis/api/graphupdate.h>
@@ -114,8 +117,30 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     public native long documentCount(); public native CountResult documentCount(long documentCount);
   }
 
+  public static class CorpusInfo extends Pointer {
+      static { Loader.load(); }
+      /** Default native constructor. */
+      public CorpusInfo() { super((Pointer)null); allocate(); }
+      /** Native array allocator. Access with {@link Pointer#position(long)}. */
+      public CorpusInfo(long size) { super((Pointer)null); allocateArray(size); }
+      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+      public CorpusInfo(Pointer p) { super(p); }
+      private native void allocate();
+      private native void allocateArray(long size);
+      @Override public CorpusInfo position(long position) {
+          return (CorpusInfo)super.position(position);
+      }
+  
+    public native @StdString BytePointer loadStatus(); public native CorpusInfo loadStatus(BytePointer loadStatus);
+    public native long memoryUsageInBytes(); public native CorpusInfo memoryUsageInBytes(long memoryUsageInBytes);
+  }
+
+  public CorpusStorageManager(@StdString BytePointer databaseDir, @Cast("size_t") long maxAllowedCacheSize/*=1073741824*/) { super((Pointer)null); allocate(databaseDir, maxAllowedCacheSize); }
+  private native void allocate(@StdString BytePointer databaseDir, @Cast("size_t") long maxAllowedCacheSize/*=1073741824*/);
   public CorpusStorageManager(@StdString BytePointer databaseDir) { super((Pointer)null); allocate(databaseDir); }
   private native void allocate(@StdString BytePointer databaseDir);
+  public CorpusStorageManager(@StdString String databaseDir, @Cast("size_t") long maxAllowedCacheSize/*=1073741824*/) { super((Pointer)null); allocate(databaseDir, maxAllowedCacheSize); }
+  private native void allocate(@StdString String databaseDir, @Cast("size_t") long maxAllowedCacheSize/*=1073741824*/);
   public CorpusStorageManager(@StdString String databaseDir) { super((Pointer)null); allocate(databaseDir); }
   private native void allocate(@StdString String databaseDir);
 
@@ -176,6 +201,10 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
   public native @Cast("bool") boolean deleteCorpus(@StdString BytePointer corpusName);
   public native @Cast("bool") boolean deleteCorpus(@StdString String corpusName);
+
+  public native @ByVal CorpusInfo info(@StdString BytePointer corpusName);
+  public native @ByVal CorpusInfo info(@StdString String corpusName);
+
 }
 
  // end namespace annis

@@ -33,6 +33,12 @@ public:
     long long documentCount;
   };
 
+  struct CorpusInfo
+  {
+    std::string loadStatus;
+    long long memoryUsageInBytes;
+  };
+
   CorpusStorageManager(std::string databaseDir, size_t maxAllowedCacheSize = 1073741824);
    ~CorpusStorageManager();
 
@@ -81,6 +87,8 @@ public:
   void exportCorpus(std::string corpusName, std::string exportPath);
 
   bool deleteCorpus(std::string corpusName);
+
+  CorpusInfo info(std::string corpusName);
 
 
 private:
