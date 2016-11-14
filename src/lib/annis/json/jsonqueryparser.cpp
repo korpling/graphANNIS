@@ -15,7 +15,9 @@
 #include <annis/operators/inclusion.h>
 #include <annis/operators/overlap.h>
 #include <annis/operators/identicalcoverage.h>
+
 #include <map>
+#include <limits>
 
 using namespace annis;
 
@@ -294,28 +296,22 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
     {
       std::string nsStr = edgeAnno["namespace"].asString();
       auto search = db.strings.findID(nsStr);
-      if (search.first)
-      {
-        ns = search.second;
-      }
+      // if string is not found set to an invalid value
+      ns = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
     }
     if (edgeAnno["name"].isString())
     {
       std::string nameStr = edgeAnno["name"].asString();
       auto search = db.strings.findID(nameStr);
-      if (search.first)
-      {
-        name = search.second;
-      }
+      // if string is not found set to an invalid value
+      name = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
     }
     if (edgeAnno["value"].isString())
     {
       std::string valueStr = edgeAnno["value"].asString();
       auto search = db.strings.findID(valueStr);
-      if (search.first)
-      {
-        value = search.second;
-      }
+      // if string is not found set to an invalid value
+      value = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
     }
   }
   // TODO: what about regex?

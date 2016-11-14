@@ -15,12 +15,6 @@
  */
 package org.corpus_tools.annis.benchmark.generator;
 
-import annis.AnnisBaseRunner;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.PatternLayout;
-import ch.qos.logback.classic.filter.ThresholdFilter;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.ConsoleAppender;
 import java.io.IOException;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;

@@ -33,7 +33,17 @@
     <dependency>
       <groupId>de.hu-berlin.german.korpling.annis</groupId>
       <artifactId>annis-interfaces</artifactId>
-      <version>3.4.4</version>
+      <version>3.5.0-preview1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.corpus-tools</groupId>
+      <artifactId>salt-api</artifactId>
+      <version>3.3.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.corpus-tools</groupId>
+      <artifactId>salt-extensions</artifactId>
+      <version>3.3.0</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -50,9 +60,26 @@
       <artifactId>jackson-module-jaxb-annotations</artifactId>
       <version>2.6.4</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+      <version>4.5.2-1</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-core</artifactId>
+      <version>1.3</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
-
+  
   <build>
 
     <plugins>
@@ -140,6 +167,7 @@
           <includePaths>
             <includePath>${basedir}/../src/lib/</includePath>
             <includePath>${basedir}/../ext/cpp-btree-1.0.1/</includePath>
+            <includePath>${basedir}/../ext/cereal-1.2.1/include/</includePath>
             <includePath>${ICU_INCLUDE_DIRS}</includePath>
             <includePath>${Boost_INCLUDE_DIRS}</includePath>
           </includePaths>
@@ -219,6 +247,22 @@
                 <include>${javacpp.platform.library.path}/</include>
                 <include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
               </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <version>4.5.2-1</version>
+        <executions>
+          <execution>
+           <goals>
+                <goal>antlr4</goal>
+              </goals>
+           <configuration>
+              <sourceDirectory>src/main/antlr4</sourceDirectory>
             </configuration>
           </execution>
         </executions>

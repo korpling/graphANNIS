@@ -9,6 +9,8 @@
 #include <vector>
 #include <list>
 
+#include <boost/optional.hpp>
+
 #include <annis/types.h>
 #include <annis/stringstorage.h>
 #include <annis/graphstorageregistry.h>
@@ -17,6 +19,10 @@
 
 namespace annis
 {
+
+   namespace api {
+      class GraphUpdate;
+   }
   
 class ReadableGraphStorage;
 class WriteableGraphStorage;
@@ -27,8 +33,8 @@ public:
   DB();
 
   bool loadRelANNIS(std::string dirPath);
-  bool load(std::string dirPath, bool preloadComponents=true);
-  bool save(std::string dirPath);
+  bool load(std::string dir, bool preloadComponents=true);
+  bool save(std::string dir);
 
   inline std::string getNodeName(const nodeid_t &id) const
   {
@@ -40,6 +46,22 @@ public:
       result = strings.str(anno.second.val);
     }
     return result;
+  }
+
+  inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName)
+  {
+    std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
+    if(nodeNameID.first)
+    {
+      auto it = nodeAnnos.inverseNodeAnnotations.find(
+         {annisNodeNameStringID, annisNamespaceStringID, nodeNameID.second});
+
+      if(it != nodeAnnos.inverseNodeAnnotations.end())
+      {
+         return boost::optional<nodeid_t>(it->second);
+      }
+    }
+    return boost::optional<nodeid_t>();
   }
 
   inline std::string getNodeDocument(const nodeid_t &id) const
@@ -83,6 +105,11 @@ public:
 
   size_t estimateMemorySize();
 
+
+  void update(const api::GraphUpdate& u);
+
+  void clear();
+
   virtual ~DB();
 public:
 
@@ -90,6 +117,8 @@ public:
   NodeAnnoStorage nodeAnnos;
 
   GraphStorageHolder edges;
+
+  std::uint64_t currentChangeID;
 
 private:
 
@@ -114,8 +143,9 @@ private:
                           bool isANNIS33Format);
 
   
-  void clear();
+
   void addDefaultStrings();
+
 
 };
 

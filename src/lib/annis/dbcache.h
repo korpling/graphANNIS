@@ -8,7 +8,6 @@
 #include <set>
 #include <memory>
 #include <iostream>
-
 #include <tuple>
 
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
@@ -43,8 +42,9 @@ namespace annis {
     DBCache(size_t maxSizeBytes=1073741824);
     DBCache(const DBCache& orig) = delete;
 
-    std::weak_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, bool forceFallback = false,
+    std::shared_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
+
       DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
       std::map<DBCacheKey, std::shared_ptr<DB>>::iterator it = cache.find(key);
       if (it == cache.end()) {
@@ -67,10 +67,12 @@ namespace annis {
 
     void release(const std::string& corpusPath, bool forceFallback = false,
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
+
       release({corpusPath, forceFallback, overrideImpl});
     }
 
     void releaseAll() {
+
       cache.clear();
       loadedDBSize.clear();
 
@@ -100,7 +102,8 @@ namespace annis {
       }
     }
 
-    CorpusSize calculateTotalSize() const;
+    CorpusSize calculateTotalSize();
+
     const std::map<DBCacheKey, CorpusSize>& estimateCorpusSizes()
     {
       updateCorpusSizeEstimations();
@@ -110,6 +113,7 @@ namespace annis {
 
     virtual ~DBCache();
   private:
+
     std::map<DBCacheKey, std::shared_ptr<DB>> cache;
     std::map<DBCacheKey, CorpusSize> loadedDBSize;
     const size_t maxLoadedDBSize;

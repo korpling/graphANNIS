@@ -16,7 +16,7 @@
 package org.corpus_tools.annis.benchmark.generator;
 
 import annis.model.QueryNode;
-import annis.ql.parser.QueryData;
+import org.corpus_tools.annis.ql.parser.QueryData;
 import annis.sqlgen.model.Dominance;
 import annis.sqlgen.model.Inclusion;
 import annis.sqlgen.model.Overlap;

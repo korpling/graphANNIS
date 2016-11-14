@@ -77,7 +77,7 @@ namespace annis
         return "UNKNOWN";
       }
     }
-/*
+
     static ComponentType fromString(const std::string& typeAsString)
     {
       for(unsigned int t = (unsigned int)ComponentType::COVERAGE; t < (unsigned int) ComponentType::ComponentType_MAX; t++)
@@ -89,7 +89,7 @@ namespace annis
       }
       return ComponentType::ComponentType_MAX;
     }
-*/
+
   };
 
   struct Component
@@ -283,95 +283,4 @@ public :
 };
 
 } // end namespace std
-
-namespace boost
-{
-namespace serialization
-{
-template<class Archive>
-inline void serialize(
-    Archive & ar,
-    annis::GraphStatistic & t,
-    const unsigned int file_version
-    )
-{
-  ar & t.valid;
-
-  ar & t.cyclic;
-  ar & t.rootedTree;
-
-  ar & t.nodes;
-
-  ar & t.avgFanOut;
-  ar & t.maxFanOut;
-  ar & t.maxDepth;
-  ar & t.dfsVisitRatio;
-}
-
-template<class Archive>
-inline void serialize(
-    Archive & ar,
-    annis::AnnotationKey & t,
-    const unsigned int /* file_version */
-    )
-{
-  ar & t.name;
-  ar & t.ns;
-}
-
-template<class Archive>
-inline void serialize(
-    Archive & ar,
-    annis::NodeAnnotationKey & t,
-    const unsigned int /* file_version */
-    )
-{
-  ar & t.anno_ns;
-  ar & t.anno_name;
-  ar & t.node;
-}
-
-template<class Archive>
-void serialize(Archive & archive,
-               annis::NodeAnnotationKey & t)
-{
-  archive(t.anno_ns, t.anno_name, t.node);
-}
-
-template<class Archive>
-inline void serialize(
-    Archive & ar,
-    annis::Annotation & t,
-    const unsigned int /* file_version */
-    )
-{
-  ar & t.ns;
-  ar & t.name;
-  ar & t.val;
-}
-
-template<class Archive>
-inline void serialize(
-    Archive & ar,
-    annis::Edge & t,
-    const unsigned int /* file_version */
-    )
-{
-  ar & t.source;
-  ar & t.target;
-}
-
-template<class Archive, typename T>
-inline void serialize(
-    Archive & ar,
-    annis::RelativePosition<T> & t,
-    const unsigned int /* file_version */
-    )
-{
-  ar & t.root;
-  ar & t.pos;
-}
-
-} // end namespace serialization
-} // end namespace boost
 

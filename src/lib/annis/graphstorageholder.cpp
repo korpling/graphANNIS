@@ -7,6 +7,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/thread/thread.hpp>
 #include <humblelogging/api.h>
 
 #include <cereal/archives/binary.hpp>
@@ -32,7 +33,7 @@ void GraphStorageHolder::clear()
   container.clear();
 }
 
-std::weak_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(const Component &component)
+std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(const Component &component)
 {
   std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = container.find(component);
   if(itGS != container.end())
@@ -40,18 +41,19 @@ std::weak_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(co
     ensureComponentIsLoaded(itGS->first);
     return itGS->second;
   }
-  return std::weak_ptr<const ReadableGraphStorage>();
+  return std::shared_ptr<const ReadableGraphStorage>();
 }
 
-std::weak_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &layer, const std::string &name)
+
+std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &layer, const std::string &name)
 {
   Component c = {type, layer, name};
   return getGraphStorage(c);
 }
 
-std::vector<std::weak_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &name)
+std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &name)
 {
-  std::vector<std::weak_ptr<const ReadableGraphStorage> > result;
+  std::vector<std::shared_ptr<const ReadableGraphStorage> > result;
 
   Component componentKey;
   componentKey.type = type;
@@ -73,9 +75,9 @@ std::vector<std::weak_ptr<const ReadableGraphStorage> > GraphStorageHolder::getG
   return result;
 }
 
-std::vector<std::weak_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type)
+std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type)
 {
-  std::vector<std::weak_ptr<const ReadableGraphStorage>> result;
+  std::vector<std::shared_ptr<const ReadableGraphStorage>> result;
 
   Component c;
   c.type = type;
@@ -251,22 +253,29 @@ bool GraphStorageHolder::save(const std::string& dirPath)
 {
 
   // save each edge db separately
-  std::string gsParent = dirPath + "/gs";
+  boost::filesystem::path gsParent = boost::filesystem::path(dirPath) / "gs";
+
+  // remove all existing files in the graph storage first, otherwise deleted graphstorages might re-appear
+  boost::filesystem::remove_all(gsParent);
+  boost::filesystem::create_directories(gsParent);
+
   for(GraphStorageIt it = container.begin(); it != container.end(); it++)
   {
+    boost::this_thread::interruption_point();
+
     const Component& c = it->first;
-    std::string finalPath;
+    boost::filesystem::path finalPath;
     if(c.name.empty())
     {
-      finalPath = gsParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer;
+      finalPath = gsParent / ComponentTypeHelper::toString(c.type) / c.layer;
     }
     else
     {
-      finalPath = gsParent + "/" + ComponentTypeHelper::toString(c.type) + "/" + c.layer + "/" + c.name;
+      finalPath = gsParent / ComponentTypeHelper::toString(c.type) / c.layer / c.name;
     }
     boost::filesystem::create_directories(finalPath);
-    auto outputFile = finalPath + "/component.cereal";
-    std::ofstream os(outputFile, std::ios::binary);
+    auto outputFile = finalPath / "component.cereal";
+    std::ofstream os(outputFile.string(), std::ios::binary);
     cereal::BinaryOutputArchive ar(os);
     ar(it->second);
   }

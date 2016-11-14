@@ -1,8 +1,4 @@
-#include "gtest/gtest.h"
-
-
-#include <humblelogging/api.h>
-HUMBLE_LOGGER(logger, "default");
+#include <gtest/gtest.h>
 
 #include "LoadTest.h"
 #include "SearchTestPcc2.h"
@@ -11,6 +7,7 @@ HUMBLE_LOGGER(logger, "default");
 #include "SearchTestTueBaDZ.h"
 #include "SearchTestParlament.h"
 #include "SearchTestGUM.h"
+#include "CorpusStorageManagerTest.h"
 
 int main(int argc, char **argv)
 {
@@ -18,7 +15,7 @@ int main(int argc, char **argv)
   humble::logging::Factory &fac = humble::logging::Factory::getInstance();
 
   fac.setConfiguration(humble::logging::DefaultConfiguration::createFromString(
-    "logger.level(*)=warn\n"
+    "logger.level(*)=info\n"
   ));
 //  fac.setDefaultFormatter(new humble::logging::PatternFormatter("[%date] %m\n"));
   fac.registerAppender(new humble::logging::FileAppender("testexecution_annis4.log"));

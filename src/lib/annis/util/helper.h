@@ -29,8 +29,8 @@ class TokenHelper
 public:
 
   TokenHelper(GraphStorageHolder& gsh, const DB& db) : db(db),
-    leftEdges(gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock()),
-    rightEdges(gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock())
+    leftEdges(gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
+    rightEdges(gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, ""))
   {
 
   }

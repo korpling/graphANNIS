@@ -16,14 +16,14 @@
 
 using namespace annis;
 
-extern "C" size_t getCurrentRSS( );
-extern "C" size_t getCurrentVirtualMemory( );
+extern size_t getCurrentRSS( );
+extern size_t getCurrentVirtualMemory( );
 
 DBCache::DBCache(size_t maxSizeBytes)
   : maxLoadedDBSize(maxSizeBytes) {
 }
 
-DBCache::CorpusSize DBCache::calculateTotalSize() const
+DBCache::CorpusSize DBCache::calculateTotalSize()
 {
   CorpusSize total = {0,0};
   for(const std::pair<DBCacheKey, CorpusSize>& c : loadedDBSize)

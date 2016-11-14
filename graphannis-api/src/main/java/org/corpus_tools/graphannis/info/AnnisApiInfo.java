@@ -10,11 +10,14 @@ import org.bytedeco.javacpp.tools.InfoMapper;
 @Namespace("annis::api")
 @Properties(target="org.corpus_tools.graphannis.API",
     value={@Platform(
-        include={"annis/api/search.h", "annis/api/admin.h"}, 
-        link={"re2" ,"boost_system", "boost_filesystem", "boost_serialization", "humblelogging", "annis"}
+        include={
+          "annis/api/corpusstoragemanager.h", 
+          "annis/api/admin.h",
+          "annis/api/graphupdate.h"}, 
+        link={"re2" ,"boost_system", "boost_filesystem", "boost_thread", "humblelogging", "annis"}
         ),
         @Platform(value = "windows",
-		  link={"re2", "boost_system-vc140-mt-1_61", "boost_filesystem-vc140-mt-1_61", "boost_serialization-vc140-mt-1_61", "humblelogging", "annis"}
+		  link={"re2", "boost_system-vc140-mt-1_61", "boost_filesystem-vc140-mt-1_61", "boost_thread-vc140-mt-1_61" , "humblelogging", "annis"}
 		)})
 public class AnnisApiInfo implements InfoMapper
 {
@@ -23,6 +26,13 @@ public class AnnisApiInfo implements InfoMapper
   public void map(InfoMap infoMap)
   {
 	  infoMap.put(new Info("std::vector<std::string>").pointerTypes("StringVector").define());
+    infoMap.put(new Info("annis::Init").skip());
+    infoMap.put(new Info("std::uint32_t").valueTypes("long"));
+    infoMap.put(new Info("std::uint64_t").valueTypes("long"));
+    infoMap.put(new Info("hash<annis::Annotation>").skip());
+    infoMap.put(new Info("annis::api::GraphUpdate::getLastConsistentChangeID").skip());
+    infoMap.put(new Info("std::vector<annis::api::UpdateEvent>").pointerTypes("UpdateEventList").define());
+    infoMap.put(new Info("annis::api::GraphUpdate::getDiffs").skip());
   }
 
 }

@@ -36,7 +36,7 @@ ENDIF()
 
 
 find_package(ICU 4.4 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system filesystem)
+find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package (Threads REQUIRED)
 
 # write found packages to property file which is used by maven
@@ -69,6 +69,7 @@ set(IncludeFiles
   src/lib/annis/json/json.h
   src/lib/annis/json/json-forwards.h
   src/lib/annis/db.h
+  src/lib/annis/dbloader.h
   src/lib/annis/graphstorage/prepostorderstorage.h
   src/lib/annis/graphstorage/adjacencyliststorage.h
   src/lib/annis/graphstorage/graphstorage.h
@@ -86,8 +87,9 @@ set(IncludeFiles
   src/lib/annis/operators/identicalcoverage.h
   src/lib/annis/operators/abstractedgeoperator.h
   src/lib/annis/dbcache.h
-  src/lib/annis/api/search.h
+  src/lib/annis/api/corpusstoragemanager.h
   src/lib/annis/api/admin.h
+  src/lib/annis/api/graphupdate.h
   src/lib/annis/serializers.h
   src/lib/annis/graphstorageregistry.h
   src/lib/annis/nodeannostorage.h
@@ -110,6 +112,7 @@ set(SRC_LIST_LIB
   src/lib/annis/json/jsoncpp.cpp
   src/lib/annis/json/jsonqueryparser.cpp
   src/lib/annis/db.cpp
+  src/lib/annis/dbloader.cpp
   src/lib/annis/wrapper.cpp
   src/lib/annis/graphstorage/adjacencyliststorage.cpp
   src/lib/annis/graphstorage/prepostorderstorage.cpp
@@ -125,12 +128,14 @@ set(SRC_LIST_LIB
   src/lib/annis/operators/inclusion.cpp
   src/lib/annis/operators/dominance.cpp
   src/lib/annis/operators/abstractedgeoperator.cpp
-  src/lib/annis/api/search.cpp
+  src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
+  src/lib/annis/api/graphupdate.cpp
   src/lib/annis/edgeannotationstorage.cpp
   src/lib/annis/query.cpp
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
+  src/lib/annis/util/getRSS.cpp
   src/lib/annis/nodeannostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
@@ -139,7 +144,6 @@ set(SRC_LIST_LIB
   src/lib/annis/annosearch/exactannovaluesearch.cpp
   src/lib/annis/annosearch/regexannosearch.cpp
   src/lib/annis/annosearch/annotationsearch.cpp
-  src/lib/annis/util/getRSS.c
 )
 
 set(SRC_LIST_RUNNER
@@ -152,7 +156,7 @@ set(SRC_LIST_RUNNER
 
 include_directories( "src/lib")
 
-add_library(annis ${SRC_LIST_LIB} ${IncludeFiles})
+add_library(annis ${SRC_LIST_LIB})
 target_compile_features(annis PRIVATE ${needed_features})
 set_property(TARGET annis PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 # newer Boost serialization versions are otherwise incompatible with BTree
@@ -178,7 +182,18 @@ target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES}
 enable_testing()
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-file(GLOB TEST_SRC_LIST "tests/*.cpp" "tests/*.h")
+set(TEST_SRC_LIST
+  tests/testlogger.h
+  tests/SearchTestPcc2.h
+  tests/SearchTestParlament.h
+  tests/SearchTestRidges.h
+  tests/CorpusStorageManagerTest.h
+  tests/SearchTestGUM.h
+  tests/SearchTestTueBaDZ.h
+  tests/LoadTest.h
+  tests/SearchTestTiger.h
+  tests/testmain.cpp
+)
 
 set(TEST_EXEC "test_${PROJECT_NAME}")
 

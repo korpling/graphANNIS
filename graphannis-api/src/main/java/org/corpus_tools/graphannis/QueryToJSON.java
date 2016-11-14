@@ -41,6 +41,10 @@ import annis.sqlgen.model.Precedence;
 import annis.sqlgen.model.RightDominance;
 import annis.sqlgen.model.SameSpan;
 import annis.sqlgen.model.Sibling;
+import java.util.LinkedList;
+import org.corpus_tools.annis.ql.parser.AnnisParserAntlr;
+import org.corpus_tools.annis.ql.parser.QueryData;
+import org.corpus_tools.annis.ql.parser.SemanticValidator;
 
 /**
  *
@@ -53,10 +57,19 @@ public class QueryToJSON
 
   private static final JaxbAnnotationModule jaxbModule = new JaxbAnnotationModule();
   
+  public static String aqlToJSON(String aql)
+  {
+    AnnisParserAntlr parser = new AnnisParserAntlr();
+    
+    QueryData qd = parser.parse(aql, new LinkedList<>());
+    return serializeQuery(qd.getAlternatives(), qd.getMetaData());
+  }
+  
   /**
    * This will serialize the query part of the {@link QueryData} to JSON.
    *
-   * @param queryData
+   * @param query
+   * @param metaData
    * @return
    */
   public static String serializeQuery(List<List<QueryNode>> query, 

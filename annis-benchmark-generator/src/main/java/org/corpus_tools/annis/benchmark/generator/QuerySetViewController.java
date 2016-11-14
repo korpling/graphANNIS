@@ -15,23 +15,19 @@
  */
 package org.corpus_tools.annis.benchmark.generator;
 
-import annis.ql.parser.AnnisParserAntlr;
-import annis.ql.parser.QueryData;
-import annis.ql.parser.SemanticValidator;
+import org.corpus_tools.annis.ql.parser.AnnisParserAntlr;
+import org.corpus_tools.annis.ql.parser.QueryData;
+import org.corpus_tools.annis.ql.parser.SemanticValidator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.io.CharSink;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -135,7 +131,6 @@ public class QuerySetViewController implements Initializable
   {
     parser = new AnnisParserAntlr();
     parser.setPrecedenceBound(50);
-    parser.setPostProcessors(Arrays.asList(new SemanticValidator()));  
 
     nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
     aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));

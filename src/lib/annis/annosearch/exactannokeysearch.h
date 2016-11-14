@@ -9,7 +9,7 @@ namespace annis
 class ExactAnnoKeySearch : public AnnotationKeySearch
 {
   using ItAnnoNode = NodeAnnoStorage::InverseNodeAnnoMap_t::const_iterator;
-  using ItAnnoKey = NodeAnnoStorage::set_t<AnnotationKey>::const_iterator;
+  using ItAnnoKey = btree::btree_map<AnnotationKey, std::uint64_t>::const_iterator;
 
 public:
   /**

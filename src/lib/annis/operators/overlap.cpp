@@ -8,9 +8,9 @@ using namespace annis;
 Overlap::Overlap(const DB &db, GraphStorageHolder& gsh)
   : tokHelper(gsh, db), anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {
-  gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock();
-  gsCoverage = gsh.getGraphStorage(ComponentType::COVERAGE, annis_ns, "").lock();
-  gsInverseCoverage = gsh.getGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "").lock();
+  gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
+  gsCoverage = gsh.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+  gsInverseCoverage = gsh.getGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
 
 }
 

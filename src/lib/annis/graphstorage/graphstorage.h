@@ -81,6 +81,12 @@ public:
   virtual void addEdge(const Edge& edge) = 0;
   virtual void addEdgeAnnotation(const Edge& edge, const Annotation& anno) = 0;
 
+
+  virtual void deleteEdge(const Edge& edge) = 0;
+  virtual void deleteNode(nodeid_t node) = 0;
+  virtual void deleteEdgeAnnotation(const Edge& edge, const AnnotationKey& anno) = 0;
+
+
   virtual void calculateIndex() {}
 
   template<class Archive>

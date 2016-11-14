@@ -24,6 +24,30 @@ public:
     edgeAnnotations.insert({edge, anno});
   }
 
+  virtual void deleteEdgeAnnotation(const Edge& edge, const AnnotationKey& anno)
+  {
+    // We can't use equal_range(...) since removing an element will invalidate the second iterator.
+    auto it = edgeAnnotations.lower_bound(edge);
+
+    // Iterate over all annotations of the edge.
+    // Check that we are not at the end of the map (this also means the iterator is valid) and still
+    // at the correct edge.
+    while(it != edgeAnnotations.end()
+          && it->first.source == edge.source && it->first.target == edge.target)
+    {
+      if(it->second.ns == anno.ns && it->second.name == anno.name)
+      {
+         // The iterator becomes invalid when erasing it, thus use the return value to get an iterator for the next
+         // valid element after the erased element.
+         it = edgeAnnotations.erase(it);
+      }
+      else
+      {
+        it++;
+      }
+    }
+  }
+
   virtual void clear();
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const

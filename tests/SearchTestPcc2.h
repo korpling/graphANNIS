@@ -14,6 +14,8 @@
 #include <annis/query.h>
 #include <annis/json/jsonqueryparser.h>
 
+#include "testlogger.h"
+
 #include <vector>
 #include <boost/format.hpp>
 #include <fstream>

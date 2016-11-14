@@ -52,7 +52,6 @@ namespace annis {
 
     template<typename Key, typename Value> using map_t  = bc::flat_map<Key, Value>;
     template<typename Key, typename Value> using multimap_t  = bc::flat_multimap<Key, Value>;
-    template<typename Value> using set_t = bc::flat_set<Value>;
 
     using NodeAnnoMap_t = map_t<NodeAnnotationKey, uint32_t>;
     using InverseNodeAnnoMap_t = multimap_t<Annotation, nodeid_t>;
@@ -62,10 +61,44 @@ namespace annis {
     {
       nodeAnnotations.insert(std::pair<NodeAnnotationKey, uint32_t>({nodeID, anno.name, anno.ns}, anno.val));
       inverseNodeAnnotations.insert(std::pair<Annotation, nodeid_t>(anno, nodeID));
-      nodeAnnoKeys.insert({anno.name, anno.ns});
+      btree::btree_map<AnnotationKey, size_t>::iterator itKey = nodeAnnoKeys.find({anno.name, anno.ns});
+      if(itKey == nodeAnnoKeys.end())
+      {
+         nodeAnnoKeys.insert({{anno.name, anno.ns}, 1});
+      }
+      else
+      {
+         itKey->second++;
+      }
     }
 
     void addNodeAnnotationBulk(std::list<std::pair<NodeAnnotationKey, uint32_t>> annos);
+
+    void deleteNodeAnnotation(nodeid_t nodeID, AnnotationKey& anno)
+    {
+       auto it = nodeAnnotations.find({nodeID, anno.name, anno.ns});
+       if(it != nodeAnnotations.end())
+       {
+          Annotation oldAnno = {anno.name, anno.ns, it->second};
+          nodeAnnotations.erase(it);
+
+          // also delete the inverse annotation
+          inverseNodeAnnotations.erase(oldAnno);
+
+          // decrease the annotation count for this key
+          btree::btree_map<AnnotationKey, std::uint64_t>::iterator itAnnoKey = nodeAnnoKeys.find(anno);
+          if(itAnnoKey != nodeAnnoKeys.end())
+          {
+             itAnnoKey->second--;
+
+             // if there is no such annotation left remove the annotation key from the map
+             if(itAnnoKey->second <= 0)
+             {
+                nodeAnnoKeys.erase(itAnnoKey);
+             }
+          }
+       }
+    }
 
     inline std::list<Annotation> getNodeAnnotationsByID(const nodeid_t &id) const
     {
@@ -141,12 +174,17 @@ namespace annis {
 
     size_t estimateMemorySize();
 
+    nodeid_t nextFreeID() const
+    {
+      return nodeAnnotations.empty() ? 0 : (nodeAnnotations.rbegin()->first.node) + 1;
+    }
+
     virtual ~NodeAnnoStorage();
 
     template <class Archive>
     void serialize( Archive & ar )
     {
-      ar(nodeAnnotations, inverseNodeAnnotations, nodeAnnoKeys, histogramBounds, nodeAnnotationKeyCount);
+      ar(nodeAnnotations, inverseNodeAnnotations, nodeAnnoKeys, histogramBounds);
     }
 
   private:
@@ -157,13 +195,13 @@ namespace annis {
     NodeAnnoMap_t nodeAnnotations;
     InverseNodeAnnoMap_t inverseNodeAnnotations;
 
-    set_t<AnnotationKey> nodeAnnoKeys;
+    /// Maps a distinct node annotation key to the number of keys available.
+    btree::btree_map<AnnotationKey, std::uint64_t> nodeAnnoKeys;
 
     StringStorage& strings;
     
-    /* statistical information */
+    /* additional statistical information */
     btree::btree_map<AnnotationKey, std::vector<std::string>> histogramBounds;
-    btree::btree_map<AnnotationKey, std::uint64_t> nodeAnnotationKeyCount;
     
     
   private:

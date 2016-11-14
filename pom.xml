@@ -52,5 +52,6 @@
   <modules>
    <module>graphannis-api</module>
    <module>annis-benchmark-generator</module>
+    <module>graphannis-console</module>
   </modules>
 </project>

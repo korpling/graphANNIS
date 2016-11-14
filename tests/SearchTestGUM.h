@@ -17,6 +17,8 @@
 #include <boost/format.hpp>
 #include <fstream>
 
+#include "testlogger.h"
+
 using namespace annis;
 
 class SearchTestGUM : public ::testing::Test {

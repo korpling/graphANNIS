@@ -36,7 +36,7 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &anno
     for(auto itKey = keysLower; itKey != keysUpper; itKey++)
     {
       searchRanges.push_back(Range(db.nodeAnnos.inverseNodeAnnotations.equal_range(
-      {itKey->name, itKey->ns, valueID.second})));
+      {itKey->first.name, itKey->first.ns, valueID.second})));
     }
   }
   currentRange = searchRanges.begin();

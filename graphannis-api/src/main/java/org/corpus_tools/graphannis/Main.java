@@ -15,6 +15,10 @@
  */
 package org.corpus_tools.graphannis;
 
+import annis.model.QueryNode;
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  *
  * @author thomas
@@ -29,8 +33,28 @@ public class Main
   {
     if(args.length > 0)
     {
-      API.Search search = new API.Search(args[0]);
-      
+      API.CorpusStorageManager manager = new API.CorpusStorageManager(args[0]);
+      if(args.length > 1)
+      {
+        String aql = args.length > 2 ? args[2] : "tok";
+        
+        API.StringVector result = manager.find(new API.StringVector(args[1]), 
+          QueryToJSON.aqlToJSON(aql));
+
+        for(int i=0; i < result.size(); i++)
+        {
+          System.out.println(result.get(i).getString());
+        }
+
+      }
+      else
+      {
+        API.StringVector corpora = manager.list();
+        for(long i=0; i < corpora.size(); i++)
+        {
+          System.out.println(corpora.get(i).getString());
+        }
+      }
     }
     else
     {

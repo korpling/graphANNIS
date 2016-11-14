@@ -66,11 +66,14 @@
 	</repositories>
 
 	<dependencies>
-		<dependency>
-			<groupId>de.hu-berlin.german.korpling.annis</groupId>
-			<artifactId>annis-service</artifactId>
-			<version>3.5.0-preview1</version>
-		</dependency>
+
+    <!-- redirect all java util logging to slfj4 -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>1.7.5</version>
+      <scope>compile</scope>
+    </dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
@@ -120,7 +123,7 @@
 				<artifactId>javafx-maven-plugin</artifactId>
 				<version>8.2.0</version>
 				<configuration>
-					<mainClass>org.korpling.annis.benchmark.generator.Main</mainClass>
+					<mainClass>org.corpus_tools.annis.benchmark.generator.Main</mainClass>
 					<appName>annis-benchmark-generator</appName>
 					<vendor>Thomas Krause &lt;thomaskrause@posteo.de&gt;</vendor>
 				</configuration>

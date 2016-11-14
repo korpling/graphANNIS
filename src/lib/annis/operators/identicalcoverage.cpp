@@ -18,10 +18,10 @@ IdenticalCoverage::IdenticalCoverage(const DB &db, GraphStorageHolder& gsh)
 : tokHelper(gsh, db),
   anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {
-  gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "").lock();
-  gsLeftToken = gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "").lock();
-  gsRightToken = gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "").lock();
-  gsCoverage = gsh.getGraphStorage(ComponentType::COVERAGE, annis_ns, "").lock();
+  gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
+  gsLeftToken = gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
+  gsRightToken = gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
+  gsCoverage = gsh.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
 }
 
 bool IdenticalCoverage::filter(const Match& lhs, const Match& rhs)

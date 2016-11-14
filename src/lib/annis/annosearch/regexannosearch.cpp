@@ -42,10 +42,10 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
       auto keysUpper = db.nodeAnnos.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
       for(auto itKey = keysLower; itKey != keysUpper; itKey++)
       {
-        annoTemplates.push_back({itKey->name, itKey->ns, 0});
+        annoTemplates.push_back({itKey->first.name, itKey->first.ns, 0});
         
-        auto lowerAnno = db.nodeAnnos.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, 0});
-        auto upperAnno = db.nodeAnnos.inverseNodeAnnotations.lower_bound({itKey->name, itKey->ns, uintmax});
+        auto lowerAnno = db.nodeAnnos.inverseNodeAnnotations.lower_bound({itKey->first.name, itKey->first.ns, 0});
+        auto upperAnno = db.nodeAnnos.inverseNodeAnnotations.lower_bound({itKey->first.name, itKey->first.ns, uintmax});
         searchRanges.push_back(Range(lowerAnno, upperAnno));
       }
     }

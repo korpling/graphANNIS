@@ -12,6 +12,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/thread/thread.hpp>
 
 #include <humblelogging/api.h>
 
@@ -22,8 +24,10 @@
 #include <annis/nodeannostorage.h>
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/graphstorageregistry.h>
+#include <annis/api/graphupdate.h>
 
 #include <cereal/archives/binary.hpp>
+
 
 HUMBLE_LOGGER(logger, "annis4");
 
@@ -31,39 +35,118 @@ using namespace annis;
 using namespace std;
 
 DB::DB()
-: nodeAnnos(strings), edges(strings)
+: nodeAnnos(strings), edges(strings), currentChangeID(0)
 {
   addDefaultStrings();
 }
 
-bool DB::load(string dirPath, bool preloadComponents)
+bool DB::load(string dir, bool preloadComponents)
 {
   clear();
   addDefaultStrings();
 
-  std::ifstream is(dirPath + "/nodes.cereal", std::ios::binary);
+  boost::filesystem::path dirPath(dir);
+  boost::filesystem::path dir2load = dirPath / "current";
+
+  boost::filesystem::path backup = dirPath / "backup";
+  bool backupWasLoaded = false;
+  if(boost::filesystem::exists(backup) && boost::filesystem::is_directory(backup))
+  {
+    // load backup instead
+    dir2load = backup;
+    backupWasLoaded = true;
+  }
+
+  std::ifstream is((dir2load / "nodes.cereal").string(), std::ios::binary);
   if(is.is_open())
   {
     cereal::BinaryInputArchive archive(is);
     archive(strings, nodeAnnos);
   }
 
-  edges.load(dirPath, preloadComponents);
+  bool logfileExists = false;
+  // check if we have to apply a log file to get to the last stable snapshot version
+  std::ifstream logStream((dir2load / "update_log.cereal").string(), std::ios::binary);
+  if(logStream.is_open())
+  {
+    logfileExists = true;
+  }
+
+  // If backup is active or a write log exists, always  a pre-load to get the complete corpus.
+  edges.load(dir2load.string(), backupWasLoaded || logfileExists || preloadComponents);
+
+  if(logStream.is_open())
+  {
+     // apply any outstanding log file updates
+     cereal::BinaryInputArchive log(logStream);
+     api::GraphUpdate u;
+     log(u);
+     if(u.getLastConsistentChangeID() > currentChangeID)
+     {
+       update(u);
+     }
+  }
+  else
+  {
+    currentChangeID = 0;
+  }
+
+  if(backupWasLoaded)
+  {
+    // save the current corpus under the actual location
+    save(dirPath.string());
+
+    // rename backup folder (renaming is atomic and deleting could leave an incomplete backup folder on disk)
+    boost::filesystem::path tmpDir =
+        boost::filesystem::unique_path(dirPath / "temporary-%%%%-%%%%-%%%%-%%%%");
+    boost::filesystem::rename(backup, tmpDir);
+
+    // remove it after renaming it
+    boost::filesystem::remove_all(tmpDir);
+
+  }
 
   // TODO: return false on failure
   return true;
 }
 
-bool DB::save(string dirPath)
+bool DB::save(string dir)
 {
+
+  // always save to the "current" sub-directory
+  boost::filesystem::path dirPath = boost::filesystem::path(dir) / "current";
 
   boost::filesystem::create_directories(dirPath);
 
-  std::ofstream os(dirPath + "/nodes.cereal", std::ios::binary);
+  boost::this_thread::interruption_point();
+
+  std::ofstream os((dirPath / "nodes.cereal").string(), std::ios::binary);
   cereal::BinaryOutputArchive archive( os );
   archive(strings, nodeAnnos);
 
-  edges.save(dirPath);
+  boost::this_thread::interruption_point();
+
+  edges.save(dirPath.string());
+
+  boost::this_thread::interruption_point();
+
+  // this is a good time to remove all uncessary data like backups or write logs
+  for(auto fileIt = boost::filesystem::directory_iterator(dirPath);
+      fileIt != boost::filesystem::directory_iterator(); fileIt++)
+  {
+    boost::this_thread::interruption_point();
+    if(boost::filesystem::is_directory(fileIt->path()))
+    {
+      if(boost::algorithm::starts_with(fileIt->path().filename().string(), "temporary-"))
+      {
+        boost::filesystem::remove_all(fileIt->path());
+      }
+    }
+    else if(fileIt->path().filename() == "update_log.cereal")
+    {
+      boost::filesystem::remove(fileIt->path());
+    }
+  }
 
   // TODO: return false on failure
   return true;
@@ -686,7 +769,153 @@ vector<Annotation> DB::getEdgeAnnotations(const Component &component,
 
 }
 
+void DB::update(const api::GraphUpdate& u)
+{
+   for(std::shared_ptr<api::UpdateEvent> change : u.getDiffs())
+   {
+      if(change->changeID <= u.getLastConsistentChangeID())
+      {
+         if(std::shared_ptr<api::AddNodeEvent> evt = std::dynamic_pointer_cast<api::AddNodeEvent>(change))
+         {
+            auto existingNodeID = getNodeID(evt->nodeName);
+            // only add node if it does not exist yet
+            if(!existingNodeID)
+            {
+               nodeid_t newNodeID = nodeAnnos.nextFreeID();
+               Annotation newAnno =
+                  {getNodeNameStringID(), getNamespaceStringID(), strings.add(evt->nodeName)};
+               nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
+            }
+         }
+         else if(std::shared_ptr<api::DeleteNodeEvent> evt = std::dynamic_pointer_cast<api::DeleteNodeEvent>(change))
+         {
+            auto existingNodeID = getNodeID(evt->nodeName);
+            if(existingNodeID)
+            {
+               // add all annotations
+               std::list<Annotation> annoList = nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
+               for(Annotation anno : annoList)
+               {
+                  AnnotationKey annoKey = {anno.name, anno.ns};
+                  nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+               }
+               // delete all edges pointing to this node either as source or target
+               for(Component c : getAllComponents())
+               {
+                  std::shared_ptr<WriteableGraphStorage> gs =
+                    edges.createWritableGraphStorage(c.type, c.layer, c.name);
+                  gs->deleteNode(*existingNodeID);
+               }
+
+            }
+         }
+         else if(std::shared_ptr<api::AddNodeLabelEvent> evt = std::dynamic_pointer_cast<api::AddNodeLabelEvent>(change))
+         {
+            auto existingNodeID = getNodeID(evt->nodeName);
+            if(existingNodeID)
+            {
+              Annotation anno = {strings.add(evt->annoName),
+                                 strings.add(evt->annoNs),
+                                 strings.add(evt->annoValue)};
+              nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
+            }
+         }
+         else if(std::shared_ptr<api::DeleteNodeLabelEvent> evt = std::dynamic_pointer_cast<api::DeleteNodeLabelEvent>(change))
+         {
+            auto existingNodeID = getNodeID(evt->nodeName);
+            if(existingNodeID)
+            {
+              AnnotationKey annoKey = {strings.add(evt->annoName),
+                                       strings.add(evt->annoNs)};
+              nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+            }
+         }
+         else if(std::shared_ptr<api::AddEdgeEvent> evt = std::dynamic_pointer_cast<api::AddEdgeEvent>(change))
+         {
+            auto existingSourceID = getNodeID(evt->sourceNode);
+            auto existingTargetID = getNodeID(evt->targetNode);
+            // only add edge if both nodes already exist
+            if(existingSourceID && existingTargetID)
+            {
+               ComponentType type = ComponentTypeHelper::fromString(evt->componentType);
+               if(type < ComponentType::ComponentType_MAX)
+               {
+                  std::shared_ptr<WriteableGraphStorage> gs =
+                    edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+                  gs->addEdge({*existingSourceID, *existingTargetID});
+               }
+            }
+         }
+         else if(std::shared_ptr<api::DeleteEdgeEvent> evt = std::dynamic_pointer_cast<api::DeleteEdgeEvent>(change))
+         {
+            auto existingSourceID = getNodeID(evt->sourceNode);
+            auto existingTargetID = getNodeID(evt->targetNode);
+            // only delete edge if both nodes actually exist
+            if(existingSourceID && existingTargetID)
+            {
+               ComponentType type = ComponentTypeHelper::fromString(evt->componentType);
+               if(type < ComponentType::ComponentType_MAX)
+               {
+                  std::shared_ptr<WriteableGraphStorage> gs =
+                    edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+                  gs->deleteEdge({*existingSourceID, *existingTargetID});
+               }
+            }
+         }
+         else if(std::shared_ptr<api::AddEdgeLabelEvent> evt = std::dynamic_pointer_cast<api::AddEdgeLabelEvent>(change))
+         {
+           auto existingSourceID = getNodeID(evt->sourceNode);
+           auto existingTargetID = getNodeID(evt->targetNode);
+           // only add label if both nodes already exists
+           if(existingSourceID && existingTargetID)
+           {
+              ComponentType type = ComponentTypeHelper::fromString(evt->componentType);
+              if(type < ComponentType::ComponentType_MAX)
+              {
+                 std::shared_ptr<WriteableGraphStorage> gs =
+                   edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+
+                 // only add label if the edge already exists
+                 if(gs->isConnected({*existingSourceID, *existingTargetID}, 1, 1))
+                 {
+                   Annotation anno = {strings.add(evt->annoName), strings.add(evt->annoNs), strings.add(evt->annoValue)};
+                   gs->addEdgeAnnotation({*existingSourceID, *existingTargetID}, anno);
+                 }
+
+              }
+           }
+         }
+         else if(std::shared_ptr<api::DeleteEdgeLabelEvent> evt = std::dynamic_pointer_cast<api::DeleteEdgeLabelEvent>(change))
+         {
+           auto existingSourceID = getNodeID(evt->sourceNode);
+           auto existingTargetID = getNodeID(evt->targetNode);
+           // only add label if both nodes actually exists
+           if(existingSourceID && existingTargetID)
+           {
+              ComponentType type = ComponentTypeHelper::fromString(evt->componentType);
+              if(type < ComponentType::ComponentType_MAX)
+              {
+                 std::shared_ptr<WriteableGraphStorage> gs =
+                   edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+
+                 // only delete label if the edge actually exists
+                 if(gs->isConnected({*existingSourceID, *existingTargetID}, 1, 1))
+                 {
+                   AnnotationKey annoKey = {strings.add(evt->annoName), strings.add(evt->annoNs)};
+                   gs->deleteEdgeAnnotation({*existingSourceID, *existingTargetID}, annoKey);
+                 }
+
+              }
+           }
+         }
+         currentChangeID = change->changeID;
+      } // end if changeID is behind last consistent
+   } // end for each change in update list
+
+}
+
 DB::~DB()
 {
 }
+
 
