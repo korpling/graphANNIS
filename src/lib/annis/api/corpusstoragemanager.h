@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <list>
+#include <set>
 
 #include <mutex>
 #include <boost/thread.hpp>
@@ -108,6 +109,8 @@ private:
   void killBackgroundWriter(std::string corpus);
 
   std::shared_ptr<DBLoader> getCorpusFromCache(std::string name);
+
+  void garbageCollection(std::string ignoredCorpus);
 
 };
 

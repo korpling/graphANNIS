@@ -5,8 +5,12 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+
+#include <humblelogging/api.h>
+
 #include <fstream>
 #include <thread>
+#include <vector>
 #include <cereal/archives/binary.hpp>
 
 #include <annis/db.h>
@@ -15,6 +19,8 @@ using namespace annis;
 using namespace annis::api;
 
 namespace bf = boost::filesystem;
+
+HUMBLE_LOGGER(logger, "annis4");
 
 CorpusStorageManager::CorpusStorageManager(std::string databaseDir, size_t maxAllowedCacheSize)
   : databaseDir(databaseDir), maxAllowedCacheSize(maxAllowedCacheSize)
@@ -342,19 +348,70 @@ void CorpusStorageManager::killBackgroundWriter(std::string corpus)
   }
 }
 
-std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string name)
+std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string corpusName)
 {
+  using SizeListEntry = std::pair<std::shared_ptr<DBLoader>, size_t>;
+
   std::lock_guard<std::mutex> lock(mutex_corpusCache);
 
   std::shared_ptr<DBLoader> result;
 
-  auto it = corpusCache.find(name);
+  auto it = corpusCache.find(corpusName);
 
   if(it == corpusCache.end())
   {
-    // create a new DB, load its content from disk and put it into cache
-    result = std::make_shared<DBLoader>((bf::path(databaseDir) / name).string());
-    corpusCache[name] =  result;
+    // Create a new DBLoader and put it into the cache.
+    // This will not load the database itself, this can be dann with the resulting object from the caller
+    // after he locked the DBLoader.
+    result = std::make_shared<DBLoader>((bf::path(databaseDir) / corpusName).string(),
+      [&]()
+      {
+        // perform garbage collection whenever something was loaded
+        std::lock_guard<std::mutex> lock(mutex_corpusCache);
+
+        // Calculate size of all corpora: This temporarly locks a DB but unlocks it as soon as it can.
+        // Other calls to this API might try to load corpora into memory while we are doing this, so the size
+        // might not be consistent. Since these other calls will also invoke this callback later (and only one
+        // callback can be executed at one time), there will always be another garbage collection run which will
+        // ensure that the overall size limits are not exceeded in the end.
+        size_t overallSize = 0;
+        std::vector<SizeListEntry> corpusSizes;
+        for(auto entry : corpusCache)
+        {
+          if(entry.first != corpusName)
+          {
+            boost::shared_lock_guard<DBLoader> lock(*(entry.second));
+            size_t estimatedSize = entry.second->estimateMemorySize();
+            overallSize += estimatedSize;
+            // do not add the corpus which was just recently loaded to the list of candidates to be unloaded
+            corpusSizes.push_back({entry.second, estimatedSize});
+          }
+        }
+
+        if(overallSize <= maxAllowedCacheSize)
+        {
+          // there is nothing to do
+          return;
+        }
+
+        // sort the corpora by their size
+        std::sort(corpusSizes.begin(), corpusSizes.end(),
+                  [](const SizeListEntry& lhs, const SizeListEntry& rhs)
+        {
+          return lhs.second < rhs.second;
+        });
+
+        // delete entries from the sorted list until the list is empty or the memory does not exceed the limit any longer
+        while(!corpusSizes.empty() && overallSize > maxAllowedCacheSize)
+        {
+          SizeListEntry& largestCorpus = corpusSizes.back();
+          largestCorpus.first->unload();
+          overallSize -= largestCorpus.second;
+          corpusSizes.pop_back();
+        }
+
+      });
+    corpusCache[corpusName] =  result;
   }
   else
   {
@@ -362,4 +419,9 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string n
   }
 
   return result;
+}
+
+void CorpusStorageManager::garbageCollection(std::string ignoredCorpus)
+{
+
 }

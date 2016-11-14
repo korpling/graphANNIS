@@ -24,7 +24,7 @@ namespace annis
     };
 
   public:
-    DBLoader(std::string location);
+    DBLoader(std::string location, std::function<void()> onloadCalback);
 
     LoadStatus status()
     {
@@ -48,6 +48,7 @@ namespace annis
       if(!dbLoaded)
       {
         dbLoaded = db.load(location, false);
+        onloadCalback();
       }
 
       return db;
@@ -60,11 +61,13 @@ namespace annis
         if(!db.edges.allComponentsLoaded())
         {
           db.ensureAllComponentsLoaded();
+          onloadCalback();
         }
       }
       else
       {
         dbLoaded = db.load(location, true);
+        onloadCalback();
       }
       return db;
     }
@@ -72,8 +75,20 @@ namespace annis
     void unload()
     {
       dbLoaded = false;
-      // replace the database with an empty one
+      // clear the current data in the database
       db.clear();
+    }
+
+    size_t estimateMemorySize()
+    {
+      if(dbLoaded)
+      {
+        return db.estimateMemorySize();
+      }
+      else
+      {
+        return 0;
+      }
     }
 
     std::string statusString()
@@ -96,6 +111,8 @@ namespace annis
     const std::string location;
     bool dbLoaded;
     DB db;
+
+    std::function<void()> onloadCalback;
 
   };
 
