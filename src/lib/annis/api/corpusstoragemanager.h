@@ -79,6 +79,7 @@ public:
 
   bool deleteCorpus(std::string corpusName);
 
+
 private:
   const std::string databaseDir;
   const size_t maxAllowedCacheSize;

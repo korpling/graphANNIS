@@ -247,11 +247,6 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
   std::shared_ptr<DB> db = getCorpusFromCache(corpusPath.string(), true);
   if(db)
   {
-    // delete the corpus from the cache
-    {
-      std::lock_guard<std::mutex> lock(mutex_corpusCache);
-      corpusCache.erase(corpusName);
-    }
 
     boost::lock_guard<DB> lock(*db);
 
@@ -259,14 +254,22 @@ bool CorpusStorageManager::deleteCorpus(std::string corpusName)
     {
       // delete the corpus on the disk first, if we are interrupted the data is still in memory and can be restored
       bf::remove_all(corpusPath);
-
-      return true;
     }
     catch(...)
     {
       // if anything goes wrong write the corpus back to it's original location to have a consistent state
       db->save(corpusPath.string());
+
+      return false;
     }
+
+
+    // delete the corpus from the cache and thus from memory
+    std::lock_guard<std::mutex> lockCorpusCache(mutex_corpusCache);
+    corpusCache.erase(corpusName);
+
+    return true;
+
   }
   return false;
 }
@@ -342,7 +345,7 @@ std::shared_ptr<DB> CorpusStorageManager::getCorpusFromCache(std::string name, b
     // create a new DB, load its content from disk and put it into cache
     result = std::make_shared<DB>();
     result->load((bf::path(databaseDir) / name).string(), preloadAllComponents);
-    corpusCache[name] = result;
+    corpusCache[name] =  result;
   }
   else
   {
