@@ -405,6 +405,7 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
         while(!corpusSizes.empty() && overallSize > maxAllowedCacheSize)
         {
           SizeListEntry& largestCorpus = corpusSizes.back();
+          boost::shared_lock_guard<DBLoader> lock(*(largestCorpus.first));
           largestCorpus.first->unload();
           overallSize -= largestCorpus.second;
           corpusSizes.pop_back();
