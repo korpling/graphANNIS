@@ -25,8 +25,6 @@ DBCache::DBCache(size_t maxSizeBytes)
 
 DBCache::CorpusSize DBCache::calculateTotalSize()
 {
-  std::lock_guard<std::recursive_mutex> lock(exlusiveMutex);
-
   CorpusSize total = {0,0};
   for(const std::pair<DBCacheKey, CorpusSize>& c : loadedDBSize)
   {
