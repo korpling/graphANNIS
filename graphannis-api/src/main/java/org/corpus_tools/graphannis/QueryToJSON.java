@@ -108,6 +108,22 @@ public class QueryToJSON
           {
             throw new AnnisQLSyntaxException("negation not supported yet");
           }
+          
+          if(n.isRoot())
+          {
+            throw new AnnisQLSyntaxException("\"root\" operator not supported yet");
+          }
+          
+          if(n.getArity() != null)
+          {
+            throw new AnnisQLSyntaxException("\"arity\" operator not supported yet");
+          }
+          
+          if(n.getTokenArity() != null)
+          {
+            throw new AnnisQLSyntaxException("\"tokenarity\" operator not supported yet");
+          }
+          
           for(QueryAnnotation anno : n.getNodeAnnotations())
           {
             if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
