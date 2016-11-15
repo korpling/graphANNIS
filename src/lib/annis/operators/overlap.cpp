@@ -21,20 +21,35 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
   btree::btree_set<nodeid_t> uniqueResultSet;
 
   // get covered token of lhs
-  std::unique_ptr<EdgeIterator> coveredByLeftIt
-      = gsCoverage->findConnected(lhs.node);
-  for(auto leftToken = coveredByLeftIt->next();
-      leftToken.first; leftToken = coveredByLeftIt->next())
+  if(tokHelper.isToken(lhs.node))
   {
-
-    // get all nodes that are covering the token
-    std::vector<nodeid_t> overlapCandidates = gsInverseCoverage->getOutgoingEdges(leftToken.second);
+    // get all nodes that are covering this token
+    std::vector<nodeid_t> overlapCandidates = gsInverseCoverage->getOutgoingEdges(lhs.node);
     for(const auto& c : overlapCandidates)
     {
       uniqueResultSet.insert(c);
     }
      // also add the token itself
-    uniqueResultSet.insert(leftToken.second);
+    uniqueResultSet.insert(lhs.node);
+  }
+  else
+  {
+
+    std::unique_ptr<EdgeIterator> coveredByLeftIt
+        = gsCoverage->findConnected(lhs.node);
+    for(auto leftToken = coveredByLeftIt->next();
+        leftToken.first; leftToken = coveredByLeftIt->next())
+    {
+
+      // get all nodes that are covering the token
+      std::vector<nodeid_t> overlapCandidates = gsInverseCoverage->getOutgoingEdges(leftToken.second);
+      for(const auto& c : overlapCandidates)
+      {
+        uniqueResultSet.insert(c);
+      }
+       // also add the token itself
+      uniqueResultSet.insert(leftToken.second);
+    }
   }
 
   // add all unique matches to result
