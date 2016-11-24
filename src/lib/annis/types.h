@@ -195,7 +195,6 @@ namespace annis
   /** combines a node ID and the matched annotation */
   struct Match
   {
-//    bool found;
     nodeid_t node;
     Annotation anno;
   };
