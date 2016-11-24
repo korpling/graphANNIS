@@ -101,6 +101,7 @@ set(IncludeFiles
   src/lib/annis/query.h
   src/lib/annis/join/seed.h
   src/lib/annis/join/nestedloop.h
+  src/lib/annis/join/indexjoin.h
   src/lib/annis/annosearch/exactannovaluesearch.h
   src/lib/annis/annosearch/annotationsearch.h
   src/lib/annis/annosearch/exactannokeysearch.h
@@ -140,6 +141,7 @@ set(SRC_LIST_LIB
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
   src/lib/annis/join/seed.cpp
+  src/lib/annis/join/indexjoin.cpp
   src/lib/annis/annosearch/exactannokeysearch.cpp
   src/lib/annis/annosearch/exactannovaluesearch.cpp
   src/lib/annis/annosearch/regexannosearch.cpp
