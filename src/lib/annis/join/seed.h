@@ -29,7 +29,7 @@ private:
   std::shared_ptr<Operator> op;
 
   std::shared_ptr<Iterator> left;
-  size_t lhsIdx;
+  const size_t lhsIdx;
   const std::set<AnnotationKey>& rightAnnoKeys;
 
   std::unique_ptr<AnnoIt> matchesByOperator;
@@ -74,7 +74,7 @@ private:
   std::shared_ptr<Operator> op;
 
   std::shared_ptr<Iterator> left;
-  size_t lhsIdx;
+  const size_t lhsIdx;
   const std::unordered_set<Annotation>& right;
 
   std::unique_ptr<AnnoIt> matchesByOperator;

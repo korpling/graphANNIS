@@ -40,8 +40,8 @@ namespace annis
     std::shared_ptr<Iterator> outer;
     std::shared_ptr<Iterator> inner;
     
-    size_t outerIdx;
-    size_t innerIdx;
+    const size_t outerIdx;
+    const size_t innerIdx;
     
     bool firstOuterFinished;
     std::list<std::vector<Match>> innerCache;
