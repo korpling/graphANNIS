@@ -38,7 +38,7 @@ bool IndexJoin::next(std::vector<Match> &tuple)
   if(!fetchLoopStarted)
   {
     fetchLoopStarted = true;
-    std::thread lhsFetcher(lhsFetchLoop);
+    lhsFetcher = std::thread(lhsFetchLoop);
   }
 
   //  wait for next item in queue or return immediatly if queue was shutdown
@@ -47,6 +47,10 @@ bool IndexJoin::next(std::vector<Match> &tuple)
 
 void IndexJoin::reset()
 {
-
+  if(lhsFetcher.joinable())
+  {
+    lhsFetcher.join();
+  }
+  fetchLoopStarted = false;
 }
 

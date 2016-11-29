@@ -37,9 +37,9 @@ public:
 private:
   SharedQueue<std::vector<Match>> results;
   bool fetchLoopStarted;
-
-private:
   std::function<void()> lhsFetchLoop;
+
+  std::thread lhsFetcher;
 };
 }
 
