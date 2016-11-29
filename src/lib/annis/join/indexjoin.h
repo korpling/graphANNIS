@@ -28,15 +28,18 @@ public:
 
 public:
   IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
-            bool (*nextMatchFunc)(const Match &, Match &));
+            std::shared_ptr<Operator> op,
+            std::function<bool(const Match&)> filterFunc);
 
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
 
   virtual ~IndexJoin() {}
 private:
-  SharedQueue<std::vector<Match>> results;
   bool fetchLoopStarted;
+
+
+  SharedQueue<std::vector<Match>> results;
   std::function<void()> lhsFetchLoop;
 
   std::thread lhsFetcher;

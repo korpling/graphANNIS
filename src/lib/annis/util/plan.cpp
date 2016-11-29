@@ -20,6 +20,7 @@
 #include <annis/operators/operator.h>
 #include <annis/join/nestedloop.h>
 #include <annis/join/seed.h>
+#include <annis/join/indexjoin.h>
 #include <annis/filter.h>
 
 using namespace annis;
@@ -108,15 +109,30 @@ std::shared_ptr<ExecutionNode> Plan::join(
 
     if(keySearch)
     {
-      join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
-        mappedPosLHS->second,
-        keySearch->getValidAnnotationKeys());
+      std::function<bool(const Match&)> filterFunc = [keySearch](const Match& rhs) -> bool {
+        AnnotationKey key = {rhs.anno.name, rhs.anno.ns};
+
+        const std::set<AnnotationKey>& validKeys = keySearch->getValidAnnotationKeys();
+        return validKeys.find(key) != validKeys.end();
+      };
+
+      join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, filterFunc);
+//      join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
+//        mappedPosLHS->second,
+//        keySearch->getValidAnnotationKeys());
     }
     else if(annoSearch)
     {
-      join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
-        mappedPosLHS->second,
-        annoSearch->getValidAnnotations());
+      std::function<bool(const Match&)> filterFunc = [annoSearch](const Match& rhs) -> bool {
+
+        const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
+        return validAnnos.find(rhs.anno) != validAnnos.end();
+      };
+
+      join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, filterFunc);
+//      join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
+//        mappedPosLHS->second,
+//        annoSearch->getValidAnnotations());
     }
     else
     {

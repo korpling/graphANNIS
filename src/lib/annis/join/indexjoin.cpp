@@ -7,25 +7,36 @@
 using namespace annis;
 
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
-                     bool (*nextMatchFunc)(const Match &, Match&))
+                     std::shared_ptr<Operator> op,
+                     std::function<bool(const Match &)> filterFunc)
   : fetchLoopStarted(false)
 {
   auto& resultsReference = results;
 
-  lhsFetchLoop = [lhs, lhsIdx, nextMatchFunc, &resultsReference]() -> void {
-    std::vector<Match> currentLHS;
-    while(lhs->next(currentLHS))
+  lhsFetchLoop = [lhs, lhsIdx, filterFunc, op, &resultsReference]() -> void {
+    std::vector<Match> currentLHSVector;
+    while(lhs->next(currentLHSVector))
     {
-      // TODO: create multiple threads in background
-      Match currentRHS;
-      if(nextMatchFunc(currentLHS[lhsIdx], currentRHS))
-      {
-        std::vector<Match> tuple;
-        tuple.reserve(currentLHS.size()+1);
-        tuple.insert(tuple.end(), currentLHS.begin(), currentLHS.end());
-        tuple.push_back(currentRHS);
+      const Match& currentLHS = currentLHSVector[lhsIdx];
 
-        resultsReference.push(tuple);
+      std::unique_ptr<AnnoIt> itRHS = op->retrieveMatches(currentLHS);
+
+      if(itRHS)
+      {
+        // TODO: create multiple threads in background
+        Match currentRHS;
+        while(itRHS->next(currentRHS))
+        {
+          if(filterFunc(currentRHS))
+          {
+            std::vector<Match> tuple;
+            tuple.reserve(currentLHSVector.size()+1);
+            tuple.insert(tuple.end(), currentLHSVector.begin(), currentLHSVector.end());
+            tuple.push_back(currentRHS);
+
+            resultsReference.push(tuple);
+          }
+        }
       }
     }
     // when finished shutdown the queue
