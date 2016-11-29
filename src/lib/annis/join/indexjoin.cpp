@@ -7,46 +7,42 @@
 using namespace annis;
 
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
-                     Match (*nextMatchFunc)(const Match &))
-  : lhs(lhs), lhsIdx(lhsIdx), nextMatchFunc(nextMatchFunc), execState(State::INIT)
+                     bool (*nextMatchFunc)(const Match &, Match&))
+  : fetchLoopStarted(false)
 {
+  auto& resultsReference = results;
 
+  lhsFetchLoop = [lhs, lhsIdx, nextMatchFunc, &resultsReference]() -> void {
+    std::vector<Match> currentLHS;
+    while(lhs->next(currentLHS))
+    {
+      // TODO: create multiple threads in background
+      Match currentRHS;
+      if(nextMatchFunc(currentLHS[lhsIdx], currentRHS))
+      {
+        std::vector<Match> tuple;
+        tuple.reserve(currentLHS.size()+1);
+        tuple.insert(tuple.end(), currentLHS.begin(), currentLHS.end());
+        tuple.push_back(currentRHS);
+
+        resultsReference.push(tuple);
+      }
+    }
+    // when finished shutdown the queue
+    resultsReference.shutdown();
+  };
 }
 
 bool IndexJoin::next(std::vector<Match> &tuple)
 {
-  switch(execState)
+  if(!fetchLoopStarted)
   {
-    case State::INIT:
-      {
-
-        std::thread lhsFetcher(lhsFetchLoop);
-
-        std::vector<Match> lhsMatch;
-        // get the first LHS
-        bool found = lhs->next(lhsMatch);
-        if(found)
-        {
-        }
-        else
-        {
-          execState = State::FINISHED;
-          return false;
-        }
-
-        execState = State::STARTED;
-      }
-      break;
-    case State::STARTED:
-
-      break;
-    case State::FINISHED:
-      // this join has finished and does not produce any more results
-      return false;
-      break;
+    fetchLoopStarted = true;
+    std::thread lhsFetcher(lhsFetchLoop);
   }
 
-  return false;
+  //  wait for next item in queue or return immediatly if queue was shutdown
+  return results.pop(tuple);
 }
 
 void IndexJoin::reset()
@@ -54,11 +50,3 @@ void IndexJoin::reset()
 
 }
 
-void IndexJoin::lhsFetchLoop()
-{
-  std::vector<Match> currentLHS;
-  while(lhs->next(currentLHS))
-  {
-
-  }
-}

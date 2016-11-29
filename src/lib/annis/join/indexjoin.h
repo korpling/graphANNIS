@@ -3,6 +3,8 @@
 #include <annis/types.h>
 #include <annis/iterators.h>
 
+#include <annis/util/sharedqueue.h>
+
 #include <boost/lockfree/queue.hpp>
 #include <thread>
 
@@ -17,37 +19,27 @@ class Operator;
 class IndexJoin : public Iterator
 {
 public:
-  enum class State {INIT, STARTED, FINISHED};
-
   struct MatchPair
   {
     Match lhs;
     Match rhs;
-    size_t lhsIndex;
-    size_t rhsIndex;
   };
 
 
 public:
   IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
-            Match (*nextMatchFunc)(const Match& lhs));
+            bool (*nextMatchFunc)(const Match &, Match &));
 
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
 
   virtual ~IndexJoin() {}
 private:
-  boost::lockfree::queue<MatchPair, boost::lockfree::capacity<8>> results;
-
-  std::shared_ptr<Iterator> lhs;
-  const size_t lhsIdx;
-
-  Match (*nextMatchFunc)(const Match& lhs);
-
-  State execState;
+  SharedQueue<std::vector<Match>> results;
+  bool fetchLoopStarted;
 
 private:
-  void lhsFetchLoop();
+  std::function<void()> lhsFetchLoop;
 };
 }
 
