@@ -2,18 +2,19 @@
 
 
 #include <annis/operators/operator.h>
+#include <annis/util/comparefunctions.h>
 
 
 using namespace annis;
 
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
-                     std::function<bool(const Match &)> filterFunc)
+                     std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc)
   : fetchLoopStarted(false)
 {
   auto& resultsReference = results;
 
-  lhsFetchLoop = [lhs, lhsIdx, filterFunc, op, &resultsReference]() -> void {
+  lhsFetchLoop = [lhs, lhsIdx, matchGeneratorFunc, op, &resultsReference]() -> void {
     std::vector<Match> currentLHSVector;
     while(lhs->next(currentLHSVector))
     {
@@ -24,17 +25,23 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
       if(itRHS)
       {
         // TODO: create multiple threads in background
-        Match currentRHS;
-        while(itRHS->next(currentRHS))
+        Match rhsCandidateNode;
+        while(itRHS->next(rhsCandidateNode))
         {
-          if(filterFunc(currentRHS))
+          std::list<Match> rhsAnnos = matchGeneratorFunc(rhsCandidateNode.node);
+          for(Match currentRHS : rhsAnnos)
           {
-            std::vector<Match> tuple;
-            tuple.reserve(currentLHSVector.size()+1);
-            tuple.insert(tuple.end(), currentLHSVector.begin(), currentLHSVector.end());
-            tuple.push_back(currentRHS);
+            // additionally check for reflexivity
+            if((op->isReflexive() || currentLHS.node != currentRHS.node
+                   || !checkAnnotationEqual(currentLHS.anno, currentRHS.anno)))
+            {
+              std::vector<Match> tuple;
+              tuple.reserve(currentLHSVector.size()+1);
+              tuple.insert(tuple.end(), currentLHSVector.begin(), currentLHSVector.end());
+              tuple.push_back(currentRHS);
 
-            resultsReference.push(tuple);
+              resultsReference.push(tuple);
+            }
           }
         }
       }
@@ -63,5 +70,13 @@ void IndexJoin::reset()
     lhsFetcher.join();
   }
   fetchLoopStarted = false;
+}
+
+IndexJoin::~IndexJoin()
+{
+  if(lhsFetcher.joinable())
+  {
+    lhsFetcher.join();
+  }
 }
 

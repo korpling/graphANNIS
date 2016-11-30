@@ -10,6 +10,7 @@
 #include <annis/db.h>
 #include <annis/iterators.h>
 #include <annis/operators/operator.h>
+#include <annis/annosearch/annotationsearch.h>
 #include <memory>
 #include <vector>
 #include <map>
@@ -93,6 +94,12 @@ private:
   std::string typeToString(ExecutionNodeType type) const;
   
   static bool descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node);
+
+  static std::function<std::list<Match> (nodeid_t)> createAnnotationSearchFilter(const DB& db,
+    std::shared_ptr<AnnotationSearch> annoSearch);
+
+  static std::function<std::list<Match> (nodeid_t)> createAnnotationKeySearchFilter(const DB& db,
+    std::shared_ptr<AnnotationKeySearch> annoKeySearch);
 };
 
 } // end namespace annis

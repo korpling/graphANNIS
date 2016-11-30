@@ -109,27 +109,15 @@ std::shared_ptr<ExecutionNode> Plan::join(
 
     if(keySearch)
     {
-      std::function<bool(const Match&)> filterFunc = [keySearch](const Match& rhs) -> bool {
-        AnnotationKey key = {rhs.anno.name, rhs.anno.ns};
 
-        const std::set<AnnotationKey>& validKeys = keySearch->getValidAnnotationKeys();
-        return validKeys.find(key) != validKeys.end();
-      };
-
-      join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, filterFunc);
+      join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationKeySearchFilter(db, keySearch));
 //      join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
 //        mappedPosLHS->second,
 //        keySearch->getValidAnnotationKeys());
     }
     else if(annoSearch)
     {
-      std::function<bool(const Match&)> filterFunc = [annoSearch](const Match& rhs) -> bool {
-
-        const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
-        return validAnnos.find(rhs.anno) != validAnnos.end();
-      };
-
-      join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, filterFunc);
+      join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationSearchFilter(db, annoSearch));
 //      join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
 //        mappedPosLHS->second,
 //        annoSearch->getValidAnnotations());
@@ -351,6 +339,93 @@ bool Plan::descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node)
   return false;
 }
 
+std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
+    const DB& db,
+    std::shared_ptr<AnnotationSearch> annoSearch)
+{
+  const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
+  if(validAnnos.size() == 1)
+  {
+    const auto& rightAnno = *(validAnnos.begin());
+
+    // no further checks required
+    return [&db, &rightAnno](nodeid_t rhsNode) -> std::list<Match>
+    {
+      std::list<Match> result;
+      auto foundAnno =
+          db.nodeAnnos.getNodeAnnotation(rhsNode, rightAnno.ns, rightAnno.name);
+
+      if(foundAnno.first && foundAnno.second.val == rightAnno.val)
+      {
+        result.push_back({rhsNode, foundAnno.second});
+      }
+
+      return result;
+    };
+  }
+  else
+  {
+    return [&db, &validAnnos](nodeid_t rhsNode) -> std::list<Match>
+    {
+      std::list<Match> result;
+      // check all annotations which of them matches
+      std::list<Annotation> annos = db.nodeAnnos.getNodeAnnotationsByID(rhsNode);
+      for(const auto& a : annos)
+      {
+        if(validAnnos.find(a) != validAnnos.end())
+        {
+          result.push_back({rhsNode, a});
+        }
+      }
+
+      return result;
+    };
+  }
+}
+
+
+std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter(
+    const DB& db,
+    std::shared_ptr<AnnotationKeySearch> annoKeySearch)
+{
+  const std::set<AnnotationKey>& validAnnoKeys = annoKeySearch->getValidAnnotationKeys();
+  if(validAnnoKeys.size() == 1)
+  {
+    const auto& rightAnnoKey = *(validAnnoKeys.begin());
+
+    // no further checks required
+    return [&db, &rightAnnoKey](nodeid_t rhsNode) -> std::list<Match>
+    {
+      std::list<Match> result;
+      auto foundAnno =
+          db.nodeAnnos.getNodeAnnotation(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
+
+      if(foundAnno.first)
+      {
+        result.push_back({rhsNode, foundAnno.second});
+      }
+
+      return result;
+    };
+  }
+  else
+  {
+    return [&db, &validAnnoKeys](nodeid_t rhsNode) -> std::list<Match>
+    {
+      std::list<Match> result;
+      // check all annotation keys
+      for(AnnotationKey key : validAnnoKeys)
+      {
+       auto found = db.nodeAnnos.getNodeAnnotation(rhsNode, key.ns, key.name);
+       if(found.first)
+       {
+         result.push_back({rhsNode, found.second});
+       }
+      }
+      return result;
+    };
+  }
+}
 
 
 void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node) 

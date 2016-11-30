@@ -4,6 +4,7 @@
 #include <annis/iterators.h>
 
 #include <annis/util/sharedqueue.h>
+#include <annis/util/comparefunctions.h>
 
 #include <boost/lockfree/queue.hpp>
 #include <thread>
@@ -29,12 +30,12 @@ public:
 public:
   IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
             std::shared_ptr<Operator> op,
-            std::function<bool(const Match&)> filterFunc);
+            std::function<std::list<Match> (nodeid_t)> matchGeneratorFunc);
 
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
 
-  virtual ~IndexJoin() {}
+  virtual ~IndexJoin();
 private:
   bool fetchLoopStarted;
 
@@ -43,6 +44,9 @@ private:
   std::function<void()> lhsFetchLoop;
 
   std::thread lhsFetcher;
+
+private:
+
 };
 }
 
