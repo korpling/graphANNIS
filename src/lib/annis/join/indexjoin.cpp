@@ -1,5 +1,7 @@
 #include "indexjoin.h"
 
+#include <future>
+#include <list>
 
 #include <annis/operators/operator.h>
 #include <annis/util/comparefunctions.h>
@@ -10,7 +12,7 @@ using namespace annis;
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
                      std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc)
-  : fetchLoopStarted(false)
+  : fetchLoopStarted(false), results(8)
 {
   auto& resultsReference = results;
 
@@ -57,6 +59,7 @@ bool IndexJoin::next(std::vector<Match> &tuple)
   {
     fetchLoopStarted = true;
     lhsFetcher = std::thread(lhsFetchLoop);
+
   }
 
   //  wait for next item in queue or return immediatly if queue was shutdown

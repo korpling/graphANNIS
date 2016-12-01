@@ -8,7 +8,9 @@ namespace annis
 {
   /**
    * This is a thread-safe queue that has a blocking pop() function.
-   * Additionally it is possible to shutdown a queue. If a queue is shutdown, not new entries
+   * The push() function is blocking as soon as the capacity is reached.
+   *
+   * It is possible to shutdown a queue. If a queue is shutdown, not new entries
    * can be added and as soon as the queue is empty the pop() funtion will return immediatly instead of waiting forever.
    * A shutdown can't be undone.
    */
@@ -17,8 +19,8 @@ namespace annis
   {
   public:
 
-    SharedQueue()
-    : isShutdown(false)
+    SharedQueue(size_t capacity)
+    : capacity(capacity), isShutdown(false)
     {
 
     }
@@ -41,11 +43,15 @@ namespace annis
         }
         else
         {
-          queueCondition.wait(lock);
+          changeCondition.wait(lock);
         }
       }
       item = queue.front();
       queue.pop();
+
+      lock.unlock();
+      // make sure everone knows that the queue has changed
+      changeCondition.notify_all();
 
       return true;
     }
@@ -54,11 +60,17 @@ namespace annis
     {
       std::unique_lock<std::mutex> lock(queueMutex);
 
+      while(!isShutdown && queue.size() >= capacity)
+      {
+        // wait until someone change something that could change the queue size
+        changeCondition.wait(lock);
+      }
+
       if(!isShutdown)
       {
         queue.push(item);
         lock.unlock();
-        queueCondition.notify_one();
+        changeCondition.notify_all();
       }
     }
 
@@ -69,17 +81,20 @@ namespace annis
       {
         isShutdown = true;
         lock.unlock();
-        queueCondition.notify_one();
+        changeCondition.notify_all();
       }
     }
 
 
   private:
 
-    std::queue<T> queue;
+    const size_t capacity;
     bool isShutdown;
 
+    std::queue<T> queue;
+
     std::mutex queueMutex;
-    std::condition_variable queueCondition;
+    std::condition_variable changeCondition;
+
   };
 }
