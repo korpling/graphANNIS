@@ -39,37 +39,22 @@ bool IndexJoin::next(std::vector<Match> &tuple)
 {
   do
   {
-    while(!rhsAnnoBuffer.empty())
+    do
     {
-      const Match& rhs = rhsAnnoBuffer.front();
-
-      tuple.reserve(tuple.size() + currentLHS.size()+1);
-      tuple.insert(tuple.end(), currentLHS.begin(), currentLHS.end());
-      tuple.push_back(rhs);
-
-      rhsAnnoBuffer.pop();
-      return true;
-
-    }
-
-    while(!rhsBuffer.empty())
-    {
-      // add all matching annotations of the first valid entry to the buffer
-      std::future<MatchCandidate>& firstFuture = rhsBuffer.front();
-      firstFuture.wait();
-      MatchCandidate firstCandidate = firstFuture.get();
-      rhsBuffer.pop();
-
-      if(firstCandidate.valid)
+      while(!rhsAnnoBuffer.empty())
       {
-        for(const Match& rhsAnno : firstCandidate.rhs)
-        {
-          rhsAnnoBuffer.push(rhsAnno);
-        }
-      }
-    }
+        const Match& rhs = rhsAnnoBuffer.front();
 
-  } while (fetchNextLHS());
+        tuple.reserve(tuple.size() + currentLHS.size()+1);
+        tuple.insert(tuple.end(), currentLHS.begin(), currentLHS.end());
+        tuple.push_back(rhs);
+
+        rhsAnnoBuffer.pop();
+        return true;
+
+      }
+    } while (nextRHSBuffer());
+  } while (nextCurrentLHS());
 
   return false;
 }
@@ -86,7 +71,7 @@ IndexJoin::~IndexJoin()
 {
 }
 
-bool IndexJoin::fetchNextLHS()
+bool IndexJoin::nextCurrentLHS()
 {
   bool currentLHSValid = lhs->next(currentLHS);
   if(currentLHSValid)
@@ -104,5 +89,28 @@ bool IndexJoin::fetchNextLHS()
   }
   return currentLHSValid;
 
+}
+
+bool IndexJoin::nextRHSBuffer()
+{
+  while(!rhsBuffer.empty())
+  {
+    // add all matching annotations of the first valid entry to the buffer
+    std::future<MatchCandidate>& firstFuture = rhsBuffer.front();
+    firstFuture.wait();
+    MatchCandidate firstCandidate = firstFuture.get();
+    rhsBuffer.pop();
+
+    if(firstCandidate.valid)
+    {
+      for(const Match& rhsAnno : firstCandidate.rhs)
+      {
+        rhsAnnoBuffer.push(rhsAnno);
+      }
+    }
+
+    return true;
+  }
+  return false;
 }
 

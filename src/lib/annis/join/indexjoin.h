@@ -52,7 +52,8 @@ private:
   std::function<MatchCandidate(const Match&, nodeid_t)> rhsBufferGenerator;
 
 private:
-  bool fetchNextLHS();
+  bool nextCurrentLHS();
+  bool nextRHSBuffer();
 };
 }
 
