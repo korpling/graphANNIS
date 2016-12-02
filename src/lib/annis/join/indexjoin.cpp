@@ -12,128 +12,97 @@ using namespace annis;
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
                      std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc)
-  : fetchLoopStarted(false), results(8), lhs(lhs), lhsIdx(lhsIdx), op(op), matchGeneratorFunc(matchGeneratorFunc)
+  : lhs(lhs), lhsIdx(lhsIdx), op(op)
 {
 
-  auto& resultsReference = results;
-
-
-  lhsFetchLoop = [lhs, lhsIdx, matchGeneratorFunc, op, &resultsReference]() -> void {
-    std::vector<Match> currentLHSVector;
-    while(lhs->next(currentLHSVector))
+  bool isReflexive = op->isReflexive();
+  rhsBufferGenerator = [matchGeneratorFunc, isReflexive](const Match& currentLHS, nodeid_t rhsNode) -> MatchCandidate
+  {
+    MatchCandidate candidate;
+    candidate.valid = false;
+    std::list<Match> rhsAnnos = matchGeneratorFunc(rhsNode);
+    for(Match currentRHS : rhsAnnos)
     {
-      const Match& currentLHS = currentLHSVector[lhsIdx];
-
-      std::unique_ptr<AnnoIt> itRHS = op->retrieveMatches(currentLHS);
-
-      if(itRHS)
+      // additionally check for reflexivity
+      if((isReflexive || currentLHS.node != currentRHS.node
+      || !checkAnnotationEqual(currentLHS.anno, currentRHS.anno)))
       {
-        // TODO: create multiple threads in background
-        Match rhsCandidateNode;
-        while(itRHS->next(rhsCandidateNode))
-        {
-          std::list<Match> rhsAnnos = matchGeneratorFunc(rhsCandidateNode.node);
-          for(Match currentRHS : rhsAnnos)
-          {
-            // additionally check for reflexivity
-            if((op->isReflexive() || currentLHS.node != currentRHS.node
-                   || !checkAnnotationEqual(currentLHS.anno, currentRHS.anno)))
-            {
-              std::vector<Match> tuple;
-              tuple.reserve(currentLHSVector.size()+1);
-              tuple.insert(tuple.end(), currentLHSVector.begin(), currentLHSVector.end());
-              tuple.push_back(currentRHS);
-
-              resultsReference.push(tuple);
-            }
-          }
-        }
+        candidate.valid = true;
+        candidate.rhs.push_back(currentRHS);
       }
     }
-    // when finished shutdown the queue
-    resultsReference.shutdown();
+    return candidate;
   };
 }
 
 bool IndexJoin::next(std::vector<Match> &tuple)
 {
-
-  // check if the chain of RHS matches for a single LHS is not empty
-  std::shared_ptr<ResultListEntry> result = resultFuture.get();
-  if(result)
+  do
   {
-    const MatchPair& m = result->val;
-    tuple.reserve(m.lhs.size()+1);
-    tuple.insert(tuple.end(), m.lhs.begin(), m.lhs.end());
-    tuple.push_back(m.rhs);
-
-    // set the head of the list to the next item
-    resultFuture = result->next;
-
-    return true;
-  }
-  else
-  {
-    std::vector<Match> currentLHSVector;
-    if(lhs->next(currentLHSVector))
+    while(!rhsAnnoBuffer.empty())
     {
-      // TODO: fill the linked list with new RHS matches
-      const Match& currentLHS = currentLHSVector[lhsIdx];
+      const Match& rhs = rhsAnnoBuffer.front();
 
-      std::function<std::shared_ptr<ResultListEntry>(const std::shared_ptr<ResultListEntry>& )> recursiveFunc;
+      tuple.reserve(tuple.size() + currentLHS.size()+1);
+      tuple.insert(tuple.end(), currentLHS.begin(), currentLHS.end());
+      tuple.push_back(rhs);
 
-      recursiveFunc = [&recursiveFunc] (const std::shared_ptr<ResultListEntry>& old) -> std::shared_ptr<ResultListEntry>
+      rhsAnnoBuffer.pop();
+      return true;
+
+    }
+
+    while(!rhsBuffer.empty())
+    {
+      // add all matching annotations of the first valid entry to the buffer
+      std::future<MatchCandidate>& firstFuture = rhsBuffer.front();
+      firstFuture.wait();
+      MatchCandidate firstCandidate = firstFuture.get();
+      rhsBuffer.pop();
+
+      if(firstCandidate.valid)
       {
-        std::shared_ptr<ResultListEntry> result = std::make_shared<ResultListEntry>();
-
-        result->next = std::async(recursiveFunc, result).share();
-
-        return result;
-      };
-
-
-      std::unique_ptr<AnnoIt> itRHS = op->retrieveMatches(currentLHS);
-
-      if(itRHS)
-      {
-        Match rhsCandidateNode;
-        while(itRHS->next(rhsCandidateNode))
+        for(const Match& rhsAnno : firstCandidate.rhs)
         {
-
+          rhsAnnoBuffer.push(rhsAnno);
         }
       }
     }
-    else
-    {
-      // nothing more to do
-      return false;
-    }
-  }
-  // OLD STUFF
-  if(!fetchLoopStarted)
-  {
-    fetchLoopStarted = true;
-    lhsFetcher = std::thread(lhsFetchLoop);
-  }
 
-  //  wait for next item in queue or return immediatly if queue was shutdown
-  return results.pop(tuple);
+  } while (fetchNextLHS());
+
+  return false;
 }
 
 void IndexJoin::reset()
 {
-  if(lhsFetcher.joinable())
+  if(lhs)
   {
-    lhsFetcher.join();
+    lhs->reset();
   }
-  fetchLoopStarted = false;
 }
 
 IndexJoin::~IndexJoin()
 {
-  if(lhsFetcher.joinable())
+}
+
+bool IndexJoin::fetchNextLHS()
+{
+  bool currentLHSValid = lhs->next(currentLHS);
+  if(currentLHSValid)
   {
-    lhsFetcher.join();
+    // fill up the RHS buffer with all reachable nodes from the next LHS
+    std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
+    if(reachableNodesIt)
+    {
+      Match currentRHSNode;
+      while(reachableNodesIt->next(currentRHSNode))
+      {
+        rhsBuffer.push(std::async(rhsBufferGenerator, currentLHS[lhsIdx], currentRHSNode.node));
+      }
+    }
   }
+  return currentLHSValid;
+
 }
 

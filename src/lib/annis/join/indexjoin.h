@@ -21,20 +21,11 @@ class Operator;
 class IndexJoin : public Iterator
 {
 public:
-  struct MatchPair
+  struct MatchCandidate
   {
-    std::vector<Match> lhs;
-    Match rhs;
+    bool valid;
+    std::list<Match> rhs;
   };
-
-
-  struct ResultListEntry
-  {
-    MatchPair val;
-    std::shared_future<std::shared_ptr<ResultListEntry>> next;
-  };
-
-  using RLENext = std::shared_future<std::shared_ptr<ResultListEntry>>;
 
 
 public:
@@ -47,23 +38,21 @@ public:
 
   virtual ~IndexJoin();
 private:
-  bool fetchLoopStarted;
 
-
-  SharedQueue<std::vector<Match>> results;
   std::shared_ptr<Iterator> lhs;
   const size_t lhsIdx;
   std::shared_ptr<Operator> op;
-  std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc;
 
-  RLENext resultFuture;
+  std::vector<Match> currentLHS;
 
-  std::function<void()> lhsFetchLoop;
+  std::queue<std::future<MatchCandidate>> rhsBuffer;
 
-  std::thread lhsFetcher;
+  std::queue<Match> rhsAnnoBuffer;
+
+  std::function<MatchCandidate(const Match&, nodeid_t)> rhsBufferGenerator;
 
 private:
-
+  bool fetchNextLHS();
 };
 }
 
