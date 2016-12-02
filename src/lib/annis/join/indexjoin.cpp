@@ -37,6 +37,8 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
 
 bool IndexJoin::next(std::vector<Match> &tuple)
 {
+  tuple.clear();
+
   do
   {
     do
@@ -45,8 +47,8 @@ bool IndexJoin::next(std::vector<Match> &tuple)
       {
         const Match& rhs = rhsAnnoBuffer.front();
 
-        tuple.reserve(tuple.size() + currentLHS.size()+1);
-        tuple.insert(tuple.end(), currentLHS.begin(), currentLHS.end());
+        tuple.reserve(currentLHS.size()+1);
+        tuple.insert(tuple.begin(), currentLHS.begin(), currentLHS.end());
         tuple.push_back(rhs);
 
         rhsAnnoBuffer.pop();
