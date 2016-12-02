@@ -16,7 +16,8 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
 {
 
   bool isReflexive = op->isReflexive();
-  rhsBufferGenerator = [matchGeneratorFunc, isReflexive](const Match& currentLHS, nodeid_t rhsNode) -> MatchCandidate
+
+  rhsBufferGenerator = [matchGeneratorFunc, isReflexive](const Match currentLHS, nodeid_t rhsNode) -> MatchCandidate
   {
     MatchCandidate candidate;
     candidate.valid = false;
