@@ -8,6 +8,7 @@
 
 #include <boost/lockfree/queue.hpp>
 #include <thread>
+#include <future>
 
 #include <list>
 
@@ -22,9 +23,18 @@ class IndexJoin : public Iterator
 public:
   struct MatchPair
   {
-    Match lhs;
+    std::vector<Match> lhs;
     Match rhs;
   };
+
+
+  struct ResultListEntry
+  {
+    MatchPair val;
+    std::shared_future<std::shared_ptr<ResultListEntry>> next;
+  };
+
+  using RLENext = std::shared_future<std::shared_ptr<ResultListEntry>>;
 
 
 public:
@@ -41,6 +51,13 @@ private:
 
 
   SharedQueue<std::vector<Match>> results;
+  std::shared_ptr<Iterator> lhs;
+  const size_t lhsIdx;
+  std::shared_ptr<Operator> op;
+  std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc;
+
+  RLENext resultFuture;
+
   std::function<void()> lhsFetchLoop;
 
   std::thread lhsFetcher;
