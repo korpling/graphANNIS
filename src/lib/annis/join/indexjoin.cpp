@@ -11,8 +11,8 @@ using namespace annis;
 
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
-                     std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc)
-  : lhs(lhs), lhsIdx(lhsIdx)
+                     std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc, unsigned maxNumfOfTasks)
+  : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxNumfOfTasks > 0 ? maxNumfOfTasks : 1)
 {
 
 
@@ -45,24 +45,22 @@ bool IndexJoin::next(std::vector<Match> &tuple)
 {
   tuple.clear();
 
+
   do
   {
-    do
+    while(!matchBuffer.empty())
     {
-      while(!matchBuffer.empty())
-      {
-        const MatchPair& m = matchBuffer.front();
+      const MatchPair& m = matchBuffer.front();
 
-        tuple.reserve(m.lhs.size()+1);
-        tuple.insert(tuple.begin(), m.lhs.begin(), m.lhs.end());
-        tuple.push_back(m.rhs);
+      tuple.reserve(m.lhs.size()+1);
+      tuple.insert(tuple.begin(), m.lhs.begin(), m.lhs.end());
+      tuple.push_back(m.rhs);
 
-        matchBuffer.pop_front();
-        return true;
+      matchBuffer.pop_front();
+      return true;
 
-      }
-    } while (nextMatchBuffer());
-  } while (fillTaskBuffer());
+    }
+  } while (nextMatchBuffer());
 
   return false;
 }
@@ -79,31 +77,37 @@ void IndexJoin::reset()
 }
 
 
-bool IndexJoin::fillTaskBuffer()
+void IndexJoin::fillTaskBuffer()
 {
   std::vector<Match> currentLHS;
-  while(taskBuffer.size() < 4 && lhs->next(currentLHS))
+  while(taskBuffer.size() < maxNumfOfTasks && lhs->next(currentLHS))
   {
     taskBuffer.push_back(std::async(taskBufferGenerator, currentLHS));
   }
-
-  return !taskBuffer.empty();
-
 }
 
 bool IndexJoin::nextMatchBuffer()
 {
+  // make sure the task buffer is filled
+  fillTaskBuffer();
+
   while(!taskBuffer.empty())
   {
     std::future<std::list<MatchPair>>& firstFuture = taskBuffer.front();
     matchBuffer = firstFuture.get();
     taskBuffer.pop_front();
+
+    // re-fill the task buffer with a new task
+    fillTaskBuffer();
+
+    // if there is a non empty result return true, otherwise try more entries of the task buffer
     if(!matchBuffer.empty())
     {
       return true;
     }
   }
 
+  // task buffer is empty and we can't fill it any more
   return false;
 }
 

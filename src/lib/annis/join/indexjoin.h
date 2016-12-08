@@ -32,7 +32,8 @@ public:
 public:
   IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
             std::shared_ptr<Operator> op,
-            std::function<std::list<Match> (nodeid_t)> matchGeneratorFunc);
+            std::function<std::list<Match> (nodeid_t)> matchGeneratorFunc,
+            unsigned maxNumfOfTasks = std::thread::hardware_concurrency());
 
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
@@ -42,6 +43,7 @@ private:
 
   std::shared_ptr<Iterator> lhs;
   const size_t lhsIdx;
+  const unsigned maxNumfOfTasks;
 
   std::list<std::future<std::list<MatchPair>>> taskBuffer;
   std::list<MatchPair> matchBuffer;
@@ -50,7 +52,7 @@ private:
   std::function<std::list<MatchPair>(std::vector<Match>)> taskBufferGenerator;
 
 private:
-  bool fillTaskBuffer();
+  void fillTaskBuffer();
   bool nextMatchBuffer();
 };
 }
