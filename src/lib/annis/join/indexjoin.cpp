@@ -12,27 +12,32 @@ using namespace annis;
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
                      std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc)
-  : lhs(lhs), lhsIdx(lhsIdx), op(op)
+  : lhs(lhs), lhsIdx(lhsIdx)
 {
 
-  bool isReflexive = op->isReflexive();
 
-  rhsBufferGenerator = [matchGeneratorFunc, isReflexive](const Match currentLHS, nodeid_t rhsNode) -> MatchCandidate
+  taskBufferGenerator = [matchGeneratorFunc, op, lhsIdx](std::vector<Match> currentLHS) -> std::list<MatchPair>
   {
-    MatchCandidate candidate;
-    candidate.valid = false;
-    std::list<Match> rhsAnnos = matchGeneratorFunc(rhsNode);
-    for(Match currentRHS : rhsAnnos)
+    std::list<MatchPair> result;
+
+    std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
+    if(reachableNodesIt)
     {
-      // additionally check for reflexivity
-      if((isReflexive || currentLHS.node != currentRHS.node
-      || !checkAnnotationEqual(currentLHS.anno, currentRHS.anno)))
+      Match reachableNode;
+      while(reachableNodesIt->next(reachableNode))
       {
-        candidate.valid = true;
-        candidate.rhs.push_back(currentRHS);
+        for(Match currentRHS : matchGeneratorFunc(reachableNode.node))
+        {
+          if((op->isReflexive() || currentLHS[lhsIdx].node != currentRHS.node
+          || !checkAnnotationEqual(currentLHS[lhsIdx].anno, currentRHS.anno)))
+          {
+            result.push_back({currentLHS, currentRHS});
+          }
+        }
       }
     }
-    return candidate;
+
+    return result;
   };
 }
 
@@ -44,20 +49,20 @@ bool IndexJoin::next(std::vector<Match> &tuple)
   {
     do
     {
-      while(!rhsAnnoBuffer.empty())
+      while(!matchBuffer.empty())
       {
-        const Match& rhs = rhsAnnoBuffer.front();
+        const MatchPair& m = matchBuffer.front();
 
-        tuple.reserve(currentLHS.size()+1);
-        tuple.insert(tuple.begin(), currentLHS.begin(), currentLHS.end());
-        tuple.push_back(rhs);
+        tuple.reserve(m.lhs.size()+1);
+        tuple.insert(tuple.begin(), m.lhs.begin(), m.lhs.end());
+        tuple.push_back(m.rhs);
 
-        rhsAnnoBuffer.pop();
+        matchBuffer.pop_front();
         return true;
 
       }
-    } while (nextRHSBuffer());
-  } while (nextCurrentLHS());
+    } while (nextMatchBuffer());
+  } while (fillTaskBuffer());
 
   return false;
 }
@@ -68,60 +73,40 @@ void IndexJoin::reset()
   {
     lhs->reset();
   }
-  while(!rhsAnnoBuffer.empty())
+
+  matchBuffer.clear();
+  taskBuffer.clear();
+}
+
+
+bool IndexJoin::fillTaskBuffer()
+{
+  std::vector<Match> currentLHS;
+  while(taskBuffer.size() < 4 && lhs->next(currentLHS))
   {
-    rhsAnnoBuffer.pop();
+    taskBuffer.push_back(std::async(taskBufferGenerator, currentLHS));
   }
-  while(!rhsBuffer.empty())
+
+  return !taskBuffer.empty();
+
+}
+
+bool IndexJoin::nextMatchBuffer()
+{
+  while(!taskBuffer.empty())
   {
-    rhsBuffer.pop();
+    std::future<std::list<MatchPair>>& firstFuture = taskBuffer.front();
+    matchBuffer = firstFuture.get();
+    taskBuffer.pop_front();
+    if(!matchBuffer.empty())
+    {
+      return true;
+    }
   }
+
+  return false;
 }
 
 IndexJoin::~IndexJoin()
 {
 }
-
-bool IndexJoin::nextCurrentLHS()
-{
-  bool currentLHSValid = lhs->next(currentLHS);
-  if(currentLHSValid)
-  {
-    // fill up the RHS buffer with all reachable nodes from the next LHS
-    std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
-    if(reachableNodesIt)
-    {
-      Match currentRHSNode;
-      while(reachableNodesIt->next(currentRHSNode))
-      {
-        rhsBuffer.push(std::async(rhsBufferGenerator, currentLHS[lhsIdx], currentRHSNode.node));
-      }
-    }
-  }
-  return currentLHSValid;
-
-}
-
-bool IndexJoin::nextRHSBuffer()
-{
-  while(!rhsBuffer.empty())
-  {
-    // add all matching annotations of the first valid entry to the buffer
-    std::future<MatchCandidate>& firstFuture = rhsBuffer.front();
-    firstFuture.wait();
-    MatchCandidate firstCandidate = firstFuture.get();
-    rhsBuffer.pop();
-
-    if(firstCandidate.valid)
-    {
-      for(const Match& rhsAnno : firstCandidate.rhs)
-      {
-        rhsAnnoBuffer.push(rhsAnno);
-      }
-    }
-
-    return true;
-  }
-  return false;
-}
-

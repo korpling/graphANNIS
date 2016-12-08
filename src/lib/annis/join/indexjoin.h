@@ -21,10 +21,11 @@ class Operator;
 class IndexJoin : public Iterator
 {
 public:
-  struct MatchCandidate
+
+  struct MatchPair
   {
-    bool valid;
-    std::list<Match> rhs;
+    std::vector<Match> lhs;
+    Match rhs;
   };
 
 
@@ -41,19 +42,16 @@ private:
 
   std::shared_ptr<Iterator> lhs;
   const size_t lhsIdx;
-  std::shared_ptr<Operator> op;
 
-  std::vector<Match> currentLHS;
+  std::list<std::future<std::list<MatchPair>>> taskBuffer;
+  std::list<MatchPair> matchBuffer;
 
-  std::queue<std::future<MatchCandidate>> rhsBuffer;
 
-  std::queue<Match> rhsAnnoBuffer;
-
-  std::function<MatchCandidate(const Match&, nodeid_t)> rhsBufferGenerator;
+  std::function<std::list<MatchPair>(std::vector<Match>)> taskBufferGenerator;
 
 private:
-  bool nextCurrentLHS();
-  bool nextRHSBuffer();
+  bool fillTaskBuffer();
+  bool nextMatchBuffer();
 };
 }
 
