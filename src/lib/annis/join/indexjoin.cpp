@@ -13,8 +13,9 @@ using namespace annis;
 
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
-                     std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc, unsigned maxNumfOfTasks)
-  : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxNumfOfTasks > 0 ? maxNumfOfTasks : 1), threadPool(maxNumfOfTasks)
+                     std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc, unsigned maxBufferedTasks,
+                     std::shared_ptr<ThreadPool> threadPool)
+  : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxBufferedTasks > 0 ? maxBufferedTasks : 1), threadPool(threadPool)
 {
 
 
@@ -84,7 +85,15 @@ void IndexJoin::fillTaskBuffer()
   std::vector<Match> currentLHS;
   while(taskBuffer.size() < maxNumfOfTasks && lhs->next(currentLHS))
   {
-    taskBuffer.push_back(threadPool.enqueue(taskBufferGenerator, currentLHS));
+    if(threadPool)
+    {
+      taskBuffer.push_back(threadPool->enqueue(taskBufferGenerator, currentLHS));
+    }
+    else
+    {
+      // do not use threads
+      taskBuffer.push_back(std::async(std::launch::deferred, taskBufferGenerator, currentLHS));
+    }
   }
 }
 

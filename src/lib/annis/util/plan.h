@@ -15,6 +15,8 @@
 #include <vector>
 #include <map>
 
+#include <ThreadPool.h>
+
 namespace annis
 {
 
@@ -77,7 +79,8 @@ public:
     std::shared_ptr<ExecutionNode>, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
-    bool avoidNestedBySwitch);
+    bool avoidNestedBySwitch,
+    std::shared_ptr<ThreadPool> threadPool);
   
   std::string debugString() const;
   
