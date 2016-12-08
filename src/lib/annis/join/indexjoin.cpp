@@ -16,9 +16,9 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
 {
 
 
-  taskBufferGenerator = [matchGeneratorFunc, op, lhsIdx](std::vector<Match> currentLHS) -> std::list<MatchPair>
+  taskBufferGenerator = [matchGeneratorFunc, op, lhsIdx](std::vector<Match> currentLHS) -> std::deque<MatchPair>
   {
-    std::list<MatchPair> result;
+    std::deque<MatchPair> result;
 
     std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
     if(reachableNodesIt)
@@ -93,8 +93,7 @@ bool IndexJoin::nextMatchBuffer()
 
   while(!taskBuffer.empty())
   {
-    std::future<std::list<MatchPair>>& firstFuture = taskBuffer.front();
-    matchBuffer = firstFuture.get();
+    matchBuffer = taskBuffer.front().get();
     taskBuffer.pop_front();
 
     // re-fill the task buffer with a new task

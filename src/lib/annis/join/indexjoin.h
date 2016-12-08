@@ -45,11 +45,11 @@ private:
   const size_t lhsIdx;
   const unsigned maxNumfOfTasks;
 
-  std::list<std::future<std::list<MatchPair>>> taskBuffer;
-  std::list<MatchPair> matchBuffer;
+  std::deque<std::future<std::deque<MatchPair>>> taskBuffer;
+  std::deque<MatchPair> matchBuffer;
 
 
-  std::function<std::list<MatchPair>(std::vector<Match>)> taskBufferGenerator;
+  std::function<std::deque<MatchPair>(std::vector<Match>)> taskBufferGenerator;
 
 private:
   void fillTaskBuffer();
