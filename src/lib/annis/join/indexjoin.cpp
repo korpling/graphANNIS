@@ -1,7 +1,9 @@
 #include "indexjoin.h"
 
+
 #include <future>
 #include <list>
+
 
 #include <annis/operators/operator.h>
 #include <annis/util/comparefunctions.h>
@@ -12,7 +14,7 @@ using namespace annis;
 IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
                      std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc, unsigned maxNumfOfTasks)
-  : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxNumfOfTasks > 0 ? maxNumfOfTasks : 1)
+  : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxNumfOfTasks > 0 ? maxNumfOfTasks : 1), threadPool(maxNumfOfTasks)
 {
 
 
@@ -82,7 +84,7 @@ void IndexJoin::fillTaskBuffer()
   std::vector<Match> currentLHS;
   while(taskBuffer.size() < maxNumfOfTasks && lhs->next(currentLHS))
   {
-    taskBuffer.push_back(std::async(taskBufferGenerator, currentLHS));
+    taskBuffer.push_back(threadPool.enqueue(taskBufferGenerator, currentLHS));
   }
 }
 
@@ -93,6 +95,7 @@ bool IndexJoin::nextMatchBuffer()
 
   while(!taskBuffer.empty())
   {
+    taskBuffer.front().wait();
     matchBuffer = taskBuffer.front().get();
     taskBuffer.pop_front();
 

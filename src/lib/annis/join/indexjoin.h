@@ -12,6 +12,9 @@
 
 #include <list>
 
+#include <ThreadPool.h>
+
+
 namespace annis
 {
 
@@ -44,6 +47,8 @@ private:
   std::shared_ptr<Iterator> lhs;
   const size_t lhsIdx;
   const unsigned maxNumfOfTasks;
+
+  ThreadPool threadPool;
 
   std::deque<std::future<std::deque<MatchPair>>> taskBuffer;
   std::deque<MatchPair> matchBuffer;
