@@ -68,6 +68,14 @@ void IndexJoin::reset()
   {
     lhs->reset();
   }
+  while(!rhsAnnoBuffer.empty())
+  {
+    rhsAnnoBuffer.pop();
+  }
+  while(!rhsBuffer.empty())
+  {
+    rhsBuffer.pop();
+  }
 }
 
 IndexJoin::~IndexJoin()
