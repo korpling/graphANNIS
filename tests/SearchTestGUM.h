@@ -42,7 +42,7 @@ protected:
     if (testDataEnv != NULL) {
       dataDir = testDataEnv;
     }
-    bool loadedDB = db.load(dataDir + "/GUM");
+    bool loadedDB = db.load(dataDir + "/GUM", true);
     EXPECT_EQ(true, loadedDB);
 
     char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
@@ -83,5 +83,26 @@ TEST_F(SearchTestGUM, dep_xcomp) {
   }
 
   EXPECT_EQ(1u, counter);
+}
+
+TEST_F(SearchTestGUM, IndirectPointingNested) {
+
+  unsigned int counter = 0;
+
+  Query q(db);
+  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "object"));
+  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "abstract"));
+
+  q.addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "coref", 1, uintmax), 0, 1, true);
+
+  auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
+  while (q.next() && counter < 1000) {
+    counter++;
+  }
+  auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+  HL_INFO(logger, "IndirectPointingNested query took " + std::to_string(endTime-startTime) + " ms");
+
+
+  EXPECT_EQ(273u, counter);
 }
 
