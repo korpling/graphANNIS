@@ -11,11 +11,13 @@ NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op,
                                std::shared_ptr<Iterator> rhs,
                                size_t lhsIdx, size_t rhsIdx,
                                bool materializeInner,
-                               bool leftIsOuter)
+                               bool leftIsOuter,
+                               unsigned maxBufferedTasks,
+                               std::shared_ptr<ThreadPool> threadPool)
   : op(op), materializeInner(materializeInner), leftIsOuter(leftIsOuter), initialized(false),
     outer(leftIsOuter ? lhs : rhs), inner(leftIsOuter ? rhs : lhs),
     outerIdx(leftIsOuter ? lhsIdx : rhsIdx), innerIdx(leftIsOuter ? rhsIdx : lhsIdx),
-    firstOuterFinished(false)
+    firstOuterFinished(false), maxBufferedTasks(maxBufferedTasks), threadPool(threadPool)
 {
 }
 

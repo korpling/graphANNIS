@@ -54,7 +54,6 @@ private:
   std::deque<std::future<std::deque<MatchPair>>> taskBuffer;
   std::deque<MatchPair> matchBuffer;
 
-
   std::function<std::deque<MatchPair>(std::vector<Match>)> taskBufferGenerator;
 
 private:
