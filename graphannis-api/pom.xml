@@ -168,6 +168,7 @@
             <includePath>${basedir}/../src/lib/</includePath>
             <includePath>${basedir}/../ext/cpp-btree-1.0.1/</includePath>
             <includePath>${basedir}/../ext/cereal-1.2.1/include/</includePath>
+            <includePath>${basedir}/../ext/ThreadPool/</includePath>
             <includePath>${ICU_INCLUDE_DIRS}</includePath>
             <includePath>${Boost_INCLUDE_DIRS}</includePath>
           </includePaths>
