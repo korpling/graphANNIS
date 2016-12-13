@@ -30,7 +30,6 @@ namespace annis
     NestedLoopJoin(std::shared_ptr<Operator> op,
       std::shared_ptr<Iterator> lhs, std::shared_ptr<Iterator> rhs,
       size_t lhsIdx, size_t rhsIdx,
-      bool materializeInner=true,
       bool leftIsOuter=true,
       unsigned maxBufferedTasks = std::thread::hardware_concurrency(),
       std::shared_ptr<ThreadPool> threadPool=std::shared_ptr<ThreadPool>());
@@ -41,17 +40,14 @@ namespace annis
   private:
     std::shared_ptr<Operator> op;
 
-    const bool materializeInner;
     const bool leftIsOuter;
     bool initialized;
     
     const unsigned maxBufferedTasks;
     std::shared_ptr<ThreadPool> threadPool;
 
+    std::deque<std::future<std::deque<MatchPair>>> taskBuffer;
     std::deque<MatchPair> matchBuffer;
-
-    std::function<std::deque<MatchPair>(std::vector<Match>)> taskBufferGenerator;
-
 
     std::vector<Match> matchOuter;
     std::vector<Match> matchInner;
@@ -67,6 +63,7 @@ namespace annis
     std::list<std::vector<Match>>::const_iterator itInnerCache;
   private:
     bool fetchNextInner();
+    void fillTaskBuffer();
 
   };
 

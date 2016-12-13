@@ -10,22 +10,22 @@ NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op,
                                std::shared_ptr<Iterator> lhs,
                                std::shared_ptr<Iterator> rhs,
                                size_t lhsIdx, size_t rhsIdx,
-                               bool materializeInner,
                                bool leftIsOuter,
                                unsigned maxBufferedTasks,
                                std::shared_ptr<ThreadPool> threadPool)
-  : op(op), materializeInner(materializeInner), leftIsOuter(leftIsOuter), initialized(false),
+  : op(op), leftIsOuter(leftIsOuter), initialized(false),
     outer(leftIsOuter ? lhs : rhs), inner(leftIsOuter ? rhs : lhs),
     outerIdx(leftIsOuter ? lhsIdx : rhsIdx), innerIdx(leftIsOuter ? rhsIdx : lhsIdx),
     firstOuterFinished(false), maxBufferedTasks(maxBufferedTasks), threadPool(threadPool)
 {
+
 }
 
 bool NestedLoopJoin::next(std::vector<Match>& result)
 {
   result.clear();
   
-  if(!op || !outer || !inner || (materializeInner && firstOuterFinished && innerCache.empty()))
+  if(!op || !outer || !inner || (firstOuterFinished && innerCache.empty()))
   {
     return false;
   }
@@ -92,7 +92,7 @@ bool NestedLoopJoin::next(std::vector<Match>& result)
       itInnerCache = innerCache.begin();
       inner->reset();
       
-      if(materializeInner && innerCache.empty())
+      if(innerCache.empty())
       {
         // inner is always empty, no point in trying to get more from the outer side
         proceed = false;
@@ -109,7 +109,7 @@ bool NestedLoopJoin::next(std::vector<Match>& result)
 
 bool NestedLoopJoin::fetchNextInner() 
 { 
-  if(materializeInner && firstOuterFinished)
+  if(firstOuterFinished)
   {
     if(itInnerCache != innerCache.end())
     {
@@ -125,11 +125,22 @@ bool NestedLoopJoin::fetchNextInner()
   else
   {
     bool hasNext = inner->next(matchInner);
-    if(hasNext && materializeInner)
+    if(hasNext)
     {
       innerCache.push_back(matchInner);
     }
     return hasNext;
+  }
+}
+
+void NestedLoopJoin::fillTaskBuffer()
+{
+  while(taskBuffer.size() < maxBufferedTasks)
+  {
+    if(threadPool)
+    {
+//      taskBuffer.push_back(threadPool->enqueue([] () -> fut))
+    }
   }
 }
 
@@ -139,7 +150,7 @@ void NestedLoopJoin::reset()
   outer->reset();
   inner->reset();
   initialized = false;
-  if(materializeInner && firstOuterFinished)
+  if(firstOuterFinished)
   {
     itInnerCache = innerCache.begin();
   }
