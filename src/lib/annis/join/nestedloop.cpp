@@ -16,7 +16,9 @@ NestedLoopJoin::NestedLoopJoin(std::shared_ptr<Operator> op,
   : op(op), leftIsOuter(leftIsOuter), initialized(false),
     outer(leftIsOuter ? lhs : rhs), inner(leftIsOuter ? rhs : lhs),
     outerIdx(leftIsOuter ? lhsIdx : rhsIdx), innerIdx(leftIsOuter ? rhsIdx : lhsIdx),
-    firstOuterFinished(false), maxBufferedTasks(maxBufferedTasks), threadPool(threadPool)
+    firstOuterFinished(false),
+    maxBufferedTasks(maxBufferedTasks > 0 ? maxBufferedTasks : 1),
+    threadPool(threadPool)
 {
 
 }
@@ -30,84 +32,36 @@ bool NestedLoopJoin::next(std::vector<Match>& result)
     return false;
   }
 
-  bool proceed = true;
-  
-  if(!initialized)
+  fillTaskBuffer();
+
+  while(!taskBuffer.empty())
   {
-    proceed = false;
-    if(outer->next(matchOuter))
+    taskBuffer.front().wait();
+    const MatchPair current = taskBuffer.front().get();
+    taskBuffer.pop_front();
+
+    if(current.found)
     {
-      proceed = true;
-      initialized = true;
+      result.reserve(matchInner.size() + matchOuter.size());
+      // return a tuple where the first values are from the outer relation and the iner relations tuples are added behind
+
+      result.insert(result.end(), matchOuter.begin(), matchOuter.end());
+      result.insert(result.end(), matchInner.begin(), matchInner.end());
+    }
+
+    // re-fill the task buffer with a new task
+    fillTaskBuffer();
+
+    if(current.found)
+    {
+      return true;
     }
   }
 
-  while(proceed)
-  {
-    while(fetchNextInner())
-    {
-      bool include = true;
-      // do not include the same match if not reflexive
-      if(!op->isReflexive()
-         && matchOuter[outerIdx].node == matchInner[innerIdx].node
-         && checkAnnotationKeyEqual(matchOuter[outerIdx].anno, matchInner[innerIdx].anno)) {
-        include = false;
-      }
-      
-      if(include)
-      {
-        if(leftIsOuter)
-        {
-          if(op->filter(matchOuter[outerIdx], matchInner[innerIdx]))
-          {
-            result.reserve(matchInner.size() + matchOuter.size());
-            // return a tuple where the first values are from the outer relation and the iner relations tuples are added behind
-            
-            result.insert(result.end(), matchOuter.begin(), matchOuter.end());
-            result.insert(result.end(), matchInner.begin(), matchInner.end());
-
-            return true;
-          }
-        }
-        else
-        {
-          if(op->filter(matchInner[innerIdx], matchOuter[outerIdx]))
-          {
-            result.reserve(matchInner.size() + matchOuter.size());
-            // return a tuple where the first values are from the inner relation and the outer relations tuples are added behind
-            result.insert(result.end(), matchInner.begin(), matchInner.end());
-            result.insert(result.end(), matchOuter.begin(), matchOuter.end());
-           
-
-            return true;
-          }
-        }
-      } // end if include
-
-    } // end for each right
-
-    if(outer->next(matchOuter))
-    {
-      firstOuterFinished = true;
-      itInnerCache = innerCache.begin();
-      inner->reset();
-      
-      if(innerCache.empty())
-      {
-        // inner is always empty, no point in trying to get more from the outer side
-        proceed = false;
-      }
-      
-    }
-    else
-    {
-      proceed = false;
-    }
-  } // end while proceed
   return false;
 }
 
-bool NestedLoopJoin::fetchNextInner() 
+bool NestedLoopJoin::fetchNextInner()
 { 
   if(firstOuterFinished)
   {
@@ -135,13 +89,90 @@ bool NestedLoopJoin::fetchNextInner()
 
 void NestedLoopJoin::fillTaskBuffer()
 {
-  while(taskBuffer.size() < maxBufferedTasks)
+  bool proceed = true;
+
+  if(!initialized)
   {
-    if(threadPool)
+    proceed = false;
+    if(outer->next(matchOuter))
     {
-//      taskBuffer.push_back(threadPool->enqueue([] () -> fut))
+      proceed = true;
+      initialized = true;
     }
   }
+
+  std::shared_ptr<Operator>& opRef = op;
+  const bool _leftIsOuter = leftIsOuter;
+  auto filterFunc = [opRef, _leftIsOuter](const Match& outer, const Match& inner) -> MatchPair {
+    MatchPair result;
+    result.found = false;
+
+    bool include = true;
+    // do not include the same match if not reflexive
+    if(!opRef->isReflexive()
+       && outer.node == inner.node
+       && checkAnnotationKeyEqual(outer.anno, inner.anno)) {
+      include = false;
+    }
+
+    if(include)
+    {
+      if(_leftIsOuter)
+      {
+        if(opRef->filter(outer, inner))
+        {
+          result.found = true;
+          result.lhs = outer;
+          result.rhs = inner;
+        }
+      }
+      else
+      {
+        if(opRef->filter(inner, outer))
+        {
+          result.found = true;
+          result.lhs = inner;
+          result.rhs = outer;
+        }
+      }
+    } // end if include
+
+    return std::move(result);
+  };
+
+  while(proceed && taskBuffer.size() < maxBufferedTasks)
+  {
+    while(fetchNextInner())
+    {
+      if(threadPool)
+      {
+        taskBuffer.push_back(threadPool->enqueue(filterFunc, matchOuter[outerIdx], matchInner[innerIdx]));
+      }
+      else
+      {
+        taskBuffer.push_back(std::async(std::launch::deferred, filterFunc, matchOuter[outerIdx], matchInner[innerIdx]));
+      }
+
+    } // end for each right
+
+    if(outer->next(matchOuter))
+    {
+      firstOuterFinished = true;
+      itInnerCache = innerCache.begin();
+      inner->reset();
+
+      if(innerCache.empty())
+      {
+        // inner is always empty, no point in trying to get more from the outer side
+        proceed = false;
+      }
+
+    }
+    else
+    {
+      proceed = false;
+    }
+  } // end while proceed
 }
 
 
@@ -149,6 +180,7 @@ void NestedLoopJoin::reset()
 {
   outer->reset();
   inner->reset();
+  taskBuffer.clear();
   initialized = false;
   if(firstOuterFinished)
   {

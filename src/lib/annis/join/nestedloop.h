@@ -22,7 +22,8 @@ namespace annis
   {
     struct MatchPair
     {
-      std::vector<Match> lhs;
+      bool found;
+      Match lhs;
       Match rhs;
     };
 
@@ -46,8 +47,7 @@ namespace annis
     const unsigned maxBufferedTasks;
     std::shared_ptr<ThreadPool> threadPool;
 
-    std::deque<std::future<std::deque<MatchPair>>> taskBuffer;
-    std::deque<MatchPair> matchBuffer;
+    std::deque<std::future<MatchPair>> taskBuffer;
 
     std::vector<Match> matchOuter;
     std::vector<Match> matchInner;
