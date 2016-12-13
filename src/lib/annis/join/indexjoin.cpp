@@ -40,7 +40,7 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
       }
     }
 
-    return result;
+    return std::move(result);
   };
 }
 
