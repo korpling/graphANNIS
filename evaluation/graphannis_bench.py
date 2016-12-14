@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import collections
 
 
-def bench_getaql(x, querydir):
+def getaql(x, querydir):
     aqlFileName = ""
     group = x['Group']
     problemSpace = x['Problem Space']
@@ -22,19 +22,19 @@ def bench_getaql(x, querydir):
         
     return aql
 
-def bench_extract(fn, querydir=None):
+def extract(fn, querydir=None):
     data = pd.read_csv(fn, delim_whitespace=False)
     data = data.loc[data['Experiment'] == "Optimized"]
 
     if querydir is not None:
         # try to get the original AQL queries
-        data['aql'] = data.apply(bench_getaql, args=(querydir,), axis=1)
+        data['aql'] = data.apply(getaql, args=(querydir,), axis=1)
     else:
         # add empty query as column to data
         data['aql'] = pd.Series("", index=data.index)
     return data
     
-def bench_desc(d):
+def desc(d):
 
     Desc = collections.namedtuple("Desc", ["worse", "better", "quantile", "sumTime"])    
     
@@ -47,7 +47,7 @@ def bench_desc(d):
     
     return Desc(worse, better, q, sumTime)
     
-def bench_plot(d, header=None):
+def plot(d, header=None):
 
     h = (1.0 / d['Baseline']).sort_values().to_frame()    
     h["index1"] = range(len(h))
@@ -70,8 +70,4 @@ def bench_plot(d, header=None):
     plt.axhline(y=1.0, xmin=0, xmax=1, hold=None, color="#FF0000")
     
     plt.show()
-#    ax = h.plot(kind="scatter", x="query", y="speedup", logy=True, 
-#        use_index=False)
-    
-    # TODO: grid, lines
 
