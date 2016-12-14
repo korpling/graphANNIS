@@ -10,8 +10,11 @@ namespace annis
   {
     bool optimize;
     bool forceFallback;
+    bool avoidNestedBySwitch;
+
     std::map<Component, std::string> overrideImpl;
     size_t numOfParallelTasks;
+
   public:
     QueryConfig();
   };

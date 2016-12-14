@@ -123,7 +123,9 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
   std::map<nodeid_t, size_t> node2component;
   std::map<size_t, std::shared_ptr<ExecutionNode>> component2exec;
   
-  std::shared_ptr<ThreadPool> threadPool = std::make_shared<ThreadPool>(std::thread::hardware_concurrency());
+  // Only create an actual thread pool if there is more than one task
+  std::shared_ptr<ThreadPool> threadPool = config.numOfParallelTasks > 1
+      ? std::make_shared<ThreadPool>(config.numOfParallelTasks) : std::shared_ptr<ThreadPool>();
 
   // 1. add all nodes
   size_t i=0;
@@ -153,7 +155,7 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
       std::shared_ptr<ExecutionNode> execRight = component2exec[componentRight];
       
       std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, e.forceNestedLoop, true, threadPool);
+          execLeft, execRight, db, e.forceNestedLoop, config.avoidNestedBySwitch, threadPool);
       updateComponentForNodes(node2component, componentLeft, joinExec->componentNr);
       updateComponentForNodes(node2component, componentRight, joinExec->componentNr);
       component2exec[joinExec->componentNr] = joinExec;      
