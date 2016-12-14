@@ -8,6 +8,7 @@
 
 #include <annis/types.h>
 #include <annis/util/plan.h>
+#include <annis/queryconfig.h>
 
 namespace annis
 {
@@ -31,7 +32,7 @@ struct OperatorEntry
 class Query
 {
 public:
-  Query(const DB& db, bool optimize = true);
+  Query(const DB& db, QueryConfig config = QueryConfig());
   
   /**
    * @brief Add a new node to query
@@ -61,7 +62,7 @@ public:
 private:
 
   const DB& db;
-  bool optimize;
+  const QueryConfig config;
   
   std::vector<Match> currentResult;
 

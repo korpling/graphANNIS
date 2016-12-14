@@ -14,8 +14,8 @@
 
 using namespace annis;
 
-Query::Query(const DB &db, bool optimize)
-  : db(db), optimize(optimize)
+Query::Query(const DB &db, QueryConfig config)
+  : db(db), config(config)
 {
 }
 
@@ -213,7 +213,7 @@ void Query::internalInit()
     return;
   }
   
-  if(optimize)
+  if(config.optimize)
   {
     ///////////////////////////////////////////////////////////
     // 1. make sure all smaller operand are on the left side //
