@@ -174,6 +174,11 @@ void DynamicBenchmark::addBenchmark(bool baseline,
         stream >> timeVal;
         stream.close();
       }
+      if(timeVal == 0)
+      {
+        // we would divide by zero later
+        timeVal = 1;
+      }
       // since celero uses microseconds an ANNIS milliseconds the value needs to be converted
       fixedValues.insert({p.first, timeVal*1000});
     }
