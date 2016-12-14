@@ -1,0 +1,77 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec 14 08:53:14 2016
+
+@author: thomas
+"""
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import collections
+
+
+def bench_getaql(x, querydir):
+    aqlFileName = ""
+    group = x['Group']
+    problemSpace = x['Problem Space']
+
+    aqlFileName = querydir + "/" + group + "/" + str.format("{:05d}", problemSpace) + ".aql"
+
+    with open (aqlFileName, "r") as aqlFile:
+        aql = aqlFile.read()
+        
+    return aql
+
+def bench_extract(fn, querydir=None):
+    data = pd.read_csv(fn, delim_whitespace=False)
+    data = data.loc[data['Experiment'] == "Optimized"]
+
+    if querydir is not None:
+        # try to get the original AQL queries
+        data['aql'] = data.apply(bench_getaql, args=(querydir,), axis=1)
+    else:
+        # add empty query as column to data
+        data['aql'] = pd.Series("", index=data.index)
+    return data
+    
+def bench_desc(d):
+
+    Desc = collections.namedtuple("Desc", ["worse", "better", "quantile", "sumTime"])    
+    
+    worse = len(d.loc[d["Baseline"] >= 1.0])
+    better = len(d.loc[d["Baseline"] < 1.0])
+    
+    q = d['Baseline'].quantile([.0, .25, .5, .75, 1.0])    
+
+    sumTime = d['us/Iteration'].sum()    
+    
+    return Desc(worse, better, q, sumTime)
+    
+def bench_plot(d, header=None):
+
+    h = (1.0 / d['Baseline']).sort_values().to_frame()    
+    h["index1"] = range(len(h))
+    h.columns = ["speedup", "aql"]
+
+
+    fig = plt.figure()
+    ax = fig.gca()
+    ax.get_yaxis().set_label_text("times faster than baseline")
+    ax.set_yscale('log')    
+    
+    ax.get_xaxis().set_label_text("query")
+    ax.get_xaxis().set_visible(False)
+    
+    ax.set_xlim([-0.01*len(h),len(h)*1.01])
+    
+    plt.scatter(x=h.aql, y=h.speedup, marker="*")
+    plt.grid(True)
+
+    plt.axhline(y=1.0, xmin=0, xmax=1, hold=None, color="#FF0000")
+    
+    plt.show()
+#    ax = h.plot(kind="scatter", x="query", y="speedup", logy=True, 
+#        use_index=False)
+    
+    # TODO: grid, lines
+
