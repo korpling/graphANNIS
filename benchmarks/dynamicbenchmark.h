@@ -19,6 +19,7 @@
 #include <annis/db.h>
 #include <annis/query.h>
 #include <annis/dbcache.h>
+#include <annis/queryconfig.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
@@ -72,19 +73,18 @@ namespace annis {
   public:
 
     DynamicCorpusFixture(
-            bool forceFallback,
             std::string corpusPath,
-            std::map<Component, std::string> overrideImpl,
+            QueryConfig config,
             std::map<int64_t, std::string> json,
             std::string benchmarkName,
             std::map<int64_t, unsigned int> expectedCount = std::map<int64_t, unsigned int>())
-    : forceFallback(forceFallback), corpusPath(corpusPath), overrideImpl(overrideImpl),
+    : corpusPath(corpusPath), config(config),
     json(json), benchmarkName(benchmarkName), counter(0),
     expectedCountByExp(expectedCount) {
     }
 
     const std::weak_ptr<DB> getDB() {
-      return dbCache->get(corpusPath, true, forceFallback, overrideImpl);
+      return dbCache->get(corpusPath, true, config.forceFallback, config.overrideImpl);
     }
     
     virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const override;
@@ -133,9 +133,8 @@ namespace annis {
 
   private:
 
-    bool forceFallback;
     std::string corpusPath;
-    std::map<Component, std::string> overrideImpl;
+    const QueryConfig config;
     std::map<int64_t, std::string> json;
     std::shared_ptr<Query> q;
     std::string benchmarkName;
@@ -174,8 +173,7 @@ namespace annis {
 
     void registerFixture(
             std::string fixtureName,
-            bool forceFallback = false,
-            std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
+            QueryConfig config = QueryConfig()
             );
 
     virtual ~DynamicBenchmark() {
@@ -183,12 +181,9 @@ namespace annis {
 
   private:
 
-    void registerFixtureInternal(
-            bool baseline,
+    void registerFixtureInternal(bool baseline,
             std::string fixtureName,
-            bool forceFallback = false,
-            std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
-            );
+            QueryConfig config = QueryConfig());
 
   private:
     std::string corpusPath;
@@ -198,12 +193,11 @@ namespace annis {
     
     bool multipleExperiments;
     
-    void addBenchmark(
-            bool baseline,
+    void addBenchmark(bool baseline,
             std::string benchmarkName,
             std::map<int64_t, const boost::filesystem::path>& paths,
-            std::string fixtureName, bool forceFallback,
-            std::map<Component, std::string> overrideImpl);
+            std::string fixtureName,
+            QueryConfig config);
   };
 
 

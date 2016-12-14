@@ -88,20 +88,19 @@ DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
     multipleExperiments = false;
   }
 
-  registerFixtureInternal(true, "Baseline", true);
+  QueryConfig baselineConfig;
+  baselineConfig.forceFallback = true;
+  registerFixtureInternal(true, "Baseline", baselineConfig);
 }
 
-void DynamicBenchmark::registerFixture(std::string fixtureName,
-  bool forceFallback,
-  std::map<Component, std::string> overrideImpl)
+void DynamicBenchmark::registerFixture(std::string fixtureName, QueryConfig config)
 {
-  registerFixtureInternal(false, fixtureName, forceFallback, overrideImpl);
+  registerFixtureInternal(false, fixtureName, config);
 }
 
 void DynamicBenchmark::registerFixtureInternal(
   bool baseline,
-  std::string fixtureName, bool forceFallback,
-  std::map<Component, std::string> overrideImpl)
+  std::string fixtureName, QueryConfig config)
 {
   if (multipleExperiments)
   {
@@ -113,7 +112,7 @@ void DynamicBenchmark::registerFixtureInternal(
       auto id = std::stol(name);
       paths.insert({id, filePath});
     }
-    addBenchmark(baseline, benchmarkName, paths, fixtureName, forceFallback, overrideImpl);
+    addBenchmark(baseline, benchmarkName, paths, fixtureName, config);
   }
   else
   {
@@ -122,18 +121,17 @@ void DynamicBenchmark::registerFixtureInternal(
       std::map<int64_t, const boost::filesystem::path> paths;
       paths.insert({0, filePath});
       auto subBenchmarkName = benchmarkName + "_" + filePath.stem().string();
-      addBenchmark(baseline, subBenchmarkName, paths, fixtureName, forceFallback, overrideImpl);
+      addBenchmark(baseline, subBenchmarkName, paths, fixtureName, config);
     }
   }
 }
 
 
-void DynamicBenchmark::addBenchmark(
-  bool baseline,
+void DynamicBenchmark::addBenchmark(bool baseline,
   std::string benchmarkName,
   std::map<int64_t, const boost::filesystem::path>& paths,
-  std::string fixtureName, bool forceFallback,
-  std::map<Component, std::string> overrideImpl)
+  std::string fixtureName,
+  QueryConfig config)
 {
   unsigned int numberOfSamples = 5;
 
@@ -181,7 +179,7 @@ void DynamicBenchmark::addBenchmark(
     }
   }
   std::shared_ptr<::celero::TestFixture> fixture(
-    new DynamicCorpusFixture(forceFallback, corpusPath, overrideImpl, allQueries,
+    new DynamicCorpusFixture(corpusPath, config, allQueries,
     benchmarkName + " (" + fixtureName + ")",
     expectedCount));
 

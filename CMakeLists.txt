@@ -63,6 +63,7 @@ include_directories(
 
 # make sure QtCreator shows the include files
 set(IncludeFiles
+  src/lib/annis/queryconfig.h
   src/lib/annis/wrapper.h
   src/lib/annis/edgeannotationstorage.h
   src/lib/annis/stringstorage.h
@@ -110,6 +111,7 @@ set(IncludeFiles
 )
 
 set(SRC_LIST_LIB
+  src/lib/annis/queryconfig.cpp
   src/lib/annis/filter.cpp
   src/lib/annis/json/jsoncpp.cpp
   src/lib/annis/json/jsonqueryparser.cpp
