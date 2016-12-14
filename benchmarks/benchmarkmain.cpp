@@ -34,7 +34,13 @@ int main(int argc, char **argv) {
         
         DynamicBenchmark benchmark(subdir, corpusPath, corpusName
           , true);
-        benchmark.registerFixture("Optimized");
+
+        QueryConfig config;
+        benchmark.registerFixture("Parallel", config);
+
+        config.numOfParallelTasks = 1;
+        benchmark.registerFixture("NonParallel");
+
       }
       itFiles++;
     }

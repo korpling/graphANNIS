@@ -93,14 +93,14 @@ DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
   registerFixtureInternal(true, "Baseline", baselineConfig);
 }
 
-void DynamicBenchmark::registerFixture(std::string fixtureName, QueryConfig config)
+void DynamicBenchmark::registerFixture(std::string fixtureName, const QueryConfig config)
 {
   registerFixtureInternal(false, fixtureName, config);
 }
 
 void DynamicBenchmark::registerFixtureInternal(
   bool baseline,
-  std::string fixtureName, QueryConfig config)
+  std::string fixtureName, const QueryConfig config)
 {
   if (multipleExperiments)
   {

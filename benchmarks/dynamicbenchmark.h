@@ -171,9 +171,8 @@ namespace annis {
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
 
-    void registerFixture(
-            std::string fixtureName,
-            QueryConfig config = QueryConfig()
+    void registerFixture(std::string fixtureName,
+            const QueryConfig config = QueryConfig()
             );
 
     virtual ~DynamicBenchmark() {
@@ -183,7 +182,7 @@ namespace annis {
 
     void registerFixtureInternal(bool baseline,
             std::string fixtureName,
-            QueryConfig config = QueryConfig());
+            const QueryConfig config = QueryConfig());
 
   private:
     std::string corpusPath;
