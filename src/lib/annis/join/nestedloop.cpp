@@ -42,11 +42,11 @@ bool NestedLoopJoin::next(std::vector<Match>& result)
 
     if(current.found)
     {
-      result.reserve(matchInner.size() + matchOuter.size());
+      result.reserve(current.lhs.size() + current.rhs.size());
       // return a tuple where the first values are from the outer relation and the iner relations tuples are added behind
 
-      result.insert(result.end(), matchOuter.begin(), matchOuter.end());
-      result.insert(result.end(), matchInner.begin(), matchInner.end());
+      result.insert(result.end(), current.lhs.begin(), current.lhs.end());
+      result.insert(result.end(), current.rhs.begin(), current.rhs.end());
     }
 
     // re-fill the task buffer with a new task
@@ -54,6 +54,7 @@ bool NestedLoopJoin::next(std::vector<Match>& result)
 
     if(current.found)
     {
+      assert(result.size() > 0);
       return true;
     }
   }
@@ -103,9 +104,16 @@ void NestedLoopJoin::fillTaskBuffer()
 
   std::shared_ptr<Operator>& opRef = op;
   const bool _leftIsOuter = leftIsOuter;
-  auto filterFunc = [opRef, _leftIsOuter](const Match& outer, const Match& inner) -> MatchPair {
+  auto filterFunc = [opRef, _leftIsOuter](
+      const std::vector<Match> outerVec,
+      const std::vector<Match> innerVec,
+      const size_t outerIdx, const size_t innerIdx) -> MatchPair {
     MatchPair result;
     result.found = false;
+
+    const Match& outer = outerVec[outerIdx];
+    const Match& inner = innerVec[innerIdx];
+
 
     bool include = true;
     // do not include the same match if not reflexive
@@ -122,8 +130,8 @@ void NestedLoopJoin::fillTaskBuffer()
         if(opRef->filter(outer, inner))
         {
           result.found = true;
-          result.lhs = outer;
-          result.rhs = inner;
+          result.lhs = outerVec;
+          result.rhs = innerVec;
         }
       }
       else
@@ -131,8 +139,8 @@ void NestedLoopJoin::fillTaskBuffer()
         if(opRef->filter(inner, outer))
         {
           result.found = true;
-          result.lhs = inner;
-          result.rhs = outer;
+          result.lhs = innerVec;
+          result.rhs = outerVec;
         }
       }
     } // end if include
@@ -146,12 +154,13 @@ void NestedLoopJoin::fillTaskBuffer()
     {
       if(threadPool)
       {
-        taskBuffer.push_back(threadPool->enqueue(filterFunc, matchOuter[outerIdx], matchInner[innerIdx]));
+        taskBuffer.push_back(threadPool->enqueue(filterFunc, matchOuter, matchInner, outerIdx, innerIdx));
       }
       else
       {
-        taskBuffer.push_back(std::async(std::launch::deferred, filterFunc, matchOuter[outerIdx], matchInner[innerIdx]));
-      }
+        taskBuffer.push_back(std::async(std::launch::deferred, filterFunc,
+                                        matchOuter, matchInner, outerIdx, innerIdx));
+     }
 
     } // end for each right
 

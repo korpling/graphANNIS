@@ -23,8 +23,8 @@ namespace annis
     struct MatchPair
     {
       bool found;
-      Match lhs;
-      Match rhs;
+      std::vector<Match> lhs;
+      std::vector<Match> rhs;
     };
 
   public:
