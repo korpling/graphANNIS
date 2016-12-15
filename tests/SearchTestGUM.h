@@ -61,7 +61,7 @@ protected:
       in.open(jsonFileName);
       if(in.is_open()) {
         QueryConfig config;
-        config.numOfParallelTasks = 1;
+//        config.numOfParallelTasks = 1;
         q = JSONQueryParser::parse(db, db.edges, in, config);
         in.close();
       }
