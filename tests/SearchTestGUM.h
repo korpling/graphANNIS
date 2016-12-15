@@ -60,7 +60,9 @@ protected:
       std::string jsonFileName = queryDir + "/" + info->name() + ".json";
       in.open(jsonFileName);
       if(in.is_open()) {
-        q = JSONQueryParser::parse(db, db.edges, in);
+        QueryConfig config;
+        config.numOfParallelTasks = 1;
+        q = JSONQueryParser::parse(db, db.edges, in, config);
         in.close();
       }
     }
@@ -83,6 +85,17 @@ TEST_F(SearchTestGUM, dep_xcomp) {
   }
 
   EXPECT_EQ(1u, counter);
+}
+
+TEST_F(SearchTestGUM, entity) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while (q->next() && counter < 100) {
+    counter++;
+  }
+
+  EXPECT_EQ(2u, counter);
 }
 
 TEST_F(SearchTestGUM, IndirectPointingNested) {

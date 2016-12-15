@@ -1,0 +1,5 @@
+entity="person" ->coref[type="coref"] infstat 
+& cat > tok 
+& #1 _=_ #3 
+& "studies" 
+& #5 ->dep[func="nsubj"] #4
