@@ -45,7 +45,7 @@ public:
     }
     else
     {
-      boost::optional<std::string>();
+      return boost::optional<std::string>();
     }
   }
 
