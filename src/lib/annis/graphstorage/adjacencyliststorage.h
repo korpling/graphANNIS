@@ -63,7 +63,12 @@ public:
   virtual size_t numberOfEdges() const override;
   virtual size_t numberOfEdgeAnnotations() const override;
 
-  virtual void calculateStatistics() override;
+  virtual size_t guessMaxAnnoCount(const StringStorage& strings, const Annotation& anno) const override
+  {
+    return edgeAnnos.guessMaxCount(strings, anno);
+  }
+
+  virtual void calculateStatistics(const StringStorage& strings) override;
 
   virtual size_t estimateMemorySize() override;
 

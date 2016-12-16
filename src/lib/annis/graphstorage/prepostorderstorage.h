@@ -325,6 +325,7 @@ public:
     } // end for each root
 
     stat = orig.getStatistics();
+    edgeAnno.calculateStatistics(db.strings);
   }
 
   virtual void clear() override
@@ -432,6 +433,11 @@ public:
   virtual size_t numberOfEdgeAnnotations() const override
   {
     return edgeAnno.numberOfAnnotations();
+  }
+
+  virtual size_t guessMaxAnnoCount(const StringStorage& strings, const Annotation& anno) const override
+  {
+    return edgeAnno.guessMaxCount(strings, anno);
   }
 
   virtual size_t estimateMemorySize() override

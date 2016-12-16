@@ -201,7 +201,7 @@ namespace annis {
     }
 
 
-    void calculateStatistics(StringStorage& strings)
+    void calculateStatistics(const StringStorage& strings)
     {
       const size_t maxHistogramBuckets = 250;
       const size_t maxSampledAnnotations = 2500;
@@ -278,6 +278,26 @@ namespace annis {
     {
       return !histogramBounds.empty();
     }
+
+    std::int64_t guessMaxCount(const StringStorage& strings, const Annotation& anno) const
+    {
+      auto val = strings.strOpt(anno.val);
+
+      if(!val)
+      {
+        // non existing
+        return 0;
+      }
+
+      if(anno.ns == 0)
+      {
+        return guessMaxCount(boost::optional<std::uint32_t>(), anno.name, *val, *val);
+      }
+      else
+      {
+        return guessMaxCount(boost::optional<std::uint32_t>(anno.ns), anno.name, *val, *val);
+      }
+    }
     
     std::int64_t guessMaxCount(const StringStorage& strings, const std::string& ns, const std::string& name, const std::string& val) const
     {
@@ -353,6 +373,11 @@ namespace annis {
       annoKeys.clear();
 
       histogramBounds.clear();
+    }
+
+    void copyStatistics(const btree::btree_map<AnnotationKey, std::vector<std::string>>& stats)
+    {
+      histogramBounds = stats;
     }
 
     size_t estimateMemorySize()

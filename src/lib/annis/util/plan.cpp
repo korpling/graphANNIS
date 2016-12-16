@@ -211,7 +211,7 @@ double Plan::getCost()
       if (baseEstimate)
       {
         // directly use the estimated search this exec node
-		std::int64_t guess = baseEstimate->guessMaxCount();
+        std::int64_t guess = baseEstimate->guessMaxCount();
         if (guess >= 0)
         {
           node->estimate = std::make_shared<ExecutionEstimate>((std::uint64_t) guess, 0);

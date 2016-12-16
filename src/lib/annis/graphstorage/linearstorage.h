@@ -179,6 +179,7 @@ public:
     }
 
     stat = orig.getStatistics();
+    calculateStatistics(db.strings);
   }
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const override
@@ -276,7 +277,10 @@ public:
     return edgeAnno.numberOfAnnotations();
   }
 
-
+  virtual size_t guessMaxAnnoCount(const StringStorage& strings, const Annotation& anno) const override
+  {
+    return edgeAnno.guessMaxCount(strings, anno);
+  }
 
   virtual size_t estimateMemorySize() override
   {

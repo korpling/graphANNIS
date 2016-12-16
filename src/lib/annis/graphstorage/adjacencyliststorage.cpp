@@ -37,6 +37,7 @@ void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
   }
 
   stat = orig.getStatistics();
+  edgeAnnos.calculateStatistics(db.strings);
 
   calculateIndex();
 }
@@ -190,7 +191,7 @@ size_t AdjacencyListStorage::numberOfEdgeAnnotations() const
   return edgeAnnos.numberOfAnnotations();
 }
 
-void AdjacencyListStorage::calculateStatistics()
+void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
 {
   stat.valid = false;
   stat.maxFanOut = 0;
@@ -302,6 +303,9 @@ void AdjacencyListStorage::calculateStatistics()
   {
     stat.avgFanOut =  (double) sumFanOut / (double) stat.nodes;
   }
+
+  // also calculate the annotation statistics
+  edgeAnnos.calculateStatistics(strings);
 
   stat.valid = true;
 

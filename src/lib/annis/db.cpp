@@ -648,7 +648,7 @@ void DB::convertComponent(Component c, std::string impl)
 
     if(!(oldStorage->getStatistics().valid))
     {
-      oldStorage->calculateStatistics();
+      oldStorage->calculateStatistics(strings);
     }
 
     std::string currentImpl = edges.registry.getName(oldStorage);

@@ -148,6 +148,8 @@ double AbstractEdgeOperator::selectivity()
   {
     if(auto g = gPtr.lock())
     {
+
+      double graphStorageSelectivity = 0.0;
       const auto& stat = g->getStatistics();
       if(stat.valid)
       {
@@ -157,6 +159,7 @@ double AbstractEdgeOperator::selectivity()
           return 1.0;
         }
 
+
         // get number of nodes reachable from min to max distance
         std::uint32_t maxPathLength = std::min(maxDistance, stat.maxDepth);
         std::uint32_t minPathLength = std::max(0, (int) minDistance-1);
@@ -165,21 +168,35 @@ double AbstractEdgeOperator::selectivity()
         std::uint32_t reachableMin = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) minPathLength));
 
         std::uint32_t reachable =  reachableMax - reachableMin;
-        worstSel = std::max(worstSel, ((double) reachable ) / ((double) stat.nodes));
+        graphStorageSelectivity = ((double) reachable ) / ((double) stat.nodes);
+
       }
       else
       {
          // assume a default selecivity for this graph storage operator
-         worstSel = std::max(worstSel, 0.01);
+         graphStorageSelectivity = 0.01;
       }
 
+
+      // check if an edge annotation is defined
+      if(!(edgeAnno == anyAnno))
+      {
+        size_t numOfAnnos = g->numberOfEdgeAnnotations();
+        if(numOfAnnos == 0)
+        {
+          // we won't be able to find anything if there are no annotation
+          graphStorageSelectivity = 0.0;
+        }
+        else
+        {
+          // the edge annotatio will filter the selectiviy even more
+          size_t guessedCount = g->guessMaxAnnoCount(strings, edgeAnno); double annoSelectivity = (double) guessedCount /  (double) numOfAnnos;
+          graphStorageSelectivity = graphStorageSelectivity * annoSelectivity;
+        }
+      }
+
+      worstSel = std::max(worstSel, graphStorageSelectivity);
     }
-  }
-
-  // check if an edge annotation is defined
-  if(!(edgeAnno == anyAnno))
-  {
-
   }
   
   // return worst selectivity
