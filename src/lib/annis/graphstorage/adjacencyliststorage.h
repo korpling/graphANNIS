@@ -79,7 +79,7 @@ private:
   set_t<Edge> edges;
   set_t<Edge> inverseEdges;
 
-  AnnoStorage<Edge> edgeAnnos;
+  BTreeAnnoStorage<Edge> edgeAnnos;
 
 private:
   friend class cereal::access;

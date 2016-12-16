@@ -41,7 +41,9 @@ namespace annis {
   namespace bc = boost::container;
 
 
-  template<typename ContainerType>
+  template<typename ContainerType,
+           class AnnoMap = bc::flat_map<TypeAnnotationKey<ContainerType>, std::uint32_t>,
+           class InverseAnnoMap = bc::flat_multimap<Annotation, ContainerType>>
   class AnnoStorage
   {
     friend class DB;
@@ -49,17 +51,13 @@ namespace annis {
     friend class ExactAnnoKeySearch;
     friend class RegexAnnoSearch;
 
-
   public:
+
+    using AnnoMap_t = AnnoMap;
+    using InverseAnnoMap_t = InverseAnnoMap;
+
     AnnoStorage() {}
     AnnoStorage(const AnnoStorage& orig) = delete;
-
-    template<typename Key, typename Value> using map_t  = bc::flat_map<Key, Value>;
-    template<typename Key, typename Value> using multimap_t  = bc::flat_multimap<Key, Value>;
-
-    using AnnoMap_t = map_t<TypeAnnotationKey<ContainerType>, std::uint32_t>;
-    using InverseAnnoMap_t = multimap_t<Annotation, ContainerType>;
-
 
     void addAnnotation(ContainerType item, const Annotation& anno)
     {
@@ -460,6 +458,11 @@ namespace annis {
       }
     }
   };
+
+  template<typename ContainerType> using BTreeAnnoStorage =
+    AnnoStorage<ContainerType,
+      btree::btree_map<TypeAnnotationKey<ContainerType>, std::uint32_t>,
+      btree::btree_multimap<Annotation, ContainerType>>;
 }
 
 

@@ -446,7 +446,7 @@ public:
 private:
   multimap_t<nodeid_t, PrePostSpec> node2order;
   map_t<PrePostSpec, nodeid_t> order2node;
-  AnnoStorage<Edge> edgeAnno;
+  BTreeAnnoStorage<Edge> edgeAnno;
 
   void enterNode(order_t& currentOrder, nodeid_t nodeID, nodeid_t /* rootNode */, level_t level, NStack &nodeStack)
   {
