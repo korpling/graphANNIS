@@ -52,18 +52,18 @@ void AdjacencyListStorage::addEdge(const Edge &edge)
 
 void AdjacencyListStorage::addEdgeAnnotation(const Edge& edge, const Annotation &anno)
 {
-   edgeAnnos.addEdgeAnnotation(edge, anno);
+   edgeAnnos.addAnnotation(edge, anno);
 }
 
 void AdjacencyListStorage::deleteEdge(const Edge &edge)
 {
    edges.erase(edge);
    inverseEdges.erase({edge.target, edge.source});
-   std::vector<Annotation> annos = edgeAnnos.getEdgeAnnotations(edge);
+   std::vector<Annotation> annos = edgeAnnos.getAnnotations(edge);
    for(Annotation a : annos)
    {
       AnnotationKey key = {a.name, a.ns};
-      edgeAnnos.deleteEdgeAnnotation(edge, key);
+      edgeAnnos.deleteAnnotation(edge, key);
    }
 }
 
@@ -92,7 +92,7 @@ void AdjacencyListStorage::deleteNode(nodeid_t node)
 
 void AdjacencyListStorage::deleteEdgeAnnotation(const Edge &edge, const AnnotationKey &anno)
 {
-  edgeAnnos.deleteEdgeAnnotation(edge, anno);
+  edgeAnnos.deleteAnnotation(edge, anno);
 }
 
 void AdjacencyListStorage::clear()
@@ -161,7 +161,7 @@ int AdjacencyListStorage::distance(const Edge &edge) const
 
 std::vector<Annotation> AdjacencyListStorage::getEdgeAnnotations(const Edge& edge) const
 {
-  return edgeAnnos.getEdgeAnnotations(edge);
+  return edgeAnnos.getAnnotations(edge);
 }
 
 std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) const
@@ -187,7 +187,7 @@ size_t AdjacencyListStorage::numberOfEdges() const
 
 size_t AdjacencyListStorage::numberOfEdgeAnnotations() const
 {
-  return edgeAnnos.numberOfEdgeAnnotations();
+  return edgeAnnos.numberOfAnnotations();
 }
 
 void AdjacencyListStorage::calculateStatistics()

@@ -165,6 +165,27 @@ namespace annis
     archive(m.node, m.anno_name, m.anno_ns);
   }
 
+  template<typename T>
+  struct TypeAnnotationKey
+  {
+    T id;
+    std::uint32_t anno_name;
+    std::uint32_t anno_ns;
+  };
+
+  template<typename T>
+  inline bool operator<(const TypeAnnotationKey<T>& a,  const TypeAnnotationKey<T>& b)
+  {
+    return std::tie(a.id, a.anno_name, a.anno_ns) < std::tie(b.id, b.anno_name, b.anno_ns);
+  }
+
+  template<class Archive, typename T>
+  void serialize(Archive & archive,
+                 TypeAnnotationKey<T> & m)
+  {
+    archive(m.id, m.anno_name, m.anno_ns);
+  }
+
   struct TextProperty
   {
     std::uint32_t corpusID;

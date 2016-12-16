@@ -3,7 +3,7 @@
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/db.h>
 #include <annis/util/comparefunctions.h>
-#include <annis/edgeannotationstorage.h>
+#include <annis/annostorage.h>
 
 #include <stack>
 #include <list>
@@ -79,7 +79,7 @@ private:
   set_t<Edge> edges;
   set_t<Edge> inverseEdges;
 
-  EdgeAnnotationStorage edgeAnnos;
+  AnnoStorage<Edge> edgeAnnos;
 
 private:
   friend class cereal::access;

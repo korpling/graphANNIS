@@ -66,7 +66,6 @@ include_directories(
 set(IncludeFiles
   src/lib/annis/queryconfig.h
   src/lib/annis/wrapper.h
-  src/lib/annis/edgeannotationstorage.h
   src/lib/annis/stringstorage.h
   src/lib/annis/json/jsonqueryparser.h
   src/lib/annis/json/json.h
@@ -96,12 +95,12 @@ set(IncludeFiles
   src/lib/annis/serializers.h
   src/lib/annis/graphstorageregistry.h
   src/lib/annis/nodeannostorage.h
+  src/lib/annis/annostorage.h
   src/lib/annis/util/helper.h
   src/lib/annis/util/plan.h
   src/lib/annis/util/dfs.h
   src/lib/annis/util/size_estimator.h
   src/lib/annis/util/comparefunctions.h
-  src/lib/annis/util/annotationstatisticholder.h
   src/lib/annis/query.h
   src/lib/annis/join/seed.h
   src/lib/annis/join/nestedloop.h
@@ -137,13 +136,12 @@ set(SRC_LIST_LIB
   src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
   src/lib/annis/api/graphupdate.cpp
-  src/lib/annis/edgeannotationstorage.cpp
   src/lib/annis/query.cpp
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
-  src/lib/annis/util/annotationstatisticholder.cpp
   src/lib/annis/nodeannostorage.cpp
+  src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
   src/lib/annis/join/seed.cpp

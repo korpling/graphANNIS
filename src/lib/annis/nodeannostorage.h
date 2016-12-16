@@ -15,6 +15,7 @@
 #include <google/btree_map.h>
 #include <google/btree_set.h>
 
+#include <boost/optional.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
 #include <boost/container/map.hpp>
@@ -24,13 +25,11 @@
 #include <cereal/types/map.hpp>
 #include <cereal/types/set.hpp>
 #include <cereal/types/vector.hpp>
-#include <cereal/types/polymorphic.hpp>
 
 
 #include <annis/types.h>
 #include <annis/stringstorage.h>
 #include <annis/serializers.h>
-#include <annis/util/annotationstatisticholder.h>
 
 #include "iterators.h"
 
@@ -39,7 +38,7 @@ namespace annis {
   namespace bc = boost::container;
 
 
-  class NodeAnnoStorage : public AnnotationStatisticHolder
+  class NodeAnnoStorage
   {
     friend class DB;
     friend class ExactAnnoValueSearch;
@@ -161,6 +160,15 @@ namespace annis {
       noResult.first = false;
       return noResult;
     }
+    
+    void calculateStatistics();
+    bool hasStatistics() const;
+    
+    std::int64_t guessMaxCount(const std::string& ns, const std::string& name, const std::string& val) const;
+    std::int64_t guessMaxCount(const std::string& name, const std::string& val) const;
+    
+    std::int64_t guessMaxCountRegex(const std::string& ns, const std::string& name, const std::string& val) const;
+    std::int64_t guessMaxCountRegex(const std::string& name, const std::string& val) const;
 
     void clear();
 
@@ -176,12 +184,9 @@ namespace annis {
     template <class Archive>
     void serialize( Archive & ar )
     {
-      ar(cereal::base_class<AnnotationStatisticHolder>(this), nodeAnnotations, inverseNodeAnnotations, nodeAnnoKeys);
+      ar(nodeAnnotations, inverseNodeAnnotations, nodeAnnoKeys, histogramBounds);
     }
-  protected:
-    const btree::btree_map<AnnotationKey, std::uint64_t>& getAnnoKeys() const override {return nodeAnnoKeys;}
 
-    std::vector<Annotation> getAnnotationRange(Annotation minAnno, Annotation maxAnno) override;
   private:
 
     /**
@@ -194,7 +199,23 @@ namespace annis {
     btree::btree_map<AnnotationKey, std::uint64_t> nodeAnnoKeys;
 
     StringStorage& strings;
-
+    
+    /* additional statistical information */
+    btree::btree_map<AnnotationKey, std::vector<std::string>> histogramBounds;
+    
+    
+  private:
+    /**
+     * Internal function for getting an estimation about the number of matches for a certain range of annotation value
+     * @param nsID The namespace part of the annotation key. Can be empty (in this case all annotations with the correct name are used).
+     * @param nameID The name part of the annotation key.
+     * @param lowerVal Inclusive starting point for the value range.
+     * @param upperVal Inclusive end point for the value range.
+     * @param if true upperVal is inclusive, otherwise it is exclusive
+     * @return The estimation of -1 if invalid.
+     */
+    std::int64_t guessMaxCount(boost::optional<std::uint32_t> nsID, std::uint32_t nameID, const std::string& lowerVal,
+      const std::string& upperVal) const;
   };
 }
 

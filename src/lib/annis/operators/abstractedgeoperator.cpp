@@ -175,6 +175,12 @@ double AbstractEdgeOperator::selectivity()
 
     }
   }
+
+  // check if an edge annotation is defined
+  if(!(edgeAnno == anyAnno))
+  {
+
+  }
   
   // return worst selectivity
   return worstSel;
