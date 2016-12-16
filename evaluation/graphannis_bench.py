@@ -24,7 +24,6 @@ def getaql(x, querydir):
 
 def extract(fn, querydir=None):
     data = pd.read_csv(fn, delim_whitespace=False)
-    data = data.loc[data['Experiment'] == "Optimized"]
 
     if querydir is not None:
         # try to get the original AQL queries
