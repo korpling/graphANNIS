@@ -101,6 +101,7 @@ set(IncludeFiles
   src/lib/annis/util/dfs.h
   src/lib/annis/util/size_estimator.h
   src/lib/annis/util/comparefunctions.h
+  src/lib/annis/util/annotationstatisticholder.h
   src/lib/annis/query.h
   src/lib/annis/join/seed.h
   src/lib/annis/join/nestedloop.h
@@ -141,6 +142,7 @@ set(SRC_LIST_LIB
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
+  src/lib/annis/util/annotationstatisticholder.cpp
   src/lib/annis/nodeannostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
