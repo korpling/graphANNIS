@@ -94,7 +94,6 @@ set(IncludeFiles
   src/lib/annis/api/graphupdate.h
   src/lib/annis/serializers.h
   src/lib/annis/graphstorageregistry.h
-  src/lib/annis/nodeannostorage.h
   src/lib/annis/annostorage.h
   src/lib/annis/util/helper.h
   src/lib/annis/util/plan.h
@@ -140,7 +139,6 @@ set(SRC_LIST_LIB
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
-  src/lib/annis/nodeannostorage.cpp
   src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp

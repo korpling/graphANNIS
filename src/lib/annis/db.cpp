@@ -21,7 +21,7 @@
 #include <annis/graphstorage/adjacencyliststorage.h>
 #include <annis/graphstorage/linearstorage.h>
 #include <annis/graphstorage/prepostorderstorage.h>
-#include <annis/nodeannostorage.h>
+#include <annis/annostorage.h>
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/graphstorageregistry.h>
 #include <annis/api/graphupdate.h>
@@ -35,7 +35,7 @@ using namespace annis;
 using namespace std;
 
 DB::DB()
-: nodeAnnos(strings), edges(strings), currentChangeID(0)
+: edges(strings), currentChangeID(0)
 {
   addDefaultStrings();
 }
@@ -223,7 +223,7 @@ bool DB::loadRelANNIS(string dirPath)
   }
 
   HL_INFO(logger, "Updating statistics");
-  nodeAnnos.calculateStatistics();
+  nodeAnnos.calculateStatistics(strings);
 
   #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
   malloc_trim(0);
@@ -477,7 +477,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
     while((line = Helper::nextCSV(in)).size() > 0)
     {
       NodeAnnotationKey key;
-      key.node = Helper::uint32FromString(line[0]);
+      key.id = Helper::uint32FromString(line[0]);
       key.anno_ns = strings.add(line[1]);
       key.anno_name = strings.add(line[2]);
 
@@ -489,7 +489,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
   }
 
   HL_INFO(logger, "bulk inserting node annotations");
-  nodeAnnos.addNodeAnnotationBulk(annoList);
+  nodeAnnos.addAnnotationBulk(annoList);
 
   return true;
 }
@@ -633,6 +633,11 @@ void DB::addDefaultStrings()
   annisNodeNameStringID = strings.add(annis_node_name);
 }
 
+nodeid_t DB::nextFreeNodeID() const
+{
+  return nodeAnnos.annotations.empty() ? 0 : (nodeAnnos.annotations.rbegin()->first.id) + 1;
+}
+
 void DB::convertComponent(Component c, std::string impl)
 {
   map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator
@@ -710,7 +715,7 @@ size_t DB::estimateMemorySize()
 string DB::info()
 {
   stringstream ss;
-  ss  << "Number of node annotations: " << nodeAnnos.nodeAnnotations.size() << endl
+  ss  << "Number of node annotations: " << nodeAnnos.numberOfAnnotations() << endl
       << "Number of strings in storage: " << strings.size() << endl
       << "Average string length: " << strings.avgLength() << endl
       << "--------------------" << std::endl
@@ -781,10 +786,10 @@ void DB::update(const api::GraphUpdate& u)
             // only add node if it does not exist yet
             if(!existingNodeID)
             {
-               nodeid_t newNodeID = nodeAnnos.nextFreeID();
+               nodeid_t newNodeID = nextFreeNodeID();
                Annotation newAnno =
                   {getNodeNameStringID(), getNamespaceStringID(), strings.add(evt->nodeName)};
-               nodeAnnos.addNodeAnnotation(newNodeID, newAnno);
+               nodeAnnos.addAnnotation(newNodeID, newAnno);
             }
          }
          else if(std::shared_ptr<api::DeleteNodeEvent> evt = std::dynamic_pointer_cast<api::DeleteNodeEvent>(change))
@@ -793,11 +798,11 @@ void DB::update(const api::GraphUpdate& u)
             if(existingNodeID)
             {
                // add all annotations
-               std::list<Annotation> annoList = nodeAnnos.getNodeAnnotationsByID(*existingNodeID);
+               std::vector<Annotation> annoList = nodeAnnos.getAnnotations(*existingNodeID);
                for(Annotation anno : annoList)
                {
                   AnnotationKey annoKey = {anno.name, anno.ns};
-                  nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+                  nodeAnnos.deleteAnnotation(*existingNodeID, annoKey);
                }
                // delete all edges pointing to this node either as source or target
                for(Component c : getAllComponents())
@@ -817,7 +822,7 @@ void DB::update(const api::GraphUpdate& u)
               Annotation anno = {strings.add(evt->annoName),
                                  strings.add(evt->annoNs),
                                  strings.add(evt->annoValue)};
-              nodeAnnos.addNodeAnnotation(*existingNodeID, anno);
+              nodeAnnos.addAnnotation(*existingNodeID, anno);
             }
          }
          else if(std::shared_ptr<api::DeleteNodeLabelEvent> evt = std::dynamic_pointer_cast<api::DeleteNodeLabelEvent>(change))
@@ -827,7 +832,7 @@ void DB::update(const api::GraphUpdate& u)
             {
               AnnotationKey annoKey = {strings.add(evt->annoName),
                                        strings.add(evt->annoNs)};
-              nodeAnnos.deleteNodeAnnotation(*existingNodeID, annoKey);
+              nodeAnnos.deleteAnnotation(*existingNodeID, annoKey);
             }
          }
          else if(std::shared_ptr<api::AddEdgeEvent> evt = std::dynamic_pointer_cast<api::AddEdgeEvent>(change))

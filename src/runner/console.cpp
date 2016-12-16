@@ -257,7 +257,7 @@ void Console::updateStatistics()
   if(db)
   {
     std::cout << "Updating statistics...";
-    db->nodeAnnos.calculateStatistics();
+    db->nodeAnnos.calculateStatistics(db->strings);
     std::cout << " Done" << std::endl;
   }
 }
@@ -268,11 +268,11 @@ void Console::guess(const std::vector<std::string> &args)
   {
     if(args.size() == 3)
     {
-      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(args[0], args[1], args[2]) << std::endl;
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(db->strings, args[0], args[1], args[2]) << std::endl;
     }
     else if(args.size() == 2)
     {
-      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(args[0], args[1]) << std::endl;
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCount(db->strings, args[0], args[1]) << std::endl;
     }
     else
     {
@@ -288,11 +288,11 @@ void Console::guessRegex(const std::vector<std::string> &args)
 
     if(args.size() == 3)
     {
-      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(args[0], args[1], args[2]) << std::endl;
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], args[1], args[2]) << std::endl;
     }
     else if(args.size() == 2)
     {
-      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(args[0], args[1]) << std::endl;
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], args[1]) << std::endl;
     }
     else
     {

@@ -87,7 +87,7 @@ namespace annis {
       for(const auto& entry : annos)
       {
         const TypeAnnotationKey<ContainerType>& key = entry.first;
-        inverseAnnos.push_back(std::pair<Annotation, nodeid_t>({key.anno_name, key.anno_ns, entry.second}, key.node));
+        inverseAnnos.push_back(std::pair<Annotation, nodeid_t>({key.anno_name, key.anno_ns, entry.second}, key.id));
         annoKeyList.push_back({key.anno_name, key.anno_ns});
       }
 
@@ -157,6 +157,21 @@ namespace annis {
           0, 0, 0
         }
       };
+    }
+
+    inline std::pair<bool, Annotation> getAnnotation(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
+    {
+      std::pair<bool, std::uint32_t> nsID = strings.findID(ns);
+      std::pair<bool, std::uint32_t> nameID = strings.findID(name);
+
+      if (nsID.first && nameID.first)
+      {
+        return getAnnotation(id, nsID.second, nameID.second);
+      }
+
+      std::pair<bool, Annotation> noResult;
+      noResult.first = false;
+      return noResult;
     }
 
     std::vector<Annotation> getAnnotations(const ContainerType& id) const
@@ -266,7 +281,7 @@ namespace annis {
       return !histogramBounds.empty();
     }
     
-    std::int64_t guessMaxCount(StringStorage& strings, const std::string& ns, const std::string& name, const std::string& val) const
+    std::int64_t guessMaxCount(const StringStorage& strings, const std::string& ns, const std::string& name, const std::string& val) const
     {
       auto nameID = strings.findID(name);
       if(nameID.first)
@@ -284,7 +299,7 @@ namespace annis {
       return 0;
     }
 
-    std::int64_t guessMaxCount(StringStorage& strings, const std::string& name, const std::string& val) const
+    std::int64_t guessMaxCount(const StringStorage& strings, const std::string& name, const std::string& val) const
     {
       auto nameID = strings.findID(name);
       if(nameID.first)
@@ -294,7 +309,7 @@ namespace annis {
       return 0;
     }
     
-    std::int64_t guessMaxCountRegex(StringStorage& strings, const std::string& ns, const std::string& name, const std::string& val) const
+    std::int64_t guessMaxCountRegex(const StringStorage& strings, const std::string& ns, const std::string& name, const std::string& val) const
     {
       auto nameID = strings.findID(name);
       if(nameID.first)
@@ -349,11 +364,6 @@ namespace annis {
           + size_estimation::element_size(inverseAnnotations)
           + size_estimation::element_size(annoKeys)
           + size_estimation::element_size(histogramBounds);
-    }
-
-    nodeid_t nextFreeID() const
-    {
-      return annotations.empty() ? 0 : (annotations.rbegin()->first.node) + 1;
     }
 
     virtual ~AnnoStorage() {}

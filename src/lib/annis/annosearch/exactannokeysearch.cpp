@@ -9,12 +9,12 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
   : db(db),
     validAnnotationKeysInitialized(false)
 {
-  itBegin = db.nodeAnnos.inverseNodeAnnotations.begin();
-  itEnd = db.nodeAnnos.inverseNodeAnnotations.end();
+  itBegin = db.nodeAnnos.inverseAnnotations.begin();
+  itEnd = db.nodeAnnos.inverseAnnotations.end();
   it = itBegin;
 
-  itKeyBegin = db.nodeAnnos.nodeAnnoKeys.begin();
-  itKeyBegin = db.nodeAnnos.nodeAnnoKeys.end();
+  itKeyBegin = db.nodeAnnos.annoKeys.begin();
+  itKeyBegin = db.nodeAnnos.annoKeys.end();
 }
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
@@ -35,17 +35,17 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
     upperKey.ns = numeric_limits<uint32_t>::max();
     upperKey.val = numeric_limits<uint32_t>::max();
 
-    itBegin = db.nodeAnnos.inverseNodeAnnotations.lower_bound(lowerKey);
+    itBegin = db.nodeAnnos.inverseAnnotations.lower_bound(lowerKey);
     it = itBegin;
-    itEnd = db.nodeAnnos.inverseNodeAnnotations.upper_bound(upperKey);
+    itEnd = db.nodeAnnos.inverseAnnotations.upper_bound(upperKey);
 
-    itKeyBegin = db.nodeAnnos.nodeAnnoKeys.lower_bound({searchResult.second, 0});
-    itKeyEnd = db.nodeAnnos.nodeAnnoKeys.upper_bound({searchResult.second, uintmax});
+    itKeyBegin = db.nodeAnnos.annoKeys.lower_bound({searchResult.second, 0});
+    itKeyEnd = db.nodeAnnos.annoKeys.upper_bound({searchResult.second, uintmax});
   }
   else
   {
-    itBegin = itEnd = it = db.nodeAnnos.inverseNodeAnnotations.end();
-    itKeyBegin = itKeyEnd = db.nodeAnnos.nodeAnnoKeys.end();
+    itBegin = itEnd = it = db.nodeAnnos.inverseAnnotations.end();
+    itKeyBegin = itKeyEnd = db.nodeAnnos.annoKeys.end();
   }
 }
 
@@ -68,23 +68,23 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace,
     upperKey.ns = namespaceID.second;
     upperKey.val = numeric_limits<uint32_t>::max();
 
-    itBegin = db.nodeAnnos.inverseNodeAnnotations.lower_bound(lowerKey);
+    itBegin = db.nodeAnnos.inverseAnnotations.lower_bound(lowerKey);
     it = itBegin;
-    itEnd = db.nodeAnnos.inverseNodeAnnotations.upper_bound(upperKey);
+    itEnd = db.nodeAnnos.inverseAnnotations.upper_bound(upperKey);
 
-    itKeyBegin = db.nodeAnnos.nodeAnnoKeys.lower_bound({nameID.second, namespaceID.second});
-    itKeyEnd = db.nodeAnnos.nodeAnnoKeys.upper_bound({nameID.second, namespaceID.second});
+    itKeyBegin = db.nodeAnnos.annoKeys.lower_bound({nameID.second, namespaceID.second});
+    itKeyEnd = db.nodeAnnos.annoKeys.upper_bound({nameID.second, namespaceID.second});
   }
   else
   {
-    itBegin = itEnd = it = db.nodeAnnos.inverseNodeAnnotations.end();
-    itKeyBegin = itKeyEnd = db.nodeAnnos.nodeAnnoKeys.end();
+    itBegin = itEnd = it = db.nodeAnnos.inverseAnnotations.end();
+    itKeyBegin = itKeyEnd = db.nodeAnnos.annoKeys.end();
   }
 }
 
 bool ExactAnnoKeySearch::next(Match& result)
 {
-  if(it != db.nodeAnnos.inverseNodeAnnotations.end() && it != itEnd)
+  if(it != db.nodeAnnos.inverseAnnotations.end() && it != itEnd)
   {
     result.node = it->second; // node ID
     result.anno = it->first; // annotation itself

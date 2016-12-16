@@ -44,7 +44,7 @@ bool AnnoKeySeedJoin::next(std::vector<Match>& tuple)
         // only check the annotation key, not the value
         const AnnotationKey& key = *(rightAnnoKeys.begin());
         std::pair<bool, Annotation> foundAnno =
-            db.nodeAnnos.getNodeAnnotation(currentRHSMatch.node, key.ns, key.name);
+            db.nodeAnnos.getAnnotation(currentRHSMatch.node, key.ns, key.name);
         if(foundAnno.first && checkReflexitivity(currentLHSMatch[lhsIdx].node, currentLHSMatch[lhsIdx].anno, currentRHSMatch.node, foundAnno.second))
         {
           currentRHSMatch.anno = foundAnno.second;
@@ -62,7 +62,7 @@ bool AnnoKeySeedJoin::next(std::vector<Match>& tuple)
         for(const auto& key : rightAnnoKeys)
         {
           std::pair<bool, Annotation> foundAnno =
-              db.nodeAnnos.getNodeAnnotation(currentRHSMatch.node, key.ns, key.name);
+              db.nodeAnnos.getAnnotation(currentRHSMatch.node, key.ns, key.name);
           if(foundAnno.first)
           {
             matchingRightAnnos.push_back(foundAnno.second);
@@ -169,7 +169,7 @@ bool MaterializedSeedJoin::next(std::vector<Match>& tuple)
         // directly get the one node annotation
         const auto& rightAnno = *(right.begin());
         auto foundAnno =
-            db.nodeAnnos.getNodeAnnotation(currentRHSMatch.node, rightAnno.ns, rightAnno.name);
+            db.nodeAnnos.getAnnotation(currentRHSMatch.node, rightAnno.ns, rightAnno.name);
         if(foundAnno.first && foundAnno.second.val == rightAnno.val
            && checkReflexitivity(currentLHSMatch[lhsIdx].node, currentLHSMatch[lhsIdx].anno, currentRHSMatch.node, foundAnno.second))
         {
@@ -185,7 +185,7 @@ bool MaterializedSeedJoin::next(std::vector<Match>& tuple)
       else
       {
         // check all annotations which of them matches
-        std::list<Annotation> annos = db.nodeAnnos.getNodeAnnotationsByID(currentRHSMatch.node);
+        std::vector<Annotation> annos = db.nodeAnnos.getAnnotations(currentRHSMatch.node);
         for(const auto& a : annos)
         {
           if(right.find(a) != right.end())

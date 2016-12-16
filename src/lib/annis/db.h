@@ -15,7 +15,7 @@
 #include <annis/stringstorage.h>
 #include <annis/graphstorageregistry.h>
 #include <annis/graphstorageholder.h>
-#include <annis/nodeannostorage.h>
+#include <annis/annostorage.h>
 
 namespace annis
 {
@@ -40,7 +40,7 @@ public:
   {
     std::string result = "";
 
-    std::pair<bool, Annotation> anno = nodeAnnos.getNodeAnnotation(id, annis_ns, annis_node_name);
+    std::pair<bool, Annotation> anno = nodeAnnos.getAnnotation(strings, id, annis_ns, annis_node_name);
     if(anno.first)
     {
       result = strings.str(anno.second.val);
@@ -53,10 +53,10 @@ public:
     std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
     if(nodeNameID.first)
     {
-      auto it = nodeAnnos.inverseNodeAnnotations.find(
+      auto it = nodeAnnos.inverseAnnotations.find(
          {annisNodeNameStringID, annisNamespaceStringID, nodeNameID.second});
 
-      if(it != nodeAnnos.inverseNodeAnnotations.end())
+      if(it != nodeAnnos.inverseAnnotations.end())
       {
          return boost::optional<nodeid_t>(it->second);
       }
@@ -68,7 +68,7 @@ public:
   {
     std::string result = "";
 
-    std::pair<bool, Annotation> anno = nodeAnnos.getNodeAnnotation(id, annis_ns, "document");
+    std::pair<bool, Annotation> anno = nodeAnnos.getAnnotation(strings, id, annis_ns, "document");
     if(anno.first)
     {
       result = strings.str(anno.second.val);
@@ -114,7 +114,7 @@ public:
 public:
 
   StringStorage strings;
-  NodeAnnoStorage nodeAnnos;
+  AnnoStorage<nodeid_t> nodeAnnos;
 
   GraphStorageHolder edges;
 
@@ -145,6 +145,8 @@ private:
   
 
   void addDefaultStrings();
+
+  nodeid_t nextFreeNodeID() const;
 
 
 };

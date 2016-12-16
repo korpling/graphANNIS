@@ -356,7 +356,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
     {
       std::list<Match> result;
       auto foundAnno =
-          db.nodeAnnos.getNodeAnnotation(rhsNode, rightAnno.ns, rightAnno.name);
+          db.nodeAnnos.getAnnotation(rhsNode, rightAnno.ns, rightAnno.name);
 
       if(foundAnno.first && foundAnno.second.val == rightAnno.val)
       {
@@ -372,7 +372,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
     {
       std::list<Match> result;
       // check all annotations which of them matches
-      std::list<Annotation> annos = db.nodeAnnos.getNodeAnnotationsByID(rhsNode);
+      std::vector<Annotation> annos = db.nodeAnnos.getAnnotations(rhsNode);
       for(const auto& a : annos)
       {
         if(validAnnos.find(a) != validAnnos.end())
@@ -401,7 +401,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter
     {
       std::list<Match> result;
       auto foundAnno =
-          db.nodeAnnos.getNodeAnnotation(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
+          db.nodeAnnos.getAnnotation(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
 
       if(foundAnno.first)
       {
@@ -419,7 +419,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter
       // check all annotation keys
       for(AnnotationKey key : validAnnoKeys)
       {
-       auto found = db.nodeAnnos.getNodeAnnotation(rhsNode, key.ns, key.name);
+       auto found = db.nodeAnnos.getAnnotation(rhsNode, key.ns, key.name);
        if(found.first)
        {
          result.push_back({rhsNode, found.second});

@@ -15,8 +15,8 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
   {
     annoTemplates.push_back({nameID.second, namespaceID.second, 0});
     
-    auto lower = db.nodeAnnos.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
-    auto upper = db.nodeAnnos.inverseNodeAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
+    auto lower = db.nodeAnnos.inverseAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
+    auto upper = db.nodeAnnos.inverseAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
     searchRanges.push_back(Range(lower, upper));
   }
   currentRange = searchRanges.begin();
@@ -38,14 +38,14 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
     std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
     if(nameID.first)
     {
-      auto keysLower = db.nodeAnnos.nodeAnnoKeys.lower_bound({nameID.second, 0});
-      auto keysUpper = db.nodeAnnos.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
+      auto keysLower = db.nodeAnnos.annoKeys.lower_bound({nameID.second, 0});
+      auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({nameID.second, uintmax});
       for(auto itKey = keysLower; itKey != keysUpper; itKey++)
       {
         annoTemplates.push_back({itKey->first.name, itKey->first.ns, 0});
         
-        auto lowerAnno = db.nodeAnnos.inverseNodeAnnotations.lower_bound({itKey->first.name, itKey->first.ns, 0});
-        auto upperAnno = db.nodeAnnos.inverseNodeAnnotations.lower_bound({itKey->first.name, itKey->first.ns, uintmax});
+        auto lowerAnno = db.nodeAnnos.inverseAnnotations.lower_bound({itKey->first.name, itKey->first.ns, 0});
+        auto upperAnno = db.nodeAnnos.inverseAnnotations.lower_bound({itKey->first.name, itKey->first.ns, uintmax});
         searchRanges.push_back(Range(lowerAnno, upperAnno));
       }
     }
@@ -73,7 +73,7 @@ bool RegexAnnoSearch::next(Match& result)
           return true;
         }
         // skip to the next available key (we don't want to iterate over each value of the multimap)
-        it = db.nodeAnnos.inverseNodeAnnotations.upper_bound(it->first);
+        it = db.nodeAnnos.inverseAnnotations.upper_bound(it->first);
 
       } // end for each item in search range
       currentRange++;
@@ -123,7 +123,7 @@ std::int64_t RegexAnnoSearch::guessMaxCount() const
   
   for(const auto& anno : annoTemplates)
   {
-    sum += db.nodeAnnos.guessMaxCountRegex(db.strings.str(anno.ns), db.strings.str(anno.name), valRegex);
+    sum += db.nodeAnnos.guessMaxCountRegex(db.strings, db.strings.str(anno.ns), db.strings.str(anno.name), valRegex);
   }
   
   return sum;

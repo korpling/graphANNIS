@@ -77,7 +77,8 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
 
       std::stringstream ss;
       ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(loader->get(), loader->get().edges, ss);
+      DB& db = loader->get();
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, db.edges, ss);
       while(q->next())
       {
         result.matchCount++;
@@ -85,7 +86,7 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
         if(!m.empty())
         {
           const Match& n  = m[0];
-          std::pair<bool, Annotation> anno = loader->get().nodeAnnos.getNodeAnnotation(n.node, annis_ns, "document");
+          std::pair<bool, Annotation> anno = db.nodeAnnos.getAnnotation(db.strings, n.node, annis_ns, "document");
           if(anno.first)
           {
             documents.insert(anno.second.val);

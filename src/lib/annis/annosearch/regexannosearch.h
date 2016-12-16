@@ -1,9 +1,7 @@
 #pragma once
 
 #include "annotationsearch.h"
-
-#include <annis/nodeannostorage.h>
-
+#include <annis/annostorage.h>
 #include <re2/re2.h>
 
 namespace annis
@@ -11,7 +9,7 @@ namespace annis
 
   class RegexAnnoSearch : public AnnotationSearch
   {
-    using AnnoItType = NodeAnnoStorage::InverseNodeAnnoMap_t::const_iterator;
+    using AnnoItType = AnnoStorage<nodeid_t>::InverseAnnoMap_t::const_iterator;
     using Range = std::pair<AnnoItType, AnnoItType>;
 
   public:
