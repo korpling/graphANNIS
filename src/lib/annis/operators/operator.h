@@ -59,6 +59,8 @@ public:
   
   virtual double selectivity() { return 0.1; }
 
+  virtual double edgeAnnoSelectivity() { return -1.0; }
+
   virtual ~Operator() {}
 };
 } // end namespace annis

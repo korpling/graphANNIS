@@ -31,6 +31,8 @@ public:
   
   virtual double selectivity() override;
 
+  virtual double edgeAnnoSelectivity() override;
+
 
   
   virtual ~AbstractEdgeOperator();

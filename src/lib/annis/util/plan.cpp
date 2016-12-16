@@ -230,9 +230,15 @@ double Plan::getCost()
         auto estLHS = estimateTupleSize(node->lhs);
         auto estRHS = estimateTupleSize(node->rhs);
         double selectivity = defaultSelectivity;
+        long double operatorSelectivity = defaultSelectivity;
         if(node->op)
         {
-          selectivity = node->op->selectivity();
+          selectivity = operatorSelectivity = node->op->selectivity();
+          double edgeAnnoSelectivity = node->op->edgeAnnoSelectivity();
+          if(edgeAnnoSelectivity >= 0.0)
+          {
+            selectivity = selectivity * edgeAnnoSelectivity;
+          }
         }
         
         std::uint64_t outputSize = static_cast<std::uint64_t>(((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity));
@@ -258,15 +264,22 @@ double Plan::getCost()
         } 
         else if (node->type == ExecutionNodeType::seed)
         {
-          std::uint64_t diffOutput = outputSize < estLHS->output 
-            ? (estLHS->output - outputSize) : (outputSize - estLHS->output);
-          std::uint64_t x = static_cast<std::uint64_t>((((double) diffOutput) / (double) estLHS->output));
-          if(x < 1)
-          {
-            // ratio should never be zero since we will always process at least the LHS input elements in the index join
-            x = 1;
-          }
-          processedInStep = estLHS->output * x;
+          // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
+          // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
+          // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
+
+          // avgReachable = (sel * cross) / lhs
+          //              = (sel * lhs * rhs) / lhs
+          //              = sel * rhs
+          // processedInStep = lhs + (avgReachable * lhs)
+          //                 = lhs + (sel * rhs * lhs)
+
+
+          processedInStep =
+              static_cast<std::uint64_t>(
+                (long double) estLHS->output
+                + (operatorSelectivity * (long double) estRHS->output * (long double) estLHS->output)
+              );
         } 
         else
         {

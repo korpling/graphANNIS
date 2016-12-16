@@ -177,30 +177,48 @@ double AbstractEdgeOperator::selectivity()
          graphStorageSelectivity = 0.01;
       }
 
-
-      // check if an edge annotation is defined
-      if(!(edgeAnno == anyAnno))
-      {
-        size_t numOfAnnos = g->numberOfEdgeAnnotations();
-        if(numOfAnnos == 0)
-        {
-          // we won't be able to find anything if there are no annotation
-          graphStorageSelectivity = 0.0;
-        }
-        else
-        {
-          // the edge annotatio will filter the selectiviy even more
-          size_t guessedCount = g->guessMaxAnnoCount(strings, edgeAnno); double annoSelectivity = (double) guessedCount /  (double) numOfAnnos;
-          graphStorageSelectivity = graphStorageSelectivity * annoSelectivity;
-        }
-      }
-
       worstSel = std::max(worstSel, graphStorageSelectivity);
     }
   }
   
   // return worst selectivity
   return worstSel;
+}
+
+double AbstractEdgeOperator::edgeAnnoSelectivity()
+{
+  // check if an edge annotation is defined
+  if((edgeAnno == anyAnno))
+  {
+    return 1.0;
+  }
+  else
+  {
+    double worstSel = 0.0;
+
+    for(std::weak_ptr<const ReadableGraphStorage> gPtr: gs)
+    {
+      if(auto g = gPtr.lock())
+      {
+        size_t numOfAnnos = g->numberOfEdgeAnnotations();
+        if(numOfAnnos == 0)
+        {
+          // we won't be able to find anything if there are no annotation
+          return 0.0;
+        }
+        else
+        {
+          // the edge annotatio will filter the selectiviy even more
+          size_t guessedCount = g->guessMaxAnnoCount(strings, edgeAnno);
+
+          worstSel = std::max(worstSel, (double) guessedCount /  (double) numOfAnnos);
+        }
+      }
+    }
+
+    return worstSel;
+  }
+  return -1.0;
 }
 
 
