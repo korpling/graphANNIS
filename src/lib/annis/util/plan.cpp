@@ -261,6 +261,11 @@ double Plan::getCost()
           std::uint64_t diffOutput = outputSize < estLHS->output 
             ? (estLHS->output - outputSize) : (outputSize - estLHS->output);
           std::uint64_t x = static_cast<std::uint64_t>((((double) diffOutput) / (double) estLHS->output));
+          if(x < 1)
+          {
+            // ratio should never be zero since we will always process at least the LHS input elements in the index join
+            x = 1;
+          }
           processedInStep = estLHS->output * x;
         } 
         else
