@@ -108,6 +108,7 @@ set(IncludeFiles
   src/lib/annis/annosearch/annotationsearch.h
   src/lib/annis/annosearch/exactannokeysearch.h
   src/lib/annis/annosearch/regexannosearch.h
+  src/lib/annis/annosearch/nodebyedgeannosearch.h
 )
 
 set(SRC_LIST_LIB
@@ -148,6 +149,7 @@ set(SRC_LIST_LIB
   src/lib/annis/annosearch/exactannovaluesearch.cpp
   src/lib/annis/annosearch/regexannosearch.cpp
   src/lib/annis/annosearch/annotationsearch.cpp
+  src/lib/annis/annosearch/nodebyedgeannosearch.cpp
 )
 
 set(SRC_LIST_RUNNER
