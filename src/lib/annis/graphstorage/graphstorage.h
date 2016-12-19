@@ -55,7 +55,7 @@ public:
   virtual size_t numberOfEdges() const = 0;
   virtual size_t numberOfEdgeAnnotations() const = 0;
 
-  virtual size_t guessMaxAnnoCount(const StringStorage& strings, const Annotation& anno) const = 0;
+  virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const = 0;
 
   virtual GraphStatistic getStatistics() const
   {

@@ -203,13 +203,13 @@ double AbstractEdgeOperator::edgeAnnoSelectivity()
         size_t numOfAnnos = g->numberOfEdgeAnnotations();
         if(numOfAnnos == 0)
         {
-          // we won't be able to find anything if there are no annotation
+          // we won't be able to find anything if there are no annotations
           return 0.0;
         }
         else
         {
-          // the edge annotatio will filter the selectiviy even more
-          size_t guessedCount = g->guessMaxAnnoCount(strings, edgeAnno);
+          // the edge annotation will filter the selectiviy even more
+          size_t guessedCount = g->getAnnoStorage().guessMaxCount(strings, edgeAnno);
 
           worstSel = std::max(worstSel, (double) guessedCount /  (double) numOfAnnos);
         }

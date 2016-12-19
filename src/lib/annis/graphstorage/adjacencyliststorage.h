@@ -63,9 +63,9 @@ public:
   virtual size_t numberOfEdges() const override;
   virtual size_t numberOfEdgeAnnotations() const override;
 
-  virtual size_t guessMaxAnnoCount(const StringStorage& strings, const Annotation& anno) const override
+  virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
   {
-    return edgeAnnos.guessMaxCount(strings, anno);
+    return edgeAnnos;
   }
 
   virtual void calculateStatistics(const StringStorage& strings) override;

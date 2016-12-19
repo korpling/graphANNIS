@@ -435,9 +435,9 @@ public:
     return edgeAnno.numberOfAnnotations();
   }
 
-  virtual size_t guessMaxAnnoCount(const StringStorage& strings, const Annotation& anno) const override
+  virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
   {
-    return edgeAnno.guessMaxCount(strings, anno);
+    return edgeAnno;
   }
 
   virtual size_t estimateMemorySize() override
