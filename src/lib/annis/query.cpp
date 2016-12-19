@@ -3,10 +3,12 @@
 #include <annis/join/seed.h>
 #include <annis/filter.h>
 #include <annis/operators/operator.h>
+#include <annis/operators/abstractedgeoperator.h>
 #include <annis/db.h>
 #include <annis/iterators.h>
 #include <annis/annosearch/annotationsearch.h>
 #include <annis/wrapper.h>
+#include <annis/annosearch/nodebyedgeannosearch.h>
 
 #include <vector>
 #include <random>
@@ -102,8 +104,33 @@ void Query::optimizeOperandOrder()
         }
       }
     }
-    
-    // TODO: optimize join order
+  }
+}
+
+void Query::optimizeEdgeAnnoUsage()
+{
+  for(const OperatorEntry& opEntry : operators)
+  {
+    if(opEntry.idxLeft < nodes.size())
+    {
+      std::shared_ptr<EstimatedSearch> lhsNodeIt = std::dynamic_pointer_cast<EstimatedSearch>(nodes[opEntry.idxLeft]);
+      std::shared_ptr<AbstractEdgeOperator> op = std::dynamic_pointer_cast<AbstractEdgeOperator>(opEntry.op);
+      if(op && lhsNodeIt)
+      {
+        std::int64_t guessedCountEdgeAnno = op->guessMaxCountEdgeAnnos();
+        std::int64_t guessedCountNodeAnno = lhsNodeIt->guessMaxCount();
+        if(guessedCountEdgeAnno >= 0 && guessedCountNodeAnno >= 0)
+        {
+          if(guessedCountEdgeAnno < guessedCountNodeAnno)
+          {
+            // it is more efficient to fetch the base node by searching for the edge annotation
+            nodes[opEntry.idxLeft] = op->createAnnoSearch(Plan::createSearchFilter(db, lhsNodeIt),
+                                                          guessedCountNodeAnno,
+                                                          lhsNodeIt->debugString());
+          }
+        }
+      }
+    }
   }
 }
 
@@ -218,9 +245,11 @@ void Query::internalInit()
   if(config.optimize)
   {
     ///////////////////////////////////////////////////////////
-    // 1. make sure all smaller operand are on the left side //
+    // make sure all smaller operand are on the left side //
     ///////////////////////////////////////////////////////////
     optimizeOperandOrder();
+
+    optimizeEdgeAnnoUsage();
     
     if(operators.size() > 1)
     {

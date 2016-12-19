@@ -4,13 +4,19 @@
 
 using namespace annis;
 
-NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(const ReadableGraphStorage& gs, std::set<Annotation> validEdgeAnnos,
-                                           std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator)
- : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator)
+NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const ReadableGraphStorage> > gs, std::set<Annotation> validEdgeAnnos,
+                                           std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator,
+                                           std::int64_t wrappedNodeCountEstimate, std::string debugDescription)
+ : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
+   wrappedNodeCountEstimate(wrappedNodeCountEstimate),
+   debugDescription(debugDescription + " _edgeanno_")
 {
-  for(const Annotation& anno : validEdgeAnnos)
+  for(int i=0; i < gs.size(); i++)
   {
-    searchRanges.push_back(gs.getAnnoStorage().inverseAnnotations.equal_range(anno));
+    for(const Annotation& anno : validEdgeAnnos)
+    {
+      searchRanges.push_back(gs[i]->getAnnoStorage().inverseAnnotations.equal_range(anno));
+    }
   }
   currentRange = searchRanges.begin();
 
@@ -45,6 +51,7 @@ void NodeByEdgeAnnoSearch::reset()
     it = currentRange->first;
   }
 }
+
 
 NodeByEdgeAnnoSearch::~NodeByEdgeAnnoSearch()
 {

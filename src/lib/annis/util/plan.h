@@ -85,6 +85,9 @@ public:
   std::string debugString() const;
   
   bool hasNestedLoop() const;
+
+  static std::function<std::list<Match> (nodeid_t)> createSearchFilter(const DB& db,
+    std::shared_ptr<EstimatedSearch> search);
   
 private:
   std::shared_ptr<ExecutionNode> root;

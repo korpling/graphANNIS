@@ -51,6 +51,7 @@ namespace annis {
     friend class ExactAnnoKeySearch;
     friend class RegexAnnoSearch;
     friend class NodeByEdgeAnnoSearch;
+    friend class AbstractEdgeOperator;
 
   public:
 

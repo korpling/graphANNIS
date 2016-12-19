@@ -87,6 +87,8 @@ private:
   std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::vector<OperatorEntry>& operators);
   
   void optimizeOperandOrder();
+
+  void optimizeEdgeAnnoUsage();
   
   void optimizeJoinOrderRandom();
   void optimizeJoinOrderAllPermutations();

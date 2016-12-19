@@ -332,6 +332,22 @@ bool Plan::hasNestedLoop() const
   return descendendantHasNestedLoop(root);
 }
 
+std::function<std::list<Match> (nodeid_t)> Plan::createSearchFilter(const DB &db, std::shared_ptr<EstimatedSearch> search)
+{
+  std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
+  if(annoSearch)
+  {
+    return createAnnotationSearchFilter(db, annoSearch);
+  }
+  std::shared_ptr<AnnotationKeySearch> annoKeySearch = std::dynamic_pointer_cast<AnnotationKeySearch>(search);
+  if(annoKeySearch)
+  {
+    return createAnnotationKeySearchFilter(db, annoKeySearch);
+  }
+
+  return [](nodeid_t) -> std::list<Match>  {return std::list<Match>();};
+}
+
 bool Plan::descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node)
 {
   if(node)

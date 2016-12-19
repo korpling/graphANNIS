@@ -221,6 +221,65 @@ double AbstractEdgeOperator::edgeAnnoSelectivity()
   return -1.0;
 }
 
+int64_t AbstractEdgeOperator::guessMaxCountEdgeAnnos()
+{
+  if(edgeAnno == anyAnno)
+  {
+    return -1;
+  }
+  else
+  {
+    std::int64_t sum = 0;
+    for(std::weak_ptr<const ReadableGraphStorage> gPtr: gs)
+    {
+      if(auto g = gPtr.lock())
+      {
+        sum += g->getAnnoStorage().guessMaxCount(strings, edgeAnno);
+      }
+    }
+    return sum;
+  }
+}
+
+std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
+    std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator,
+    std::int64_t wrappedNodeCountEstimate,
+    std::string debugDescription) const
+{
+  if(edgeAnno == anyAnno)
+  {
+    return std::shared_ptr<NodeByEdgeAnnoSearch>();
+  }
+  else
+  {
+    std::set<Annotation> validEdgeAnnos;
+    if(edgeAnno.ns == 0)
+    {
+      // collect all edge annotations having this name
+      for(size_t i =0; i < gs.size(); i++)
+      {
+        const BTreeMultiAnnoStorage<Edge>& annos = gs[i]->getAnnoStorage();
+
+        auto keysLower = annos.annoKeys.lower_bound({edgeAnno.name, 0});
+        auto keysUpper = annos.annoKeys.upper_bound({edgeAnno.name, uintmax});
+        for(auto itKey = keysLower; itKey != keysUpper; itKey++)
+        {
+          Annotation fullyQualifiedAnno = edgeAnno;
+          fullyQualifiedAnno.ns = itKey->first.ns;
+          validEdgeAnnos.emplace(fullyQualifiedAnno);
+        }
+      }
+    }
+    else
+    {
+      // there is only one valid edge annotation
+      validEdgeAnnos.emplace(edgeAnno);
+    }
+    return std::make_shared<NodeByEdgeAnnoSearch>(gs, validEdgeAnnos, nodeAnnoMatchGenerator,
+                                                  wrappedNodeCountEstimate, debugDescription);
+  }
+}
+
 
 std::string AbstractEdgeOperator::description() 
 {
