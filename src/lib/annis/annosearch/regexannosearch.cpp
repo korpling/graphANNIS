@@ -7,7 +7,8 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
                                  const std::string& name, const std::string& valRegex)
   : db(db),
     validAnnotationsInitialized(false), valRegex(valRegex),
-    compiledValRegex(valRegex)
+    compiledValRegex(valRegex),
+    debugDescription(ns + ":" + name + "=/" + valRegex + "/")
 {
   std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
   std::pair<bool, std::uint32_t> namespaceID = db.strings.findID(ns);
@@ -31,7 +32,8 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
                                  const std::string& name, const std::string& valRegex)
   : db(db),
     validAnnotationsInitialized(false), valRegex(valRegex),
-    compiledValRegex(valRegex)
+    compiledValRegex(valRegex),
+    debugDescription(name + "=/" + valRegex + "/")
 {
   if(compiledValRegex.ok())
   {

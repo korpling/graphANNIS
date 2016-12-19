@@ -7,7 +7,7 @@ using namespace std;
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
   : db(db),
-    validAnnotationKeysInitialized(false)
+    validAnnotationKeysInitialized(false), debugDescription("node")
 {
   itBegin = db.nodeAnnos.inverseAnnotations.begin();
   itEnd = db.nodeAnnos.inverseAnnotations.end();
@@ -19,7 +19,7 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db)
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
   : db(db),
-    validAnnotationKeysInitialized(false)
+    validAnnotationKeysInitialized(false), debugDescription(annoName)
 {
   std::pair<bool, uint32_t> searchResult = db.strings.findID(annoName);
 
@@ -51,7 +51,7 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
 
 ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace, const string &annoName)
   : db(db),
-    validAnnotationKeysInitialized(false)
+    validAnnotationKeysInitialized(false), debugDescription(annoNamspace + ":" + annoName)
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> namespaceID = db.strings.findID(annoNamspace);

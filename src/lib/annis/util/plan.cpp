@@ -485,6 +485,15 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
   {
     // output the node number
     result += "#" + std::to_string(node->nodePos.begin()->first + 1);
+    std::shared_ptr<EstimatedSearch> annoSearch = std::dynamic_pointer_cast<EstimatedSearch>(node->join);
+    if(annoSearch)
+    {
+      std::string annoDebugString = annoSearch->debugString();
+      if(!annoDebugString.empty())
+      {
+        result += ": " + annoDebugString;
+      }
+    }
   }
   else
   {

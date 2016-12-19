@@ -150,6 +150,12 @@ namespace annis
     }
 
 
+    virtual std::string debugString() const override
+    {
+      return delegate->debugString();
+    }
+
+
     virtual ~ConstAnnoWrapper()
     {
     }

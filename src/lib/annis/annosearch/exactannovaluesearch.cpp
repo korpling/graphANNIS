@@ -4,7 +4,7 @@ using namespace annis;
 using namespace std;
 
 ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
-  :db(db),validAnnotationInitialized(false)
+  :db(db),validAnnotationInitialized(false), debugDescription(annoNamspace + ":" + annoName + "=\"" + annoValue + "\"")
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> namspaceID = db.strings.findID(annoNamspace);
@@ -24,7 +24,7 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamsp
 }
 
 ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &annoName, const std::string &annoValue)
-  :db(db), validAnnotationInitialized(false)
+  :db(db), validAnnotationInitialized(false), debugDescription(annoName + "=\"" + annoValue + "\"")
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);

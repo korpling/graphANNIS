@@ -37,6 +37,8 @@ public:
   
   std::int64_t guessMaxCount() const override;
 
+  virtual std::string debugString() const override {return debugDescription;}
+
 
 private:
   const DB& db;
@@ -47,6 +49,10 @@ private:
 
   bool validAnnotationInitialized;
   std::unordered_set<Annotation> validAnnotations;
+
+  const std::string debugDescription;
+
+private:
 
   void initializeValidAnnotations();
 

@@ -35,6 +35,8 @@ namespace annis
 
     std::int64_t guessMaxCount() const override;
 
+    virtual std::string debugString() const override {return debugDescription;}
+
     virtual ~RegexAnnoSearch();
   private:
     const DB& db;
@@ -51,6 +53,8 @@ namespace annis
     std::list<Range> searchRanges;
     std::list<Range>::const_iterator currentRange;
     AnnoItType it;
+
+    const std::string debugDescription;
 
   private:
     
