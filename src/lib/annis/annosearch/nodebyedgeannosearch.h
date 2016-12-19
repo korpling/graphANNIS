@@ -10,6 +10,7 @@ class NodeByEdgeAnnoSearch : public AnnoIt
 {
 
   using ItType = BTreeMultiAnnoStorage<Edge>::InverseAnnoMap_t::const_iterator;
+  using Range = std::pair<ItType, ItType>;
 
 public:
   NodeByEdgeAnnoSearch(const ReadableGraphStorage& gs, std::set<Annotation> validEdgeAnnos,
@@ -20,11 +21,13 @@ public:
 
   virtual ~NodeByEdgeAnnoSearch();
 private:
-  const ReadableGraphStorage& gs;
-  const std::set<Annotation> validEdgeAnnos;
   std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator;
 
   std::list<Match> currentMatchBuffer;
+
+  std::list<Range> searchRanges;
+  std::list<Range>::const_iterator currentRange;
+  ItType it;
 
 private:
   bool nextMatchBuffer();

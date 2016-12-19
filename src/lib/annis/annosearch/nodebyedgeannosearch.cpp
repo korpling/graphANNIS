@@ -6,8 +6,18 @@ using namespace annis;
 
 NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(const ReadableGraphStorage& gs, std::set<Annotation> validEdgeAnnos,
                                            std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator)
- : gs(gs), validEdgeAnnos(validEdgeAnnos), nodeAnnoMatchGenerator(nodeAnnoMatchGenerator)
+ : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator)
 {
+  for(const Annotation& anno : validEdgeAnnos)
+  {
+    searchRanges.push_back(gs.getAnnoStorage().inverseAnnotations.equal_range(anno));
+  }
+  currentRange = searchRanges.begin();
+
+  if(currentRange != searchRanges.end())
+  {
+    it = currentRange->first;
+  }
 
 }
 
@@ -29,6 +39,11 @@ bool NodeByEdgeAnnoSearch::next(Match &m)
 void NodeByEdgeAnnoSearch::reset()
 {
   currentMatchBuffer.clear();
+  currentRange = searchRanges.begin();
+  if(currentRange != searchRanges.end())
+  {
+    it = currentRange->first;
+  }
 }
 
 NodeByEdgeAnnoSearch::~NodeByEdgeAnnoSearch()
@@ -38,5 +53,23 @@ NodeByEdgeAnnoSearch::~NodeByEdgeAnnoSearch()
 
 bool NodeByEdgeAnnoSearch::nextMatchBuffer()
 {
-  return false;
+  if(currentRange != searchRanges.end() && it != currentRange->second)
+  {
+    const Edge& matchingEdge = it->second;
+    currentMatchBuffer = nodeAnnoMatchGenerator(matchingEdge.source);
+    it++;
+    if(it == currentRange->second)
+    {
+      currentRange++;
+      if(currentRange != searchRanges.end())
+      {
+        it = currentRange->first;
+      }
+    }
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
