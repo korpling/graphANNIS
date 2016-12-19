@@ -37,6 +37,8 @@ private:
   std::list<Range>::const_iterator currentRange;
   ItType it;
 
+  std::unordered_set<nodeid_t> visited;
+
 
 private:
   bool nextMatchBuffer();
