@@ -335,25 +335,22 @@ bool Plan::hasNestedLoop() const
 std::function<std::list<Match> (nodeid_t)> Plan::createSearchFilter(const DB &db, std::shared_ptr<EstimatedSearch> search)
 {
   std::shared_ptr<ConstAnnoWrapper> constWrapper = std::dynamic_pointer_cast<ConstAnnoWrapper>(search);
+  boost::optional<Annotation> constAnno;
   if(constWrapper)
   {
-    Annotation constAnno = constWrapper->getConstAnno();
-    return [constAnno](nodeid_t id) -> std::list<Match>
-    {
-      Match m = {id, constAnno};
-      return {m};
-    };
+    search = constWrapper->getDelegate();
+    constAnno = constWrapper->getConstAnno();
   }
 
   std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
   if(annoSearch)
   {
-    return createAnnotationSearchFilter(db, annoSearch);
+    return createAnnotationSearchFilter(db, annoSearch, constAnno);
   }
   std::shared_ptr<AnnotationKeySearch> annoKeySearch = std::dynamic_pointer_cast<AnnotationKeySearch>(search);
   if(annoKeySearch)
   {
-    return createAnnotationKeySearchFilter(db, annoKeySearch);
+    return createAnnotationKeySearchFilter(db, annoKeySearch, constAnno);
   }
 
   return [](nodeid_t) -> std::list<Match>  {return std::list<Match>();};
@@ -389,7 +386,7 @@ bool Plan::descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node)
 
 std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
     const DB& db,
-    std::shared_ptr<AnnotationSearch> annoSearch)
+    std::shared_ptr<AnnotationSearch> annoSearch, boost::optional<Annotation> constAnno)
 {
   const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
   if(validAnnos.size() == 1)
@@ -397,7 +394,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
     const auto& rightAnno = *(validAnnos.begin());
 
     // no further checks required
-    return [&db, rightAnno](nodeid_t rhsNode) -> std::list<Match>
+    return [&db, rightAnno, constAnno](nodeid_t rhsNode) -> std::list<Match>
     {
       std::list<Match> result;
       auto foundAnno =
@@ -405,7 +402,14 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
 
       if(!foundAnno.empty() && foundAnno[0].val == rightAnno.val)
       {
-        result.push_back({rhsNode, foundAnno[0]});
+        if(constAnno)
+        {
+          result.push_back({rhsNode, *constAnno});
+        }
+        else
+        {
+          result.push_back({rhsNode, foundAnno[0]});
+        }
       }
 
       return result;
@@ -413,7 +417,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
   }
   else
   {
-    return [&db, validAnnos](nodeid_t rhsNode) -> std::list<Match>
+    return [&db, validAnnos, constAnno](nodeid_t rhsNode) -> std::list<Match>
     {
       std::list<Match> result;
       // check all annotations which of them matches
@@ -422,7 +426,14 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
       {
         if(validAnnos.find(a) != validAnnos.end())
         {
-          result.push_back({rhsNode, a});
+          if(constAnno)
+          {
+            result.push_back({rhsNode, *constAnno});
+          }
+          else
+          {
+            result.push_back({rhsNode, a});
+          }
         }
       }
 
@@ -432,9 +443,8 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
 }
 
 
-std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter(
-    const DB& db,
-    std::shared_ptr<AnnotationKeySearch> annoKeySearch)
+std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter(const DB& db,
+    std::shared_ptr<AnnotationKeySearch> annoKeySearch, boost::optional<Annotation> constAnno)
 {
   const std::set<AnnotationKey>& validAnnoKeys = annoKeySearch->getValidAnnotationKeys();
   if(validAnnoKeys.size() == 1)
@@ -442,7 +452,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter
     const auto& rightAnnoKey = *(validAnnoKeys.begin());
 
     // no further checks required
-    return [&db, rightAnnoKey](nodeid_t rhsNode) -> std::list<Match>
+    return [&db, rightAnnoKey, constAnno](nodeid_t rhsNode) -> std::list<Match>
     {
       std::list<Match> result;
       auto foundAnno =
@@ -450,7 +460,15 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter
 
       if(!foundAnno.empty())
       {
-        result.push_back({rhsNode, foundAnno[0]});
+        if(constAnno)
+        {
+          result.push_back({rhsNode, *constAnno});
+        }
+        else
+        {
+          result.push_back({rhsNode, foundAnno[0]});
+        }
+
       }
 
       return result;
@@ -458,7 +476,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter
   }
   else
   {
-    return [&db, validAnnoKeys](nodeid_t rhsNode) -> std::list<Match>
+    return [&db, validAnnoKeys, constAnno](nodeid_t rhsNode) -> std::list<Match>
     {
       std::list<Match> result;
       // check all annotation keys
@@ -467,7 +485,14 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter
        auto found = db.nodeAnnos.getAnnotations(rhsNode, key.ns, key.name);
        if(!found.empty())
        {
-         result.push_back({rhsNode, found[0]});
+         if(constAnno)
+         {
+           result.push_back({rhsNode, *constAnno});
+         }
+         else
+         {
+          result.push_back({rhsNode, found[0]});
+         }
        }
       }
       return result;

@@ -152,3 +152,14 @@ TEST_F(SearchTestGUM, VV_dep) {
   EXPECT_EQ(955u, counter);
 }
 
+TEST_F(SearchTestGUM, nonexisting_dep) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(0u, counter);
+}
+
