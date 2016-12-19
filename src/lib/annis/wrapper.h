@@ -149,6 +149,8 @@ namespace annis
       return delegate->guessMaxCount();
     }
 
+    Annotation getConstAnno() { return constAnno;}
+
 
     virtual std::string debugString() const override
     {
@@ -160,7 +162,7 @@ namespace annis
     {
     }
   private:
-    Annotation constAnno;
+    const Annotation constAnno;
     std::shared_ptr<EstimatedSearch> delegate;
   };
 

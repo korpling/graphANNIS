@@ -334,6 +334,17 @@ bool Plan::hasNestedLoop() const
 
 std::function<std::list<Match> (nodeid_t)> Plan::createSearchFilter(const DB &db, std::shared_ptr<EstimatedSearch> search)
 {
+  std::shared_ptr<ConstAnnoWrapper> constWrapper = std::dynamic_pointer_cast<ConstAnnoWrapper>(search);
+  if(constWrapper)
+  {
+    Annotation constAnno = constWrapper->getConstAnno();
+    return [constAnno](nodeid_t id) -> std::list<Match>
+    {
+      Match m = {id, constAnno};
+      return {m};
+    };
+  }
+
   std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
   if(annoSearch)
   {

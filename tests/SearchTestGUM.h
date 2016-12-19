@@ -130,3 +130,14 @@ TEST_F(SearchTestGUM, IndirectPointingNested) {
   EXPECT_EQ(273u, counter);
 }
 
+TEST_F(SearchTestGUM, tok_dep_tok) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(246u, counter);
+}
+
