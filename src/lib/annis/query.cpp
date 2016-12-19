@@ -115,7 +115,8 @@ void Query::optimizeEdgeAnnoUsage()
     {
       std::shared_ptr<EstimatedSearch> lhsNodeIt = std::dynamic_pointer_cast<EstimatedSearch>(nodes[opEntry.idxLeft]);
       std::shared_ptr<AbstractEdgeOperator> op = std::dynamic_pointer_cast<AbstractEdgeOperator>(opEntry.op);
-      if(op && lhsNodeIt)
+      if(op && lhsNodeIt
+         && !std::dynamic_pointer_cast<NodeByEdgeAnnoSearch>(lhsNodeIt))
       {
         std::int64_t guessedCountEdgeAnno = op->guessMaxCountEdgeAnnos();
         std::int64_t guessedCountNodeAnno = lhsNodeIt->guessMaxCount();

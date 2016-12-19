@@ -1,0 +1,1 @@
+pos=/VV.*/ ->dep[func="nsubj"] tok & tok & #1 ->dep[func="dobj"] #3

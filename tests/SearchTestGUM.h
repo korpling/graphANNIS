@@ -141,3 +141,14 @@ TEST_F(SearchTestGUM, tok_dep_tok) {
   EXPECT_EQ(246u, counter);
 }
 
+TEST_F(SearchTestGUM, VV_dep) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 5000) {
+    counter++;
+  }
+
+  EXPECT_EQ(955u, counter);
+}
+
