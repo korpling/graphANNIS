@@ -40,10 +40,10 @@ public:
   {
     std::string result = "";
 
-    std::pair<bool, Annotation> anno = nodeAnnos.getAnnotation(strings, id, annis_ns, annis_node_name);
-    if(anno.first)
+    std::vector<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, annis_node_name);
+    if(!anno.empty())
     {
-      result = strings.str(anno.second.val);
+      result = strings.str(anno[0].val);
     }
     return result;
   }
@@ -68,10 +68,10 @@ public:
   {
     std::string result = "";
 
-    std::pair<bool, Annotation> anno = nodeAnnos.getAnnotation(strings, id, annis_ns, "document");
-    if(anno.first)
+    std::vector<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, "document");
+    if(!anno.empty())
     {
-      result = strings.str(anno.second.val);
+      result = strings.str(anno[0].val);
     }
     return result;
   }

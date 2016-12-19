@@ -374,11 +374,11 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
     {
       std::list<Match> result;
       auto foundAnno =
-          db.nodeAnnos.getAnnotation(rhsNode, rightAnno.ns, rightAnno.name);
+          db.nodeAnnos.getAnnotations(rhsNode, rightAnno.ns, rightAnno.name);
 
-      if(foundAnno.first && foundAnno.second.val == rightAnno.val)
+      if(!foundAnno.empty() && foundAnno[0].val == rightAnno.val)
       {
-        result.push_back({rhsNode, foundAnno.second});
+        result.push_back({rhsNode, foundAnno[0]});
       }
 
       return result;
@@ -419,11 +419,11 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter
     {
       std::list<Match> result;
       auto foundAnno =
-          db.nodeAnnos.getAnnotation(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
+          db.nodeAnnos.getAnnotations(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
 
-      if(foundAnno.first)
+      if(!foundAnno.empty())
       {
-        result.push_back({rhsNode, foundAnno.second});
+        result.push_back({rhsNode, foundAnno[0]});
       }
 
       return result;
@@ -437,10 +437,10 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationKeySearchFilter
       // check all annotation keys
       for(AnnotationKey key : validAnnoKeys)
       {
-       auto found = db.nodeAnnos.getAnnotation(rhsNode, key.ns, key.name);
-       if(found.first)
+       auto found = db.nodeAnnos.getAnnotations(rhsNode, key.ns, key.name);
+       if(!found.empty())
        {
-         result.push_back({rhsNode, found.second});
+         result.push_back({rhsNode, found[0]});
        }
       }
       return result;

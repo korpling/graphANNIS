@@ -301,7 +301,7 @@ private:
   map_t<nodeid_t, RelativePosition<pos_t>> node2pos;
   map_t<nodeid_t, std::vector<nodeid_t> > nodeChains;
 
-  BTreeAnnoStorage<Edge> edgeAnno;
+  BTreeMultiAnnoStorage<Edge> edgeAnno;
 };
 
 } // end namespace annis

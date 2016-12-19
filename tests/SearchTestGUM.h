@@ -61,7 +61,7 @@ protected:
       in.open(jsonFileName);
       if(in.is_open()) {
         QueryConfig config;
-//        config.numOfParallelTasks = 1;
+        config.numOfParallelTasks = 1;
         q = JSONQueryParser::parse(db, db.edges, in, config);
         in.close();
       }
@@ -96,6 +96,17 @@ TEST_F(SearchTestGUM, entity) {
   }
 
   EXPECT_EQ(2u, counter);
+}
+
+TEST_F(SearchTestGUM, corefAnno) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while (q->next() && counter < 700) {
+    counter++;
+  }
+
+  EXPECT_EQ(636u, counter);
 }
 
 TEST_F(SearchTestGUM, IndirectPointingNested) {

@@ -134,7 +134,7 @@ namespace annis {
        }
     }
 
-    inline std::pair<bool, Annotation> getAnnotation(const ContainerType &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
+    inline std::vector<Annotation> getAnnotations(const ContainerType &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
     {
       auto it = annotations.find({id, nameID, nsID});
 
@@ -157,19 +157,16 @@ namespace annis {
       };
     }
 
-    inline std::pair<bool, Annotation> getAnnotation(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
+    inline std::vector<Annotation> getAnnotations(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
     {
       std::pair<bool, std::uint32_t> nsID = strings.findID(ns);
       std::pair<bool, std::uint32_t> nameID = strings.findID(name);
 
       if (nsID.first && nameID.first)
       {
-        return getAnnotation(id, nsID.second, nameID.second);
+        return getAnnotations(id, nsID.second, nameID.second);
       }
-
-      std::pair<bool, Annotation> noResult;
-      noResult.first = false;
-      return noResult;
+      return std::vector<Annotation>();
     }
 
     std::vector<Annotation> getAnnotations(const ContainerType& id) const
@@ -484,9 +481,9 @@ namespace annis {
     }
   };
 
-  template<typename ContainerType> using BTreeAnnoStorage =
+  template<typename ContainerType> using BTreeMultiAnnoStorage =
     AnnoStorage<ContainerType,
-      btree::btree_map<TypeAnnotationKey<ContainerType>, std::uint32_t>,
+      btree::btree_multimap<TypeAnnotationKey<ContainerType>, std::uint32_t>,
       btree::btree_multimap<Annotation, ContainerType>>;
 }
 

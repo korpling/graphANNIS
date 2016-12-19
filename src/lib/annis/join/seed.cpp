@@ -43,11 +43,11 @@ bool AnnoKeySeedJoin::next(std::vector<Match>& tuple)
       {
         // only check the annotation key, not the value
         const AnnotationKey& key = *(rightAnnoKeys.begin());
-        std::pair<bool, Annotation> foundAnno =
-            db.nodeAnnos.getAnnotation(currentRHSMatch.node, key.ns, key.name);
-        if(foundAnno.first && checkReflexitivity(currentLHSMatch[lhsIdx].node, currentLHSMatch[lhsIdx].anno, currentRHSMatch.node, foundAnno.second))
+        std::vector<Annotation> foundAnno =
+            db.nodeAnnos.getAnnotations(currentRHSMatch.node, key.ns, key.name);
+        if(!foundAnno.empty() && checkReflexitivity(currentLHSMatch[lhsIdx].node, currentLHSMatch[lhsIdx].anno, currentRHSMatch.node, foundAnno[0]))
         {
-          currentRHSMatch.anno = foundAnno.second;
+          currentRHSMatch.anno = foundAnno[0];
           
           tuple.reserve(currentLHSMatch.size()+1);
           tuple.insert(tuple.end(), currentLHSMatch.begin(), currentLHSMatch.end());
@@ -61,11 +61,11 @@ bool AnnoKeySeedJoin::next(std::vector<Match>& tuple)
         // use the annotation keys as filter
         for(const auto& key : rightAnnoKeys)
         {
-          std::pair<bool, Annotation> foundAnno =
-              db.nodeAnnos.getAnnotation(currentRHSMatch.node, key.ns, key.name);
-          if(foundAnno.first)
+          std::vector<Annotation> foundAnno =
+              db.nodeAnnos.getAnnotations(currentRHSMatch.node, key.ns, key.name);
+          if(!foundAnno.empty())
           {
-            matchingRightAnnos.push_back(foundAnno.second);
+            matchingRightAnnos.push_back(foundAnno[0]);
           }
         }
 
@@ -169,11 +169,11 @@ bool MaterializedSeedJoin::next(std::vector<Match>& tuple)
         // directly get the one node annotation
         const auto& rightAnno = *(right.begin());
         auto foundAnno =
-            db.nodeAnnos.getAnnotation(currentRHSMatch.node, rightAnno.ns, rightAnno.name);
-        if(foundAnno.first && foundAnno.second.val == rightAnno.val
-           && checkReflexitivity(currentLHSMatch[lhsIdx].node, currentLHSMatch[lhsIdx].anno, currentRHSMatch.node, foundAnno.second))
+            db.nodeAnnos.getAnnotations(currentRHSMatch.node, rightAnno.ns, rightAnno.name);
+        if(!foundAnno.empty() && foundAnno[0].val == rightAnno.val
+           && checkReflexitivity(currentLHSMatch[lhsIdx].node, currentLHSMatch[lhsIdx].anno, currentRHSMatch.node, foundAnno[0]))
         {
-          currentRHSMatch.anno = foundAnno.second;
+          currentRHSMatch.anno = foundAnno[0];
           
           tuple.reserve(currentLHSMatch.size()+1);
           tuple.insert(tuple.end(), currentLHSMatch.begin(), currentLHSMatch.end());
