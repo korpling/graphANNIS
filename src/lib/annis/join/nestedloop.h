@@ -7,6 +7,8 @@
 
 #include <ThreadPool.h>
 
+#include <functional>
+
 namespace annis 
 {
   class Operator;
@@ -61,6 +63,12 @@ namespace annis
     bool firstOuterFinished;
     std::list<std::vector<Match>> innerCache;
     std::list<std::vector<Match>>::const_iterator itInnerCache;
+
+    std::function<MatchPair (
+        const std::vector<Match>,
+        const std::vector<Match>,
+        const size_t, const size_t)> filterFunc;
+
   private:
     bool fetchNextInner();
     void fillTaskBuffer();
