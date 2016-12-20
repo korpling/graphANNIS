@@ -36,11 +36,30 @@ int main(int argc, char **argv) {
           , true);
 
         QueryConfig config;
-        benchmark.registerFixture("Parallel", config);
 
         config.numOfParallelTasks = 1;
-        benchmark.registerFixture("NonParallel");
+        benchmark.registerFixture("Jobs_1", config);
 
+        config.numOfParallelTasks = 2;
+        benchmark.registerFixture("Jobs_2", config);
+
+        config.numOfParallelTasks = 3;
+        benchmark.registerFixture("Jobs_3", config);
+
+        config.numOfParallelTasks = 4;
+        benchmark.registerFixture("Jobs_4", config);
+
+        config.numOfParallelTasks = 5;
+        benchmark.registerFixture("Jobs_5", config);
+
+        config.numOfParallelTasks = 6;
+        benchmark.registerFixture("Jobs_6", config);
+
+        config.numOfParallelTasks = 7;
+        benchmark.registerFixture("Jobs_7", config);
+
+        config.numOfParallelTasks = 8;
+        benchmark.registerFixture("Jobs_8", config);
       }
       itFiles++;
     }
