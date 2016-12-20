@@ -35,31 +35,14 @@ int main(int argc, char **argv) {
         DynamicBenchmark benchmark(subdir, corpusPath, corpusName
           , true);
 
-        QueryConfig config;
+        for(int i=1; i <= std::thread::hardware_concurrency(); i++)
+        {
+          QueryConfig config;
 
-        config.numOfParallelTasks = 1;
-        benchmark.registerFixture("Jobs_1", config);
+          config.numOfParallelTasks = i;
+          benchmark.registerFixture("Jobs_" + std::to_string(i), config);
+        }
 
-        config.numOfParallelTasks = 2;
-        benchmark.registerFixture("Jobs_2", config);
-
-        config.numOfParallelTasks = 3;
-        benchmark.registerFixture("Jobs_3", config);
-
-        config.numOfParallelTasks = 4;
-        benchmark.registerFixture("Jobs_4", config);
-
-        config.numOfParallelTasks = 5;
-        benchmark.registerFixture("Jobs_5", config);
-
-        config.numOfParallelTasks = 6;
-        benchmark.registerFixture("Jobs_6", config);
-
-        config.numOfParallelTasks = 7;
-        benchmark.registerFixture("Jobs_7", config);
-
-        config.numOfParallelTasks = 8;
-        benchmark.registerFixture("Jobs_8", config);
       }
       itFiles++;
     }
