@@ -163,3 +163,14 @@ TEST_F(SearchTestGUM, nonexisting_dep) {
   EXPECT_EQ(0u, counter);
 }
 
+TEST_F(SearchTestGUM, kind_dom_kind) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(56u, counter);
+}
+

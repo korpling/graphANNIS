@@ -62,18 +62,21 @@ NodeByEdgeAnnoSearch::~NodeByEdgeAnnoSearch()
 bool NodeByEdgeAnnoSearch::nextMatchBuffer()
 {
   bool valid = false;
-  while(!valid && currentRange != searchRanges.end() && it != currentRange->second)
+  while(!valid && currentRange != searchRanges.end())
   {
-    const Edge& matchingEdge = it->second;
-
-    if(visited.find(matchingEdge.source) == visited.end())
+    if(it != currentRange->second)
     {
-      currentMatchBuffer = nodeAnnoMatchGenerator(matchingEdge.source);
-      visited.emplace(matchingEdge.source);
-      valid = true;
-    }
+      const Edge& matchingEdge = it->second;
 
-    it++;
+      if(visited.find(matchingEdge.source) == visited.end())
+      {
+        currentMatchBuffer = nodeAnnoMatchGenerator(matchingEdge.source);
+        visited.emplace(matchingEdge.source);
+        valid = true;
+      }
+
+      it++;
+    }
 
     if(it == currentRange->second)
     {
