@@ -5,14 +5,9 @@
 #include <annis/db.h>
 #include <annis/iterators.h>
 
-#include <ThreadPool.h>
-
-#include <functional>
-
 namespace annis 
 {
   class Operator;
-
 
   /** 
    * A join that checks all combinations of the left and right matches if their are connected. 
@@ -22,20 +17,12 @@ namespace annis
    */
   class NestedLoopJoin : public Iterator
   {
-    struct MatchPair
-    {
-      bool found;
-      std::vector<Match> lhs;
-      std::vector<Match> rhs;
-    };
-
   public:
     NestedLoopJoin(std::shared_ptr<Operator> op,
       std::shared_ptr<Iterator> lhs, std::shared_ptr<Iterator> rhs,
       size_t lhsIdx, size_t rhsIdx,
-      bool leftIsOuter=true,
-      unsigned maxBufferedTasks = std::thread::hardware_concurrency(),
-      std::shared_ptr<ThreadPool> threadPool=std::shared_ptr<ThreadPool>());
+      bool materializeInner=true,
+      bool leftIsOuter=true);
     virtual ~NestedLoopJoin();
 
     virtual bool next(std::vector<Match>& tuple) override;
@@ -43,14 +30,10 @@ namespace annis
   private:
     std::shared_ptr<Operator> op;
 
+    const bool materializeInner;
     const bool leftIsOuter;
     bool initialized;
     
-    const unsigned maxBufferedTasks;
-    std::shared_ptr<ThreadPool> threadPool;
-
-    std::deque<std::future<MatchPair>> taskBuffer;
-
     std::vector<Match> matchOuter;
     std::vector<Match> matchInner;
 
@@ -63,15 +46,8 @@ namespace annis
     bool firstOuterFinished;
     std::list<std::vector<Match>> innerCache;
     std::list<std::vector<Match>>::const_iterator itInnerCache;
-
-    std::function<MatchPair (
-        const std::vector<Match>,
-        const std::vector<Match>,
-        const size_t, const size_t)> filterFunc;
-
   private:
     bool fetchNextInner();
-    void fillTaskBuffer();
 
   };
 

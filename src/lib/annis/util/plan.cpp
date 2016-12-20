@@ -126,8 +126,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       // fallback to nested loop
       result->type = nested_loop;
       join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join,
-                                              mappedPosLHS->second, mappedPosRHS->second, true,
-                                              128, threadPool);
+                                              mappedPosLHS->second, mappedPosRHS->second, true, true);
     }
   }
   else
@@ -140,8 +139,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     bool leftIsOuter = leftEst->output <= rightEst->output;
     
     join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join,
-                                            mappedPosLHS->second, mappedPosRHS->second, leftIsOuter,
-                                            128, threadPool);
+                                            mappedPosLHS->second, mappedPosRHS->second, true, leftIsOuter);
   }
   
   result->join = join;
