@@ -4,7 +4,6 @@
 #include "SearchTestPcc2.h"
 #include "SearchTestRidges.h"
 #include "SearchTestTiger.h"
-#include "SearchTestTueBaDZ.h"
 #include "SearchTestParlament.h"
 #include "SearchTestGUM.h"
 #include "CorpusStorageManagerTest.h"

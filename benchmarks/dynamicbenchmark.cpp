@@ -16,6 +16,8 @@
 
 using namespace annis;
 
+HUMBLE_LOGGER(benchLogger, "DynamicBenchmark");
+
 std::shared_ptr<DBCache> DynamicCorpusFixture::dbCache
   = std::make_shared<DBCache>(0);
 
@@ -25,7 +27,7 @@ void DynamicCorpusFixture::UserBenchmark()
   {
     counter++;
   }
-  HL_INFO(logger, (boost::format("result %1%") % counter).str());
+  HL_INFO(benchLogger, (boost::format("result %1%") % counter).str());
   if (expectedCount && counter != *expectedCount)
   {
     std::cerr << "FATAL ERROR: query " << benchmarkName << " should have count " << *expectedCount << " but was " << counter << std::endl;
@@ -135,7 +137,7 @@ void DynamicBenchmark::addBenchmark(bool baseline,
 {
   unsigned int numberOfSamples = 5;
 
-  HL_INFO(logger, (boost::format("adding benchmark %1%") % benchmarkName).str());
+  HL_INFO(benchLogger, (boost::format("adding benchmark %1%") % benchmarkName).str());
 
   std::map<int64_t, std::string> allQueries;
   std::map<int64_t, unsigned int> expectedCount;

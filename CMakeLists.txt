@@ -195,7 +195,6 @@ set(TEST_SRC_LIST
   tests/SearchTestRidges.h
   tests/CorpusStorageManagerTest.h
   tests/SearchTestGUM.h
-  tests/SearchTestTueBaDZ.h
   tests/LoadTest.h
   tests/SearchTestTiger.h
   tests/testmain.cpp
@@ -212,12 +211,26 @@ add_test( ${TEST_EXEC} ${TEST_EXEC} )
 
 
 if(GRAPHANNIS_BUILD_BENCHMARKS)
-  file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
 
-  set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
-  add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
-  add_dependencies(${BENCHMARK_EXEC} Celero)
-  target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
-  target_link_libraries(${BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
+  # a benchmark using (rel)ANNIS as baseline
+  set(ANNIS_BENCHMARK_SRC_LIST
+    benchmarks/dynamicbenchmark.cpp
+    benchmarks/benchmarkmain.cpp
+  )
+  set(ANNIS_BENCHMARK_EXEC "bench_annisqueries")
+  add_executable(${ANNIS_BENCHMARK_EXEC}  ${ANNIS_BENCHMARK_SRC_LIST} )
+  add_dependencies(${ANNIS_BENCHMARK_EXEC} Celero)
+  target_compile_features(${ANNIS_BENCHMARK_EXEC} PRIVATE ${needed_features})
+  target_link_libraries(${ANNIS_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
+
+  # benchmarking the effect of parallel execution
+  set(PARALLEL_BENCHMARK_SRC_LIST
+    benchmarks/parallelbenchmark.cpp
+  )
+  set(PARALLEL_BENCHMARK_EXEC "bench_parallel")
+  add_executable(${PARALLEL_BENCHMARK_EXEC}  ${PARALLEL_BENCHMARK_SRC_LIST} )
+  add_dependencies(${PARALLEL_BENCHMARK_EXEC} Celero)
+  target_compile_features(${PARALLEL_BENCHMARK_EXEC} PRIVATE ${needed_features})
+  target_link_libraries(${PARALLEL_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
 
 endif()

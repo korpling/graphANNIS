@@ -15,7 +15,6 @@
 #define DYNAMICBENCHMARK_H
 
 #include <annis/json/jsonqueryparser.h>
-#include "benchmark.h"
 #include <annis/db.h>
 #include <annis/query.h>
 #include <annis/dbcache.h>
@@ -25,6 +24,8 @@
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
 #include <sstream>
+
+#include <celero/Celero.h>
 
 namespace annis {
 
