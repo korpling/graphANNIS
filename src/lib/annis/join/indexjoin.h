@@ -3,7 +3,6 @@
 #include <annis/types.h>
 #include <annis/iterators.h>
 
-#include <annis/util/sharedqueue.h>
 #include <annis/util/comparefunctions.h>
 
 #include <boost/lockfree/queue.hpp>
