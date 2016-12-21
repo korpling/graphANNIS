@@ -303,7 +303,7 @@ BENCHMARK_F(CreateQuery, N7, GUMFixture, 10, 100)
   query->getBestPlan();
 }
 
-BENCHMARK_F(CreateQueryCreateQuery, N8, GUMFixture, 10, 100)
+BENCHMARK_F(CreateQuery, N8, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 8;
