@@ -19,6 +19,9 @@ using namespace annis;
 Query::Query(const DB &db, QueryConfig config)
   : db(db), config(config)
 {
+  // Only create an actual thread pool if there is more than one task
+  threadPool = config.numOfParallelTasks > 1
+      ? std::make_shared<ThreadPool>(config.numOfParallelTasks) : std::shared_ptr<ThreadPool>();
 }
 
 Query::~Query() {
@@ -150,10 +153,6 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
 {
   std::map<nodeid_t, size_t> node2component;
   std::map<size_t, std::shared_ptr<ExecutionNode>> component2exec;
-  
-  // Only create an actual thread pool if there is more than one task
-  std::shared_ptr<ThreadPool> threadPool = config.numOfParallelTasks > 1
-      ? std::make_shared<ThreadPool>(config.numOfParallelTasks) : std::shared_ptr<ThreadPool>();
 
   // 1. add all nodes
   size_t i=0;

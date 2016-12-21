@@ -81,6 +81,8 @@ private:
     }
   } compare_opentry_origorder;
 
+  std::shared_ptr<ThreadPool> threadPool;
+
 private:
   void internalInit();
   
