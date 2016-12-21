@@ -71,7 +71,7 @@ class GUMFixture : public celero::TestFixture
 };
 
 
-BASELINE_F(PosDepPos, Baseline, GUMFixture, 10, 100)
+BASELINE_F(PosDepPos, N1, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 1;
@@ -159,7 +159,7 @@ BENCHMARK_F(PosDepPos, N8, GUMFixture, 10, 100)
   }
 }
 
-BASELINE_F(UsedTo, Baseline, GUMFixture, 10, 100)
+BASELINE_F(UsedTo, N1, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 1;
@@ -245,5 +245,109 @@ BENCHMARK_F(UsedTo, N8, GUMFixture, 10, 100)
   while(query->next()) {
     counter++;
   }
+}
+
+BASELINE_F(CreateQuery, N1, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 1;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  query->getBestPlan();
+}
+
+BENCHMARK_F(CreateQuery, N2, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 2;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  query->getBestPlan();
+}
+
+BENCHMARK_F(CreateQuery, N3, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 3;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  query->getBestPlan();
+}
+
+BENCHMARK_F(CreateQuery, N4, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 4;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  query->getBestPlan();
+}
+
+BENCHMARK_F(CreateQuery, N5, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 5;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  query->getBestPlan();
+}
+
+BENCHMARK_F(CreateQuery, N6, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 6;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  query->getBestPlan();
+}
+
+BENCHMARK_F(CreateQuery, N7, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 7;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  query->getBestPlan();
+}
+
+BENCHMARK_F(CreateQueryCreateQuery, N8, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 8;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  query->getBestPlan();
+}
+
+BASELINE(CreateThreadPool, N1, 10, 1000)
+{
+  ThreadPool t(1);
+}
+
+BENCHMARK(CreateThreadPool, N2, 10, 1000)
+{
+  ThreadPool t(2);
+}
+
+BENCHMARK(CreateThreadPool, N3, 10, 1000)
+{
+  ThreadPool t(3);
+}
+
+BENCHMARK(CreateThreadPool, N4, 10, 1000)
+{
+  ThreadPool t(4);
+}
+
+BENCHMARK(CreateThreadPool, N5, 10, 1000)
+{
+  ThreadPool t(5);
+}
+
+BENCHMARK(CreateThreadPool, N6, 10, 1000)
+{
+  ThreadPool t(6);
+}
+
+BENCHMARK(CreateThreadPool, N7, 10, 1000)
+{
+  ThreadPool t(7);
+}
+
+BENCHMARK(CreateThreadPool, N8, 10, 1000)
+{
+  ThreadPool t(8);
 }
 
