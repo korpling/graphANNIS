@@ -51,10 +51,10 @@ private:
 
   std::shared_ptr<ThreadPool> threadPool;
 
-  std::deque<std::future<std::deque<MatchPair>>> taskBuffer;
-  std::deque<MatchPair> matchBuffer;
+  std::list<std::future<std::list<MatchPair>>> taskBuffer;
+  std::list<MatchPair> matchBuffer;
 
-  std::function<std::deque<MatchPair>(std::vector<Match>)> taskBufferGenerator;
+  std::function<std::list<MatchPair>(std::vector<Match>)> taskBufferGenerator;
 
 private:
   void fillTaskBuffer();
