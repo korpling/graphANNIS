@@ -2,16 +2,20 @@
 
 #include <annis/query.h>
 #include <annis/annosearch/exactannokeysearch.h>
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/annosearch/regexannosearch.h>
+
 #include <annis/operators/pointing.h>
+#include <annis/operators/precedence.h>
 
 using namespace annis;
 
 CELERO_MAIN
 
-class QueryFixture : public celero::TestFixture
+class GUMFixture : public celero::TestFixture
 {
     public:
-        QueryFixture()
+        GUMFixture()
         {
         }
 
@@ -38,7 +42,7 @@ class QueryFixture : public celero::TestFixture
 
         DB db;
 
-        std::shared_ptr<Query> createQuery(QueryConfig config)
+        std::shared_ptr<Query> query_PosDepPos(QueryConfig config)
         {
           std::shared_ptr<Query> query = std::make_shared<Query>(db, config);
 
@@ -49,91 +53,194 @@ class QueryFixture : public celero::TestFixture
           query->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnno), 0, 1);
           return query;
         }
+
+        std::shared_ptr<Query> query_UsedTo(QueryConfig config)
+        {
+          std::shared_ptr<Query> query = std::make_shared<Query>(db, config);
+
+          query->addNode(std::make_shared<RegexAnnoSearch>(db, "pos", "NN.*"));
+          query->addNode(std::make_shared<ExactAnnoValueSearch>(db, "annis4_internal", "tok", "used"));
+          query->addNode(std::make_shared<ExactAnnoValueSearch>(db, "annis4_internal", "tok", "to"));
+
+          query->addOperator(std::make_shared<Precedence>(db, db.edges), 0, 1);
+          query->addOperator(std::make_shared<Precedence>(db, db.edges), 1, 2);
+
+          return query;
+        }
+
 };
 
 
-BASELINE_F(Parallel, Baseline, QueryFixture, 10, 100)
+BASELINE_F(PosDepPos, Baseline, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 1;
-  std::shared_ptr<Query> query = createQuery(config);
+  std::shared_ptr<Query> query = query_PosDepPos(config);
   int counter=0;
   while(query->next()) {
     counter++;
   }
 }
 
-BENCHMARK_F(Parallel, N2, QueryFixture, 10, 100)
+BENCHMARK_F(PosDepPos, N2, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 2;
-  std::shared_ptr<Query> query = createQuery(config);
+  std::shared_ptr<Query> query = query_PosDepPos(config);
   int counter=0;
   while(query->next()) {
     counter++;
   }
 }
 
-BENCHMARK_F(Parallel, N3, QueryFixture, 10, 100)
+BENCHMARK_F(PosDepPos, N3, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 3;
-  std::shared_ptr<Query> query = createQuery(config);
+  std::shared_ptr<Query> query = query_PosDepPos(config);
   int counter=0;
   while(query->next()) {
     counter++;
   }
 }
 
-BENCHMARK_F(Parallel, N4, QueryFixture, 10, 100)
+BENCHMARK_F(PosDepPos, N4, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 4;
-  std::shared_ptr<Query> query = createQuery(config);
+  std::shared_ptr<Query> query = query_PosDepPos(config);
   int counter=0;
   while(query->next()) {
     counter++;
   }
 }
 
-BENCHMARK_F(Parallel, N5, QueryFixture, 10, 100)
+BENCHMARK_F(PosDepPos, N5, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 5;
-  std::shared_ptr<Query> query = createQuery(config);
+  std::shared_ptr<Query> query = query_PosDepPos(config);
   int counter=0;
   while(query->next()) {
     counter++;
   }
 }
 
-BENCHMARK_F(Parallel, N6, QueryFixture, 10, 100)
+BENCHMARK_F(PosDepPos, N6, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 6;
-  std::shared_ptr<Query> query = createQuery(config);
+  std::shared_ptr<Query> query = query_PosDepPos(config);
   int counter=0;
   while(query->next()) {
     counter++;
   }
 }
 
-BENCHMARK_F(Parallel, N7, QueryFixture, 10, 100)
+BENCHMARK_F(PosDepPos, N7, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 7;
-  std::shared_ptr<Query> query = createQuery(config);
+  std::shared_ptr<Query> query = query_PosDepPos(config);
   int counter=0;
   while(query->next()) {
     counter++;
   }
 }
 
-BENCHMARK_F(Parallel, N8, QueryFixture, 10, 100)
+BENCHMARK_F(PosDepPos, N8, GUMFixture, 10, 100)
 {
   QueryConfig config;
   config.numOfParallelTasks = 8;
-  std::shared_ptr<Query> query = createQuery(config);
+  std::shared_ptr<Query> query = query_PosDepPos(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BASELINE_F(UsedTo, Baseline, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 1;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BENCHMARK_F(UsedTo, N2, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 2;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BENCHMARK_F(UsedTo, N3, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 3;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BENCHMARK_F(UsedTo, N4, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 4;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BENCHMARK_F(UsedTo, N5, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 5;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BENCHMARK_F(UsedTo, N6, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 6;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BENCHMARK_F(UsedTo, N7, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 7;
+  std::shared_ptr<Query> query = query_UsedTo(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BENCHMARK_F(UsedTo, N8, GUMFixture, 10, 100)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 8;
+  std::shared_ptr<Query> query = query_UsedTo(config);
   int counter=0;
   while(query->next()) {
     counter++;
