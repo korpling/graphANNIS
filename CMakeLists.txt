@@ -1,5 +1,5 @@
 project(graphANNIS)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.3)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/output)
@@ -36,7 +36,7 @@ ENDIF()
 
 
 find_package(ICU 4.4 REQUIRED)
-set(Boost_USE_STATIC_LIBS   ON)
+set(Boost_USE_STATIC_LIBS   OFF)
 find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package (Threads REQUIRED)
 
