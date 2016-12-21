@@ -165,6 +165,7 @@ namespace cereal
     map.clear();
 
     std::list<std::pair<KeyType, ValueType>> buffer;
+    size_t bufferSize = 0;
 
     while(count-- > 0){
 
@@ -174,11 +175,13 @@ namespace cereal
       ar( make_map_item(key, value) );
 
       buffer.push_back({key, value});
+      bufferSize++;
 
-      if(buffer.size() >= 1000000 || count == 0)
+      if(bufferSize >= 1000000 || count == 0)
       {
         map.insert(boost::container::ordered_unique_range, buffer.begin(), buffer.end());
         buffer.clear();
+        bufferSize = 0;
       }
     }
 
@@ -203,6 +206,7 @@ namespace cereal
     map.clear();
 
     std::list<std::pair<KeyType, ValueType>> buffer;
+    size_t bufferSize = 0;
 
     while(count-- > 0){
 
@@ -212,11 +216,13 @@ namespace cereal
       ar( make_map_item(key, value) );
 
       buffer.push_back({key, value});
+      bufferSize++;
 
-      if(buffer.size() >= 1000000 || count == 0)
+      if(bufferSize >= 1000000 || count == 0)
       {
         map.insert(boost::container::ordered_range, buffer.begin(), buffer.end());
         buffer.clear();
+        bufferSize = 0;
       }
     }
 

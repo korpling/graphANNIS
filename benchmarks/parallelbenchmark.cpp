@@ -8,6 +8,8 @@
 #include <annis/operators/pointing.h>
 #include <annis/operators/precedence.h>
 
+#include <valgrind/callgrind.h>
+
 using namespace annis;
 
 CELERO_MAIN
@@ -32,12 +34,16 @@ class GUMFixture : public celero::TestFixture
         /// Before each run, build a vector of random integers.
         virtual void setUp(int64_t experimentValue)
         {
+          CALLGRIND_STOP_INSTRUMENTATION;
+
           char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
           std::string dataDir("data");
           if (testDataEnv != NULL) {
             dataDir = testDataEnv;
           }
           db.load(dataDir + "/GUM", true);
+
+          CALLGRIND_START_INSTRUMENTATION;
         }
 
         DB db;
@@ -69,6 +75,29 @@ class GUMFixture : public celero::TestFixture
         }
 
 };
+
+
+BASELINE_F(Test, N1, GUMFixture, 1, 1)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 1;
+  std::shared_ptr<Query> query = query_PosDepPos(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
+
+BENCHMARK_F(Test, N2, GUMFixture, 1, 1)
+{
+  QueryConfig config;
+  config.numOfParallelTasks = 2;
+  std::shared_ptr<Query> query = query_PosDepPos(config);
+  int counter=0;
+  while(query->next()) {
+    counter++;
+  }
+}
 
 
 BASELINE_F(PosDepPos, N1, GUMFixture, 10, 100)

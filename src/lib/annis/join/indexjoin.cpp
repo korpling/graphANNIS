@@ -15,7 +15,8 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
                      std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc, unsigned maxBufferedTasks,
                      std::shared_ptr<ThreadPool> threadPool)
-  : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxBufferedTasks > 0 ? maxBufferedTasks : 1), threadPool(threadPool)
+  : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxBufferedTasks > 0 ? maxBufferedTasks : 1), threadPool(threadPool),
+    taskBufferSize(0)
 {
 
 
@@ -77,13 +78,14 @@ void IndexJoin::reset()
 
   matchBuffer.clear();
   taskBuffer.clear();
+  taskBufferSize = 0;
 }
 
 
 void IndexJoin::fillTaskBuffer()
 {
   std::vector<Match> currentLHS;
-  while(taskBuffer.size() < maxNumfOfTasks && lhs->next(currentLHS))
+  while(taskBufferSize < maxNumfOfTasks && lhs->next(currentLHS))
   {
     if(threadPool)
     {
@@ -94,6 +96,7 @@ void IndexJoin::fillTaskBuffer()
       // do not use threads
       taskBuffer.push_back(std::async(std::launch::deferred, taskBufferGenerator, currentLHS));
     }
+    taskBufferSize++;
   }
 }
 
@@ -107,6 +110,7 @@ bool IndexJoin::nextMatchBuffer()
     taskBuffer.front().wait();
     matchBuffer = std::move(taskBuffer.front().get());
     taskBuffer.pop_front();
+    taskBufferSize--;
 
     // re-fill the task buffer with a new task
     fillTaskBuffer();

@@ -51,6 +51,7 @@ private:
   std::shared_ptr<ThreadPool> threadPool;
 
   std::list<std::future<std::list<MatchPair>>> taskBuffer;
+  size_t taskBufferSize;
   std::list<MatchPair> matchBuffer;
 
   std::function<std::list<MatchPair>(std::vector<Match>)> taskBufferGenerator;
