@@ -182,42 +182,42 @@ COUNT_BENCH(UsedTo, 7)
 COUNT_BENCH(UsedTo, 8)
 
 
-BASELINE(CreateThreadPool, N1, 10, 1000)
+BASELINE(CreateThreadPool, N1, 0, 0)
 {
   ThreadPool t(1);
 }
 
-BENCHMARK(CreateThreadPool, N2, 10, 1000)
+BENCHMARK(CreateThreadPool, N2, 0, 0)
 {
   ThreadPool t(2);
 }
 
-BENCHMARK(CreateThreadPool, N3, 10, 1000)
+BENCHMARK(CreateThreadPool, N3, 0, 0)
 {
   ThreadPool t(3);
 }
 
-BENCHMARK(CreateThreadPool, N4, 10, 1000)
+BENCHMARK(CreateThreadPool, N4, 0, 0)
 {
   ThreadPool t(4);
 }
 
-BENCHMARK(CreateThreadPool, N5, 10, 1000)
+BENCHMARK(CreateThreadPool, N5, 0, 0)
 {
   ThreadPool t(5);
 }
 
-BENCHMARK(CreateThreadPool, N6, 10, 1000)
+BENCHMARK(CreateThreadPool, N6, 0, 0)
 {
   ThreadPool t(6);
 }
 
-BENCHMARK(CreateThreadPool, N7, 10, 1000)
+BENCHMARK(CreateThreadPool, N7, 0, 0)
 {
   ThreadPool t(7);
 }
 
-BENCHMARK(CreateThreadPool, N8, 10, 1000)
+BENCHMARK(CreateThreadPool, N8, 0, 0)
 {
   ThreadPool t(8);
 }
