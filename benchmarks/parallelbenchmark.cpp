@@ -183,7 +183,7 @@ BENCHMARK_F(PosDepPos, N8, GUMFixture, 10, 100)
   }
 }
 
-BASELINE_F(UsedTo, N1, GUMFixture, 10, 100)
+BASELINE_F(UsedTo, N1, GUMFixture, 10, 10)
 {
   QueryConfig config;
   config.numOfParallelTasks = 1;
@@ -194,7 +194,7 @@ BASELINE_F(UsedTo, N1, GUMFixture, 10, 100)
   }
 }
 
-BENCHMARK_F(UsedTo, N2, GUMFixture, 10, 100)
+BENCHMARK_F(UsedTo, N2, GUMFixture, 10, 10)
 {
   QueryConfig config;
   config.numOfParallelTasks = 2;
@@ -205,7 +205,7 @@ BENCHMARK_F(UsedTo, N2, GUMFixture, 10, 100)
   }
 }
 
-BENCHMARK_F(UsedTo, N3, GUMFixture, 10, 100)
+BENCHMARK_F(UsedTo, N3, GUMFixture, 10, 10)
 {
   QueryConfig config;
   config.numOfParallelTasks = 3;
@@ -216,7 +216,7 @@ BENCHMARK_F(UsedTo, N3, GUMFixture, 10, 100)
   }
 }
 
-BENCHMARK_F(UsedTo, N4, GUMFixture, 10, 100)
+BENCHMARK_F(UsedTo, N4, GUMFixture, 10, 10)
 {
   QueryConfig config;
   config.numOfParallelTasks = 4;
@@ -227,7 +227,7 @@ BENCHMARK_F(UsedTo, N4, GUMFixture, 10, 100)
   }
 }
 
-BENCHMARK_F(UsedTo, N5, GUMFixture, 10, 100)
+BENCHMARK_F(UsedTo, N5, GUMFixture, 10, 10)
 {
   QueryConfig config;
   config.numOfParallelTasks = 5;
@@ -238,7 +238,7 @@ BENCHMARK_F(UsedTo, N5, GUMFixture, 10, 100)
   }
 }
 
-BENCHMARK_F(UsedTo, N6, GUMFixture, 10, 100)
+BENCHMARK_F(UsedTo, N6, GUMFixture, 10, 10)
 {
   QueryConfig config;
   config.numOfParallelTasks = 6;
@@ -249,7 +249,7 @@ BENCHMARK_F(UsedTo, N6, GUMFixture, 10, 100)
   }
 }
 
-BENCHMARK_F(UsedTo, N7, GUMFixture, 10, 100)
+BENCHMARK_F(UsedTo, N7, GUMFixture, 10, 10)
 {
   QueryConfig config;
   config.numOfParallelTasks = 7;
@@ -260,7 +260,7 @@ BENCHMARK_F(UsedTo, N7, GUMFixture, 10, 100)
   }
 }
 
-BENCHMARK_F(UsedTo, N8, GUMFixture, 10, 100)
+BENCHMARK_F(UsedTo, N8, GUMFixture, 10, 10)
 {
   QueryConfig config;
   config.numOfParallelTasks = 8;
