@@ -184,7 +184,6 @@ bool Plan::executeStep(std::vector<Match>& result)
   }
 }
 
-
 double Plan::getCost() 
 {
   // the estimation is cached in the root so multiple calls to getCost() won't do any harm

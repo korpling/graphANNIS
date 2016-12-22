@@ -3,9 +3,12 @@
 #include <thread>
 
 annis::QueryConfig::QueryConfig()
-  : optimize(true), forceFallback(false), avoidNestedBySwitch(true),
-    numOfParallelTasks(std::thread::hardware_concurrency()-1)
+  : optimize(true), forceFallback(false), avoidNestedBySwitch(true)
 
 {
-
+//  size_t numOfCPUs = std::thread::hardware_concurrency();
+//  if(numOfCPUs >= 2)
+//  {
+//    threadPool = std::make_shared<ThreadPool>(std::thread::hardware_concurrency()-1);
+//  }
 }

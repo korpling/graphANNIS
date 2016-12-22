@@ -1,6 +1,8 @@
 #pragma once
 
 #include <map>
+#include <memory>
+#include <ThreadPool.h>
 
 #include <annis/types.h>
 
@@ -13,7 +15,7 @@ namespace annis
     bool avoidNestedBySwitch;
 
     std::map<Component, std::string> overrideImpl;
-    size_t numOfParallelTasks;
+    std::shared_ptr<ThreadPool> threadPool;
 
   public:
     QueryConfig();

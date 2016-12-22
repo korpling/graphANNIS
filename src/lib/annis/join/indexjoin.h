@@ -48,7 +48,7 @@ private:
   const size_t lhsIdx;
   const unsigned maxNumfOfTasks;
 
-  std::shared_ptr<ThreadPool> threadPool;
+  std::shared_ptr<ThreadPool> workerPool;
 
   std::list<std::future<std::list<MatchPair>>> taskBuffer;
   size_t taskBufferSize;

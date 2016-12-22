@@ -52,7 +52,6 @@ public:
   void addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool forceNestedLoop = false);
   
   bool next();
-  
   const std::vector<Match>& getCurrent() { return currentResult;}
   
   std::shared_ptr<const Plan> getBestPlan();
@@ -80,8 +79,6 @@ private:
       return (o1.originalOrder < o2.originalOrder);
     }
   } compare_opentry_origorder;
-
-  std::shared_ptr<ThreadPool> threadPool;
 
 private:
   void internalInit();

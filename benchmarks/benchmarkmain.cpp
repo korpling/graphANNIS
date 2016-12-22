@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
         {
           QueryConfig config;
 
-          config.numOfParallelTasks = i;
+          config.threadPool = std::make_shared<ThreadPool>(i);
           benchmark.registerFixture("Jobs_" + std::to_string(i), config);
         }
 
