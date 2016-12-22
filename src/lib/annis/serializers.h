@@ -157,8 +157,6 @@ namespace cereal
     // The stored map is already sorted and unique and  we can use this to save
     // search time when inserting the elments to the flat map.
 
-    using type=typename boost::container::flat_map<KeyType, ValueType>::value_type;
-
     size_type count;
     ar( make_size_tag( count ) );
 
@@ -197,8 +195,6 @@ namespace cereal
     // This is an adaption of the original load function with a sorted buffer.
     // The stored multimap is already sorted and  we can use this to save
     // search time when inserting the elments to the flat multimap.
-
-    using type=typename boost::container::flat_multimap<KeyType, ValueType>::value_type;
 
     size_type count;
     ar( make_size_tag( count ) );

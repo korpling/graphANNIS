@@ -11,7 +11,7 @@ NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const Rea
    wrappedNodeCountEstimate(wrappedNodeCountEstimate),
    debugDescription(debugDescription + " _edgeanno_")
 {
-  for(int i=0; i < gs.size(); i++)
+  for(size_t i=0; i < gs.size(); i++)
   {
     for(const Annotation& anno : validEdgeAnnos)
     {
