@@ -2,7 +2,7 @@
 
 #include <map>
 #include <memory>
-#include <ThreadPool.h>
+#include <annis/util/threadpool.h>
 
 #include <annis/types.h>
 

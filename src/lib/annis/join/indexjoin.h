@@ -11,7 +11,7 @@
 
 #include <list>
 
-#include <ThreadPool.h>
+#include <annis/util/threadpool.h>
 
 
 namespace annis

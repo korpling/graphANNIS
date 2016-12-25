@@ -59,7 +59,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIRS}
   "ext/cereal-1.2.1/include"
-  "ext/ThreadPool"
+  "ext/concurrentqueue-master"
 )
 
 # make sure QtCreator shows the include files
@@ -100,6 +100,7 @@ set(IncludeFiles
   src/lib/annis/util/dfs.h
   src/lib/annis/util/size_estimator.h
   src/lib/annis/util/comparefunctions.h
+  src/lib/annis/util/threadpool.h
   src/lib/annis/query.h
   src/lib/annis/join/seed.h
   src/lib/annis/join/nestedloop.h
@@ -140,6 +141,7 @@ set(SRC_LIST_LIB
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
+  src/lib/annis/util/threadpool.cpp
   src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
