@@ -27,10 +27,8 @@ public:
 
     {
       std::lock_guard<std::mutex> lock(mutex_tasks);
-      if(!tasksClosed)
-      {
-        tasks.emplace_back([newTask](){ (*newTask)(); });
-      }
+      tasks.emplace_back([newTask](){ (*newTask)(); });
+
     }
     cond_tasks.notify_one();
 
