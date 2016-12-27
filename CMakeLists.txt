@@ -59,7 +59,6 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIRS}
   "ext/cereal-1.2.1/include"
-  "ext/concurrentqueue-master"
 )
 
 # make sure QtCreator shows the include files

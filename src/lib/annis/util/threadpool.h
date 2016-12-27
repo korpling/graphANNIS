@@ -2,19 +2,12 @@
 
 #include <thread>
 #include <future>
+#include <list>
 #include <vector>
-
-#include <thread>
-#include <atomic>
-
-#include <concurrentqueue.h>
 
 namespace annis
 {
 
-/**
- *  Thread pool implementation using a lock-free queue for the tasks.
- */
 class ThreadPool
 {
 public:
@@ -26,21 +19,20 @@ public:
   {
     using return_type = typename std::result_of<F(Args...)>::type;
 
-    auto task = std::make_shared< std::packaged_task<return_type()> >(
+    auto newTask = std::make_shared< std::packaged_task<return_type()> >(
                 std::bind(std::forward<F>(f), std::forward<Args>(args)...)
     );
 
-    std::future<return_type> res = task->get_future();
-
-    if(!stopped)
-    {
-      tasks.enqueue([task](){ (*task)(); });
-    }
+    std::future<return_type> res = newTask->get_future();
 
     {
-      std::lock_guard<std::mutex> lock(mutex_Global);
-      cond_NewItem.notify_one();
+      std::lock_guard<std::mutex> lock(mutex_tasks);
+      if(!tasksClosed)
+      {
+        tasks.emplace_back([newTask](){ (*newTask)(); });
+      }
     }
+    cond_tasks.notify_one();
 
     return res;
   }
@@ -49,12 +41,14 @@ public:
 
 private:
 
-  std::atomic_bool stopped;
+  bool tasksClosed;
+  std::list<std::function<void()>> tasks;
+  std::mutex mutex_tasks;
+  std::condition_variable cond_tasks;
+
 
   std::vector<std::thread> worker;
-  moodycamel::ConcurrentQueue<std::function<void()>> tasks;
 
-  std::mutex mutex_Global;
-  std::condition_variable cond_NewItem;
+
 };
 } // end namespace annis

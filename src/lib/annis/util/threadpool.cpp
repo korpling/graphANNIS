@@ -3,7 +3,7 @@
 using namespace annis;
 
 ThreadPool::ThreadPool(size_t numOfThreads)
-  : stopped(false), tasks(128)
+  : tasksClosed(false)
 {
   worker.reserve(numOfThreads);
 
@@ -13,21 +13,29 @@ ThreadPool::ThreadPool(size_t numOfThreads)
     {
 
       std::function<void()> f;
-      while(!this->stopped)
+      while(true)
       {
-        // test if there is a new task available
-        while(!this->stopped && this->tasks.try_dequeue(f))
+        // test if there is a new task available or if the task list was closed
         {
-          // execute this task
-          f();
-        }
+          std::unique_lock<std::mutex> lock(this->mutex_tasks);
 
-        // wait until a new task is available before trying again
-        {
-          std::unique_lock<std::mutex> lock(mutex_Global);
-          cond_NewItem.wait(lock);
+          // only wait if the task list is empty right now
+          if(!this->tasksClosed && this->tasks.empty())
+          {
+            this->cond_tasks.wait(lock, [this] {return this->tasksClosed || !this->tasks.empty();});
+          }
+          if(this->tasksClosed)
+          {
+            return;
+          }
+
+
+          f = std::move(this->tasks.front());
+          this->tasks.pop_front();
         }
-      } // end while not stopped
+        f();
+
+      }
     });
   }
 }
@@ -35,11 +43,12 @@ ThreadPool::ThreadPool(size_t numOfThreads)
 annis::ThreadPool::~ThreadPool()
 {
   {
-    // wait until everyone is waiting
-    std::lock_guard<std::mutex> lock(mutex_Global);
-    stopped = true;
+    std::lock_guard<std::mutex> lock(mutex_tasks);
+    tasksClosed = true;
+    tasks.clear();
+
+    cond_tasks.notify_all();
   }
-  cond_NewItem.notify_all();
 
   // make sure each thread is actually finished
   for(size_t i=0; i < worker.size(); i++)
