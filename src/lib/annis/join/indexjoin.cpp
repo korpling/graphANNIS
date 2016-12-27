@@ -82,7 +82,7 @@ void IndexJoin::reset()
 }
 
 
-void IndexJoin::fillTaskBuffer()
+bool IndexJoin::fillTaskBuffer()
 {
   std::vector<Match> currentLHS;
   while(taskBufferSize < maxNumfOfTasks && lhs->next(currentLHS))
@@ -98,22 +98,17 @@ void IndexJoin::fillTaskBuffer()
     }
     taskBufferSize++;
   }
+
+  return !taskBuffer.empty();
 }
 
 bool IndexJoin::nextMatchBuffer()
 {
-  // make sure the task buffer is filled
-  fillTaskBuffer();
-
-  while(!taskBuffer.empty())
+  while(fillTaskBuffer())
   {
-    taskBuffer.front().wait();
     matchBuffer = std::move(taskBuffer.front().get());
     taskBuffer.pop_front();
     taskBufferSize--;
-
-    // re-fill the task buffer with a new task
-    fillTaskBuffer();
 
     // if there is a non empty result return true, otherwise try more entries of the task buffer
     if(!matchBuffer.empty())
@@ -122,7 +117,7 @@ bool IndexJoin::nextMatchBuffer()
     }
   }
 
-  // task buffer is empty and we can't fill it any more
+  // return false if there is no more value to fetch from the task buffer.
   return false;
 }
 

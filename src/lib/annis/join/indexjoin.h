@@ -30,7 +30,6 @@ public:
     Match rhs;
   };
 
-
 public:
   IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
             std::shared_ptr<Operator> op,
@@ -57,7 +56,7 @@ private:
   std::function<std::list<MatchPair>(std::vector<Match>)> taskBufferGenerator;
 
 private:
-  void fillTaskBuffer();
+  bool fillTaskBuffer();
   bool nextMatchBuffer();
 };
 }
