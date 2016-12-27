@@ -179,7 +179,7 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
       std::shared_ptr<ExecutionNode> execRight = component2exec[componentRight];
       
       std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, e.forceNestedLoop, config.avoidNestedBySwitch, config.threadPool);
+          execLeft, execRight, db, e.forceNestedLoop, config.avoidNestedBySwitch, config.useSeedJoin, config.threadPool);
       updateComponentForNodes(node2component, componentLeft, joinExec->componentNr);
       updateComponentForNodes(node2component, componentRight, joinExec->componentNr);
       component2exec[joinExec->componentNr] = joinExec;      

@@ -181,6 +181,39 @@ COUNT_BENCH(UsedTo, 6)
 COUNT_BENCH(UsedTo, 7)
 COUNT_BENCH(UsedTo, 8)
 
+BASELINE_F(JoinImpl, SeedJoin, GUMFixture, 0, 0)
+{
+  QueryConfig conf;
+  conf.useSeedJoin = true;
+  conf.threadPool = nullptr;
+  std::shared_ptr<Query> q = query_PosDepPos(conf);
+
+  int counter=0;
+  while(q->next()) {
+    counter++;
+  }
+  if(counter != count_PosDepPos)
+  {
+    throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_PosDepPos);
+  }
+}
+
+BENCHMARK_F(JoinImpl, IndexJoin, GUMFixture, 0, 0)
+{
+  QueryConfig conf;
+  conf.useSeedJoin = false;
+  conf.threadPool = nullptr;
+  std::shared_ptr<Query> q = query_PosDepPos(conf);
+
+  int counter=0;
+  while(q->next()) {
+    counter++;
+  }
+  if(counter != count_PosDepPos)
+  {
+    throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_PosDepPos);
+  }
+}
 
 BASELINE(CreateThreadPool, N1, 0, 0)
 {

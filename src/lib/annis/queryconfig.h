@@ -14,6 +14,8 @@ namespace annis
     bool forceFallback;
     bool avoidNestedBySwitch;
 
+    bool useSeedJoin;
+
     std::map<Component, std::string> overrideImpl;
     std::shared_ptr<ThreadPool> threadPool;
 

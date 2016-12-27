@@ -80,6 +80,7 @@ public:
     const DB& db,
     bool forceNestedLoop,
     bool avoidNestedBySwitch,
+    bool useSeedJoin,
     std::shared_ptr<ThreadPool> threadPool);
   
   std::string debugString() const;

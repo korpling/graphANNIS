@@ -40,7 +40,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     std::shared_ptr<ExecutionNode> lhs, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
-    bool avoidNestedBySwitch, std::shared_ptr<ThreadPool> threadPool)
+    bool avoidNestedBySwitch, bool useSeedJoin, std::shared_ptr<ThreadPool> threadPool)
 {
   
   ExecutionNodeType type = ExecutionNodeType::nested_loop;
@@ -109,17 +109,30 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     if(keySearch)
     {
 
-      join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationKeySearchFilter(db, keySearch), 128, threadPool);
-//      join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
-//        mappedPosLHS->second,
-//        keySearch->getValidAnnotationKeys());
+      if(useSeedJoin)
+      {
+        join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
+          mappedPosLHS->second,
+          keySearch->getValidAnnotationKeys());
+      }
+      else
+      {
+        join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationKeySearchFilter(db, keySearch), 128, threadPool);
+      }
     }
     else if(annoSearch)
     {
-      join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationSearchFilter(db, annoSearch), 128, threadPool);
-//      join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
-//        mappedPosLHS->second,
-//        annoSearch->getValidAnnotations());
+      if(useSeedJoin)
+      {
+        join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
+          mappedPosLHS->second,
+              annoSearch->getValidAnnotations());
+      }
+      else
+      {
+        join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationSearchFilter(db, annoSearch), 128, threadPool);
+      }
+
     }
     else
     {
