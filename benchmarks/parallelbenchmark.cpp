@@ -181,10 +181,10 @@ COUNT_BENCH(UsedTo, 6)
 COUNT_BENCH(UsedTo, 7)
 COUNT_BENCH(UsedTo, 8)
 
-BASELINE_F(JoinImpl, SeedJoin, GUMFixture, 0, 0)
+BASELINE_F(NonParallelJoinImpl, SeedJoin, GUMFixture, 0, 0)
 {
   QueryConfig conf;
-  conf.useSeedJoin = true;
+  conf.nonParallelJoinImpl = NonParallelJoin::seed;
   conf.threadPool = nullptr;
   std::shared_ptr<Query> q = query_PosDepPos(conf);
 
@@ -198,10 +198,10 @@ BASELINE_F(JoinImpl, SeedJoin, GUMFixture, 0, 0)
   }
 }
 
-BENCHMARK_F(JoinImpl, IndexJoin, GUMFixture, 0, 0)
+BENCHMARK_F(NonParallelJoinImpl, IndexJoin, GUMFixture, 0, 0)
 {
   QueryConfig conf;
-  conf.useSeedJoin = false;
+  conf.nonParallelJoinImpl = NonParallelJoin::index;
   conf.threadPool = nullptr;
   std::shared_ptr<Query> q = query_PosDepPos(conf);
 

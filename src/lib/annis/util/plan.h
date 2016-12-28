@@ -11,6 +11,7 @@
 #include <annis/iterators.h>
 #include <annis/operators/operator.h>
 #include <annis/annosearch/annotationsearch.h>
+#include <annis/queryconfig.h>
 #include <memory>
 #include <vector>
 #include <map>
@@ -73,15 +74,12 @@ public:
   bool executeStep(std::vector<Match>& result);
   double getCost();
   
-  static std::shared_ptr<ExecutionNode> join(
-    std::shared_ptr<Operator> op, 
+  static std::shared_ptr<ExecutionNode> join(std::shared_ptr<Operator> op,
     size_t lhsNode, size_t rhsNode,
     std::shared_ptr<ExecutionNode>, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
-    bool avoidNestedBySwitch,
-    bool useSeedJoin,
-    std::shared_ptr<ThreadPool> threadPool);
+    QueryConfig config);
   
   std::string debugString() const;
   

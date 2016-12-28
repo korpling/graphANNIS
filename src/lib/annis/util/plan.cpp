@@ -41,7 +41,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     std::shared_ptr<ExecutionNode> lhs, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
-    bool avoidNestedBySwitch, bool useSeedJoin, std::shared_ptr<ThreadPool> threadPool)
+    QueryConfig config)
 {
   
   ExecutionNodeType type = ExecutionNodeType::nested_loop;
@@ -54,7 +54,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     // if the right side is not another join we can use a seed join
     type = ExecutionNodeType::seed;
   }
-  else if(avoidNestedBySwitch && !forceNestedLoop
+  else if(config.avoidNestedBySwitch && !forceNestedLoop
     && op->isCommutative()
     && lhs->type == ExecutionNodeType::base)
   {
@@ -109,8 +109,12 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
 
     if(keySearch)
     {
-
-      if(useSeedJoin)
+      if(config.threadPool)
+      {
+        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
+                                               createAnnotationKeySearchFilter(db, keySearch), 128, config.threadPool);
+      }
+      else if(config.nonParallelJoinImpl == NonParallelJoin::seed)
       {
         join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
           mappedPosLHS->second,
@@ -125,7 +129,12 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     }
     else if(annoSearch)
     {
-      if(useSeedJoin)
+      if(config.threadPool)
+      {
+        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
+                                               createAnnotationSearchFilter(db, annoSearch), 128, config.threadPool);
+      }
+      else if(config.nonParallelJoinImpl == NonParallelJoin::seed)
       {
         join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
           mappedPosLHS->second,

@@ -3,7 +3,7 @@
 #include <thread>
 
 annis::QueryConfig::QueryConfig()
-  : optimize(true), forceFallback(false), avoidNestedBySwitch(true), useSeedJoin(false) , threadPool(nullptr)
+  : optimize(true), forceFallback(false), avoidNestedBySwitch(true), nonParallelJoinImpl(NonParallelJoin::index) , threadPool(nullptr)
 
 {
   size_t numOfCPUs = std::thread::hardware_concurrency();

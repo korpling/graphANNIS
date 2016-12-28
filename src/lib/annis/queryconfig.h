@@ -8,13 +8,17 @@
 
 namespace annis
 {
+
+  enum class NonParallelJoin {index, seed};
+  enum class ParallelJoin {task, thread};
+
   struct QueryConfig
   {
     bool optimize;
     bool forceFallback;
     bool avoidNestedBySwitch;
 
-    bool useSeedJoin;
+    NonParallelJoin nonParallelJoinImpl;
 
     std::map<Component, std::string> overrideImpl;
     std::shared_ptr<ThreadPool> threadPool;
