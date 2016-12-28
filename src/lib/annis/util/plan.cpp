@@ -102,53 +102,40 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       rightIt = constWrapper->getDelegate();
     }
 
-    std::shared_ptr<AnnotationKeySearch> keySearch =
-        std::dynamic_pointer_cast<AnnotationKeySearch>(rightIt);
-    std::shared_ptr<AnnotationSearch> annoSearch =
-        std::dynamic_pointer_cast<AnnotationSearch>(rightIt);
+    std::shared_ptr<EstimatedSearch> estSearch =
+        std::dynamic_pointer_cast<EstimatedSearch>(rightIt);
 
-    if(keySearch)
+    if(estSearch && config.threadPool)
     {
-      if(config.threadPool)
-      {
-        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
-                                               createAnnotationKeySearchFilter(db, keySearch), 128, config.threadPool);
-      }
-      else if(config.nonParallelJoinImpl == NonParallelJoin::seed)
+      join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
+                                             createSearchFilter(db, estSearch), 128, config.threadPool);
+    }
+    else if(estSearch && config.nonParallelJoinImpl == NonParallelJoin::index)
+    {
+      join = std::make_shared<IndexJoin>(db, op, lhs->join,
+                                         mappedPosLHS->second,
+                                         createSearchFilter(db, estSearch),
+                                         searchFilterReturnsMaximalOneAnno(estSearch));
+    }
+    else if(estSearch && config.nonParallelJoinImpl == NonParallelJoin::seed)
+    {
+      std::shared_ptr<AnnotationKeySearch> keySearch =
+          std::dynamic_pointer_cast<AnnotationKeySearch>(estSearch);
+      std::shared_ptr<AnnotationSearch> annoSearch =
+          std::dynamic_pointer_cast<AnnotationSearch>(estSearch);
+
+      if(keySearch)
       {
         join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
           mappedPosLHS->second,
           keySearch->getValidAnnotationKeys());
       }
-      else
-      {
-        join = std::make_shared<IndexJoin>(db, op, lhs->join,
-                                           mappedPosLHS->second,
-                                           createAnnotationKeySearchFilter(db, keySearch),
-                                           searchFilterReturnsMaximalOneAnno(keySearch));
-      }
-    }
-    else if(annoSearch)
-    {
-      if(config.threadPool)
-      {
-        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
-                                               createAnnotationSearchFilter(db, annoSearch), 128, config.threadPool);
-      }
-      else if(config.nonParallelJoinImpl == NonParallelJoin::seed)
+      else if(annoSearch)
       {
         join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
           mappedPosLHS->second,
               annoSearch->getValidAnnotations());
       }
-      else
-      {
-        join = std::make_shared<IndexJoin>(db, op, lhs->join,
-                                           mappedPosLHS->second,
-                                           createAnnotationSearchFilter(db, annoSearch),
-                                           searchFilterReturnsMaximalOneAnno(annoSearch));
-      }
-
     }
     else
     {
