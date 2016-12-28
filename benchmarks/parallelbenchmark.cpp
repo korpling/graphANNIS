@@ -65,21 +65,20 @@ class GUMFixture : public celero::TestFixture
           }
           db.load(dataDir + "/GUM", true);
 
-          configs.resize(9);
+          taskConfigs.resize(9);
+          threadConfigs.resize(9);
 
-          for(int64_t i=0; i <= 8; i++)
+          for(int64_t i=1; i <= 8; i++)
           {
-            QueryConfig c;
+            QueryConfig taskCfg;
+            taskCfg.threadPool = std::make_shared<ThreadPool>(i);
+            taskCfg.numOfBackgroundTasks = 0;
 
-            if(i > 0)
-            {
-              c.threadPool = std::make_shared<ThreadPool>(i);
-            }
-            else
-            {
-              c.threadPool = nullptr;
-            }
-            configs[i] = c;
+            QueryConfig threadCfg;
+            threadCfg.numOfBackgroundTasks = i;
+
+            taskConfigs[i] = taskCfg;
+            threadConfigs[i] = threadCfg;
           }
         }
 
@@ -110,7 +109,9 @@ class GUMFixture : public celero::TestFixture
         }
 
         DB db;
-        std::vector<QueryConfig> configs;
+        QueryConfig nonParallelConfig;
+        std::vector<QueryConfig> threadConfigs;
+        std::vector<QueryConfig> taskConfigs;
 
         const int count_PosDepPos;
         const int count_UsedTo;
@@ -119,9 +120,9 @@ class GUMFixture : public celero::TestFixture
 };
 
 
-BASELINE_F(PosDepPos, N0, GUMFixture, 0, 0)
+BASELINE_F(PosDepPos, NonParallel, GUMFixture, 0, 0)
 {
-  std::shared_ptr<Query> q = query_PosDepPos(configs[0]);
+  std::shared_ptr<Query> q = query_PosDepPos(nonParallelConfig);
 
   int counter=0;
   while(q->next()) {
@@ -133,9 +134,9 @@ BASELINE_F(PosDepPos, N0, GUMFixture, 0, 0)
   }
 }
 
-BASELINE_F(UsedTo, N0, GUMFixture, 0, 0)
+BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
 {
-  std::shared_ptr<Query> q = query_UsedTo(configs[0]);
+  std::shared_ptr<Query> q = query_UsedTo(nonParallelConfig);
 
   int counter=0;
   while(q->next()) {
@@ -150,9 +151,21 @@ BASELINE_F(UsedTo, N0, GUMFixture, 0, 0)
 
 
 #define COUNT_BENCH(group, idx) \
-  BENCHMARK_F(group, N##idx, GUMFixture, 0, 0) \
+  BENCHMARK_F(group, Thread_##idx, GUMFixture, 0, 0) \
   { \
-    std::shared_ptr<Query> q = query_##group(configs[idx]);\
+    std::shared_ptr<Query> q = query_##group(threadConfigs[idx]);\
+    int counter=0; \
+    while(q->next()) { \
+      counter++; \
+    } \
+    if(counter != count_##group)\
+    {\
+      throw "Invalid count for N##idx, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
+    }\
+  } \
+  BENCHMARK_F(group, Task_##idx, GUMFixture, 0, 0) \
+  { \
+    std::shared_ptr<Query> q = query_##group(taskConfigs[idx]);\
     int counter=0; \
     while(q->next()) { \
       counter++; \
@@ -199,7 +212,7 @@ BASELINE_F(JoinImpl, IndexJoin, GUMFixture, 0, 0)
 
 BENCHMARK_F(JoinImpl, TaskIndexJoin, GUMFixture, 0, 0)
 {
-  std::shared_ptr<Query> q = query_PosDepPos(configs[1]);
+  std::shared_ptr<Query> q = query_PosDepPos(taskConfigs[1]);
 
   int counter=0;
   while(q->next()) {
