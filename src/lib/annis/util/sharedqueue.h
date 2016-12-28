@@ -3,7 +3,8 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-#include <limits>
+
+#include <boost/circular_buffer.hpp>
 
 namespace annis
 {
@@ -20,8 +21,8 @@ namespace annis
   {
   public:
 
-    SharedQueue(size_t capacity = std::numeric_limits<size_t>::max())
-    : capacity(capacity), isShutdown(false)
+    SharedQueue(size_t capacity = 128)
+    :  isShutdown(false), queue(capacity), availableElements(0)
     {
 
     }
@@ -35,7 +36,7 @@ namespace annis
     bool pop(T& item)
     {
       std::unique_lock<std::mutex> lock(queueMutex);
-      while(queue.empty())
+      while(availableElements == 0)
       {
         if(isShutdown)
         {
@@ -48,8 +49,7 @@ namespace annis
         }
       }
 
-      item = std::move(queue.front());
-      queue.pop();
+      item = queue[--availableElements];
 
       lock.unlock();
       // make sure a waiting push() is notified that there is now some capacity left
@@ -62,7 +62,7 @@ namespace annis
     {
       std::unique_lock<std::mutex> lock(queueMutex);
 
-      while(!isShutdown && queue.size() >= capacity)
+      while(!isShutdown && availableElements >= queue.capacity())
       {
         // wait until someone deleted something
         removedCondition.wait(lock);
@@ -70,7 +70,9 @@ namespace annis
 
       if(!isShutdown)
       {
-        queue.emplace(item);
+        queue.push_front(item);
+        availableElements++;
+
         lock.unlock();
         addedCondition.notify_one();
       }
@@ -91,10 +93,10 @@ namespace annis
 
   private:
 
-    const size_t capacity;
     bool isShutdown;
+    size_t availableElements;
 
-    std::queue<T> queue;
+    boost::circular_buffer<T> queue;
 
     std::mutex queueMutex;
     std::condition_variable addedCondition;
