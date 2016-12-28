@@ -44,34 +44,35 @@ namespace annis
         }
         else
         {
-          changeCondition.wait(lock);
+          addedCondition.wait(lock);
         }
       }
-      item = queue.front();
+
+      item = std::move(queue.front());
       queue.pop();
 
       lock.unlock();
-      // make sure everone knows that the queue has changed
-      changeCondition.notify_all();
+      // make sure a waiting push() is notified that there is now some capacity left
+      removedCondition.notify_one();
 
       return true;
     }
 
-    void push(const T& item)
+    void push(T&& item)
     {
       std::unique_lock<std::mutex> lock(queueMutex);
 
       while(!isShutdown && queue.size() >= capacity)
       {
-        // wait until someone change something that could change the queue size
-        changeCondition.wait(lock);
+        // wait until someone deleted something
+        removedCondition.wait(lock);
       }
 
       if(!isShutdown)
       {
-        queue.push(item);
+        queue.emplace(item);
         lock.unlock();
-        changeCondition.notify_all();
+        addedCondition.notify_one();
       }
     }
 
@@ -82,7 +83,8 @@ namespace annis
       {
         isShutdown = true;
         lock.unlock();
-        changeCondition.notify_all();
+        addedCondition.notify_all();
+        removedCondition.notify_all();
       }
     }
 
@@ -95,7 +97,8 @@ namespace annis
     std::queue<T> queue;
 
     std::mutex queueMutex;
-    std::condition_variable changeCondition;
+    std::condition_variable addedCondition;
+    std::condition_variable removedCondition;
 
   };
 }

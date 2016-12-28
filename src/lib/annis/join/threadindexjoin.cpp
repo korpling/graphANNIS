@@ -44,7 +44,7 @@ ThreadIndexJoin::ThreadIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
               tuple.insert(tuple.end(), currentLHSVector.begin(), currentLHSVector.end());
               tuple.push_back({rhsCandidateNode.node, currentRHSAnno});
 
-              this->results->push(tuple);
+              this->results->push(std::move(tuple));
             }
           }
         }
