@@ -10,8 +10,9 @@ using namespace annis;
 ThreadIndexJoin::ThreadIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
                      std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc,
-                     size_t numOfThreads)
-  : lhs(lhs), op(op), runBackgroundThreads(false), activeBackgroundTasks(0), numOfThreads(numOfThreads)
+                     size_t numOfTasks, std::shared_ptr<ThreadPool> threadPool)
+  : lhs(lhs), op(op), runBackgroundThreads(false), activeBackgroundTasks(0), numOfTasks(numOfTasks),
+    threadPool(threadPool)
 {
 
   results = std::unique_ptr<SharedQueue<std::vector<Match>>>(new SharedQueue<std::vector<Match>>());
@@ -64,7 +65,7 @@ ThreadIndexJoin::ThreadIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
   };
 }
 
-bool ThreadIndexJoin::next(std::vector<Match> &tuple)
+bool ThreadIndexJoin::next(std::vector<Match>& tuple)
 {
   if(!runBackgroundThreads)
   {
@@ -75,12 +76,17 @@ bool ThreadIndexJoin::next(std::vector<Match> &tuple)
       // thread will trigger a shutdown.
       {
         std::lock_guard<std::mutex> lock(mutex_activeBackgroundTasks);
-        activeBackgroundTasks = numOfThreads;
+        activeBackgroundTasks = numOfTasks;
       }
-      backgroundThreads.reserve(numOfThreads);
-      for(size_t i=0; i < numOfThreads; i++)
+
+      if(!threadPool)
       {
-        backgroundThreads.emplace_back(lhsFetchLoop);
+        threadPool = std::make_shared<ThreadPool>(numOfTasks);
+      }
+
+      for(size_t i=0; i < numOfTasks; i++)
+      {
+        threadPool->enqueue(lhsFetchLoop);
       }
     }
   }
@@ -94,14 +100,6 @@ bool ThreadIndexJoin::next(std::vector<Match> &tuple)
 void ThreadIndexJoin::reset()
 {
   runBackgroundThreads = false;
-  for(size_t i=0; i < backgroundThreads.size(); i++)
-  {
-    if(backgroundThreads[i].joinable())
-    {
-      backgroundThreads[i].join();
-    }
-  }
-  backgroundThreads.clear();
   if(results)
   {
     results->shutdown();
@@ -112,12 +110,5 @@ void ThreadIndexJoin::reset()
 ThreadIndexJoin::~ThreadIndexJoin()
 {
   runBackgroundThreads = false;
-  for(size_t i=0; i < backgroundThreads.size(); i++)
-  {
-    if(backgroundThreads[i].joinable())
-    {
-      backgroundThreads[i].join();
-    }
-  }
 }
 

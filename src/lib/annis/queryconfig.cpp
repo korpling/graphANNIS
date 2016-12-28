@@ -11,5 +11,6 @@ annis::QueryConfig::QueryConfig()
   if(numOfCPUs > 0)
   {
     numOfBackgroundTasks = numOfCPUs-1;
+    threadPool = std::make_shared<ThreadPool>(numOfBackgroundTasks);
   }
 }

@@ -80,7 +80,7 @@ public:
   bool executeStep(std::vector<Match>& result);
   double getCost();
 
-  void optimizeParallelization(const DB &db, size_t numfOfBackgroundTasks);
+  void optimizeParallelization(const DB &db, QueryConfig config);
   
   static std::shared_ptr<ExecutionNode> join(std::shared_ptr<Operator> op,
     size_t lhsNodeNr, size_t rhsNodeNr,

@@ -192,9 +192,9 @@ double Plan::getCost()
   return static_cast<double>(estimateTupleSize(root)->intermediateSum);
 }
 
-void Plan::optimizeParallelization(const DB &db, size_t numfOfBackgroundTasks)
+void Plan::optimizeParallelization(const DB &db, QueryConfig config)
 {
-  for(size_t available = numfOfBackgroundTasks; available > 0; available--)
+  for(size_t available = config.numOfBackgroundTasks; available > 0; available--)
   {
     bool replaced = false;
 
@@ -222,7 +222,8 @@ void Plan::optimizeParallelization(const DB &db, size_t numfOfBackgroundTasks)
           // replace the join with a parallel one
           node->numOfBackgroundTasks++;
           node->join = std::make_shared<ThreadIndexJoin>(node->lhs->join, mappedPosLHS->second, node->op,
-                                                         createSearchFilter(db, estSearch), node->numOfBackgroundTasks);
+                                                         createSearchFilter(db, estSearch), node->numOfBackgroundTasks,
+                                                         config.threadPool);
 
           replaced = true;
         }

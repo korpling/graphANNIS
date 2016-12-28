@@ -270,9 +270,9 @@ void Query::internalInit()
       bestPlan->getCost();
     }
 
-    if(!config.threadPool && config.numOfBackgroundTasks > 0)
+    if(config.numOfBackgroundTasks > 0)
     {
-      bestPlan->optimizeParallelization(db, config.numOfBackgroundTasks);
+      bestPlan->optimizeParallelization(db, config);
     }
   }
   else
