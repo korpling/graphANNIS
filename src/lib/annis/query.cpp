@@ -144,8 +144,8 @@ std::shared_ptr<const Plan> Query::getBestPlan()
 }
 
 
-std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, 
-  const std::vector<OperatorEntry>& operators) 
+std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes,
+  const std::vector<OperatorEntry>& operators)
 {
   std::map<nodeid_t, size_t> node2component;
   std::map<size_t, std::shared_ptr<ExecutionNode>> component2exec;
@@ -166,8 +166,9 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
   const size_t numOfNodes = i;
   
   // 2. add the operators which produce the results
-  for(auto& e : operators)
+  for(size_t operatorIdx=0; operatorIdx < operators.size(); operatorIdx++)
   {
+    auto& e = operators[operatorIdx];
     if(e.idxLeft < numOfNodes && e.idxRight < numOfNodes)
     {
       
@@ -176,10 +177,9 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
       
       std::shared_ptr<ExecutionNode> execLeft = component2exec[componentLeft];
       std::shared_ptr<ExecutionNode> execRight = component2exec[componentRight];
-      
-      // TODO: set the numOfBackgroundTasks to an optimal value
+
       std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, e.forceNestedLoop, 0, config);
+          execLeft, execRight, db, e.forceNestedLoop, config);
       updateComponentForNodes(node2component, componentLeft, joinExec->componentNr);
       updateComponentForNodes(node2component, componentRight, joinExec->componentNr);
       component2exec[joinExec->componentNr] = joinExec;      
@@ -268,6 +268,11 @@ void Query::internalInit()
       bestPlan = createPlan(nodes, operators);
       // still get the cost so the estimates are calculated
       bestPlan->getCost();
+    }
+
+    if(!config.threadPool && config.numOfBackgroundTasks > 0)
+    {
+      bestPlan->optimizeParallelization(db, config.numOfBackgroundTasks);
     }
   }
   else
@@ -374,7 +379,6 @@ void Query::optimizeJoinOrderAllPermutations()
 //    std::cout << "-------------------------------" << std::endl;
   }
 }
-
 
 
 std::string Query::operatorOrderDebugString(const std::vector<OperatorEntry>& ops) 

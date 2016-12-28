@@ -34,15 +34,16 @@ enum ExecutionNodeType
 struct ExecutionEstimate
 {
   ExecutionEstimate()
-  : output(0), intermediateSum(0)
+  : output(0), intermediateSum(0), processedInStep(0)
   {}
   
-  ExecutionEstimate(std::uint64_t output, std::uint64_t intermediateSum)
-    : output(output), intermediateSum(intermediateSum)
+  ExecutionEstimate(std::uint64_t output, std::uint64_t intermediateSum, std::uint64_t processedInStep)
+    : output(output), intermediateSum(intermediateSum), processedInStep(processedInStep)
   {}
   
-  std::uint64_t output;
-  std::uint64_t intermediateSum;
+  const std::uint64_t output;
+  const std::uint64_t intermediateSum;
+  const std::uint64_t processedInStep;
 };
 
 struct ExecutionNode
@@ -53,10 +54,15 @@ struct ExecutionNode
   std::shared_ptr<Operator> op;
   std::map<size_t, size_t> nodePos;
   size_t componentNr;
+  /** Only valid for seed join types */
+  size_t numOfBackgroundTasks;
   
   std::shared_ptr<ExecutionNode> lhs;
   std::shared_ptr<ExecutionNode> rhs;
-  
+
+  size_t lhsNodeNr;
+  size_t rhsNodeNr;
+
   std::shared_ptr<ExecutionEstimate> estimate;
   
   std::string description;
@@ -73,13 +79,14 @@ public:
   
   bool executeStep(std::vector<Match>& result);
   double getCost();
+
+  void optimizeParallelization(const DB &db, size_t numfOfBackgroundTasks);
   
   static std::shared_ptr<ExecutionNode> join(std::shared_ptr<Operator> op,
-    size_t lhsNode, size_t rhsNode,
+    size_t lhsNodeNr, size_t rhsNodeNr,
     std::shared_ptr<ExecutionNode>, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
-    size_t numOfBackgroundTasks,
     QueryConfig config);
   
   std::string debugString() const;
@@ -110,6 +117,8 @@ private:
   static std::function<std::list<Annotation> (nodeid_t)> createAnnotationKeySearchFilter(
       const DB& db, std::shared_ptr<AnnotationKeySearch> annoKeySearch,
       boost::optional<Annotation> constAnno = boost::optional<Annotation>());
+
+  static std::pair<std::shared_ptr<ExecutionNode>, uint64_t> findLargestProcessedInStep(std::shared_ptr<ExecutionNode> node);
 };
 
 } // end namespace annis

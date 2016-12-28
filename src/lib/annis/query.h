@@ -83,7 +83,8 @@ private:
 private:
   void internalInit();
   
-  std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::vector<OperatorEntry>& operators);
+  std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes,
+                                   const std::vector<OperatorEntry>& operators);
   
   void optimizeOperandOrder();
 
@@ -91,7 +92,7 @@ private:
   
   void optimizeJoinOrderRandom();
   void optimizeJoinOrderAllPermutations();
-  
+
   void updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to);
   
   std::string operatorOrderDebugString(const std::vector<OperatorEntry>& ops);

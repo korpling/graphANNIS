@@ -37,11 +37,10 @@ Plan::Plan(const Plan& orig)
 }
 
 std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
-    size_t lhsNode, size_t rhsNode,
+    size_t lhsNodeNr, size_t rhsNodeNr,
     std::shared_ptr<ExecutionNode> lhs, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
-    size_t numOfBackgroundTasks,
     QueryConfig config)
 {
   
@@ -64,16 +63,16 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     lhs = rhs;
     rhs = tmp;
     
-    size_t tmpNodeID = lhsNode;
-    lhsNode = rhsNode;
-    rhsNode = tmpNodeID;
+    size_t tmpNodeID = lhsNodeNr;
+    lhsNodeNr = rhsNodeNr;
+    rhsNodeNr = tmpNodeID;
     
     type = ExecutionNodeType::seed;
   }
   
   std::shared_ptr<ExecutionNode> result = std::make_shared<ExecutionNode>();
-  auto mappedPosLHS = lhs->nodePos.find(lhsNode);
-  auto mappedPosRHS = rhs->nodePos.find(rhsNode);
+  auto mappedPosLHS = lhs->nodePos.find(lhsNodeNr);
+  auto mappedPosRHS = rhs->nodePos.find(rhsNodeNr);
   
   // make sure both source nodes are contained in the previous execution nodes
   if(mappedPosLHS == lhs->nodePos.end() || mappedPosRHS == rhs->nodePos.end())
@@ -93,6 +92,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   else if(type == ExecutionNodeType::seed)
   {
     result->type = ExecutionNodeType::seed;
+    result->numOfBackgroundTasks = 0;
       
     std::shared_ptr<Iterator> rightIt = rhs->join;
 
@@ -112,11 +112,6 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       {
         join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
                                                createSearchFilter(db, estSearch), 128, config.threadPool);
-      }
-      else if(numOfBackgroundTasks > 0)
-      {
-        join = std::make_shared<ThreadIndexJoin>(lhs->join, mappedPosLHS->second, op,
-                                                 createSearchFilter(db, estSearch), numOfBackgroundTasks);
       }
       else
       {
@@ -151,8 +146,10 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   result->op = op;
   result->componentNr = lhs->componentNr;
   result->lhs = lhs;
-  result->description =  "#" + std::to_string(lhsNode+1) + " " 
-    + op->description() + " #" + std::to_string(rhsNode+1);
+  result->lhsNodeNr = lhsNodeNr;
+  result->rhsNodeNr = rhsNodeNr;
+  result->description =  "#" + std::to_string(lhsNodeNr+1) + " "
+    + op->description() + " #" + std::to_string(rhsNodeNr+1);
   
   if(type != ExecutionNodeType::filter)
   {
@@ -195,7 +192,53 @@ double Plan::getCost()
   return static_cast<double>(estimateTupleSize(root)->intermediateSum);
 }
 
-  std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
+void Plan::optimizeParallelization(const DB &db, size_t numfOfBackgroundTasks)
+{
+  for(size_t available = numfOfBackgroundTasks; available > 0; available--)
+  {
+    bool replaced = false;
+
+    auto largest = findLargestProcessedInStep(root);
+    std::shared_ptr<ExecutionNode> node = largest.first;
+
+    if(node && node->lhs && node->rhs)
+    {
+      auto mappedPosLHS = node->lhs->nodePos.find(node->lhsNodeNr);
+      if(mappedPosLHS != node->lhs->nodePos.end())
+      {
+
+        std::shared_ptr<Iterator> rightIt = node->rhs->join;
+        std::shared_ptr<ConstAnnoWrapper> constWrapper =
+            std::dynamic_pointer_cast<ConstAnnoWrapper>(rightIt);
+        if(constWrapper)
+        {
+          rightIt = constWrapper->getDelegate();
+        }
+        std::shared_ptr<EstimatedSearch> estSearch =
+            std::dynamic_pointer_cast<EstimatedSearch>(rightIt);
+
+        if(estSearch)
+        {
+          // replace the join with a parallel one
+          node->numOfBackgroundTasks++;
+          node->join = std::make_shared<ThreadIndexJoin>(node->lhs->join, mappedPosLHS->second, node->op,
+                                                         createSearchFilter(db, estSearch), node->numOfBackgroundTasks);
+
+          replaced = true;
+        }
+      }
+    }
+
+    if(!replaced)
+    {
+      // something went wrong, don't try to optimize any further
+      break;
+    }
+  }
+
+}
+
+std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
 {
   static const std::uint64_t defaultBaseTuples = 100000;
   static const double defaultSelectivity = 0.1;
@@ -216,12 +259,12 @@ double Plan::getCost()
         std::int64_t guess = baseEstimate->guessMaxCount();
         if (guess >= 0)
         {
-          node->estimate = std::make_shared<ExecutionEstimate>((std::uint64_t) guess, 0);
+          node->estimate = std::make_shared<ExecutionEstimate>((std::uint64_t) guess, 0, 0);
           return node->estimate;
         } 
         else
         {
-          node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, 0);
+          node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, 0, 0);
           return node->estimate;
         }
       } 
@@ -290,7 +333,9 @@ double Plan::getCost()
 
         // return the output of this node and the sum of all intermediate results
         node->estimate = 
-          std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum + estRHS->intermediateSum);
+          std::make_shared<ExecutionEstimate>(outputSize,
+                                              processedInStep + estLHS->intermediateSum + estRHS->intermediateSum,
+                                              processedInStep);
         return node->estimate;
 
       }
@@ -310,7 +355,7 @@ double Plan::getCost()
        
         // return the output of this node and the sum of all intermediate results
         node->estimate = 
-          std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum);
+          std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum, processedInStep);
         return node->estimate;
 
       }
@@ -319,13 +364,13 @@ double Plan::getCost()
   else
   {
     // a non-existing node doesn't have any cost
-    node->estimate =  std::make_shared<ExecutionEstimate>(0, 0);
+    node->estimate =  std::make_shared<ExecutionEstimate>(0, 0, 0);
     return node->estimate;
   }
   
   // we don't know anything about this node, return some large estimate
   // TODO: use DB do get a number relative to the overall number of nodes/annotations
-  node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples);
+  node->estimate = std::make_shared<ExecutionEstimate>(defaultBaseTuples, defaultBaseTuples, defaultBaseTuples);
   return node->estimate;
 }
 
@@ -518,6 +563,41 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
   }
 }
 
+std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedInStep(std::shared_ptr<ExecutionNode> node)
+{
+
+  if(!node)
+  {
+    // nothing to find
+    return {std::shared_ptr<ExecutionNode>(), 0u};
+  }
+
+
+  auto largestLHS = findLargestProcessedInStep(node->lhs);
+  auto largestRHS = findLargestProcessedInStep(node->rhs);
+
+  auto result = largestLHS;
+  if(largestLHS.second < largestRHS.second)
+  {
+    result = largestRHS;
+  }
+
+  if(node->type == ExecutionNodeType::seed)
+  {
+    std::shared_ptr<ExecutionEstimate> estNode = estimateTupleSize(node);
+
+    // divide by the number of parallel processes
+    uint64_t processedInSeed = estNode->processedInStep / (node->numOfBackgroundTasks == 0 ? 1 : node->numOfBackgroundTasks);
+    if(result.second < processedInSeed)
+    {
+      result = {node, processedInSeed};
+    }
+  }
+
+  return result;
+
+}
+
 
 void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node) 
 {
@@ -549,7 +629,7 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
     return "";
   }
   
-  std::string result = indention + "(";
+  std::string result = indention + "+|";
   
   if(node->type == ExecutionNodeType::base)
   {
@@ -569,7 +649,7 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
   {
     result += typeToString(node->type);
   }
-  result += ")";
+  result += "|";
   
   if(!node->description.empty())
   {
@@ -582,12 +662,20 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
       + std::to_string((std::uint64_t) node->estimate->output) 
       + " sum: " 
       + std::to_string((std::uint64_t) node->estimate->intermediateSum) 
+      + " instep: "
+      + std::to_string((std::uint64_t) node->estimate->processedInStep)
       + "]";
   }
   if(node->op)
   {
-    result += "{sel: " + std::to_string(node->op->selectivity()) + "}";
+    result += "{sel: " + std::to_string(node->op->selectivity());
+    if(node->type == ExecutionNodeType::seed && node->numOfBackgroundTasks > 0)
+    {
+      result +=" tasks: " + std::to_string(node->numOfBackgroundTasks);
+    }
+    result += "}";
   }
+
   
   result += "\n";
   
