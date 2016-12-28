@@ -79,6 +79,7 @@ public:
     std::shared_ptr<ExecutionNode>, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
+    size_t numOfBackgroundTasks,
     QueryConfig config);
   
   std::string debugString() const;

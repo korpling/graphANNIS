@@ -99,10 +99,12 @@ set(IncludeFiles
   src/lib/annis/util/dfs.h
   src/lib/annis/util/size_estimator.h
   src/lib/annis/util/comparefunctions.h
+  src/lib/annis/util/sharedqueue.h
   src/lib/annis/util/threadpool.h
   src/lib/annis/query.h
   src/lib/annis/join/nestedloop.h
   src/lib/annis/join/taskindexjoin.h
+  src/lib/annis/join/threadindexjoin.h
   src/lib/annis/join/indexjoin.h
   src/lib/annis/annosearch/exactannovaluesearch.h
   src/lib/annis/annosearch/annotationsearch.h
@@ -140,11 +142,13 @@ set(SRC_LIST_LIB
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
+  src/lib/annis/util/sharedqueue.cpp
   src/lib/annis/util/threadpool.cpp
   src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
   src/lib/annis/join/taskindexjoin.cpp
+  src/lib/annis/join/threadindexjoin.cpp
   src/lib/annis/join/indexjoin.cpp
   src/lib/annis/annosearch/exactannokeysearch.cpp
   src/lib/annis/annosearch/exactannovaluesearch.cpp

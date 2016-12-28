@@ -20,6 +20,7 @@
 #include <annis/operators/operator.h>
 #include <annis/join/nestedloop.h>
 #include <annis/join/taskindexjoin.h>
+#include <annis/join/threadindexjoin.h>
 #include <annis/join/indexjoin.h>
 #include <annis/filter.h>
 
@@ -40,6 +41,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     std::shared_ptr<ExecutionNode> lhs, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
+    size_t numOfBackgroundTasks,
     QueryConfig config)
 {
   
@@ -110,6 +112,11 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       {
         join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
                                                createSearchFilter(db, estSearch), 128, config.threadPool);
+      }
+      else if(numOfBackgroundTasks > 0)
+      {
+        join = std::make_shared<ThreadIndexJoin>(lhs->join, mappedPosLHS->second, op,
+                                                 createSearchFilter(db, estSearch), numOfBackgroundTasks);
       }
       else
       {

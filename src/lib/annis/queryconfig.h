@@ -19,6 +19,8 @@ namespace annis
     bool avoidNestedBySwitch;
 
     std::map<Component, std::string> overrideImpl;
+
+    size_t numOfBackgroundTasks;
     std::shared_ptr<ThreadPool> threadPool;
 
   public:

@@ -177,8 +177,9 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
       std::shared_ptr<ExecutionNode> execLeft = component2exec[componentLeft];
       std::shared_ptr<ExecutionNode> execRight = component2exec[componentRight];
       
+      // TODO: set the numOfBackgroundTasks to an optimal value
       std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, e.forceNestedLoop, config);
+          execLeft, execRight, db, e.forceNestedLoop, 0, config);
       updateComponentForNodes(node2component, componentLeft, joinExec->componentNr);
       updateComponentForNodes(node2component, componentRight, joinExec->componentNr);
       component2exec[joinExec->componentNr] = joinExec;      
