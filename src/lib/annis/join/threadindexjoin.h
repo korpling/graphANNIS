@@ -49,7 +49,8 @@ private:
 
 
   std::atomic_bool runBackgroundThreads;
-  std::atomic_size_t activeBackgroundTasks;
+  size_t activeBackgroundTasks;
+  std::mutex mutex_activeBackgroundTasks;
   const size_t numOfThreads;
 
   std::unique_ptr<SharedQueue<std::vector<Match>>> results;

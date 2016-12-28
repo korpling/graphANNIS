@@ -50,12 +50,16 @@ ThreadIndexJoin::ThreadIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
         }
       }
     }
-    activeBackgroundTasks--;
 
-    if(activeBackgroundTasks == 0)
     {
-      // if this was the last background task shutdown the queue to message that there are no more results to fetch
-      this->results->shutdown();
+      std::lock_guard<std::mutex> lock(mutex_activeBackgroundTasks);
+      activeBackgroundTasks--;
+
+      if(activeBackgroundTasks == 0)
+      {
+        // if this was the last background task shutdown the queue to message that there are no more results to fetch
+        this->results->shutdown();
+      }
     }
   };
 }
@@ -69,7 +73,10 @@ bool ThreadIndexJoin::next(std::vector<Match> &tuple)
       // Make sure activeBackgroundTasks is correct before actually running all the threads.
       // Thus if a thread immediatly returns since there is no result only the very last
       // thread will trigger a shutdown.
-      activeBackgroundTasks = numOfThreads;
+      {
+        std::lock_guard<std::mutex> lock(mutex_activeBackgroundTasks);
+        activeBackgroundTasks = numOfThreads;
+      }
       backgroundThreads.reserve(numOfThreads);
       for(size_t i=0; i < numOfThreads; i++)
       {
