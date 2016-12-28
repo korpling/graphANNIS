@@ -13,7 +13,7 @@ using namespace annis;
 
 TaskIndexJoin::TaskIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
-                     std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc, unsigned maxBufferedTasks,
+                     std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc, unsigned maxBufferedTasks,
                      std::shared_ptr<ThreadPool> threadPool)
   : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxBufferedTasks > 0 ? maxBufferedTasks : 1), workerPool(threadPool),
     taskBufferSize(0)
@@ -30,12 +30,12 @@ TaskIndexJoin::TaskIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
       Match reachableNode;
       while(reachableNodesIt->next(reachableNode))
       {
-        for(Match currentRHS : matchGeneratorFunc(reachableNode.node))
+        for(Annotation currentRHSAnno : matchGeneratorFunc(reachableNode.node))
         {
-          if((op->isReflexive() || currentLHS[lhsIdx].node != currentRHS.node
-          || !checkAnnotationEqual(currentLHS[lhsIdx].anno, currentRHS.anno)))
+          if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNode.node
+          || !checkAnnotationEqual(currentLHS[lhsIdx].anno, currentRHSAnno)))
           {
-            result.push_back({currentLHS, currentRHS});
+            result.push_back({currentLHS, {reachableNode.node, currentRHSAnno}});
           }
         }
       }

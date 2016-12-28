@@ -85,7 +85,7 @@ public:
   
   bool hasNestedLoop() const;
 
-  static std::function<std::list<Match> (nodeid_t)> createSearchFilter(const DB& db,
+  static std::function<std::list<Annotation> (nodeid_t)> createSearchFilter(const DB& db,
     std::shared_ptr<EstimatedSearch> search);
   
 private:
@@ -100,11 +100,11 @@ private:
   
   static bool descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node);
 
-  static std::function<std::list<Match> (nodeid_t)> createAnnotationSearchFilter(
+  static std::function<std::list<Annotation> (nodeid_t)> createAnnotationSearchFilter(
       const DB& db, std::shared_ptr<AnnotationSearch> annoSearch,
       boost::optional<Annotation> constAnno = boost::optional<Annotation>());
 
-  static std::function<std::list<Match> (nodeid_t)> createAnnotationKeySearchFilter(
+  static std::function<std::list<Annotation> (nodeid_t)> createAnnotationKeySearchFilter(
       const DB& db, std::shared_ptr<AnnotationKeySearch> annoKeySearch,
       boost::optional<Annotation> constAnno = boost::optional<Annotation>());
 };

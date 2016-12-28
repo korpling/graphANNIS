@@ -33,7 +33,7 @@ public:
 public:
   TaskIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
             std::shared_ptr<Operator> op,
-            std::function<std::list<Match> (nodeid_t)> matchGeneratorFunc,
+            std::function<std::list<Annotation> (nodeid_t)> matchGeneratorFunc,
             unsigned maxNumfOfTasks = std::thread::hardware_concurrency(),
             std::shared_ptr<ThreadPool> threadPool = std::make_shared<ThreadPool>(std::thread::hardware_concurrency()));
 

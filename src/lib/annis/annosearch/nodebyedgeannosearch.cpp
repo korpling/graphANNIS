@@ -5,7 +5,7 @@
 using namespace annis;
 
 NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const ReadableGraphStorage> > gs, std::set<Annotation> validEdgeAnnos,
-                                           std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator,
+                                           std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
                                            std::int64_t wrappedNodeCountEstimate, std::string debugDescription)
  : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
    wrappedNodeCountEstimate(wrappedNodeCountEstimate),
@@ -61,6 +61,8 @@ NodeByEdgeAnnoSearch::~NodeByEdgeAnnoSearch()
 
 bool NodeByEdgeAnnoSearch::nextMatchBuffer()
 {
+  currentMatchBuffer.clear();
+
   bool valid = false;
   while(!valid && currentRange != searchRanges.end())
   {
@@ -70,7 +72,10 @@ bool NodeByEdgeAnnoSearch::nextMatchBuffer()
 
       if(visited.find(matchingEdge.source) == visited.end())
       {
-        currentMatchBuffer = nodeAnnoMatchGenerator(matchingEdge.source);
+        for(const Annotation& anno : nodeAnnoMatchGenerator(matchingEdge.source))
+        {
+          currentMatchBuffer.push_back({matchingEdge.source, anno});
+        }
         visited.emplace(matchingEdge.source);
         valid = true;
       }

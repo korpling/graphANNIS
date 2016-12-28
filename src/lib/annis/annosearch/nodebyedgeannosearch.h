@@ -14,7 +14,7 @@ class NodeByEdgeAnnoSearch : public EstimatedSearch
 
 public:
   NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const ReadableGraphStorage>> gs, std::set<Annotation> validEdgeAnnos,
-                       std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator, std::int64_t wrappedNodeCountEstimate,
+                       std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, std::int64_t wrappedNodeCountEstimate,
                        std::string debugDescription="");
 
   virtual bool next(Match& m) override;
@@ -26,7 +26,7 @@ public:
 
   virtual ~NodeByEdgeAnnoSearch();
 private:
-  std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator;
+  std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
   const std::int64_t wrappedNodeCountEstimate;
   const std::string debugDescription;
 

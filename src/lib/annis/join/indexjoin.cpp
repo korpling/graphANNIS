@@ -5,10 +5,11 @@ using namespace annis;
 
 IndexJoin::IndexJoin(const DB &db, std::shared_ptr<Operator> op,
                     std::shared_ptr<Iterator> lhs, size_t lhsIdx,
-                    std::function< std::list<Match> (nodeid_t) > matchGeneratorFunc)
+                    std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc)
   : db(db), op(op),
     left(lhs), lhsIdx(lhsIdx), matchGeneratorFunc(matchGeneratorFunc),
-    currentLHSMatchValid(false)
+    currentLHSMatchValid(false),
+    operatorIsReflexive(op->isReflexive())
 {
 
 }
@@ -94,10 +95,10 @@ bool IndexJoin::nextRightAnnotation()
 {
   while(!rhsCandidates.empty())
   {
-    if(checkReflexitivity(currentLHSMatch[lhsIdx].node, currentLHSMatch[lhsIdx].anno,
-                          currentRHSMatch.node, rhsCandidates.front().anno))
+    if(operatorIsReflexive || currentLHSMatch[lhsIdx].node != currentRHSMatch.node
+       || !checkAnnotationKeyEqual(currentLHSMatch[lhsIdx].anno, rhsCandidates.front()))
     {
-      currentRHSMatch.anno = rhsCandidates.front().anno;
+      currentRHSMatch.anno = std::move(rhsCandidates.front());
       rhsCandidates.pop_front();
       return true;
     }

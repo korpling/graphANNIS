@@ -242,7 +242,7 @@ int64_t AbstractEdgeOperator::guessMaxCountEdgeAnnos()
 }
 
 std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
-    std::function<std::list<Match> (nodeid_t)> nodeAnnoMatchGenerator,
+    std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
     std::int64_t wrappedNodeCountEstimate,
     std::string debugDescription) const
 {

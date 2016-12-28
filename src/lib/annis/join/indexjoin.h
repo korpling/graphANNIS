@@ -23,7 +23,7 @@ public:
   IndexJoin(const DB& db, std::shared_ptr<Operator> op,
            std::shared_ptr<Iterator> lhs,
             size_t lhsIdx,
-           std::function< std::list<Match> (nodeid_t) > matchGeneratorFunc);
+           std::function< std::list<Annotation> (nodeid_t) > matchGeneratorFunc);
   virtual ~IndexJoin();
 
   virtual bool next(std::vector<Match>& tuple) override;
@@ -34,30 +34,20 @@ private:
 
   std::shared_ptr<Iterator> left;
   const size_t lhsIdx;
-  const std::function<std::list<Match> (nodeid_t)> matchGeneratorFunc;
+  const std::function<std::list<Annotation> (nodeid_t)> matchGeneratorFunc;
 
   std::unique_ptr<AnnoIt> matchesByOperator;
   std::vector<Match> currentLHSMatch;
   bool currentLHSMatchValid;
-  std::list<Match> rhsCandidates;
+  std::list<Annotation> rhsCandidates;
 
   Match currentRHSMatch;
 
+  const bool operatorIsReflexive;
 
+private:
   bool nextLeftMatch();
   bool nextRightAnnotation();
-
-  bool checkReflexitivity(const nodeid_t& lhsNode, const Annotation& lhsAnno, const nodeid_t& rhsNode, const Annotation& rhsAnno)
-  {
-    if(!op->isReflexive() && lhsNode == rhsNode && checkAnnotationKeyEqual(lhsAnno, rhsAnno))
-    {
-      return false;
-    }
-    else
-    {
-      return true;
-    }
-  }
 
 };
 
