@@ -124,6 +124,10 @@ bool AnnoKeySeedJoin::nextRightAnnotation()
       
       return true;
     }
+    else
+    {
+      matchingRightAnnos.pop_front();
+    }
   }
   return false;
 }
