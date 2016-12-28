@@ -19,6 +19,14 @@
 
 #include "testlogger.h"
 
+#ifdef ENABLE_VALGRIND
+  #include <valgrind/callgrind.h>
+#else
+  #define CALLGRIND_STOP_INSTRUMENTATION
+
+  #define CALLGRIND_START_INSTRUMENTATION
+#endif // ENABLE_VALGRIND
+
 using namespace annis;
 
 class SearchTestGUM : public ::testing::Test {
@@ -37,6 +45,8 @@ protected:
   // and cleaning up each test, you can define the following methods:
 
   virtual void SetUp() {
+
+    CALLGRIND_STOP_INSTRUMENTATION;
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
     std::string dataDir("data");
     if (testDataEnv != NULL) {
@@ -173,3 +183,26 @@ TEST_F(SearchTestGUM, kind_dom_kind) {
   EXPECT_EQ(56u, counter);
 }
 
+TEST_F(SearchTestGUM, pos_dep_pos_Thread4) {
+  QueryConfig config;
+  config.numOfBackgroundTasks = 4;
+  config.threadPool = std::make_shared<ThreadPool>(4);
+
+  std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
+
+  result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
+  result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
+
+  Annotation edgeAnno = {db.strings.add("func"), 0, db.strings.add("dep")};
+  result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnno), 0, 1);
+
+  CALLGRIND_START_INSTRUMENTATION;
+  unsigned int counter = 0;
+  while(result->next() && counter < 1000) {
+    counter++;
+  }
+  CALLGRIND_STOP_INSTRUMENTATION;
+
+  EXPECT_EQ(246u, counter);
+
+}

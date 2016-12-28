@@ -8,6 +8,15 @@
 #include <annis/operators/pointing.h>
 #include <annis/operators/precedence.h>
 
+#ifdef ENABLE_VALGRIND
+  #include <valgrind/callgrind.h>
+#else
+  #define CALLGRIND_STOP_INSTRUMENTATION
+
+  #define CALLGRIND_START_INSTRUMENTATION
+#endif // ENABLE_VALGRIND
+
+
 using namespace annis;
 
 int main(int argc, char** argv) {
@@ -57,13 +66,18 @@ class GUMFixture : public celero::TestFixture
         /// Before each run, build a vector of random integers.
         virtual void setUp(int64_t experimentValue)
         {
-
+          CALLGRIND_STOP_INSTRUMENTATION;
           char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
           std::string dataDir("data");
           if (testDataEnv != NULL) {
             dataDir = testDataEnv;
           }
           db.load(dataDir + "/GUM", true);
+
+          nonParallelConfig.numOfBackgroundTasks = 0;
+          nonParallelConfig.threadPool = nullptr;
+
+          static std::shared_ptr<ThreadPool> globalThreadPool = std::make_shared<ThreadPool>(128);
 
           taskConfigs.resize(9);
           threadConfigs.resize(9);
@@ -75,6 +89,7 @@ class GUMFixture : public celero::TestFixture
             taskCfg.numOfBackgroundTasks = 0;
 
             QueryConfig threadCfg;
+            threadCfg.threadPool = globalThreadPool; // std::make_shared<ThreadPool>(i);
             threadCfg.numOfBackgroundTasks = i;
 
             taskConfigs[i] = taskCfg;
@@ -122,6 +137,7 @@ class GUMFixture : public celero::TestFixture
 
 BASELINE_F(PosDepPos, NonParallel, GUMFixture, 0, 0)
 {
+  CALLGRIND_START_INSTRUMENTATION;
   std::shared_ptr<Query> q = query_PosDepPos(nonParallelConfig);
 
   int counter=0;
@@ -132,10 +148,12 @@ BASELINE_F(PosDepPos, NonParallel, GUMFixture, 0, 0)
   {
     throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_PosDepPos);
   }
+  CALLGRIND_STOP_INSTRUMENTATION;
 }
 
 BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
 {
+  CALLGRIND_START_INSTRUMENTATION;
   std::shared_ptr<Query> q = query_UsedTo(nonParallelConfig);
 
   int counter=0;
@@ -146,6 +164,7 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
   {
     throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_UsedTo);
   }
+  CALLGRIND_STOP_INSTRUMENTATION;
 }
 
 
@@ -153,6 +172,7 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
 #define COUNT_BENCH(group, idx) \
   BENCHMARK_F(group, Thread_##idx, GUMFixture, 0, 0) \
   { \
+  CALLGRIND_START_INSTRUMENTATION;\
     std::shared_ptr<Query> q = query_##group(threadConfigs[idx]);\
     int counter=0; \
     while(q->next()) { \
@@ -162,6 +182,7 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
     {\
       throw "Invalid count for Thread_" #idx ", was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
     }\
+  CALLGRIND_STOP_INSTRUMENTATION;\
   } \
   BENCHMARK_F(group, Task_##idx, GUMFixture, 0, 0) \
   { \
