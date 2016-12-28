@@ -1,4 +1,4 @@
-#include "indexjoin.h"
+#include "taskindexjoin.h"
 
 
 #include <future>
@@ -11,7 +11,7 @@
 
 using namespace annis;
 
-IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
+TaskIndexJoin::TaskIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                      std::shared_ptr<Operator> op,
                      std::function<std::list<Match>(nodeid_t)> matchGeneratorFunc, unsigned maxBufferedTasks,
                      std::shared_ptr<ThreadPool> threadPool)
@@ -45,7 +45,7 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
   };
 }
 
-bool IndexJoin::next(std::vector<Match> &tuple)
+bool TaskIndexJoin::next(std::vector<Match> &tuple)
 {
   tuple.clear();
 
@@ -68,7 +68,7 @@ bool IndexJoin::next(std::vector<Match> &tuple)
   return false;
 }
 
-void IndexJoin::reset()
+void TaskIndexJoin::reset()
 {
   if(lhs)
   {
@@ -81,7 +81,7 @@ void IndexJoin::reset()
 }
 
 
-bool IndexJoin::fillTaskBuffer()
+bool TaskIndexJoin::fillTaskBuffer()
 {
   std::vector<Match> currentLHS;
   while(taskBufferSize < maxNumfOfTasks && lhs->next(currentLHS))
@@ -101,7 +101,7 @@ bool IndexJoin::fillTaskBuffer()
   return !taskBuffer.empty();
 }
 
-bool IndexJoin::nextMatchBuffer()
+bool TaskIndexJoin::nextMatchBuffer()
 {
   while(fillTaskBuffer())
   {
@@ -120,6 +120,6 @@ bool IndexJoin::nextMatchBuffer()
   return false;
 }
 
-IndexJoin::~IndexJoin()
+TaskIndexJoin::~TaskIndexJoin()
 {
 }

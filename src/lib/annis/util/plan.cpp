@@ -20,7 +20,7 @@
 #include <annis/operators/operator.h>
 #include <annis/join/nestedloop.h>
 #include <annis/join/seed.h>
-#include <annis/join/indexjoin.h>
+#include <annis/join/taskindexjoin.h>
 #include <annis/filter.h>
 
 using namespace annis;
@@ -117,7 +117,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       }
       else
       {
-        join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationKeySearchFilter(db, keySearch), 128, threadPool);
+        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationKeySearchFilter(db, keySearch), 128, threadPool);
       }
     }
     else if(annoSearch)
@@ -130,7 +130,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       }
       else
       {
-        join = std::make_shared<IndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationSearchFilter(db, annoSearch), 128, threadPool);
+        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationSearchFilter(db, annoSearch), 128, threadPool);
       }
 
     }

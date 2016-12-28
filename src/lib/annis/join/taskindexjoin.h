@@ -20,7 +20,7 @@ namespace annis
 class Operator;
 
 
-class IndexJoin : public Iterator
+class TaskIndexJoin : public Iterator
 {
 public:
 
@@ -31,7 +31,7 @@ public:
   };
 
 public:
-  IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
+  TaskIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
             std::shared_ptr<Operator> op,
             std::function<std::list<Match> (nodeid_t)> matchGeneratorFunc,
             unsigned maxNumfOfTasks = std::thread::hardware_concurrency(),
@@ -40,7 +40,7 @@ public:
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
 
-  virtual ~IndexJoin();
+  virtual ~TaskIndexJoin();
 private:
 
   std::shared_ptr<Iterator> lhs;
