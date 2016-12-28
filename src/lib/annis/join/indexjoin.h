@@ -53,7 +53,7 @@ private:
   size_t taskBufferSize;
   std::list<MatchPair> matchBuffer;
 
-  std::function<std::list<MatchPair>(std::vector<Match>)> taskBufferGenerator;
+  std::function<std::list<MatchPair>(const std::vector<Match>& )> taskBufferGenerator;
 
 private:
   bool fillTaskBuffer();

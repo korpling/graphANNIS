@@ -20,7 +20,7 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
 {
 
 
-  taskBufferGenerator = [matchGeneratorFunc, op, lhsIdx](std::vector<Match> currentLHS) -> std::list<MatchPair>
+  taskBufferGenerator = [matchGeneratorFunc, op, lhsIdx](const std::vector<Match>& currentLHS) -> std::list<MatchPair>
   {
     std::list<MatchPair> result;
 
@@ -48,7 +48,6 @@ IndexJoin::IndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
 bool IndexJoin::next(std::vector<Match> &tuple)
 {
   tuple.clear();
-
 
   do
   {
