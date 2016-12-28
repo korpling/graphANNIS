@@ -18,8 +18,6 @@ namespace annis
     bool forceFallback;
     bool avoidNestedBySwitch;
 
-    NonParallelJoin nonParallelJoinImpl;
-
     std::map<Component, std::string> overrideImpl;
     std::shared_ptr<ThreadPool> threadPool;
 

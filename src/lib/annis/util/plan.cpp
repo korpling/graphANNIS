@@ -19,7 +19,6 @@
 #include <annis/wrapper.h>
 #include <annis/operators/operator.h>
 #include <annis/join/nestedloop.h>
-#include <annis/join/seed.h>
 #include <annis/join/taskindexjoin.h>
 #include <annis/join/indexjoin.h>
 #include <annis/filter.h>
@@ -105,36 +104,19 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     std::shared_ptr<EstimatedSearch> estSearch =
         std::dynamic_pointer_cast<EstimatedSearch>(rightIt);
 
-    if(estSearch && config.threadPool)
+    if(estSearch)
     {
-      join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
-                                             createSearchFilter(db, estSearch), 128, config.threadPool);
-    }
-    else if(estSearch && config.nonParallelJoinImpl == NonParallelJoin::index)
-    {
-      join = std::make_shared<IndexJoin>(db, op, lhs->join,
-                                         mappedPosLHS->second,
-                                         createSearchFilter(db, estSearch),
-                                         searchFilterReturnsMaximalOneAnno(estSearch));
-    }
-    else if(estSearch && config.nonParallelJoinImpl == NonParallelJoin::seed)
-    {
-      std::shared_ptr<AnnotationKeySearch> keySearch =
-          std::dynamic_pointer_cast<AnnotationKeySearch>(estSearch);
-      std::shared_ptr<AnnotationSearch> annoSearch =
-          std::dynamic_pointer_cast<AnnotationSearch>(estSearch);
-
-      if(keySearch)
+      if(config.threadPool)
       {
-        join = std::make_shared<AnnoKeySeedJoin>(db, op, lhs->join,
-          mappedPosLHS->second,
-          keySearch->getValidAnnotationKeys());
+        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
+                                               createSearchFilter(db, estSearch), 128, config.threadPool);
       }
-      else if(annoSearch)
+      else
       {
-        join = std::make_shared<MaterializedSeedJoin>(db, op, lhs->join,
-          mappedPosLHS->second,
-              annoSearch->getValidAnnotations());
+        join = std::make_shared<IndexJoin>(db, op, lhs->join,
+                                           mappedPosLHS->second,
+                                           createSearchFilter(db, estSearch),
+                                           searchFilterReturnsMaximalOneAnno(estSearch));
       }
     }
     else

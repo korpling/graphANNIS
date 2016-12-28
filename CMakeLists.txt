@@ -101,7 +101,6 @@ set(IncludeFiles
   src/lib/annis/util/comparefunctions.h
   src/lib/annis/util/threadpool.h
   src/lib/annis/query.h
-  src/lib/annis/join/seed.h
   src/lib/annis/join/nestedloop.h
   src/lib/annis/join/taskindexjoin.h
   src/lib/annis/join/indexjoin.h
@@ -145,7 +144,6 @@ set(SRC_LIST_LIB
   src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
-  src/lib/annis/join/seed.cpp
   src/lib/annis/join/taskindexjoin.cpp
   src/lib/annis/join/indexjoin.cpp
   src/lib/annis/annosearch/exactannokeysearch.cpp

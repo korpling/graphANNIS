@@ -1,6 +1,5 @@
 #include <annis/query.h>
 #include <annis/join/nestedloop.h>
-#include <annis/join/seed.h>
 #include <annis/filter.h>
 #include <annis/operators/operator.h>
 #include <annis/operators/abstractedgeoperator.h>
