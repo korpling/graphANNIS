@@ -57,6 +57,10 @@ bool IndexJoin::next(std::vector<Match>& tuple)
           if(operatorIsReflexive || currentLHSMatch[lhsIdx].node != currentRHSMatch.node
              || !checkAnnotationKeyEqual(currentLHSMatch[lhsIdx].anno, currentRHSMatch.anno))
           {
+            tuple.reserve(currentLHSMatch.size()+1);
+            tuple.insert(tuple.end(), currentLHSMatch.begin(), currentLHSMatch.end());
+            tuple.push_back(currentRHSMatch);
+
             return true;
           }
         }
