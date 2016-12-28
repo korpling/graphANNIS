@@ -23,7 +23,8 @@ public:
   IndexJoin(const DB& db, std::shared_ptr<Operator> op,
            std::shared_ptr<Iterator> lhs,
             size_t lhsIdx,
-           std::function< std::list<Annotation> (nodeid_t) > matchGeneratorFunc);
+           std::function< std::list<Annotation> (nodeid_t) > matchGeneratorFunc,
+           bool maximalOneRHSAnno);
   virtual ~IndexJoin();
 
   virtual bool next(std::vector<Match>& tuple) override;
@@ -44,6 +45,7 @@ private:
   Match currentRHSMatch;
 
   const bool operatorIsReflexive;
+  const bool maximalOneRHSAnno;
 
 private:
   bool nextLeftMatch();

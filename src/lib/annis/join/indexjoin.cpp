@@ -4,12 +4,14 @@
 using namespace annis;
 
 IndexJoin::IndexJoin(const DB &db, std::shared_ptr<Operator> op,
-                    std::shared_ptr<Iterator> lhs, size_t lhsIdx,
-                    std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc)
+                     std::shared_ptr<Iterator> lhs, size_t lhsIdx,
+                     std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc,
+                     bool maximalOneRHSAnno)
   : db(db), op(op),
     left(lhs), lhsIdx(lhsIdx), matchGeneratorFunc(matchGeneratorFunc),
     currentLHSMatchValid(false),
-    operatorIsReflexive(op->isReflexive())
+    operatorIsReflexive(op->isReflexive()),
+    maximalOneRHSAnno(maximalOneRHSAnno)
 {
 
 }
@@ -33,7 +35,7 @@ bool IndexJoin::next(std::vector<Match>& tuple)
     return false;
   }
   
-  if(nextRightAnnotation())
+  if(!maximalOneRHSAnno && nextRightAnnotation())
   {
     tuple.reserve(currentLHSMatch.size()+1);
     tuple.insert(tuple.end(), currentLHSMatch.begin(), currentLHSMatch.end());
@@ -45,14 +47,31 @@ bool IndexJoin::next(std::vector<Match>& tuple)
   {
     while(matchesByOperator && matchesByOperator->next(currentRHSMatch))
     {
-      rhsCandidates = matchGeneratorFunc(currentRHSMatch.node);
-
-      if(nextRightAnnotation())
+      if(maximalOneRHSAnno)
       {
-        tuple.reserve(currentLHSMatch.size()+1);
-        tuple.insert(tuple.end(), currentLHSMatch.begin(), currentLHSMatch.end());
-        tuple.push_back(currentRHSMatch);
-        return true;
+        std::list<Annotation> annos = matchGeneratorFunc(currentRHSMatch.node);
+
+        if(!annos.empty())
+        {
+          currentRHSMatch.anno = annos.front();
+          if(operatorIsReflexive || currentLHSMatch[lhsIdx].node != currentRHSMatch.node
+             || !checkAnnotationKeyEqual(currentLHSMatch[lhsIdx].anno, currentRHSMatch.anno))
+          {
+            return true;
+          }
+        }
+      }
+      else
+      {
+        rhsCandidates = matchGeneratorFunc(currentRHSMatch.node);
+
+        if(nextRightAnnotation())
+        {
+          tuple.reserve(currentLHSMatch.size()+1);
+          tuple.insert(tuple.end(), currentLHSMatch.begin(), currentLHSMatch.end());
+          tuple.push_back(currentRHSMatch);
+          return true;
+        }
       }
     } // end while there are right candidates
   } while(nextLeftMatch()); // end while left has match

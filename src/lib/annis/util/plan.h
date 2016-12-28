@@ -87,6 +87,8 @@ public:
 
   static std::function<std::list<Annotation> (nodeid_t)> createSearchFilter(const DB& db,
     std::shared_ptr<EstimatedSearch> search);
+
+  static bool searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> search);
   
 private:
   std::shared_ptr<ExecutionNode> root;

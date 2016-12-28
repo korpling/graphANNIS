@@ -124,7 +124,8 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       {
         join = std::make_shared<IndexJoin>(db, op, lhs->join,
                                            mappedPosLHS->second,
-                                           createAnnotationKeySearchFilter(db, keySearch));
+                                           createAnnotationKeySearchFilter(db, keySearch),
+                                           searchFilterReturnsMaximalOneAnno(keySearch));
       }
     }
     else if(annoSearch)
@@ -144,7 +145,8 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       {
         join = std::make_shared<IndexJoin>(db, op, lhs->join,
                                            mappedPosLHS->second,
-                                           createAnnotationSearchFilter(db, annoSearch));
+                                           createAnnotationSearchFilter(db, annoSearch),
+                                           searchFilterReturnsMaximalOneAnno(annoSearch));
       }
 
     }
@@ -380,6 +382,22 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const D
   return [](nodeid_t) -> std::list<Annotation>  {return std::list<Annotation>();};
 }
 
+bool Plan::searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> search)
+{
+  std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
+  if(annoSearch)
+  {
+    return annoSearch->getValidAnnotations().size() <= 1;
+  }
+  std::shared_ptr<AnnotationKeySearch> annoKeySearch = std::dynamic_pointer_cast<AnnotationKeySearch>(search);
+  if(annoKeySearch)
+  {
+    return annoKeySearch->getValidAnnotationKeys().size() <= 1;
+  }
+
+  return false;
+}
+
 bool Plan::descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node)
 {
   if(node)
@@ -495,7 +513,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
 
       }
 
-      return result;
+      return std::move(result);
     };
   }
   else
@@ -519,7 +537,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
          }
        }
       }
-      return result;
+      return std::move(result);
     };
   }
 }
