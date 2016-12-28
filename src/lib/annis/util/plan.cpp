@@ -21,6 +21,7 @@
 #include <annis/join/nestedloop.h>
 #include <annis/join/seed.h>
 #include <annis/join/taskindexjoin.h>
+#include <annis/join/indexjoin.h>
 #include <annis/filter.h>
 
 using namespace annis;
@@ -117,7 +118,9 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       }
       else
       {
-        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationKeySearchFilter(db, keySearch), 128, threadPool);
+        join = std::make_shared<IndexJoin>(db, op, lhs->join,
+                                           mappedPosLHS->second,
+                                           createAnnotationKeySearchFilter(db, keySearch));
       }
     }
     else if(annoSearch)
@@ -130,7 +133,9 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       }
       else
       {
-        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op, createAnnotationSearchFilter(db, annoSearch), 128, threadPool);
+        join = std::make_shared<IndexJoin>(db, op, lhs->join,
+                                           mappedPosLHS->second,
+                                           createAnnotationSearchFilter(db, annoSearch));
       }
 
     }
@@ -422,7 +427,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
         }
       }
 
-      return result;
+      return std::move(result);
     };
   }
   else
@@ -447,7 +452,7 @@ std::function<std::list<Match> (nodeid_t)> Plan::createAnnotationSearchFilter(
         }
       }
 
-      return result;
+      return std::move(result);
     };
   }
 }
