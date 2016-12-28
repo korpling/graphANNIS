@@ -160,7 +160,7 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
     } \
     if(counter != count_##group)\
     {\
-      throw "Invalid count for N##idx, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
+      throw "Invalid count for Thread_" #idx ", was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
     }\
   } \
   BENCHMARK_F(group, Task_##idx, GUMFixture, 0, 0) \
@@ -172,7 +172,7 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
     } \
     if(counter != count_##group)\
     {\
-      throw "Invalid count for N##idx, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
+      throw "Invalid count for Task_" #idx ", was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
     }\
   }
 
