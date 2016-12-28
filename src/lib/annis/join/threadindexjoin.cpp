@@ -64,13 +64,17 @@ bool ThreadIndexJoin::next(std::vector<Match> &tuple)
 {
   if(!runBackgroundThreads)
   {
-    runBackgroundThreads = true;
-    activeBackgroundTasks = 0;
-    backgroundThreads.reserve(numOfThreads);
-    for(size_t i=0; i < numOfThreads; i++)
     {
-      backgroundThreads.emplace_back(lhsFetchLoop);
-      activeBackgroundTasks++;
+      runBackgroundThreads = true;
+      // Make sure activeBackgroundTasks is correct before actually running all the threads.
+      // Thus if a thread immediatly returns since there is no result only the very last
+      // thread will trigger a shutdown.
+      activeBackgroundTasks = numOfThreads;
+      backgroundThreads.reserve(numOfThreads);
+      for(size_t i=0; i < numOfThreads; i++)
+      {
+        backgroundThreads.emplace_back(lhsFetchLoop);
+      }
     }
   }
 
