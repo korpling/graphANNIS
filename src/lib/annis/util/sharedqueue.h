@@ -9,7 +9,6 @@ namespace annis
 {
   /**
    * This is a thread-safe queue that has a blocking pop() function.
-   * The push() function is blocking as soon as the capacity is reached.
    *
    * It is possible to shutdown a queue. If a queue is shutdown, not new entries
    * can be added and as soon as the queue is empty the pop() funtion will return immediatly instead of waiting forever.
@@ -20,8 +19,8 @@ namespace annis
   {
   public:
 
-    SharedQueue(size_t capacity = 1024)
-    : capacity(capacity), isShutdown(false)
+    SharedQueue()
+    : isShutdown(false)
     {
 
     }
@@ -47,9 +46,6 @@ namespace annis
       queue.pop();
 
       lock.unlock();
-      // make sure a waiting push() is notified that there is now some capacity left
-      removedCondition.notify_one();
-
 
       return true;
     }
@@ -62,9 +58,6 @@ namespace annis
       {
         return;
       }
-
-      // wait until someone deleted something
-      removedCondition.wait(lock, [this] {return this->queue.size() < this->capacity;});
 
       queue.emplace(item);
       lock.unlock();
@@ -88,14 +81,12 @@ namespace annis
 
   private:
 
-    const size_t capacity;
     bool isShutdown;
 
     std::queue<T> queue;
 
     std::mutex queueMutex;
     std::condition_variable addedCondition;
-    std::condition_variable removedCondition;
 
   };
 }
