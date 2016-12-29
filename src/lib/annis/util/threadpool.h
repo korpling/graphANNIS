@@ -2,7 +2,7 @@
 
 #include <thread>
 #include <future>
-#include <list>
+#include <deque>
 #include <vector>
 
 namespace annis
@@ -40,7 +40,7 @@ public:
 private:
 
   bool tasksClosed;
-  std::list<std::function<void()>> tasks;
+  std::deque<std::function<void()>> tasks;
   std::mutex mutex_tasks;
   std::condition_variable cond_tasks;
 

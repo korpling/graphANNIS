@@ -53,6 +53,9 @@ annis::ThreadPool::~ThreadPool()
   // make sure each thread is actually finished
   for(size_t i=0; i < worker.size(); i++)
   {
-    worker[i].join();
+    if(worker[i].joinable())
+    {
+      worker[i].join();
+    }
   }
 }
