@@ -18,6 +18,13 @@ Console::Console()
   currentDBPath = boost::filesystem::unique_path(
           boost::filesystem::temp_directory_path().string() + "/annis-temporary-workspace-%%%%-%%%%-%%%%-%%%%");
   HL_INFO(logger, "Using " + currentDBPath.string() + " as temporary path");
+
+  unsigned int numOfCPUs = std::thread::hardware_concurrency();
+  if(numOfCPUs >= 4)
+  {
+    config.threadPool = std::make_shared<ThreadPool>(numOfCPUs-1);
+    config.numOfBackgroundTasks = numOfCPUs-1;
+  }
 }
 
 bool Console::execute(const std::string &cmd, const std::vector<std::string> &args)
@@ -179,7 +186,7 @@ void Console::count(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
         int counter =0;
         auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
         while(q->next())
@@ -214,7 +221,7 @@ void Console::find(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
         int counter =0;
         while(q->next())
         {
@@ -313,7 +320,7 @@ void Console::plan(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss);
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
         std::cout << q->getBestPlan()->debugString() << std::endl;
       }
       catch(Json::RuntimeError err)
