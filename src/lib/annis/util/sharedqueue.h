@@ -48,7 +48,7 @@ namespace annis
         }
       }
 
-      item = std::move(queue.front());
+      item.swap(queue.front());
       queue.pop();
 
       lock.unlock();
