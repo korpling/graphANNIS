@@ -1,5 +1,7 @@
 #include <celero/Celero.h>
 
+#include <forward_list>
+
 #include <annis/query.h>
 #include <annis/annosearch/exactannokeysearch.h>
 #include <annis/annosearch/exactannovaluesearch.h>
@@ -7,6 +9,7 @@
 
 #include <annis/operators/pointing.h>
 #include <annis/operators/precedence.h>
+
 
 #ifdef ENABLE_VALGRIND
   #include <valgrind/callgrind.h>
@@ -40,6 +43,8 @@ int main(int argc, char** argv) {
 
   return -1;
 }
+
+static std::shared_ptr<ThreadPool> benchmarkThreadPool = std::make_shared<ThreadPool>(8);
 
 class GUMFixture : public celero::TestFixture
 {
@@ -77,23 +82,17 @@ class GUMFixture : public celero::TestFixture
           nonParallelConfig.numOfBackgroundTasks = 0;
           nonParallelConfig.threadPool = nullptr;
 
-          static std::shared_ptr<ThreadPool> globalThreadPool = std::make_shared<ThreadPool>(128);
 
-          taskConfigs.resize(9);
-          threadConfigs.resize(9);
+//          taskConfigs.resize(9);
+          threadConfigs.reserve(8);
 
           for(int64_t i=1; i <= 8; i++)
           {
-            QueryConfig taskCfg;
-            taskCfg.threadPool = std::make_shared<ThreadPool>(i);
-            taskCfg.numOfBackgroundTasks = 0;
-
             QueryConfig threadCfg;
-            threadCfg.threadPool = globalThreadPool; // std::make_shared<ThreadPool>(i);
+            threadCfg.threadPool = benchmarkThreadPool;
             threadCfg.numOfBackgroundTasks = i;
 
-            taskConfigs[i] = taskCfg;
-            threadConfigs[i] = threadCfg;
+            threadConfigs.push_back(threadCfg);
           }
         }
 
@@ -126,7 +125,6 @@ class GUMFixture : public celero::TestFixture
         DB db;
         QueryConfig nonParallelConfig;
         std::vector<QueryConfig> threadConfigs;
-        std::vector<QueryConfig> taskConfigs;
 
         const int count_PosDepPos;
         const int count_UsedTo;
@@ -173,7 +171,7 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
   BENCHMARK_F(group, Thread_##idx, GUMFixture, 0, 0) \
   { \
   CALLGRIND_START_INSTRUMENTATION;\
-    std::shared_ptr<Query> q = query_##group(threadConfigs[idx]);\
+    std::shared_ptr<Query> q = query_##group(threadConfigs[idx-1]);\
     int counter=0; \
     while(q->next()) { \
       counter++; \
@@ -183,18 +181,6 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
       throw "Invalid count for Thread_" #idx ", was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
     }\
   CALLGRIND_STOP_INSTRUMENTATION;\
-  } \
-  BENCHMARK_F(group, Task_##idx, GUMFixture, 0, 0) \
-  { \
-    std::shared_ptr<Query> q = query_##group(taskConfigs[idx]);\
-    int counter=0; \
-    while(q->next()) { \
-      counter++; \
-    } \
-    if(counter != count_##group)\
-    {\
-      throw "Invalid count for Task_" #idx ", was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
-    }\
   }
 
 COUNT_BENCH(PosDepPos, 1)
@@ -214,36 +200,6 @@ COUNT_BENCH(UsedTo, 5)
 COUNT_BENCH(UsedTo, 6)
 COUNT_BENCH(UsedTo, 7)
 COUNT_BENCH(UsedTo, 8)
-
-BASELINE_F(JoinImpl, IndexJoin, GUMFixture, 0, 0)
-{
-  QueryConfig conf;
-  conf.threadPool = nullptr;
-  std::shared_ptr<Query> q = query_PosDepPos(conf);
-
-  int counter=0;
-  while(q->next()) {
-    counter++;
-  }
-  if(counter != count_PosDepPos)
-  {
-    throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_PosDepPos);
-  }
-}
-
-BENCHMARK_F(JoinImpl, TaskIndexJoin, GUMFixture, 0, 0)
-{
-  std::shared_ptr<Query> q = query_PosDepPos(taskConfigs[1]);
-
-  int counter=0;
-  while(q->next()) {
-    counter++;
-  }
-  if(counter != count_PosDepPos)
-  {
-    throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_PosDepPos);
-  }
-}
 
 BASELINE(CreateThreadPool, N1, 0, 0)
 {
@@ -284,4 +240,166 @@ BENCHMARK(CreateThreadPool, N8, 0, 0)
 {
   ThreadPool t(8);
 }
+
+BASELINE(MatchQueue, Vector, 0, 0)
+{
+  std::list<std::vector<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::vector<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+
+  std::vector<Match> m;
+  while(!queue.empty())
+  {
+    m = queue.front();
+    queue.pop_front();
+  }
+}
+
+BENCHMARK(MatchQueue, VectorMove, 0, 0)
+{
+  std::list<std::vector<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::vector<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+
+  std::vector<Match> m;
+  while(!queue.empty())
+  {
+    m = std::move(queue.front());
+    queue.pop_front();
+  }
+}
+
+BENCHMARK(MatchQueue, VectorMoveDeque, 0, 0)
+{
+  std::deque<std::vector<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::vector<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+
+  std::vector<Match> m;
+  while(!queue.empty())
+  {
+    m = std::move(queue.front());
+    queue.pop_front();
+  }
+}
+
+BENCHMARK(MatchQueue, VectorSwap, 0, 0)
+{
+  std::list<std::vector<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::vector<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+
+  std::vector<Match> m;
+  while(!queue.empty())
+  {
+    m.swap(queue.front());
+    queue.pop_front();
+  }
+}
+
+
+BENCHMARK(MatchQueue, VectorSwapDeque, 0, 0)
+{
+  std::deque<std::vector<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::vector<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+
+  std::vector<Match> m;
+  while(!queue.empty())
+  {
+    m.swap(queue.front());
+    queue.pop_front();
+  }
+}
+
+
+BENCHMARK(MatchQueue, Deque, 0, 0)
+{
+  std::list<std::deque<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::deque<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+  std::deque<Match> m;
+  while(!queue.empty())
+  {
+    m = std::move(queue.front());
+    queue.pop_front();
+  }
+}
+
+BENCHMARK(MatchQueue, DequeSwap, 0, 0)
+{
+  std::list<std::deque<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::deque<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+  std::deque<Match> m;
+  while(!queue.empty())
+  {
+    m.swap(queue.front());
+    queue.pop_front();
+  }
+}
+
+BENCHMARK(MatchQueue, DequeSwapDeque, 0, 0)
+{
+  std::deque<std::deque<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::deque<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+  std::deque<Match> m;
+  while(!queue.empty())
+  {
+    m.swap(queue.front());
+    queue.pop_front();
+  }
+}
+
+BENCHMARK(MatchQueue, List, 0, 0)
+{
+  std::list<std::list<Match>> queue;
+  for(int i=0; i < 1000; i++)
+  {
+    std::list<Match> m(2);
+    queue.emplace_back(m);
+  }
+
+  std::list<Match> m;
+  while(!queue.empty())
+  {
+    m = std::move(queue.front());
+    queue.pop_front();
+  }
+}
+
+
 
