@@ -37,9 +37,10 @@ public:
 
   virtual std::int64_t guessMaxCountEdgeAnnos();
   
-  virtual std::shared_ptr<NodeByEdgeAnnoSearch> createAnnoSearch
-  (std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
-   int64_t wrappedNodeCountEstimate, std::string debugDescription) const;
+  virtual std::shared_ptr<NodeByEdgeAnnoSearch> createAnnoSearch(
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+      bool maximalOneNodeAnno,
+      int64_t wrappedNodeCountEstimate, std::string debugDescription) const;
 
   virtual ~AbstractEdgeOperator();
 private:

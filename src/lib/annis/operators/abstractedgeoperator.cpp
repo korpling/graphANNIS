@@ -243,6 +243,7 @@ int64_t AbstractEdgeOperator::guessMaxCountEdgeAnnos()
 
 std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
     std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+    bool maximalOneNodeAnno,
     std::int64_t wrappedNodeCountEstimate,
     std::string debugDescription) const
 {
@@ -276,6 +277,7 @@ std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
       validEdgeAnnos.emplace(edgeAnno);
     }
     return std::make_shared<NodeByEdgeAnnoSearch>(gs, validEdgeAnnos, nodeAnnoMatchGenerator,
+                                                  maximalOneNodeAnno,
                                                   wrappedNodeCountEstimate, debugDescription);
   }
 }

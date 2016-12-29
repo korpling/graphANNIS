@@ -14,11 +14,18 @@ class NodeByEdgeAnnoSearch : public EstimatedSearch
 
 public:
   NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const ReadableGraphStorage>> gs, std::set<Annotation> validEdgeAnnos,
-                       std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, std::int64_t wrappedNodeCountEstimate,
+                       std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+                       bool maximalOneNodeAnno,
+                       std::int64_t wrappedNodeCountEstimate,
                        std::string debugDescription="");
 
   virtual bool next(Match& m) override;
   virtual void reset() override;
+
+  std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator()
+  {
+    return nodeAnnoMatchGenerator;
+  }
 
   virtual std::int64_t guessMaxCount() const override {return wrappedNodeCountEstimate;}
 
@@ -27,6 +34,9 @@ public:
   virtual ~NodeByEdgeAnnoSearch();
 private:
   std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
+public:
+  const bool maximalOneNodeAnno;
+private:
   const std::int64_t wrappedNodeCountEstimate;
   const std::string debugDescription;
 
