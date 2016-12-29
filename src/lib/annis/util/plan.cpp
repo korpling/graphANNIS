@@ -42,6 +42,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     std::shared_ptr<ExecutionNode> lhs, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
     bool forceNestedLoop,
+    size_t numOfBackgroundTasks,
     QueryConfig config)
 {
   
@@ -93,7 +94,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   else if(type == ExecutionNodeType::seed)
   {
     result->type = ExecutionNodeType::seed;
-    result->numOfBackgroundTasks = 0;
+    result->numOfBackgroundTasks = numOfBackgroundTasks;
       
     std::shared_ptr<Iterator> rightIt = rhs->join;
 
@@ -109,7 +110,14 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
 
     if(estSearch)
     {
-      if(config.enableTaskIndexJoin && config.threadPool)
+      if(numOfBackgroundTasks > 0)
+      {
+        join = std::make_shared<ThreadIndexJoin>(lhs->join, mappedPosLHS->second, op,
+                                                 createSearchFilter(db, estSearch),
+                                                 numOfBackgroundTasks,
+                                                 config.threadPool);
+      }
+      else if(config.enableTaskIndexJoin && config.threadPool)
       {
         join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
                                                createSearchFilter(db, estSearch), 128, config.threadPool);
@@ -147,8 +155,6 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   result->op = op;
   result->componentNr = lhs->componentNr;
   result->lhs = lhs;
-  result->lhsNodeNr = lhsNodeNr;
-  result->rhsNodeNr = rhsNodeNr;
   result->description =  "#" + std::to_string(lhsNodeNr+1) + " "
     + op->description() + " #" + std::to_string(rhsNodeNr+1);
   
@@ -193,11 +199,17 @@ double Plan::getCost()
   return static_cast<double>(estimateTupleSize(root)->intermediateSum);
 }
 
-void Plan::optimizeParallelization(const DB &db, QueryConfig config)
+std::map<size_t, size_t> Plan::getOptimizedParallelizationMapping(const DB &db, QueryConfig config)
 {
+  std::map<size_t, size_t> mapping;
+
   size_t available = config.numOfBackgroundTasks;
-  // optimize all nested loop joins first
+
+
+  // optimize all nested loop joins
   auto nestedLoops = getDescendentNestedLoops(root);
+
+
   for(std::shared_ptr<ExecutionNode> nl : nestedLoops)
   {
     if(available < 2)
@@ -207,25 +219,41 @@ void Plan::optimizeParallelization(const DB &db, QueryConfig config)
 
     if(nl->lhs->type == ExecutionNodeType::seed && nl->lhs->type == ExecutionNodeType::seed)
     {
-      replaceWithParallelJoin(nl->lhs, db, config);
-      replaceWithParallelJoin(nl->rhs, db, config);
+      if(mapping.find(nl->lhs->operatorIdx) == mapping.end())
+      {
+        mapping[nl->lhs->operatorIdx] = 1;
+      }
+      else
+      {
+        mapping[nl->lhs->operatorIdx]++;
+      }
+
+      if(mapping.find(nl->rhs->operatorIdx) == mapping.end())
+      {
+        mapping[nl->rhs->operatorIdx] = 1;
+      }
+      else
+      {
+        mapping[nl->rhs->operatorIdx]++;
+      }
       available -= 2;
     }
   }
 
-  // optimize other index joins
   for(; available > 0; available--)
   {
-
-    auto largest = findLargestProcessedInStep(root);
-
-    if(!replaceWithParallelJoin(largest.first, db, config))
+    std::pair<std::shared_ptr<ExecutionNode>, uint64_t> largest = findLargestProcessedInStep(root);
+    if(mapping.find(largest.first->operatorIdx) == mapping.end())
     {
-      // something went wrong, don't try to optimize any further
-      break;
+      mapping[largest.first->operatorIdx] = 1;
+    }
+    else
+    {
+      mapping[largest.first->operatorIdx]++;
     }
   }
 
+  return mapping;
 }
 
 std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<ExecutionNode> node)
@@ -627,39 +655,6 @@ void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node)
   }
 }
 
-bool Plan::replaceWithParallelJoin(std::shared_ptr<ExecutionNode> node, const DB& db, QueryConfig& config)
-{
-  bool replaced = false;
-  if(node && node->lhs && node->rhs)
-  {
-    auto mappedPosLHS = node->lhs->nodePos.find(node->lhsNodeNr);
-    if(mappedPosLHS != node->lhs->nodePos.end())
-    {
-
-      std::shared_ptr<Iterator> rightIt = node->rhs->join;
-      std::shared_ptr<ConstAnnoWrapper> constWrapper =
-          std::dynamic_pointer_cast<ConstAnnoWrapper>(rightIt);
-      if(constWrapper)
-      {
-        rightIt = constWrapper->getDelegate();
-      }
-      std::shared_ptr<EstimatedSearch> estSearch =
-          std::dynamic_pointer_cast<EstimatedSearch>(rightIt);
-
-      if(estSearch)
-      {
-        // replace the join with a parallel one
-        node->numOfBackgroundTasks++;
-        node->join = std::make_shared<ThreadIndexJoin>(node->lhs->join, mappedPosLHS->second, node->op,
-                                                       createSearchFilter(db, estSearch), node->numOfBackgroundTasks,
-                                                       config.threadPool);
-
-        replaced = true;
-      }
-    }
-  }
-  return replaced;
-}
 
 std::string Plan::debugString() const
 {
@@ -719,7 +714,6 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
     }
     result += "}";
   }
-
   
   result += "\n";
   

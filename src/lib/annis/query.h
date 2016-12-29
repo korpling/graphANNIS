@@ -84,7 +84,8 @@ private:
   void internalInit();
   
   std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes,
-                                   const std::vector<OperatorEntry>& operators);
+                                   const std::vector<OperatorEntry>& operators,
+                                   std::map<size_t, size_t> parallelizationMapping = std::map<size_t,size_t>());
   
   void optimizeOperandOrder();
 

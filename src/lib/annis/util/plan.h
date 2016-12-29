@@ -53,6 +53,7 @@ struct ExecutionNode
   
   std::shared_ptr<Iterator> join;  
   std::shared_ptr<Operator> op;
+  size_t operatorIdx;
   std::map<size_t, size_t> nodePos;
   size_t componentNr;
   /** Only valid for seed join types */
@@ -60,9 +61,6 @@ struct ExecutionNode
   
   std::shared_ptr<ExecutionNode> lhs;
   std::shared_ptr<ExecutionNode> rhs;
-
-  size_t lhsNodeNr;
-  size_t rhsNodeNr;
 
   std::shared_ptr<ExecutionEstimate> estimate;
   
@@ -81,13 +79,13 @@ public:
   bool executeStep(std::vector<Match>& result);
   double getCost();
 
-  void optimizeParallelization(const DB &db, QueryConfig config);
+  std::map<size_t, size_t> getOptimizedParallelizationMapping(const DB &db, QueryConfig config);
   
   static std::shared_ptr<ExecutionNode> join(std::shared_ptr<Operator> op,
     size_t lhsNodeNr, size_t rhsNodeNr,
     std::shared_ptr<ExecutionNode>, std::shared_ptr<ExecutionNode> rhs,
     const DB& db,
-    bool forceNestedLoop,
+    bool forceNestedLoop, size_t numOfBackgroundTasks,
     QueryConfig config);
   
   std::string debugString() const;
@@ -105,8 +103,6 @@ private:
 private:
   static std::shared_ptr<ExecutionEstimate> estimateTupleSize(std::shared_ptr<ExecutionNode> node);
   static void clearCachedEstimate(std::shared_ptr<ExecutionNode> node);
-
-  bool replaceWithParallelJoin(std::shared_ptr<ExecutionNode> node, const DB &db, QueryConfig &config);
   
   std::string debugStringForNode(std::shared_ptr<const ExecutionNode> node, std::string indention) const;
   std::string typeToString(ExecutionNodeType type) const;

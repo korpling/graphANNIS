@@ -146,7 +146,7 @@ std::shared_ptr<const Plan> Query::getBestPlan()
 
 
 std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes,
-  const std::vector<OperatorEntry>& operators)
+  const std::vector<OperatorEntry>& operators, std::map<size_t, size_t> parallelizationMapping)
 {
   std::map<nodeid_t, size_t> node2component;
   std::map<size_t, std::shared_ptr<ExecutionNode>> component2exec;
@@ -179,8 +179,18 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
       std::shared_ptr<ExecutionNode> execLeft = component2exec[componentLeft];
       std::shared_ptr<ExecutionNode> execRight = component2exec[componentRight];
 
+      size_t numOfBackgroundTasks = 0;
+      auto itParallelMapping = parallelizationMapping.find(operatorIdx);
+      if(itParallelMapping != parallelizationMapping.end())
+      {
+        numOfBackgroundTasks = itParallelMapping->second;
+      }
+
       std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, e.forceNestedLoop, config);
+          execLeft, execRight, db, e.forceNestedLoop, numOfBackgroundTasks, config);
+
+      joinExec->operatorIdx = operatorIdx;
+
       updateComponentForNodes(node2component, componentLeft, joinExec->componentNr);
       updateComponentForNodes(node2component, componentRight, joinExec->componentNr);
       component2exec[joinExec->componentNr] = joinExec;      
@@ -273,7 +283,9 @@ void Query::internalInit()
 
     if(config.numOfBackgroundTasks > 0)
     {
-      bestPlan->optimizeParallelization(db, config);
+      std::map<size_t, size_t> parallelizationMapping = bestPlan->getOptimizedParallelizationMapping(db, config);
+      // recreate the plan with the mapping
+      bestPlan = createPlan(nodes, operators, parallelizationMapping);
     }
   }
   else
@@ -349,6 +361,8 @@ void Query::optimizeJoinOrderRandom()
       unsuccessful++;
     }
   } while(unsuccessful < maxUnsuccessfulTries);
+
+  operators = optimizedOperators;
 }
 
 void Query::optimizeJoinOrderAllPermutations() 
@@ -358,6 +372,7 @@ void Query::optimizeJoinOrderAllPermutations()
   std::sort(testOrder.begin(), testOrder.end(), compare_opentry_origorder);
   
   bestPlan = createPlan(nodes, testOrder);
+  operators = testOrder;
 
 //  bestPlan->getCost();
 //  std::cout << operatorOrderDebugString(testOrder) << std::endl;
@@ -374,6 +389,7 @@ void Query::optimizeJoinOrderAllPermutations()
     if(testPlan->getCost() < bestPlan->getCost())
     {
       bestPlan = testPlan;
+      operators = testOrder;
       
 //      std::cout << "!!!new best join order!!! " << std::endl;
     }
