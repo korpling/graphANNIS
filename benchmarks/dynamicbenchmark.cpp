@@ -30,7 +30,7 @@ void DynamicCorpusFixture::UserBenchmark()
   HL_INFO(benchLogger, (boost::format("result %1%") % counter).str());
   if (expectedCount && counter != *expectedCount)
   {
-    std::cerr << "FATAL ERROR: query " << benchmarkName << " should have count " << *expectedCount << " but was " << counter << std::endl;
+    std::cerr << "FATAL ERROR: query " << benchmarkName << ":" << currentExperimentValue << " should have count " << *expectedCount << " but was " << counter << std::endl;
     std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
     exit(-1);
   }

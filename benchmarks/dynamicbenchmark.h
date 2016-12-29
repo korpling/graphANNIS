@@ -81,7 +81,7 @@ namespace annis {
             std::map<int64_t, unsigned int> expectedCount = std::map<int64_t, unsigned int>())
     : corpusPath(corpusPath), config(config),
     json(json), benchmarkName(benchmarkName), counter(0),
-    expectedCountByExp(expectedCount) {
+    expectedCountByExp(expectedCount), currentExperimentValue(0) {
     }
 
     const std::weak_ptr<DB> getDB() {
@@ -91,8 +91,12 @@ namespace annis {
     virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const override;
 
     virtual void setUp(int64_t experimentValue) override {
+
+      currentExperimentValue = experimentValue;
+
       counter = 0;
       q.reset();
+
       
       // find the correct query
       auto it = json.find(experimentValue);
@@ -143,6 +147,7 @@ namespace annis {
 
     std::map<int64_t, unsigned int> expectedCountByExp;
     boost::optional<unsigned int> expectedCount;
+    int64_t currentExperimentValue;
     
     
     static std::shared_ptr<DBCache> dbCache;
