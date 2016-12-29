@@ -35,10 +35,13 @@ int main(int argc, char **argv) {
         DynamicBenchmark benchmark(subdir, corpusPath, corpusName
           , true);
 
-        for(int i=0; i <= std::thread::hardware_concurrency(); i++)
+        unsigned int numOfCPUs = std::thread::hardware_concurrency();
+        std::shared_ptr<ThreadPool> sharedThreadPool = std::make_shared<ThreadPool>(numOfCPUs);
+
+        for(int i=0; i <= numOfCPUs; i++)
         {
           QueryConfig config;
-          config.threadPool = i > 0 ? std::make_shared<ThreadPool>(i) : nullptr;
+          config.threadPool = i > 0 ? sharedThreadPool : nullptr;
           config.numOfBackgroundTasks = i;
           benchmark.registerFixture("Jobs_" + std::to_string(i), config);
         }
