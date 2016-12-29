@@ -21,6 +21,7 @@ namespace annis
     std::map<Component, std::string> overrideImpl;
 
     size_t numOfBackgroundTasks;
+    bool enableTaskIndexJoin;
     std::shared_ptr<ThreadPool> threadPool;
 
   public:

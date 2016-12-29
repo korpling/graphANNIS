@@ -108,7 +108,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
 
     if(estSearch)
     {
-      if(config.threadPool)
+      if(config.enableTaskIndexJoin && config.threadPool)
       {
         join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
                                                createSearchFilter(db, estSearch), 128, config.threadPool);
