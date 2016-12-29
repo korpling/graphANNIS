@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
   return -1;
 }
 
-static std::shared_ptr<ThreadPool> benchmarkThreadPool = std::make_shared<ThreadPool>(8);
+static std::shared_ptr<ThreadPool> benchmarkThreadPool = std::make_shared<ThreadPool>(32);
 
 class GUMFixture : public celero::TestFixture
 {
@@ -84,15 +84,12 @@ class GUMFixture : public celero::TestFixture
 
 
 //          taskConfigs.resize(9);
-          threadConfigs.reserve(8);
+          threadConfigs.resize(32);
 
-          for(int64_t i=1; i <= 8; i++)
+          for(size_t i=1; i < threadConfigs.size(); i++)
           {
-            QueryConfig threadCfg;
-            threadCfg.threadPool = benchmarkThreadPool;
-            threadCfg.numOfBackgroundTasks = i;
-
-            threadConfigs.push_back(threadCfg);
+            threadConfigs[i].threadPool = benchmarkThreadPool;
+            threadConfigs[i].numOfBackgroundTasks = i;
           }
         }
 
@@ -171,7 +168,7 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
   BENCHMARK_F(group, Thread_##idx, GUMFixture, 0, 0) \
   { \
   CALLGRIND_START_INSTRUMENTATION;\
-    std::shared_ptr<Query> q = query_##group(threadConfigs[idx-1]);\
+    std::shared_ptr<Query> q = query_##group(threadConfigs[idx]);\
     int counter=0; \
     while(q->next()) { \
       counter++; \
@@ -191,6 +188,10 @@ COUNT_BENCH(PosDepPos, 5)
 COUNT_BENCH(PosDepPos, 6)
 COUNT_BENCH(PosDepPos, 7)
 COUNT_BENCH(PosDepPos, 8)
+COUNT_BENCH(PosDepPos, 9)
+COUNT_BENCH(PosDepPos, 10)
+COUNT_BENCH(PosDepPos, 11)
+COUNT_BENCH(PosDepPos, 12)
 
 COUNT_BENCH(UsedTo, 1)
 COUNT_BENCH(UsedTo, 2)
@@ -200,6 +201,10 @@ COUNT_BENCH(UsedTo, 5)
 COUNT_BENCH(UsedTo, 6)
 COUNT_BENCH(UsedTo, 7)
 COUNT_BENCH(UsedTo, 8)
+COUNT_BENCH(UsedTo, 9)
+COUNT_BENCH(UsedTo, 10)
+COUNT_BENCH(UsedTo, 11)
+COUNT_BENCH(UsedTo, 12)
 
 BASELINE(CreateThreadPool, N1, 0, 0)
 {
