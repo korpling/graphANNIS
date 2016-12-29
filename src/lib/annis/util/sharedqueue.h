@@ -20,7 +20,7 @@ namespace annis
   {
   public:
 
-    SharedQueue(size_t capacity = std::numeric_limits<size_t>::max())
+    SharedQueue(size_t capacity = 1024)
     : capacity(capacity), isShutdown(false)
     {
 
@@ -35,17 +35,12 @@ namespace annis
     bool pop(T& item)
     {
       std::unique_lock<std::mutex> lock(queueMutex);
-      while(queue.empty())
+
+      addedCondition.wait(lock, [this] {return this->isShutdown || !this->queue.empty();});
+      if(isShutdown && queue.empty())
       {
-        if(isShutdown)
-        {
-          // queue is empty and since it is shut down no new entries will be added.
-          return false;
-        }
-        else
-        {
-          addedCondition.wait(lock);
-        }
+        // queue is empty and since it is shut down no new entries will be added.
+        return false;
       }
 
       item.swap(queue.front());
@@ -55,6 +50,7 @@ namespace annis
       // make sure a waiting push() is notified that there is now some capacity left
       removedCondition.notify_one();
 
+
       return true;
     }
 
@@ -62,18 +58,18 @@ namespace annis
     {
       std::unique_lock<std::mutex> lock(queueMutex);
 
-      while(!isShutdown && queue.size() >= capacity)
+      if(isShutdown)
       {
-        // wait until someone deleted something
-        removedCondition.wait(lock);
+        return;
       }
 
-      if(!isShutdown)
-      {
-        queue.emplace(item);
-        lock.unlock();
-        addedCondition.notify_one();
-      }
+      // wait until someone deleted something
+      removedCondition.wait(lock, [this] {return this->queue.size() < this->capacity;});
+
+      queue.emplace(item);
+      lock.unlock();
+      addedCondition.notify_one();
+
     }
 
     void shutdown()
@@ -82,9 +78,10 @@ namespace annis
       if(!isShutdown)
       {
         isShutdown = true;
+
         lock.unlock();
+
         addedCondition.notify_all();
-        removedCondition.notify_all();
       }
     }
 
