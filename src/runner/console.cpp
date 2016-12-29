@@ -22,8 +22,8 @@ Console::Console()
   unsigned int numOfCPUs = std::thread::hardware_concurrency();
   if(numOfCPUs >= 4)
   {
-    config.threadPool = std::make_shared<ThreadPool>(numOfCPUs-1);
-    config.numOfBackgroundTasks = numOfCPUs-1;
+    config.threadPool = std::make_shared<ThreadPool>(numOfCPUs);
+    config.numOfBackgroundTasks = numOfCPUs;
   }
 }
 
