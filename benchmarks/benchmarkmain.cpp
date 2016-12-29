@@ -39,6 +39,7 @@ int main(int argc, char **argv) {
         {
           QueryConfig config;
           config.threadPool = i > 0 ? std::make_shared<ThreadPool>(i) : nullptr;
+          config.numOfBackgroundTasks = i;
           benchmark.registerFixture("Jobs_" + std::to_string(i), config);
         }
 
