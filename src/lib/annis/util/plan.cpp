@@ -243,13 +243,16 @@ std::map<size_t, size_t> Plan::getOptimizedParallelizationMapping(const DB &db, 
   for(; available > 0; available--)
   {
     std::pair<std::shared_ptr<ExecutionNode>, uint64_t> largest = findLargestProcessedInStep(root);
-    if(mapping.find(largest.first->operatorIdx) == mapping.end())
+    if(largest.first)
     {
-      mapping[largest.first->operatorIdx] = 1;
-    }
-    else
-    {
-      mapping[largest.first->operatorIdx]++;
+      if(mapping.find(largest.first->operatorIdx) == mapping.end())
+      {
+        mapping[largest.first->operatorIdx] = 1;
+      }
+      else
+      {
+        mapping[largest.first->operatorIdx]++;
+      }
     }
   }
 
