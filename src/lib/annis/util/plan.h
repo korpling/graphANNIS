@@ -14,6 +14,7 @@
 #include <annis/queryconfig.h>
 #include <memory>
 #include <vector>
+#include <list>
 #include <map>
 
 #include <annis/util/threadpool.h>
@@ -104,11 +105,13 @@ private:
 private:
   static std::shared_ptr<ExecutionEstimate> estimateTupleSize(std::shared_ptr<ExecutionNode> node);
   static void clearCachedEstimate(std::shared_ptr<ExecutionNode> node);
+
+  bool replaceWithParallelJoin(std::shared_ptr<ExecutionNode> node, const DB &db, QueryConfig &config);
   
   std::string debugStringForNode(std::shared_ptr<const ExecutionNode> node, std::string indention) const;
   std::string typeToString(ExecutionNodeType type) const;
   
-  static bool descendendantHasNestedLoop(std::shared_ptr<ExecutionNode> node);
+  static std::list<std::shared_ptr<ExecutionNode>> getDescendentNestedLoops(std::shared_ptr<ExecutionNode> node);
 
   static std::function<std::list<Annotation> (nodeid_t)> createAnnotationSearchFilter(
       const DB& db, std::shared_ptr<AnnotationSearch> annoSearch,
