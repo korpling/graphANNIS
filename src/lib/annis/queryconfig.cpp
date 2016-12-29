@@ -7,10 +7,10 @@ annis::QueryConfig::QueryConfig()
     numOfBackgroundTasks(0), threadPool(nullptr)
 
 {
-  size_t numOfCPUs = std::thread::hardware_concurrency();
-  if(numOfCPUs > 0)
-  {
-    numOfBackgroundTasks = numOfCPUs-1;
-    threadPool = std::make_shared<ThreadPool>(numOfBackgroundTasks);
-  }
+//  size_t numOfCPUs = std::thread::hardware_concurrency();
+//  if(numOfCPUs > 0)
+//  {
+//    numOfBackgroundTasks = numOfCPUs-1;
+//    threadPool = std::make_shared<ThreadPool>(numOfBackgroundTasks);
+//  }
 }
