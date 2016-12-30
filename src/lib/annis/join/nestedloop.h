@@ -4,6 +4,7 @@
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/db.h>
 #include <annis/iterators.h>
+#include <deque>
 
 namespace annis 
 {
@@ -44,8 +45,8 @@ namespace annis
     const size_t innerIdx;
     
     bool firstOuterFinished;
-    std::list<std::vector<Match>> innerCache;
-    std::list<std::vector<Match>>::const_iterator itInnerCache;
+    std::deque<std::vector<Match>> innerCache;
+    std::deque<std::vector<Match>>::const_iterator itInnerCache;
   private:
     bool fetchNextInner();
 
