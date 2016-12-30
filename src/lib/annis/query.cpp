@@ -286,6 +286,8 @@ void Query::internalInit()
       std::map<size_t, size_t> parallelizationMapping = bestPlan->getOptimizedParallelizationMapping(db, config);
       // recreate the plan with the mapping
       bestPlan = createPlan(nodes, operators, parallelizationMapping);
+      // still get the cost so the estimates are calculated
+      bestPlan->getCost();
     }
   }
   else
