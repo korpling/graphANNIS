@@ -19,6 +19,7 @@
 #include <annis/wrapper.h>
 #include <annis/operators/operator.h>
 #include <annis/join/nestedloop.h>
+#include <annis/join/threadnestedloop.h>
 #include <annis/join/taskindexjoin.h>
 #include <annis/join/threadindexjoin.h>
 #include <annis/join/indexjoin.h>
@@ -141,14 +142,25 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   else
   {
     result->type = ExecutionNodeType::nested_loop;
+    result->numOfBackgroundTasks = numOfBackgroundTasks;
     
     auto leftEst = estimateTupleSize(lhs);
     auto rightEst = estimateTupleSize(rhs);
     
     bool leftIsOuter = leftEst->output <= rightEst->output;
     
-    join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join,
-                                            mappedPosLHS->second, mappedPosRHS->second, true, leftIsOuter);
+    if(numOfBackgroundTasks > 0)
+    {
+      join = std::make_shared<ThreadNestedLoop>(op, lhs->join, rhs->join,
+                                              mappedPosLHS->second, mappedPosRHS->second, leftIsOuter,
+                                              numOfBackgroundTasks,
+                                              config.threadPool);
+    }
+    else
+    {
+      join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join,
+                                              mappedPosLHS->second, mappedPosRHS->second, true, leftIsOuter);
+    }
   }
   
   result->join = join;
@@ -203,56 +215,24 @@ std::map<size_t, size_t> Plan::getOptimizedParallelizationMapping(const DB &db, 
 {
   std::map<size_t, size_t> mapping;
 
-  size_t available = config.numOfBackgroundTasks;
-
-
-  // optimize all nested loop joins
-  auto nestedLoops = getDescendentNestedLoops(root);
-
-
-  for(std::shared_ptr<ExecutionNode> nl : nestedLoops)
-  {
-    if(available < 2)
-    {
-      break;
-    }
-
-    if(nl->lhs->type == ExecutionNodeType::seed && nl->lhs->type == ExecutionNodeType::seed)
-    {
-      if(mapping.find(nl->lhs->operatorIdx) == mapping.end())
-      {
-        mapping[nl->lhs->operatorIdx] = 1;
-      }
-      else
-      {
-        mapping[nl->lhs->operatorIdx]++;
-      }
-
-      if(mapping.find(nl->rhs->operatorIdx) == mapping.end())
-      {
-        mapping[nl->rhs->operatorIdx] = 1;
-      }
-      else
-      {
-        mapping[nl->rhs->operatorIdx]++;
-      }
-      available -= 2;
-    }
-  }
-
-  for(; available > 0; available--)
+  for(size_t available = config.numOfBackgroundTasks; available > 0; available -= 2)
   {
     std::pair<std::shared_ptr<ExecutionNode>, uint64_t> largest = findLargestProcessedInStep(root);
     if(largest.first)
     {
       if(mapping.find(largest.first->operatorIdx) == mapping.end())
       {
-        mapping[largest.first->operatorIdx] = 1;
+        mapping[largest.first->operatorIdx] = 2;
       }
       else
       {
-        mapping[largest.first->operatorIdx]++;
+        mapping[largest.first->operatorIdx] += 2;
       }
+    }
+    else
+    {
+      // nothing to optimize
+      break;
     }
   }
 
@@ -623,7 +603,7 @@ std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedIn
     result = largestRHS;
   }
 
-  if(node->type == ExecutionNodeType::seed)
+  if(node->type == ExecutionNodeType::seed || node->type == ExecutionNodeType::nested_loop)
   {
     std::shared_ptr<ExecutionEstimate> estNode = estimateTupleSize(node);
 
@@ -711,7 +691,8 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
   if(node->op)
   {
     result += "{sel: " + std::to_string(node->op->selectivity());
-    if(node->type == ExecutionNodeType::seed && node->numOfBackgroundTasks > 0)
+    if((node->type == ExecutionNodeType::seed || node->type == ExecutionNodeType::nested_loop)
+       && node->numOfBackgroundTasks > 0)
     {
       result +=" tasks: " + std::to_string(node->numOfBackgroundTasks);
     }

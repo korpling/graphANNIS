@@ -22,7 +22,7 @@ ThreadIndexJoin::ThreadIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
 
     std::vector<Match> currentLHSVector;
 
-    while(runBackgroundThreads && this->nextLHS(currentLHSVector))
+    while(this->runBackgroundThreads && this->nextLHS(currentLHSVector))
     {
       const Match& currentLHS = currentLHSVector[lhsIdx];
 
@@ -100,15 +100,13 @@ bool ThreadIndexJoin::next(std::vector<Match>& tuple)
 void ThreadIndexJoin::reset()
 {
   runBackgroundThreads = false;
-  if(results)
-  {
-    results->shutdown();
-  }
 
   for(auto& t : taskList)
   {
     t.wait();
   }
+
+  lhs->reset();
 
   results = std::unique_ptr<SharedQueue<std::vector<Match>>>(new SharedQueue<std::vector<Match>>());
 }
@@ -116,6 +114,7 @@ void ThreadIndexJoin::reset()
 ThreadIndexJoin::~ThreadIndexJoin()
 {
   runBackgroundThreads = false;
+
   for(auto& t : taskList)
   {
     t.wait();
