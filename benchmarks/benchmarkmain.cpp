@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
         unsigned int numOfCPUs = std::thread::hardware_concurrency();
         std::shared_ptr<ThreadPool> sharedThreadPool = std::make_shared<ThreadPool>(numOfCPUs);
 
-        for(int i=0; i <= numOfCPUs; i++)
+        for(int i=0; i <= numOfCPUs; i += 2)
         {
           QueryConfig config;
           config.threadPool = i > 0 ? sharedThreadPool : nullptr;
