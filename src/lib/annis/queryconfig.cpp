@@ -4,7 +4,7 @@
 
 annis::QueryConfig::QueryConfig()
   : optimize(true), forceFallback(false), avoidNestedBySwitch(true) ,
-    numOfBackgroundTasks(0), enableTaskIndexJoin(false), threadPool(nullptr)
+    numOfBackgroundTasks(0), enableTaskIndexJoin(false), enableThreadIndexJoin(false), threadPool(nullptr)
 
 {
 //  size_t numOfCPUs = std::thread::hardware_concurrency();

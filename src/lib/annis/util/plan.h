@@ -115,7 +115,8 @@ private:
       const DB& db, std::shared_ptr<AnnotationKeySearch> annoKeySearch,
       boost::optional<Annotation> constAnno = boost::optional<Annotation>());
 
-  static std::pair<std::shared_ptr<ExecutionNode>, uint64_t> findLargestProcessedInStep(std::shared_ptr<ExecutionNode> node);
+  static std::pair<std::shared_ptr<ExecutionNode>, uint64_t> findLargestProcessedInStep(
+      std::shared_ptr<ExecutionNode> node, bool includeSeed = true);
 };
 
 } // end namespace annis

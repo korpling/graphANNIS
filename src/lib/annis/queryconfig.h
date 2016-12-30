@@ -22,6 +22,7 @@ namespace annis
 
     size_t numOfBackgroundTasks;
     bool enableTaskIndexJoin;
+    bool enableThreadIndexJoin;
     std::shared_ptr<ThreadPool> threadPool;
 
   public:

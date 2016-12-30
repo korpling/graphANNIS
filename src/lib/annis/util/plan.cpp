@@ -217,7 +217,8 @@ std::map<size_t, size_t> Plan::getOptimizedParallelizationMapping(const DB &db, 
 
   for(size_t available = config.numOfBackgroundTasks; available > 0; available -= 2)
   {
-    std::pair<std::shared_ptr<ExecutionNode>, uint64_t> largest = findLargestProcessedInStep(root);
+    std::pair<std::shared_ptr<ExecutionNode>, uint64_t> largest = findLargestProcessedInStep(
+          root, config.enableThreadIndexJoin);
     if(largest.first)
     {
       if(mapping.find(largest.first->operatorIdx) == mapping.end())
@@ -578,7 +579,8 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
   }
 }
 
-std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedInStep(std::shared_ptr<ExecutionNode> node)
+std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedInStep(
+    std::shared_ptr<ExecutionNode> node, bool includeSeed)
 {
 
   if(!node)
@@ -597,7 +599,7 @@ std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedIn
     result = largestRHS;
   }
 
-  if(node->type == ExecutionNodeType::seed || node->type == ExecutionNodeType::nested_loop)
+  if(node->type == ExecutionNodeType::nested_loop || (includeSeed && node->type == ExecutionNodeType::seed))
   {
     std::shared_ptr<ExecutionEstimate> estNode = estimateTupleSize(node);
 
