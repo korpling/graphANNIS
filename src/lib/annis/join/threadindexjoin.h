@@ -59,6 +59,8 @@ private:
   std::unique_ptr<SharedQueue<std::vector<Match>>> results;
   std::function<void()> lhsFetchLoop;
 
+  std::deque<std::future<void>> taskList;
+
 private:
   bool nextLHS(std::vector<Match>& tuple)
   {

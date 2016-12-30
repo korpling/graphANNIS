@@ -86,7 +86,7 @@ bool ThreadIndexJoin::next(std::vector<Match>& tuple)
 
       for(size_t i=0; i < numOfTasks; i++)
       {
-        threadPool->enqueue(lhsFetchLoop);
+        taskList.emplace_back(threadPool->enqueue(lhsFetchLoop));
       }
     }
   }
@@ -104,11 +104,21 @@ void ThreadIndexJoin::reset()
   {
     results->shutdown();
   }
+
+  for(auto& t : taskList)
+  {
+    t.wait();
+  }
+
   results = std::unique_ptr<SharedQueue<std::vector<Match>>>(new SharedQueue<std::vector<Match>>());
 }
 
 ThreadIndexJoin::~ThreadIndexJoin()
 {
   runBackgroundThreads = false;
+  for(auto& t : taskList)
+  {
+    t.wait();
+  }
 }
 
