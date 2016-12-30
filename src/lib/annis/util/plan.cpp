@@ -375,12 +375,6 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
   return node->estimate;
 }
 
-bool Plan::hasNestedLoop() const 
-{
-  auto nestedLoopList = getDescendentNestedLoops(root);
-  return !nestedLoopList.empty();
-}
-
 std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const DB &db, std::shared_ptr<EstimatedSearch> search)
 {
   std::shared_ptr<ConstAnnoWrapper> constWrapper = std::dynamic_pointer_cast<ConstAnnoWrapper>(search);

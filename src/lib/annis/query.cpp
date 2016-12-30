@@ -281,7 +281,7 @@ void Query::internalInit()
       bestPlan->getCost();
     }
 
-    if(config.numOfBackgroundTasks > 0)
+    if(config.numOfBackgroundTasks >= 2)
     {
       std::map<size_t, size_t> parallelizationMapping = bestPlan->getOptimizedParallelizationMapping(db, config);
       // recreate the plan with the mapping

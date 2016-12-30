@@ -90,8 +90,6 @@ public:
   
   std::string debugString() const;
   
-  bool hasNestedLoop() const;
-
   static std::function<std::list<Annotation> (nodeid_t)> createSearchFilter(const DB& db,
     std::shared_ptr<EstimatedSearch> search);
 
