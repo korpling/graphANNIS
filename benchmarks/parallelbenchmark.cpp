@@ -9,6 +9,8 @@
 
 #include <annis/operators/pointing.h>
 #include <annis/operators/precedence.h>
+#include <annis/operators/dominance.h>
+#include <annis/operators/identicalcoverage.h>
 
 
 #ifdef ENABLE_VALGRIND
@@ -50,7 +52,7 @@ class GUMFixture : public celero::TestFixture
 {
     public:
         GUMFixture()
-          : count_PosDepPos(246), count_UsedTo(1)
+          : count_PosDepPos(246), count_UsedTo(1), count_ComplexNested(3)
         {
         }
 
@@ -119,53 +121,57 @@ class GUMFixture : public celero::TestFixture
           return result;
         }
 
+        // entity ->coref[type="coref"] infstat & cat > tok & #1 _=_ #3 & tok & #5 ->dep[func="prep"] #4
+        std::shared_ptr<Query> query_ComplexNested(QueryConfig config)
+        {
+          std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
+
+          Annotation edgeAnnoCoref = {db.strings.add("type"), 0, db.strings.add("coref")};
+          Annotation edgeAnnoPrep = {db.strings.add("func"), 0, db.strings.add("prep")};
+
+          result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "entity"));
+          result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "infstat"));
+          result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "cat"));
+          result->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+          result->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+
+          result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "coref", edgeAnnoCoref), 0,1);
+          result->addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", ""), 2,3);
+          result->addOperator(std::make_shared<IdenticalCoverage>(db, db.edges),0,2);
+          result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnnoPrep), 4,3);
+
+          return result;
+        }
+
         DB db;
         QueryConfig nonParallelConfig;
         std::vector<QueryConfig> threadConfigs;
 
         const int count_PosDepPos;
         const int count_UsedTo;
+        const int count_ComplexNested;
 
 
 };
 
-
-BASELINE_F(PosDepPos, NonParallel, GUMFixture, 0, 0)
-{
-  CALLGRIND_START_INSTRUMENTATION;
-  std::shared_ptr<Query> q = query_PosDepPos(nonParallelConfig);
-
-  int counter=0;
-  while(q->next()) {
-    counter++;
+#define COUNT_BASELINE(group) \
+  BASELINE_F(group, N0, GUMFixture, 0, 0) \
+  { \
+  CALLGRIND_START_INSTRUMENTATION;\
+    std::shared_ptr<Query> q = query_##group(nonParallelConfig);\
+    int counter=0; \
+    while(q->next()) { \
+      counter++; \
+    } \
+    if(counter != count_##group)\
+    {\
+      throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
+    }\
+  CALLGRIND_STOP_INSTRUMENTATION;\
   }
-  if(counter != count_PosDepPos)
-  {
-    throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_PosDepPos);
-  }
-  CALLGRIND_STOP_INSTRUMENTATION;
-}
-
-BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
-{
-  CALLGRIND_START_INSTRUMENTATION;
-  std::shared_ptr<Query> q = query_UsedTo(nonParallelConfig);
-
-  int counter=0;
-  while(q->next()) {
-    counter++;
-  }
-  if(counter != count_UsedTo)
-  {
-    throw "Invalid count for N0, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_UsedTo);
-  }
-  CALLGRIND_STOP_INSTRUMENTATION;
-}
-
-
 
 #define COUNT_BENCH(group, idx) \
-  BENCHMARK_F(group, Thread_##idx, GUMFixture, 0, 0) \
+  BENCHMARK_F(group, N##idx, GUMFixture, 0, 0) \
   { \
   CALLGRIND_START_INSTRUMENTATION;\
     std::shared_ptr<Query> q = query_##group(threadConfigs[idx]);\
@@ -180,6 +186,7 @@ BASELINE_F(UsedTo, NonParallel, GUMFixture, 0, 0)
   CALLGRIND_STOP_INSTRUMENTATION;\
   }
 
+COUNT_BASELINE(PosDepPos)
 COUNT_BENCH(PosDepPos, 2)
 COUNT_BENCH(PosDepPos, 4)
 COUNT_BENCH(PosDepPos, 6)
@@ -187,12 +194,21 @@ COUNT_BENCH(PosDepPos, 8)
 COUNT_BENCH(PosDepPos, 10)
 COUNT_BENCH(PosDepPos, 12)
 
+COUNT_BASELINE(UsedTo)
 COUNT_BENCH(UsedTo, 2)
 COUNT_BENCH(UsedTo, 4)
 COUNT_BENCH(UsedTo, 6)
 COUNT_BENCH(UsedTo, 8)
 COUNT_BENCH(UsedTo, 10)
 COUNT_BENCH(UsedTo, 12)
+
+COUNT_BASELINE(ComplexNested)
+COUNT_BENCH(ComplexNested, 2)
+COUNT_BENCH(ComplexNested, 4)
+COUNT_BENCH(ComplexNested, 6)
+COUNT_BENCH(ComplexNested, 8)
+COUNT_BENCH(ComplexNested, 10)
+COUNT_BENCH(ComplexNested, 12)
 
 BASELINE(CreateThreadPool, N1, 0, 0)
 {
