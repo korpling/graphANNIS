@@ -15,13 +15,18 @@
  */
 package org.corpus_tools.annis.benchmark.generator;
 
+import java.awt.Font;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javax.swing.UIDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -53,6 +58,12 @@ public class Main extends Application
         "Main.fxml"));
     Parent root = loader.load();
 
+    if(Screen.getPrimary().getBounds().getWidth() > 2000)
+    {
+      root.setScaleX(2.0);
+      root.setScaleX(2.0);
+    }
+    
     Scene scene = new Scene(root);
     MainController controller = loader.getController();
     controller.initializeAccelerators(scene);
