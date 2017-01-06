@@ -14,6 +14,8 @@ class EstimatedSearch : public AnnoIt
 {
 public:
   virtual std::int64_t guessMaxCount() const {return -1;}
+
+  virtual std::string debugString() const {return "";}
 };
 
 class AnnotationSearch : public EstimatedSearch

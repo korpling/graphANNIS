@@ -10,7 +10,6 @@
 #include <annis/operators/dominance.h>
 #include <annis/annosearch/exactannovaluesearch.h>
 #include <annis/query.h>
-#include "../benchmarks/examplequeries.h"
 
 #include "testlogger.h"
 

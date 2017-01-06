@@ -4,7 +4,7 @@ using namespace annis;
 using namespace std;
 
 ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
-  :db(db),validAnnotationInitialized(false)
+  :db(db),validAnnotationInitialized(false), debugDescription(annoNamspace + ":" + annoName + "=\"" + annoValue + "\"")
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> namspaceID = db.strings.findID(annoNamspace);
@@ -17,25 +17,25 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamsp
     key.ns = namspaceID.second;
     key.val = valueID.second;
 
-    searchRanges.push_back(Range(db.nodeAnnos.inverseNodeAnnotations.equal_range(key)));
+    searchRanges.push_back(Range(db.nodeAnnos.inverseAnnotations.equal_range(key)));
     it = searchRanges.begin()->first;
   }
   currentRange = searchRanges.begin();
 }
 
 ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &annoName, const std::string &annoValue)
-  :db(db), validAnnotationInitialized(false)
+  :db(db), validAnnotationInitialized(false), debugDescription(annoName + "=\"" + annoValue + "\"")
 {
   std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
   std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
 
   if(nameID.first && valueID.first)
   {
-    auto keysLower = db.nodeAnnos.nodeAnnoKeys.lower_bound({nameID.second, 0});
-    auto keysUpper = db.nodeAnnos.nodeAnnoKeys.upper_bound({nameID.second, uintmax});
+    auto keysLower = db.nodeAnnos.annoKeys.lower_bound({nameID.second, 0});
+    auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({nameID.second, uintmax});
     for(auto itKey = keysLower; itKey != keysUpper; itKey++)
     {
-      searchRanges.push_back(Range(db.nodeAnnos.inverseNodeAnnotations.equal_range(
+      searchRanges.push_back(Range(db.nodeAnnos.inverseAnnotations.equal_range(
       {itKey->first.name, itKey->first.ns, valueID.second})));
     }
   }

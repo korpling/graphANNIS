@@ -5,6 +5,8 @@
 #include <map>
 #include <set>
 
+#include <boost/optional.hpp>
+
 #include <cereal/types/string.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <annis/serializers.h>
@@ -31,6 +33,19 @@ public:
     else
     {
       throw("Unknown string ID");
+    }
+  }
+
+  boost::optional<std::string> strOpt(std::uint32_t id) const
+  {
+    auto it = stringStorageByID.find(id);
+    if(it != stringStorageByID.end())
+    {
+      return boost::optional<std::string>(it->second);
+    }
+    else
+    {
+      return boost::optional<std::string>();
     }
   }
 

@@ -148,6 +148,8 @@ double AbstractEdgeOperator::selectivity()
   {
     if(auto g = gPtr.lock())
     {
+
+      double graphStorageSelectivity = 0.0;
       const auto& stat = g->getStatistics();
       if(stat.valid)
       {
@@ -157,6 +159,7 @@ double AbstractEdgeOperator::selectivity()
           return 1.0;
         }
 
+
         // get number of nodes reachable from min to max distance
         std::uint32_t maxPathLength = std::min(maxDistance, stat.maxDepth);
         std::uint32_t minPathLength = std::max(0, (int) minDistance-1);
@@ -165,19 +168,118 @@ double AbstractEdgeOperator::selectivity()
         std::uint32_t reachableMin = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) minPathLength));
 
         std::uint32_t reachable =  reachableMax - reachableMin;
-        worstSel = std::max(worstSel, ((double) reachable ) / ((double) stat.nodes));
+        graphStorageSelectivity = ((double) reachable ) / ((double) stat.nodes);
+
       }
       else
       {
          // assume a default selecivity for this graph storage operator
-         worstSel = std::max(worstSel, 0.01);
+         graphStorageSelectivity = 0.01;
       }
 
+      worstSel = std::max(worstSel, graphStorageSelectivity);
     }
   }
   
   // return worst selectivity
   return worstSel;
+}
+
+double AbstractEdgeOperator::edgeAnnoSelectivity()
+{
+  // check if an edge annotation is defined
+  if((edgeAnno == anyAnno))
+  {
+    return 1.0;
+  }
+  else
+  {
+    double worstSel = 0.0;
+
+    for(std::weak_ptr<const ReadableGraphStorage> gPtr: gs)
+    {
+      if(auto g = gPtr.lock())
+      {
+        size_t numOfAnnos = g->numberOfEdgeAnnotations();
+        if(numOfAnnos == 0)
+        {
+          // we won't be able to find anything if there are no annotations
+          return 0.0;
+        }
+        else
+        {
+          // the edge annotation will filter the selectiviy even more
+          size_t guessedCount = g->getAnnoStorage().guessMaxCount(strings, edgeAnno);
+
+          worstSel = std::max(worstSel, (double) guessedCount /  (double) numOfAnnos);
+        }
+      }
+    }
+
+    return worstSel;
+  }
+  return -1.0;
+}
+
+int64_t AbstractEdgeOperator::guessMaxCountEdgeAnnos()
+{
+  if(edgeAnno == anyAnno)
+  {
+    return -1;
+  }
+  else
+  {
+    std::int64_t sum = 0;
+    for(std::weak_ptr<const ReadableGraphStorage> gPtr: gs)
+    {
+      if(auto g = gPtr.lock())
+      {
+        sum += g->getAnnoStorage().guessMaxCount(strings, edgeAnno);
+      }
+    }
+    return sum;
+  }
+}
+
+std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
+    std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+    bool maximalOneNodeAnno,
+    std::int64_t wrappedNodeCountEstimate,
+    std::string debugDescription) const
+{
+  if(edgeAnno == anyAnno)
+  {
+    return std::shared_ptr<NodeByEdgeAnnoSearch>();
+  }
+  else
+  {
+    std::set<Annotation> validEdgeAnnos;
+    if(edgeAnno.ns == 0)
+    {
+      // collect all edge annotations having this name
+      for(size_t i =0; i < gs.size(); i++)
+      {
+        const BTreeMultiAnnoStorage<Edge>& annos = gs[i]->getAnnoStorage();
+
+        auto keysLower = annos.annoKeys.lower_bound({edgeAnno.name, 0});
+        auto keysUpper = annos.annoKeys.upper_bound({edgeAnno.name, uintmax});
+        for(auto itKey = keysLower; itKey != keysUpper; itKey++)
+        {
+          Annotation fullyQualifiedAnno = edgeAnno;
+          fullyQualifiedAnno.ns = itKey->first.ns;
+          validEdgeAnnos.emplace(fullyQualifiedAnno);
+        }
+      }
+    }
+    else
+    {
+      // there is only one valid edge annotation
+      validEdgeAnnos.emplace(edgeAnno);
+    }
+    return std::make_shared<NodeByEdgeAnnoSearch>(gs, validEdgeAnnos, nodeAnnoMatchGenerator,
+                                                  maximalOneNodeAnno,
+                                                  wrappedNodeCountEstimate, debugDescription);
+  }
 }
 
 

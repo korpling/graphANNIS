@@ -1,7 +1,7 @@
 #pragma once
 
 #include <annis/graphstorage/graphstorage.h>
-#include <annis/edgeannotationstorage.h>
+#include <annis/annostorage.h>
 #include <annis/util/dfs.h>
 #include <annis/annosearch/exactannovaluesearch.h>
 #include <annis/annosearch/exactannokeysearch.h>
@@ -275,7 +275,7 @@ public:
         std::vector<Annotation> edgeAnnos = orig.getEdgeAnnotations(e);
         for(auto a : edgeAnnos)
         {
-          edgeAnno.addEdgeAnnotation(e, a);
+          edgeAnno.addAnnotation(e, a);
         }
       }
     }
@@ -325,6 +325,7 @@ public:
     } // end for each root
 
     stat = orig.getStatistics();
+    edgeAnno.calculateStatistics(db.strings);
   }
 
   virtual void clear() override
@@ -336,7 +337,7 @@ public:
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const override
   {
-    return edgeAnno.getEdgeAnnotations(edge);
+    return edgeAnno.getAnnotations(edge);
   }
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance = 1, unsigned int maxDistance = 1) const override
@@ -431,7 +432,12 @@ public:
   }
   virtual size_t numberOfEdgeAnnotations() const override
   {
-    return edgeAnno.numberOfEdgeAnnotations();
+    return edgeAnno.numberOfAnnotations();
+  }
+
+  virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
+  {
+    return edgeAnno;
   }
 
   virtual size_t estimateMemorySize() override
@@ -446,7 +452,7 @@ public:
 private:
   multimap_t<nodeid_t, PrePostSpec> node2order;
   map_t<PrePostSpec, nodeid_t> order2node;
-  EdgeAnnotationStorage edgeAnno;
+  BTreeMultiAnnoStorage<Edge> edgeAnno;
 
   void enterNode(order_t& currentOrder, nodeid_t nodeID, nodeid_t /* rootNode */, level_t level, NStack &nodeStack)
   {

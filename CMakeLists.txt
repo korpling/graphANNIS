@@ -1,5 +1,5 @@
 project(graphANNIS)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.3)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/output)
@@ -35,7 +35,8 @@ ELSE()
 ENDIF()
 
 
-find_package(ICU 4.4 REQUIRED)
+find_package(ICU 44 REQUIRED)
+set(Boost_USE_STATIC_LIBS   OFF)
 find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package (Threads REQUIRED)
 
@@ -62,8 +63,8 @@ include_directories(
 
 # make sure QtCreator shows the include files
 set(IncludeFiles
+  src/lib/annis/queryconfig.h
   src/lib/annis/wrapper.h
-  src/lib/annis/edgeannotationstorage.h
   src/lib/annis/stringstorage.h
   src/lib/annis/json/jsonqueryparser.h
   src/lib/annis/json/json.h
@@ -92,22 +93,29 @@ set(IncludeFiles
   src/lib/annis/api/graphupdate.h
   src/lib/annis/serializers.h
   src/lib/annis/graphstorageregistry.h
-  src/lib/annis/nodeannostorage.h
+  src/lib/annis/annostorage.h
   src/lib/annis/util/helper.h
   src/lib/annis/util/plan.h
   src/lib/annis/util/dfs.h
   src/lib/annis/util/size_estimator.h
   src/lib/annis/util/comparefunctions.h
+  src/lib/annis/util/sharedqueue.h
+  src/lib/annis/util/threadpool.h
   src/lib/annis/query.h
-  src/lib/annis/join/seed.h
   src/lib/annis/join/nestedloop.h
+  src/lib/annis/join/threadnestedloop.h
+  src/lib/annis/join/taskindexjoin.h
+  src/lib/annis/join/threadindexjoin.h
+  src/lib/annis/join/indexjoin.h
   src/lib/annis/annosearch/exactannovaluesearch.h
   src/lib/annis/annosearch/annotationsearch.h
   src/lib/annis/annosearch/exactannokeysearch.h
   src/lib/annis/annosearch/regexannosearch.h
+  src/lib/annis/annosearch/nodebyedgeannosearch.h
 )
 
 set(SRC_LIST_LIB
+  src/lib/annis/queryconfig.cpp
   src/lib/annis/filter.cpp
   src/lib/annis/json/jsoncpp.cpp
   src/lib/annis/json/jsonqueryparser.cpp
@@ -131,19 +139,24 @@ set(SRC_LIST_LIB
   src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
   src/lib/annis/api/graphupdate.cpp
-  src/lib/annis/edgeannotationstorage.cpp
   src/lib/annis/query.cpp
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
-  src/lib/annis/nodeannostorage.cpp
+  src/lib/annis/util/sharedqueue.cpp
+  src/lib/annis/util/threadpool.cpp
+  src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/nestedloop.cpp
-  src/lib/annis/join/seed.cpp
+  src/lib/annis/join/threadnestedloop.cpp
+  src/lib/annis/join/taskindexjoin.cpp
+  src/lib/annis/join/threadindexjoin.cpp
+  src/lib/annis/join/indexjoin.cpp
   src/lib/annis/annosearch/exactannokeysearch.cpp
   src/lib/annis/annosearch/exactannovaluesearch.cpp
   src/lib/annis/annosearch/regexannosearch.cpp
   src/lib/annis/annosearch/annotationsearch.cpp
+  src/lib/annis/annosearch/nodebyedgeannosearch.cpp
 )
 
 set(SRC_LIST_RUNNER
@@ -189,7 +202,6 @@ set(TEST_SRC_LIST
   tests/SearchTestRidges.h
   tests/CorpusStorageManagerTest.h
   tests/SearchTestGUM.h
-  tests/SearchTestTueBaDZ.h
   tests/LoadTest.h
   tests/SearchTestTiger.h
   tests/testmain.cpp
@@ -206,12 +218,26 @@ add_test( ${TEST_EXEC} ${TEST_EXEC} )
 
 
 if(GRAPHANNIS_BUILD_BENCHMARKS)
-  file(GLOB BENCHMARK_SRC_LIST "benchmarks/*.cpp" "benchmarks/*.h")
 
-  set(BENCHMARK_EXEC "benchmark_${PROJECT_NAME}")
-  add_executable(${BENCHMARK_EXEC}  ${BENCHMARK_SRC_LIST} )
-  add_dependencies(${BENCHMARK_EXEC} Celero)
-  target_compile_features(${BENCHMARK_EXEC} PRIVATE ${needed_features})
-  target_link_libraries(${BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
+  # a benchmark using (rel)ANNIS as baseline
+  set(ANNIS_BENCHMARK_SRC_LIST
+    benchmarks/dynamicbenchmark.cpp
+    benchmarks/benchmarkmain.cpp
+  )
+  set(ANNIS_BENCHMARK_EXEC "bench_annisqueries")
+  add_executable(${ANNIS_BENCHMARK_EXEC}  ${ANNIS_BENCHMARK_SRC_LIST} )
+  add_dependencies(${ANNIS_BENCHMARK_EXEC} Celero)
+  target_compile_features(${ANNIS_BENCHMARK_EXEC} PRIVATE ${needed_features})
+  target_link_libraries(${ANNIS_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
+
+  # benchmarking the effect of parallel execution
+  set(PARALLEL_BENCHMARK_SRC_LIST
+    benchmarks/parallelbenchmark.cpp
+  )
+  set(PARALLEL_BENCHMARK_EXEC "bench_parallel")
+  add_executable(${PARALLEL_BENCHMARK_EXEC}  ${PARALLEL_BENCHMARK_SRC_LIST} )
+  add_dependencies(${PARALLEL_BENCHMARK_EXEC} Celero)
+  target_compile_features(${PARALLEL_BENCHMARK_EXEC} PRIVATE ${needed_features})
+  target_link_libraries(${PARALLEL_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
 
 endif()

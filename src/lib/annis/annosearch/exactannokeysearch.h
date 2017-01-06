@@ -1,14 +1,15 @@
 #pragma once
 
 #include <annis/annosearch/annotationsearch.h>
-#include <annis/nodeannostorage.h>
+
+#include <annis/annostorage.h>
 
 namespace annis
 {
 
 class ExactAnnoKeySearch : public AnnotationKeySearch
 {
-  using ItAnnoNode = NodeAnnoStorage::InverseNodeAnnoMap_t::const_iterator;
+  using ItAnnoNode = AnnoStorage<nodeid_t>::InverseAnnoMap_t::const_iterator;
   using ItAnnoKey = btree::btree_map<AnnotationKey, std::uint64_t>::const_iterator;
 
 public:
@@ -41,6 +42,8 @@ public:
   
   virtual std::int64_t guessMaxCount() const override;
 
+  virtual std::string debugString() const override {return debugDescription;}
+
 private:
   const DB& db;
 
@@ -54,6 +57,8 @@ private:
   bool validAnnotationKeysInitialized;
   std::set<AnnotationKey> validAnnotationKeys;
 
+  const std::string debugDescription;
+private:
   void initializeValidAnnotationKeys();
 
 };

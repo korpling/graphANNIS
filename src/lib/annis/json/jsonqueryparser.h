@@ -9,6 +9,7 @@
 
 #include <annis/query.h>
 #include <annis/json/json.h>
+#include <annis/queryconfig.h>
 #include <boost/optional.hpp>
 
 namespace annis {
@@ -19,7 +20,7 @@ namespace annis {
     JSONQueryParser(const JSONQueryParser& orig) = delete;
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
-    static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder &edges, std::istream& json, bool optimize=true);
+    static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder &edges, std::istream& json, const QueryConfig config=QueryConfig());
 
     virtual ~JSONQueryParser();
   private:

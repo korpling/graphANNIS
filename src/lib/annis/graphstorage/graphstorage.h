@@ -12,6 +12,8 @@
 #include <annis/iterators.h>
 #include <annis/stringstorage.h>
 
+#include <annis/annostorage.h>
+
 namespace annis
 {
 class DB;
@@ -53,12 +55,14 @@ public:
   virtual size_t numberOfEdges() const = 0;
   virtual size_t numberOfEdgeAnnotations() const = 0;
 
+  virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const = 0;
+
   virtual GraphStatistic getStatistics() const
   {
     return stat;
   }
 
-  virtual void calculateStatistics() {}
+  virtual void calculateStatistics(const StringStorage& strings) {}
 
   virtual size_t estimateMemorySize() = 0;
 

@@ -12,3 +12,5 @@ CMakeLists.txt.user
 /graphannis-api/nbproject/
 /graphANNIS-console/target/
 /graphannis-console/target/
+/annis4_history.txt
+/benchmark_annis4.log

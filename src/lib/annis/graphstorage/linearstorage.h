@@ -1,7 +1,7 @@
 #pragma once
 
 #include <annis/graphstorage/graphstorage.h>
-#include <annis/edgeannotationstorage.h>
+#include <annis/annostorage.h>
 #include <annis/util/dfs.h>
 #include <annis/annosearch/exactannokeysearch.h>
 
@@ -154,7 +154,7 @@ public:
         std::vector<Annotation> edgeAnnos = orig.getEdgeAnnotations(e);
         for(auto a : edgeAnnos)
         {
-          edgeAnno.addEdgeAnnotation(e, a);
+          edgeAnno.addAnnotation(e, a);
         }
       }
     }
@@ -179,6 +179,7 @@ public:
     }
 
     stat = orig.getStatistics();
+    calculateStatistics(db.strings);
   }
 
   virtual bool isConnected(const Edge& edge, unsigned int minDistance, unsigned int maxDistance) const override
@@ -245,7 +246,7 @@ public:
 
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const override
   {
-    return edgeAnno.getEdgeAnnotations(edge);
+    return edgeAnno.getAnnotations(edge);
   }
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const override
   {
@@ -273,10 +274,13 @@ public:
   }
   virtual size_t numberOfEdgeAnnotations() const override
   {
-    return edgeAnno.numberOfEdgeAnnotations();
+    return edgeAnno.numberOfAnnotations();
   }
 
-
+  virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
+  {
+    return edgeAnno;
+  }
 
   virtual size_t estimateMemorySize() override
   {
@@ -297,7 +301,7 @@ private:
   map_t<nodeid_t, RelativePosition<pos_t>> node2pos;
   map_t<nodeid_t, std::vector<nodeid_t> > nodeChains;
 
-  EdgeAnnotationStorage edgeAnno;
+  BTreeMultiAnnoStorage<Edge> edgeAnno;
 };
 
 } // end namespace annis

@@ -40,6 +40,7 @@ private:
   annis::DBCache dbCache;
 
   std::shared_ptr<annis::DB> db;
+  QueryConfig config;
 };
 
 }

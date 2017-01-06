@@ -8,6 +8,7 @@
 
 #include <annis/types.h>
 #include <annis/util/plan.h>
+#include <annis/queryconfig.h>
 
 namespace annis
 {
@@ -31,7 +32,7 @@ struct OperatorEntry
 class Query
 {
 public:
-  Query(const DB& db, bool optimize = true);
+  Query(const DB& db, QueryConfig config = QueryConfig());
   
   /**
    * @brief Add a new node to query
@@ -51,7 +52,6 @@ public:
   void addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool forceNestedLoop = false);
   
   bool next();
-  
   const std::vector<Match>& getCurrent() { return currentResult;}
   
   std::shared_ptr<const Plan> getBestPlan();
@@ -61,7 +61,7 @@ public:
 private:
 
   const DB& db;
-  bool optimize;
+  const QueryConfig config;
   
   std::vector<Match> currentResult;
 
@@ -83,13 +83,17 @@ private:
 private:
   void internalInit();
   
-  std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes, const std::vector<OperatorEntry>& operators);
+  std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes,
+                                   const std::vector<OperatorEntry>& operators,
+                                   std::map<size_t, size_t> parallelizationMapping = std::map<size_t,size_t>());
   
   void optimizeOperandOrder();
+
+  void optimizeEdgeAnnoUsage();
   
   void optimizeJoinOrderRandom();
   void optimizeJoinOrderAllPermutations();
-  
+
   void updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to);
   
   std::string operatorOrderDebugString(const std::vector<OperatorEntry>& ops);

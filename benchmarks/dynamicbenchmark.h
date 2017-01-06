@@ -15,15 +15,17 @@
 #define DYNAMICBENCHMARK_H
 
 #include <annis/json/jsonqueryparser.h>
-#include "benchmark.h"
 #include <annis/db.h>
 #include <annis/query.h>
 #include <annis/dbcache.h>
+#include <annis/queryconfig.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
 #include <sstream>
+
+#include <celero/Celero.h>
 
 namespace annis {
 
@@ -72,26 +74,29 @@ namespace annis {
   public:
 
     DynamicCorpusFixture(
-            bool forceFallback,
             std::string corpusPath,
-            std::map<Component, std::string> overrideImpl,
+            QueryConfig config,
             std::map<int64_t, std::string> json,
             std::string benchmarkName,
             std::map<int64_t, unsigned int> expectedCount = std::map<int64_t, unsigned int>())
-    : forceFallback(forceFallback), corpusPath(corpusPath), overrideImpl(overrideImpl),
+    : corpusPath(corpusPath), config(config),
     json(json), benchmarkName(benchmarkName), counter(0),
-    expectedCountByExp(expectedCount) {
+    expectedCountByExp(expectedCount), currentExperimentValue(0) {
     }
 
     const std::weak_ptr<DB> getDB() {
-      return dbCache->get(corpusPath, true, forceFallback, overrideImpl);
+      return dbCache->get(corpusPath, true, config.forceFallback, config.overrideImpl);
     }
     
     virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const override;
 
     virtual void setUp(int64_t experimentValue) override {
+
+      currentExperimentValue = experimentValue;
+
       counter = 0;
       q.reset();
+
       
       // find the correct query
       auto it = json.find(experimentValue);
@@ -102,7 +107,7 @@ namespace annis {
         if(auto dbPtr = getDB().lock())
         {
           DB& db = *dbPtr ;
-          q = JSONQueryParser::parse(db, db.edges, jsonAsStream);
+          q = JSONQueryParser::parse(db, db.edges, jsonAsStream, config);
         }
       }
       auto itCount = expectedCountByExp.find(experimentValue);
@@ -133,9 +138,8 @@ namespace annis {
 
   private:
 
-    bool forceFallback;
     std::string corpusPath;
-    std::map<Component, std::string> overrideImpl;
+    const QueryConfig config;
     std::map<int64_t, std::string> json;
     std::shared_ptr<Query> q;
     std::string benchmarkName;
@@ -143,6 +147,7 @@ namespace annis {
 
     std::map<int64_t, unsigned int> expectedCountByExp;
     boost::optional<unsigned int> expectedCount;
+    int64_t currentExperimentValue;
     
     
     static std::shared_ptr<DBCache> dbCache;
@@ -172,10 +177,8 @@ namespace annis {
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
 
-    void registerFixture(
-            std::string fixtureName,
-            bool forceFallback = false,
-            std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
+    void registerFixture(std::string fixtureName,
+            const QueryConfig config = QueryConfig()
             );
 
     virtual ~DynamicBenchmark() {
@@ -183,12 +186,9 @@ namespace annis {
 
   private:
 
-    void registerFixtureInternal(
-            bool baseline,
+    void registerFixtureInternal(bool baseline,
             std::string fixtureName,
-            bool forceFallback = false,
-            std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()
-            );
+            const QueryConfig config = QueryConfig());
 
   private:
     std::string corpusPath;
@@ -198,12 +198,11 @@ namespace annis {
     
     bool multipleExperiments;
     
-    void addBenchmark(
-            bool baseline,
+    void addBenchmark(bool baseline,
             std::string benchmarkName,
             std::map<int64_t, const boost::filesystem::path>& paths,
-            std::string fixtureName, bool forceFallback,
-            std::map<Component, std::string> overrideImpl);
+            std::string fixtureName,
+            QueryConfig config);
   };
 
 

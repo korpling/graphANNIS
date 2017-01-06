@@ -1,12 +1,13 @@
 #include <annis/query.h>
 #include <annis/join/nestedloop.h>
-#include <annis/join/seed.h>
 #include <annis/filter.h>
 #include <annis/operators/operator.h>
+#include <annis/operators/abstractedgeoperator.h>
 #include <annis/db.h>
 #include <annis/iterators.h>
 #include <annis/annosearch/annotationsearch.h>
 #include <annis/wrapper.h>
+#include <annis/annosearch/nodebyedgeannosearch.h>
 
 #include <vector>
 #include <random>
@@ -14,8 +15,8 @@
 
 using namespace annis;
 
-Query::Query(const DB &db, bool optimize)
-  : db(db), optimize(optimize)
+Query::Query(const DB &db, QueryConfig config)
+  : db(db), config(config)
 {
 }
 
@@ -102,8 +103,35 @@ void Query::optimizeOperandOrder()
         }
       }
     }
-    
-    // TODO: optimize join order
+  }
+}
+
+void Query::optimizeEdgeAnnoUsage()
+{
+  for(const OperatorEntry& opEntry : operators)
+  {
+    if(opEntry.idxLeft < nodes.size())
+    {
+      std::shared_ptr<EstimatedSearch> lhsNodeIt = std::dynamic_pointer_cast<EstimatedSearch>(nodes[opEntry.idxLeft]);
+      std::shared_ptr<AbstractEdgeOperator> op = std::dynamic_pointer_cast<AbstractEdgeOperator>(opEntry.op);
+      if(op && lhsNodeIt
+         && !std::dynamic_pointer_cast<NodeByEdgeAnnoSearch>(lhsNodeIt))
+      {
+        std::int64_t guessedCountEdgeAnno = op->guessMaxCountEdgeAnnos();
+        std::int64_t guessedCountNodeAnno = lhsNodeIt->guessMaxCount();
+        if(guessedCountEdgeAnno >= 0 && guessedCountNodeAnno >= 0)
+        {
+          if(guessedCountEdgeAnno < guessedCountNodeAnno)
+          {
+            // it is more efficient to fetch the base node by searching for the edge annotation
+            nodes[opEntry.idxLeft] = op->createAnnoSearch(Plan::createSearchFilter(db, lhsNodeIt),
+                                                          Plan::searchFilterReturnsMaximalOneAnno(lhsNodeIt),
+                                                          guessedCountNodeAnno,
+                                                          lhsNodeIt->debugString());
+          }
+        }
+      }
+    }
   }
 }
 
@@ -117,12 +145,12 @@ std::shared_ptr<const Plan> Query::getBestPlan()
 }
 
 
-std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes, 
-  const std::vector<OperatorEntry>& operators) 
+std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes,
+  const std::vector<OperatorEntry>& operators, std::map<size_t, size_t> parallelizationMapping)
 {
   std::map<nodeid_t, size_t> node2component;
   std::map<size_t, std::shared_ptr<ExecutionNode>> component2exec;
-  
+
   // 1. add all nodes
   size_t i=0;
   for(auto& n : nodes)
@@ -139,19 +167,30 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
   const size_t numOfNodes = i;
   
   // 2. add the operators which produce the results
-  for(auto& e : operators)
+  for(size_t operatorIdx=0; operatorIdx < operators.size(); operatorIdx++)
   {
+    auto& e = operators[operatorIdx];
     if(e.idxLeft < numOfNodes && e.idxRight < numOfNodes)
     {
       
       size_t componentLeft = node2component[e.idxLeft];
-	  size_t componentRight = node2component[e.idxRight];
+      size_t componentRight = node2component[e.idxRight];
       
       std::shared_ptr<ExecutionNode> execLeft = component2exec[componentLeft];
       std::shared_ptr<ExecutionNode> execRight = component2exec[componentRight];
-      
+
+      size_t numOfBackgroundTasks = 0;
+      auto itParallelMapping = parallelizationMapping.find(operatorIdx);
+      if(itParallelMapping != parallelizationMapping.end())
+      {
+        numOfBackgroundTasks = itParallelMapping->second;
+      }
+
       std::shared_ptr<ExecutionNode> joinExec = Plan::join(e.op, e.idxLeft, e.idxRight,
-          execLeft, execRight, db, e.forceNestedLoop, true);
+          execLeft, execRight, db, e.forceNestedLoop, numOfBackgroundTasks, config);
+
+      joinExec->operatorIdx = operatorIdx;
+
       updateComponentForNodes(node2component, componentLeft, joinExec->componentNr);
       updateComponentForNodes(node2component, componentRight, joinExec->componentNr);
       component2exec[joinExec->componentNr] = joinExec;      
@@ -211,12 +250,14 @@ void Query::internalInit()
     return;
   }
   
-  if(optimize)
+  if(config.optimize)
   {
     ///////////////////////////////////////////////////////////
-    // 1. make sure all smaller operand are on the left side //
+    // make sure all smaller operand are on the left side //
     ///////////////////////////////////////////////////////////
     optimizeOperandOrder();
+
+    optimizeEdgeAnnoUsage();
     
     if(operators.size() > 1)
     {
@@ -236,6 +277,15 @@ void Query::internalInit()
     else
     {
       bestPlan = createPlan(nodes, operators);
+      // still get the cost so the estimates are calculated
+      bestPlan->getCost();
+    }
+
+    if(config.numOfBackgroundTasks >= 2)
+    {
+      std::map<size_t, size_t> parallelizationMapping = bestPlan->getOptimizedParallelizationMapping(db, config);
+      // recreate the plan with the mapping
+      bestPlan = createPlan(nodes, operators, parallelizationMapping);
       // still get the cost so the estimates are calculated
       bestPlan->getCost();
     }
@@ -313,6 +363,8 @@ void Query::optimizeJoinOrderRandom()
       unsuccessful++;
     }
   } while(unsuccessful < maxUnsuccessfulTries);
+
+  operators = optimizedOperators;
 }
 
 void Query::optimizeJoinOrderAllPermutations() 
@@ -322,6 +374,7 @@ void Query::optimizeJoinOrderAllPermutations()
   std::sort(testOrder.begin(), testOrder.end(), compare_opentry_origorder);
   
   bestPlan = createPlan(nodes, testOrder);
+  operators = testOrder;
 
 //  bestPlan->getCost();
 //  std::cout << operatorOrderDebugString(testOrder) << std::endl;
@@ -338,13 +391,13 @@ void Query::optimizeJoinOrderAllPermutations()
     if(testPlan->getCost() < bestPlan->getCost())
     {
       bestPlan = testPlan;
+      operators = testOrder;
       
 //      std::cout << "!!!new best join order!!! " << std::endl;
     }
 //    std::cout << "-------------------------------" << std::endl;
   }
 }
-
 
 
 std::string Query::operatorOrderDebugString(const std::vector<OperatorEntry>& ops) 
@@ -389,6 +442,5 @@ bool Query::next()
     return false;
   }
 }
-
 
 

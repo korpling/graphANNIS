@@ -1,9 +1,7 @@
 #pragma once
 
 #include "annotationsearch.h"
-
-#include <annis/nodeannostorage.h>
-
+#include <annis/annostorage.h>
 #include <re2/re2.h>
 
 namespace annis
@@ -11,7 +9,7 @@ namespace annis
 
   class RegexAnnoSearch : public AnnotationSearch
   {
-    using AnnoItType = NodeAnnoStorage::InverseNodeAnnoMap_t::const_iterator;
+    using AnnoItType = AnnoStorage<nodeid_t>::InverseAnnoMap_t::const_iterator;
     using Range = std::pair<AnnoItType, AnnoItType>;
 
   public:
@@ -37,6 +35,8 @@ namespace annis
 
     std::int64_t guessMaxCount() const override;
 
+    virtual std::string debugString() const override {return debugDescription;}
+
     virtual ~RegexAnnoSearch();
   private:
     const DB& db;
@@ -53,6 +53,8 @@ namespace annis
     std::list<Range> searchRanges;
     std::list<Range>::const_iterator currentRange;
     AnnoItType it;
+
+    const std::string debugDescription;
 
   private:
     

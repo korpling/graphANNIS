@@ -168,16 +168,18 @@
             <includePath>${basedir}/../src/lib/</includePath>
             <includePath>${basedir}/../ext/cpp-btree-1.0.1/</includePath>
             <includePath>${basedir}/../ext/cereal-1.2.1/include/</includePath>
+            <includePath>${basedir}/../build/output/re2/include/</includePath>
+            <includePath>${basedir}/../ext/ThreadPool/</includePath>
+            <includePath>${basedir}/../ext/re2-2016-10-01/</includePath>
             <includePath>${ICU_INCLUDE_DIRS}</includePath>
             <includePath>${Boost_INCLUDE_DIRS}</includePath>
           </includePaths>
           <linkPaths>
             <linkPath>${basedir}/../build/</linkPath>
-            <linkPath>${basedir}/../build/HumbleLogging-prefix/src/HumbleLogging-build/</linkPath>
-            <linkPath>${basedir}/../build/RE2-prefix/src/RE2-build/</linkPath>
+            <linkPath>${basedir}/../build/output/humblelogging/lib/</linkPath>
+            <linkPath>${basedir}/../build/output/re2/lib/</linkPath>
             <!-- TODO: this is for windows only, make it active only on windows -->
-            <linkPath>${basedir}/../build/RelWithDebInfo/</linkPath>
-            <linkPath>${basedir}/../build/ext/humblelogging-3.0.1/RelWithDebInfo/</linkPath>
+            <linkPath>${basedir}/../build/Release/</linkPath>
             <linkPath>${Boost_LIBRARY_DIRS}</linkPath>
 
           </linkPaths>

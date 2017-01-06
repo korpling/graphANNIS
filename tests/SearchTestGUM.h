@@ -19,6 +19,14 @@
 
 #include "testlogger.h"
 
+#ifdef ENABLE_VALGRIND
+  #include <valgrind/callgrind.h>
+#else
+  #define CALLGRIND_STOP_INSTRUMENTATION
+
+  #define CALLGRIND_START_INSTRUMENTATION
+#endif // ENABLE_VALGRIND
+
 using namespace annis;
 
 class SearchTestGUM : public ::testing::Test {
@@ -37,12 +45,14 @@ protected:
   // and cleaning up each test, you can define the following methods:
 
   virtual void SetUp() {
+
+    CALLGRIND_STOP_INSTRUMENTATION;
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
     std::string dataDir("data");
     if (testDataEnv != NULL) {
       dataDir = testDataEnv;
     }
-    bool loadedDB = db.load(dataDir + "/GUM");
+    bool loadedDB = db.load(dataDir + "/GUM", true);
     EXPECT_EQ(true, loadedDB);
 
     char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
@@ -60,7 +70,8 @@ protected:
       std::string jsonFileName = queryDir + "/" + info->name() + ".json";
       in.open(jsonFileName);
       if(in.is_open()) {
-        q = JSONQueryParser::parse(db, db.edges, in);
+        QueryConfig config;
+        q = JSONQueryParser::parse(db, db.edges, in, config);
         in.close();
       }
     }
@@ -85,3 +96,124 @@ TEST_F(SearchTestGUM, dep_xcomp) {
   EXPECT_EQ(1u, counter);
 }
 
+TEST_F(SearchTestGUM, entity) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while (q->next() && counter < 100) {
+    counter++;
+  }
+
+  EXPECT_EQ(2u, counter);
+}
+
+TEST_F(SearchTestGUM, corefAnno) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while (q->next() && counter < 700) {
+    counter++;
+  }
+
+  EXPECT_EQ(636u, counter);
+}
+
+TEST_F(SearchTestGUM, IndirectPointingNested) {
+
+  unsigned int counter = 0;
+
+  Query q(db);
+  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "object"));
+  q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "abstract"));
+
+  q.addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "coref", 1, uintmax), 0, 1, true);
+
+  auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
+  while (q.next() && counter < 1000) {
+    counter++;
+  }
+  auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+  HL_INFO(logger, "IndirectPointingNested query took " + std::to_string(endTime-startTime) + " ms");
+
+
+  EXPECT_EQ(273u, counter);
+}
+
+TEST_F(SearchTestGUM, tok_dep_tok) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(246u, counter);
+}
+
+TEST_F(SearchTestGUM, VV_dep) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 5000) {
+    counter++;
+  }
+
+  EXPECT_EQ(955u, counter);
+}
+
+TEST_F(SearchTestGUM, nonexisting_dep) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(0u, counter);
+}
+
+TEST_F(SearchTestGUM, kind_dom_kind) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(56u, counter);
+}
+
+TEST_F(SearchTestGUM, city) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(64u, counter);
+}
+
+TEST_F(SearchTestGUM, pos_dep_pos_Thread4) {
+  QueryConfig config;
+  config.numOfBackgroundTasks = 4;
+  config.threadPool = std::make_shared<ThreadPool>(4);
+
+  std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
+
+  result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
+  result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
+
+  Annotation edgeAnno = {db.strings.add("func"), 0, db.strings.add("dep")};
+  result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnno), 0, 1);
+
+  CALLGRIND_START_INSTRUMENTATION;
+  unsigned int counter = 0;
+  while(result->next() && counter < 1000) {
+    counter++;
+  }
+  CALLGRIND_STOP_INSTRUMENTATION;
+
+  EXPECT_EQ(246u, counter);
+
+}

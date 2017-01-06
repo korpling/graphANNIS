@@ -146,24 +146,29 @@ namespace annis
       return lhs.ns == rhs.ns && lhs.name == rhs.name && lhs.val == rhs.val;
   }
 
-  struct NodeAnnotationKey
+
+
+  template<typename T>
+  struct TypeAnnotationKey
   {
-    nodeid_t node;
+    T id;
     std::uint32_t anno_name;
     std::uint32_t anno_ns;
   };
 
-  inline bool operator<(const NodeAnnotationKey& a,  const NodeAnnotationKey& b)
+  template<typename T>
+  inline bool operator<(const TypeAnnotationKey<T>& a,  const TypeAnnotationKey<T>& b)
   {
-    return std::tie(a.node, a.anno_name, a.anno_ns) < std::tie(b.node, b.anno_name, b.anno_ns);
+    return std::tie(a.id, a.anno_name, a.anno_ns) < std::tie(b.id, b.anno_name, b.anno_ns);
   }
 
-  template<class Archive>
+  template<class Archive, typename T>
   void serialize(Archive & archive,
-                 NodeAnnotationKey & m)
+                 TypeAnnotationKey<T> & m)
   {
-    archive(m.node, m.anno_name, m.anno_ns);
+    archive(m.id, m.anno_name, m.anno_ns);
   }
+  using NodeAnnotationKey = TypeAnnotationKey<nodeid_t>;
 
   struct TextProperty
   {
@@ -195,7 +200,6 @@ namespace annis
   /** combines a node ID and the matched annotation */
   struct Match
   {
-//    bool found;
     nodeid_t node;
     Annotation anno;
   };

@@ -24,12 +24,12 @@ namespace annis
 
     void addMatch(const Match& m)
     {
-      orig.push(m);
+      orig.push_back(m);
     }
 
     void addMatch(const nodeid_t& m)
     {
-      orig.push({m,
+      orig.push_back({m,
         {0, 0, 0}});
     }
 
@@ -41,18 +41,15 @@ namespace annis
       }
       else
       {
-        result = orig.front();
-        orig.pop();
+        result = std::move(orig.front());
+        orig.pop_front();
         return true;
       }
     }
 
     virtual void reset() override
     {
-      while (!orig.empty())
-      {
-        orig.pop();
-      }
+      orig.clear();
     }
 
     virtual ~ListWrapper();
@@ -65,7 +62,7 @@ namespace annis
     }
 
   private:
-    std::queue<Match, std::list<Match> > orig;
+    std::deque<Match > orig;
   };
 
   class JoinWrapIterator : public ListWrapper
@@ -152,12 +149,20 @@ namespace annis
       return delegate->guessMaxCount();
     }
 
+    Annotation getConstAnno() { return constAnno;}
+
+
+    virtual std::string debugString() const override
+    {
+      return delegate->debugString();
+    }
+
 
     virtual ~ConstAnnoWrapper()
     {
     }
   private:
-    Annotation constAnno;
+    const Annotation constAnno;
     std::shared_ptr<EstimatedSearch> delegate;
   };
 

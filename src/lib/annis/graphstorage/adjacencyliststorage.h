@@ -3,7 +3,7 @@
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/db.h>
 #include <annis/util/comparefunctions.h>
-#include <annis/edgeannotationstorage.h>
+#include <annis/annostorage.h>
 
 #include <stack>
 #include <list>
@@ -63,7 +63,12 @@ public:
   virtual size_t numberOfEdges() const override;
   virtual size_t numberOfEdgeAnnotations() const override;
 
-  virtual void calculateStatistics() override;
+  virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
+  {
+    return edgeAnnos;
+  }
+
+  virtual void calculateStatistics(const StringStorage& strings) override;
 
   virtual size_t estimateMemorySize() override;
 
@@ -79,7 +84,7 @@ private:
   set_t<Edge> edges;
   set_t<Edge> inverseEdges;
 
-  EdgeAnnotationStorage edgeAnnos;
+  BTreeMultiAnnoStorage<Edge> edgeAnnos;
 
 private:
   friend class cereal::access;

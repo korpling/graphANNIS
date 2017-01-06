@@ -34,7 +34,18 @@ int main(int argc, char **argv) {
         
         DynamicBenchmark benchmark(subdir, corpusPath, corpusName
           , true);
-        benchmark.registerFixture("Optimized");
+
+        unsigned int numOfCPUs = std::thread::hardware_concurrency();
+        std::shared_ptr<ThreadPool> sharedThreadPool = std::make_shared<ThreadPool>(numOfCPUs);
+
+        for(int i=0; i <= numOfCPUs; i += 2)
+        {
+          QueryConfig config;
+          config.threadPool = i > 0 ? sharedThreadPool : nullptr;
+          config.numOfBackgroundTasks = i;
+          benchmark.registerFixture("Jobs_" + std::to_string(i), config);
+        }
+
       }
       itFiles++;
     }

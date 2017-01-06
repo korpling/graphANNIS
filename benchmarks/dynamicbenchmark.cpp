@@ -16,6 +16,8 @@
 
 using namespace annis;
 
+HUMBLE_LOGGER(benchLogger, "DynamicBenchmark");
+
 std::shared_ptr<DBCache> DynamicCorpusFixture::dbCache
   = std::make_shared<DBCache>(0);
 
@@ -25,10 +27,10 @@ void DynamicCorpusFixture::UserBenchmark()
   {
     counter++;
   }
-  HL_INFO(logger, (boost::format("result %1%") % counter).str());
+  HL_INFO(benchLogger, (boost::format("result %1%") % counter).str());
   if (expectedCount && counter != *expectedCount)
   {
-    std::cerr << "FATAL ERROR: query " << benchmarkName << " should have count " << *expectedCount << " but was " << counter << std::endl;
+    std::cerr << "FATAL ERROR: query " << benchmarkName << ":" << currentExperimentValue << " should have count " << *expectedCount << " but was " << counter << std::endl;
     std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
     exit(-1);
   }
@@ -88,20 +90,19 @@ DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
     multipleExperiments = false;
   }
 
-  registerFixtureInternal(true, "Baseline", true);
+  QueryConfig baselineConfig;
+  baselineConfig.forceFallback = true;
+  registerFixtureInternal(true, "Baseline", baselineConfig);
 }
 
-void DynamicBenchmark::registerFixture(std::string fixtureName,
-  bool forceFallback,
-  std::map<Component, std::string> overrideImpl)
+void DynamicBenchmark::registerFixture(std::string fixtureName, const QueryConfig config)
 {
-  registerFixtureInternal(false, fixtureName, forceFallback, overrideImpl);
+  registerFixtureInternal(false, fixtureName, config);
 }
 
 void DynamicBenchmark::registerFixtureInternal(
   bool baseline,
-  std::string fixtureName, bool forceFallback,
-  std::map<Component, std::string> overrideImpl)
+  std::string fixtureName, const QueryConfig config)
 {
   if (multipleExperiments)
   {
@@ -113,7 +114,7 @@ void DynamicBenchmark::registerFixtureInternal(
       auto id = std::stol(name);
       paths.insert({id, filePath});
     }
-    addBenchmark(baseline, benchmarkName, paths, fixtureName, forceFallback, overrideImpl);
+    addBenchmark(baseline, benchmarkName, paths, fixtureName, config);
   }
   else
   {
@@ -122,22 +123,21 @@ void DynamicBenchmark::registerFixtureInternal(
       std::map<int64_t, const boost::filesystem::path> paths;
       paths.insert({0, filePath});
       auto subBenchmarkName = benchmarkName + "_" + filePath.stem().string();
-      addBenchmark(baseline, subBenchmarkName, paths, fixtureName, forceFallback, overrideImpl);
+      addBenchmark(baseline, subBenchmarkName, paths, fixtureName, config);
     }
   }
 }
 
 
-void DynamicBenchmark::addBenchmark(
-  bool baseline,
+void DynamicBenchmark::addBenchmark(bool baseline,
   std::string benchmarkName,
   std::map<int64_t, const boost::filesystem::path>& paths,
-  std::string fixtureName, bool forceFallback,
-  std::map<Component, std::string> overrideImpl)
+  std::string fixtureName,
+  QueryConfig config)
 {
   unsigned int numberOfSamples = 5;
 
-  HL_INFO(logger, (boost::format("adding benchmark %1%") % benchmarkName).str());
+  HL_INFO(benchLogger, (boost::format("adding benchmark %1%") % benchmarkName).str());
 
   std::map<int64_t, std::string> allQueries;
   std::map<int64_t, unsigned int> expectedCount;
@@ -176,12 +176,17 @@ void DynamicBenchmark::addBenchmark(
         stream >> timeVal;
         stream.close();
       }
+      if(timeVal == 0)
+      {
+        // we would divide by zero later
+        timeVal = 1;
+      }
       // since celero uses microseconds an ANNIS milliseconds the value needs to be converted
       fixedValues.insert({p.first, timeVal*1000});
     }
   }
   std::shared_ptr<::celero::TestFixture> fixture(
-    new DynamicCorpusFixture(forceFallback, corpusPath, overrideImpl, allQueries,
+    new DynamicCorpusFixture(corpusPath, config, allQueries,
     benchmarkName + " (" + fixtureName + ")",
     expectedCount));
 
