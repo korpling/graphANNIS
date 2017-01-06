@@ -6,7 +6,7 @@ using namespace annis;
 
 NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const ReadableGraphStorage> > gs, std::set<Annotation> validEdgeAnnos,
                                            std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
-                                           bool searchFilterReturnsMaximalOneAnno,
+                                           bool maximalOneNodeAnno,
                                            std::int64_t wrappedNodeCountEstimate, std::string debugDescription)
  : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
    maximalOneNodeAnno(maximalOneNodeAnno),
