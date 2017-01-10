@@ -27,7 +27,7 @@ script:
  - cd build/
  - cmake ..
  - make
- - ./annis_runner import ../relannis/GUM ../data/GUM
- - ./test_graphANNIS --gtest_filter="--gtest_filter="SearchTestGUM.*"
- - cd ../
+ - cd ..
+ - ./build/annis_runner import ../relannis/GUM ../data/GUM
+ - ./build/test_graphANNIS --gtest_filter="--gtest_filter="SearchTestGUM.*:CorpusStorageManagerTest.*"
  - mvn test
