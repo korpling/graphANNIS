@@ -65,7 +65,7 @@ namespace annis {
     {
       annotations.insert(std::pair<TypeAnnotationKey<ContainerType>, uint32_t>({item, anno.name, anno.ns}, anno.val));
       inverseAnnotations.insert(std::pair<Annotation, ContainerType>(anno, item));
-      btree::btree_map<AnnotationKey, size_t>::iterator itKey = annoKeys.find({anno.name, anno.ns});
+      btree::btree_map<AnnotationKey, std::uint64_t>::iterator itKey = annoKeys.find({anno.name, anno.ns});
       if(itKey == annoKeys.end())
       {
          annoKeys.insert({{anno.name, anno.ns}, 1});
