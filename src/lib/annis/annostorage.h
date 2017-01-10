@@ -97,7 +97,7 @@ namespace annis {
 
       for(auto annoKey : annoKeyList)
       {
-        btree::btree_map<AnnotationKey, size_t>::iterator itKey = annoKeys.find(annoKey);
+        btree::btree_map<AnnotationKey, std::uint64_t>::iterator itKey = annoKeys.find(annoKey);
         if(itKey == annoKeys.end())
         {
            annoKeys.insert({annoKey, 1});
