@@ -8,23 +8,42 @@ import org.bytedeco.javacpp.tools.InfoMap;
 import org.bytedeco.javacpp.tools.InfoMapper;
 
 @Namespace("annis::api")
-@Properties(target="org.corpus_tools.graphannis.API",
-    value={@Platform(
-        include={
-          "annis/api/corpusstoragemanager.h", 
-          "annis/api/admin.h",
-          "annis/api/graphupdate.h"}, 
-        link={"re2" ,"boost_system", "boost_filesystem", "boost_thread", "humblelogging", "annis"}
-        ),
-        @Platform(value = "windows",
-		  link={"re2", "humblelogging", "annis"}
-		)})
+@Properties(target = "org.corpus_tools.graphannis.API",
+  value =
+  {
+    @Platform(
+      include =
+      {
+        "annis/api/corpusstoragemanager.h",
+        "annis/api/admin.h",
+        "annis/api/graphupdate.h"
+      },
+      link =
+      {
+        "re2", "boost_system", "boost_filesystem", "boost_thread", "humblelogging", "annis"
+      }
+    )
+    ,
+    @Platform(value = "windows",
+      link =
+      {
+        "re2", "humblelogging", "annis"
+      }
+    ),
+    @Platform(value = "macosx",
+      link =
+      {
+        "re2", "boost_system-mt", "boost_filesystem-mt", "boost_thread-mt", "humblelogging", "annis"
+      }
+    )
+  })
 public class AnnisApiInfo implements InfoMapper
 {
+
   @Override
   public void map(InfoMap infoMap)
   {
-	  infoMap.put(new Info("std::vector<std::string>").pointerTypes("StringVector").define());
+    infoMap.put(new Info("std::vector<std::string>").pointerTypes("StringVector").define());
     infoMap.put(new Info("annis::Init").skip());
     infoMap.put(new Info("std::uint32_t").valueTypes("long"));
     infoMap.put(new Info("std::uint64_t").valueTypes("long"));
