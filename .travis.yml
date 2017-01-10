@@ -14,14 +14,16 @@ addons:
     - libboost-system-dev
     - libboost-filesystem-dev
     - libicu-dev
+    - maven
 
 before_install:
  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install boost ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install icu4c ; fi
+ - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install boost icu4c maven; fi
 
 script:
  - mkdir build
  - cd build/
  - cmake ..
  - make
+ - cd ../
+ - mvn test
