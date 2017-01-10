@@ -15,15 +15,19 @@ addons:
     - libboost-filesystem-dev
     - libicu-dev
     - maven
+    - wget
 
 before_install:
  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install boost icu4c maven; fi
+ - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install boost icu4c maven wget; fi
 
 script:
+ - ./download-gum-corpus.sh
  - mkdir build
  - cd build/
  - cmake ..
  - make
+ - ./annis_runner import ../relannis/GUM ../data/GUM
+ - ./test_graphANNIS --gtest_filter="--gtest_filter="SearchTestGUM.*"
  - cd ../
  - mvn test
