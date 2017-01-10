@@ -10,6 +10,9 @@ addons:
   apt:
    packages:
     - libboost-dev
+    - libboost-thread-dev
+    - libboost-system-dev
+    - libboost-filesystem-dev
     - libicu-dev
 
 before_install:
