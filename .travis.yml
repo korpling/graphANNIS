@@ -19,7 +19,7 @@ addons:
 
 before_install:
  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install icu4c maven wget ; fi
+ - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install --devel icu4c maven wget ; fi
 
 script:
  - ./download-gum-corpus.sh
@@ -28,6 +28,6 @@ script:
  - cmake ..
  - make
  - cd ..
- - ./build/annis_runner import ../relannis/GUM ../data/GUM
+ - ./build/annis_runner import relannis/GUM data/GUM
  - ./build/test_graphANNIS --gtest_filter="SearchTestGUM.*:CorpusStorageManagerTest.*"
  - mvn test
