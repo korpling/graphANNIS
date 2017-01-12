@@ -196,15 +196,15 @@ enable_testing()
 include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 set(TEST_SRC_LIST
-  tests/testlogger.h
-  tests/SearchTestPcc2.h
-  tests/SearchTestParlament.h
-  tests/SearchTestRidges.h
-  tests/CorpusStorageManagerTest.h
-  tests/SearchTestGUM.h
-  tests/LoadTest.h
-  tests/SearchTestTiger.h
-  tests/testmain.cpp
+  src/tests/testlogger.h
+  src/tests/SearchTestPcc2.h
+  src/tests/SearchTestParlament.h
+  src/tests/SearchTestRidges.h
+  src/tests/CorpusStorageManagerTest.h
+  src/tests/SearchTestGUM.h
+  src/tests/LoadTest.h
+  src/tests/SearchTestTiger.h
+  src/tests/testmain.cpp
 )
 
 set(TEST_EXEC "test_${PROJECT_NAME}")
@@ -221,8 +221,8 @@ if(GRAPHANNIS_BUILD_BENCHMARKS)
 
   # a benchmark using (rel)ANNIS as baseline
   set(ANNIS_BENCHMARK_SRC_LIST
-    benchmarks/dynamicbenchmark.cpp
-    benchmarks/benchmarkmain.cpp
+    src/benchmarks/dynamicbenchmark.cpp
+    src/benchmarks/benchmarkmain.cpp
   )
   set(ANNIS_BENCHMARK_EXEC "bench_annisqueries")
   add_executable(${ANNIS_BENCHMARK_EXEC}  ${ANNIS_BENCHMARK_SRC_LIST} )
@@ -232,7 +232,7 @@ if(GRAPHANNIS_BUILD_BENCHMARKS)
 
   # benchmarking the effect of parallel execution
   set(PARALLEL_BENCHMARK_SRC_LIST
-    benchmarks/parallelbenchmark.cpp
+    src/benchmarks/parallelbenchmark.cpp
   )
   set(PARALLEL_BENCHMARK_EXEC "bench_parallel")
   add_executable(${PARALLEL_BENCHMARK_EXEC}  ${PARALLEL_BENCHMARK_SRC_LIST} )
