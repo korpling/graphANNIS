@@ -197,7 +197,12 @@ install(TARGETS annis_runner annis
        INCLUDES DESTINATION include
 )
 install(DIRECTORY src/lib/annis DESTINATION include
-        FILES_MATCHING PATTERN "*.h")
+        FILES_MATCHING PATTERN "*.h"
+)
+# also install the cereal headers since they are part of the API
+install(DIRECTORY ext/cereal-1.2.1/include/ DESTINATION include
+        FILES_MATCHING PATTERN "*.hpp"
+)
 
 ################################
 # Testing with Google Test
