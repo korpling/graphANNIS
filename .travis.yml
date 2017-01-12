@@ -23,7 +23,7 @@ before_install:
  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force icu4c ; fi
 
 script:
- - ./download-gum-corpus.sh
+ - ./misc/download-gum-corpus.sh
  - mkdir build
  - cd build/
  - cmake ..
