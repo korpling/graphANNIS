@@ -1,0 +1,42 @@
+{
+   RE2SparseSet_Condition_1
+   Memcheck:Cond
+   fun:_ZNK3re210SparseSetTIvE8containsEi
+   ...
+}
+
+{
+   RE2SparseSet_Condition_2
+   Memcheck:Cond
+   fun:_ZNK3re211SparseArrayIiE9has_indexEi
+   ...
+}
+
+
+{
+   RE2SparseSet_Value8_1
+   Memcheck:Value8
+   fun:_ZNK3re210SparseSetTIvE8containsEi
+   ...
+}
+
+{
+   RE2SparseSet_Value8_2
+   Memcheck:Value8
+   fun:_ZNK3re211SparseArrayIiE9has_indexEi
+   ...
+}
+
+{
+   HumbleLoggingLeak
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:_ZN6humble7logging21PatternConfigRegistry6insertERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEi
+   fun:_ZN6humble7logging21PatternConfigRegistry4loadERSi
+   fun:_ZN6humble7logging21PatternConfigRegistry14loadFromStringERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6humble7logging20DefaultConfiguration14loadFromStringERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6humble7logging20DefaultConfiguration16createFromStringERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:main
+}
+

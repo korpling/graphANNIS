@@ -279,7 +279,8 @@ TEST_F(SearchTestPcc2, NodeCount) {
   unsigned int counter = 0;
   while (q->next()) {
     std::vector<Match> m = q->getCurrent();
-    HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
+    ASSERT_EQ(1, m.size());
+    HL_INFO(logger, (boost::format("match\t%1%") % db.getNodeName(m[0].node)).str());
     counter++;
   }
 
@@ -294,6 +295,7 @@ TEST_F(SearchTestPcc2, Precedence) {
 
   while (q->next() && counter < 2000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -309,6 +311,7 @@ TEST_F(SearchTestPcc2, TokIdentCovNN) {
 
   while (q->next() && counter < 2000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -324,6 +327,7 @@ TEST_F(SearchTestPcc2, TokIdentCovNode) {
 
   while (q->next() && counter < 2000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -339,6 +343,7 @@ TEST_F(SearchTestPcc2, NodeIdentCovNode) {
 
   while (q->next() && counter < 2000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -356,6 +361,7 @@ TEST_F(SearchTestPcc2, IndirectPointing) {
 
   while (q->next() && counter < 2000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -375,6 +381,7 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
 
   while (q.next() && counter < 2000) {
     std::vector<Match> m = q.getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -392,6 +399,7 @@ TEST_F(SearchTestPcc2, DirectPointing) {
 
   while (q->next() && counter < 2000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -411,6 +419,7 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
 
   while (q.next() && counter < 2000) {
     std::vector<Match> m = q.getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -429,6 +438,7 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnno) {
 
   while (q->next() && counter < 2000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -452,6 +462,7 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
 
   while (q.next() && counter < 2000) {
     std::vector<Match> m = q.getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -469,6 +480,7 @@ TEST_F(SearchTestPcc2, RangedDominance) {
 
   while (q->next() && counter < 2000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
@@ -487,6 +499,7 @@ TEST_F(SearchTestPcc2, MultiDominance) {
 
   while (q->next() && counter < 4000) {
     std::vector<Match> m = q->getCurrent();
+    ASSERT_EQ(2, m.size());
     HL_INFO(logger, (boost::format("match\t%1%\t%2%") % db.getNodeName(m[0].node) % db.getNodeName(m[1].node)).str());
     counter++;
   }
