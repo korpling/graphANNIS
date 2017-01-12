@@ -189,6 +189,16 @@ add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
 target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
 
+# install the graphANNIS API and console
+install(TARGETS annis_runner annis
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+       INCLUDES DESTINATION include
+)
+install(DIRECTORY src/lib/annis DESTINATION include
+        FILES_MATCHING PATTERN "*.h")
+
 ################################
 # Testing with Google Test
 ################################
