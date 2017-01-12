@@ -17,7 +17,6 @@
 #pragma once
 
 #include <stddef.h>                        // for size_t
-#include <boost/thread.hpp>  // for thread
 #include <map>                             // for map
 #include <memory>                          // for shared_ptr
 #include <mutex>                           // for mutex
@@ -26,6 +25,8 @@
 
 namespace annis { class DBLoader; }
 namespace annis { namespace api { class GraphUpdate; } }
+
+namespace boost { class thread;}
 
 
 namespace annis

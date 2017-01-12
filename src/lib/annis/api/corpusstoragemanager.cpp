@@ -21,6 +21,7 @@
 #include <humblelogging/logger.h>                       // for Logger
 #include <stdint.h>                                     // for uint32_t
 #include <algorithm>                                    // for sort
+#include <boost/thread.hpp>  // for thread
 #include <boost/filesystem/operations.hpp>              // for directory_ite...
 #include <boost/filesystem/path.hpp>                    // for path, operator/
 #include <boost/filesystem/path_traits.hpp>             // for filesystem
