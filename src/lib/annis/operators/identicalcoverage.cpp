@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/operators/identicalcoverage.h>
+#include "identicalcoverage.h"
 #include <annis/wrapper.h>
 
 #include <set>

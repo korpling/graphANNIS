@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/db.h>
+#include "db.h"
 
 #include <iostream>
 #include <fstream>
@@ -33,6 +33,7 @@
 
 #include <humblelogging/api.h>
 
+#include <annis/db.h>
 #include <annis/util/helper.h>
 #include <annis/graphstorage/adjacencyliststorage.h>
 #include <annis/graphstorage/linearstorage.h>

@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/graphstorageregistry.h>
+#include "graphstorageregistry.h"
 
 #include <annis/graphstorage/adjacencyliststorage.h>
 #include <annis/graphstorage/linearstorage.h>

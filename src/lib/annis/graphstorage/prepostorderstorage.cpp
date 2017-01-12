@@ -14,6 +14,6 @@
    limitations under the License.
 */
 
-#include <annis/graphstorage/prepostorderstorage.h>
+#include "prepostorderstorage.h"
 
 

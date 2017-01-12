@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/operators/overlap.h>
+#include "overlap.h"
 #include <annis/wrapper.h>
 
 #include <google/btree_set.h>

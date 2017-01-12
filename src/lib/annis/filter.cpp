@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/filter.h>
+#include "filter.h"
 
 using namespace annis;
 

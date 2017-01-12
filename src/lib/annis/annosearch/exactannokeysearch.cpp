@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/annosearch/exactannokeysearch.h>
+#include "exactannokeysearch.h"
 
 #include <annis/db.h>
 

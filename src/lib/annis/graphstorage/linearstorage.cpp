@@ -14,5 +14,5 @@
    limitations under the License.
 */
 
-#include <annis/graphstorage/linearstorage.h>
+#include "linearstorage.h"
 

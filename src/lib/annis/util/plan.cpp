@@ -14,7 +14,8 @@
    limitations under the License.
 */
 
-#include <annis/util/plan.h>
+#include "plan.h"
+
 #include <map>
 #include <memory>
 

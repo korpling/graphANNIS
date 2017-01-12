@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/operators/inclusion.h>
+#include "inclusion.h"
 
 #include <annis/wrapper.h>
 

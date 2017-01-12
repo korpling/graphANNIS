@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/dbcache.h>
+#include "dbcache.h"
 #include <annis/db.h>
 
 using namespace annis;

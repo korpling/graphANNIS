@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/util/dfs.h>
+#include "dfs.h"
 
 #include <iostream>
 

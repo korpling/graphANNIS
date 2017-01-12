@@ -40,7 +40,6 @@ namespace annis
       class GraphUpdate;
    }
   
-class ReadableGraphStorage;
 class WriteableGraphStorage;
   
 class DB

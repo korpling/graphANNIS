@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/graphstorage/adjacencyliststorage.h>
+#include "adjacencyliststorage.h"
 
 #include <annis/util/size_estimator.h>
 

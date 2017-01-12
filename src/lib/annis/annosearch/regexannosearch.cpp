@@ -14,7 +14,8 @@
    limitations under the License.
 */
 
-#include <annis/annosearch/regexannosearch.h>
+#include "regexannosearch.h"
+
 #include <limits>
 
 using namespace annis;

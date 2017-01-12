@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/operators/abstractedgeoperator.h>
+#include "abstractedgeoperator.h"
 
 #include <annis/wrapper.h>
 #include <annis/util/comparefunctions.h>

@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/annosearch/exactannovaluesearch.h>
+#include "exactannovaluesearch.h"
 
 using namespace annis;
 using namespace std;

@@ -14,5 +14,5 @@
    limitations under the License.
 */
 
-#include <annis/annosearch/annotationsearch.h>
+#include "annotationsearch.h"
 

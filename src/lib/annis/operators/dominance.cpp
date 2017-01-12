@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/operators/dominance.h>
+#include "dominance.h"
 
 using namespace annis;
 

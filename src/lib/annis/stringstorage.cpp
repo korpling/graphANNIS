@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/stringstorage.h>
+#include "stringstorage.h"
 #include <fstream>
 #include <annis/util/helper.h>
 

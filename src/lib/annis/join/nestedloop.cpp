@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/join/nestedloop.h>
+#include "nestedloop.h"
 #include <annis/annosearch/annotationsearch.h>
 #include <annis/iterators.h>
 #include <annis/operators/operator.h>

@@ -43,8 +43,6 @@ namespace annis {
     return std::tie(a.corpusPath, a.forceFallback, a.overrideImpl) < std::tie(b.corpusPath, b.forceFallback, b.overrideImpl);
   }
 
-  class DB;
-
   class DBCache {
   public:
 

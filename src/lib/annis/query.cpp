@@ -14,7 +14,8 @@
    limitations under the License.
 */
 
-#include <annis/query.h>
+#include "query.h"
+
 #include <annis/join/nestedloop.h>
 #include <annis/filter.h>
 #include <annis/operators/operator.h>

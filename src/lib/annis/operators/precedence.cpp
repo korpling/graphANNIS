@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/operators/precedence.h>
+#include "precedence.h"
 #include <annis/wrapper.h>
 
 using namespace annis;

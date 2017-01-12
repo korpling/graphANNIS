@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/wrapper.h>
+#include "wrapper.h"
 
 
 

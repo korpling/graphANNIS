@@ -14,7 +14,8 @@
    limitations under the License.
 */
 
-#include <annis/json/jsonqueryparser.h>
+#include "jsonqueryparser.h"
+
 #include <annis/annosearch/exactannovaluesearch.h>
 #include <annis/annosearch/exactannokeysearch.h>
 #include <annis/annosearch/regexannosearch.h>

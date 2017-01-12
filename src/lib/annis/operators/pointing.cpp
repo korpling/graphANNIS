@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/operators/pointing.h>
+#include "pointing.h"
 
 using namespace annis;
 

@@ -20,7 +20,6 @@
 #include <memory>
 
 #include <vector>
-#include <string>
 
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>

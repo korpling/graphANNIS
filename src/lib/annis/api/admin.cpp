@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include <annis/api/admin.h>
+#include "admin.h"
 
 #include <annis/db.h>
 
