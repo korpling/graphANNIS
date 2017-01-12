@@ -16,10 +16,25 @@
 
 #include "abstractedgeoperator.h"
 
-#include <annis/wrapper.h>
-#include <annis/util/comparefunctions.h>
-
-#include <google/btree_set.h>
+#include <annis/util/comparefunctions.h>            // for checkAnnotationEqual
+#include <annis/wrapper.h>                          // for ListWrapper
+#include <ext/alloc_traits.h>                       // for __alloc_traits<>:...
+#include <google/btree.h>                           // for btree_iterator
+#include <google/btree_map.h>                       // for btree_map
+#include <google/btree_set.h>                       // for btree_set
+#include <stddef.h>                                 // for size_t
+#include <algorithm>                                // for max, min, move
+#include <cmath>                                    // for ceil
+#include <limits>                                   // for numeric_limits
+#include <set>                                      // for set
+#include <utility>                                  // for pair
+#include "annis/annosearch/nodebyedgeannosearch.h"  // for NodeByEdgeAnnoSearch
+#include "annis/annostorage.h"                      // for AnnoStorage
+#include "annis/graphstorage/graphstorage.h"        // for ReadableGraphStorage
+#include "annis/graphstorageholder.h"               // for GraphStorageHolder
+#include "annis/iterators.h"                        // for EdgeIterator, AnnoIt
+#include "annis/stringstorage.h"                    // for StringStorage
+#include <annis/types.h>
 
 using namespace annis;
 

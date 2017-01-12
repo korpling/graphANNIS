@@ -15,8 +15,8 @@
 */
 
 #include "queryconfig.h"
+#include "annis/types.h"  // for Component
 
-#include <thread>
 
 annis::QueryConfig::QueryConfig()
   : optimize(true), forceFallback(false), avoidNestedBySwitch(true) ,

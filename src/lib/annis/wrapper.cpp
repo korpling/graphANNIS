@@ -15,6 +15,9 @@
 */
 
 #include "wrapper.h"
+#include <vector>             // for vector
+#include "annis/iterators.h"  // for Iterator
+#include "annis/types.h"      // for Match
 
 
 

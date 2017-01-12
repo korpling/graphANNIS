@@ -16,9 +16,15 @@
 
 #pragma once
 
-#include <annis/graphstorage/graphstorage.h>
+#include <stdint.h>       // for int64_t, int8_t, uint16_t, int32_t, uint32_t
+#include <limits>         // for numeric_limits
+#include <map>            // for map
+#include <memory>         // for unique_ptr, weak_ptr
+#include <string>         // for string
+#include <annis/types.h>  // for GraphStatistic, Component
 
-#include <map>
+namespace annis { class ReadableGraphStorage; }
+namespace annis { class StringStorage; }
 
 namespace annis
 {

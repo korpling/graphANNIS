@@ -28,6 +28,7 @@
 #include <annis/operators/dominance.h>
 #include <annis/operators/identicalcoverage.h>
 
+#include <annis/util/threadpool.h>
 
 #ifdef ENABLE_VALGRIND
   #include <valgrind/callgrind.h>

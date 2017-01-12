@@ -15,7 +15,14 @@
 */
 
 #include "indexjoin.h"
-#include <annis/annosearch/annotationsearch.h>
+
+#include <algorithm>                      // for move
+#include "annis/iterators.h"              // for AnnoIt, Iterator
+#include "annis/operators/operator.h"     // for Operator
+#include "annis/types.h"                  // for Match, Annotation, nodeid_t
+#include "annis/util/comparefunctions.h"  // for checkAnnotationKeyEqual
+namespace annis { class DB; }
+
 
 using namespace annis;
 

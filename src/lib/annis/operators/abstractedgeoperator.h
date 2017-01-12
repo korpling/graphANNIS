@@ -16,11 +16,21 @@
 
 #pragma once
 
-#include <annis/db.h>
-#include <annis/graphstorage/graphstorage.h>
-#include <annis/operators/operator.h>
-#include <vector>
-#include <annis/annosearch/nodebyedgeannosearch.h>
+#include <annis/operators/operator.h>  // for Operator
+#include <stdint.h>                    // for int64_t
+#include <functional>                  // for function
+#include <list>                        // for list
+#include <memory>                      // for shared_ptr, unique_ptr
+#include <string>                      // for string
+#include <vector>                      // for vector
+#include <annis/types.h>               // for ComponentType, Match (ptr only)
+
+namespace annis { class AnnoIt; }
+namespace annis { class GraphStorageHolder; }
+namespace annis { class NodeByEdgeAnnoSearch; }
+namespace annis { class ReadableGraphStorage; }
+namespace annis { class StringStorage; }
+
 
 namespace annis
 {

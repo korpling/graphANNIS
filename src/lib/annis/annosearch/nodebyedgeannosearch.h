@@ -16,9 +16,19 @@
 
 #pragma once
 
-#include <annis/annosearch/annotationsearch.h>
-#include <annis/graphstorage/graphstorage.h>
-#include <functional>
+#include <annis/annosearch/annotationsearch.h>  // for EstimatedSearch
+#include <stdint.h>                             // for int64_t
+#include <functional>                           // for function
+#include <list>                                 // for list, list<>::const_i...
+#include <memory>                               // for shared_ptr
+#include <set>                                  // for set
+#include <string>                               // for string
+#include <unordered_set>                        // for unordered_set
+#include <utility>                              // for pair
+#include <vector>                               // for vector
+#include <annis/annostorage.h>                  // for AnnoStorage, AnnoStor...
+#include <annis/types.h>                        // for nodeid_t, Annotation
+namespace annis { class ReadableGraphStorage; }
 
 namespace annis
 {

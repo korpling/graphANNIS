@@ -15,14 +15,15 @@
 */
 #pragma once
 
-#include <annis/types.h>
-#include <annis/iterators.h>
-
-#include <queue>
-#include <list>
-#include <memory>
-
-#include <annis/annosearch/annotationsearch.h>
+#include <annis/annosearch/annotationsearch.h>  // for EstimatedSearch
+#include <annis/iterators.h>                    // for AnnoIt
+#include <annis/types.h>                        // for Match, Annotation
+#include <stddef.h>                             // for size_t
+#include <stdint.h>                             // for int64_t
+#include <algorithm>                            // for move
+#include <deque>                                // for deque
+#include <memory>                               // for shared_ptr, __shared_ptr
+#include <string>                               // for string
 
 namespace annis
 {

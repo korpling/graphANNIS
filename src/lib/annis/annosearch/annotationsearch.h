@@ -16,12 +16,14 @@
 
 #pragma once
 
-#include <annis/db.h>
-#include <annis/iterators.h>
-#include <annis/util/comparefunctions.h>
+#include <annis/iterators.h>  // for AnnoIt
+#include <stdint.h>           // for int64_t
+#include <set>                // for set
+#include <string>             // for string
+#include <unordered_set>      // for unordered_set
+namespace annis { struct Annotation; }
+namespace annis { struct AnnotationKey; }
 
-#include <set>
-#include <unordered_set>
 
 namespace annis
 {

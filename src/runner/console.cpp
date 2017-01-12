@@ -19,10 +19,14 @@
 #include <humblelogging/api.h>
 #include <iomanip>
 
+#include <thread>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
 
 #include <annis/util/helper.h>
+#include <annis/query.h>
+#include <annis/util/threadpool.h>
+#include <annis/util/plan.h>
 
 HUMBLE_LOGGER(logger, "default");
 

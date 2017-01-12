@@ -15,12 +15,10 @@
 */
 
 #include "stringstorage.h"
-#include <fstream>
-#include <annis/util/helper.h>
-
-#include <re2/re2.h>
-
-#include <annis/util/size_estimator.h>
+#include <annis/util/size_estimator.h>  // for element_size
+#include <re2/re2.h>                    // for RE2, RE2::CannedOptions::Quiet
+#include <re2/stringpiece.h>            // for StringPiece
+#include <iterator>                     // for reverse_iterator
 
 using namespace annis;
 using namespace std;

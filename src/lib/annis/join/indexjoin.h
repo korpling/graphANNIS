@@ -16,14 +16,15 @@
 
 #pragma once
 
-#include <annis/types.h>
-#include <annis/iterators.h>
-#include <annis/operators/operator.h>
-#include <annis/graphstorage/graphstorage.h>
-#include <annis/db.h>
-#include <annis/util/comparefunctions.h>
-
-#include <unordered_set>
+#include <annis/iterators.h>  // for Iterator
+#include <annis/types.h>      // for Annotation, Match, nodeid_t
+#include <stddef.h>           // for size_t
+#include <functional>         // for function
+#include <list>               // for list
+#include <memory>             // for shared_ptr, unique_ptr
+#include <vector>             // for vector
+namespace annis { class DB; }
+namespace annis { class Operator; }
 
 namespace annis
 {

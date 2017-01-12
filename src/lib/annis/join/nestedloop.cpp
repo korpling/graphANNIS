@@ -15,9 +15,10 @@
 */
 
 #include "nestedloop.h"
-#include <annis/annosearch/annotationsearch.h>
-#include <annis/iterators.h>
-#include <annis/operators/operator.h>
+#include <annis/iterators.h>              // for Iterator
+#include <annis/operators/operator.h>     // for Operator
+#include "annis/types.h"                  // for Match
+#include "annis/util/comparefunctions.h"  // for checkAnnotationKeyEqual
 
 using namespace annis;
 

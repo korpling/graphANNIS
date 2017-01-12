@@ -16,21 +16,27 @@
 
 #pragma once
 
-#include <annis/graphstorage/graphstorage.h>
-#include <annis/db.h>
-#include <annis/util/comparefunctions.h>
-#include <annis/annostorage.h>
+#include <cereal/types/polymorphic.hpp>       // for CEREAL_REGISTER_TYPE
 
-#include <stack>
-#include <list>
-#include <set>
-#include <map>
-#include <sstream>
 
-#include <google/btree_set.h>
-
-#include <cereal/types/polymorphic.hpp>
+#include <annis/types.h>                      // for Edge, nodeid_t, operator<
 #include <annis/serializers.h>
+
+
+#include <annis/annostorage.h>                // for AnnoStorage
+#include <annis/graphstorage/graphstorage.h>  // for WriteableGraphStorage
+#include <google/btree_container.h>           // for btree_unique_container<...
+#include <google/btree_set.h>                 // for btree_set
+#include <stddef.h>                           // for size_t
+
+
+
+#include <memory>                             // for unique_ptr
+#include <vector>                             // for vector
+namespace annis { class DB; }
+namespace annis { class EdgeIterator; }
+namespace annis { class StringStorage; }
+
 
 namespace annis
 {

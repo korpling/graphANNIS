@@ -24,6 +24,7 @@
 #include <boost/format.hpp>
 #include <annis/query.h>
 #include <annis/operators/dominance.h>
+#include <annis/graphstorage/graphstorage.h>
 
 #include "testlogger.h"
 

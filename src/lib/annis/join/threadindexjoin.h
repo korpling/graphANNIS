@@ -16,25 +16,23 @@
 
 #pragma once
 
-#include <annis/types.h>
-#include <annis/iterators.h>
-
-#include <annis/util/sharedqueue.h>
-#include <annis/util/threadpool.h>
-
-#include <boost/lockfree/queue.hpp>
-#include <thread>
-#include <mutex>
-#include <atomic>
-
-#include <list>
-#include <vector>
+#include <annis/iterators.h>  // for Iterator
+#include <annis/types.h>      // for Match, nodeid_t
+#include <stddef.h>           // for size_t
+#include <atomic>             // for atomic_bool
+#include <deque>              // for deque
+#include <functional>         // for function
+#include <future>             // for future
+#include <list>               // for list
+#include <memory>             // for shared_ptr, __shared_ptr, unique_ptr
+#include <mutex>              // for mutex, lock_guard
+#include <vector>             // for vector
+namespace annis { class Operator; }  // lines 36-36
+namespace annis { class ThreadPool; }
+namespace annis { template <typename T> class SharedQueue; }
 
 namespace annis
 {
-
-class Operator;
-
 
 class ThreadIndexJoin : public Iterator
 {

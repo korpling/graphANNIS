@@ -16,14 +16,17 @@
 
 #pragma once
 
-#include <map>
-#include <memory>
-#include <annis/util/threadpool.h>
+#include <annis/types.h>  // for Component
+#include <stddef.h>       // for size_t
+#include <map>            // for map
+#include <memory>         // for shared_ptr
+#include <string>         // for string
 
-#include <annis/types.h>
 
 namespace annis
 {
+
+  class ThreadPool;
 
   enum class NonParallelJoin {index, seed};
   enum class ParallelJoin {task, thread};

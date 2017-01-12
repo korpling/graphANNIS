@@ -16,25 +16,23 @@
 
 #pragma once
 
-#include <annis/types.h>
-#include <annis/iterators.h>
+#include <annis/iterators.h>  // for Iterator
+#include <annis/types.h>      // for Match
+#include <stddef.h>           // for size_t
+#include <atomic>             // for atomic_bool
+#include <deque>              // for deque, _Deque_iterator, deque<>::const_...
+#include <functional>         // for function
+#include <future>             // for future
+#include <memory>             // for shared_ptr, __shared_ptr, unique_ptr
+#include <mutex>              // for mutex
+#include <vector>             // for vector, allocator
+namespace annis { class Operator; }  // lines 36-36
+namespace annis { class ThreadPool; }
+namespace annis { template <typename T> class SharedQueue; }
 
-#include <annis/util/sharedqueue.h>
-#include <annis/util/threadpool.h>
-
-#include <boost/lockfree/queue.hpp>
-#include <thread>
-#include <mutex>
-#include <atomic>
-
-#include <list>
-#include <vector>
 
 namespace annis
 {
-
-class Operator;
-
 
 class ThreadNestedLoop : public Iterator
 {

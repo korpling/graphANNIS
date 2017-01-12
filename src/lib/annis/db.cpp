@@ -15,35 +15,38 @@
 */
 
 #include "db.h"
-
-#include <iostream>
-#include <fstream>
+#include <annis/annostorage.h>                          // for AnnoStorage
+#include <annis/api/graphupdate.h>                      // for UpdateEvent
+#include <annis/db.h>                                   // for DB
+#include <annis/graphstorage/graphstorage.h>            // for WriteableGrap...
+#include <annis/graphstorageregistry.h>                 // for GraphStorageR...
+#include <annis/util/helper.h>                          // for Helper
+#include <google/btree.h>                               // for btree_iterator
+#include <google/btree_container.h>                     // for btree_unique_...
+#include <google/btree_map.h>                           // for btree_map
+#include <humblelogging/api.h>                          // for HL_INFO, HL_E...
+#include <humblelogging/logger.h>                       // for Logger
+#include <boost/algorithm/string/predicate.hpp>         // for starts_with
+#include <boost/core/explicit_operator_bool.hpp>        // for optional::ope...
+#include <boost/filesystem/operations.hpp>              // for directory_ite...
+#include <boost/filesystem/path.hpp>                    // for path, operator/
+#include <boost/intrusive/detail/reverse_iterator.hpp>  // for reverse_iterator
+#include <boost/iterator/iterator_facade.hpp>           // for iterator_faca...
+#include <boost/thread/pthread/condition_variable.hpp>  // for interruption_...
+#include <cereal/archives/binary.hpp>                   // for BinaryInputAr...
+#include <cereal/cereal.hpp>                            // for InputArchive
+#include <iostream>                                     // for ifstream, ope...
+#include <limits>                                       // for numeric_limits
+#include <list>                                         // for list
 #include <sstream>
-#include <limits>
+#include "annis/graphstorageholder.h"                   // for GraphStorageH...
+#include "annis/stringstorage.h"                        // for StringStorage
+#include "annis/types.h"                                // for TextProperty
+#include <boost/format.hpp>
 
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
 #include <malloc.h>
 #endif // LINUX
-
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/thread/thread.hpp>
-
-#include <humblelogging/api.h>
-
-#include <annis/db.h>
-#include <annis/util/helper.h>
-#include <annis/graphstorage/adjacencyliststorage.h>
-#include <annis/graphstorage/linearstorage.h>
-#include <annis/graphstorage/prepostorderstorage.h>
-#include <annis/annostorage.h>
-#include <annis/graphstorage/graphstorage.h>
-#include <annis/graphstorageregistry.h>
-#include <annis/api/graphupdate.h>
-
-#include <cereal/archives/binary.hpp>
 
 
 HUMBLE_LOGGER(logger, "annis4");
@@ -167,6 +170,14 @@ bool DB::save(string dir)
 
   // TODO: return false on failure
   return true;
+}
+
+std::string DB::getNodeDebugName(const nodeid_t &id) const
+{
+  std::stringstream ss;
+  ss << getNodeDocument(id) << "/" << getNodeName(id) << "(" << id << ")";
+
+  return ss.str();
 }
 
 bool DB::loadRelANNIS(string dirPath)

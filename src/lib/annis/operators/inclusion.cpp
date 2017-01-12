@@ -16,7 +16,19 @@
 
 #include "inclusion.h"
 
-#include <annis/wrapper.h>
+#include <annis/wrapper.h>                    // for ListWrapper
+#include <boost/container/vector.hpp>         // for operator!=
+#include <utility>                            // for pair, move
+#include <vector>                             // for vector
+#include "annis/annostorage.h"                // for AnnoStorage
+#include "annis/db.h"                         // for DB
+#include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
+#include "annis/graphstorageholder.h"         // for GraphStorageHolder
+#include "annis/iterators.h"                  // for EdgeIterator, AnnoIt
+#include "annis/operators/operator.h"         // for Operator
+#include "annis/util/helper.h"                // for TokenHelper
+#include <annis/types.h>
+
 
 using namespace annis;
 

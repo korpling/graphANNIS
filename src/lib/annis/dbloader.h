@@ -16,16 +16,15 @@
 
 #pragma once
 
-#include <annis/db.h>
-
-#include <string>
-#include <memory>
-
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/lockable_adapter.hpp>
+#include <annis/db.h>                         // for DB
+#include <stddef.h>                           // for size_t
+#include <boost/thread/lockable_adapter.hpp>  // for shared_lockable_adapter
+#include <boost/thread/shared_mutex.hpp>      // for shared_mutex
+#include <functional>                         // for function
+#include <string>                             // for string
+#include <annis/graphstorageholder.h>         // for GraphStorageHolder
 
 namespace annis
-
 {
 
   class DBLoader : public boost::shared_lockable_adapter<boost::shared_mutex>

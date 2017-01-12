@@ -16,16 +16,17 @@
 
 #pragma once
 
-#include <annis/types.h>
-#include <annis/graphstorage/graphstorage.h>
-#include <annis/db.h>
-#include <annis/iterators.h>
-#include <deque>
+#include <annis/iterators.h>  // for Iterator
+#include <annis/types.h>      // for Match
+#include <stddef.h>           // for size_t
+#include <deque>              // for deque, deque<>::const_iterator
+#include <memory>             // for shared_ptr
+#include <vector>             // for vector
+namespace annis { class Operator; }  // lines 27-27
+
 
 namespace annis 
 {
-  class Operator;
-
   /** 
    * A join that checks all combinations of the left and right matches if their are connected. 
    * 

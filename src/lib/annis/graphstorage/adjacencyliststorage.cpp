@@ -15,16 +15,21 @@
 */
 
 #include "adjacencyliststorage.h"
+#include <annis/annosearch/exactannokeysearch.h>  // for ExactAnnoKeySearch
+#include <annis/util/dfs.h>                       // for CycleSafeDFS, DFSIt...
+#include <annis/util/size_estimator.h>            // for element_size
+#include <google/btree.h>                         // for btree_iterator, btr...
+#include <google/btree_set.h>                     // for btree_set
+#include <stdint.h>                               // for uint32_t, uint64_t
+#include <algorithm>                              // for max
+#include <list>                                   // for list
+#include "annis/annostorage.h"                    // for AnnoStorage
+#include "annis/db.h"                             // for DB
+#include "annis/graphstorage/graphstorage.h"      // for ReadableGraphStorage
+#include "annis/iterators.h"                      // for EdgeIterator
+#include "annis/types.h"                          // for Edge, GraphStatistic
 
-#include <annis/util/size_estimator.h>
-
-#include <annis/util/dfs.h>
-#include <annis/annosearch/exactannokeysearch.h>
-
-#include <fstream>
-#include <limits>
-
-#include <google/btree_set.h>
+namespace annis { class StringStorage; }
 
 using namespace annis;
 using namespace std;

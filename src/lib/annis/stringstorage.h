@@ -16,19 +16,23 @@
 
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <map>
-#include <set>
-
-#include <boost/optional.hpp>
-
+#include <cereal/cereal.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <annis/serializers.h>
 
+#include <google/btree.h>               // for btree_iterator
+#include <google/btree_container.h>     // for btree_unique_container<>::con...
+#include <google/btree_map.h>           // for btree_map
+#include <stddef.h>                     // for size_t
+#include <boost/optional/optional.hpp>  // for optional
+#include <cstdint>                      // for uint32_t
+#include <set>                          // for set
+#include <string>                       // for string
+#include <unordered_map>                // for unordered_map, _Node_const_it...
+#include <utility>                      // for pair
 
-#include <google/btree_map.h>
+
 
 namespace annis
 {

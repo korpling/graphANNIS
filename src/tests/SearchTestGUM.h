@@ -28,6 +28,7 @@
 #include <annis/operators/dominance.h>
 #include <annis/query.h>
 #include <annis/json/jsonqueryparser.h>
+#include <annis/util/threadpool.h>
 
 #include <vector>
 #include <boost/format.hpp>

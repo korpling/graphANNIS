@@ -16,11 +16,16 @@
 
 #pragma once
 
-#include <annis/iterators.h>
-#include <annis/operators/operator.h>
+#include <annis/iterators.h>  // for Iterator
+#include <stddef.h>           // for size_t
+#include <memory>             // for shared_ptr
+#include <vector>             // for vector
 
 namespace annis
 {
+
+class Operator;
+struct Match;
 
 class Filter : public Iterator
 {

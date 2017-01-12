@@ -16,17 +16,25 @@
 
 #include "graphstorageholder.h"
 
-#include <annis/graphstorage/adjacencyliststorage.h>
-#include <annis/util/helper.h>
-
-#include <sstream>
-
-#include <boost/filesystem.hpp>
+#include <annis/graphstorage/adjacencyliststorage.h>    // for AdjacencyList...
+#include <annis/util/helper.h>                          // for Helper
+#include <humblelogging/api.h>                          // for HL_DEBUG, HUM...
+#include <humblelogging/logger.h>                       // for Logger
+#include <boost/core/explicit_operator_bool.hpp>        // for optional::ope...
+#include <boost/filesystem/operations.hpp>              // for directory_ite...
+#include <boost/filesystem/path.hpp>                    // for path, operator/
 #include <boost/format.hpp>
-#include <boost/thread/thread.hpp>
-#include <humblelogging/api.h>
+#include <boost/iterator/iterator_facade.hpp>           // for iterator_facade
+#include <boost/optional/optional.hpp>                  // for get_pointer
+#include <boost/thread/pthread/condition_variable.hpp>  // for interruption_...
+#include <cereal/archives/binary.hpp>                   // for BinaryInputAr...
+#include <cereal/cereal.hpp>                            // for InputArchive
+#include <sstream>                                      // for operator<<
+#include <utility>                                      // for pair
+#include "annis/graphstorage/graphstorage.h"            // for ReadableGraph...
+#include "annis/graphstorageregistry.h"                 // for GraphStorageR...
+namespace annis { class StringStorage; }
 
-#include <cereal/archives/binary.hpp>
 
 HUMBLE_LOGGER(logger, "annis4");
 

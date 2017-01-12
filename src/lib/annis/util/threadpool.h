@@ -16,10 +16,17 @@
 
 #pragma once
 
-#include <thread>
-#include <future>
-#include <deque>
-#include <vector>
+#include <stddef.h>            // for size_t
+#include <algorithm>           // for forward
+#include <condition_variable>  // for condition_variable
+#include <deque>               // for deque
+#include <functional>          // for function, bind
+#include <future>              // for future, packaged_task
+#include <memory>              // for make_shared
+#include <mutex>               // for mutex, lock_guard
+#include <thread>              // for thread
+#include <type_traits>         // for result_of
+#include <vector>              // for vector
 
 namespace annis
 {

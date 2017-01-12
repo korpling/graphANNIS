@@ -16,9 +16,20 @@
 
 #pragma once
 
-#include "annotationsearch.h"
-#include <annis/annostorage.h>
-#include <re2/re2.h>
+#include <annis/annostorage.h>  // for AnnoStorage, AnnoStorage<>::InverseAn...
+#include <re2/re2.h>            // for RE2
+#include <stdint.h>             // for int64_t
+#include <list>                 // for list, list<>::const_iterator
+#include <set>                  // for set
+#include <string>               // for string
+#include <unordered_set>        // for unordered_set
+#include <utility>              // for pair
+#include <vector>               // for vector
+#include <annis/types.h>        // for Annotation, AnnotationKey, Match (ptr...
+#include <annis/annosearch/annotationsearch.h>   // for AnnotationSearch
+namespace annis { class DB; }
+
+
 
 namespace annis
 {

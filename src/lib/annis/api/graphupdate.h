@@ -16,14 +16,15 @@
 
 #pragma once
 
-#include <string>
-#include <memory>
+#include <stdint.h>                      // for uint64_t
 
-#include <vector>
+#include <memory>                        // for shared_ptr
+#include <string>                        // for string
+#include <vector>                        // for vector
 
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
-#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/polymorphic.hpp>  // for CEREAL_REGISTER_TYPE
 
 namespace annis { namespace api {
 

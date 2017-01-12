@@ -15,7 +15,16 @@
 */
 
 #include "precedence.h"
-#include <annis/wrapper.h>
+#include <annis/wrapper.h>                    // for ListWrapper
+#include <algorithm>                          // for min, move
+#include <utility>                            // for pair
+#include "annis/db.h"                         // for DB
+#include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
+#include "annis/graphstorageholder.h"         // for GraphStorageHolder
+#include "annis/iterators.h"                  // for EdgeIterator, AnnoIt
+#include "annis/operators/operator.h"         // for Operator
+#include "annis/util/helper.h"                // for TokenHelper
+
 
 using namespace annis;
 

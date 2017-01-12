@@ -16,9 +16,15 @@
 
 #include "threadnestedloop.h"
 
+#include <annis/operators/operator.h>     // for Operator
+#include <annis/util/comparefunctions.h>  // for checkAnnotationKeyEqual
+#include <cxxabi.h>                       // for __forced_unwind
+#include <algorithm>                      // for move
+#include "annis/iterators.h"              // for Iterator
+#include "annis/types.h"                  // for Match
+#include "annis/util/sharedqueue.h"       // for SharedQueue
+#include "annis/util/threadpool.h"        // for ThreadPool
 
-#include <annis/util/comparefunctions.h>
-#include <annis/operators/operator.h>
 
 
 using namespace annis;

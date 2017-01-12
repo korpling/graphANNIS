@@ -15,19 +15,27 @@
 */
 
 #include "jsonqueryparser.h"
-
-#include <annis/annosearch/exactannovaluesearch.h>
-#include <annis/annosearch/exactannokeysearch.h>
-#include <annis/annosearch/regexannosearch.h>
-#include <annis/operators/precedence.h>
-#include <annis/operators/dominance.h>
-#include <annis/operators/pointing.h>
-#include <annis/operators/inclusion.h>
-#include <annis/operators/overlap.h>
-#include <annis/operators/identicalcoverage.h>
-
-#include <map>
-#include <limits>
+#include <annis/annosearch/exactannokeysearch.h>    // for ExactAnnoKeySearch
+#include <annis/annosearch/exactannovaluesearch.h>  // for ExactAnnoValueSearch
+#include <annis/annosearch/regexannosearch.h>       // for RegexAnnoSearch
+#include <annis/operators/dominance.h>              // for Dominance
+#include <annis/operators/identicalcoverage.h>      // for IdenticalCoverage
+#include <annis/operators/inclusion.h>              // for Inclusion
+#include <annis/operators/overlap.h>                // for Overlap
+#include <annis/operators/pointing.h>               // for Pointing
+#include <annis/operators/precedence.h>             // for Precedence
+#include <assert.h>                                 // for assert
+#include <re2/re2.h>                                // for RE2
+#include <boost/core/explicit_operator_bool.hpp>    // for optional::operato...
+#include <limits>                                   // for numeric_limits
+#include <map>                                      // for _Rb_tree_const_it...
+#include <utility>                                  // for pair
+#include "annis/db.h"                               // for DB
+#include "annis/json/json.h"                        // for Value, ValueConst...
+#include "annis/query.h"                            // for Query
+#include "annis/queryconfig.h"                      // for QueryConfig
+#include "annis/stringstorage.h"                    // for StringStorage
+#include "annis/types.h"                          // for Edge, GraphStatistic
 
 using namespace annis;
 

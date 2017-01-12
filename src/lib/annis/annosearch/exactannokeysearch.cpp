@@ -15,8 +15,16 @@
 */
 
 #include "exactannokeysearch.h"
-
-#include <annis/db.h>
+#include <annis/db.h>                    // for DB
+#include <google/btree.h>                // for btree_iterator
+#include <boost/container/flat_map.hpp>  // for flat_multimap
+#include <boost/container/vector.hpp>    // for operator!=, vec_iterator
+#include <cstdint>                       // for uint32_t, int64_t
+#include <limits>                        // for numeric_limits
+#include <utility>                       // for pair
+#include "annis/annostorage.h"           // for AnnoStorage
+#include "annis/stringstorage.h"         // for StringStorage
+#include <annis/types.h>
 
 using namespace annis;
 using namespace std;

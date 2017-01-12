@@ -16,10 +16,20 @@
 
 #pragma once
 
-#include <annis/query.h>
-#include <annis/json/json.h>
-#include <annis/queryconfig.h>
-#include <boost/optional.hpp>
+#include <annis/json/json.h>            // for Value
+#include <annis/queryconfig.h>          // for QueryConfig
+#include <stddef.h>                     // for size_t
+#include <stdint.h>                     // for uint64_t
+#include <boost/optional/optional.hpp>  // for optional
+#include <iosfwd>                       // for istream
+#include <map>                          // for map
+#include <memory>                       // for shared_ptr
+#include <string>                       // for string
+#include <annis/types.h>                // for Annotation
+namespace annis { class DB; }
+namespace annis { class GraphStorageHolder; }
+namespace annis { class Query; }
+
 
 namespace annis {
 

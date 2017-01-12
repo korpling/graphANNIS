@@ -15,6 +15,9 @@
 */
 
 #include "filter.h"
+#include "annis/iterators.h"           // for Iterator
+#include "annis/operators/operator.h"  // for Operator
+#include "annis/types.h"               // for Match
 
 using namespace annis;
 

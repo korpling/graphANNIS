@@ -16,21 +16,17 @@
 
 #pragma once
 
-#include <memory>
-#include <vector>
-#include <list>
-#include <set>
+#include <stddef.h>                        // for size_t
+#include <boost/thread.hpp>  // for thread
+#include <map>                             // for map
+#include <memory>                          // for shared_ptr
+#include <mutex>                           // for mutex
+#include <string>                          // for string
+#include <vector>                          // for vector
 
-#include <mutex>
-#include <boost/thread.hpp>
+namespace annis { class DBLoader; }
+namespace annis { namespace api { class GraphUpdate; } }
 
-#include <annis/db.h>
-#include <annis/dbcache.h>
-#include <annis/dbloader.h>
-
-#include <annis/json/jsonqueryparser.h>
-
-#include <annis/api/graphupdate.h>
 
 namespace annis
 {

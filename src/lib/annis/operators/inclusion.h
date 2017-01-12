@@ -16,12 +16,16 @@
 
 #pragma once
 
-#include <set>
-#include <list>
+#include <annis/operators/operator.h>  // for Operator
+#include <annis/util/helper.h>         // for TokenHelper
+#include <memory>                      // for shared_ptr, unique_ptr
+#include <string>                      // for string
+#include <annis/types.h>               // for Match (ptr only), Annotation
 
-#include <annis/db.h>
-#include <annis/operators/operator.h>
-#include <annis/util/helper.h>
+namespace annis { class AnnoIt; }
+namespace annis { class DB; }
+namespace annis { class GraphStorageHolder; }
+namespace annis { class ReadableGraphStorage; }
 
 namespace annis
 {

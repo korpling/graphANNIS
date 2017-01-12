@@ -16,7 +16,9 @@
 
 #include "dfs.h"
 
-#include <iostream>
+#include <iostream>                           // for operator<<, cerr, ostream
+#include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
+
 
 using namespace annis;
 

@@ -15,11 +15,16 @@
 */
 
 #include "identicalcoverage.h"
-#include <annis/wrapper.h>
-
-#include <set>
-#include <vector>
-#include <algorithm>
+#include <annis/wrapper.h>                    // for SingleElementWrapper
+#include <utility>                            // for operator==, pair
+#include <vector>                             // for vector
+#include "annis/db.h"                         // for DB
+#include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
+#include "annis/graphstorageholder.h"         // for GraphStorageHolder
+#include "annis/iterators.h"                  // for AnnoIt
+#include "annis/operators/operator.h"         // for Operator
+#include "annis/util/helper.h"                // for TokenHelper
+#include <annis/types.h>
 
 using namespace annis;
 

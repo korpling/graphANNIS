@@ -16,13 +16,15 @@
 
 #include "taskindexjoin.h"
 
+#include <annis/operators/operator.h>     // for Operator
+#include <annis/util/comparefunctions.h>  // for checkAnnotationEqual
+#include <algorithm>                      // for move
+#include <future>                         // for future, async, launch, laun...
+#include <list>                           // for list
+#include "annis/iterators.h"              // for AnnoIt, Iterator
+#include "annis/types.h"                  // for Match, Annotation, nodeid_t
+#include "annis/util/threadpool.h"        // for ThreadPool
 
-#include <future>
-#include <list>
-
-
-#include <annis/operators/operator.h>
-#include <annis/util/comparefunctions.h>
 
 
 using namespace annis;

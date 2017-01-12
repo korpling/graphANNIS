@@ -16,25 +16,28 @@
 
 #pragma once
 
-#include <annis/graphstorage/graphstorage.h>
-#include <annis/annostorage.h>
-#include <annis/util/dfs.h>
-#include <annis/annosearch/exactannovaluesearch.h>
-#include <annis/annosearch/exactannokeysearch.h>
-
-#include <set>
-#include <google/btree_map.h>
-#include <google/btree_set.h>
-#include <stack>
-#include <list>
-
-
-#include <fstream>
-
-#include <cereal/types/polymorphic.hpp>
-
-#include <annis/serializers.h>
-#include <annis/util/size_estimator.h>
+#include <annis/annosearch/exactannokeysearch.h>  // for ExactAnnoKeySearch
+#include <annis/annostorage.h>                    // for AnnoStorage
+#include <annis/graphstorage/graphstorage.h>      // for ReadableGraphStorage
+#include <annis/util/dfs.h>                       // for DFSIteratorResult
+#include <annis/util/size_estimator.h>            // for element_size
+#include <google/btree_map.h>                     // for btree_map, btree_mu...
+#include <google/btree_set.h>                     // for btree_set
+#include <stddef.h>                               // for size_t
+#include <stdint.h>                               // for int32_t, int8_t
+#include <boost/intrusive/detail/std_fwd.hpp>     // for less
+#include <cereal/types/base_class.hpp>            // for base_class
+#include <cereal/types/polymorphic.hpp>           // for CEREAL_REGISTER_TYPE
+#include <limits>                                 // for numeric_limits
+#include <list>                                   // for list
+#include <memory>                                 // for unique_ptr
+#include <set>                                    // for set, allocator
+#include <stack>                                  // for stack
+#include <utility>                                // for pair
+#include <vector>                                 // for vector
+#include "annis/db.h"                             // for DB
+#include "annis/iterators.h"                      // for EdgeIterator
+#include "annis/types.h"                          // for nodeid_t, Edge, Ann...
 
 namespace annis
 {

@@ -25,6 +25,10 @@
 #include <memory>
 #include <iostream>
 #include <tuple>
+#include <stddef.h>    // for size_t
+#include <string>      // for string
+#include <utility>     // for pair
+
 
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
   #include <malloc.h>

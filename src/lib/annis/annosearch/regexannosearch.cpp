@@ -16,7 +16,16 @@
 
 #include "regexannosearch.h"
 
-#include <limits>
+#include <google/btree.h>                // for btree_iterator
+#include <google/btree_map.h>            // for btree_map
+#include <boost/container/flat_map.hpp>  // for flat_multimap
+#include <boost/container/vector.hpp>    // for vec_iterator, operator!=
+#include <cstdint>                       // for uint32_t, int64_t
+#include "annis/annostorage.h"           // for AnnoStorage
+#include "annis/db.h"                    // for DB
+#include "annis/stringstorage.h"         // for StringStorage
+#include "annis/types.h"                 // for Annotation, AnnotationKey
+
 
 using namespace annis;
 

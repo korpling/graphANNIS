@@ -16,25 +16,21 @@
 
 #pragma once
 
-#include <annis/types.h>
-#include <annis/iterators.h>
-
-#include <annis/util/comparefunctions.h>
-
-#include <boost/lockfree/queue.hpp>
-#include <thread>
-#include <future>
-
-#include <list>
-
-#include <annis/util/threadpool.h>
+#include <annis/iterators.h>  // for Iterator
+#include <annis/types.h>      // for Match, nodeid_t
+#include <stddef.h>           // for size_t
+#include <functional>         // for function
+#include <future>             // for future
+#include <list>               // for list
+#include <memory>             // for shared_ptr, make_shared
+#include <thread>             // for thread
+#include <vector>             // for vector
+namespace annis { class Operator; }  // lines 36-36
+namespace annis { class ThreadPool; }
 
 
 namespace annis
 {
-
-class Operator;
-
 
 class TaskIndexJoin : public Iterator
 {
@@ -51,7 +47,7 @@ public:
             std::shared_ptr<Operator> op,
             std::function<std::list<Annotation> (nodeid_t)> matchGeneratorFunc,
             unsigned maxNumfOfTasks = std::thread::hardware_concurrency(),
-            std::shared_ptr<ThreadPool> threadPool = std::make_shared<ThreadPool>(std::thread::hardware_concurrency()));
+            std::shared_ptr<ThreadPool> threadPool = std::shared_ptr<ThreadPool>());
 
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;

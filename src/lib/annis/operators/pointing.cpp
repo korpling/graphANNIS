@@ -15,6 +15,11 @@
 */
 
 #include "pointing.h"
+#include "annis/operators/abstractedgeoperator.h"  // for AbstractEdgeOperator
+#include "annis/types.h"                           // for ComponentType, Com...
+namespace annis { class GraphStorageHolder; }
+namespace annis { class StringStorage; }
+
 
 using namespace annis;
 

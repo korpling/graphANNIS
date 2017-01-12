@@ -16,7 +16,16 @@
 
 #pragma once
 
-#include "annotationsearch.h"
+#include <stdint.h>             // for int64_t
+#include <list>                 // for list, list<>::const_iterator
+#include <string>               // for string
+#include <unordered_set>        // for unordered_set
+#include <utility>              // for pair
+#include <annis/annostorage.h>  // for AnnoStorage, AnnoStorage<>::InverseAn...
+#include <annis/types.h>        // for Annotation (ptr only), Match (ptr only)
+#include <annis/annosearch/annotationsearch.h>   // for AnnotationSearch
+
+namespace annis { class DB; }
 
 namespace annis
 {

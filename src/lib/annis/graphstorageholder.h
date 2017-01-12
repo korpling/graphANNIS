@@ -16,12 +16,16 @@
 
 #pragma once
 
-
-#include <annis/graphstorage/graphstorage.h>
-#include <annis/graphstorageregistry.h>
-
-#include <map>
-#include <memory>
+#include <annis/graphstorageregistry.h>  // for GraphStorageRegistry
+#include <stddef.h>                      // for size_t
+#include <map>                           // for map, map<>::const_iterator
+#include <memory>                        // for shared_ptr
+#include <string>                        // for string
+#include <vector>                        // for vector
+#include "annis/types.h"                 // for ComponentType, Component
+namespace annis { class ReadableGraphStorage; }
+namespace annis { class StringStorage; }
+namespace annis { class WriteableGraphStorage; }
 
 namespace annis
 {

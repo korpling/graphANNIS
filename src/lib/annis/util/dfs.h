@@ -16,10 +16,16 @@
 
 #pragma once
 
-#include <annis/graphstorage/graphstorage.h>
+#include <stdint.h>           // for uint32_t
+#include <list>               // for list
+#include <map>                // for multimap
+#include <set>                // for set
+#include <stack>              // for stack
+#include <utility>            // for pair
+#include "annis/iterators.h"  // for EdgeIterator
+#include "annis/types.h"      // for nodeid_t
+namespace annis { class ReadableGraphStorage; }
 
-#include <stack>
-#include <list>
 
 namespace annis
 {

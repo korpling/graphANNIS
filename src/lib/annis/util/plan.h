@@ -16,17 +16,25 @@
 
 #pragma once
 
-#include <annis/db.h>
-#include <annis/iterators.h>
-#include <annis/operators/operator.h>
-#include <annis/annosearch/annotationsearch.h>
-#include <annis/queryconfig.h>
-#include <memory>
-#include <vector>
-#include <list>
-#include <map>
+#include <stddef.h>                     // for size_t
+#include <stdint.h>                     // for uint64_t
+#include <boost/optional/optional.hpp>  // for optional
+#include <functional>                   // for function
+#include <list>                         // for list
+#include <map>                          // for map
+#include <memory>                       // for shared_ptr
+#include <string>                       // for string
+#include <utility>                      // for pair
+#include <vector>                       // for vector
+#include "annis/types.h"                // for Annotation, nodeid_t, Match (...
 
-#include <annis/util/threadpool.h>
+namespace annis { class AnnotationKeySearch; }
+namespace annis { class AnnotationSearch; }
+namespace annis { class DB; }
+namespace annis { class EstimatedSearch; }
+namespace annis { class Iterator; }
+namespace annis { class Operator; }
+namespace annis { struct QueryConfig; }
 
 namespace annis
 {

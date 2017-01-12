@@ -16,24 +16,23 @@
 
 #pragma once
 
-#include <memory>
-#include <vector>
-#include <list>
-#include <set>
-#include <map>
-
-#include <annis/types.h>
-#include <annis/util/plan.h>
-#include <annis/queryconfig.h>
+#include <annis/queryconfig.h>  // for QueryConfig
+#include <annis/types.h>        // for AnnotationKey, Match, nodeid_t
+#include <stddef.h>             // for size_t
+#include <map>                  // for map
+#include <memory>               // for shared_ptr
+#include <set>                  // for set
+#include <string>               // for string
+#include <vector>               // for vector
+namespace annis { class AnnoIt; }  // lines 34-34
+namespace annis { class AnnotationKeySearch; }  // lines 36-36
+namespace annis { class AnnotationSearch; }  // lines 35-35
+namespace annis { class DB; }  // lines 33-33
+namespace annis { class Operator; }  // lines 32-32
+namespace annis { class Plan; }
 
 namespace annis
 {
-  
-class Operator;
-class DB;
-class AnnoIt;
-class AnnotationSearch;
-class AnnotationKeySearch;
 
 struct OperatorEntry
 {

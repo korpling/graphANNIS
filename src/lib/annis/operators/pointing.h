@@ -16,10 +16,15 @@
 
 #pragma once
 
-#include "abstractedgeoperator.h"
+#include <string>                  // for string
+#include "abstractedgeoperator.h"  // for AbstractEdgeOperator
 
 namespace annis
 {
+
+class GraphStorageHolder;
+class StringStorage;
+struct Annotation;
 
 class Pointing : public AbstractEdgeOperator
 {

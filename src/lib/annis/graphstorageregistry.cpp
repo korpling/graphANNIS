@@ -16,11 +16,18 @@
 
 #include "graphstorageregistry.h"
 
-#include <annis/graphstorage/adjacencyliststorage.h>
-#include <annis/graphstorage/linearstorage.h>
-#include <annis/graphstorage/prepostorderstorage.h>
+#include <annis/graphstorage/adjacencyliststorage.h>  // for AdjacencyListSt...
+#include <annis/graphstorage/linearstorage.h>         // for LinearStorage
+#include <annis/graphstorage/prepostorderstorage.h>   // for PrePostOrderSto...
+#include <cstdint>                                    // for uint32_t, int32_t
+#include <memory>                                     // for unique_ptr, dyn...
+#include <utility>                                    // for pair
+#include <vector>                                     // for vector
+#include "annis/annostorage.h"                        // for AnnoStorage
+#include "annis/graphstorage/graphstorage.h"          // for ReadableGraphSt...
+#include <annis/types.h>
 
-#include <memory>
+namespace annis { class StringStorage; }
 
 using namespace annis;
 

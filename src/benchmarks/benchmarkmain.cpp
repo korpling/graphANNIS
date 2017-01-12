@@ -19,6 +19,8 @@
 
 #include "dynamicbenchmark.h"
 
+#include <annis/util/threadpool.h>
+
 using namespace annis;
 
 int main(int argc, char **argv) {

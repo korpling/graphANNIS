@@ -16,34 +16,34 @@
 
 #pragma once
 
-#include <map>
-#include <set>
-#include <list>
-#include <memory>
+#include <annis/stringstorage.h>                  // for StringStorage
+#include <annis/types.h>                          // for Annotation, Annotat...
+#include <annis/util/size_estimator.h>            // for element_size
+#include <google/btree.h>                         // for btree_iterator
+#include <google/btree_container.h>               // for btree_unique_contai...
+#include <google/btree_map.h>                     // for btree_map, btree_mu...
+#include <re2/re2.h>                              // for RE2
+#include <stddef.h>                               // for size_t
+#include <algorithm>                              // for min, random_shuffle
+#include <boost/container/container_fwd.hpp>      // for container
+#include <boost/container/detail/std_fwd.hpp>     // for pair
+#include <boost/container/flat_map.hpp>           // for flat_map, flat_mult...
+#include <boost/core/explicit_operator_bool.hpp>  // for optional::operator ...
+#include <boost/optional/optional.hpp>            // for optional
+#include <cmath>                                  // for round
+#include <cstdint>                                // for uint32_t, int64_t
+#include <limits>                                 // for numeric_limits
+#include <list>                                   // for list
+#include <map>                                    // for _Rb_tree_iterator, map
+#include <memory>                                 // for allocator_traits<>:...
+#include <string>                                 // for string
+#include <utility>                                // for pair
+#include <vector>                                 // for vector
 
-#include <google/btree_map.h>
-#include <google/btree_set.h>
-
-#include <re2/re2.h>
-
-#include <boost/optional.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/container/flat_set.hpp>
-#include <boost/container/map.hpp>
-#include <boost/container/set.hpp>
-
-#include <cereal/cereal.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/set.hpp>
+#include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
-
-
-#include <annis/types.h>
-#include <annis/stringstorage.h>
 #include <annis/serializers.h>
-#include <annis/util/size_estimator.h>
 
-#include "iterators.h"
 
 namespace annis {
 

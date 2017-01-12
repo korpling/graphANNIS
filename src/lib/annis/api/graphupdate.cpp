@@ -16,11 +16,6 @@
 
 #include "graphupdate.h"
 
-#include <annis/types.h>
-
-
-#include <boost/thread/shared_lock_guard.hpp>
-
 
 using namespace annis::api;
 

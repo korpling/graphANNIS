@@ -16,31 +16,26 @@
 
 #pragma once
 
-#include <string>
-#include <google/btree_map.h>
-#include <cstdint>
-#include <iostream>
-#include <sstream>
-#include <map>
-#include <vector>
-#include <list>
+#include <annis/annostorage.h>           // for AnnoStorage
+#include <annis/graphstorageholder.h>    // for GraphStorageHolder
+#include <annis/stringstorage.h>         // for StringStorage
+#include <annis/types.h>                 // for nodeid_t, Annotation, annis_ns
+#include <stddef.h>                      // for size_t
+#include <boost/container/flat_map.hpp>  // for flat_multimap
+#include <boost/container/vector.hpp>    // for operator!=, vec_iterator
+#include <boost/optional/optional.hpp>   // for optional
+#include <cstdint>                       // for uint32_t, uint64_t
+#include <map>                           // for map
+#include <memory>                        // for allocator_traits<>::value_type
+#include <string>                        // for string, operator<<, char_traits
+#include <utility>                       // for pair
+#include <vector>                        // for vector
 
-#include <boost/optional.hpp>
-
-#include <annis/types.h>
-#include <annis/stringstorage.h>
-#include <annis/graphstorageregistry.h>
-#include <annis/graphstorageholder.h>
-#include <annis/annostorage.h>
+namespace annis { class WriteableGraphStorage; }  // lines 43-43
+namespace annis { namespace api { class GraphUpdate; } }  // lines 40-40
 
 namespace annis
 {
-
-   namespace api {
-      class GraphUpdate;
-   }
-  
-class WriteableGraphStorage;
   
 class DB
 {
@@ -91,14 +86,7 @@ public:
     return result;
   }
 
-  inline std::string getNodeDebugName(const nodeid_t &id) const
-  {
-    std::stringstream ss;
-    ss << getNodeDocument(id) << "/" << getNodeName(id) << "(" << id << ")";
-
-    return ss.str();
-  }
-
+  std::string getNodeDebugName(const nodeid_t &id) const;
 
   std::vector<Component> getDirectConnected(const Edge& edge) const;
   std::vector<Component> getAllComponents() const;

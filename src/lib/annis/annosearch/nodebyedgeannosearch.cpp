@@ -16,6 +16,11 @@
 
 #include "nodebyedgeannosearch.h"
 
+#include <google/btree.h>                     // for btree_iterator
+#include <google/btree_map.h>                 // for btree_multimap
+#include <stddef.h>                           // for size_t
+#include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
+
 
 
 using namespace annis;

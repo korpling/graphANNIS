@@ -16,24 +16,26 @@
 
 #pragma once
 
-#include <annis/graphstorage/graphstorage.h>
-#include <annis/annostorage.h>
-#include <annis/util/dfs.h>
-#include <annis/annosearch/exactannokeysearch.h>
-
-#include <fstream>
-#include <set>
-#include <limits>
-
-#include <cereal/types/polymorphic.hpp>
-#include <cereal/types/vector.hpp>
-#include <annis/serializers.h>
-
-#include <annis/util/size_estimator.h>
-
-#include <boost/format.hpp>
-
-#include <google/btree_map.h>
+#include <annis/annosearch/exactannokeysearch.h>  // for ExactAnnoKeySearch
+#include <annis/annostorage.h>                    // for AnnoStorage
+#include <annis/graphstorage/graphstorage.h>      // for ReadableGraphStorage
+#include <annis/util/dfs.h>                       // for CycleSafeDFS
+#include <annis/util/size_estimator.h>            // for element_size
+#include <google/btree.h>                         // for btree_iterator
+#include <google/btree_container.h>               // for btree_unique_contai...
+#include <google/btree_map.h>                     // for btree_map
+#include <stddef.h>                               // for size_t
+#include <stdint.h>                               // for uint32_t, uint16_t
+#include <cereal/types/base_class.hpp>            // for base_class
+#include <cereal/types/polymorphic.hpp>           // for CEREAL_REGISTER_TYPE
+#include <limits>                                 // for numeric_limits
+#include <memory>                                 // for unique_ptr
+#include <set>                                    // for set, allocator
+#include <utility>                                // for pair
+#include <vector>                                 // for vector
+#include "annis/db.h"                             // for DB
+#include "annis/iterators.h"                      // for EdgeIterator
+#include "annis/types.h"                          // for nodeid_t, Edge, Rel...
 
 
 namespace annis

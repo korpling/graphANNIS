@@ -15,20 +15,27 @@
 */
 
 #include "query.h"
-
-#include <annis/join/nestedloop.h>
-#include <annis/filter.h>
-#include <annis/operators/operator.h>
-#include <annis/operators/abstractedgeoperator.h>
-#include <annis/db.h>
-#include <annis/iterators.h>
-#include <annis/annosearch/annotationsearch.h>
-#include <annis/wrapper.h>
-#include <annis/annosearch/nodebyedgeannosearch.h>
-
-#include <vector>
-#include <random>
-#include <re2/re2.h>
+#include <annis/annosearch/annotationsearch.h>      // for EstimatedSearch
+#include <annis/annosearch/nodebyedgeannosearch.h>  // for NodeByEdgeAnnoSearch
+#include <annis/db.h>                               // for DB
+#include <annis/iterators.h>                        // for AnnoIt
+#include <annis/operators/abstractedgeoperator.h>   // for AbstractEdgeOperator
+#include <annis/operators/operator.h>               // for Operator
+#include <annis/wrapper.h>                          // for ConstAnnoWrapper
+#include <ext/alloc_traits.h>                       // for __alloc_traits<>:...
+#include <stdint.h>                                 // for int64_t
+#include <algorithm>                                // for next_permutation
+#include <boost/core/explicit_operator_bool.hpp>    // for optional::operato...
+#include <boost/optional/optional.hpp>              // for optional
+#include <iostream>                                 // for operator<<, basic...
+#include <list>                                     // for list
+#include <random>                                   // for mt19937, uniform_...
+#include <utility>                                  // for pair
+#include <vector>                                   // for vector
+#include "annis/annostorage.h"                      // for AnnoStorage
+#include "annis/queryconfig.h"                      // for QueryConfig
+#include "annis/types.h"                            // for nodeid_t, Match
+#include "annis/util/plan.h"                        // for Plan, ExecutionNode
 
 using namespace annis;
 

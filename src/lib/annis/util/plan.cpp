@@ -16,19 +16,27 @@
 
 #include "plan.h"
 
-#include <map>
-#include <memory>
-
-#include <annis/db.h>
-#include <annis/wrapper.h>
-#include <annis/operators/operator.h>
-#include <annis/join/nestedloop.h>
-#include <annis/join/threadnestedloop.h>
-#include <annis/join/taskindexjoin.h>
-#include <annis/join/threadindexjoin.h>
-#include <annis/join/indexjoin.h>
-#include <annis/filter.h>
-#include <annis/annosearch/nodebyedgeannosearch.h>
+#include <annis/annosearch/nodebyedgeannosearch.h>  // for NodeByEdgeAnnoSearch
+#include <annis/db.h>                               // for DB
+#include <annis/filter.h>                           // for Filter
+#include <annis/join/indexjoin.h>                   // for IndexJoin
+#include <annis/join/nestedloop.h>                  // for NestedLoopJoin
+#include <annis/join/taskindexjoin.h>               // for TaskIndexJoin
+#include <annis/join/threadindexjoin.h>             // for ThreadIndexJoin
+#include <annis/join/threadnestedloop.h>            // for ThreadNestedLoop
+#include <annis/operators/operator.h>               // for Operator
+#include <annis/wrapper.h>                          // for ConstAnnoWrapper
+#include <boost/container/vector.hpp>               // for operator!=
+#include <boost/core/explicit_operator_bool.hpp>    // for optional::operato...
+#include <cstdint>                                  // for uint64_t, int64_t
+#include <map>                                      // for _Rb_tree_iterator
+#include <memory>                                   // for shared_ptr, __sha...
+#include <set>                                      // for set
+#include <unordered_set>                            // for unordered_set
+#include "annis/annosearch/annotationsearch.h"      // for EstimatedSearch
+#include "annis/annostorage.h"                      // for AnnoStorage
+#include "annis/iterators.h"                        // for Iterator
+#include "annis/queryconfig.h"                      // for QueryConfig
 
 using namespace annis;
 

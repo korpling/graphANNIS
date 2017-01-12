@@ -16,9 +16,16 @@
 
 #pragma once
 
-#include <annis/annosearch/annotationsearch.h>
+#include <annis/annosearch/annotationsearch.h>  // for AnnotationKeySearch
+#include <annis/annostorage.h>                  // for AnnoStorage, AnnoStor...
+#include <google/btree_container.h>             // for btree_unique_containe...
+#include <google/btree_map.h>                   // for btree_map
+#include <stdint.h>                             // for int64_t, uint64_t
+#include <set>                                  // for set
+#include <string>                               // for string
+#include <annis/types.h>                        // for AnnotationKey, Match ...
+namespace annis { class DB; }
 
-#include <annis/annostorage.h>
 
 namespace annis
 {

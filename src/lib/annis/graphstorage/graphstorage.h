@@ -16,23 +16,20 @@
 
 #pragma once
 
-#include <stdlib.h>
-#include <cstdint>
-#include <string>
-#include <vector>
-#include <memory>
+#include <annis/annostorage.h>          // for AnnoStorage
+#include <annis/types.h>                // for nodeid_t, GraphStatistic
+#include <stdlib.h>                     // for size_t
+#include <cereal/types/polymorphic.hpp>  // for base_class
+#include <memory>                       // for unique_ptr
+#include <vector>                       // for vector
 
-#include <cereal/types/polymorphic.hpp>
+namespace annis { class DB; }
+namespace annis { class StringStorage; }
+namespace annis { class EdgeIterator; }
 
-#include <annis/types.h>
-#include <annis/iterators.h>
-#include <annis/stringstorage.h>
-
-#include <annis/annostorage.h>
 
 namespace annis
 {
-class DB;
 
 class ReadableGraphStorage
 {

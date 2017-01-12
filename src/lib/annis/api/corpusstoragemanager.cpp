@@ -16,20 +16,34 @@
 
 #include "corpusstoragemanager.h"
 
-#include <boost/thread/lock_guard.hpp>
-#include <boost/thread/shared_lock_guard.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string/predicate.hpp>
+#include <annis/db.h>                                   // for DB
+#include <humblelogging/api.h>                          // for HL_DEBUG, HUM...
+#include <humblelogging/logger.h>                       // for Logger
+#include <stdint.h>                                     // for uint32_t
+#include <algorithm>                                    // for sort
+#include <boost/filesystem/operations.hpp>              // for directory_ite...
+#include <boost/filesystem/path.hpp>                    // for path, operator/
+#include <boost/filesystem/path_traits.hpp>             // for filesystem
+#include <boost/iterator/iterator_facade.hpp>           // for iterator_faca...
+#include <boost/thread/lock_guard.hpp>                  // for lock_guard
+#include <boost/thread/lock_options.hpp>                // for adopt_lock
+#include <boost/thread/pthread/condition_variable.hpp>  // for interruption_...
+#include <boost/thread/shared_lock_guard.hpp>           // for shared_lock_g...
+#include <cereal/archives/binary.hpp>                   // for BinaryOutputA...
+#include <cereal/cereal.hpp>                            // for OutputArchive
+#include <fstream>                                      // for stringstream
+#include <set>                                          // for _Rb_tree_iter...
+#include <utility>                                      // for pair
+#include <vector>                                       // for vector
+#include "annis/api/graphupdate.h"                      // for GraphUpdate
+#include "annis/dbloader.h"                             // for DBLoader
+#include "annis/json/jsonqueryparser.h"                 // for JSONQueryParser
+#include "annis/query.h"
+#include "annis/annostorage.h"                          // for AnnoStorage
+#include "annis/stringstorage.h"                        // for StringStorage
+#include "annis/types.h"                                // for Match, Annota...
 
 
-#include <humblelogging/api.h>
-
-#include <fstream>
-#include <thread>
-#include <vector>
-#include <cereal/archives/binary.hpp>
-
-#include <annis/db.h>
 
 using namespace annis;
 using namespace annis::api;

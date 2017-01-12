@@ -15,7 +15,9 @@
 */
 
 #include "dbcache.h"
-#include <annis/db.h>
+#include <annis/db.h>                    // for DB
+#include <stdlib.h>                      // for size_t, exit
+#include "annis/graphstorageregistry.h"  // for GraphStorageRegistry, GraphS...
 
 using namespace annis;
 
