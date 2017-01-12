@@ -26,9 +26,7 @@
 #include <stddef.h>                               // for size_t
 #include <algorithm>                              // for min, random_shuffle
 #include <boost/container/container_fwd.hpp>      // for container
-#include <boost/container/detail/std_fwd.hpp>     // for pair
 #include <boost/container/flat_map.hpp>           // for flat_map, flat_mult...
-#include <boost/core/explicit_operator_bool.hpp>  // for optional::operator ...
 #include <boost/optional/optional.hpp>            // for optional
 #include <cmath>                                  // for round
 #include <cstdint>                                // for uint32_t, int64_t

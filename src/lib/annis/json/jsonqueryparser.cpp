@@ -26,7 +26,6 @@
 #include <annis/operators/precedence.h>             // for Precedence
 #include <assert.h>                                 // for assert
 #include <re2/re2.h>                                // for RE2
-#include <boost/core/explicit_operator_bool.hpp>    // for optional::operato...
 #include <limits>                                   // for numeric_limits
 #include <map>                                      // for _Rb_tree_const_it...
 #include <utility>                                  // for pair

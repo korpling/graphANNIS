@@ -27,7 +27,6 @@
 #include <annis/operators/operator.h>               // for Operator
 #include <annis/wrapper.h>                          // for ConstAnnoWrapper
 #include <boost/container/vector.hpp>               // for operator!=
-#include <boost/core/explicit_operator_bool.hpp>    // for optional::operato...
 #include <cstdint>                                  // for uint64_t, int64_t
 #include <map>                                      // for _Rb_tree_iterator
 #include <memory>                                   // for shared_ptr, __sha...

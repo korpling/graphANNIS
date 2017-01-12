@@ -25,7 +25,6 @@
 #include <google/btree_set.h>                     // for btree_set
 #include <stddef.h>                               // for size_t
 #include <stdint.h>                               // for int32_t, int8_t
-#include <boost/intrusive/detail/std_fwd.hpp>     // for less
 #include <cereal/types/base_class.hpp>            // for base_class
 #include <cereal/types/polymorphic.hpp>           // for CEREAL_REGISTER_TYPE
 #include <limits>                                 // for numeric_limits
