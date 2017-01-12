@@ -196,7 +196,7 @@ install(TARGETS annis_runner annis
         ARCHIVE DESTINATION lib
        INCLUDES DESTINATION include
 )
-install(DIRECTORY src/lib/annis DESTINATION include
+install(DIRECTORY src/lib/annis/api DESTINATION include/annis
         FILES_MATCHING PATTERN "*.h"
 )
 # also install the cereal headers since they are part of the API
