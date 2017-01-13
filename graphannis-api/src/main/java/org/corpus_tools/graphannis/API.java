@@ -73,23 +73,44 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
 // Parsed from annis/api/corpusstoragemanager.h
 
+/*
+   Copyright 2017 Thomas Krause <thomaskrause@posteo.de>
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 // #pragma once
 
-// #include <memory>
-// #include <vector>
-// #include <list>
-// #include <set>
+// #include <stddef.h>                        // for size_t
+// #include <map>                             // for map
+// #include <memory>                          // for shared_ptr
+// #include <mutex>                           // for mutex
+// #include <string>                          // for string
+// #include <vector>                          // for vector
 
-// #include <mutex>
-// #include <boost/thread.hpp>
+@Namespace("annis") @Opaque public static class DBLoader extends Pointer {
+    /** Empty constructor. Calls {@code super((Pointer)null)}. */
+    public DBLoader() { super((Pointer)null); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public DBLoader(Pointer p) { super(p); }
+}   
 
-// #include <annis/db.h>
-// #include <annis/dbcache.h>
-// #include <annis/dbloader.h>
-
-// #include <annis/json/jsonqueryparser.h>
-
-// #include <annis/api/graphupdate.h>
+@Namespace("boost") @Opaque public static class thread extends Pointer {
+    /** Empty constructor. Calls {@code super((Pointer)null)}. */
+    public thread() { super((Pointer)null); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public thread(Pointer p) { super(p); }
+}
 /**
  * An API for managing corpora stored in a common location on the file system.
  */
@@ -215,6 +236,22 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
 // Parsed from annis/api/admin.h
 
+/*
+   Copyright 2017 Thomas Krause <thomaskrause@posteo.de>
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 // #pragma once
 
 // #include <string>
@@ -245,17 +282,33 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
 // Parsed from annis/api/graphupdate.h
 
+/*
+   Copyright 2017 Thomas Krause <thomaskrause@posteo.de>
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 // #pragma once
 
-// #include <string>
-// #include <memory>
+// #include <stdint.h>                      // for uint64_t
 
-// #include <vector>
-// #include <string>
+// #include <memory>                        // for shared_ptr
+// #include <string>                        // for string
+// #include <vector>                        // for vector
 
 // #include <cereal/types/string.hpp>
 // #include <cereal/types/vector.hpp>
-// #include <cereal/types/polymorphic.hpp>
+// #include <cereal/types/polymorphic.hpp>  // for CEREAL_REGISTER_TYPE
 
 /** enum annis::api::UpdateEventType */
 public static final int

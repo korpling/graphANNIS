@@ -6,6 +6,15 @@
   <version>0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>graphannis-root</name>
+  
+  <description>This is a prototype for a new backend implementation of the ANNIS linguistic search and visualization system.</description>
+  <url>https://github.com/thomaskrause/graphANNIS</url>
+  
+  <scm>
+    <connection>scm:git:https://github.com/thomaskrause/graphANNIS</connection>
+    <developerConnection>scm:git:ssh://git@github.com/thomaskrause/graphANNIS.git</developerConnection>
+    <url>https://github.com/thomaskrause/graphANNIS</url>
+  </scm>
 
   <licenses>
 		<license>
@@ -48,6 +57,58 @@
 			</releases>
 		</repository>
 	</repositories>
+  
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>2.4</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+      
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>2.10.3</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+      
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.5</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
   <modules>
    <module>graphannis-api</module>
