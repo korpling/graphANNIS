@@ -1,4 +1,4 @@
-next release
+release 0.1.0
 =============
 
 Initial development release with an actual release number.
