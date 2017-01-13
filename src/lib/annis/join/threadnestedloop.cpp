@@ -18,7 +18,6 @@
 
 #include <annis/operators/operator.h>     // for Operator
 #include <annis/util/comparefunctions.h>  // for checkAnnotationKeyEqual
-#include <cxxabi.h>                       // for __forced_unwind
 #include <algorithm>                      // for move
 #include "annis/iterators.h"              // for Iterator
 #include "annis/types.h"                  // for Match
