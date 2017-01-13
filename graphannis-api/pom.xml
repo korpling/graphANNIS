@@ -274,36 +274,4 @@
     </plugins>
 
   </build>
-  
-  <profiles>
-    <profile>
-      <id>native</id>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-jar-plugin</artifactId>
-            <version>2.6</version>
-            <executions>
-              <execution>
-                <id>default-jar</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-                <configuration>
-                  <classifier>${javacpp.platform}</classifier>
-                  <skipIfEmpty>true</skipIfEmpty>
-                  <includes>
-                    <include>${javacpp.platform.library.path}/</include>
-                    <include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
-                  </includes>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
-
 </project>
