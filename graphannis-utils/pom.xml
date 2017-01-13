@@ -106,18 +106,8 @@
     <dependency>
       <groupId>org.corpus-tools</groupId>
       <artifactId>graphannis-api</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.corpus-tools</groupId>
-      <artifactId>graphannis-api</artifactId>
-      <version>0.1-SNAPSHOT</version>
-      <classifier>linux-x86_64</classifier>
-      <optional>true</optional>
-    </dependency>
-    
-
-  
   </dependencies>
   
 
@@ -157,5 +147,33 @@
     </plugins>
 
   </build>
-
+  
+  <profiles>
+    <profile>
+      <id>native-deps</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.corpus-tools</groupId>
+          <artifactId>graphannis-api</artifactId>
+          <version>${project.version}</version>
+          <classifier>linux-x86_64</classifier>
+          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>org.corpus-tools</groupId>
+          <artifactId>graphannis-api</artifactId>
+          <version>${project.version}</version>
+          <classifier>windowss-x86_64</classifier>
+          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>org.corpus-tools</groupId>
+          <artifactId>graphannis-api</artifactId>
+          <version>${project.version}</version>
+          <classifier>macosx-x86_64</classifier>
+          <optional>true</optional>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>
