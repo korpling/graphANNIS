@@ -22,7 +22,6 @@
 #include <annis/operators/abstractedgeoperator.h>   // for AbstractEdgeOperator
 #include <annis/operators/operator.h>               // for Operator
 #include <annis/wrapper.h>                          // for ConstAnnoWrapper
-#include <ext/alloc_traits.h>                       // for __alloc_traits<>:...
 #include <stdint.h>                                 // for int64_t
 #include <algorithm>                                // for next_permutation
 #include <boost/optional/optional.hpp>              // for optional

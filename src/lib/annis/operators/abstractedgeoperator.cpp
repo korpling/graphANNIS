@@ -18,7 +18,6 @@
 
 #include <annis/util/comparefunctions.h>            // for checkAnnotationEqual
 #include <annis/wrapper.h>                          // for ListWrapper
-#include <ext/alloc_traits.h>                       // for __alloc_traits<>:...
 #include <google/btree.h>                           // for btree_iterator
 #include <google/btree_map.h>                       // for btree_map
 #include <google/btree_set.h>                       // for btree_set
