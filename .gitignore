@@ -15,3 +15,4 @@ CMakeLists.txt.user
 /annis4_history.txt
 /benchmark_annis4.log
 /graphannis-utils/target/
+/target/
