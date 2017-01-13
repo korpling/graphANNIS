@@ -200,7 +200,7 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
       update.finish();
    }
 
-   bf::path corpusPath = bf::path(databaseDir) / corpus;
+   const bf::path corpusPath = bf::path(databaseDir) / corpus;
 
    // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
    std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
@@ -226,7 +226,7 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
 
       } catch (...)
       {
-         db.load(databaseDir + "/" + corpus);
+         db.load(corpusPath.string());
       }
    }
 }
