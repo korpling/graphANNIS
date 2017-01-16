@@ -44,7 +44,6 @@ import annis.sqlgen.model.Sibling;
 import java.util.LinkedList;
 import org.corpus_tools.annis.ql.parser.AnnisParserAntlr;
 import org.corpus_tools.annis.ql.parser.QueryData;
-import org.corpus_tools.annis.ql.parser.SemanticValidator;
 
 /**
  *

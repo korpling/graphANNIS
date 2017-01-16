@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import org.bytedeco.javacpp.annotation.StdString;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.common.SDominanceRelation;
@@ -44,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class SaltImport
 {
 
-  public static final String ANNIS_NS = "annis4_internal";
+  public static final String ANNIS_NS = "annis";
 
   private static final Logger log = LoggerFactory.getLogger(SaltImport.class);
 
