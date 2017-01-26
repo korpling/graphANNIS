@@ -286,7 +286,7 @@ void Query::internalInit()
       ////////////////////////////////////
       // 2. optimize the order of joins //
       ////////////////////////////////////
-      if(operators.size() <= 7)
+      if(operators.size() <= 6)
       {
         optimizeJoinOrderAllPermutations();
       }
