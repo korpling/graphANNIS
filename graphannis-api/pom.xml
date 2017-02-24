@@ -81,11 +81,20 @@
   </dependencies>
   
   <build>
+    
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
 
     <plugins>
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.2</version>
+        <configuration>
+         
+        </configuration>
         <executions>
           <execution>
             <id>javacpp.parser</id>
@@ -93,9 +102,10 @@
             <goals>
               <goal>resources</goal>
             </goals>
-          </execution>
+          </execution>          
         </executions>
       </plugin>
+      
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.5.1</version>
@@ -209,6 +219,7 @@
               <skip>${javacpp.compiler.skip}</skip>
               <classOrPackageName>org.corpus_tools.graphannis.*</classOrPackageName>
               <copyLibs>true</copyLibs>
+              <outputDirectory>${project.basedir}/src/main/resources/org/corpus_tools/graphannis/${javacpp.platform}</outputDirectory>
             </configuration>
           </execution>
         </executions>
@@ -217,8 +228,8 @@
 
 
       <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
         <version>2.6</version>
+        <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
             <id>default-jar</id>
@@ -227,32 +238,28 @@
               <goal>jar</goal>
             </goals>
             <configuration>
-              <excludes>
-                <exclude>org/corpus_tools/graphannis/*.h</exclude>
-                <exclude>org/corpus_tools/graphannis/linux-*/</exclude>
-                <exclude>org/corpus_tools/graphannis/macosx-*/</exclude>
-                <exclude>org/corpus_tools/graphannis/windows-*/</exclude>
-                <exclude>org/corpus_tools/graphannis/${javacpp.platform}/</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-          <execution>
-            <id>native-platform</id>
-            <phase>package</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-            <configuration>
-              <classifier>${javacpp.platform}</classifier>
-              <skipIfEmpty>true</skipIfEmpty>
-              <includes>
-                <include>${javacpp.platform.library.path}/</include>
-                <include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
-              </includes>
+              <archive>  
+                <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+              </archive> 
             </configuration>
           </execution>
         </executions>
       </plugin>
+      
+      <plugin>   
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>bundle-manifest</id>
+            <phase>process-classes</phase>
+            <goals>    
+              <goal>manifest</goal>
+            </goals>   
+          </execution>
+        </executions>
+      </plugin>
+
       
       <plugin>
         <groupId>org.antlr</groupId>
@@ -260,10 +267,10 @@
         <version>4.5.2-1</version>
         <executions>
           <execution>
-           <goals>
-                <goal>antlr4</goal>
-              </goals>
-           <configuration>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+            <configuration>
               <sourceDirectory>src/main/antlr4</sourceDirectory>
             </configuration>
           </execution>
