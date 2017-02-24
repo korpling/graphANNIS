@@ -237,7 +237,7 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Export-Package>org.corpus_tools.graphannis,org.corpus_tools.annis.ql.parser</Export-Package>
+            <Export-Package>org.corpus_tools.graphannis,org.corpus_tools.annis.*</Export-Package>
             <Private-Package>org.corpus_tools.graphannis.info</Private-Package>
             <Embed-Dependency>javacpp;inline=false</Embed-Dependency>
             
