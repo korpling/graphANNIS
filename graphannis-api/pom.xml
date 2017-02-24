@@ -21,6 +21,8 @@
     <javacpp.cppbuild.skip>false</javacpp.cppbuild.skip> <!-- To skip execution of cppbuild.sh: -Djavacpp.cppbuild.skip=true -->
     <javacpp.parser.skip>false</javacpp.parser.skip>     <!-- To skip header file parsing phase: -Djavacpp.parser.skip=true -->
     <javacpp.compiler.skip>false</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
+    
+    <javacpp.pkg>org/corpus_tools/graphannis</javacpp.pkg>
   </properties>
 
 
@@ -127,7 +129,7 @@
             <configuration>
               <skipMain>${javacpp.parser.skip}</skipMain>
               <includes>
-                <include>org/corpus_tools/graphannis/info/*.java</include>
+                <include>${javacpp.pkg}/info/*.java</include>
               </includes>
             </configuration>
           </execution>
@@ -219,7 +221,7 @@
               <skip>${javacpp.compiler.skip}</skip>
               <classOrPackageName>org.corpus_tools.graphannis.*</classOrPackageName>
               <copyLibs>true</copyLibs>
-              <outputDirectory>${project.basedir}/src/main/resources/org/corpus_tools/graphannis/${javacpp.platform}</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/resources/${javacpp.pkg}/${javacpp.platform}</outputDirectory>
             </configuration>
           </execution>
         </executions>
@@ -249,6 +251,7 @@
       <plugin>   
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
+        <version>3.2.0</version>
         <executions>
           <execution>
             <id>bundle-manifest</id>
@@ -256,6 +259,17 @@
             <goals>    
               <goal>manifest</goal>
             </goals>   
+            <configuration>
+              <instructions>
+                <Export-Package>org.corpus_tools.graphannis</Export-Package>
+                <Bundle-NativeCode>${javacpp.pkg}/linux-x86_64/libboost_filesystem.so; 
+                 ${javacpp.pkg}/libboost_system.so;
+                 ${javacpp.pkg}/linux-x86_64/libboost_thread.so;
+                 ${javacpp.pkg}/linux-x86_64/libjniAnnisApiInfo.so; 
+                 osname=Linux;processor=x86-64
+                </Bundle-NativeCode>
+              </instructions>
+            </configuration>
           </execution>
         </executions>
       </plugin>
