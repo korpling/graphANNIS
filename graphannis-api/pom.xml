@@ -237,8 +237,9 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Export-Package>org.corpus_tools.graphannis</Export-Package>
-            <Embed-Dependency>javacpp;inline=true</Embed-Dependency>
+            <Export-Package>org.corpus_tools.graphannis,org.corpus_tools.annis.ql.parser</Export-Package>
+            <Private-Package>org.corpus_tools.graphannis.info</Private-Package>
+            <Embed-Dependency>javacpp;inline=false</Embed-Dependency>
             
             <Bundle-NativeCode>${javacpp.pkg}/linux-x86_64/libboost_filesystem.so;
               ${javacpp.pkg}/linux-x86_64/libboost_system.so;
