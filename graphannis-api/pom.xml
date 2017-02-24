@@ -263,10 +263,10 @@
               <instructions>
                 <Export-Package>org.corpus_tools.graphannis</Export-Package>
                 <Bundle-NativeCode>${javacpp.pkg}/linux-x86_64/libboost_filesystem.so; 
-                 ${javacpp.pkg}/libboost_system.so;
-                 ${javacpp.pkg}/linux-x86_64/libboost_thread.so;
-                 ${javacpp.pkg}/linux-x86_64/libjniAnnisApiInfo.so; 
-                 osname=Linux;processor=x86-64
+                  ${javacpp.pkg}/libboost_system.so;
+                  ${javacpp.pkg}/linux-x86_64/libboost_thread.so;
+                  ${javacpp.pkg}/linux-x86_64/libjniAnnisApiInfo.so; 
+                  osname=Linux;processor=x86-64
                 </Bundle-NativeCode>
               </instructions>
             </configuration>
@@ -291,6 +291,28 @@
         </executions>
       </plugin>
 
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <!-- include the JavaCPP classes since they will load our class and if 
+                they are in a different bundle things can get quite complicated -->
+                <includes>
+                  <include>org.bytedeco:javacpp</include>
+                </includes>
+              </artifactSet>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
     </plugins>
 
