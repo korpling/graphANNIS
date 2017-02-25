@@ -1,6 +1,11 @@
 release 0.2.0
 =============
 
+Enhancements
+----------.-
+ #2 Avoid local minima when using the random query optimizer
+ #1 Use "annis" instead of "annis4_internal" as namespace
+
 
 release 0.1.0
 =============
