@@ -31,4 +31,4 @@ script:
  - cd ..
  - ./build/annis_runner import relannis/GUM data/GUM
  - ./build/test_graphANNIS --gtest_filter="SearchTestGUM.*:CorpusStorageManagerTest.*"
- - mvn test
+ - mvn install test
