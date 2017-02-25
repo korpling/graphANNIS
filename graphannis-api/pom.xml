@@ -93,11 +93,14 @@
     </resources>
 
     <plugins>
+      
+      
+      
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.0.2</version>
         <configuration>
-         
+          
         </configuration>
         <executions>
           <execution>
@@ -228,6 +231,44 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>deploy</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals> 
+          </execution>
+        </executions>
+      </plugin>
+      <plugin> 
+        <artifactId>maven-javadoc-plugin</artifactId> 
+        <version>2.10.4</version>
+        <executions> 
+          <execution> 
+            <id>attach-javadocs</id>
+            <phase>deploy</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals> 
+          </execution> 
+        </executions> 
+      </plugin>
+      <plugin> 
+        <artifactId>maven-deploy-plugin</artifactId> 
+        <executions> 
+          <execution> 
+            <id>deploy</id>
+            <phase>deploy</phase>
+            <goals>
+              <goal>deploy</goal>
+            </goals> 
+          </execution> 
+        </executions> 
+      </plugin>
 
       
       <plugin>   
@@ -237,9 +278,9 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Export-Package>org.corpus_tools.graphannis,org.corpus_tools.annis.ql.*</Export-Package>
+            <Export-Package>org.corpus_tools.graphannis,org.corpus_tools.annis.ql.*,org.bytedeco.javacpp.*</Export-Package>
             <Import-Package>!org.apache.maven.*,*</Import-Package>
-            <Embed-Dependency>javacpp;inline=false</Embed-Dependency>
+        <!--    <Embed-Dependency>javacpp;inline=false</Embed-Dependency> -->
            
             
             <Bundle-NativeCode>${javacpp.pkg}/linux-x86_64/libboost_filesystem.so;
@@ -250,8 +291,7 @@
             </Bundle-NativeCode>
            
           </instructions>
-          <niceManifest>true</niceManifest>
-          
+          <niceManifest>true</niceManifest>          
         </configuration>
 
       </plugin>
