@@ -25,7 +25,70 @@
     <javacpp.compiler.skip>false</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
     
     <javacpp.pkg>org/corpus_tools/graphannis</javacpp.pkg>
+    
+    <native-libs-linux>${javacpp.pkg}/linux-x86_64/libboost_filesystem.so;
+      ${javacpp.pkg}/linux-x86_64/libboost_system.so;
+      ${javacpp.pkg}/linux-x86_64/libboost_thread.so;
+      ${javacpp.pkg}/linux-x86_64/libjniAnnisApiInfo.so; 
+      osname=Linux;processor=x86-64</native-libs-linux>
+
+    <native-libs-windows>${javacpp.pkg}/windows-x86_64/libjniAnnisApiInfo.dll; 
+      osname=Win32;processor=x86-64
+    </native-libs-windows>
+
+    <native-libs-macosx>${javacpp.pkg}/macosx-x86_64/libboost_filesystem-mt.dylib;
+      ${javacpp.pkg}/macosx-x86_64/libboost_system-mt.dylib;
+      ${javacpp.pkg}/macosx-x86_64/libboost_thread-mt.dylib;
+      ${javacpp.pkg}/macosx-x86_64/libjniAnnisApiInfo.dylib; 
+      osname=MacOSX;processor=x86-64
+    </native-libs-macosx>
+    
   </properties>
+  
+  <profiles>
+    <profile>
+      <id>linux</id>
+      <activation>
+        <os>
+          <name>linux</name>
+        </os>
+      </activation>
+      <properties>
+        <bundle-native-libs>${native-libs-linux}</bundle-native-libs>
+      </properties>
+    </profile>
+    <profile>
+      <id>macosx</id>
+      <activation>
+        <os>
+          <name>mac os x</name>
+        </os>
+      </activation>
+      <properties>
+        <bundle-native-libs>${native-libs-macosx}</bundle-native-libs>
+      </properties>
+    </profile>
+    <profile>
+      <id>windows</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <properties>
+        <bundle-native-libs>${native-libs-windows}</bundle-native-libs>
+      </properties>
+    </profile>
+    
+    <profile>
+      <id>release</id>
+      <properties>
+        <!-- all binaries must be present in release mode -->
+        <bundle-native-libs>${native-libs-linux},${native-libs-macosx},${native-libs-windows}</bundle-native-libs>
+      </properties>
+    </profile>
+    
+  </profiles>
 
 
   <dependencies>
@@ -290,15 +353,7 @@
           <instructions>
             <Export-Package>org.corpus_tools.graphannis,org.corpus_tools.annis.ql.*,org.bytedeco.javacpp.*</Export-Package>
             <Import-Package>!org.apache.maven.*,*</Import-Package>
-            <!--    <Embed-Dependency>javacpp;inline=false</Embed-Dependency> -->
-           
-            
-            <Bundle-NativeCode>${javacpp.pkg}/linux-x86_64/libboost_filesystem.so;
-              ${javacpp.pkg}/linux-x86_64/libboost_system.so;
-              ${javacpp.pkg}/linux-x86_64/libboost_thread.so;
-              ${javacpp.pkg}/linux-x86_64/libjniAnnisApiInfo.so; 
-              osname=Linux;processor=x86-64
-            </Bundle-NativeCode>
+            <Bundle-NativeCode>${bundle-native-libs}</Bundle-NativeCode>
            
           </instructions>
           <niceManifest>true</niceManifest>          
