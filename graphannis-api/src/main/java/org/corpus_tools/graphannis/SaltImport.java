@@ -153,6 +153,10 @@ public class SaltImport
       overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION,
         SALT_TYPE.SDOMINANCE_RELATION);
     }
+    else if (node instanceof STextualDS) {
+      // ignore
+      return;
+    }
     else
     {
       overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION);
