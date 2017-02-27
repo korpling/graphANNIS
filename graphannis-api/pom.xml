@@ -20,9 +20,9 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <javacpp.cppbuild.skip>false</javacpp.cppbuild.skip> <!-- To skip execution of cppbuild.sh: -Djavacpp.cppbuild.skip=true -->
-    <javacpp.parser.skip>false</javacpp.parser.skip>     <!-- To skip header file parsing phase: -Djavacpp.parser.skip=true -->
-    <javacpp.compiler.skip>false</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
+    <javacpp.skip>false</javacpp.skip>
+    <javacpp.parser.skip>${javacpp.skip}</javacpp.parser.skip>     <!-- To skip header file parsing phase: -Djavacpp.parser.skip=true -->
+    <javacpp.compiler.skip>${javacpp.skip}</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
     
     <javacpp.pkg>org/corpus_tools/graphannis</javacpp.pkg>
     
