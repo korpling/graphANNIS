@@ -2,9 +2,12 @@ release 0.2.0
 =============
 
 Enhancements
-----------.-
- #2 Avoid local minima when using the random query optimizer
- #1 Use "annis" instead of "annis4_internal" as namespace
+------------
+
+- #3 Make the graphANNIS API for Java an OSGi bundle (https://api.github.com/repos/thomaskrause/graphANNIS/issues/3)
+- #2 Avoid local minima when using the random query optimizer (https://api.github.com/repos/thomaskrause/graphANNIS/issues/2)
+- #1 Use "annis" instead of "annis4_internal" as namespace (https://api.github.com/repos/thomaskrause/graphANNIS/issues/1)
+
 
 
 release 0.1.0

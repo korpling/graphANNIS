@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 
+import sys
 import json
 import io
 from subprocess import call
 
-milestone_id = "1"
+milestone_id = sys.argv[1]
 
 import http.client
 
@@ -26,8 +27,12 @@ bugs = []
 enhancements = []
 other = []
 
+if len(j) > 0 and j[0]["milestone"] is not None:
+	print("release {0}".format(j[0]["milestone"]["title"]))
+	print("=============")
+
 for issue in j:
-	title = " #{0} {1}".format(issue["number"], issue["title"])
+	title = "- #{0} {1} ({2})".format(issue["number"], issue["title"], issue["url"])
 	if len(issue["labels"]) > 0:
 		if issue["labels"][0]["name"] == "bug":
 			bugs.append(title)
@@ -41,12 +46,14 @@ for issue in j:
 if len(bugs) > 0:
 	print("Fixed Bugs")
 	print("----------")
+	print()
 	for t in bugs:
 		print(t)
 if len(enhancements) > 0:
 	print("")
 	print("Enhancements")
-	print("----------.-")
+	print("------------")
+	print()
 	for t in enhancements:
 		print(t)
 
@@ -54,6 +61,7 @@ if len(other) > 0:
 	print("")
 	print("Other")
 	print("-----")
+	print()
 	for t in other:
 		print(t)
 		
