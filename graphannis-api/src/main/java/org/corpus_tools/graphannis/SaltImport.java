@@ -15,6 +15,7 @@
  */
 package org.corpus_tools.graphannis;
 
+import com.google.common.base.Joiner;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -193,23 +194,41 @@ public class SaltImport
     
   }
   
+  private static String documentName(SNode node)
+  {
+    if(node != null)
+    {
+      String[] segments = node.getPath().segments();
+      if (segments.length > 0)
+      {
+        return segments[segments.length - 1];
+      }
+    }
+    
+    return null;
+  }
+  
+  private static String documentPath(SNode node)
+  {
+    if(node != null)
+    {
+      String[] segments = node.getPath().segments();
+      if (segments.length > 0)
+      {
+        return Joiner.on("/").join(segments);
+      }
+    }
+    
+    return null;
+  }
+  
   
   private static String nodeName(SNode node)
   {
     if(node != null)
     {
-      // if this node is attached to a document, include the document name in the node name to make it unique
-      String prefix = "";
-      SGraph graph = node.getGraph();
-      if(graph instanceof SDocumentGraph)
-      {
-        SDocument doc = ((SDocumentGraph) graph).getDocument();
-        if(doc != null)
-        {
-          prefix = doc + "/#";
-        }
-      }
-      return prefix + node.getPath().fragment();
+      String path = documentPath(node);
+      return path == null ? "#" + node.getPath().fragment() : path + "#" + node.getPath().fragment() ;
     }
     else
     {
@@ -267,10 +286,10 @@ public class SaltImport
       }
 
       // add the document name if given
-      String[] segments = n.getPath().segments();
-      if (segments.length > 0)
+      String doc = documentName(n);
+      if(doc != null)
       {
-        updateList.addNodeLabel(name, ANNIS_NS, "document", segments[segments.length - 1]);
+        updateList.addNodeLabel(name, ANNIS_NS, "document", doc);
       }
     }
   }
