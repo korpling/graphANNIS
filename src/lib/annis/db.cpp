@@ -173,7 +173,7 @@ bool DB::save(string dir)
 std::string DB::getNodeDebugName(const nodeid_t &id) const
 {
   std::stringstream ss;
-  ss << getNodeDocument(id) << "/" << getNodeName(id) << "(" << id << ")";
+  ss << getNodeDocument(id) << ":" << getNodeName(id) << "(" << id << ")";
 
   return ss.str();
 }
@@ -200,13 +200,15 @@ bool DB::loadRelANNIS(string dirPath)
     }
   }
   
-  map<uint32_t, std::uint32_t> corpusIDToName;
-  if(loadRelANNISCorpusTab(dirPath, corpusIDToName, isANNIS33Format) == false)
+  map<uint32_t, std::string> corpusIDToName;
+  std::string toplevelCorpusName = loadRelANNISCorpusTab(dirPath, corpusIDToName, isANNIS33Format);
+  if(toplevelCorpusName.empty())
   {
+    std::cerr << "Could not find toplevel corpus name" << std::endl;
     return false;
   }
 
-  if(loadRelANNISNode(dirPath, corpusIDToName, isANNIS33Format) == false)
+  if(loadRelANNISNode(dirPath, corpusIDToName, toplevelCorpusName, isANNIS33Format) == false)
   {
     return false;
   }
@@ -260,9 +262,11 @@ bool DB::loadRelANNIS(string dirPath)
 }
 
 
-bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName,
+std::string DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::string>& corpusIDToName,
   bool isANNIS33Format)
 {
+  std::string toplevelCorpus = "";
+
   string corpusTabPath = dirPath + "/corpus" + (isANNIS33Format ? ".annis" : ".tab");
   HL_INFO(logger, (boost::format("loading %1%") % corpusTabPath).str());
 
@@ -273,19 +277,23 @@ bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& cor
     string msg = "Can't find corpus";
     msg += (isANNIS33Format ? ".annis" : ".tab");
     HL_ERROR(logger, msg);
-    return false;
+    return "";
   }
   vector<string> line;
   while((line = Helper::nextCSV(in)).size() > 0)
   {
     std::uint32_t corpusID = Helper::uint32FromString(line[0]);
-    std::uint32_t nameID = strings.add(line[1]);
-    corpusIDToName[corpusID] = nameID;
+    corpusIDToName[corpusID] = line[1];
+
+    if(line[2] == "CORPUS" && line[4] == "0")
+    {
+      toplevelCorpus = line[1];
+    }
   }
-  return true;
+  return toplevelCorpus;
 }
 
-bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName,
+bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::string>& corpusIDToName, std::string toplevelCorpusName,
   bool isANNIS33Format)
 {
   typedef multimap<TextProperty, uint32_t>::const_iterator TextPropIt;
@@ -333,17 +341,19 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
       uint32_t textID = Helper::uint32FromString(line[1]);
       uint32_t corpusID = Helper::uint32FromString(line[2]);
 
+      std::string docName = corpusIDToName[corpusID];
+
       Annotation nodeNameAnno;
       nodeNameAnno.ns = strings.add(annis_ns);
-      nodeNameAnno.name = strings.add(annis_node_name);
-      nodeNameAnno.val = strings.add(line[4]);
+      nodeNameAnno.name =  strings.add(annis_node_name);
+      nodeNameAnno.val = strings.add(toplevelCorpusName + "/" + docName + "#" + line[4]);
       annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeNameAnno.name, nodeNameAnno.ns }, nodeNameAnno.val));
 
 
       Annotation documentNameAnno;
       documentNameAnno.ns = strings.add(annis_ns);
       documentNameAnno.name = strings.add("document");
-      documentNameAnno.val = corpusIDToName[corpusID];
+      documentNameAnno.val = strings.add(docName);
       annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, documentNameAnno.name, documentNameAnno.ns }, documentNameAnno.val));
 
       TextProperty left;

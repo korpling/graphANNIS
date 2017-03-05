@@ -15,8 +15,12 @@
  */
 package org.corpus_tools.graphannis;
 
+import annis.service.objects.Match;
 import com.google.common.io.Files;
 import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
+import org.corpus_tools.graphannis.API.StringVector;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.samples.SampleGenerator;
@@ -27,6 +31,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
+import org.corpus_tools.salt.common.SCorpus;
+import org.corpus_tools.salt.common.SCorpusGraph;
+import org.corpus_tools.salt.common.STextualDS;
+import org.corpus_tools.salt.common.STextualRelation;
+import org.corpus_tools.salt.common.SToken;
+import org.corpus_tools.salt.common.SaltProject;
+import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -70,7 +81,6 @@ public class SaltImportTest
   @Test
   public void testMapComplexExample()
   {
-    System.out.println("map");
     SDocument doc = SaltFactory.createSDocument();
     
     SampleGenerator.createTokens(doc);
@@ -144,6 +154,73 @@ public class SaltImportTest
     assertEquals(9, storage.count(corpus, aqlToJSON("tok ->null tok")));
     assertEquals(1, storage.count(corpus, aqlToJSON("\"complicated\" ->null[dependency=\"cop\"] \"Is\"")));
     
+  }
+  
+  @Test
+  public void testTwoDocumentsSameNodeName()
+  {
+    SaltProject project = SaltFactory.createSaltProject();
+    SCorpusGraph corpusGraph = project.createCorpusGraph();
+    
+    API.StringVector corpus = new API.StringVector("root");
+    SCorpus root = corpusGraph.createCorpus(null, "root");
+    
+    // add two documents which have a token with the same name
+    SDocument doc1 = corpusGraph.createDocument(root, "doc1");
+    doc1.setDocumentGraph(SaltFactory.createSDocumentGraph());
+    STextualDS text1 = doc1.getDocumentGraph().createTextualDS("abc");
+    SToken tok1 = SaltFactory.createSToken();
+    tok1.setName("MyToken");
+    doc1.getDocumentGraph().addNode(tok1);
+    
+    STextualRelation textRel1 = SaltFactory.createSTextualRelation();
+		textRel1.setSource(tok1);
+		textRel1.setTarget(text1);
+		textRel1.setStart(0);
+		textRel1.setEnd(2);
+		doc1.getDocumentGraph().addRelation(textRel1);
+    
+    SDocument doc2 = corpusGraph.createDocument(root, "doc2");
+    doc2.setDocumentGraph(SaltFactory.createSDocumentGraph());
+    STextualDS text2 = doc2.getDocumentGraph().createTextualDS("abc");
+    SToken tok2 = SaltFactory.createSToken();
+    tok2.setName("MyToken");
+    doc2.getDocumentGraph().addNode(tok2);
+    
+    STextualRelation textRel2 = SaltFactory.createSTextualRelation();
+		textRel2.setSource(tok2);
+		textRel2.setTarget(text2);
+		textRel2.setStart(0);
+		textRel2.setEnd(2);
+		doc2.getDocumentGraph().addRelation(textRel2);
+		
+    
+    doc2.getDocumentGraph().addNode(tok2);
+    
+    
+    API.GraphUpdate result1 = new SaltImport()
+            .map(doc1.getDocumentGraph())
+            .finish();
+    storage.applyUpdate("root", result1);
+    
+    API.GraphUpdate result2 = new SaltImport()
+            .map(doc2.getDocumentGraph())
+            .finish();
+    storage.applyUpdate("root", result2);
+    
+    // test that both token have been added
+    
+    Set<String> matches = new HashSet<>();
+    
+    StringVector result = storage.find(corpus, QueryToJSON.aqlToJSON("tok"));
+    assertEquals(2, result.size());
+    for(long i=0; i < 2; i++)
+    {
+      matches.add(result.get(i).getString());
+    }
+    assertEquals(2, matches.size());
+    Assert.assertTrue(matches.contains("salt:/root/doc1#MyToken"));
+    Assert.assertTrue(matches.contains("salt:/root/doc2#MyToken"));
   }
   
 }
