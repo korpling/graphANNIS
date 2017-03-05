@@ -200,7 +200,7 @@ bool DB::loadRelANNIS(string dirPath)
     }
   }
   
-  map<uint32_t, std::uint32_t> corpusIDToName;
+  map<uint32_t, std::string> corpusIDToName;
   if(loadRelANNISCorpusTab(dirPath, corpusIDToName, isANNIS33Format) == false)
   {
     return false;
@@ -260,7 +260,7 @@ bool DB::loadRelANNIS(string dirPath)
 }
 
 
-bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName,
+bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::string>& corpusIDToName,
   bool isANNIS33Format)
 {
   string corpusTabPath = dirPath + "/corpus" + (isANNIS33Format ? ".annis" : ".tab");
@@ -279,13 +279,12 @@ bool DB::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::uint32_t>& cor
   while((line = Helper::nextCSV(in)).size() > 0)
   {
     std::uint32_t corpusID = Helper::uint32FromString(line[0]);
-    std::uint32_t nameID = strings.add(line[1]);
-    corpusIDToName[corpusID] = nameID;
+    corpusIDToName[corpusID] = line[1];
   }
   return true;
 }
 
-bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusIDToName,
+bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::string>& corpusIDToName,
   bool isANNIS33Format)
 {
   typedef multimap<TextProperty, uint32_t>::const_iterator TextPropIt;
@@ -333,9 +332,11 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
       uint32_t textID = Helper::uint32FromString(line[1]);
       uint32_t corpusID = Helper::uint32FromString(line[2]);
 
+      std::string docName = corpusIDToName[corpusID];
+
       Annotation nodeNameAnno;
       nodeNameAnno.ns = strings.add(annis_ns);
-      nodeNameAnno.name = strings.add(annis_node_name);
+      nodeNameAnno.name =  strings.add(annis_node_name);
       nodeNameAnno.val = strings.add(line[4]);
       annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeNameAnno.name, nodeNameAnno.ns }, nodeNameAnno.val));
 
@@ -343,7 +344,7 @@ bool DB::loadRelANNISNode(string dirPath, map<uint32_t, std::uint32_t>& corpusID
       Annotation documentNameAnno;
       documentNameAnno.ns = strings.add(annis_ns);
       documentNameAnno.name = strings.add("document");
-      documentNameAnno.val = corpusIDToName[corpusID];
+      documentNameAnno.val = strings.add(docName);
       annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, documentNameAnno.name, documentNameAnno.ns }, documentNameAnno.val));
 
       TextProperty left;
