@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.corpus_tools.salt.SALT_TYPE;
+import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.common.SDominanceRelation;
 import org.corpus_tools.salt.common.SPointingRelation;
@@ -29,6 +30,7 @@ import org.corpus_tools.salt.common.STextualDS;
 import org.corpus_tools.salt.common.STextualRelation;
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.core.SAnnotation;
+import org.corpus_tools.salt.core.SGraph;
 import org.corpus_tools.salt.core.SLayer;
 import org.corpus_tools.salt.core.SNode;
 import org.corpus_tools.salt.core.SRelation;
@@ -196,7 +198,18 @@ public class SaltImport
   {
     if(node != null)
     {
-      return node.getPath().fragment();
+      // if this node is attached to a document, include the document name in the node name to make it unique
+      String prefix = "";
+      SGraph graph = node.getGraph();
+      if(graph instanceof SDocumentGraph)
+      {
+        SDocument doc = ((SDocumentGraph) graph).getDocument();
+        if(doc != null)
+        {
+          prefix = doc + "/#";
+        }
+      }
+      return prefix + node.getPath().fragment();
     }
     else
     {
