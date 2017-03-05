@@ -75,7 +75,7 @@ TEST_F(LoadTest, NodeAnnotations) {
 
   EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[1].ns).c_str());
   EXPECT_STREQ("node_name", db.strings.str(annos[1].name).c_str());
-  EXPECT_STREQ("tok_13", db.strings.str(annos[1].val).c_str());
+  EXPECT_STREQ("pcc2/4282#tok_13", db.strings.str(annos[1].val).c_str());
 
   EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[2].ns).c_str());
   EXPECT_STREQ("document", db.strings.str(annos[2].name).c_str());
