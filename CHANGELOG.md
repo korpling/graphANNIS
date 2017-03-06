@@ -1,6 +1,11 @@
 release 0.2.0
 =============
 
+Fixed Bugs
+----------
+
+- [#4](https://github.com/thomaskrause/graphANNIS/issues/4) Node names should include the document name (and the URL specific stuff) when imported from Salt.
+
 Enhancements
 ------------
 

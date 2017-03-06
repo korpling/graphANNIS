@@ -30,6 +30,7 @@ other = []
 if len(j) > 0 and j[0]["milestone"] is not None:
 	print("release {0}".format(j[0]["milestone"]["title"]))
 	print("=============")
+	print()
 
 for issue in j:
 	title = "- [#{0}](https://github.com/thomaskrause/graphANNIS/issues/{0}) {1}".format(issue["number"], issue["title"])
