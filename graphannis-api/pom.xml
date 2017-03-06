@@ -4,11 +4,13 @@
   <artifactId>graphannis-api</artifactId>
   <name>graphANNIS API</name>
   <description>A wrapper around the C++ API of graphANNIS</description>
+  
+  <packaging>bundle</packaging>
 
   <parent>
     <groupId>org.corpus-tools</groupId>
     <artifactId>graphannis-root</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -18,17 +20,84 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <javacpp.cppbuild.skip>false</javacpp.cppbuild.skip> <!-- To skip execution of cppbuild.sh: -Djavacpp.cppbuild.skip=true -->
-    <javacpp.parser.skip>false</javacpp.parser.skip>     <!-- To skip header file parsing phase: -Djavacpp.parser.skip=true -->
-    <javacpp.compiler.skip>false</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
+    <javacpp.skip>false</javacpp.skip>
+    <javacpp.parser.skip>${javacpp.skip}</javacpp.parser.skip>     <!-- To skip header file parsing phase: -Djavacpp.parser.skip=true -->
+    <javacpp.compiler.skip>${javacpp.skip}</javacpp.compiler.skip> <!-- To skip native compilation phase: -Djavacpp.compiler.skip=true -->
+    
+    <javacpp.pkg>org/corpus_tools/graphannis</javacpp.pkg>
+    
+    <native-libs-linux>${javacpp.pkg}/linux-x86_64/libboost_filesystem.so;
+      ${javacpp.pkg}/linux-x86_64/libboost_system.so;
+      ${javacpp.pkg}/linux-x86_64/libboost_thread.so;
+      ${javacpp.pkg}/linux-x86_64/libjniAnnisApiInfo.so; 
+      osname=Linux;processor=x86-64</native-libs-linux>
+
+    <native-libs-windows>${javacpp.pkg}/windows-x86_64/jniAnnisApiInfo.dll; 
+      osname=Win32;processor=x86-64
+    </native-libs-windows>
+
+    <native-libs-macosx>${javacpp.pkg}/macosx-x86_64/libboost_filesystem-mt.dylib;
+      ${javacpp.pkg}/macosx-x86_64/libboost_system-mt.dylib;
+      ${javacpp.pkg}/macosx-x86_64/libboost_thread-mt.dylib;
+      ${javacpp.pkg}/macosx-x86_64/libjniAnnisApiInfo.dylib; 
+      osname=MacOSX;processor=x86-64
+    </native-libs-macosx>
+    
   </properties>
+  
+  <profiles>
+    <profile>
+      <id>linux</id>
+      <activation>
+        <os>
+          <name>linux</name>
+        </os>
+      </activation>
+      <properties>
+        <bundle-native-libs>${native-libs-linux}</bundle-native-libs>
+      </properties>
+    </profile>
+    <profile>
+      <id>macosx</id>
+      <activation>
+        <os>
+          <name>mac os x</name>
+        </os>
+      </activation>
+      <properties>
+        <bundle-native-libs>${native-libs-macosx}</bundle-native-libs>
+      </properties>
+    </profile>
+    <profile>
+      <id>windows</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <properties>
+        <bundle-native-libs>${native-libs-windows}</bundle-native-libs>
+      </properties>
+    </profile>
+    
+    <profile>
+      <id>release</id>
+      <properties>
+        <!-- all binaries must be present in release mode -->
+        <bundle-native-libs>${native-libs-linux},${native-libs-macosx},${native-libs-windows}</bundle-native-libs>
+        <!-- the binaries in a release mode are generated from special build machines (e.g. having a low libc version) -->
+        <javacpp.skip>true</javacpp.skip>
+      </properties>
+    </profile>
+    
+  </profiles>
 
 
   <dependencies>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>javacpp</artifactId>
-      <version>1.2.4</version>
+      <version>1.3.1</version>
     </dependency>
     <dependency>
       <groupId>de.hu-berlin.german.korpling.annis</groupId>
@@ -78,14 +147,37 @@
       <version>1.3</version>
       <scope>test</scope>
     </dependency>
+    
+    <!-- add a logger implementation for tests -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.1</version>
+      <scope>test</scope>
+    </dependency>
+
+    
   </dependencies>
   
+  
   <build>
+    
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
 
     <plugins>
+      
+      
+      
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.2</version>
+        <configuration>
+          
+        </configuration>
         <executions>
           <execution>
             <id>javacpp.parser</id>
@@ -93,9 +185,10 @@
             <goals>
               <goal>resources</goal>
             </goals>
-          </execution>
+          </execution>          
         </executions>
       </plugin>
+      
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.5.1</version>
@@ -117,7 +210,7 @@
             <configuration>
               <skipMain>${javacpp.parser.skip}</skipMain>
               <includes>
-                <include>org/corpus_tools/graphannis/info/*.java</include>
+                <include>${javacpp.pkg}/info/*.java</include>
               </includes>
             </configuration>
           </execution>
@@ -147,7 +240,7 @@
       <plugin>
         <groupId>org.bytedeco</groupId>
         <artifactId>javacpp</artifactId>
-        <version>1.2.4</version>
+        <version>1.3.1</version>
         <configuration>
           <properties>${javacpp.platform}</properties>
           <propertyKeysAndValues>
@@ -209,50 +302,68 @@
               <skip>${javacpp.compiler.skip}</skip>
               <classOrPackageName>org.corpus_tools.graphannis.*</classOrPackageName>
               <copyLibs>true</copyLibs>
+              <outputDirectory>${project.basedir}/src/main/resources/${javacpp.pkg}/${javacpp.platform}</outputDirectory>
             </configuration>
           </execution>
         </executions>
       </plugin>
-
-
-
       <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.0.1</version>
         <executions>
           <execution>
-            <id>default-jar</id>
-            <phase>package</phase>
+            <id>attach-sources</id>
+            <phase>deploy</phase>
             <goals>
-              <goal>jar</goal>
-            </goals>
-            <configuration>
-              <excludes>
-                <exclude>org/corpus_tools/graphannis/*.h</exclude>
-                <exclude>org/corpus_tools/graphannis/linux-*/</exclude>
-                <exclude>org/corpus_tools/graphannis/macosx-*/</exclude>
-                <exclude>org/corpus_tools/graphannis/windows-*/</exclude>
-                <exclude>org/corpus_tools/graphannis/${javacpp.platform}/</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-          <execution>
-            <id>native-platform</id>
-            <phase>package</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-            <configuration>
-              <classifier>${javacpp.platform}</classifier>
-              <skipIfEmpty>true</skipIfEmpty>
-              <includes>
-                <include>${javacpp.platform.library.path}/</include>
-                <include>org/corpus_tools/graphannis/${javacpp.platform}/</include>
-              </includes>
-            </configuration>
+              <goal>jar-no-fork</goal>
+            </goals> 
           </execution>
         </executions>
       </plugin>
+      <plugin> 
+        <artifactId>maven-javadoc-plugin</artifactId> 
+        <version>2.10.4</version>
+        <executions> 
+          <execution> 
+            <id>attach-javadocs</id>
+            <phase>deploy</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals> 
+          </execution> 
+        </executions> 
+      </plugin>
+      <plugin> 
+        <artifactId>maven-deploy-plugin</artifactId> 
+        <executions> 
+          <execution> 
+            <id>deploy</id>
+            <phase>deploy</phase>
+            <goals>
+              <goal>deploy</goal>
+            </goals> 
+          </execution> 
+        </executions> 
+      </plugin>
+
+      
+      <plugin>   
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>3.2.0</version>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Export-Package>org.corpus_tools.graphannis,org.corpus_tools.annis.ql.*,org.bytedeco.javacpp.*</Export-Package>
+            <Import-Package>!org.apache.maven.*,*</Import-Package>
+            <Bundle-NativeCode>${bundle-native-libs}</Bundle-NativeCode>
+           
+          </instructions>
+          <niceManifest>true</niceManifest>          
+        </configuration>
+
+      </plugin>
+
       
       <plugin>
         <groupId>org.antlr</groupId>
@@ -260,17 +371,23 @@
         <version>4.5.2-1</version>
         <executions>
           <execution>
-           <goals>
-                <goal>antlr4</goal>
-              </goals>
-           <configuration>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+            <configuration>
               <sourceDirectory>src/main/antlr4</sourceDirectory>
             </configuration>
           </execution>
         </executions>
       </plugin>
-
-
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.19.1</version>
+        <configuration>
+          <argLine>-Djava.library.path=${project.basedir}/src/main/resources/${javacpp.pkg}/${javacpp.platform}</argLine>
+        </configuration>
+      </plugin>
     </plugins>
 
   </build>

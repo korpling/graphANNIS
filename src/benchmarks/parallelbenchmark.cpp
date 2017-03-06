@@ -130,8 +130,8 @@ class GUMFixture : public celero::TestFixture
           std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
 
           result->addNode(std::make_shared<RegexAnnoSearch>(db, "pos", "NN.*"));
-          result->addNode(std::make_shared<ExactAnnoValueSearch>(db, "annis4_internal", "tok", "used"));
-          result->addNode(std::make_shared<ExactAnnoValueSearch>(db, "annis4_internal", "tok", "to"));
+          result->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "used"));
+          result->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "to"));
 
           result->addOperator(std::make_shared<Precedence>(db, db.edges), 0, 1);
           result->addOperator(std::make_shared<Precedence>(db, db.edges), 1, 2);

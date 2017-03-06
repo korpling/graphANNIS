@@ -12,7 +12,7 @@ namespace annis
 {
   typedef std::uint32_t nodeid_t;
 
-  const std::string annis_ns = "annis4_internal";
+  const std::string annis_ns = "annis";
   const std::string annis_node_name = "node_name";
   const std::string annis_tok = "tok";
 

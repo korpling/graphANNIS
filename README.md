@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/thomaskrause/graphANNIS.svg?branch=master)](https://travis-ci.org/thomaskrause/graphANNIS)
+[![Build Status](https://travis-ci.org/thomaskrause/graphANNIS.svg?branch=develop)](https://travis-ci.org/thomaskrause/graphANNIS)
 
 graphANNIS
 ==========

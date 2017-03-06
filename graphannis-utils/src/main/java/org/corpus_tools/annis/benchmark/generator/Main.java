@@ -60,8 +60,7 @@ public class Main extends Application
 
     if(Screen.getPrimary().getBounds().getWidth() > 2000)
     {
-      root.setScaleX(2.0);
-      root.setScaleX(2.0);
+      root.setStyle("-fx-font-size:18;");
     }
     
     Scene scene = new Scene(root);

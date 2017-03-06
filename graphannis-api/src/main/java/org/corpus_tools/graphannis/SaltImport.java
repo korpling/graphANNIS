@@ -15,12 +15,13 @@
  */
 package org.corpus_tools.graphannis;
 
+import com.google.common.base.Joiner;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import org.bytedeco.javacpp.annotation.StdString;
 import org.corpus_tools.salt.SALT_TYPE;
+import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.common.SDominanceRelation;
 import org.corpus_tools.salt.common.SPointingRelation;
@@ -30,6 +31,7 @@ import org.corpus_tools.salt.common.STextualDS;
 import org.corpus_tools.salt.common.STextualRelation;
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.core.SAnnotation;
+import org.corpus_tools.salt.core.SGraph;
 import org.corpus_tools.salt.core.SLayer;
 import org.corpus_tools.salt.core.SNode;
 import org.corpus_tools.salt.core.SRelation;
@@ -44,7 +46,7 @@ import org.slf4j.LoggerFactory;
 public class SaltImport
 {
 
-  public static final String ANNIS_NS = "annis4_internal";
+  public static final String ANNIS_NS = "annis";
 
   private static final Logger log = LoggerFactory.getLogger(SaltImport.class);
 
@@ -154,6 +156,10 @@ public class SaltImport
       overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION,
         SALT_TYPE.SDOMINANCE_RELATION);
     }
+    else if (node instanceof STextualDS) {
+      // ignore
+      return;
+    }
     else
     {
       overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION);
@@ -188,12 +194,41 @@ public class SaltImport
     
   }
   
+  private static String documentName(SNode node)
+  {
+    if(node != null)
+    {
+      String[] segments = node.getPath().segments();
+      if (segments.length > 0)
+      {
+        return segments[segments.length - 1];
+      }
+    }
+    
+    return null;
+  }
+  
+  private static String documentPath(SNode node)
+  {
+    if(node != null)
+    {
+      String[] segments = node.getPath().segments();
+      if (segments.length > 0)
+      {
+        return Joiner.on("/").join(segments);
+      }
+    }
+    
+    return null;
+  }
+  
   
   private static String nodeName(SNode node)
   {
     if(node != null)
     {
-      return node.getPath().fragment();
+      String path = documentPath(node);
+      return path == null ? "#" + node.getPath().fragment() : path + "#" + node.getPath().fragment() ;
     }
     else
     {
@@ -251,10 +286,10 @@ public class SaltImport
       }
 
       // add the document name if given
-      String[] segments = n.getPath().segments();
-      if (segments.length > 0)
+      String doc = documentName(n);
+      if(doc != null)
       {
-        updateList.addNodeLabel(name, ANNIS_NS, "document", segments[segments.length - 1]);
+        updateList.addNodeLabel(name, ANNIS_NS, "document", doc);
       }
     }
   }

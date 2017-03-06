@@ -286,7 +286,7 @@ void Query::internalInit()
       ////////////////////////////////////
       // 2. optimize the order of joins //
       ////////////////////////////////////
-      if(operators.size() <= 7)
+      if(operators.size() <= 6)
       {
         optimizeJoinOrderAllPermutations();
       }
@@ -325,6 +325,7 @@ void Query::optimizeJoinOrderRandom()
 {
   // use a constant seed to make the result deterministic
   std::mt19937 randGen(4711);
+  std::uniform_int_distribution<> dist(0, static_cast<int>(operators.size()-1));
     
   std::vector<OperatorEntry> optimizedOperators = operators;
   bestPlan = createPlan(nodes, optimizedOperators);
@@ -336,54 +337,67 @@ void Query::optimizeJoinOrderRandom()
 //  std::cout << "-----------------------" << std::endl;
 
   // repeat until best plan is found
-  const size_t maxUnsuccessfulTries = 20*operators.size();
+  const size_t numNewGenerations = 4;
+  const size_t maxUnsuccessfulTries = 5*operators.size();
   size_t unsuccessful = 0;
   do
   {
+    std::vector<std::vector<OperatorEntry>> familyOperators;
+    familyOperators.reserve(numNewGenerations+1);
 
-    std::vector<OperatorEntry> tmpOperators = optimizedOperators;
-    // randomly select two joins,        
-    std::uniform_int_distribution<> dist(0, static_cast<int>(tmpOperators.size()-1));
-    int a, b;
-    do
+    familyOperators.push_back(optimizedOperators);
+
+    for(size_t i = 0; i < numNewGenerations; i++)
     {
-      a = dist(randGen);
-      b = dist(randGen);
-    } while(a == b);
+      // use the the previous generation as basis
+      std::vector<OperatorEntry> tmpOperators = familyOperators[i];
+      // randomly select two joins,
+      int a, b;
+      do
+      {
+        a = dist(randGen);
+        b = dist(randGen);
+      } while(a == b);
 
-
-    // switch the order of the selected joins and check if the result has a smaller cost
-    OperatorEntry tmpEntry = tmpOperators[a];
-    tmpOperators[a] = tmpOperators[b];
-    tmpOperators[b] = tmpEntry;
-
-    auto altPlan = createPlan(nodes, tmpOperators);
-    double altCost = altPlan->getCost();
-
-//    std::cout << "................................" << std::endl;
-//    std::cout << "try to switch op " << a << " with op " << b << std::endl;
-//    std::cout << operatorOrderDebugString(tmpOperators) << std::endl;
-//    std::cout << altPlan->debugString() << std::endl;
-//    std::cout << "................................" << std::endl;
-
-    if(altCost < bestCost)
-    {
-      bestPlan = altPlan;
-      optimizedOperators = tmpOperators;
-
-//      std::cout << "================================" << std::endl;
-//      std::cout << "new plan:" << std::endl;
-//      std::cout << operatorOrderDebugString(optimizedOperators) << std::endl;
-//      std::cout << bestPlan->debugString() << std::endl;
-//      std::cout << "================================" << std::endl;
-
-      bestCost = altCost;
-      unsuccessful = 0;
+      // switch the order of the selected joins
+      std::swap(tmpOperators[a], tmpOperators[b]);
+      familyOperators.push_back(tmpOperators);
     }
-    else
-    {        
+
+    bool foundBetterPlan = false;
+    for(size_t i = 1; i < familyOperators.size(); i++)
+    {
+      auto altPlan = createPlan(nodes, familyOperators[i]);
+      double altCost = altPlan->getCost();
+
+//      std::cout << "................................" << std::endl;
+//      std::cout << "testing new operator order" << std::endl;
+//      std::cout << operatorOrderDebugString(familyOperators[i]) << std::endl;
+//      std::cout << altPlan->debugString() << std::endl;
+//      std::cout << "................................" << std::endl;
+
+      if(altCost < bestCost)
+      {
+        bestPlan = altPlan;
+        optimizedOperators = familyOperators[i];
+
+        foundBetterPlan = true;
+//        std::cout << "================================" << std::endl;
+//        std::cout << "new plan:" << std::endl;
+//        std::cout << operatorOrderDebugString(optimizedOperators) << std::endl;
+//        std::cout << bestPlan->debugString() << std::endl;
+//        std::cout << "================================" << std::endl;
+
+        bestCost = altCost;
+        unsuccessful = 0;
+      }
+    }
+
+    if(!foundBetterPlan)
+    {
       unsuccessful++;
     }
+
   } while(unsuccessful < maxUnsuccessfulTries);
 
   operators = optimizedOperators;
