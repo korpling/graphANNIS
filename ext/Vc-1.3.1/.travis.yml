@@ -1,0 +1,101 @@
+language: cpp
+
+cache: ccache
+
+env:
+    - CXX_VERSION=current
+    - CXX_VERSION=previous
+    - CXX_VERSION=default
+
+os:
+    - linux
+    - osx
+
+compiler:
+    - gcc
+    - clang
+
+matrix:
+    exclude:
+        - env: CXX_VERSION=previous
+          os: osx
+          compiler: clang
+
+# The following gives us Ubuntu 14.04 LTS instead of 12.04 LTS
+sudo: required
+dist: trusty
+
+install:
+    - case "$TRAVIS_OS_NAME-$CXX-$CXX_VERSION" in
+        linux-g++-current)
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y &&
+          sudo apt-get update -q &&
+          sudo apt-get install g++-6 -y &&
+          export CXX=g++-6 CC=gcc-6;;
+        linux-g++-previous)
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y &&
+          sudo apt-get update -q &&
+          sudo apt-get install g++-5 -y &&
+          export CXX=g++-5 CC=gcc-5;;
+        linux-g++-default)
+          ;;
+        linux-clang++-current)
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y &&
+          wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add - &&
+          sudo tee /etc/apt/sources.list.d/llvm.list <<< "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" &&
+          sudo apt-get update -q &&
+          sudo apt-get install clang-4.0 -y &&
+          export CXX=clang++-4.0 CC=clang-4.0;;
+        linux-clang++-previous)
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y &&
+          wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add - &&
+          sudo tee /etc/apt/sources.list.d/llvm.list <<< "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.9 main" &&
+          sudo apt-get update -q &&
+          sudo apt-get install clang-3.9 -y &&
+          export CXX=clang++-3.9 CC=clang-3.9;;
+        linux-clang++-default)
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y &&
+          sudo apt-get update -q &&
+          sudo apt-get install clang-3.8 libstdc++-6-dev libc++-dev libc++abi-dev -y &&
+          export CXX=clang++-3.8 CC=clang-3.8;;
+        osx-g++-current)
+          brew update &&
+          brew install gcc6 &&
+          export CXX=g++-6 CC=gcc-6;;
+        osx-g++-previous)
+          brew update &&
+          brew install gcc5 &&
+          export CXX=g++-5 CC=gcc-5;;
+        osx-g++-default)
+          export CXX=g++-4.9 CC=gcc-4.9;;
+        osx-clang++-current)
+          brew update &&
+          brew install llvm &&
+          export CXX=/usr/local/opt/llvm/bin/clang++ CC=/usr/local/opt/llvm/bin/clang &&
+          export LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" &&
+          export CPPFLAGS=-I/usr/local/opt/llvm/include;;
+        osx-clang++-previous)
+          exit 1;;
+        osx-clang++-default)
+          ;;
+      esac
+
+before_script:
+    - $CXX --version
+    - cmake --version
+    - export dashboard_model=Experimental
+    - export build_type=Release
+    - export NUMBER_OF_PROCESSORS=2
+
+script:
+    - ctest -V -S test.cmake
+
+notifications:
+    email: false
+    irc:
+        channels:
+            - "chat.freenode.net##Vc"
+        on_success: change # [always|never|change] # default: always
+        on_failure: always # [always|never|change] # default: always
+        use_notice: true
+        skip_join: true

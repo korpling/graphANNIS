@@ -23,6 +23,7 @@ include(cmake/humblelogging.cmake)
 include(cmake/re2.cmake)
 include(cmake/celero.cmake)
 include(cmake/googletest.cmake)
+include(cmake/vc.cmake)
 
 link_directories(${GLOBAL_OUTPUT_PATH})
 
@@ -182,12 +183,14 @@ elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 
 endif (MSVC)
 
 target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
+add_dependencies(annis VC)
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
-target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
+target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${VC_LIBRARIES} annis)
 
 # install the graphANNIS API and console
 install(TARGETS annis_runner annis
