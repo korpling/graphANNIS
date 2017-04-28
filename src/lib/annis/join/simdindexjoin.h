@@ -25,10 +25,10 @@
 #include <memory>             // for shared_ptr, make_shared
 #include <thread>             // for thread
 #include <vector>             // for vector
-#include <Vc/vector.h>
 
-namespace annis { class Operator; }  // lines 36-36
-namespace annis { class ThreadPool; }
+#include <annis/annostorage.h>
+
+namespace annis { class Operator; }
 
 
 namespace annis
@@ -41,13 +41,14 @@ public:
   struct MatchPair
   {
     std::vector<Match> lhs;
-    Match rhs;
+    nodeid_t rhs;
   };
 
 public:
   SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
-            std::shared_ptr<Operator> op,
-            std::function<std::list<Annotation> (nodeid_t)> matchGeneratorFunc);
+                std::shared_ptr<Operator> op,
+                const AnnoStorage<nodeid_t>& annos,
+                Annotation rhsAnnoToFind);
 
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
@@ -59,7 +60,8 @@ private:
   const size_t lhsIdx;
 
   std::shared_ptr<Operator> op;
-  std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc;
+  const AnnoStorage<nodeid_t>& annos;
+  const Annotation rhsAnnoToFind;
 
   std::list<MatchPair> matchBuffer;
 

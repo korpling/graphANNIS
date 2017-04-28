@@ -25,14 +25,16 @@
 #include "annis/types.h"                  // for Match, Annotation, nodeid_t
 #include "annis/util/threadpool.h"        // for ThreadPool
 
+#include <Vc/Memory>
 
 
 using namespace annis;
 
 SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                              std::shared_ptr<Operator> op,
-                     std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc)
-  : lhs(lhs), lhsIdx(lhsIdx), op(op), matchGeneratorFunc(matchGeneratorFunc)
+                             const AnnoStorage<nodeid_t>& annos,
+                             Annotation rhsAnnoToFind)
+  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind)
 {
 }
 
@@ -48,7 +50,7 @@ bool SIMDIndexJoin::next(std::vector<Match> &tuple)
 
       tuple.reserve(m.lhs.size()+1);
       tuple.insert(tuple.begin(), m.lhs.begin(), m.lhs.end());
-      tuple.push_back(m.rhs);
+      tuple.push_back({m.rhs, rhsAnnoToFind});
 
       matchBuffer.pop_front();
       return true;
@@ -72,23 +74,57 @@ void SIMDIndexJoin::reset()
 bool SIMDIndexJoin::fillMatchBuffer()
 {
   std::vector<Match> currentLHS;
+
+
+  Vc::uint32_v valueTemplate(rhsAnnoToFind.val);
+
   while(matchBuffer.empty() && lhs->next(currentLHS))
   {
     std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
     if(reachableNodesIt)
     {
-      Match reachableNode;
-      while(reachableNodesIt->next(reachableNode))
+      std::vector<nodeid_t> reachableNodes;
+
+      Match n;
+      while(reachableNodesIt->next(n))
       {
-        for(Annotation currentRHSAnno : matchGeneratorFunc(reachableNode.node))
+        reachableNodes.push_back(n.node);
+      }
+
+      Vc::Memory<Vc::uint32_v> vAnnoVals(reachableNodes.size());
+
+      for(size_t i=0; i < vAnnoVals.entriesCount(); i++)
+      {
+        std::vector<Annotation> foundAnnos = annos.getAnnotations(n.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
+        vAnnoVals[i] = foundAnnos.empty() ? 0 : foundAnnos[0].val;
+      }
+
+      for(size_t i=0; i < vAnnoVals.vectorsCount(); i++)
+      {
+        Vc::Mask<uint32_t> maskFoundAnnos = (vAnnoVals.vector(i) == valueTemplate);
+
+        if(!maskFoundAnnos.isEmpty())
         {
-          if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNode.node
-          || !checkAnnotationEqual(currentLHS[lhsIdx].anno, currentRHSAnno)))
+          for(int i=maskFoundAnnos.firstOne(); i < maskFoundAnnos.size(); i++)
           {
-            matchBuffer.push_back({currentLHS, {reachableNode.node, currentRHSAnno}});
+            if(maskFoundAnnos[i])
+            {
+              matchBuffer.push_back({currentLHS, reachableNodes[i]});
+            }
           }
         }
       }
+
+/*
+      for(Annotation currentRHSAnno : matchGeneratorFunc(reachableNode.node))
+      {
+        if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNode.node
+        || !checkAnnotationEqual(currentLHS[lhsIdx].anno, currentRHSAnno)))
+        {
+          matchBuffer.push_back({currentLHS, {reachableNode.node, currentRHSAnno}});
+        }
+      }
+*/
     }
   }
 }
