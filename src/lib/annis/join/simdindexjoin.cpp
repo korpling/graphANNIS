@@ -109,22 +109,14 @@ bool SIMDIndexJoin::fillMatchBuffer()
           {
             if(maskFoundAnnos[i])
             {
-              matchBuffer.push_back({currentLHS, reachableNodes[i]});
+              if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[i]))
+              {
+                matchBuffer.push_back({currentLHS, reachableNodes[i]});
+              }
             }
           }
         }
       }
-
-/*
-      for(Annotation currentRHSAnno : matchGeneratorFunc(reachableNode.node))
-      {
-        if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNode.node
-        || !checkAnnotationEqual(currentLHS[lhsIdx].anno, currentRHSAnno)))
-        {
-          matchBuffer.push_back({currentLHS, {reachableNode.node, currentRHSAnno}});
-        }
-      }
-*/
     }
   }
 }
