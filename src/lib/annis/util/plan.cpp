@@ -24,6 +24,7 @@
 #include <annis/join/taskindexjoin.h>               // for TaskIndexJoin
 #include <annis/join/threadindexjoin.h>             // for ThreadIndexJoin
 #include <annis/join/threadnestedloop.h>            // for ThreadNestedLoop
+#include <annis/join/simdindexjoin.h>
 #include <annis/operators/operator.h>               // for Operator
 #include <annis/wrapper.h>                          // for ConstAnnoWrapper
 #include <boost/container/vector.hpp>               // for operator!=
@@ -128,6 +129,14 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
                                                  createSearchFilter(db, estSearch),
                                                  numOfBackgroundTasks,
                                                  config.threadPool);
+      }
+      else if(config.enableSIMDIndexJoin
+              && std::dynamic_pointer_cast<AnnotationSearch>(estSearch)
+              && searchFilterReturnsMaximalOneAnno(estSearch))
+      {
+        const std::unordered_set<Annotation>& validAnnos
+            = std::static_pointer_cast<AnnotationSearch>(estSearch)->getValidAnnotations();
+        join = std::make_shared<SIMDIndexJoin>(lhs->join, mappedPosLHS->second, op, db.nodeAnnos, *validAnnos.begin() );
       }
       else if(config.enableTaskIndexJoin && config.threadPool)
       {
