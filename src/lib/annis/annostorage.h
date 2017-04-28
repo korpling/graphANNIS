@@ -151,19 +151,13 @@ namespace annis {
       {
         return
         {
-          true,
           {
             nameID, nsID, it->second
           }
         };
       }
-      return
-      {
-        false,
-        {
-          0, 0, 0
-        }
-      };
+
+      return {};
     }
 
     inline std::vector<Annotation> getAnnotations(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
