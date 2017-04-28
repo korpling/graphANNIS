@@ -30,37 +30,10 @@
 using namespace annis;
 
 SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
-                     std::shared_ptr<Operator> op,
-                     std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc, unsigned maxBufferedTasks,
-                     std::shared_ptr<ThreadPool> threadPool)
-  : lhs(lhs), lhsIdx(lhsIdx), maxNumfOfTasks(maxBufferedTasks > 0 ? maxBufferedTasks : 1), workerPool(threadPool),
-    taskBufferSize(0)
+                             std::shared_ptr<Operator> op,
+                     std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc)
+  : lhs(lhs), lhsIdx(lhsIdx), op(op), matchGeneratorFunc(matchGeneratorFunc)
 {
-
-
-  taskBufferGenerator = [matchGeneratorFunc, op, lhsIdx](const std::vector<Match>& currentLHS) -> std::list<MatchPair>
-  {
-    std::list<MatchPair> result;
-
-    std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
-    if(reachableNodesIt)
-    {
-      Match reachableNode;
-      while(reachableNodesIt->next(reachableNode))
-      {
-        for(Annotation currentRHSAnno : matchGeneratorFunc(reachableNode.node))
-        {
-          if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNode.node
-          || !checkAnnotationEqual(currentLHS[lhsIdx].anno, currentRHSAnno)))
-          {
-            result.push_back({currentLHS, {reachableNode.node, currentRHSAnno}});
-          }
-        }
-      }
-    }
-
-    return std::move(result);
-  };
 }
 
 bool SIMDIndexJoin::next(std::vector<Match> &tuple)
@@ -94,39 +67,36 @@ void SIMDIndexJoin::reset()
   }
 
   matchBuffer.clear();
-  taskBuffer.clear();
-  taskBufferSize = 0;
 }
 
-
-bool SIMDIndexJoin::fillTaskBuffer()
+bool SIMDIndexJoin::fillMatchBuffer()
 {
   std::vector<Match> currentLHS;
-  while(taskBufferSize < maxNumfOfTasks && lhs->next(currentLHS))
+  while(matchBuffer.empty() && lhs->next(currentLHS))
   {
-    if(workerPool)
+    std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
+    if(reachableNodesIt)
     {
-      taskBuffer.push_back(workerPool->enqueue(taskBufferGenerator, currentLHS));
+      Match reachableNode;
+      while(reachableNodesIt->next(reachableNode))
+      {
+        for(Annotation currentRHSAnno : matchGeneratorFunc(reachableNode.node))
+        {
+          if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNode.node
+          || !checkAnnotationEqual(currentLHS[lhsIdx].anno, currentRHSAnno)))
+          {
+            matchBuffer.push_back({currentLHS, {reachableNode.node, currentRHSAnno}});
+          }
+        }
+      }
     }
-    else
-    {
-      // do not use threads
-      taskBuffer.push_back(std::async(std::launch::deferred, taskBufferGenerator, currentLHS));
-    }
-    taskBufferSize++;
   }
-
-  return !taskBuffer.empty();
 }
 
 bool SIMDIndexJoin::nextMatchBuffer()
 {
-  while(fillTaskBuffer())
+  while(fillMatchBuffer())
   {
-    matchBuffer = std::move(taskBuffer.front().get());
-    taskBuffer.pop_front();
-    taskBufferSize--;
-
     // if there is a non empty result return true, otherwise try more entries of the task buffer
     if(!matchBuffer.empty())
     {

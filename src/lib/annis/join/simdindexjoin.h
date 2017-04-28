@@ -25,6 +25,8 @@
 #include <memory>             // for shared_ptr, make_shared
 #include <thread>             // for thread
 #include <vector>             // for vector
+#include <Vc/vector.h>
+
 namespace annis { class Operator; }  // lines 36-36
 namespace annis { class ThreadPool; }
 
@@ -45,9 +47,7 @@ public:
 public:
   SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
             std::shared_ptr<Operator> op,
-            std::function<std::list<Annotation> (nodeid_t)> matchGeneratorFunc,
-            unsigned maxNumfOfTasks = std::thread::hardware_concurrency(),
-            std::shared_ptr<ThreadPool> threadPool = std::shared_ptr<ThreadPool>());
+            std::function<std::list<Annotation> (nodeid_t)> matchGeneratorFunc);
 
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
@@ -57,19 +57,17 @@ private:
 
   std::shared_ptr<Iterator> lhs;
   const size_t lhsIdx;
-  const unsigned maxNumfOfTasks;
 
-  std::shared_ptr<ThreadPool> workerPool;
+  std::shared_ptr<Operator> op;
+  std::function<std::list<Annotation>(nodeid_t)> matchGeneratorFunc;
 
-  std::list<std::future<std::list<MatchPair>>> taskBuffer;
-  size_t taskBufferSize;
   std::list<MatchPair> matchBuffer;
 
-  std::function<std::list<MatchPair>(const std::vector<Match>& )> taskBufferGenerator;
 
 private:
-  bool fillTaskBuffer();
+
   bool nextMatchBuffer();
+  bool fillMatchBuffer();
 };
 }
 
