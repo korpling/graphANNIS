@@ -71,10 +71,9 @@ void SIMDIndexJoin::reset()
   matchBuffer.clear();
 }
 
-bool SIMDIndexJoin::fillMatchBuffer()
+bool SIMDIndexJoin::nextMatchBuffer()
 {
   std::vector<Match> currentLHS;
-
 
   Vc::uint32_v valueTemplate(rhsAnnoToFind.val);
 
@@ -85,17 +84,19 @@ bool SIMDIndexJoin::fillMatchBuffer()
     {
       std::vector<nodeid_t> reachableNodes;
 
-      Match n;
-      while(reachableNodesIt->next(n))
       {
-        reachableNodes.push_back(n.node);
+        Match n;
+        while(reachableNodesIt->next(n))
+        {
+          reachableNodes.push_back(n.node);
+        }
       }
 
       Vc::Memory<Vc::uint32_v> vAnnoVals(reachableNodes.size());
 
       for(size_t i=0; i < vAnnoVals.entriesCount(); i++)
       {
-        std::vector<Annotation> foundAnnos = annos.getAnnotations(n.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
+        std::vector<Annotation> foundAnnos = annos.getAnnotations(reachableNodes[i], rhsAnnoToFind.ns, rhsAnnoToFind.name);
         vAnnoVals[i] = foundAnnos.empty() ? 0 : foundAnnos[0].val;
       }
 
@@ -116,25 +117,13 @@ bool SIMDIndexJoin::fillMatchBuffer()
             }
           }
         }
-      }
+      } // end for each vector of values
     }
-  }
+  } // end while LHS valid and nothing found yet
+
+  return !matchBuffer.empty();
 }
 
-bool SIMDIndexJoin::nextMatchBuffer()
-{
-  while(fillMatchBuffer())
-  {
-    // if there is a non empty result return true, otherwise try more entries of the task buffer
-    if(!matchBuffer.empty())
-    {
-      return true;
-    }
-  }
-
-  // return false if there is no more value to fetch from the task buffer.
-  return false;
-}
 
 SIMDIndexJoin::~SIMDIndexJoin()
 {

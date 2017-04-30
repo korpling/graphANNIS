@@ -69,7 +69,6 @@ private:
 private:
 
   bool nextMatchBuffer();
-  bool fillMatchBuffer();
 };
 }
 
