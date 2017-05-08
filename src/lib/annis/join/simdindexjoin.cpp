@@ -97,8 +97,6 @@ bool SIMDIndexJoin::nextMatchBuffer()
       uint32_t annoVals[SIMD_VECTOR_SIZE];
       uint32_t reachableNodes[SIMD_VECTOR_SIZE];
 
-
-      Match m;
       bool foundRHS = false;
       do
       {
@@ -107,6 +105,7 @@ bool SIMDIndexJoin::nextMatchBuffer()
         // fill each element of the vector
         for(size_t i=0; i < SIMD_VECTOR_SIZE; i++)
         {
+          Match m;
           if(reachableNodesIt->next(m))
           {
             std::vector<Annotation> foundAnnos = annos.getAnnotations(m.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
@@ -118,7 +117,6 @@ bool SIMDIndexJoin::nextMatchBuffer()
           else
           {
             annoVals[i] = 0;
-            reachableNodes[i] = 0;
           }
         }
 
@@ -129,14 +127,11 @@ bool SIMDIndexJoin::nextMatchBuffer()
         maskFoundAnnos = (vAnnoVals == valueTemplate);
         if(Vc::any_of(maskFoundAnnos))
         {
-          for(size_t foundIdx=static_cast<size_t>(maskFoundAnnos.firstOne()); foundIdx < maskFoundAnnos.size(); foundIdx++)
+          for(size_t foundIdx : Vc::where(maskFoundAnnos))
           {
-            if(maskFoundAnnos[foundIdx])
+            if(annoDefDifferent || op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[foundIdx])
             {
-              if(annoDefDifferent || op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[foundIdx])
-              {
-                matchBuffer.push_back({currentLHS, reachableNodes[foundIdx]});
-              }
+              matchBuffer.push_back({currentLHS, reachableNodes[foundIdx]});
             }
           }
         }
