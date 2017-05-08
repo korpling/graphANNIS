@@ -100,25 +100,29 @@ bool SIMDIndexJoin::nextMatchBuffer()
         // do not allocate a Vc::Memory object with an empty size (this will produce an invalid pointer)
         Vc::Memory<Vc::uint32_v> vAnnoVals(reachableNodes.size());
 
-        for(size_t i=0; i < vAnnoVals.entriesCount(); i++)
+        for(size_t i=0; i < reachableNodes.size(); i++)
         {
           std::vector<Annotation> foundAnnos = annos.getAnnotations(reachableNodes[i], rhsAnnoToFind.ns, rhsAnnoToFind.name);
           vAnnoVals[i] = foundAnnos.empty() ? 0 : foundAnnos[0].val;
         }
 
-        for(size_t i=0; i < vAnnoVals.vectorsCount(); i++)
+
+        for(size_t vectorIdx=0; vectorIdx < vAnnoVals.vectorsCount(); vectorIdx++)
         {
-          Vc::Mask<uint32_t> maskFoundAnnos = (vAnnoVals.vector(i) == valueTemplate);
+
+          Vc::Vector<uint32_t> v = vAnnoVals.vector(vectorIdx);
+          Vc::Mask<uint32_t> maskFoundAnnos = (v == valueTemplate);
 
           if(!maskFoundAnnos.isEmpty())
           {
-            for(int i=maskFoundAnnos.firstOne(); i < maskFoundAnnos.size(); i++)
+            for(size_t foundIdx=static_cast<size_t>(maskFoundAnnos.firstOne()); foundIdx < maskFoundAnnos.size(); foundIdx++)
             {
-              if(maskFoundAnnos[i])
+              if(maskFoundAnnos[foundIdx])
               {
-                if(annoDefDifferent || op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[i])
+                size_t matchIdx = (vectorIdx * v.size()) + foundIdx;
+                if(annoDefDifferent || op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[matchIdx])
                 {
-                  matchBuffer.push_back({currentLHS, reachableNodes[i]});
+                  matchBuffer.push_back({currentLHS, reachableNodes[matchIdx]});
                 }
               }
             }
