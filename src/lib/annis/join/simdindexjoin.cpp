@@ -25,7 +25,7 @@
 #include "annis/types.h"                  // for Match, Annotation, nodeid_t
 #include "annis/util/threadpool.h"        // for ThreadPool
 
-#include <Vc/Memory>
+#include <Vc/Vc>
 
 
 using namespace annis;
@@ -75,6 +75,7 @@ bool SIMDIndexJoin::nextMatchBuffer()
 {
   std::vector<Match> currentLHS;
 
+
   Vc::uint32_v valueTemplate(rhsAnnoToFind.val);
 
   while(matchBuffer.empty() && lhs->next(currentLHS))
@@ -85,50 +86,46 @@ bool SIMDIndexJoin::nextMatchBuffer()
       const bool annoDefDifferent = rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
           || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name;
 
+      Vc::Vector<uint32_t> vAnnoVals;
+      Vc::Mask<uint32_t> maskFoundAnnos;
       std::vector<nodeid_t> reachableNodes;
+      reachableNodes.reserve(vAnnoVals.size());
+      Match m;
 
+      bool foundRHS = false;
+      do
       {
-        Match n;
-        while(reachableNodesIt->next(n))
-        {
-          reachableNodes.push_back(n.node);
-        }
-      }
+        foundRHS = false;
+        // reset internal buffers so the can be re-used safely in each iteration
+        vAnnoVals = Vc::Vector<uint32_t>::Zero();
+        reachableNodes.clear();
 
-      if(!reachableNodes.empty())
-      {
-        // do not allocate a Vc::Memory object with an empty size (this will produce an invalid pointer)
-        Vc::Memory<Vc::uint32_v> vAnnoVals(reachableNodes.size());
-
-        for(size_t i=0; i < reachableNodes.size(); i++)
+        // fill each element of the vector
+        for(size_t i=0; i < vAnnoVals.size() && reachableNodesIt->next(m); i++)
         {
-          std::vector<Annotation> foundAnnos = annos.getAnnotations(reachableNodes[i], rhsAnnoToFind.ns, rhsAnnoToFind.name);
+          std::vector<Annotation> foundAnnos = annos.getAnnotations(m.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
           vAnnoVals[i] = foundAnnos.empty() ? 0 : foundAnnos[0].val;
+          reachableNodes.push_back(m.node);
+
+          foundRHS = true;
         }
 
-
-        for(size_t vectorIdx=0; vectorIdx < vAnnoVals.vectorsCount(); vectorIdx++)
+        maskFoundAnnos = (vAnnoVals == valueTemplate);
+        if(!maskFoundAnnos.isEmpty())
         {
-
-          Vc::Vector<uint32_t> v = vAnnoVals.vector(vectorIdx);
-          Vc::Mask<uint32_t> maskFoundAnnos = (v == valueTemplate);
-
-          if(!maskFoundAnnos.isEmpty())
+          for(size_t foundIdx=static_cast<size_t>(maskFoundAnnos.firstOne()); foundIdx < maskFoundAnnos.size(); foundIdx++)
           {
-            for(size_t foundIdx=static_cast<size_t>(maskFoundAnnos.firstOne()); foundIdx < maskFoundAnnos.size(); foundIdx++)
+            if(maskFoundAnnos[foundIdx])
             {
-              if(maskFoundAnnos[foundIdx])
+              if(annoDefDifferent || op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[foundIdx])
               {
-                size_t matchIdx = (vectorIdx * v.size()) + foundIdx;
-                if(annoDefDifferent || op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[matchIdx])
-                {
-                  matchBuffer.push_back({currentLHS, reachableNodes[matchIdx]});
-                }
+                matchBuffer.push_back({currentLHS, reachableNodes[foundIdx]});
               }
             }
           }
-        } // end for each vector of values
-      } // end if reachable nodes not empty
+        }
+
+      } while(foundRHS);
     } // end if reachable nodes iterator valide
   } // end while LHS valid and nothing found yet
 
