@@ -82,6 +82,9 @@ bool SIMDIndexJoin::nextMatchBuffer()
     std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
     if(reachableNodesIt)
     {
+      const bool annoDefDifferent = rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
+          || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name;
+
       std::vector<nodeid_t> reachableNodes;
 
       {
@@ -113,7 +116,7 @@ bool SIMDIndexJoin::nextMatchBuffer()
             {
               if(maskFoundAnnos[i])
               {
-                if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[i]))
+                if(annoDefDifferent || op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[i])
                 {
                   matchBuffer.push_back({currentLHS, reachableNodes[i]});
                 }
