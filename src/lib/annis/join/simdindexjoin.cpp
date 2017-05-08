@@ -86,32 +86,48 @@ bool SIMDIndexJoin::nextMatchBuffer()
       const bool annoDefDifferent = rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
           || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name;
 
-      Vc::Vector<uint32_t> vAnnoVals;
-      Vc::Mask<uint32_t> maskFoundAnnos;
-      std::vector<nodeid_t> reachableNodes;
-      reachableNodes.reserve(vAnnoVals.size());
-      Match m;
 
+      constexpr size_t SIMD_VECTOR_SIZE = Vc::uint32_v::size();
+
+      Vc::uint32_v vAnnoVals;
+      Vc::Mask<uint32_t> maskFoundAnnos;
+
+      // use an aligned memory allocator to make SIMD faster
+
+      uint32_t annoVals[SIMD_VECTOR_SIZE];
+      uint32_t reachableNodes[SIMD_VECTOR_SIZE];
+
+
+      Match m;
       bool foundRHS = false;
       do
       {
         foundRHS = false;
-        // reset internal buffers so the can be re-used safely in each iteration
-        vAnnoVals = Vc::Vector<uint32_t>::Zero();
-        reachableNodes.clear();
 
         // fill each element of the vector
-        for(size_t i=0; i < vAnnoVals.size() && reachableNodesIt->next(m); i++)
+        for(size_t i=0; i < SIMD_VECTOR_SIZE; i++)
         {
-          std::vector<Annotation> foundAnnos = annos.getAnnotations(m.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
-          vAnnoVals[i] = foundAnnos.empty() ? 0 : foundAnnos[0].val;
-          reachableNodes.push_back(m.node);
+          if(reachableNodesIt->next(m))
+          {
+            std::vector<Annotation> foundAnnos = annos.getAnnotations(m.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
+            annoVals[i] = (foundAnnos.empty() ? 0 : foundAnnos[0].val);
+            reachableNodes[i] = (m.node);
 
-          foundRHS = true;
+            foundRHS = true;
+          }
+          else
+          {
+            annoVals[i] = 0;
+            reachableNodes[i] = 0;
+          }
         }
 
+        // transform the data to SIMD
+        vAnnoVals.load(annoVals, Vc::Aligned);
+
+        // search for values that are the same as a SIMD instruction
         maskFoundAnnos = (vAnnoVals == valueTemplate);
-        if(!maskFoundAnnos.isEmpty())
+        if(Vc::any_of(maskFoundAnnos))
         {
           for(size_t foundIdx=static_cast<size_t>(maskFoundAnnos.firstOne()); foundIdx < maskFoundAnnos.size(); foundIdx++)
           {
