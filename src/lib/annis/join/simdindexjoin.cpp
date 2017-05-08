@@ -92,33 +92,37 @@ bool SIMDIndexJoin::nextMatchBuffer()
         }
       }
 
-      Vc::Memory<Vc::uint32_v> vAnnoVals(reachableNodes.size());
-
-      for(size_t i=0; i < vAnnoVals.entriesCount(); i++)
+      if(!reachableNodes.empty())
       {
-        std::vector<Annotation> foundAnnos = annos.getAnnotations(reachableNodes[i], rhsAnnoToFind.ns, rhsAnnoToFind.name);
-        vAnnoVals[i] = foundAnnos.empty() ? 0 : foundAnnos[0].val;
-      }
+        // do not allocate a Vc::Memory object with an empty size (this will produce an invalid pointer)
+        Vc::Memory<Vc::uint32_v> vAnnoVals(reachableNodes.size());
 
-      for(size_t i=0; i < vAnnoVals.vectorsCount(); i++)
-      {
-        Vc::Mask<uint32_t> maskFoundAnnos = (vAnnoVals.vector(i) == valueTemplate);
-
-        if(!maskFoundAnnos.isEmpty())
+        for(size_t i=0; i < vAnnoVals.entriesCount(); i++)
         {
-          for(int i=maskFoundAnnos.firstOne(); i < maskFoundAnnos.size(); i++)
+          std::vector<Annotation> foundAnnos = annos.getAnnotations(reachableNodes[i], rhsAnnoToFind.ns, rhsAnnoToFind.name);
+          vAnnoVals[i] = foundAnnos.empty() ? 0 : foundAnnos[0].val;
+        }
+
+        for(size_t i=0; i < vAnnoVals.vectorsCount(); i++)
+        {
+          Vc::Mask<uint32_t> maskFoundAnnos = (vAnnoVals.vector(i) == valueTemplate);
+
+          if(!maskFoundAnnos.isEmpty())
           {
-            if(maskFoundAnnos[i])
+            for(int i=maskFoundAnnos.firstOne(); i < maskFoundAnnos.size(); i++)
             {
-              if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[i]))
+              if(maskFoundAnnos[i])
               {
-                matchBuffer.push_back({currentLHS, reachableNodes[i]});
+                if((op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[i]))
+                {
+                  matchBuffer.push_back({currentLHS, reachableNodes[i]});
+                }
               }
             }
           }
-        }
-      } // end for each vector of values
-    }
+        } // end for each vector of values
+      } // end if reachable nodes not empty
+    } // end if reachable nodes iterator valide
   } // end while LHS valid and nothing found yet
 
   return !matchBuffer.empty();
