@@ -4,6 +4,9 @@ cmake_minimum_required(VERSION 3.2)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/output)
 
+set(ENABLE_VALGRIND FALSE CACHE BOOL "Allow to turn Valgrind instrumentation on or off for some parts of the code")
+
+
 # make sure a build type is selected
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
