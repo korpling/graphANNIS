@@ -2,7 +2,7 @@ set(VC_PREFIX ${GLOBAL_OUTPUT_PATH}/vc)
 
 
 ExternalProject_Add(
-  VC
+  Vc
 
   UPDATE_COMMAND ""
   PATCH_COMMAND ""
@@ -14,6 +14,8 @@ ExternalProject_Add(
 )
 
 find_package(Vc ${Vc_FIND_VERSION} QUIET NO_MODULE PATHS ${VC_PREFIX})
+
+include(ext/Vc-1.3.1/cmake/VcMacros.cmake)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Vc CONFIG_MODE)

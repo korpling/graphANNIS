@@ -195,7 +195,7 @@ target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_
 
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
-add_dependencies(annis VC)
+add_dependencies(annis Vc)
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
