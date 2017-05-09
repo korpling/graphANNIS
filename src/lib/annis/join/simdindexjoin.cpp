@@ -34,7 +34,7 @@ SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                              std::shared_ptr<Operator> op,
                              const AnnoStorage<nodeid_t>& annos,
                              Annotation rhsAnnoToFind)
-  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind)
+  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind), valueTemplate(rhsAnnoToFind.val)
 {
 }
 
@@ -73,11 +73,11 @@ void SIMDIndexJoin::reset()
 
 bool SIMDIndexJoin::nextMatchBuffer()
 {
+  constexpr size_t SIMD_VECTOR_SIZE = Vc::uint32_v::size();
+  uint32_t annoVals[SIMD_VECTOR_SIZE];
+  uint32_t reachableNodes[SIMD_VECTOR_SIZE];
+
   std::vector<Match> currentLHS;
-
-
-  Vc::uint32_v valueTemplate(rhsAnnoToFind.val);
-
   while(matchBuffer.empty() && lhs->next(currentLHS))
   {
     std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
@@ -86,16 +86,6 @@ bool SIMDIndexJoin::nextMatchBuffer()
       const bool annoDefDifferent = rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
           || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name;
 
-
-      constexpr size_t SIMD_VECTOR_SIZE = Vc::uint32_v::size();
-
-      Vc::uint32_v vAnnoVals;
-      Vc::Mask<uint32_t> maskFoundAnnos;
-
-      // use an aligned memory allocator to make SIMD faster
-
-      uint32_t annoVals[SIMD_VECTOR_SIZE];
-      uint32_t reachableNodes[SIMD_VECTOR_SIZE];
 
       bool foundRHS = false;
       do
@@ -121,10 +111,10 @@ bool SIMDIndexJoin::nextMatchBuffer()
         }
 
         // transform the data to SIMD
-        vAnnoVals.load(annoVals, Vc::Aligned);
+        Vc::uint32_v vAnnoVals(annoVals, Vc::Aligned);
 
         // search for values that are the same as a SIMD instruction
-        maskFoundAnnos = (vAnnoVals == valueTemplate);
+        Vc::Mask<uint32_t> maskFoundAnnos = (vAnnoVals == valueTemplate);
         if(Vc::any_of(maskFoundAnnos))
         {
           for(size_t foundIdx : Vc::where(maskFoundAnnos))
