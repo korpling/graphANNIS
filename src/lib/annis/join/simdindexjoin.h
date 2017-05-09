@@ -28,8 +28,6 @@
 
 #include <annis/annostorage.h>
 
-#include <Vc/Vc>
-
 namespace annis { class Operator; }
 
 
@@ -64,7 +62,6 @@ private:
   std::shared_ptr<Operator> op;
   const AnnoStorage<nodeid_t>& annos;
   const Annotation rhsAnnoToFind;
-  Vc::uint32_v valueTemplate;
 
   std::list<MatchPair> matchBuffer;
 

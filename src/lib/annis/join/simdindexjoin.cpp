@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include "simdindexjoin.h"
+#include <annis/join/simdindexjoin.h>
 
 #include <annis/operators/operator.h>     // for Operator
 #include <annis/util/comparefunctions.h>  // for checkAnnotationEqual
@@ -34,7 +34,7 @@ SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                              std::shared_ptr<Operator> op,
                              const AnnoStorage<nodeid_t>& annos,
                              Annotation rhsAnnoToFind)
-  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind), valueTemplate(rhsAnnoToFind.val)
+  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind)
 {
 }
 
@@ -74,6 +74,9 @@ void SIMDIndexJoin::reset()
 bool SIMDIndexJoin::nextMatchBuffer()
 {
   constexpr size_t SIMD_VECTOR_SIZE = Vc::uint32_v::size();
+
+  Vc::uint32_v valueTemplate = rhsAnnoToFind.val;
+
   uint32_t annoVals[SIMD_VECTOR_SIZE];
   uint32_t reachableNodes[SIMD_VECTOR_SIZE];
 

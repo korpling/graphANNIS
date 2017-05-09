@@ -154,7 +154,6 @@ set(SRC_LIST_LIB
   src/lib/annis/graphstorageregistry.cpp
   src/lib/annis/join/indexjoin.cpp
   src/lib/annis/join/nestedloop.cpp
-  src/lib/annis/join/simdindexjoin.cpp
   src/lib/annis/join/threadnestedloop.cpp
   src/lib/annis/join/taskindexjoin.cpp
   src/lib/annis/join/threadindexjoin.cpp
@@ -173,11 +172,16 @@ set(SRC_LIST_RUNNER
   src/runner/console.cpp
 )
 
+set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
+vc_compile_for_all_implementations(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
+
 include_directories( "src/lib")
 
-add_library(annis ${SRC_LIST_LIB})
+add_library(annis ${SRC_LIST_LIB} ${SRC_LIST_LIB_SIMD})
 target_compile_features(annis PRIVATE ${needed_features})
+
 set_property(TARGET annis PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+
 # newer Boost serialization versions are otherwise incompatible with BTree
 add_definitions(-DBOOST_NO_CXX11_HDR_UNORDERED_MAP -DBOOST_NO_CXX11_HDR_UNORDERED_SET)
 if (MSVC)
@@ -187,7 +191,7 @@ elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 
     set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
 endif (MSVC)
 
-target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${VC_LIBRARIES} )
+target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${VC_STATIC_LIBRARY} )
 
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
