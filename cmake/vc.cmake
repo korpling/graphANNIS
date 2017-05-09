@@ -1,5 +1,6 @@
 set(Vc_PREFIX ${GLOBAL_OUTPUT_PATH}/vc)
 
+set(Vc_SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/Vc-1.3.1)
 
 ExternalProject_Add(
   Vc
@@ -7,21 +8,14 @@ ExternalProject_Add(
   UPDATE_COMMAND ""
   PATCH_COMMAND ""
 
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/ext/Vc-1.3.1"
-  CMAKE_ARGS -BUILD_SHARED_LIBS=OFF -DTARGET_ARCHITECTURE=skylake -DBUILD_TESTING=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=True -DCMAKE_INSTALL_PREFIX=${Vc_PREFIX}
+  SOURCE_DIR "${Vc_SOURCE_DIR}"
+  CMAKE_ARGS -BUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=True -DCMAKE_INSTALL_PREFIX=${Vc_PREFIX}
 
   TEST_COMMAND ""
 )
 
-find_package(Vc QUIET NO_MODULE PATHS ${Vc_PREFIX})
-
-include(ext/Vc-1.3.1/cmake/VcMacros.cmake)
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Vc CONFIG_MODE)
+include(${Vc_SOURCE_DIR}/cmake/VcMacros.cmake)
 
 set(Vc_STATIC_LIBRARY "${Vc_PREFIX}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}Vc${CMAKE_STATIC_LIBRARY_SUFFIX}")
-
-
-include_directories(SYSTEM ${Vc_INCLUDE_DIR})
+include_directories(SYSTEM ${Vc_PREFIX}/include)
 
