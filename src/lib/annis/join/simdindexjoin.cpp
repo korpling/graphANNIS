@@ -101,8 +101,8 @@ bool SIMDIndexJoin::nextMatchBuffer()
           Match m;
           if(reachableNodesIt->next(m))
           {
-            std::vector<Annotation> foundAnnos = annos.getAnnotations(m.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
-            annoVals[i] = (foundAnnos.empty() ? 0 : foundAnnos[0].val);
+            boost::optional<Annotation> foundAnnos = annos.getAnnotations(m.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
+            annoVals[i] = foundAnnos ? foundAnnos->val : 0;
             reachableNodes[i] = (m.node);
 
             foundRHS = true;

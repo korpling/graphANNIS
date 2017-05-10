@@ -143,24 +143,20 @@ namespace annis {
        }
     }
 
-    inline std::vector<Annotation> getAnnotations(const ContainerType &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
+    inline boost::optional<Annotation> getAnnotations(const ContainerType &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
     {
       auto it = annotations.find({id, nameID, nsID});
 
       if (it != annotations.end())
       {
-        return
-        {
-          {
-            nameID, nsID, it->second
-          }
-        };
+        Annotation anno = {nameID, nsID, it->second};
+        return std::move(anno);
       }
 
-      return {};
+      return boost::none;
     }
 
-    inline std::vector<Annotation> getAnnotations(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
+    inline boost::optional<Annotation> getAnnotations(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
     {
       std::pair<bool, std::uint32_t> nsID = strings.findID(ns);
       std::pair<bool, std::uint32_t> nameID = strings.findID(name);
@@ -169,7 +165,7 @@ namespace annis {
       {
         return getAnnotations(id, nsID.second, nameID.second);
       }
-      return std::vector<Annotation>();
+      return boost::none;
     }
 
     std::vector<Annotation> getAnnotations(const ContainerType& id) const
