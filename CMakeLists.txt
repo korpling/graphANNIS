@@ -173,7 +173,13 @@ set(SRC_LIST_RUNNER
 )
 
 set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
-vc_compile_for_all_implementations(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp ONLY AVX2+FMA+BMI2)
+
+if(MSVC)
+  set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+else()
+  set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "-mavx2")
+endif()
+set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_DEFINITIONS "Vc_IMPL=AVX2")
 
 include_directories( "src/lib")
 

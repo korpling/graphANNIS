@@ -25,8 +25,7 @@
 #include "annis/types.h"                  // for Match, Annotation, nodeid_t
 #include "annis/util/threadpool.h"        // for ThreadPool
 
-#include <Vc/Vc>
-
+#include <Vc/Vc
 
 using namespace annis;
 
@@ -36,8 +35,6 @@ SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                              Annotation rhsAnnoToFind)
   : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind)
 {
-  reachableNodes.reserve(128);
-  annoVals.reserve(128);
 }
 
 bool SIMDIndexJoin::next(std::vector<Match> &tuple)
