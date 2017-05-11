@@ -75,12 +75,9 @@ private:
   {
     if(Vc::any_of(v_valid))
     {
-      for(size_t j : Vc::where(v_valid))
+      for(size_t j=0; j < Vc::Mask<uint32_t>::size() && (offset+j) < reachableNodes.size(); j++)
       {
-        if((offset+j) < reachableNodes.size())
-        {
-          matchBuffer.emplace_back(reachableNodes[offset+j]);
-        }
+        matchBuffer.emplace_back(reachableNodes[offset+j]);
       }
     }
   }
