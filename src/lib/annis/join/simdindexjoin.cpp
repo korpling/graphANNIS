@@ -46,17 +46,17 @@ bool SIMDIndexJoin::next(std::vector<Match> &tuple)
   {
     while(!matchBuffer.empty())
     {
-      const MatchPair& m = matchBuffer.front();
+      const nodeid_t& n = matchBuffer.front();
 
-      tuple.reserve(m.lhs.size()+1);
-      tuple.insert(tuple.begin(), m.lhs.begin(), m.lhs.end());
-      tuple.push_back({m.rhs, rhsAnnoToFind});
+      tuple.reserve(currentLHS.size()+1);
+      tuple.insert(tuple.begin(), currentLHS.begin(), currentLHS.end());
+      tuple.push_back({n, rhsAnnoToFind});
 
       matchBuffer.pop_front();
       return true;
 
     }
-  } while (nextMatchBuffer());
+  } while (fillMatchBuffer());
 
   return false;
 }
@@ -71,65 +71,65 @@ void SIMDIndexJoin::reset()
   matchBuffer.clear();
 }
 
-bool SIMDIndexJoin::nextMatchBuffer()
+bool SIMDIndexJoin::fillMatchBuffer()
 {
-  constexpr size_t SIMD_VECTOR_SIZE = Vc::uint32_v::size();
-
   Vc::uint32_v valueTemplate = rhsAnnoToFind.val;
 
-  uint32_t annoVals[SIMD_VECTOR_SIZE];
-  uint32_t reachableNodes[SIMD_VECTOR_SIZE];
-
-  std::vector<Match> currentLHS;
   while(matchBuffer.empty() && lhs->next(currentLHS))
   {
     std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
     if(reachableNodesIt)
     {
-      const bool annoDefDifferent = rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
-          || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name;
+      Vc::uint32_v v_lhsNode = currentLHS[lhsIdx].node;
 
+      const bool reflexiveCheckNeeded =
+          !(op->isReflexive()
+            || rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
+          || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name);
 
-      bool foundRHS = false;
-      do
+      annoVals.clear();
+      reachableNodes.clear();
+
+      Match m;
+      while(reachableNodesIt->next(m))
       {
-        foundRHS = false;
-
-        // fill each element of the vector
-        for(size_t i=0; i < SIMD_VECTOR_SIZE; i++)
+        boost::optional<Annotation> foundAnnos = annos.getAnnotations(m.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
+        if(foundAnnos)
         {
-          Match m;
-          if(reachableNodesIt->next(m))
-          {
-            boost::optional<Annotation> foundAnnos = annos.getAnnotations(m.node, rhsAnnoToFind.ns, rhsAnnoToFind.name);
-            annoVals[i] = foundAnnos ? foundAnnos->val : 0;
-            reachableNodes[i] = (m.node);
-
-            foundRHS = true;
-          }
-          else
-          {
-            annoVals[i] = 0;
-          }
+          annoVals.push_back(foundAnnos->val);
+          reachableNodes.push_back(m.node);
         }
+      }
 
-        // transform the data to SIMD
-        Vc::uint32_v vAnnoVals(annoVals, Vc::Aligned);
-
-        // search for values that are the same as a SIMD instruction
-        Vc::Mask<uint32_t> maskFoundAnnos = (vAnnoVals == valueTemplate);
-        if(Vc::any_of(maskFoundAnnos))
+      if(reflexiveCheckNeeded)
+      {
+        for(size_t i=0; i < annoVals.size() && i < reachableNodes.size(); i += Vc::uint32_v::size())
         {
-          for(size_t foundIdx : Vc::where(maskFoundAnnos))
-          {
-            if(annoDefDifferent || op->isReflexive() || currentLHS[lhsIdx].node != reachableNodes[foundIdx])
-            {
-              matchBuffer.push_back({currentLHS, reachableNodes[foundIdx]});
-            }
-          }
-        }
+          // transform the data to SIMD
+          Vc::uint32_v v_annoVals(&annoVals[i]);
+          Vc::uint32_v v_reachableNodes(&reachableNodes[i]);
 
-      } while(foundRHS);
+          // search for values that are the same and don't have the same LHS and RHS node
+          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate) && (v_lhsNode != v_reachableNodes);
+
+          // collect results
+          collectResults(v_valid, i);
+        }
+      }
+      else
+      {
+        for(size_t i=0; i < annoVals.size() && i < reachableNodes.size(); i += Vc::uint32_v::size())
+        {
+          // transform the data to SIMD
+          Vc::uint32_v v_annoVals(&annoVals[i]);
+
+          // search for values that are the same
+          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate);
+
+          // collect results
+          collectResults(v_valid, i);
+        }
+      }
     } // end if reachable nodes iterator valide
   } // end while LHS valid and nothing found yet
 

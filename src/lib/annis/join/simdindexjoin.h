@@ -28,6 +28,8 @@
 
 #include <annis/annostorage.h>
 
+#include <Vc/Vc>
+
 namespace annis { class Operator; }
 
 
@@ -38,11 +40,6 @@ class SIMDIndexJoin : public Iterator
 {
 public:
 
-  struct MatchPair
-  {
-    std::vector<Match> lhs;
-    nodeid_t rhs;
-  };
 
 public:
   SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
@@ -63,12 +60,30 @@ private:
   const AnnoStorage<nodeid_t>& annos;
   const Annotation rhsAnnoToFind;
 
-  std::list<MatchPair> matchBuffer;
+  std::list<nodeid_t> matchBuffer;
+  std::vector<Match> currentLHS;
+
+  std::vector<uint32_t, Vc::Allocator<uint32_t>> annoVals;
+  std::vector<nodeid_t, Vc::Allocator<uint32_t>> reachableNodes;
 
 
 private:
 
-  bool nextMatchBuffer();
+  bool fillMatchBuffer();
+
+  inline void collectResults(Vc::Mask<uint32_t>& v_valid, const size_t& offset)
+  {
+    if(Vc::any_of(v_valid))
+    {
+      for(size_t j : Vc::where(v_valid))
+      {
+        if((offset+j) < reachableNodes.size())
+        {
+          matchBuffer.emplace_back(reachableNodes[offset+j]);
+        }
+      }
+    }
+  }
 };
 }
 
