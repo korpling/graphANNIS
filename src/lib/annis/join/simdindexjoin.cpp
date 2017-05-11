@@ -98,6 +98,14 @@ bool SIMDIndexJoin::fillMatchBuffer()
         }
       }
 
+      // add padding to make sure there is no invalid memory when copying to SIMD
+      size_t padding = annoVals.size() - (annoVals.size() % Vc::uint32_v::size());
+      if(padding >= 0)
+      {
+        annoVals.reserve(annoVals.size()+padding);
+        reachableNodes.reserve(annoVals.size()+padding);
+      }
+
       if(reflexiveCheckNeeded)
       {
 
