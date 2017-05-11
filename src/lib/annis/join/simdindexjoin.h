@@ -75,9 +75,14 @@ private:
   {
     if(Vc::any_of(v_valid))
     {
+      bool valid[Vc::Mask<uint32_t>::size()];
+      v_valid.store(valid);
       for(size_t j=0; j < Vc::Mask<uint32_t>::size() && (offset+j) < reachableNodes.size(); j++)
       {
-        matchBuffer.emplace_back(reachableNodes[offset+j]);
+        if(valid[j])
+        {
+          matchBuffer.emplace_back(reachableNodes[offset+j]);
+        }
       }
     }
   }
