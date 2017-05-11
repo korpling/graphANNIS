@@ -25,8 +25,6 @@
 #include "annis/types.h"                  // for Match, Annotation, nodeid_t
 #include "annis/util/threadpool.h"        // for ThreadPool
 
-#include <Vc/Vc
-
 using namespace annis;
 
 SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
