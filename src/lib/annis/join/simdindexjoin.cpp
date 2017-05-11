@@ -36,6 +36,8 @@ SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                              Annotation rhsAnnoToFind)
   : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind)
 {
+  reachableNodes.reserve(128);
+  annoVals.reserve(128);
 }
 
 bool SIMDIndexJoin::next(std::vector<Match> &tuple)
@@ -77,11 +79,11 @@ bool SIMDIndexJoin::fillMatchBuffer()
 
   while(matchBuffer.empty() && lhs->next(currentLHS))
   {
+    Vc::uint32_v v_lhsNode = currentLHS[lhsIdx].node;
+
     std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
     if(reachableNodesIt)
     {
-      Vc::uint32_v v_lhsNode = currentLHS[lhsIdx].node;
-
       const bool reflexiveCheckNeeded =
           !(op->isReflexive()
             || rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
@@ -103,6 +105,7 @@ bool SIMDIndexJoin::fillMatchBuffer()
 
       if(reflexiveCheckNeeded)
       {
+
         for(size_t i=0; i < annoVals.size() && i < reachableNodes.size(); i += Vc::uint32_v::size())
         {
           // transform the data to SIMD
