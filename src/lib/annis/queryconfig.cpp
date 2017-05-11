@@ -25,10 +25,10 @@ annis::QueryConfig::QueryConfig()
     numOfBackgroundTasks(0), enableTaskIndexJoin(false), enableThreadIndexJoin(false), enableSIMDIndexJoin(false), threadPool(nullptr)
 
 {
-  if(Vc::isImplementationSupported(Vc::Implementation::AVX2Impl))
-  {
-    enableSIMDIndexJoin = true;
-  }
+//  if(Vc::isImplementationSupported(Vc::Implementation::AVX2Impl))
+//  {
+//    enableSIMDIndexJoin = true;
+//  }
 
 //  size_t numOfCPUs = std::thread::hardware_concurrency();
 //  if(numOfCPUs > 0)
