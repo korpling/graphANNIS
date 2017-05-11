@@ -1,6 +1,6 @@
 set(Vc_PREFIX ${GLOBAL_OUTPUT_PATH}/vc)
 
-set(Vc_SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/Vc-1.3.1)
+set(Vc_SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/Vc-1.3.2)
 
 ExternalProject_Add(
   Vc
