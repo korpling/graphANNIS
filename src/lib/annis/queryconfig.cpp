@@ -17,12 +17,19 @@
 #include "queryconfig.h"
 #include "annis/types.h"  // for Component
 
+#include <Vc/global.h>
+#include <Vc/support.h>
 
 annis::QueryConfig::QueryConfig()
   : optimize(true), forceFallback(false), avoidNestedBySwitch(true) ,
     numOfBackgroundTasks(0), enableTaskIndexJoin(false), enableThreadIndexJoin(false), enableSIMDIndexJoin(false), threadPool(nullptr)
 
 {
+  if(Vc::isImplementationSupported(Vc::Implementation::AVX2Impl))
+  {
+    enableSIMDIndexJoin = true;
+  }
+
 //  size_t numOfCPUs = std::thread::hardware_concurrency();
 //  if(numOfCPUs > 0)
 //  {
