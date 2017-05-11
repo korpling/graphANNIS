@@ -75,11 +75,10 @@ private:
   {
     if(Vc::any_of(v_valid))
     {
-      bool valid[Vc::Mask<uint32_t>::size()];
-      v_valid.store(valid);
-      for(size_t j=0; j < Vc::Mask<uint32_t>::size() && (offset+j) < reachableNodes.size(); j++)
+      int valid = v_valid.toInt();
+      for(size_t j=v_valid.firstOne(); j < Vc::Mask<uint32_t>::size() && (offset+j) < reachableNodes.size(); j++)
       {
-        if(valid[j])
+        if(valid & (1u << j))
         {
           matchBuffer.emplace_back(reachableNodes[offset+j]);
         }
