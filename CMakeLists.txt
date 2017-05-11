@@ -173,7 +173,7 @@ set(SRC_LIST_RUNNER
 )
 
 set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
-vc_compile_for_all_implementations(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
+vc_compile_for_all_implementations(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp ONLY AVX2+FMA+BMI2)
 
 include_directories( "src/lib")
 
