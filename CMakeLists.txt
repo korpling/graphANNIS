@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/output)
 
 set(ENABLE_VALGRIND FALSE CACHE BOOL "Allow to turn Valgrind instrumentation on or off for some parts of the code")
-
+set(ENABLE_SIMD_SUPPORT TRUE CACHE BOOL "Enable support for operations using SIMD instructions. Needs a CPU with AVX2.")
 
 # make sure a build type is selected
 if(NOT CMAKE_BUILD_TYPE)
@@ -174,12 +174,14 @@ set(SRC_LIST_RUNNER
 
 set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
 
-if(MSVC)
-  set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
-else()
-  set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "-mavx2")
+if(ENABLE_SIMD_SUPPORT)
+  if(MSVC)
+    set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+  else()
+    set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "-mavx2")
+  endif()
+  set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_DEFINITIONS "Vc_IMPL=AVX2")
 endif()
-set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_DEFINITIONS "Vc_IMPL=AVX2")
 
 include_directories( "src/lib")
 
