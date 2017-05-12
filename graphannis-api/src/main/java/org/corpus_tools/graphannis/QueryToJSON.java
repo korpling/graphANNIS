@@ -85,11 +85,6 @@ public class QueryToJSON
     mapper.registerModule(jaxbModule);
     mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
     
-    if(metaData != null && !metaData.isEmpty())
-    {
-      throw new AnnisQLSyntaxException("Metadata filtering not supported yet");
-    }
-
     if (query != null && !query.isEmpty())
     {
       ArrayNode alternatives = root.putArray("alternatives");
@@ -156,9 +151,16 @@ public class QueryToJSON
             ObjectNode j = joinObject.addObject();
             mapJoin(aqlJoin, n, j, mapper);
           }
+        } // end for each node of a single alternative
+        
+        // also add the meta-data as a special node and connect it with a SubPartOfCorpus join
+        if(metaData != null && !metaData.isEmpty() && !alt.isEmpty())
+        {
+          nodes.set("meta", mapper.valueToTree(metaData));
         }
-      }
-    }
+        
+      } // end for each alternative
+    } // end if query not empty
 
     return root;
   }
