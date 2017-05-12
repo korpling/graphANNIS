@@ -73,7 +73,7 @@ public:
 
   bool inline isToken(const nodeid_t& n)
   {
-    return db.nodeAnnos.getAnnotations(n, db.getNamespaceStringID(), db.getTokStringID()).empty() == false;
+    return static_cast<bool>(db.nodeAnnos.getAnnotations(n, db.getNamespaceStringID(), db.getTokStringID()));
   }
 
 private:

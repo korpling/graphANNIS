@@ -117,10 +117,10 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
         if(!m.empty())
         {
           const Match& n  = m[0];
-          std::vector<Annotation> anno = db.nodeAnnos.getAnnotations(db.strings, n.node, annis_ns, "document");
-          if(!anno.empty())
+          boost::optional<Annotation> anno = db.nodeAnnos.getAnnotations(db.strings, n.node, annis_ns, "document");
+          if(anno)
           {
-            documents.insert(anno[0].val);
+            documents.insert(anno->val);
           }
         }
       }

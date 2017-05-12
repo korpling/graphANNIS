@@ -15,7 +15,6 @@
  */
 package org.corpus_tools.graphannis;
 
-import annis.service.objects.Match;
 import com.google.common.io.Files;
 import java.io.File;
 import java.util.HashSet;

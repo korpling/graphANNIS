@@ -1,0 +1,21 @@
+set(Vc_PREFIX ${GLOBAL_OUTPUT_PATH}/vc)
+
+set(Vc_SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/Vc-1.3.2)
+
+ExternalProject_Add(
+  Vc
+
+  UPDATE_COMMAND ""
+  PATCH_COMMAND ""
+
+  SOURCE_DIR "${Vc_SOURCE_DIR}"
+  CMAKE_ARGS -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=${Vc_PREFIX}
+
+  TEST_COMMAND ""
+)
+
+include(${Vc_SOURCE_DIR}/cmake/VcMacros.cmake)
+
+set(Vc_STATIC_LIBRARY "${Vc_PREFIX}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}Vc${CMAKE_STATIC_LIBRARY_SUFFIX}")
+include_directories(SYSTEM ${Vc_PREFIX}/include)
+

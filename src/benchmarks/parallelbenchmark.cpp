@@ -100,6 +100,9 @@ class GUMFixture : public celero::TestFixture
 
           nonParallelConfig.numOfBackgroundTasks = 0;
           nonParallelConfig.threadPool = nullptr;
+          nonParallelConfig.enableSIMDIndexJoin = false;
+          nonParallelConfig.enableTaskIndexJoin = false;
+          nonParallelConfig.enableThreadIndexJoin = false;
 
 
 //          taskConfigs.resize(9);
@@ -109,7 +112,13 @@ class GUMFixture : public celero::TestFixture
           {
             threadConfigs[i].threadPool = benchmarkThreadPool;
             threadConfigs[i].numOfBackgroundTasks = i;
+
+            nonParallelConfig.enableSIMDIndexJoin = false;
           }
+
+          simdConfig.numOfBackgroundTasks = 0;
+          simdConfig.threadPool = nullptr;
+          simdConfig.enableSIMDIndexJoin = true;
         }
 
         std::shared_ptr<Query> query_PosDepPos(QueryConfig config)
@@ -163,6 +172,7 @@ class GUMFixture : public celero::TestFixture
         DB db;
         QueryConfig nonParallelConfig;
         std::vector<QueryConfig> threadConfigs;
+        QueryConfig simdConfig;
 
         const int count_PosDepPos;
         const int count_UsedTo;
@@ -203,29 +213,48 @@ class GUMFixture : public celero::TestFixture
   CALLGRIND_STOP_INSTRUMENTATION;\
   }
 
+#define COUNT_BENCH_SIMD(group) \
+  BENCHMARK_F(group, SIMD, GUMFixture, 0, 0) \
+  { \
+  CALLGRIND_START_INSTRUMENTATION;\
+    std::shared_ptr<Query> q = query_##group(simdConfig);\
+    int counter=0; \
+    while(q->next()) { \
+      counter++; \
+    } \
+    if(counter != count_##group)\
+    {\
+      throw "Invalid count for SIMD, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
+    }\
+  CALLGRIND_STOP_INSTRUMENTATION;\
+  }
+
 COUNT_BASELINE(PosDepPos)
 COUNT_BENCH(PosDepPos, 2)
 COUNT_BENCH(PosDepPos, 4)
-COUNT_BENCH(PosDepPos, 6)
-COUNT_BENCH(PosDepPos, 8)
-COUNT_BENCH(PosDepPos, 10)
-COUNT_BENCH(PosDepPos, 12)
+//COUNT_BENCH(PosDepPos, 6)
+//COUNT_BENCH(PosDepPos, 8)
+//COUNT_BENCH(PosDepPos, 10)
+//COUNT_BENCH(PosDepPos, 12)
+COUNT_BENCH_SIMD(PosDepPos)
 
 COUNT_BASELINE(UsedTo)
-COUNT_BENCH(UsedTo, 2)
-COUNT_BENCH(UsedTo, 4)
-COUNT_BENCH(UsedTo, 6)
-COUNT_BENCH(UsedTo, 8)
-COUNT_BENCH(UsedTo, 10)
-COUNT_BENCH(UsedTo, 12)
+//COUNT_BENCH(UsedTo, 2)
+//COUNT_BENCH(UsedTo, 4)
+//COUNT_BENCH(UsedTo, 6)
+//COUNT_BENCH(UsedTo, 8)
+//COUNT_BENCH(UsedTo, 10)
+//COUNT_BENCH(UsedTo, 12)
+COUNT_BENCH_SIMD(UsedTo)
 
 COUNT_BASELINE(ComplexNested)
 COUNT_BENCH(ComplexNested, 2)
 COUNT_BENCH(ComplexNested, 4)
-COUNT_BENCH(ComplexNested, 6)
-COUNT_BENCH(ComplexNested, 8)
-COUNT_BENCH(ComplexNested, 10)
-COUNT_BENCH(ComplexNested, 12)
+//COUNT_BENCH(ComplexNested, 6)
+//COUNT_BENCH(ComplexNested, 8)
+//COUNT_BENCH(ComplexNested, 10)
+//COUNT_BENCH(ComplexNested, 12)
+COUNT_BENCH_SIMD(ComplexNested)
 
 BASELINE(CreateThreadPool, N1, 0, 0)
 {

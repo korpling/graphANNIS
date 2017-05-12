@@ -50,10 +50,10 @@ public:
   {
     std::string result = "";
 
-    std::vector<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, annis_node_name);
-    if(!anno.empty())
+    boost::optional<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, annis_node_name);
+    if(anno)
     {
-      result = strings.str(anno[0].val);
+      result = strings.str(anno->val);
     }
     return result;
   }
@@ -78,10 +78,10 @@ public:
   {
     std::string result = "";
 
-    std::vector<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, "document");
-    if(!anno.empty())
+    boost::optional<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, "document");
+    if(anno)
     {
-      result = strings.str(anno[0].val);
+      result = strings.str(anno->val);
     }
     return result;
   }
