@@ -27,7 +27,7 @@
 #include <annis/operators/precedence.h>
 #include <annis/operators/pointing.h>
 #include <annis/operators/dominance.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
 #include <annis/json/jsonqueryparser.h>
 
 #include "testlogger.h"
@@ -240,7 +240,7 @@ TEST_F(SearchTestPcc2, StructureInclusionSeed) {
 
 TEST_F(SearchTestPcc2, StructureInclusionFilter) {
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "cat", "AP"));
 
@@ -272,7 +272,7 @@ TEST_F(SearchTestPcc2, AnyNodeIncludeSeed) {
 
 TEST_F(SearchTestPcc2, AnyNodeIncludeFilter) {
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
 
@@ -389,7 +389,7 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
 
   unsigned int counter = 0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "pper"));
 
@@ -427,7 +427,7 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
 
   unsigned int counter = 0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "pper"));
 
@@ -466,7 +466,7 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
 
   unsigned int counter = 0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "pos", "ADJD"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "."));
 

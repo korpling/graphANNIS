@@ -44,10 +44,10 @@ struct OperatorEntry
   size_t originalOrder;
 };
 
-class Query
+class SingleAlternativeQuery
 {
 public:
-  Query(const DB& db, QueryConfig config = QueryConfig());
+  SingleAlternativeQuery(const DB& db, QueryConfig config = QueryConfig());
   
   /**
    * @brief Add a new node to query
@@ -71,7 +71,7 @@ public:
   
   std::shared_ptr<const Plan> getBestPlan();
   
-  virtual ~Query();
+  virtual ~SingleAlternativeQuery();
 
 private:
 

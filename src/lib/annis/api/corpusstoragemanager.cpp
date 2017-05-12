@@ -40,7 +40,7 @@
 #include "annis/api/graphupdate.h"                      // for GraphUpdate
 #include "annis/dbloader.h"                             // for DBLoader
 #include "annis/json/jsonqueryparser.h"                 // for JSONQueryParser
-#include "annis/query.h"
+#include "annis/query/query.h"
 #include "annis/annostorage.h"                          // for AnnoStorage
 #include "annis/stringstorage.h"                        // for StringStorage
 #include "annis/types.h"                                // for Match, Annota...

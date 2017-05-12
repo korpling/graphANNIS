@@ -22,7 +22,7 @@
 #include <annis/annosearch/exactannokeysearch.h>
 #include <cstdlib>
 #include <boost/format.hpp>
-#include <annis/query.h>
+#include <annis/query/singlealternativequery.h>
 #include <annis/operators/dominance.h>
 #include <annis/operators/partofsubcorpus.h>
 #include <annis/graphstorage/graphstorage.h>
@@ -225,7 +225,7 @@ TEST_F(LoadTest, Dom)
 
   unsigned int counter=0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
@@ -274,7 +274,7 @@ TEST_F(LoadTest, RangedDom) {
 
   unsigned int counter=0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "AP"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
 
@@ -298,7 +298,7 @@ TEST_F(LoadTest, SecEdge) {
 
   unsigned int counter=0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "was"));
 
@@ -317,7 +317,7 @@ TEST_F(LoadTest, SecEdge) {
 }
 
 TEST_F(LoadTest, NodesOfDocument) {
-  Query q(db);
+  SingleAlternativeQuery q(db);
 
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2/11299"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
@@ -338,7 +338,7 @@ TEST_F(LoadTest, NodesOfDocument) {
 }
 
 TEST_F(LoadTest, NodesOfToplevelCorpus) {
-  Query q(db);
+  SingleAlternativeQuery q(db);
 
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
@@ -359,7 +359,7 @@ TEST_F(LoadTest, NodesOfToplevelCorpus) {
 }
 
 TEST_F(LoadTest, DocumentAnno) {
-  Query q(db);
+  SingleAlternativeQuery q(db);
 
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "Genre", "Politik"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));

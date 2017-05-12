@@ -19,7 +19,7 @@
 
 #include <annis/json/jsonqueryparser.h>
 #include <annis/db.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
 #include <annis/dbcache.h>
 #include <annis/queryconfig.h>
 

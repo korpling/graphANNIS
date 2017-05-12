@@ -26,7 +26,8 @@
 #include <annis/operators/precedence.h>
 #include <annis/operators/pointing.h>
 #include <annis/operators/dominance.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
+#include <annis/query/singlealternativequery.h>
 #include <annis/json/jsonqueryparser.h>
 #include <annis/util/threadpool.h>
 
@@ -139,7 +140,7 @@ TEST_F(SearchTestGUM, IndirectPointingNested) {
 
   unsigned int counter = 0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "object"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "abstract"));
 
@@ -228,7 +229,7 @@ TEST_F(SearchTestGUM, pos_dep_pos_Thread4) {
   config.numOfBackgroundTasks = 4;
   config.threadPool = std::make_shared<ThreadPool>(4);
 
-  std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
+  std::shared_ptr<SingleAlternativeQuery> result = std::make_shared<SingleAlternativeQuery>(db, config);
 
   result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
   result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));

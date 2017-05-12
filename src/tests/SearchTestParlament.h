@@ -24,7 +24,7 @@
 #include <annis/operators/pointing.h>
 #include <annis/operators/dominance.h>
 #include <annis/annosearch/exactannovaluesearch.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
 
 #include "testlogger.h"
 

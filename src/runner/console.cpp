@@ -25,7 +25,7 @@
 
 #include <annis/util/helper.h>
 #include <annis/util/relannisloader.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
 #include <annis/util/threadpool.h>
 #include <annis/util/plan.h>
 
@@ -342,7 +342,7 @@ void Console::plan(const std::vector<std::string> &args)
       try
       {
         std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
-        std::cout << q->getBestPlan()->debugString() << std::endl;
+        std::cout << q->debugString() << std::endl;
       }
       catch(Json::RuntimeError err)
       {

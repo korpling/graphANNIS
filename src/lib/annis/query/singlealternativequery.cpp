@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-#include "query.h"
+#include "singlealternativequery.h"
 #include <annis/annosearch/annotationsearch.h>      // for EstimatedSearch
 #include <annis/annosearch/nodebyedgeannosearch.h>  // for NodeByEdgeAnnoSearch
 #include <annis/db.h>                               // for DB
@@ -37,16 +37,16 @@
 
 using namespace annis;
 
-Query::Query(const DB &db, QueryConfig config)
+SingleAlternativeQuery::SingleAlternativeQuery(const DB &db, QueryConfig config)
   : db(db), config(config)
 {
 }
 
-Query::~Query() {
+SingleAlternativeQuery::~SingleAlternativeQuery() {
   
 }
 
-size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNodeAnno)
+size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNodeAnno)
 {
   bestPlan.reset();
 
@@ -64,7 +64,7 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNo
   return idx;
 }
 
-size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAnyNodeAnno)
+size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAnyNodeAnno)
 {
   bestPlan.reset();
 
@@ -81,7 +81,7 @@ size_t annis::Query::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAn
   return idx;
 }
 
-void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool forceNestedLoop)
+void SingleAlternativeQuery::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool forceNestedLoop)
 {
   bestPlan.reset();
 
@@ -95,7 +95,7 @@ void Query::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idx
   operators.push_back(entry);
 }
 
-void Query::optimizeOperandOrder()
+void SingleAlternativeQuery::optimizeOperandOrder()
 {
   if(!bestPlan && db.nodeAnnos.hasStatistics())
   {
@@ -128,7 +128,7 @@ void Query::optimizeOperandOrder()
   }
 }
 
-void Query::optimizeEdgeAnnoUsage()
+void SingleAlternativeQuery::optimizeEdgeAnnoUsage()
 {
   for(const OperatorEntry& opEntry : operators)
   {
@@ -157,7 +157,7 @@ void Query::optimizeEdgeAnnoUsage()
   }
 }
 
-std::shared_ptr<const Plan> Query::getBestPlan() 
+std::shared_ptr<const Plan> SingleAlternativeQuery::getBestPlan()
 {
   if(!bestPlan)
   {
@@ -167,7 +167,7 @@ std::shared_ptr<const Plan> Query::getBestPlan()
 }
 
 
-std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes,
+std::shared_ptr<Plan> SingleAlternativeQuery::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes,
   const std::vector<OperatorEntry>& operators, std::map<size_t, size_t> parallelizationMapping)
 {
   std::map<nodeid_t, size_t> node2component;
@@ -241,7 +241,7 @@ std::shared_ptr<Plan> Query::createPlan(const std::vector<std::shared_ptr<AnnoIt
   return std::make_shared<Plan>(component2exec[*firstComponentID]);
 }
 
-void Query::updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to)
+void SingleAlternativeQuery::updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to)
 {
   if(from == to)
   {
@@ -266,7 +266,7 @@ void Query::updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, 
 
 
 
-void Query::internalInit()
+void SingleAlternativeQuery::internalInit()
 {
   if(bestPlan) {
     return;
@@ -321,7 +321,7 @@ void Query::internalInit()
   currentResult.resize(nodes.size());
 }
 
-void Query::optimizeJoinOrderRandom() 
+void SingleAlternativeQuery::optimizeJoinOrderRandom()
 {
   // use a constant seed to make the result deterministic
   std::mt19937 randGen(4711);
@@ -403,7 +403,7 @@ void Query::optimizeJoinOrderRandom()
   operators = optimizedOperators;
 }
 
-void Query::optimizeJoinOrderAllPermutations() 
+void SingleAlternativeQuery::optimizeJoinOrderAllPermutations()
 {
   // make sure the first permutation is the sorted one
   std::vector<OperatorEntry> testOrder = operators;
@@ -436,7 +436,7 @@ void Query::optimizeJoinOrderAllPermutations()
 }
 
 
-std::string Query::operatorOrderDebugString(const std::vector<OperatorEntry>& ops) 
+std::string SingleAlternativeQuery::operatorOrderDebugString(const std::vector<OperatorEntry>& ops)
 {
   std::string result = "";
   for(auto it=ops.begin(); it != ops.end(); it++)
@@ -462,7 +462,7 @@ std::string Query::operatorOrderDebugString(const std::vector<OperatorEntry>& op
 
 
 
-bool Query::next()
+bool SingleAlternativeQuery::next()
 {
   if(!bestPlan)
   {
