@@ -49,7 +49,8 @@ bool RelANNISLoader::load(string dirPath)
 
   std::map<std::uint32_t, std::uint32_t> corpusByPreOrder;
   map<uint32_t, std::string> corpusIDToName;
-  std::string toplevelCorpusName = loadRelANNISCorpusTab(dirPath, corpusByPreOrder, corpusIDToName, isANNIS33Format);
+  std::string toplevelCorpusName = loadRelANNISCorpusTab(dirPath, corpusByPreOrder,
+                                                         corpusIDToName, isANNIS33Format);
   if(toplevelCorpusName.empty())
   {
     std::cerr << "Could not find toplevel corpus name" << std::endl;
@@ -88,8 +89,11 @@ bool RelANNISLoader::load(string dirPath)
 
   bool result = loadRelANNISRank(dirPath, componentToGS, isANNIS33Format);
 
+  std::multimap<uint32_t, Annotation> corpusId2Annos;
+  loadCorpusAnnotation(dirPath, corpusId2Annos, isANNIS33Format);
+
   // add all (sub-) corpora and documents as explicit nodes
-  addSubCorpora(toplevelCorpusName, corpusByPreOrder, corpusIDToName, nodesByCorpusID);
+  addSubCorpora(toplevelCorpusName, corpusByPreOrder, corpusIDToName, nodesByCorpusID, corpusId2Annos);
 
   // construct the complex indexes for all components
   db.optimizeAll();
@@ -520,10 +524,42 @@ bool RelANNISLoader::loadEdgeAnnotation(const string &dirPath,
   return result;
 }
 
-void RelANNISLoader::addSubCorpora(
-    std::string toplevelCorpusName,
+void RelANNISLoader::loadCorpusAnnotation(const string &dirPath, std::multimap<uint32_t, Annotation>& corpusId2Annos,
+                                          bool isANNIS33Format)
+{
+
+  ifstream in;
+  string corpusAnnoTabPath = dirPath + "/corpus_annotation" + (isANNIS33Format ? ".annis" : ".tab");
+  HL_INFO(logger, (boost::format("loading %1%") % corpusAnnoTabPath).str());
+
+  in.open(corpusAnnoTabPath, ifstream::in);
+  if(!in.good()) return;
+
+  vector<string> line;
+
+  while((line = Helper::nextCSV(in)).size() > 0)
+  {
+    std::string ns = "";
+    if(line[1] != "NULL")
+    {
+      ns = line[1];
+    }
+    std::string name = line[2];
+    std::string val = line[3];
+
+    Annotation anno;
+    anno.ns = db.strings.add(ns);
+    anno.name = db.strings.add(name);
+    anno.val = db.strings.add(val);
+
+    corpusId2Annos.insert({Helper::uint32FromString(line[0]), anno});
+  }
+
+}
+
+void RelANNISLoader::addSubCorpora(std::string toplevelCorpusName,
     std::map<uint32_t, uint32_t> &corpusByPreOrder, std::map<uint32_t, string> &corpusIDToName,
-    multimap<uint32_t, nodeid_t>& nodesByCorpusID)
+    multimap<uint32_t, nodeid_t>& nodesByCorpusID, std::multimap<uint32_t, Annotation>& corpusId2Annos)
 {
   std::list<std::pair<NodeAnnotationKey, uint32_t>> corpusAnnoList;
 
@@ -535,6 +571,15 @@ void RelANNISLoader::addSubCorpora(
   nodeid_t toplevelNodeID = nodeID++;
   corpusAnnoList.push_back({{toplevelNodeID, db.strings.add(annis_node_name), db.strings.add(annis_ns)},
                            db.strings.add(toplevelCorpusName)});
+  {
+    // add all metadata for the top-level corpus node
+    auto itAnnoMeta = corpusId2Annos.equal_range(corpusByPreOrder[0]);
+    for(auto it = itAnnoMeta.first; it != itAnnoMeta.second; it++)
+    {
+      corpusAnnoList.push_back({{toplevelNodeID, it->second.name, it->second.ns},
+                                it->second.val});
+    }
+  }
 
   for(auto itCorpora = corpusByPreOrder.rbegin(); itCorpora != corpusByPreOrder.rend(); itCorpora++)
   {
@@ -546,6 +591,14 @@ void RelANNISLoader::addSubCorpora(
                               db.strings.add(fullName)});
     corpusAnnoList.push_back({{nodeID,  db.strings.add("doc"), db.strings.add(annis_ns)},
                               db.strings.add(corpusName)});
+
+    // add all metadata for the document node
+    auto itAnnoMeta = corpusId2Annos.equal_range(corpusID);
+    for(auto it = itAnnoMeta.first; it != itAnnoMeta.second; it++)
+    {
+      corpusAnnoList.push_back({{nodeID, it->second.name, it->second.ns},
+                                it->second.val});
+    }
 
     // find all nodes belonging to this document and add a relation
     auto itNodeStart = nodesByCorpusID.lower_bound(corpusID);

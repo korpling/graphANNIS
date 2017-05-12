@@ -18,13 +18,15 @@ private:
   DB& db;
 
 private:
-  std::string loadRelANNISCorpusTab(std::string dirPath, std::map<uint32_t, uint32_t> &corpusByPreOrder,
+  std::string loadRelANNISCorpusTab(std::string dirPath,
+                                    std::map<uint32_t, uint32_t> &corpusByPreOrder,
                                     std::map<std::uint32_t, std::string> &corpusIDToName,
     bool isANNIS33Format);
   bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::string> &corpusIDToName,
                         std::multimap<uint32_t, nodeid_t>& nodesByCorpusID,
                         std::string toplevelCorpusName,
                         bool isANNIS33Format);
+
   bool loadRelANNISRank(const std::string& dirPath,
                         const std::map<uint32_t, std::shared_ptr<WriteableGraphStorage> > &componentToGS,
                         bool isANNIS33Format);
@@ -34,8 +36,12 @@ private:
                           const std::map<std::uint32_t, Edge>& pre2Edge,
                           bool isANNIS33Format);
 
+  void loadCorpusAnnotation(const std::string& dirPath,
+                            std::multimap<uint32_t, Annotation> &corpusId2Annos, bool isANNIS33Format);
+
   void addSubCorpora(std::string toplevelCorpusName, std::map<uint32_t, uint32_t> &corpusByPreOrder,
-                     std::map<uint32_t, std::string> &corpusIDToName, std::multimap<uint32_t, nodeid_t>& nodesByCorpusID);
+                     std::map<uint32_t, std::string> &corpusIDToName, std::multimap<uint32_t, nodeid_t>& nodesByCorpusID,
+                     std::multimap<uint32_t, Annotation> &corpusId2Annos);
 
   ComponentType componentTypeFromShortName(std::string shortType);
 };
