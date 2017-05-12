@@ -104,6 +104,7 @@ set(IncludeFiles
   src/lib/annis/util/dfs.h
   src/lib/annis/util/size_estimator.h
   src/lib/annis/util/comparefunctions.h
+  src/lib/annis/util/relannisloader.h
   src/lib/annis/util/sharedqueue.h
   src/lib/annis/util/threadpool.h
   src/lib/annis/query.h
@@ -150,6 +151,7 @@ set(SRC_LIST_LIB
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
+  src/lib/annis/util/relannisloader.cpp
   src/lib/annis/util/sharedqueue.cpp
   src/lib/annis/util/threadpool.cpp
   src/lib/annis/annostorage.cpp

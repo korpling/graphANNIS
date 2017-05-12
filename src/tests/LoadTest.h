@@ -25,6 +25,7 @@
 #include <annis/query.h>
 #include <annis/operators/dominance.h>
 #include <annis/graphstorage/graphstorage.h>
+#include <annis/util/relannisloader.h>
 
 #include "testlogger.h"
 
@@ -52,7 +53,7 @@ protected:
     {
       dataDir = testDataEnv;
     }
-    bool loadedDB = db.loadRelANNIS(dataDir + "/../relannis/pcc2");
+    bool loadedDB = RelANNISLoader::loadRelANNIS(db, dataDir + "/../relannis/pcc2");
     ASSERT_EQ(true, loadedDB);
   }
 
