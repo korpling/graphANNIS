@@ -316,7 +316,7 @@ TEST_F(LoadTest, SecEdge) {
   EXPECT_EQ(2u, counter);
 }
 
-TEST_F(LoadTest, Documents) {
+TEST_F(LoadTest, NodesOfDocument) {
   Query q(db);
 
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2/11299"));
@@ -335,4 +335,25 @@ TEST_F(LoadTest, Documents) {
     counter++;
   }
   EXPECT_EQ(558u, counter);
+}
+
+TEST_F(LoadTest, NodesOfToplevelCorpus) {
+  Query q(db);
+
+  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2"));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges, db.strings), n1, n2);
+
+  int counter=0;
+  while(q.next())
+  {
+    const std::vector<Match> m = q.getCurrent();
+    ASSERT_EQ(2, m.size());
+
+    EXPECT_STREQ("pcc2", db.getNodeName(m[0].node).c_str());
+
+    counter++;
+  }
+  EXPECT_EQ(399u, counter);
 }

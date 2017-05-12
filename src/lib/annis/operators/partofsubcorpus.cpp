@@ -27,6 +27,7 @@ PartOfSubCorpus::PartOfSubCorpus(GraphStorageHolder& gsh, const StringStorage& s
   : AbstractEdgeOperator(ComponentType::PART_OF_SUBCORPUS,
                          gsh, strings, annis_ns, "", 1, std::numeric_limits<unsigned int>::max())
 {
+
 }
 
 PartOfSubCorpus::~PartOfSubCorpus()

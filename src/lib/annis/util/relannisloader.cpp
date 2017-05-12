@@ -522,12 +522,19 @@ bool RelANNISLoader::loadEdgeAnnotation(const string &dirPath,
 
 void RelANNISLoader::addSubCorpora(
     std::string toplevelCorpusName,
-    const std::map<uint32_t, uint32_t> &corpusByPreOrder, std::map<uint32_t, string> &corpusIDToName,
+    std::map<uint32_t, uint32_t> &corpusByPreOrder, std::map<uint32_t, string> &corpusIDToName,
     multimap<uint32_t, nodeid_t>& nodesByCorpusID)
 {
   std::list<std::pair<NodeAnnotationKey, uint32_t>> corpusAnnoList;
 
+  std::shared_ptr<WriteableGraphStorage> gsSubCorpus = db.edges.createWritableGraphStorage(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
+
   nodeid_t nodeID = db.nextFreeNodeID();
+
+  // add the toplevel corpus as node
+  nodeid_t toplevelNodeID = nodeID++;
+  corpusAnnoList.push_back({{toplevelNodeID, db.strings.add(annis_node_name), db.strings.add(annis_ns)},
+                           db.strings.add(toplevelCorpusName)});
 
   for(auto itCorpora = corpusByPreOrder.rbegin(); itCorpora != corpusByPreOrder.rend(); itCorpora++)
   {
@@ -538,13 +545,15 @@ void RelANNISLoader::addSubCorpora(
                               db.strings.add(fullName)});
 
     // find all nodes belonging to this document and add a relation
-    std::shared_ptr<WriteableGraphStorage> gsSubCorpus = db.edges.createWritableGraphStorage(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
     auto itNodeStart = nodesByCorpusID.lower_bound(corpusID);
     auto itNodeEnd  = nodesByCorpusID.upper_bound(corpusID);
     for(auto itNode = itNodeStart; itNode != itNodeEnd; itNode++)
     {
       gsSubCorpus->addEdge({nodeID, itNode->second});
     }
+
+    // also add an edge from the top-level corpus to the document
+    gsSubCorpus->addEdge({toplevelNodeID, nodeID});
 
     nodeID++;
   }

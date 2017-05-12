@@ -34,7 +34,7 @@ private:
                           const std::map<std::uint32_t, Edge>& pre2Edge,
                           bool isANNIS33Format);
 
-  void addSubCorpora(std::string toplevelCorpusName, const std::map<uint32_t, uint32_t> &corpusByPreOrder,
+  void addSubCorpora(std::string toplevelCorpusName, std::map<uint32_t, uint32_t> &corpusByPreOrder,
                      std::map<uint32_t, std::string> &corpusIDToName, std::multimap<uint32_t, nodeid_t>& nodesByCorpusID);
 
   ComponentType componentTypeFromShortName(std::string shortType);
