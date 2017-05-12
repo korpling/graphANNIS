@@ -14,6 +14,8 @@ public:
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
   virtual bool filter(const Match& lhs, const Match& rhs) override;
 
+  virtual EstimationType estimationType() override {return EstimationType::MIN;}
+
   virtual std::string description() override {return "_ident_";}
 
   virtual bool isCommutative() override {return true;}

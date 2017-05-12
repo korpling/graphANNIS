@@ -37,6 +37,8 @@ public:
     return "part_of_subcorpus";
   }
 
+  virtual double selectivity() override;
+
   virtual bool isReflexive() override
   {
     return false;
@@ -45,6 +47,6 @@ public:
   
   virtual ~PartOfSubCorpus();
 private:
-
+  std::shared_ptr<const ReadableGraphStorage> gs;
 };
 } // end namespace annis

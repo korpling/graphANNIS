@@ -7,8 +7,8 @@ using namespace annis;
 IdenticalNode::IdenticalNode(const DB& db)
   : anyNodeAnno({db.getNodeNameStringID(), db.getNamespaceStringID(), 0})
 {
-
 }
+
 
 IdenticalNode::~IdenticalNode()
 {
@@ -28,3 +28,4 @@ bool IdenticalNode::filter(const Match &lhs, const Match &rhs)
 {
   return lhs.node == rhs.node;
 }
+

@@ -18,7 +18,9 @@
 #include "annis/operators/abstractedgeoperator.h"  // for AbstractEdgeOperator
 #include "annis/types.h"                           // for ComponentType, Com...
 
-namespace annis { class GraphStorageHolder; }
+#include <annis/graphstorageholder.h>
+#include <annis/graphstorage/graphstorage.h>
+
 namespace annis { class StringStorage; }
 
 using namespace annis;
@@ -27,7 +29,31 @@ PartOfSubCorpus::PartOfSubCorpus(GraphStorageHolder &gsh, const StringStorage& s
   : AbstractEdgeOperator(ComponentType::PART_OF_SUBCORPUS,
                          gsh, strings, annis_ns, "", 1, std::numeric_limits<unsigned int>::max())
 {
+  gs = gsh.getGraphStorage(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
+}
 
+double PartOfSubCorpus::selectivity()
+{
+  double graphStorageSelectivity = 0.0;
+  const auto& stat = gs->getStatistics();
+  if(stat.valid)
+  {
+    // We assume that normally the LHS of the join is a document and we
+    // always search for all connected actual annotation nodes.
+    // Thus we don't use the average fan-out (which includes the empty output edge lists of the annotation nodes
+    // and only use the max fan-out which gives a clearer picture how many nodes are included in a document at
+    // maxium.
+    std::uint32_t reachable = stat.maxFanOut;
+    graphStorageSelectivity = ((double) reachable ) / ((double) stat.nodes);
+
+  }
+  else
+  {
+     // assume a default selecivity for this graph storage operator
+     graphStorageSelectivity = 0.1;
+  }
+
+  return graphStorageSelectivity;
 }
 
 PartOfSubCorpus::~PartOfSubCorpus()

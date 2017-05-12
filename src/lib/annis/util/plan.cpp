@@ -296,19 +296,37 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         // (count(lhs) * count(rhs)) * selectivity(op)
         auto estLHS = estimateTupleSize(node->lhs);
         auto estRHS = estimateTupleSize(node->rhs);
-        double selectivity = defaultSelectivity;
-        long double operatorSelectivity = defaultSelectivity;
-        if(node->op)
+
+        std::uint64_t outputSize = 1;
+
+        Operator::EstimationType estType = node->op->estimationType();
+        long double operatorSelectivity = 1.0;
+
+        if(estType == Operator::EstimationType::SELECTIVITY)
         {
-          selectivity = operatorSelectivity = node->op->selectivity();
-          double edgeAnnoSelectivity = node->op->edgeAnnoSelectivity();
-          if(edgeAnnoSelectivity >= 0.0)
+          double selectivity = defaultSelectivity;
+          operatorSelectivity = defaultSelectivity;
+          if(node->op)
           {
-            selectivity = selectivity * edgeAnnoSelectivity;
+            selectivity = operatorSelectivity = node->op->selectivity();
+            double edgeAnnoSelectivity = node->op->edgeAnnoSelectivity();
+            if(edgeAnnoSelectivity >= 0.0)
+            {
+              selectivity = selectivity * edgeAnnoSelectivity;
+            }
+            outputSize =
+              static_cast<std::uint64_t>(((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity));
           }
         }
-        
-        std::uint64_t outputSize = static_cast<std::uint64_t>(((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity));
+        else if(estType == Operator::EstimationType::MIN)
+        {
+          outputSize = std::min(estLHS->output, estRHS->output);
+        }
+        else if(estType == Operator::EstimationType::MAX)
+        {
+          outputSize = std::max(estLHS->output, estRHS->output);
+        }
+
         if(outputSize < 1)
         {
           // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -329,7 +347,8 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
             processedInStep = estRHS->output + (estRHS->output * estLHS->output);
           }
         } 
-        else if (node->type == ExecutionNodeType::seed)
+        else if (node->type == ExecutionNodeType::seed
+                 && node->op->estimationType() == Operator::EstimationType::SELECTIVITY)
         {
           // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
           // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
@@ -340,7 +359,6 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
           //              = sel * rhs
           // processedInStep = lhs + (avgReachable * lhs)
           //                 = lhs + (sel * rhs * lhs)
-
 
           processedInStep =
               static_cast<std::uint64_t>(
@@ -706,7 +724,24 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
   }
   if(node->op)
   {
-    result += "{sel: " + std::to_string(node->op->selectivity());
+    Operator::EstimationType estType = node->op->estimationType();
+    if(estType == Operator::EstimationType::SELECTIVITY)
+    {
+      result += "{sel: " + std::to_string(node->op->selectivity());
+    }
+    else if(estType == Operator::EstimationType::MIN)
+    {
+      result += "{min";
+    }
+    else if(estType == Operator::EstimationType::MAX)
+    {
+      result += "{max";
+    }
+    else
+    {
+      result += "{";
+    }
+
     if((node->type == ExecutionNodeType::seed || node->type == ExecutionNodeType::nested_loop)
        && node->numOfBackgroundTasks > 0)
     {
