@@ -24,6 +24,7 @@
 #include <boost/format.hpp>
 #include <annis/query.h>
 #include <annis/operators/dominance.h>
+#include <annis/operators/partofsubcorpus.h>
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/util/relannisloader.h>
 
@@ -313,4 +314,25 @@ TEST_F(LoadTest, SecEdge) {
   }
 
   EXPECT_EQ(2u, counter);
+}
+
+TEST_F(LoadTest, Documents) {
+  Query q(db);
+
+  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2/11299"));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges, db.strings), n1, n2);
+
+  int counter=0;
+  while(q.next())
+  {
+    const std::vector<Match> m = q.getCurrent();
+    ASSERT_EQ(2, m.size());
+
+    EXPECT_STREQ("pcc2/11299", db.getNodeName(m[0].node).c_str());
+
+    counter++;
+  }
+  EXPECT_EQ(558u, counter);
 }

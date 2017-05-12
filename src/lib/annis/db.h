@@ -112,6 +112,8 @@ public:
 
   void clear();
 
+  nodeid_t nextFreeNodeID() const;
+
   virtual ~DB();
 public:
 
@@ -134,7 +136,6 @@ private:
 
   void addDefaultStrings();
 
-  nodeid_t nextFreeNodeID() const;
 
 
 };

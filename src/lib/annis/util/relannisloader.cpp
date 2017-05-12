@@ -6,6 +6,7 @@
 #include <map>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/optional.hpp>
 #include <humblelogging/api.h>
 #include <humblelogging/logger.h>
 
@@ -46,15 +47,18 @@ bool RelANNISLoader::load(string dirPath)
     }
   }
 
+  std::map<std::uint32_t, std::uint32_t> corpusByPreOrder;
   map<uint32_t, std::string> corpusIDToName;
-  std::string toplevelCorpusName = loadRelANNISCorpusTab(dirPath, corpusIDToName, isANNIS33Format);
+  std::string toplevelCorpusName = loadRelANNISCorpusTab(dirPath, corpusByPreOrder, corpusIDToName, isANNIS33Format);
   if(toplevelCorpusName.empty())
   {
     std::cerr << "Could not find toplevel corpus name" << std::endl;
     return false;
   }
 
-  if(loadRelANNISNode(dirPath, corpusIDToName, toplevelCorpusName, isANNIS33Format) == false)
+  multimap<uint32_t, nodeid_t> nodesByCorpusID;
+
+  if(loadRelANNISNode(dirPath, corpusIDToName, nodesByCorpusID, toplevelCorpusName, isANNIS33Format) == false)
   {
     return false;
   }
@@ -84,6 +88,8 @@ bool RelANNISLoader::load(string dirPath)
 
   bool result = loadRelANNISRank(dirPath, componentToGS, isANNIS33Format);
 
+  // add all (sub-) corpora and documents as explicit nodes
+  addSubCorpora(toplevelCorpusName, corpusByPreOrder, corpusIDToName, nodesByCorpusID);
 
   // construct the complex indexes for all components
   db.optimizeAll();
@@ -105,8 +111,10 @@ bool RelANNISLoader::loadRelANNIS(DB &db, std::string dirPath)
   return loader.load(dirPath);
 }
 
-std::string RelANNISLoader::loadRelANNISCorpusTab(string dirPath, map<uint32_t, std::string>& corpusIDToName,
-  bool isANNIS33Format)
+std::string RelANNISLoader::loadRelANNISCorpusTab(string dirPath,
+                                                  std::map<std::uint32_t, std::uint32_t>& corpusByPreOrder,
+                                                  std::map<uint32_t, std::string>& corpusIDToName,
+                                                  bool isANNIS33Format)
 {
   std::string toplevelCorpus = "";
 
@@ -122,22 +130,36 @@ std::string RelANNISLoader::loadRelANNISCorpusTab(string dirPath, map<uint32_t, 
     HL_ERROR(logger, msg);
     return "";
   }
+
   vector<string> line;
   while((line = Helper::nextCSV(in)).size() > 0)
   {
     std::uint32_t corpusID = Helper::uint32FromString(line[0]);
     corpusIDToName[corpusID] = line[1];
 
-    if(line[2] == "CORPUS" && line[4] == "0")
+    std::string name = line[1];
+    std::string type = line[2];
+    std::uint32_t preOrder = Helper::uint32FromString(line[4]);
+    //std::uint32_t postOrder= Helper::uint32FromString(line[5]);
+
+    if(type == "CORPUS" && preOrder == 0)
     {
-      toplevelCorpus = line[1];
+      toplevelCorpus = name;
+    }
+    else if(type == "DOCUMENT")
+    {
+      // TODO: do not only add documents but also sub-corpora
+      corpusByPreOrder[preOrder] = corpusID;
     }
   }
   return toplevelCorpus;
 }
 
-bool RelANNISLoader::loadRelANNISNode(string dirPath, map<uint32_t, std::string>& corpusIDToName, std::string toplevelCorpusName,
-  bool isANNIS33Format)
+bool RelANNISLoader::loadRelANNISNode(string dirPath,
+                                      map<uint32_t, std::string>& corpusIDToName,
+                                      multimap<uint32_t, nodeid_t> &nodesByCorpusID,
+                                      std::string toplevelCorpusName,
+                                      bool isANNIS33Format)
 {
   typedef multimap<TextProperty, uint32_t>::const_iterator TextPropIt;
 
@@ -185,6 +207,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath, map<uint32_t, std::string>
       uint32_t corpusID = Helper::uint32FromString(line[2]);
 
       std::string docName = corpusIDToName[corpusID];
+      nodesByCorpusID.insert({corpusID, nodeNr});
 
       Annotation nodeNameAnno;
       nodeNameAnno.ns = db.strings.add(annis_ns);
@@ -495,6 +518,38 @@ bool RelANNISLoader::loadEdgeAnnotation(const string &dirPath,
   in.close();
 
   return result;
+}
+
+void RelANNISLoader::addSubCorpora(
+    std::string toplevelCorpusName,
+    const std::map<uint32_t, uint32_t> &corpusByPreOrder, std::map<uint32_t, string> &corpusIDToName,
+    multimap<uint32_t, nodeid_t>& nodesByCorpusID)
+{
+  std::list<std::pair<NodeAnnotationKey, uint32_t>> corpusAnnoList;
+
+  nodeid_t nodeID = db.nextFreeNodeID();
+
+  for(auto itCorpora = corpusByPreOrder.rbegin(); itCorpora != corpusByPreOrder.rend(); itCorpora++)
+  {
+    uint32_t corpusID = itCorpora->second;
+    // add a node for the new (sub-) corpus/document
+    std::string fullName = toplevelCorpusName + "/" + corpusIDToName[corpusID];
+    corpusAnnoList.push_back({{nodeID,  db.strings.add(annis_node_name), db.strings.add(annis_ns)},
+                              db.strings.add(fullName)});
+
+    // find all nodes belonging to this document and add a relation
+    std::shared_ptr<WriteableGraphStorage> gsSubCorpus = db.edges.createWritableGraphStorage(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
+    auto itNodeStart = nodesByCorpusID.lower_bound(corpusID);
+    auto itNodeEnd  = nodesByCorpusID.upper_bound(corpusID);
+    for(auto itNode = itNodeStart; itNode != itNodeEnd; itNode++)
+    {
+      gsSubCorpus->addEdge({nodeID, itNode->second});
+    }
+
+    nodeID++;
+  }
+
+  db.nodeAnnos.addAnnotationBulk(corpusAnnoList);
 }
 
 ComponentType RelANNISLoader::componentTypeFromShortName(std::string shortType)

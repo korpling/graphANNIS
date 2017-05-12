@@ -2,6 +2,8 @@
 
 #include <annis/db.h>
 
+#include <map>
+
 namespace annis {
 
 class RelANNISLoader
@@ -16,10 +18,11 @@ private:
   DB& db;
 
 private:
-  std::string loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t,
-                                    std::string> &corpusIDToName,
+  std::string loadRelANNISCorpusTab(std::string dirPath, std::map<uint32_t, uint32_t> &corpusByPreOrder,
+                                    std::map<std::uint32_t, std::string> &corpusIDToName,
     bool isANNIS33Format);
   bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::string> &corpusIDToName,
+                        std::multimap<uint32_t, nodeid_t>& nodesByCorpusID,
                         std::string toplevelCorpusName,
                         bool isANNIS33Format);
   bool loadRelANNISRank(const std::string& dirPath,
@@ -30,6 +33,9 @@ private:
                           const std::map<uint32_t, std::shared_ptr<WriteableGraphStorage> > &pre2GS,
                           const std::map<std::uint32_t, Edge>& pre2Edge,
                           bool isANNIS33Format);
+
+  void addSubCorpora(std::string toplevelCorpusName, const std::map<uint32_t, uint32_t> &corpusByPreOrder,
+                     std::map<uint32_t, std::string> &corpusIDToName, std::multimap<uint32_t, nodeid_t>& nodesByCorpusID);
 
   ComponentType componentTypeFromShortName(std::string shortType);
 };
