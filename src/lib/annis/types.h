@@ -43,6 +43,7 @@ namespace annis
                             ORDERING,
                             LEFT_TOKEN,
                             RIGHT_TOKEN,
+                            PART_OF_SUBCORPUS,
                             ComponentType_MAX};
 
   class ComponentTypeHelper
@@ -72,6 +73,9 @@ namespace annis
         break;
       case ComponentType::RIGHT_TOKEN:
         return "RIGHT_TOKEN";
+        break;
+      case ComponentType::PART_OF_SUBCORPUS:
+        return "PART_OF_SUBCORPUS";
         break;
       default:
         return "UNKNOWN";
