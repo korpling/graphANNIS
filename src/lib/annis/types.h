@@ -207,6 +207,12 @@ namespace annis
     nodeid_t node;
     Annotation anno;
   };
+  inline bool operator<(const struct Match &a, const struct Match &b)
+  {
+    return std::tie(a.node, a.anno) < std::tie(b.node, b.anno);
+  }
+
+
 
   /** Some general statistical numbers specific to a graph component */
   struct GraphStatistic

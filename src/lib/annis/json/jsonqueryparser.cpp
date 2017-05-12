@@ -112,8 +112,9 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& 
       }
     }
 
+    result.push_back(q);
 
-  }
+  } // end for each alternative
   return std::make_shared<Query>(result);
 }
 

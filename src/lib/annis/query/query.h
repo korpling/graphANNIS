@@ -16,23 +16,29 @@ public:
   virtual ~Query();
 
   bool next();
-  const std::vector<Match>& getCurrent() { return currentResult;}
-
-  std::string debugString()
+  const std::vector<Match>& getCurrent()
   {
-    // TODO: implmenent
-    return "TODO";
-  };
+    if(proxyMode)
+    {
+      // just act as an proxy
+      return alternatives[0]->getCurrent();
+    }
+    else
+    {
+      return currentResult;
+    }
+  }
+
+  std::string debugString();
 
 private:
   std::vector<std::shared_ptr<SingleAlternativeQuery>> alternatives;
+  const bool proxyMode;
   size_t currentAlternativeIdx;
-
-  const bool needsUniqueCheck;
 
   std::vector<Match> currentResult;
 
-  btree::btree_set<nodeid_t> uniqueResultSet;
+  btree::btree_set<std::vector<Match>> uniqueResultSet;
 };
 
 
