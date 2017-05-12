@@ -20,6 +20,7 @@
 #include <annis/annosearch/regexannosearch.h>       // for RegexAnnoSearch
 #include <annis/operators/dominance.h>              // for Dominance
 #include <annis/operators/identicalcoverage.h>      // for IdenticalCoverage
+#include <annis/operators/identicalnode.h>
 #include <annis/operators/inclusion.h>              // for Inclusion
 #include <annis/operators/overlap.h>                // for Overlap
 #include <annis/operators/pointing.h>               // for Pointing
@@ -36,6 +37,7 @@
 #include "annis/queryconfig.h"                      // for QueryConfig
 #include "annis/stringstorage.h"                    // for StringStorage
 #include "annis/types.h"                          // for Edge, GraphStatistic
+
 #include <boost/optional.hpp>
 
 using namespace annis;
@@ -83,6 +85,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& 
 
     // add all meta-data
     const auto& meta = firstAlt["meta"];
+    boost::optional<size_t> firstMetaIdx = boost::none;
     for (auto it = meta.begin(); it != meta.end(); it++)
     {
       auto& m = *it;
@@ -92,9 +95,20 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& 
             optStr(m["name"]), optStr(m["value"]),
             optStr(m["textMatching"]));
 
-      // add a special join to the first node of the query
-      q->addOperator(std::make_shared<PartOfSubCorpus>(edges, db.strings),
-        metaNodeIdx, *firstNodePos);
+      if(firstMetaIdx)
+      {
+        // avoid nested loops by joining additional meta nodes with a "identical node"
+        q->addOperator(std::make_shared<IdenticalNode>(db), metaNodeIdx, *firstMetaIdx);
+
+      }
+      else
+      {
+        firstMetaIdx = metaNodeIdx;
+        // add a special join to the first node of the query
+        q->addOperator(std::make_shared<PartOfSubCorpus>(edges, db.strings),
+          metaNodeIdx, *firstNodePos);
+
+      }
     }
 
 

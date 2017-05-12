@@ -211,6 +211,18 @@ TEST_F(SearchTestGUM, city) {
   EXPECT_EQ(64u, counter);
 }
 
+TEST_F(SearchTestGUM, noun_with_metadata)
+{
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(126u, counter);
+}
+
 TEST_F(SearchTestGUM, pos_dep_pos_Thread4) {
   QueryConfig config;
   config.numOfBackgroundTasks = 4;

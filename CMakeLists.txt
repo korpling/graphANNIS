@@ -90,6 +90,7 @@ set(IncludeFiles
   src/lib/annis/operators/overlap.h
   src/lib/annis/operators/pointing.h
   src/lib/annis/operators/identicalcoverage.h
+  src/lib/annis/operators/identicalnode.h
   src/lib/annis/operators/abstractedgeoperator.h
   src/lib/annis/operators/partofsubcorpus.h
   src/lib/annis/dbcache.h
@@ -140,6 +141,7 @@ set(SRC_LIST_LIB
   src/lib/annis/operators/pointing.cpp
   src/lib/annis/operators/precedence.cpp
   src/lib/annis/operators/identicalcoverage.cpp
+  src/lib/annis/operators/identicalnode.cpp
   src/lib/annis/operators/inclusion.cpp
   src/lib/annis/operators/dominance.cpp
   src/lib/annis/operators/abstractedgeoperator.cpp

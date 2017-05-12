@@ -37,6 +37,11 @@ public:
     return "part_of_subcorpus";
   }
 
+  virtual bool isReflexive() override
+  {
+    return false;
+  }
+
   
   virtual ~PartOfSubCorpus();
 private:
