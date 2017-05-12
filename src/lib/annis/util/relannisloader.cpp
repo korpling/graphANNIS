@@ -540,9 +540,12 @@ void RelANNISLoader::addSubCorpora(
   {
     uint32_t corpusID = itCorpora->second;
     // add a node for the new (sub-) corpus/document
-    std::string fullName = toplevelCorpusName + "/" + corpusIDToName[corpusID];
+    std::string corpusName = corpusIDToName[corpusID];
+    std::string fullName = toplevelCorpusName + "/" + corpusName;
     corpusAnnoList.push_back({{nodeID,  db.strings.add(annis_node_name), db.strings.add(annis_ns)},
                               db.strings.add(fullName)});
+    corpusAnnoList.push_back({{nodeID,  db.strings.add("doc"), db.strings.add(annis_ns)},
+                              db.strings.add(corpusName)});
 
     // find all nodes belonging to this document and add a relation
     auto itNodeStart = nodesByCorpusID.lower_bound(corpusID);
