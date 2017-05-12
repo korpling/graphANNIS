@@ -34,7 +34,7 @@ public:
   virtual std::string operatorString() override
   {
     // TODO: find a good string
-    return "???";
+    return "part_of_subcorpus";
   }
 
   

@@ -94,7 +94,7 @@ public class QueryToJSON
 
         ObjectNode nodes = altNode.putObject("nodes");
         ArrayNode joinObject = altNode.putArray("joins");
-
+        
         // map each node
         for (QueryNode n : alt)
         {
@@ -156,7 +156,7 @@ public class QueryToJSON
         // also add the meta-data as a special node and connect it with a SubPartOfCorpus join
         if(metaData != null && !metaData.isEmpty() && !alt.isEmpty())
         {
-          nodes.set("meta", mapper.valueToTree(metaData));
+          altNode.set("meta", mapper.valueToTree(metaData));
         }
         
       } // end for each alternative

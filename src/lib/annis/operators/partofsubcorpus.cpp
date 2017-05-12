@@ -23,7 +23,7 @@ namespace annis { class StringStorage; }
 
 using namespace annis;
 
-PartOfSubCorpus::PartOfSubCorpus(GraphStorageHolder& gsh, const StringStorage& strings)
+PartOfSubCorpus::PartOfSubCorpus(GraphStorageHolder &gsh, const StringStorage& strings)
   : AbstractEdgeOperator(ComponentType::PART_OF_SUBCORPUS,
                          gsh, strings, annis_ns, "", 1, std::numeric_limits<unsigned int>::max())
 {
