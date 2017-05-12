@@ -91,6 +91,7 @@ set(IncludeFiles
   src/lib/annis/operators/pointing.h
   src/lib/annis/operators/identicalcoverage.h
   src/lib/annis/operators/abstractedgeoperator.h
+  src/lib/annis/operators/partofsubcorpus.h
   src/lib/annis/dbcache.h
   src/lib/annis/api/corpusstoragemanager.h
   src/lib/annis/api/admin.h
@@ -141,6 +142,7 @@ set(SRC_LIST_LIB
   src/lib/annis/operators/inclusion.cpp
   src/lib/annis/operators/dominance.cpp
   src/lib/annis/operators/abstractedgeoperator.cpp
+  src/lib/annis/operators/partofsubcorpus.cpp
   src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
   src/lib/annis/api/graphupdate.cpp
