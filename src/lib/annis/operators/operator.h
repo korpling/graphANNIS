@@ -14,6 +14,11 @@ class Operator
 {
 public:
 
+  enum class EstimationType
+  {
+    SELECTIVITY, MAX, MIN
+  };
+
   /**
    * @brief Return all matches for a certain left-hand-side
    * @param lhs
@@ -60,6 +65,8 @@ public:
   virtual double selectivity() { return 0.1; }
 
   virtual double edgeAnnoSelectivity() { return -1.0; }
+
+  virtual EstimationType estimationType() {return EstimationType::SELECTIVITY;}
 
   virtual ~Operator() {}
 };

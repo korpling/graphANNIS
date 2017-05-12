@@ -90,7 +90,9 @@ set(IncludeFiles
   src/lib/annis/operators/overlap.h
   src/lib/annis/operators/pointing.h
   src/lib/annis/operators/identicalcoverage.h
+  src/lib/annis/operators/identicalnode.h
   src/lib/annis/operators/abstractedgeoperator.h
+  src/lib/annis/operators/partofsubcorpus.h
   src/lib/annis/dbcache.h
   src/lib/annis/api/corpusstoragemanager.h
   src/lib/annis/api/admin.h
@@ -103,6 +105,7 @@ set(IncludeFiles
   src/lib/annis/util/dfs.h
   src/lib/annis/util/size_estimator.h
   src/lib/annis/util/comparefunctions.h
+  src/lib/annis/util/relannisloader.h
   src/lib/annis/util/sharedqueue.h
   src/lib/annis/util/threadpool.h
   src/lib/annis/query.h
@@ -138,9 +141,11 @@ set(SRC_LIST_LIB
   src/lib/annis/operators/pointing.cpp
   src/lib/annis/operators/precedence.cpp
   src/lib/annis/operators/identicalcoverage.cpp
+  src/lib/annis/operators/identicalnode.cpp
   src/lib/annis/operators/inclusion.cpp
   src/lib/annis/operators/dominance.cpp
   src/lib/annis/operators/abstractedgeoperator.cpp
+  src/lib/annis/operators/partofsubcorpus.cpp
   src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
   src/lib/annis/api/graphupdate.cpp
@@ -148,6 +153,7 @@ set(SRC_LIST_LIB
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
+  src/lib/annis/util/relannisloader.cpp
   src/lib/annis/util/sharedqueue.cpp
   src/lib/annis/util/threadpool.cpp
   src/lib/annis/annostorage.cpp

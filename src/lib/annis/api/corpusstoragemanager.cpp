@@ -17,6 +17,7 @@
 #include "corpusstoragemanager.h"
 
 #include <annis/db.h>                                   // for DB
+#include <annis/util/relannisloader.h>
 #include <humblelogging/api.h>                          // for HL_DEBUG, HUM...
 #include <humblelogging/logger.h>                       // for Logger
 #include <stdint.h>                                     // for uint32_t
@@ -286,7 +287,8 @@ void CorpusStorageManager::importRelANNIS(std::string pathToCorpus, std::string 
     boost::shared_lock_guard<DBLoader> lock(*loader);
 
     DB& db = loader->get();
-    db.loadRelANNIS(pathToCorpus);
+
+    RelANNISLoader::loadRelANNIS(db, pathToCorpus);
     // make sure the corpus is properly saved at least once (so it is in a consistent state)
     db.save((bf::path(databaseDir) / newCorpusName).string());
   }

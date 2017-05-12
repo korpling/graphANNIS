@@ -24,6 +24,7 @@
 #include <boost/thread/shared_lock_guard.hpp>
 
 #include <annis/util/helper.h>
+#include <annis/util/relannisloader.h>
 #include <annis/query.h>
 #include <annis/util/threadpool.h>
 #include <annis/util/plan.h>
@@ -124,7 +125,7 @@ void Console::import(const std::vector<std::string> &args)
     if(args.size() > 0)
     {
       std::cout << "Import relANNIS from " << args[0] << std::endl;
-      db->loadRelANNIS(args[0]);
+      RelANNISLoader::loadRelANNIS(*db, args[0]);
       if(args.size() > 1)
       {
         // directly save the imported corpus to directory

@@ -67,7 +67,6 @@ private:
 
   std::string debugComponentString(const Component& c);
 
-  ComponentType componentTypeFromShortName(std::string shortType);
 
 private:
 

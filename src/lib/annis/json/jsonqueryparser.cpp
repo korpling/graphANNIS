@@ -20,10 +20,12 @@
 #include <annis/annosearch/regexannosearch.h>       // for RegexAnnoSearch
 #include <annis/operators/dominance.h>              // for Dominance
 #include <annis/operators/identicalcoverage.h>      // for IdenticalCoverage
+#include <annis/operators/identicalnode.h>
 #include <annis/operators/inclusion.h>              // for Inclusion
 #include <annis/operators/overlap.h>                // for Overlap
 #include <annis/operators/pointing.h>               // for Pointing
 #include <annis/operators/precedence.h>             // for Precedence
+#include <annis/operators/partofsubcorpus.h>
 #include <assert.h>                                 // for assert
 #include <re2/re2.h>                                // for RE2
 #include <limits>                                   // for numeric_limits
@@ -35,6 +37,8 @@
 #include "annis/queryconfig.h"                      // for QueryConfig
 #include "annis/stringstorage.h"                    // for StringStorage
 #include "annis/types.h"                          // for Edge, GraphStatistic
+
+#include <boost/optional.hpp>
 
 using namespace annis;
 
@@ -60,10 +64,16 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& 
     const auto& nodes = firstAlt["nodes"];
 
     std::map<std::uint64_t, size_t> nodeIdToPos;
+    boost::optional<size_t> firstNodePos;
     for (auto it = nodes.begin(); it != nodes.end(); it++)
     {
       auto& n = *it;
-      nodeIdToPos[std::stoull(it.name())] = parseNode(db, n, q);
+      size_t pos = parseNode(db, n, q);
+      nodeIdToPos[std::stoull(it.name())] = pos;
+      if(!firstNodePos)
+      {
+        firstNodePos = pos;
+      }
     }
 
     // add all joins
@@ -71,6 +81,34 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& 
     for (auto it = joins.begin(); it != joins.end(); it++)
     {
       parseJoin(db, edges, *it, q, nodeIdToPos);
+    }
+
+    // add all meta-data
+    const auto& meta = firstAlt["meta"];
+    boost::optional<size_t> firstMetaIdx = boost::none;
+    for (auto it = meta.begin(); it != meta.end(); it++)
+    {
+      auto& m = *it;
+
+      // add an artificial node that describes the document/corpus node
+      size_t metaNodeIdx = addNodeAnnotation(db, q, optStr(m["namespace"]),
+            optStr(m["name"]), optStr(m["value"]),
+            optStr(m["textMatching"]));
+
+      if(firstMetaIdx)
+      {
+        // avoid nested loops by joining additional meta nodes with a "identical node"
+        q->addOperator(std::make_shared<IdenticalNode>(db), metaNodeIdx, *firstMetaIdx);
+
+      }
+      else
+      {
+        firstMetaIdx = metaNodeIdx;
+        // add a special join to the first node of the query
+        q->addOperator(std::make_shared<PartOfSubCorpus>(edges, db.strings),
+          metaNodeIdx, *firstNodePos);
+
+      }
     }
 
 

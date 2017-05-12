@@ -42,7 +42,6 @@ class DB
 public:
   DB();
 
-  bool loadRelANNIS(std::string dirPath);
   bool load(std::string dir, bool preloadComponents=true);
   bool save(std::string dir);
 
@@ -113,6 +112,8 @@ public:
 
   void clear();
 
+  nodeid_t nextFreeNodeID() const;
+
   virtual ~DB();
 public:
 
@@ -132,26 +133,9 @@ private:
   std::uint32_t annisNodeNameStringID;
 
 private:
-  std::string loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t,
-                                    std::string> &corpusIDToName,
-    bool isANNIS33Format);
-  bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::string> &corpusIDToName,
-                        std::string toplevelCorpusName,
-                        bool isANNIS33Format);
-  bool loadRelANNISRank(const std::string& dirPath,
-                        const std::map<uint32_t, std::shared_ptr<WriteableGraphStorage> > &componentToGS,
-                        bool isANNIS33Format);
-
-  bool loadEdgeAnnotation(const std::string& dirPath,
-                          const std::map<uint32_t, std::shared_ptr<WriteableGraphStorage> > &pre2GS,
-                          const std::map<std::uint32_t, Edge>& pre2Edge,
-                          bool isANNIS33Format);
-
-  
 
   void addDefaultStrings();
 
-  nodeid_t nextFreeNodeID() const;
 
 
 };

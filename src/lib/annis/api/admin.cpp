@@ -17,6 +17,7 @@
 #include "admin.h"
 
 #include <annis/db.h>
+#include <annis/util/relannisloader.h>
 
 using namespace annis::api;
 
@@ -33,6 +34,7 @@ Admin::~Admin()
 void Admin::importRelANNIS(std::string sourceFolder, std::string targetFolder)
 {
   DB targetDB;
-  targetDB.loadRelANNIS(sourceFolder);
+
+  RelANNISLoader::loadRelANNIS(targetDB, sourceFolder);
   targetDB.save(targetFolder);
 }

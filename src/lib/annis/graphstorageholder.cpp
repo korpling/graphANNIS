@@ -365,29 +365,4 @@ std::shared_ptr<WriteableGraphStorage> GraphStorageHolder::createWritableGraphSt
 
 }
 
-ComponentType GraphStorageHolder::componentTypeFromShortName(std::string shortType)
-{
-  ComponentType ctype;
-  if(shortType == "c")
-  {
-    ctype = ComponentType::COVERAGE;
-  }
-  else if(shortType == "d")
-  {
-    ctype = ComponentType::DOMINANCE;
-  }
-  else if(shortType == "p")
-  {
-    ctype = ComponentType::POINTING;
-  }
-  else if(shortType == "o")
-  {
-    ctype = ComponentType::ORDERING;
-  }
-  else
-  {
-    throw("Unknown component type \"" + shortType + "\"");
-  }
-  return ctype;
-}
 

@@ -38,7 +38,7 @@ struct UpdateEvent
 {
   std::uint64_t changeID;
   // make this class polymorphic
-  virtual ~UpdateEvent() {};
+  virtual ~UpdateEvent() {}
 
   template<class Archive>
   void serialize( Archive & ar )
