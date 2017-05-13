@@ -31,6 +31,7 @@
 #include <boost/thread/lock_options.hpp>                // for adopt_lock
 #include <boost/thread/thread.hpp>                      // for interruption_...
 #include <boost/thread/shared_lock_guard.hpp>           // for shared_lock_g...
+#include <boost/algorithm/string.hpp>
 #include <cereal/archives/binary.hpp>                   // for BinaryOutputA...
 #include <cereal/cereal.hpp>                            // for OutputArchive
 #include <fstream>                                      // for stringstream
@@ -40,7 +41,7 @@
 #include "annis/api/graphupdate.h"                      // for GraphUpdate
 #include "annis/dbloader.h"                             // for DBLoader
 #include "annis/json/jsonqueryparser.h"                 // for JSONQueryParser
-#include "annis/query.h"
+#include "annis/query/query.h"
 #include "annis/annostorage.h"                          // for AnnoStorage
 #include "annis/stringstorage.h"                        // for StringStorage
 #include "annis/types.h"                                // for Match, Annota...
@@ -94,7 +95,7 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
 {
   CountResult result = {0,0};
 
-  std::set<std::uint32_t> documents;
+  std::unordered_set<std::string> documents;
 
   // sort corpora by their name
   std::sort(corpora.begin(), corpora.end());
@@ -118,10 +119,13 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
         if(!m.empty())
         {
           const Match& n  = m[0];
-          boost::optional<Annotation> anno = db.nodeAnnos.getAnnotations(db.strings, n.node, annis_ns, "document");
+          boost::optional<Annotation> anno = db.nodeAnnos.getAnnotations(db.strings, n.node, annis_ns, annis_node_name);
           if(anno)
           {
-            documents.insert(anno->val);
+            // extract the document path from the node name
+            const std::string& value = db.strings.str(anno->val);
+            std::string docPath = value.substr(0, value.size()-value.find_first_of('#'));
+            documents.insert(docPath);
           }
         }
       }
@@ -164,20 +168,23 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
 
             DB& db = loader->get();
 
-            if(n.anno.ns != 0 && n.anno.name != 0
-               && n.anno.ns != db.getNamespaceStringID() && n.anno.name != db.getNodeNameStringID())
+            if(db.getNodeType(n.node) == "node")
             {
-              matchDesc << db.strings.str(n.anno.ns)
-                << "::" << db.strings.str(n.anno.name)
-                << "::";
-            }
+              if(n.anno.ns != 0 && n.anno.name != 0
+                 && n.anno.ns != db.getNamespaceStringID() && n.anno.name != db.getNodeNameStringID())
+              {
+                matchDesc << db.strings.str(n.anno.ns)
+                  << "::" << db.strings.str(n.anno.name)
+                  << "::";
+              }
 
-            // we expect that the document path including the corpus name is included in the node name
-            matchDesc << "salt:/" << db.getNodeName(n.node);
+              // we expect that the document path including the corpus name is included in the node name
+              matchDesc << "salt:/" << db.getNodeName(n.node);
 
-            if(i < m.size()-1)
-            {
-             matchDesc << " ";
+              if(i < m.size()-1)
+              {
+               matchDesc << " ";
+              }
             }
           }
           result.push_back(matchDesc.str());

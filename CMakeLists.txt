@@ -108,7 +108,8 @@ set(IncludeFiles
   src/lib/annis/util/relannisloader.h
   src/lib/annis/util/sharedqueue.h
   src/lib/annis/util/threadpool.h
-  src/lib/annis/query.h
+  src/lib/annis/query/singlealternativequery.h
+  src/lib/annis/query/query.h
   src/lib/annis/join/indexjoin.h
   src/lib/annis/join/nestedloop.h
   src/lib/annis/join/simdindexjoin.h
@@ -149,7 +150,8 @@ set(SRC_LIST_LIB
   src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
   src/lib/annis/api/graphupdate.cpp
-  src/lib/annis/query.cpp
+  src/lib/annis/query/singlealternativequery.cpp
+  src/lib/annis/query/query.cpp
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp

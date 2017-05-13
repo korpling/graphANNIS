@@ -57,6 +57,18 @@ public:
     return result;
   }
 
+  std::string getNodeType(const nodeid_t &id) const
+  {
+    std::string result = "";
+
+    boost::optional<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, annis_node_type);
+    if(anno)
+    {
+      result = strings.str(anno->val);
+    }
+    return result;
+  }
+
   inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName)
   {
     std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
@@ -73,19 +85,8 @@ public:
     return boost::optional<nodeid_t>();
   }
 
-  inline std::string getNodeDocument(const nodeid_t &id) const
-  {
-    std::string result = "";
-
-    boost::optional<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, "document");
-    if(anno)
-    {
-      result = strings.str(anno->val);
-    }
-    return result;
-  }
-
   std::string getNodeDebugName(const nodeid_t &id) const;
+
 
   std::vector<Component> getDirectConnected(const Edge& edge) const;
   std::vector<Component> getAllComponents() const;
@@ -98,6 +99,7 @@ public:
   inline std::uint32_t getNodeNameStringID() const {return annisNodeNameStringID;}
   inline std::uint32_t getEmptyStringID() const {return annisEmptyStringID;}
   inline std::uint32_t getTokStringID() const {return annisTokStringID;}
+  inline std::uint32_t getNodeTypeStringID() const {return annisNodeTypeID;}
 
   void convertComponent(Component c, std::string impl = "");
 
@@ -131,6 +133,7 @@ private:
   std::uint32_t annisEmptyStringID;
   std::uint32_t annisTokStringID;
   std::uint32_t annisNodeNameStringID;
+  std::uint32_t annisNodeTypeID;
 
 private:
 

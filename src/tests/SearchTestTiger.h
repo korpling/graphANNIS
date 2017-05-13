@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include <annis/db.h>
 #include <annis/util/helper.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
 #include <annis/operators/precedence.h>
 #include <annis/operators/dominance.h>
 #include <annis/annosearch/exactannovaluesearch.h>

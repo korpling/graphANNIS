@@ -52,11 +52,12 @@ struct UpdateEvent
 struct AddNodeEvent : UpdateEvent
 {
    std::string nodeName;
+   std::string nodeType;
 
    template<class Archive>
    void serialize( Archive & ar )
    {
-      ar(cereal::base_class<UpdateEvent>(this), nodeName);
+      ar(cereal::base_class<UpdateEvent>(this), nodeName, nodeType);
    }
 };
 
@@ -184,12 +185,13 @@ public:
   GraphUpdate();
 
   /**
-   * @brief Adds an empty node with the given name to the graph.
+   * @brief Adds an empty node with the given name and type to the graph.
    * If an node with this name already exists, nothing is done.
    *
    * @param name
+   * @param type The type, "node" per default.
    */
-  void addNode(std::string name);
+  void addNode(std::string name, std::string type="node");
 
   /**
    * @brief Delete a node with the give name from the graph.

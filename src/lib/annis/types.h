@@ -15,6 +15,7 @@ namespace annis
   const std::string annis_ns = "annis";
   const std::string annis_node_name = "node_name";
   const std::string annis_tok = "tok";
+  const std::string annis_node_type = "node_type";
 
   const unsigned int uintmax = std::numeric_limits<unsigned int>::max();
 
@@ -207,6 +208,12 @@ namespace annis
     nodeid_t node;
     Annotation anno;
   };
+  inline bool operator<(const struct Match &a, const struct Match &b)
+  {
+    return std::tie(a.node, a.anno) < std::tie(b.node, b.anno);
+  }
+
+
 
   /** Some general statistical numbers specific to a graph component */
   struct GraphStatistic

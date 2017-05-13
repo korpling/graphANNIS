@@ -33,7 +33,7 @@
 #include <utility>                                  // for pair
 #include "annis/db.h"                               // for DB
 #include "annis/json/json.h"                        // for Value, ValueConst...
-#include "annis/query.h"                            // for Query
+#include "annis/query/query.h"                            // for Query
 #include "annis/queryconfig.h"                      // for QueryConfig
 #include "annis/stringstorage.h"                    // for StringStorage
 #include "annis/types.h"                          // for Edge, GraphStatistic
@@ -48,20 +48,21 @@ JSONQueryParser::JSONQueryParser()
 
 std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& edges, std::istream& jsonStream, const QueryConfig config)
 {
-  std::shared_ptr<Query> q = std::make_shared<Query>(db, config);
+  std::vector<std::shared_ptr<SingleAlternativeQuery>> result;
 
   // parse root as value
   Json::Value root;
   jsonStream >> root;
 
-  // get the first alternative (we don't support more than one currently)
+  // iterate over all alternatives
   const auto& alternatives = root["alternatives"];
-  if (alternatives.size() != 0)
+  for(const auto& alt : alternatives)
   {
-    const auto& firstAlt = alternatives[0];
+    std::shared_ptr<SingleAlternativeQuery> q = std::make_shared<SingleAlternativeQuery>(db, config);
+
 
     // add all nodes
-    const auto& nodes = firstAlt["nodes"];
+    const auto& nodes = alt["nodes"];
 
     std::map<std::uint64_t, size_t> nodeIdToPos;
     boost::optional<size_t> firstNodePos;
@@ -77,14 +78,14 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& 
     }
 
     // add all joins
-    const auto& joins = firstAlt["joins"];
+    const auto& joins = alt["joins"];
     for (auto it = joins.begin(); it != joins.end(); it++)
     {
       parseJoin(db, edges, *it, q, nodeIdToPos);
     }
 
     // add all meta-data
-    const auto& meta = firstAlt["meta"];
+    const auto& meta = alt["meta"];
     boost::optional<size_t> firstMetaIdx = boost::none;
     for (auto it = meta.begin(); it != meta.end(); it++)
     {
@@ -111,12 +112,13 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& 
       }
     }
 
+    result.push_back(q);
 
-  }
-  return q;
+  } // end for each alternative
+  return std::make_shared<Query>(result);
 }
 
-size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::shared_ptr<Query> q)
+size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::shared_ptr<SingleAlternativeQuery> q)
 {
 
   // annotation search?
@@ -144,15 +146,15 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::sha
     else
     {
       // just search for any node
-      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_name),
-        optStr(), optStr());
+      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_type),
+        boost::optional<std::string>("node"), boost::optional<std::string>("EXACT_EQUAL"));
     }
   } // end if special case
 
 }
 
 size_t JSONQueryParser::addNodeAnnotation(const DB& db,
-  std::shared_ptr<Query> q,
+  std::shared_ptr<SingleAlternativeQuery> q,
   boost::optional<std::string> ns,
   boost::optional<std::string> name,
   boost::optional<std::string> value,
@@ -236,7 +238,7 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
   return 0;
 }
 
-void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const Json::Value join, std::shared_ptr<Query> q,
+void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const Json::Value join, std::shared_ptr<SingleAlternativeQuery> q,
   const std::map<std::uint64_t, size_t>& nodeIdToPos)
 {
   // get left and right index

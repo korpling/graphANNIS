@@ -220,11 +220,11 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
       annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeNameAnno.name, nodeNameAnno.ns }, nodeNameAnno.val));
 
 
-      Annotation documentNameAnno;
-      documentNameAnno.ns = db.strings.add(annis_ns);
-      documentNameAnno.name = db.strings.add("document");
-      documentNameAnno.val = db.strings.add(docName);
-      annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, documentNameAnno.name, documentNameAnno.ns }, documentNameAnno.val));
+      Annotation nodeTypeAnno;
+      nodeTypeAnno.ns = db.strings.add(annis_ns);
+      nodeTypeAnno.name = db.strings.add(annis_node_type);
+      nodeTypeAnno.val = db.strings.add("node");
+      annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeTypeAnno.name, nodeTypeAnno.ns }, nodeTypeAnno.val));
 
       TextProperty left;
       left.val = Helper::uint32FromString(line[5]);
@@ -591,6 +591,8 @@ void RelANNISLoader::addSubCorpora(std::string toplevelCorpusName,
                               db.strings.add(fullName)});
     corpusAnnoList.push_back({{nodeID,  db.strings.add("doc"), db.strings.add(annis_ns)},
                               db.strings.add(corpusName)});
+    corpusAnnoList.push_back({{nodeID,  db.strings.add(annis_node_type), db.strings.add(annis_ns)},
+                              db.strings.add("corpus")});
 
     // add all metadata for the document node
     auto itAnnoMeta = corpusId2Annos.equal_range(corpusID);

@@ -23,7 +23,8 @@
 #include <annis/operators/precedence.h>
 #include <annis/operators/overlap.h>
 #include <annis/operators/inclusion.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
+#include <annis/query/singlealternativequery.h>
 
 #include <boost/format.hpp>
 #include <vector>
@@ -182,7 +183,7 @@ TEST_F(SearchTestRidges, NestedOverlap) {
 
   unsigned int counter=0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
 

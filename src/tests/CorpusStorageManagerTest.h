@@ -21,7 +21,6 @@
 #include <annis/api/graphupdate.h>
 #include <annis/api/corpusstoragemanager.h>
 
-#include <annis/query.h>
 #include <annis/annosearch/exactannokeysearch.h>
 
 #include <memory>

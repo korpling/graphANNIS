@@ -284,13 +284,6 @@ public class SaltImport
       {
         updateList.addNodeLabel(name, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
       }
-
-      // add the document name if given
-      String doc = documentName(n);
-      if(doc != null)
-      {
-        updateList.addNodeLabel(name, ANNIS_NS, "document", doc);
-      }
     }
   }
   

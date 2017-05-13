@@ -25,7 +25,7 @@
 
 #include <annis/util/helper.h>
 #include <annis/util/relannisloader.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
 #include <annis/util/threadpool.h>
 #include <annis/util/plan.h>
 
@@ -250,15 +250,18 @@ void Console::find(const std::vector<std::string> &args)
           for(size_t i = 0; i < m.size(); i++)
           {
             const auto& n = m[i];
-            std::cout << db->getNodeDebugName(n.node);
-            if(n.anno.ns != 0 && n.anno.name != 0)
+            if(db->getNodeType(n.node) == "node")
             {
-              std::cout << " " << db->strings.str(n.anno.ns)
-                << "::" << db->strings.str(n.anno.name);
-            }
-            if(i < m.size()-1)
-            {
-             std::cout << ", ";
+              std::cout << db->getNodeDebugName(n.node);
+              if(n.anno.ns != 0 && n.anno.name != 0)
+              {
+                std::cout << " " << db->strings.str(n.anno.ns)
+                  << "::" << db->strings.str(n.anno.name);
+              }
+              if(i < m.size()-1)
+              {
+               std::cout << ", ";
+              }
             }
           }
           std::cout << std::endl;
@@ -342,7 +345,7 @@ void Console::plan(const std::vector<std::string> &args)
       try
       {
         std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
-        std::cout << q->getBestPlan()->debugString() << std::endl;
+        std::cout << q->debugString() << std::endl;
       }
       catch(Json::RuntimeError err)
       {
