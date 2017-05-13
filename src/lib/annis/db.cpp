@@ -173,9 +173,6 @@ std::string DB::getNodeDebugName(const nodeid_t &id) const
   return ss.str();
 }
 
-
-
-
 void DB::clear()
 {
   strings.clear();

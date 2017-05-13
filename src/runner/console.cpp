@@ -250,15 +250,18 @@ void Console::find(const std::vector<std::string> &args)
           for(size_t i = 0; i < m.size(); i++)
           {
             const auto& n = m[i];
-            std::cout << db->getNodeDebugName(n.node);
-            if(n.anno.ns != 0 && n.anno.name != 0)
+            if(db->getNodeType(n.node) == "node")
             {
-              std::cout << " " << db->strings.str(n.anno.ns)
-                << "::" << db->strings.str(n.anno.name);
-            }
-            if(i < m.size()-1)
-            {
-             std::cout << ", ";
+              std::cout << db->getNodeDebugName(n.node);
+              if(n.anno.ns != 0 && n.anno.name != 0)
+              {
+                std::cout << " " << db->strings.str(n.anno.ns)
+                  << "::" << db->strings.str(n.anno.name);
+              }
+              if(i < m.size()-1)
+              {
+               std::cout << ", ";
+              }
             }
           }
           std::cout << std::endl;

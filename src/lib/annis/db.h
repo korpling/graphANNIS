@@ -57,6 +57,18 @@ public:
     return result;
   }
 
+  std::string getNodeType(const nodeid_t &id) const
+  {
+    std::string result = "";
+
+    boost::optional<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, annis_node_type);
+    if(anno)
+    {
+      result = strings.str(anno->val);
+    }
+    return result;
+  }
+
   inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName)
   {
     std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
@@ -74,6 +86,7 @@ public:
   }
 
   std::string getNodeDebugName(const nodeid_t &id) const;
+
 
   std::vector<Component> getDirectConnected(const Edge& edge) const;
   std::vector<Component> getAllComponents() const;

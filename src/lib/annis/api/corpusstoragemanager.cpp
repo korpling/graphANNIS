@@ -168,20 +168,23 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
 
             DB& db = loader->get();
 
-            if(n.anno.ns != 0 && n.anno.name != 0
-               && n.anno.ns != db.getNamespaceStringID() && n.anno.name != db.getNodeNameStringID())
+            if(db.getNodeType(n.node) == "node")
             {
-              matchDesc << db.strings.str(n.anno.ns)
-                << "::" << db.strings.str(n.anno.name)
-                << "::";
-            }
+              if(n.anno.ns != 0 && n.anno.name != 0
+                 && n.anno.ns != db.getNamespaceStringID() && n.anno.name != db.getNodeNameStringID())
+              {
+                matchDesc << db.strings.str(n.anno.ns)
+                  << "::" << db.strings.str(n.anno.name)
+                  << "::";
+              }
 
-            // we expect that the document path including the corpus name is included in the node name
-            matchDesc << "salt:/" << db.getNodeName(n.node);
+              // we expect that the document path including the corpus name is included in the node name
+              matchDesc << "salt:/" << db.getNodeName(n.node);
 
-            if(i < m.size()-1)
-            {
-             matchDesc << " ";
+              if(i < m.size()-1)
+              {
+               matchDesc << " ";
+              }
             }
           }
           result.push_back(matchDesc.str());
