@@ -168,7 +168,7 @@ bool DB::save(string dir)
 std::string DB::getNodeDebugName(const nodeid_t &id) const
 {
   std::stringstream ss;
-  ss << getNodeDocument(id) << ":" << getNodeName(id) << "(" << id << ")";
+  ss << getNodeName(id) << "(" << id << ")";
 
   return ss.str();
 }
@@ -191,6 +191,7 @@ void DB::addDefaultStrings()
   annisEmptyStringID = strings.add("");
   annisTokStringID = strings.add(annis_tok);
   annisNodeNameStringID = strings.add(annis_node_name);
+  annisNodeTypeID = strings.add(annis_node_type);
 }
 
 nodeid_t DB::nextFreeNodeID() const
@@ -347,9 +348,13 @@ void DB::update(const api::GraphUpdate& u)
             if(!existingNodeID)
             {
                nodeid_t newNodeID = nextFreeNodeID();
-               Annotation newAnno =
+               Annotation newAnnoName =
                   {getNodeNameStringID(), getNamespaceStringID(), strings.add(evt->nodeName)};
-               nodeAnnos.addAnnotation(newNodeID, newAnno);
+               nodeAnnos.addAnnotation(newNodeID, newAnnoName);
+
+               Annotation newAnnoType =
+                  {getNodeTypeStringID(), getNamespaceStringID(), strings.add(evt->nodeType)};
+               nodeAnnos.addAnnotation(newNodeID, newAnnoType);
             }
          }
          else if(std::shared_ptr<api::DeleteNodeEvent> evt = std::dynamic_pointer_cast<api::DeleteNodeEvent>(change))

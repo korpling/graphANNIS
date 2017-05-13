@@ -34,7 +34,7 @@ using namespace annis;
 
 Inclusion::Inclusion(const DB &db, GraphStorageHolder& gsh)
   : db(db),
-    anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
+    anyNodeAnno(Init::initAnnotation(db.getNodeTypeStringID(), 0, db.getNamespaceStringID())),
     tokHelper(gsh, db)
 {
   gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "");

@@ -54,7 +54,7 @@ size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationSearch> n, bool
   
   if(wrapAnyNodeAnno)
   {
-    Annotation constAnno = {db.getNodeNameStringID(), db.getNamespaceStringID(), 0};
+    Annotation constAnno = {db.getNodeTypeStringID(), db.getNamespaceStringID(), 0};
     nodes.push_back(std::make_shared<ConstAnnoWrapper>(constAnno, n));
   }
   else
@@ -71,7 +71,7 @@ size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationKeySearch> n, b
   size_t idx = nodes.size();
   if(wrapAnyNodeAnno)
   {
-    Annotation constAnno = {db.getNodeNameStringID(), db.getNamespaceStringID(), 0};
+    Annotation constAnno = {db.getNodeTypeStringID(), db.getNamespaceStringID(), 0};
     nodes.push_back(std::make_shared<ConstAnnoWrapper>(constAnno, n));
   }
   else

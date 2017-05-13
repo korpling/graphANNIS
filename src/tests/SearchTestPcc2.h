@@ -273,8 +273,8 @@ TEST_F(SearchTestPcc2, AnyNodeIncludeSeed) {
 TEST_F(SearchTestPcc2, AnyNodeIncludeFilter) {
 
   SingleAlternativeQuery q(db);
-  auto n1 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+  auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
   q.addOperator(std::make_shared<Inclusion>(db, db.edges), n1, n2, true);
 

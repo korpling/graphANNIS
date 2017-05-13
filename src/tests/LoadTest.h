@@ -79,10 +79,6 @@ TEST_F(LoadTest, NodeAnnotations) {
   EXPECT_STREQ("node_name", db.strings.str(annos[1].name).c_str());
   EXPECT_STREQ("pcc2/4282#tok_13", db.strings.str(annos[1].val).c_str());
 
-  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[2].ns).c_str());
-  EXPECT_STREQ("document", db.strings.str(annos[2].name).c_str());
-  EXPECT_STREQ("4282", db.strings.str(annos[2].val).c_str());
-
   EXPECT_STREQ("tiger", db.strings.str(annos[3].ns).c_str());
   EXPECT_STREQ("lemma", db.strings.str(annos[3].name).c_str());
   EXPECT_STREQ("so", db.strings.str(annos[3].val).c_str());
@@ -276,7 +272,7 @@ TEST_F(LoadTest, RangedDom) {
 
   SingleAlternativeQuery q(db);
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "AP"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
   q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", 3, 5), n1, n2);
 
@@ -320,7 +316,7 @@ TEST_F(LoadTest, NodesOfDocument) {
   SingleAlternativeQuery q(db);
 
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2/11299"));
-  auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+  auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
   q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges, db.strings), n1, n2);
 

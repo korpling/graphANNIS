@@ -146,8 +146,8 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::sha
     else
     {
       // just search for any node
-      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_name),
-        optStr(), optStr());
+      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_type),
+        boost::optional<std::string>("node"), boost::optional<std::string>("EXACT_EQUAL"));
     }
   } // end if special case
 
