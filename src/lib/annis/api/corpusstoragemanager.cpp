@@ -45,6 +45,8 @@
 #include "annis/annostorage.h"                          // for AnnoStorage
 #include "annis/stringstorage.h"                        // for StringStorage
 #include "annis/types.h"                                // for Match, Annota...
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/graphstorage/graphstorage.h>
 
 #include <functional>
 
@@ -234,6 +236,86 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
          db.load(corpusPath.string());
       }
    }
+}
+
+Graph CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string> nodeIDs)
+{
+  std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
+
+
+  Graph g;
+
+  if(loader)
+  {
+    boost::shared_lock_guard<DBLoader> lock(*loader);
+
+    DB& db = loader->getFullyLoaded();
+    std::vector<Component> components = db.getAllComponents();
+
+    // copy all IDs to a set so we can check if a node belongs to the subgraph easily
+    std::unordered_set<std::string> nodeIDCache(nodeIDs.begin(), nodeIDs.end());
+
+
+
+    for(const std::string& id : nodeIDCache)
+    {
+      // find node
+      boost::optional<nodeid_t> actualID = db.getNodeID(id);
+      if(actualID)
+      {
+        Graph::Node newNode;
+        newNode.id = id;
+        newNode.type = db.getNodeType(*actualID);
+        // add all node labels
+        std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(*actualID);
+        for(const Annotation& a : nodeAnnos)
+        {
+          if(a.ns != db.getNamespaceStringID()
+             || (a.name != db.getNodeNameStringID() && a.name != db.getNodeTypeStringID()))
+          {
+            Graph::Label newLabel;
+            newLabel.ns = db.strings.str(a.ns);
+            newLabel.name = db.strings.str(a.name);
+            newLabel.value = db.strings.str(a.val);
+            newNode.labels.emplace_back(std::move(newLabel));
+          }
+        }
+
+        g.nodes.emplace_back(std::move(newNode));
+
+        // find outgoing edges
+        for(const auto&c : components)
+        {
+          std::shared_ptr<const ReadableGraphStorage>  gs = db.edges.getGraphStorage(c);
+          if(gs)
+          {
+            for(nodeid_t target : gs->getOutgoingEdges(*actualID))
+            {
+              // only include if target is also included
+              if(nodeIDCache.find(db.getNodeName(target)) != nodeIDCache.end())
+              {
+                Graph::Edge newEdge;
+                newEdge.sourceID = db.getNodeName(*actualID);
+                newEdge.targetID = db.getNodeName(target);
+                for(const Annotation& a : gs->getEdgeAnnotations({*actualID, target}))
+                {
+                  Graph::Label newLabel;
+                  newLabel.ns = db.strings.str(a.ns);
+                  newLabel.name = db.strings.str(a.name);
+                  newLabel.value = db.strings.str(a.val);
+                  newEdge.labels.emplace_back(std::move(newLabel));
+                }
+                g.edges.emplace_back(std::move(newEdge));
+              }
+            }
+          }
+        }
+
+      } // end if node ID was found
+    } // end for each given node ID
+  }
+
+  return g;
 }
 
 std::vector<std::string> CorpusStorageManager::list()

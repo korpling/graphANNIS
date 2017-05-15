@@ -91,6 +91,9 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
 // #pragma once
 
+// #include <annis/api/graphupdate.h>
+// #include <annis/api/graph.h>
+
 // #include <stddef.h>                        // for size_t
 // #include <map>                             // for map
 // #include <memory>                          // for shared_ptr
@@ -208,6 +211,15 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 
   public native void applyUpdate(@StdString BytePointer corpus, @ByRef GraphUpdate update);
   public native void applyUpdate(@StdString String corpus, @ByRef GraphUpdate update);
+
+  /**
+   * \brief Return a sub-graph consisting of the nodes given as argument.s
+   * @param corpus
+   * @param nodeIDs The IDs/names of the nodes to include.
+   * @return
+   */
+  public native @ByVal Graph subgraph(@StdString BytePointer corpus, @ByVal StringVector nodeIDs);
+  public native @ByVal Graph subgraph(@StdString String corpus, @ByVal StringVector nodeIDs);
 
   /**
    * \brief Lists the name of all corpora.
@@ -623,6 +635,105 @@ public static final int
 
 
 
+
+
+
+
+
+
+// Parsed from annis/api/graph.h
+
+// #pragma once
+
+// #include <string>
+// #include <vector>
+
+/**
+ * \brief A simple labeled graph implementation.
+ */
+@Namespace("annis::api") @NoOffset public static class Graph extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public Graph(Pointer p) { super(p); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public Graph(long size) { super((Pointer)null); allocateArray(size); }
+    private native void allocateArray(long size);
+    @Override public Graph position(long position) {
+        return (Graph)super.position(position);
+    }
+
+
+  /**
+   * \brief The Label struct
+   */
+  public static class Label extends Pointer {
+      static { Loader.load(); }
+      /** Default native constructor. */
+      public Label() { super((Pointer)null); allocate(); }
+      /** Native array allocator. Access with {@link Pointer#position(long)}. */
+      public Label(long size) { super((Pointer)null); allocateArray(size); }
+      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+      public Label(Pointer p) { super(p); }
+      private native void allocate();
+      private native void allocateArray(long size);
+      @Override public Label position(long position) {
+          return (Label)super.position(position);
+      }
+  
+    public native @StdString BytePointer ns(); public native Label ns(BytePointer ns);
+    public native @StdString BytePointer name(); public native Label name(BytePointer name);
+    public native @StdString BytePointer value(); public native Label value(BytePointer value);
+  }
+
+  /**
+   * \brief The Node struct
+   */
+  public static class Node extends Pointer {
+      static { Loader.load(); }
+      /** Default native constructor. */
+      public Node() { super((Pointer)null); allocate(); }
+      /** Native array allocator. Access with {@link Pointer#position(long)}. */
+      public Node(long size) { super((Pointer)null); allocateArray(size); }
+      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+      public Node(Pointer p) { super(p); }
+      private native void allocate();
+      private native void allocateArray(long size);
+      @Override public Node position(long position) {
+          return (Node)super.position(position);
+      }
+  
+    public native @StdString BytePointer id(); public native Node id(BytePointer id);
+    public native @StdString BytePointer type(); public native Node type(BytePointer type);
+    public native @StdVector Label labels(); public native Node labels(Label labels);
+  }
+
+  /**
+   * \brief The Edge struct
+   */
+  public static class Edge extends Pointer {
+      static { Loader.load(); }
+      /** Default native constructor. */
+      public Edge() { super((Pointer)null); allocate(); }
+      /** Native array allocator. Access with {@link Pointer#position(long)}. */
+      public Edge(long size) { super((Pointer)null); allocateArray(size); }
+      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+      public Edge(Pointer p) { super(p); }
+      private native void allocate();
+      private native void allocateArray(long size);
+      @Override public Edge position(long position) {
+          return (Edge)super.position(position);
+      }
+  
+    public native @StdString BytePointer sourceID(); public native Edge sourceID(BytePointer sourceID);
+    public native @StdString BytePointer targetID(); public native Edge targetID(BytePointer targetID);
+    public native @StdVector Label labels(); public native Edge labels(Label labels);
+  }
+  public Graph() { super((Pointer)null); allocate(); }
+  private native void allocate();
+
+  public native @StdVector Node nodes(); public native Graph nodes(Node nodes);
+  public native @StdVector Edge edges(); public native Graph edges(Edge edges);
+}
 
 
 

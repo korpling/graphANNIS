@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <annis/api/graphupdate.h>
+#include <annis/api/graph.h>
+
 #include <stddef.h>                        // for size_t
 #include <map>                             // for map
 #include <memory>                          // for shared_ptr
@@ -90,6 +93,14 @@ public:
                                 long long limit=0);
 
   void applyUpdate(std::string corpus, GraphUpdate &update);
+
+  /**
+   * @brief Return a sub-graph consisting of the nodes given as argument.s
+   * @param corpus
+   * @param nodeIDs The IDs/names of the nodes to include.
+   * @return
+   */
+  Graph subgraph(std::string corpus, std::vector< std::string > nodeIDs);
 
   /**
    * @brief Lists the name of all corpora.

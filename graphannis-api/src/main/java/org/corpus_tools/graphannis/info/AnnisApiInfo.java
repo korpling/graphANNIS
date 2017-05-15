@@ -16,7 +16,8 @@ import org.bytedeco.javacpp.tools.InfoMapper;
       {
         "annis/api/corpusstoragemanager.h",
         "annis/api/admin.h",
-        "annis/api/graphupdate.h"
+        "annis/api/graphupdate.h",
+        "annis/api/graph.h"
       },
       link =
       {

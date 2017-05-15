@@ -73,7 +73,7 @@ public:
     return result;
   }
 
-  inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName)
+  inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName) const
   {
     std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
     if(nodeNameID.first)
