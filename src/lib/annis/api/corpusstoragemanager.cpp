@@ -263,7 +263,7 @@ Graph CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string
       boost::optional<nodeid_t> actualID = db.getNodeID(id);
       if(actualID)
       {
-        Graph::Node newNode;
+        Node newNode;
         newNode.id = id;
         newNode.type = db.getNodeType(*actualID);
         // add all node labels
@@ -273,7 +273,7 @@ Graph CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string
           if(a.ns != db.getNamespaceStringID()
              || (a.name != db.getNodeNameStringID() && a.name != db.getNodeTypeStringID()))
           {
-            Graph::Label newLabel;
+            Label newLabel;
             newLabel.ns = db.strings.str(a.ns);
             newLabel.name = db.strings.str(a.name);
             newLabel.value = db.strings.str(a.val);
@@ -294,12 +294,12 @@ Graph CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string
               // only include if target is also included
               if(nodeIDCache.find(db.getNodeName(target)) != nodeIDCache.end())
               {
-                Graph::Edge newEdge;
+                Edge newEdge;
                 newEdge.sourceID = db.getNodeName(*actualID);
                 newEdge.targetID = db.getNodeName(target);
                 for(const Annotation& a : gs->getEdgeAnnotations({*actualID, target}))
                 {
-                  Graph::Label newLabel;
+                  Label newLabel;
                   newLabel.ns = db.strings.str(a.ns);
                   newLabel.name = db.strings.str(a.name);
                   newLabel.value = db.strings.str(a.val);

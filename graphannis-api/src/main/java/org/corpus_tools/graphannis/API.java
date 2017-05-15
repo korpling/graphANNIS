@@ -45,6 +45,84 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     }
 }
 
+@Name("std::vector<annis::api::Label>") public static class LabelVector extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public LabelVector(Pointer p) { super(p); }
+    public LabelVector(Label ... array) { this(array.length); put(array); }
+    public LabelVector()       { allocate();  }
+    public LabelVector(long n) { allocate(n); }
+    private native void allocate();
+    private native void allocate(@Cast("size_t") long n);
+    public native @Name("operator=") @ByRef LabelVector put(@ByRef LabelVector x);
+
+    public native long size();
+    public native void resize(@Cast("size_t") long n);
+
+    @Index public native @ByRef Label get(@Cast("size_t") long i);
+    public native LabelVector put(@Cast("size_t") long i, Label value);
+
+    public LabelVector put(Label ... array) {
+        if (size() != array.length) { resize(array.length); }
+        for (int i = 0; i < array.length; i++) {
+            put(i, array[i]);
+        }
+        return this;
+    }
+}
+
+@Name("std::vector<annis::api::Node>") public static class NodeVector extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public NodeVector(Pointer p) { super(p); }
+    public NodeVector(Node ... array) { this(array.length); put(array); }
+    public NodeVector()       { allocate();  }
+    public NodeVector(long n) { allocate(n); }
+    private native void allocate();
+    private native void allocate(@Cast("size_t") long n);
+    public native @Name("operator=") @ByRef NodeVector put(@ByRef NodeVector x);
+
+    public native long size();
+    public native void resize(@Cast("size_t") long n);
+
+    @Index public native @ByRef Node get(@Cast("size_t") long i);
+    public native NodeVector put(@Cast("size_t") long i, Node value);
+
+    public NodeVector put(Node ... array) {
+        if (size() != array.length) { resize(array.length); }
+        for (int i = 0; i < array.length; i++) {
+            put(i, array[i]);
+        }
+        return this;
+    }
+}
+
+@Name("std::vector<annis::api::Edge>") public static class EdgeVector extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public EdgeVector(Pointer p) { super(p); }
+    public EdgeVector(Edge ... array) { this(array.length); put(array); }
+    public EdgeVector()       { allocate();  }
+    public EdgeVector(long n) { allocate(n); }
+    private native void allocate();
+    private native void allocate(@Cast("size_t") long n);
+    public native @Name("operator=") @ByRef EdgeVector put(@ByRef EdgeVector x);
+
+    public native long size();
+    public native void resize(@Cast("size_t") long n);
+
+    @Index public native @ByRef Edge get(@Cast("size_t") long i);
+    public native EdgeVector put(@Cast("size_t") long i, Edge value);
+
+    public EdgeVector put(Edge ... array) {
+        if (size() != array.length) { resize(array.length); }
+        for (int i = 0; i < array.length; i++) {
+            put(i, array[i]);
+        }
+        return this;
+    }
+}
+
 @Name("std::vector<annis::api::UpdateEvent>") public static class UpdateEventList extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
@@ -649,6 +727,72 @@ public static final int
 // #include <vector>
 
 /**
+ * \brief The Label struct
+ */
+@Namespace("annis::api") public static class Label extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public Label() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public Label(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public Label(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public Label position(long position) {
+        return (Label)super.position(position);
+    }
+
+  public native @StdString BytePointer ns(); public native Label ns(BytePointer ns);
+  public native @StdString BytePointer name(); public native Label name(BytePointer name);
+  public native @StdString BytePointer value(); public native Label value(BytePointer value);
+}
+
+/**
+ * \brief The Node struct
+ */
+@Namespace("annis::api") public static class Node extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public Node() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public Node(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public Node(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public Node position(long position) {
+        return (Node)super.position(position);
+    }
+
+  public native @StdString BytePointer id(); public native Node id(BytePointer id);
+  public native @StdString BytePointer type(); public native Node type(BytePointer type);
+  public native @ByRef LabelVector labels(); public native Node labels(LabelVector labels);
+}
+
+/**
+ * \brief The Edge struct
+ */
+@Namespace("annis::api") public static class Edge extends Pointer {
+    static { Loader.load(); }
+    /** Default native constructor. */
+    public Edge() { super((Pointer)null); allocate(); }
+    /** Native array allocator. Access with {@link Pointer#position(long)}. */
+    public Edge(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public Edge(Pointer p) { super(p); }
+    private native void allocate();
+    private native void allocateArray(long size);
+    @Override public Edge position(long position) {
+        return (Edge)super.position(position);
+    }
+
+  public native @StdString BytePointer sourceID(); public native Edge sourceID(BytePointer sourceID);
+  public native @StdString BytePointer targetID(); public native Edge targetID(BytePointer targetID);
+  public native @ByRef LabelVector labels(); public native Edge labels(LabelVector labels);
+}
+
+/**
  * \brief A simple labeled graph implementation.
  */
 @Namespace("annis::api") @NoOffset public static class Graph extends Pointer {
@@ -662,77 +806,11 @@ public static final int
         return (Graph)super.position(position);
     }
 
-
-  /**
-   * \brief The Label struct
-   */
-  public static class Label extends Pointer {
-      static { Loader.load(); }
-      /** Default native constructor. */
-      public Label() { super((Pointer)null); allocate(); }
-      /** Native array allocator. Access with {@link Pointer#position(long)}. */
-      public Label(long size) { super((Pointer)null); allocateArray(size); }
-      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-      public Label(Pointer p) { super(p); }
-      private native void allocate();
-      private native void allocateArray(long size);
-      @Override public Label position(long position) {
-          return (Label)super.position(position);
-      }
-  
-    public native @StdString BytePointer ns(); public native Label ns(BytePointer ns);
-    public native @StdString BytePointer name(); public native Label name(BytePointer name);
-    public native @StdString BytePointer value(); public native Label value(BytePointer value);
-  }
-
-  /**
-   * \brief The Node struct
-   */
-  public static class Node extends Pointer {
-      static { Loader.load(); }
-      /** Default native constructor. */
-      public Node() { super((Pointer)null); allocate(); }
-      /** Native array allocator. Access with {@link Pointer#position(long)}. */
-      public Node(long size) { super((Pointer)null); allocateArray(size); }
-      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-      public Node(Pointer p) { super(p); }
-      private native void allocate();
-      private native void allocateArray(long size);
-      @Override public Node position(long position) {
-          return (Node)super.position(position);
-      }
-  
-    public native @StdString BytePointer id(); public native Node id(BytePointer id);
-    public native @StdString BytePointer type(); public native Node type(BytePointer type);
-    public native @StdVector Label labels(); public native Node labels(Label labels);
-  }
-
-  /**
-   * \brief The Edge struct
-   */
-  public static class Edge extends Pointer {
-      static { Loader.load(); }
-      /** Default native constructor. */
-      public Edge() { super((Pointer)null); allocate(); }
-      /** Native array allocator. Access with {@link Pointer#position(long)}. */
-      public Edge(long size) { super((Pointer)null); allocateArray(size); }
-      /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-      public Edge(Pointer p) { super(p); }
-      private native void allocate();
-      private native void allocateArray(long size);
-      @Override public Edge position(long position) {
-          return (Edge)super.position(position);
-      }
-  
-    public native @StdString BytePointer sourceID(); public native Edge sourceID(BytePointer sourceID);
-    public native @StdString BytePointer targetID(); public native Edge targetID(BytePointer targetID);
-    public native @StdVector Label labels(); public native Edge labels(Label labels);
-  }
   public Graph() { super((Pointer)null); allocate(); }
   private native void allocate();
 
-  public native @StdVector Node nodes(); public native Graph nodes(Node nodes);
-  public native @StdVector Edge edges(); public native Graph edges(Edge edges);
+  public native @ByRef NodeVector nodes(); public native Graph nodes(NodeVector nodes);
+  public native @ByRef EdgeVector edges(); public native Graph edges(EdgeVector edges);
 }
 
 
