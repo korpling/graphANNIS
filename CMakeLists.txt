@@ -95,6 +95,7 @@ set(IncludeFiles
   src/lib/annis/dbcache.h
   src/lib/annis/api/corpusstoragemanager.h
   src/lib/annis/api/admin.h
+  src/lib/annis/api/graph.h
   src/lib/annis/api/graphupdate.h
   src/lib/annis/serializers.h
   src/lib/annis/graphstorageregistry.h
@@ -147,6 +148,7 @@ set(SRC_LIST_LIB
   src/lib/annis/operators/partofsubcorpus.cpp
   src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
+  src/lib/annis/api/graph.cpp
   src/lib/annis/api/graphupdate.cpp
   src/lib/annis/query/singlealternativequery.cpp
   src/lib/annis/query/query.cpp
