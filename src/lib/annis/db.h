@@ -107,8 +107,7 @@ public:
 
   void ensureAllComponentsLoaded();
 
-  size_t estimateMemorySize();
-
+  size_t estimateMemorySize() const;
 
   void update(const api::GraphUpdate& u);
 

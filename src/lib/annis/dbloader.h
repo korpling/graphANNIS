@@ -41,7 +41,7 @@ namespace annis
   public:
     DBLoader(std::string location, std::function<void()> onloadCalback);
 
-    LoadStatus status()
+    LoadStatus status() const
     {
       if(dbLoaded)
       {
@@ -94,7 +94,7 @@ namespace annis
       db.clear();
     }
 
-    size_t estimateMemorySize()
+    size_t estimateMemorySize() const
     {
       if(dbLoaded)
       {
@@ -106,7 +106,7 @@ namespace annis
       }
     }
 
-    std::string statusString()
+    std::string statusString() const
     {
       switch(status())
       {

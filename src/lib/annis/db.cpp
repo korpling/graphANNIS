@@ -262,7 +262,7 @@ void DB::ensureAllComponentsLoaded()
   }
 }
 
-size_t DB::estimateMemorySize()
+size_t DB::estimateMemorySize() const
 {
   return
     nodeAnnos.estimateMemorySize()

@@ -354,8 +354,8 @@ CorpusStorageManager::CorpusInfo CorpusStorageManager::info(std::string corpusNa
   auto it = corpusCache.find(corpusName);
   if(it != corpusCache.end())
   {
-    std::shared_ptr<DBLoader> loader = it->second;
-    boost::shared_lock_guard<DBLoader> lockDB(*loader);
+    std::shared_ptr<const DBLoader> loader = it->second;
+    boost::shared_lock_guard<const DBLoader> lockDB(*loader);
 
     result.loadStatus = loader->statusString();
     result.memoryUsageInBytes = loader->estimateMemorySize();

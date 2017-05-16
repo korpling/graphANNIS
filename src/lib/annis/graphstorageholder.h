@@ -51,7 +51,7 @@ public:
   size_t estimateMemorySize() const;
   std::string info();
 
-  bool allComponentsLoaded()
+  bool allComponentsLoaded() const
   {
     return notLoadedLocations.empty();
   }
