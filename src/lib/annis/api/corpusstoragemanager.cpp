@@ -277,7 +277,7 @@ void CorpusStorageManager::exportCorpus(std::string corpusName, std::string expo
   std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpusName);
   if(loader)
   {
-     boost::shared_lock_guard<DBLoader> lock(*loader);
+     boost::unique_lock<DBLoader> lock(*loader);
      // load the corpus data from the external location
      loader->getFullyLoaded().save(exportPath);
   }
@@ -288,7 +288,7 @@ void CorpusStorageManager::importRelANNIS(std::string pathToCorpus, std::string 
   std::shared_ptr<DBLoader> loader = getCorpusFromCache(newCorpusName);
   if(loader)
   {
-    boost::shared_lock_guard<DBLoader> lock(*loader);
+    boost::unique_lock<DBLoader> lock(*loader);
 
     DB& db = loader->get();
 
@@ -369,8 +369,7 @@ void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared
 
     // Get a read-lock for the database. The thread is started from another function which will have the database locked,
     // thus this thread will only really start as soon as the calling function has returned.
-    // We start as a read-lock since it is safe to read the in-memory representation (and we won't change it)
-    boost::shared_lock_guard<DBLoader> lock(*loader);
+    boost::unique_lock<DBLoader> lock(*loader);
 
     // We could have been interrupted right after we waited for the lock, so check here just to be sure.
     boost::this_thread::interruption_point();
@@ -456,7 +455,7 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
             if(loader->try_lock_shared())
             {
               HL_DEBUG(logger, "Locked \"" + entry.first + "\" for garbage collection size estimation.");
-              boost::shared_lock_guard<DBLoader> lock(*loader, boost::adopt_lock);
+              boost::shared_lock_guard<const DBLoader> lock(*loader, boost::adopt_lock);
               size_t estimatedSize = entry.second->estimateMemorySize();
               overallSize += estimatedSize;
               // do not add the corpus which was just recently loaded to the list of candidates to be unloaded
