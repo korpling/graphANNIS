@@ -367,7 +367,7 @@ void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared
   std::lock_guard<std::mutex> lock(mutex_writerThreads);
   writerThreads[corpus] = boost::thread([loader, root] () {
 
-    // Get a read-lock for the database. The thread is started from another function which will have the database locked,
+    // Get a write-lock for the database. The thread is started from another function which will have the database locked,
     // thus this thread will only really start as soon as the calling function has returned.
     boost::unique_lock<DBLoader> lock(*loader);
 
