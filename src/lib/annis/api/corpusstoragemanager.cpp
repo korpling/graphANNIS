@@ -351,8 +351,8 @@ CorpusStorageManager::CorpusInfo CorpusStorageManager::info(std::string corpusNa
   auto it = corpusCache.find(corpusName);
   if(it != corpusCache.end())
   {
-    std::shared_ptr<const DBLoader> loader = it->second;
-    boost::shared_lock_guard<const DBLoader> lockDB(*loader);
+    std::shared_ptr<DBLoader> loader = it->second;
+    boost::shared_lock_guard<DBLoader> lockDB(*loader);
 
     result.loadStatus = loader->statusString();
     result.memoryUsageInBytes = loader->estimateMemorySize();
@@ -455,7 +455,7 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
             if(loader->try_lock_shared())
             {
               HL_DEBUG(logger, "Locked \"" + entry.first + "\" for garbage collection size estimation.");
-              boost::shared_lock_guard<const DBLoader> lock(*loader, boost::adopt_lock);
+              boost::shared_lock_guard<DBLoader> lock(*loader, boost::adopt_lock);
               size_t estimatedSize = entry.second->estimateMemorySize();
               overallSize += estimatedSize;
               // do not add the corpus which was just recently loaded to the list of candidates to be unloaded
