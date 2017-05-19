@@ -43,17 +43,42 @@ public:
   GraphStorageHolder(StringStorage& strings);
   virtual ~GraphStorageHolder();
 
-  std::shared_ptr<const ReadableGraphStorage> get(const Component& component);
 
   std::shared_ptr<const ReadableGraphStorage> get(ComponentType type, const std::string& layer, const std::string& name);
   std::vector<std::shared_ptr<const ReadableGraphStorage>> getAll(ComponentType type, const std::string& name);
-  std::vector<std::shared_ptr<const ReadableGraphStorage>> getAll(ComponentType type);
 
   std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
                        const std::string& name);
 
   size_t estimateMemorySize() const;
   std::string info();
+
+  bool isLoaded(ComponentType type, const std::string& layer, const std::string& name) const
+  {
+    Component c = {type, layer, name};
+    return notLoadedLocations.find(c) == notLoadedLocations.end();
+  }
+
+  bool isAllLoaded(ComponentType type, const std::string& name)
+  {
+    Component componentKey;
+    componentKey.type = type;
+    componentKey.layer[0] = '\0';
+    componentKey.name[0] = '\0';
+
+    for(auto itGS = container.lower_bound(componentKey);
+        itGS != container.end() && itGS->first.type == type;
+        itGS++)
+    {
+      const Component& c = itGS->first;
+      if(name == c.name && notLoadedLocations.find(c) != notLoadedLocations.end())
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   bool allComponentsLoaded() const
   {
@@ -69,6 +94,7 @@ private:
   bool load(std::string dirPath, bool preloadComponents);
   bool save(const std::string &dirPath);
   void clear();
+
 
   bool ensureComponentIsLoaded(const Component& c);
 

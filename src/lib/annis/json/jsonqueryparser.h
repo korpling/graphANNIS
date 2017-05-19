@@ -28,6 +28,10 @@
 #include <string>                       // for string
 #include <annis/types.h>                // for Annotation
 #include <annis/graphstorageholder.h>
+#include <annis/dbloader.h>
+
+#include <boost/thread/shared_lock_guard.hpp>
+#include <boost/thread/lock_types.hpp>
 
 namespace annis { class DB; }
 namespace annis { class Query; }
@@ -43,9 +47,16 @@ namespace annis {
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
     static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder &edges, std::istream& json, const QueryConfig config=QueryConfig());
+
     static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder::GetFuncT getGraphStorageFunc,
                                         GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
                                         std::istream& json, const QueryConfig config=QueryConfig());
+
+    static std::shared_ptr<Query> parseWithUpgradeableLock(const DB& db,
+                                                           GraphStorageHolder& edges,
+                                                           std::string queryAsJSON,
+                                                           boost::upgrade_lock<DBLoader>& lock,
+                                                           const QueryConfig config=QueryConfig());
 
     virtual ~JSONQueryParser();
   private:

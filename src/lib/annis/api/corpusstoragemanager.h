@@ -23,6 +23,7 @@
 #include <string>                          // for string
 #include <vector>                          // for vector
 
+
 namespace annis { class DBLoader; }
 namespace annis { namespace api { class GraphUpdate; } }
 
@@ -115,6 +116,7 @@ private:
 
   std::mutex mutex_writerThreads;
   std::map<std::string, boost::thread> writerThreads;
+
 private:
 
 

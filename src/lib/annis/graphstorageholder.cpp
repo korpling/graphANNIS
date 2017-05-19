@@ -59,8 +59,11 @@ void GraphStorageHolder::clear()
   container.clear();
 }
 
-std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::get(const Component &component)
+
+
+std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::get(ComponentType type, const std::string &layer, const std::string &name)
 {
+  Component component = {type, layer, name};
   std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = container.find(component);
   if(itGS != container.end())
   {
@@ -68,13 +71,6 @@ std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::get(const Compon
     return itGS->second;
   }
   return std::shared_ptr<const ReadableGraphStorage>();
-}
-
-
-std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::get(ComponentType type, const std::string &layer, const std::string &name)
-{
-  Component c = {type, layer, name};
-  return get(c);
 }
 
 std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getAll(ComponentType type, const std::string &name)
@@ -96,27 +92,6 @@ std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::ge
       ensureComponentIsLoaded(itGS->first);
       result.push_back(itGS->second);
     }
-  }
-
-  return result;
-}
-
-std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getAll(ComponentType type)
-{
-  std::vector<std::shared_ptr<const ReadableGraphStorage>> result;
-
-  Component c;
-  c.type = type;
-  c.layer[0] = '\0';
-  c.name[0] = '\0';
-
-  for(
-     std::map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = container.lower_bound(c);
-      itGS != container.end() && itGS->first.type == type;
-      itGS++)
-  {
-    ensureComponentIsLoaded(itGS->first);
-    result.push_back(itGS->second);
   }
 
   return result;
