@@ -34,16 +34,20 @@ class GraphStorageHolder
 {
   using GraphStorageIt = std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator;
 
+
 public:
+  using GetFuncResult = std::shared_ptr<const ReadableGraphStorage>;
+  using GetFuncT = std::function<GetFuncResult (ComponentType type, const std::string &layer, const std::string &name)>;
+  using GetAllFuncT = std::function<std::vector<GetFuncResult> (ComponentType type, const std::string &name)>;
 
   GraphStorageHolder(StringStorage& strings);
   virtual ~GraphStorageHolder();
 
-  std::shared_ptr<const ReadableGraphStorage> getGraphStorage(const Component& component);
+  std::shared_ptr<const ReadableGraphStorage> get(const Component& component);
 
-  std::shared_ptr<const ReadableGraphStorage> getGraphStorage(ComponentType type, const std::string& layer, const std::string& name);
-  std::vector<std::shared_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type, const std::string& name);
-  std::vector<std::shared_ptr<const ReadableGraphStorage>> getGraphStorage(ComponentType type);
+  std::shared_ptr<const ReadableGraphStorage> get(ComponentType type, const std::string& layer, const std::string& name);
+  std::vector<std::shared_ptr<const ReadableGraphStorage>> getAll(ComponentType type, const std::string& name);
+  std::vector<std::shared_ptr<const ReadableGraphStorage>> getAll(ComponentType type);
 
   std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
                        const std::string& name);
@@ -55,6 +59,9 @@ public:
   {
     return notLoadedLocations.empty();
   }
+
+  const GetFuncT getFunc;
+  const GetAllFuncT getAllFunc;
 
 private:
   friend class DB;

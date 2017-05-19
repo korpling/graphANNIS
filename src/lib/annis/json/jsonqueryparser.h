@@ -27,8 +27,9 @@
 #include <vector>
 #include <string>                       // for string
 #include <annis/types.h>                // for Annotation
+#include <annis/graphstorageholder.h>
+
 namespace annis { class DB; }
-namespace annis { class GraphStorageHolder; }
 namespace annis { class Query; }
 namespace annis { class SingleAlternativeQuery; }
 
@@ -42,6 +43,9 @@ namespace annis {
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
     static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder &edges, std::istream& json, const QueryConfig config=QueryConfig());
+    static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                                        GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                                        std::istream& json, const QueryConfig config=QueryConfig());
 
     virtual ~JSONQueryParser();
   private:
@@ -55,7 +59,10 @@ namespace annis {
         boost::optional<std::string> textMatching,
         bool wrapEmptyAnno = false);
     
-    static void parseJoin(const DB& db, GraphStorageHolder &edges, const Json::Value join,
+    static void parseJoin(const DB& db,
+                          annis::GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                          GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                          const Json::Value join,
       std::shared_ptr<annis::SingleAlternativeQuery> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos);
     
     static boost::optional<std::string> optStr(const Json::Value& val) {

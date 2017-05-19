@@ -41,7 +41,10 @@ using namespace annis;
 
 
 GraphStorageHolder::GraphStorageHolder(StringStorage &strings)
-  : strings(strings)
+  : strings(strings),
+    getFunc([this](ComponentType type, const std::string &layer, const std::string &name) {return this->get(type, layer, name);}),
+    getAllFunc([this](ComponentType type, const std::string &name) {return this->getAll(type, name);})
+
 {
 
 }
@@ -56,7 +59,7 @@ void GraphStorageHolder::clear()
   container.clear();
 }
 
-std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(const Component &component)
+std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::get(const Component &component)
 {
   std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = container.find(component);
   if(itGS != container.end())
@@ -68,13 +71,13 @@ std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(
 }
 
 
-std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &layer, const std::string &name)
+std::shared_ptr<const ReadableGraphStorage> GraphStorageHolder::get(ComponentType type, const std::string &layer, const std::string &name)
 {
   Component c = {type, layer, name};
-  return getGraphStorage(c);
+  return get(c);
 }
 
-std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type, const std::string &name)
+std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getAll(ComponentType type, const std::string &name)
 {
   std::vector<std::shared_ptr<const ReadableGraphStorage> > result;
 
@@ -98,7 +101,7 @@ std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::ge
   return result;
 }
 
-std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getGraphStorage(ComponentType type)
+std::vector<std::shared_ptr<const ReadableGraphStorage> > GraphStorageHolder::getAll(ComponentType type)
 {
   std::vector<std::shared_ptr<const ReadableGraphStorage>> result;
 

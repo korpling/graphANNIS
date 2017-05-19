@@ -187,7 +187,7 @@ TEST_F(SearchTestRidges, NestedOverlap) {
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
 
-  q.addOperator(std::make_shared<Overlap>(db, db.edges), 0, 1, true);
+  q.addOperator(std::make_shared<Overlap>(db, db.edges.getFunc), 0, 1, true);
 
   while(q.next())
   {

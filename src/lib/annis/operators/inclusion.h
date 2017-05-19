@@ -33,7 +33,7 @@ namespace annis
 class Inclusion : public Operator
 {
 public:
-  Inclusion(const DB &db, GraphStorageHolder &gsh);
+  Inclusion(const DB &db, GraphStorageHolder::GetFuncT getGSFunc);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
   virtual bool filter(const Match& lhs, const Match& rhs) override;

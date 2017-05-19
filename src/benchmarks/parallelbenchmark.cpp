@@ -129,7 +129,13 @@ class GUMFixture : public celero::TestFixture
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
 
           Annotation edgeAnno = {db.strings.add("func"), 0, db.strings.add("dep")};
-          result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnno), 0, 1);
+
+          using namespace std::placeholders;
+
+          result->addOperator(
+                std::make_shared<Pointing>("dep",
+                                           db.edges.getAllFunc,
+                                           db.strings, edgeAnno), 0, 1);
 
           return result;
         }
@@ -142,8 +148,9 @@ class GUMFixture : public celero::TestFixture
           result->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "used"));
           result->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "to"));
 
-          result->addOperator(std::make_shared<Precedence>(db, db.edges), 0, 1);
-          result->addOperator(std::make_shared<Precedence>(db, db.edges), 1, 2);
+
+          result->addOperator(std::make_shared<Precedence>(db, db.edges.getFunc), 0, 1);
+          result->addOperator(std::make_shared<Precedence>(db, db.edges.getFunc), 1, 2);
           return result;
         }
 
@@ -161,10 +168,10 @@ class GUMFixture : public celero::TestFixture
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-          result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "coref", edgeAnnoCoref), 0,1);
-          result->addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", ""), 2,3);
-          result->addOperator(std::make_shared<IdenticalCoverage>(db, db.edges),0,2);
-          result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnnoPrep), 4,3);
+          result->addOperator(std::make_shared<Pointing>("coref", db.edges.getAllFunc, db.strings, edgeAnnoCoref), 0,1);
+          result->addOperator(std::make_shared<Dominance>("", db.edges.getAllFunc, db.strings), 2,3);
+          result->addOperator(std::make_shared<IdenticalCoverage>(db, db.edges.getFunc),0,2);
+          result->addOperator(std::make_shared<Pointing>("dep", db.edges.getAllFunc, db.strings, edgeAnnoPrep), 4,3);
 
           return result;
         }

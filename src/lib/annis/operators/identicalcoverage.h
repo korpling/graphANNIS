@@ -32,7 +32,7 @@ namespace annis
 class IdenticalCoverage : public Operator
 {
 public:
-  IdenticalCoverage(const DB &db, GraphStorageHolder &gsh);
+  IdenticalCoverage(const DB &db, GraphStorageHolder::GetFuncT getGraphStorageFunc);
   IdenticalCoverage(const IdenticalCoverage& orig) = delete;
   
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;

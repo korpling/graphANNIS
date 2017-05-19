@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <boost/optional/optional.hpp>
 #include <annis/operators/operator.h>  // for Operator
 #include <stdint.h>                    // for int64_t
 #include <functional>                  // for function
@@ -24,9 +25,9 @@
 #include <string>                      // for string
 #include <vector>                      // for vector
 #include <annis/types.h>               // for ComponentType, Match (ptr only)
+#include <annis/graphstorageholder.h>
 
 namespace annis { class AnnoIt; }
-namespace annis { class GraphStorageHolder; }
 namespace annis { class NodeByEdgeAnnoSearch; }
 namespace annis { class ReadableGraphStorage; }
 namespace annis { class StringStorage; }
@@ -39,13 +40,27 @@ class AbstractEdgeOperator : public Operator
 {
 
 public:
-  AbstractEdgeOperator(ComponentType componentType,
-      GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
+  AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
+                       GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                       const StringStorage& strings,
       unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
+  AbstractEdgeOperator(ComponentType componentType, std::string name,
+                       GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                       const StringStorage& strings,
+      unsigned int minDistance = 1, unsigned int maxDistance = 1);
+
+
   AbstractEdgeOperator(
-      ComponentType componentType,
-      GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
+      ComponentType componentType, std::string ns, std::string name,
+      GraphStorageHolder::GetFuncT getGraphStorageFunc,
+      const StringStorage& strings,
+      const Annotation& edgeAnno = Init::initAnnotation());
+
+  AbstractEdgeOperator(
+      ComponentType componentType, std::string name,
+      GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+      const StringStorage& strings,
       const Annotation& edgeAnno = Init::initAnnotation());
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
@@ -71,7 +86,9 @@ public:
   virtual ~AbstractEdgeOperator();
 private:
   ComponentType componentType;
-  GraphStorageHolder& gsh;
+  boost::optional<GraphStorageHolder::GetFuncT> getGraphStorageFunc;
+  boost::optional<GraphStorageHolder::GetAllFuncT> getAllGraphStorageFunc;
+
   const StringStorage& strings;
   std::string ns;
   std::string name;

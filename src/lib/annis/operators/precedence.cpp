@@ -29,10 +29,10 @@
 using namespace annis;
 
 
-Precedence::Precedence(const DB &db, GraphStorageHolder& gsh, unsigned int minDistance, unsigned int maxDistance)
-  : tokHelper(gsh, db),
-    gsOrder(gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "")),
-    gsLeft(gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
+Precedence::Precedence(const DB &db, GraphStorageHolder::GetFuncT getGraphStorageFunc, unsigned int minDistance, unsigned int maxDistance)
+  : tokHelper(getGraphStorageFunc, db),
+    gsOrder(getGraphStorageFunc(ComponentType::ORDERING, annis_ns, "")),
+    gsLeft(getGraphStorageFunc(ComponentType::LEFT_TOKEN, annis_ns, "")),
     anyTokAnno(Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID())),
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     minDistance(minDistance), maxDistance(maxDistance)

@@ -17,24 +17,48 @@
 #include "pointing.h"
 #include "annis/operators/abstractedgeoperator.h"  // for AbstractEdgeOperator
 #include "annis/types.h"                           // for ComponentType, Com...
-namespace annis { class GraphStorageHolder; }
+#include <annis/graphstorageholder.h>
+
 namespace annis { class StringStorage; }
 
 
 using namespace annis;
 
-Pointing::Pointing(GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
-                                   unsigned int minDistance, unsigned int maxDistance)
-  : AbstractEdgeOperator(ComponentType::POINTING,
-                         gsh, strings, ns, name, minDistance, maxDistance)
+Pointing::Pointing(std::string ns, std::string name,
+                   GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                   const StringStorage& strings,
+                   unsigned int minDistance, unsigned int maxDistance)
+  : AbstractEdgeOperator(ComponentType::POINTING, ns, name,
+                         getGraphStorageFunc, strings, minDistance, maxDistance)
 {
 }
 
-Pointing::Pointing(GraphStorageHolder &gsh, const StringStorage &strings, std::string ns, std::string name, const Annotation &edgeAnno)
-  : AbstractEdgeOperator(ComponentType::POINTING,
-                         gsh, strings, ns, name, edgeAnno)
+Pointing::Pointing(std::string name,
+                   GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                   const StringStorage& strings,
+                   unsigned int minDistance, unsigned int maxDistance)
+  : AbstractEdgeOperator(ComponentType::POINTING, name,
+                         getAllGraphStorageFunc, strings, minDistance, maxDistance)
 {
 }
+
+Pointing::Pointing(std::string ns, std::string name,
+                   GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                   const StringStorage &strings, const Annotation &edgeAnno)
+  : AbstractEdgeOperator(ComponentType::POINTING, ns, name,
+                         getGraphStorageFunc, strings, edgeAnno)
+{
+}
+
+Pointing::Pointing(std::string name,
+                   GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                   const StringStorage &strings, const Annotation &edgeAnno)
+  : AbstractEdgeOperator(ComponentType::POINTING, name,
+                         getAllGraphStorageFunc, strings, edgeAnno)
+{
+}
+
+
 
 Pointing::~Pointing()
 {

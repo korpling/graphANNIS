@@ -27,7 +27,7 @@
 namespace annis
 {
 
-  class DBLoader : public boost::shared_lockable_adapter<boost::shared_mutex>
+  class DBLoader : public boost::upgrade_lockable_adapter<boost::shared_mutex>
   {
   public:
 

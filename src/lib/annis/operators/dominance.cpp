@@ -18,24 +18,43 @@
 #include "annis/operators/abstractedgeoperator.h"  // for AbstractEdgeOperator
 #include "annis/types.h"                           // for ComponentType, Com...
 
-namespace annis { class GraphStorageHolder; }
 namespace annis { class StringStorage; }
 
 using namespace annis;
 
-Dominance::Dominance(GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
-                                   unsigned int minDistance, unsigned int maxDistance)
-  : AbstractEdgeOperator(ComponentType::DOMINANCE,
-                         gsh, strings, ns, name, minDistance, maxDistance)
+Dominance::Dominance(std::string ns, std::string name,
+                   GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                   const StringStorage& strings,
+                   unsigned int minDistance, unsigned int maxDistance)
+  : AbstractEdgeOperator(ComponentType::DOMINANCE, ns, name,
+                         getGraphStorageFunc, strings, minDistance, maxDistance)
 {
 }
 
-Dominance::Dominance(GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name, const Annotation &edgeAnno)
-  : AbstractEdgeOperator(ComponentType::DOMINANCE,
-                         gsh, strings, ns, name, edgeAnno)
+Dominance::Dominance(std::string name,
+                   GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                   const StringStorage& strings,
+                   unsigned int minDistance, unsigned int maxDistance)
+  : AbstractEdgeOperator(ComponentType::DOMINANCE, name,
+                         getAllGraphStorageFunc, strings, minDistance, maxDistance)
 {
 }
 
+Dominance::Dominance(std::string ns, std::string name,
+                   GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                   const StringStorage &strings, const Annotation &edgeAnno)
+  : AbstractEdgeOperator(ComponentType::DOMINANCE, ns, name,
+                         getGraphStorageFunc, strings, edgeAnno)
+{
+}
+
+Dominance::Dominance(std::string name,
+                   GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                   const StringStorage &strings, const Annotation &edgeAnno)
+  : AbstractEdgeOperator(ComponentType::DOMINANCE, name,
+                         getAllGraphStorageFunc, strings, edgeAnno)
+{
+}
 Dominance::~Dominance()
 {
 
