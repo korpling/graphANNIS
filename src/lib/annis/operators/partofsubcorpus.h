@@ -18,7 +18,7 @@
 
 #include <annis/operators/abstractedgeoperator.h>  // for AbstractEdgeOperator
 #include <annis/types.h>                           // for ComponentType, Com...
-#include <annis/graphstorageholder.h>
+#include <annis/db.h>
 
 namespace annis { class StringStorage; }
 
@@ -29,7 +29,7 @@ namespace annis
 class PartOfSubCorpus : public AbstractEdgeOperator
 {
 public:
-  PartOfSubCorpus(GraphStorageHolder::GetFuncT getGraphStorageFunc , const StringStorage &strings);
+  PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc , const StringStorage &strings);
 
   virtual std::string operatorString() override
   {

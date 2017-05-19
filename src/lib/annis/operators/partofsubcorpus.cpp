@@ -18,14 +18,13 @@
 #include "annis/operators/abstractedgeoperator.h"  // for AbstractEdgeOperator
 #include "annis/types.h"                           // for ComponentType, Com...
 
-#include <annis/graphstorageholder.h>
 #include <annis/graphstorage/graphstorage.h>
 
 namespace annis { class StringStorage; }
 
 using namespace annis;
 
-PartOfSubCorpus::PartOfSubCorpus(GraphStorageHolder::GetFuncT getGraphStorageFunc,
+PartOfSubCorpus::PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc,
                                  const StringStorage& strings)
   : AbstractEdgeOperator(ComponentType::PART_OF_SUBCORPUS,
                          annis_ns, "",

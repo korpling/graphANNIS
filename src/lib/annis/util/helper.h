@@ -9,7 +9,6 @@
 
 #include <annis/db.h>
 #include <annis/graphstorage/graphstorage.h>
-#include <annis/graphstorageholder.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -28,7 +27,7 @@ class TokenHelper
 {
 public:
 
-  TokenHelper(GraphStorageHolder::GetFuncT getGSFunc, const DB& db) : db(db),
+  TokenHelper(DB::GetGSFuncT getGSFunc, const DB& db) : db(db),
     leftEdges(getGSFunc(ComponentType::LEFT_TOKEN, annis_ns, "")),
     rightEdges(getGSFunc(ComponentType::RIGHT_TOKEN, annis_ns, ""))
   {

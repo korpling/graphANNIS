@@ -45,7 +45,6 @@
 #include "annis/annostorage.h"                          // for AnnoStorage
 #include "annis/stringstorage.h"                        // for StringStorage
 #include "annis/types.h"                                // for Match, Annota...
-#include <annis/graphstorageholder.h>
 
 #include <functional>
 
@@ -80,7 +79,7 @@ long long CorpusStorageManager::count(std::vector<std::string> corpora, std::str
     {
       boost::upgrade_lock<DBLoader> lock(*loader);
 
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(loader->get(), loader->get().edges, queryAsJSON, lock);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(loader->get(), queryAsJSON, lock);
       while(q->next())
       {
         result++;
@@ -106,10 +105,10 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
     if(loader)
     {
       boost::upgrade_lock<DBLoader> lock(*loader);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(loader->get(), queryAsJSON, lock);
 
       const DB& db = loader->get();
 
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(db, loader->get().edges, queryAsJSON, lock);
       while(q->next())
       {
         result.matchCount++;
@@ -151,9 +150,10 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
     {
       boost::upgrade_lock<DBLoader> lock(*loader);
 
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(loader->get(), queryAsJSON, lock);
+
       const DB& db = loader->get();
 
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(db, loader->get().edges, queryAsJSON, lock);
       while((limit <= 0 || counter < (offset + limit)) && q->next())
       {
         if(counter >= offset)

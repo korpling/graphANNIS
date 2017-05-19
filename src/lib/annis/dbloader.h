@@ -22,7 +22,6 @@
 #include <boost/thread/shared_mutex.hpp>      // for shared_mutex
 #include <functional>                         // for function
 #include <string>                             // for string
-#include <annis/graphstorageholder.h>         // for GraphStorageHolder
 
 namespace annis
 {
@@ -45,7 +44,7 @@ namespace annis
     {
       if(dbLoaded)
       {
-        if(db.edges.allComponentsLoaded())
+        if(db.allGraphStoragesLoaded())
         {
           return FULLY_LOADED;
         }
@@ -73,7 +72,7 @@ namespace annis
     {
       if(dbLoaded)
       {
-        if(!db.edges.allComponentsLoaded())
+        if(!db.allGraphStoragesLoaded())
         {
           db.ensureAllComponentsLoaded();
           onloadCalback();

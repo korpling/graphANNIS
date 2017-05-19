@@ -207,7 +207,7 @@ void Console::count(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss, config);
         int counter =0;
         auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
         while(q->next())
@@ -242,7 +242,7 @@ void Console::find(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss, config);
         int counter =0;
         while(q->next())
         {
@@ -344,7 +344,7 @@ void Console::plan(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss, config);
         std::cout << q->debugString() << std::endl;
       }
       catch(Json::RuntimeError err)

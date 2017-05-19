@@ -21,7 +21,7 @@
 #include <memory>                      // for shared_ptr, unique_ptr
 #include <string>                      // for string
 #include "annis/types.h"               // for Match (ptr only), Annotation
-#include <annis/graphstorageholder.h>
+#include <annis/db.h>
 
 namespace annis { class AnnoIt; }
 namespace annis { class DB; }
@@ -35,7 +35,7 @@ class Overlap : public Operator
 {
 public:
 
-  Overlap(const DB &db, GraphStorageHolder::GetFuncT getGraphStorageFunc);
+  Overlap(const DB &db, DB::GetGSFuncT getGraphStorageFunc);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
   virtual bool filter(const Match& lhs, const Match& rhs) override;

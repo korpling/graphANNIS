@@ -30,7 +30,6 @@
 #include "annis/annosearch/nodebyedgeannosearch.h"  // for NodeByEdgeAnnoSearch
 #include "annis/annostorage.h"                      // for AnnoStorage
 #include "annis/graphstorage/graphstorage.h"        // for ReadableGraphStorage
-#include "annis/graphstorageholder.h"               // for GraphStorageHolder
 #include "annis/iterators.h"                        // for EdgeIterator, AnnoIt
 #include "annis/stringstorage.h"                    // for StringStorage
 #include <annis/types.h>
@@ -38,7 +37,7 @@
 using namespace annis;
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
-                     GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                     DB::GetGSFuncT getGraphStorageFunc,
                      const StringStorage& strings,
                      unsigned int minDistance, unsigned int maxDistance)
   : componentType(componentType),
@@ -51,7 +50,7 @@ AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::str
 }
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string name,
-                     GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                     DB::GetAllGSFuncT getAllGraphStorageFunc,
                      const StringStorage& strings,
                      unsigned int minDistance, unsigned int maxDistance)
   : componentType(componentType),
@@ -64,9 +63,8 @@ AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::str
 }
 
 
-AbstractEdgeOperator::AbstractEdgeOperator(
-    ComponentType componentType, std::string ns, std::string name,
-    GraphStorageHolder::GetFuncT getGraphStorageFunc,
+AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
+    DB::GetGSFuncT getGraphStorageFunc,
     const StringStorage& strings,
     const Annotation& edgeAnno)
   : componentType(componentType),
@@ -78,9 +76,8 @@ AbstractEdgeOperator::AbstractEdgeOperator(
   initGraphStorage();
 }
 
-AbstractEdgeOperator::AbstractEdgeOperator(
-    ComponentType componentType, std::string name,
-    GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string name,
+    DB::GetAllGSFuncT getAllGraphStorageFunc,
     const StringStorage& strings,
     const Annotation& edgeAnno)
   : componentType(componentType),

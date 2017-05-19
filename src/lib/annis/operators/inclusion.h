@@ -21,10 +21,9 @@
 #include <memory>                      // for shared_ptr, unique_ptr
 #include <string>                      // for string
 #include <annis/types.h>               // for Match (ptr only), Annotation
+#include <annis/db.h>
 
 namespace annis { class AnnoIt; }
-namespace annis { class DB; }
-namespace annis { class GraphStorageHolder; }
 namespace annis { class ReadableGraphStorage; }
 
 namespace annis
@@ -33,7 +32,7 @@ namespace annis
 class Inclusion : public Operator
 {
 public:
-  Inclusion(const DB &db, GraphStorageHolder::GetFuncT getGSFunc);
+  Inclusion(const DB &db, DB::GetGSFuncT getGSFunc);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
   virtual bool filter(const Match& lhs, const Match& rhs) override;

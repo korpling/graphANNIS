@@ -80,7 +80,7 @@ bool RelANNISLoader::load(string dirPath)
     if(line[1] != "NULL")
     {
       ComponentType ctype = componentTypeFromShortName(line[1]);
-      std::shared_ptr<WriteableGraphStorage> gs = db.edges.createWritableGraphStorage(ctype, line[2], line[3]);
+      std::shared_ptr<WriteableGraphStorage> gs = db.createWritableGraphStorage(ctype, line[2], line[3]);
       componentToGS[componentID] = gs;
     }
   }
@@ -279,9 +279,9 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
   if(!tokenByIndex.empty())
   {
     HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
-    std::shared_ptr<WriteableGraphStorage> gsOrder = db.edges.createWritableGraphStorage(ComponentType::ORDERING, annis_ns, "");
-    std::shared_ptr<WriteableGraphStorage> gsLeft = db.edges.createWritableGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
-    std::shared_ptr<WriteableGraphStorage> gsRight = db.edges.createWritableGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
+    std::shared_ptr<WriteableGraphStorage> gsOrder = db.createWritableGraphStorage(ComponentType::ORDERING, annis_ns, "");
+    std::shared_ptr<WriteableGraphStorage> gsLeft = db.createWritableGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
+    std::shared_ptr<WriteableGraphStorage> gsRight = db.createWritableGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
     map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
     uint32_t lastTextID = numeric_limits<uint32_t>::max();
@@ -344,8 +344,8 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
   }
 
   // add explicit coverage edges for each node in the special annis namespace coverage component
-  std::shared_ptr<WriteableGraphStorage> gsCoverage = db.edges.createWritableGraphStorage(ComponentType::COVERAGE, annis_ns, "");
-  std::shared_ptr<WriteableGraphStorage> gsInverseCoverage = db.edges.createWritableGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
+  std::shared_ptr<WriteableGraphStorage> gsCoverage = db.createWritableGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+  std::shared_ptr<WriteableGraphStorage> gsInverseCoverage = db.createWritableGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
   HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
   for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
       itLeftToNode != leftToNode.end(); itLeftToNode++)
@@ -563,7 +563,7 @@ void RelANNISLoader::addSubCorpora(std::string toplevelCorpusName,
 {
   std::list<std::pair<NodeAnnotationKey, uint32_t>> corpusAnnoList;
 
-  std::shared_ptr<WriteableGraphStorage> gsSubCorpus = db.edges.createWritableGraphStorage(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
+  std::shared_ptr<WriteableGraphStorage> gsSubCorpus = db.createWritableGraphStorage(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
 
   nodeid_t nodeID = db.nextFreeNodeID();
 

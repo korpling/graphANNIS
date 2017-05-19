@@ -30,23 +30,23 @@ class Pointing : public AbstractEdgeOperator
 {
 public:
   Pointing(std::string ns, std::string name,
-           GraphStorageHolder::GetFuncT getGraphStorageFunc,
+           DB::GetGSFuncT getGraphStorageFunc,
            const StringStorage &strings,
            unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   Pointing(std::string name,
-           GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+           DB::GetAllGSFuncT getAllGraphStorageFunc,
            const StringStorage &strings,
            unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   Pointing(std::string ns, std::string name,
-           GraphStorageHolder::GetFuncT getGraphStorageFunc,
+           DB::GetGSFuncT getGraphStorageFunc,
            const StringStorage& strings,
            const Annotation& edgeAnno);
 
 
   Pointing(std::string name,
-           GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+           DB::GetAllGSFuncT getAllGraphStorageFunc,
            const StringStorage& strings,
            const Annotation& edgeAnno);
 

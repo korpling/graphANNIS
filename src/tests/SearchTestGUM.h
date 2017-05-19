@@ -89,7 +89,7 @@ protected:
       in.open(jsonFileName);
       if(in.is_open()) {
         QueryConfig config;
-        q = JSONQueryParser::parse(db, db.edges, in, config);
+        q = JSONQueryParser::parse(db, in, config);
         in.close();
       }
     }
@@ -144,7 +144,7 @@ TEST_F(SearchTestGUM, IndirectPointingNested) {
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "object"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "abstract"));
 
-  q.addOperator(std::make_shared<Pointing>("coref", db.edges.getAllFunc, db.strings, 1, uintmax), 0, 1, true);
+  q.addOperator(std::make_shared<Pointing>("coref", db.f_getAllGraphStorages, db.strings, 1, uintmax), 0, 1, true);
 
   auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
   while (q.next() && counter < 1000) {
@@ -235,7 +235,7 @@ TEST_F(SearchTestGUM, pos_dep_pos_Thread4) {
   result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
 
   Annotation edgeAnno = {db.strings.add("func"), 0, db.strings.add("dep")};
-  result->addOperator(std::make_shared<Pointing>("dep", db.edges.getAllFunc, db.strings, edgeAnno), 0, 1);
+  result->addOperator(std::make_shared<Pointing>("dep", db.f_getAllGraphStorages, db.strings, edgeAnno), 0, 1);
 
   CALLGRIND_START_INSTRUMENTATION;
   unsigned int counter = 0;

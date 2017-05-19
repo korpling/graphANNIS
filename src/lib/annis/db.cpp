@@ -37,10 +37,10 @@
 #include <limits>                                       // for numeric_limits
 #include <list>                                         // for list
 #include <sstream>
-#include "annis/graphstorageholder.h"                   // for GraphStorageH...
-#include "annis/stringstorage.h"                        // for StringStorage
-#include "annis/types.h"                                // for TextProperty
+#include <annis/stringstorage.h>                        // for StringStorage
+#include <annis/types.h>                                // for TextProperty
 #include <boost/format.hpp>
+#include <annis/graphstorage/adjacencyliststorage.h>
 
 
 HUMBLE_LOGGER(logger, "annis4");
@@ -49,7 +49,9 @@ using namespace annis;
 using namespace std;
 
 DB::DB()
-: edges(strings), currentChangeID(0)
+: currentChangeID(0),
+  f_getGraphStorage([this](ComponentType type, const std::string &layer, const std::string &name) {return this->getGraphStorage(type, layer, name);}),
+  f_getAllGraphStorages([this](ComponentType type, const std::string &name) {return this->getAllGraphStorages(type, name);})
 {
   addDefaultStrings();
 }
@@ -86,7 +88,7 @@ bool DB::load(string dir, bool preloadComponents)
   }
 
   // If backup is active or a write log exists, always  a pre-load to get the complete corpus.
-  edges.load(dir2load.string(), backupWasLoaded || logfileExists || preloadComponents);
+  loadGraphStorages(dir2load.string(), backupWasLoaded || logfileExists || preloadComponents);
 
   if(logStream.is_open())
   {
@@ -139,7 +141,7 @@ bool DB::save(string dir)
 
   boost::this_thread::interruption_point();
 
-  edges.save(dirPath.string());
+  saveGraphStorages(dirPath.string());
 
   boost::this_thread::interruption_point();
 
@@ -177,7 +179,8 @@ void DB::clear()
 {
   strings.clear();
   nodeAnnos.clear();
-  edges.clear();
+  graphStorages.clear();
+  notLoadedLocations.clear();
 
   addDefaultStrings();
 }
@@ -191,6 +194,223 @@ void DB::addDefaultStrings()
   annisNodeTypeID = strings.add(annis_node_type);
 }
 
+void DB::loadGraphStorages(string dirPath, bool preloadComponents)
+{
+  graphStorages.clear();
+
+  boost::filesystem::directory_iterator fileEndIt;
+
+  for(unsigned int componentType = (unsigned int) ComponentType::COVERAGE;
+      componentType < (unsigned int) ComponentType::ComponentType_MAX; componentType++)
+  {
+    const boost::filesystem::path componentPath(dirPath + "/gs/"
+                                                + ComponentTypeHelper::toString((ComponentType) componentType));
+
+    if(boost::filesystem::is_directory(componentPath))
+    {
+      // get all the namespaces/layers
+      boost::filesystem::directory_iterator itLayers(componentPath);
+      while(itLayers != fileEndIt)
+      {
+        const boost::filesystem::path layerPath = *itLayers;
+
+
+
+        // try to load the component with the empty name
+        Component emptyNameComponent = {(ComponentType) componentType,
+            layerPath.filename().string(), ""};
+
+        std::shared_ptr<ReadableGraphStorage> gsEmptyName;
+
+        if(preloadComponents)
+        {
+          HL_DEBUG(logger, (boost::format("loading component %1%")
+                           % debugComponentString(emptyNameComponent)).str());
+          auto inputFile = layerPath / "component.cereal";
+          std::ifstream is(inputFile.string(), std::ios::binary);
+          if(is.is_open())
+          {
+            cereal::BinaryInputArchive ar(is);
+            ar(gsEmptyName);
+          }
+        }
+        else
+        {
+          notLoadedLocations.insert({emptyNameComponent, layerPath.string()});
+        }
+        graphStorages[emptyNameComponent] = gsEmptyName;
+
+
+        // also load all named components
+        boost::filesystem::directory_iterator itNamedComponents(layerPath);
+        while(itNamedComponents != fileEndIt)
+        {
+          const boost::filesystem::path namedComponentPath = *itNamedComponents;
+          if(boost::filesystem::is_directory(namedComponentPath))
+          {
+            // try to load the named component
+            Component namedComponent = {(ComponentType) componentType,
+                                                           layerPath.filename().string(),
+                                                           namedComponentPath.filename().string()
+                                       };
+
+
+            std::shared_ptr<ReadableGraphStorage> gsNamed;
+            if(preloadComponents)
+            {
+              HL_DEBUG(logger, (boost::format("loading component %1%")
+                               % debugComponentString(namedComponent)).str());
+              auto inputFile = namedComponentPath / "component.cereal";
+              std::ifstream is(inputFile.string(), std::ios::binary);
+              if(is.is_open())
+              {
+                cereal::BinaryInputArchive ar(is);
+                ar(gsNamed);
+              }
+            }
+            else
+            {
+              notLoadedLocations.insert({namedComponent, namedComponentPath.string()});
+            }
+            graphStorages[namedComponent] = gsNamed;
+          }
+          itNamedComponents++;
+        } // end for each file/directory in layer directory
+        itLayers++;
+      } // for each layers
+    }
+  } // end for each component
+}
+
+void DB::saveGraphStorages(const string &dirPath)
+{
+  // save each edge db separately
+  boost::filesystem::path gsParent = boost::filesystem::path(dirPath) / "gs";
+
+  // remove all existing files in the graph storage first, otherwise deleted graphstorages might re-appear
+  boost::filesystem::remove_all(gsParent);
+  boost::filesystem::create_directories(gsParent);
+
+  using GraphStorageIt = std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator;
+
+  for(GraphStorageIt it = graphStorages.begin(); it != graphStorages.end(); it++)
+  {
+    boost::this_thread::interruption_point();
+
+    const Component& c = it->first;
+    boost::filesystem::path finalPath;
+    if(c.name.empty())
+    {
+      finalPath = gsParent / ComponentTypeHelper::toString(c.type) / c.layer;
+    }
+    else
+    {
+      finalPath = gsParent / ComponentTypeHelper::toString(c.type) / c.layer / c.name;
+    }
+    boost::filesystem::create_directories(finalPath);
+    auto outputFile = finalPath / "component.cereal";
+    std::ofstream os(outputFile.string(), std::ios::binary);
+    cereal::BinaryOutputArchive ar(os);
+    ar(it->second);
+  }
+}
+
+bool DB::ensureGraphStorageIsLoaded(const Component &c)
+{
+  auto itGS = graphStorages.find(c);
+  if(itGS != graphStorages.end())
+  {
+    auto itLocation = notLoadedLocations.find(c);
+    if(itLocation != notLoadedLocations.end())
+    {
+      HL_DEBUG(logger, (boost::format("loading component %1%")
+                       % debugComponentString(itLocation->first)).str());
+      std::ifstream is(itLocation->second + "/component.cereal");
+      if(is.is_open())
+      {
+        cereal::BinaryInputArchive ar(is);
+        ar(itGS->second);
+        notLoadedLocations.erase(itLocation);
+
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+size_t DB::estimateGraphStorageMemorySize() const
+{
+  size_t result = 0;
+  for(std::pair<Component, std::shared_ptr<ReadableGraphStorage>> e : graphStorages)
+  {
+    if(e.second)
+    {
+      result += e.second->estimateMemorySize();
+    }
+  }
+  return result;
+}
+
+string DB::gsInfo() const
+{
+  using GraphStorageIt = std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator;
+
+  std::stringstream ss;
+  for(GraphStorageIt it = graphStorages.begin(); it != graphStorages.end(); it++)
+  {
+    const Component& c = it->first;
+    const std::shared_ptr<ReadableGraphStorage> gs = it->second;
+
+    if(!gs)
+    {
+      ss << "Component " << debugComponentString(c) << std::endl << "(not loaded yet)" << std::endl;
+    }
+    else
+    {
+      ss << "Component " << debugComponentString(c) << ": " << gs->numberOfEdges() << " edges and "
+         << gs->numberOfEdgeAnnotations() << " annotations" << std::endl;
+
+      std::string implName = GraphStorageRegistry::getName(gs);
+      if(!implName.empty())
+      {
+        ss << "implementation: " << implName << std::endl;
+        ss << "estimated size: " << Helper::inMB(gs->estimateMemorySize()) << " MB" << std::endl;
+      }
+
+      GraphStatistic stat = gs->getStatistics();
+      if(stat.valid)
+      {
+        ss << "nodes: " << stat.nodes << std::endl;
+        ss << "fan-out: " << stat.avgFanOut << " (avg) / " << stat.maxFanOut << " (max)" << std::endl;
+        if(stat.cyclic)
+        {
+          ss << "cyclic" << std::endl;
+        }
+        else
+        {
+          ss << "non-cyclic, max. depth: " << stat.maxDepth << ", DFS visit ratio: " << stat.dfsVisitRatio << std::endl;
+
+        }
+        if(stat.rootedTree)
+        {
+          ss << "rooted tree" << std::endl;
+        }
+      }
+    }
+    ss << "--------------------" << std::endl;
+  }
+  return ss.str();
+}
+
+string DB::debugComponentString(const Component &c) const
+{
+  std::stringstream ss;
+  ss << ComponentTypeHelper::toString(c.type) << "|" << c.layer
+     << "|" << c.name;
+  return ss.str();
+}
+
 nodeid_t DB::nextFreeNodeID() const
 {
   return nodeAnnos.annotations.empty() ? 0 : (nodeAnnos.annotations.rbegin()->first.id) + 1;
@@ -199,8 +419,8 @@ nodeid_t DB::nextFreeNodeID() const
 void DB::convertComponent(Component c, std::string impl)
 {
   map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator
-      it = edges.container.find(c);
-  if(it != edges.container.end())
+      it = graphStorages.find(c);
+  if(it != graphStorages.end())
   {
     std::shared_ptr<ReadableGraphStorage> oldStorage = it->second;
 
@@ -209,22 +429,22 @@ void DB::convertComponent(Component c, std::string impl)
       oldStorage->calculateStatistics(strings);
     }
 
-    std::string currentImpl = edges.registry.getName(oldStorage);
+    std::string currentImpl = gsRegistry.getName(oldStorage);
     if(impl == "")
     {
-      impl = edges.registry.getOptimizedImpl(c, oldStorage->getStatistics());
+      impl = gsRegistry.getOptimizedImpl(c, oldStorage->getStatistics());
     }
     std::shared_ptr<ReadableGraphStorage> newStorage = oldStorage;
     if(currentImpl != impl)
     {
       HL_DEBUG(logger, (boost::format("converting component %1% from %2% to %3%")
-                       % edges.debugComponentString(c)
+                       % debugComponentString(c)
                        % currentImpl
                        % impl).str());
 
-      newStorage = edges.registry.createGraphStorage(impl, strings, c);
+      newStorage = gsRegistry.createGraphStorage(impl, strings, c);
       newStorage->copy(*this, *oldStorage);
-      edges.container[c] = newStorage;
+      graphStorages[c] = newStorage;
     }
 
     // perform index calculations
@@ -240,7 +460,7 @@ void DB::optimizeAll(const std::map<Component, string>& manualExceptions)
 {
   for(const auto& c : getAllComponents())
   {
-    edges.ensureComponentIsLoaded(c);
+    ensureGraphStorageIsLoaded(c);
     auto find = manualExceptions.find(c);
     if(find == manualExceptions.end())
     {
@@ -254,20 +474,52 @@ void DB::optimizeAll(const std::map<Component, string>& manualExceptions)
   }
 }
 
+bool DB::allGraphStoragesLoaded() const
+{
+  return notLoadedLocations.empty();
+}
+
+bool DB::isGraphStorageLoaded(ComponentType type, const string &layer, const string &name) const
+{
+  Component c = {type, layer, name};
+  return notLoadedLocations.find(c) == notLoadedLocations.end();
+}
+
+bool DB::allGraphStoragesLoaded(ComponentType type, const string &name)
+{
+  Component componentKey;
+  componentKey.type = type;
+  componentKey.layer[0] = '\0';
+  componentKey.name[0] = '\0';
+
+  for(auto itGS = graphStorages.lower_bound(componentKey);
+      itGS != graphStorages.end() && itGS->first.type == type;
+      itGS++)
+  {
+    const Component& c = itGS->first;
+    if(name == c.name && notLoadedLocations.find(c) != notLoadedLocations.end())
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void DB::ensureAllComponentsLoaded()
 {
   for(const auto& c : getAllComponents())
   {
-    edges.ensureComponentIsLoaded(c);
+    ensureGraphStorageIsLoaded(c);
   }
 }
 
 size_t DB::estimateMemorySize() const
 {
   return
-    nodeAnnos.estimateMemorySize()
+      nodeAnnos.estimateMemorySize()
       + strings.estimateMemorySize()
-      + edges.estimateMemorySize();
+      + estimateGraphStorageMemorySize();
 }
 
 string DB::info()
@@ -277,18 +529,77 @@ string DB::info()
       << "Number of strings in storage: " << strings.size() << endl
       << "Average string length: " << strings.avgLength() << endl
       << "--------------------" << std::endl
-      << edges.info() << std::endl;
+      << gsInfo() << std::endl;
 
   return ss.str();
+}
+
+std::shared_ptr<WriteableGraphStorage> DB::createWritableGraphStorage(ComponentType ctype, const string &layer, const string &name)
+{
+  Component c = {ctype, layer, name == "NULL" ? "" : name};
+
+  // check if there is already an edge DB for this component
+  std::map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator itDB =
+      graphStorages.find(c);
+  if(itDB != graphStorages.end())
+  {
+    // check if the current implementation is writeable
+    std::shared_ptr<WriteableGraphStorage> writable = std::dynamic_pointer_cast<WriteableGraphStorage>(itDB->second);
+    if(writable)
+    {
+      return writable;
+    }
+  }
+
+  std::shared_ptr<WriteableGraphStorage> gs = std::shared_ptr<WriteableGraphStorage>(new AdjacencyListStorage());
+  // register the used implementation
+  graphStorages[c] = gs;
+  return gs;
+}
+
+std::shared_ptr<const ReadableGraphStorage> DB::getGraphStorage(ComponentType type, const string &layer, const string &name)
+{
+  Component component = {type, layer, name};
+  std::map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = graphStorages.find(component);
+  if(itGS != graphStorages.end())
+  {
+    ensureGraphStorageIsLoaded(itGS->first);
+    return itGS->second;
+  }
+  return std::shared_ptr<const ReadableGraphStorage>();
+}
+
+std::vector<std::shared_ptr<const ReadableGraphStorage> > DB::getAllGraphStorages(ComponentType type, const string &name)
+{
+  std::vector<std::shared_ptr<const ReadableGraphStorage> > result;
+
+  Component componentKey;
+  componentKey.type = type;
+  componentKey.layer[0] = '\0';
+  componentKey.name[0] = '\0';
+
+  for(auto itGS = graphStorages.lower_bound(componentKey);
+      itGS != graphStorages.end() && itGS->first.type == type;
+      itGS++)
+  {
+    const Component& c = itGS->first;
+    if(name == c.name)
+    {
+      ensureGraphStorageIsLoaded(itGS->first);
+      result.push_back(itGS->second);
+    }
+  }
+
+  return result;
 }
 
 
 std::vector<Component> DB::getDirectConnected(const Edge &edge) const
 {
   std::vector<Component> result;
-  map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = edges.container.begin();
+  map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = graphStorages.begin();
 
-  while(itGS != edges.container.end())
+  while(itGS != graphStorages.end())
   {
     std::shared_ptr<ReadableGraphStorage> gs = itGS->second;
     if(gs != NULL)
@@ -307,9 +618,9 @@ std::vector<Component> DB::getDirectConnected(const Edge &edge) const
 std::vector<Component> DB::getAllComponents() const
 {
   std::vector<Component> result;
-  map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = edges.container.begin();
+  map<Component, std::shared_ptr<ReadableGraphStorage>>::const_iterator itGS = graphStorages.begin();
 
-  while(itGS != edges.container.end())
+  while(itGS != graphStorages.end())
   {
     result.push_back(itGS->first);
     itGS++;
@@ -321,8 +632,8 @@ std::vector<Component> DB::getAllComponents() const
 vector<Annotation> DB::getEdgeAnnotations(const Component &component,
                                           const Edge &edge)
 {
-  std::map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator it = edges.container.find(component);
-  if(it != edges.container.end() && it->second != NULL)
+  std::map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator it = graphStorages.find(component);
+  if(it != graphStorages.end() && it->second != NULL)
   {
     std::shared_ptr<ReadableGraphStorage> gs = it->second;
     return gs->getEdgeAnnotations(edge);
@@ -370,7 +681,7 @@ void DB::update(const api::GraphUpdate& u)
                for(Component c : getAllComponents())
                {
                   std::shared_ptr<WriteableGraphStorage> gs =
-                    edges.createWritableGraphStorage(c.type, c.layer, c.name);
+                    createWritableGraphStorage(c.type, c.layer, c.name);
                   gs->deleteNode(*existingNodeID);
                }
 
@@ -408,7 +719,7 @@ void DB::update(const api::GraphUpdate& u)
                if(type < ComponentType::ComponentType_MAX)
                {
                   std::shared_ptr<WriteableGraphStorage> gs =
-                    edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+                    createWritableGraphStorage(type, evt->layer, evt->componentName);
                   gs->addEdge({*existingSourceID, *existingTargetID});
                }
             }
@@ -424,7 +735,7 @@ void DB::update(const api::GraphUpdate& u)
                if(type < ComponentType::ComponentType_MAX)
                {
                   std::shared_ptr<WriteableGraphStorage> gs =
-                    edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+                    createWritableGraphStorage(type, evt->layer, evt->componentName);
                   gs->deleteEdge({*existingSourceID, *existingTargetID});
                }
             }
@@ -440,7 +751,7 @@ void DB::update(const api::GraphUpdate& u)
               if(type < ComponentType::ComponentType_MAX)
               {
                  std::shared_ptr<WriteableGraphStorage> gs =
-                   edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+                   createWritableGraphStorage(type, evt->layer, evt->componentName);
 
                  // only add label if the edge already exists
                  if(gs->isConnected({*existingSourceID, *existingTargetID}, 1, 1))
@@ -463,7 +774,7 @@ void DB::update(const api::GraphUpdate& u)
               if(type < ComponentType::ComponentType_MAX)
               {
                  std::shared_ptr<WriteableGraphStorage> gs =
-                   edges.createWritableGraphStorage(type, evt->layer, evt->componentName);
+                   createWritableGraphStorage(type, evt->layer, evt->componentName);
 
                  // only delete label if the edge actually exists
                  if(gs->isConnected({*existingSourceID, *existingTargetID}, 1, 1))

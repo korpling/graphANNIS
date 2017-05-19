@@ -17,7 +17,7 @@
 #include "pointing.h"
 #include "annis/operators/abstractedgeoperator.h"  // for AbstractEdgeOperator
 #include "annis/types.h"                           // for ComponentType, Com...
-#include <annis/graphstorageholder.h>
+#include <annis/db.h>
 
 namespace annis { class StringStorage; }
 
@@ -25,7 +25,7 @@ namespace annis { class StringStorage; }
 using namespace annis;
 
 Pointing::Pointing(std::string ns, std::string name,
-                   GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                   DB::GetGSFuncT getGraphStorageFunc,
                    const StringStorage& strings,
                    unsigned int minDistance, unsigned int maxDistance)
   : AbstractEdgeOperator(ComponentType::POINTING, ns, name,
@@ -34,7 +34,7 @@ Pointing::Pointing(std::string ns, std::string name,
 }
 
 Pointing::Pointing(std::string name,
-                   GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                   DB::GetAllGSFuncT getAllGraphStorageFunc,
                    const StringStorage& strings,
                    unsigned int minDistance, unsigned int maxDistance)
   : AbstractEdgeOperator(ComponentType::POINTING, name,
@@ -43,7 +43,7 @@ Pointing::Pointing(std::string name,
 }
 
 Pointing::Pointing(std::string ns, std::string name,
-                   GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                   DB::GetGSFuncT getGraphStorageFunc,
                    const StringStorage &strings, const Annotation &edgeAnno)
   : AbstractEdgeOperator(ComponentType::POINTING, ns, name,
                          getGraphStorageFunc, strings, edgeAnno)
@@ -51,7 +51,7 @@ Pointing::Pointing(std::string ns, std::string name,
 }
 
 Pointing::Pointing(std::string name,
-                   GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                   DB::GetAllGSFuncT getAllGraphStorageFunc,
                    const StringStorage &strings, const Annotation &edgeAnno)
   : AbstractEdgeOperator(ComponentType::POINTING, name,
                          getAllGraphStorageFunc, strings, edgeAnno)

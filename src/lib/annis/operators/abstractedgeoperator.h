@@ -25,7 +25,7 @@
 #include <string>                      // for string
 #include <vector>                      // for vector
 #include <annis/types.h>               // for ComponentType, Match (ptr only)
-#include <annis/graphstorageholder.h>
+#include <annis/db.h>
 
 namespace annis { class AnnoIt; }
 namespace annis { class NodeByEdgeAnnoSearch; }
@@ -41,25 +41,25 @@ class AbstractEdgeOperator : public Operator
 
 public:
   AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
-                       GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                       DB::GetGSFuncT getGraphStorageFunc,
                        const StringStorage& strings,
       unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   AbstractEdgeOperator(ComponentType componentType, std::string name,
-                       GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                       DB::GetAllGSFuncT getAllGraphStorageFunc,
                        const StringStorage& strings,
       unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
 
   AbstractEdgeOperator(
       ComponentType componentType, std::string ns, std::string name,
-      GraphStorageHolder::GetFuncT getGraphStorageFunc,
+      DB::GetGSFuncT getGraphStorageFunc,
       const StringStorage& strings,
       const Annotation& edgeAnno = Init::initAnnotation());
 
   AbstractEdgeOperator(
       ComponentType componentType, std::string name,
-      GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+      DB::GetAllGSFuncT getAllGraphStorageFunc,
       const StringStorage& strings,
       const Annotation& edgeAnno = Init::initAnnotation());
 
@@ -86,8 +86,8 @@ public:
   virtual ~AbstractEdgeOperator();
 private:
   ComponentType componentType;
-  boost::optional<GraphStorageHolder::GetFuncT> getGraphStorageFunc;
-  boost::optional<GraphStorageHolder::GetAllFuncT> getAllGraphStorageFunc;
+  boost::optional<DB::GetGSFuncT> getGraphStorageFunc;
+  boost::optional<DB::GetAllGSFuncT> getAllGraphStorageFunc;
 
   const StringStorage& strings;
   std::string ns;

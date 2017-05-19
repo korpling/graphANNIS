@@ -23,7 +23,6 @@
 #include "annis/annostorage.h"                // for AnnoStorage
 #include "annis/db.h"                         // for DB
 #include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
-#include "annis/graphstorageholder.h"         // for GraphStorageHolder
 #include "annis/iterators.h"                  // for EdgeIterator, AnnoIt
 #include "annis/operators/operator.h"         // for Operator
 #include "annis/util/helper.h"                // for TokenHelper
@@ -32,7 +31,7 @@
 
 using namespace annis;
 
-Inclusion::Inclusion(const DB &db, GraphStorageHolder::GetFuncT getGSFunc)
+Inclusion::Inclusion(const DB &db, DB::GetGSFuncT getGSFunc)
   : db(db),
     anyNodeAnno(Init::initAnnotation(db.getNodeTypeStringID(), 0, db.getNamespaceStringID())),
     tokHelper(getGSFunc, db)

@@ -21,9 +21,8 @@
 #include <memory>                      // for shared_ptr, unique_ptr
 #include <string>                      // for string
 #include <annis/types.h>               // for Match (ptr only), Annotation
+#include <annis/db.h>
 namespace annis { class AnnoIt; }
-namespace annis { class DB; }
-namespace annis { class GraphStorageHolder; }
 namespace annis { class ReadableGraphStorage; }
 
 namespace annis
@@ -32,7 +31,7 @@ namespace annis
 class IdenticalCoverage : public Operator
 {
 public:
-  IdenticalCoverage(const DB &db, GraphStorageHolder::GetFuncT getGraphStorageFunc);
+  IdenticalCoverage(const DB &db, DB::GetGSFuncT getGraphStorageFunc);
   IdenticalCoverage(const IdenticalCoverage& orig) = delete;
   
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;

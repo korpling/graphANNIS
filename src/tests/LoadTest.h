@@ -140,7 +140,7 @@ TEST_F(LoadTest, OutgoingEdges) {
   Match cppNode;
   EXPECT_TRUE(catSearch.next(cppNode));
 
-  std::shared_ptr<const ReadableGraphStorage> gsDom = db.edges.get(annis::ComponentType::DOMINANCE, "tiger", "edge");
+  std::shared_ptr<const ReadableGraphStorage> gsDom = db.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge");
   std::vector<nodeid_t> outEdges = gsDom->getOutgoingEdges(cppNode.node);
   EXPECT_EQ(3, outEdges.size());
 
@@ -175,7 +175,7 @@ TEST_F(LoadTest, EdgeAnnos) {
 
 TEST_F(LoadTest, Ordering) {
 
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.get(annis::ComponentType::ORDERING,
+  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(annis::ComponentType::ORDERING,
                                         annis::annis_ns, "");
   ASSERT_TRUE(gs != NULL);
   // tok . tok
@@ -191,7 +191,7 @@ TEST_F(LoadTest, Ordering) {
   // span . span
   EXPECT_FALSE(gs->isConnected(annis::Init::initEdge(152, 61)));
 
-  gs = db.edges.get(annis::ComponentType::LEFT_TOKEN,
+  gs = db.getGraphStorage(annis::ComponentType::LEFT_TOKEN,
                     annis::annis_ns, "");
   ASSERT_TRUE(gs != NULL);
   // span _l_ tok (both direcctions)
@@ -200,7 +200,7 @@ TEST_F(LoadTest, Ordering) {
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(61, 49)));
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(49, 61)));
 
-  gs = db.edges.get(annis::ComponentType::RIGHT_TOKEN,
+  gs = db.getGraphStorage(annis::ComponentType::RIGHT_TOKEN,
                     annis::annis_ns, "");
   ASSERT_TRUE(gs != NULL);
   // span _r_ tok (both direcctions)
@@ -222,7 +222,7 @@ TEST_F(LoadTest, Dom)
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
-  q.addOperator(std::make_shared<Dominance>("tiger", "", db.edges.getFunc, db.strings, 1, uintmax), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("tiger", "", db.f_getGraphStorage, db.strings, 1, uintmax), n1, n2);
 
   while(q.next())
   {
@@ -239,7 +239,7 @@ TEST_F(LoadTest, Dom)
 TEST_F(LoadTest, IsConnected)
 {
 
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.get(annis::ComponentType::DOMINANCE,
+  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(annis::ComponentType::DOMINANCE,
                                                                 "tiger", "");
 
   EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, uintmax));
@@ -252,7 +252,7 @@ TEST_F(LoadTest, IsConnected)
 
 TEST_F(LoadTest, Distance)
 {
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.get(annis::ComponentType::DOMINANCE, "tiger", "");
+  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "");
 
   EXPECT_EQ(2, gs->distance(Init::initEdge(387, 16)));
 
@@ -268,7 +268,7 @@ TEST_F(LoadTest, RangedDom) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "AP"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
-  q.addOperator(std::make_shared<Dominance>("", db.edges.getAllFunc, db.strings, 3, 5), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db.strings, 3, 5), n1, n2);
 
   while(q.next() && counter < 2000)
   {
@@ -292,7 +292,7 @@ TEST_F(LoadTest, SecEdge) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "was"));
 
-  q.addOperator(std::make_shared<Dominance>("", db.edges.getAllFunc, db.strings), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db.strings), n1, n2);
 
   while(q.next() && counter < 2000)
   {
@@ -312,7 +312,7 @@ TEST_F(LoadTest, NodesOfDocument) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2/11299"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges.getFunc, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
 
   int counter=0;
   while(q.next())
@@ -333,7 +333,7 @@ TEST_F(LoadTest, NodesOfToplevelCorpus) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges.getFunc, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
 
   int counter=0;
   while(q.next())
@@ -354,7 +354,7 @@ TEST_F(LoadTest, DocumentAnno) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "Genre", "Politik"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges.getFunc, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
 
   int counter=0;
   while(q.next())

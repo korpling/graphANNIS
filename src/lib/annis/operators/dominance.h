@@ -18,7 +18,7 @@
 
 #include <annis/operators/abstractedgeoperator.h>  // for AbstractEdgeOperator
 #include <annis/types.h>                           // for ComponentType, Com...
-#include <annis/graphstorageholder.h>
+#include <annis/db.h>
 
 namespace annis { class StringStorage; }
 
@@ -30,23 +30,23 @@ class Dominance : public AbstractEdgeOperator
 {
 public:
   Dominance(std::string ns, std::string name,
-           GraphStorageHolder::GetFuncT getGraphStorageFunc,
+           DB::GetGSFuncT getGraphStorageFunc,
            const StringStorage &strings,
            unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   Dominance(std::string name,
-           GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+           DB::GetAllGSFuncT getAllGraphStorageFunc,
            const StringStorage &strings,
            unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   Dominance(std::string ns, std::string name,
-           GraphStorageHolder::GetFuncT getGraphStorageFunc,
+           DB::GetGSFuncT getGraphStorageFunc,
            const StringStorage& strings,
            const Annotation& edgeAnno);
 
 
   Dominance(std::string name,
-           GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+           DB::GetAllGSFuncT getAllGraphStorageFunc,
            const StringStorage& strings,
            const Annotation& edgeAnno);
 

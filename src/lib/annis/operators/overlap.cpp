@@ -19,9 +19,7 @@
 #include <google/btree_set.h>                 // for btree_set
 #include <utility>                            // for pair, move
 #include <vector>                             // for vector
-#include "annis/db.h"                         // for DB
 #include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
-#include "annis/graphstorageholder.h"         // for GraphStorageHolder
 #include "annis/iterators.h"                  // for EdgeIterator, AnnoIt
 #include "annis/operators/operator.h"         // for Operator
 #include "annis/util/helper.h"                // for TokenHelper
@@ -29,7 +27,7 @@
 
 using namespace annis;
 
-Overlap::Overlap(const DB &db, GraphStorageHolder::GetFuncT getGraphStorageFunc)
+Overlap::Overlap(const DB &db, DB::GetGSFuncT getGraphStorageFunc)
   : tokHelper(getGraphStorageFunc, db), anyNodeAnno(Init::initAnnotation(db.getNodeTypeStringID(), 0, db.getNamespaceStringID()))
 {
   gsOrder = getGraphStorageFunc(ComponentType::ORDERING, annis_ns, "");

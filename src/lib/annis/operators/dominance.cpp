@@ -23,7 +23,7 @@ namespace annis { class StringStorage; }
 using namespace annis;
 
 Dominance::Dominance(std::string ns, std::string name,
-                   GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                   DB::GetGSFuncT getGraphStorageFunc,
                    const StringStorage& strings,
                    unsigned int minDistance, unsigned int maxDistance)
   : AbstractEdgeOperator(ComponentType::DOMINANCE, ns, name,
@@ -32,7 +32,7 @@ Dominance::Dominance(std::string ns, std::string name,
 }
 
 Dominance::Dominance(std::string name,
-                   GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                   DB::GetAllGSFuncT getAllGraphStorageFunc,
                    const StringStorage& strings,
                    unsigned int minDistance, unsigned int maxDistance)
   : AbstractEdgeOperator(ComponentType::DOMINANCE, name,
@@ -41,7 +41,7 @@ Dominance::Dominance(std::string name,
 }
 
 Dominance::Dominance(std::string ns, std::string name,
-                   GraphStorageHolder::GetFuncT getGraphStorageFunc,
+                   DB::GetGSFuncT getGraphStorageFunc,
                    const StringStorage &strings, const Annotation &edgeAnno)
   : AbstractEdgeOperator(ComponentType::DOMINANCE, ns, name,
                          getGraphStorageFunc, strings, edgeAnno)
@@ -49,7 +49,7 @@ Dominance::Dominance(std::string ns, std::string name,
 }
 
 Dominance::Dominance(std::string name,
-                   GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                   DB::GetAllGSFuncT getAllGraphStorageFunc,
                    const StringStorage &strings, const Annotation &edgeAnno)
   : AbstractEdgeOperator(ComponentType::DOMINANCE, name,
                          getAllGraphStorageFunc, strings, edgeAnno)

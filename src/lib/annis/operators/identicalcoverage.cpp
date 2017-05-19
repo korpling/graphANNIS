@@ -20,7 +20,6 @@
 #include <vector>                             // for vector
 #include "annis/db.h"                         // for DB
 #include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
-#include "annis/graphstorageholder.h"         // for GraphStorageHolder
 #include "annis/iterators.h"                  // for AnnoIt
 #include "annis/operators/operator.h"         // for Operator
 #include "annis/util/helper.h"                // for TokenHelper
@@ -28,7 +27,7 @@
 
 using namespace annis;
 
-IdenticalCoverage::IdenticalCoverage(const DB &db, GraphStorageHolder::GetFuncT getGraphStorageFunc)
+IdenticalCoverage::IdenticalCoverage(const DB &db, DB::GetGSFuncT getGraphStorageFunc)
 : tokHelper(getGraphStorageFunc, db),
   anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {

@@ -27,7 +27,7 @@
 #include <vector>
 #include <string>                       // for string
 #include <annis/types.h>                // for Annotation
-#include <annis/graphstorageholder.h>
+#include <annis/db.h>
 #include <annis/dbloader.h>
 
 #include <boost/thread/shared_lock_guard.hpp>
@@ -46,14 +46,13 @@ namespace annis {
     JSONQueryParser(const JSONQueryParser& orig) = delete;
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
-    static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder &edges, std::istream& json, const QueryConfig config=QueryConfig());
+    static std::shared_ptr<Query> parse(DB& db, std::istream& json, const QueryConfig config=QueryConfig());
 
-    static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder::GetFuncT getGraphStorageFunc,
-                                        GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+    static std::shared_ptr<Query> parse(const DB& db, DB::GetGSFuncT getGraphStorageFunc,
+                                        DB::GetAllGSFuncT getAllGraphStorageFunc,
                                         std::istream& json, const QueryConfig config=QueryConfig());
 
-    static std::shared_ptr<Query> parseWithUpgradeableLock(const DB& db,
-                                                           GraphStorageHolder& edges,
+    static std::shared_ptr<Query> parseWithUpgradeableLock(DB& db,
                                                            std::string queryAsJSON,
                                                            boost::upgrade_lock<DBLoader>& lock,
                                                            const QueryConfig config=QueryConfig());
@@ -71,8 +70,8 @@ namespace annis {
         bool wrapEmptyAnno = false);
     
     static void parseJoin(const DB& db,
-                          annis::GraphStorageHolder::GetFuncT getGraphStorageFunc,
-                          GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                          DB::GetGSFuncT getGraphStorageFunc,
+                          DB::GetAllGSFuncT getAllGraphStorageFunc,
                           const Json::Value join,
       std::shared_ptr<annis::SingleAlternativeQuery> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos);
     

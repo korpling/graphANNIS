@@ -47,13 +47,13 @@ using namespace annis;
 JSONQueryParser::JSONQueryParser()
 {
 }
-std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& edges, std::istream& jsonStream, const QueryConfig config)
+std::shared_ptr<Query> JSONQueryParser::parse(DB &db, std::istream& jsonStream, const QueryConfig config)
 {
-  return parse(db, edges.getFunc, edges.getAllFunc, jsonStream, config);
+  return parse(db, db.f_getGraphStorage, db.f_getAllGraphStorages, jsonStream, config);
 }
 
-std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder::GetFuncT getGraphStorageFunc,
-                                              GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGraphStorageFunc,
+                                              DB::GetAllGSFuncT getAllGraphStorageFunc,
                                               std::istream& jsonStream, const QueryConfig config)
 {
   std::vector<std::shared_ptr<SingleAlternativeQuery>> result;
@@ -126,35 +126,35 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder::
   return std::make_shared<Query>(result);
 }
 
-std::shared_ptr<Query> JSONQueryParser::parseWithUpgradeableLock(const DB &db, GraphStorageHolder &edges,
+std::shared_ptr<Query> JSONQueryParser::parseWithUpgradeableLock(DB &db,
                                                                  std::string queryAsJSON, boost::upgrade_lock<DBLoader>& lock,
                                                                  const QueryConfig config)
 {
-  GraphStorageHolder::GetAllFuncT allFunc = [&edges,&lock](ComponentType type, const std::string &name)
+  DB::GetAllGSFuncT allFunc = [&db,&lock](ComponentType type, const std::string &name)
   {
-    if(edges.isAllLoaded(type, name))
+    if(db.allGraphStoragesLoaded(type, name))
     {
-      return edges.getAll(type, name);
+      return db.getAllGraphStorages(type, name);
     }
     else
     {
       // loading the graph storages needs a unique lock to ensure nobody else is loading the same GS at the same time
       boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
-      return edges.getAll(type, name);
+      return db.getAllGraphStorages(type, name);
     }
   };
 
-  GraphStorageHolder::GetFuncT func = [&edges,&lock](ComponentType type, const std::string &layer, const std::string &name)
+  DB::GetGSFuncT func = [&db,&lock](ComponentType type, const std::string &layer, const std::string &name)
   {
-    if(edges.isLoaded(type, layer, name))
+    if(db.isGraphStorageLoaded(type, layer, name))
     {
-      return edges.get(type, layer, name);
+      return db.getGraphStorage(type, layer, name);
     }
     else
     {
       // loading the graph storages needs a unique lock to ensure nobody else is loading the same GS at the same time
       boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
-      return edges.get(type, layer, name);
+      return db.getGraphStorage(type, layer, name);
     }
   };
 
@@ -284,8 +284,8 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
 }
 
 void JSONQueryParser::parseJoin(const DB& db,
-                                GraphStorageHolder::GetFuncT getGraphStorageFunc,
-                                GraphStorageHolder::GetAllFuncT getAllGraphStorageFunc,
+                                DB::GetGSFuncT getGraphStorageFunc,
+                                DB::GetAllGSFuncT getAllGraphStorageFunc,
                                 const Json::Value join, std::shared_ptr<SingleAlternativeQuery> q,
   const std::map<std::uint64_t, size_t>& nodeIdToPos)
 {

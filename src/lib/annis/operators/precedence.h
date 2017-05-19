@@ -21,7 +21,7 @@
 #include <memory>                      // for unique_ptr, shared_ptr
 #include <string>                      // for string
 #include "annis/types.h"               // for Match (ptr only), Annotation
-#include <annis/graphstorageholder.h>
+#include <annis/db.h>
 
 namespace annis { class AnnoIt; }
 namespace annis { class DB; }
@@ -35,7 +35,7 @@ class Precedence : public Operator
 {
 public:
 
-  Precedence(const DB& db, GraphStorageHolder::GetFuncT getGraphStorageFunc, unsigned int minDistance=1, unsigned int maxDistance=1);
+  Precedence(const DB& db, DB::GetGSFuncT getGraphStorageFunc, unsigned int minDistance=1, unsigned int maxDistance=1);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
   virtual bool filter(const Match& lhs, const Match& rhs) override;
