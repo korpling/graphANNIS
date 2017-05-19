@@ -140,7 +140,7 @@ TEST_F(LoadTest, OutgoingEdges) {
   Match cppNode;
   EXPECT_TRUE(catSearch.next(cppNode));
 
-  std::shared_ptr<const ReadableGraphStorage> gsDom = db.edges.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge");
+  std::shared_ptr<const ReadableGraphStorage> gsDom = db.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "edge");
   std::vector<nodeid_t> outEdges = gsDom->getOutgoingEdges(cppNode.node);
   EXPECT_EQ(3, outEdges.size());
 
@@ -175,9 +175,8 @@ TEST_F(LoadTest, EdgeAnnos) {
 
 TEST_F(LoadTest, Ordering) {
 
-  annis::Component componentOrdering = {annis::ComponentType::ORDERING,
-                                                                 annis::annis_ns, ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(componentOrdering);
+  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(annis::ComponentType::ORDERING,
+                                        annis::annis_ns, "");
   ASSERT_TRUE(gs != NULL);
   // tok . tok
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(0, 1)));
@@ -192,9 +191,8 @@ TEST_F(LoadTest, Ordering) {
   // span . span
   EXPECT_FALSE(gs->isConnected(annis::Init::initEdge(152, 61)));
 
-  annis::Component componentLeftToken = {annis::ComponentType::LEFT_TOKEN,
-                                                                  annis::annis_ns, ""};
-  gs = db.edges.getGraphStorage(componentLeftToken);
+  gs = db.getGraphStorage(annis::ComponentType::LEFT_TOKEN,
+                    annis::annis_ns, "");
   ASSERT_TRUE(gs != NULL);
   // span _l_ tok (both direcctions)
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(125, 124)));
@@ -202,9 +200,8 @@ TEST_F(LoadTest, Ordering) {
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(61, 49)));
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(49, 61)));
 
-  annis::Component componentRightToken = {annis::ComponentType::RIGHT_TOKEN,
-                                                                   annis::annis_ns, ""};
-  gs = db.edges.getGraphStorage(componentRightToken);
+  gs = db.getGraphStorage(annis::ComponentType::RIGHT_TOKEN,
+                    annis::annis_ns, "");
   ASSERT_TRUE(gs != NULL);
   // span _r_ tok (both direcctions)
   EXPECT_TRUE(gs->isConnected(annis::Init::initEdge(125, 124)));
@@ -225,7 +222,7 @@ TEST_F(LoadTest, Dom)
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
-  q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "tiger", "", 1, uintmax), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("tiger", "", db.f_getGraphStorage, db.strings, 1, uintmax), n1, n2);
 
   while(q.next())
   {
@@ -242,9 +239,8 @@ TEST_F(LoadTest, Dom)
 TEST_F(LoadTest, IsConnected)
 {
 
-  annis::Component component = {annis::ComponentType::DOMINANCE,
-                                                                 "tiger", ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(component);
+  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(annis::ComponentType::DOMINANCE,
+                                                                "tiger", "");
 
   EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, uintmax));
   EXPECT_TRUE(gs->isConnected(Init::initEdge(387, 16), 1, 2));
@@ -256,9 +252,7 @@ TEST_F(LoadTest, IsConnected)
 
 TEST_F(LoadTest, Distance)
 {
-
-  annis::Component component = {annis::ComponentType::DOMINANCE, "tiger", ""};
-  std::shared_ptr<const ReadableGraphStorage> gs = db.edges.getGraphStorage(component);
+  std::shared_ptr<const ReadableGraphStorage> gs = db.getGraphStorage(annis::ComponentType::DOMINANCE, "tiger", "");
 
   EXPECT_EQ(2, gs->distance(Init::initEdge(387, 16)));
 
@@ -274,7 +268,7 @@ TEST_F(LoadTest, RangedDom) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "AP"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
-  q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", "", 3, 5), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db.strings, 3, 5), n1, n2);
 
   while(q.next() && counter < 2000)
   {
@@ -298,7 +292,7 @@ TEST_F(LoadTest, SecEdge) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "was"));
 
-  q.addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", ""), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db.strings), n1, n2);
 
   while(q.next() && counter < 2000)
   {
@@ -318,7 +312,7 @@ TEST_F(LoadTest, NodesOfDocument) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2/11299"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
 
   int counter=0;
   while(q.next())
@@ -339,7 +333,7 @@ TEST_F(LoadTest, NodesOfToplevelCorpus) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
 
   int counter=0;
   while(q.next())
@@ -360,7 +354,7 @@ TEST_F(LoadTest, DocumentAnno) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "Genre", "Politik"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.edges, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
 
   int counter=0;
   while(q.next())

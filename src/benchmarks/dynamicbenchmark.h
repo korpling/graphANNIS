@@ -110,7 +110,7 @@ namespace annis {
         if(auto dbPtr = getDB().lock())
         {
           DB& db = *dbPtr ;
-          q = JSONQueryParser::parse(db, db.edges, jsonAsStream, config);
+          q = JSONQueryParser::parse(db, jsonAsStream, config);
         }
       }
       auto itCount = expectedCountByExp.find(experimentValue);

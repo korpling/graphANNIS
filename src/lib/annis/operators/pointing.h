@@ -29,11 +29,26 @@ struct Annotation;
 class Pointing : public AbstractEdgeOperator
 {
 public:
-  Pointing(GraphStorageHolder &gsh, const StringStorage &strings, std::string ns, std::string name,
-                   unsigned int minDistance = 1, unsigned int maxDistance = 1);
+  Pointing(std::string ns, std::string name,
+           DB::GetGSFuncT getGraphStorageFunc,
+           const StringStorage &strings,
+           unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
-  Pointing(GraphStorageHolder& gsh, const StringStorage& strings, std::string ns, std::string name,
-                   const Annotation& edgeAnno);
+  Pointing(std::string name,
+           DB::GetAllGSFuncT getAllGraphStorageFunc,
+           const StringStorage &strings,
+           unsigned int minDistance = 1, unsigned int maxDistance = 1);
+
+  Pointing(std::string ns, std::string name,
+           DB::GetGSFuncT getGraphStorageFunc,
+           const StringStorage& strings,
+           const Annotation& edgeAnno);
+
+
+  Pointing(std::string name,
+           DB::GetAllGSFuncT getAllGraphStorageFunc,
+           const StringStorage& strings,
+           const Annotation& edgeAnno);
 
   virtual std::string operatorString() override
   {

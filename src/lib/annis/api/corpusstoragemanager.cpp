@@ -46,6 +46,8 @@
 #include "annis/stringstorage.h"                        // for StringStorage
 #include "annis/types.h"                                // for Match, Annota...
 
+#include <functional>
+
 
 
 using namespace annis;
@@ -75,13 +77,9 @@ long long CorpusStorageManager::count(std::vector<std::string> corpora, std::str
 
     if(loader)
     {
-      boost::shared_lock_guard<DBLoader> lock(*loader);
+      boost::upgrade_lock<DBLoader> lock(*loader);
 
-      DB& db = loader->get();
-
-      std::stringstream ss;
-      ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, db.edges, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(loader->get(), queryAsJSON, lock);
       while(q->next())
       {
         result++;
@@ -106,12 +104,11 @@ CorpusStorageManager::CountResult CorpusStorageManager::countExtra(std::vector<s
 
     if(loader)
     {
-      boost::shared_lock_guard<DBLoader> lock(*loader);
+      boost::upgrade_lock<DBLoader> lock(*loader);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(loader->get(), queryAsJSON, lock);
 
-      std::stringstream ss;
-      ss << queryAsJSON;
-      DB& db = loader->get();
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(db, db.edges, ss);
+      const DB& db = loader->get();
+
       while(q->next())
       {
         result.matchCount++;
@@ -151,11 +148,12 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
 
     if(loader)
     {
-      boost::shared_lock_guard<DBLoader> lock(*loader);
+      boost::upgrade_lock<DBLoader> lock(*loader);
 
-      std::stringstream ss;
-      ss << queryAsJSON;
-      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(loader->get(), loader->get().edges, ss);
+      std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parseWithUpgradeableLock(loader->get(), queryAsJSON, lock);
+
+      const DB& db = loader->get();
+
       while((limit <= 0 || counter < (offset + limit)) && q->next())
       {
         if(counter >= offset)
@@ -166,7 +164,6 @@ std::vector<std::string> CorpusStorageManager::find(std::vector<std::string> cor
           {
             const Match& n = m[i];
 
-            DB& db = loader->get();
 
             if(db.getNodeType(n.node) == "node")
             {
@@ -280,7 +277,7 @@ void CorpusStorageManager::exportCorpus(std::string corpusName, std::string expo
   std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpusName);
   if(loader)
   {
-     boost::shared_lock_guard<DBLoader> lock(*loader);
+     boost::unique_lock<DBLoader> lock(*loader);
      // load the corpus data from the external location
      loader->getFullyLoaded().save(exportPath);
   }
@@ -291,7 +288,7 @@ void CorpusStorageManager::importRelANNIS(std::string pathToCorpus, std::string 
   std::shared_ptr<DBLoader> loader = getCorpusFromCache(newCorpusName);
   if(loader)
   {
-    boost::shared_lock_guard<DBLoader> lock(*loader);
+    boost::unique_lock<DBLoader> lock(*loader);
 
     DB& db = loader->get();
 
@@ -370,10 +367,9 @@ void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared
   std::lock_guard<std::mutex> lock(mutex_writerThreads);
   writerThreads[corpus] = boost::thread([loader, root] () {
 
-    // Get a read-lock for the database. The thread is started from another function which will have the database locked,
+    // Get a write-lock for the database. The thread is started from another function which will have the database locked,
     // thus this thread will only really start as soon as the calling function has returned.
-    // We start as a read-lock since it is safe to read the in-memory representation (and we won't change it)
-    boost::shared_lock_guard<DBLoader> lock(*loader);
+    boost::unique_lock<DBLoader> lock(*loader);
 
     // We could have been interrupted right after we waited for the lock, so check here just to be sure.
     boost::this_thread::interruption_point();

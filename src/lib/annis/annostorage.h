@@ -376,7 +376,7 @@ namespace annis {
       histogramBounds = stats;
     }
 
-    size_t estimateMemorySize()
+    size_t estimateMemorySize() const
     {
       return
           size_estimation::element_size(annotations)

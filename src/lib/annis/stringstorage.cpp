@@ -106,7 +106,7 @@ double annis::StringStorage::avgLength()
   return (double) sum / (double) stringStorageByValue.size();
 }
 
-size_t StringStorage::estimateMemorySize()
+size_t StringStorage::estimateMemorySize() const
 {
   return size_estimation::element_size(stringStorageByID) + size_estimation::element_size(stringStorageByValue);
 }

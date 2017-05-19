@@ -35,7 +35,7 @@ public:
   GraphStorageRegistry();
   ~GraphStorageRegistry();
 
-  std::string getName(std::weak_ptr<const ReadableGraphStorage> weakDB);
+  static std::string getName(std::weak_ptr<const ReadableGraphStorage> weakDB);
   std::unique_ptr<ReadableGraphStorage> createGraphStorage(std::string name, StringStorage &strings, const Component &component);
 
   std::string getOptimizedImpl(const Component& component, GraphStatistic stats);

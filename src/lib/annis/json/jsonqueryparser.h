@@ -27,8 +27,13 @@
 #include <vector>
 #include <string>                       // for string
 #include <annis/types.h>                // for Annotation
+#include <annis/db.h>
+#include <annis/dbloader.h>
+
+#include <boost/thread/shared_lock_guard.hpp>
+#include <boost/thread/lock_types.hpp>
+
 namespace annis { class DB; }
-namespace annis { class GraphStorageHolder; }
 namespace annis { class Query; }
 namespace annis { class SingleAlternativeQuery; }
 
@@ -41,7 +46,16 @@ namespace annis {
     JSONQueryParser(const JSONQueryParser& orig) = delete;
     JSONQueryParser &operator=(const JSONQueryParser&) = delete;
 
-    static std::shared_ptr<Query> parse(const DB& db, GraphStorageHolder &edges, std::istream& json, const QueryConfig config=QueryConfig());
+    static std::shared_ptr<Query> parse(DB& db, std::istream& json, const QueryConfig config=QueryConfig());
+
+    static std::shared_ptr<Query> parse(const DB& db, DB::GetGSFuncT getGraphStorageFunc,
+                                        DB::GetAllGSFuncT getAllGraphStorageFunc,
+                                        std::istream& json, const QueryConfig config=QueryConfig());
+
+    static std::shared_ptr<Query> parseWithUpgradeableLock(DB& db,
+                                                           std::string queryAsJSON,
+                                                           boost::upgrade_lock<DBLoader>& lock,
+                                                           const QueryConfig config=QueryConfig());
 
     virtual ~JSONQueryParser();
   private:
@@ -55,7 +69,10 @@ namespace annis {
         boost::optional<std::string> textMatching,
         bool wrapEmptyAnno = false);
     
-    static void parseJoin(const DB& db, GraphStorageHolder &edges, const Json::Value join,
+    static void parseJoin(const DB& db,
+                          DB::GetGSFuncT getGraphStorageFunc,
+                          DB::GetAllGSFuncT getAllGraphStorageFunc,
+                          const Json::Value join,
       std::shared_ptr<annis::SingleAlternativeQuery> q, const  std::map<std::uint64_t, size_t>& nodeIdToPos);
     
     static boost::optional<std::string> optStr(const Json::Value& val) {

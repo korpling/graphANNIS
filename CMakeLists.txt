@@ -81,7 +81,6 @@ set(IncludeFiles
   src/lib/annis/graphstorage/linearstorage.h
   src/lib/annis/iterators.h
   src/lib/annis/types.h
-  src/lib/annis/graphstorageholder.h
   src/lib/annis/filter.h
   src/lib/annis/operators/precedence.h
   src/lib/annis/operators/operator.h
@@ -137,7 +136,6 @@ set(SRC_LIST_LIB
   src/lib/annis/graphstorage/graphstorage.cpp
   src/lib/annis/dbcache.cpp
   src/lib/annis/stringstorage.cpp
-  src/lib/annis/graphstorageholder.cpp
   src/lib/annis/operators/overlap.cpp
   src/lib/annis/operators/pointing.cpp
   src/lib/annis/operators/precedence.cpp

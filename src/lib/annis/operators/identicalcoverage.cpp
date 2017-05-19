@@ -20,7 +20,6 @@
 #include <vector>                             // for vector
 #include "annis/db.h"                         // for DB
 #include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
-#include "annis/graphstorageholder.h"         // for GraphStorageHolder
 #include "annis/iterators.h"                  // for AnnoIt
 #include "annis/operators/operator.h"         // for Operator
 #include "annis/util/helper.h"                // for TokenHelper
@@ -28,14 +27,14 @@
 
 using namespace annis;
 
-IdenticalCoverage::IdenticalCoverage(const DB &db, GraphStorageHolder& gsh)
-: tokHelper(gsh, db),
+IdenticalCoverage::IdenticalCoverage(const DB &db, DB::GetGSFuncT getGraphStorageFunc)
+: tokHelper(getGraphStorageFunc, db),
   anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID()))
 {
-  gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
-  gsLeftToken = gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
-  gsRightToken = gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
-  gsCoverage = gsh.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+  gsOrder = getGraphStorageFunc(ComponentType::ORDERING, annis_ns, "");
+  gsLeftToken = getGraphStorageFunc(ComponentType::LEFT_TOKEN, annis_ns, "");
+  gsRightToken = getGraphStorageFunc(ComponentType::RIGHT_TOKEN, annis_ns, "");
+  gsCoverage = getGraphStorageFunc(ComponentType::COVERAGE, annis_ns, "");
 }
 
 bool IdenticalCoverage::filter(const Match& lhs, const Match& rhs)

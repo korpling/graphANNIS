@@ -90,10 +90,10 @@ public:
 
   void clear();
 
-  size_t size() {return stringStorageByID.size();}
+  size_t size() const {return stringStorageByID.size();}
   double avgLength();
 
-  size_t estimateMemorySize();
+  size_t estimateMemorySize() const;
 
   template<class Archive>
   void serialize(Archive & archive)

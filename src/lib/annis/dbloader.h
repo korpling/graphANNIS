@@ -22,12 +22,11 @@
 #include <boost/thread/shared_mutex.hpp>      // for shared_mutex
 #include <functional>                         // for function
 #include <string>                             // for string
-#include <annis/graphstorageholder.h>         // for GraphStorageHolder
 
 namespace annis
 {
 
-  class DBLoader : public boost::shared_lockable_adapter<boost::shared_mutex>
+  class DBLoader : public boost::upgrade_lockable_adapter<boost::shared_mutex>
   {
   public:
 
@@ -41,11 +40,11 @@ namespace annis
   public:
     DBLoader(std::string location, std::function<void()> onloadCalback);
 
-    LoadStatus status()
+    LoadStatus status() const
     {
       if(dbLoaded)
       {
-        if(db.edges.allComponentsLoaded())
+        if(db.allGraphStoragesLoaded())
         {
           return FULLY_LOADED;
         }
@@ -73,7 +72,7 @@ namespace annis
     {
       if(dbLoaded)
       {
-        if(!db.edges.allComponentsLoaded())
+        if(!db.allGraphStoragesLoaded())
         {
           db.ensureAllComponentsLoaded();
           onloadCalback();
@@ -94,7 +93,7 @@ namespace annis
       db.clear();
     }
 
-    size_t estimateMemorySize()
+    size_t estimateMemorySize() const
     {
       if(dbLoaded)
       {
@@ -106,7 +105,7 @@ namespace annis
       }
     }
 
-    std::string statusString()
+    std::string statusString() const
     {
       switch(status())
       {
