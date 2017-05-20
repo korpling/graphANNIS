@@ -15,6 +15,8 @@
  */
 package org.corpus_tools.graphannis;
 
+import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,9 +26,15 @@ import org.bytedeco.javacpp.BytePointer;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocumentGraph;
+import org.corpus_tools.salt.common.SOrderRelation;
 import org.corpus_tools.salt.common.SSpan;
+import org.corpus_tools.salt.common.STextualDS;
+import org.corpus_tools.salt.common.STextualRelation;
 import org.corpus_tools.salt.common.SToken;
+import org.corpus_tools.salt.core.GraphTraverseHandler;
 import org.corpus_tools.salt.core.SAnnotationContainer;
+import org.corpus_tools.salt.core.SFeature;
+import org.corpus_tools.salt.core.SGraph;
 import org.corpus_tools.salt.core.SLayer;
 import org.corpus_tools.salt.core.SNode;
 import org.corpus_tools.salt.core.SRelation;
@@ -152,6 +160,76 @@ public class SaltExport
     }
   }
   
+  private static void recreateText(String name, List<SNode> rootNodes, final SDocumentGraph g)
+  {
+    final StringBuilder text = new StringBuilder();
+    final STextualDS ds = g.createTextualDS("");
+    
+    ds.setName(name);
+    
+    // traverse the token chain using the order relations
+    g.traverse(rootNodes, SGraph.GRAPH_TRAVERSE_TYPE.TOP_DOWN_DEPTH_FIRST,
+      "ORDERING_" + name,
+      new GraphTraverseHandler()
+    {
+      @Override
+      public void nodeReached(SGraph.GRAPH_TRAVERSE_TYPE traversalType,
+        String traversalId, SNode currNode, SRelation<SNode, SNode> relation,
+        SNode fromNode, long order)
+      {
+        if(fromNode != null)
+        {
+          text.append(" ");
+        }
+        
+        SFeature featTok = currNode.getFeature("annis::tok");
+        if(featTok != null && currNode instanceof SToken)
+        {
+          STextualRelation textRel = SaltFactory.createSTextualRelation();
+          textRel.setSource((SToken) currNode);
+          textRel.setTarget(ds);
+          
+          // add token text and record start and end at the same time
+          textRel.setStart(text.length());
+          text.append(featTok.getValue_STEXT());
+          textRel.setEnd(text.length()+1); // end is exclusive
+          
+          g.addRelation(textRel);
+        }
+      }
+
+      @Override
+      public void nodeLeft(SGraph.GRAPH_TRAVERSE_TYPE traversalType,
+        String traversalId, SNode currNode, SRelation<SNode, SNode> relation,
+        SNode fromNode, long order)
+      {
+      }
+
+      @Override
+      public boolean checkConstraint(SGraph.GRAPH_TRAVERSE_TYPE traversalType,
+        String traversalId, SRelation relation, SNode currNode,
+        long order)
+      {
+        if(relation == null)
+        {
+          // TODO: check if this is ever true
+          return true;
+        }
+        else if(relation instanceof SOrderRelation && name.equals(relation.getType()))
+        {
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+      }
+    });
+ 
+    // update the actual text
+    ds.setText(text.toString());
+  }
+  
   
   public static SDocumentGraph map(API.NodeVector orig)
   {
@@ -182,9 +260,13 @@ public class SaltExport
       }
     }
     
+    // find all chains of SOrderRelations and reconstruct the texts belonging to them
+    Multimap<String, SNode> orderRoots = g.getRootsByRelationType(SALT_TYPE.SORDER_RELATION);
+    for(String name : orderRoots.keySet())
+    {
+      recreateText(name, new ArrayList<>(orderRoots.get(name)), g);
+    }
     
-    // TODO: create STextualDS
-    // TODO: add other edges
     return g;
   }
 }
