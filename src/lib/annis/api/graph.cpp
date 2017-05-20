@@ -2,7 +2,3 @@
 
 using namespace annis::api;
 
-Graph::Graph()
-{
-
-}

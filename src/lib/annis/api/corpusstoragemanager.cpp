@@ -238,12 +238,12 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
    }
 }
 
-Graph CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string> nodeIDs)
+std::vector<Node> CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string> nodeIDs)
 {
   std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
 
 
-  Graph g;
+  std::vector<Node> nodes;
 
   if(loader)
   {
@@ -264,24 +264,14 @@ Graph CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string
       if(actualID)
       {
         Node newNode;
-        newNode.id = id;
-        newNode.type = db.getNodeType(*actualID);
+        newNode.id = *actualID;
         // add all node labels
         std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(*actualID);
         for(const Annotation& a : nodeAnnos)
         {
-          if(a.ns != db.getNamespaceStringID()
-             || (a.name != db.getNodeNameStringID() && a.name != db.getNodeTypeStringID()))
-          {
-            Label newLabel;
-            newLabel.ns = db.strings.str(a.ns);
-            newLabel.name = db.strings.str(a.name);
-            newLabel.value = db.strings.str(a.val);
-            newNode.labels.emplace_back(std::move(newLabel));
-          }
+          newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
         }
 
-        g.nodes.emplace_back(std::move(newNode));
 
         // find outgoing edges
         for(const auto&c : components)
@@ -295,27 +285,25 @@ Graph CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string
               if(nodeIDCache.find(db.getNodeName(target)) != nodeIDCache.end())
               {
                 Edge newEdge;
-                newEdge.sourceID = db.getNodeName(*actualID);
-                newEdge.targetID = db.getNodeName(target);
+                newEdge.sourceID = *actualID;
+                newEdge.targetID = target;
                 for(const Annotation& a : gs->getEdgeAnnotations({*actualID, target}))
                 {
-                  Label newLabel;
-                  newLabel.ns = db.strings.str(a.ns);
-                  newLabel.name = db.strings.str(a.name);
-                  newLabel.value = db.strings.str(a.val);
-                  newEdge.labels.emplace_back(std::move(newLabel));
+                  newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
                 }
-                g.edges.emplace_back(std::move(newEdge));
+                newNode.outgoingEdges.emplace_back(std::move(newEdge));
               }
             }
           }
         }
 
+        nodes.emplace_back(std::move(newNode));
+
       } // end if node ID was found
     } // end for each given node ID
   }
 
-  return g;
+  return nodes;
 }
 
 std::vector<std::string> CorpusStorageManager::list()

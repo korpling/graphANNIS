@@ -15,18 +15,17 @@
  */
 package org.corpus_tools.graphannis;
 
-import static annis.service.objects.SubgraphFilter.token;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimaps;
+import java.util.LinkedList;
 import java.util.List;
-import org.corpus_tools.salt.graph.Graph;
-import org.corpus_tools.salt.graph.Label;
-import org.corpus_tools.salt.graph.Layer;
-import org.corpus_tools.salt.graph.Node;
-import org.corpus_tools.salt.graph.Relation;
-import org.corpus_tools.salt.graph.impl.GraphImpl;
-import org.corpus_tools.salt.graph.impl.LabelImpl;
-import org.corpus_tools.salt.graph.impl.NodeImpl;
-import org.corpus_tools.salt.graph.impl.RelationImpl;
+import org.apache.commons.lang3.tuple.Pair;
+import org.bytedeco.javacpp.BytePointer;
+import org.corpus_tools.salt.SaltFactory;
+import org.corpus_tools.salt.common.SDocumentGraph;
+import org.corpus_tools.salt.common.SToken;
+import org.corpus_tools.salt.core.SNode;
+import org.corpus_tools.salt.util.SaltUtil;
 
 /**
  * Allows to extract a Salt-Graph from a database subgraph.
@@ -34,59 +33,68 @@ import org.corpus_tools.salt.graph.impl.RelationImpl;
  */
 public class SaltExport 
 {
+ 
   
-  private static List<Node> extractNodes(API.Graph orig)
+  private static void mapLabels(SNode n, API.StringMap labels)
   {
-    ArrayList<Node> nodes = new ArrayList<>();
-    
-    for(long i=0; i < orig.nodes().size(); i++)
+    for(API.StringMap.Iterator it = labels.begin(); it != labels.end(); it = it.increment())
     {
-      API.Node n = orig.nodes().get(i);
-     
-      Node newNode = new NodeImpl();
+      Pair<String, String> qname = SaltUtil.splitQName(it.first().getString());
+      String value = it.second().getString();
       
-      for(long j=0; j < n.labels().size(); j++)
+      if("annis".equals(qname.getKey()))
       {
-        
-        API.Label l = n.labels().get(j);
-        Label newLabel = new LabelImpl();
-        newLabel.setNamespace(l.ns().getString());
-        newLabel.setName(l.name().getString());
-        newLabel.setValue(l.value().getString());
-        
-        newNode.addLabel(newLabel);
+        n.createFeature(qname.getKey(), qname.getValue(), value);
       }
-      
-      nodes.add(newNode);
-    }
-    
-    for(long i=0; i < orig.edges().size(); i++)
-    {
-      API.Edge e = orig.edges().get(i);
-     
-      Relation<Node, Node> newRel = new RelationImpl<>();
-
-      for(long j=0; j < e.labels().size(); j++)
+      else
       {
-        
-        API.Label l = e.labels().get(j);
-        Label newLabel = new LabelImpl();
-        newLabel.setNamespace(l.ns().getString());
-        newLabel.setName(l.name().getString());
-        newLabel.setValue(l.value().getString());
-        
-        newRel.addLabel(newLabel);
+        n.createAnnotation(qname.getKey(), qname.getValue(), value);
       }
-      
     }
-    
-    return nodes;
   }
   
-  static Graph<Node, Relation<Node, Node>, Layer<Node,Relation<Node,Node>>> mapToBasicGraph(API.Graph orig)
+  private static void mapToken(SDocumentGraph g, API.Node tokenNode)
   {
-    Graph<Node, Relation<Node, Node>, Layer<Node,Relation<Node,Node>>>  g  = new GraphImpl<>();
+    SToken t = SaltFactory.createSToken();
     
+    BytePointer nodeName = tokenNode.labels().get(new BytePointer("annis::node_name"));
+    if(nodeName != null)
+    {
+      t.setId(nodeName.getString());
+    }
+    
+    mapLabels(t, tokenNode.labels());
+    
+    g.addNode(t);
+  }
+  
+  
+  public static SDocumentGraph map(API.NodeVector orig)
+  {
+    SDocumentGraph g = SaltFactory.createSDocumentGraph();
+    
+    // convert the vector to a list
+    List<API.Node> nodeList = new LinkedList<>();
+    for(long i=0; i < orig.size(); i++)
+    {
+      nodeList.add(orig.get(i));
+    }
+    
+    ImmutableMultimap<String, API.Node> nodesByType = Multimaps.index(nodeList, (API.Node input) -> {
+      BytePointer val = input.labels().get(new BytePointer("annis::node_type"));
+      return val == null ? "" : val.getString();
+    });
+    
+    final BytePointer tokKey = new BytePointer("annis::tok");
+    
+    // create all token
+    nodeList.stream().filter(n -> n.labels().get(tokKey) != null)
+            .forEach(n -> mapToken(g, n));
+    
+    // TODO: connect the token with ordering relations
+    // TODO: create STextualDS
+    // TODO: add other nodes
+    // TODO: add other edges
     return g;
   }
 }

@@ -9,6 +9,33 @@ import org.bytedeco.javacpp.annotation.*;
 public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     static { Loader.load(); }
 
+@Name("std::map<std::string,std::string>") public static class StringMap extends Pointer {
+    static { Loader.load(); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public StringMap(Pointer p) { super(p); }
+    public StringMap()       { allocate();  }
+    private native void allocate();
+    public native @Name("operator=") @ByRef StringMap put(@ByRef StringMap x);
+
+    public native long size();
+
+    @Index public native @StdString BytePointer get(@StdString BytePointer i);
+    public native StringMap put(@StdString BytePointer i, BytePointer value);
+    @ValueSetter @Index public native StringMap put(@StdString BytePointer i, @StdString String value);
+
+    public native @ByVal Iterator begin();
+    public native @ByVal Iterator end();
+    @NoOffset @Name("iterator") public static class Iterator extends Pointer {
+        public Iterator(Pointer p) { super(p); }
+        public Iterator() { }
+
+        public native @Name("operator++") @ByRef Iterator increment();
+        public native @Name("operator==") boolean equals(@ByRef Iterator it);
+        public native @Name("operator*().first") @MemberGetter @StdString BytePointer first();
+        public native @Name("operator*().second") @MemberGetter @StdString BytePointer second();
+    }
+}
+
 @Name("std::vector<std::string>") public static class StringVector extends Pointer {
     static { Loader.load(); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
@@ -37,32 +64,6 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     }
 
     public StringVector put(String ... array) {
-        if (size() != array.length) { resize(array.length); }
-        for (int i = 0; i < array.length; i++) {
-            put(i, array[i]);
-        }
-        return this;
-    }
-}
-
-@Name("std::vector<annis::api::Label>") public static class LabelVector extends Pointer {
-    static { Loader.load(); }
-    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public LabelVector(Pointer p) { super(p); }
-    public LabelVector(Label ... array) { this(array.length); put(array); }
-    public LabelVector()       { allocate();  }
-    public LabelVector(long n) { allocate(n); }
-    private native void allocate();
-    private native void allocate(@Cast("size_t") long n);
-    public native @Name("operator=") @ByRef LabelVector put(@ByRef LabelVector x);
-
-    public native long size();
-    public native void resize(@Cast("size_t") long n);
-
-    @Index public native @ByRef Label get(@Cast("size_t") long i);
-    public native LabelVector put(@Cast("size_t") long i, Label value);
-
-    public LabelVector put(Label ... array) {
         if (size() != array.length) { resize(array.length); }
         for (int i = 0; i < array.length; i++) {
             put(i, array[i]);
@@ -178,6 +179,7 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
 // #include <mutex>                           // for mutex
 // #include <string>                          // for string
 // #include <vector>                          // for vector
+
 
 @Namespace("annis") @Opaque public static class DBLoader extends Pointer {
     /** Empty constructor. Calls {@code super((Pointer)null)}. */
@@ -296,8 +298,8 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    * @param nodeIDs The IDs/names of the nodes to include.
    * @return
    */
-  public native @ByVal Graph subgraph(@StdString BytePointer corpus, @ByVal StringVector nodeIDs);
-  public native @ByVal Graph subgraph(@StdString String corpus, @ByVal StringVector nodeIDs);
+  public native @StdVector Node subgraph(@StdString BytePointer corpus, @ByVal StringVector nodeIDs);
+  public native @StdVector Node subgraph(@StdString String corpus, @ByVal StringVector nodeIDs);
 
   /**
    * \brief Lists the name of all corpora.
@@ -725,50 +727,8 @@ public static final int
 
 // #include <string>
 // #include <vector>
+// #include <map>
 
-/**
- * \brief The Label struct
- */
-@Namespace("annis::api") public static class Label extends Pointer {
-    static { Loader.load(); }
-    /** Default native constructor. */
-    public Label() { super((Pointer)null); allocate(); }
-    /** Native array allocator. Access with {@link Pointer#position(long)}. */
-    public Label(long size) { super((Pointer)null); allocateArray(size); }
-    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public Label(Pointer p) { super(p); }
-    private native void allocate();
-    private native void allocateArray(long size);
-    @Override public Label position(long position) {
-        return (Label)super.position(position);
-    }
-
-  public native @StdString BytePointer ns(); public native Label ns(BytePointer ns);
-  public native @StdString BytePointer name(); public native Label name(BytePointer name);
-  public native @StdString BytePointer value(); public native Label value(BytePointer value);
-}
-
-/**
- * \brief The Node struct
- */
-@Namespace("annis::api") public static class Node extends Pointer {
-    static { Loader.load(); }
-    /** Default native constructor. */
-    public Node() { super((Pointer)null); allocate(); }
-    /** Native array allocator. Access with {@link Pointer#position(long)}. */
-    public Node(long size) { super((Pointer)null); allocateArray(size); }
-    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public Node(Pointer p) { super(p); }
-    private native void allocate();
-    private native void allocateArray(long size);
-    @Override public Node position(long position) {
-        return (Node)super.position(position);
-    }
-
-  public native @StdString BytePointer id(); public native Node id(BytePointer id);
-  public native @StdString BytePointer type(); public native Node type(BytePointer type);
-  public native @ByRef LabelVector labels(); public native Node labels(LabelVector labels);
-}
 
 /**
  * \brief The Edge struct
@@ -787,30 +747,35 @@ public static final int
         return (Edge)super.position(position);
     }
 
-  public native @StdString BytePointer sourceID(); public native Edge sourceID(BytePointer sourceID);
-  public native @StdString BytePointer targetID(); public native Edge targetID(BytePointer targetID);
-  public native @ByRef LabelVector labels(); public native Edge labels(LabelVector labels);
+  public native long sourceID(); public native Edge sourceID(long sourceID);
+  public native long targetID(); public native Edge targetID(long targetID);
+  /** Maps a fully qualified label name (seperated by "::") to a label value */
+  public native @ByRef StringMap labels(); public native Edge labels(StringMap labels);
 }
 
+
 /**
- * \brief A simple labeled graph implementation.
+ * \brief The Node struct
  */
-@Namespace("annis::api") @NoOffset public static class Graph extends Pointer {
+@Namespace("annis::api") public static class Node extends Pointer {
     static { Loader.load(); }
-    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
-    public Graph(Pointer p) { super(p); }
+    /** Default native constructor. */
+    public Node() { super((Pointer)null); allocate(); }
     /** Native array allocator. Access with {@link Pointer#position(long)}. */
-    public Graph(long size) { super((Pointer)null); allocateArray(size); }
+    public Node(long size) { super((Pointer)null); allocateArray(size); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public Node(Pointer p) { super(p); }
+    private native void allocate();
     private native void allocateArray(long size);
-    @Override public Graph position(long position) {
-        return (Graph)super.position(position);
+    @Override public Node position(long position) {
+        return (Node)super.position(position);
     }
 
-  public Graph() { super((Pointer)null); allocate(); }
-  private native void allocate();
+  public native long id(); public native Node id(long id);
+  /** Maps a fully qualified label name (seperated by "::") to a label value */
+  public native @ByRef StringMap labels(); public native Node labels(StringMap labels);
 
-  public native @ByRef NodeVector nodes(); public native Graph nodes(NodeVector nodes);
-  public native @ByRef EdgeVector edges(); public native Graph edges(EdgeVector edges);
+  public native @ByRef EdgeVector outgoingEdges(); public native Node outgoingEdges(EdgeVector outgoingEdges);
 }
 
 

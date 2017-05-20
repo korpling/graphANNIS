@@ -100,7 +100,7 @@ public:
    * @param nodeIDs The IDs/names of the nodes to include.
    * @return
    */
-  Graph subgraph(std::string corpus, std::vector< std::string > nodeIDs);
+  std::vector<Node> subgraph(std::string corpus, std::vector< std::string > nodeIDs);
 
   /**
    * @brief Lists the name of all corpora.

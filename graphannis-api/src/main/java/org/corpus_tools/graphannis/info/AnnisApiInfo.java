@@ -45,9 +45,9 @@ public class AnnisApiInfo implements InfoMapper
   public void map(InfoMap infoMap)
   {
     infoMap.put(new Info("std::vector<std::string>").pointerTypes("StringVector").define());
-    infoMap.put(new Info("std::vector<annis::api::Label>").pointerTypes("LabelVector").define());
     infoMap.put(new Info("std::vector<annis::api::Node>").pointerTypes("NodeVector").define());
     infoMap.put(new Info("std::vector<annis::api::Edge>").pointerTypes("EdgeVector").define());
+    infoMap.put(new Info("std::map<std::string,std::string>").pointerTypes("StringMap").define());
     infoMap.put(new Info("annis::Init").skip());
     infoMap.put(new Info("std::uint32_t").valueTypes("long"));
     infoMap.put(new Info("std::uint64_t").valueTypes("long"));

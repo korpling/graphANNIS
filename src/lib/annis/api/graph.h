@@ -2,54 +2,34 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 namespace annis {
 namespace api {
 
-/**
- * @brief The Label struct
- */
-struct Label
-{
-  std::string ns;
-  std::string name;
-  std::string value;
-};
-
-/**
- * @brief The Node struct
- */
-struct Node
-{
-  std::string id;
-  std::string type;
-  std::vector<Label> labels;
-};
 
 /**
  * @brief The Edge struct
  */
 struct Edge
 {
-  std::string sourceID;
-  std::string targetID;
-  std::vector<Label> labels;
+  std::uint32_t sourceID;
+  std::uint32_t targetID;
+  /** Maps a fully qualified label name (seperated by "::") to a label value */
+  std::map<std::string, std::string> labels;
 };
 
+
 /**
- * @brief A simple labeled graph implementation.
+ * @brief The Node struct
  */
-class Graph
+struct Node
 {
-public:
+  std::uint32_t id;
+  /** Maps a fully qualified label name (seperated by "::") to a label value */
+  std::map<std::string, std::string> labels;
 
-
-
-public:
-  Graph();
-
-  std::vector<Node> nodes;
-  std::vector<Edge> edges;
+  std::vector<Edge> outgoingEdges;
 };
 
 }
