@@ -286,7 +286,7 @@ Graph CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string
         // find outgoing edges
         for(const auto&c : components)
         {
-          std::shared_ptr<const ReadableGraphStorage>  gs = db.edges.getGraphStorage(c);
+          std::shared_ptr<const ReadableGraphStorage>  gs = db.getGraphStorage(c.type, c.layer, c.name);
           if(gs)
           {
             for(nodeid_t target : gs->getOutgoingEdges(*actualID))
