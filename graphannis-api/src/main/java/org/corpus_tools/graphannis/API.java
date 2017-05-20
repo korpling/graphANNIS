@@ -749,6 +749,11 @@ public static final int
 
   public native long sourceID(); public native Edge sourceID(long sourceID);
   public native long targetID(); public native Edge targetID(long targetID);
+
+  public native @StdString BytePointer componentType(); public native Edge componentType(BytePointer componentType);
+  public native @StdString BytePointer componentLayer(); public native Edge componentLayer(BytePointer componentLayer);
+  public native @StdString BytePointer componentName(); public native Edge componentName(BytePointer componentName);
+
   /** Maps a fully qualified label name (seperated by "::") to a label value */
   public native @ByRef StringMap labels(); public native Edge labels(StringMap labels);
 }

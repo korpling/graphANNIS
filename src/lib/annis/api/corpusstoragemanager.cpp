@@ -287,6 +287,11 @@ std::vector<Node> CorpusStorageManager::subgraph(std::string corpus, std::vector
                 Edge newEdge;
                 newEdge.sourceID = *actualID;
                 newEdge.targetID = target;
+
+                newEdge.componentType = ComponentTypeHelper::toString(c.type);
+                newEdge.componentLayer = c.layer;
+                newEdge.componentName = c.name;
+
                 for(const Annotation& a : gs->getEdgeAnnotations({*actualID, target}))
                 {
                   newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
