@@ -72,6 +72,26 @@ public class Console
 
     System.out.println("" + result + " results.");
   }
+  
+  private void find(String argsRaw)
+  {
+    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
+
+    if (args.size() != 2)
+    {
+      System.out.println("You must give the corpus name and the query as argument");
+      return;
+    }
+
+    API.StringVector result = mgr.find(new API.StringVector(args.get(0)), aqlToJSON(args.get(1)));
+    
+    for(long i=0; i < result.size(); i++)
+    {
+      System.out.println(result.get(i).getString());
+    }
+
+    System.out.println("" + result.size() + " results.");
+  }
 
   private void relannis(String argsRaw)
   {
@@ -108,7 +128,7 @@ public class Console
       reader.setHistory(history);
       reader.setHistoryEnabled(true);
       reader.setPrompt("graphannis> ");
-      reader.addCompleter(new StringsCompleter("quit", "exit", "count", "list"));
+      reader.addCompleter(new StringsCompleter("quit", "exit", "count", "find", "subgraph", "list", "relannis"));
 
       boolean exit = false;
 
@@ -130,6 +150,9 @@ public class Console
             break;
           case "count":
             c.count(arguments);
+            break;
+          case "find":
+            c.find(arguments);
             break;
           case "relannis":
             c.relannis(arguments);
