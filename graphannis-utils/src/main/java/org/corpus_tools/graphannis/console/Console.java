@@ -24,9 +24,14 @@ import java.util.logging.Logger;
 import jline.console.ConsoleReader;
 import jline.console.completer.StringsCompleter;
 import jline.console.history.FileHistory;
+import org.bytedeco.javacpp.BytePointer;
 import org.corpus_tools.graphannis.API;
 
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
+import org.corpus_tools.graphannis.SaltExport;
+import org.corpus_tools.salt.common.SDocumentGraph;
+import org.corpus_tools.salt.util.SaltUtil;
+import org.eclipse.emf.common.util.URI;
 
 /**
  * An interactive console for testing the graphANNIS API.
@@ -92,6 +97,29 @@ public class Console
 
     System.out.println("" + result.size() + " results.");
   }
+  
+  private void subgraph(String argsRaw)
+  {
+    List<String> args = Splitter.on(" ").omitEmptyStrings().trimResults().splitToList(argsRaw);
+
+    if (args.size() < 2)
+    {
+      System.out.println("You must give the corpus name and the node IDs as argument");
+      return;
+    }
+    
+    API.StringVector nodeIDs = new API.StringVector();
+    for(int i=1; i < args.size(); i++)
+    {
+      nodeIDs.put(new BytePointer(args.get(i)));
+    }
+    
+    API.NodeVector result = mgr.subgraph(new BytePointer(args.get(0)), nodeIDs, 5, 5);
+    
+    SDocumentGraph docGraph = SaltExport.map(result);
+    SaltUtil.saveDocumentGraph(docGraph, URI.createFileURI("/tmp/graphannis.salt"));
+    System.out.println("Result saved to /tmp/graphannis.salt");
+  }
 
   private void relannis(String argsRaw)
   {
@@ -153,6 +181,9 @@ public class Console
             break;
           case "find":
             c.find(arguments);
+            break;
+          case "subgraph":
+            c.subgraph(arguments);
             break;
           case "relannis":
             c.relannis(arguments);

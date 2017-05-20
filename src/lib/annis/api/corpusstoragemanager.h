@@ -95,12 +95,14 @@ public:
   void applyUpdate(std::string corpus, GraphUpdate &update);
 
   /**
-   * @brief Return a sub-graph consisting of the nodes given as argument.s
+   * @brief Return a sub-graph consisting of the nodes given as argument and all nodes that cover the same token.
    * @param corpus
    * @param nodeIDs The IDs/names of the nodes to include.
+   * @param ctxLeft Left token context
+   * @param ctxRight Right token context
    * @return
    */
-  std::vector<Node> subgraph(std::string corpus, std::vector<std::string> &nodeIDs);
+  std::vector<annis::api::Node> subgraph(std::string corpus, std::vector<std::string> nodeIDs, int ctxLeft, int ctxRight);
 
   /**
    * @brief Lists the name of all corpora.

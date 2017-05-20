@@ -15,6 +15,7 @@
  */
 package org.corpus_tools.graphannis;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,10 +51,10 @@ public class SaltExport
   
   private static void mapLabels(SAnnotationContainer n, API.StringMap labels)
   {
-    for(API.StringMap.Iterator it = labels.begin(); it != labels.end(); it = it.increment())
+    for(API.StringMap.Iterator it = labels.begin(); !it.equals(labels.end()); it = it.increment())
     {
       Pair<String, String> qname = SaltUtil.splitQName(it.first().getString());
-      String value = it.second().getString();
+      String value = it.second() == null ? null : it.second().getString();
       
       if("annis".equals(qname.getKey()))
       {
@@ -141,10 +142,13 @@ public class SaltExport
       
       if(rel != null)
       {
-        rel.setType(origEdge.componentName().getString());
+        if(origEdge.componentName() != null)
+        {
+          rel.setType(origEdge.componentName().getString());
+        }
         mapLabels(rel, origEdge.labels());
-        String layerName = origEdge.componentLayer().getString();
-        if(!layerName.isEmpty())
+        String layerName = origEdge.componentLayer() == null ? null : origEdge.componentLayer().getString();
+        if(layerName != null && !layerName.isEmpty())
         {
           List<SLayer> layer = g.getLayerByName(layerName);
           if(layer == null || layer.isEmpty())
@@ -160,7 +164,7 @@ public class SaltExport
     }
   }
   
-  private static void recreateText(String name, List<SNode> rootNodes, final SDocumentGraph g)
+  private static void recreateText(final String name, List<SNode> rootNodes, final SDocumentGraph g)
   {
     final StringBuilder text = new StringBuilder();
     final STextualDS ds = g.createTextualDS("");
@@ -215,7 +219,7 @@ public class SaltExport
           // TODO: check if this is ever true
           return true;
         }
-        else if(relation instanceof SOrderRelation && name.equals(relation.getType()))
+        else if(relation instanceof SOrderRelation && Objects.equal(name, relation.getType()))
         {
           return true;
         }
@@ -246,7 +250,9 @@ public class SaltExport
     Map<Long, SNode> newNodesByID = new LinkedHashMap<>();
     for(Map.Entry<Long, API.Node> entry : nodesByID.entrySet())
     {
-      newNodesByID.put(entry.getKey(), mapNode(entry.getValue()));
+      API.Node v = entry.getValue();
+      SNode n = mapNode(v);
+      newNodesByID.put(entry.getKey(), n);
     }
     // add them to the graph
     newNodesByID.values().stream().forEach(n -> g.addNode(n));
@@ -264,7 +270,12 @@ public class SaltExport
     Multimap<String, SNode> orderRoots = g.getRootsByRelationType(SALT_TYPE.SORDER_RELATION);
     for(String name : orderRoots.keySet())
     {
-      recreateText(name, new ArrayList<>(orderRoots.get(name)), g);
+      ArrayList<SNode> roots = new ArrayList<>(orderRoots.get(name));
+      if(SaltUtil.SALT_NULL_VALUE.equals(name))
+      {
+        name = null;
+      }
+      recreateText(name, roots , g);
     }
     
     return g;

@@ -34,7 +34,7 @@ struct Node
   /** Maps a fully qualified label name (seperated by "::") to a label value */
   std::map<std::string, std::string> labels;
 
-  std::vector<Edge> outgoingEdges;
+  std::vector<annis::api::Edge> outgoingEdges;
 };
 
 }

@@ -46,7 +46,10 @@
 #include "annis/stringstorage.h"                        // for StringStorage
 #include "annis/types.h"                                // for Match, Annota...
 #include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
 #include <annis/graphstorage/graphstorage.h>
+#include <annis/operators/overlap.h>
+#include <annis/operators/precedence.h>
 
 #include <functional>
 
@@ -238,7 +241,8 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
    }
 }
 
-std::vector<Node> CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string>& nodeIDs)
+
+std::vector<annis::api::Node> CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string> nodeIDs, int ctxLeft, int ctxRight)
 {
   std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
 
@@ -255,59 +259,96 @@ std::vector<Node> CorpusStorageManager::subgraph(std::string corpus, std::vector
       boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
       db.ensureAllComponentsLoaded();
     }
+
+    std::vector<std::shared_ptr<SingleAlternativeQuery>> alts;
+
+    // find all nodes covering the same token
+    for(std::string sourceNodeID : nodeIDs)
+    {
+      if(boost::starts_with(sourceNodeID, "salt:/"))
+      {
+        // remove the "salt:/" prefix
+        sourceNodeID = sourceNodeID.substr(6);
+      }
+      // left context
+      {
+        std::shared_ptr<SingleAlternativeQuery> qLeft = std::make_shared<SingleAlternativeQuery>(db);
+        size_t nIdx = qLeft->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, sourceNodeID));
+        size_t tokCoveredIdx = qLeft->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+        size_t tokPrecedenceIdx = qLeft->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+        size_t anyNodeIdx = qLeft->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+
+        qLeft->addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), nIdx, tokCoveredIdx);
+        qLeft->addOperator(std::make_shared<Precedence>(db, db.f_getGraphStorage, 0, ctxLeft), tokPrecedenceIdx, tokCoveredIdx);
+        qLeft->addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), anyNodeIdx, tokPrecedenceIdx);
+
+        alts.push_back(qLeft);
+      }
+
+      // right context
+      {
+        std::shared_ptr<SingleAlternativeQuery> qRight = std::make_shared<SingleAlternativeQuery>(db);
+        size_t nIdx = qRight->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, sourceNodeID));
+        size_t tokCoveredIdx = qRight->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+        size_t tokPrecedenceIdx = qRight->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+        size_t anyNodeIdx = qRight->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_node_name));
+
+        qRight->addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), nIdx, tokCoveredIdx);
+        qRight->addOperator(std::make_shared<Precedence>(db, db.f_getGraphStorage, 0, ctxRight), tokCoveredIdx, tokPrecedenceIdx);
+        qRight->addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), anyNodeIdx, tokPrecedenceIdx);
+
+        alts.push_back(qRight);
+      }
+    }
+
+    Query queryAny(alts);
+
     std::vector<Component> components = db.getAllComponents();
 
-    // copy all IDs to a set so we can check if a node belongs to the subgraph easily
-    std::unordered_set<std::string> nodeIDCache(nodeIDs.begin(), nodeIDs.end());
 
-    for(const std::string& id : nodeIDCache)
+    // create the subgraph description
+    while(queryAny.next())
     {
-      // find node
-      boost::optional<nodeid_t> actualID = db.getNodeID(id);
-      if(actualID)
+      const Match& m = queryAny.getCurrent()[3];
+
+      Node newNode;
+      newNode.id = m.node;
+      // add all node labels
+      std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(m.node);
+      for(const Annotation& a : nodeAnnos)
       {
-        Node newNode;
-        newNode.id = *actualID;
-        // add all node labels
-        std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(*actualID);
-        for(const Annotation& a : nodeAnnos)
-        {
-          newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
-        }
+        newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
+      }
 
 
-        // find outgoing edges
-        for(const auto&c : components)
+      // find outgoing edges
+      for(const auto&c : components)
+      {
+        std::shared_ptr<const ReadableGraphStorage>  gs = db.getGraphStorage(c.type, c.layer, c.name);
+        if(gs)
         {
-          std::shared_ptr<const ReadableGraphStorage>  gs = db.getGraphStorage(c.type, c.layer, c.name);
-          if(gs)
+          for(nodeid_t target : gs->getOutgoingEdges(m.node))
           {
-            for(nodeid_t target : gs->getOutgoingEdges(*actualID))
+            Edge newEdge;
+            newEdge.sourceID = m.node;
+            newEdge.targetID = target;
+
+            newEdge.componentType = ComponentTypeHelper::toString(c.type);
+            newEdge.componentLayer = c.layer;
+            newEdge.componentName = c.name;
+
+            for(const Annotation& a : gs->getEdgeAnnotations({m.node, target}))
             {
-              // only include if target is also included
-              if(nodeIDCache.find(db.getNodeName(target)) != nodeIDCache.end())
-              {
-                Edge newEdge;
-                newEdge.sourceID = *actualID;
-                newEdge.targetID = target;
-
-                newEdge.componentType = ComponentTypeHelper::toString(c.type);
-                newEdge.componentLayer = c.layer;
-                newEdge.componentName = c.name;
-
-                for(const Annotation& a : gs->getEdgeAnnotations({*actualID, target}))
-                {
-                  newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
-                }
-                newNode.outgoingEdges.emplace_back(std::move(newEdge));
-              }
+              newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
             }
+            newNode.outgoingEdges.emplace_back(std::move(newEdge));
+
           }
         }
+      }
 
-        nodes.emplace_back(std::move(newNode));
+      nodes.emplace_back(std::move(newNode));
 
-      } // end if node ID was found
     } // end for each given node ID
   }
 

@@ -293,13 +293,15 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
   public native void applyUpdate(@StdString String corpus, @ByRef GraphUpdate update);
 
   /**
-   * \brief Return a sub-graph consisting of the nodes given as argument.s
+   * \brief Return a sub-graph consisting of the nodes given as argument and all nodes that cover the same token.
    * @param corpus
    * @param nodeIDs The IDs/names of the nodes to include.
+   * @param ctxLeft Left token context
+   * @param ctxRight Right token context
    * @return
    */
-  public native @StdVector Node subgraph(@StdString BytePointer corpus, @ByRef StringVector nodeIDs);
-  public native @StdVector Node subgraph(@StdString String corpus, @ByRef StringVector nodeIDs);
+  public native @ByVal NodeVector subgraph(@StdString BytePointer corpus, @ByVal StringVector nodeIDs, int ctxLeft, int ctxRight);
+  public native @ByVal NodeVector subgraph(@StdString String corpus, @ByVal StringVector nodeIDs, int ctxLeft, int ctxRight);
 
   /**
    * \brief Lists the name of all corpora.
