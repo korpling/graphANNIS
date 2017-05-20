@@ -238,7 +238,7 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
    }
 }
 
-std::vector<Node> CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string> nodeIDs)
+std::vector<Node> CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string>& nodeIDs)
 {
   std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
 
