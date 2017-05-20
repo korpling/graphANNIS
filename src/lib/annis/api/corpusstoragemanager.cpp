@@ -247,15 +247,18 @@ std::vector<Node> CorpusStorageManager::subgraph(std::string corpus, std::vector
 
   if(loader)
   {
-    boost::shared_lock_guard<DBLoader> lock(*loader);
+    boost::upgrade_lock<DBLoader> lock(*loader);
 
-    DB& db = loader->getFullyLoaded();
+    DB& db = loader->get();
+    if(!db.allGraphStoragesLoaded())
+    {
+      boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
+      db.ensureAllComponentsLoaded();
+    }
     std::vector<Component> components = db.getAllComponents();
 
     // copy all IDs to a set so we can check if a node belongs to the subgraph easily
     std::unordered_set<std::string> nodeIDCache(nodeIDs.begin(), nodeIDs.end());
-
-
 
     for(const std::string& id : nodeIDCache)
     {
