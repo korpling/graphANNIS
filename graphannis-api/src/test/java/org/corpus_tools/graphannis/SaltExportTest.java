@@ -102,11 +102,18 @@ public class SaltExportTest
     ValidationResult validResult = SaltUtil.validate(exportedGraph).andFindInvalidities();
     assertTrue("Invalid graph detected:\n" + validResult.toString(), validResult.isValid());
     
-    List<SToken> sortedToken = exportedGraph.getSortedTokenByText();
-    assertEquals("Is", exportedGraph.getText(sortedToken.get(0)));
-      
     assertEquals(doc.getDocumentGraph().getNodes().size(), exportedGraph.getNodes().size());
     assertEquals(doc.getDocumentGraph().getTokens().size(), exportedGraph.getTokens().size());
+    
+    List<SToken> sortedTokenOrig = doc.getDocumentGraph().getSortedTokenByText();
+    List<SToken> sortedTokenSubgraph = exportedGraph.getSortedTokenByText();
+    
+    for(int i=0; i < sortedTokenOrig.size(); i++)
+    {
+      assertEquals(doc.getDocumentGraph().getText(sortedTokenOrig.get(i)), 
+        exportedGraph.getText(sortedTokenSubgraph.get(i)));
+    }
+    
 
     // TODO: actual diff
   }
