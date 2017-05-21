@@ -113,12 +113,15 @@ public class Console
     {
       nodeIDs.put(args.get(i));
     }
-    
+   
+    System.out.println("Querying subgraph...");
     API.NodeVector result = mgr.subgraph(args.get(0), nodeIDs, 5, 5);
     
+    System.out.println("Mapping result...");
     SDocumentGraph docGraph = SaltExport.map(result);
-    SaltUtil.saveDocumentGraph(docGraph, URI.createFileURI("/tmp/graphannis.salt"));
-    System.out.println("Result saved to /tmp/graphannis.salt");
+    System.out.println("Saving as DOT file...");
+    SaltUtil.saveDocumentGraph_DOT(docGraph, URI.createFileURI("/tmp/graphannis.dot"));
+    System.out.println("Result saved to /tmp/graphannis.dot");
   }
 
   private void relannis(String argsRaw)
