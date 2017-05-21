@@ -282,7 +282,7 @@ void DB::loadGraphStorages(string dirPath, bool preloadComponents)
   } // end for each component
 }
 
-void DB::saveGraphStorages(const string &dirPath)
+void DB::saveGraphStorages(string dirPath)
 {
   // save each edge db separately
   boost::filesystem::path gsParent = boost::filesystem::path(dirPath) / "gs";

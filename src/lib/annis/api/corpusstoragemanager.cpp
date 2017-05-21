@@ -479,7 +479,7 @@ CorpusStorageManager::CorpusInfo CorpusStorageManager::info(std::string corpusNa
   return result;
 }
 
-void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared_ptr<DBLoader>& loader)
+void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared_ptr<DBLoader> loader)
 {
   bf::path root = bf::path(databaseDir) / corpus;
 
@@ -554,7 +554,7 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
     // This will not load the database itself, this can be done with the resulting object from the caller
     // after it locked the DBLoader.
     result = std::make_shared<DBLoader>((bf::path(databaseDir) / corpusName).string(),
-      [&]()
+      [this, corpusName]()
       {
         // perform garbage collection whenever something was loaded
         std::lock_guard<std::mutex> lock(mutex_corpusCache);
@@ -566,7 +566,7 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
         // ensure that the overall size limits are not exceeded in the end.
         size_t overallSize = 0;
         std::vector<SizeListEntry> corpusSizes;
-        for(auto entry : corpusCache)
+        for(const auto& entry : corpusCache)
         {
           if(entry.first != corpusName)
           {

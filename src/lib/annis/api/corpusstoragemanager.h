@@ -139,7 +139,7 @@ private:
    * Before any update can occur, the writing thread has to be killBackgroundWriter().
    * @param corpusPath
    */
-  void startBackgroundWriter(std::string corpusPath, std::shared_ptr<DBLoader> &loader);
+  void startBackgroundWriter(std::string corpusPath, std::shared_ptr<DBLoader> loader);
   /**
    * @brief Stops a background writer for a corpus. Will return as the thread is successfully stopped.
    * @param corpusPath

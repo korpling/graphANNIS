@@ -164,7 +164,7 @@ private:
   void addDefaultStrings();
 
   void loadGraphStorages(std::string dirPath, bool preloadComponents);
-  void saveGraphStorages(const std::string &dirPath);
+  void saveGraphStorages(std::string dirPath);
 
   bool ensureGraphStorageIsLoaded(const Component& c);
   size_t estimateGraphStorageMemorySize() const;
