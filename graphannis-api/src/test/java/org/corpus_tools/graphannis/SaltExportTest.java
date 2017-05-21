@@ -17,7 +17,9 @@ package org.corpus_tools.graphannis;
 
 import com.google.common.io.Files;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import javax.xml.stream.XMLStreamException;
 import org.corpus_tools.graphannis.API.StringVector;
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.salt.SaltFactory;
@@ -32,7 +34,9 @@ import org.junit.Test;
 
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.util.SaltUtil;
+import org.corpus_tools.salt.util.VisJsVisualizer;
 import org.corpus_tools.salt.util.internal.ValidationResult;
+import org.eclipse.emf.common.util.URI;
 import static org.junit.Assert.*;
 
 /**
@@ -71,7 +75,7 @@ public class SaltExportTest
   }
   
   @Test
-  public void testMapComplexExample()
+  public void testMapComplexExample() throws IOException, XMLStreamException
   {
     SDocument doc = SaltFactory.createSDocument();
     
@@ -113,6 +117,14 @@ public class SaltExportTest
       assertEquals(doc.getDocumentGraph().getText(sortedTokenOrig.get(i)), 
         exportedGraph.getText(sortedTokenSubgraph.get(i)));
     }
+    
+//    new VisJsVisualizer(doc).visualize(
+//      URI.createFileURI("/tmp/graphannis_orig_visjs/"));
+//    
+//    SDocument exportedDoc = SaltFactory.createSDocument();
+//    exportedDoc.setDocumentGraph(exportedGraph);
+//    new VisJsVisualizer(exportedDoc).visualize(
+//      URI.createFileURI("/tmp/graphannis_exported_visjs/"));
     
 
     // TODO: actual diff

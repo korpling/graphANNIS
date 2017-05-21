@@ -24,13 +24,14 @@ import java.util.logging.Logger;
 import jline.console.ConsoleReader;
 import jline.console.completer.StringsCompleter;
 import jline.console.history.FileHistory;
-import org.bytedeco.javacpp.BytePointer;
 import org.corpus_tools.graphannis.API;
 
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.graphannis.SaltExport;
+import org.corpus_tools.salt.SaltFactory;
+import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
-import org.corpus_tools.salt.util.SaltUtil;
+import org.corpus_tools.salt.util.VisJsVisualizer;
 import org.eclipse.emf.common.util.URI;
 
 /**
@@ -100,28 +101,37 @@ public class Console
   
   private void subgraph(String argsRaw)
   {
-    List<String> args = Splitter.on(" ").omitEmptyStrings().trimResults().splitToList(argsRaw);
-
-    if (args.size() < 2)
+    try
     {
-      System.out.println("You must give the corpus name and the node IDs as argument");
-      return;
+      List<String> args = Splitter.on(" ").omitEmptyStrings().trimResults().splitToList(argsRaw);
+      
+      if (args.size() < 2)
+      {
+        System.out.println("You must give the corpus name and the node IDs as argument");
+        return;
+      }
+      
+      API.StringVector nodeIDs = new API.StringVector();
+      for(int i=1; i < args.size(); i++)
+      {
+        nodeIDs.put(args.get(i));
+      }
+      
+      System.out.println("Querying subgraph...");
+      API.NodeVector result = mgr.subgraph(args.get(0), nodeIDs, 5, 5);
+      
+      System.out.println("Mapping result...");
+      SDocumentGraph docGraph = SaltExport.map(result);
+      System.out.println("Saving as interactive HTML page...");
+      SDocument docWrapper = SaltFactory.createSDocument();
+      docWrapper.setDocumentGraph(docGraph);
+      new VisJsVisualizer(docWrapper).visualize(URI.createFileURI("/tmp/graphannis_vis/"));
+      System.out.println("Result saved to /tmp/graphannis_vis/");
     }
-    
-    API.StringVector nodeIDs = new API.StringVector();
-    for(int i=1; i < args.size(); i++)
+    catch (Exception ex)
     {
-      nodeIDs.put(args.get(i));
+      Logger.getLogger(Console.class.getName()).log(Level.SEVERE, null, ex);
     }
-   
-    System.out.println("Querying subgraph...");
-    API.NodeVector result = mgr.subgraph(args.get(0), nodeIDs, 5, 5);
-    
-    System.out.println("Mapping result...");
-    SDocumentGraph docGraph = SaltExport.map(result);
-    System.out.println("Saving as DOT file...");
-    SaltUtil.saveDocumentGraph_DOT(docGraph, URI.createFileURI("/tmp/graphannis.dot"));
-    System.out.println("Result saved to /tmp/graphannis.dot");
   }
 
   private void relannis(String argsRaw)
