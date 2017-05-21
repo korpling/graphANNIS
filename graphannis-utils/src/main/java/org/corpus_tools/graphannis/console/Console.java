@@ -111,10 +111,10 @@ public class Console
     API.StringVector nodeIDs = new API.StringVector();
     for(int i=1; i < args.size(); i++)
     {
-      nodeIDs.put(new BytePointer(args.get(i)));
+      nodeIDs.put(args.get(i));
     }
     
-    API.NodeVector result = mgr.subgraph(new BytePointer(args.get(0)), nodeIDs, 5, 5);
+    API.NodeVector result = mgr.subgraph(args.get(0), nodeIDs, 5, 5);
     
     SDocumentGraph docGraph = SaltExport.map(result);
     SaltUtil.saveDocumentGraph(docGraph, URI.createFileURI("/tmp/graphannis.salt"));
