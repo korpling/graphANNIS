@@ -241,13 +241,13 @@ TEST_F(CorpusStorageManagerTest, ReloadWithLog) {
 
 }
 
-TEST_F(CorpusStorageManagerTest, SubgraphGUM) {
+TEST_F(CorpusStorageManagerTest, SubgraphGUMSingle) {
 
   std::vector<std::string> ids;
   ids.push_back("GUM/GUM_whow_skittles#tok_936");
-  ids.push_back("GUM/GUM_whow_skittles#tok_937");
   std::vector<api::Node> nodes = storageTest->subgraph("GUM", ids, 5, 5);
 
-  EXPECT_GT(nodes.size(), 0);
+  EXPECT_GT(nodes.size(), 26);
 }
+
 
