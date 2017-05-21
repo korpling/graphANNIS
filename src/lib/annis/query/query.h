@@ -3,6 +3,8 @@
 #include <annis/query/singlealternativequery.h>
 
 #include <vector>
+#include <unordered_set>
+#include <boost/functional/hash.hpp>
 #include <google/btree_set.h>
 
 namespace annis {
@@ -30,6 +32,24 @@ public:
   }
 
   std::string debugString();
+private:
+
+  struct MatchVectorHash
+  {
+    std::size_t operator()(std::vector<Match> const& v) const
+    {
+      std::size_t seed = 0;
+      for(size_t i=0; i < v.size(); i++)
+      {
+        const Match& m = v[i];
+        boost::hash_combine(seed, m.node);
+        boost::hash_combine(seed, m.anno.ns);
+        boost::hash_combine(seed, m.anno.name);
+        boost::hash_combine(seed, m.anno.val);
+      }
+    }
+  };
+
 
 private:
   std::vector<std::shared_ptr<SingleAlternativeQuery>> alternatives;
@@ -38,7 +58,7 @@ private:
 
   std::vector<Match> currentResult;
 
-  btree::btree_set<std::vector<Match>> uniqueResultSet;
+  std::unordered_set<std::vector<Match>, MatchVectorHash> uniqueResultSet;
 };
 
 

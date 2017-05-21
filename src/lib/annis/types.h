@@ -213,6 +213,11 @@ namespace annis
     return std::tie(a.node, a.anno) < std::tie(b.node, b.anno);
   }
 
+  inline bool operator==(const Match& lhs, const Match& rhs)
+  {
+      return lhs.node == rhs.node && lhs.anno == rhs.anno;
+  }
+
 
 
   /** Some general statistical numbers specific to a graph component */
