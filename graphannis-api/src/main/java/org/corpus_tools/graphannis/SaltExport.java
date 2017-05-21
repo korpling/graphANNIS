@@ -16,6 +16,7 @@
 package org.corpus_tools.graphannis;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ import org.corpus_tools.salt.core.SLayer;
 import org.corpus_tools.salt.core.SNode;
 import org.corpus_tools.salt.core.SRelation;
 import org.corpus_tools.salt.util.SaltUtil;
+import org.eclipse.emf.common.util.URI;
 
 /**
  * Allows to extract a Salt-Graph from a database subgraph.
@@ -104,10 +106,18 @@ public class SaltExport
       newNode = SaltFactory.createSSpan();
     }
     
-    BytePointer nodeName = n.labels().get(new BytePointer("annis::node_name"));
-    if(nodeName != null)
+    BytePointer nodeID = n.labels().get(new BytePointer("annis::node_name"));
+    if(nodeID != null)
     {
-      newNode.setId(nodeName.getString());
+      String nodeIDString = nodeID.getString();
+      if(!nodeIDString.startsWith("salt:/"))
+      {
+        nodeIDString = "salt:/" + nodeIDString;
+      }
+      newNode.setId(nodeIDString);
+      // get the name from the ID
+      newNode.setName(newNode.getPath().fragment());
+    
     }
     
     mapLabels(newNode, n.labels());
@@ -120,7 +130,7 @@ public class SaltExport
     SNode source = nodesByID.get(origEdge.sourceID());
     SNode target = nodesByID.get(origEdge.targetID());
     
-    if(source != null && target != null)
+    if(source != null && target != null && source != target)
     {
       SRelation<?,?> rel = null;
       switch(origEdge.componentType().getString())
@@ -240,7 +250,7 @@ public class SaltExport
       rel.setSource(t);
       rel.setTarget(ds);
       rel.setStart(r.lowerEndpoint());
-      rel.setEnd(r.upperEndpoint()+1);
+      rel.setEnd(r.upperEndpoint());
       g.addRelation(rel);
     });
   }
@@ -269,17 +279,19 @@ public class SaltExport
     newNodesByID.values().stream().forEach(n -> g.addNode(n));
     
     // create and add all edges
-    for(API.Node n : nodesByID.values())
+    nodesByID.values().
+      forEach((n) ->
     {
       for(long i=0; i < n.outgoingEdges().size(); i++)
       {
         mapAndAddEdge(g, n.outgoingEdges().get(i), newNodesByID);
       }
-    }
+    });
     
     // find all chains of SOrderRelations and reconstruct the texts belonging to them
     Multimap<String, SNode> orderRoots = g.getRootsByRelationType(SALT_TYPE.SORDER_RELATION);
-    for(String name : orderRoots.keySet())
+    orderRoots.keySet().
+      forEach((name) ->
     {
       ArrayList<SNode> roots = new ArrayList<>(orderRoots.get(name));
       if(SaltUtil.SALT_NULL_VALUE.equals(name))
@@ -287,7 +299,7 @@ public class SaltExport
         name = null;
       }
       recreateText(name, roots , g);
-    }
+    });
     
     return g;
   }

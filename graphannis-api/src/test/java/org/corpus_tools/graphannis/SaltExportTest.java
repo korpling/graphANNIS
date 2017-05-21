@@ -32,6 +32,7 @@ import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.util.DiffOptions;
 import org.corpus_tools.salt.util.Difference;
 import org.corpus_tools.salt.util.SaltUtil;
+import org.corpus_tools.salt.util.internal.ValidationResult;
 import static org.junit.Assert.*;
 
 /**
@@ -98,6 +99,9 @@ public class SaltExportTest
     assertTrue(nodeVector.size() > 0);
     
     SDocumentGraph exportedGraph = SaltExport.map(nodeVector);
+    
+    ValidationResult validResult = SaltUtil.validate(exportedGraph).andFindInvalidities();
+    assertTrue("Invalid graph detected:\n" + validResult.toString(), validResult.isValid());
       
     assertEquals(doc.getDocumentGraph().getNodes().size(), exportedGraph.getNodes().size());
     assertEquals(doc.getDocumentGraph().getTokens().size(), exportedGraph.getTokens().size());
