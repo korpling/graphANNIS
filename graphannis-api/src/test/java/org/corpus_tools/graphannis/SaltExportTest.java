@@ -17,7 +17,9 @@ package org.corpus_tools.graphannis;
 
 import com.google.common.io.Files;
 import java.io.File;
-import java.util.Set;
+import java.util.List;
+import org.corpus_tools.graphannis.API.StringVector;
+import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
@@ -29,8 +31,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.corpus_tools.salt.common.SToken;
-import org.corpus_tools.salt.util.DiffOptions;
-import org.corpus_tools.salt.util.Difference;
 import org.corpus_tools.salt.util.SaltUtil;
 import org.corpus_tools.salt.util.internal.ValidationResult;
 import static org.junit.Assert.*;
@@ -69,10 +69,7 @@ public class SaltExportTest
   public void tearDown()
   {
   }
-
-  /**
-   * Test of map method, of class SaltImport.
-   */
+  
   @Test
   public void testMapComplexExample()
   {
@@ -87,21 +84,26 @@ public class SaltExportTest
     SampleGenerator.createAnaphoricAnnotations(doc);
     SampleGenerator.createDependencies(doc);
     
+    assertEquals(27, doc.getDocumentGraph().getNodes().size());
+    
     API.GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     
     storage.applyUpdate("testCorpus", result);
+    
+    assertEquals(26, storage.count(new StringVector("testCorpus"), aqlToJSON("node")));
     
     SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
     
     // get a subgraph for the complete document
     API.NodeVector nodeVector = storage.subgraph("testCorpus", new API.StringVector(sampleTok.getId()), 100, 100);
     
-    assertTrue(nodeVector.size() > 0);
-    
     SDocumentGraph exportedGraph = SaltExport.map(nodeVector);
     
     ValidationResult validResult = SaltUtil.validate(exportedGraph).andFindInvalidities();
     assertTrue("Invalid graph detected:\n" + validResult.toString(), validResult.isValid());
+    
+    List<SToken> sortedToken = exportedGraph.getSortedTokenByText();
+    assertEquals("Is", exportedGraph.getText(sortedToken.get(0)));
       
     assertEquals(doc.getDocumentGraph().getNodes().size(), exportedGraph.getNodes().size());
     assertEquals(doc.getDocumentGraph().getTokens().size(), exportedGraph.getTokens().size());
