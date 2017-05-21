@@ -224,6 +224,27 @@ TEST_F(SearchTestGUM, noun_with_metadata)
   EXPECT_EQ(126u, counter);
 }
 
+TEST_F(SearchTestGUM, coffee)
+{
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+
+    std::vector<Match> m = q->getCurrent();
+    //check that the positions are correct
+    EXPECT_STREQ("infstat", db.strings.str(m[0].anno.name).c_str());
+    EXPECT_STREQ("entity", db.strings.str(m[1].anno.name).c_str());
+    EXPECT_STREQ("node_type", db.strings.str(m[2].anno.name).c_str());
+    counter++;
+  }
+
+  EXPECT_EQ(1u, counter);
+
+
+}
+
+
 TEST_F(SearchTestGUM, pos_dep_pos_Thread4) {
   QueryConfig config;
   config.numOfBackgroundTasks = 4;
