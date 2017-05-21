@@ -305,49 +305,57 @@ std::vector<annis::api::Node> CorpusStorageManager::subgraph(std::string corpus,
 
     std::vector<Component> components = db.getAllComponents();
 
+    // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
+    // match vector differ.
+    btree::btree_set<Match> matchResult;
 
     // create the subgraph description
     while(queryAny.next())
     {
       const Match& m = queryAny.getCurrent()[3];
 
-      Node newNode;
-      newNode.id = m.node;
-      // add all node labels
-      std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(m.node);
-      for(const Annotation& a : nodeAnnos)
+      if(matchResult.find(m) == matchResult.end())
       {
-        newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
-      }
+        matchResult.insert(m);
 
-
-      // find outgoing edges
-      for(const auto&c : components)
-      {
-        std::shared_ptr<const ReadableGraphStorage>  gs = db.getGraphStorage(c.type, c.layer, c.name);
-        if(gs)
+        Node newNode;
+        newNode.id = m.node;
+        // add all node labels
+        std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(m.node);
+        for(const Annotation& a : nodeAnnos)
         {
-          for(nodeid_t target : gs->getOutgoingEdges(m.node))
+          newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
+        }
+
+
+        // find outgoing edges
+        for(const auto&c : components)
+        {
+          std::shared_ptr<const ReadableGraphStorage>  gs = db.getGraphStorage(c.type, c.layer, c.name);
+          if(gs)
           {
-            Edge newEdge;
-            newEdge.sourceID = m.node;
-            newEdge.targetID = target;
-
-            newEdge.componentType = ComponentTypeHelper::toString(c.type);
-            newEdge.componentLayer = c.layer;
-            newEdge.componentName = c.name;
-
-            for(const Annotation& a : gs->getEdgeAnnotations({m.node, target}))
+            for(nodeid_t target : gs->getOutgoingEdges(m.node))
             {
-              newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
-            }
-            newNode.outgoingEdges.emplace_back(std::move(newEdge));
+              Edge newEdge;
+              newEdge.sourceID = m.node;
+              newEdge.targetID = target;
 
+              newEdge.componentType = ComponentTypeHelper::toString(c.type);
+              newEdge.componentLayer = c.layer;
+              newEdge.componentName = c.name;
+
+              for(const Annotation& a : gs->getEdgeAnnotations({m.node, target}))
+              {
+                newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
+              }
+              newNode.outgoingEdges.emplace_back(std::move(newEdge));
+
+            }
           }
         }
-      }
 
-      nodes.emplace_back(std::move(newNode));
+        nodes.emplace_back(std::move(newNode));
+      }
 
     } // end for each given node ID
   }
