@@ -22,6 +22,7 @@ import java.util.List;
 import javax.xml.stream.XMLStreamException;
 import org.corpus_tools.graphannis.API.StringVector;
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
+import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
@@ -117,6 +118,17 @@ public class SaltExportTest
       assertEquals(doc.getDocumentGraph().getText(sortedTokenOrig.get(i)), 
         exportedGraph.getText(sortedTokenSubgraph.get(i)));
     }
+    
+    assertEquals(doc.getDocumentGraph().getRelations(SALT_TYPE.SSPANNING_RELATION).size(), 
+      exportedGraph.getRelations(SALT_TYPE.SSPANNING_RELATION).size());
+    assertEquals(doc.getDocumentGraph().getRelations(SALT_TYPE.SPOINTING_RELATION).size(), 
+      exportedGraph.getRelations(SALT_TYPE.SPOINTING_RELATION).size());
+    assertEquals(doc.getDocumentGraph().getRelations(SALT_TYPE.SDOMINANCE_RELATION).size(), 
+      exportedGraph.getRelations(SALT_TYPE.SDOMINANCE_RELATION).size());
+    
+    int numOfOrderRels = exportedGraph.getRelations(SALT_TYPE.SORDER_RELATION).size();
+    
+    assertEquals(doc.getDocumentGraph().getRelations().size() , exportedGraph.getRelations().size() - numOfOrderRels);
     
 //    new VisJsVisualizer(doc).visualize(
 //      URI.createFileURI("/tmp/graphannis_orig_visjs/"));
