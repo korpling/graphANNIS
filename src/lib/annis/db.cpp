@@ -312,6 +312,7 @@ void DB::saveGraphStorages(string dirPath)
     std::ofstream os(outputFile.string(), std::ios::binary);
     cereal::BinaryOutputArchive ar(os);
     ar(it->second);
+    os.close();
   }
 }
 
@@ -332,6 +333,7 @@ bool DB::ensureGraphStorageIsLoaded(const Component &c)
         ar(itGS->second);
         notLoadedLocations.erase(itLocation);
 
+        is.close();
         return true;
       }
     }
