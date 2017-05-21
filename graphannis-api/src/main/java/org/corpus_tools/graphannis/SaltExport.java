@@ -17,9 +17,12 @@ package org.corpus_tools.graphannis;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
@@ -171,6 +174,9 @@ public class SaltExport
     
     ds.setName(name);
     
+    Map<SToken, Range<Integer>> token2Range = new HashMap<>();
+    
+    
     // traverse the token chain using the order relations
     g.traverse(rootNodes, SGraph.GRAPH_TRAVERSE_TYPE.TOP_DOWN_DEPTH_FIRST,
       "ORDERING_" + name,
@@ -189,16 +195,9 @@ public class SaltExport
         SFeature featTok = currNode.getFeature("annis::tok");
         if(featTok != null && currNode instanceof SToken)
         {
-          STextualRelation textRel = SaltFactory.createSTextualRelation();
-          textRel.setSource((SToken) currNode);
-          textRel.setTarget(ds);
-          
-          // add token text and record start and end at the same time
-          textRel.setStart(text.length());
+          int idxStart = text.length();
           text.append(featTok.getValue_STEXT());
-          textRel.setEnd(text.length()+1); // end is exclusive
-          
-          g.addRelation(textRel);
+          token2Range.put((SToken) currNode, Range.closed(idxStart, text.length()));
         }
       }
 
@@ -232,6 +231,18 @@ public class SaltExport
  
     // update the actual text
     ds.setText(text.toString());
+    
+    // add all relations
+    
+    token2Range.forEach((t, r) -> 
+    {
+      STextualRelation rel = SaltFactory.createSTextualRelation();
+      rel.setSource(t);
+      rel.setTarget(ds);
+      rel.setStart(r.lowerEndpoint());
+      rel.setEnd(r.upperEndpoint()+1);
+      g.addRelation(rel);
+    });
   }
   
   
