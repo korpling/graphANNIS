@@ -187,6 +187,7 @@ public class SaltExport
         if(layer == null)
         {
           layer = SaltFactory.createSLayer();
+          layer.setName(featLayer.getValue_STEXT());
           g.addLayer(layer);
         }
         layer.addNode(n);

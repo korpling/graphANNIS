@@ -227,6 +227,15 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
       nodeTypeAnno.val = db.strings.add("node");
       annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeTypeAnno.name, nodeTypeAnno.ns }, nodeTypeAnno.val));
 
+      if(!layer.empty() && layer != "NULL")
+      {
+        Annotation layerAnno;
+        layerAnno.ns = db.getNamespaceStringID();
+        layerAnno.name = db.strings.add("layer");
+        layerAnno.val = db.strings.add(layer);
+        annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, layerAnno.name, layerAnno.ns }, layerAnno.val));
+      }
+
       TextProperty left;
       left.val = Helper::uint32FromString(line[5]);
       left.textID = textID;
@@ -246,15 +255,6 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         tokAnno.name = db.strings.add(annis_tok);
         tokAnno.val = db.strings.add(span);
         annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, tokAnno.name, tokAnno.ns }, tokAnno.val));
-
-        if(!layer.empty() && layer != "NULL")
-        {
-          Annotation layerAnno;
-          layerAnno.ns = db.getNamespaceStringID();
-          layerAnno.name = db.strings.add("layer");
-          layerAnno.val = db.strings.add(layer);
-          annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, layerAnno.name, layerAnno.ns }, layerAnno.val));
-        }
 
         TextProperty index;
         index.val = Helper::uint32FromString(tokenIndexRaw);
