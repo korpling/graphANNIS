@@ -137,25 +137,27 @@ public class SaltExport
         edgeType = origEdge.componentName().getString();
       }
 
-      if (edgeType == null || edgeType.isEmpty())
-      {
-        // We don't include edges that have no type if there is an edge
-        // between the same nodes which has a type.
-        List<SRelation<SNode, SNode>> mirrorRelations = g.getRelations(
-          source.getId(),
-          target.getId());
-        if (mirrorRelations != null && mirrorRelations.size() > 0)
-        {
-          // exclude this relation
-          return;
-        }
-      }
       
       SRelation<?,?> rel = null;
       switch(origEdge.componentType().getString())
       {
         case "DOMINANCE":
+          if (edgeType == null || edgeType.isEmpty())
+          {
+            // We don't include edges that have no type if there is an edge
+            // between the same nodes which has a type.
+            List<SRelation<SNode, SNode>> mirrorRelations = g.getRelations(
+              source.getId(),
+              target.getId());
+            if (mirrorRelations != null && mirrorRelations.size() > 0)
+            {
+              // exclude this relation
+              return;
+            }
+          }
+          
           rel = g.createRelation(source, target, SALT_TYPE.SDOMINANCE_RELATION, null);
+          
           break;
         case "POINTING":
           rel = g.createRelation(source, target, SALT_TYPE.SPOINTING_RELATION, null);
