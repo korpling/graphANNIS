@@ -186,6 +186,18 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
     public DBLoader() { super((Pointer)null); }
     /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
     public DBLoader(Pointer p) { super(p); }
+} 
+@Namespace("annis") @Opaque public static class DB extends Pointer {
+    /** Empty constructor. Calls {@code super((Pointer)null)}. */
+    public DB() { super((Pointer)null); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public DB(Pointer p) { super(p); }
+} 
+@Namespace("annis") @Opaque public static class Component extends Pointer {
+    /** Empty constructor. Calls {@code super((Pointer)null)}. */
+    public Component() { super((Pointer)null); }
+    /** Pointer cast constructor. Invokes {@link Pointer#Pointer(Pointer)}. */
+    public Component(Pointer p) { super(p); }
 }   
 
 @Namespace("boost") @Opaque public static class thread extends Pointer {
@@ -302,6 +314,9 @@ public class API extends org.corpus_tools.graphannis.info.AnnisApiInfo {
    */
   public native @ByVal NodeVector subgraph(@StdString BytePointer corpus, @ByVal StringVector nodeIDs, int ctxLeft, int ctxRight);
   public native @ByVal NodeVector subgraph(@StdString String corpus, @ByVal StringVector nodeIDs, int ctxLeft, int ctxRight);
+
+  public native @ByVal NodeVector subcorpusGraph(@StdString BytePointer corpus, @ByVal StringVector corpusIDs);
+  public native @ByVal NodeVector subcorpusGraph(@StdString String corpus, @ByVal StringVector corpusIDs);
 
   /**
    * \brief Lists the name of all corpora.

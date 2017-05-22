@@ -50,6 +50,7 @@
 #include <annis/graphstorage/graphstorage.h>
 #include <annis/operators/overlap.h>
 #include <annis/operators/precedence.h>
+#include <annis/operators/partofsubcorpus.h>
 
 #include <functional>
 
@@ -246,7 +247,6 @@ std::vector<annis::api::Node> CorpusStorageManager::subgraph(std::string corpus,
 {
   std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
 
-
   std::vector<Node> nodes;
 
   if(loader)
@@ -318,40 +318,73 @@ std::vector<annis::api::Node> CorpusStorageManager::subgraph(std::string corpus,
       {
         matchResult.insert(m);
 
-        Node newNode;
-        newNode.id = m.node;
-        // add all node labels
-        std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(m.node);
-        for(const Annotation& a : nodeAnnos)
-        {
-          newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
-        }
+        Node newNode = createSubgraphNode(m.node, db, components);
 
-        // find outgoing edges
-        for(const auto&c : components)
-        {
-          std::shared_ptr<const ReadableGraphStorage>  gs = db.getGraphStorage(c.type, c.layer, c.name);
-          if(gs)
-          {
-            for(nodeid_t target : gs->getOutgoingEdges(m.node))
-            {
-              Edge newEdge;
-              newEdge.sourceID = m.node;
-              newEdge.targetID = target;
+        nodes.emplace_back(std::move(newNode));
+      }
 
-              newEdge.componentType = ComponentTypeHelper::toString(c.type);
-              newEdge.componentLayer = c.layer;
-              newEdge.componentName = c.name;
+    } // end for each given node ID
+  }
 
-              for(const Annotation& a : gs->getEdgeAnnotations({m.node, target}))
-              {
-                newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
-              }
-              newNode.outgoingEdges.emplace_back(std::move(newEdge));
+  return nodes;
+}
 
-            }
-          }
-        }
+std::vector<Node> CorpusStorageManager::subcorpusGraph(std::string corpus, std::vector<std::string> corpusIDs)
+{
+  std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
+
+  std::vector<Node> nodes;
+
+  if(loader)
+  {
+    boost::upgrade_lock<DBLoader> lock(*loader);
+
+    DB& db = loader->get();
+    if(!db.allGraphStoragesLoaded())
+    {
+      boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
+      db.ensureAllComponentsLoaded();
+    }
+
+    std::vector<std::shared_ptr<SingleAlternativeQuery>> alts;
+
+    // find all nodes that a connected with the corpus IDs
+    for(std::string sourceCorpusID : corpusIDs)
+    {
+      if(boost::starts_with(sourceCorpusID, "salt:/"))
+      {
+        // remove the "salt:/" prefix
+        sourceCorpusID = sourceCorpusID.substr(6);
+      }
+      {
+        std::shared_ptr<SingleAlternativeQuery> q = std::make_shared<SingleAlternativeQuery>(db);
+        size_t corpusIdx = q->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, sourceCorpusID));
+        size_t anyNodeIdx = q->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
+
+        q->addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), corpusIdx, anyNodeIdx);
+
+        alts.push_back(q);
+      }
+    }
+
+    Query queryAny(alts);
+
+    std::vector<Component> components = db.getAllComponents();
+
+    // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
+    // match vector differ.
+    btree::btree_set<Match> matchResult;
+
+    // create the subgraph description
+    while(queryAny.next())
+    {
+      const Match& m = queryAny.getCurrent()[1];
+
+      if(matchResult.find(m) == matchResult.end())
+      {
+        matchResult.insert(m);
+
+        Node newNode = createSubgraphNode(m.node, db, components);
 
         nodes.emplace_back(std::move(newNode));
       }
@@ -630,4 +663,47 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
   }
 
   return result;
+}
+
+Node CorpusStorageManager::createSubgraphNode(uint32_t nodeID,
+                                              DB& db,
+                                              const std::vector<Component> &allComponents)
+{
+
+  Node newNode;
+  newNode.id = nodeID;
+  // add all node labels
+  std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(nodeID);
+  for(const Annotation& a : nodeAnnos)
+  {
+    newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
+  }
+
+  // find outgoing edges
+  for(const auto&c : allComponents)
+  {
+    std::shared_ptr<const ReadableGraphStorage>  gs = db.getGraphStorage(c.type, c.layer, c.name);
+    if(gs)
+    {
+      for(nodeid_t target : gs->getOutgoingEdges(nodeID))
+      {
+        Edge newEdge;
+        newEdge.sourceID = nodeID;
+        newEdge.targetID = target;
+
+        newEdge.componentType = ComponentTypeHelper::toString(c.type);
+        newEdge.componentLayer = c.layer;
+        newEdge.componentName = c.name;
+
+        for(const Annotation& a : gs->getEdgeAnnotations({nodeID, target}))
+        {
+          newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
+        }
+        newNode.outgoingEdges.emplace_back(std::move(newEdge));
+
+      }
+    }
+  }
+
+  return std::move(newNode);
 }

@@ -28,6 +28,8 @@
 
 
 namespace annis { class DBLoader; }
+namespace annis { class DB; }
+namespace annis { class Component; }
 namespace annis { namespace api { class GraphUpdate; } }
 
 namespace boost { class thread;}
@@ -104,6 +106,8 @@ public:
    */
   std::vector<annis::api::Node> subgraph(std::string corpus, std::vector<std::string> nodeIDs, int ctxLeft, int ctxRight);
 
+  std::vector<annis::api::Node> subcorpusGraph(std::string corpus, std::vector<std::string> corpusIDs);
+
   /**
    * @brief Lists the name of all corpora.
    * @return
@@ -147,6 +151,8 @@ private:
   void killBackgroundWriter(std::string corpus);
 
   std::shared_ptr<DBLoader> getCorpusFromCache(std::string name);
+
+  Node createSubgraphNode(std::uint32_t nodeID, DB &db, const std::vector<annis::Component>& allComponents);
 
 };
 
