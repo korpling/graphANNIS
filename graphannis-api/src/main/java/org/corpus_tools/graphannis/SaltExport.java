@@ -123,7 +123,7 @@ public class SaltExport
     return newNode;
   }
   
-  private static void mapAndAddEdge(SDocumentGraph g, API.Edge origEdge, Map<Long, SNode> nodesByID)
+  private static void mapAndAddEdge(SDocumentGraph g, API.Node node, API.Edge origEdge, Map<Long, SNode> nodesByID)
   {
     SNode source = nodesByID.get(origEdge.sourceID());
     SNode target = nodesByID.get(origEdge.targetID());
@@ -146,15 +146,18 @@ public class SaltExport
           {
             // We don't include edges that have no type if there is an edge
             // between the same nodes which has a type.
-            List<SRelation<SNode, SNode>> mirrorRelations = g.getRelations(
-              source.getId(),
-              target.getId());
-            if (mirrorRelations != null && mirrorRelations.size() > 0)
+            for(long i=0; i < node.outgoingEdges().size(); i++)
             {
-              // exclude this relation
-              return;
+              API.Edge outEdge = node.outgoingEdges().get(i);
+              if(outEdge.targetID() == origEdge.targetID() 
+                && outEdge.componentName() != null
+                && !outEdge.componentName().getString().isEmpty())
+              {
+                // exclude this relation
+                return;
+              }
             }
-          }
+          } // end mirror check
           
           rel = g.createRelation(source, target, SALT_TYPE.SDOMINANCE_RELATION, null);
           
@@ -327,7 +330,7 @@ public class SaltExport
     {
       for(long i=0; i < n.outgoingEdges().size(); i++)
       {
-        mapAndAddEdge(g, n.outgoingEdges().get(i), newNodesByID);
+        mapAndAddEdge(g, n, n.outgoingEdges().get(i), newNodesByID);
       }
     });
     
