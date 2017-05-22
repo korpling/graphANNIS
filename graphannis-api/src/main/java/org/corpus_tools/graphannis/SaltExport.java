@@ -128,8 +128,29 @@ public class SaltExport
     SNode source = nodesByID.get(origEdge.sourceID());
     SNode target = nodesByID.get(origEdge.targetID());
     
+    
+    String edgeType = null;
     if(source != null && target != null && source != target)
-    {
+    {      
+      if (origEdge.componentName() != null)
+      {
+        edgeType = origEdge.componentName().getString();
+      }
+
+      if (edgeType == null || edgeType.isEmpty())
+      {
+        // We don't include edges that have no type if there is an edge
+        // between the same nodes which has a type.
+        List<SRelation<SNode, SNode>> mirrorRelations = g.getRelations(
+          source.getId(),
+          target.getId());
+        if (mirrorRelations != null && mirrorRelations.size() > 0)
+        {
+          // exclude this relation
+          return;
+        }
+      }
+      
       SRelation<?,?> rel = null;
       switch(origEdge.componentType().getString())
       {
@@ -151,12 +172,14 @@ public class SaltExport
           break;
       }
       
+      
       if(rel != null)
       {
-        if(origEdge.componentName() != null)
+        if(edgeType != null)
         {
-          rel.setType(origEdge.componentName().getString());
+          rel.setType(edgeType);
         }
+        
         mapLabels(rel, origEdge.labels());
         String layerName = origEdge.componentLayer() == null ? null : origEdge.componentLayer().getString();
         if(layerName != null && !layerName.isEmpty())
