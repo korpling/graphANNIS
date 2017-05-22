@@ -209,6 +209,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
       string tokenIndexRaw = line[7];
       uint32_t textID = Helper::uint32FromString(line[1]);
       uint32_t corpusID = Helper::uint32FromString(line[2]);
+      string layer = line[3];
 
       std::string docName = corpusIDToName[corpusID];
       nodesByCorpusID.insert({corpusID, nodeNr});
@@ -245,6 +246,15 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         tokAnno.name = db.strings.add(annis_tok);
         tokAnno.val = db.strings.add(span);
         annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, tokAnno.name, tokAnno.ns }, tokAnno.val));
+
+        if(!layer.empty() && layer != "NULL")
+        {
+          Annotation layerAnno;
+          layerAnno.ns = db.getNamespaceStringID();
+          layerAnno.name = db.strings.add("layer");
+          layerAnno.val = db.strings.add(layer);
+          annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, layerAnno.name, layerAnno.ns }, layerAnno.val));
+        }
 
         TextProperty index;
         index.val = Helper::uint32FromString(tokenIndexRaw);

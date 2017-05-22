@@ -16,7 +16,6 @@
 package org.corpus_tools.graphannis;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
@@ -44,7 +43,6 @@ import org.corpus_tools.salt.core.SLayer;
 import org.corpus_tools.salt.core.SNode;
 import org.corpus_tools.salt.core.SRelation;
 import org.corpus_tools.salt.util.SaltUtil;
-import org.eclipse.emf.common.util.URI;
 
 /**
  * Allows to extract a Salt-Graph from a database subgraph.
@@ -177,6 +175,25 @@ public class SaltExport
     }
   }
   
+  private static void addNodeLayers(SDocumentGraph g)
+  {
+    List<SNode> nodeList = new LinkedList<>(g.getNodes());
+    for(SNode n : nodeList)
+    {
+      SFeature featLayer = n.getFeature("annis", "layer");
+      if(featLayer != null)
+      {
+        SLayer layer = g.getLayer(featLayer.getValue_STEXT());
+        if(layer == null)
+        {
+          layer = SaltFactory.createSLayer();
+          g.addLayer(layer);
+        }
+        layer.addNode(n);
+      }
+    }
+  }
+  
   private static void recreateText(final String name, List<SNode> rootNodes, final SDocumentGraph g)
   {
     final StringBuilder text = new StringBuilder();
@@ -300,6 +317,8 @@ public class SaltExport
       }
       recreateText(name, roots , g);
     });
+    
+    addNodeLayers(g);
     
     return g;
   }

@@ -327,7 +327,6 @@ std::vector<annis::api::Node> CorpusStorageManager::subgraph(std::string corpus,
           newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
         }
 
-
         // find outgoing edges
         for(const auto&c : components)
         {
