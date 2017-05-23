@@ -217,7 +217,22 @@ bool Plan::executeStep(std::vector<Match>& result)
 {
   if(root && root->join)
   {
-    return root->join->next(result);
+    std::vector<Match> tmp;
+    if(root->join->next(tmp))
+    {
+      // re-order the matched nodes by the original node position of the query
+      result.resize(tmp.size());
+      for(const auto& nodeMapping : root->nodePos)
+      {
+        result[nodeMapping.first] = tmp[nodeMapping.second];
+      }
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+
   }
   else
   {

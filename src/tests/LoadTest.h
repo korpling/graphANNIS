@@ -69,7 +69,7 @@ protected:
 TEST_F(LoadTest, NodeAnnotations) {
 
   std::vector<annis::Annotation> annos = db.nodeAnnos.getAnnotations(0);
-  ASSERT_EQ(6u, annos.size());
+  ASSERT_EQ(7u, annos.size());
 
   EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[0].ns).c_str());
   EXPECT_STREQ("tok", db.strings.str(annos[0].name).c_str());
@@ -79,18 +79,21 @@ TEST_F(LoadTest, NodeAnnotations) {
   EXPECT_STREQ("node_name", db.strings.str(annos[1].name).c_str());
   EXPECT_STREQ("pcc2/4282#tok_13", db.strings.str(annos[1].val).c_str());
 
-  EXPECT_STREQ("tiger", db.strings.str(annos[3].ns).c_str());
-  EXPECT_STREQ("lemma", db.strings.str(annos[3].name).c_str());
-  EXPECT_STREQ("so", db.strings.str(annos[3].val).c_str());
+  EXPECT_STREQ(annis::annis_ns.c_str(), db.strings.str(annos[3].ns).c_str());
+  EXPECT_STREQ("layer", db.strings.str(annos[3].name).c_str());
+  EXPECT_STREQ("token_merged", db.strings.str(annos[3].val).c_str());
 
   EXPECT_STREQ("tiger", db.strings.str(annos[4].ns).c_str());
-  EXPECT_STREQ("morph", db.strings.str(annos[4].name).c_str());
-  EXPECT_STREQ("--", db.strings.str(annos[4].val).c_str());
-
+  EXPECT_STREQ("lemma", db.strings.str(annos[4].name).c_str());
+  EXPECT_STREQ("so", db.strings.str(annos[4].val).c_str());
 
   EXPECT_STREQ("tiger", db.strings.str(annos[5].ns).c_str());
-  EXPECT_STREQ("pos", db.strings.str(annos[5].name).c_str());
-  EXPECT_STREQ("ADV", db.strings.str(annos[5].val).c_str());
+  EXPECT_STREQ("morph", db.strings.str(annos[5].name).c_str());
+  EXPECT_STREQ("--", db.strings.str(annos[5].val).c_str());
+
+  EXPECT_STREQ("tiger", db.strings.str(annos[6].ns).c_str());
+  EXPECT_STREQ("pos", db.strings.str(annos[6].name).c_str());
+  EXPECT_STREQ("ADV", db.strings.str(annos[6].val).c_str());
 
 }
 

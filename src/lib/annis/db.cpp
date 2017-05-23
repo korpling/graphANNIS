@@ -282,7 +282,7 @@ void DB::loadGraphStorages(string dirPath, bool preloadComponents)
   } // end for each component
 }
 
-void DB::saveGraphStorages(const string &dirPath)
+void DB::saveGraphStorages(string dirPath)
 {
   // save each edge db separately
   boost::filesystem::path gsParent = boost::filesystem::path(dirPath) / "gs";
@@ -312,6 +312,7 @@ void DB::saveGraphStorages(const string &dirPath)
     std::ofstream os(outputFile.string(), std::ios::binary);
     cereal::BinaryOutputArchive ar(os);
     ar(it->second);
+    os.close();
   }
 }
 
@@ -332,6 +333,7 @@ bool DB::ensureGraphStorageIsLoaded(const Component &c)
         ar(itGS->second);
         notLoadedLocations.erase(itLocation);
 
+        is.close();
         return true;
       }
     }

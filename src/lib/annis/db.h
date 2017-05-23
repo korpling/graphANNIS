@@ -73,7 +73,7 @@ public:
     return result;
   }
 
-  inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName)
+  inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName) const
   {
     std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
     if(nodeNameID.first)
@@ -164,7 +164,7 @@ private:
   void addDefaultStrings();
 
   void loadGraphStorages(std::string dirPath, bool preloadComponents);
-  void saveGraphStorages(const std::string &dirPath);
+  void saveGraphStorages(std::string dirPath);
 
   bool ensureGraphStorageIsLoaded(const Component& c);
   size_t estimateGraphStorageMemorySize() const;

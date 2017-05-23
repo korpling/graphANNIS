@@ -45,6 +45,12 @@
 #include "annis/annostorage.h"                          // for AnnoStorage
 #include "annis/stringstorage.h"                        // for StringStorage
 #include "annis/types.h"                                // for Match, Annota...
+#include <annis/annosearch/exactannovaluesearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
+#include <annis/graphstorage/graphstorage.h>
+#include <annis/operators/overlap.h>
+#include <annis/operators/precedence.h>
+#include <annis/operators/partofsubcorpus.h>
 
 #include <functional>
 
@@ -236,6 +242,159 @@ void CorpusStorageManager::applyUpdate(std::string corpus, GraphUpdate &update)
    }
 }
 
+
+std::vector<annis::api::Node> CorpusStorageManager::subgraph(std::string corpus, std::vector<std::string> nodeIDs, int ctxLeft, int ctxRight)
+{
+  std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
+
+  std::vector<Node> nodes;
+
+  if(loader)
+  {
+    boost::upgrade_lock<DBLoader> lock(*loader);
+
+    DB& db = loader->get();
+    if(!db.allGraphStoragesLoaded())
+    {
+      boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
+      db.ensureAllComponentsLoaded();
+    }
+
+    std::vector<std::shared_ptr<SingleAlternativeQuery>> alts;
+
+    // find all nodes covering the same token
+    for(std::string sourceNodeID : nodeIDs)
+    {
+      if(boost::starts_with(sourceNodeID, "salt:/"))
+      {
+        // remove the "salt:/" prefix
+        sourceNodeID = sourceNodeID.substr(6);
+      }
+      // left context
+      {
+        std::shared_ptr<SingleAlternativeQuery> qLeft = std::make_shared<SingleAlternativeQuery>(db);
+        size_t nIdx = qLeft->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, sourceNodeID));
+        size_t tokCoveredIdx = qLeft->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+        size_t tokPrecedenceIdx = qLeft->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+        size_t anyNodeIdx = qLeft->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
+
+        qLeft->addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), nIdx, tokCoveredIdx);
+        qLeft->addOperator(std::make_shared<Precedence>(db, db.f_getGraphStorage, 0, ctxLeft), tokPrecedenceIdx, tokCoveredIdx);
+        qLeft->addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), anyNodeIdx, tokPrecedenceIdx);
+
+        alts.push_back(qLeft);
+      }
+
+      // right context
+      {
+        std::shared_ptr<SingleAlternativeQuery> qRight = std::make_shared<SingleAlternativeQuery>(db);
+        size_t nIdx = qRight->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, sourceNodeID));
+        size_t tokCoveredIdx = qRight->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+        size_t tokPrecedenceIdx = qRight->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
+        size_t anyNodeIdx = qRight->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
+
+        qRight->addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), nIdx, tokCoveredIdx);
+        qRight->addOperator(std::make_shared<Precedence>(db, db.f_getGraphStorage, 0, ctxRight), tokCoveredIdx, tokPrecedenceIdx);
+        qRight->addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), anyNodeIdx, tokPrecedenceIdx);
+
+        alts.push_back(qRight);
+      }
+    }
+
+    Query queryAny(alts);
+
+    std::vector<Component> components = db.getAllComponents();
+
+    // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
+    // match vector differ.
+    btree::btree_set<Match> matchResult;
+
+    // create the subgraph description
+    while(queryAny.next())
+    {
+      const Match& m = queryAny.getCurrent()[3];
+
+      if(matchResult.find(m) == matchResult.end())
+      {
+        matchResult.insert(m);
+
+        Node newNode = createSubgraphNode(m.node, db, components);
+
+        nodes.emplace_back(std::move(newNode));
+      }
+
+    } // end for each given node ID
+  }
+
+  return nodes;
+}
+
+std::vector<Node> CorpusStorageManager::subcorpusGraph(std::string corpus, std::vector<std::string> corpusIDs)
+{
+  std::shared_ptr<DBLoader> loader = getCorpusFromCache(corpus);
+
+  std::vector<Node> nodes;
+
+  if(loader)
+  {
+    boost::upgrade_lock<DBLoader> lock(*loader);
+
+    DB& db = loader->get();
+    if(!db.allGraphStoragesLoaded())
+    {
+      boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
+      db.ensureAllComponentsLoaded();
+    }
+
+    std::vector<std::shared_ptr<SingleAlternativeQuery>> alts;
+
+    // find all nodes that a connected with the corpus IDs
+    for(std::string sourceCorpusID : corpusIDs)
+    {
+      if(boost::starts_with(sourceCorpusID, "salt:/"))
+      {
+        // remove the "salt:/" prefix
+        sourceCorpusID = sourceCorpusID.substr(6);
+      }
+      {
+        std::shared_ptr<SingleAlternativeQuery> q = std::make_shared<SingleAlternativeQuery>(db);
+        size_t corpusIdx = q->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, sourceCorpusID));
+        size_t anyNodeIdx = q->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
+
+        q->addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), corpusIdx, anyNodeIdx);
+
+        alts.push_back(q);
+      }
+    }
+
+    Query queryAny(alts);
+
+    std::vector<Component> components = db.getAllComponents();
+
+    // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
+    // match vector differ.
+    btree::btree_set<Match> matchResult;
+
+    // create the subgraph description
+    while(queryAny.next())
+    {
+      const Match& m = queryAny.getCurrent()[1];
+
+      if(matchResult.find(m) == matchResult.end())
+      {
+        matchResult.insert(m);
+
+        Node newNode = createSubgraphNode(m.node, db, components);
+
+        nodes.emplace_back(std::move(newNode));
+      }
+
+    } // end for each given node ID
+  }
+
+  return nodes;
+}
+
 std::vector<std::string> CorpusStorageManager::list()
 {
   std::vector<std::string> result;
@@ -360,7 +519,7 @@ CorpusStorageManager::CorpusInfo CorpusStorageManager::info(std::string corpusNa
   return result;
 }
 
-void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared_ptr<DBLoader>& loader)
+void CorpusStorageManager::startBackgroundWriter(std::string corpus, std::shared_ptr<DBLoader> loader)
 {
   bf::path root = bf::path(databaseDir) / corpus;
 
@@ -435,7 +594,7 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
     // This will not load the database itself, this can be done with the resulting object from the caller
     // after it locked the DBLoader.
     result = std::make_shared<DBLoader>((bf::path(databaseDir) / corpusName).string(),
-      [&]()
+      [this, corpusName]()
       {
         // perform garbage collection whenever something was loaded
         std::lock_guard<std::mutex> lock(mutex_corpusCache);
@@ -447,7 +606,7 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
         // ensure that the overall size limits are not exceeded in the end.
         size_t overallSize = 0;
         std::vector<SizeListEntry> corpusSizes;
-        for(auto entry : corpusCache)
+        for(const auto& entry : corpusCache)
         {
           if(entry.first != corpusName)
           {
@@ -504,4 +663,47 @@ std::shared_ptr<DBLoader> CorpusStorageManager::getCorpusFromCache(std::string c
   }
 
   return result;
+}
+
+Node CorpusStorageManager::createSubgraphNode(uint32_t nodeID,
+                                              DB& db,
+                                              const std::vector<Component> &allComponents)
+{
+
+  Node newNode;
+  newNode.id = nodeID;
+  // add all node labels
+  std::vector<Annotation> nodeAnnos = db.nodeAnnos.getAnnotations(nodeID);
+  for(const Annotation& a : nodeAnnos)
+  {
+    newNode.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
+  }
+
+  // find outgoing edges
+  for(const auto&c : allComponents)
+  {
+    std::shared_ptr<const ReadableGraphStorage>  gs = db.getGraphStorage(c.type, c.layer, c.name);
+    if(gs)
+    {
+      for(nodeid_t target : gs->getOutgoingEdges(nodeID))
+      {
+        Edge newEdge;
+        newEdge.sourceID = nodeID;
+        newEdge.targetID = target;
+
+        newEdge.componentType = ComponentTypeHelper::toString(c.type);
+        newEdge.componentLayer = c.layer;
+        newEdge.componentName = c.name;
+
+        for(const Annotation& a : gs->getEdgeAnnotations({nodeID, target}))
+        {
+          newEdge.labels[db.strings.str(a.ns) + "::" + db.strings.str(a.name)] = db.strings.str(a.val);
+        }
+        newNode.outgoingEdges.emplace_back(std::move(newEdge));
+
+      }
+    }
+  }
+
+  return std::move(newNode);
 }
