@@ -17,7 +17,6 @@ package org.corpus_tools.annis.benchmark.generator;
 
 import org.corpus_tools.annis.ql.parser.AnnisParserAntlr;
 import org.corpus_tools.annis.ql.parser.QueryData;
-import org.corpus_tools.annis.ql.parser.SemanticValidator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.io.Files;
@@ -27,8 +26,10 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -113,6 +114,9 @@ public class QuerySetViewController implements Initializable
   
   @FXML
   private CheckBox onlyValidFilter;
+  
+  @FXML
+  private CheckBox onlyUniqueFilter;
 
   @FXML
   private Label counterLabel;
@@ -131,6 +135,7 @@ public class QuerySetViewController implements Initializable
   {
     parser = new AnnisParserAntlr();
     parser.setPrecedenceBound(50);
+    
 
     nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
     aqlColumn.setCellValueFactory(new PropertyValueFactory<>("aql"));
@@ -170,7 +175,7 @@ public class QuerySetViewController implements Initializable
     });
     
 
-    FilteredList<Query> filteredQueries = new FilteredList<>(queries, p -> true);
+    FilteredList<Query> filteredQueries = new FilteredList<>(queries);
     SortedList<Query> sortedQueries = new SortedList<>(filteredQueries);
 
     sortedQueries.comparatorProperty().bind(tableView.comparatorProperty());
@@ -190,9 +195,13 @@ public class QuerySetViewController implements Initializable
       {
         setFilterPredicate(filteredQueries);
     });
+    onlyUniqueFilter.selectedProperty().addListener(observable -> 
+    {
+      setFilterPredicate(filteredQueries);
+    });
     
     tableView.setItems(sortedQueries);
-
+    
     filteredQueries.addListener((Change<? extends Query> change)
       -> 
       {
@@ -204,15 +213,33 @@ public class QuerySetViewController implements Initializable
   {
     if (filteredQueries != null)
     {
+      final boolean allowUniqueOnly = onlyUniqueFilter.selectedProperty().get();
+      final boolean allowSingleCorpusOnly = oneCorpusFilter.selectedProperty()
+        .get();
+      final boolean allowWithJsonOnly = onlyValidFilter.selectedProperty().get();
+      
+      
+      LinkedHashSet<Query> uniqueQueries = new LinkedHashSet<>();
+      
+      if(allowUniqueOnly)
+      {
+        // create a map from JSON to the queries
+        LinkedHashMap<String, Query> queriesByJSON = new LinkedHashMap<>();
+        queries.forEach(q -> 
+        {
+          if(q.getJson() != null) queriesByJSON.put(q.getJson(), q);
+        });
+        
+        uniqueQueries.addAll(queriesByJSON.values());
+        
+      }
+      
       filteredQueries.setPredicate(query
         -> 
         {
 
           String corpusFilterText = corpusFilter.textProperty().get();
-          boolean allowSingleCorpusOnly = oneCorpusFilter.selectedProperty().
-            get();
-          boolean allowWithJsonOnly = onlyValidFilter.selectedProperty().get();
-
+          
           if (allowSingleCorpusOnly && query.getCorpora().size() > 1)
           {
             return false;
@@ -229,6 +256,11 @@ public class QuerySetViewController implements Initializable
             {
               return false;
             }
+          }
+          
+          if(allowUniqueOnly && !uniqueQueries.contains(query))
+          {
+            return false;
           }
 
           return true;

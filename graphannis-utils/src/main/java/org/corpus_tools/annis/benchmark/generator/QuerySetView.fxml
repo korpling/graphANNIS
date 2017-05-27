@@ -7,7 +7,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox fx:id="root" prefHeight="445.0" prefWidth="848.0" xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.corpus_tools.annis.benchmark.generator.QuerySetViewController">
+<VBox fx:id="root" prefHeight="445.0" prefWidth="848.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.corpus_tools.annis.benchmark.generator.QuerySetViewController">
    <children>
       <HBox spacing="10.0" VBox.vgrow="NEVER">
          <children>
@@ -21,8 +21,9 @@
       <HBox>
          <children>
             <TextField fx:id="corpusFilter" prefHeight="26.0" prefWidth="241.0" promptText="Corpus filter" />
-            <CheckBox fx:id="oneCorpusFilter" mnemonicParsing="false" prefHeight="26.0" prefWidth="128.0" text="only one corpus" />
-            <CheckBox fx:id="onlyValidFilter" mnemonicParsing="false" prefHeight="25.0" prefWidth="87.0" text="only valid" />
+            <CheckBox fx:id="oneCorpusFilter" mnemonicParsing="false" prefHeight="26.0" text="only one corpus" />
+            <CheckBox fx:id="onlyValidFilter" mnemonicParsing="false" prefHeight="25.0" text="only valid" />
+            <CheckBox fx:id="onlyUniqueFilter" mnemonicParsing="false" prefHeight="25.0" text="only unique" />
          </children>
       </HBox>
       <HBox VBox.vgrow="NEVER">
