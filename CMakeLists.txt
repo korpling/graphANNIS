@@ -125,6 +125,10 @@ set(SRC_LIST_RUNNER
 
 set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
 
+if(ENABLE_VALGRIND)
+  add_definitions(-DENABLE_VALGRIND)
+endif()
+
 if(ENABLE_SIMD_SUPPORT)
   if(MSVC)
     set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
