@@ -65,63 +65,6 @@ include_directories(
   "ext/cereal-1.2.1/include"
 )
 
-# make sure QtCreator shows the include files
-set(IncludeFiles
-  src/lib/annis/queryconfig.h
-  src/lib/annis/wrapper.h
-  src/lib/annis/stringstorage.h
-  src/lib/annis/json/jsonqueryparser.h
-  src/lib/annis/json/json.h
-  src/lib/annis/json/json-forwards.h
-  src/lib/annis/db.h
-  src/lib/annis/dbloader.h
-  src/lib/annis/graphstorage/prepostorderstorage.h
-  src/lib/annis/graphstorage/adjacencyliststorage.h
-  src/lib/annis/graphstorage/graphstorage.h
-  src/lib/annis/graphstorage/linearstorage.h
-  src/lib/annis/iterators.h
-  src/lib/annis/types.h
-  src/lib/annis/filter.h
-  src/lib/annis/operators/precedence.h
-  src/lib/annis/operators/operator.h
-  src/lib/annis/operators/inclusion.h
-  src/lib/annis/operators/dominance.h
-  src/lib/annis/operators/overlap.h
-  src/lib/annis/operators/pointing.h
-  src/lib/annis/operators/identicalcoverage.h
-  src/lib/annis/operators/identicalnode.h
-  src/lib/annis/operators/abstractedgeoperator.h
-  src/lib/annis/operators/partofsubcorpus.h
-  src/lib/annis/dbcache.h
-  src/lib/annis/api/corpusstoragemanager.h
-  src/lib/annis/api/admin.h
-  src/lib/annis/api/graph.h
-  src/lib/annis/api/graphupdate.h
-  src/lib/annis/serializers.h
-  src/lib/annis/graphstorageregistry.h
-  src/lib/annis/annostorage.h
-  src/lib/annis/util/helper.h
-  src/lib/annis/util/plan.h
-  src/lib/annis/util/dfs.h
-  src/lib/annis/util/size_estimator.h
-  src/lib/annis/util/comparefunctions.h
-  src/lib/annis/util/relannisloader.h
-  src/lib/annis/util/sharedqueue.h
-  src/lib/annis/util/threadpool.h
-  src/lib/annis/query/singlealternativequery.h
-  src/lib/annis/query/query.h
-  src/lib/annis/join/indexjoin.h
-  src/lib/annis/join/nestedloop.h
-  src/lib/annis/join/simdindexjoin.h
-  src/lib/annis/join/threadnestedloop.h
-  src/lib/annis/join/taskindexjoin.h
-  src/lib/annis/join/threadindexjoin.h
-  src/lib/annis/annosearch/exactannovaluesearch.h
-  src/lib/annis/annosearch/annotationsearch.h
-  src/lib/annis/annosearch/exactannokeysearch.h
-  src/lib/annis/annosearch/regexannosearch.h
-  src/lib/annis/annosearch/nodebyedgeannosearch.h
-)
 
 set(SRC_LIST_LIB
   src/lib/annis/queryconfig.cpp
@@ -191,7 +134,7 @@ if(ENABLE_SIMD_SUPPORT)
   set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_DEFINITIONS "Vc_IMPL=AVX2")
 endif()
 
-include_directories( "src/lib")
+include_directories("src/lib")
 
 add_library(annis ${SRC_LIST_LIB} ${SRC_LIST_LIB_SIMD})
 target_compile_features(annis PRIVATE ${needed_features})
