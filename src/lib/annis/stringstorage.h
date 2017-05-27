@@ -84,7 +84,7 @@ public:
     return result;
   }
 
-  std::set<std::uint32_t> findRegex(const std::string& str) const;
+  std::unordered_set<std::uint32_t> findRegex(const std::string& str) const;
 
   std::uint32_t add(const std::string& str);
 
