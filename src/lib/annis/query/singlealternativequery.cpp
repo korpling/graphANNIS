@@ -17,6 +17,8 @@
 #include "singlealternativequery.h"
 #include <annis/annosearch/annotationsearch.h>      // for EstimatedSearch
 #include <annis/annosearch/nodebyedgeannosearch.h>  // for NodeByEdgeAnnoSearch
+#include <annis/annosearch/exactannokeysearch.h>
+#include <annis/annosearch/regexannosearch.h>
 #include <annis/db.h>                               // for DB
 #include <annis/iterators.h>                        // for AnnoIt
 #include <annis/operators/abstractedgeoperator.h>   // for AbstractEdgeOperator
@@ -241,6 +243,53 @@ std::shared_ptr<Plan> SingleAlternativeQuery::createPlan(const std::vector<std::
   return std::make_shared<Plan>(component2exec[*firstComponentID]);
 }
 
+void SingleAlternativeQuery::optimizeUnboundRegex()
+{
+  if(!bestPlan)
+  {
+    for(size_t i=0; i < nodes.size(); i++)
+    {
+      std::shared_ptr<ConstAnnoWrapper> annoWrapper = std::dynamic_pointer_cast<ConstAnnoWrapper>(nodes[i]);
+      std::shared_ptr<AnnoIt> n;
+      if(annoWrapper)
+      {
+        n = annoWrapper->getDelegate();
+      }
+      else
+      {
+        n = nodes[i];
+      }
+      std::shared_ptr<RegexAnnoSearch> regexSearch = std::dynamic_pointer_cast<RegexAnnoSearch>(n);
+
+      // for each regex search test if the value is unbound
+      if(regexSearch != nullptr && regexSearch->valueMatchesAllStrings())
+      {
+        // replace the regex search with an anno key search
+        std::shared_ptr<AnnotationKeySearch> annoKeySearch;
+        auto ns = regexSearch->getAnnoKeyNamespace();
+        auto name = regexSearch->getAnnoKeyName();
+        if(ns)
+        {
+          annoKeySearch = std::make_shared<ExactAnnoKeySearch>(db, *ns, name);
+        }
+        else
+        {
+          annoKeySearch = std::make_shared<ExactAnnoKeySearch>(db, name);
+        }
+
+        if(annoWrapper)
+        {
+          annoWrapper->setDelegate(annoKeySearch);
+        }
+        else
+        {
+          nodes[i] = annoKeySearch;
+        }
+      }
+    }
+  }
+}
+
 void SingleAlternativeQuery::updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to)
 {
   if(from == to)
@@ -274,6 +323,9 @@ void SingleAlternativeQuery::internalInit()
   
   if(config.optimize)
   {
+
+    optimizeUnboundRegex();
+
     ///////////////////////////////////////////////////////////
     // make sure all smaller operand are on the left side //
     ///////////////////////////////////////////////////////////

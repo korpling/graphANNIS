@@ -102,6 +102,8 @@ private:
                                    const std::vector<OperatorEntry>& operators,
                                    std::map<size_t, size_t> parallelizationMapping = std::map<size_t,size_t>());
   
+  void optimizeUnboundRegex();
+
   void optimizeOperandOrder();
 
   void optimizeEdgeAnnoUsage();

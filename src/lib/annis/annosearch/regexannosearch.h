@@ -52,10 +52,18 @@ namespace annis
       return validAnnotations;
     }
 
-    virtual const std::set<AnnotationKey>& getValidAnnotationKeys()
+    bool valueMatchesAllStrings() const;
+
+    boost::optional<std::string> getAnnoKeyNamespace() const
     {
-      return validAnnotationKeys;
+      return annoKeyNamespace;
     }
+
+    std::string getAnnoKeyName() const
+    {
+      return annoKeyName;
+    }
+
     
     virtual bool next(Match& result) override;
     virtual void reset() override;
@@ -67,11 +75,12 @@ namespace annis
     virtual ~RegexAnnoSearch();
   private:
     const DB& db;
+
+    boost::optional<std::string> annoKeyNamespace;
+    std::string annoKeyName;
+
     std::unordered_set<Annotation> validAnnotations;
     bool validAnnotationsInitialized;
-
-    // always empty
-    std::set<AnnotationKey> validAnnotationKeys;
 
     std::string valRegex;
     RE2 compiledValRegex;

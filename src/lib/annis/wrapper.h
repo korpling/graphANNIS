@@ -159,6 +159,11 @@ namespace annis
     {
       return delegate;
     }
+
+    void setDelegate(std::shared_ptr<EstimatedSearch> newDelegate)
+    {
+      delegate = newDelegate;
+    }
     
     std::int64_t guessMaxCount() const override
     {
