@@ -60,7 +60,7 @@ std::unordered_set<std::uint32_t> StringStorage::findRegex(const string &str) co
     }
   }
 
-  return result;
+  return std::move(result);
 }
 
 uint32_t StringStorage::add(const string &str)
