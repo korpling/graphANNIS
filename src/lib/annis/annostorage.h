@@ -410,13 +410,13 @@ namespace annis {
     
   private:
     /**
-     * Internal function for getting an estimation about the number of matches for a certain range of annotation value
+     * Internal function for getting an estimation about the number of matches for a certain range of annotation values.
      * @param nsID The namespace part of the annotation key. Can be empty (in this case all annotations with the correct name are used).
      * @param nameID The name part of the annotation key.
      * @param lowerVal Inclusive starting point for the value range.
      * @param upperVal Inclusive end point for the value range.
      * @param if true upperVal is inclusive, otherwise it is exclusive
-     * @return The estimation of -1 if invalid.
+     * @return The estimation or -1 if invalid.
      */
     std::int64_t guessMaxCount(boost::optional<std::uint32_t> nsID, std::uint32_t nameID, const std::string& lowerVal,
       const std::string& upperVal) const
