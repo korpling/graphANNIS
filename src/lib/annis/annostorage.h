@@ -378,11 +378,20 @@ namespace annis {
 
     size_t estimateMemorySize() const
     {
+      size_t histoStringsSize = 0;
+      for(const auto& e : histogramBounds)
+      {
+        for(const std::string& s : e.second)
+        {
+          histoStringsSize += s.capacity();
+        }
+      }
       return
           size_estimation::element_size(annotations)
           + size_estimation::element_size(inverseAnnotations)
           + size_estimation::element_size(annoKeys)
-          + size_estimation::element_size(histogramBounds);
+          + size_estimation::element_size(histogramBounds)
+          + histoStringsSize;
     }
 
     virtual ~AnnoStorage() {}

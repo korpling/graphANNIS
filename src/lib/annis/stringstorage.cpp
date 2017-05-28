@@ -108,5 +108,14 @@ double annis::StringStorage::avgLength()
 
 size_t StringStorage::estimateMemorySize() const
 {
-  return size_estimation::element_size(stringStorageByID) + size_estimation::element_size(stringStorageByValue);
+  size_t strSize = 0;
+  for(const auto& v : stringStorageByValue)
+  {
+    const std::string& s = v.first;
+    strSize += s.capacity();
+  }
+  return
+      size_estimation::element_size(stringStorageByID)
+      + size_estimation::element_size(stringStorageByValue)
+      + (strSize*2);
 }
