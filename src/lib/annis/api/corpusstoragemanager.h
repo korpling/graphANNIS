@@ -29,7 +29,7 @@
 
 namespace annis { class DBLoader; }
 namespace annis { class DB; }
-namespace annis { class Component; }
+namespace annis { struct Component; }
 namespace annis { namespace api { class GraphUpdate; } }
 
 namespace boost { class thread;}
