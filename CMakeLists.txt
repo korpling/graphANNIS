@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/output)
 
 set(ENABLE_VALGRIND FALSE CACHE BOOL "Allow to turn Valgrind instrumentation on or off for some parts of the code")
-set(ENABLE_SIMD_SUPPORT TRUE CACHE BOOL "Enable support for operations using SIMD instructions. Needs a CPU with AVX2.")
+set(ENABLE_SIMD_SUPPORT OFF CACHE BOOL "Enable support for operations using SIMD instructions. Needs a CPU with AVX2.")
 
 # make sure a build type is selected
 if(NOT CMAKE_BUILD_TYPE)
@@ -26,7 +26,9 @@ include(cmake/humblelogging.cmake)
 include(cmake/re2.cmake)
 include(cmake/celero.cmake)
 include(cmake/googletest.cmake)
-include(cmake/vc.cmake)
+if(ENABLE_SIMD_SUPPORT)
+  include(cmake/vc.cmake)
+endif()
 
 link_directories(${GLOBAL_OUTPUT_PATH})
 
@@ -123,20 +125,23 @@ set(SRC_LIST_RUNNER
   src/runner/console.cpp
 )
 
-set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
-
-if(ENABLE_VALGRIND)
-  add_definitions(-DENABLE_VALGRIND)
-endif()
-
 if(ENABLE_SIMD_SUPPORT)
+  add_definitions(ENABLE_SIMD_SUPPORT)
+  set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
   if(MSVC)
     set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
   else()
     set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "-mavx2")
   endif()
   set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_DEFINITIONS "Vc_IMPL=AVX2")
+else()
+  set(SRC_LIST_LIB_SIMD "")
 endif()
+
+if(ENABLE_VALGRIND)
+  add_definitions(-DENABLE_VALGRIND)
+endif()
+
 
 include_directories("src/lib")
 
@@ -163,7 +168,9 @@ target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_
 
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
-add_dependencies(annis Vc)
+if(ENABLE_SIMD_SUPPORT)
+  add_dependencies(annis Vc)
+endif()
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})

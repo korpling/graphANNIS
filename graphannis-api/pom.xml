@@ -262,8 +262,7 @@
             <includePath>${basedir}/../ext/cpp-btree-1.0.1/</includePath>
             <includePath>${basedir}/../ext/cereal-1.2.1/include/</includePath>
             <includePath>${basedir}/../build/output/re2/include/</includePath>
-            <includePath>${basedir}/../ext/ThreadPool/</includePath>
-            <includePath>${basedir}/../ext/re2-2016-10-01/</includePath>
+            <includePath>${basedir}/../build/output/vc/include/</includePath>
             <includePath>${ICU_INCLUDE_DIRS}</includePath>
             <includePath>${Boost_INCLUDE_DIRS}</includePath>
           </includePaths>

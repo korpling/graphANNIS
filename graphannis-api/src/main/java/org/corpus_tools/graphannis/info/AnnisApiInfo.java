@@ -21,20 +21,20 @@ import org.bytedeco.javacpp.tools.InfoMapper;
       },
       link =
       {
-        "re2", "boost_system", "boost_filesystem", "boost_thread", "humblelogging", "Vc", "annis"
+        "re2", "boost_system", "boost_filesystem", "boost_thread", "humblelogging", "annis"
       }
     )
     ,
     @Platform(value = "windows",
       link =
       {
-        "re2", "humblelogging", "Vc", "annis"
+        "re2", "humblelogging", "annis"
       }
     ),
     @Platform(value = "macosx",
       link =
       {
-        "re2", "boost_system-mt", "boost_filesystem-mt", "boost_thread-mt", "humblelogging", "Vc", "annis"
+        "re2", "boost_system-mt", "boost_filesystem-mt", "boost_thread-mt", "humblelogging", "annis"
       }
     )
   })
