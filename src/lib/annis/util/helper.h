@@ -9,7 +9,6 @@
 
 #include <annis/db.h>
 #include <annis/graphstorage/graphstorage.h>
-#include <annis/graphstorageholder.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -28,9 +27,9 @@ class TokenHelper
 {
 public:
 
-  TokenHelper(GraphStorageHolder& gsh, const DB& db) : db(db),
-    leftEdges(gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
-    rightEdges(gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, ""))
+  TokenHelper(DB::GetGSFuncT getGSFunc, const DB& db) : db(db),
+    leftEdges(getGSFunc(ComponentType::LEFT_TOKEN, annis_ns, "")),
+    rightEdges(getGSFunc(ComponentType::RIGHT_TOKEN, annis_ns, ""))
   {
 
   }
@@ -73,7 +72,7 @@ public:
 
   bool inline isToken(const nodeid_t& n)
   {
-    return db.nodeAnnos.getAnnotations(n, db.getNamespaceStringID(), db.getTokStringID()).empty() == false;
+    return static_cast<bool>(db.nodeAnnos.getAnnotations(n, db.getNamespaceStringID(), db.getTokStringID()));
   }
 
 private:

@@ -24,7 +24,8 @@
 #include <boost/thread/shared_lock_guard.hpp>
 
 #include <annis/util/helper.h>
-#include <annis/query.h>
+#include <annis/util/relannisloader.h>
+#include <annis/query/query.h>
 #include <annis/util/threadpool.h>
 #include <annis/util/plan.h>
 
@@ -124,7 +125,7 @@ void Console::import(const std::vector<std::string> &args)
     if(args.size() > 0)
     {
       std::cout << "Import relANNIS from " << args[0] << std::endl;
-      db->loadRelANNIS(args[0]);
+      RelANNISLoader::loadRelANNIS(*db, args[0]);
       if(args.size() > 1)
       {
         // directly save the imported corpus to directory
@@ -206,7 +207,7 @@ void Console::count(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss, config);
         int counter =0;
         auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
         while(q->next())
@@ -241,7 +242,7 @@ void Console::find(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss, config);
         int counter =0;
         while(q->next())
         {
@@ -249,15 +250,18 @@ void Console::find(const std::vector<std::string> &args)
           for(size_t i = 0; i < m.size(); i++)
           {
             const auto& n = m[i];
-            std::cout << db->getNodeDebugName(n.node);
-            if(n.anno.ns != 0 && n.anno.name != 0)
+            if(db->getNodeType(n.node) == "node")
             {
-              std::cout << " " << db->strings.str(n.anno.ns)
-                << "::" << db->strings.str(n.anno.name);
-            }
-            if(i < m.size()-1)
-            {
-             std::cout << ", ";
+              std::cout << db->getNodeDebugName(n.node);
+              if(n.anno.ns != 0 && n.anno.name != 0)
+              {
+                std::cout << " " << db->strings.str(n.anno.ns)
+                  << "::" << db->strings.str(n.anno.name);
+              }
+              if(i < m.size()-1)
+              {
+               std::cout << ", ";
+              }
             }
           }
           std::cout << std::endl;
@@ -340,8 +344,8 @@ void Console::plan(const std::vector<std::string> &args)
       ss << json;
       try
       {
-        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, db->edges, ss, config);
-        std::cout << q->getBestPlan()->debugString() << std::endl;
+        std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss, config);
+        std::cout << q->debugString() << std::endl;
       }
       catch(Json::RuntimeError err)
       {

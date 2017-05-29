@@ -19,14 +19,14 @@ addons:
 
 before_install:
  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install icu4c maven ; fi
+ - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install icu4c ; fi
  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force icu4c ; fi
 
 script:
  - ./misc/download-gum-corpus.sh
  - mkdir build
  - cd build/
- - cmake ..
+ - cmake -DENABLE_SIMD_SUPPORT=OFF ..
  - make
  - cd ..
  - ./build/annis_runner import relannis/GUM data/GUM

@@ -26,7 +26,8 @@
 #include <annis/operators/precedence.h>
 #include <annis/operators/pointing.h>
 #include <annis/operators/dominance.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
+#include <annis/query/singlealternativequery.h>
 #include <annis/json/jsonqueryparser.h>
 #include <annis/util/threadpool.h>
 
@@ -88,7 +89,7 @@ protected:
       in.open(jsonFileName);
       if(in.is_open()) {
         QueryConfig config;
-        q = JSONQueryParser::parse(db, db.edges, in, config);
+        q = JSONQueryParser::parse(db, in, config);
         in.close();
       }
     }
@@ -139,11 +140,11 @@ TEST_F(SearchTestGUM, IndirectPointingNested) {
 
   unsigned int counter = 0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "object"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "ref", "entity", "abstract"));
 
-  q.addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "coref", 1, uintmax), 0, 1, true);
+  q.addOperator(std::make_shared<Pointing>("coref", db.f_getAllGraphStorages, db.strings, 1, uintmax), 0, 1, true);
 
   auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
   while (q.next() && counter < 1000) {
@@ -211,18 +212,51 @@ TEST_F(SearchTestGUM, city) {
   EXPECT_EQ(64u, counter);
 }
 
+TEST_F(SearchTestGUM, noun_with_metadata)
+{
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(126u, counter);
+}
+
+TEST_F(SearchTestGUM, coffee)
+{
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+
+    std::vector<Match> m = q->getCurrent();
+    //check that the positions are correct
+    EXPECT_STREQ("infstat", db.strings.str(m[0].anno.name).c_str());
+    EXPECT_STREQ("entity", db.strings.str(m[1].anno.name).c_str());
+    EXPECT_STREQ("node_type", db.strings.str(m[2].anno.name).c_str());
+    counter++;
+  }
+
+  EXPECT_EQ(1u, counter);
+
+
+}
+
+
 TEST_F(SearchTestGUM, pos_dep_pos_Thread4) {
   QueryConfig config;
   config.numOfBackgroundTasks = 4;
   config.threadPool = std::make_shared<ThreadPool>(4);
 
-  std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
+  std::shared_ptr<SingleAlternativeQuery> result = std::make_shared<SingleAlternativeQuery>(db, config);
 
   result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
   result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
 
   Annotation edgeAnno = {db.strings.add("func"), 0, db.strings.add("dep")};
-  result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnno), 0, 1);
+  result->addOperator(std::make_shared<Pointing>("dep", db.f_getAllGraphStorages, db.strings, edgeAnno), 0, 1);
 
   CALLGRIND_START_INSTRUMENTATION;
   unsigned int counter = 0;

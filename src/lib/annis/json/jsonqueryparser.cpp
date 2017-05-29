@@ -20,10 +20,12 @@
 #include <annis/annosearch/regexannosearch.h>       // for RegexAnnoSearch
 #include <annis/operators/dominance.h>              // for Dominance
 #include <annis/operators/identicalcoverage.h>      // for IdenticalCoverage
+#include <annis/operators/identicalnode.h>
 #include <annis/operators/inclusion.h>              // for Inclusion
 #include <annis/operators/overlap.h>                // for Overlap
 #include <annis/operators/pointing.h>               // for Pointing
 #include <annis/operators/precedence.h>             // for Precedence
+#include <annis/operators/partofsubcorpus.h>
 #include <assert.h>                                 // for assert
 #include <re2/re2.h>                                // for RE2
 #include <limits>                                   // for numeric_limits
@@ -31,54 +33,137 @@
 #include <utility>                                  // for pair
 #include "annis/db.h"                               // for DB
 #include "annis/json/json.h"                        // for Value, ValueConst...
-#include "annis/query.h"                            // for Query
+#include "annis/query/query.h"                            // for Query
 #include "annis/queryconfig.h"                      // for QueryConfig
 #include "annis/stringstorage.h"                    // for StringStorage
 #include "annis/types.h"                          // for Edge, GraphStatistic
+
+#include <boost/optional.hpp>
+
+#include <functional>
 
 using namespace annis;
 
 JSONQueryParser::JSONQueryParser()
 {
 }
-
-std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, GraphStorageHolder& edges, std::istream& jsonStream, const QueryConfig config)
+std::shared_ptr<Query> JSONQueryParser::parse(DB &db, std::istream& jsonStream, const QueryConfig config)
 {
-  std::shared_ptr<Query> q = std::make_shared<Query>(db, config);
+  return parse(db, db.f_getGraphStorage, db.f_getAllGraphStorages, jsonStream, config);
+}
+
+std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGraphStorageFunc,
+                                              DB::GetAllGSFuncT getAllGraphStorageFunc,
+                                              std::istream& jsonStream, const QueryConfig config)
+{
+  std::vector<std::shared_ptr<SingleAlternativeQuery>> result;
 
   // parse root as value
   Json::Value root;
   jsonStream >> root;
 
-  // get the first alternative (we don't support more than one currently)
+  // iterate over all alternatives
   const auto& alternatives = root["alternatives"];
-  if (alternatives.size() != 0)
+  for(const auto& alt : alternatives)
   {
-    const auto& firstAlt = alternatives[0];
+    std::shared_ptr<SingleAlternativeQuery> q = std::make_shared<SingleAlternativeQuery>(db, config);
+
 
     // add all nodes
-    const auto& nodes = firstAlt["nodes"];
+    const auto& nodes = alt["nodes"];
 
     std::map<std::uint64_t, size_t> nodeIdToPos;
+    boost::optional<size_t> firstNodePos;
     for (auto it = nodes.begin(); it != nodes.end(); it++)
     {
       auto& n = *it;
-      nodeIdToPos[std::stoull(it.name())] = parseNode(db, n, q);
+      size_t pos = parseNode(db, n, q);
+      nodeIdToPos[std::stoull(it.name())] = pos;
+      if(!firstNodePos)
+      {
+        firstNodePos = pos;
+      }
     }
 
     // add all joins
-    const auto& joins = firstAlt["joins"];
+    const auto& joins = alt["joins"];
     for (auto it = joins.begin(); it != joins.end(); it++)
     {
-      parseJoin(db, edges, *it, q, nodeIdToPos);
+      parseJoin(db, getGraphStorageFunc, getAllGraphStorageFunc, *it, q, nodeIdToPos);
     }
 
+    // add all meta-data
+    const auto& meta = alt["meta"];
+    boost::optional<size_t> firstMetaIdx = boost::none;
+    for (auto it = meta.begin(); it != meta.end(); it++)
+    {
+      auto& m = *it;
 
-  }
-  return q;
+      // add an artificial node that describes the document/corpus node
+      size_t metaNodeIdx = addNodeAnnotation(db, q, optStr(m["namespace"]),
+            optStr(m["name"]), optStr(m["value"]),
+            optStr(m["textMatching"]));
+
+      if(firstMetaIdx)
+      {
+        // avoid nested loops by joining additional meta nodes with a "identical node"
+        q->addOperator(std::make_shared<IdenticalNode>(db), metaNodeIdx, *firstMetaIdx);
+
+      }
+      else
+      {
+        firstMetaIdx = metaNodeIdx;
+        // add a special join to the first node of the query
+        q->addOperator(std::make_shared<PartOfSubCorpus>(getGraphStorageFunc, db.strings),
+          metaNodeIdx, *firstNodePos);
+
+      }
+    }
+
+    result.push_back(q);
+
+  } // end for each alternative
+  return std::make_shared<Query>(result);
 }
 
-size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::shared_ptr<Query> q)
+std::shared_ptr<Query> JSONQueryParser::parseWithUpgradeableLock(DB &db,
+                                                                 std::string queryAsJSON, boost::upgrade_lock<DBLoader>& lock,
+                                                                 const QueryConfig config)
+{
+  DB::GetAllGSFuncT allFunc = [&db,&lock](ComponentType type, const std::string &name)
+  {
+    if(db.allGraphStoragesLoaded(type, name))
+    {
+      return db.getAllGraphStorages(type, name);
+    }
+    else
+    {
+      // loading the graph storages needs a unique lock to ensure nobody else is loading the same GS at the same time
+      boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
+      return db.getAllGraphStorages(type, name);
+    }
+  };
+
+  DB::GetGSFuncT func = [&db,&lock](ComponentType type, const std::string &layer, const std::string &name)
+  {
+    if(db.isGraphStorageLoaded(type, layer, name))
+    {
+      return db.getGraphStorage(type, layer, name);
+    }
+    else
+    {
+      // loading the graph storages needs a unique lock to ensure nobody else is loading the same GS at the same time
+      boost::upgrade_to_unique_lock<DBLoader> uniqueLock(lock);
+      return db.getGraphStorage(type, layer, name);
+    }
+  };
+
+  std::stringstream ss;
+  ss << queryAsJSON;
+  return annis::JSONQueryParser::parse(db, func, allFunc, ss, config);
+}
+
+size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::shared_ptr<SingleAlternativeQuery> q)
 {
 
   // annotation search?
@@ -106,15 +191,15 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::sha
     else
     {
       // just search for any node
-      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_name),
-        optStr(), optStr());
+      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_node_type),
+        boost::optional<std::string>("node"), boost::optional<std::string>("EXACT_EQUAL"));
     }
   } // end if special case
 
 }
 
 size_t JSONQueryParser::addNodeAnnotation(const DB& db,
-  std::shared_ptr<Query> q,
+  std::shared_ptr<SingleAlternativeQuery> q,
   boost::optional<std::string> ns,
   boost::optional<std::string> name,
   boost::optional<std::string> value,
@@ -198,7 +283,10 @@ size_t JSONQueryParser::addNodeAnnotation(const DB& db,
   return 0;
 }
 
-void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const Json::Value join, std::shared_ptr<Query> q,
+void JSONQueryParser::parseJoin(const DB& db,
+                                DB::GetGSFuncT getGraphStorageFunc,
+                                DB::GetAllGSFuncT getAllGraphStorageFunc,
+                                const Json::Value join, std::shared_ptr<SingleAlternativeQuery> q,
   const std::map<std::uint64_t, size_t>& nodeIdToPos)
 {
   // get left and right index
@@ -218,21 +306,21 @@ void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const J
       {
         auto minDist = join["minDistance"].asUInt();
         auto maxDist = join["maxDistance"].asUInt();
-        q->addOperator(std::make_shared<Precedence>(db, edges,
+        q->addOperator(std::make_shared<Precedence>(db, getGraphStorageFunc,
           minDist, maxDist),
           itLeft->second, itRight->second);
       }
       else if (op == "Inclusion")
       {
-        q->addOperator(std::make_shared<Inclusion>(db, edges), itLeft->second, itRight->second);
+        q->addOperator(std::make_shared<Inclusion>(db, getGraphStorageFunc), itLeft->second, itRight->second);
       }
       else if (op == "Overlap")
       {
-        q->addOperator(std::make_shared<Overlap>(db, edges), itLeft->second, itRight->second);
+        q->addOperator(std::make_shared<Overlap>(db, getGraphStorageFunc), itLeft->second, itRight->second);
       }
       else if (op == "IdenticalCoverage")
       {
-        q->addOperator(std::make_shared<IdenticalCoverage>(db, edges), itLeft->second, itRight->second);
+        q->addOperator(std::make_shared<IdenticalCoverage>(db, getGraphStorageFunc), itLeft->second, itRight->second);
       }
       else if (op == "Dominance")
       {
@@ -242,7 +330,7 @@ void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const J
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0)
         {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q->addOperator(std::make_shared<Dominance>(edges, db.strings, "", name, anno),
+          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db.strings, anno),
             itLeft->second, itRight->second);
 
         }
@@ -258,8 +346,7 @@ void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const J
             maxDist = uintmax;
           }
 
-          q->addOperator(std::make_shared<Dominance>(edges, db.strings,
-            "", name,
+          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db.strings,
             minDist, maxDist),
             itLeft->second, itRight->second);
         }
@@ -272,7 +359,7 @@ void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const J
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0)
         {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q->addOperator(std::make_shared<Pointing>(edges, db.strings, "", name, anno),
+          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db.strings, anno),
             itLeft->second, itRight->second);
 
         }
@@ -289,8 +376,7 @@ void JSONQueryParser::parseJoin(const DB& db, GraphStorageHolder& edges, const J
             maxDist = uintmax;
           }
 
-          q->addOperator(std::make_shared<Pointing>(edges, db.strings,
-            "", name, minDist, maxDist),
+          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db.strings, minDist, maxDist),
             itLeft->second, itRight->second);
         }
       }

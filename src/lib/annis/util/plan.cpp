@@ -24,6 +24,9 @@
 #include <annis/join/taskindexjoin.h>               // for TaskIndexJoin
 #include <annis/join/threadindexjoin.h>             // for ThreadIndexJoin
 #include <annis/join/threadnestedloop.h>            // for ThreadNestedLoop
+#ifdef ENABLE_SIMD_SUPPORT
+  #include <annis/join/simdindexjoin.h>
+#endif
 #include <annis/operators/operator.h>               // for Operator
 #include <annis/wrapper.h>                          // for ConstAnnoWrapper
 #include <boost/container/vector.hpp>               // for operator!=
@@ -129,6 +132,16 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
                                                  numOfBackgroundTasks,
                                                  config.threadPool);
       }
+      #ifdef ENABLE_SIMD_SUPPORT
+      else if(config.enableSIMDIndexJoin
+              && std::dynamic_pointer_cast<AnnotationSearch>(estSearch)
+              && searchFilterReturnsMaximalOneAnno(estSearch))
+      {
+        const std::unordered_set<Annotation>& validAnnos
+            = std::static_pointer_cast<AnnotationSearch>(estSearch)->getValidAnnotations();
+        join = std::make_shared<SIMDIndexJoin>(lhs->join, mappedPosLHS->second, op, db.nodeAnnos, *validAnnos.begin() );
+      }
+      #endif // ENABLE_SIMD_SUPPORT
       else if(config.enableTaskIndexJoin && config.threadPool)
       {
         join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
@@ -208,7 +221,22 @@ bool Plan::executeStep(std::vector<Match>& result)
 {
   if(root && root->join)
   {
-    return root->join->next(result);
+    std::vector<Match> tmp;
+    if(root->join->next(tmp))
+    {
+      // re-order the matched nodes by the original node position of the query
+      result.resize(tmp.size());
+      for(const auto& nodeMapping : root->nodePos)
+      {
+        result[nodeMapping.first] = tmp[nodeMapping.second];
+      }
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+
   }
   else
   {
@@ -287,19 +315,37 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         // (count(lhs) * count(rhs)) * selectivity(op)
         auto estLHS = estimateTupleSize(node->lhs);
         auto estRHS = estimateTupleSize(node->rhs);
-        double selectivity = defaultSelectivity;
-        long double operatorSelectivity = defaultSelectivity;
-        if(node->op)
+
+        std::uint64_t outputSize = 1;
+
+        Operator::EstimationType estType = node->op->estimationType();
+        long double operatorSelectivity = 1.0;
+
+        if(estType == Operator::EstimationType::SELECTIVITY)
         {
-          selectivity = operatorSelectivity = node->op->selectivity();
-          double edgeAnnoSelectivity = node->op->edgeAnnoSelectivity();
-          if(edgeAnnoSelectivity >= 0.0)
+          double selectivity = defaultSelectivity;
+          operatorSelectivity = defaultSelectivity;
+          if(node->op)
           {
-            selectivity = selectivity * edgeAnnoSelectivity;
+            selectivity = operatorSelectivity = node->op->selectivity();
+            double edgeAnnoSelectivity = node->op->edgeAnnoSelectivity();
+            if(edgeAnnoSelectivity >= 0.0)
+            {
+              selectivity = selectivity * edgeAnnoSelectivity;
+            }
+            outputSize =
+              static_cast<std::uint64_t>(((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity));
           }
         }
-        
-        std::uint64_t outputSize = static_cast<std::uint64_t>(((long double) estLHS->output) * ((long double) estRHS->output) * ((long double) selectivity));
+        else if(estType == Operator::EstimationType::MIN)
+        {
+          outputSize = std::min(estLHS->output, estRHS->output);
+        }
+        else if(estType == Operator::EstimationType::MAX)
+        {
+          outputSize = std::max(estLHS->output, estRHS->output);
+        }
+
         if(outputSize < 1)
         {
           // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -320,7 +366,8 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
             processedInStep = estRHS->output + (estRHS->output * estLHS->output);
           }
         } 
-        else if (node->type == ExecutionNodeType::seed)
+        else if (node->type == ExecutionNodeType::seed
+                 && node->op->estimationType() == Operator::EstimationType::SELECTIVITY)
         {
           // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
           // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
@@ -331,7 +378,6 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
           //              = sel * rhs
           // processedInStep = lhs + (avgReachable * lhs)
           //                 = lhs + (sel * rhs * lhs)
-
 
           processedInStep =
               static_cast<std::uint64_t>(
@@ -490,7 +536,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
       auto foundAnno =
           db.nodeAnnos.getAnnotations(rhsNode, rightAnno.ns, rightAnno.name);
 
-      if(!foundAnno.empty() && foundAnno[0].val == rightAnno.val)
+      if(foundAnno && foundAnno->val == rightAnno.val)
       {
         if(constAnno)
         {
@@ -498,7 +544,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
         }
         else
         {
-          result.push_back(foundAnno[0]);
+          result.push_back(*foundAnno);
         }
       }
 
@@ -548,7 +594,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
       auto foundAnno =
           db.nodeAnnos.getAnnotations(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
 
-      if(!foundAnno.empty())
+      if(foundAnno)
       {
         if(constAnno)
         {
@@ -556,7 +602,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
         }
         else
         {
-          result.push_back(foundAnno[0]);
+          result.push_back(*foundAnno);
         }
 
       }
@@ -573,7 +619,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
       for(AnnotationKey key : validAnnoKeys)
       {
        auto found = db.nodeAnnos.getAnnotations(rhsNode, key.ns, key.name);
-       if(!found.empty())
+       if(found)
        {
          if(constAnno)
          {
@@ -581,7 +627,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
          }
          else
          {
-          result.push_back(found[0]);
+          result.push_back(*found);
          }
        }
       }
@@ -697,7 +743,24 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
   }
   if(node->op)
   {
-    result += "{sel: " + std::to_string(node->op->selectivity());
+    Operator::EstimationType estType = node->op->estimationType();
+    if(estType == Operator::EstimationType::SELECTIVITY)
+    {
+      result += "{sel: " + std::to_string(node->op->selectivity());
+    }
+    else if(estType == Operator::EstimationType::MIN)
+    {
+      result += "{min";
+    }
+    else if(estType == Operator::EstimationType::MAX)
+    {
+      result += "{max";
+    }
+    else
+    {
+      result += "{";
+    }
+
     if((node->type == ExecutionNodeType::seed || node->type == ExecutionNodeType::nested_loop)
        && node->numOfBackgroundTasks > 0)
     {

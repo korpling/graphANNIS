@@ -15,6 +15,7 @@ namespace annis
   const std::string annis_ns = "annis";
   const std::string annis_node_name = "node_name";
   const std::string annis_tok = "tok";
+  const std::string annis_node_type = "node_type";
 
   const unsigned int uintmax = std::numeric_limits<unsigned int>::max();
 
@@ -43,6 +44,7 @@ namespace annis
                             ORDERING,
                             LEFT_TOKEN,
                             RIGHT_TOKEN,
+                            PART_OF_SUBCORPUS,
                             ComponentType_MAX};
 
   class ComponentTypeHelper
@@ -72,6 +74,9 @@ namespace annis
         break;
       case ComponentType::RIGHT_TOKEN:
         return "RIGHT_TOKEN";
+        break;
+      case ComponentType::PART_OF_SUBCORPUS:
+        return "PART_OF_SUBCORPUS";
         break;
       default:
         return "UNKNOWN";
@@ -203,6 +208,17 @@ namespace annis
     nodeid_t node;
     Annotation anno;
   };
+  inline bool operator<(const struct Match &a, const struct Match &b)
+  {
+    return std::tie(a.node, a.anno) < std::tie(b.node, b.anno);
+  }
+
+  inline bool operator==(const Match& lhs, const Match& rhs)
+  {
+      return lhs.node == rhs.node && lhs.anno == rhs.anno;
+  }
+
+
 
   /** Some general statistical numbers specific to a graph component */
   struct GraphStatistic

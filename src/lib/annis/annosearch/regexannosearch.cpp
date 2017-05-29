@@ -32,6 +32,7 @@ using namespace annis;
 RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
                                  const std::string& name, const std::string& valRegex)
   : db(db),
+    annoKeyNamespace(ns), annoKeyName(name),
     validAnnotationsInitialized(false), valRegex(valRegex),
     compiledValRegex(valRegex),
     debugDescription(ns + ":" + name + "=/" + valRegex + "/")
@@ -53,10 +54,23 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
   }
 }
 
+bool RegexAnnoSearch::valueMatchesAllStrings() const
+{
+  if(compiledValRegex.ok())
+  {
+    if(compiledValRegex.pattern() == ".*")
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 RegexAnnoSearch::RegexAnnoSearch(const DB &db,
                                  const std::string& name, const std::string& valRegex)
   : db(db),
+    annoKeyName(name),
     validAnnotationsInitialized(false), valRegex(valRegex),
     compiledValRegex(valRegex),
     debugDescription(name + "=/" + valRegex + "/")

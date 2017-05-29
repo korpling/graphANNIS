@@ -19,7 +19,7 @@
 
 #include <annis/json/jsonqueryparser.h>
 #include <annis/db.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
 #include <annis/dbcache.h>
 #include <annis/queryconfig.h>
 
@@ -110,7 +110,7 @@ namespace annis {
         if(auto dbPtr = getDB().lock())
         {
           DB& db = *dbPtr ;
-          q = JSONQueryParser::parse(db, db.edges, jsonAsStream, config);
+          q = JSONQueryParser::parse(db, jsonAsStream, config);
         }
       }
       auto itCount = expectedCountByExp.find(experimentValue);

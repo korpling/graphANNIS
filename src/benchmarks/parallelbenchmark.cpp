@@ -18,7 +18,7 @@
 
 #include <forward_list>
 
-#include <annis/query.h>
+#include <annis/query/singlealternativequery.h>
 #include <annis/annosearch/exactannokeysearch.h>
 #include <annis/annosearch/exactannovaluesearch.h>
 #include <annis/annosearch/regexannosearch.h>
@@ -100,6 +100,9 @@ class GUMFixture : public celero::TestFixture
 
           nonParallelConfig.numOfBackgroundTasks = 0;
           nonParallelConfig.threadPool = nullptr;
+          nonParallelConfig.enableSIMDIndexJoin = false;
+          nonParallelConfig.enableTaskIndexJoin = false;
+          nonParallelConfig.enableThreadIndexJoin = false;
 
 
 //          taskConfigs.resize(9);
@@ -109,39 +112,52 @@ class GUMFixture : public celero::TestFixture
           {
             threadConfigs[i].threadPool = benchmarkThreadPool;
             threadConfigs[i].numOfBackgroundTasks = i;
+
+            nonParallelConfig.enableSIMDIndexJoin = false;
           }
+
+          simdConfig.numOfBackgroundTasks = 0;
+          simdConfig.threadPool = nullptr;
+          simdConfig.enableSIMDIndexJoin = true;
         }
 
-        std::shared_ptr<Query> query_PosDepPos(QueryConfig config)
+        std::shared_ptr<SingleAlternativeQuery> query_PosDepPos(QueryConfig config)
         {
-          std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
+          std::shared_ptr<SingleAlternativeQuery> result = std::make_shared<SingleAlternativeQuery>(db, config);
 
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, "pos"));
 
           Annotation edgeAnno = {db.strings.add("func"), 0, db.strings.add("dep")};
-          result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnno), 0, 1);
+
+          using namespace std::placeholders;
+
+          result->addOperator(
+                std::make_shared<Pointing>("dep",
+                                           db.f_getAllGraphStorages,
+                                           db.strings, edgeAnno), 0, 1);
 
           return result;
         }
 
-        std::shared_ptr<Query> query_UsedTo(QueryConfig config)
+        std::shared_ptr<SingleAlternativeQuery> query_UsedTo(QueryConfig config)
         {
-          std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
+          std::shared_ptr<SingleAlternativeQuery> result = std::make_shared<SingleAlternativeQuery>(db, config);
 
           result->addNode(std::make_shared<RegexAnnoSearch>(db, "pos", "NN.*"));
           result->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "used"));
           result->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "to"));
 
-          result->addOperator(std::make_shared<Precedence>(db, db.edges), 0, 1);
-          result->addOperator(std::make_shared<Precedence>(db, db.edges), 1, 2);
+
+          result->addOperator(std::make_shared<Precedence>(db, db.f_getGraphStorage), 0, 1);
+          result->addOperator(std::make_shared<Precedence>(db, db.f_getGraphStorage), 1, 2);
           return result;
         }
 
         // entity ->coref[type="coref"] infstat & cat > tok & #1 _=_ #3 & tok & #5 ->dep[func="prep"] #4
-        std::shared_ptr<Query> query_ComplexNested(QueryConfig config)
+        std::shared_ptr<SingleAlternativeQuery> query_ComplexNested(QueryConfig config)
         {
-          std::shared_ptr<Query> result = std::make_shared<Query>(db, config);
+          std::shared_ptr<SingleAlternativeQuery> result = std::make_shared<SingleAlternativeQuery>(db, config);
 
           Annotation edgeAnnoCoref = {db.strings.add("type"), 0, db.strings.add("coref")};
           Annotation edgeAnnoPrep = {db.strings.add("func"), 0, db.strings.add("prep")};
@@ -152,10 +168,10 @@ class GUMFixture : public celero::TestFixture
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-          result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "coref", edgeAnnoCoref), 0,1);
-          result->addOperator(std::make_shared<Dominance>(db.edges, db.strings, "", ""), 2,3);
-          result->addOperator(std::make_shared<IdenticalCoverage>(db, db.edges),0,2);
-          result->addOperator(std::make_shared<Pointing>(db.edges, db.strings, "", "dep", edgeAnnoPrep), 4,3);
+          result->addOperator(std::make_shared<Pointing>("coref", db.f_getAllGraphStorages, db.strings, edgeAnnoCoref), 0,1);
+          result->addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db.strings), 2,3);
+          result->addOperator(std::make_shared<IdenticalCoverage>(db, db.f_getGraphStorage),0,2);
+          result->addOperator(std::make_shared<Pointing>("dep", db.f_getAllGraphStorages, db.strings, edgeAnnoPrep), 4,3);
 
           return result;
         }
@@ -163,6 +179,7 @@ class GUMFixture : public celero::TestFixture
         DB db;
         QueryConfig nonParallelConfig;
         std::vector<QueryConfig> threadConfigs;
+        QueryConfig simdConfig;
 
         const int count_PosDepPos;
         const int count_UsedTo;
@@ -175,7 +192,7 @@ class GUMFixture : public celero::TestFixture
   BASELINE_F(group, N0, GUMFixture, 0, 0) \
   { \
   CALLGRIND_START_INSTRUMENTATION;\
-    std::shared_ptr<Query> q = query_##group(nonParallelConfig);\
+    std::shared_ptr<SingleAlternativeQuery> q = query_##group(nonParallelConfig);\
     int counter=0; \
     while(q->next()) { \
       counter++; \
@@ -191,7 +208,7 @@ class GUMFixture : public celero::TestFixture
   BENCHMARK_F(group, N##idx, GUMFixture, 0, 0) \
   { \
   CALLGRIND_START_INSTRUMENTATION;\
-    std::shared_ptr<Query> q = query_##group(threadConfigs[idx]);\
+    std::shared_ptr<SingleAlternativeQuery> q = query_##group(threadConfigs[idx]);\
     int counter=0; \
     while(q->next()) { \
       counter++; \
@@ -203,29 +220,48 @@ class GUMFixture : public celero::TestFixture
   CALLGRIND_STOP_INSTRUMENTATION;\
   }
 
+#define COUNT_BENCH_SIMD(group) \
+  BENCHMARK_F(group, SIMD, GUMFixture, 0, 0) \
+  { \
+  CALLGRIND_START_INSTRUMENTATION;\
+    std::shared_ptr<SingleAlternativeQuery> q = query_##group(simdConfig);\
+    int counter=0; \
+    while(q->next()) { \
+      counter++; \
+    } \
+    if(counter != count_##group)\
+    {\
+      throw "Invalid count for SIMD, was " + std::to_string(counter) + " but should have been  " + std::to_string(count_##group);\
+    }\
+  CALLGRIND_STOP_INSTRUMENTATION;\
+  }
+
 COUNT_BASELINE(PosDepPos)
 COUNT_BENCH(PosDepPos, 2)
 COUNT_BENCH(PosDepPos, 4)
-COUNT_BENCH(PosDepPos, 6)
-COUNT_BENCH(PosDepPos, 8)
-COUNT_BENCH(PosDepPos, 10)
-COUNT_BENCH(PosDepPos, 12)
+//COUNT_BENCH(PosDepPos, 6)
+//COUNT_BENCH(PosDepPos, 8)
+//COUNT_BENCH(PosDepPos, 10)
+//COUNT_BENCH(PosDepPos, 12)
+COUNT_BENCH_SIMD(PosDepPos)
 
 COUNT_BASELINE(UsedTo)
-COUNT_BENCH(UsedTo, 2)
-COUNT_BENCH(UsedTo, 4)
-COUNT_BENCH(UsedTo, 6)
-COUNT_BENCH(UsedTo, 8)
-COUNT_BENCH(UsedTo, 10)
-COUNT_BENCH(UsedTo, 12)
+//COUNT_BENCH(UsedTo, 2)
+//COUNT_BENCH(UsedTo, 4)
+//COUNT_BENCH(UsedTo, 6)
+//COUNT_BENCH(UsedTo, 8)
+//COUNT_BENCH(UsedTo, 10)
+//COUNT_BENCH(UsedTo, 12)
+COUNT_BENCH_SIMD(UsedTo)
 
 COUNT_BASELINE(ComplexNested)
 COUNT_BENCH(ComplexNested, 2)
 COUNT_BENCH(ComplexNested, 4)
-COUNT_BENCH(ComplexNested, 6)
-COUNT_BENCH(ComplexNested, 8)
-COUNT_BENCH(ComplexNested, 10)
-COUNT_BENCH(ComplexNested, 12)
+//COUNT_BENCH(ComplexNested, 6)
+//COUNT_BENCH(ComplexNested, 8)
+//COUNT_BENCH(ComplexNested, 10)
+//COUNT_BENCH(ComplexNested, 12)
+COUNT_BENCH_SIMD(ComplexNested)
 
 BASELINE(CreateThreadPool, N1, 0, 0)
 {

@@ -21,7 +21,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.corpus_tools.salt.SALT_TYPE;
-import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.common.SDominanceRelation;
 import org.corpus_tools.salt.common.SPointingRelation;
@@ -31,7 +30,6 @@ import org.corpus_tools.salt.common.STextualDS;
 import org.corpus_tools.salt.common.STextualRelation;
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.core.SAnnotation;
-import org.corpus_tools.salt.core.SGraph;
 import org.corpus_tools.salt.core.SLayer;
 import org.corpus_tools.salt.core.SNode;
 import org.corpus_tools.salt.core.SRelation;
@@ -283,13 +281,6 @@ public class SaltImport
       for (SAnnotation anno : n.getAnnotations())
       {
         updateList.addNodeLabel(name, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
-      }
-
-      // add the document name if given
-      String doc = documentName(n);
-      if(doc != null)
-      {
-        updateList.addNodeLabel(name, ANNIS_NS, "document", doc);
       }
     }
   }

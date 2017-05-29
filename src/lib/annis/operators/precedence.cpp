@@ -20,7 +20,6 @@
 #include <utility>                            // for pair
 #include "annis/db.h"                         // for DB
 #include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
-#include "annis/graphstorageholder.h"         // for GraphStorageHolder
 #include "annis/iterators.h"                  // for EdgeIterator, AnnoIt
 #include "annis/operators/operator.h"         // for Operator
 #include "annis/util/helper.h"                // for TokenHelper
@@ -29,10 +28,10 @@
 using namespace annis;
 
 
-Precedence::Precedence(const DB &db, GraphStorageHolder& gsh, unsigned int minDistance, unsigned int maxDistance)
-  : tokHelper(gsh, db),
-    gsOrder(gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "")),
-    gsLeft(gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "")),
+Precedence::Precedence(const DB &db, DB::GetGSFuncT getGraphStorageFunc, unsigned int minDistance, unsigned int maxDistance)
+  : tokHelper(getGraphStorageFunc, db),
+    gsOrder(getGraphStorageFunc(ComponentType::ORDERING, annis_ns, "")),
+    gsLeft(getGraphStorageFunc(ComponentType::LEFT_TOKEN, annis_ns, "")),
     anyTokAnno(Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID())),
     anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
     minDistance(minDistance), maxDistance(maxDistance)

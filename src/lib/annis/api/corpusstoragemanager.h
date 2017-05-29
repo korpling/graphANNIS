@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <annis/api/graphupdate.h>
+#include <annis/api/graph.h>
+
 #include <stddef.h>                        // for size_t
 #include <map>                             // for map
 #include <memory>                          // for shared_ptr
@@ -23,7 +26,10 @@
 #include <string>                          // for string
 #include <vector>                          // for vector
 
+
 namespace annis { class DBLoader; }
+namespace annis { class DB; }
+namespace annis { struct Component; }
 namespace annis { namespace api { class GraphUpdate; } }
 
 namespace boost { class thread;}
@@ -91,6 +97,18 @@ public:
   void applyUpdate(std::string corpus, GraphUpdate &update);
 
   /**
+   * @brief Return a sub-graph consisting of the nodes given as argument and all nodes that cover the same token.
+   * @param corpus
+   * @param nodeIDs The IDs/names of the nodes to include.
+   * @param ctxLeft Left token context
+   * @param ctxRight Right token context
+   * @return
+   */
+  std::vector<annis::api::Node> subgraph(std::string corpus, std::vector<std::string> nodeIDs, int ctxLeft, int ctxRight);
+
+  std::vector<annis::api::Node> subcorpusGraph(std::string corpus, std::vector<std::string> corpusIDs);
+
+  /**
    * @brief Lists the name of all corpora.
    * @return
    */
@@ -115,6 +133,7 @@ private:
 
   std::mutex mutex_writerThreads;
   std::map<std::string, boost::thread> writerThreads;
+
 private:
 
 
@@ -124,7 +143,7 @@ private:
    * Before any update can occur, the writing thread has to be killBackgroundWriter().
    * @param corpusPath
    */
-  void startBackgroundWriter(std::string corpusPath, std::shared_ptr<DBLoader> &loader);
+  void startBackgroundWriter(std::string corpusPath, std::shared_ptr<DBLoader> loader);
   /**
    * @brief Stops a background writer for a corpus. Will return as the thread is successfully stopped.
    * @param corpusPath
@@ -132,6 +151,8 @@ private:
   void killBackgroundWriter(std::string corpus);
 
   std::shared_ptr<DBLoader> getCorpusFromCache(std::string name);
+
+  Node createSubgraphNode(std::uint32_t nodeID, DB &db, const std::vector<annis::Component>& allComponents);
 
 };
 

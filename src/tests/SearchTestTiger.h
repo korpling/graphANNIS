@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include <annis/db.h>
 #include <annis/util/helper.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
 #include <annis/operators/precedence.h>
 #include <annis/operators/dominance.h>
 #include <annis/annosearch/exactannovaluesearch.h>
@@ -29,6 +29,14 @@
 #include <vector>
 
 #include "testlogger.h"
+
+#ifdef ENABLE_VALGRIND
+  #include <valgrind/callgrind.h>
+#else
+  #define CALLGRIND_STOP_INSTRUMENTATION
+
+  #define CALLGRIND_START_INSTRUMENTATION
+#endif // ENABLE_VALGRIND
 
 using namespace annis;
 
@@ -52,6 +60,8 @@ public:
 
   virtual void SetUp() {
 
+    CALLGRIND_STOP_INSTRUMENTATION;
+
     char* testDataEnv = std::getenv("ANNIS4_TEST_DATA");
     std::string dataDir("data");
     if(testDataEnv != NULL)
@@ -60,6 +70,8 @@ public:
     }
     bool loadedDB = db.load(dataDir + "/tiger2");
     EXPECT_EQ(true, loadedDB);
+
+    CALLGRIND_START_INSTRUMENTATION;
     
     char* testQueriesEnv = std::getenv("ANNIS4_TEST_QUERIES");
     std::string globalQueryDir("queries");
@@ -76,7 +88,7 @@ public:
       std::string jsonFileName = queryDir + "/" + info->name() + ".json";
       in.open(jsonFileName);
       if(in.is_open()) {
-        q = JSONQueryParser::parse(db, db.edges, in);
+        q = JSONQueryParser::parse(db, in);
         in.close();
       }
     }
@@ -158,5 +170,21 @@ TEST_F(SearchTestTiger, BilharzioseSentence)
 
   EXPECT_EQ(21u, counter);
 }
+
+// cat="VP" > cat="NP" > morph=/.*Pl.*/
+TEST_F(SearchTestTiger, PluralNP)
+{
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter=0;
+
+  while(q->next() && counter < MAX_COUNT)
+  {
+    counter++;
+  }
+
+  EXPECT_EQ(6760u, counter);
+}
+
 
 

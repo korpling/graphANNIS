@@ -17,7 +17,6 @@
 #pragma once
 
 #include <annis/annostorage.h>           // for AnnoStorage
-#include <annis/graphstorageholder.h>    // for GraphStorageHolder
 #include <annis/stringstorage.h>         // for StringStorage
 #include <annis/types.h>                 // for nodeid_t, Annotation, annis_ns
 #include <stddef.h>                      // for size_t
@@ -30,6 +29,7 @@
 #include <string>                        // for string, operator<<, char_traits
 #include <utility>                       // for pair
 #include <vector>                        // for vector
+#include <annis/graphstorageregistry.h>
 
 namespace annis { class WriteableGraphStorage; }  // lines 43-43
 namespace annis { namespace api { class GraphUpdate; } }  // lines 40-40
@@ -40,9 +40,12 @@ namespace annis
 class DB
 {
 public:
+
+  using GetGSFuncT = std::function<std::shared_ptr<const ReadableGraphStorage> (ComponentType type, const std::string &layer, const std::string &name)>;
+  using GetAllGSFuncT = std::function<std::vector<std::shared_ptr<const ReadableGraphStorage>> (ComponentType type, const std::string &name)>;
+
   DB();
 
-  bool loadRelANNIS(std::string dirPath);
   bool load(std::string dir, bool preloadComponents=true);
   bool save(std::string dir);
 
@@ -50,15 +53,27 @@ public:
   {
     std::string result = "";
 
-    std::vector<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, annis_node_name);
-    if(!anno.empty())
+    boost::optional<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, annis_node_name);
+    if(anno)
     {
-      result = strings.str(anno[0].val);
+      result = strings.str(anno->val);
     }
     return result;
   }
 
-  inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName)
+  std::string getNodeType(const nodeid_t &id) const
+  {
+    std::string result = "";
+
+    boost::optional<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, annis_node_type);
+    if(anno)
+    {
+      result = strings.str(anno->val);
+    }
+    return result;
+  }
+
+  inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName) const
   {
     std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
     if(nodeNameID.first)
@@ -74,19 +89,8 @@ public:
     return boost::optional<nodeid_t>();
   }
 
-  inline std::string getNodeDocument(const nodeid_t &id) const
-  {
-    std::string result = "";
-
-    std::vector<Annotation> anno = nodeAnnos.getAnnotations(strings, id, annis_ns, "document");
-    if(!anno.empty())
-    {
-      result = strings.str(anno[0].val);
-    }
-    return result;
-  }
-
   std::string getNodeDebugName(const nodeid_t &id) const;
+
 
   std::vector<Component> getDirectConnected(const Edge& edge) const;
   std::vector<Component> getAllComponents() const;
@@ -99,19 +103,31 @@ public:
   inline std::uint32_t getNodeNameStringID() const {return annisNodeNameStringID;}
   inline std::uint32_t getEmptyStringID() const {return annisEmptyStringID;}
   inline std::uint32_t getTokStringID() const {return annisTokStringID;}
+  inline std::uint32_t getNodeTypeStringID() const {return annisNodeTypeID;}
+
+  std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
+                       const std::string& name);
+
+  std::shared_ptr<const ReadableGraphStorage> getGraphStorage(ComponentType type, const std::string& layer, const std::string& name);
+  std::vector<std::shared_ptr<const ReadableGraphStorage>> getAllGraphStorages(ComponentType type, const std::string& name);
 
   void convertComponent(Component c, std::string impl = "");
 
   void optimizeAll(const std::map<Component, std::string> &manualExceptions = std::map<Component, std::string>());
 
+  bool allGraphStoragesLoaded() const;
+  bool isGraphStorageLoaded(ComponentType type, const std::string& layer, const std::string& name) const;
+
+  bool allGraphStoragesLoaded(ComponentType type, const std::string& name);
   void ensureAllComponentsLoaded();
 
-  size_t estimateMemorySize();
-
+  size_t estimateMemorySize() const;
 
   void update(const api::GraphUpdate& u);
 
   void clear();
+
+  nodeid_t nextFreeNodeID() const;
 
   virtual ~DB();
 public:
@@ -119,39 +135,42 @@ public:
   StringStorage strings;
   AnnoStorage<nodeid_t> nodeAnnos;
 
-  GraphStorageHolder edges;
+  const GetGSFuncT f_getGraphStorage;
+  const GetAllGSFuncT f_getAllGraphStorages;
 
-  std::uint64_t currentChangeID;
 
 private:
 
+  std::uint64_t currentChangeID;
 
   std::uint32_t annisNamespaceStringID;
   std::uint32_t annisEmptyStringID;
   std::uint32_t annisTokStringID;
   std::uint32_t annisNodeNameStringID;
+  std::uint32_t annisNodeTypeID;
+
+  /**
+   * Map containing all available graph storages.
+   */
+  std::map<Component, std::shared_ptr<ReadableGraphStorage>> graphStorages;
+  /**
+   * A map from not yet loaded components to it's location on disk.
+   */
+  std::map<Component, std::string> notLoadedLocations;
+  GraphStorageRegistry gsRegistry;
 
 private:
-  std::string loadRelANNISCorpusTab(std::string dirPath, std::map<std::uint32_t,
-                                    std::string> &corpusIDToName,
-    bool isANNIS33Format);
-  bool loadRelANNISNode(std::string dirPath, std::map<std::uint32_t, std::string> &corpusIDToName,
-                        std::string toplevelCorpusName,
-                        bool isANNIS33Format);
-  bool loadRelANNISRank(const std::string& dirPath,
-                        const std::map<uint32_t, std::shared_ptr<WriteableGraphStorage> > &componentToGS,
-                        bool isANNIS33Format);
-
-  bool loadEdgeAnnotation(const std::string& dirPath,
-                          const std::map<uint32_t, std::shared_ptr<WriteableGraphStorage> > &pre2GS,
-                          const std::map<std::uint32_t, Edge>& pre2Edge,
-                          bool isANNIS33Format);
-
-  
 
   void addDefaultStrings();
 
-  nodeid_t nextFreeNodeID() const;
+  void loadGraphStorages(std::string dirPath, bool preloadComponents);
+  void saveGraphStorages(std::string dirPath);
+
+  bool ensureGraphStorageIsLoaded(const Component& c);
+  size_t estimateGraphStorageMemorySize() const;
+  std::string gsInfo() const;
+  std::string debugComponentString(const Component& c) const;
+
 
 
 };

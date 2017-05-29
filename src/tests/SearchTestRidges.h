@@ -23,7 +23,8 @@
 #include <annis/operators/precedence.h>
 #include <annis/operators/overlap.h>
 #include <annis/operators/inclusion.h>
-#include <annis/query.h>
+#include <annis/query/query.h>
+#include <annis/query/singlealternativequery.h>
 
 #include <boost/format.hpp>
 #include <vector>
@@ -75,7 +76,7 @@ public:
       std::string jsonFileName = queryDir + "/" + info->name() + ".json";
       in.open(jsonFileName);
       if(in.is_open()) {
-        q = JSONQueryParser::parse(db, db.edges, in);
+        q = JSONQueryParser::parse(db, in);
         in.close();
       }
     }
@@ -182,11 +183,11 @@ TEST_F(SearchTestRidges, NestedOverlap) {
 
   unsigned int counter=0;
 
-  Query q(db);
+  SingleAlternativeQuery q(db);
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "pos", "NN"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "default_ns", "norm", "Blumen"));
 
-  q.addOperator(std::make_shared<Overlap>(db, db.edges), 0, 1, true);
+  q.addOperator(std::make_shared<Overlap>(db, db.f_getGraphStorage), 0, 1, true);
 
   while(q.next())
   {

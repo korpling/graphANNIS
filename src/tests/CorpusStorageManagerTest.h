@@ -21,7 +21,6 @@
 #include <annis/api/graphupdate.h>
 #include <annis/api/corpusstoragemanager.h>
 
-#include <annis/query.h>
 #include <annis/annosearch/exactannokeysearch.h>
 
 #include <memory>
@@ -35,7 +34,8 @@ class CorpusStorageManagerTest : public ::testing::Test {
 protected:
   std::string dataDir;
   boost::filesystem::path tmpDBPath;
-  std::unique_ptr<api::CorpusStorageManager> storage;
+  std::unique_ptr<api::CorpusStorageManager> storageEmpty;
+  std::unique_ptr<api::CorpusStorageManager> storageTest;
 
   CorpusStorageManagerTest()
     : dataDir("data")
@@ -63,8 +63,11 @@ protected:
     HL_INFO(logger, "Using " + tmpDBPath.string() + " as temporary path");
 
 
-    storage = std::unique_ptr<api::CorpusStorageManager>(new api::CorpusStorageManager(tmpDBPath.string()));
-    ASSERT_EQ(true, (bool) storage);
+    storageEmpty = std::unique_ptr<api::CorpusStorageManager>(new api::CorpusStorageManager(tmpDBPath.string()));
+    ASSERT_EQ(true, (bool) storageEmpty);
+
+    storageTest = std::unique_ptr<api::CorpusStorageManager>(new api::CorpusStorageManager(dataDir));
+    ASSERT_EQ(true, (bool) storageTest);
 
   }
 
@@ -87,14 +90,14 @@ TEST_F(CorpusStorageManagerTest, AddNodeLabel) {
   ASSERT_EQ(2, u.getDiffs().size());
 
 
-  storage->applyUpdate("testCorpus", u);
+  storageEmpty->applyUpdate("testCorpus", u);
 
 
-  auto numOfNodes = storage->count({"testCorpus"},
+  auto numOfNodes = storageEmpty->count({"testCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
   ASSERT_EQ(1, numOfNodes);
 
-  auto numOfTestAnnos = storage->count({"testCorpus"},
+  auto numOfTestAnnos = storageEmpty->count({"testCorpus"},
                                        "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"nodeAnnotations\":[{\"namespace\":\"test\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"test:anno\"}],\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
   ASSERT_EQ(1, numOfTestAnnos);
 }
@@ -105,18 +108,18 @@ TEST_F(CorpusStorageManagerTest, DeleteNode) {
   updateInsert.addNode("node1");
   updateInsert.addNodeLabel("node1", "test", "anno", "testVal");
 
-  storage->applyUpdate("testCorpus", updateInsert);
+  storageEmpty->applyUpdate("testCorpus", updateInsert);
 
   api::GraphUpdate updateDelete;
   updateDelete.deleteNode("node1");
-  storage->applyUpdate("testCorpus", updateDelete);
+  storageEmpty->applyUpdate("testCorpus", updateDelete);
 
 
-  auto numOfNodes = storage->count({"testCorpus"},
+  auto numOfNodes = storageEmpty->count({"testCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
   ASSERT_EQ(0, numOfNodes);
 
-  auto numOfTestAnnos = storage->count({"testCorpus"},
+  auto numOfTestAnnos = storageEmpty->count({"testCorpus"},
                                        "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"nodeAnnotations\":[{\"namespace\":\"test\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"test:anno\"}],\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}");
   ASSERT_EQ(0, numOfTestAnnos);
 }
@@ -128,14 +131,14 @@ TEST_F(CorpusStorageManagerTest, AddEdge) {
   updateInsert.addNode("node2");
   updateInsert.addEdge("node1", "node2", "", "POINTING", "dep");
 
-  storage->applyUpdate("testCorpus", updateInsert);
+  storageEmpty->applyUpdate("testCorpus", updateInsert);
 
-  auto depEdges = storage->count({"testCorpus"},
+  auto depEdges = storageEmpty->count({"testCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"left\":1,\"right\":2}]}]}");
   ASSERT_EQ(1, depEdges);
 
   // make sure no edge is found
-  auto depEdgesWithAnno = storage->count({"testCorpus"},
+  auto depEdgesWithAnno = storageEmpty->count({"testCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"edgeAnnotations\":[{\"namespace\":\"ns\",\"name\":\"anno\",\"value\":\"testval\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"ns:anno\"}],\"left\":1,\"right\":2}]}]}");
   ASSERT_EQ(0, depEdgesWithAnno);
 
@@ -150,9 +153,9 @@ TEST_F(CorpusStorageManagerTest, AddEdgeLabel) {
   updateInsert.addEdge("node1", "node2", "", "POINTING", "dep");
   updateInsert.addEdgeLabel("node1", "node2", "", "POINTING", "dep", "ns", "anno", "testVal");
 
-  storage->applyUpdate("testCorpus", updateInsert);
+  storageEmpty->applyUpdate("testCorpus", updateInsert);
 
-  auto depEdgesWithAnno = storage->count({"testCorpus"},
+  auto depEdgesWithAnno = storageEmpty->count({"testCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"edgeAnnotations\":[{\"namespace\":\"ns\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"ns:anno\"}],\"left\":1,\"right\":2}]}]}");
   ASSERT_EQ(1, depEdgesWithAnno);
 
@@ -168,14 +171,14 @@ TEST_F(CorpusStorageManagerTest, DeleteEdge) {
   updateInsert.addNode("n4");
   updateInsert.addEdge("n3", "n4", "", "POINTING", "dep");
 
-  storage->applyUpdate("testCorpus", updateInsert);
+  storageEmpty->applyUpdate("testCorpus", updateInsert);
 
   api::GraphUpdate updateDelete;
   updateDelete.deleteEdge("n1", "n2", "", "POINTING", "dep");
 
-  storage->applyUpdate("testCorpus", updateDelete);
+  storageEmpty->applyUpdate("testCorpus", updateDelete);
 
-  auto depEdges = storage->count({"testCorpus"},
+  auto depEdges = storageEmpty->count({"testCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"left\":1,\"right\":2}]}]}");
   ASSERT_EQ(1, depEdges);
 
@@ -189,18 +192,18 @@ TEST_F(CorpusStorageManagerTest, DeleteEdgeLabel) {
   updateInsert.addEdge("node1", "node2", "", "POINTING", "dep");
   updateInsert.addEdgeLabel("node1", "node2", "", "POINTING", "dep", "ns", "anno", "testVal");
 
-  storage->applyUpdate("testCorpus", updateInsert);
+  storageEmpty->applyUpdate("testCorpus", updateInsert);
 
-  auto depEdgesWithAnno = storage->count({"testCorpus"},
+  auto depEdgesWithAnno = storageEmpty->count({"testCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"edgeAnnotations\":[{\"namespace\":\"ns\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"ns:anno\"}],\"left\":1,\"right\":2}]}]}");
   ASSERT_EQ(1, depEdgesWithAnno);
 
   api::GraphUpdate updateDelete;
   updateDelete.deleteEdgeLabel("node1", "node2", "", "POINTING", "dep", "ns", "anno");
 
-  storage->applyUpdate("testCorpus", updateDelete);
+  storageEmpty->applyUpdate("testCorpus", updateDelete);
 
-  depEdgesWithAnno = storage->count({"testCorpus"},
+  depEdgesWithAnno = storageEmpty->count({"testCorpus"},
                                     "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"edgeAnnotations\":[{\"namespace\":\"ns\",\"name\":\"anno\",\"value\":\"testVal\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"ns:anno\"}],\"left\":1,\"right\":2}]}]}");
 
   ASSERT_EQ(0, depEdgesWithAnno);
@@ -216,9 +219,9 @@ TEST_F(CorpusStorageManagerTest, ReloadWithLog) {
   updateInsert.addNode("n4");
   updateInsert.addEdge("n3", "n4", "dep", "POINTING", "dep");
 
-  storage->applyUpdate("testCorpus", updateInsert);
+  storageEmpty->applyUpdate("testCorpus", updateInsert);
 
-  auto depEdges = storage->count({"testCorpus"},
+  auto depEdges = storageEmpty->count({"testCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"left\":1,\"right\":2}]}]}");
   ASSERT_EQ(2, depEdges);
 
@@ -226,16 +229,25 @@ TEST_F(CorpusStorageManagerTest, ReloadWithLog) {
   boost::filesystem::path exportPath =
       boost::filesystem::unique_path(
         boost::filesystem::temp_directory_path().string() + "/annis-temporary-export-%%%%-%%%%-%%%%-%%%%");
-  storage->exportCorpus("testCorpus", exportPath.string());
+  storageEmpty->exportCorpus("testCorpus", exportPath.string());
 
   // reload the same corpus under a different name
-  storage->importCorpus(exportPath.string(), "copyOfTestCorpus");
+  storageEmpty->importCorpus(exportPath.string(), "copyOfTestCorpus");
 
   // test that the edges are still there
-  depEdges = storage->count({"copyOfTestCorpus"},
+  depEdges = storageEmpty->count({"copyOfTestCorpus"},
                                   "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"root\":false,\"token\":false,\"variable\":\"1\"},\"2\":{\"id\":2,\"root\":false,\"token\":false,\"variable\":\"2\"}},\"joins\":[{\"op\":\"Pointing\",\"name\":\"dep\",\"minDistance\":1,\"maxDistance\":1,\"left\":1,\"right\":2}]}]}");
   ASSERT_EQ(2, depEdges);
 
+}
+
+TEST_F(CorpusStorageManagerTest, SubgraphGUMSingle) {
+
+  std::vector<std::string> ids;
+  ids.push_back("GUM/GUM_whow_skittles#tok_936");
+  std::vector<api::Node> nodes = storageTest->subgraph("GUM", ids, 5, 5);
+
+  EXPECT_EQ(56, nodes.size());
 }
 
 

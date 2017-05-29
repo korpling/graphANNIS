@@ -122,14 +122,23 @@ void ExactAnnoValueSearch::initializeValidAnnotations()
 std::int64_t ExactAnnoValueSearch::guessMaxCount() const
 {
   std::int64_t sum = 0;
-  
+
   for(auto range : searchRanges)
   {
     if(range.first != range.second)
     {
       const Annotation& anno = range.first->first;
-      const std::string val = db.strings.str(anno.val);
-      sum += db.nodeAnnos.guessMaxCount(anno.ns, anno.name, val, val);
+
+      if(anno.ns == db.getNamespaceStringID() && anno.name == db.getNodeNameStringID())
+      {
+        // we know that node names are typically unique
+        sum += 1;
+      }
+      else
+      {
+        const std::string val = db.strings.str(anno.val);
+        sum += db.nodeAnnos.guessMaxCount(anno.ns, anno.name, val, val);
+      }
     }
   }
   

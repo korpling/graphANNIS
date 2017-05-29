@@ -27,10 +27,10 @@ StringStorage::StringStorage()
 {
 }
 
-std::set<std::uint32_t> StringStorage::findRegex(const string &str) const
+std::unordered_set<std::uint32_t> StringStorage::findRegex(const string &str) const
 {
   using ItType = btree::btree_map<string, uint32_t>::const_iterator;
-  std::set<std::uint32_t> result;
+  std::unordered_set<std::uint32_t> result;
 
   RE2 re(str, RE2::Quiet);
   if(re.ok())
@@ -60,7 +60,7 @@ std::set<std::uint32_t> StringStorage::findRegex(const string &str) const
     }
   }
 
-  return result;
+  return std::move(result);
 }
 
 uint32_t StringStorage::add(const string &str)
@@ -106,7 +106,16 @@ double annis::StringStorage::avgLength()
   return (double) sum / (double) stringStorageByValue.size();
 }
 
-size_t StringStorage::estimateMemorySize()
+size_t StringStorage::estimateMemorySize() const
 {
-  return size_estimation::element_size(stringStorageByID) + size_estimation::element_size(stringStorageByValue);
+  size_t strSize = 0;
+  for(const auto& v : stringStorageByValue)
+  {
+    const std::string& s = v.first;
+    strSize += s.capacity();
+  }
+  return
+      size_estimation::element_size(stringStorageByID)
+      + size_estimation::element_size(stringStorageByValue)
+      + (strSize*2);
 }

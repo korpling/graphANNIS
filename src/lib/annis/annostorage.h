@@ -143,30 +143,20 @@ namespace annis {
        }
     }
 
-    inline std::vector<Annotation> getAnnotations(const ContainerType &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
+    inline boost::optional<Annotation> getAnnotations(const ContainerType &id, const std::uint32_t& nsID, const std::uint32_t& nameID) const
     {
       auto it = annotations.find({id, nameID, nsID});
 
       if (it != annotations.end())
       {
-        return
-        {
-          true,
-          {
-            nameID, nsID, it->second
-          }
-        };
+        Annotation anno = {nameID, nsID, it->second};
+        return std::move(anno);
       }
-      return
-      {
-        false,
-        {
-          0, 0, 0
-        }
-      };
+
+      return boost::none;
     }
 
-    inline std::vector<Annotation> getAnnotations(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
+    inline boost::optional<Annotation> getAnnotations(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
     {
       std::pair<bool, std::uint32_t> nsID = strings.findID(ns);
       std::pair<bool, std::uint32_t> nameID = strings.findID(name);
@@ -175,7 +165,7 @@ namespace annis {
       {
         return getAnnotations(id, nsID.second, nameID.second);
       }
-      return std::vector<Annotation>();
+      return boost::none;
     }
 
     std::vector<Annotation> getAnnotations(const ContainerType& id) const
@@ -386,13 +376,22 @@ namespace annis {
       histogramBounds = stats;
     }
 
-    size_t estimateMemorySize()
+    size_t estimateMemorySize() const
     {
+      size_t histoStringsSize = 0;
+      for(const auto& e : histogramBounds)
+      {
+        for(const std::string& s : e.second)
+        {
+          histoStringsSize += s.capacity();
+        }
+      }
       return
           size_estimation::element_size(annotations)
           + size_estimation::element_size(inverseAnnotations)
           + size_estimation::element_size(annoKeys)
-          + size_estimation::element_size(histogramBounds);
+          + size_estimation::element_size(histogramBounds)
+          + histoStringsSize;
     }
 
     virtual ~AnnoStorage() {}
@@ -420,13 +419,13 @@ namespace annis {
     
   private:
     /**
-     * Internal function for getting an estimation about the number of matches for a certain range of annotation value
+     * Internal function for getting an estimation about the number of matches for a certain range of annotation values.
      * @param nsID The namespace part of the annotation key. Can be empty (in this case all annotations with the correct name are used).
      * @param nameID The name part of the annotation key.
      * @param lowerVal Inclusive starting point for the value range.
      * @param upperVal Inclusive end point for the value range.
      * @param if true upperVal is inclusive, otherwise it is exclusive
-     * @return The estimation of -1 if invalid.
+     * @return The estimation or -1 if invalid.
      */
     std::int64_t guessMaxCount(boost::optional<std::uint32_t> nsID, std::uint32_t nameID, const std::string& lowerVal,
       const std::string& upperVal) const

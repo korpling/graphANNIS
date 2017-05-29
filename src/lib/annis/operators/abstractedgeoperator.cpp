@@ -30,32 +30,65 @@
 #include "annis/annosearch/nodebyedgeannosearch.h"  // for NodeByEdgeAnnoSearch
 #include "annis/annostorage.h"                      // for AnnoStorage
 #include "annis/graphstorage/graphstorage.h"        // for ReadableGraphStorage
-#include "annis/graphstorageholder.h"               // for GraphStorageHolder
 #include "annis/iterators.h"                        // for EdgeIterator, AnnoIt
 #include "annis/stringstorage.h"                    // for StringStorage
 #include <annis/types.h>
 
 using namespace annis;
 
-AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType,
-                                           GraphStorageHolder &gsh,
-                                           const StringStorage &strings, std::string ns, std::string name,
-                                           unsigned int minDistance, unsigned int maxDistance)
-  : componentType(componentType), gsh(gsh), strings(strings), ns(ns), name(name),
-                  minDistance(minDistance), maxDistance(maxDistance),
-                  anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
+AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
+                     DB::GetGSFuncT getGraphStorageFunc,
+                     const StringStorage& strings,
+                     unsigned int minDistance, unsigned int maxDistance)
+  : componentType(componentType),
+    getGraphStorageFunc(getGraphStorageFunc),
+    strings(strings), ns(ns), name(name),
+    minDistance(minDistance), maxDistance(maxDistance),
+    anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
 {
   initGraphStorage();
 }
 
-AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType,
-    GraphStorageHolder &gsh, const StringStorage &strings, std::string ns, std::string name, const Annotation &edgeAnno)
-  : componentType(componentType), gsh(gsh), strings(strings), ns(ns), name(name),
+AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string name,
+                     DB::GetAllGSFuncT getAllGraphStorageFunc,
+                     const StringStorage& strings,
+                     unsigned int minDistance, unsigned int maxDistance)
+  : componentType(componentType),
+    getAllGraphStorageFunc(getAllGraphStorageFunc),
+    strings(strings), ns(""), name(name),
+    minDistance(minDistance), maxDistance(maxDistance),
+    anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
+{
+  initGraphStorage();
+}
+
+
+AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
+    DB::GetGSFuncT getGraphStorageFunc,
+    const StringStorage& strings,
+    const Annotation& edgeAnno)
+  : componentType(componentType),
+    getGraphStorageFunc(getGraphStorageFunc),
+    strings(strings), ns(ns), name(name),
     minDistance(1), maxDistance(1),
     anyAnno(Init::initAnnotation()), edgeAnno(edgeAnno)
 {
   initGraphStorage();
 }
+
+AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string name,
+    DB::GetAllGSFuncT getAllGraphStorageFunc,
+    const StringStorage& strings,
+    const Annotation& edgeAnno)
+  : componentType(componentType),
+    getAllGraphStorageFunc(getAllGraphStorageFunc),
+    strings(strings), ns(""), name(name),
+    minDistance(1), maxDistance(1),
+    anyAnno(Init::initAnnotation()), edgeAnno(edgeAnno)
+{
+  initGraphStorage();
+}
+
 
 std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
 {
@@ -119,18 +152,14 @@ bool AbstractEdgeOperator::filter(const Match &lhs, const Match &rhs)
 void AbstractEdgeOperator::initGraphStorage()
 {
   gs.clear();
-  if(ns == "")
+  if(getAllGraphStorageFunc)
   {
-    auto listOfGS = gsh.getGraphStorage(componentType, name);
-    for(auto ePtr : listOfGS)
-    {
-      gs.push_back(ePtr);
-    }
+    gs = (*getAllGraphStorageFunc)(componentType, name);
   }
-  else
+  else if(getGraphStorageFunc)
   {
     // directly add the only known edge storage
-    if(auto e = gsh.getGraphStorage(componentType, ns, name))
+    if(auto e = (*getGraphStorageFunc)(componentType, ns, name))
     {
       gs.push_back(e);
     }

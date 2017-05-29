@@ -4,6 +4,9 @@ cmake_minimum_required(VERSION 3.2)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/output)
 
+set(ENABLE_VALGRIND FALSE CACHE BOOL "Allow to turn Valgrind instrumentation on or off for some parts of the code")
+set(ENABLE_SIMD_SUPPORT OFF CACHE BOOL "Enable support for operations using SIMD instructions. Needs a CPU with AVX2.")
+
 # make sure a build type is selected
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
@@ -23,6 +26,9 @@ include(cmake/humblelogging.cmake)
 include(cmake/re2.cmake)
 include(cmake/celero.cmake)
 include(cmake/googletest.cmake)
+if(ENABLE_SIMD_SUPPORT)
+  include(cmake/vc.cmake)
+endif()
 
 link_directories(${GLOBAL_OUTPUT_PATH})
 
@@ -61,58 +67,6 @@ include_directories(
   "ext/cereal-1.2.1/include"
 )
 
-# make sure QtCreator shows the include files
-set(IncludeFiles
-  src/lib/annis/queryconfig.h
-  src/lib/annis/wrapper.h
-  src/lib/annis/stringstorage.h
-  src/lib/annis/json/jsonqueryparser.h
-  src/lib/annis/json/json.h
-  src/lib/annis/json/json-forwards.h
-  src/lib/annis/db.h
-  src/lib/annis/dbloader.h
-  src/lib/annis/graphstorage/prepostorderstorage.h
-  src/lib/annis/graphstorage/adjacencyliststorage.h
-  src/lib/annis/graphstorage/graphstorage.h
-  src/lib/annis/graphstorage/linearstorage.h
-  src/lib/annis/iterators.h
-  src/lib/annis/types.h
-  src/lib/annis/graphstorageholder.h
-  src/lib/annis/filter.h
-  src/lib/annis/operators/precedence.h
-  src/lib/annis/operators/operator.h
-  src/lib/annis/operators/inclusion.h
-  src/lib/annis/operators/dominance.h
-  src/lib/annis/operators/overlap.h
-  src/lib/annis/operators/pointing.h
-  src/lib/annis/operators/identicalcoverage.h
-  src/lib/annis/operators/abstractedgeoperator.h
-  src/lib/annis/dbcache.h
-  src/lib/annis/api/corpusstoragemanager.h
-  src/lib/annis/api/admin.h
-  src/lib/annis/api/graphupdate.h
-  src/lib/annis/serializers.h
-  src/lib/annis/graphstorageregistry.h
-  src/lib/annis/annostorage.h
-  src/lib/annis/util/helper.h
-  src/lib/annis/util/plan.h
-  src/lib/annis/util/dfs.h
-  src/lib/annis/util/size_estimator.h
-  src/lib/annis/util/comparefunctions.h
-  src/lib/annis/util/sharedqueue.h
-  src/lib/annis/util/threadpool.h
-  src/lib/annis/query.h
-  src/lib/annis/join/nestedloop.h
-  src/lib/annis/join/threadnestedloop.h
-  src/lib/annis/join/taskindexjoin.h
-  src/lib/annis/join/threadindexjoin.h
-  src/lib/annis/join/indexjoin.h
-  src/lib/annis/annosearch/exactannovaluesearch.h
-  src/lib/annis/annosearch/annotationsearch.h
-  src/lib/annis/annosearch/exactannokeysearch.h
-  src/lib/annis/annosearch/regexannosearch.h
-  src/lib/annis/annosearch/nodebyedgeannosearch.h
-)
 
 set(SRC_LIST_LIB
   src/lib/annis/queryconfig.cpp
@@ -128,30 +82,34 @@ set(SRC_LIST_LIB
   src/lib/annis/graphstorage/graphstorage.cpp
   src/lib/annis/dbcache.cpp
   src/lib/annis/stringstorage.cpp
-  src/lib/annis/graphstorageholder.cpp
   src/lib/annis/operators/overlap.cpp
   src/lib/annis/operators/pointing.cpp
   src/lib/annis/operators/precedence.cpp
   src/lib/annis/operators/identicalcoverage.cpp
+  src/lib/annis/operators/identicalnode.cpp
   src/lib/annis/operators/inclusion.cpp
   src/lib/annis/operators/dominance.cpp
   src/lib/annis/operators/abstractedgeoperator.cpp
+  src/lib/annis/operators/partofsubcorpus.cpp
   src/lib/annis/api/corpusstoragemanager.cpp
   src/lib/annis/api/admin.cpp
+  src/lib/annis/api/graph.cpp
   src/lib/annis/api/graphupdate.cpp
-  src/lib/annis/query.cpp
+  src/lib/annis/query/singlealternativequery.cpp
+  src/lib/annis/query/query.cpp
   src/lib/annis/util/dfs.cpp
   src/lib/annis/util/plan.cpp
   src/lib/annis/util/getRSS.cpp
+  src/lib/annis/util/relannisloader.cpp
   src/lib/annis/util/sharedqueue.cpp
   src/lib/annis/util/threadpool.cpp
   src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
+  src/lib/annis/join/indexjoin.cpp
   src/lib/annis/join/nestedloop.cpp
   src/lib/annis/join/threadnestedloop.cpp
   src/lib/annis/join/taskindexjoin.cpp
   src/lib/annis/join/threadindexjoin.cpp
-  src/lib/annis/join/indexjoin.cpp
   src/lib/annis/annosearch/exactannokeysearch.cpp
   src/lib/annis/annosearch/exactannovaluesearch.cpp
   src/lib/annis/annosearch/regexannosearch.cpp
@@ -167,27 +125,56 @@ set(SRC_LIST_RUNNER
   src/runner/console.cpp
 )
 
-include_directories( "src/lib")
+if(ENABLE_SIMD_SUPPORT)
+  add_definitions(ENABLE_SIMD_SUPPORT)
+  set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
+  if(MSVC)
+    set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+  else()
+    set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "-mavx2")
+  endif()
+  set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_DEFINITIONS "Vc_IMPL=AVX2")
+else()
+  set(SRC_LIST_LIB_SIMD "")
+endif()
 
-add_library(annis ${SRC_LIST_LIB})
+if(ENABLE_VALGRIND)
+  add_definitions(-DENABLE_VALGRIND)
+endif()
+
+
+include_directories("src/lib")
+
+add_library(annis ${SRC_LIST_LIB} ${SRC_LIST_LIB_SIMD})
 target_compile_features(annis PRIVATE ${needed_features})
+
 set_property(TARGET annis PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+
 # newer Boost serialization versions are otherwise incompatible with BTree
 add_definitions(-DBOOST_NO_CXX11_HDR_UNORDERED_MAP -DBOOST_NO_CXX11_HDR_UNORDERED_SET)
 if (MSVC)
-	# the min/max defines get in our way when using std::min/std::max
-    add_definitions(/DNOMINMAX)
-elseif ( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.1.0 )
-    set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
-endif (MSVC)
+   # the min/max defines get in our way when using std::min/std::max
+   add_definitions(/DNOMINMAX)
+elseif ( CMAKE_COMPILER_IS_GNUCC )
+   if( CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.1.0)
+     set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override )
+   else()
+     # workaround for some problems with older versions of GCC and Vc
+     set_property( TARGET annis APPEND_STRING PROPERTY COMPILE_FLAGS -fabi-version=0 )
+   endif()
+endif ()
 
-target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Vc_STATIC_LIBRARY} )
+
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
+if(ENABLE_SIMD_SUPPORT)
+  add_dependencies(annis Vc)
+endif()
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
-target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} annis)
+target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${Vc_STATIC_LIBRARY} annis)
 
 # install the graphANNIS API and console
 install(TARGETS annis_runner annis

@@ -23,7 +23,6 @@
 #include "annis/annostorage.h"                // for AnnoStorage
 #include "annis/db.h"                         // for DB
 #include "annis/graphstorage/graphstorage.h"  // for ReadableGraphStorage
-#include "annis/graphstorageholder.h"         // for GraphStorageHolder
 #include "annis/iterators.h"                  // for EdgeIterator, AnnoIt
 #include "annis/operators/operator.h"         // for Operator
 #include "annis/util/helper.h"                // for TokenHelper
@@ -32,15 +31,15 @@
 
 using namespace annis;
 
-Inclusion::Inclusion(const DB &db, GraphStorageHolder& gsh)
+Inclusion::Inclusion(const DB &db, DB::GetGSFuncT getGSFunc)
   : db(db),
-    anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
-    tokHelper(gsh, db)
+    anyNodeAnno(Init::initAnnotation(db.getNodeTypeStringID(), 0, db.getNamespaceStringID())),
+    tokHelper(getGSFunc, db)
 {
-  gsOrder = gsh.getGraphStorage(ComponentType::ORDERING, annis_ns, "");
-  gsLeftToken = gsh.getGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
-  gsRightToken = gsh.getGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
-  gsCoverage = gsh.getGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+  gsOrder = getGSFunc(ComponentType::ORDERING, annis_ns, "");
+  gsLeftToken = getGSFunc(ComponentType::LEFT_TOKEN, annis_ns, "");
+  gsRightToken = getGSFunc(ComponentType::RIGHT_TOKEN, annis_ns, "");
+  gsCoverage = getGSFunc(ComponentType::COVERAGE, annis_ns, "");
 
 }
 
@@ -69,7 +68,7 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
   nodeid_t leftToken;
   nodeid_t rightToken;
   int spanLength = 0;
-  if(db.nodeAnnos.getAnnotations(db.strings, lhs.node, annis_ns, annis_tok).empty() == false)
+  if(db.nodeAnnos.getAnnotations(db.strings, lhs.node, annis_ns, annis_tok))
   {
     // is token
     leftToken = lhs.node;
