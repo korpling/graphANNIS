@@ -47,6 +47,8 @@ private:
         boost::hash_combine(seed, m.anno.name);
         boost::hash_combine(seed, m.anno.val);
       }
+
+      return seed;
     }
   };
 
