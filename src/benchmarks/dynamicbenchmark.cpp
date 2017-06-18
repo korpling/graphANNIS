@@ -23,6 +23,8 @@
 #include <string>
 #include <stddef.h>
 
+#include <cmath>
+
 using namespace annis;
 
 HUMBLE_LOGGER(benchLogger, "DynamicBenchmark");
@@ -177,7 +179,7 @@ void DynamicBenchmark::addBenchmark(bool baseline,
     
     if(baseline)
     {
-      uint64_t timeVal = 0;
+      double timeVal = 0.0;
       auto timePath = p.second.parent_path() /= (p.second.stem().string() + ".time");
       stream.open(timePath);
       if (stream.is_open())
@@ -185,13 +187,17 @@ void DynamicBenchmark::addBenchmark(bool baseline,
         stream >> timeVal;
         stream.close();
       }
-      if(timeVal == 0)
+      if(timeVal > 0.0)
       {
-        // we would divide by zero later
-        timeVal = 1;
+        // since celero uses microseconds an ANNIS milliseconds the value needs to be converted
+        fixedValues.insert({p.first, std::llround(timeVal*1000.0)});
       }
-      // since celero uses microseconds an ANNIS milliseconds the value needs to be converted
-      fixedValues.insert({p.first, timeVal*1000});
+      else
+      {
+        // we would divide by zero later, thus use 1 micro second as smallest value
+        fixedValues.insert({p.first, 1});
+      }
+
     }
   }
   std::shared_ptr<::celero::TestFixture> fixture(
