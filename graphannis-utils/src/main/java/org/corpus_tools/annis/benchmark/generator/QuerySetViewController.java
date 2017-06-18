@@ -98,7 +98,7 @@ public class QuerySetViewController implements Initializable
   private TableColumn<Query, Set<String>> corpusColumn;
 
   @FXML
-  private TableColumn<Query, Optional<Long>> execTimeColumn;
+  private TableColumn<Query, Optional<Double>> execTimeColumn;
   
   @FXML
   private TableColumn<Query, Boolean> validColumn;
@@ -146,12 +146,12 @@ public class QuerySetViewController implements Initializable
     nameColumn.setCellFactory(TextFieldTableCell.forTableColumn());
     aqlColumn.setCellFactory(TextAreaTableCell.forTableColumn());
     corpusColumn.setCellFactory(TextFieldTableCell.forTableColumn(new StringSetConverter()));
-    execTimeColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
+    execTimeColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalDoubleConverter()));
     nrResultsColumn.setCellFactory(TextFieldTableCell.forTableColumn(new OptionalLongConverter()));
     validColumn.setCellValueFactory(param -> new ReadOnlyObjectWrapper<>(param.getValue().getJson() != null));
 
-    execTimeColumn.setComparator((Optional<Long> o1, Optional<Long> o2) 
-      -> ComparisonChain.start().compare(o1.orElse(Long.MIN_VALUE), o2.orElse(Long.MIN_VALUE)).result());
+    execTimeColumn.setComparator((Optional<Double> o1, Optional<Double> o2) 
+      -> ComparisonChain.start().compare(o1.orElse(Double.MIN_VALUE), o2.orElse(Double.MIN_VALUE)).result());
     
     nameColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, String> event) ->
     {
@@ -165,7 +165,7 @@ public class QuerySetViewController implements Initializable
     {
       event.getRowValue().setCorpora(event.getNewValue());
     });
-    execTimeColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, Optional<Long>> event) ->
+    execTimeColumn.setOnEditCommit((TableColumn.CellEditEvent<Query, Optional<Double>> event) ->
     {
       event.getRowValue().setExecutionTime(event.getNewValue());
     });

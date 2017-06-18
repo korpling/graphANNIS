@@ -20,7 +20,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.io.LineProcessor;
 import java.io.IOException;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -80,7 +79,7 @@ public class QueryLogParser implements LineProcessor<List<Query>>
     q.setAql(aql);
     q.setCorpora(new LinkedHashSet<>(Splitter.on(',').omitEmptyStrings().
       trimResults().splitToList(corpora)));
-    q.setExecutionTime(Optional.of(Long.parseLong(time)));
+    q.setExecutionTime(Optional.of(Double.parseDouble(time)));
 
     
     q.setName(String.format("%05d",queries.size()));

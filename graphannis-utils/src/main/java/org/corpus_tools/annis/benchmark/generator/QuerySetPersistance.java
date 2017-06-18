@@ -114,7 +114,7 @@ public class QuerySetPersistance
       try
       {
         String raw = Files.asCharSource(fTime, StandardCharsets.UTF_8).read();
-        q.setExecutionTime(Optional.of(Long.parseLong(raw.trim())));
+        q.setExecutionTime(Optional.of(Double.parseDouble(raw.trim())));
       }
       catch(IOException ex)
       {
