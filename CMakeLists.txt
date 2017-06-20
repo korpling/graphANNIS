@@ -82,6 +82,7 @@ set(SRC_LIST_LIB
   src/lib/annis/graphstorage/graphstorage.cpp
   src/lib/annis/dbcache.cpp
   src/lib/annis/stringstorage.cpp
+  src/lib/annis/operators/operator.cpp
   src/lib/annis/operators/overlap.cpp
   src/lib/annis/operators/pointing.cpp
   src/lib/annis/operators/precedence.cpp
