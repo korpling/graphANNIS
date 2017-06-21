@@ -21,6 +21,9 @@
 #include <set>                // for set
 #include <string>             // for string
 #include <unordered_set>      // for unordered_set
+
+#include <boost/optional.hpp>
+
 namespace annis { struct Annotation; }
 namespace annis { struct AnnotationKey; }
 
@@ -34,14 +37,37 @@ public:
   virtual std::int64_t guessMaxCount() const {return -1;}
 
   virtual std::string debugString() const {return "";}
+
+
+  /**
+   * @brief Set a constant annotation value that is returned in a match instead of the actual matched annotation.
+   *
+   * The node ID part of the match is still the actual match, but the annotation is replaced by this constant value.
+   * This can be useful when searching for nodes (e.g. token) after a specific criterium but the result should
+   * include the node ID but not the specific annotation that what searched for. Otherwise matches could be
+   * regarded as different because their annotation is the differet.
+   *
+   * @param constAnno
+   */
+  void setConstAnnoValue(boost::optional<Annotation> constAnno)
+  {
+    _constAnno = constAnno;
+  }
+
+  boost::optional<Annotation> getConstAnnoValue()
+  {
+    return _constAnno;
+  }
+private:
+  boost::optional<Annotation> _constAnno;
 };
 
 class AnnotationSearch : public EstimatedSearch
 {
 public:
   virtual const std::unordered_set<Annotation>& getValidAnnotations() = 0;
-  
   virtual ~AnnotationSearch() {}
+
 };
 
 class AnnotationKeySearch : public EstimatedSearch

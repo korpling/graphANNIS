@@ -95,9 +95,16 @@ bool NodeByEdgeAnnoSearch::nextMatchBuffer()
 
       if(visited.find(matchingEdge.source) == visited.end())
       {
-        for(const Annotation& anno : nodeAnnoMatchGenerator(matchingEdge.source))
+        if(getConstAnnoValue())
         {
-          currentMatchBuffer.push_back({matchingEdge.source, anno});
+          currentMatchBuffer.push_back({matchingEdge.source, *getConstAnnoValue()});
+        }
+        else
+        {
+          for(const Annotation& anno : nodeAnnoMatchGenerator(matchingEdge.source))
+          {
+            currentMatchBuffer.push_back({matchingEdge.source, anno});
+          }
         }
         visited.emplace(matchingEdge.source);
         valid = true;

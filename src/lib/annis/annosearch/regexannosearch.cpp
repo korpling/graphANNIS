@@ -111,6 +111,10 @@ bool RegexAnnoSearch::next(Match& result)
         if(RE2::FullMatch(db.strings.str(it->first.val), compiledValRegex))
         {
           result = {it->second, it->first};
+          if(getConstAnnoValue())
+          {
+            result.anno = *getConstAnnoValue();
+          }
           it++;
           return true;
         }

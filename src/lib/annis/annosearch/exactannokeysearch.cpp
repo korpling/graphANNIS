@@ -111,7 +111,14 @@ bool ExactAnnoKeySearch::next(Match& result)
   if(it != db.nodeAnnos.inverseAnnotations.end() && it != itEnd)
   {
     result.node = it->second; // node ID
-    result.anno = it->first; // annotation itself
+    if(getConstAnnoValue())
+    {
+      result.anno = *getConstAnnoValue();
+    }
+    else
+    {
+      result.anno = it->first; // annotation itself
+    }
     it++;
     return true;
   }

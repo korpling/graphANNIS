@@ -53,16 +53,15 @@ size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationSearch> n, bool
   bestPlan.reset();
 
   size_t idx = nodes.size();
-  
+
   if(wrapAnyNodeAnno)
   {
     Annotation constAnno = {db.getNodeTypeStringID(), db.getNamespaceStringID(), 0};
-    nodes.push_back(std::make_shared<ConstAnnoWrapper>(constAnno, n));
+    n->setConstAnnoValue(constAnno);
   }
-  else
-  {
-    nodes.push_back(n);
-  }
+
+  nodes.push_back(n);
+  
   return idx;
 }
 
@@ -71,15 +70,15 @@ size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationKeySearch> n, b
   bestPlan.reset();
 
   size_t idx = nodes.size();
+
   if(wrapAnyNodeAnno)
   {
     Annotation constAnno = {db.getNodeTypeStringID(), db.getNamespaceStringID(), 0};
-    nodes.push_back(std::make_shared<ConstAnnoWrapper>(constAnno, n));
+    n->setConstAnnoValue(constAnno);
   }
-  else
-  {
-    nodes.push_back(n);
-  }
+
+  nodes.push_back(n);
+
   return idx;
 }
 
@@ -186,6 +185,7 @@ std::shared_ptr<Plan> SingleAlternativeQuery::createPlan(const std::vector<std::
     baseNode->componentNr = i;
     node2component[i] = i;
     component2exec[i] = baseNode;
+
     i++;
   }
   const size_t numOfNodes = i;
@@ -249,16 +249,7 @@ void SingleAlternativeQuery::optimizeUnboundRegex()
   {
     for(size_t i=0; i < nodes.size(); i++)
     {
-      std::shared_ptr<ConstAnnoWrapper> annoWrapper = std::dynamic_pointer_cast<ConstAnnoWrapper>(nodes[i]);
-      std::shared_ptr<AnnoIt> n;
-      if(annoWrapper)
-      {
-        n = annoWrapper->getDelegate();
-      }
-      else
-      {
-        n = nodes[i];
-      }
+      std::shared_ptr<AnnoIt> n = nodes[i];
       std::shared_ptr<RegexAnnoSearch> regexSearch = std::dynamic_pointer_cast<RegexAnnoSearch>(n);
 
       // for each regex search test if the value is unbound
@@ -277,14 +268,7 @@ void SingleAlternativeQuery::optimizeUnboundRegex()
           annoKeySearch = std::make_shared<ExactAnnoKeySearch>(db, name);
         }
 
-        if(annoWrapper)
-        {
-          annoWrapper->setDelegate(annoKeySearch);
-        }
-        else
-        {
-          nodes[i] = annoKeySearch;
-        }
+        nodes[i] = annoKeySearch;
       }
     }
   }

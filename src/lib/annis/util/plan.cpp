@@ -113,13 +113,6 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       
     std::shared_ptr<Iterator> rightIt = rhs->join;
 
-    std::shared_ptr<ConstAnnoWrapper> constWrapper =
-        std::dynamic_pointer_cast<ConstAnnoWrapper>(rightIt);
-    if(constWrapper)
-    {
-      rightIt = constWrapper->getDelegate();
-    }
-
     std::shared_ptr<EstimatedSearch> estSearch =
         std::dynamic_pointer_cast<EstimatedSearch>(rightIt);
 
@@ -435,13 +428,7 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
 
 std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const DB &db, std::shared_ptr<EstimatedSearch> search)
 {
-  std::shared_ptr<ConstAnnoWrapper> constWrapper = std::dynamic_pointer_cast<ConstAnnoWrapper>(search);
-  boost::optional<Annotation> constAnno;
-  if(constWrapper)
-  {
-    search = constWrapper->getDelegate();
-    constAnno = constWrapper->getConstAnno();
-  }
+  boost::optional<Annotation> constAnno = search->getConstAnnoValue();
 
   std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
   if(annoSearch)

@@ -79,7 +79,14 @@ bool ExactAnnoValueSearch::next(Match& result)
   if(currentRange != searchRanges.end() && it != currentRange->second)
   {
     result.node = it->second; // node ID
-    result.anno = it->first; // annotation itself
+    if(getConstAnnoValue())
+    {
+      result.anno = *getConstAnnoValue();
+    }
+    else
+    {
+      result.anno = it->first; // annotation itself
+    }
     it++;
     if(it == currentRange->second)
     {
@@ -144,8 +151,6 @@ std::int64_t ExactAnnoValueSearch::guessMaxCount() const
   
   return sum;
 }
-
-
 
 ExactAnnoValueSearch::~ExactAnnoValueSearch()
 {

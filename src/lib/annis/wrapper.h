@@ -127,67 +127,6 @@ namespace annis
   };
 
   /**
-   * An annotation iterator that wraps another annotation iterator, but replaces
-   * the node annotation value with a constant value.
-   * The node ID will be the same as given by the wrapped iterator.
-   * @param db
-   * @param delegate
-   */
-  class ConstAnnoWrapper : public EstimatedSearch
-  {
-  public:
-
-    ConstAnnoWrapper(Annotation constAnno, std::shared_ptr<EstimatedSearch> delegate)
-      : constAnno(constAnno), delegate(delegate)
-    {
-
-    }
-
-    virtual bool next(Match& m) override
-    {
-      bool found = delegate->next(m);
-      m.anno = constAnno;
-      return found;
-    }
-
-    virtual void reset() override
-    {
-      delegate->reset();
-    }
-
-    std::shared_ptr<EstimatedSearch> getDelegate()
-    {
-      return delegate;
-    }
-
-    void setDelegate(std::shared_ptr<EstimatedSearch> newDelegate)
-    {
-      delegate = newDelegate;
-    }
-    
-    std::int64_t guessMaxCount() const override
-    {
-      return delegate->guessMaxCount();
-    }
-
-    Annotation getConstAnno() { return constAnno;}
-
-
-    virtual std::string debugString() const override
-    {
-      return delegate->debugString();
-    }
-
-
-    virtual ~ConstAnnoWrapper()
-    {
-    }
-  private:
-    const Annotation constAnno;
-    std::shared_ptr<EstimatedSearch> delegate;
-  };
-
-  /**
    * Similar to ListWrapper but only wraps a single element
    */
   class SingleElementWrapper : public AnnoIt
