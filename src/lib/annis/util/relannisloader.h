@@ -1,6 +1,7 @@
 #pragma once
 
 #include <annis/db.h>
+#include <boost/optional.hpp>
 
 #include <map>
 
