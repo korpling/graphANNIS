@@ -64,6 +64,8 @@ public:
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const = 0;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const = 0;
 
+  virtual bool isPartOfComponent(nodeid_t node) const = 0;
+
 
   virtual size_t numberOfEdges() const = 0;
   virtual size_t numberOfEdgeAnnotations() const = 0;

@@ -201,6 +201,11 @@ std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) cons
   return result;
 }
 
+bool AdjacencyListStorage::isPartOfComponent(nodeid_t node) const
+{
+  return edges.lower_bound({node, 0}) != edges.end() || inverseEdges.lower_bound({node, 0}) != inverseEdges.end();
+}
+
 
 size_t AdjacencyListStorage::numberOfEdges() const
 {

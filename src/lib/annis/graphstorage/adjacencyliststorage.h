@@ -72,6 +72,8 @@ public:
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const override;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const override;
 
+  virtual bool isPartOfComponent(nodeid_t node) const override;
+
   set_t<Edge>::const_iterator getEdgesBegin()
   {
     return edges.begin();

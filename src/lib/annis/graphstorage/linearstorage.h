@@ -286,6 +286,11 @@ public:
     return result;
   }
 
+  virtual bool isPartOfComponent(nodeid_t node) const override
+  {
+    return node2pos.find(node) != node2pos.end();
+  }
+
   virtual size_t numberOfEdges() const override
   {
     return node2pos.size();

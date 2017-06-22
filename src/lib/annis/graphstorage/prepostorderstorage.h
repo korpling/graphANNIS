@@ -444,6 +444,11 @@ public:
     return result;
   }
 
+  virtual bool isPartOfComponent(nodeid_t node) const override
+  {
+    return node2order.find(node) != node2order.end();
+  }
+
   virtual size_t numberOfEdges() const override
   {
     return order2node.size();
