@@ -14,15 +14,15 @@
    limitations under the License.
 */
 
-#include "filter.h"
-#include "annis/iterators.h"           // for Iterator
-#include "annis/operators/operator.h"  // for Operator
-#include "annis/types.h"               // for Match
+#include "binaryfilter.h"
+#include <annis/iterators.h>           // for Iterator
+#include <annis/operators/operator.h>  // for Operator
+#include <annis/types.h>               // for Match
 
 using namespace annis;
 
 
-Filter::Filter(std::shared_ptr<Operator> op, std::shared_ptr<Iterator> inner,
+BinaryFilter::BinaryFilter(std::shared_ptr<Operator> op, std::shared_ptr<Iterator> inner,
   size_t lhsIdx, size_t rhsIdx)
   : op(op), inner(inner), lhsIdx(lhsIdx), rhsIdx(rhsIdx)
 {
@@ -30,7 +30,7 @@ Filter::Filter(std::shared_ptr<Operator> op, std::shared_ptr<Iterator> inner,
 }
 
 // TODO: explicitly test the filter function
-bool Filter::next(std::vector<Match>& tuple)
+bool BinaryFilter::next(std::vector<Match>& tuple)
 {
   tuple.clear();
   bool found = false;
@@ -52,7 +52,7 @@ bool Filter::next(std::vector<Match>& tuple)
   return found;
 }
 
-void Filter::reset()
+void BinaryFilter::reset()
 {
   if(inner)
   {
@@ -60,7 +60,7 @@ void Filter::reset()
   }
 }
 
-Filter::~Filter()
+BinaryFilter::~BinaryFilter()
 {
 
 }

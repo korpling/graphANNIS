@@ -70,7 +70,7 @@ include_directories(
 
 set(SRC_LIST_LIB
   src/lib/annis/queryconfig.cpp
-  src/lib/annis/filter.cpp
+  src/lib/annis/filter/binaryfilter.cpp
   src/lib/annis/json/jsoncpp.cpp
   src/lib/annis/json/jsonqueryparser.cpp
   src/lib/annis/db.cpp

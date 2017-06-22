@@ -18,7 +18,7 @@
 
 #include <annis/annosearch/nodebyedgeannosearch.h>  // for NodeByEdgeAnnoSearch
 #include <annis/db.h>                               // for DB
-#include <annis/filter.h>                           // for Filter
+#include <annis/filter/binaryfilter.h>              // for BinaryFilter
 #include <annis/join/indexjoin.h>                   // for IndexJoin
 #include <annis/join/nestedloop.h>                  // for NestedLoopJoin
 #include <annis/join/taskindexjoin.h>               // for TaskIndexJoin
@@ -104,7 +104,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   if(type == ExecutionNodeType::filter)
   {
     result->type = ExecutionNodeType::filter;
-    join = std::make_shared<Filter>(op, lhs->join, mappedPosLHS->second, mappedPosRHS->second);
+    join = std::make_shared<BinaryFilter>(op, lhs->join, mappedPosLHS->second, mappedPosRHS->second);
   }
   else if(type == ExecutionNodeType::seed)
   {
