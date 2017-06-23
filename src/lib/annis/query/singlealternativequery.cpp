@@ -36,7 +36,6 @@
 #include "annis/queryconfig.h"                      // for QueryConfig
 #include "annis/types.h"                            // for nodeid_t, Match
 #include "annis/util/plan.h"                        // for Plan, ExecutionNode
-#include <annis/filter/unaryfilter.h>
 
 using namespace annis;
 
