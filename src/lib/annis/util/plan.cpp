@@ -401,6 +401,11 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         {
           selectivity = node->op->selectivity();
         }
+        else if(!node->rhs)
+        {
+          // unary filter nodes should not be more selective
+          selectivity = 1.0;
+        }
 
         std::uint64_t processedInStep = estLHS->output;
         std::uint64_t outputSize = static_cast<std::uint64_t>(((double) estLHS->output) * selectivity);
@@ -512,18 +517,20 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
     std::shared_ptr<AnnotationSearch> annoSearch, boost::optional<Annotation> constAnno)
 {
   const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
+  auto outputFilter = annoSearch->getOutputFilter();
+
   if(validAnnos.size() == 1)
   {
     const auto& rightAnno = *(validAnnos.begin());
 
     // no further checks required
-    return [&db, rightAnno, constAnno](nodeid_t rhsNode) -> std::list<Annotation>
+    return [&db, rightAnno, constAnno, outputFilter](nodeid_t rhsNode) -> std::list<Annotation>
     {
       std::list<Annotation> result;
       auto foundAnno =
           db.nodeAnnos.getAnnotations(rhsNode, rightAnno.ns, rightAnno.name);
 
-      if(foundAnno && foundAnno->val == rightAnno.val)
+      if(foundAnno && foundAnno->val == rightAnno.val && outputFilter({rhsNode, *foundAnno}))
       {
         if(constAnno)
         {
@@ -540,14 +547,14 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
   }
   else
   {
-    return [&db, validAnnos, constAnno](nodeid_t rhsNode) -> std::list<Annotation>
+    return [&db, validAnnos, constAnno, outputFilter](nodeid_t rhsNode) -> std::list<Annotation>
     {
       std::list<Annotation> result;
       // check all annotations which of them matches
       std::vector<Annotation> annos = db.nodeAnnos.getAnnotations(rhsNode);
       for(const auto& a : annos)
       {
-        if(validAnnos.find(a) != validAnnos.end())
+        if(validAnnos.find(a) != validAnnos.end() && outputFilter({rhsNode, a}))
         {
           if(constAnno)
           {
@@ -570,18 +577,20 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
     std::shared_ptr<AnnotationKeySearch> annoKeySearch, boost::optional<Annotation> constAnno)
 {
   const std::set<AnnotationKey>& validAnnoKeys = annoKeySearch->getValidAnnotationKeys();
+  auto outputFilter = annoKeySearch->getOutputFilter();
+
   if(validAnnoKeys.size() == 1)
   {
     const auto& rightAnnoKey = *(validAnnoKeys.begin());
 
     // no further checks required
-    return [&db, rightAnnoKey, constAnno](nodeid_t rhsNode) -> std::list<Annotation>
+    return [&db, rightAnnoKey, constAnno, outputFilter](nodeid_t rhsNode) -> std::list<Annotation>
     {
       std::list<Annotation> result;
       auto foundAnno =
           db.nodeAnnos.getAnnotations(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
 
-      if(foundAnno)
+      if(foundAnno && outputFilter({rhsNode, *foundAnno}))
       {
         if(constAnno)
         {
@@ -599,14 +608,14 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
   }
   else
   {
-    return [&db, validAnnoKeys, constAnno](nodeid_t rhsNode) -> std::list<Annotation>
+    return [&db, validAnnoKeys, constAnno, outputFilter](nodeid_t rhsNode) -> std::list<Annotation>
     {
       std::list<Annotation> result;
       // check all annotation keys
       for(AnnotationKey key : validAnnoKeys)
       {
        auto found = db.nodeAnnos.getAnnotations(rhsNode, key.ns, key.name);
-       if(found)
+       if(found && outputFilter({rhsNode, *found}))
        {
          if(constAnno)
          {

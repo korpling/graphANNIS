@@ -77,7 +77,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGr
     for (auto it = nodes.begin(); it != nodes.end(); it++)
     {
       auto& n = *it;
-      size_t pos = parseNode(db, n, q);
+      size_t pos = parseNode(db, n, getGraphStorageFunc, q);
       nodeIdToPos[std::stoull(it.name())] = pos;
       if(!firstNodePos)
       {
@@ -163,7 +163,7 @@ std::shared_ptr<Query> JSONQueryParser::parseWithUpgradeableLock(DB &db,
   return annis::JSONQueryParser::parse(db, func, allFunc, ss, config);
 }
 
-size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::shared_ptr<SingleAlternativeQuery> q)
+size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, DB::GetGSFuncT getGraphStorageFunc, std::shared_ptr<SingleAlternativeQuery> q)
 {
 
   // annotation search?
@@ -184,9 +184,20 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::sha
     if (node["spannedText"].isString()
       || (node["token"].isBool() && node["token"].asBool()))
     {
-      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
-        optStr(node["spannedText"]),
-        optStr(node["spanTextMatching"]), true);
+      size_t n_pos = addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
+                                       optStr(node["spannedText"]),
+                                       optStr(node["spanTextMatching"]), true);
+
+      std::shared_ptr<const ReadableGraphStorage> orderGS = getGraphStorageFunc(ComponentType::ORDERING, annis_ns, "");
+      if(orderGS)
+      {
+        q->addFilter(n_pos, [orderGS] (const Match& m) -> bool
+        {
+          return orderGS->isPartOfComponent(m.node);
+        }, "is_token");
+      }
+
+      return n_pos;
     }// end if token has spanned text
     else
     {

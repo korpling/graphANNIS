@@ -36,6 +36,7 @@
 #include "annis/queryconfig.h"                      // for QueryConfig
 #include "annis/types.h"                            // for nodeid_t, Match
 #include "annis/util/plan.h"                        // for Plan, ExecutionNode
+#include <annis/filter/unaryfilter.h>
 
 using namespace annis;
 
@@ -80,6 +81,11 @@ size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationKeySearch> n, b
   nodes.push_back(n);
 
   return idx;
+}
+
+void SingleAlternativeQuery::addFilter(size_t node, std::function<bool (const Match &)> filterFunc, std::string description)
+{
+  filtersByNode.insert({node, {filterFunc, description}});
 }
 
 void SingleAlternativeQuery::addOperator(std::shared_ptr<Operator> op, size_t idxLeft, size_t idxRight, bool forceNestedLoop)
@@ -180,16 +186,30 @@ std::shared_ptr<Plan> SingleAlternativeQuery::createPlan(const std::vector<std::
   {
     std::shared_ptr<ExecutionNode> baseNode = std::make_shared<ExecutionNode>();
     baseNode->type = ExecutionNodeType::base;
-    baseNode->join = n;
     baseNode->nodePos[i] = 0;
     baseNode->componentNr = i;
+    baseNode->join = n;
+
     node2component[i] = i;
     component2exec[i] = baseNode;
+
+    // add additional filters
+    auto itFilterRange = filtersByNode.equal_range(i);
+    std::list<std::function<bool(const Match &)>> filterList;
+    for(auto it=itFilterRange.first; it != itFilterRange.second; it++)
+    {
+      filterList.push_back(it->second.first);
+      // TODO: add description
+    }
+    if(!filterList.empty())
+    {
+      n->setOutputFilter(filterList);
+    }
 
     i++;
   }
   const size_t numOfNodes = i;
-  
+
   // 2. add the operators which produce the results
   for(size_t operatorIdx=0; operatorIdx < operators.size(); operatorIdx++)
   {

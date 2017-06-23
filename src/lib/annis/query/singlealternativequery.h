@@ -18,12 +18,15 @@
 
 #include <annis/queryconfig.h>  // for QueryConfig
 #include <annis/types.h>        // for AnnotationKey, Match, nodeid_t
+
 #include <stddef.h>             // for size_t
 #include <map>                  // for map
 #include <memory>               // for shared_ptr
 #include <set>                  // for set
 #include <string>               // for string
 #include <vector>               // for vector
+#include <functional>
+
 namespace annis { class AnnoIt; }  // lines 34-34
 namespace annis { class AnnotationKeySearch; }  // lines 36-36
 namespace annis { class AnnotationSearch; }  // lines 35-35
@@ -57,6 +60,8 @@ public:
   size_t addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNodeAnno = false);
   size_t addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAnyNodeAnno = false);
 
+  void addFilter(size_t node, std::function<bool(const Match &)> filterFunc, std::string description="");
+
   /**
    * @brief add an operator to the execution queue
    * @param op
@@ -82,6 +87,7 @@ private:
 
   std::shared_ptr<Plan> bestPlan;
   std::vector<std::shared_ptr<AnnoIt>> nodes;
+  std::multimap<size_t, std::pair<std::function<bool(const Match &)>, std::string >> filtersByNode;
   std::vector<OperatorEntry> operators;
 
   std::set<AnnotationKey> emptyAnnoKeySet;

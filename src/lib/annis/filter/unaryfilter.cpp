@@ -2,7 +2,7 @@
 
 using namespace annis;
 
-UnaryFilter::UnaryFilter(std::shared_ptr<AnnoIt> delegate, std::function<bool(const Match &)> filterFunc)
+UnaryFilter::UnaryFilter(std::shared_ptr<EstimatedSearch> delegate, std::function<bool(const Match &)> filterFunc)
   : delegate(delegate), filterFunc(filterFunc)
 {
 

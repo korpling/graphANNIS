@@ -64,6 +64,7 @@ struct ExecutionEstimate
   const std::uint64_t processedInStep;
 };
 
+
 struct ExecutionNode
 {
   ExecutionNodeType type;
