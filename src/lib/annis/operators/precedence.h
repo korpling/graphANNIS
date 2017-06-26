@@ -23,6 +23,8 @@
 #include "annis/types.h"               // for Match (ptr only), Annotation
 #include <annis/db.h>
 
+#include <boost/optional.hpp>
+
 namespace annis { class AnnoIt; }
 namespace annis { class DB; }
 namespace annis { class ReadableGraphStorage; }
@@ -36,6 +38,9 @@ class Precedence : public Operator
 public:
 
   Precedence(const DB& db, DB::GetGSFuncT getGraphStorageFunc, unsigned int minDistance=1, unsigned int maxDistance=1);
+
+  Precedence(const DB& db, DB::GetGSFuncT getGraphStorageFunc, std::string segmentation,
+             unsigned int minDistance=1, unsigned int maxDistance=1);
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
   virtual bool filter(const Match& lhs, const Match& rhs) override;
@@ -55,6 +60,7 @@ private:
 
   unsigned int minDistance;
   unsigned int maxDistance;
+  boost::optional<std::string> segmentation;
 };
 
 } // end namespace annis

@@ -322,9 +322,18 @@ void JSONQueryParser::parseJoin(const DB& db,
       {
         auto minDist = join["minDistance"].asUInt();
         auto maxDist = join["maxDistance"].asUInt();
-        q->addOperator(std::make_shared<Precedence>(db, getGraphStorageFunc,
-          minDist, maxDist),
-          itLeft->second, itRight->second);
+        if(join["segmentation-name"].isString() && join["segmentation-name"].asString() != "")
+        {
+          q->addOperator(std::make_shared<Precedence>(db, getGraphStorageFunc, join["segmentation-name"].asString(),
+            minDist, maxDist),
+            itLeft->second, itRight->second);
+        }
+        else
+        {
+          q->addOperator(std::make_shared<Precedence>(db, getGraphStorageFunc,
+            minDist, maxDist),
+            itLeft->second, itRight->second);
+        }
       }
       else if (op == "Inclusion")
       {

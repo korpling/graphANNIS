@@ -38,14 +38,36 @@ Precedence::Precedence(const DB &db, DB::GetGSFuncT getGraphStorageFunc, unsigne
 {
 }
 
+Precedence::Precedence(const DB &db, DB::GetGSFuncT getGraphStorageFunc,
+                       std::string segmentation,
+                       unsigned int minDistance, unsigned int maxDistance)
+  : tokHelper(getGraphStorageFunc, db),
+    gsOrder(getGraphStorageFunc(ComponentType::ORDERING, annis_ns, segmentation)),
+    gsLeft(getGraphStorageFunc(ComponentType::LEFT_TOKEN, annis_ns, "")),
+    anyTokAnno(Init::initAnnotation(db.getTokStringID(), 0, db.getNamespaceStringID())),
+    anyNodeAnno(Init::initAnnotation(db.getNodeNameStringID(), 0, db.getNamespaceStringID())),
+    minDistance(minDistance), maxDistance(maxDistance),
+    segmentation(segmentation)
+{
+}
+
 std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
 {
   std::unique_ptr<ListWrapper> w = std::unique_ptr<ListWrapper>(new ListWrapper());
 
-  nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
-  std::unique_ptr<EdgeIterator> edgeIterator = gsOrder->findConnected(lhsRightToken,
-                                                       minDistance, maxDistance);
+  std::unique_ptr<EdgeIterator> edgeIterator;
+  nodeid_t startNode;
+  if(segmentation)
+  {
+    startNode = lhs.node;
+  }
+  else
+  {
+    startNode = tokHelper.rightTokenForNode(lhs.node);
+  }
 
+  edgeIterator = gsOrder->findConnected(startNode,
+                                        minDistance, maxDistance);
   // materialize a list of all matches and wrap it
   for(std::pair<bool, nodeid_t> matchedToken = edgeIterator->next();
       matchedToken.first; matchedToken = edgeIterator->next())
@@ -64,9 +86,20 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
 
 bool Precedence::filter(const Match &lhs, const Match &rhs)
 {
-  nodeid_t lhsRightToken = tokHelper.rightTokenForNode(lhs.node);
-  nodeid_t rhsLeftToken = tokHelper.leftTokenForNode(rhs.node);
-  if(gsOrder->isConnected(Init::initEdge(lhsRightToken, rhsLeftToken),
+  nodeid_t startNode;
+  nodeid_t endNode;
+  if(segmentation)
+  {
+    startNode = lhs.node;
+    endNode = rhs.node;
+  }
+  else
+  {
+    startNode = tokHelper.rightTokenForNode(lhs.node);
+    endNode = tokHelper.leftTokenForNode(rhs.node);
+  }
+
+  if(gsOrder->isConnected(Init::initEdge(startNode, endNode),
                            minDistance, maxDistance))
   {
     return true;
@@ -79,19 +112,47 @@ std::string Precedence::description()
 {
   if(minDistance == 1 && maxDistance == 1)
   {
-    return ".";
+    if(segmentation)
+    {
+      return "." + *segmentation;
+    }
+    else
+    {
+      return ".";
+    }
   }
   else if(minDistance == 0 && maxDistance == 0)
   {
-    return ".*";
+    if(segmentation)
+    {
+      return "." + *segmentation + "*";
+    }
+    else
+    {
+      return ".*";
+    }
   }
   else if(minDistance == maxDistance)
   {
-    return "." + std::to_string(minDistance);
+    if(segmentation)
+    {
+      return "." + *segmentation + "," + std::to_string(minDistance);
+    }
+    else
+    {
+      return "." + std::to_string(minDistance);
+    }
   }
   else
   {
-    return "." + std::to_string(minDistance) + "," + std::to_string(maxDistance);
+    if(segmentation)
+    {
+      return "." + *segmentation + "," + std::to_string(minDistance) + "," + std::to_string(maxDistance);
+    }
+    else
+    {
+      return "." + std::to_string(minDistance) + "," + std::to_string(maxDistance);
+    }
   }
 }
 

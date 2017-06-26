@@ -229,6 +229,10 @@ public class QueryToJSON
       Precedence prec = (Precedence) join;
       node.put("minDistance", (long) prec.getMinDistance());
       node.put("maxDistance", (long) prec.getMaxDistance());
+      if(prec.getSegmentationName() != null)
+      {
+        node.put("segmentation-name", prec.getSegmentationName());
+      }
     }
     else if (join instanceof Overlap)
     {
