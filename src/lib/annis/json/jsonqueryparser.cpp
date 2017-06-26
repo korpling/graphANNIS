@@ -182,20 +182,24 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, DB::GetG
     // check for special non-annotation search constructs
     // token search?
     if (node["spannedText"].isString()
-      || (node["token"].isBool() && node["token"].asBool()))
+        || (node["token"].isBool() && node["token"].asBool()))
     {
       size_t n_pos = addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
                                        optStr(node["spannedText"]),
                                        optStr(node["spanTextMatching"]), true);
 
-      std::shared_ptr<const ReadableGraphStorage> covGS = getGraphStorageFunc(ComponentType::COVERAGE, annis_ns, "");
-      if(covGS)
+      // special treatment for explicit searches for token (tok="...)
+      if(node["token"].isBool() && node["token"].asBool())
       {
-        q->addFilter(n_pos, [&db, covGS] (const Match& m) -> bool
+        std::shared_ptr<const ReadableGraphStorage> covGS = getGraphStorageFunc(ComponentType::COVERAGE, annis_ns, "");
+        if(covGS)
         {
-          return static_cast<bool>(db.nodeAnnos.getAnnotations(m.node, db.getNamespaceStringID(), db.getTokStringID()))
-              && covGS->getOutgoingEdges(m.node).empty();
-        }, "is_token");
+          q->addFilter(n_pos, [&db, covGS] (const Match& m) -> bool
+          {
+            return static_cast<bool>(db.nodeAnnos.getAnnotations(m.node, db.getNamespaceStringID(), db.getTokStringID()))
+                && covGS->getOutgoingEdges(m.node).empty();
+          }, "is_token");
+        }
       }
 
       return n_pos;
