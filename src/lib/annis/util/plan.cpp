@@ -401,11 +401,6 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         {
           selectivity = node->op->selectivity();
         }
-        else if(!node->rhs)
-        {
-          // unary filter nodes should not be more selective
-          selectivity = 1.0;
-        }
 
         std::uint64_t processedInStep = estLHS->output;
         std::uint64_t outputSize = static_cast<std::uint64_t>(((double) estLHS->output) * selectivity);
