@@ -170,21 +170,12 @@ public class QuerySetPersistance
     String name = q.getName();
     File fAQL = new File(parentDir, name + ".aql");
     String aql = q.getAql();
-    if(!aql.endsWith("\n"))
-    {
-      aql = aql + "\n";
-    }
-    Files.write(aql, fAQL, StandardCharsets.UTF_8);
+    Files.write(q.getAql(), fAQL, StandardCharsets.UTF_8);
     
     if(q.getJson() != null)
     {
-      String json = q.getJson();
-      if(!json.endsWith("\n"))
-      {
-        json = json + "\n";
-      }
       File fJSON = new File(parentDir, name + ".json");
-      Files.write(json, fJSON, StandardCharsets.UTF_8); 
+      Files.write(q.getJson().trim(), fJSON, StandardCharsets.UTF_8); 
     }
     if(q.getCount().isPresent())
     {
