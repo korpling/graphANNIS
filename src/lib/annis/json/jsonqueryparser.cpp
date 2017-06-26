@@ -188,12 +188,13 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, DB::GetG
                                        optStr(node["spannedText"]),
                                        optStr(node["spanTextMatching"]), true);
 
-      std::shared_ptr<const ReadableGraphStorage> orderGS = getGraphStorageFunc(ComponentType::ORDERING, annis_ns, "");
-      if(orderGS)
+      std::shared_ptr<const ReadableGraphStorage> covGS = getGraphStorageFunc(ComponentType::COVERAGE, annis_ns, "");
+      if(covGS)
       {
-        q->addFilter(n_pos, [orderGS] (const Match& m) -> bool
+        q->addFilter(n_pos, [&db, covGS] (const Match& m) -> bool
         {
-          return orderGS->isPartOfComponent(m.node);
+          return static_cast<bool>(db.nodeAnnos.getAnnotations(m.node, db.getNamespaceStringID(), db.getTokStringID()))
+              && covGS->getOutgoingEdges(m.node).empty();
         }, "is_token");
       }
 

@@ -30,7 +30,7 @@ public:
   TokenHelper(DB::GetGSFuncT getGSFunc, const DB& db) : db(db),
     leftEdges(getGSFunc(ComponentType::LEFT_TOKEN, annis_ns, "")),
     rightEdges(getGSFunc(ComponentType::RIGHT_TOKEN, annis_ns, "")),
-    orderEdges(getGSFunc(ComponentType::ORDERING, annis_ns, ""))
+    covEdges(getGSFunc(ComponentType::COVERAGE, annis_ns, ""))
   {
 
   }
@@ -73,14 +73,15 @@ public:
 
   bool inline isToken(const nodeid_t& n)
   {
-    return orderEdges->isPartOfComponent(n);
+    return  static_cast<bool>(db.nodeAnnos.getAnnotations(n, db.getNamespaceStringID(), db.getTokStringID()))
+            && covEdges->getOutgoingEdges(n).empty();
   }
 
 private:
   const DB& db;
   std::shared_ptr<const ReadableGraphStorage> leftEdges;
   std::shared_ptr<const ReadableGraphStorage> rightEdges;
-  std::shared_ptr<const ReadableGraphStorage> orderEdges;
+  std::shared_ptr<const ReadableGraphStorage> covEdges;
 };
 
 class Helper
