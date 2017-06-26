@@ -445,8 +445,9 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     vector<string> line;
     while((line = Helper::nextCSV(in)).size() > 0)
     {
-      // we have to check if someone is using our special label names and have to ignore these annotations
-      if(line[1] != "annis" || line[2] != "tok")
+      // we have to make some sanity checks
+      if(line[3] != "NULL"
+         && (line[1] != "annis" || line[2] != "tok"))
       {
         NodeAnnotationKey key;
         key.id = Helper::uint32FromString(line[0]);
