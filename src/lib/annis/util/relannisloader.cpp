@@ -445,23 +445,27 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     vector<string> line;
     while((line = Helper::nextCSV(in)).size() > 0)
     {
-      NodeAnnotationKey key;
-      key.id = Helper::uint32FromString(line[0]);
-      key.anno_ns = db.strings.add(line[1]);
-      key.anno_name = db.strings.add(line[2]);
-
-      uint32_t annoVal = db.strings.add(line[3]);
-      annoList.push_back({key, annoVal});
-
-      // add all missing span values from the annotation
-      auto itMissing = missingSegmentationSpan.find(key.id);
-      if(itMissing!= missingSegmentationSpan.end() && itMissing->second == line[2])
+      // we have to check if someone is using our special label names and have to ignore these annotations
+      if(line[1] != "annis" || line[2] != "tok")
       {
-        Annotation tokAnno;
-        tokAnno.ns = db.strings.add(annis_ns);
-        tokAnno.name = db.strings.add(annis_tok);
-        tokAnno.val = annoVal;
-        annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({key.id, tokAnno.name, tokAnno.ns }, tokAnno.val));
+        NodeAnnotationKey key;
+        key.id = Helper::uint32FromString(line[0]);
+        key.anno_ns = db.strings.add(line[1]);
+        key.anno_name = db.strings.add(line[2]);
+
+        uint32_t annoVal = db.strings.add(line[3]);
+        annoList.push_back({key, annoVal});
+
+        // add all missing span values from the annotation
+        auto itMissing = missingSegmentationSpan.find(key.id);
+        if(itMissing!= missingSegmentationSpan.end() && itMissing->second == line[2])
+        {
+          Annotation tokAnno;
+          tokAnno.ns = db.strings.add(annis_ns);
+          tokAnno.name = db.strings.add(annis_tok);
+          tokAnno.val = annoVal;
+          annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({key.id, tokAnno.name, tokAnno.ns }, tokAnno.val));
+        }
       }
     }
 
