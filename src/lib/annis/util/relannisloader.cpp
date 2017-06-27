@@ -446,15 +446,22 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     while((line = Helper::nextCSV(in)).size() > 0)
     {
       // we have to make some sanity checks
-      if(line[3] != "NULL"
-         && (line[1] != "annis" || line[2] != "tok"))
+      if(line[1] != "annis" || line[2] != "tok")
       {
         NodeAnnotationKey key;
         key.id = Helper::uint32FromString(line[0]);
         key.anno_ns = db.strings.add(line[1]);
         key.anno_name = db.strings.add(line[2]);
 
-        uint32_t annoVal = db.strings.add(line[3]);
+        uint32_t annoVal;
+        if(line[3] == "NULL")
+        {
+          annoVal = db.strings.add("");
+        }
+        else
+        {
+          annoVal = db.strings.add(line[3]);
+        }
         annoList.push_back({key, annoVal});
 
         // add all missing span values from the annotation
