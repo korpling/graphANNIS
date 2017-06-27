@@ -456,6 +456,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         uint32_t annoVal;
         if(line[3] == "NULL")
         {
+          // use the empty string for empty annotations
           annoVal = db.strings.add("");
         }
         else
@@ -464,9 +465,10 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         }
         annoList.push_back({key, annoVal});
 
-        // add all missing span values from the annotation
+        // add all missing span values from the annotation, but don't add NULL values
         auto itMissing = missingSegmentationSpan.find(key.id);
-        if(itMissing!= missingSegmentationSpan.end() && itMissing->second == line[2])
+        if(itMissing!= missingSegmentationSpan.end() && itMissing->second == line[2]
+           && line[3] != "NULL")
         {
           Annotation tokAnno;
           tokAnno.ns = db.strings.add(annis_ns);
