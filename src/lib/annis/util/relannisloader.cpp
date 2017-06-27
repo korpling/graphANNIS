@@ -280,7 +280,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         for(uint32_t i=left.val; i <= right.val; i++)
         {
           textPos.val = i;
-          tokenByTextPosition[textPos] = nodeNr;
+          tokenByTextPosition.insert({textPos, nodeNr});
         }
 
       } // end if token
