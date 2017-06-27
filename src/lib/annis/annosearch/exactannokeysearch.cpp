@@ -108,28 +108,40 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace,
 
 bool ExactAnnoKeySearch::next(Match& result)
 {
-  if(it != db.nodeAnnos.inverseAnnotations.end() && it != itEnd)
+  while(it != db.nodeAnnos.inverseAnnotations.end() && it != itEnd)
   {
     result.node = it->second; // node ID
+    result.anno = it->first; // annotation itself
+    it++;
+
     if(getConstAnnoValue())
     {
-      result.anno = *getConstAnnoValue();
+      /*
+       * When we replace the resulting annotation with a constant value it is possible that duplicates
+       * can occur. Therfore we must check that each node is only included once as a result
+       */
+      if(uniqueResultFilter.find(result.node) == uniqueResultFilter.end())
+      {
+        uniqueResultFilter.insert(result.node);
+
+        result.anno = *getConstAnnoValue();
+
+        return true;
+      }
     }
     else
     {
-      result.anno = it->first; // annotation itself
+      return true;
     }
-    it++;
-    return true;
-  }
-  else
-  {
-    return false;
-  }
+  } // end while something found in inverse annotation map
+
+  return false;
+
 }
 
 void ExactAnnoKeySearch::reset()
 {
+  uniqueResultFilter.clear();
   it = itBegin;
 }
 

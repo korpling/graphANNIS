@@ -92,6 +92,8 @@ namespace annis
 
     const std::string debugDescription;
 
+    std::unordered_set<nodeid_t> uniqueResultFilter;
+
   private:
     
     void initValidAnnotations();

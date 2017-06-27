@@ -76,17 +76,11 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &anno
 
 bool ExactAnnoValueSearch::next(Match& result)
 {
-  if(currentRange != searchRanges.end() && it != currentRange->second)
+  while(currentRange != searchRanges.end() && it != currentRange->second)
   {
     result.node = it->second; // node ID
-    if(getConstAnnoValue())
-    {
-      result.anno = *getConstAnnoValue();
-    }
-    else
-    {
-      result.anno = it->first; // annotation itself
-    }
+    result.anno = it->first; // annotation itself
+
     it++;
     if(it == currentRange->second)
     {
@@ -96,16 +90,36 @@ bool ExactAnnoValueSearch::next(Match& result)
         it = currentRange->first;
       }
     }
-    return true;
+
+    if(getConstAnnoValue())
+    {
+      /*
+       * When we replace the resulting annotation with a constant value it is possible that duplicates
+       * can occur. Therfore we must check that each node is only included once as a result
+       */
+      if(uniqueResultFilter.find(result.node) == uniqueResultFilter.end())
+      {
+        uniqueResultFilter.insert(result.node);
+
+        result.anno = *getConstAnnoValue();
+
+        return true;
+      }
+    }
+    else
+    {
+      return true;
+    }
   }
-  else
-  {
-    return false;
-  }
+
+  return false;
+
 }
 
 void ExactAnnoValueSearch::reset()
 {
+  uniqueResultFilter.clear();
+
   currentRange = searchRanges.begin();
   if(currentRange != searchRanges.end())
   {

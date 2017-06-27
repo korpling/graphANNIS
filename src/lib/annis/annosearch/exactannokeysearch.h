@@ -20,6 +20,7 @@
 #include <annis/annostorage.h>                  // for AnnoStorage, AnnoStor...
 #include <google/btree_container.h>             // for btree_unique_containe...
 #include <google/btree_map.h>                   // for btree_map
+#include <unordered_set>
 #include <stdint.h>                             // for int64_t, uint64_t
 #include <set>                                  // for set
 #include <string>                               // for string
@@ -81,6 +82,9 @@ private:
   std::set<AnnotationKey> validAnnotationKeys;
 
   const std::string debugDescription;
+
+  std::unordered_set<nodeid_t> uniqueResultFilter;
+
 private:
   void initializeValidAnnotationKeys();
 

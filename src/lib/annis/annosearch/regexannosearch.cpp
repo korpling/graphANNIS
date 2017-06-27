@@ -111,11 +111,26 @@ bool RegexAnnoSearch::next(Match& result)
         if(RE2::FullMatch(db.strings.str(it->first.val), compiledValRegex))
         {
           result = {it->second, it->first};
+          it++;
           if(getConstAnnoValue())
           {
-            result.anno = *getConstAnnoValue();
+            /*
+             * When we replace the resulting annotation with a constant value it is possible that duplicates
+             * can occur. Therfore we must check that each node is only included once as a result
+             */
+            if(uniqueResultFilter.find(result.node) == uniqueResultFilter.end())
+            {
+              uniqueResultFilter.insert(result.node);
+
+              result.anno = *getConstAnnoValue();
+
+              return true;
+            }
           }
-          it++;
+          else
+          {
+            return true;
+          }
           return true;
         }
         // skip to the next available key (we don't want to iterate over each value of the multimap)
@@ -135,6 +150,8 @@ bool RegexAnnoSearch::next(Match& result)
 
 void RegexAnnoSearch::reset()
 {
+  uniqueResultFilter.clear();
+
   currentRange = searchRanges.begin();
   if(currentRange != searchRanges.end())
   {
