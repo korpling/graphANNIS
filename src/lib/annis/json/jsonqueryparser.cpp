@@ -102,7 +102,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGr
       // add an artificial node that describes the document/corpus node
       size_t metaNodeIdx = addNodeAnnotation(db, q, optStr(m["namespace"]),
             optStr(m["name"]), optStr(m["value"]),
-            optStr(m["textMatching"]));
+            optStr(m["textMatching"]), true);
 
       if(firstMetaIdx)
       {
