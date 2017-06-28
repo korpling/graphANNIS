@@ -199,10 +199,9 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
   }
 
 
+  std::list<std::pair<NodeAnnotationKey, uint32_t>> annoList;
 
   {
-    std::list<std::pair<NodeAnnotationKey, uint32_t>> annoList;
-
     vector<string> line;
     while((line = Helper::nextCSV(in)).size() > 0)
     {
@@ -325,9 +324,6 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     }
 
     in.close();
-
-    HL_INFO(logger, "bulk inserting basic node labels");
-    db.nodeAnnos.addAnnotationBulk(annoList);
   }
 
   // TODO: cleanup, better variable naming and put this into it's own function
@@ -446,8 +442,6 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
   }
 
   {
-    std::list<std::pair<NodeAnnotationKey, uint32_t>> annoList;
-
     string nodeAnnoTabPath = dirPath + "/node_annotation"  + (isANNIS33Format ? ".annis" : ".tab");
     HL_INFO(logger, (boost::format("loading %1%") % nodeAnnoTabPath).str());
 
@@ -492,11 +486,11 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     }
 
     in.close();
-
-    HL_INFO(logger, "bulk inserting node annotations");
-    db.nodeAnnos.addAnnotationBulk(annoList);
   }
 
+
+  HL_INFO(logger, "bulk inserting node annotations");
+  db.nodeAnnos.addAnnotationBulk(annoList);
 
 
   return true;
