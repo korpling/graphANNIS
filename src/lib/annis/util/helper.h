@@ -73,7 +73,7 @@ public:
 
   bool inline isToken(const nodeid_t& n)
   {
-    return  static_cast<bool>(db.nodeAnnos.getAnnotations(n, db.getNamespaceStringID(), db.getTokStringID()))
+    return  db.nodeAnnos.getAnnotations(n, db.getNamespaceStringID(), db.getTokStringID())
             && covEdges->getOutgoingEdges(n).empty();
   }
 
