@@ -271,7 +271,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         index.textID = textID;
         index.corpusID = corpusID;
 
-        tokenByIndex[index] = nodeNr;
+        tokenByIndex.insert({index, nodeNr});
 
         TextProperty textPos;
         textPos.segmentation = "";
