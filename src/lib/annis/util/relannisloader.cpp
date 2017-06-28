@@ -181,6 +181,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
 
   // maps a character position to it's token
   map<TextProperty, nodeid_t> tokenByTextPosition;
+  unordered_set<nodeid_t> isToken;
 
   map<nodeid_t, string> missingSegmentationSpan;
 
@@ -197,9 +198,11 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     return false;
   }
 
-  std::list<std::pair<NodeAnnotationKey, uint32_t>> annoList;
+
 
   {
+    std::list<std::pair<NodeAnnotationKey, uint32_t>> annoList;
+
     vector<string> line;
     while((line = Helper::nextCSV(in)).size() > 0)
     {
@@ -271,6 +274,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         index.textID = textID;
         index.corpusID = corpusID;
 
+        isToken.insert(nodeNr);
         tokenByIndex.insert({index, nodeNr});
 
         TextProperty textPos;
@@ -313,7 +317,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
           index.textID = textID;
           index.corpusID = corpusID;
 
-          tokenByIndex[index] = nodeNr;
+          tokenByIndex.insert({index, nodeNr});
 
         } // end if node has segmentation info
       } // endif if check segmentations
@@ -321,6 +325,9 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     }
 
     in.close();
+
+    HL_INFO(logger, "bulk inserting basic node labels");
+    db.nodeAnnos.addAnnotationBulk(annoList);
   }
 
   // TODO: cleanup, better variable naming and put this into it's own function
@@ -414,28 +421,33 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
   {
     nodeid_t n = itLeftToNode->second;
 
-    TextProperty textPos;
-    textPos.segmentation = "";
-    textPos.textID = itLeftToNode->first.textID;
-    textPos.corpusID = itLeftToNode->first.corpusID;
-
-    uint32_t left = itLeftToNode->first.val;
-    uint32_t right = nodeToRight[n];
-
-    for(uint32_t i = left; i < right; i++)
+    if(isToken.find(n) == isToken.end())
     {
-      // get the token that belongs to this text position
-      textPos.val = i;
-      nodeid_t tokenID = tokenByTextPosition[textPos];
-      if(n != tokenID)
+      TextProperty textPos;
+      textPos.segmentation = "";
+      textPos.textID = itLeftToNode->first.textID;
+      textPos.corpusID = itLeftToNode->first.corpusID;
+
+      uint32_t left = itLeftToNode->first.val;
+      uint32_t right = nodeToRight[n];
+
+      for(uint32_t i = left; i < right; i++)
       {
-        gsCoverage->addEdge(Init::initEdge(n, tokenID));
-        gsInverseCoverage->addEdge(Init::initEdge(tokenID, n));
+        // get the token that belongs to this text position
+        textPos.val = i;
+        nodeid_t tokenID = tokenByTextPosition[textPos];
+        if(n != tokenID)
+        {
+          gsCoverage->addEdge(Init::initEdge(n, tokenID));
+          gsInverseCoverage->addEdge(Init::initEdge(tokenID, n));
+        }
       }
-    }
+    } // end if not a token
   }
 
   {
+    std::list<std::pair<NodeAnnotationKey, uint32_t>> annoList;
+
     string nodeAnnoTabPath = dirPath + "/node_annotation"  + (isANNIS33Format ? ".annis" : ".tab");
     HL_INFO(logger, (boost::format("loading %1%") % nodeAnnoTabPath).str());
 
@@ -480,10 +492,12 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     }
 
     in.close();
+
+    HL_INFO(logger, "bulk inserting node annotations");
+    db.nodeAnnos.addAnnotationBulk(annoList);
   }
 
-  HL_INFO(logger, "bulk inserting node annotations");
-  db.nodeAnnos.addAnnotationBulk(annoList);
+
 
   return true;
 }
