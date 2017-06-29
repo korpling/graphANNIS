@@ -62,8 +62,14 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &anno
     auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({nameID.second, uintmax});
     for(auto itKey = keysLower; itKey != keysUpper; itKey++)
     {
-      searchRanges.push_back(Range(db.nodeAnnos.inverseAnnotations.equal_range(
-      {itKey->first.name, itKey->first.ns, valueID.second})));
+      Range r = db.nodeAnnos.inverseAnnotations.equal_range(
+        {itKey->first.name, itKey->first.ns, valueID.second});
+
+      // only remember ranges that actually have valid iterator pairs
+      if(r.first != r.second)
+      {
+        searchRanges.push_back(std::move(r));
+      }
     }
   }
   currentRange = searchRanges.begin();
