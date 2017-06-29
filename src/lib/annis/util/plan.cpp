@@ -349,35 +349,12 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
 
         if (node->type == ExecutionNodeType::nested_loop)
         {
-          if(estLHS->output < estRHS->output)
-          {
-            // we use LHS as outer
-            processedInStep = estLHS->output + (estLHS->output * estRHS->output);
-          }
-          else
-          {
-            // we use RHS as outer
-            processedInStep = estRHS->output + (estRHS->output * estLHS->output);
-          }
+          processedInStep = calculateNestedLoopProcessed(estLHS->output, estRHS->output);
         } 
         else if (node->type == ExecutionNodeType::index_join
                  && node->op->estimationType() == Operator::EstimationType::SELECTIVITY)
         {
-          // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
-          // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
-          // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
-
-          // avgReachable = (sel * cross) / lhs
-          //              = (sel * lhs * rhs) / lhs
-          //              = sel * rhs
-          // processedInStep = lhs + (avgReachable * lhs)
-          //                 = lhs + (sel * rhs * lhs)
-
-          processedInStep =
-              static_cast<std::uint64_t>(
-                (long double) estLHS->output
-                + (operatorSelectivity * (long double) estRHS->output * (long double) estLHS->output)
-              );
+          processedInStep = calculateIndexJoinProcessed(operatorSelectivity, estLHS->output, estRHS->output);
         } 
         else
         {
@@ -708,6 +685,43 @@ std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedIn
   return result;
 
 }
+
+std::uint64_t Plan::calculateNestedLoopProcessed(std::uint64_t outputLHS, std::uint64_t outputRHS)
+{
+  std::uint64_t processedInStep;
+  if(outputLHS < outputRHS)
+  {
+    // we use LHS as outer
+    processedInStep = outputLHS + (outputLHS * outputRHS);
+  }
+  else
+  {
+    // we use RHS as outer
+    processedInStep = outputRHS + (outputRHS * outputLHS);
+  }
+  return processedInStep;
+}
+
+uint64_t Plan::calculateIndexJoinProcessed(long double operatorSelectivity, uint64_t outputLHS, uint64_t outputRHS)
+{
+  // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
+  // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
+  // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
+
+  // avgReachable = (sel * cross) / lhs
+  //              = (sel * lhs * rhs) / lhs
+  //              = sel * rhs
+  // processedInStep = lhs + (avgReachable * lhs)
+  //                 = lhs + (sel * rhs * lhs)
+
+  return
+      static_cast<std::uint64_t>(
+        (long double) outputLHS
+        + (operatorSelectivity * (long double) outputRHS * (long double) outputLHS)
+      );
+}
+
+
 
 
 void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node) 

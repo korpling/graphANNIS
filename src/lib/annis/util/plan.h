@@ -140,6 +140,10 @@ private:
 
   static std::pair<std::shared_ptr<ExecutionNode>, uint64_t> findLargestProcessedInStep(
       std::shared_ptr<ExecutionNode> node, bool includeSeed = true);
+
+  static uint64_t calculateNestedLoopProcessed(uint64_t outputLHS, uint64_t outputRHS);
+
+  static uint64_t calculateIndexJoinProcessed(long double operatorSelectivity, uint64_t outputLHS, uint64_t outputRHS);
 };
 
 } // end namespace annis
