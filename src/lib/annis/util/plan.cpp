@@ -70,7 +70,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   else if(rhs->type == ExecutionNodeType::base && !forceNestedLoop)
   { 
     // if the right side is not another join we can use a seed join
-    type = ExecutionNodeType::seed;
+    type = ExecutionNodeType::index_join;
   }
   else if(config.avoidNestedBySwitch && !forceNestedLoop
     && op->isCommutative()
@@ -85,7 +85,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     lhsNodeNr = rhsNodeNr;
     rhsNodeNr = tmpNodeID;
     
-    type = ExecutionNodeType::seed;
+    type = ExecutionNodeType::index_join;
   }
   
   std::shared_ptr<ExecutionNode> result = std::make_shared<ExecutionNode>();
@@ -107,9 +107,9 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     result->type = ExecutionNodeType::filter;
     join = std::make_shared<BinaryFilter>(op, lhs->join, mappedPosLHS->second, mappedPosRHS->second);
   }
-  else if(type == ExecutionNodeType::seed)
+  else if(type == ExecutionNodeType::index_join)
   {
-    result->type = ExecutionNodeType::seed;
+    result->type = ExecutionNodeType::index_join;
     result->numOfBackgroundTasks = numOfBackgroundTasks;
       
     std::shared_ptr<Iterator> rightIt = rhs->join;
@@ -360,7 +360,7 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
             processedInStep = estRHS->output + (estRHS->output * estLHS->output);
           }
         } 
-        else if (node->type == ExecutionNodeType::seed
+        else if (node->type == ExecutionNodeType::index_join
                  && node->op->estimationType() == Operator::EstimationType::SELECTIVITY)
         {
           // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
@@ -693,7 +693,7 @@ std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedIn
     result = largestRHS;
   }
 
-  if(node->type == ExecutionNodeType::nested_loop || (includeSeed && node->type == ExecutionNodeType::seed))
+  if(node->type == ExecutionNodeType::nested_loop || (includeSeed && node->type == ExecutionNodeType::index_join))
   {
     std::shared_ptr<ExecutionEstimate> estNode = estimateTupleSize(node);
 
@@ -798,7 +798,7 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
       result += "{";
     }
 
-    if((node->type == ExecutionNodeType::seed || node->type == ExecutionNodeType::nested_loop)
+    if((node->type == ExecutionNodeType::index_join || node->type == ExecutionNodeType::nested_loop)
        && node->numOfBackgroundTasks > 0)
     {
       result +=" tasks: " + std::to_string(node->numOfBackgroundTasks);
@@ -830,8 +830,8 @@ std::string Plan::typeToString(ExecutionNodeType type) const
       return "filter";
     case ExecutionNodeType::nested_loop:
       return "nested_loop";
-    case ExecutionNodeType::seed:
-      return "seed";
+    case ExecutionNodeType::index_join:
+      return "index_join";
     default:
       return "<unknown>";
   }

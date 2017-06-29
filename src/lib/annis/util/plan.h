@@ -44,7 +44,7 @@ enum ExecutionNodeType
 {
   base,
   nested_loop,
-  seed,
+  index_join,
   filter,
   num_of_ExecutionNodeType
 };
