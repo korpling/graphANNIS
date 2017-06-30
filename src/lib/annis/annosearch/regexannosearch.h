@@ -43,14 +43,19 @@ namespace annis
     RegexAnnoSearch(const DB& db, const std::string &name, const std::string &valRegex);
     RegexAnnoSearch(const DB& db, const std::string &ns, const std::string &name, const std::string &valRegex);
 
-    virtual const std::unordered_set<Annotation>& getValidAnnotations()
+
+    const std::set<AnnotationKey>& getValidAnnotationKeys() const
     {
-      std::lock_guard<std::mutex> lock(mutex_validAnnotations);
-      if (!validAnnotationsInitialized)
+      return annoKeys;
+    }
+
+    bool valueMatches(const std::string& str)
+    {
+      if(compiledValRegex.ok())
       {
-        initValidAnnotations();
+        return RE2::FullMatch(str, compiledValRegex);
       }
-      return validAnnotations;
+      return false;
     }
 
     bool valueMatchesAllStrings() const;
@@ -80,13 +85,9 @@ namespace annis
     boost::optional<std::string> annoKeyNamespace;
     std::string annoKeyName;
 
-    std::mutex mutex_validAnnotations;
-    std::unordered_set<Annotation> validAnnotations;
-    bool validAnnotationsInitialized;
-
     std::string valRegex;
     RE2 compiledValRegex;
-    std::vector<Annotation> annoTemplates;
+    std::set<AnnotationKey> annoKeys;
 
     std::list<Range> searchRanges;
     std::list<Range>::const_iterator currentRange;
@@ -97,8 +98,7 @@ namespace annis
     std::unordered_set<nodeid_t> uniqueResultFilter;
 
   private:
-    
-    void initValidAnnotations();
+    void initializeValidAnnotationKeys();
     
   };
 } // end namespace annis

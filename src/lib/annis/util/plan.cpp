@@ -559,21 +559,23 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
 }
 
 std::function<std::list<Annotation> (nodeid_t)> Plan::createRegexAnnoSearchFilter(
-    const DB &db, std::shared_ptr<RegexAnnoSearch> annoSearch, boost::optional<Annotation> constAnno)
+    const DB &db, std::shared_ptr<RegexAnnoSearch> regexSearch, boost::optional<Annotation> constAnno)
 {
 
+  auto outputFilter = regexSearch->getOutputFilter();
+  const std::set<AnnotationKey>& validAnnoKeys = regexSearch->getValidAnnotationKeys();
 
-  return [&db, constAnno, annoSearch](nodeid_t rhsNode) -> std::list<Annotation>
+  if(validAnnoKeys.size() == 1)
   {
-    auto outputFilter = annoSearch->getOutputFilter();
-    const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
+    const auto& rightAnnoKey = *(validAnnoKeys.begin());
 
-    std::list<Annotation> result;
-    // check all annotations which of them matches
-    std::vector<Annotation> annos = db.nodeAnnos.getAnnotations(rhsNode);
-    for(const auto& a : annos)
+    return [&db, rightAnnoKey, constAnno, outputFilter, regexSearch](nodeid_t rhsNode) -> std::list<Annotation>
     {
-      if(validAnnos.find(a) != validAnnos.end() && outputFilter({rhsNode, a}))
+      std::list<Annotation> result;
+      auto foundAnno =
+          db.nodeAnnos.getAnnotations(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
+
+      if(foundAnno && regexSearch->valueMatches(db.strings.str(foundAnno->val)) && outputFilter({rhsNode, *foundAnno}))
       {
         if(constAnno)
         {
@@ -581,14 +583,38 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createRegexAnnoSearchFilte
         }
         else
         {
-          result.push_back(a);
+          result.push_back(*foundAnno);
         }
+
       }
-    }
 
-    return std::move(result);
-  };
-
+      return std::move(result);
+    };
+  }
+  else
+  {
+    return [&db, validAnnoKeys, constAnno, outputFilter, regexSearch](nodeid_t rhsNode) -> std::list<Annotation>
+    {
+      std::list<Annotation> result;
+      // check all annotation keys
+      for(AnnotationKey key : validAnnoKeys)
+      {
+       auto found = db.nodeAnnos.getAnnotations(rhsNode, key.ns, key.name);
+       if(found && regexSearch->valueMatches(db.strings.str(found->val)) && outputFilter({rhsNode, *found}))
+       {
+         if(constAnno)
+         {
+           result.push_back(*constAnno);
+         }
+         else
+         {
+          result.push_back(*found);
+         }
+       }
+      }
+      return std::move(result);
+    };
+  }
 }
 
 
