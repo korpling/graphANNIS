@@ -83,7 +83,7 @@ public class QueryToJSON
     ObjectNode root = factory.objectNode();
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(jaxbModule);
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     
     if (query != null && !query.isEmpty())
     {

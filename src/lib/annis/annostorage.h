@@ -224,7 +224,11 @@ namespace annis {
         valueList.resize(std::min<size_t>(maxSampledAnnotations, annos.size()));
         for(size_t i=0; i < valueList.size(); i++)
         {
-          valueList[i] = strings.str(annos[i].val);
+          auto v = strings.strOpt(annos[i].val);
+          if(v)
+          {
+            valueList[i] = *v;
+          }
         }
 
       }

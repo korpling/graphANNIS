@@ -462,8 +462,8 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         uint32_t annoVal;
         if(line[3] == "NULL")
         {
-          // use the empty string for empty annotations
-          annoVal = db.strings.add("");
+          // use an "invalid" string so it can't be found by its value, but only by its annotation name
+          annoVal = std::numeric_limits<uint32_t>::max();
         }
         else
         {
