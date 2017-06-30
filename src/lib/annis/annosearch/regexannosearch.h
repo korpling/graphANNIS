@@ -45,6 +45,7 @@ namespace annis
 
     virtual const std::unordered_set<Annotation>& getValidAnnotations() override
     {
+      std::lock_guard<std::mutex> lock(mutex_validAnnotations);
       if (!validAnnotationsInitialized)
       {
         initValidAnnotations();
@@ -79,6 +80,7 @@ namespace annis
     boost::optional<std::string> annoKeyNamespace;
     std::string annoKeyName;
 
+    std::mutex mutex_validAnnotations;
     std::unordered_set<Annotation> validAnnotations;
     bool validAnnotationsInitialized;
 

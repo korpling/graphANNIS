@@ -30,6 +30,7 @@
 
 namespace annis { class AnnotationKeySearch; }
 namespace annis { class AnnotationSearch; }
+namespace annis { class RegexAnnoSearch; }
 namespace annis { class DB; }
 namespace annis { class EstimatedSearch; }
 namespace annis { class Iterator; }
@@ -126,6 +127,10 @@ private:
   static std::list<std::shared_ptr<ExecutionNode>> getDescendentNestedLoops(std::shared_ptr<ExecutionNode> node);
 
   static std::function<std::list<Annotation> (nodeid_t)> createAnnotationSearchFilter(
+      const DB& db, std::shared_ptr<AnnotationSearch> annoSearch,
+      boost::optional<Annotation> constAnno = boost::optional<Annotation>());
+
+  static std::function<std::list<Annotation> (nodeid_t)> createRegexAnnoSearchFilter(
       const DB& db, std::shared_ptr<AnnotationSearch> annoSearch,
       boost::optional<Annotation> constAnno = boost::optional<Annotation>());
 

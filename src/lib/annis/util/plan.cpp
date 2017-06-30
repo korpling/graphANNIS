@@ -36,6 +36,7 @@
 #include <set>                                      // for set
 #include <unordered_set>                            // for unordered_set
 #include "annis/annosearch/annotationsearch.h"      // for EstimatedSearch
+#include <annis/annosearch/regexannosearch.h>
 #include "annis/annostorage.h"                      // for AnnoStorage
 #include "annis/iterators.h"                        // for Iterator
 #include "annis/queryconfig.h"                      // for QueryConfig
@@ -430,6 +431,12 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const D
 {
   boost::optional<Annotation> constAnno = search->getConstAnnoValue();
 
+  std::shared_ptr<RegexAnnoSearch> regexSearch = std::dynamic_pointer_cast<RegexAnnoSearch>(search);
+  if(regexSearch)
+  {
+    return createRegexAnnoSearchFilter(db, regexSearch, constAnno);
+  }
+
   std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
   if(annoSearch)
   {
@@ -451,6 +458,12 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const D
 
 bool Plan::searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> search)
 {
+  std::shared_ptr<RegexAnnoSearch> regexSearch = std::dynamic_pointer_cast<RegexAnnoSearch>(search);
+  if(regexSearch)
+  {
+    return false;
+  }
+
   std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
   if(annoSearch)
   {
@@ -565,6 +578,39 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
       return std::move(result);
     };
   }
+}
+
+std::function<std::list<Annotation> (nodeid_t)> Plan::createRegexAnnoSearchFilter(
+    const DB &db, std::shared_ptr<AnnotationSearch> annoSearch, boost::optional<Annotation> constAnno)
+{
+
+
+  return [&db, constAnno, annoSearch](nodeid_t rhsNode) -> std::list<Annotation>
+  {
+    auto outputFilter = annoSearch->getOutputFilter();
+    const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
+
+    std::list<Annotation> result;
+    // check all annotations which of them matches
+    std::vector<Annotation> annos = db.nodeAnnos.getAnnotations(rhsNode);
+    for(const auto& a : annos)
+    {
+      if(validAnnos.find(a) != validAnnos.end() && outputFilter({rhsNode, a}))
+      {
+        if(constAnno)
+        {
+          result.push_back(*constAnno);
+        }
+        else
+        {
+          result.push_back(a);
+        }
+      }
+    }
+
+    return std::move(result);
+  };
+
 }
 
 
