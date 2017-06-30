@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <annis/annosearch/annotationsearch.h>  // for AnnotationKeySearch
+#include <annis/annosearch/estimatedsearch.h>  // for EstimatedSearch
 #include <annis/annostorage.h>                  // for AnnoStorage, AnnoStor...
 #include <google/btree_container.h>             // for btree_unique_containe...
 #include <google/btree_map.h>                   // for btree_map

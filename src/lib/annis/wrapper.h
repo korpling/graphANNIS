@@ -15,7 +15,7 @@
 */
 #pragma once
 
-#include <annis/annosearch/annotationsearch.h>  // for EstimatedSearch
+#include <annis/annosearch/estimatedsearch.h>  // for EstimatedSearch
 #include <annis/iterators.h>                    // for AnnoIt
 #include <annis/types.h>                        // for Match, Annotation
 #include <stddef.h>                             // for size_t

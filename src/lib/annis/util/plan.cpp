@@ -35,7 +35,7 @@
 #include <memory>                                   // for shared_ptr, __sha...
 #include <set>                                      // for set
 #include <unordered_set>                            // for unordered_set
-#include "annis/annosearch/annotationsearch.h"      // for EstimatedSearch
+#include "annis/annosearch/estimatedsearch.h"      // for EstimatedSearch
 #include <annis/annosearch/regexannosearch.h>
 #include <annis/annosearch/exactannokeysearch.h>
 #include <annis/annosearch/exactannovaluesearch.h>

@@ -26,7 +26,7 @@
 #include <utility>              // for pair
 #include <vector>               // for vector
 #include <annis/types.h>        // for Annotation, AnnotationKey, Match (ptr...
-#include <annis/annosearch/annotationsearch.h>   // for AnnotationSearch
+#include <annis/annosearch/estimatedsearch.h>   // for EstimatedSearch
 namespace annis { class DB; }
 
 

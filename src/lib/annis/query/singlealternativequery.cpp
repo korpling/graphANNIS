@@ -15,7 +15,7 @@
 */
 
 #include "singlealternativequery.h"
-#include <annis/annosearch/annotationsearch.h>      // for EstimatedSearch
+#include <annis/annosearch/estimatedsearch.h>      // for EstimatedSearch
 #include <annis/annosearch/nodebyedgeannosearch.h>  // for NodeByEdgeAnnoSearch
 #include <annis/annosearch/exactannokeysearch.h>
 #include <annis/annosearch/regexannosearch.h>

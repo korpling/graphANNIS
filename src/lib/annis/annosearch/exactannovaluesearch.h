@@ -23,7 +23,7 @@
 #include <utility>              // for pair
 #include <annis/annostorage.h>  // for AnnoStorage, AnnoStorage<>::InverseAn...
 #include <annis/types.h>        // for Annotation (ptr only), Match (ptr only)
-#include <annis/annosearch/annotationsearch.h>   // for AnnotationSearch
+#include <annis/annosearch/estimatedsearch.h>   // for EstimatedSearch
 
 namespace annis { class DB; }
 
