@@ -48,24 +48,7 @@ SingleAlternativeQuery::~SingleAlternativeQuery() {
   
 }
 
-size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNodeAnno)
-{
-  bestPlan.reset();
-
-  size_t idx = nodes.size();
-
-  if(wrapAnyNodeAnno)
-  {
-    Annotation constAnno = {db.getNodeTypeStringID(), db.getNamespaceStringID(), 0};
-    n->setConstAnnoValue(constAnno);
-  }
-
-  nodes.push_back(n);
-  
-  return idx;
-}
-
-size_t SingleAlternativeQuery::addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAnyNodeAnno)
+size_t SingleAlternativeQuery::addNode(std::shared_ptr<EstimatedSearch> n, bool wrapAnyNodeAnno)
 {
   bestPlan.reset();
 
@@ -275,7 +258,7 @@ void SingleAlternativeQuery::optimizeUnboundRegex()
       if(regexSearch != nullptr && regexSearch->valueMatchesAllStrings())
       {
         // replace the regex search with an anno key search
-        std::shared_ptr<AnnotationKeySearch> annoKeySearch;
+        std::shared_ptr<ExactAnnoKeySearch> annoKeySearch;
         auto ns = regexSearch->getAnnoKeyNamespace();
         auto name = regexSearch->getAnnoKeyName();
         if(ns)

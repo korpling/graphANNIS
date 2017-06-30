@@ -37,6 +37,8 @@
 #include <unordered_set>                            // for unordered_set
 #include "annis/annosearch/annotationsearch.h"      // for EstimatedSearch
 #include <annis/annosearch/regexannosearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
+#include <annis/annosearch/exactannovaluesearch.h>
 #include "annis/annostorage.h"                      // for AnnoStorage
 #include "annis/iterators.h"                        // for Iterator
 #include "annis/queryconfig.h"                      // for QueryConfig
@@ -414,12 +416,12 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const D
     return createRegexAnnoSearchFilter(db, regexSearch, constAnno);
   }
 
-  std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
+  std::shared_ptr<ExactAnnoValueSearch> annoSearch = std::dynamic_pointer_cast<ExactAnnoValueSearch>(search);
   if(annoSearch)
   {
     return createAnnotationSearchFilter(db, annoSearch, constAnno);
   }
-  std::shared_ptr<AnnotationKeySearch> annoKeySearch = std::dynamic_pointer_cast<AnnotationKeySearch>(search);
+  std::shared_ptr<ExactAnnoKeySearch> annoKeySearch = std::dynamic_pointer_cast<ExactAnnoKeySearch>(search);
   if(annoKeySearch)
   {
     return createAnnotationKeySearchFilter(db, annoKeySearch, constAnno);
@@ -441,12 +443,12 @@ bool Plan::searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> se
     return false;
   }
 
-  std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
+  std::shared_ptr<ExactAnnoValueSearch> annoSearch = std::dynamic_pointer_cast<ExactAnnoValueSearch>(search);
   if(annoSearch)
   {
     return annoSearch->getValidAnnotations().size() <= 1;
   }
-  std::shared_ptr<AnnotationKeySearch> annoKeySearch = std::dynamic_pointer_cast<AnnotationKeySearch>(search);
+  std::shared_ptr<ExactAnnoKeySearch> annoKeySearch = std::dynamic_pointer_cast<ExactAnnoKeySearch>(search);
   if(annoKeySearch)
   {
     return annoKeySearch->getValidAnnotationKeys().size() <= 1;
@@ -497,9 +499,8 @@ std::list<std::shared_ptr<ExecutionNode>> Plan::getDescendentNestedLoops(std::sh
   return result;
 }
 
-std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilter(
-    const DB& db,
-    std::shared_ptr<AnnotationSearch> annoSearch, boost::optional<Annotation> constAnno)
+std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilter(const DB& db,
+    std::shared_ptr<ExactAnnoValueSearch> annoSearch, boost::optional<Annotation> constAnno)
 {
   const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
   auto outputFilter = annoSearch->getOutputFilter();
@@ -558,7 +559,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
 }
 
 std::function<std::list<Annotation> (nodeid_t)> Plan::createRegexAnnoSearchFilter(
-    const DB &db, std::shared_ptr<AnnotationSearch> annoSearch, boost::optional<Annotation> constAnno)
+    const DB &db, std::shared_ptr<RegexAnnoSearch> annoSearch, boost::optional<Annotation> constAnno)
 {
 
 
@@ -592,7 +593,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createRegexAnnoSearchFilte
 
 
 std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchFilter(const DB& db,
-    std::shared_ptr<AnnotationKeySearch> annoKeySearch, boost::optional<Annotation> constAnno)
+    std::shared_ptr<ExactAnnoKeySearch> annoKeySearch, boost::optional<Annotation> constAnno)
 {
   const std::set<AnnotationKey>& validAnnoKeys = annoKeySearch->getValidAnnotationKeys();
   auto outputFilter = annoKeySearch->getOutputFilter();

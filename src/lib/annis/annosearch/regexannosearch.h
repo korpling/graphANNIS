@@ -34,7 +34,7 @@ namespace annis { class DB; }
 namespace annis
 {
 
-  class RegexAnnoSearch : public AnnotationSearch
+  class RegexAnnoSearch : public EstimatedSearch
   {
     using AnnoItType = AnnoStorage<nodeid_t>::InverseAnnoMap_t::const_iterator;
     using Range = std::pair<AnnoItType, AnnoItType>;
@@ -43,7 +43,7 @@ namespace annis
     RegexAnnoSearch(const DB& db, const std::string &name, const std::string &valRegex);
     RegexAnnoSearch(const DB& db, const std::string &ns, const std::string &name, const std::string &valRegex);
 
-    virtual const std::unordered_set<Annotation>& getValidAnnotations() override
+    virtual const std::unordered_set<Annotation>& getValidAnnotations()
     {
       std::lock_guard<std::mutex> lock(mutex_validAnnotations);
       if (!validAnnotationsInitialized)
