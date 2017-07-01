@@ -168,7 +168,7 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
   typedef multimap<TextProperty, uint32_t>::const_iterator TextPropIt;
 
   // maps a token index to an node ID
-  map<TextProperty, uint32_t> tokenByIndex;
+  map<TextProperty, nodeid_t> tokenByIndex;
 
   // map the "left" value to the nodes it belongs to
   multimap<TextProperty, nodeid_t> leftToNode;
@@ -181,7 +181,9 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
 
   // maps a character position to it's token
   map<TextProperty, nodeid_t> tokenByTextPosition;
-  unordered_set<nodeid_t> isToken;
+
+  // maps a token node id to the token index
+  map<nodeid_t, TextProperty> tokenToIndex;
 
   map<nodeid_t, string> missingSegmentationSpan;
 
@@ -273,8 +275,8 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         index.textID = textID;
         index.corpusID = corpusID;
 
-        isToken.insert(nodeNr);
         tokenByIndex.insert({index, nodeNr});
+        tokenToIndex.insert({nodeNr, index});
 
         TextProperty textPos;
         textPos.segmentation = "";
@@ -417,27 +419,31 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
   {
     nodeid_t n = itLeftToNode->second;
 
-    if(isToken.find(n) == isToken.end())
+    if(tokenToIndex.find(n) == tokenToIndex.end())
     {
-      TextProperty textPos;
-      textPos.segmentation = "";
-      textPos.textID = itLeftToNode->first.textID;
-      textPos.corpusID = itLeftToNode->first.corpusID;
+      TextProperty textPosTemplate;
+      textPosTemplate.segmentation = "";
+      textPosTemplate.textID = itLeftToNode->first.textID;
+      textPosTemplate.corpusID = itLeftToNode->first.corpusID;
 
-      uint32_t left = itLeftToNode->first.val;
-      uint32_t right = nodeToRight[n];
+      TextProperty leftPos = textPosTemplate;
+      TextProperty rightPos = textPosTemplate;
+      leftPos.val = itLeftToNode->first.val;
+      rightPos.val =  nodeToRight[n];
 
-      if(left == right)
+
+      // find left/right aligned basic token
+      nodeid_t leftAlignedToken = tokenByTextPosition[leftPos];
+      nodeid_t rightAlignedToken = tokenByTextPosition[rightPos];
+
+      TextProperty leftTokPos = tokenToIndex[leftAlignedToken];
+      TextProperty rightTokPos = tokenToIndex[rightAlignedToken];
+
+      TextProperty tokIdx = textPosTemplate;
+      for(uint32_t i = leftTokPos.val; i <= rightTokPos.val; i++)
       {
-        // make sure at least the initial left value is getting a covered edge even if this is an empty string
-        right++;
-      }
-
-      for(uint32_t i = left; i < right; i++)
-      {
-        // get the token that belongs to this text position
-        textPos.val = i;
-        nodeid_t tokenID = tokenByTextPosition[textPos];
+        tokIdx.val = i;
+        nodeid_t tokenID = tokenByIndex[tokIdx];
         if(n != tokenID)
         {
           gsCoverage->addEdge(Init::initEdge(n, tokenID));
