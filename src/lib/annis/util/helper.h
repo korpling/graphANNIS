@@ -117,6 +117,8 @@ public:
         boost::replace_all(cell, "\\t", "\t");
         boost::replace_all(cell, "\\'", "'");
         boost::replace_all(cell, "\\\\", "\\");
+        // remove any trailing windows line ending
+        boost::replace_last(cell, "\r", "");
       }
     }
     return result;
