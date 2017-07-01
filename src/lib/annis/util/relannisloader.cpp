@@ -427,6 +427,12 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
       uint32_t left = itLeftToNode->first.val;
       uint32_t right = nodeToRight[n];
 
+      if(left == right)
+      {
+        // make sure at least the initial left value is getting a covered edge even if this is an empty string
+        right++;
+      }
+
       for(uint32_t i = left; i < right; i++)
       {
         // get the token that belongs to this text position
