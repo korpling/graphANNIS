@@ -180,7 +180,8 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
   map<nodeid_t, uint32_t> nodeToRight;
 
   // maps a character position to it's token
-  map<TextProperty, nodeid_t> tokenByTextPosition;
+  map<TextProperty, nodeid_t> tokenByLeftTextPos;
+  map<TextProperty, nodeid_t> tokenByRightTextPos;
 
   // maps a token node id to the token index
   map<nodeid_t, TextProperty> tokenToIndex;
@@ -282,11 +283,9 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
         textPos.segmentation = "";
         textPos.textID = textID;
         textPos.corpusID = corpusID;
-        for(uint32_t i=left.val; i <= right.val; i++)
-        {
-          textPos.val = i;
-          tokenByTextPosition.insert({textPos, nodeNr});
-        }
+
+        tokenByLeftTextPos.insert({left, nodeNr});
+        tokenByRightTextPos.insert({right, nodeNr});
 
       } // end if token
       else if(hasSegmentations)
@@ -433,8 +432,8 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
 
 
       // find left/right aligned basic token
-      nodeid_t leftAlignedToken = tokenByTextPosition[leftPos];
-      nodeid_t rightAlignedToken = tokenByTextPosition[rightPos];
+      nodeid_t leftAlignedToken = tokenByLeftTextPos[leftPos];
+      nodeid_t rightAlignedToken = tokenByRightTextPos[rightPos];
 
       TextProperty leftTokPos = tokenToIndex[leftAlignedToken];
       TextProperty rightTokPos = tokenToIndex[rightAlignedToken];
