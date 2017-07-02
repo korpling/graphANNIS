@@ -114,7 +114,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGr
       {
         firstMetaIdx = metaNodeIdx;
         // add a special join to the first node of the query
-        q->addOperator(std::make_shared<PartOfSubCorpus>(getGraphStorageFunc, db.strings),
+        q->addOperator(std::make_shared<PartOfSubCorpus>(getGraphStorageFunc, db.strings, 1),
           metaNodeIdx, *firstNodePos);
 
       }

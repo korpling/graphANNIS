@@ -33,6 +33,14 @@ PartOfSubCorpus::PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc,
   gs = getGraphStorageFunc(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
 }
 
+PartOfSubCorpus::PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc, const StringStorage &strings, unsigned int maxDistance)
+  : AbstractEdgeOperator(ComponentType::PART_OF_SUBCORPUS,
+                         annis_ns, "",
+                         getGraphStorageFunc, strings, 1, maxDistance)
+{
+  gs = getGraphStorageFunc(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
+}
+
 double PartOfSubCorpus::selectivity()
 {
   double graphStorageSelectivity = 0.0;
