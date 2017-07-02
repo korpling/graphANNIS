@@ -149,6 +149,7 @@ std::string RelANNISLoader::loadRelANNISCorpusTab(string dirPath,
     if(type == "CORPUS" && preOrder == 0)
     {
       toplevelCorpus = name;
+      corpusByPreOrder[preOrder] = corpusID;
     }
     else if(type == "DOCUMENT")
     {
