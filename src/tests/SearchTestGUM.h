@@ -268,3 +268,14 @@ TEST_F(SearchTestGUM, pos_dep_pos_Thread4) {
   EXPECT_EQ(246u, counter);
 
 }
+
+TEST_F(SearchTestGUM, meta_interview) {
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter = 0;
+  while(q->next() && counter < 1000) {
+    counter++;
+  }
+
+  EXPECT_EQ(522u, counter);
+}
