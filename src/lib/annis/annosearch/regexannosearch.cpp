@@ -41,12 +41,16 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
   std::pair<bool, std::uint32_t> namespaceID = db.strings.findID(ns);
   if(nameID.first && namespaceID.first)
   {
-    annoKeys.insert({nameID.second, namespaceID.second});
-    
-    auto lower = db.nodeAnnos.inverseAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
-    auto upper = db.nodeAnnos.inverseAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
-    searchRanges.push_back(Range(lower, upper));
+    if(compiledValRegex.ok())
+    {
+      annoKeys.insert({nameID.second, namespaceID.second});
+
+      auto lower = db.nodeAnnos.inverseAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
+      auto upper = db.nodeAnnos.inverseAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
+      searchRanges.push_back(Range(lower, upper));
+    }
   }
+
   currentRange = searchRanges.begin();
   if(currentRange != searchRanges.end())
   {
