@@ -29,8 +29,8 @@ namespace annis
 class PartOfSubCorpus : public AbstractEdgeOperator
 {
 public:
-  PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc , const StringStorage &strings);
-  PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc , const StringStorage &strings, unsigned int maxDistance);
+  PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc, const DB& db);
+  PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc, const DB& db, unsigned int maxDistance);
 
   virtual std::string operatorString() override
   {

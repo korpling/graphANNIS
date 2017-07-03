@@ -114,7 +114,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGr
       {
         firstMetaIdx = metaNodeIdx;
         // add a special join to the first node of the query
-        q->addOperator(std::make_shared<PartOfSubCorpus>(getGraphStorageFunc, db.strings, 1),
+        q->addOperator(std::make_shared<PartOfSubCorpus>(getGraphStorageFunc, db, 1),
           metaNodeIdx, *firstNodePos);
 
       }
@@ -355,7 +355,7 @@ void JSONQueryParser::parseJoin(const DB& db,
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0)
         {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db.strings, anno),
+          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db, anno),
             itLeft->second, itRight->second);
 
         }
@@ -371,7 +371,7 @@ void JSONQueryParser::parseJoin(const DB& db,
             maxDist = uintmax;
           }
 
-          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db.strings,
+          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db,
             minDist, maxDist),
             itLeft->second, itRight->second);
         }
@@ -384,7 +384,7 @@ void JSONQueryParser::parseJoin(const DB& db,
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0)
         {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db.strings, anno),
+          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db, anno),
             itLeft->second, itRight->second);
 
         }
@@ -401,7 +401,7 @@ void JSONQueryParser::parseJoin(const DB& db,
             maxDist = uintmax;
           }
 
-          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db.strings, minDist, maxDist),
+          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db, minDist, maxDist),
             itLeft->second, itRight->second);
         }
       }
