@@ -23,14 +23,14 @@
 #include <utility>              // for pair
 #include <annis/annostorage.h>  // for AnnoStorage, AnnoStorage<>::InverseAn...
 #include <annis/types.h>        // for Annotation (ptr only), Match (ptr only)
-#include <annis/annosearch/annotationsearch.h>   // for AnnotationSearch
+#include <annis/annosearch/estimatedsearch.h>   // for EstimatedSearch
 
 namespace annis { class DB; }
 
 namespace annis
 {
 
-class ExactAnnoValueSearch : public AnnotationSearch
+class ExactAnnoValueSearch : public EstimatedSearch
 {
   using ItType = AnnoStorage<nodeid_t>::InverseAnnoMap_t::const_iterator;
   using Range = std::pair<ItType, ItType>;
@@ -51,7 +51,7 @@ public:
   virtual bool next(Match& result) override;
   virtual void reset() override;
 
-  const std::unordered_set<Annotation>& getValidAnnotations() override
+  const std::unordered_set<Annotation>& getValidAnnotations()
   {
     if(!validAnnotationInitialized)
     {

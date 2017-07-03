@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <annis/annosearch/annotationsearch.h>  // for AnnotationKeySearch
+#include <annis/annosearch/estimatedsearch.h>  // for EstimatedSearch
 #include <annis/annostorage.h>                  // for AnnoStorage, AnnoStor...
 #include <google/btree_container.h>             // for btree_unique_containe...
 #include <google/btree_map.h>                   // for btree_map
@@ -31,7 +31,7 @@ namespace annis { class DB; }
 namespace annis
 {
 
-class ExactAnnoKeySearch : public AnnotationKeySearch
+class ExactAnnoKeySearch : public EstimatedSearch
 {
   using ItAnnoNode = AnnoStorage<nodeid_t>::InverseAnnoMap_t::const_iterator;
   using ItAnnoKey = btree::btree_map<AnnotationKey, std::uint64_t>::const_iterator;
@@ -55,7 +55,7 @@ public:
   virtual bool next(Match& result) override;
   virtual void reset() override;
 
-  const std::set<AnnotationKey>& getValidAnnotationKeys() override
+  const std::set<AnnotationKey>& getValidAnnotationKeys()
   {
     if(!validAnnotationKeysInitialized)
     {

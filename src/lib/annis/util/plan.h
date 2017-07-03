@@ -28,8 +28,8 @@
 #include <vector>                       // for vector
 #include "annis/types.h"                // for Annotation, nodeid_t, Match (...
 
-namespace annis { class AnnotationKeySearch; }
-namespace annis { class AnnotationSearch; }
+namespace annis { class ExactAnnoKeySearch; }
+namespace annis { class ExactAnnoValueSearch; }
 namespace annis { class RegexAnnoSearch; }
 namespace annis { class DB; }
 namespace annis { class EstimatedSearch; }
@@ -44,7 +44,7 @@ enum ExecutionNodeType
 {
   base,
   nested_loop,
-  seed,
+  index_join,
   filter,
   num_of_ExecutionNodeType
 };
@@ -127,19 +127,23 @@ private:
   static std::list<std::shared_ptr<ExecutionNode>> getDescendentNestedLoops(std::shared_ptr<ExecutionNode> node);
 
   static std::function<std::list<Annotation> (nodeid_t)> createAnnotationSearchFilter(
-      const DB& db, std::shared_ptr<AnnotationSearch> annoSearch,
+      const DB& db, std::shared_ptr<ExactAnnoValueSearch> annoSearch,
       boost::optional<Annotation> constAnno = boost::optional<Annotation>());
 
   static std::function<std::list<Annotation> (nodeid_t)> createRegexAnnoSearchFilter(
-      const DB& db, std::shared_ptr<AnnotationSearch> annoSearch,
+      const DB& db, std::shared_ptr<RegexAnnoSearch> annoSearch,
       boost::optional<Annotation> constAnno = boost::optional<Annotation>());
 
   static std::function<std::list<Annotation> (nodeid_t)> createAnnotationKeySearchFilter(
-      const DB& db, std::shared_ptr<AnnotationKeySearch> annoKeySearch,
+      const DB& db, std::shared_ptr<ExactAnnoKeySearch> annoKeySearch,
       boost::optional<Annotation> constAnno = boost::optional<Annotation>());
 
   static std::pair<std::shared_ptr<ExecutionNode>, uint64_t> findLargestProcessedInStep(
       std::shared_ptr<ExecutionNode> node, bool includeSeed = true);
+
+  static uint64_t calculateNestedLoopProcessed(uint64_t outputLHS, uint64_t outputRHS);
+
+  static uint64_t calculateIndexJoinProcessed(long double operatorSelectivity, uint64_t outputLHS, uint64_t outputRHS);
 };
 
 } // end namespace annis

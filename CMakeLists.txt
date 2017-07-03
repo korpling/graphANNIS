@@ -114,7 +114,7 @@ set(SRC_LIST_LIB
   src/lib/annis/annosearch/exactannokeysearch.cpp
   src/lib/annis/annosearch/exactannovaluesearch.cpp
   src/lib/annis/annosearch/regexannosearch.cpp
-  src/lib/annis/annosearch/annotationsearch.cpp
+  src/lib/annis/annosearch/estimatedsearch.cpp
   src/lib/annis/annosearch/nodebyedgeannosearch.cpp
 )
 

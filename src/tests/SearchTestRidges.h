@@ -19,7 +19,7 @@
 
 #include "gtest/gtest.h"
 #include <annis/db.h>
-#include <annis/annosearch/annotationsearch.h>
+#include <annis/annosearch/estimatedsearch.h>
 #include <annis/operators/precedence.h>
 #include <annis/operators/overlap.h>
 #include <annis/operators/inclusion.h>

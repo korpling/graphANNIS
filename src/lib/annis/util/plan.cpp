@@ -35,8 +35,10 @@
 #include <memory>                                   // for shared_ptr, __sha...
 #include <set>                                      // for set
 #include <unordered_set>                            // for unordered_set
-#include "annis/annosearch/annotationsearch.h"      // for EstimatedSearch
+#include "annis/annosearch/estimatedsearch.h"      // for EstimatedSearch
 #include <annis/annosearch/regexannosearch.h>
+#include <annis/annosearch/exactannokeysearch.h>
+#include <annis/annosearch/exactannovaluesearch.h>
 #include "annis/annostorage.h"                      // for AnnoStorage
 #include "annis/iterators.h"                        // for Iterator
 #include "annis/queryconfig.h"                      // for QueryConfig
@@ -70,7 +72,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   else if(rhs->type == ExecutionNodeType::base && !forceNestedLoop)
   { 
     // if the right side is not another join we can use a seed join
-    type = ExecutionNodeType::seed;
+    type = ExecutionNodeType::index_join;
   }
   else if(config.avoidNestedBySwitch && !forceNestedLoop
     && op->isCommutative()
@@ -85,7 +87,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     lhsNodeNr = rhsNodeNr;
     rhsNodeNr = tmpNodeID;
     
-    type = ExecutionNodeType::seed;
+    type = ExecutionNodeType::index_join;
   }
   
   std::shared_ptr<ExecutionNode> result = std::make_shared<ExecutionNode>();
@@ -109,9 +111,9 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     result->type = ExecutionNodeType::filter;
     join = std::make_shared<BinaryFilter>(op, lhs->join, mappedPosLHS->second, mappedPosRHS->second);
   }
-  else if(type == ExecutionNodeType::seed)
+  else if(type == ExecutionNodeType::index_join)
   {
-    result->type = ExecutionNodeType::seed;
+    result->type = ExecutionNodeType::index_join;
     result->numOfBackgroundTasks = numOfBackgroundTasks;
       
     std::shared_ptr<Iterator> rightIt = rhs->join;
@@ -374,35 +376,12 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
 
         if (node->type == ExecutionNodeType::nested_loop)
         {
-          if(estLHS->output <= estRHS->output)
-          {
-            // we use LHS as outer
-            processedInStep = estLHS->output + (estLHS->output * estRHS->output);
-          }
-          else
-          {
-            // we use RHS as outer
-            processedInStep = estRHS->output + (estRHS->output * estLHS->output);
-          }
+          processedInStep = calculateNestedLoopProcessed(estLHS->output, estRHS->output);
         } 
-        else if (node->type == ExecutionNodeType::seed
+        else if (node->type == ExecutionNodeType::index_join
                  && node->op->estimationType() == Operator::EstimationType::SELECTIVITY)
         {
-          // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
-          // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
-          // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
-
-          // avgReachable = (sel * cross) / lhs
-          //              = (sel * lhs * rhs) / lhs
-          //              = sel * rhs
-          // processedInStep = lhs + (avgReachable * lhs)
-          //                 = lhs + (sel * rhs * lhs)
-
-          processedInStep =
-              static_cast<std::uint64_t>(
-                (long double) estLHS->output
-                + (operatorSelectivity * (long double) estRHS->output * (long double) estLHS->output)
-              );
+          processedInStep = calculateIndexJoinProcessed(operatorSelectivity, estLHS->output, estRHS->output);
         } 
         else
         {
@@ -462,12 +441,12 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const D
     return createRegexAnnoSearchFilter(db, regexSearch, constAnno);
   }
 
-  std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
+  std::shared_ptr<ExactAnnoValueSearch> annoSearch = std::dynamic_pointer_cast<ExactAnnoValueSearch>(search);
   if(annoSearch)
   {
     return createAnnotationSearchFilter(db, annoSearch, constAnno);
   }
-  std::shared_ptr<AnnotationKeySearch> annoKeySearch = std::dynamic_pointer_cast<AnnotationKeySearch>(search);
+  std::shared_ptr<ExactAnnoKeySearch> annoKeySearch = std::dynamic_pointer_cast<ExactAnnoKeySearch>(search);
   if(annoKeySearch)
   {
     return createAnnotationKeySearchFilter(db, annoKeySearch, constAnno);
@@ -489,12 +468,12 @@ bool Plan::searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> se
     return false;
   }
 
-  std::shared_ptr<AnnotationSearch> annoSearch = std::dynamic_pointer_cast<AnnotationSearch>(search);
+  std::shared_ptr<ExactAnnoValueSearch> annoSearch = std::dynamic_pointer_cast<ExactAnnoValueSearch>(search);
   if(annoSearch)
   {
     return annoSearch->getValidAnnotations().size() <= 1;
   }
-  std::shared_ptr<AnnotationKeySearch> annoKeySearch = std::dynamic_pointer_cast<AnnotationKeySearch>(search);
+  std::shared_ptr<ExactAnnoKeySearch> annoKeySearch = std::dynamic_pointer_cast<ExactAnnoKeySearch>(search);
   if(annoKeySearch)
   {
     return annoKeySearch->getValidAnnotationKeys().size() <= 1;
@@ -545,9 +524,8 @@ std::list<std::shared_ptr<ExecutionNode>> Plan::getDescendentNestedLoops(std::sh
   return result;
 }
 
-std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilter(
-    const DB& db,
-    std::shared_ptr<AnnotationSearch> annoSearch, boost::optional<Annotation> constAnno)
+std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilter(const DB& db,
+    std::shared_ptr<ExactAnnoValueSearch> annoSearch, boost::optional<Annotation> constAnno)
 {
   const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
   auto outputFilter = annoSearch->getOutputFilter();
@@ -606,21 +584,23 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
 }
 
 std::function<std::list<Annotation> (nodeid_t)> Plan::createRegexAnnoSearchFilter(
-    const DB &db, std::shared_ptr<AnnotationSearch> annoSearch, boost::optional<Annotation> constAnno)
+    const DB &db, std::shared_ptr<RegexAnnoSearch> regexSearch, boost::optional<Annotation> constAnno)
 {
 
+  auto outputFilter = regexSearch->getOutputFilter();
+  const std::set<AnnotationKey>& validAnnoKeys = regexSearch->getValidAnnotationKeys();
 
-  return [&db, constAnno, annoSearch](nodeid_t rhsNode) -> std::list<Annotation>
+  if(validAnnoKeys.size() == 1)
   {
-    auto outputFilter = annoSearch->getOutputFilter();
-    const std::unordered_set<Annotation>& validAnnos = annoSearch->getValidAnnotations();
+    const auto& rightAnnoKey = *(validAnnoKeys.begin());
 
-    std::list<Annotation> result;
-    // check all annotations which of them matches
-    std::vector<Annotation> annos = db.nodeAnnos.getAnnotations(rhsNode);
-    for(const auto& a : annos)
+    return [&db, rightAnnoKey, constAnno, outputFilter, regexSearch](nodeid_t rhsNode) -> std::list<Annotation>
     {
-      if(validAnnos.find(a) != validAnnos.end() && outputFilter({rhsNode, a}))
+      std::list<Annotation> result;
+      auto foundAnno =
+          db.nodeAnnos.getAnnotations(rhsNode, rightAnnoKey.ns, rightAnnoKey.name);
+
+      if(foundAnno && regexSearch->valueMatches(db.strings.str(foundAnno->val)) && outputFilter({rhsNode, *foundAnno}))
       {
         if(constAnno)
         {
@@ -628,19 +608,43 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createRegexAnnoSearchFilte
         }
         else
         {
-          result.push_back(a);
+          result.push_back(*foundAnno);
         }
+
       }
-    }
 
-    return std::move(result);
-  };
-
+      return std::move(result);
+    };
+  }
+  else
+  {
+    return [&db, validAnnoKeys, constAnno, outputFilter, regexSearch](nodeid_t rhsNode) -> std::list<Annotation>
+    {
+      std::list<Annotation> result;
+      // check all annotation keys
+      for(AnnotationKey key : validAnnoKeys)
+      {
+       auto found = db.nodeAnnos.getAnnotations(rhsNode, key.ns, key.name);
+       if(found && regexSearch->valueMatches(db.strings.str(found->val)) && outputFilter({rhsNode, *found}))
+       {
+         if(constAnno)
+         {
+           result.push_back(*constAnno);
+         }
+         else
+         {
+          result.push_back(*found);
+         }
+       }
+      }
+      return std::move(result);
+    };
+  }
 }
 
 
 std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchFilter(const DB& db,
-    std::shared_ptr<AnnotationKeySearch> annoKeySearch, boost::optional<Annotation> constAnno)
+    std::shared_ptr<ExactAnnoKeySearch> annoKeySearch, boost::optional<Annotation> constAnno)
 {
   const std::set<AnnotationKey>& validAnnoKeys = annoKeySearch->getValidAnnotationKeys();
   auto outputFilter = annoKeySearch->getOutputFilter();
@@ -718,7 +722,7 @@ std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedIn
     result = largestRHS;
   }
 
-  if(node->type == ExecutionNodeType::nested_loop || (includeSeed && node->type == ExecutionNodeType::seed))
+  if(node->type == ExecutionNodeType::nested_loop || (includeSeed && node->type == ExecutionNodeType::index_join))
   {
     std::shared_ptr<ExecutionEstimate> estNode = estimateTupleSize(node);
 
@@ -733,6 +737,43 @@ std::pair<std::shared_ptr<ExecutionNode>, uint64_t> Plan::findLargestProcessedIn
   return result;
 
 }
+
+std::uint64_t Plan::calculateNestedLoopProcessed(std::uint64_t outputLHS, std::uint64_t outputRHS)
+{
+  std::uint64_t processedInStep;
+  if(outputLHS <= outputRHS)
+  {
+    // we use LHS as outer
+    processedInStep = outputLHS + (outputLHS * outputRHS);
+  }
+  else
+  {
+    // we use RHS as outer
+    processedInStep = outputRHS + (outputRHS * outputLHS);
+  }
+  return processedInStep;
+}
+
+uint64_t Plan::calculateIndexJoinProcessed(long double operatorSelectivity, uint64_t outputLHS, uint64_t outputRHS)
+{
+  // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
+  // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
+  // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
+
+  // avgReachable = (sel * cross) / lhs
+  //              = (sel * lhs * rhs) / lhs
+  //              = sel * rhs
+  // processedInStep = lhs + (avgReachable * lhs)
+  //                 = lhs + (sel * rhs * lhs)
+
+  return
+      static_cast<std::uint64_t>(
+        (long double) outputLHS
+        + (operatorSelectivity * (long double) outputRHS * (long double) outputLHS)
+      );
+}
+
+
 
 
 void Plan::clearCachedEstimate(std::shared_ptr<ExecutionNode> node) 
@@ -823,7 +864,7 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
       result += "{";
     }
 
-    if((node->type == ExecutionNodeType::seed || node->type == ExecutionNodeType::nested_loop)
+    if((node->type == ExecutionNodeType::index_join || node->type == ExecutionNodeType::nested_loop)
        && node->numOfBackgroundTasks > 0)
     {
       result +=" tasks: " + std::to_string(node->numOfBackgroundTasks);
@@ -855,8 +896,8 @@ std::string Plan::typeToString(ExecutionNodeType type) const
       return "filter";
     case ExecutionNodeType::nested_loop:
       return "nested_loop";
-    case ExecutionNodeType::seed:
-      return "seed";
+    case ExecutionNodeType::index_join:
+      return "index_join";
     default:
       return "<unknown>";
   }

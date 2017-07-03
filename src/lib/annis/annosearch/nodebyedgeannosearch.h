@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <annis/annosearch/annotationsearch.h>  // for EstimatedSearch
+#include <annis/annosearch/estimatedsearch.h>  // for EstimatedSearch
 #include <stdint.h>                             // for int64_t
 #include <functional>                           // for function
 #include <list>                                 // for list, list<>::const_i...
