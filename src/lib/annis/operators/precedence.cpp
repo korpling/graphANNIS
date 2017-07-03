@@ -55,30 +55,33 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
 {
   std::unique_ptr<ListWrapper> w = std::unique_ptr<ListWrapper>(new ListWrapper());
 
-  std::unique_ptr<EdgeIterator> edgeIterator;
-  nodeid_t startNode;
-  if(segmentation)
+  if(gsOrder)
   {
-    startNode = lhs.node;
-  }
-  else
-  {
-    startNode = tokHelper.rightTokenForNode(lhs.node);
-  }
-
-  edgeIterator = gsOrder->findConnected(startNode,
-                                        minDistance, maxDistance);
-  // materialize a list of all matches and wrap it
-  for(std::pair<bool, nodeid_t> matchedToken = edgeIterator->next();
-      matchedToken.first; matchedToken = edgeIterator->next())
-  {
-    // get all nodes that are left-aligned to this token
-    for(const auto& n : gsLeft->getOutgoingEdges(matchedToken.second))
+    std::unique_ptr<EdgeIterator> edgeIterator;
+    nodeid_t startNode;
+    if(segmentation)
     {
-      w->addMatch(Init::initMatch(anyNodeAnno, n));
+      startNode = lhs.node;
     }
-    // add the actual token to the list as well
-    w->addMatch(Init::initMatch(anyNodeAnno, matchedToken.second));
+    else
+    {
+      startNode = tokHelper.rightTokenForNode(lhs.node);
+    }
+
+    edgeIterator = gsOrder->findConnected(startNode,
+                                          minDistance, maxDistance);
+    // materialize a list of all matches and wrap it
+    for(std::pair<bool, nodeid_t> matchedToken = edgeIterator->next();
+        matchedToken.first; matchedToken = edgeIterator->next())
+    {
+      // get all nodes that are left-aligned to this token
+      for(const auto& n : gsLeft->getOutgoingEdges(matchedToken.second))
+      {
+        w->addMatch(Init::initMatch(anyNodeAnno, n));
+      }
+      // add the actual token to the list as well
+      w->addMatch(Init::initMatch(anyNodeAnno, matchedToken.second));
+    }
   }
 
   return std::move(w);
