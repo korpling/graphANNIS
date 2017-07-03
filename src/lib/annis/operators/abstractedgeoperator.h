@@ -42,25 +42,25 @@ class AbstractEdgeOperator : public Operator
 public:
   AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
                        DB::GetGSFuncT getGraphStorageFunc,
-                       const StringStorage& strings,
+                       const DB& db,
       unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   AbstractEdgeOperator(ComponentType componentType, std::string name,
                        DB::GetAllGSFuncT getAllGraphStorageFunc,
-                       const StringStorage& strings,
+                       const DB& db,
       unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
 
   AbstractEdgeOperator(
       ComponentType componentType, std::string ns, std::string name,
       DB::GetGSFuncT getGraphStorageFunc,
-      const StringStorage& strings,
+      const DB& db,
       const Annotation& edgeAnno = Init::initAnnotation());
 
   AbstractEdgeOperator(
       ComponentType componentType, std::string name,
       DB::GetAllGSFuncT getAllGraphStorageFunc,
-      const StringStorage& strings,
+      const DB& db,
       const Annotation& edgeAnno = Init::initAnnotation());
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
@@ -89,6 +89,7 @@ private:
   boost::optional<DB::GetGSFuncT> getGraphStorageFunc;
   boost::optional<DB::GetAllGSFuncT> getAllGraphStorageFunc;
 
+  const DB& db;
   const StringStorage& strings;
   std::string ns;
   std::string name;

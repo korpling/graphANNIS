@@ -135,7 +135,7 @@ class GUMFixture : public celero::TestFixture
           result->addOperator(
                 std::make_shared<Pointing>("dep",
                                            db.f_getAllGraphStorages,
-                                           db.strings, edgeAnno), 0, 1);
+                                           db, edgeAnno), 0, 1);
 
           return result;
         }
@@ -168,10 +168,10 @@ class GUMFixture : public celero::TestFixture
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
           result->addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-          result->addOperator(std::make_shared<Pointing>("coref", db.f_getAllGraphStorages, db.strings, edgeAnnoCoref), 0,1);
-          result->addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db.strings), 2,3);
+          result->addOperator(std::make_shared<Pointing>("coref", db.f_getAllGraphStorages, db, edgeAnnoCoref), 0,1);
+          result->addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db), 2,3);
           result->addOperator(std::make_shared<IdenticalCoverage>(db, db.f_getGraphStorage),0,2);
-          result->addOperator(std::make_shared<Pointing>("dep", db.f_getAllGraphStorages, db.strings, edgeAnnoPrep), 4,3);
+          result->addOperator(std::make_shared<Pointing>("dep", db.f_getAllGraphStorages, db, edgeAnnoPrep), 4,3);
 
           return result;
         }

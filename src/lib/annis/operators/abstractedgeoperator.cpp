@@ -34,15 +34,18 @@
 #include "annis/stringstorage.h"                    // for StringStorage
 #include <annis/types.h>
 
+#include <annis/annosearch/exactannokeysearch.h>
+
 using namespace annis;
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
                      DB::GetGSFuncT getGraphStorageFunc,
-                     const StringStorage& strings,
+                     const DB& db,
                      unsigned int minDistance, unsigned int maxDistance)
   : componentType(componentType),
     getGraphStorageFunc(getGraphStorageFunc),
-    strings(strings), ns(ns), name(name),
+    db(db),
+    strings(db.strings), ns(ns), name(name),
     minDistance(minDistance), maxDistance(maxDistance),
     anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
 {
@@ -51,11 +54,12 @@ AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::str
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string name,
                      DB::GetAllGSFuncT getAllGraphStorageFunc,
-                     const StringStorage& strings,
+                     const DB& db,
                      unsigned int minDistance, unsigned int maxDistance)
   : componentType(componentType),
     getAllGraphStorageFunc(getAllGraphStorageFunc),
-    strings(strings), ns(""), name(name),
+    db(db),
+    strings(db.strings), ns(""), name(name),
     minDistance(minDistance), maxDistance(maxDistance),
     anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
 {
@@ -65,11 +69,12 @@ AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::str
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
     DB::GetGSFuncT getGraphStorageFunc,
-    const StringStorage& strings,
+    const DB& db,
     const Annotation& edgeAnno)
   : componentType(componentType),
     getGraphStorageFunc(getGraphStorageFunc),
-    strings(strings), ns(ns), name(name),
+    db(db),
+    strings(db.strings), ns(ns), name(name),
     minDistance(1), maxDistance(1),
     anyAnno(Init::initAnnotation()), edgeAnno(edgeAnno)
 {
@@ -78,11 +83,12 @@ AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::str
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string name,
     DB::GetAllGSFuncT getAllGraphStorageFunc,
-    const StringStorage& strings,
+    const DB& db,
     const Annotation& edgeAnno)
   : componentType(componentType),
     getAllGraphStorageFunc(getAllGraphStorageFunc),
-    strings(strings), ns(""), name(name),
+    db(db),
+    strings(db.strings), ns(""), name(name),
     minDistance(1), maxDistance(1),
     anyAnno(Init::initAnnotation()), edgeAnno(edgeAnno)
 {
@@ -200,7 +206,10 @@ double AbstractEdgeOperator::selectivity()
     // will not find anything
     return 0.0;
   }
-  
+
+  ExactAnnoKeySearch nodeSearch(db, annis_ns, annis_node_name);
+  double maxNodes = nodeSearch.guessMaxCount();
+
   double worstSel = 0.0;
   
   for(std::weak_ptr<const ReadableGraphStorage> gPtr: gs)
@@ -227,7 +236,9 @@ double AbstractEdgeOperator::selectivity()
         std::uint32_t reachableMin = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) minPathLength));
 
         std::uint32_t reachable =  reachableMax - reachableMin;
-        graphStorageSelectivity = ((double) reachable ) / ((double) stat.nodes);
+        double p_nodeInStorage = (double) stat.nodes / maxNodes;
+
+        graphStorageSelectivity = p_nodeInStorage * ((double) reachable ) / ((double) stat.nodes);
 
       }
       else
