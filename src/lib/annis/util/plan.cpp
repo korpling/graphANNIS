@@ -98,6 +98,8 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     // TODO: throw error?
     return result;
   }
+
+  boost::optional<std::string> extraDescription;
   
   // create the join iterator
   
@@ -152,9 +154,27 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     else
     {
       // fallback to nested loop
-      result->type = nested_loop;
-      join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join,
-                                              mappedPosLHS->second, mappedPosRHS->second, true, true);
+      result->type = ExecutionNodeType::nested_loop;
+      result->numOfBackgroundTasks = numOfBackgroundTasks;
+
+      auto leftEst = estimateTupleSize(lhs);
+      auto rightEst = estimateTupleSize(rhs);
+
+      bool leftIsOuter = leftEst->output <= rightEst->output;
+      extraDescription = leftIsOuter ? "lhs->rhs" : "rhs->lhs";
+
+      if(numOfBackgroundTasks > 0)
+      {
+        join = std::make_shared<ThreadNestedLoop>(op, lhs->join, rhs->join,
+                                                mappedPosLHS->second, mappedPosRHS->second, leftIsOuter,
+                                                numOfBackgroundTasks,
+                                                config.threadPool);
+      }
+      else
+      {
+        join = std::make_shared<NestedLoopJoin>(op, lhs->join, rhs->join,
+                                                mappedPosLHS->second, mappedPosRHS->second, true, leftIsOuter);
+      }
     }
   }
   else
@@ -166,6 +186,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     auto rightEst = estimateTupleSize(rhs);
     
     bool leftIsOuter = leftEst->output <= rightEst->output;
+    extraDescription = leftIsOuter ? "lhs->rhs" : "rhs->lhs";
     
     if(numOfBackgroundTasks > 0)
     {
@@ -187,6 +208,10 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
   result->lhs = lhs;
   result->description =  "#" + std::to_string(lhsNodeNr+1) + " "
     + op->description() + " #" + std::to_string(rhsNodeNr+1);
+  if(extraDescription)
+  {
+    result->description = result->description + " " + *extraDescription;
+  }
   
   if(type != ExecutionNodeType::filter)
   {
@@ -349,7 +374,7 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
 
         if (node->type == ExecutionNodeType::nested_loop)
         {
-          if(estLHS->output < estRHS->output)
+          if(estLHS->output <= estRHS->output)
           {
             // we use LHS as outer
             processedInStep = estLHS->output + (estLHS->output * estRHS->output);
