@@ -31,6 +31,7 @@ namespace annis { class AnnoIt; }
 namespace annis { class NodeByEdgeAnnoSearch; }
 namespace annis { class ReadableGraphStorage; }
 namespace annis { class StringStorage; }
+namespace annis { class EstimatedSearch; }
 
 
 namespace annis
@@ -78,7 +79,7 @@ public:
 
   virtual std::int64_t guessMaxCountEdgeAnnos();
   
-  virtual std::shared_ptr<NodeByEdgeAnnoSearch> createAnnoSearch(
+  virtual std::shared_ptr<EstimatedSearch> createAnnoSearch(
       std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
       bool maximalOneNodeAnno,
       int64_t wrappedNodeCountEstimate, std::string debugDescription) const;

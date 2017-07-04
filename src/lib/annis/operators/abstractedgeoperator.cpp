@@ -295,7 +295,16 @@ int64_t AbstractEdgeOperator::guessMaxCountEdgeAnnos()
 {
   if(edgeAnno == anyAnno)
   {
-    return -1;
+
+    if(gs.size() == 1)
+    {
+      return gs[0]->getStatistics().nodes;
+    }
+    else
+    {
+      // TODO: implement graph storage source node search for multiple graph storages
+      return -1;
+    }
   }
   else
   {
@@ -311,7 +320,7 @@ int64_t AbstractEdgeOperator::guessMaxCountEdgeAnnos()
   }
 }
 
-std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
+std::shared_ptr<EstimatedSearch> AbstractEdgeOperator::createAnnoSearch(
     std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
     bool maximalOneNodeAnno,
     std::int64_t wrappedNodeCountEstimate,
@@ -319,7 +328,15 @@ std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
 {
   if(edgeAnno == anyAnno)
   {
-    return std::shared_ptr<NodeByEdgeAnnoSearch>();
+    if(gs.size() == 1)
+    {
+      return gs[0]->getSourceNodeIterator(nodeAnnoMatchGenerator);
+    }
+    else
+    {
+      // TODO: implement graph storage source node search for multiple graph storages
+      return std::shared_ptr<NodeByEdgeAnnoSearch>();
+    }
   }
   else
   {

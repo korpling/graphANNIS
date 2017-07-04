@@ -34,23 +34,46 @@ namespace annis { class StringStorage;}
 using namespace annis;
 using namespace std;
 
-AdjacencyListStorage::NodeIt::NodeIt(const AdjacencyListStorage &storage)
-  : it(storage.edges.begin()), itStart(storage.edges.begin()), itEnd(storage.edges.end()),
-    maxCount(storage.edges.size())
+AdjacencyListStorage::NodeIt::NodeIt(
+    std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, const AdjacencyListStorage &storage)
+  : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
+    it(storage.edges.begin()), itStart(storage.edges.begin()), itEnd(storage.edges.end()),
+    maxCount(storage.stat.nodes)
 {
 }
 
-bool AdjacencyListStorage::NodeIt::next(Match &m)
+
+void AdjacencyListStorage::NodeIt::reset()
 {
+  BufferedEstimatedSearch::reset();
+  it = itStart;
+  lastNode.reset();
+}
+
+AdjacencyListStorage::NodeIt::~NodeIt()
+{
+
+}
+
+bool AdjacencyListStorage::NodeIt::nextMatchBuffer(std::list<Match>& currentMatchBuffer)
+{
+  currentMatchBuffer.clear();
   while(it != itEnd)
   {
     if(lastNode && *lastNode != it->source)
     {
-      m.node = it->source;
       if(getConstAnnoValue())
       {
-        m.anno = *getConstAnnoValue();
+        currentMatchBuffer.push_back({it->source, *getConstAnnoValue()});
       }
+      else
+      {
+        for(const Annotation& anno : nodeAnnoMatchGenerator(it->source))
+        {
+          currentMatchBuffer.push_back({it->source, anno});
+        }
+      }
+
       lastNode = it->source;
       return true;
     }
@@ -58,12 +81,6 @@ bool AdjacencyListStorage::NodeIt::next(Match &m)
     it++;
   }
   return false;
-}
-
-void AdjacencyListStorage::NodeIt::reset()
-{
-  it = itStart;
-  lastNode.reset();
 }
 
 void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)

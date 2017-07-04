@@ -126,29 +126,39 @@ public:
 
   };
 
-  class NodeIt : public EstimatedSearch
+  class NodeIt : public BufferedEstimatedSearch
   {
   public:
     using OrderIt = typename map_t<nodeid_t, RelativePosition<pos_t>>::const_iterator;
 
-    NodeIt(const LinearStorage<pos_t>& storage)
-      : it(storage.node2pos.begin()), itStart(storage.node2pos.begin()), itEnd(storage.node2pos.end()),
-        maxCount(storage.node2pos.size())
+    NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, const LinearStorage<pos_t>& storage)
+      : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
+        it(storage.node2pos.begin()), itStart(storage.node2pos.begin()), itEnd(storage.node2pos.end()),
+        maxCount(storage.stat.nodes)
     {
 
     }
 
-    virtual bool next(Match& m) override
+
+    bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) override
     {
+      currentMatchBuffer.clear();
       while(it != itEnd)
       {
         if(lastNode && *lastNode != it->first)
         {
-          m.node = it->first;
           if(getConstAnnoValue())
           {
-            m.anno = *getConstAnnoValue();
+            currentMatchBuffer.push_back({it->first, *getConstAnnoValue()});
           }
+          else
+          {
+            for(const Annotation& anno : nodeAnnoMatchGenerator(it->first))
+            {
+              currentMatchBuffer.push_back({it->first, anno});
+            }
+          }
+
           lastNode = it->first;
           return true;
         }
@@ -157,8 +167,10 @@ public:
       }
       return false;
     }
+
     virtual void reset() override
     {
+      BufferedEstimatedSearch::reset();
       it = itStart;
       lastNode.reset();
     }
@@ -170,6 +182,8 @@ public:
 
     virtual ~NodeIt() {}
   private:
+    std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
+
     OrderIt it;
     OrderIt itStart;
     OrderIt itEnd;
@@ -354,9 +368,10 @@ public:
     return edgeAnno;
   }
 
-  virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const override
+  virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator) const override
   {
-    return std::make_shared<NodeIt>(*this);
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, *this);
   }
 
   virtual size_t estimateMemorySize() override

@@ -48,11 +48,12 @@ public:
 
   template<typename Key> using set_t = btree::btree_set<Key>;
 
-  class NodeIt : public EstimatedSearch
+  class NodeIt : public BufferedEstimatedSearch
   {
   public:
-    NodeIt(const AdjacencyListStorage& storage);
-    virtual bool next(Match& m) override;
+    NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+           const AdjacencyListStorage& storage);
+
     virtual void reset() override;
 
     virtual std::int64_t guessMaxCount() const override
@@ -60,8 +61,12 @@ public:
       return maxCount;
     }
 
-    virtual ~NodeIt() {}
+    virtual ~NodeIt();
+
+  protected:
+    virtual bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) override;
   private:
+    std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
     set_t<Edge>::const_iterator it;
     set_t<Edge>::const_iterator itStart;
     set_t<Edge>::const_iterator itEnd;
@@ -112,9 +117,10 @@ public:
     return edgeAnnos;
   }
 
-  virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const override
+  virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator) const override
   {
-    return std::make_shared<NodeIt>(*this);
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, *this);
   }
 
   virtual void calculateStatistics(const StringStorage& strings) override;

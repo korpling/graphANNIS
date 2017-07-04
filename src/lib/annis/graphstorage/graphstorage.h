@@ -23,6 +23,7 @@
 #include <memory>                       // for unique_ptr
 #include <vector>                       // for vector
 #include <annis/iterators.h>
+#include <annis/annosearch/estimatedsearch.h>
 
 namespace annis { class DB; }
 namespace annis { class StringStorage; }
@@ -72,7 +73,8 @@ public:
 
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const = 0;
 
-  virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const = 0;
+  virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator) const = 0;
 
   virtual GraphStatistic getStatistics() const
   {

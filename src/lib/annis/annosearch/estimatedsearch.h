@@ -63,4 +63,20 @@ private:
 };
 
 
+class BufferedEstimatedSearch : public EstimatedSearch
+{
+public:
+  BufferedEstimatedSearch();
+
+  virtual bool next(Match& m) override;
+  virtual void reset() override;
+
+  virtual ~BufferedEstimatedSearch();
+protected:
+  virtual bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) = 0;
+private:
+
+  std::list<Match> currentMatchBuffer;
+};
+
 } // end namespace annis

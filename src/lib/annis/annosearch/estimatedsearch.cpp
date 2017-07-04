@@ -16,3 +16,34 @@
 
 #include "estimatedsearch.h"
 
+using namespace annis;
+
+BufferedEstimatedSearch::BufferedEstimatedSearch()
+{
+
+}
+
+bool BufferedEstimatedSearch::next(Match &m)
+{
+  do
+  {
+    if(!currentMatchBuffer.empty())
+    {
+      m = currentMatchBuffer.front();
+      currentMatchBuffer.pop_front();
+      return true;
+    }
+  } while(nextMatchBuffer(currentMatchBuffer));
+
+  return false;
+}
+
+void BufferedEstimatedSearch::reset()
+{
+  currentMatchBuffer.clear();
+}
+
+BufferedEstimatedSearch::~BufferedEstimatedSearch()
+{
+
+}
