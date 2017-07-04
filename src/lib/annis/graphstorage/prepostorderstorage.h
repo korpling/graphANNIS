@@ -237,8 +237,50 @@ public:
   };
 
 
-using NStack = std::stack<NodeStackEntry<order_t, level_t>, std::list<NodeStackEntry<order_t, level_t> > >;
-using PrePostSpec = PrePost<order_t, level_t>;
+  using NStack = std::stack<NodeStackEntry<order_t, level_t>, std::list<NodeStackEntry<order_t, level_t> > >;
+  using PrePostSpec = PrePost<order_t, level_t>;
+
+  class NodeIt : public AnnoIt
+  {
+  public:
+    using OrderIt = typename multimap_t<nodeid_t, PrePost<order_t, level_t>>::const_iterator;
+
+    NodeIt(OrderIt itStart, OrderIt itEnd)
+      : it(itStart), itStart(itStart), itEnd(itEnd)
+    {
+
+    }
+
+    virtual bool next(Match& m) override
+    {
+      while(it != itEnd)
+      {
+        if(lastNode && *lastNode != it->first)
+        {
+          m.node = it->first;
+          lastNode = it->first;
+          return true;
+        }
+
+        it++;
+      }
+      return false;
+    }
+    virtual void reset() override
+    {
+      it = itStart;
+      lastNode.reset();
+    }
+
+    virtual ~NodeIt() {}
+  private:
+    OrderIt it;
+    OrderIt itStart;
+    OrderIt itEnd;
+
+    boost::optional<nodeid_t> lastNode;
+  };
+
 
 public:
   PrePostOrderStorage()
@@ -444,11 +486,6 @@ public:
     return result;
   }
 
-  virtual bool isPartOfComponent(nodeid_t node) const override
-  {
-    return node2order.find(node) != node2order.end();
-  }
-
   virtual size_t numberOfEdges() const override
   {
     return order2node.size();
@@ -461,6 +498,11 @@ public:
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
   {
     return edgeAnno;
+  }
+
+  virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const override
+  {
+    return std::make_shared<NodeIt>(node2order.begin(), node2order.end());
   }
 
   virtual size_t estimateMemorySize() override

@@ -29,11 +29,38 @@
 #include "annis/iterators.h"                      // for EdgeIterator
 #include "annis/types.h"                          // for Edge, GraphStatistic
 
-namespace annis { class StringStorage; }
+namespace annis { class StringStorage;}
 
 using namespace annis;
 using namespace std;
 
+AdjacencyListStorage::NodeIt::NodeIt(set_t<Edge>::const_iterator itStart,
+                                     set_t<Edge>::const_iterator itEnd)
+  : it(itStart), itStart(itStart), itEnd(itEnd)
+{
+}
+
+bool AdjacencyListStorage::NodeIt::next(Match &m)
+{
+  while(it != itEnd)
+  {
+    if(lastNode && *lastNode != it->source)
+    {
+      m.node = it->source;
+      lastNode = it->source;
+      return true;
+    }
+
+    it++;
+  }
+  return false;
+}
+
+void AdjacencyListStorage::NodeIt::reset()
+{
+  it = itStart;
+  lastNode.reset();
+}
 
 void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
 {
@@ -200,12 +227,6 @@ std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) cons
 
   return result;
 }
-
-bool AdjacencyListStorage::isPartOfComponent(nodeid_t node) const
-{
-  return edges.lower_bound({node, 0}) != edges.end() || inverseEdges.lower_bound({node, 0}) != inverseEdges.end();
-}
-
 
 size_t AdjacencyListStorage::numberOfEdges() const
 {

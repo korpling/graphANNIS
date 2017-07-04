@@ -125,6 +125,47 @@ public:
 
   };
 
+  class NodeIt : public AnnoIt
+  {
+  public:
+    using OrderIt = typename map_t<nodeid_t, RelativePosition<pos_t>>::const_iterator;
+
+    NodeIt(OrderIt itStart, OrderIt itEnd)
+      : it(itStart), itStart(itStart), itEnd(itEnd)
+    {
+
+    }
+
+    virtual bool next(Match& m) override
+    {
+      while(it != itEnd)
+      {
+        if(lastNode && *lastNode != it->first)
+        {
+          m.node = it->first;
+          lastNode = it->first;
+          return true;
+        }
+
+        it++;
+      }
+      return false;
+    }
+    virtual void reset() override
+    {
+      it = itStart;
+      lastNode.reset();
+    }
+
+    virtual ~NodeIt() {}
+  private:
+    OrderIt it;
+    OrderIt itStart;
+    OrderIt itEnd;
+
+    boost::optional<nodeid_t> lastNode;
+  };
+
 
 public:
 
@@ -286,11 +327,6 @@ public:
     return result;
   }
 
-  virtual bool isPartOfComponent(nodeid_t node) const override
-  {
-    return node2pos.find(node) != node2pos.end();
-  }
-
   virtual size_t numberOfEdges() const override
   {
     return node2pos.size();
@@ -303,6 +339,11 @@ public:
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
   {
     return edgeAnno;
+  }
+
+  virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const override
+  {
+    return std::make_shared<NodeIt>(node2pos.begin(), node2pos.end());
   }
 
   virtual size_t estimateMemorySize() override

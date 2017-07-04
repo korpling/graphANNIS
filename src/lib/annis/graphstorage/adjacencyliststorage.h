@@ -48,6 +48,21 @@ public:
 
   template<typename Key> using set_t = btree::btree_set<Key>;
 
+  class NodeIt : public AnnoIt
+  {
+  public:
+    NodeIt(set_t<Edge>::const_iterator itStart, set_t<Edge>::const_iterator itEnd);
+    virtual bool next(Match& m) override;
+    virtual void reset() override;
+
+    virtual ~NodeIt() {}
+  private:
+    set_t<Edge>::const_iterator it;
+    set_t<Edge>::const_iterator itStart;
+    set_t<Edge>::const_iterator itEnd;
+
+    boost::optional<nodeid_t> lastNode;
+  };
 
   AdjacencyListStorage() {}
 
@@ -72,13 +87,11 @@ public:
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const override;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const override;
 
-  virtual bool isPartOfComponent(nodeid_t node) const override;
-
-  set_t<Edge>::const_iterator getEdgesBegin()
+  set_t<Edge>::const_iterator getEdgesBegin() const
   {
     return edges.begin();
   }
-  set_t<Edge>::const_iterator getEdgesEnd()
+  set_t<Edge>::const_iterator getEdgesEnd() const
   {
     return edges.end();
   }
@@ -90,6 +103,11 @@ public:
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
   {
     return edgeAnnos;
+  }
+
+  virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const override
+  {
+    return std::make_shared<NodeIt>(getEdgesBegin(), getEdgesEnd());
   }
 
   virtual void calculateStatistics(const StringStorage& strings) override;

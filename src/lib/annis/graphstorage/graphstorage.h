@@ -22,6 +22,7 @@
 #include <cereal/types/polymorphic.hpp>  // for base_class
 #include <memory>                       // for unique_ptr
 #include <vector>                       // for vector
+#include <annis/iterators.h>
 
 namespace annis { class DB; }
 namespace annis { class StringStorage; }
@@ -64,13 +65,14 @@ public:
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge& edge) const = 0;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const = 0;
 
-  virtual bool isPartOfComponent(nodeid_t node) const = 0;
 
 
   virtual size_t numberOfEdges() const = 0;
   virtual size_t numberOfEdgeAnnotations() const = 0;
 
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const = 0;
+
+  virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const = 0;
 
   virtual GraphStatistic getStatistics() const
   {
