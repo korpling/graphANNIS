@@ -64,6 +64,12 @@ int main(int argc, char **argv) {
           benchmark.registerFixture("Jobs_" + std::to_string(i), config);
         }
 
+        {
+          QueryConfig configSimd;
+          configSimd.enableSIMDIndexJoin = true;
+          configSimd.threadPool = nullptr;
+          benchmark.registerFixture("SIMD", configSimd);
+        }
       }
       itFiles++;
     }
