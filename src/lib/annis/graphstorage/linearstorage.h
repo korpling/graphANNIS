@@ -131,8 +131,9 @@ public:
   public:
     using OrderIt = typename map_t<nodeid_t, RelativePosition<pos_t>>::const_iterator;
 
-    NodeIt(OrderIt itStart, OrderIt itEnd)
-      : it(itStart), itStart(itStart), itEnd(itEnd)
+    NodeIt(const LinearStorage<pos_t>& storage)
+      : it(storage.node2pos.begin()), itStart(storage.node2pos.begin()), itEnd(storage.node2pos.end()),
+        maxCount(storage.node2pos.size())
     {
 
     }
@@ -162,6 +163,11 @@ public:
       lastNode.reset();
     }
 
+    virtual std::int64_t guessMaxCount() const override
+    {
+      return maxCount;
+    }
+
     virtual ~NodeIt() {}
   private:
     OrderIt it;
@@ -169,6 +175,8 @@ public:
     OrderIt itEnd;
 
     boost::optional<nodeid_t> lastNode;
+
+    std::int64_t maxCount;
   };
 
 
@@ -348,7 +356,7 @@ public:
 
   virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const override
   {
-    return std::make_shared<NodeIt>(node2pos.begin(), node2pos.end());
+    return std::make_shared<NodeIt>(*this);
   }
 
   virtual size_t estimateMemorySize() override

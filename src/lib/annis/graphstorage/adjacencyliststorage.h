@@ -51,9 +51,14 @@ public:
   class NodeIt : public EstimatedSearch
   {
   public:
-    NodeIt(set_t<Edge>::const_iterator itStart, set_t<Edge>::const_iterator itEnd);
+    NodeIt(const AdjacencyListStorage& storage);
     virtual bool next(Match& m) override;
     virtual void reset() override;
+
+    virtual std::int64_t guessMaxCount() const override
+    {
+      return maxCount;
+    }
 
     virtual ~NodeIt() {}
   private:
@@ -62,6 +67,8 @@ public:
     set_t<Edge>::const_iterator itEnd;
 
     boost::optional<nodeid_t> lastNode;
+
+    const std::int64_t maxCount;
   };
 
   AdjacencyListStorage() {}
@@ -107,7 +114,7 @@ public:
 
   virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const override
   {
-    return std::make_shared<NodeIt>(getEdgesBegin(), getEdgesEnd());
+    return std::make_shared<NodeIt>(*this);
   }
 
   virtual void calculateStatistics(const StringStorage& strings) override;

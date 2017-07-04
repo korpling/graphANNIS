@@ -34,9 +34,9 @@ namespace annis { class StringStorage;}
 using namespace annis;
 using namespace std;
 
-AdjacencyListStorage::NodeIt::NodeIt(set_t<Edge>::const_iterator itStart,
-                                     set_t<Edge>::const_iterator itEnd)
-  : it(itStart), itStart(itStart), itEnd(itEnd)
+AdjacencyListStorage::NodeIt::NodeIt(const AdjacencyListStorage &storage)
+  : it(storage.edges.begin()), itStart(storage.edges.begin()), itEnd(storage.edges.end()),
+    maxCount(storage.edges.size())
 {
 }
 

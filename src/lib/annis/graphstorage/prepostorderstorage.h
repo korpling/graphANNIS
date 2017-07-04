@@ -246,8 +246,8 @@ public:
   public:
     using OrderIt = typename multimap_t<nodeid_t, PrePost<order_t, level_t>>::const_iterator;
 
-    NodeIt(OrderIt itStart, OrderIt itEnd)
-      : it(itStart), itStart(itStart), itEnd(itEnd)
+    NodeIt(OrderIt itStart, OrderIt itEnd, std::int64_t maxCount)
+      : it(itStart), itStart(itStart), itEnd(itEnd), maxCount(maxCount)
     {
 
     }
@@ -277,6 +277,11 @@ public:
       lastNode.reset();
     }
 
+    virtual std::int64_t guessMaxCount() const override
+    {
+      return maxCount;
+    }
+
     virtual ~NodeIt() {}
   private:
     OrderIt it;
@@ -284,6 +289,7 @@ public:
     OrderIt itEnd;
 
     boost::optional<nodeid_t> lastNode;
+    std::int64_t maxCount;
   };
 
 
@@ -507,7 +513,7 @@ public:
 
   virtual std::shared_ptr<AnnoIt> getSourceNodeIterator() const override
   {
-    return std::make_shared<NodeIt>(node2order.begin(), node2order.end());
+    return std::make_shared<NodeIt>(node2order.begin(), node2order.end(), node2order.size());
   }
 
   virtual size_t estimateMemorySize() override
