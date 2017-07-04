@@ -145,7 +145,7 @@ public:
       currentMatchBuffer.clear();
       while(it != itEnd)
       {
-        if(lastNode && *lastNode != it->first)
+        if(!lastNode || *lastNode != it->first)
         {
           if(getConstAnnoValue())
           {

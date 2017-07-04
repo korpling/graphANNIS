@@ -60,7 +60,7 @@ bool AdjacencyListStorage::NodeIt::nextMatchBuffer(std::list<Match>& currentMatc
   currentMatchBuffer.clear();
   while(it != itEnd)
   {
-    if(lastNode && *lastNode != it->source)
+    if(!lastNode || *lastNode != it->source)
     {
       if(getConstAnnoValue())
       {
