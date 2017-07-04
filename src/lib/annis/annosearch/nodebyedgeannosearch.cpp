@@ -29,8 +29,8 @@ NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const Rea
                                            std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
                                            bool maximalOneNodeAnno,
                                            std::int64_t wrappedNodeCountEstimate, std::string debugDescription)
- : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
-   maximalOneNodeAnno(maximalOneNodeAnno),
+ : BufferedEstimatedSearch(maximalOneNodeAnno),
+   nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
    wrappedNodeCountEstimate(wrappedNodeCountEstimate),
    debugDescription(debugDescription + " _edgeanno_")
 {
@@ -50,25 +50,11 @@ NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const Rea
 
 }
 
-bool NodeByEdgeAnnoSearch::next(Match &m)
-{
-  do
-  {
-    if(!currentMatchBuffer.empty())
-    {
-      m = currentMatchBuffer.front();
-      currentMatchBuffer.pop_front();
-      return true;
-    }
-  } while(nextMatchBuffer());
-
-  return false;
-}
 
 void NodeByEdgeAnnoSearch::reset()
 {
+  BufferedEstimatedSearch::reset();
   visited.clear();
-  currentMatchBuffer.clear();
   currentRange = searchRanges.begin();
   if(currentRange != searchRanges.end())
   {
@@ -82,7 +68,7 @@ NodeByEdgeAnnoSearch::~NodeByEdgeAnnoSearch()
 
 }
 
-bool NodeByEdgeAnnoSearch::nextMatchBuffer()
+bool NodeByEdgeAnnoSearch::nextMatchBuffer(std::list<Match> &currentMatchBuffer)
 {
   currentMatchBuffer.clear();
 

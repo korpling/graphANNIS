@@ -335,7 +335,7 @@ std::shared_ptr<EstimatedSearch> AbstractEdgeOperator::createAnnoSearch(
     else
     {
       // TODO: implement graph storage source node search for multiple graph storages
-      return std::shared_ptr<NodeByEdgeAnnoSearch>();
+      return std::shared_ptr<EstimatedSearch>();
     }
   }
   else

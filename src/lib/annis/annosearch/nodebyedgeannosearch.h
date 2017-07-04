@@ -32,7 +32,7 @@ namespace annis { class ReadableGraphStorage; }
 
 namespace annis
 {
-class NodeByEdgeAnnoSearch : public EstimatedSearch
+class NodeByEdgeAnnoSearch : public BufferedEstimatedSearch
 {
 
   using ItType = BTreeMultiAnnoStorage<Edge>::InverseAnnoMap_t::const_iterator;
@@ -45,10 +45,9 @@ public:
                        std::int64_t wrappedNodeCountEstimate,
                        std::string debugDescription="");
 
-  virtual bool next(Match& m) override;
   virtual void reset() override;
 
-  std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator()
+  std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator() override
   {
     return nodeAnnoMatchGenerator;
   }
@@ -60,14 +59,11 @@ public:
   virtual ~NodeByEdgeAnnoSearch();
 private:
   std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
-public:
-  const bool maximalOneNodeAnno;
+
 private:
   const std::int64_t wrappedNodeCountEstimate;
   const std::string debugDescription;
 
-
-  std::list<Match> currentMatchBuffer;
 
   std::list<Range> searchRanges;
   std::list<Range>::const_iterator currentRange;
@@ -76,8 +72,8 @@ private:
   std::unordered_set<nodeid_t> visited;
 
 
-private:
-  bool nextMatchBuffer();
+protected:
+  bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) override;
 };
 
 }
