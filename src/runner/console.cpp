@@ -355,7 +355,12 @@ void Console::plan(const std::vector<std::string> &args)
       try
       {
         std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss, config);
-        std::cout << q->debugString() << std::endl;
+        auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
+        std::string debugStr = q->debugString();
+        auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+        std::cout << debugStr << std::endl;
+
+        std::cout << "planned in " << (endTime - startTime) << " ms" << std::endl;
       }
       catch(Json::RuntimeError err)
       {
