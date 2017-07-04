@@ -47,6 +47,10 @@ bool AdjacencyListStorage::NodeIt::next(Match &m)
     if(lastNode && *lastNode != it->source)
     {
       m.node = it->source;
+      if(getConstAnnoValue())
+      {
+        m.anno = *getConstAnnoValue();
+      }
       lastNode = it->source;
       return true;
     }

@@ -28,7 +28,7 @@
 #include <google/btree_container.h>           // for btree_unique_container<...
 #include <google/btree_set.h>                 // for btree_set
 #include <stddef.h>                           // for size_t
-
+#include <annis/annosearch/estimatedsearch.h>
 
 
 #include <memory>                             // for unique_ptr
@@ -48,7 +48,7 @@ public:
 
   template<typename Key> using set_t = btree::btree_set<Key>;
 
-  class NodeIt : public AnnoIt
+  class NodeIt : public EstimatedSearch
   {
   public:
     NodeIt(set_t<Edge>::const_iterator itStart, set_t<Edge>::const_iterator itEnd);

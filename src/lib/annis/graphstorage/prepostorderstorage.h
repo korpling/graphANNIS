@@ -37,6 +37,7 @@
 #include "annis/db.h"                             // for DB
 #include "annis/iterators.h"                      // for EdgeIterator
 #include "annis/types.h"                          // for nodeid_t, Edge, Ann...
+#include <annis/annosearch/estimatedsearch.h>
 
 namespace annis
 {
@@ -240,7 +241,7 @@ public:
   using NStack = std::stack<NodeStackEntry<order_t, level_t>, std::list<NodeStackEntry<order_t, level_t> > >;
   using PrePostSpec = PrePost<order_t, level_t>;
 
-  class NodeIt : public AnnoIt
+  class NodeIt : public EstimatedSearch
   {
   public:
     using OrderIt = typename multimap_t<nodeid_t, PrePost<order_t, level_t>>::const_iterator;
@@ -258,6 +259,10 @@ public:
         if(lastNode && *lastNode != it->first)
         {
           m.node = it->first;
+          if(getConstAnnoValue())
+          {
+            m.anno = *getConstAnnoValue();
+          }
           lastNode = it->first;
           return true;
         }
