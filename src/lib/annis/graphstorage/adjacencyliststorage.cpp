@@ -34,9 +34,10 @@ namespace annis { class StringStorage;}
 using namespace annis;
 using namespace std;
 
-AdjacencyListStorage::NodeIt::NodeIt(
-    std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, const AdjacencyListStorage &storage)
-  : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
+AdjacencyListStorage::NodeIt::NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+                                     bool maximalOneNodeAnno, const AdjacencyListStorage &storage)
+  : BufferedEstimatedSearch(maximalOneNodeAnno),
+    nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
     it(storage.edges.begin()), itStart(storage.edges.begin()), itEnd(storage.edges.end()),
     maxCount(storage.stat.nodes)
 {

@@ -66,12 +66,17 @@ private:
 class BufferedEstimatedSearch : public EstimatedSearch
 {
 public:
-  BufferedEstimatedSearch();
+  BufferedEstimatedSearch(bool maximalOneNodeAnno);
 
   virtual bool next(Match& m) override;
   virtual void reset() override;
 
+  virtual std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator() = 0;
+
   virtual ~BufferedEstimatedSearch();
+
+public:
+  const bool maximalOneNodeAnno;
 protected:
   virtual bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) = 0;
 private:

@@ -457,6 +457,12 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const D
   {
     return byEdgeAnno->getNodeAnnoMatchGenerator();
   }
+
+  std::shared_ptr<BufferedEstimatedSearch> bufferedSearch = std::dynamic_pointer_cast<BufferedEstimatedSearch>(search);
+  if(bufferedSearch)
+  {
+    return bufferedSearch->getNodeAnnoMatchGenerator();
+  }
   return [](nodeid_t) -> std::list<Annotation>  {return std::list<Annotation>();};
 }
 
@@ -482,6 +488,12 @@ bool Plan::searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> se
   if(byEdgeAnno)
   {
     return byEdgeAnno->maximalOneNodeAnno;
+  }
+
+  std::shared_ptr<BufferedEstimatedSearch> bufferedSearch = std::dynamic_pointer_cast<BufferedEstimatedSearch>(search);
+  if(bufferedSearch)
+  {
+    return bufferedSearch->maximalOneNodeAnno;
   }
 
   return false;

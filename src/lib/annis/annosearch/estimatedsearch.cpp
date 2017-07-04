@@ -18,7 +18,8 @@
 
 using namespace annis;
 
-BufferedEstimatedSearch::BufferedEstimatedSearch()
+BufferedEstimatedSearch::BufferedEstimatedSearch(bool maximalOneNodeAnno)
+  : maximalOneNodeAnno(maximalOneNodeAnno)
 {
 
 }

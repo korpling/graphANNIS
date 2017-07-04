@@ -74,7 +74,7 @@ public:
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const = 0;
 
   virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
-      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator) const = 0;
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno) const = 0;
 
   virtual GraphStatistic getStatistics() const
   {

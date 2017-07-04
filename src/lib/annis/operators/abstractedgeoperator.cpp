@@ -330,7 +330,7 @@ std::shared_ptr<EstimatedSearch> AbstractEdgeOperator::createAnnoSearch(
   {
     if(gs.size() == 1)
     {
-      return gs[0]->getSourceNodeIterator(nodeAnnoMatchGenerator);
+      return gs[0]->getSourceNodeIterator(nodeAnnoMatchGenerator, maximalOneNodeAnno);
     }
     else
     {

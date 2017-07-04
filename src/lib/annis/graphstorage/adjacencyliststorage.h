@@ -52,9 +52,15 @@ public:
   {
   public:
     NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+           bool maximalOneNodeAnno,
            const AdjacencyListStorage& storage);
 
     virtual void reset() override;
+
+    virtual std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator() override
+    {
+      return nodeAnnoMatchGenerator;
+    }
 
     virtual std::int64_t guessMaxCount() const override
     {
@@ -66,7 +72,8 @@ public:
   protected:
     virtual bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) override;
   private:
-    std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
+    const std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
+
     set_t<Edge>::const_iterator it;
     set_t<Edge>::const_iterator itStart;
     set_t<Edge>::const_iterator itEnd;
@@ -74,6 +81,7 @@ public:
     boost::optional<nodeid_t> lastNode;
 
     const std::int64_t maxCount;
+
   };
 
   AdjacencyListStorage() {}
@@ -118,9 +126,9 @@ public:
   }
 
   virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
-      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator) const override
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno) const override
   {
-    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, *this);
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, *this);
   }
 
   virtual void calculateStatistics(const StringStorage& strings) override;

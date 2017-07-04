@@ -246,8 +246,10 @@ public:
   public:
     using OrderIt = typename multimap_t<nodeid_t, PrePost<order_t, level_t>>::const_iterator;
 
-    NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, OrderIt itStart, OrderIt itEnd, std::int64_t maxCount)
-      : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
+    NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+           OrderIt itStart, OrderIt itEnd, std::int64_t maxCount)
+      : BufferedEstimatedSearch(maximalOneNodeAnno),
+        nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
         it(itStart), itStart(itStart), itEnd(itEnd), maxCount(maxCount)
     {
 
@@ -288,6 +290,11 @@ public:
       lastNode.reset();
     }
 
+    virtual std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator() override
+    {
+      return nodeAnnoMatchGenerator;
+    }
+
     virtual std::int64_t guessMaxCount() const override
     {
       return maxCount;
@@ -295,7 +302,7 @@ public:
 
     virtual ~NodeIt() {}
   private:
-    std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
+    const std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
 
     OrderIt it;
     OrderIt itStart;
@@ -525,9 +532,10 @@ public:
   }
 
   virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
-      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator) const override
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno) const override
   {
-    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, node2order.begin(), node2order.end(), stat.nodes);
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno,
+                                    node2order.begin(), node2order.end(), stat.nodes);
   }
 
   virtual size_t estimateMemorySize() override
