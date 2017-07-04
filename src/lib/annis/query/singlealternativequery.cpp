@@ -35,7 +35,7 @@
 #include "annis/annostorage.h"                      // for AnnoStorage
 #include "annis/queryconfig.h"                      // for QueryConfig
 #include "annis/types.h"                            // for nodeid_t, Match
-#include "annis/util/plan.h"                        // for Plan, ExecutionNode
+#include <annis/util/plan.h>                        // for Plan, ExecutionNode
 
 using namespace annis;
 
@@ -157,7 +157,9 @@ std::shared_ptr<const Plan> SingleAlternativeQuery::getBestPlan()
 
 
 std::shared_ptr<Plan> SingleAlternativeQuery::createPlan(const std::vector<std::shared_ptr<AnnoIt> >& nodes,
-  const std::vector<OperatorEntry>& operators, std::map<size_t, size_t> parallelizationMapping)
+                                                         const std::vector<OperatorEntry>& operators,
+                                                         std::map<size_t, std::shared_ptr<ExecutionEstimate>>& baseEstimateCache,
+                                                         std::map<size_t, size_t> parallelizationMapping)
 {
   std::map<nodeid_t, size_t> node2component;
   std::map<size_t, std::shared_ptr<ExecutionNode>> component2exec;
@@ -171,6 +173,18 @@ std::shared_ptr<Plan> SingleAlternativeQuery::createPlan(const std::vector<std::
     baseNode->nodePos[i] = 0;
     baseNode->componentNr = i;
     baseNode->join = n;
+
+    auto itBaseEstimate = baseEstimateCache.find(i);
+    if(itBaseEstimate == baseEstimateCache.end())
+    {
+      // calculate the estimation for the base node
+      baseEstimateCache[i] = Plan::estimateTupleSize(baseNode);
+    }
+    else
+    {
+      // re-use already existing estimation
+      baseNode->estimate = itBaseEstimate->second;
+    }
 
     node2component[i] = i;
     component2exec[i] = baseNode;
@@ -306,7 +320,8 @@ void SingleAlternativeQuery::internalInit()
   if(bestPlan) {
     return;
   }
-  
+  std::map<size_t, std::shared_ptr<ExecutionEstimate>> baseEstimateCache;
+
   if(config.optimize)
   {
 
@@ -326,17 +341,17 @@ void SingleAlternativeQuery::internalInit()
       ////////////////////////////////////
       if(operators.size() <= 6)
       {
-        optimizeJoinOrderAllPermutations();
+        optimizeJoinOrderAllPermutations(baseEstimateCache);
       }
       else
       {
-        optimizeJoinOrderRandom();
+        optimizeJoinOrderRandom(baseEstimateCache);
       }
       
     } // end optimize join order
     else
     {
-      bestPlan = createPlan(nodes, operators);
+      bestPlan = createPlan(nodes, operators, baseEstimateCache);
       // still get the cost so the estimates are calculated
       bestPlan->getCost();
     }
@@ -345,7 +360,7 @@ void SingleAlternativeQuery::internalInit()
     {
       std::map<size_t, size_t> parallelizationMapping = bestPlan->getOptimizedParallelizationMapping(db, config);
       // recreate the plan with the mapping
-      bestPlan = createPlan(nodes, operators, parallelizationMapping);
+      bestPlan = createPlan(nodes, operators, baseEstimateCache, parallelizationMapping);
       // still get the cost so the estimates are calculated
       bestPlan->getCost();
     }
@@ -353,20 +368,20 @@ void SingleAlternativeQuery::internalInit()
   else
   {
     // create unoptimized plan
-    bestPlan = createPlan(nodes, operators);
+    bestPlan = createPlan(nodes, operators, baseEstimateCache);
   }
   
   currentResult.resize(nodes.size());
 }
 
-void SingleAlternativeQuery::optimizeJoinOrderRandom()
+void SingleAlternativeQuery::optimizeJoinOrderRandom(std::map<size_t, std::shared_ptr<ExecutionEstimate>>& baseEstimateCache)
 {
   // use a constant seed to make the result deterministic
   std::mt19937 randGen(4711);
   std::uniform_int_distribution<> dist(0, static_cast<int>(operators.size()-1));
     
   std::vector<OperatorEntry> optimizedOperators = operators;
-  bestPlan = createPlan(nodes, optimizedOperators);
+  bestPlan = createPlan(nodes, optimizedOperators, baseEstimateCache);
   double bestCost = bestPlan->getCost();
 
 //  std::cout << "orig plan:" << std::endl;
@@ -405,7 +420,7 @@ void SingleAlternativeQuery::optimizeJoinOrderRandom()
     bool foundBetterPlan = false;
     for(size_t i = 1; i < familyOperators.size(); i++)
     {
-      auto altPlan = createPlan(nodes, familyOperators[i]);
+      auto altPlan = createPlan(nodes, familyOperators[i], baseEstimateCache);
       double altCost = altPlan->getCost();
 
 //      std::cout << "................................" << std::endl;
@@ -441,13 +456,13 @@ void SingleAlternativeQuery::optimizeJoinOrderRandom()
   operators = optimizedOperators;
 }
 
-void SingleAlternativeQuery::optimizeJoinOrderAllPermutations()
+void SingleAlternativeQuery::optimizeJoinOrderAllPermutations(std::map<size_t, std::shared_ptr<ExecutionEstimate>>& baseEstimateCache)
 {
   // make sure the first permutation is the sorted one
   std::vector<OperatorEntry> testOrder = operators;
   std::sort(testOrder.begin(), testOrder.end(), compare_opentry_origorder);
   
-  bestPlan = createPlan(nodes, testOrder);
+  bestPlan = createPlan(nodes, testOrder, baseEstimateCache);
   operators = testOrder;
 
 //  bestPlan->getCost();
@@ -457,7 +472,7 @@ void SingleAlternativeQuery::optimizeJoinOrderAllPermutations()
   
   while(std::next_permutation(testOrder.begin(), testOrder.end(), compare_opentry_origorder))
   {
-    std::shared_ptr<Plan> testPlan = createPlan(nodes, testOrder);
+    std::shared_ptr<Plan> testPlan = createPlan(nodes, testOrder, baseEstimateCache);
 //    testPlan->getCost();
 //    std::cout << operatorOrderDebugString(testOrder) << std::endl;
 //    std::cout << testPlan->debugString() << std::endl;

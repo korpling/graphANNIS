@@ -32,6 +32,7 @@ namespace annis { class EstimatedSearch; }
 namespace annis { class DB; }
 namespace annis { class Operator; }
 namespace annis { class Plan; }
+namespace annis { class ExecutionEstimate; }
 
 namespace annis
 {
@@ -104,6 +105,7 @@ private:
   
   std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes,
                                    const std::vector<OperatorEntry>& operators,
+                                   std::map<size_t, std::shared_ptr<ExecutionEstimate>>& baseEstimateCache,
                                    std::map<size_t, size_t> parallelizationMapping = std::map<size_t,size_t>());
   
   void optimizeUnboundRegex();
@@ -112,8 +114,8 @@ private:
 
   void optimizeEdgeAnnoUsage();
   
-  void optimizeJoinOrderRandom();
-  void optimizeJoinOrderAllPermutations();
+  void optimizeJoinOrderRandom(std::map<size_t, std::shared_ptr<ExecutionEstimate> > &baseEstimateCache);
+  void optimizeJoinOrderAllPermutations(std::map<size_t, std::shared_ptr<ExecutionEstimate> > &baseEstimateCache);
 
   void updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to);
   
