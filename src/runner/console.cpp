@@ -31,6 +31,14 @@
 
 HUMBLE_LOGGER(logger, "default");
 
+#ifdef ENABLE_VALGRIND
+  #include <valgrind/callgrind.h>
+#else
+  #define CALLGRIND_STOP_INSTRUMENTATION
+
+  #define CALLGRIND_START_INSTRUMENTATION
+#endif // ENABLE_VALGRIND
+
 using namespace annis;
 
 Console::Console()
@@ -161,7 +169,7 @@ void Console::save(const std::vector<std::string> &args)
 
 void Console::load(const std::vector<std::string> &args)
 {
-
+  CALLGRIND_STOP_INSTRUMENTATION;
   if(args.size() > 0)
   {
     std::cout << "Loading from " << args[0] << std::endl;
@@ -174,6 +182,7 @@ void Console::load(const std::vector<std::string> &args)
   {
     std::cout << "You have to give a path as argument" << std::endl;
   }
+  CALLGRIND_START_INSTRUMENTATION;
 
 }
 
@@ -319,11 +328,12 @@ void Console::guessRegex(const std::vector<std::string> &args)
 
     if(args.size() == 3)
     {
-      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], args[1], args[2]) << std::endl;
+
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], args[1], re2::RE2(args[2])) << std::endl;
     }
     else if(args.size() == 2)
     {
-      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], args[1]) << std::endl;
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], re2::RE2(args[1])) << std::endl;
     }
     else
     {

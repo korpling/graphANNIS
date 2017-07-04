@@ -327,20 +327,21 @@ namespace annis {
       return 0;
     }
     
-    std::int64_t guessMaxCountRegex(const StringStorage& strings, const std::string& ns, const std::string& name, const std::string& val) const
+    std::int64_t guessMaxCountRegex(const StringStorage& strings,
+                                    const std::string& ns, const std::string& name,
+                                    const re2::RE2& valPattern) const
     {
-      auto nameID = strings.findID(name);
-      if(nameID.first)
+      if(valPattern.ok())
       {
-        auto nsID = strings.findID(ns);
-        if(nsID.first)
+        auto nameID = strings.findID(name);
+        if(nameID.first)
         {
-          re2::RE2 pattern(val);
-          if(pattern.ok())
+          auto nsID = strings.findID(ns);
+          if(nsID.first)
           {
             std::string minMatch;
             std::string maxMatch;
-            pattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
+            valPattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
             return guessMaxCount(boost::optional<std::uint32_t>(nsID.second), nameID.second, minMatch, maxMatch);
           }
         }
@@ -349,18 +350,19 @@ namespace annis {
       return 0;
     }
 
-    std::int64_t guessMaxCountRegex(StringStorage& strings, const std::string& name, const std::string& val) const
+    std::int64_t guessMaxCountRegex(StringStorage& strings, const std::string& name,
+                                    const re2::RE2& valPattern) const
     {
-      auto nameID = strings.findID(name);
-      if(nameID.first)
+      if(valPattern.ok())
       {
-        re2::RE2 pattern(val, RE2::Quiet);
-        if(pattern.ok())
+        auto nameID = strings.findID(name);
+        if(nameID.first)
         {
           std::string minMatch;
           std::string maxMatch;
-          pattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
+          valPattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
           return guessMaxCount(boost::optional<std::uint32_t>(), nameID.second, minMatch, maxMatch);
+
         }
       }
       return 0;

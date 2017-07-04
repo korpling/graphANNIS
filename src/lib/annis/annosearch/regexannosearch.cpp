@@ -177,7 +177,7 @@ std::int64_t RegexAnnoSearch::guessMaxCount() const
   
   for(const AnnotationKey& anno : annoKeys)
   {
-    sum += db.nodeAnnos.guessMaxCountRegex(db.strings, db.strings.str(anno.ns), db.strings.str(anno.name), valRegex);
+    sum += db.nodeAnnos.guessMaxCountRegex(db.strings, db.strings.str(anno.ns), db.strings.str(anno.name), compiledValRegex);
   }
   
   return sum;
