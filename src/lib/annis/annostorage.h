@@ -354,7 +354,7 @@ namespace annis {
       auto nameID = strings.findID(name);
       if(nameID.first)
       {
-        re2::RE2 pattern(val);
+        re2::RE2 pattern(val, RE2::Quiet);
         if(pattern.ok())
         {
           std::string minMatch;
