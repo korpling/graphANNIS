@@ -132,11 +132,11 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       }
       #ifdef ENABLE_SIMD_SUPPORT
       else if(config.enableSIMDIndexJoin
-              && std::dynamic_pointer_cast<AnnotationSearch>(estSearch)
+              && std::dynamic_pointer_cast<ExactAnnoValueSearch>(estSearch)
               && searchFilterReturnsMaximalOneAnno(estSearch))
       {
         const std::unordered_set<Annotation>& validAnnos
-            = std::static_pointer_cast<AnnotationSearch>(estSearch)->getValidAnnotations();
+            = std::static_pointer_cast<ExactAnnoValueSearch>(estSearch)->getValidAnnotations();
         join = std::make_shared<SIMDIndexJoin>(lhs->join, mappedPosLHS->second, op, db.nodeAnnos, *validAnnos.begin() );
       }
       #endif // ENABLE_SIMD_SUPPORT
