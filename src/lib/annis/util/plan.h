@@ -112,7 +112,7 @@ public:
   static std::function<std::list<Annotation> (nodeid_t)> createSearchFilter(const DB& db,
     std::shared_ptr<EstimatedSearch> search);
 
-  static bool searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> search);
+  static bool searchFilterReturnsOneAnno(std::shared_ptr<EstimatedSearch> search);
   
   static std::shared_ptr<ExecutionEstimate> estimateTupleSize(std::shared_ptr<ExecutionNode> node);
 private:

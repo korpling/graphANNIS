@@ -133,7 +133,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       #ifdef ENABLE_SIMD_SUPPORT
       else if(config.enableSIMDIndexJoin
               && std::dynamic_pointer_cast<ExactAnnoValueSearch>(estSearch)
-              && searchFilterReturnsMaximalOneAnno(estSearch))
+              && searchFilterReturnsOneAnno(estSearch))
       {
         const std::unordered_set<Annotation>& validAnnos
             = std::dynamic_pointer_cast<ExactAnnoValueSearch>(estSearch)->getValidAnnotations();
@@ -150,7 +150,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
         join = std::make_shared<IndexJoin>(db, op, lhs->join,
                                            mappedPosLHS->second,
                                            createSearchFilter(db, estSearch),
-                                           searchFilterReturnsMaximalOneAnno(estSearch));
+                                           searchFilterReturnsOneAnno(estSearch));
       }
     }
     else
@@ -461,7 +461,7 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createSearchFilter(const D
   return [](nodeid_t) -> std::list<Annotation>  {return std::list<Annotation>();};
 }
 
-bool Plan::searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> search)
+bool Plan::searchFilterReturnsOneAnno(std::shared_ptr<EstimatedSearch> search)
 {
   std::shared_ptr<RegexAnnoSearch> regexSearch = std::dynamic_pointer_cast<RegexAnnoSearch>(search);
   if(regexSearch)
@@ -472,12 +472,12 @@ bool Plan::searchFilterReturnsMaximalOneAnno(std::shared_ptr<EstimatedSearch> se
   std::shared_ptr<ExactAnnoValueSearch> annoSearch = std::dynamic_pointer_cast<ExactAnnoValueSearch>(search);
   if(annoSearch)
   {
-    return annoSearch->getValidAnnotations().size() <= 1;
+    return annoSearch->getValidAnnotations().size() == 1;
   }
   std::shared_ptr<ExactAnnoKeySearch> annoKeySearch = std::dynamic_pointer_cast<ExactAnnoKeySearch>(search);
   if(annoKeySearch)
   {
-    return annoKeySearch->getValidAnnotationKeys().size() <= 1;
+    return annoKeySearch->getValidAnnotationKeys().size() == 1;
   }
 
   std::shared_ptr<BufferedEstimatedSearch> bufferedSearch = std::dynamic_pointer_cast<BufferedEstimatedSearch>(search);
@@ -877,6 +877,13 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
     {
       result +=" tasks: " + std::to_string(node->numOfBackgroundTasks);
     }
+    #ifdef ENABLE_SIMD_SUPPORT
+    else if((node->type == ExecutionNodeType::index_join)
+            && std::dynamic_pointer_cast<SIMDIndexJoin>(node->join))
+    {
+      result += "simd";
+    }
+    #endif // #ifdef ENABLE_SIMD_SUPPORT
     result += "}";
   }
   
