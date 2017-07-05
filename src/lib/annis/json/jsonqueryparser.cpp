@@ -107,7 +107,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGr
       if(firstMetaIdx)
       {
         // avoid nested loops by joining additional meta nodes with a "identical node"
-        q->addOperator(std::make_shared<IdenticalNode>(db), metaNodeIdx, *firstMetaIdx);
+        q->addOperator(std::make_shared<IdenticalNode>(db), *firstMetaIdx, metaNodeIdx);
 
       }
       else
@@ -115,7 +115,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGr
         firstMetaIdx = metaNodeIdx;
         // add a special join to the first node of the query
         q->addOperator(std::make_shared<PartOfSubCorpus>(getGraphStorageFunc, db, 1),
-          metaNodeIdx, *firstNodePos);
+          *firstNodePos, metaNodeIdx);
 
       }
     }

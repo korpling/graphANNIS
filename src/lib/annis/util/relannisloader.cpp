@@ -710,11 +710,11 @@ void RelANNISLoader::addSubCorpora(std::string toplevelCorpusName,
     auto itNodeEnd  = nodesByCorpusID.upper_bound(corpusID);
     for(auto itNode = itNodeStart; itNode != itNodeEnd; itNode++)
     {
-      gsSubCorpus->addEdge({nodeID, itNode->second});
+      gsSubCorpus->addEdge({itNode->second, nodeID});
     }
 
-    // also add an edge from the top-level corpus to the document
-    gsSubCorpus->addEdge({toplevelNodeID, nodeID});
+    // also add an edge from the document to the top-level corpus
+    gsSubCorpus->addEdge({nodeID, toplevelNodeID});
 
     nodeID++;
   }
