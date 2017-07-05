@@ -19,6 +19,7 @@
 #include <annis/annosearch/nodebyedgeannosearch.h>  // for NodeByEdgeAnnoSearch
 #include <annis/db.h>                               // for DB
 #include <annis/filter/binaryfilter.h>              // for BinaryFilter
+#include <annis/join/donothingjoin.h>
 #include <annis/join/indexjoin.h>                   // for IndexJoin
 #include <annis/join/nestedloop.h>                  // for NestedLoopJoin
 #include <annis/join/taskindexjoin.h>               // for TaskIndexJoin
@@ -101,6 +102,17 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     return result;
   }
 
+  std::shared_ptr<EstimatedSearch> estSearch =
+      std::dynamic_pointer_cast<EstimatedSearch>(rhs->join);
+
+
+  if(type == ExecutionNodeType::index_join
+     && estSearch
+     && searchFilterReturnsNothing(estSearch))
+  {
+    type = ExecutionNodeType::do_nothing;
+  }
+
   boost::optional<std::string> extraDescription;
   
   // create the join iterator
@@ -111,15 +123,18 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
     result->type = ExecutionNodeType::filter;
     join = std::make_shared<BinaryFilter>(op, lhs->join, mappedPosLHS->second, mappedPosRHS->second);
   }
+  else if(type == ExecutionNodeType::do_nothing)
+  {
+    result->type = ExecutionNodeType::do_nothing;
+    join = std::make_shared<DoNothingJoin>();
+  }
   else if(type == ExecutionNodeType::index_join)
   {
     result->type = ExecutionNodeType::index_join;
     result->numOfBackgroundTasks = numOfBackgroundTasks;
-      
-    std::shared_ptr<Iterator> rightIt = rhs->join;
 
     std::shared_ptr<EstimatedSearch> estSearch =
-        std::dynamic_pointer_cast<EstimatedSearch>(rightIt);
+        std::dynamic_pointer_cast<EstimatedSearch>(rhs->join);
 
     if(estSearch)
     {
@@ -383,6 +398,10 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         {
           processedInStep = calculateIndexJoinProcessed(operatorSelectivity, estLHS->output, estRHS->output);
         } 
+        else if(node->type == ExecutionNodeType::do_nothing)
+        {
+          processedInStep = 0;
+        }
         else
         {
           processedInStep = estLHS->output;
@@ -484,6 +503,28 @@ bool Plan::searchFilterReturnsOneAnno(std::shared_ptr<EstimatedSearch> search)
   if(bufferedSearch)
   {
     return bufferedSearch->maximalOneNodeAnno;
+  }
+
+  return false;
+}
+
+bool Plan::searchFilterReturnsNothing(std::shared_ptr<EstimatedSearch> search)
+{
+  std::shared_ptr<RegexAnnoSearch> regexSearch = std::dynamic_pointer_cast<RegexAnnoSearch>(search);
+  if(regexSearch)
+  {
+    return false;
+  }
+
+  std::shared_ptr<ExactAnnoValueSearch> annoSearch = std::dynamic_pointer_cast<ExactAnnoValueSearch>(search);
+  if(annoSearch)
+  {
+    return annoSearch->getValidAnnotations().size() == 0;
+  }
+  std::shared_ptr<ExactAnnoKeySearch> annoKeySearch = std::dynamic_pointer_cast<ExactAnnoKeySearch>(search);
+  if(annoKeySearch)
+  {
+    return annoKeySearch->getValidAnnotationKeys().size() == 0;
   }
 
   return false;
@@ -913,6 +954,8 @@ std::string Plan::typeToString(ExecutionNodeType type) const
       return "nested_loop";
     case ExecutionNodeType::index_join:
       return "index_join";
+  case ExecutionNodeType::do_nothing:
+    return "do_nothing";
     default:
       return "<unknown>";
   }

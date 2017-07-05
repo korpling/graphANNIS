@@ -45,6 +45,7 @@ enum ExecutionNodeType
   base,
   nested_loop,
   index_join,
+  do_nothing,
   filter,
   num_of_ExecutionNodeType
 };
@@ -113,6 +114,7 @@ public:
     std::shared_ptr<EstimatedSearch> search);
 
   static bool searchFilterReturnsOneAnno(std::shared_ptr<EstimatedSearch> search);
+  static bool searchFilterReturnsNothing(std::shared_ptr<EstimatedSearch> search);
   
   static std::shared_ptr<ExecutionEstimate> estimateTupleSize(std::shared_ptr<ExecutionNode> node);
 private:

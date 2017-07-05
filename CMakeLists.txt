@@ -106,6 +106,7 @@ set(SRC_LIST_LIB
   src/lib/annis/util/threadpool.cpp
   src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
+  src/lib/annis/join/donothingjoin.cpp
   src/lib/annis/join/indexjoin.cpp
   src/lib/annis/join/nestedloop.cpp
   src/lib/annis/join/threadnestedloop.cpp
