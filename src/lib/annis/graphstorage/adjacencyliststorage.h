@@ -52,7 +52,7 @@ public:
   {
   public:
     NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
-           bool maximalOneNodeAnno,
+           bool maximalOneNodeAnno, bool returnsNothing,
            const AdjacencyListStorage& storage);
 
     virtual void reset() override;
@@ -126,9 +126,10 @@ public:
   }
 
   virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
-      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno) const override
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+      bool returnsNothing) const override
   {
-    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, *this);
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, returnsNothing, *this);
   }
 
   virtual void calculateStatistics(const StringStorage& strings) override;

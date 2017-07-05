@@ -137,6 +137,7 @@ void SingleAlternativeQuery::optimizeEdgeAnnoUsage()
             // it is more efficient to fetch the base node by searching for the edge annotation
             nodes[opEntry.idxLeft] = op->createAnnoSearch(Plan::createSearchFilter(db, lhsNodeIt),
                                                           Plan::searchFilterReturnsOneAnno(lhsNodeIt),
+                                                          Plan::searchFilterReturnsNothing(lhsNodeIt),
                                                           guessedCountNodeAnno,
                                                           lhsNodeIt->debugString());
           }

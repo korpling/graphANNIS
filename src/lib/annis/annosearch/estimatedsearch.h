@@ -66,7 +66,7 @@ private:
 class BufferedEstimatedSearch : public EstimatedSearch
 {
 public:
-  BufferedEstimatedSearch(bool maximalOneNodeAnno);
+  BufferedEstimatedSearch(bool maximalOneNodeAnno, bool returnsNothing);
 
   virtual bool next(Match& m) override;
   virtual void reset() override;
@@ -77,6 +77,7 @@ public:
 
 public:
   const bool maximalOneNodeAnno;
+  const bool returnsNothing;
 protected:
   virtual bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) = 0;
 private:

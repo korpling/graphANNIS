@@ -41,7 +41,7 @@ class NodeByEdgeAnnoSearch : public BufferedEstimatedSearch
 public:
   NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const ReadableGraphStorage>> gs, std::set<Annotation> validEdgeAnnos,
                        std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
-                       bool maximalOneNodeAnno,
+                       bool maximalOneNodeAnno, bool returnsNothing,
                        std::int64_t wrappedNodeCountEstimate,
                        std::string debugDescription="");
 

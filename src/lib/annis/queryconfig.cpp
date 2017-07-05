@@ -22,7 +22,5 @@ annis::QueryConfig::QueryConfig()
     numOfBackgroundTasks(0), enableTaskIndexJoin(false), enableThreadIndexJoin(false), enableSIMDIndexJoin(false), threadPool(nullptr)
 
 {
-#ifdef ENABLE_SIMD_SUPPORT
-  enableSIMDIndexJoin = true;
-#endif
+
 }

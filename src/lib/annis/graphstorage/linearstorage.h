@@ -132,8 +132,9 @@ public:
     using OrderIt = typename map_t<nodeid_t, RelativePosition<pos_t>>::const_iterator;
 
     NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+           bool returnsNothing,
            const LinearStorage<pos_t>& storage)
-      : BufferedEstimatedSearch(maximalOneNodeAnno),
+      : BufferedEstimatedSearch(maximalOneNodeAnno, returnsNothing),
         nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
         it(storage.node2pos.begin()), itStart(storage.node2pos.begin()), itEnd(storage.node2pos.end()),
         maxCount(storage.stat.nodes)
@@ -376,9 +377,10 @@ public:
   }
 
   virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
-      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno) const override
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+      bool maximalOneNodeAnno, bool returnsNothing) const override
   {
-    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, *this);
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, returnsNothing, *this);
   }
 
   virtual size_t estimateMemorySize() override

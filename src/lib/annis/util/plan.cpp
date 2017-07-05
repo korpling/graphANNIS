@@ -527,6 +527,12 @@ bool Plan::searchFilterReturnsNothing(std::shared_ptr<EstimatedSearch> search)
     return annoKeySearch->getValidAnnotationKeys().size() == 0;
   }
 
+  std::shared_ptr<BufferedEstimatedSearch> bufferedSearch = std::dynamic_pointer_cast<BufferedEstimatedSearch>(search);
+  if(bufferedSearch)
+  {
+    return bufferedSearch->returnsNothing;
+  }
+
   return false;
 }
 

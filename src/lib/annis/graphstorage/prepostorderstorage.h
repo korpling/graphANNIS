@@ -247,8 +247,9 @@ public:
     using OrderIt = typename multimap_t<nodeid_t, PrePost<order_t, level_t>>::const_iterator;
 
     NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+           bool returnsNothing,
            OrderIt itStart, OrderIt itEnd, std::int64_t maxCount)
-      : BufferedEstimatedSearch(maximalOneNodeAnno),
+      : BufferedEstimatedSearch(maximalOneNodeAnno, returnsNothing),
         nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
         it(itStart), itStart(itStart), itEnd(itEnd), maxCount(maxCount)
     {
@@ -532,9 +533,10 @@ public:
   }
 
   virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
-      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno) const override
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+      bool returnsNothing) const override
   {
-    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno,
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, returnsNothing,
                                     node2order.begin(), node2order.end(), stat.nodes);
   }
 

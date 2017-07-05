@@ -27,9 +27,9 @@ using namespace annis;
 
 NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const ReadableGraphStorage> > gs, std::set<Annotation> validEdgeAnnos,
                                            std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
-                                           bool maximalOneNodeAnno,
+                                           bool maximalOneNodeAnno, bool returnsNothing,
                                            std::int64_t wrappedNodeCountEstimate, std::string debugDescription)
- : BufferedEstimatedSearch(maximalOneNodeAnno),
+ : BufferedEstimatedSearch(maximalOneNodeAnno, returnsNothing),
    nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
    wrappedNodeCountEstimate(wrappedNodeCountEstimate),
    debugDescription(debugDescription + " _edgeanno_")
