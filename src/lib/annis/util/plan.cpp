@@ -572,6 +572,8 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationSearchFilt
           if(constAnno)
           {
             result.push_back(*constAnno);
+            // only return the one unque constAnno and no duplicates
+            break;
           }
           else
           {
@@ -632,6 +634,8 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createRegexAnnoSearchFilte
          if(constAnno)
          {
            result.push_back(*constAnno);
+           // only return the one unque constAnno and no duplicates
+           break;
          }
          else
          {
@@ -692,6 +696,8 @@ std::function<std::list<Annotation> (nodeid_t)> Plan::createAnnotationKeySearchF
          if(constAnno)
          {
            result.push_back(*constAnno);
+           // only return the one unque constAnno and no duplicates
+           break;
          }
          else
          {
