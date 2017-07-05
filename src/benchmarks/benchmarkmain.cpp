@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
           QueryConfig config;
           config.threadPool = i > 0 ? sharedThreadPool : nullptr;
           config.numOfBackgroundTasks = i;
+          config.enableSIMDIndexJoin = false;
           benchmark.registerFixture("Jobs_" + std::to_string(i), config);
         }
 
