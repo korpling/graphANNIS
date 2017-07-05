@@ -429,6 +429,12 @@ std::shared_ptr<ExecutionEstimate> Plan::estimateTupleSize(std::shared_ptr<Execu
         std::uint64_t processedInStep = estLHS->output;
         std::uint64_t outputSize = static_cast<std::uint64_t>(((double) estLHS->output) * selectivity);
        
+        if(outputSize < 1)
+        {
+          // always assume at least one output item otherwise very small selectivity can fool the planner
+          outputSize = 1;
+        }
+
         // return the output of this node and the sum of all intermediate results
         node->estimate = 
           std::make_shared<ExecutionEstimate>(outputSize, processedInStep + estLHS->intermediateSum, processedInStep);
