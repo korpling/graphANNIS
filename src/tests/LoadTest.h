@@ -315,7 +315,7 @@ TEST_F(LoadTest, NodesOfDocument) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2/11299"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n2, n1);
 
   int counter=0;
   while(q.next())
@@ -336,7 +336,7 @@ TEST_F(LoadTest, NodesOfToplevelCorpus) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n2, n1);
 
   int counter=0;
   while(q.next())
@@ -357,7 +357,7 @@ TEST_F(LoadTest, DocumentAnno) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "Genre", "Politik"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n2, n1);
 
   int counter=0;
   while(q.next())
