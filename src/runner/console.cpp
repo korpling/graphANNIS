@@ -256,21 +256,32 @@ void Console::find(const std::vector<std::string> &args)
         while(q->next())
         {
           std::vector<annis::Match> m = q->getCurrent();
+          std::vector<annis::Match> outputMatches;
+          outputMatches.reserve(m.size());
+
+          // filter out the non-node matches (meta nodes)
           for(size_t i = 0; i < m.size(); i++)
           {
             const auto& n = m[i];
+
             if(db->getNodeType(n.node) == "node")
             {
-              std::cout << db->getNodeDebugName(n.node);
-              if(n.anno.ns != 0 && n.anno.name != 0)
-              {
-                std::cout << " " << db->strings.str(n.anno.ns)
-                  << "::" << db->strings.str(n.anno.name);
-              }
-              if(i < m.size()-1)
-              {
-               std::cout << ", ";
-              }
+              outputMatches.push_back(n);
+            }
+          }
+          // output the resulting matches separated by comma
+          for(size_t i = 0; i < outputMatches.size(); i++)
+          {
+            const auto& n = outputMatches[i];
+            std::cout << db->getNodeDebugName(n.node);
+            if(n.anno.ns != 0 && n.anno.name != 0)
+            {
+              std::cout << " " << db->strings.str(n.anno.ns)
+                << "::" << db->strings.str(n.anno.name);
+            }
+            if(i < outputMatches.size()-1)
+            {
+             std::cout << ", ";
             }
           }
           std::cout << std::endl;
