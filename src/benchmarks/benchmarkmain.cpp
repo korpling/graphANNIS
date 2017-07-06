@@ -65,6 +65,15 @@ int main(int argc, char **argv) {
           benchmark.registerFixture("Jobs_" + std::to_string(i), config);
         }
 
+        for(int i=0; i <= numOfCPUs; i += 2)
+        {
+          QueryConfig config;
+          config.threadPool = i > 0 ? sharedThreadPool : nullptr;
+          config.numOfBackgroundTasks = i;
+          config.enableSIMDIndexJoin = true;
+          benchmark.registerFixture("SIMD_" + std::to_string(i), config);
+        }
+
       }
       itFiles++;
     }
