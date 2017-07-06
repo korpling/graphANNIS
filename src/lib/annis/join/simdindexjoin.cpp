@@ -30,8 +30,8 @@ using namespace annis;
 SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                              std::shared_ptr<Operator> op,
                              const AnnoStorage<nodeid_t>& annos,
-                             Annotation rhsAnnoToFind)
-  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind)
+                             Annotation rhsAnnoToFind, boost::optional<Annotation> constAnno)
+  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind), constAnno(constAnno)
 {
 }
 
@@ -47,7 +47,14 @@ bool SIMDIndexJoin::next(std::vector<Match> &tuple)
 
       tuple.reserve(currentLHS.size()+1);
       tuple.insert(tuple.begin(), currentLHS.begin(), currentLHS.end());
-      tuple.push_back({n, rhsAnnoToFind});
+      if(constAnno)
+      {
+        tuple.push_back({n, *constAnno});
+      }
+      else
+      {
+        tuple.push_back({n, rhsAnnoToFind});
+      }
 
       matchBuffer.pop_front();
       return true;
@@ -99,10 +106,10 @@ bool SIMDIndexJoin::fillMatchBuffer()
       }
 
       // add padding to make sure there is no invalid memory when copying to SIMD
-      size_t padding = annoVals.size() - (annoVals.size() % Vc::uint32_v::size());
+      size_t padding = Vc::uint32_v::size() - (annoVals.size() % Vc::uint32_v::size());
       if(padding > 0)
       {
-        annoVals.reserve(annoVals.size()+padding);
+        annoVals.resize(annoVals.size()+padding, 0);
         reachableNodes.reserve(annoVals.size()+padding);
       }
 

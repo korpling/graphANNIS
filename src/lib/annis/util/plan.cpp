@@ -152,7 +152,8 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       {
         const std::unordered_set<Annotation>& validAnnos
             = std::dynamic_pointer_cast<ExactAnnoValueSearch>(estSearch)->getValidAnnotations();
-        join = std::make_shared<SIMDIndexJoin>(lhs->join, mappedPosLHS->second, op, db.nodeAnnos, *validAnnos.begin() );
+        join = std::make_shared<SIMDIndexJoin>(lhs->join, mappedPosLHS->second, op, db.nodeAnnos, *validAnnos.begin(),
+                                               estSearch->getConstAnnoValue());
       }
       #endif // ENABLE_SIMD_SUPPORT
       else if(config.enableTaskIndexJoin && config.threadPool)
