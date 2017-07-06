@@ -455,7 +455,7 @@ bool JSONQueryParser::canReplaceRegex(const std::string& str)
   if(str.find_first_of(".[]\\|*+?{}()^$") == std::string::npos)
   {
     // No meta character found in string, might be replaced    
-    RE2 regex(str);
+    RE2 regex(str, RE2::Quiet);
     if(regex.ok())
     {
       return true;
