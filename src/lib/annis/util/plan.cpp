@@ -147,7 +147,7 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
       }
       #ifdef ENABLE_SIMD_SUPPORT
       else if(config.enableSIMDIndexJoin
-              && std::dynamic_pointer_cast<ExactAnnoValueSearch>(estSearch)
+              && std::dynamic_pointer_cast<ExactAnnoValueSearch>(estSearch) != nullptr
               && searchFilterReturnsOneAnno(estSearch))
       {
         const std::unordered_set<Annotation>& validAnnos
@@ -932,9 +932,9 @@ std::string Plan::debugStringForNode(std::shared_ptr<const ExecutionNode> node, 
     }
     #ifdef ENABLE_SIMD_SUPPORT
     else if((node->type == ExecutionNodeType::index_join)
-            && std::dynamic_pointer_cast<SIMDIndexJoin>(node->join))
+            && std::dynamic_pointer_cast<SIMDIndexJoin>(node->join) != nullptr)
     {
-      result += "simd";
+      result += " SIMD";
     }
     #endif // #ifdef ENABLE_SIMD_SUPPORT
     result += "}";
