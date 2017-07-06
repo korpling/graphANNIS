@@ -86,10 +86,16 @@ bool SIMDIndexJoin::fillMatchBuffer()
     std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
     if(reachableNodesIt)
     {
-      const bool reflexiveCheckNeeded =
-          !(op->isReflexive()
-            || rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
-          || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name);
+      const bool skipReflexitivityCheck =
+          constAnno ? (
+            op->isReflexive()
+            || constAnno->ns != currentLHS[lhsIdx].anno.ns
+            || constAnno->name != currentLHS[lhsIdx].anno.name
+          ) : (
+          op->isReflexive()
+          || rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
+          || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name
+        );
 
       annoVals.clear();
       reachableNodes.clear();
@@ -113,17 +119,15 @@ bool SIMDIndexJoin::fillMatchBuffer()
         reachableNodes.reserve(annoVals.size()+padding);
       }
 
-      if(reflexiveCheckNeeded)
+      if(skipReflexitivityCheck)
       {
-
         for(size_t i=0; i < annoVals.size() && i < reachableNodes.size(); i += Vc::uint32_v::size())
         {
           // transform the data to SIMD
           Vc::uint32_v v_annoVals(&annoVals[i]);
-          Vc::uint32_v v_reachableNodes(&reachableNodes[i]);
 
-          // search for values that are the same and don't have the same LHS and RHS node
-          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate) && (v_lhsNode != v_reachableNodes);
+          // search for values that are the same
+          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate);
 
           // collect results
           collectResults(v_valid, i);
@@ -135,9 +139,10 @@ bool SIMDIndexJoin::fillMatchBuffer()
         {
           // transform the data to SIMD
           Vc::uint32_v v_annoVals(&annoVals[i]);
+          Vc::uint32_v v_reachableNodes(&reachableNodes[i]);
 
-          // search for values that are the same
-          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate);
+          // search for values that are the same and don't have the same LHS and RHS node
+          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate) && (v_lhsNode != v_reachableNodes);
 
           // collect results
           collectResults(v_valid, i);
