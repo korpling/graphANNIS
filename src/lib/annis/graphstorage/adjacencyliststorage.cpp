@@ -119,6 +119,7 @@ void AdjacencyListStorage::addEdge(const Edge &edge)
   if(edge.source != edge.target)
   {
     edges.insert(edge);
+    inverseEdges.insert({edge.target, edge.source});
     stat.valid = false;
   }
 }
