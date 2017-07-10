@@ -40,7 +40,6 @@ Inclusion::Inclusion(const DB &db, DB::GetGSFuncT getGSFunc)
   gsLeftToken = getGSFunc(ComponentType::LEFT_TOKEN, annis_ns, "");
   gsRightToken = getGSFunc(ComponentType::RIGHT_TOKEN, annis_ns, "");
   gsCoverage = getGSFunc(ComponentType::COVERAGE, annis_ns, "");
-
 }
 
 bool Inclusion::filter(const Match &lhs, const Match &rhs)
@@ -118,7 +117,7 @@ double Inclusion::selectivity()
 
   auto statsCov = gsCoverage->getStatistics();
   auto statsOrder = gsOrder->getStatistics();
-
+  auto statsLeft = gsLeftToken->getStatistics();
 
   double numOfToken = statsOrder.nodes;
 
@@ -129,10 +128,12 @@ double Inclusion::selectivity()
   }
   else
   {
+    double covered_token_per_node = statsCov.fanOut99Percentile;
+    // for each covered token get the number of left-aligned nodes
+    double aligned_non_token = covered_token_per_node * statsLeft.fanOut99Percentile;
 
-    // Assume two nodes have inclusion coverage if the left- and right-most covered token is inside the
-    // covered range of the other node.
-    return ( (double) statsCov.fanOut95Percentile / (double) numOfToken);
+    double sum_included = covered_token_per_node + aligned_non_token;
+    return sum_included / (double) statsCov.nodes;
   }
 }
 

@@ -33,7 +33,6 @@ Overlap::Overlap(const DB &db, DB::GetGSFuncT getGraphStorageFunc)
   gsOrder = getGraphStorageFunc(ComponentType::ORDERING, annis_ns, "");
   gsCoverage = getGraphStorageFunc(ComponentType::COVERAGE, annis_ns, "");
   gsInverseCoverage = getGraphStorageFunc(ComponentType::INVERSE_COVERAGE, annis_ns, "");
-
 }
 
 std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
@@ -107,6 +106,7 @@ double Overlap::selectivity()
 
   auto statsCov = gsCoverage->getStatistics();
   auto statsOrder = gsOrder->getStatistics();
+  auto statsInvCov = gsInverseCoverage->getStatistics();
 
 
   double numOfToken = statsOrder.nodes;
@@ -118,10 +118,12 @@ double Overlap::selectivity()
   }
   else
   {
+    double covered_token_per_node = statsCov.fanOut99Percentile;
+    // for each covered token get the number of inverse covered non-token nodes
+    double aligned_non_token = covered_token_per_node * statsInvCov.fanOut99Percentile;
 
-    // Assume two nodes have overlapping coverage if the left- or right-most covered token is inside the
-    // covered range of the other node.
-    return (((double) statsCov.fanOut95Percentile*2.0) / numOfToken);
+    double sum_included = covered_token_per_node + aligned_non_token;
+    return sum_included / (double) statsCov.nodes;
   }
 
 }

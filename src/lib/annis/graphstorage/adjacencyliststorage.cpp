@@ -274,7 +274,6 @@ void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
   stat.nodes = 0;
 
   unsigned int sumFanOut = 0;
-  std::multiset<unsigned int> orderedFanOuts;
 
   btree::btree_set<nodeid_t> hasIncomingEdge;
 
@@ -304,9 +303,12 @@ void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
   stat.nodes = static_cast<uint32_t>(allNodes.size());
   allNodes.clear();
 
+
+  std::multiset<uint32_t> orderedFanOuts;
   auto itFirstEdge = edges.begin();
   if(itFirstEdge != edges.end())
   {
+
     nodeid_t lastSourceID = itFirstEdge->source;
     uint32_t currentFanout = 0;
 
@@ -316,7 +318,6 @@ void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
 
       if(lastSourceID != e.source)
       {
-
         stat.maxFanOut = std::max(stat.maxFanOut, currentFanout);
         sumFanOut += currentFanout;
         orderedFanOuts.insert(currentFanout);
@@ -332,60 +333,24 @@ void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
     orderedFanOuts.insert(currentFanout);
   }
 
-  // get the median and other percentile values
-  if(orderedFanOuts.size() > 20)
-  {
-    auto it = orderedFanOuts.rbegin();
-    std::advance(it, orderedFanOuts.size()/20);
-    if(it != orderedFanOuts.rend())
-    {
-      stat.fanOut95Percentile = *it;
-    }
-  }
 
+  // get the percentile value(s)
   // set some default values in case there are not enough elements in the component
   if(!orderedFanOuts.empty())
   {
-    stat.fanOut50Percentile = stat.fanOut75Percentile = stat.fanOut90Percentile = stat.fanOut95Percentile
-        = *(orderedFanOuts.rbegin());
+    stat.fanOut99Percentile = *(orderedFanOuts.rbegin());
   }
 
   // calculate the more accurate values
-  if(orderedFanOuts.size() >= 20)
+  if(orderedFanOuts.size() >= 100)
   {
     auto it = orderedFanOuts.rbegin();
-    std::advance(it, orderedFanOuts.size()/20);
+    std::advance(it, orderedFanOuts.size()/100);
     if(it != orderedFanOuts.rend())
     {
-      stat.fanOut90Percentile = *it;
+      stat.fanOut99Percentile = *it;
     }
   }
-  if(orderedFanOuts.size() >= 10)
-  {
-    auto it = orderedFanOuts.rbegin();
-    std::advance(it, orderedFanOuts.size()/10);
-    if(it != orderedFanOuts.rend())
-    {
-      stat.fanOut90Percentile = *it;
-    }
-  }
-  if(orderedFanOuts.size() >= 4)
-  {
-    auto it = orderedFanOuts.rbegin();
-    std::advance(it, orderedFanOuts.size()/4);
-    {
-      stat.fanOut75Percentile = *it;
-    }
-  }
-  if(orderedFanOuts.size() >= 2)
-  {
-    auto it = orderedFanOuts.rbegin();
-    std::advance(it, orderedFanOuts.size()/2);
-    {
-      stat.fanOut50Percentile = *it;
-    }
-  }
-
 
   std::uint64_t numberOfVisits = 0;
   if(roots.empty() && !edges.empty())

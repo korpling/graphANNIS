@@ -236,10 +236,8 @@ namespace annis
 
     /** Average fan out  */
     double avgFanOut;
-    uint32_t fanOut50Percentile;
-    uint32_t fanOut75Percentile;
-    uint32_t fanOut90Percentile;
-    uint32_t fanOut95Percentile;
+    /** Max fan-out of 99% of the data */
+    uint32_t fanOut99Percentile;
     /** maximal number of children of a node */
     uint32_t maxFanOut;
     /** maximum length from a root node to a terminal node */
@@ -253,8 +251,8 @@ namespace annis
   void serialize(Archive & archive,
                  GraphStatistic & m)
   {
-    archive(m.valid, m.cyclic, m.rootedTree, m.nodes, m.avgFanOut, m.fanOut50Percentile, m.fanOut75Percentile,
-            m.fanOut90Percentile, m.fanOut95Percentile, m.maxFanOut, m.maxDepth, m.dfsVisitRatio);
+    archive(m.valid, m.cyclic, m.rootedTree, m.nodes, m.avgFanOut,
+            m.fanOut99Percentile, m.maxFanOut, m.maxDepth, m.dfsVisitRatio);
   }
 
   class Init

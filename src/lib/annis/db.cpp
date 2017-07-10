@@ -385,10 +385,7 @@ string DB::gsInfo() const
       {
         ss << "nodes: " << stat.nodes << std::endl;
         ss << "fan-out: " << stat.avgFanOut << " (avg) / "
-           << stat.fanOut50Percentile << " (50) / "
-           << stat.fanOut75Percentile << " (75) / "
-           << stat.fanOut90Percentile << " (90) / "
-           << stat.fanOut95Percentile << " (95) / "
+           << stat.fanOut99Percentile << " (99 percentile) / "
            << stat.maxFanOut << " (max)" << std::endl;
         if(stat.cyclic)
         {
