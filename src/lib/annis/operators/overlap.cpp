@@ -121,7 +121,7 @@ double Overlap::selectivity()
 
     // Assume two nodes have overlapping coverage if the left- or right-most covered token is inside the
     // covered range of the other node.
-    return ((statsCov.avgFanOut*2.0) / numOfToken);
+    return (((double) statsCov.fanOut95Percentile*2.0) / numOfToken);
   }
 
 }

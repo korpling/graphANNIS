@@ -132,7 +132,7 @@ double Inclusion::selectivity()
 
     // Assume two nodes have inclusion coverage if the left- and right-most covered token is inside the
     // covered range of the other node.
-    return ((statsCov.avgFanOut) / numOfToken);
+    return ( (double) statsCov.fanOut95Percentile / (double) numOfToken);
   }
 }
 

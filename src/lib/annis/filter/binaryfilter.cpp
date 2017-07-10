@@ -32,24 +32,18 @@ BinaryFilter::BinaryFilter(std::shared_ptr<Operator> op, std::shared_ptr<Iterato
 // TODO: explicitly test the filter function
 bool BinaryFilter::next(std::vector<Match>& tuple)
 {
-  tuple.clear();
-  bool found = false;
-
   if(op && inner)
   {
-    std::vector<Match> innerMatch;
-    while(!found && inner->next(innerMatch))
+    while(inner->next(tuple))
     {
-      if(op->filter(innerMatch[lhsIdx], innerMatch[rhsIdx]))
+      if(op->filter(tuple[lhsIdx], tuple[rhsIdx]))
       {
-        tuple.reserve(innerMatch.size());
-        tuple.insert(tuple.end(), innerMatch.begin(), innerMatch.end());
-        found = true;
+        return true;
       }
     }
   }
 
-  return found;
+  return false;
 }
 
 void BinaryFilter::reset()
