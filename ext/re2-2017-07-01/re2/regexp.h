@@ -436,7 +436,9 @@ class Regexp {
   // begin with a non-empty fixed string (perhaps after ASCII
   // case-folding).  If so, returns the prefix and the sub-regexp that
   // follows it.
-  bool RequiredPrefix(string* prefix, bool *foldcase, Regexp** suffix);
+  // Callers should expect *prefix, *foldcase and *suffix to be "zeroed"
+  // regardless of the return value.
+  bool RequiredPrefix(string* prefix, bool* foldcase, Regexp** suffix);
 
  private:
   // Constructor allocates vectors as appropriate for operator.
@@ -505,7 +507,7 @@ class Regexp {
     DCHECK(n >= 0 && static_cast<uint16_t>(n) == n);
     if (n > 1)
       submany_ = new Regexp*[n];
-    nsub_ = n;
+    nsub_ = static_cast<uint16_t>(n);
   }
 
   // Add Rune to LiteralString
