@@ -47,6 +47,11 @@ mod tests {
     fn insert_and_get() {
         let mut s = StringStorage::new();
         let first_id = s.add("abc".to_string());
-        assert!(s.str(first_id).is_some());
+        
+        let x = s.str(first_id);
+        match x {
+            Some(v) => assert_eq!("abc", v),
+            None => panic!("Did not find string"),
+        }
     }
 }
