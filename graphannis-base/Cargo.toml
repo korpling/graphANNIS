@@ -1,0 +1,7 @@
+[package]
+name = "graphannis-base"
+version = "0.1.0"
+authors = ["Thomas Krause <thomaskrause@posteo.de>"]
+
+[dependencies]
+
