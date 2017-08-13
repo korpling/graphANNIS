@@ -11,12 +11,6 @@ pub struct StringStorage {
     by_value: BTreeMap<String, u32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Point {
-    x: i32,
-    y: i32,
-}
-
 impl StringStorage {
     pub fn new() -> StringStorage {
         StringStorage {
