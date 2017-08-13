@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use regex::Regex;
 
 pub struct StringStorage {
     by_id: HashMap<u32, String>,
@@ -39,6 +41,30 @@ impl StringStorage {
 
     pub fn find_id(&self, val: &str) -> Option<&u32> {
         return self.by_value.get(&String::from(val));
+    }
+
+    pub fn find_regex(&self, val: &str) -> BTreeSet<&u32> {
+        let mut result = BTreeSet::new();
+
+        let mut full_match_pattern = String::new();
+        full_match_pattern.push_str(r"\A");
+        full_match_pattern.push_str(val);
+        full_match_pattern.push_str(r"\z");
+
+        let compiled_result = Regex::new(&full_match_pattern);
+        if compiled_result.is_ok() {
+            let re = compiled_result.unwrap();
+            
+            // check all values
+            // TODO: get a valid prefix somehow and check only a range of strings, not all
+            for (s,id) in &self.by_value {
+                if re.is_match(s) {
+                    result.insert(id);
+                }
+            }
+        }
+
+        return result;
     }
 
     pub fn len(&self) -> usize {
