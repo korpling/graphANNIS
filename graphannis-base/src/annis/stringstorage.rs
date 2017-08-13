@@ -54,10 +54,10 @@ impl StringStorage {
         let compiled_result = Regex::new(&full_match_pattern);
         if compiled_result.is_ok() {
             let re = compiled_result.unwrap();
-            
+
             // check all values
             // TODO: get a valid prefix somehow and check only a range of strings, not all
-            for (s,id) in &self.by_value {
+            for (s, id) in &self.by_value {
                 if re.is_match(s) {
                     result.insert(id);
                 }
@@ -65,6 +65,14 @@ impl StringStorage {
         }
 
         return result;
+    }
+
+    pub fn avg_length(&self) -> f64 {
+        let mut sum: usize = 0;
+        for (s, _) in &self.by_value {
+            sum += s.len();
+        }
+        return (sum as f64) / (self.by_value.len() as f64);
     }
 
     pub fn len(&self) -> usize {
