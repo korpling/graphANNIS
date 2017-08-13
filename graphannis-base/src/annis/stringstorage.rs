@@ -37,6 +37,14 @@ impl StringStorage {
         return id;
     }
 
+    pub fn find_id(&self, val: &str) -> Option<&u32> {
+        return self.by_value.get(&String::from(val));
+    }
+
+    pub fn len(&self) -> usize {
+        return self.by_id.len();
+    }
+
     pub fn clear(&mut self) {
         self.by_id.clear();
         self.by_value.clear();
@@ -54,12 +62,18 @@ mod tests {
         let id2 = s.add("def");
         let id3 = s.add("def");
 
+        assert_eq!(2, s.len());
+
         assert_eq!(id2, id3);
 
-        let x = s.str(id1);
-        match x {
-            Some(v) => assert_eq!("abc", v),
-            None => panic!("Did not find string"),
+        {
+            let x = s.str(id1);
+            match x {
+                Some(v) => assert_eq!("abc", v),
+                None => panic!("Did not find string"),
+            }
         }
+        s.clear();
+        assert_eq!(0, s.len());
     }
 }
