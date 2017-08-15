@@ -26,6 +26,7 @@ include(cmake/humblelogging.cmake)
 include(cmake/re2.cmake)
 include(cmake/celero.cmake)
 include(cmake/googletest.cmake)
+include(cmake/graphannis-base.cmake)
 if(ENABLE_SIMD_SUPPORT)
   include(cmake/vc.cmake)
 endif()
@@ -65,6 +66,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${RE2_INCLUDE_DIRS}
   "ext/cereal-1.2.1/include"
+  "graphannis-base/src/"
 )
 
 
@@ -166,17 +168,22 @@ elseif ( CMAKE_COMPILER_IS_GNUCC )
    endif()
 endif ()
 
-target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Vc_STATIC_LIBRARY} )
+target_link_libraries(annis
+  ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Vc_STATIC_LIBRARY}
+  ${GRAPHANNISBASE_LIBRARIES})
 
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
+add_dependencies(annis graphannis-base)
 if(ENABLE_SIMD_SUPPORT)
   add_dependencies(annis Vc)
 endif()
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
-target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${Vc_STATIC_LIBRARY} annis)
+target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES}
+  ${GRAPHANNISBASE_LIBRARIES}
+  ${Vc_STATIC_LIBRARY} annis)
 
 # install the graphANNIS API and console
 install(TARGETS annis_runner annis
