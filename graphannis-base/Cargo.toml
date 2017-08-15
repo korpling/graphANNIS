@@ -3,9 +3,12 @@ name = "graphannis-base"
 version = "0.1.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
+[lib]
+crate-type = ["staticlib"]
+
 [dependencies]
 regex = "0.2"
-
+libc = "*"
 tempdir = "0.3"
 
 serde = "1.0"

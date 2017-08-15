@@ -4,8 +4,10 @@ use std::collections::BTreeSet;
 use regex::Regex;
 use std;
 use bincode;
+use libc;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[repr(C)]
 pub struct StringStorage {
     by_id: HashMap<u32, String>,
     by_value: BTreeMap<String, u32>,
@@ -109,6 +111,25 @@ impl StringStorage {
     }
 }
 
+// define the C API
+//
+#[no_mangle]
+pub extern fn annis_stringstorage_new() -> *mut StringStorage {
+    return &mut StringStorage::new() as *mut StringStorage;
+}
+
+#[no_mangle]
+pub extern fn annis_stringstorage_str(raw: *mut StringStorage, id: libc::c_ulonglong) -> *const i8 {
+    
+    let s = std::ffi::CString::new("abc").unwrap();
+    let p = s.as_ptr();
+
+    std::mem::forget(s);
+    p
+
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -148,7 +169,7 @@ mod tests {
             s.save_to_file(&file_path_str);
 
             s.clear();
-            
+
             s.load_from_file(&file_path_str);
             assert_eq!(2, s.len());
         }
