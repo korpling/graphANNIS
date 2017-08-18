@@ -45,17 +45,17 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
   : db(db),
     validAnnotationKeysInitialized(false), debugDescription(annoName)
 {
-  std::pair<bool, uint32_t> searchResult = db.strings.findID(annoName);
+  auto searchResult = db.strings.findID(annoName);
 
-  if(searchResult.first)
+  if(searchResult)
   {
     Annotation lowerKey;
-    lowerKey.name = searchResult.second;
+    lowerKey.name = *searchResult;
     lowerKey.ns = numeric_limits<uint32_t>::min();
     lowerKey.val = numeric_limits<uint32_t>::min();
 
     Annotation upperKey;
-    upperKey.name = searchResult.second;
+    upperKey.name = *searchResult;
     upperKey.ns = numeric_limits<uint32_t>::max();
     upperKey.val = numeric_limits<uint32_t>::max();
 
@@ -63,8 +63,8 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB& db, const string& annoName)
     it = itBegin;
     itEnd = db.nodeAnnos.inverseAnnotations.upper_bound(upperKey);
 
-    itKeyBegin = db.nodeAnnos.annoKeys.lower_bound({searchResult.second, 0});
-    itKeyEnd = db.nodeAnnos.annoKeys.upper_bound({searchResult.second, uintmax});
+    itKeyBegin = db.nodeAnnos.annoKeys.lower_bound({*searchResult, 0});
+    itKeyEnd = db.nodeAnnos.annoKeys.upper_bound({*searchResult, uintmax});
   }
   else
   {
@@ -77,27 +77,27 @@ ExactAnnoKeySearch::ExactAnnoKeySearch(const DB &db, const string &annoNamspace,
   : db(db),
     validAnnotationKeysInitialized(false), debugDescription(annoNamspace + ":" + annoName)
 {
-  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
-  std::pair<bool, uint32_t> namespaceID = db.strings.findID(annoNamspace);
+  auto nameID = db.strings.findID(annoName);
+  auto namespaceID = db.strings.findID(annoNamspace);
 
-  if(nameID.first && namespaceID.first)
+  if(nameID && namespaceID)
   {
     Annotation lowerKey;
-    lowerKey.name = nameID.second;
-    lowerKey.ns = namespaceID.second;
+    lowerKey.name = *nameID;
+    lowerKey.ns = *namespaceID;
     lowerKey.val = numeric_limits<uint32_t>::min();
 
     Annotation upperKey;
-    upperKey.name = nameID.second;
-    upperKey.ns = namespaceID.second;
+    upperKey.name = *nameID;
+    upperKey.ns = *namespaceID;
     upperKey.val = numeric_limits<uint32_t>::max();
 
     itBegin = db.nodeAnnos.inverseAnnotations.lower_bound(lowerKey);
     it = itBegin;
     itEnd = db.nodeAnnos.inverseAnnotations.upper_bound(upperKey);
 
-    itKeyBegin = db.nodeAnnos.annoKeys.lower_bound({nameID.second, namespaceID.second});
-    itKeyEnd = db.nodeAnnos.annoKeys.upper_bound({nameID.second, namespaceID.second});
+    itKeyBegin = db.nodeAnnos.annoKeys.lower_bound({*nameID, *namespaceID});
+    itKeyEnd = db.nodeAnnos.annoKeys.upper_bound({*nameID, *namespaceID});
   }
   else
   {

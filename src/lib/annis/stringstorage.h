@@ -69,17 +69,14 @@ public:
     }
   }
 
-  std::pair<bool, std::uint32_t> findID(const std::string& str) const
+  boost::optional<std::uint32_t> findID(const std::string& str) const
   {
     typedef btree::btree_map<std::string, std::uint32_t>::const_iterator ItType;
-    std::pair<bool, std::uint32_t> result;
-    result.first = false;
-    result.second = 0;
+    boost::optional<std::uint32_t> result;
     ItType it = byValue.find(str);
     if(it != byValue.end())
     {
-      result.first = true;
-      result.second = it->second;
+      result = it->second;
     }
     return result;
   }

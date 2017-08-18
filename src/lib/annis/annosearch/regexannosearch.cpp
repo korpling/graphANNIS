@@ -37,16 +37,16 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db, const std::string& ns,
     compiledValRegex(valRegex, RE2::Quiet),
     debugDescription(ns + ":" + name + "=/" + valRegex + "/")
 {
-  std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
-  std::pair<bool, std::uint32_t> namespaceID = db.strings.findID(ns);
-  if(nameID.first && namespaceID.first)
+  auto nameID = db.strings.findID(name);
+  auto namespaceID = db.strings.findID(ns);
+  if(nameID && namespaceID)
   {
     if(compiledValRegex.ok())
     {
-      annoKeys.insert({nameID.second, namespaceID.second});
+      annoKeys.insert({*nameID, *namespaceID});
 
-      auto lower = db.nodeAnnos.inverseAnnotations.lower_bound({nameID.second, namespaceID.second, 0});
-      auto upper = db.nodeAnnos.inverseAnnotations.lower_bound({nameID.second, namespaceID.second, uintmax});
+      auto lower = db.nodeAnnos.inverseAnnotations.lower_bound({*nameID, *namespaceID, 0});
+      auto upper = db.nodeAnnos.inverseAnnotations.lower_bound({*nameID, *namespaceID, uintmax});
       searchRanges.push_back(Range(lower, upper));
     }
   }
@@ -81,11 +81,11 @@ RegexAnnoSearch::RegexAnnoSearch(const DB &db,
 {
   if(compiledValRegex.ok())
   {
-    std::pair<bool, std::uint32_t> nameID = db.strings.findID(name);
-    if(nameID.first)
+    auto nameID = db.strings.findID(name);
+    if(nameID)
     {
-      auto keysLower = db.nodeAnnos.annoKeys.lower_bound({nameID.second, 0});
-      auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({nameID.second, uintmax});
+      auto keysLower = db.nodeAnnos.annoKeys.lower_bound({*nameID, 0});
+      auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({*nameID, uintmax});
       for(auto itKey = keysLower; itKey != keysUpper; itKey++)
       {
         annoKeys.insert({itKey->first.name, itKey->first.ns});
