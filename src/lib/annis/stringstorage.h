@@ -45,8 +45,8 @@ public:
 
   const std::string& str(std::uint32_t id) const
   {
-    auto it = stringStorageByID.find(id);
-    if(it != stringStorageByID.end())
+    auto it = byID.find(id);
+    if(it != byID.end())
     {
       return it->second;
     }
@@ -58,8 +58,8 @@ public:
 
   boost::optional<std::string> strOpt(std::uint32_t id) const
   {
-    auto it = stringStorageByID.find(id);
-    if(it != stringStorageByID.end())
+    auto it = byID.find(id);
+    if(it != byID.end())
     {
       return boost::optional<std::string>(it->second);
     }
@@ -75,8 +75,8 @@ public:
     std::pair<bool, std::uint32_t> result;
     result.first = false;
     result.second = 0;
-    ItType it = stringStorageByValue.find(str);
-    if(it != stringStorageByValue.end())
+    ItType it = byValue.find(str);
+    if(it != byValue.end())
     {
       result.first = true;
       result.second = it->second;
@@ -90,7 +90,7 @@ public:
 
   void clear();
 
-  size_t size() const {return stringStorageByID.size();}
+  size_t size() const {return byID.size();}
   double avgLength();
 
   size_t estimateMemorySize() const;
@@ -98,12 +98,12 @@ public:
   template<class Archive>
   void serialize(Archive & archive)
   {
-    archive(stringStorageByID, stringStorageByValue);
+    archive(byID, byValue);
   }
 
 private:
-  std::unordered_map<std::uint32_t, std::string> stringStorageByID;
-  btree::btree_map<std::string, std::uint32_t> stringStorageByValue;
+  std::unordered_map<std::uint32_t, std::string> byID;
+  btree::btree_map<std::string, std::uint32_t> byValue;
 
 };
 }
