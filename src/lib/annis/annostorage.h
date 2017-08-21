@@ -83,7 +83,7 @@ namespace annis {
       }
     }
 
-    void addAnnotationBulk(std::list<std::pair<TypeAnnotationKey<ContainerType>, ContainerType>> annos)
+    void addAnnotationBulk(std::list<std::pair<TypeAnnotationKey<ContainerType>, ContainerType>>& annos)
     {
       annos.sort();
       annotations.insert(annos.begin(), annos.end());
