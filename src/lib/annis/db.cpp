@@ -76,8 +76,9 @@ bool DB::load(string dir, bool preloadComponents)
   if(is.is_open())
   {
     cereal::BinaryInputArchive archive(is);
-    archive(strings, nodeAnnos);
+    archive(nodeAnnos);
   }
+  strings.loadFromFile((dir2load / "strings.bin").string());
 
   bool logfileExists = false;
   // check if we have to apply a log file to get to the last stable snapshot version
@@ -137,7 +138,8 @@ bool DB::save(string dir)
 
   std::ofstream os((dirPath / "nodes.cereal").string(), std::ios::binary);
   cereal::BinaryOutputArchive archive( os );
-  archive(strings, nodeAnnos);
+  archive(nodeAnnos);
+  strings.saveToFile((dirPath / "strings.bin").string());
 
   boost::this_thread::interruption_point();
 

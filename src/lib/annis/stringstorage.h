@@ -42,8 +42,15 @@ const std::uint32_t STRING_STORAGE_ANY = 0;
 class StringStorage
 {
 public:
-  StringStorage();
-  ~StringStorage();
+  StringStorage()
+    :impl(NULL)
+  {
+    impl = annis_stringstorage_new();
+  }
+  ~StringStorage()
+  {
+    annis_stringstorage_free(impl);
+  }
 
   const std::string str(std::uint32_t id) const
   {
@@ -73,17 +80,16 @@ public:
 
   boost::optional<std::uint32_t> findID(const std::string& str) const
   {
-    typedef btree::btree_map<std::string, std::uint32_t>::const_iterator ItType;
-    boost::optional<std::uint32_t> result;
-    ItType it = byValue.find(str);
-    if(it != byValue.end())
+    annis_Option_u32 result = annis_stringstorage_find_id(impl, str.c_str());
+    if(result.valid)
     {
-      result = it->second;
+      return result.value;
     }
-    return result;
+    else
+    {
+      return boost::optional<std::uint32_t>();
+    }
   }
-
-  std::unordered_set<std::uint32_t> findRegex(const std::string& str) const;
 
   std::uint32_t add(const std::string& str)
   {
@@ -100,20 +106,28 @@ public:
     return annis_stringstorage_len(impl);
   }
 
-  double avgLength();
-
-  size_t estimateMemorySize() const;
-
-  template<class Archive>
-  void serialize(Archive & archive)
+  double avgLength()
   {
-    archive(byID, byValue);
+    return annis_stringstorage_avg_length(impl);
+  }
+
+  size_t estimateMemorySize() const
+  {
+    return 0;
+  }
+
+  void loadFromFile(const std::string& path)
+  {
+    annis_stringstorage_load_from_file(impl, path.c_str());
+  }
+
+  void saveToFile(const std::string& path)
+  {
+    annis_stringstorage_save_to_file(impl, path.c_str());
   }
 
 private:
   annis_StringStoragePtr* impl;
-  std::unordered_map<std::uint32_t, std::string> byID;
-  btree::btree_map<std::string, std::uint32_t> byValue;
 
 };
 }
