@@ -100,21 +100,28 @@ impl StringStorage {
 
     pub fn load_from_file(&mut self, path: &str) {
 
-        let f = std::fs::File::open(path).unwrap();
-        let mut buf_reader = std::io::BufReader::new(f);
+        // always remove all entries first, so even if there is an error the string storage is empty
+        self.clear();
 
-        let loaded: Result<StringStorage, _> = bincode::deserialize_from(&mut buf_reader,
-                                                                         bincode::Infinite);
-        if loaded.is_ok() {
-            *self = loaded.unwrap();
+        let f = std::fs::File::open(path);
+        if f.is_ok()  {
+            let mut buf_reader = std::io::BufReader::new(f.unwrap());
+
+            let loaded: Result<StringStorage, _> = bincode::deserialize_from(&mut buf_reader,
+                                                                            bincode::Infinite);
+            if loaded.is_ok() {
+                *self = loaded.unwrap();
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
-    use tempdir;
+
+    extern crate tempdir;
 
     #[test]
     fn insert_and_get() {

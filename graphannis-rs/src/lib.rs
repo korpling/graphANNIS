@@ -1,5 +1,4 @@
 extern crate regex;
-extern crate tempdir;
 
 extern crate serde;
 extern crate bincode;
