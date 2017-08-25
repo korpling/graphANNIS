@@ -113,7 +113,7 @@ public:
 
   size_t estimateMemorySize() const
   {
-    return 0;
+    return annis_stringstorage_estimate_memory(impl);
   }
 
   void loadFromFile(const std::string& path)

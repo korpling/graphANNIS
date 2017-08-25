@@ -45,6 +45,8 @@ void annis_stringstorage_save_to_file(annis_StringStoragePtr const* target, char
 
 void annis_stringstorage_load_from_file(annis_StringStoragePtr* target, char const* path);
 
+size_t annis_stringstorage_estimate_memory(annis_StringStoragePtr const* target);
+
 
 
 #ifdef __cplusplus

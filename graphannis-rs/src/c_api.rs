@@ -146,3 +146,10 @@ pub extern "C" fn annis_stringstorage_load_from_file(target: *mut annis_StringSt
         s.load_from_file(safe_path.unwrap());
     }
 }
+
+#[no_mangle]
+pub extern "C" fn annis_stringstorage_estimate_memory(target: *const annis_StringStoragePtr) -> libc::size_t {
+    let s = unsafe { &(*target).0 };
+
+    return s.estimate_memory_size();
+}

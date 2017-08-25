@@ -91,6 +91,7 @@ impl StringStorage {
     }
 
     pub fn save_to_file(&self, path: &str) {
+
         let f = std::fs::File::create(path).unwrap();
 
         let mut buf_writer = std::io::BufWriter::new(f);
@@ -113,6 +114,12 @@ impl StringStorage {
                 *self = loaded.unwrap();
             }
         }
+    }
+
+    pub fn estimate_memory_size(& self) -> usize {
+
+        return ::annis::util::memory_estimation::hash_map_size(&self.by_id)
+                + ::annis::util::memory_estimation::btree_map_size(&self.by_value);    
     }
 }
 
