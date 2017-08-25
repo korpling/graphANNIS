@@ -22,6 +22,8 @@ fn main() {
         let old_header_file = std::fs::File::open(out_path);
         if old_header_file.is_ok() {
             old_header_file.unwrap().read_to_string(&mut old_header);
+        } else {
+            old_header = String::from("");
         }
 
         let new_header = header.unwrap();
