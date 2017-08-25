@@ -1,9 +1,10 @@
 extern crate cheddar;
+extern crate crypto;
 
 use std::io::Read;
 use std::io::Write;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use crypto::sha2::Sha256;
+use crypto::digest::Digest;
 
 #[allow(unused_must_use)]
 fn main() {
@@ -25,17 +26,17 @@ fn main() {
 
         let new_header = header.unwrap();
         
-        let mut old_hasher = DefaultHasher::new();
-        old_header.hash(&mut old_hasher);
+        let mut old_hasher = Sha256::new();
+        old_hasher.input_str(&old_header);
 
-        let mut new_hasher = DefaultHasher::new();
-        new_header.hash(&mut new_hasher);
+        let mut new_hasher = Sha256::new();
+        new_hasher.input_str(&new_header);
 
-        if old_hasher.finish() != new_hasher.finish() {
+        if old_hasher.result_str() != new_hasher.result_str() {
             let mut out_file = std::fs::File::create(out_path).expect("Can't write C header file");
             out_file.write_all(new_header.as_bytes());
         } else {
-            println!("cargo:warning=Auto-generated C header file did not change and is not re-generated");
+            println!("cargo:warning=Auto-generated C header file did not change and is *not* re-generated");
         }
     
 

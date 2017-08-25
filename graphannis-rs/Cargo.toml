@@ -21,3 +21,4 @@ tempdir = "0.3"
 
 [build-dependencies]
 moz-cheddar = "0.4.0"
+rust-crypto = "^0.2"
