@@ -4,44 +4,44 @@ use libc;
 use std;
 
 #[repr(C)]
-pub struct StringStoragePtr(StringStorage);
+pub struct annis_StringStoragePtr(StringStorage);
 
 #[no_mangle]
-pub extern "C" fn annis_stringstorage_new() -> *mut StringStoragePtr {
+pub extern "C" fn annis_stringstorage_new() -> *mut annis_StringStoragePtr {
     let s = StringStorage::new();
-    Box::into_raw(Box::new(StringStoragePtr(s)))
+    Box::into_raw(Box::new(annis_StringStoragePtr(s)))
 }
 
 #[no_mangle]
-pub extern "C" fn annis_stringstorage_free(target: *mut StringStoragePtr) {
+pub extern "C" fn annis_stringstorage_free(target: *mut annis_StringStoragePtr) {
     // take ownership and destroy the pointer
     unsafe { Box::from_raw(target) };
 }
 
 
 #[repr(C)]
-pub struct OptionalString {
+pub struct annis_OptionalString {
     pub valid: libc::c_int,
     pub value: *const libc::c_char,
     pub length: libc::size_t,
 }
 
 #[no_mangle]
-pub extern "C" fn annis_stringstorage_str(target: *const StringStoragePtr,
+pub extern "C" fn annis_stringstorage_str(target: *const annis_StringStoragePtr,
                                           id: libc::uint32_t)
-                                          -> OptionalString {
+                                          -> annis_OptionalString {
 
     let s = unsafe { &(*target).0 };
     let result = match s.str(id) {
         Some(v) => {
-            OptionalString {
+            annis_OptionalString {
                 valid: 1,
                 value: v.as_ptr() as *const libc::c_char,
                 length: v.len(),
             }
         }
         None => {
-            OptionalString {
+            annis_OptionalString {
                 valid: 0,
                 value: std::ptr::null(),
                 length: 0,
@@ -53,7 +53,7 @@ pub extern "C" fn annis_stringstorage_str(target: *const StringStoragePtr,
 }
 
 #[no_mangle]
-pub extern "C" fn annis_stringstorage_add(target: *mut StringStoragePtr,
+pub extern "C" fn annis_stringstorage_add(target: *mut annis_StringStoragePtr,
                                           value: *const libc::c_char)
                                           -> libc::uint32_t {
     let mut s = unsafe { &mut(*target).0 };
@@ -66,13 +66,13 @@ pub extern "C" fn annis_stringstorage_add(target: *mut StringStoragePtr,
 }
 
 #[no_mangle]
-pub extern "C" fn annis_stringstorage_clear(target: *mut StringStoragePtr) {
+pub extern "C" fn annis_stringstorage_clear(target: *mut annis_StringStoragePtr) {
     let mut s = unsafe { &mut (*target).0 };
     s.clear();
 }
 
 #[no_mangle]
-pub extern "C" fn annis_stringstorage_len(target: *const StringStoragePtr)
+pub extern "C" fn annis_stringstorage_len(target: *const annis_StringStoragePtr)
                                           -> libc::size_t {
     let s = unsafe { & (*target).0 };
     return s.len();

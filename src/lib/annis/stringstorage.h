@@ -47,7 +47,7 @@ public:
 
   const std::string str(std::uint32_t id) const
   {
-    OptionalString result = annis_stringstorage_str(impl, id);
+    annis_OptionalString result = annis_stringstorage_str(impl, id);
     if(result.valid)
     {
       return std::string(result.value, result.length);
@@ -60,7 +60,7 @@ public:
 
   boost::optional<std::string> strOpt(std::uint32_t id) const
   {
-    OptionalString result = annis_stringstorage_str(impl, id);
+    annis_OptionalString result = annis_stringstorage_str(impl, id);
     if(result.valid)
     {
       return std::string(result.value, result.length);
@@ -111,7 +111,7 @@ public:
   }
 
 private:
-  StringStoragePtr* impl;
+  annis_StringStoragePtr* impl;
   std::unordered_map<std::uint32_t, std::string> byID;
   btree::btree_map<std::string, std::uint32_t> byValue;
 

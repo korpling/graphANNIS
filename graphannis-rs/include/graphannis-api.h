@@ -12,25 +12,25 @@ extern "C" {
 
 
 
-typedef struct StringStoragePtr StringStoragePtr;
+typedef struct annis_StringStoragePtr annis_StringStoragePtr;
 
-StringStoragePtr* annis_stringstorage_new(void);
+annis_StringStoragePtr* annis_stringstorage_new(void);
 
-void annis_stringstorage_free(StringStoragePtr* target);
+void annis_stringstorage_free(annis_StringStoragePtr* target);
 
-typedef struct OptionalString {
+typedef struct annis_OptionalString {
 	int valid;
 	char const* value;
 	size_t length;
-} OptionalString;
+} annis_OptionalString;
 
-OptionalString annis_stringstorage_str(StringStoragePtr const* target, uint32_t id);
+annis_OptionalString annis_stringstorage_str(annis_StringStoragePtr const* target, uint32_t id);
 
-uint32_t annis_stringstorage_add(StringStoragePtr* target, char const* value);
+uint32_t annis_stringstorage_add(annis_StringStoragePtr* target, char const* value);
 
-void annis_stringstorage_clear(StringStoragePtr* target);
+void annis_stringstorage_clear(annis_StringStoragePtr* target);
 
-size_t annis_stringstorage_len(StringStoragePtr const* target);
+size_t annis_stringstorage_len(annis_StringStoragePtr const* target);
 
 
 
