@@ -7,15 +7,23 @@ use std::io::Write;
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
 
-fn generage_capi_header(module : &str, out_path : &str) {
+#[allow(unused_must_use)]
+fn generage_capi_header(module : &str, out_file : &str) {
 
-    let id : &str = Path::new(out_path).file_stem().unwrap().to_str().unwrap_or(out_path);
-    // compile header but do not write output
-    let header = cheddar::Cheddar::new()
-        .expect("could not read manifest")
-        .module(module).expect("malformed module path")
-        .compile(id);
-    if header.is_ok() {
+    let out_path = Path::new(out_file);
+
+    // make sure the directories exist
+    if let Some(parent_dir) = out_path.parent() {
+        std::fs::create_dir_all(parent_dir);
+
+        let mut id : String = String::from("annis_");
+        id = id + out_path.file_stem().unwrap().to_str().unwrap_or(out_file);
+        // compile header but do not write output
+        let header = cheddar::Cheddar::new()
+            .expect("could not read manifest")
+            .module(module).expect("malformed module path")
+            .compile(id.as_str());
+        
         // do not overwrite file if equal to avoid an updated timestamp and unnecessary compiles
         let mut old_header = String::new();
         let old_header_file = std::fs::File::open(out_path);
@@ -39,12 +47,13 @@ fn generage_capi_header(module : &str, out_path : &str) {
         } else {
             println!("cargo:warning=Auto-generated C header file did not change and is *not* re-generated");
         }
+    
     }
 }
 
-#[allow(unused_must_use)]
+
 fn main() {
 
-    generage_capi_header("c_api","include/graphannis-api.h");
+    generage_capi_header("annis::stringstorage::c_api","include/graphannis/stringstorage.h");
     
 }

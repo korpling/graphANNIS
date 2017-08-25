@@ -9,8 +9,5 @@ extern crate libc;
 extern crate serde_derive;
 
 pub mod annis;
-
-pub use c_api::*;
-
-mod c_api;
+pub use annis::stringstorage::c_api::*;
 

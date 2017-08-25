@@ -1,6 +1,6 @@
 
-#ifndef cheddar_generated_graphannisapi_h
-#define cheddar_generated_graphannisapi_h
+#ifndef cheddar_generated_annis_stringstorage_h
+#define cheddar_generated_annis_stringstorage_h
 
 
 #ifdef __cplusplus

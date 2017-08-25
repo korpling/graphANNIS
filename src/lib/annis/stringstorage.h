@@ -32,7 +32,7 @@
 #include <unordered_map>                // for unordered_map, _Node_const_it...
 #include <utility>                      // for pair
 
-#include <graphannis-api.h>
+#include <graphannis/stringstorage.h>
 
 
 namespace annis
