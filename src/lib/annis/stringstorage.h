@@ -32,6 +32,7 @@
 #include <unordered_map>                // for unordered_map, _Node_const_it...
 #include <utility>                      // for pair
 
+#include <graphannis-api.h>
 
 
 namespace annis
@@ -42,13 +43,14 @@ class StringStorage
 {
 public:
   StringStorage();
+  ~StringStorage();
 
-  const std::string& str(std::uint32_t id) const
+  const std::string str(std::uint32_t id) const
   {
-    auto it = byID.find(id);
-    if(it != byID.end())
+    OptionalString result = annis_stringstorage_str(impl, id);
+    if(result.valid)
     {
-      return it->second;
+      return std::string(result.value, result.length);
     }
     else
     {
@@ -58,10 +60,10 @@ public:
 
   boost::optional<std::string> strOpt(std::uint32_t id) const
   {
-    auto it = byID.find(id);
-    if(it != byID.end())
+    OptionalString result = annis_stringstorage_str(impl, id);
+    if(result.valid)
     {
-      return boost::optional<std::string>(it->second);
+      return std::string(result.value, result.length);
     }
     else
     {
@@ -83,11 +85,21 @@ public:
 
   std::unordered_set<std::uint32_t> findRegex(const std::string& str) const;
 
-  std::uint32_t add(const std::string& str);
+  std::uint32_t add(const std::string& str)
+  {
+    return annis_stringstorage_add(impl, str.c_str());
+  }
 
-  void clear();
+  void clear()
+  {
+    annis_stringstorage_clear(impl);
+  }
 
-  size_t size() const {return byID.size();}
+  size_t size() const
+  {
+    return annis_stringstorage_len(impl);
+  }
+
   double avgLength();
 
   size_t estimateMemorySize() const;
@@ -99,6 +111,7 @@ public:
   }
 
 private:
+  StringStoragePtr* impl;
   std::unordered_map<std::uint32_t, std::string> byID;
   btree::btree_map<std::string, std::uint32_t> byValue;
 

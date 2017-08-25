@@ -20,34 +20,19 @@
 #include <re2/stringpiece.h>            // for StringPiece
 #include <iterator>                     // for reverse_iterator
 
-#include <graphannis-api.h>
-
 using namespace annis;
 using namespace std;
 
 StringStorage::StringStorage()
+  : impl(NULL)
 {
-  void* test = annis_stringstorage_new();
+  impl = annis_stringstorage_new();
 
-  std::cout << "created string storage with address " << test << std::endl;
+}
 
-  annis_stringstorage_add(test, "test1");
-  annis_stringstorage_add(test, "test2");
-  annis_stringstorage_add(test, "test3");
-
-
-  annis_OptionalString ups = annis_stringstorage_str(test, 2);
-
-  if(ups.valid != 0) {
-    std::string s;
-    s.assign(ups.value, ups.length);
-    std::cout << ":::::::::::::::::::::" << std::endl;
-    std::cout << s << std::endl;
-    std::cout << ":::::::::::::::::::::" << std::endl;
-  }
-
-  annis_stringstorage_free(test);
-
+StringStorage::~StringStorage()
+{
+  annis_stringstorage_free(impl);
 }
 
 std::unordered_set<std::uint32_t> StringStorage::findRegex(const string &str) const
@@ -84,38 +69,6 @@ std::unordered_set<std::uint32_t> StringStorage::findRegex(const string &str) co
   }
 
   return std::move(result);
-}
-
-uint32_t StringStorage::add(const string &str)
-{
-  typedef btree::btree_map<string, uint32_t>::const_iterator ItType;
-  ItType it = byValue.find(str);
-  if(it == byValue.end())
-  {
-    // non-existing
-    uint32_t id = byID.size() + 1; // since 0 is taken as ANY value begin with 1
-    // make sure the ID is really not taken yet
-    while(byID.find(id) != byID.end())
-    {
-      id++;
-    }
-    byID.insert(pair<uint32_t, string>(id, str));
-    byValue.insert(pair<string, uint32_t>(str, id));
-    return id;
-  }
-  else
-  {
-    // already existing, return the original ID
-    return it->second;
-  }
-}
-
-void StringStorage::clear()
-{
-
-  byID.clear();
-  byValue.clear();
-
 }
 
 
