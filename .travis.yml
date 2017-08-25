@@ -1,4 +1,6 @@
-language: cpp
+language: rust
+rust:
+  - stable
 os:
   - linux
   - osx
@@ -9,6 +11,7 @@ sudo: false
 addons:
   apt:
    packages:
+    - build-essentials       
     - libboost-dev
     - libboost-thread-dev
     - libboost-system-dev
