@@ -1,13 +1,9 @@
 [root]
-name = "graphannis-base"
+name = "graphannis_capi"
 version = "0.1.0"
 dependencies = [
- "bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphannis 0.1.0",
  "libc 0.2.29 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "tempdir 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -50,6 +46,17 @@ dependencies = [
 name = "custom_derive"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "graphannis"
+version = "0.1.0"
+dependencies = [
+ "bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tempdir 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "lazy_static"

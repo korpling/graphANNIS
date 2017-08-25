@@ -20,7 +20,7 @@
 #include <re2/stringpiece.h>            // for StringPiece
 #include <iterator>                     // for reverse_iterator
 
-#include <annis/annisbase.h>
+#include <graphannis-api.h>
 
 using namespace annis;
 using namespace std;

@@ -1,0 +1,11 @@
+[package]
+name = "graphannis_capi"
+version = "0.1.0" #:version
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+graphannis = { version = "*", path = ".." }
+libc = "*"
+

@@ -1,6 +1,5 @@
 extern crate regex;
 extern crate tempdir;
-extern crate libc;
 
 extern crate serde;
 extern crate bincode;
@@ -10,9 +9,3 @@ extern crate serde_derive;
 
 pub mod annis;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}

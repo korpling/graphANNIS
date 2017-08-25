@@ -4,7 +4,6 @@ use std::collections::BTreeSet;
 use regex::Regex;
 use std;
 use bincode;
-use libc;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[repr(C)]
@@ -109,67 +108,6 @@ impl StringStorage {
         if loaded.is_ok() {
             *self = loaded.unwrap();
         }
-    }
-}
-
-// define the C API
-//
-#[no_mangle]
-pub extern "C" fn annis_stringstorage_new() -> *mut StringStorage {
-    let s = StringStorage::new();
-    Box::into_raw(Box::new(s))
-}
-
-#[no_mangle]
-pub extern "C" fn annis_stringstorage_free(target: *mut StringStorage) {
-    // take ownership and destroy the pointer
-    unsafe { Box::from_raw(target) };
-}
-
-
-#[repr(C)]
-pub struct OptionalString {
-    pub valid: libc::c_int,
-    pub value: *const libc::c_char,
-    pub length: libc::size_t,
-}
-
-#[no_mangle]
-pub extern "C" fn annis_stringstorage_str(target: *const StringStorage,
-                                          id: libc::uint32_t)
-                                          -> OptionalString {
-
-    let s = unsafe { &*target };
-    let result = match s.str(id) {
-        Some(v) => {
-            OptionalString {
-                valid: 1,
-                value: v.as_ptr() as *const libc::c_char,
-                length: v.len(),
-            }
-        }
-        None => {
-            OptionalString {
-                valid: 0,
-                value: std::ptr::null(),
-                length: 0,
-            }
-        }
-    };
-
-    return result;
-}
-
-#[no_mangle]
-pub extern "C" fn annis_stringstorage_add(target: *mut StringStorage,
-                                          value: *mut libc::c_char)
-                                          -> libc::uint32_t {
-    let mut s = unsafe { &mut *target };
-    let wrapped_str = unsafe { std::ffi::CStr::from_ptr(value)};
-
-    match std::str::from_utf8(wrapped_str.to_bytes()) {
-        Ok(v) => s.add(v),
-        Err(_) => 0
     }
 }
 
