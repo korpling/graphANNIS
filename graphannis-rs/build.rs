@@ -1,6 +1,7 @@
 extern crate cheddar;
 extern crate crypto;
 
+use std::path::Path;
 use std::io::Read;
 use std::io::Write;
 use crypto::sha2::Sha256;
@@ -8,11 +9,12 @@ use crypto::digest::Digest;
 
 fn generage_capi_header(module : &str, out_path : &str) {
 
+    let id : &str = Path::new(out_path).file_stem().unwrap().to_str().unwrap_or(out_path);
     // compile header but do not write output
     let header = cheddar::Cheddar::new()
         .expect("could not read manifest")
         .module(module).expect("malformed module path")
-        .compile("graphannis-api");
+        .compile(id);
     if header.is_ok() {
         // do not overwrite file if equal to avoid an updated timestamp and unnecessary compiles
         let mut old_header = String::new();
