@@ -6,15 +6,12 @@ use std::io::Write;
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
 
-#[allow(unused_must_use)]
-fn main() {
-
-    let out_path = "include/graphannis-api.h";
+fn generage_capi_header(module : &str, out_path : &str) {
 
     // compile header but do not write output
     let header = cheddar::Cheddar::new()
         .expect("could not read manifest")
-        .module("c_api").expect("malformed module path")
+        .module(module).expect("malformed module path")
         .compile("graphannis-api");
     if header.is_ok() {
         // do not overwrite file if equal to avoid an updated timestamp and unnecessary compiles
@@ -40,7 +37,12 @@ fn main() {
         } else {
             println!("cargo:warning=Auto-generated C header file did not change and is *not* re-generated");
         }
-    
-
     }
+}
+
+#[allow(unused_must_use)]
+fn main() {
+
+    generage_capi_header("c_api","include/graphannis-api.h");
+    
 }
