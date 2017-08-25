@@ -425,21 +425,21 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
       std::string nsStr = edgeAnno["namespace"].asString();
       auto search = db.strings.findID(nsStr);
       // if string is not found set to an invalid value
-      ns = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
+      ns = search ? *search : std::numeric_limits<std::uint32_t>::max();
     }
     if (edgeAnno["name"].isString())
     {
       std::string nameStr = edgeAnno["name"].asString();
       auto search = db.strings.findID(nameStr);
       // if string is not found set to an invalid value
-      name = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
+      name = search ? *search : std::numeric_limits<std::uint32_t>::max();
     }
     if (edgeAnno["value"].isString())
     {
       std::string valueStr = edgeAnno["value"].asString();
       auto search = db.strings.findID(valueStr);
       // if string is not found set to an invalid value
-      value = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
+      value = search ? *search : std::numeric_limits<std::uint32_t>::max();
     }
   }
   // TODO: what about regex?

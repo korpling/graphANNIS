@@ -33,16 +33,16 @@ using namespace std;
 ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
   :db(db),validAnnotationInitialized(false), debugDescription(annoNamspace + ":" + annoName + "=\"" + annoValue + "\"")
 {
-  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
-  std::pair<bool, uint32_t> namspaceID = db.strings.findID(annoNamspace);
-  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
+  auto nameID = db.strings.findID(annoName);
+  auto namspaceID = db.strings.findID(annoNamspace);
+  auto valueID = db.strings.findID(annoValue);
 
-  if(nameID.first && namspaceID.first && valueID.first)
+  if(nameID && namspaceID && valueID)
   {
     Annotation key;
-    key.name = nameID.second;
-    key.ns = namspaceID.second;
-    key.val = valueID.second;
+    key.name = *nameID;
+    key.ns = *namspaceID;
+    key.val = *valueID;
 
     searchRanges.push_back(Range(db.nodeAnnos.inverseAnnotations.equal_range(key)));
     it = searchRanges.begin()->first;
@@ -53,17 +53,17 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamsp
 ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &annoName, const std::string &annoValue)
   :db(db), validAnnotationInitialized(false), debugDescription(annoName + "=\"" + annoValue + "\"")
 {
-  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
-  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
+  auto nameID = db.strings.findID(annoName);
+  auto valueID = db.strings.findID(annoValue);
 
-  if(nameID.first && valueID.first)
+  if(nameID && valueID)
   {
-    auto keysLower = db.nodeAnnos.annoKeys.lower_bound({nameID.second, 0});
-    auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({nameID.second, uintmax});
+    auto keysLower = db.nodeAnnos.annoKeys.lower_bound({*nameID, 0});
+    auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({*nameID, uintmax});
     for(auto itKey = keysLower; itKey != keysUpper; itKey++)
     {
       Range r = db.nodeAnnos.inverseAnnotations.equal_range(
-        {itKey->first.name, itKey->first.ns, valueID.second});
+        {itKey->first.name, itKey->first.ns, *valueID});
 
       // only remember ranges that actually have valid iterator pairs
       if(r.first != r.second)

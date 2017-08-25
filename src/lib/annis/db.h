@@ -75,11 +75,11 @@ public:
 
   inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName) const
   {
-    std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
-    if(nodeNameID.first)
+    auto nodeNameID = strings.findID(nodeName);
+    if(nodeNameID)
     {
       auto it = nodeAnnos.inverseAnnotations.find(
-         {annisNodeNameStringID, annisNamespaceStringID, nodeNameID.second});
+         {annisNodeNameStringID, annisNamespaceStringID, *nodeNameID});
 
       if(it != nodeAnnos.inverseAnnotations.end())
       {
