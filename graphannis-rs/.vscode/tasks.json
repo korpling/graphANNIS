@@ -6,12 +6,25 @@
     },
     "tasks": [
         {
-            "taskName": "cargo build",
+            "taskName": "cargo build (release)",
             "type": "shell",
             "command": "cargo",
             "args": [
                 "build",
                 "--release"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$rustc"
+        },
+        {
+            "taskName": "cargo build (debug)",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build"
             ],
             "group": "build",
             "problemMatcher": "$rustc"
