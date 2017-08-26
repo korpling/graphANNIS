@@ -204,17 +204,18 @@ pub mod c_api {
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_free(target: *mut annis_StringStoragePtr) {
+    pub extern "C" fn annis_stringstorage_free(ptr: *mut annis_StringStoragePtr) {
+        if ptr.is_null() { return };
         // take ownership and destroy the pointer
-        unsafe {assert!(!target.is_null()); Box::from_raw(target) };
+        unsafe {Box::from_raw(ptr) };
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_str(target: *const annis_StringStoragePtr,
+    pub extern "C" fn annis_stringstorage_str(ptr: *const annis_StringStoragePtr,
                                               id: libc::uint32_t)
                                               -> annis_OptionalString {
 
-        let s = unsafe {assert!(!target.is_null()); &(*target).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &(*ptr).0 };
         let result = match s.str(id) {
             Some(v) => {
                 annis_OptionalString {
@@ -236,10 +237,10 @@ pub mod c_api {
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_find_id(target: *const annis_StringStoragePtr,
+    pub extern "C" fn annis_stringstorage_find_id(ptr: *const annis_StringStoragePtr,
                                                   value: *const c_char)
                                                   -> annis_Option_u32 {
-        let s = unsafe {assert!(!target.is_null()); &(*target).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &(*ptr).0 };
         let c_value = unsafe {
             assert!(!value.is_null());
             CStr::from_ptr(value)
@@ -274,10 +275,10 @@ pub mod c_api {
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_add(target: *mut annis_StringStoragePtr,
+    pub extern "C" fn annis_stringstorage_add(ptr: *mut annis_StringStoragePtr,
                                               value: *const c_char)
                                               -> libc::uint32_t {
-        let mut s = unsafe {assert!(!target.is_null()); &mut (*target).0 };
+        let mut s = unsafe {assert!(!ptr.is_null()); &mut (*ptr).0 };
         let c_value = unsafe {
             assert!(!value.is_null());
             CStr::from_ptr(value)
@@ -290,29 +291,29 @@ pub mod c_api {
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_clear(target: *mut annis_StringStoragePtr) {
-        let mut s = unsafe {assert!(!target.is_null()); &mut (*target).0 };
+    pub extern "C" fn annis_stringstorage_clear(ptr: *mut annis_StringStoragePtr) {
+        let mut s = unsafe {assert!(!ptr.is_null()); &mut (*ptr).0 };
         s.clear();
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_len(target: *const annis_StringStoragePtr)
+    pub extern "C" fn annis_stringstorage_len(ptr: *const annis_StringStoragePtr)
                                               -> libc::size_t {
-        let s = unsafe {assert!(!target.is_null()); &(*target).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &(*ptr).0 };
         return s.len();
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_avg_length(target: *const annis_StringStoragePtr)
+    pub extern "C" fn annis_stringstorage_avg_length(ptr: *const annis_StringStoragePtr)
                                                      -> libc::c_double {
-        let s = unsafe {assert!(!target.is_null()); &(*target).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &(*ptr).0 };
         return s.avg_length();
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_save_to_file(target: *const annis_StringStoragePtr,
+    pub extern "C" fn annis_stringstorage_save_to_file(ptr: *const annis_StringStoragePtr,
                                                        path: *const c_char) {
-        let s = unsafe {assert!(!target.is_null()); &(*target).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &(*ptr).0 };
         let c_path = unsafe {
             assert!(!path.is_null());
             CStr::from_ptr(path)
@@ -324,9 +325,9 @@ pub mod c_api {
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_load_from_file(target: *mut annis_StringStoragePtr,
+    pub extern "C" fn annis_stringstorage_load_from_file(ptr: *mut annis_StringStoragePtr,
                                                          path: *const c_char) {
-        let s = unsafe {assert!(!target.is_null()); &mut (*target).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &mut (*ptr).0 };
         let c_path = unsafe {
             assert!(!path.is_null());
             CStr::from_ptr(path)
@@ -338,9 +339,9 @@ pub mod c_api {
     }
 
     #[no_mangle]
-    pub extern "C" fn annis_stringstorage_estimate_memory(target: *const annis_StringStoragePtr)
+    pub extern "C" fn annis_stringstorage_estimate_memory(ptr: *const annis_StringStoragePtr)
                                                           -> libc::size_t {
-        let s = unsafe {assert!(!target.is_null()); &(*target).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &(*ptr).0 };
 
         return s.estimate_memory_size();
     }
