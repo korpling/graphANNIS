@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Test",
+            "program": "${workspaceRoot}/target/debug/graphannis-361cdaa694f015ad",
+            "args": [],
+            "cwd": "${workspaceRoot}"
+        }
+    ]
+}
