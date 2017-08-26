@@ -176,7 +176,6 @@ mod tests {
 pub mod c_api {
 
     use libc;
-    use libc::c_char;
     use std::ffi::CStr;
     use super::*;
 
@@ -186,7 +185,7 @@ pub mod c_api {
     #[repr(C)]
     pub struct annis_OptionalString {
         pub valid: libc::c_int,
-        pub value: *const c_char,
+        pub value: *const libc::c_char,
         pub length: libc::size_t,
     }
 
@@ -225,7 +224,7 @@ pub mod c_api {
         let result = match s.str(id) {
             Some(v) => annis_OptionalString {
                 valid: 1,
-                value: v.as_ptr() as *const c_char,
+                value: v.as_ptr() as *const libc::c_char,
                 length: v.len(),
             },
             None => annis_OptionalString {
@@ -241,7 +240,7 @@ pub mod c_api {
     #[no_mangle]
     pub extern "C" fn annis_stringstorage_find_id(
         ptr: *const annis_StringStoragePtr,
-        value: *const c_char,
+        value: *const libc::c_char,
     ) -> annis_Option_u32 {
         let s = unsafe {
             assert!(!ptr.is_null());
@@ -269,7 +268,7 @@ pub mod c_api {
     #[no_mangle]
     pub extern "C" fn annis_stringstorage_add(
         ptr: *mut annis_StringStoragePtr,
-        value: *const c_char,
+        value: *const libc::c_char,
     ) -> libc::uint32_t {
         let s = unsafe {
             assert!(!ptr.is_null());
@@ -318,7 +317,7 @@ pub mod c_api {
     #[no_mangle]
     pub extern "C" fn annis_stringstorage_save_to_file(
         ptr: *const annis_StringStoragePtr,
-        path: *const c_char,
+        path: *const libc::c_char,
     ) {
         let s = unsafe {
             assert!(!ptr.is_null());
@@ -337,7 +336,7 @@ pub mod c_api {
     #[no_mangle]
     pub extern "C" fn annis_stringstorage_load_from_file(
         ptr: *mut annis_StringStoragePtr,
-        path: *const c_char,
+        path: *const libc::c_char,
     ) {
         let s = unsafe {
             assert!(!ptr.is_null());
