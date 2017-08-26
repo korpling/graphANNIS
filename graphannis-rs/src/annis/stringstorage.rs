@@ -278,7 +278,7 @@ pub mod c_api {
     pub extern "C" fn annis_stringstorage_add(ptr: *mut annis_StringStoragePtr,
                                               value: *const c_char)
                                               -> libc::uint32_t {
-        let mut s = unsafe {assert!(!ptr.is_null()); &mut (*ptr).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &mut (*ptr).0 };
         let c_value = unsafe {
             assert!(!value.is_null());
             CStr::from_ptr(value)
@@ -292,7 +292,7 @@ pub mod c_api {
 
     #[no_mangle]
     pub extern "C" fn annis_stringstorage_clear(ptr: *mut annis_StringStoragePtr) {
-        let mut s = unsafe {assert!(!ptr.is_null()); &mut (*ptr).0 };
+        let s = unsafe {assert!(!ptr.is_null()); &mut (*ptr).0 };
         s.clear();
     }
 
