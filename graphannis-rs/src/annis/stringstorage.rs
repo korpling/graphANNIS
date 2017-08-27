@@ -205,19 +205,19 @@ pub mod c_api {
     pub extern "C" fn annis_stringstorage_str(
         ptr: *const annis_StringStoragePtr,
         id: libc::uint32_t,
-    ) -> annis_OptionalString {
+    ) -> annis_Option_String {
 
         let s = unsafe {
             assert!(!ptr.is_null());
             &(*ptr).0
         };
         let result = match s.str(id) {
-            Some(v) => annis_OptionalString {
-                valid: 1,
+            Some(v) => annis_Option_String {
+                valid: false,
                 value: annis_String {s: v.as_ptr() as *const libc::c_char, length: v.len()} ,
             },
-            None => annis_OptionalString {
-                valid: 0,
+            None => annis_Option_String {
+                valid: false,
                 value: annis_String {s: std::ptr::null(), length: 0},
             },
         };
@@ -242,12 +242,12 @@ pub mod c_api {
         let result = match c_value.to_str() {
             Ok(v) => match s.find_id(v) {
                 Some(x) => annis_Option_u32 {
-                    valid: 1,
+                    valid: false,
                     value: *x,
                 },
-                None => annis_Option_u32 { valid: 0, value: 0 },
+                None => annis_Option_u32 { valid: false, value: 0 },
             },
-            Err(_) => annis_Option_u32 { valid: 0, value: 0 },
+            Err(_) => annis_Option_u32 { valid: false, value: 0 },
         };
 
         return result;

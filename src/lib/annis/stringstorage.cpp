@@ -32,7 +32,7 @@ annis::StringStorage::~StringStorage()
 
 const std::string annis::StringStorage::str(uint32_t id) const
 {
-  annis_OptionalString result = annis_stringstorage_str(impl, id);
+  annis_Option_String result = annis_stringstorage_str(impl, id);
   if(result.valid)
   {
     return std::string(result.value.s, result.value.length);
@@ -45,7 +45,7 @@ const std::string annis::StringStorage::str(uint32_t id) const
 
 boost::optional<std::string> annis::StringStorage::strOpt(uint32_t id) const
 {
-  annis_OptionalString result = annis_stringstorage_str(impl, id);
+  annis_Option_String result = annis_stringstorage_str(impl, id);
   if(result.valid)
   {
     return std::string(result.value.s, result.value.length);

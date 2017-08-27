@@ -10,13 +10,13 @@ pub struct annis_String {
 }
 
 #[repr(C)]
-pub struct annis_OptionalString {
-    pub valid: libc::c_int,
+pub struct annis_Option_String {
+    pub valid: bool,
     pub value : annis_String,
 }
 
 #[repr(C)]
 pub struct annis_Option_u32 {
-    pub valid: libc::c_int,
+    pub valid: bool,
     pub value: libc::uint32_t,
 }

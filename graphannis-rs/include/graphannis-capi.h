@@ -20,13 +20,13 @@ typedef struct annis_String {
 	size_t length;
 } annis_String;
 
-typedef struct annis_OptionalString {
-	int valid;
+typedef struct annis_Option_String {
+	bool valid;
 	annis_String value;
-} annis_OptionalString;
+} annis_Option_String;
 
 typedef struct annis_Option_u32 {
-	int valid;
+	bool valid;
 	uint32_t value;
 } annis_Option_u32;
 
@@ -38,7 +38,7 @@ annis_StringStoragePtr* annis_stringstorage_new(void);
 
 void annis_stringstorage_free(annis_StringStoragePtr* ptr);
 
-annis_OptionalString annis_stringstorage_str(annis_StringStoragePtr const* ptr, uint32_t id);
+annis_Option_String annis_stringstorage_str(annis_StringStoragePtr const* ptr, uint32_t id);
 
 annis_Option_u32 annis_stringstorage_find_id(annis_StringStoragePtr const* ptr, char const* value);
 
