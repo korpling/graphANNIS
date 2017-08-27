@@ -14,10 +14,14 @@ extern "C" {
 
 typedef struct annis_StringStoragePtr annis_StringStoragePtr;
 
+typedef struct annis_CharArray {
+	char const* s;
+	size_t length;
+} annis_CharArray;
+
 typedef struct annis_OptionalString {
 	int valid;
-	char const* value;
-	size_t length;
+	annis_CharArray value;
 } annis_OptionalString;
 
 typedef struct annis_Option_u32 {

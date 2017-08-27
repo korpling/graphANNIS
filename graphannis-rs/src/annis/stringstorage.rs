@@ -183,10 +183,15 @@ pub mod c_api {
     pub struct annis_StringStoragePtr(StringStorage);
 
     #[repr(C)]
+    pub struct annis_CharArray {
+        pub s: *const libc::c_char,
+        pub length: libc::size_t,
+    }
+
+    #[repr(C)]
     pub struct annis_OptionalString {
         pub valid: libc::c_int,
-        pub value: *const libc::c_char,
-        pub length: libc::size_t,
+        pub value : annis_CharArray,
     }
 
     #[repr(C)]
@@ -224,13 +229,11 @@ pub mod c_api {
         let result = match s.str(id) {
             Some(v) => annis_OptionalString {
                 valid: 1,
-                value: v.as_ptr() as *const libc::c_char,
-                length: v.len(),
+                value: annis_CharArray {s: v.as_ptr() as *const libc::c_char, length: v.len()} ,
             },
             None => annis_OptionalString {
                 valid: 0,
-                value: std::ptr::null(),
-                length: 0,
+                value: annis_CharArray {s: std::ptr::null(), length: 0},
             },
         };
 

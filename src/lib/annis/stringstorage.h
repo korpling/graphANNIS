@@ -57,7 +57,7 @@ public:
     annis_OptionalString result = annis_stringstorage_str(impl, id);
     if(result.valid)
     {
-      return std::string(result.value, result.length);
+      return std::string(result.value.s, result.value.length);
     }
     else
     {
@@ -70,7 +70,7 @@ public:
     annis_OptionalString result = annis_stringstorage_str(impl, id);
     if(result.valid)
     {
-      return std::string(result.value, result.length);
+      return std::string(result.value.s, result.value.length);
     }
     else
     {
