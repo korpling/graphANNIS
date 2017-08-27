@@ -7,14 +7,15 @@ use std::io::Write;
 use std::string::String;
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
+use cheddar::Error;
 
-
-fn generate_single_capi_code(module : &str) -> String {
-   cheddar::Cheddar::new()
+fn generate_single_capi_code(module : &str) -> Result<String, Vec<Error>> {
+    
+    let code = try!(cheddar::Cheddar::new()
             .expect("could not read manifest")
             .module(module).expect(&format!("malformed module path for {}", module))
-            .compile_code()
-            .unwrap()
+            .compile_code());
+    Ok(code)
 }
 
 #[allow(unused_must_use)]
@@ -34,7 +35,9 @@ fn generage_capi_header(modules : Vec<&str>, out_file : &str) {
 
         for m in modules {
             let module_code = generate_single_capi_code(m);
-            cheddar.insert_code(&module_code);
+            if module_code.is_ok() {
+                cheddar.insert_code(&(module_code.unwrap()));
+            }
         }
 
         let header = cheddar.compile(id.as_str());
@@ -48,7 +51,7 @@ fn generage_capi_header(modules : Vec<&str>, out_file : &str) {
             old_header = String::from("");
         }
 
-        let new_header = header.unwrap();
+        let new_header = header.unwrap_or(String::from(""));
         
         let mut old_hasher = Sha256::new();
         old_hasher.input_str(&old_header);
@@ -68,11 +71,9 @@ fn generage_capi_header(modules : Vec<&str>, out_file : &str) {
 
 
 fn main() {
-
     generage_capi_header(vec![
         "annis::util::c_api",
         "annis::stringstorage::c_api"
         ],
-        "include/graphannis-capi.h");
-    
+        "include/graphannis-capi.h");    
 }
