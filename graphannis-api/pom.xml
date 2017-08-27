@@ -271,6 +271,7 @@
             <linkPath>${basedir}/../build/output/humblelogging/lib/</linkPath>
             <linkPath>${basedir}/../build/output/vc/lib/</linkPath>
             <linkPath>${basedir}/../build/output/re2/lib/</linkPath>
+            <linkPath>${basedir}/../graphannis-rs/target/release/</linkPath>
             <!-- TODO: this is for windows only, make it active only on windows -->
             <linkPath>${basedir}/../build/Release/</linkPath>
             <linkPath>${Boost_LIBRARY_DIRS}</linkPath>
