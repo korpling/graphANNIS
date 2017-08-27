@@ -8,7 +8,7 @@ ExternalProject_Add(
     LOG_BUILD OFF)
 
   if( CMAKE_SYSTEM_NAME STREQUAL "Linux" )
-    set(GRAPHANNIS_RUST_LIBS ""util" "dl" "rt" "pthread" "c" "m" "rt" "pthread" "util"")
+    set(GRAPHANNIS_RUST_LIBS "util" "dl" "rt" "pthread" "c" "m" "rt" "pthread" "util")
   elseif( CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GRAPHANNIS_RUST_LIBS "System" "resolv" "c" "m")
   else()
