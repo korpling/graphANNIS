@@ -224,7 +224,7 @@ pub mod c_api {
         };
         let result = match s.str(id) {
             Some(v) => annis_Option_String {
-                valid: false,
+                valid: true,
                 value: annis_String {s: v.as_ptr() as *const libc::c_char, length: v.len()} ,
             },
             None => annis_Option_String {
@@ -253,7 +253,7 @@ pub mod c_api {
         let result = match c_value.to_str() {
             Ok(v) => match s.find_id(v) {
                 Some(x) => annis_Option_u32 {
-                    valid: false,
+                    valid: true,
                     value: *x,
                 },
                 None => annis_Option_u32 { valid: false, value: 0 },
