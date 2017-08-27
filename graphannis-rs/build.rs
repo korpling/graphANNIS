@@ -63,8 +63,6 @@ fn generage_capi_header(modules : Vec<&str>, out_file : &str) {
         if old_hasher.result_str() != new_hasher.result_str() {
             let mut out_file = std::fs::File::create(out_path).expect("Can't write C header file");
             out_file.write_all(new_header.as_bytes());
-        } else {
-            println!("cargo:warning=Auto-generated C header file did not change and is *not* re-generated");
         }
     
     }
