@@ -32,99 +32,38 @@
 #include <unordered_map>                // for unordered_map, _Node_const_it...
 #include <utility>                      // for pair
 
-#include <graphannis-capi.h>
 
+struct annis_StringStoragePtr; // forward declaration
 
 namespace annis
 {
-const std::uint32_t STRING_STORAGE_ANY = 0;
+
 
 class StringStorage
 {
 public:
-  StringStorage()
-    :impl(NULL)
-  {
-    impl = annis_stringstorage_new();
-  }
-  ~StringStorage()
-  {
-    annis_stringstorage_free(impl);
-  }
+  StringStorage();
+  ~StringStorage();
 
-  const std::string str(std::uint32_t id) const
-  {
-    annis_OptionalString result = annis_stringstorage_str(impl, id);
-    if(result.valid)
-    {
-      return std::string(result.value.s, result.value.length);
-    }
-    else
-    {
-      throw("Unknown string ID");
-    }
-  }
+  const std::string str(std::uint32_t id) const;
 
-  boost::optional<std::string> strOpt(std::uint32_t id) const
-  {
-    annis_OptionalString result = annis_stringstorage_str(impl, id);
-    if(result.valid)
-    {
-      return std::string(result.value.s, result.value.length);
-    }
-    else
-    {
-      return boost::optional<std::string>();
-    }
-  }
+  boost::optional<std::string> strOpt(std::uint32_t id) const;
 
-  boost::optional<std::uint32_t> findID(const std::string& str) const
-  {
-    annis_Option_u32 result = annis_stringstorage_find_id(impl, str.c_str());
-    if(result.valid)
-    {
-      return result.value;
-    }
-    else
-    {
-      return boost::optional<std::uint32_t>();
-    }
-  }
+  boost::optional<std::uint32_t> findID(const std::string& str) const;
 
-  std::uint32_t add(const std::string& str)
-  {
-    return annis_stringstorage_add(impl, str.c_str());
-  }
+  std::uint32_t add(const std::string& str);
 
-  void clear()
-  {
-    annis_stringstorage_clear(impl);
-  }
+  void clear();
 
-  size_t size() const
-  {
-    return annis_stringstorage_len(impl);
-  }
+  size_t size() const;
 
-  double avgLength()
-  {
-    return annis_stringstorage_avg_length(impl);
-  }
+  double avgLength();
 
-  size_t estimateMemorySize() const
-  {
-    return annis_stringstorage_estimate_memory(impl);
-  }
+  size_t estimateMemorySize() const;
 
-  void loadFromFile(const std::string& path)
-  {
-    annis_stringstorage_load_from_file(impl, path.c_str());
-  }
+  void loadFromFile(const std::string& path);
 
-  void saveToFile(const std::string& path)
-  {
-    annis_stringstorage_save_to_file(impl, path.c_str());
-  }
+  void saveToFile(const std::string& path);
 
 private:
   annis_StringStoragePtr* impl;
