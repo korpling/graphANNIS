@@ -77,8 +77,8 @@ bool DB::load(string dir, bool preloadComponents)
   {
     cereal::BinaryInputArchive archive(is);
     archive(nodeAnnos);
+    strings.loadFromFile((dir2load / "strings.bin").string());
   }
-  strings.loadFromFile((dir2load / "strings.bin").string());
 
   bool logfileExists = false;
   // check if we have to apply a log file to get to the last stable snapshot version
