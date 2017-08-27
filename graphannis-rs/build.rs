@@ -5,6 +5,7 @@ use std::path::Path;
 use std::io::Read;
 use std::io::Write;
 use std::string::String;
+use std::panic;
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
 use cheddar::Error;
@@ -71,9 +72,19 @@ fn generage_capi_header(modules : Vec<&str>, out_file : &str) {
 
 
 fn main() {
-    generage_capi_header(vec![
+
+    let result = panic::catch_unwind(|| {
+        generage_capi_header(vec![
         "annis::util::c_api",
         "annis::stringstorage::c_api"
         ],
-        "include/graphannis-capi.h");    
+        "include/graphannis-capi.h"); 
+    });
+
+    if result.is_err() {
+        println!("cargo:warning=Auto-generated C header not re-generated because there are compile errors.");
+    }
+
+    
+   
 }

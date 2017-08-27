@@ -6,7 +6,6 @@ use std;
 use bincode;
 
 #[derive(Serialize, Deserialize, Debug)]
-#[repr(C)]
 pub struct StringStorage {
     by_id: HashMap<u32, String>,
     by_value: BTreeMap<String, u32>,
@@ -152,6 +151,18 @@ mod tests {
         }
         s.clear();
         assert_eq!(0, s.len());
+    }
+
+    #[test]
+    fn insert_clear_insert_get() {
+        let mut s = StringStorage::new();
+
+        s.add("abc");
+        assert_eq!(1, s.len());
+        s.clear();
+        assert_eq!(0, s.len());
+        s.add("abc");
+        assert_eq!(1, s.len());    
     }
 
     #[test]
