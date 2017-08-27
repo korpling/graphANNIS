@@ -4,11 +4,21 @@ extern crate crypto;
 use std::path::Path;
 use std::io::Read;
 use std::io::Write;
+use std::string::String;
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
 
+
+fn generate_single_capi_code(module : &str) -> String {
+   cheddar::Cheddar::new()
+            .expect("could not read manifest")
+            .module(module).expect(&format!("malformed module path for {}", module))
+            .compile_code()
+            .unwrap()
+}
+
 #[allow(unused_must_use)]
-fn generage_capi_header(module : &str, out_file : &str) {
+fn generage_capi_header(modules : Vec<&str>, out_file : &str) {
 
     let out_path = Path::new(out_file);
 
@@ -19,10 +29,15 @@ fn generage_capi_header(module : &str, out_file : &str) {
         let mut id : String = String::from("annis_");
         id = id + out_path.file_stem().unwrap().to_str().unwrap_or(out_file);
         // compile header but do not write output
-        let header = cheddar::Cheddar::new()
-            .expect("could not read manifest")
-            .module(module).expect("malformed module path")
-            .compile(id.as_str());
+        let mut cheddar = cheddar::Cheddar::new()
+            .expect("could not read manifest");
+
+        for m in modules {
+            let module_code = generate_single_capi_code(m);
+            cheddar.insert_code(&module_code);
+        }
+
+        let header = cheddar.compile(id.as_str());
         
         // do not overwrite file if equal to avoid an updated timestamp and unnecessary compiles
         let mut old_header = String::new();
@@ -54,6 +69,10 @@ fn generage_capi_header(module : &str, out_file : &str) {
 
 fn main() {
 
-    generage_capi_header("annis::stringstorage::c_api","include/graphannis/stringstorage.h");
+    generage_capi_header(vec![
+        "annis::util::c_api",
+        "annis::stringstorage::c_api"
+        ],
+        "include/graphannis-capi.h");
     
 }
