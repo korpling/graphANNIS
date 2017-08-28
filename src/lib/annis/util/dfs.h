@@ -48,7 +48,7 @@ public:
       unsigned int minDistance, unsigned int maxDistance);
 
   virtual DFSIteratorResult nextDFS();
-  virtual std::pair<bool, nodeid_t> next() override;
+  virtual boost::optional<nodeid_t> next() override;
 
   void reset() override;
   virtual ~DFS() {}

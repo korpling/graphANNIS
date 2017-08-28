@@ -71,16 +71,16 @@ std::unique_ptr<AnnoIt> Precedence::retrieveMatches(const Match &lhs)
     edgeIterator = gsOrder->findConnected(startNode,
                                           minDistance, maxDistance);
     // materialize a list of all matches and wrap it
-    for(std::pair<bool, nodeid_t> matchedToken = edgeIterator->next();
-        matchedToken.first; matchedToken = edgeIterator->next())
+    for(boost::optional<nodeid_t> matchedToken = edgeIterator->next();
+        matchedToken; matchedToken = edgeIterator->next())
     {
       // get all nodes that are left-aligned to this token
-      for(const auto& n : gsLeft->getOutgoingEdges(matchedToken.second))
+      for(const auto& n : gsLeft->getOutgoingEdges(*matchedToken))
       {
         w->addMatch(Init::initMatch(anyNodeAnno, n));
       }
       // add the actual token to the list as well
-      w->addMatch(Init::initMatch(anyNodeAnno, matchedToken.second));
+      w->addMatch(Init::initMatch(anyNodeAnno, *matchedToken));
     }
   }
 

@@ -59,17 +59,17 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
     std::unique_ptr<EdgeIterator> coveredByLeftIt
         = gsCoverage->findConnected(lhs.node);
     for(auto leftToken = coveredByLeftIt->next();
-        leftToken.first; leftToken = coveredByLeftIt->next())
+        leftToken; leftToken = coveredByLeftIt->next())
     {
 
       // get all nodes that are covering the token
-      std::vector<nodeid_t> overlapCandidates = gsInverseCoverage->getOutgoingEdges(leftToken.second);
+      std::vector<nodeid_t> overlapCandidates = gsInverseCoverage->getOutgoingEdges(*leftToken);
       for(const auto& c : overlapCandidates)
       {
         uniqueResultSet.insert(c);
       }
        // also add the token itself
-      uniqueResultSet.insert(leftToken.second);
+      uniqueResultSet.insert(*leftToken);
     }
   }
 

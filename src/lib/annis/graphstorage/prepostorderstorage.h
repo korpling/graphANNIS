@@ -131,9 +131,9 @@ public:
       init();
     }
 
-    virtual std::pair<bool, nodeid_t> next() override
+    virtual boost::optional<nodeid_t> next() override
     {
-      std::pair<bool, nodeid_t> result(0, false);
+      boost::optional<nodeid_t> result;
 
       while(!ranges.empty())
       {
@@ -154,10 +154,9 @@ public:
              && visited.find(currentNode->second) == visited.end())
           {
             // success
-            result.first = true;
-            result.second = currentNode->second;
+            result = currentNode->second;
 
-            visited.insert(result.second);
+            visited.insert(*result);
 
             currentNode++;
             return result;
@@ -510,9 +509,9 @@ public:
     result.reserve(10);
 
     auto connectedIt = findConnected(node, 1, 1);
-    for(auto c=connectedIt->next(); c.first; c=connectedIt->next())
+    for(auto c=connectedIt->next(); c; c=connectedIt->next())
     {
-      result.push_back(c.second);
+      result.push_back(*c);
     }
 
     return result;

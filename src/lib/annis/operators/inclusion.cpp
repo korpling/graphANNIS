@@ -82,11 +82,11 @@ std::unique_ptr<AnnoIt> Inclusion::retrieveMatches(const annis::Match &lhs)
 
   // find each token which is between the left and right border
   std::unique_ptr<EdgeIterator> itIncludedStart = gsOrder->findConnected(leftToken, 0, spanLength);
-  for(std::pair<bool, nodeid_t> includedStart = itIncludedStart->next();
-      includedStart.first;
+  for(boost::optional<nodeid_t> includedStart = itIncludedStart->next();
+      includedStart;
       includedStart = itIncludedStart->next())
   {
-    const nodeid_t& includedTok = includedStart.second;
+    const nodeid_t& includedTok = *includedStart;
     // add the token itself
     w->addMatch({includedTok, anyNodeAnno});
 
