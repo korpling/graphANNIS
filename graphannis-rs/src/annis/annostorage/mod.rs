@@ -94,5 +94,7 @@ impl<T: Ord + Clone> AnnoStorage<T> {
     }
 }
 
+pub mod c_api;
+
 #[cfg(test)]
 mod tests;

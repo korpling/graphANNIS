@@ -58,6 +58,14 @@ size_t annis_stringstorage_estimate_memory(annis_StringStoragePtr const* ptr);
 
 
 
+typedef struct annis_NodeAnnoStoragePtr annis_NodeAnnoStoragePtr;
+
+annis_NodeAnnoStoragePtr* annis_nodeannostorage_new(void);
+
+void annis_nodeannostorage_free(annis_NodeAnnoStoragePtr* ptr);
+
+
+
 
 
 #ifdef __cplusplus

@@ -74,7 +74,8 @@ fn main() {
     let result = panic::catch_unwind(|| {
         generage_capi_header(vec![
         "annis::util::c_api",
-        "annis::stringstorage::c_api"
+        "annis::stringstorage::c_api",
+        "annis::annostorage::c_api"
         ],
         "include/graphannis-capi.h"); 
     });
