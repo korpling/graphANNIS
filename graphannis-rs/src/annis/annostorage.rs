@@ -37,39 +37,40 @@ impl<T: Ord + Clone> AnnoStorage<T> {
     }
 
     pub fn insert(&mut self, item: T, anno: Annotation) {
+
         self.by_container.insert(
             ContainerAnnoKey {
                 item: item.clone(),
                 key: anno.key.clone(),
             },
-            anno.val,
+            anno.val.clone(),
         );
 
-        // inserts a new element into the set
+        let anno_key_entry = self.anno_keys.entry(anno.clone().key).or_insert(0);
+        *anno_key_entry = *anno_key_entry + 1;
+
+         // inserts a new element into the set
         // if set is not existing yet it is created
         self.by_anno
             .entry(anno.clone())
             .or_insert(BTreeSet::new())
             .insert(item);
-
-        let anno_key_entry = self.anno_keys.entry(anno.clone().key).or_insert(0);
-        *anno_key_entry = *anno_key_entry + 1;
     }
 
     pub fn len(&self) -> usize {
         self.by_container.len()
     }
 
-    pub fn get(&self, item: T, key: AnnoKey) -> Option<&StringID> {
-        let container_key = ContainerAnnoKey {
-            item,
-            key,
+    pub fn get(&self, item: &T, key: &AnnoKey) -> Option<&StringID> {
+        let container_key = ContainerAnnoKey::<T> {
+            item: item.clone(),
+            key: key.clone(),
         };
 
         self.by_container.get(&container_key)
     }
 
-    pub fn get_all(&self, item: T) -> Vec<Annotation> {
+    pub fn get_all(&self, item: &T) -> Vec<Annotation> {
         let min_key = AnnoKey { name: 0, ns: 0 };
         let max_key = AnnoKey {
             name: StringID::max_value(),
@@ -80,7 +81,7 @@ impl<T: Ord + Clone> AnnoStorage<T> {
             item: item.clone(),
             key: min_key,
         }..ContainerAnnoKey {
-            item: item,
+            item: item.clone(),
             key: max_key,
         });
 
@@ -116,7 +117,7 @@ mod tests {
         assert_eq!(1, a.by_anno.len());
         assert_eq!(1, a.anno_keys.len());
 
-        assert_eq!(123, a.get(3, AnnoKey { name: 1, ns: 1 }).unwrap().clone());
+        assert_eq!(123, a.get(&3, &AnnoKey { name: 1, ns: 1 }).unwrap().clone());
     }
 
     #[test]
@@ -141,7 +142,7 @@ mod tests {
 
         assert_eq!(3, a.len());
 
-        let all = a.get_all(1);
+        let all = a.get_all(&1);
         assert_eq!(3, all.len());
 
         assert_eq!(test_anno1, all[0]);
