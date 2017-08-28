@@ -452,13 +452,6 @@ void DB::convertComponent(Component c, std::string impl)
       newStorage->copy(*this, *oldStorage);
       graphStorages[c] = newStorage;
     }
-
-    // perform index calculations
-    std::shared_ptr<WriteableGraphStorage> asWriteableGS = std::dynamic_pointer_cast<WriteableGraphStorage>(newStorage);
-    if(asWriteableGS)
-    {
-      asWriteableGS->calculateIndex();
-    }
   }
 }
 

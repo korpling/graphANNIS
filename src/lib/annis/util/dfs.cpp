@@ -84,10 +84,10 @@ bool DFS::enterNode(nodeid_t node, unsigned int distance)
 }
 
 
-std::pair<bool, nodeid_t> DFS::next()
+boost::optional<nodeid_t> DFS::next()
 {
   DFSIteratorResult result = nextDFS();
-  return std::pair<bool, nodeid_t>(result.found, result.node);
+  return result.found ? result.node : boost::optional<nodeid_t>();
 }
 
 

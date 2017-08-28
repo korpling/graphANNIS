@@ -105,13 +105,13 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
   if(gs.size() == 1)
   {
      std::unique_ptr<EdgeIterator> it = gs[0]->findConnected(lhs.node, minDistance, maxDistance);
-     for(auto m = it->next(); m.first; m = it->next())
+     for(auto m = it->next(); m; m = it->next())
      {
-       if(checkEdgeAnnotation(gs[0], lhs.node, m.second))
+       if(checkEdgeAnnotation(gs[0], lhs.node, *m))
        {
          // directly add the matched node since when having only one component
          // no duplicates are possible
-         w->addMatch(m.second);
+         w->addMatch(*m);
        }
      }
   }
@@ -121,11 +121,11 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
     for(auto e : gs)
     {
       std::unique_ptr<EdgeIterator> it = e->findConnected(lhs.node, minDistance, maxDistance);
-      for(auto m = it->next(); m.first; m = it->next())
+      for(auto m = it->next(); m; m = it->next())
       {
-        if(checkEdgeAnnotation(e, lhs.node, m.second))
+        if(checkEdgeAnnotation(e, lhs.node, *m))
         {
-          uniqueResult.insert(m.second);
+          uniqueResult.insert(*m);
         }
       }
     }

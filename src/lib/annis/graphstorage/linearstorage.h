@@ -63,7 +63,7 @@ public:
       reset();
     }
 
-    virtual std::pair<bool, nodeid_t> next() override
+    virtual boost::optional<nodeid_t> next() override
     {
       bool found = false;
       nodeid_t node = 0;
@@ -74,7 +74,7 @@ public:
         chain->at(currentPos);
         currentPos++;
       }
-      return std::pair<bool, nodeid_t>(found, node);
+      return found ? node : boost::optional<nodeid_t>();
     }
 
     virtual void reset() override
@@ -265,10 +265,10 @@ public:
       CycleSafeDFS it(orig, rootNode, 1, uintmax);
 
       uint32_t pos=1;
-      for(std::pair<bool, nodeid_t> node = it.next(); node.first; node = it.next(), pos++)
+      for(boost::optional<nodeid_t> node = it.next(); node; node = it.next(), pos++)
       {
-        chain.push_back(node.second);
-        node2pos[node.second] = {rootNode, (pos_t)(chain.size()-1)};
+        chain.push_back(*node);
+        node2pos[*node] = {rootNode, (pos_t)(chain.size()-1)};
       }
     }
 
