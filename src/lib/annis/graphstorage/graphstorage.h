@@ -110,8 +110,6 @@ public:
   virtual void deleteEdgeAnnotation(const Edge& edge, const AnnotationKey& anno) = 0;
 
 
-  virtual void calculateIndex() {}
-
   template<class Archive>
   void serialize(Archive & archive)
   {

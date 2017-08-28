@@ -110,8 +110,6 @@ void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
 
   stat = orig.getStatistics();
   edgeAnnos.calculateStatistics(db.strings);
-
-  calculateIndex();
 }
 
 void AdjacencyListStorage::addEdge(const Edge &edge)
