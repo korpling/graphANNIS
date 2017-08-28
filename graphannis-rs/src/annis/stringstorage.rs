@@ -1,3 +1,4 @@
+use annis::{StringID};
 use std::collections::HashMap;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -7,8 +8,8 @@ use bincode;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StringStorage {
-    by_id: HashMap<u32, String>,
-    by_value: BTreeMap<String, u32>,
+    by_id: HashMap<StringID, String>,
+    by_value: BTreeMap<String, StringID>,
 }
 
 
@@ -20,11 +21,11 @@ impl StringStorage {
         }
     }
 
-    pub fn str(&self, id: u32) -> Option<&String> {
+    pub fn str(&self, id: StringID) -> Option<&String> {
         return self.by_id.get(&id);
     }
 
-    pub fn add(&mut self, val: &str) -> u32 {
+    pub fn add(&mut self, val: &str) -> StringID {
         {
             let existing = self.by_value.get(val);
             if existing.is_some() {
@@ -32,7 +33,7 @@ impl StringStorage {
             }
         }
         // non-existing: add a new value
-        let mut id = self.by_id.len() as u32 + 1; // since 0 is taken as ANY value begin with 1
+        let mut id = self.by_id.len() as StringID + 1; // since 0 is taken as ANY value begin with 1
         while self.by_id.get(&id).is_some() {
             id = id + 1;
         }
@@ -43,11 +44,11 @@ impl StringStorage {
         return id;
     }
 
-    pub fn find_id(&self, val: &str) -> Option<&u32> {
+    pub fn find_id(&self, val: &str) -> Option<&StringID> {
         return self.by_value.get(&String::from(val));
     }
 
-    pub fn find_regex(&self, val: &str) -> BTreeSet<&u32> {
+    pub fn find_regex(&self, val: &str) -> BTreeSet<&StringID> {
         let mut result = BTreeSet::new();
 
         // we always want to match the complete string
