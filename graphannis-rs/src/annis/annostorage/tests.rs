@@ -49,6 +49,28 @@ fn get_all_for_node() {
     assert_eq!(test_anno1, all[0]);
     assert_eq!(test_anno2, all[1]);
     assert_eq!(test_anno3, all[2]);
+}
 
+#[test]
+fn remove() {
+    let test_anno = Annotation {
+        key: AnnoKey { name: 1, ns: 1 },
+        val: 123,
+    };
+    let mut a: AnnoStorage<NodeID> = AnnoStorage::new();
+    a.insert(1, test_anno.clone());
+
+    assert_eq!(1, a.len());
+    assert_eq!(1, a.by_container.len());
+    assert_eq!(1, a.by_anno.len());
+    assert_eq!(1, a.anno_keys.len());
+    assert_eq!(&1, a.anno_keys.get(&test_anno.key).unwrap());
+
+    a.remove(&1, &test_anno.key);
+
+    assert_eq!(0, a.len());
+    assert_eq!(0, a.by_container.len());
+    assert_eq!(0, a.by_anno.len());
+    assert_eq!(&0, a.anno_keys.get(&test_anno.key).unwrap_or(&0));
 
 }
