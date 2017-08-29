@@ -2,7 +2,7 @@ use annis::StringID;
 use std::collections::{BTreeMap, BTreeSet};
 
 
-#[derive(Eq, PartialEq, PartialOrd, Ord, Clone,Debug)]
+#[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 pub struct AnnoKey {
     pub name: StringID,
     pub ns: StringID,
@@ -37,7 +37,6 @@ impl<T: Ord + Clone> AnnoStorage<T> {
     }
 
     pub fn insert(&mut self, item: T, anno: Annotation) {
-
         self.by_container.insert(
             ContainerAnnoKey {
                 item: item.clone(),
@@ -49,12 +48,33 @@ impl<T: Ord + Clone> AnnoStorage<T> {
         let anno_key_entry = self.anno_keys.entry(anno.clone().key).or_insert(0);
         *anno_key_entry = *anno_key_entry + 1;
 
-         // inserts a new element into the set
+        // inserts a new element into the set
         // if set is not existing yet it is created
         self.by_anno
             .entry(anno.clone())
             .or_insert(BTreeSet::new())
             .insert(item);
+    }
+
+    pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<StringID> {
+        let old_value = self.by_container.remove(&ContainerAnnoKey::<T> {
+            item: item.clone(),
+            key: key.clone(),
+        });
+        if old_value.is_some() {
+            // of value was found, also remove the item from the other containers
+            self.by_anno.remove(&Annotation{key: key.clone(), val: old_value.unwrap()});
+            // decrease the annotation count for this key
+            let num_of_keys = self.anno_keys.get_mut(key);
+            if num_of_keys.is_some() {
+                let x = num_of_keys.unwrap();
+                *x = *x - 1;
+            }
+
+            return old_value;
+        }
+        return None;
+
     }
 
     pub fn len(&self) -> usize {
@@ -77,17 +97,22 @@ impl<T: Ord + Clone> AnnoStorage<T> {
             ns: StringID::max_value(),
         };
 
-        let found_range = self.by_container.range(ContainerAnnoKey {
-            item: item.clone(),
-            key: min_key,
-        }..ContainerAnnoKey {
-            item: item.clone(),
-            key: max_key,
-        });
+        let found_range = self.by_container.range(
+            ContainerAnnoKey {
+                item: item.clone(),
+                key: min_key,
+            }..ContainerAnnoKey {
+                item: item.clone(),
+                key: max_key,
+            },
+        );
 
         let mut result = vec![];
         for (k, &v) in found_range {
-            result.push(Annotation{key: k.clone().key, val: v});
+            result.push(Annotation {
+                key: k.clone().key,
+                val: v,
+            });
         }
 
         return result;

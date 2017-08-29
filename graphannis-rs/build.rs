@@ -12,10 +12,10 @@ use cheddar::Error;
 
 fn generate_single_capi_code(module : &str) -> Result<String, Vec<Error>> {
     
-    let code = try!(cheddar::Cheddar::new()
+    let code = (cheddar::Cheddar::new()
             .expect("could not read manifest")
             .module(module).expect(&format!("malformed module path for {}", module))
-            .compile_code());
+            .compile_code())?;
     Ok(code)
 }
 
