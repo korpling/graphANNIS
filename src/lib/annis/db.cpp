@@ -531,9 +531,9 @@ string DB::info()
   return ss.str();
 }
 
-std::shared_ptr<WriteableGraphStorage> DB::createWritableGraphStorage(ComponentType ctype, const string &layer, const string &name)
+std::shared_ptr<WriteableGraphStorage> DB::createWritableGraphStorage(ComponentType type, const string &layer, const string &name)
 {
-  Component c = {ctype, layer, name == "NULL" ? "" : name};
+  Component c = {type, layer, name == "NULL" ? "" : name};
 
   // check if there is already an edge DB for this component
   std::map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator itDB =
