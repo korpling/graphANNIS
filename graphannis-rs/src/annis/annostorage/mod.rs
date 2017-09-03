@@ -129,19 +129,36 @@ impl<T: Ord + Clone> AnnoStorage<T> {
 }
 
 impl<'a> AnnoStorage<NodeID> {
-    pub fn exact_annokey_search(&'a self, namespace : Option<StringID>, name : StringID) -> Box<Iterator<Item = Match >+ 'a> {
+    pub fn exact_anno_search(
+        &'a self,
+        namespace: Option<StringID>,
+        name: StringID,
+        value : Option<StringID>
+    ) -> Box<Iterator<Item = Match> + 'a> {
+
         let ns_pair = match namespace {
-            Some(v) => (v,v),
+            Some(v) => (v, v),
+            None => (StringID::min_value(), StringID::max_value()),
+        };
+
+        let val_pair = match value {
+            Some(v) => (v, v),
             None => (StringID::min_value(), StringID::max_value()),
         };
 
         let anno_min = Annotation {
-            key: AnnoKey{name, ns: ns_pair.0},
-            val: 0,
+            key: AnnoKey {
+                name,
+                ns: ns_pair.0,
+            },
+            val: val_pair.0,
         };
         let anno_max = Annotation {
-            key: AnnoKey{name, ns: ns_pair.1},
-            val: NodeID::max_value(),
+            key: AnnoKey {
+                name,
+                ns: ns_pair.1,
+            },
+            val: val_pair.1,
         };
 
         Box::new(
