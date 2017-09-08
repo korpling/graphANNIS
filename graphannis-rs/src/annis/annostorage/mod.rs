@@ -1,6 +1,8 @@
 use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 use std;
+use rand;
+use rand::{Rng};
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 pub struct AnnoKey {
@@ -31,6 +33,8 @@ pub struct AnnoStorage<T: Ord> {
     by_anno: BTreeMap<Annotation, BTreeSet<T>>,
     /// Maps a distinct annotation key to the number of keys available.
     anno_keys: BTreeMap<AnnoKey, usize>,
+    /// additional statistical information
+    histogram_bounds: BTreeMap<AnnoKey, Vec<StringID>>,
 }
 
 
@@ -40,6 +44,7 @@ impl<T: Ord + Clone> AnnoStorage<T> {
             by_container: BTreeMap::new(),
             by_anno: BTreeMap::new(),
             anno_keys: BTreeMap::new(),
+            histogram_bounds: BTreeMap::new(),
         }
     }
 
@@ -126,6 +131,65 @@ impl<T: Ord + Clone> AnnoStorage<T> {
 
         return result;
     }
+
+    pub fn calculate_statistics(&mut self) {
+        let max_histogram_buckets = 250;
+        let max_sampled_annotations = 2500;
+
+        self.histogram_bounds.clear();
+
+        // collect statistics for each annotation key separatly
+        for anno_key in &self.anno_keys {
+            let hist = self.histogram_bounds
+                .entry(anno_key.0.clone())
+                .or_insert(std::vec::Vec::new());
+
+            let min_anno = Annotation {
+                key: anno_key.0.clone(),
+                val: StringID::min_value(),
+            };
+            let max_anno = Annotation {
+                key: anno_key.0.clone(),
+                val: StringID::min_value(),
+            };
+
+            // sample a maximal number of annotation values
+            let mut rng = rand::thread_rng();
+            let mut sampled_anno_values = rand::sample(&mut rng, self.by_anno
+                .range(min_anno..max_anno)
+                .map(|a| a.0.val), max_sampled_annotations);
+
+
+            // create uniformly distributed histogram bounds 
+            sampled_anno_values.sort();
+
+            let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets+1) {
+                sampled_anno_values.len()
+            } else {
+                max_histogram_buckets+1
+            };
+
+            if num_hist_bounds >= 2 {
+                hist.resize(num_hist_bounds, 0);
+
+                let delta : usize = (sampled_anno_values.len()-1) / (num_hist_bounds-1);
+                let delta_fraction : usize = (sampled_anno_values.len()-1) % (num_hist_bounds-1);
+
+                let mut pos = 0;
+                let mut pos_fraction = 0;
+                for i in 0..sampled_anno_values.len() {
+                    hist[i] = sampled_anno_values[pos];
+                    pos += delta;
+                    pos_fraction += delta_fraction;
+
+                    if pos_fraction >= (num_hist_bounds - 1) {
+                        pos += 1;
+                        pos_fraction -= num_hist_bounds-1;
+                    }
+                } 
+            }
+        }
+    }
 }
 
 impl<'a> AnnoStorage<NodeID> {
@@ -133,9 +197,8 @@ impl<'a> AnnoStorage<NodeID> {
         &'a self,
         namespace: Option<StringID>,
         name: StringID,
-        value : Option<StringID>
+        value: Option<StringID>,
     ) -> Box<Iterator<Item = Match> + 'a> {
-
         let ns_pair = match namespace {
             Some(v) => (v, v),
             None => (StringID::min_value(), StringID::max_value()),
