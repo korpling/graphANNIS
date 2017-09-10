@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std;
 use rand;
 use rand::Rng;
+use regex_syntax;
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 pub struct AnnoKey {
@@ -189,6 +190,32 @@ impl<T: Ord + Clone> AnnoStorage<T> {
         } else {
             return 0;
         }
+    }
+
+    pub fn guess_max_count_regex(
+        &self,
+        ns: Option<StringID>,
+        name: StringID,
+        pattern : &str
+    ) -> usize {
+
+        let opt_expr = regex_syntax::Expr::parse(pattern);
+        if opt_expr.is_ok() {
+            let expr = opt_expr.unwrap();
+
+            let prefix_set = expr.prefixes();
+            let val_prefix = std::str::from_utf8(prefix_set.longest_common_prefix());
+
+            if val_prefix.is_ok() {
+                let lower_val = val_prefix.unwrap();
+                let mut upper_val = String::from(lower_val);
+                upper_val.push(std::char::MAX);
+                return self.guess_max_count(ns, name, &lower_val, &upper_val);
+            }
+            
+        }
+
+        return 0;
     }
 
     pub fn calculate_statistics(&mut self, string_storage : &stringstorage::StringStorage) {

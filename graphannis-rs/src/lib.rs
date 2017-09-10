@@ -1,4 +1,5 @@
 extern crate regex;
+extern crate regex_syntax;
 extern crate rand;
 
 extern crate serde;
