@@ -2,7 +2,7 @@ use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 use std;
 use rand;
-use rand::{Rng};
+use rand::Rng;
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 pub struct AnnoKey {
@@ -34,7 +34,7 @@ pub struct AnnoStorage<T: Ord> {
     /// Maps a distinct annotation key to the number of keys available.
     anno_keys: BTreeMap<AnnoKey, usize>,
     /// additional statistical information
-    histogram_bounds: BTreeMap<AnnoKey, Vec<StringID>>,
+    histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
 }
 
 
@@ -132,7 +132,66 @@ impl<T: Ord + Clone> AnnoStorage<T> {
         return result;
     }
 
-    pub fn calculate_statistics(&mut self) {
+    pub fn guess_max_count(
+        &self,
+        ns: Option<StringID>,
+        name: StringID,
+        lower_val: &str,
+        upper_val: &str,
+    ) -> usize {
+        // find all complete keys which have the given name (and namespace if given)
+        let qualified_keys = match ns {
+            Some(ns_id) => self.anno_keys
+                .range(AnnoKey { name, ns: ns_id }..AnnoKey { name, ns: ns_id }),
+            None => self.anno_keys.range(
+                AnnoKey {
+                    name,
+                    ns: StringID::min_value(),
+                }..AnnoKey {
+                    name,
+                    ns: StringID::max_value(),
+                },
+            ),
+        };
+
+        let mut universe_size : usize = 0;
+        let mut sum_histogram_buckest : usize = 0;
+        let mut count_matches : usize = 0;
+
+        // guess for each fully qualified annotation key and return the sum of all guesses
+        for (anno_key, anno_size ) in qualified_keys {
+            universe_size += *anno_size;
+
+            let opt_histo = self.histogram_bounds.get(anno_key);
+            if opt_histo.is_some() {
+                // find the range in which the value is contained
+                let histo = opt_histo.unwrap();
+
+                // we need to make sure the histogram is not empty -> should have at least two bounds
+                if histo.len() >= 2 {
+                    sum_histogram_buckest += histo.len()-1;
+
+                    for i in 0..histo.len()-1 {
+                        let bucket_begin = &histo[i];
+                        let bucket_end = &histo[i+1];
+                        // check if the range overlaps with the search range
+                        if  bucket_begin <= &String::from(upper_val) && &String::from(lower_val) <= bucket_end {
+                            count_matches += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        if sum_histogram_buckest > 0 {
+            let selectivity : f64 = (count_matches as f64) / (sum_histogram_buckest as f64);
+            return (selectivity * (universe_size as f64)).round() as usize;
+        } else {
+            return 0;
+        }
+    }
+
+    pub fn calculate_statistics(&mut self, string_storage : &stringstorage::StringStorage) {
         let max_histogram_buckets = 250;
         let max_sampled_annotations = 2500;
 
@@ -155,38 +214,41 @@ impl<T: Ord + Clone> AnnoStorage<T> {
 
             // sample a maximal number of annotation values
             let mut rng = rand::thread_rng();
-            let mut sampled_anno_values = rand::sample(&mut rng, self.by_anno
-                .range(min_anno..max_anno)
-                .map(|a| a.0.val), max_sampled_annotations);
+            let mut sampled_anno_values = rand::sample(
+                &mut rng,
+                self.by_anno.range(min_anno..max_anno).map(|a| a.0.val),
+                max_sampled_annotations,
+            );
 
 
-            // create uniformly distributed histogram bounds 
+            // create uniformly distributed histogram bounds
             sampled_anno_values.sort();
 
-            let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets+1) {
+            let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets + 1) {
                 sampled_anno_values.len()
             } else {
-                max_histogram_buckets+1
+                max_histogram_buckets + 1
             };
 
             if num_hist_bounds >= 2 {
-                hist.resize(num_hist_bounds, 0);
+                hist.resize(num_hist_bounds, String::from(""));
 
-                let delta : usize = (sampled_anno_values.len()-1) / (num_hist_bounds-1);
-                let delta_fraction : usize = (sampled_anno_values.len()-1) % (num_hist_bounds-1);
+                let delta: usize = (sampled_anno_values.len() - 1) / (num_hist_bounds - 1);
+                let delta_fraction: usize = (sampled_anno_values.len() - 1) % (num_hist_bounds - 1);
 
                 let mut pos = 0;
                 let mut pos_fraction = 0;
                 for i in 0..sampled_anno_values.len() {
-                    hist[i] = sampled_anno_values[pos];
+                    let val_raw : StringID = sampled_anno_values[pos];
+                    hist[i] = string_storage.str(val_raw).unwrap_or(&String::from("")).clone();
                     pos += delta;
                     pos_fraction += delta_fraction;
 
                     if pos_fraction >= (num_hist_bounds - 1) {
                         pos += 1;
-                        pos_fraction -= num_hist_bounds-1;
+                        pos_fraction -= num_hist_bounds - 1;
                     }
-                } 
+                }
             }
         }
     }
