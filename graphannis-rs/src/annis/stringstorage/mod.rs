@@ -1,3 +1,4 @@
+use annis;
 use annis::{StringID};
 use std::collections::HashMap;
 use std::collections::BTreeMap;
@@ -52,10 +53,7 @@ impl StringStorage {
         let mut result = BTreeSet::new();
 
         // we always want to match the complete string
-        let mut full_match_pattern = String::new();
-        full_match_pattern.push_str(r"\A");
-        full_match_pattern.push_str(val);
-        full_match_pattern.push_str(r"\z");
+        let full_match_pattern = annis::util::regex_full_match(val);
 
         let compiled_result = Regex::new(&full_match_pattern);
         if compiled_result.is_ok() {

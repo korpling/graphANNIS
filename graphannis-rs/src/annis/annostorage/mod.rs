@@ -2,7 +2,6 @@ use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 use std;
 use rand;
-use rand::Rng;
 use regex_syntax;
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
@@ -199,7 +198,9 @@ impl<T: Ord + Clone> AnnoStorage<T> {
         pattern : &str
     ) -> usize {
 
-        let opt_expr = regex_syntax::Expr::parse(pattern);
+        let full_match_pattern = util::regex_full_match(pattern);
+
+        let opt_expr = regex_syntax::Expr::parse(&full_match_pattern);
         if opt_expr.is_ok() {
             let expr = opt_expr.unwrap();
 
