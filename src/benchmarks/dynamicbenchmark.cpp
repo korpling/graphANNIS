@@ -102,7 +102,6 @@ DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
   }
 
   QueryConfig baselineConfig;
-  baselineConfig.forceFallback = true;
   registerFixtureInternal(true, "Baseline", baselineConfig);
 }
 
@@ -211,8 +210,7 @@ void DynamicBenchmark::addBenchmark(bool baseline,
     {
       std::shared_ptr<::celero::TestFixture> fixedFixture(new FixedValueFixture(fixedValues));
       celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), numberOfSamples, 1, 1,
-        std::make_shared<DynamicCorpusFixtureFactory>(fixedFixture));
-      
+        std::make_shared<DynamicCorpusFixtureFactory>(fixedFixture));      
     }
     else
     {
