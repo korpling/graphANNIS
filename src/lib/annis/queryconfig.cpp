@@ -28,7 +28,7 @@ annis::QueryConfig::QueryConfig()
     avoidNestedBySwitch(true),
     numOfBackgroundTasks(0),
     enableTaskIndexJoin(false),
-    enableThreadIndexJoin(false),
+    enableThreadIndexJoin(true),
     enableSIMDIndexJoin(false),
     threadPool(nullptr)
 
