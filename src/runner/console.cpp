@@ -174,7 +174,17 @@ void Console::load(const std::vector<std::string> &args)
   {
     std::cout << "Loading from " << args[0] << std::endl;
     auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
-    db = dbCache.get(args[0], args.size() > 1 && args[1] == "preload");
+
+    std::set<std::string> options;
+    for(int i=1; i < args.size(); i++)
+    {
+      options.insert(args[i]);
+    }
+
+    bool preload = options.find("preload") != options.end();
+    bool fallback = options.find("fallback") != options.end();
+
+    db = dbCache.get(args[0], preload, fallback);
     auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
     std::cout << "Loaded in " << (endTime - startTime) << " ms" << std::endl;
   }
