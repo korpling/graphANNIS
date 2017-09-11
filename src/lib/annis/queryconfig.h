@@ -33,7 +33,14 @@ namespace annis
 
   struct QueryConfig
   {
+    /** If false do not perform any optimizations */
     bool optimize;
+    bool optimize_operand_order;
+    bool optimize_unbound_regex;
+    bool optimize_nodeby_edgeanno;
+    bool optimize_join_order;
+    bool all_permutations_threshold;
+
     bool forceFallback;
     bool avoidNestedBySwitch;
 

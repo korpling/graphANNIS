@@ -53,16 +53,73 @@ int main(int argc, char **argv) {
         DynamicBenchmark benchmark(subdir, corpusPath, corpusName
           , true);
 
+        {
+          // default configuration and all optimizations enabled but no parallization
+          QueryConfig config;
+          benchmark.registerFixture("default", config);
+        }
+
+        {
+          // No optimized graph storages
+          QueryConfig config;
+          config.forceFallback = true;
+          benchmark.registerFixture("force_fallback", config);
+        }
+
+        {
+          // no query optimization at all
+          QueryConfig config;
+          config.optimize = false;
+          benchmark.registerFixture("no_optimization", config);
+        }
+
+        {
+          // no operand order optimization
+          QueryConfig config;
+          config.optimize_operand_order = false;
+          benchmark.registerFixture("no_operand_order", config);
+        }
+
+        {
+          // no unbound regex optimization
+          QueryConfig config;
+          config.optimize_operand_order = false;
+          benchmark.registerFixture("no_unbound_regex", config);
+        }
+
+        {
+          // no node by edge annotation search
+          QueryConfig config;
+          config.optimize_nodeby_edgeanno = false;
+          benchmark.registerFixture("no_nodeby_edgeanno", config);
+        }
+
+        {
+          // no join order optimization
+          QueryConfig config;
+          config.optimize_join_order = false;
+          benchmark.registerFixture("no_join_order", config);
+        }
+
+        {
+          // not using all permutations in join order optimization
+          QueryConfig config;
+          config.all_permutations_threshold = 0;
+          benchmark.registerFixture("no_join_order_permutation", config);
+        }
+
+
+        // add different parallel configurations for threads and SIMD (+thread)
         unsigned int numOfCPUs = std::thread::hardware_concurrency();
         std::shared_ptr<ThreadPool> sharedThreadPool = std::make_shared<ThreadPool>(numOfCPUs);
 
-        for(int i=0; i <= numOfCPUs; i += 2)
+        for(int i=2; i <= numOfCPUs; i += 2)
         {
           QueryConfig config;
           config.threadPool = i > 0 ? sharedThreadPool : nullptr;
           config.numOfBackgroundTasks = i;
           config.enableSIMDIndexJoin = false;
-          benchmark.registerFixture("Jobs_" + std::to_string(i), config);
+          benchmark.registerFixture("threads_" + std::to_string(i), config);
         }
 
         for(int i=0; i <= numOfCPUs; i += 2)
@@ -71,7 +128,7 @@ int main(int argc, char **argv) {
           config.threadPool = i > 0 ? sharedThreadPool : nullptr;
           config.numOfBackgroundTasks = i;
           config.enableSIMDIndexJoin = true;
-          benchmark.registerFixture("SIMD_" + std::to_string(i), config);
+          benchmark.registerFixture("simd_" + std::to_string(i), config);
         }
 
       }

@@ -326,21 +326,30 @@ void SingleAlternativeQuery::internalInit()
   if(config.optimize)
   {
 
-    optimizeUnboundRegex();
+    if(config.optimize_unbound_regex)
+    {
+      optimizeUnboundRegex();
+    }
 
-    ///////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////
     // make sure all smaller operand are on the left side //
-    ///////////////////////////////////////////////////////////
-    optimizeOperandOrder();
+    ////////////////////////////////////////////////////////
+    if(config.optimize_operand_order)
+    {
+      optimizeOperandOrder();
+    }
 
-    optimizeEdgeAnnoUsage();
-    
-    if(operators.size() > 1)
+    if(config.optimize_nodeby_edgeanno)
+    {
+      optimizeEdgeAnnoUsage();
+    }
+
+    if(config.optimize_join_order && operators.size() > 1)
     {
       ////////////////////////////////////
       // 2. optimize the order of joins //
       ////////////////////////////////////
-      if(operators.size() <= 6)
+      if(operators.size() <= config.all_permutations_threshold)
       {
         optimizeJoinOrderAllPermutations(baseEstimateCache);
       }

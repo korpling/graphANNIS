@@ -18,8 +18,19 @@
 #include "annis/types.h"  // for Component
 
 annis::QueryConfig::QueryConfig()
-  : optimize(true), forceFallback(false), avoidNestedBySwitch(true) ,
-    numOfBackgroundTasks(0), enableTaskIndexJoin(false), enableThreadIndexJoin(false), enableSIMDIndexJoin(false), threadPool(nullptr)
+  : optimize(true),
+    optimize_operand_order(true),
+    optimize_unbound_regex(true),
+    optimize_nodeby_edgeanno(true),
+    optimize_join_order(true),
+    all_permutations_threshold(6),
+    forceFallback(false),
+    avoidNestedBySwitch(true),
+    numOfBackgroundTasks(0),
+    enableTaskIndexJoin(false),
+    enableThreadIndexJoin(false),
+    enableSIMDIndexJoin(false),
+    threadPool(nullptr)
 
 {
 
