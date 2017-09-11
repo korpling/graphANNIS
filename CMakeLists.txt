@@ -234,14 +234,5 @@ if(GRAPHANNIS_BUILD_BENCHMARKS)
   target_compile_features(${ANNIS_BENCHMARK_EXEC} PRIVATE ${needed_features})
   target_link_libraries(${ANNIS_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
 
-  # benchmarking the effect of parallel execution
-  set(PARALLEL_BENCHMARK_SRC_LIST
-    src/benchmarks/parallelbenchmark.cpp
-  )
-  set(PARALLEL_BENCHMARK_EXEC "bench_parallel")
-  add_executable(${PARALLEL_BENCHMARK_EXEC}  ${PARALLEL_BENCHMARK_SRC_LIST} )
-  add_dependencies(${PARALLEL_BENCHMARK_EXEC} Celero)
-  target_compile_features(${PARALLEL_BENCHMARK_EXEC} PRIVATE ${needed_features})
-  target_link_libraries(${PARALLEL_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
 
 endif()
