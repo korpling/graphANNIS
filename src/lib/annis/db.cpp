@@ -260,25 +260,28 @@ void DB::loadGraphStorages(string dirPath, bool preloadComponents)
                                                            namedComponentPath.filename().string()
                                        };
 
+            auto inputFile = namedComponentPath / "component.cereal";
 
-            std::shared_ptr<ReadableGraphStorage> gsNamed;
-            if(preloadComponents)
+            if(boost::filesystem::is_regular_file(inputFile))
             {
-              HL_DEBUG(logger, (boost::format("loading component %1%")
-                               % debugComponentString(namedComponent)).str());
-              auto inputFile = namedComponentPath / "component.cereal";
-              std::ifstream is(inputFile.string(), std::ios::binary);
-              if(is.is_open())
+              std::shared_ptr<ReadableGraphStorage> gsNamed;
+              if(preloadComponents)
               {
-                cereal::BinaryInputArchive ar(is);
-                ar(gsNamed);
+                HL_DEBUG(logger, (boost::format("loading component %1%")
+                                 % debugComponentString(namedComponent)).str());
+                std::ifstream is(inputFile.string(), std::ios::binary);
+                if(is.is_open())
+                {
+                  cereal::BinaryInputArchive ar(is);
+                  ar(gsNamed);
+                }
               }
-            }
-            else
-            {
-              notLoadedLocations.insert({namedComponent, namedComponentPath.string()});
-            }
-            graphStorages[namedComponent] = gsNamed;
+              else
+              {
+                notLoadedLocations.insert({namedComponent, namedComponentPath.string()});
+              }
+              graphStorages[namedComponent] = gsNamed;
+            } // end if components.cereal exists
           }
           itNamedComponents++;
         } // end for each file/directory in layer directory
