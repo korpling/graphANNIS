@@ -217,29 +217,35 @@ void DB::loadGraphStorages(string dirPath, bool preloadComponents)
 
 
         // try to load the component with the empty name
-        Component emptyNameComponent = {(ComponentType) componentType,
-            layerPath.filename().string(), ""};
-
-        std::shared_ptr<ReadableGraphStorage> gsEmptyName;
-
-        if(preloadComponents)
         {
-          HL_DEBUG(logger, (boost::format("loading component %1%")
-                           % debugComponentString(emptyNameComponent)).str());
+          Component emptyNameComponent = {(ComponentType) componentType,
+              layerPath.filename().string(), ""};
+
+          std::shared_ptr<ReadableGraphStorage> gsEmptyName;
+
           auto inputFile = layerPath / "component.cereal";
-          std::ifstream is(inputFile.string(), std::ios::binary);
-          if(is.is_open())
-          {
-            cereal::BinaryInputArchive ar(is);
-            ar(gsEmptyName);
-          }
-        }
-        else
-        {
-          notLoadedLocations.insert({emptyNameComponent, layerPath.string()});
-        }
-        graphStorages[emptyNameComponent] = gsEmptyName;
 
+          // only load the graph storage with the empty name if there is data for it
+          if(boost::filesystem::is_regular_file(inputFile))
+          {
+            if(preloadComponents)
+            {
+              HL_DEBUG(logger, (boost::format("loading component %1%")
+                               % debugComponentString(emptyNameComponent)).str());
+              std::ifstream is(inputFile.string(), std::ios::binary);
+              if(is.is_open())
+              {
+                cereal::BinaryInputArchive ar(is);
+                ar(gsEmptyName);
+              }
+            }
+            else
+            {
+              notLoadedLocations.insert({emptyNameComponent, layerPath.string()});
+            }
+            graphStorages[emptyNameComponent] = gsEmptyName;
+          } // end if component.cereal exists
+        }
 
         // also load all named components
         boost::filesystem::directory_iterator itNamedComponents(layerPath);
