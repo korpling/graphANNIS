@@ -36,9 +36,19 @@ fn generage_capi_header(modules : Vec<&str>, out_file : &str) {
 
         for m in modules {
             let module_code = generate_single_capi_code(m);
+
+
             if module_code.is_ok() {
-                cheddar.insert_code(&(module_code.unwrap()));
+                let c = module_code.unwrap();
+                cheddar.insert_code(&c);
+            } else {
+                let error_vector = module_code.unwrap_err();
+                for e in error_vector {
+                    println!("cargo:warning=Could not compile module '{}': {}", m, e);
+                }
             }
+
+
         }
 
         let header = cheddar.compile(id.as_str());
@@ -73,6 +83,7 @@ fn main() {
 
     let result = panic::catch_unwind(|| {
         generage_capi_header(vec![
+        "annis",
         "annis::util::c_api",
         "annis::stringstorage::c_api",
         "annis::annostorage::c_api"

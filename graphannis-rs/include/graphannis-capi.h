@@ -12,6 +12,27 @@ extern "C" {
 
 
 
+typedef uint32_t NodeID;
+
+typedef uint32_t StringID;
+
+typedef struct AnnoKey {
+	StringID name;
+	StringID ns;
+} AnnoKey;
+
+typedef struct Annotation {
+	AnnoKey key;
+	StringID val;
+} Annotation;
+
+typedef struct Edge {
+	NodeID source;
+	NodeID target;
+} Edge;
+
+
+
 /**
 A non-null terminated string.
  */
@@ -58,11 +79,19 @@ size_t annis_stringstorage_estimate_memory(annis_StringStoragePtr const* ptr);
 
 
 
-typedef struct annis_NodeAnnoStoragePtr annis_NodeAnnoStoragePtr;
+typedef struct annis_ASNodePtr annis_ASNodePtr;
 
-annis_NodeAnnoStoragePtr* annis_nodeannostorage_new(void);
+typedef struct annis_ASEdgePtr annis_ASEdgePtr;
 
-void annis_nodeannostorage_free(annis_NodeAnnoStoragePtr* ptr);
+annis_ASNodePtr* annis_asnode_new(void);
+
+void annis_asnode_free(annis_ASNodePtr* ptr);
+
+void annis_asnode_insert(annis_ASNodePtr* ptr, NodeID item, Annotation anno);
+
+annis_ASEdgePtr* annis_asedge_new(void);
+
+void annis_asedge_free(annis_ASEdgePtr* ptr);
 
 
 

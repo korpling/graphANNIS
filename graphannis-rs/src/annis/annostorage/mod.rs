@@ -5,21 +5,9 @@ use rand;
 use regex_syntax;
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
-pub struct AnnoKey {
-    pub name: StringID,
-    pub ns: StringID,
-}
-
-#[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 pub struct ContainerAnnoKey<T: Ord> {
     pub item: T,
     pub key: AnnoKey,
-}
-
-#[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
-pub struct Annotation {
-    pub key: AnnoKey,
-    pub val: StringID,
 }
 
 #[derive(Debug)]
