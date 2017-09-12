@@ -1,5 +1,27 @@
 use libc;
 
+macro_rules! cast_mut {
+    ($x:expr) => {
+        {
+            unsafe {
+                assert!(!$x.is_null());
+                (&mut (*$x).0)
+            }
+        }
+    };
+}
+
+macro_rules! cast_const {
+    ($x:expr) => {
+        {
+            unsafe {
+                assert!(!$x.is_null());
+                (&(*$x).0)
+            }
+        }
+    };
+}
+
 #[repr(C)]
 /**
 A non-null terminated string.
@@ -12,7 +34,7 @@ pub struct annis_String {
 #[repr(C)]
 pub struct annis_Option_String {
     pub valid: bool,
-    pub value : annis_String,
+    pub value: annis_String,
 }
 
 #[repr(C)]
@@ -22,21 +44,36 @@ pub struct annis_Option_u32 {
 }
 
 impl annis_Option_u32 {
-    pub fn from(orig : Option<u32>) -> annis_Option_u32 {
+    pub fn from(orig: Option<u32>) -> annis_Option_u32 {
         match orig {
-            Some(x) => annis_Option_u32{valid: true, value: x},
-            None => annis_Option_u32{valid: false, value: 0},
+            Some(x) => annis_Option_u32 {
+                valid: true,
+                value: x,
+            },
+            None => annis_Option_u32 {
+                valid: false,
+                value: 0,
+            },
         }
     }
 
-    pub fn from_ref(orig : Option<&u32>) -> annis_Option_u32 {
+    pub fn from_ref(orig: Option<&u32>) -> annis_Option_u32 {
         match orig {
-            Some(x) => annis_Option_u32{valid: true, value: *x},
-            None => annis_Option_u32{valid: false, value: 0},
+            Some(x) => annis_Option_u32 {
+                valid: true,
+                value: *x,
+            },
+            None => annis_Option_u32 {
+                valid: false,
+                value: 0,
+            },
         }
     }
 
     pub fn invalid() -> annis_Option_u32 {
-        return annis_Option_u32{valid: false, value: 0};
+        return annis_Option_u32 {
+            valid: false,
+            value: 0,
+        };
     }
 }

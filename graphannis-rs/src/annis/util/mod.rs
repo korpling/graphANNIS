@@ -1,4 +1,5 @@
 pub mod memory_estimation;
+#[macro_use]
 pub mod c_api;
 
 pub fn regex_full_match(pattern : &str) -> String {
