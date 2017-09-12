@@ -44,6 +44,9 @@ pub struct annis_Option_u32 {
     pub value: libc::uint32_t,
 }
 
+#[allow(non_camel_case_types)]
+pub type annis_Option_StringID = annis_Option_u32;
+
 impl annis_Option_u32 {
     pub fn from(orig: Option<u32>) -> annis_Option_u32 {
         match orig {
@@ -76,6 +79,13 @@ impl annis_Option_u32 {
             valid: false,
             value: 0,
         };
+    }
+
+    pub fn to_option(&self) -> Option<u32> {
+        match self.valid {
+            true => Some(self.value),
+            false => None,
+        }
     }
 }
 
