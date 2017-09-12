@@ -1,4 +1,5 @@
 use annis::NodeID;
+use annis::util::c_api::*;
 use super::*;
 
 
@@ -38,6 +39,19 @@ pub extern "C" fn annis_asnode_insert(ptr: *mut annis_ASNodePtr,
     delegate.insert(item, anno);
 }
 
+#[no_mangle]
+pub extern "C" fn annis_asnode_remove(ptr: *mut annis_ASNodePtr, 
+    item : NodeID, key : AnnoKey) -> annis_Option_u32 {
+
+     let delegate = unsafe {
+        assert!(!ptr.is_null());
+        &mut (*ptr).0
+    }; 
+
+    let r = delegate.remove(&item, &key);
+    return annis_Option_u32::from(r);
+}
+
 /*
 AnnoStorage<Edge>
 */
@@ -67,4 +81,17 @@ pub extern "C" fn annis_asedge_insert(ptr: *mut annis_ASEdgePtr,
     }; 
 
     delegate.insert(item, anno);
+}
+
+#[no_mangle]
+pub extern "C" fn annis_asedge_remove(ptr: *mut annis_ASEdgePtr, 
+    item : Edge, key : AnnoKey) -> annis_Option_u32 {
+
+     let delegate = unsafe {
+        assert!(!ptr.is_null());
+        &mut (*ptr).0
+    }; 
+
+    let r = delegate.remove(&item, &key);
+    return annis_Option_u32::from(r);
 }
