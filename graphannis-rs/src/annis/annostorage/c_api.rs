@@ -1,7 +1,7 @@
 use annis::NodeID;
 use annis::util::c_api::*;
 use super::*;
-
+use libc;
 
 #[repr(C)]
 pub struct annis_ASNodePtr(AnnoStorage<NodeID>);
@@ -52,6 +52,16 @@ pub extern "C" fn annis_asnode_remove(ptr: *mut annis_ASNodePtr,
     return annis_Option_u32::from(r);
 }
 
+#[no_mangle]
+pub extern "C" fn annis_asnode_len(ptr: *const annis_ASNodePtr) -> libc::size_t {
+    let delegate = unsafe {
+        assert!(!ptr.is_null());
+        & (*ptr).0
+    };
+
+    return delegate.len();
+}
+
 /*
 AnnoStorage<Edge>
 */
@@ -94,4 +104,14 @@ pub extern "C" fn annis_asedge_remove(ptr: *mut annis_ASEdgePtr,
 
     let r = delegate.remove(&item, &key);
     return annis_Option_u32::from(r);
+}
+
+#[no_mangle]
+pub extern "C" fn annis_asedge_len(ptr: *const annis_ASEdgePtr) -> libc::size_t {
+    let delegate = unsafe {
+        assert!(!ptr.is_null());
+        & (*ptr).0
+    };
+
+    return delegate.len();
 }

@@ -91,6 +91,8 @@ void annis_asnode_insert(annis_ASNodePtr* ptr, NodeID item, Annotation anno);
 
 annis_Option_u32 annis_asnode_remove(annis_ASNodePtr* ptr, NodeID item, AnnoKey key);
 
+size_t annis_asnode_len(annis_ASNodePtr const* ptr);
+
 annis_ASEdgePtr* annis_asedge_new(void);
 
 void annis_asedge_free(annis_ASEdgePtr* ptr);
@@ -98,6 +100,8 @@ void annis_asedge_free(annis_ASEdgePtr* ptr);
 void annis_asedge_insert(annis_ASEdgePtr* ptr, Edge item, Annotation anno);
 
 annis_Option_u32 annis_asedge_remove(annis_ASEdgePtr* ptr, Edge item, AnnoKey key);
+
+size_t annis_asedge_len(annis_ASEdgePtr const* ptr);
 
 
 
