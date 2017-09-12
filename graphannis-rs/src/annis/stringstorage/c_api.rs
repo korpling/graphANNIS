@@ -5,7 +5,7 @@ use super::*;
 
 
 #[repr(C)]
-pub struct annis_StringStoragePtr(StringStorage);
+pub struct annis_StringStoragePtr(pub StringStorage);
 
 #[no_mangle]
 pub extern "C" fn annis_stringstorage_new() -> *mut annis_StringStoragePtr {

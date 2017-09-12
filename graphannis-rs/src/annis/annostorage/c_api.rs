@@ -1,5 +1,6 @@
 use annis::NodeID;
 use annis::util::c_api::*;
+use annis::stringstorage::c_api::annis_StringStoragePtr;
 use super::*;
 use libc;
 
@@ -115,6 +116,13 @@ pub extern "C" fn annis_asnode_guess_max_count_regex(
 
 }
 
+#[no_mangle]
+pub extern "C" fn annis_asnode_calculate_statistics(
+    ptr: *mut annis_ASNodePtr,
+    stringstorage: *const annis_StringStoragePtr) {
+    cast_mut!(ptr).calculate_statistics(cast_const!(stringstorage));
+}
+
 /*
 AnnoStorage<Edge>
 */
@@ -219,5 +227,11 @@ pub extern "C" fn annis_asedge_guess_max_count_regex(
         name, 
         pattern_str
     )
+}
 
+#[no_mangle]
+pub extern "C" fn annis_asedge_calculate_statistics(
+    ptr: *mut annis_ASEdgePtr,
+    stringstorage: *const annis_StringStoragePtr) {
+    cast_mut!(ptr).calculate_statistics(cast_const!(stringstorage));
 }
