@@ -1,4 +1,5 @@
 use libc;
+use annis::Annotation;
 
 macro_rules! cast_mut {
     ($x:expr) => {
@@ -75,5 +76,20 @@ impl annis_Option_u32 {
             valid: false,
             value: 0,
         };
+    }
+}
+
+#[repr(C)]
+pub struct annis_Vec_Annotation {
+    pub v: *const Annotation,
+    pub length: libc::size_t,
+}
+
+impl annis_Vec_Annotation {
+    pub fn from(v : &Vec<Annotation>) -> annis_Vec_Annotation {
+        annis_Vec_Annotation {
+            v: v.as_ptr(),
+            length: v.len(),
+        }
     }
 }

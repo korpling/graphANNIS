@@ -51,6 +51,11 @@ typedef struct annis_Option_u32 {
 	uint32_t value;
 } annis_Option_u32;
 
+typedef struct annis_Vec_Annotation {
+	Annotation const* v;
+	size_t length;
+} annis_Vec_Annotation;
+
 
 
 typedef struct annis_StringStoragePtr annis_StringStoragePtr;
@@ -93,6 +98,10 @@ annis_Option_u32 annis_asnode_remove(annis_ASNodePtr* ptr, NodeID item, AnnoKey 
 
 size_t annis_asnode_len(annis_ASNodePtr const* ptr);
 
+annis_Option_u32 annis_asnode_get(annis_ASNodePtr const* ptr, NodeID item, AnnoKey key);
+
+annis_Vec_Annotation annis_asnode_get_all(annis_ASNodePtr const* ptr, NodeID item);
+
 annis_ASEdgePtr* annis_asedge_new(void);
 
 void annis_asedge_free(annis_ASEdgePtr* ptr);
@@ -102,6 +111,10 @@ void annis_asedge_insert(annis_ASEdgePtr* ptr, Edge item, Annotation anno);
 annis_Option_u32 annis_asedge_remove(annis_ASEdgePtr* ptr, Edge item, AnnoKey key);
 
 size_t annis_asedge_len(annis_ASEdgePtr const* ptr);
+
+annis_Option_u32 annis_asedge_get(annis_ASEdgePtr const* ptr, Edge item, AnnoKey key);
+
+annis_Vec_Annotation annis_asedge_get_all(annis_ASEdgePtr const* ptr, Edge item);
 
 
 

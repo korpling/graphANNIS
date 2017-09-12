@@ -48,6 +48,24 @@ pub extern "C" fn annis_asnode_len(ptr: *const annis_ASNodePtr) -> libc::size_t 
     cast_const!(ptr).len()
 }
 
+#[no_mangle]
+pub extern "C" fn annis_asnode_get(ptr: *const annis_ASNodePtr,
+    item : NodeID, key : AnnoKey) -> annis_Option_u32 {
+    annis_Option_u32::from_ref(
+        cast_const!(ptr).get(&item, &key)
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn annis_asnode_get_all(ptr: *const annis_ASNodePtr,
+    item : NodeID) -> annis_Vec_Annotation {
+    let orig_vec = cast_const!(ptr).get_all(&item);
+    let r = annis_Vec_Annotation::from(&orig_vec);
+    // transfer ownership to calling code
+    std::mem::forget(r.v);
+    return r;
+}
+
 /*
 AnnoStorage<Edge>
 */
@@ -86,4 +104,22 @@ pub extern "C" fn annis_asedge_remove(ptr: *mut annis_ASEdgePtr,
 #[no_mangle]
 pub extern "C" fn annis_asedge_len(ptr: *const annis_ASEdgePtr) -> libc::size_t {
     return cast_const!(ptr).len();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_asedge_get(ptr: *const annis_ASEdgePtr,
+    item : Edge, key : AnnoKey) -> annis_Option_u32 {
+    annis_Option_u32::from_ref(
+        cast_const!(ptr).get(&item, &key)
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn annis_asedge_get_all(ptr: *const annis_ASEdgePtr,
+    item : Edge) -> annis_Vec_Annotation {
+    let orig_vec = cast_const!(ptr).get_all(&item);
+    let r = annis_Vec_Annotation::from(&orig_vec);
+    // transfer ownership to calling code
+    std::mem::forget(r.v);
+    return r;
 }
