@@ -106,6 +106,8 @@ annis_Vec_Annotation annis_asnode_get_all(annis_ASNodePtr const* ptr, NodeID ite
 
 size_t annis_asnode_guess_max_count(annis_ASNodePtr const* ptr, annis_Option_StringID ns, StringID name, char const* lower_val, char const* upper_val);
 
+size_t annis_asnode_guess_max_count_regex(annis_ASNodePtr const* ptr, annis_Option_StringID ns, StringID name, char const* pattern);
+
 annis_ASEdgePtr* annis_asedge_new(void);
 
 void annis_asedge_free(annis_ASEdgePtr* ptr);
@@ -121,6 +123,8 @@ annis_Option_StringID annis_asedge_get(annis_ASEdgePtr const* ptr, Edge item, An
 annis_Vec_Annotation annis_asedge_get_all(annis_ASEdgePtr const* ptr, Edge item);
 
 size_t annis_asedge_guess_max_count(annis_ASEdgePtr const* ptr, annis_Option_StringID ns, StringID name, char const* lower_val, char const* upper_val);
+
+size_t annis_asedge_guess_max_count_regex(annis_ASEdgePtr const* ptr, annis_Option_StringID ns, StringID name, char const* pattern);
 
 
 

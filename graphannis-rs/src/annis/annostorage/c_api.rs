@@ -77,23 +77,42 @@ pub extern "C" fn annis_asnode_guess_max_count(
     lower_val: *const libc::c_char,
     upper_val: *const libc::c_char,
 ) -> libc::size_t {
-    let lower_val_str: &std::ffi::CStr = unsafe {
+    let lower_val_str: &str = unsafe {
         assert!(!lower_val.is_null());
 
-        std::ffi::CStr::from_ptr(lower_val)
+        std::ffi::CStr::from_ptr(lower_val).to_str().unwrap()
     };
 
-    let upper_val_str: &std::ffi::CStr = unsafe {
+    let upper_val_str: &str = unsafe {
         assert!(!upper_val.is_null());
 
-        std::ffi::CStr::from_ptr(upper_val)
+        std::ffi::CStr::from_ptr(upper_val).to_str().unwrap()
     };
 
     cast_const!(ptr).guess_max_count(ns.to_option(), 
         name, 
-        lower_val_str.to_str().unwrap(), 
-        upper_val_str.to_str().unwrap()
+        lower_val_str, 
+        upper_val_str
     )
+}
+
+#[no_mangle]
+pub extern "C" fn annis_asnode_guess_max_count_regex(
+    ptr: *const annis_ASNodePtr,
+    ns: annis_Option_StringID,
+    name: StringID,
+    pattern: *const libc::c_char,
+) -> libc::size_t {
+    let pattern_str: &str = unsafe {
+        assert!(!pattern.is_null());
+
+        std::ffi::CStr::from_ptr(pattern).to_str().unwrap()
+    };
+    cast_const!(ptr).guess_max_count_regex(ns.to_option(), 
+        name, 
+        pattern_str
+    )
+
 }
 
 /*
@@ -165,21 +184,40 @@ pub extern "C" fn annis_asedge_guess_max_count(
     lower_val: *const libc::c_char,
     upper_val: *const libc::c_char,
 ) -> libc::size_t {
-    let lower_val_str: &std::ffi::CStr = unsafe {
+    let lower_val_str: &str = unsafe {
         assert!(!lower_val.is_null());
 
-        std::ffi::CStr::from_ptr(lower_val)
+        std::ffi::CStr::from_ptr(lower_val).to_str().unwrap()
     };
 
-    let upper_val_str: &std::ffi::CStr = unsafe {
+    let upper_val_str: &str = unsafe {
         assert!(!upper_val.is_null());
 
-        std::ffi::CStr::from_ptr(upper_val)
+        std::ffi::CStr::from_ptr(upper_val).to_str().unwrap()
     };
 
     cast_const!(ptr).guess_max_count(ns.to_option(), 
         name, 
-        lower_val_str.to_str().unwrap(), 
-        upper_val_str.to_str().unwrap()
+        lower_val_str, 
+        upper_val_str
     )
+}
+
+#[no_mangle]
+pub extern "C" fn annis_asedge_guess_max_count_regex(
+    ptr: *const annis_ASEdgePtr,
+    ns: annis_Option_StringID,
+    name: StringID,
+    pattern: *const libc::c_char,
+) -> libc::size_t {
+    let pattern_str: &str = unsafe {
+        assert!(!pattern.is_null());
+
+        std::ffi::CStr::from_ptr(pattern).to_str().unwrap()
+    };
+    cast_const!(ptr).guess_max_count_regex(ns.to_option(), 
+        name, 
+        pattern_str
+    )
+
 }
