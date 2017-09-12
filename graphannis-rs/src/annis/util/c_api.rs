@@ -86,7 +86,7 @@ pub struct annis_Vec_Annotation {
 }
 
 impl annis_Vec_Annotation {
-    pub fn from(v : &Vec<Annotation>) -> annis_Vec_Annotation {
+    pub fn wrap(v : &Vec<Annotation>) -> annis_Vec_Annotation {
         annis_Vec_Annotation {
             v: v.as_ptr(),
             length: v.len(),

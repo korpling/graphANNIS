@@ -60,7 +60,7 @@ pub extern "C" fn annis_asnode_get(ptr: *const annis_ASNodePtr,
 pub extern "C" fn annis_asnode_get_all(ptr: *const annis_ASNodePtr,
     item : NodeID) -> annis_Vec_Annotation {
     let orig_vec = cast_const!(ptr).get_all(&item);
-    let r = annis_Vec_Annotation::from(&orig_vec);
+    let r = annis_Vec_Annotation::wrap(&orig_vec);
     // transfer ownership to calling code
     std::mem::forget(r.v);
     return r;
@@ -118,7 +118,7 @@ pub extern "C" fn annis_asedge_get(ptr: *const annis_ASEdgePtr,
 pub extern "C" fn annis_asedge_get_all(ptr: *const annis_ASEdgePtr,
     item : Edge) -> annis_Vec_Annotation {
     let orig_vec = cast_const!(ptr).get_all(&item);
-    let r = annis_Vec_Annotation::from(&orig_vec);
+    let r = annis_Vec_Annotation::wrap(&orig_vec);
     // transfer ownership to calling code
     std::mem::forget(r.v);
     return r;
