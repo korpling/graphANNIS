@@ -26,6 +26,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
+#include <boost/thread.hpp>
 #include <sstream>
 
 #include <celero/Celero.h>
@@ -81,9 +82,10 @@ namespace annis {
             QueryConfig config,
             std::map<int64_t, std::string> json,
             std::string benchmarkName,
+            int64_t timeout,
             std::map<int64_t, unsigned int> expectedCount = std::map<int64_t, unsigned int>())
     : corpusPath(corpusPath), config(config),
-    json(json), benchmarkName(benchmarkName), counter(0),
+    json(json), benchmarkName(benchmarkName), timeout(timeout), counter(0),
     expectedCountByExp(expectedCount), currentExperimentValue(0) {
     }
 
@@ -145,13 +147,19 @@ namespace annis {
     const QueryConfig config;
     std::map<int64_t, std::string> json;
     std::shared_ptr<Query> q;
+
+
     std::string benchmarkName;
+    const int64_t timeout;
+
     unsigned int counter;
 
     std::map<int64_t, unsigned int> expectedCountByExp;
     boost::optional<unsigned int> expectedCount;
     int64_t currentExperimentValue;
     
+    boost::thread runner;
+
     
     static std::shared_ptr<DBCache> dbCache;
 
@@ -175,7 +183,7 @@ namespace annis {
   public:
 
     DynamicBenchmark(std::string queriesDir, std::string corpusPath, std::string benchmarkName,
-       bool multipleExperiments=false);
+                     int64_t timeout, bool multipleExperiments=false);
 
     DynamicBenchmark(const DynamicBenchmark& orig) = delete;
 
@@ -191,6 +199,7 @@ namespace annis {
 
     void registerFixtureInternal(bool baseline,
             std::string fixtureName,
+            int64_t timeout,
             const QueryConfig config = QueryConfig());
 
   private:
@@ -200,12 +209,14 @@ namespace annis {
     std::list<boost::filesystem::path> foundJSONFiles;
     
     bool multipleExperiments;
+
+    const int64_t timeout;
     
     void addBenchmark(bool baseline,
             std::string benchmarkName,
             std::map<int64_t, const boost::filesystem::path>& paths,
             std::string fixtureName,
-            QueryConfig config);
+            QueryConfig config, int64_t timeout);
   };
 
 

@@ -50,8 +50,7 @@ int main(int argc, char **argv) {
         // get the corpus path (is subfolder of "data" folder)
         std::string corpusPath = benchmarkDir + "/data/" + corpusName;
         
-        DynamicBenchmark benchmark(subdir, corpusPath, corpusName
-          , true);
+        DynamicBenchmark benchmark(subdir, corpusPath, corpusName, 6000000, true);
 
         {
           // default configuration and all optimizations enabled but no parallization
