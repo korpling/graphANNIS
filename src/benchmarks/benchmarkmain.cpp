@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
           config.threadPool = i > 0 ? sharedThreadPool : nullptr;
           config.numOfBackgroundTasks = i;
           config.enableSIMDIndexJoin = true;
-          config.enableThreadIndexJoin = false;
+          config.enableThreadIndexJoin = i == 0 ? false : true;
           config.enableTaskIndexJoin = false;
           benchmark.registerFixture("simd_" + std::to_string(i), config);
         }
