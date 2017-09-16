@@ -119,19 +119,7 @@ int main(int argc, char **argv) {
           config.numOfBackgroundTasks = i;
           config.enableSIMDIndexJoin = false;
           config.enableThreadIndexJoin = true;
-          config.enableTaskIndexJoin = false;
           benchmark.registerFixture("threads_" + std::to_string(i), config);
-        }
-
-        for(int i=2; i <= numOfCPUs; i += 2)
-        {
-          QueryConfig config;
-          config.threadPool = i > 0 ? sharedThreadPool : nullptr;
-          config.numOfBackgroundTasks = i;
-          config.enableSIMDIndexJoin = false;
-          config.enableThreadIndexJoin = false;
-          config.enableTaskIndexJoin = true;
-          benchmark.registerFixture("tasks_" + std::to_string(i), config);
         }
 
         for(int i=0; i <= numOfCPUs; i += 2)
@@ -141,7 +129,6 @@ int main(int argc, char **argv) {
           config.numOfBackgroundTasks = i;
           config.enableSIMDIndexJoin = true;
           config.enableThreadIndexJoin = i == 0 ? false : true;
-          config.enableTaskIndexJoin = false;
           benchmark.registerFixture("simd_" + std::to_string(i), config);
         }
 

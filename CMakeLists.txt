@@ -110,7 +110,6 @@ set(SRC_LIST_LIB
   src/lib/annis/join/indexjoin.cpp
   src/lib/annis/join/nestedloop.cpp
   src/lib/annis/join/threadnestedloop.cpp
-  src/lib/annis/join/taskindexjoin.cpp
   src/lib/annis/join/threadindexjoin.cpp
   src/lib/annis/annosearch/exactannokeysearch.cpp
   src/lib/annis/annosearch/exactannovaluesearch.cpp
