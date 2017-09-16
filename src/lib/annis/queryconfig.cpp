@@ -24,7 +24,7 @@ annis::QueryConfig::QueryConfig()
     optimize_nodeby_edgeanno(true),
     optimize_join_order(true),
     all_permutations_threshold(6),
-    forceFallback(false),
+    forceGSImpl(""),
     avoidNestedBySwitch(true),
     numOfBackgroundTasks(0),
     enableThreadIndexJoin(true),

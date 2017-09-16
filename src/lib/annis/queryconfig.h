@@ -41,7 +41,7 @@ namespace annis
     bool optimize_join_order;
     bool all_permutations_threshold;
 
-    bool forceFallback;
+    std::string forceGSImpl;
     bool avoidNestedBySwitch;
 
     std::map<Component, std::string> overrideImpl;

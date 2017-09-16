@@ -61,8 +61,23 @@ int main(int argc, char **argv) {
         {
           // No optimized graph storages
           QueryConfig config;
-          config.forceFallback = true;
-          benchmark.registerFixture("force_fallback", config);
+          config.forceGSImpl = GraphStorageRegistry::adjacencylist;
+          benchmark.registerFixture("force_adjacencylist", config);
+        }
+
+        {
+          // No optimized graph storages
+          QueryConfig config;
+          config.forceGSImpl = GraphStorageRegistry::prepostorderO32L32;
+
+          // left/right token components are cyclic and can't be used with pre/post-order
+          Component leftComponent = {ComponentType::LEFT_TOKEN, annis_ns, ""};
+          Component rightComponent = {ComponentType::RIGHT_TOKEN, annis_ns, ""};
+
+          config.overrideImpl[leftComponent] = GraphStorageRegistry::adjacencylist;
+          config.overrideImpl[rightComponent] = GraphStorageRegistry::adjacencylist;
+
+          benchmark.registerFixture("force_prepostorder", config);
         }
 
         {

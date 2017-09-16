@@ -47,7 +47,7 @@ const std::string GraphStorageRegistry::prepostorderO32L32 = "prepostorder";
 const std::string GraphStorageRegistry::prepostorderO32L8 = "prepostorderO32L8";
 const std::string GraphStorageRegistry::prepostorderO16L32 = "prepostorderO16L32";
 const std::string GraphStorageRegistry::prepostorderO16L8 = "prepostorderO16L8";
-const std::string GraphStorageRegistry::fallback = "fallback";
+const std::string GraphStorageRegistry::adjacencylist = "adjacencylist";
 
 GraphStorageRegistry::GraphStorageRegistry()
 {
@@ -92,7 +92,7 @@ std::string annis::GraphStorageRegistry::getName(std::weak_ptr<const ReadableGra
     }
     else if(std::dynamic_pointer_cast<const AdjacencyListStorage>(db) != nullptr)
     {
-      return fallback;
+      return adjacencylist;
     }
   }
   return "";
@@ -128,7 +128,7 @@ std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(s
   {
     return std::unique_ptr<ReadableGraphStorage>(new PrePostOrderO16L8());
   }
-  else if(name == fallback)
+  else if(name == adjacencylist)
   {
     return std::unique_ptr<ReadableGraphStorage>(new AdjacencyListStorage());
   }
@@ -142,7 +142,7 @@ std::string GraphStorageRegistry::getOptimizedImpl(const Component &component, G
 
   if(result.empty())
   {
-    result = fallback;
+    result = adjacencylist;
   }
 
   return result;
@@ -156,14 +156,14 @@ std::unique_ptr<ReadableGraphStorage> GraphStorageRegistry::createGraphStorage(S
 
 std::string GraphStorageRegistry::getImplByHeuristics(const Component &component, GraphStatistic stats)
 {
-  std::string result = fallback;
+  std::string result = adjacencylist;
 
   if(stats.valid)
   {
     if(stats.maxDepth <= 1)
     {
       // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
-      result = fallback;
+      result = adjacencylist;
     }
     else if(stats.rootedTree)
     {

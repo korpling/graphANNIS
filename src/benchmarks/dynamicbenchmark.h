@@ -90,7 +90,7 @@ namespace annis {
     }
 
     const std::weak_ptr<DB> getDB() {
-      return dbCache->get(corpusPath, true, config.forceFallback, config.overrideImpl);
+      return dbCache->get(corpusPath, true, config.forceGSImpl, config.overrideImpl);
     }
     
     virtual std::vector<std::pair<int64_t, uint64_t>> getExperimentValues() const override;
