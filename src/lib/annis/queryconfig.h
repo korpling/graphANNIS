@@ -33,14 +33,20 @@ namespace annis
 
   struct QueryConfig
   {
+    /** If false do not perform any optimizations */
     bool optimize;
-    bool forceFallback;
+    bool optimize_operand_order;
+    bool optimize_unbound_regex;
+    bool optimize_nodeby_edgeanno;
+    bool optimize_join_order;
+    bool all_permutations_threshold;
+
+    std::string forceGSImpl;
     bool avoidNestedBySwitch;
 
     std::map<Component, std::string> overrideImpl;
 
     size_t numOfBackgroundTasks;
-    bool enableTaskIndexJoin;
     bool enableThreadIndexJoin;
     bool enableSIMDIndexJoin;
     std::shared_ptr<ThreadPool> threadPool;

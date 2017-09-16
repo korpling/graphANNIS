@@ -219,29 +219,35 @@ void DB::loadGraphStorages(string dirPath, bool preloadComponents)
 
 
         // try to load the component with the empty name
-        Component emptyNameComponent = {(ComponentType) componentType,
-            layerPath.filename().string(), ""};
-
-        std::shared_ptr<ReadableGraphStorage> gsEmptyName;
-
-        if(preloadComponents)
         {
-          HL_DEBUG(logger, (boost::format("loading component %1%")
-                           % debugComponentString(emptyNameComponent)).str());
+          Component emptyNameComponent = {(ComponentType) componentType,
+              layerPath.filename().string(), ""};
+
+          std::shared_ptr<ReadableGraphStorage> gsEmptyName;
+
           auto inputFile = layerPath / "component.cereal";
-          std::ifstream is(inputFile.string(), std::ios::binary);
-          if(is.is_open())
-          {
-            cereal::BinaryInputArchive ar(is);
-            ar(gsEmptyName);
-          }
-        }
-        else
-        {
-          notLoadedLocations.insert({emptyNameComponent, layerPath.string()});
-        }
-        graphStorages[emptyNameComponent] = gsEmptyName;
 
+          // only load the graph storage with the empty name if there is data for it
+          if(boost::filesystem::is_regular_file(inputFile))
+          {
+            if(preloadComponents)
+            {
+              HL_DEBUG(logger, (boost::format("loading component %1%")
+                               % debugComponentString(emptyNameComponent)).str());
+              std::ifstream is(inputFile.string(), std::ios::binary);
+              if(is.is_open())
+              {
+                cereal::BinaryInputArchive ar(is);
+                ar(gsEmptyName);
+              }
+            }
+            else
+            {
+              notLoadedLocations.insert({emptyNameComponent, layerPath.string()});
+            }
+            graphStorages[emptyNameComponent] = gsEmptyName;
+          } // end if component.cereal exists
+        }
 
         // also load all named components
         boost::filesystem::directory_iterator itNamedComponents(layerPath);
@@ -256,25 +262,28 @@ void DB::loadGraphStorages(string dirPath, bool preloadComponents)
                                                            namedComponentPath.filename().string()
                                        };
 
+            auto inputFile = namedComponentPath / "component.cereal";
 
-            std::shared_ptr<ReadableGraphStorage> gsNamed;
-            if(preloadComponents)
+            if(boost::filesystem::is_regular_file(inputFile))
             {
-              HL_DEBUG(logger, (boost::format("loading component %1%")
-                               % debugComponentString(namedComponent)).str());
-              auto inputFile = namedComponentPath / "component.cereal";
-              std::ifstream is(inputFile.string(), std::ios::binary);
-              if(is.is_open())
+              std::shared_ptr<ReadableGraphStorage> gsNamed;
+              if(preloadComponents)
               {
-                cereal::BinaryInputArchive ar(is);
-                ar(gsNamed);
+                HL_DEBUG(logger, (boost::format("loading component %1%")
+                                 % debugComponentString(namedComponent)).str());
+                std::ifstream is(inputFile.string(), std::ios::binary);
+                if(is.is_open())
+                {
+                  cereal::BinaryInputArchive ar(is);
+                  ar(gsNamed);
+                }
               }
-            }
-            else
-            {
-              notLoadedLocations.insert({namedComponent, namedComponentPath.string()});
-            }
-            graphStorages[namedComponent] = gsNamed;
+              else
+              {
+                notLoadedLocations.insert({namedComponent, namedComponentPath.string()});
+              }
+              graphStorages[namedComponent] = gsNamed;
+            } // end if components.cereal exists
           }
           itNamedComponents++;
         } // end for each file/directory in layer directory
@@ -533,9 +542,9 @@ string DB::info()
   return ss.str();
 }
 
-std::shared_ptr<WriteableGraphStorage> DB::createWritableGraphStorage(ComponentType ctype, const string &layer, const string &name)
+std::shared_ptr<WriteableGraphStorage> DB::createWritableGraphStorage(ComponentType type, const string &layer, const string &name)
 {
-  Component c = {ctype, layer, name == "NULL" ? "" : name};
+  Component c = {type, layer, name == "NULL" ? "" : name};
 
   // check if there is already an edge DB for this component
   std::map<Component,std::shared_ptr<ReadableGraphStorage>>::const_iterator itDB =

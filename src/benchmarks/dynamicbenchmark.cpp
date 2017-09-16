@@ -34,16 +34,43 @@ std::shared_ptr<DBCache> DynamicCorpusFixture::dbCache
 
 void DynamicCorpusFixture::UserBenchmark()
 {
-  while (q->next())
+
+  if(timeout > 0)
   {
-    counter++;
+    runner = boost::thread([this] {
+      while (this->q->next())
+      {
+        this->counter++;
+        boost::this_thread::interruption_point();
+      }
+    });
+
+    if(runner.try_join_for(boost::chrono::milliseconds(timeout)))
+    {
+      HL_INFO(benchLogger, (boost::format("result %1%") % counter).str());
+      if (expectedCount && counter != *expectedCount)
+      {
+        std::cerr << "FATAL ERROR: query " << benchmarkName << ":" << currentExperimentValue << " should have count " << *expectedCount << " but was " << counter << std::endl;
+        std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
+        exit(-1);
+      }
+    }
   }
-  HL_INFO(benchLogger, (boost::format("result %1%") % counter).str());
-  if (expectedCount && counter != *expectedCount)
+  else
   {
-    std::cerr << "FATAL ERROR: query " << benchmarkName << ":" << currentExperimentValue << " should have count " << *expectedCount << " but was " << counter << std::endl;
-    std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
-    exit(-1);
+    while (this->q->next())
+    {
+      this->counter++;
+      boost::this_thread::interruption_point();
+    }
+
+    HL_INFO(benchLogger, (boost::format("result %1%") % counter).str());
+    if (expectedCount && counter != *expectedCount)
+    {
+      std::cerr << "FATAL ERROR: query " << benchmarkName << ":" << currentExperimentValue << " should have count " << *expectedCount << " but was " << counter << std::endl;
+      std::cerr << "" << __FILE__ << ":" << __LINE__ << std::endl;
+      exit(-1);
+    }
   }
 }
 
@@ -61,11 +88,18 @@ std::vector<std::pair<int64_t, uint64_t> > DynamicCorpusFixture::getExperimentVa
 
 void DynamicCorpusFixture::tearDown()
 {
+  if(runner.joinable())
+  {
+    runner.interrupt();
+    runner.join();
+    HL_INFO(benchLogger, (boost::format("timeout")).str());
+  }
 }
 
 DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
-  std::string corpusPath, std::string benchmarkName, bool multipleExperimentsParam)
-  : corpusPath(corpusPath), benchmarkName(benchmarkName), multipleExperiments(multipleExperimentsParam)
+  std::string corpusPath, std::string benchmarkName, int64_t timeout, bool multipleExperimentsParam)
+  : corpusPath(corpusPath), benchmarkName(benchmarkName), multipleExperiments(multipleExperimentsParam),
+    timeout(timeout)
 {
   // find all file ending with ".json" in the folder
   boost::filesystem::directory_iterator fileEndIt;
@@ -102,19 +136,18 @@ DynamicBenchmark::DynamicBenchmark(std::string queriesDir,
   }
 
   QueryConfig baselineConfig;
-  baselineConfig.forceFallback = true;
-  registerFixtureInternal(true, "Baseline", baselineConfig);
+  registerFixtureInternal(true, "baseline", timeout, baselineConfig);
 }
 
 void DynamicBenchmark::registerFixture(std::string fixtureName, const QueryConfig config)
 {
-  registerFixtureInternal(false, fixtureName, config);
+  registerFixtureInternal(false, fixtureName, timeout, config);
 }
 
 void DynamicBenchmark::registerFixtureInternal(
   bool baseline,
-  std::string fixtureName, const QueryConfig config)
-{
+  std::string fixtureName, int64_t timeout, const QueryConfig config)
+{ 
   if (multipleExperiments)
   {
     std::map<int64_t, const boost::filesystem::path> paths;
@@ -125,7 +158,7 @@ void DynamicBenchmark::registerFixtureInternal(
       auto id = std::stol(name);
       paths.insert({id, filePath});
     }
-    addBenchmark(baseline, benchmarkName, paths, fixtureName, config);
+    addBenchmark(baseline, benchmarkName, paths, fixtureName, config, timeout);
   }
   else
   {
@@ -134,7 +167,7 @@ void DynamicBenchmark::registerFixtureInternal(
       std::map<int64_t, const boost::filesystem::path> paths;
       paths.insert({0, filePath});
       auto subBenchmarkName = benchmarkName + "_" + filePath.stem().string();
-      addBenchmark(baseline, subBenchmarkName, paths, fixtureName, config);
+      addBenchmark(baseline, subBenchmarkName, paths, fixtureName, config, timeout);
     }
   }
 }
@@ -144,7 +177,8 @@ void DynamicBenchmark::addBenchmark(bool baseline,
   std::string benchmarkName,
   std::map<int64_t, const boost::filesystem::path>& paths,
   std::string fixtureName,
-  QueryConfig config)
+  QueryConfig config,
+  int64_t timeout)
 {
   unsigned int numberOfSamples = 5;
 
@@ -202,7 +236,7 @@ void DynamicBenchmark::addBenchmark(bool baseline,
   }
   std::shared_ptr<::celero::TestFixture> fixture(
     new DynamicCorpusFixture(corpusPath, config, allQueries,
-    benchmarkName + " (" + fixtureName + ")",
+    benchmarkName + " (" + fixtureName + ")", timeout,
     expectedCount));
 
   if (baseline)
@@ -211,8 +245,7 @@ void DynamicBenchmark::addBenchmark(bool baseline,
     {
       std::shared_ptr<::celero::TestFixture> fixedFixture(new FixedValueFixture(fixedValues));
       celero::RegisterBaseline(benchmarkName.c_str(), fixtureName.c_str(), numberOfSamples, 1, 1,
-        std::make_shared<DynamicCorpusFixtureFactory>(fixedFixture));
-      
+        std::make_shared<DynamicCorpusFixtureFactory>(fixedFixture));      
     }
     else
     {

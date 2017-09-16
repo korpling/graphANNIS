@@ -1,6 +1,7 @@
 /ANNIS4-build
 /build*
-/data*
+/data
+/data_*
 /relannis
 CMakeLists.txt.user
 *.*~

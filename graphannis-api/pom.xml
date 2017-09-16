@@ -291,6 +291,7 @@
               <skip>${javacpp.parser.skip}</skip>
               <outputDirectory>${project.build.sourceDirectory}</outputDirectory>
               <classOrPackageName>org.corpus_tools.graphannis.info.*</classOrPackageName>
+              <deleteJniFiles>false</deleteJniFiles>
             </configuration>
           </execution>
           <execution>

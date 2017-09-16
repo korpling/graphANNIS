@@ -22,7 +22,6 @@
 #include <annis/join/donothingjoin.h>
 #include <annis/join/indexjoin.h>                   // for IndexJoin
 #include <annis/join/nestedloop.h>                  // for NestedLoopJoin
-#include <annis/join/taskindexjoin.h>               // for TaskIndexJoin
 #include <annis/join/threadindexjoin.h>             // for ThreadIndexJoin
 #include <annis/join/threadnestedloop.h>            // for ThreadNestedLoop
 #ifdef ENABLE_SIMD_SUPPORT
@@ -156,11 +155,6 @@ std::shared_ptr<ExecutionNode> Plan::join(std::shared_ptr<Operator> op,
                                                estSearch->getConstAnnoValue());
       }
       #endif // ENABLE_SIMD_SUPPORT
-      else if(config.enableTaskIndexJoin && config.threadPool)
-      {
-        join = std::make_shared<TaskIndexJoin>(lhs->join, mappedPosLHS->second, op,
-                                               createSearchFilter(db, estSearch), 128, config.threadPool);
-      }
       else
       {
         join = std::make_shared<IndexJoin>(db, op, lhs->join,

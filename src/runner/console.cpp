@@ -174,7 +174,32 @@ void Console::load(const std::vector<std::string> &args)
   {
     std::cout << "Loading from " << args[0] << std::endl;
     auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
-    db = dbCache.get(args[0], args.size() > 1 && args[1] == "preload");
+
+    std::set<std::string> options;
+    for(int i=1; i < args.size(); i++)
+    {
+      options.insert(args[i]);
+    }
+
+    bool preload = options.find("preload") != options.end();
+
+    std::string forceGSImpl = "";
+    std::map<Component, std::string> overrideImpl;
+    if(options.find("adjancency") != options.end())
+    {
+      forceGSImpl = GraphStorageRegistry::adjacencylist;
+    }
+    else if( options.find("prepost") != options.end())
+    {
+      forceGSImpl = GraphStorageRegistry::prepostorderO32L32;
+      Component leftComponent = {ComponentType::LEFT_TOKEN, annis_ns, ""};
+      Component rightComponent = {ComponentType::RIGHT_TOKEN, annis_ns, ""};
+
+      overrideImpl[leftComponent] = GraphStorageRegistry::adjacencylist;
+      overrideImpl[rightComponent] = GraphStorageRegistry::adjacencylist;
+    }
+
+    db = dbCache.get(args[0], preload, forceGSImpl, overrideImpl);
     auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
     std::cout << "Loaded in " << (endTime - startTime) << " ms" << std::endl;
   }
