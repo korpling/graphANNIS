@@ -5,7 +5,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug Test",
-            "program": "${workspaceRoot}/target/debug/graphannis-361cdaa694f015ad",
+            "program": "${workspaceRoot}/target/debug/graphannis-3c8888fb1ff2f111",
             "args": [],
             "cwd": "${workspaceRoot}"
         }
