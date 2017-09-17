@@ -58,6 +58,15 @@ typedef struct annis_Vec_Annotation {
 	size_t length;
 } annis_Vec_Annotation;
 
+typedef struct annis_MatchIt annis_MatchIt;
+
+typedef struct annis_Option_Match {
+	bool valid;
+	Match value;
+} annis_Option_Match;
+
+annis_Option_Match annis_matchit_next(annis_MatchIt* ptr);
+
 
 
 typedef struct annis_StringStoragePtr annis_StringStoragePtr;

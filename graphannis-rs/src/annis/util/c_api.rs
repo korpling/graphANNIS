@@ -1,5 +1,6 @@
 use libc;
 use annis::Annotation;
+use annis::annostorage::Match;
 
 macro_rules! cast_mut {
     ($x:expr) => {
@@ -102,4 +103,28 @@ impl annis_Vec_Annotation {
             length: v.len(),
         }
     }
+}
+
+#[repr(C)]
+pub struct annis_MatchIt(Box<Iterator<Item = Match>>);
+
+#[repr(C)]
+pub struct annis_Option_Match {
+    pub valid: bool,
+    pub value: Match,
+}
+
+impl annis_Option_Match {
+     pub fn from(orig: Option<Match>) -> annis_Option_Match {
+         match orig {
+             Some(v) => annis_Option_Match{valid: true, value: v},
+             None => annis_Option_Match{valid:false, value : Match::default()},
+         }
+     }
+}
+
+
+#[no_mangle]
+pub extern "C" fn annis_matchit_next(ptr: *mut annis_MatchIt) -> annis_Option_Match {
+    annis_Option_Match::from(cast_mut!(ptr).next())
 }

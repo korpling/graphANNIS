@@ -10,7 +10,7 @@ pub struct ContainerAnnoKey<T: Ord> {
     pub key: AnnoKey,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Match {
     node: NodeID,
     anno: Annotation,

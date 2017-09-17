@@ -9,7 +9,6 @@ pub struct annis_ASNodePtr(AnnoStorage<NodeID>);
 #[repr(C)]
 pub struct annis_ASEdgePtr(AnnoStorage<Edge>);
 
-
 /*
 AnnoStorage<Node>
 */
