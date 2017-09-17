@@ -122,6 +122,40 @@ impl<T: Ord + Clone> AnnoStorage<T> {
         return result;
     }
 
+     pub fn anno_range_exact(
+        & self,
+        namespace: Option<StringID>,
+        name: StringID,
+        value: Option<StringID>,
+    ) -> std::ops::Range<Annotation> {
+        let ns_pair = match namespace {
+            Some(v) => (v, v),
+            None => (StringID::min_value(), StringID::max_value()),
+        };
+
+        let val_pair = match value {
+            Some(v) => (v, v),
+            None => (StringID::min_value(), StringID::max_value()),
+        };
+
+        let anno_min = Annotation {
+            key: AnnoKey {
+                name,
+                ns: ns_pair.0,
+            },
+            val: val_pair.0,
+        };
+        let anno_max = Annotation {
+            key: AnnoKey {
+                name,
+                ns: ns_pair.1,
+            },
+            val: val_pair.1,
+        };
+
+        anno_min..anno_max
+    }
+
     pub fn guess_max_count(
         &self,
         ns: Option<StringID>,
@@ -272,41 +306,19 @@ impl<T: Ord + Clone> AnnoStorage<T> {
     }
 }
 
-impl<'a> AnnoStorage<NodeID> {
-    pub fn exact_anno_search(
+impl AnnoStorage<NodeID> {
+    pub fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<StringID>,
         name: StringID,
         value: Option<StringID>,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        let ns_pair = match namespace {
-            Some(v) => (v, v),
-            None => (StringID::min_value(), StringID::max_value()),
-        };
-
-        let val_pair = match value {
-            Some(v) => (v, v),
-            None => (StringID::min_value(), StringID::max_value()),
-        };
-
-        let anno_min = Annotation {
-            key: AnnoKey {
-                name,
-                ns: ns_pair.0,
-            },
-            val: val_pair.0,
-        };
-        let anno_max = Annotation {
-            key: AnnoKey {
-                name,
-                ns: ns_pair.1,
-            },
-            val: val_pair.1,
-        };
+        
+        let anno_range = self.anno_range_exact(namespace, name, value);
 
         Box::new(
             self.by_anno
-                .range(anno_min..anno_max)
+                .range(anno_range)
                 .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
                 .map(|m| {
                     Match {
@@ -317,13 +329,13 @@ impl<'a> AnnoStorage<NodeID> {
         )
     }
 
-    pub fn regex_anno_search(
+    pub fn regex_anno_search<'a> (
         &'a self,
         strings : &'a StringStorage,
         namespace: Option<StringID>,
         name: StringID,
         pattern: &str,
-    ) -> Box<Iterator<Item = Match> + 'a> {
+    ) -> Box<Iterator<Item = Match>+'a> {
         
         let ns_pair = match namespace {
             Some(v) => (v, v),
@@ -373,6 +385,31 @@ impl<'a> AnnoStorage<NodeID> {
         // if pattern is invalid return empty iterator
         let empty_it = std::iter::empty::<Match>();
         Box::new(empty_it)
+    }
+}
+
+impl AnnoStorage<Edge> {
+
+    pub fn exact_anno_search<'a>(
+        &'a self,
+        namespace: Option<StringID>,
+        name: StringID,
+        value: Option<StringID>,
+    ) -> Box<Iterator<Item = Match> + 'a> {
+       
+       let anno_range = self.anno_range_exact(namespace, name, value);
+
+        Box::new(
+            self.by_anno
+                .range(anno_range)
+                .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
+                .map(|m| {
+                    Match {
+                        node: m.0.source.clone(),
+                        anno: m.1.clone(),
+                    }
+                }),
+        )
     }
 }
 

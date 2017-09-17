@@ -123,6 +123,8 @@ void annis_asnode_calculate_statistics(annis_ASNodePtr* ptr, annis_StringStorage
 
 annis_MatchIt* annis_asnode_exact_anno_search(annis_ASNodePtr const* ptr, annis_Option_StringID namespace, StringID name, annis_Option_StringID value);
 
+annis_MatchIt* annis_asnode_regex_anno_search(annis_ASNodePtr const* ptr, annis_StringStoragePtr const* strings_ptr, annis_Option_StringID namespace, StringID name, char const* pattern);
+
 annis_ASEdgePtr* annis_asedge_new(void);
 
 void annis_asedge_free(annis_ASEdgePtr* ptr);
@@ -142,6 +144,8 @@ size_t annis_asedge_guess_max_count(annis_ASEdgePtr const* ptr, annis_Option_Str
 size_t annis_asedge_guess_max_count_regex(annis_ASEdgePtr const* ptr, annis_Option_StringID ns, StringID name, char const* pattern);
 
 void annis_asedge_calculate_statistics(annis_ASEdgePtr* ptr, annis_StringStoragePtr const* stringstorage);
+
+annis_MatchIt* annis_asedge_exact_anno_search(annis_ASEdgePtr const* ptr, annis_Option_StringID namespace, StringID name, annis_Option_StringID value);
 
 
 

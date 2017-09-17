@@ -138,6 +138,33 @@ pub extern "C" fn annis_asnode_exact_anno_search(
     Box::into_raw(Box::new(annis_MatchIt(Box::new(it))))
 }
 
+#[no_mangle]
+pub extern "C" fn annis_asnode_regex_anno_search(
+    ptr: *const annis_ASNodePtr,
+    strings_ptr: *const annis_StringStoragePtr,
+    namespace: annis_Option_StringID,
+    name: StringID,
+    pattern: *const libc::c_char
+) -> *mut annis_MatchIt {
+
+    let pattern_str: &str = unsafe {
+        assert!(!pattern.is_null());
+
+        std::ffi::CStr::from_ptr(pattern).to_str().unwrap()
+    };
+
+    let strings = cast_const!(strings_ptr);
+
+    let it = cast_const!(ptr).regex_anno_search(
+        strings,
+        namespace.to_option(),
+        name,
+        pattern_str
+    );
+
+    Box::into_raw(Box::new(annis_MatchIt(Box::new(it))))
+}
+
 
 /*
 AnnoStorage<Edge>
@@ -250,4 +277,20 @@ pub extern "C" fn annis_asedge_calculate_statistics(
     ptr: *mut annis_ASEdgePtr,
     stringstorage: *const annis_StringStoragePtr) {
     cast_mut!(ptr).calculate_statistics(cast_const!(stringstorage));
+}
+
+#[no_mangle]
+pub extern "C" fn annis_asedge_exact_anno_search(
+    ptr: *const annis_ASEdgePtr,
+    namespace: annis_Option_StringID,
+    name: StringID,
+    value: annis_Option_StringID
+) -> *mut annis_MatchIt {
+    let it = cast_const!(ptr).exact_anno_search(
+        namespace.to_option(),
+        name,
+        value.to_option()
+    );
+
+    Box::into_raw(Box::new(annis_MatchIt(Box::new(it))))
 }
