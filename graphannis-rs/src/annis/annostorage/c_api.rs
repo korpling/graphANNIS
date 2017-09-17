@@ -122,6 +122,23 @@ pub extern "C" fn annis_asnode_calculate_statistics(
     cast_mut!(ptr).calculate_statistics(cast_const!(stringstorage));
 }
 
+#[no_mangle]
+pub extern "C" fn annis_asnode_exact_anno_search(
+    ptr: *const annis_ASNodePtr,
+    namespace: annis_Option_StringID,
+    name: StringID,
+    value: annis_Option_StringID
+) -> *mut annis_MatchIt {
+    let it = cast_const!(ptr).exact_anno_search(
+        namespace.to_option(),
+        name,
+        value.to_option()
+    );
+
+    Box::into_raw(Box::new(annis_MatchIt(Box::new(it))))
+}
+
+
 /*
 AnnoStorage<Edge>
 */

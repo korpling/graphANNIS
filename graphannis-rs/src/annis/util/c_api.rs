@@ -106,7 +106,7 @@ impl annis_Vec_Annotation {
 }
 
 #[repr(C)]
-pub struct annis_MatchIt(Box<Iterator<Item = Match>>);
+pub struct annis_MatchIt(pub Box<Iterator<Item = Match>>);
 
 #[repr(C)]
 pub struct annis_Option_Match {
@@ -123,6 +123,12 @@ impl annis_Option_Match {
      }
 }
 
+
+#[no_mangle]
+pub extern "C" fn annis_matchit_free(ptr: *mut annis_MatchIt) {
+    // take ownership and destroy the pointer
+    unsafe { Box::from_raw(ptr) };
+} 
 
 #[no_mangle]
 pub extern "C" fn annis_matchit_next(ptr: *mut annis_MatchIt) -> annis_Option_Match {
