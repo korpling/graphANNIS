@@ -3,6 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std;
 use rand;
 use regex_syntax;
+use regex;
+use annis::stringstorage::StringStorage;
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 pub struct ContainerAnnoKey<T: Ord> {
@@ -313,6 +315,64 @@ impl<'a> AnnoStorage<NodeID> {
                     }
                 }),
         )
+    }
+
+    pub fn regex_anno_search(
+        &'a self,
+        strings : &'a StringStorage,
+        namespace: Option<StringID>,
+        name: StringID,
+        pattern: &str,
+    ) -> Box<Iterator<Item = Match> + 'a> {
+        
+        let ns_pair = match namespace {
+            Some(v) => (v, v),
+            None => (StringID::min_value(), StringID::max_value()),
+        };
+        let val_pair = (StringID::min_value(), StringID::max_value());
+
+        let full_match_pattern = util::regex_full_match(pattern);
+        let compiled_result = regex::Regex::new(&full_match_pattern);
+        if compiled_result.is_ok() {
+            let re = compiled_result.unwrap();
+
+            let anno_min = Annotation {
+                key: AnnoKey {
+                    name,
+                    ns: ns_pair.0,
+                },
+                val: val_pair.0,
+            };
+            let anno_max = Annotation {
+                key: AnnoKey {
+                    name,
+                    ns: ns_pair.1,
+                },
+                val: val_pair.1,
+            };
+
+            let it = self.by_anno
+                .range(anno_min..anno_max)
+                .filter(move |a| {
+                    match strings.str(a.0.val) {
+                        Some(v) => re.is_match(v),
+                        None => false,
+                    }
+                })
+                .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
+                .map(|m| {
+                    Match {
+                        node: m.0.clone(),
+                        anno: m.1.clone(),
+                    }
+                });
+
+            return Box::new(it);
+
+        }
+        // if pattern is invalid return empty iterator
+        let empty_it = std::iter::empty::<Match>();
+        Box::new(empty_it)
     }
 }
 
