@@ -1,21 +1,21 @@
 pub type NodeID = u32;
 pub type StringID = u32;
 
-#[derive(Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 #[repr(C)]
 pub struct AnnoKey {
     pub name: StringID,
     pub ns: StringID,
 }
 
-#[derive(Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 #[repr(C)]
 pub struct Annotation {
     pub key: AnnoKey,
     pub val: StringID,
 }
 
-#[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 #[repr(C)]
 pub struct Edge {
     pub source: NodeID,

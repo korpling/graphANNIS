@@ -5,8 +5,11 @@ use rand;
 use regex_syntax;
 use regex;
 use annis::stringstorage::StringStorage;
+use bincode;
+use serde;
+use serde::de::DeserializeOwned;
 
-#[derive(Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 pub struct ContainerAnnoKey<T: Ord> {
     pub item: T,
     pub key: AnnoKey,
@@ -18,6 +21,7 @@ pub struct Match {
     anno: Annotation,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct AnnoStorage<T: Ord> {
     by_container: BTreeMap<ContainerAnnoKey<T>, StringID>,
     by_anno: BTreeMap<Annotation, BTreeSet<T>>,
@@ -28,7 +32,7 @@ pub struct AnnoStorage<T: Ord> {
 }
 
 
-impl<T: Ord + Clone> AnnoStorage<T> {
+impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
     pub fn new() -> AnnoStorage<T> {
         AnnoStorage {
             by_container: BTreeMap::new(),
@@ -120,6 +124,13 @@ impl<T: Ord + Clone> AnnoStorage<T> {
         }
 
         return result;
+    }
+
+    pub fn clear(&mut self) {
+        self.by_container.clear();
+        self.by_anno.clear();
+        self.anno_keys.clear();
+        self.histogram_bounds.clear();
     }
 
      pub fn anno_range_exact(
@@ -301,6 +312,33 @@ impl<T: Ord + Clone> AnnoStorage<T> {
                         pos_fraction -= num_hist_bounds - 1;
                     }
                 }
+            }
+        }
+    }
+
+    #[allow(unused_must_use)]
+    pub fn save_to_file(&self, path: &str) {
+
+        let f = std::fs::File::create(path).unwrap();
+
+        let mut buf_writer = std::io::BufWriter::new(f);
+
+        bincode::serialize_into(&mut buf_writer, self, bincode::Infinite);
+    }
+
+    pub fn load_from_file(&mut self, path: &str) {
+
+        // always remove all entries first, so even if there is an error the string storage is empty
+        self.clear();
+
+        let f = std::fs::File::open(path);
+        if f.is_ok() {
+            let mut buf_reader = std::io::BufReader::new(f.unwrap());
+
+            let loaded: Result<AnnoStorage<T>, _> =
+                bincode::deserialize_from(&mut buf_reader, bincode::Infinite);
+            if loaded.is_ok() {
+                *self = loaded.unwrap();
             }
         }
     }
