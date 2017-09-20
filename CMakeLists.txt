@@ -213,7 +213,7 @@ set(TEST_SRC_LIST
 set(TEST_EXEC "test_${PROJECT_NAME}")
 
 add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
-add_dependencies(${TEST_EXEC} GoogleTest)
+add_dependencies(${TEST_EXEC} annis GoogleTest)
 
 target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
 target_link_libraries(${TEST_EXEC} annis ${GoogleTest_LIBRARIES})
@@ -229,7 +229,7 @@ if(GRAPHANNIS_BUILD_BENCHMARKS)
   )
   set(ANNIS_BENCHMARK_EXEC "bench_annisqueries")
   add_executable(${ANNIS_BENCHMARK_EXEC}  ${ANNIS_BENCHMARK_SRC_LIST} )
-  add_dependencies(${ANNIS_BENCHMARK_EXEC} Celero)
+  add_dependencies(${ANNIS_BENCHMARK_EXEC} annis Celero)
   target_compile_features(${ANNIS_BENCHMARK_EXEC} PRIVATE ${needed_features})
   target_link_libraries(${ANNIS_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
 
