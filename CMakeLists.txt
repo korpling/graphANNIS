@@ -231,7 +231,7 @@ if(GRAPHANNIS_BUILD_BENCHMARKS)
   add_executable(${ANNIS_BENCHMARK_EXEC}  ${ANNIS_BENCHMARK_SRC_LIST} )
   add_dependencies(${ANNIS_BENCHMARK_EXEC} annis Celero)
   target_compile_features(${ANNIS_BENCHMARK_EXEC} PRIVATE ${needed_features})
-  target_link_libraries(${ANNIS_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
+  target_link_libraries(${ANNIS_BENCHMARK_EXEC} ${CMAKE_THREAD_LIBS_INIT} ${Celero_LIBRARIES} annis  )
 
 
 endif()
