@@ -165,7 +165,7 @@ elseif ( CMAKE_COMPILER_IS_GNUCC )
    endif()
 endif ()
 
-target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Vc_STATIC_LIBRARY} )
+target_link_libraries(annis ${CMAKE_THREAD_LIBS_INIT} ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${Vc_STATIC_LIBRARY} )
 
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
