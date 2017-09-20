@@ -43,7 +43,7 @@ ENDIF()
 
 find_package(ICU 44 REQUIRED)
 set(Boost_USE_STATIC_LIBS   OFF)
-find_package(Boost REQUIRED COMPONENTS system filesystem thread)
+find_package(Boost REQUIRED COMPONENTS chrono system filesystem thread)
 find_package (Threads REQUIRED)
 
 # write found packages to property file which is used by maven
@@ -175,7 +175,7 @@ endif()
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
-target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${Vc_STATIC_LIBRARY} annis)
+target_link_libraries(annis_runner annis)
 
 # install the graphANNIS API and console
 install(TARGETS annis_runner annis
@@ -216,7 +216,7 @@ add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
 add_dependencies(${TEST_EXEC} annis GoogleTest)
 
 target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
-target_link_libraries(${TEST_EXEC} annis ${GoogleTest_LIBRARIES})
+target_link_libraries(${TEST_EXEC} ${GoogleTest_LIBRARIES} annis)
 add_test( ${TEST_EXEC} ${TEST_EXEC} )
 
 
