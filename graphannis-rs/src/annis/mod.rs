@@ -22,6 +22,12 @@ pub struct Edge {
     pub target: NodeID,
 }
 
+impl Edge {
+    pub fn inverse(&self) -> Edge {
+        Edge {source: self.target, target: self.source}
+    }
+}
+
 #[macro_use]
 pub mod util;
 
