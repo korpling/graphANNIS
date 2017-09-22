@@ -1,5 +1,5 @@
 use std;
-use annis::*;
+use annis::{NodeID, Edge, Annotation, AnnoKey};
 
 pub trait ReadableGraphStorage {
 
