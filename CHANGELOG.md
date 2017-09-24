@@ -4,22 +4,20 @@ release 0.4.0
 Fixed Bugs
 ----------
 
+- [#20](https://github.com/thomaskrause/graphANNIS/issues/20) UniqueDFS should output each matched node only once, but still visit each node.
 - [#14](https://github.com/thomaskrause/graphANNIS/issues/14) Do not iterate over covered text positions but use the token index 
 - [#13](https://github.com/thomaskrause/graphANNIS/issues/13) Fix duplicate matches in case a const anno value is used in a base search
 
 Enhancements
 ------------
 
+- [#19](https://github.com/thomaskrause/graphANNIS/issues/19) Update the re2 regex library and make sure it is compiled with -O3 optimizations
 - [#18](https://github.com/thomaskrause/graphANNIS/issues/18) Perform more pessimistic estimates for inclusion and overlap operators
 - [#17](https://github.com/thomaskrause/graphANNIS/issues/17) Optimize meta data search
 - [#16](https://github.com/thomaskrause/graphANNIS/issues/16) Allow base node search by membership in a component
 - [#15](https://github.com/thomaskrause/graphANNIS/issues/15) Better handling of Regular Expressions on a RHS of an index join
 - [#12](https://github.com/thomaskrause/graphANNIS/issues/12) Add support for relANNIS style multiple segmentation
 
-Other
------
-
-- [#19](https://github.com/thomaskrause/graphANNIS/issues/19) Update the re2 regex library and make sure it is compiled with -O3 optimizations
 
 release 0.3.0
 =============
