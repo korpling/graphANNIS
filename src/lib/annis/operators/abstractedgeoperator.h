@@ -31,6 +31,7 @@ namespace annis { class AnnoIt; }
 namespace annis { class NodeByEdgeAnnoSearch; }
 namespace annis { class ReadableGraphStorage; }
 namespace annis { class StringStorage; }
+namespace annis { class EstimatedSearch; }
 
 
 namespace annis
@@ -42,25 +43,25 @@ class AbstractEdgeOperator : public Operator
 public:
   AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
                        DB::GetGSFuncT getGraphStorageFunc,
-                       const StringStorage& strings,
+                       const DB& db,
       unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   AbstractEdgeOperator(ComponentType componentType, std::string name,
                        DB::GetAllGSFuncT getAllGraphStorageFunc,
-                       const StringStorage& strings,
+                       const DB& db,
       unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
 
   AbstractEdgeOperator(
       ComponentType componentType, std::string ns, std::string name,
       DB::GetGSFuncT getGraphStorageFunc,
-      const StringStorage& strings,
+      const DB& db,
       const Annotation& edgeAnno = Init::initAnnotation());
 
   AbstractEdgeOperator(
       ComponentType componentType, std::string name,
       DB::GetAllGSFuncT getAllGraphStorageFunc,
-      const StringStorage& strings,
+      const DB& db,
       const Annotation& edgeAnno = Init::initAnnotation());
 
   virtual std::unique_ptr<AnnoIt> retrieveMatches(const Match& lhs) override;
@@ -78,9 +79,8 @@ public:
 
   virtual std::int64_t guessMaxCountEdgeAnnos();
   
-  virtual std::shared_ptr<NodeByEdgeAnnoSearch> createAnnoSearch(
-      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
-      bool maximalOneNodeAnno,
+  virtual std::shared_ptr<EstimatedSearch> createAnnoSearch(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+      bool maximalOneNodeAnno, bool returnsNothing,
       int64_t wrappedNodeCountEstimate, std::string debugDescription) const;
 
   virtual ~AbstractEdgeOperator();
@@ -89,6 +89,7 @@ private:
   boost::optional<DB::GetGSFuncT> getGraphStorageFunc;
   boost::optional<DB::GetAllGSFuncT> getAllGraphStorageFunc;
 
+  const DB& db;
   const StringStorage& strings;
   std::string ns;
   std::string name;

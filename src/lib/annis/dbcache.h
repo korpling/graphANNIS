@@ -38,13 +38,13 @@ namespace annis {
 
   struct DBCacheKey {
     std::string corpusPath;
-    bool forceFallback;
+    std::string forceGSImpl;
     std::map<Component, std::string> overrideImpl;
   };
 
   inline bool operator<(const struct DBCacheKey &a, const struct DBCacheKey &b)
   {
-    return std::tie(a.corpusPath, a.forceFallback, a.overrideImpl) < std::tie(b.corpusPath, b.forceFallback, b.overrideImpl);
+    return std::tie(a.corpusPath, a.forceGSImpl, a.overrideImpl) < std::tie(b.corpusPath, b.forceGSImpl, b.overrideImpl);
   }
 
   class DBCache {
@@ -60,10 +60,10 @@ namespace annis {
     DBCache(size_t maxSizeBytes=1073741824);
     DBCache(const DBCache& orig) = delete;
 
-    std::shared_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, bool forceFallback = false,
+    std::shared_ptr<DB> get(const std::string& corpusPath, bool preloadEdges, std::string forceGSImpl = "",
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
 
-      DBCacheKey key = {corpusPath, forceFallback, overrideImpl};
+      DBCacheKey key = {corpusPath, forceGSImpl, overrideImpl};
       std::map<DBCacheKey, std::shared_ptr<DB>>::iterator it = cache.find(key);
       if (it == cache.end()) {
         // not included yet, we have to load this database
@@ -83,10 +83,10 @@ namespace annis {
       return it->second;
     }
 
-    void release(const std::string& corpusPath, bool forceFallback = false,
+    void release(const std::string& corpusPath, std::string forceGSImpl = "",
             std::map<Component, std::string> overrideImpl = std::map<Component, std::string>()) {
 
-      release({corpusPath, forceFallback, overrideImpl});
+      release({corpusPath, forceGSImpl, overrideImpl});
     }
 
     void releaseAll() {

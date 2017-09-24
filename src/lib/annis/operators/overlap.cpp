@@ -33,7 +33,6 @@ Overlap::Overlap(const DB &db, DB::GetGSFuncT getGraphStorageFunc)
   gsOrder = getGraphStorageFunc(ComponentType::ORDERING, annis_ns, "");
   gsCoverage = getGraphStorageFunc(ComponentType::COVERAGE, annis_ns, "");
   gsInverseCoverage = getGraphStorageFunc(ComponentType::INVERSE_COVERAGE, annis_ns, "");
-
 }
 
 std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
@@ -60,17 +59,17 @@ std::unique_ptr<AnnoIt> Overlap::retrieveMatches(const annis::Match &lhs)
     std::unique_ptr<EdgeIterator> coveredByLeftIt
         = gsCoverage->findConnected(lhs.node);
     for(auto leftToken = coveredByLeftIt->next();
-        leftToken.first; leftToken = coveredByLeftIt->next())
+        leftToken; leftToken = coveredByLeftIt->next())
     {
 
       // get all nodes that are covering the token
-      std::vector<nodeid_t> overlapCandidates = gsInverseCoverage->getOutgoingEdges(leftToken.second);
+      std::vector<nodeid_t> overlapCandidates = gsInverseCoverage->getOutgoingEdges(*leftToken);
       for(const auto& c : overlapCandidates)
       {
         uniqueResultSet.insert(c);
       }
        // also add the token itself
-      uniqueResultSet.insert(leftToken.second);
+      uniqueResultSet.insert(*leftToken);
     }
   }
 
@@ -107,6 +106,7 @@ double Overlap::selectivity()
 
   auto statsCov = gsCoverage->getStatistics();
   auto statsOrder = gsOrder->getStatistics();
+  auto statsInvCov = gsInverseCoverage->getStatistics();
 
 
   double numOfToken = statsOrder.nodes;
@@ -118,10 +118,12 @@ double Overlap::selectivity()
   }
   else
   {
+    double covered_token_per_node = statsCov.fanOut99Percentile;
+    // for each covered token get the number of inverse covered non-token nodes
+    double aligned_non_token = covered_token_per_node * statsInvCov.fanOut99Percentile;
 
-    // Assume two nodes have overlapping coverage if the left- or right-most covered token is inside the
-    // covered range of the other node.
-    return ((statsCov.avgFanOut*2.0) / numOfToken);
+    double sum_included = covered_token_per_node + aligned_non_token;
+    return sum_included / (double) statsCov.nodes;
   }
 
 }

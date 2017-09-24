@@ -19,7 +19,7 @@
 
 #include "gtest/gtest.h"
 #include <annis/db.h>
-#include <annis/annosearch/annotationsearch.h>
+#include <annis/annosearch/estimatedsearch.h>
 #include <annis/operators/precedence.h>
 #include <annis/operators/overlap.h>
 #include <annis/operators/inclusion.h>
@@ -234,5 +234,23 @@ TEST_F(SearchTestRidges, Inclusion) {
     counter++;
   }
   EXPECT_EQ(152u, counter);
+
+}
+
+// Should test query
+// "Das" .dipl,1,10 "auch"
+TEST_F(SearchTestRidges, DasAuch) {
+
+  ASSERT_TRUE((bool) q);
+
+  unsigned int counter=0;
+
+  while(q->next() && counter < MAX_COUNT)
+  {
+    auto m = q->getCurrent();
+    HL_INFO(logger, (boost::format("Match %1%\t%2%\t%3%") % counter % m[0].node % m[1].node).str()) ;
+    counter++;
+  }
+  EXPECT_EQ(11u, counter);
 
 }

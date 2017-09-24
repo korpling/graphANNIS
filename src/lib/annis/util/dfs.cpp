@@ -84,10 +84,10 @@ bool DFS::enterNode(nodeid_t node, unsigned int distance)
 }
 
 
-std::pair<bool, nodeid_t> DFS::next()
+boost::optional<nodeid_t> DFS::next()
 {
   DFSIteratorResult result = nextDFS();
-  return std::pair<bool, nodeid_t>(result.found, result.node);
+  return result.found ? result.node : boost::optional<nodeid_t>();
 }
 
 
@@ -199,16 +199,20 @@ UniqueDFS::~UniqueDFS()
 void UniqueDFS::reset()
 {
   DFS::reset();
-  visited.clear();
+  outputted.clear();
 }
 
 bool UniqueDFS::enterNode(nodeid_t node, unsigned int distance)
 {
-  visited.insert(node);
-  return DFS::enterNode(node, distance);
-}
+  // always visit all nodes, but do not output a result twice
+  if(DFS::enterNode(node, distance))
+  {
+    if(outputted.find(node) == outputted.end())
+    {
+      outputted.insert(node);
+      return true;
+    }
+  }
 
-bool UniqueDFS::beforeEnterNode(nodeid_t node, unsigned int /* distance */)
-{
-  return visited.find(node) == visited.end();
+  return false;
 }

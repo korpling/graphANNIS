@@ -25,10 +25,18 @@ namespace annis { class StringStorage; }
 using namespace annis;
 
 PartOfSubCorpus::PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc,
-                                 const StringStorage& strings)
+                                 const DB& db)
   : AbstractEdgeOperator(ComponentType::PART_OF_SUBCORPUS,
                          annis_ns, "",
-                         getGraphStorageFunc, strings, 1, std::numeric_limits<unsigned int>::max())
+                         getGraphStorageFunc, db, 1, std::numeric_limits<unsigned int>::max())
+{
+  gs = getGraphStorageFunc(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
+}
+
+PartOfSubCorpus::PartOfSubCorpus(DB::GetGSFuncT getGraphStorageFunc, const DB& db, unsigned int maxDistance)
+  : AbstractEdgeOperator(ComponentType::PART_OF_SUBCORPUS,
+                         annis_ns, "",
+                         getGraphStorageFunc, db, 1, maxDistance)
 {
   gs = getGraphStorageFunc(ComponentType::PART_OF_SUBCORPUS, annis_ns, "");
 }

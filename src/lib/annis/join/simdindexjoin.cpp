@@ -30,8 +30,8 @@ using namespace annis;
 SIMDIndexJoin::SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                              std::shared_ptr<Operator> op,
                              const AnnoStorage<nodeid_t>& annos,
-                             Annotation rhsAnnoToFind)
-  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind)
+                             Annotation rhsAnnoToFind, boost::optional<Annotation> constAnno)
+  : lhs(lhs), lhsIdx(lhsIdx), op(op), annos(annos), rhsAnnoToFind(rhsAnnoToFind), constAnno(constAnno)
 {
 }
 
@@ -47,7 +47,14 @@ bool SIMDIndexJoin::next(std::vector<Match> &tuple)
 
       tuple.reserve(currentLHS.size()+1);
       tuple.insert(tuple.begin(), currentLHS.begin(), currentLHS.end());
-      tuple.push_back({n, rhsAnnoToFind});
+      if(constAnno)
+      {
+        tuple.push_back({n, *constAnno});
+      }
+      else
+      {
+        tuple.push_back({n, rhsAnnoToFind});
+      }
 
       matchBuffer.pop_front();
       return true;
@@ -79,10 +86,16 @@ bool SIMDIndexJoin::fillMatchBuffer()
     std::unique_ptr<AnnoIt> reachableNodesIt = op->retrieveMatches(currentLHS[lhsIdx]);
     if(reachableNodesIt)
     {
-      const bool reflexiveCheckNeeded =
-          !(op->isReflexive()
-            || rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
-          || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name);
+      const bool skipReflexitivityCheck =
+          constAnno ? (
+            op->isReflexive()
+            || constAnno->ns != currentLHS[lhsIdx].anno.ns
+            || constAnno->name != currentLHS[lhsIdx].anno.name
+          ) : (
+          op->isReflexive()
+          || rhsAnnoToFind.ns != currentLHS[lhsIdx].anno.ns
+          || rhsAnnoToFind.name != currentLHS[lhsIdx].anno.name
+        );
 
       annoVals.clear();
       reachableNodes.clear();
@@ -99,24 +112,22 @@ bool SIMDIndexJoin::fillMatchBuffer()
       }
 
       // add padding to make sure there is no invalid memory when copying to SIMD
-      size_t padding = annoVals.size() - (annoVals.size() % Vc::uint32_v::size());
+      size_t padding = Vc::uint32_v::size() - (annoVals.size() % Vc::uint32_v::size());
       if(padding > 0)
       {
-        annoVals.reserve(annoVals.size()+padding);
+        annoVals.resize(annoVals.size()+padding, 0);
         reachableNodes.reserve(annoVals.size()+padding);
       }
 
-      if(reflexiveCheckNeeded)
+      if(skipReflexitivityCheck)
       {
-
         for(size_t i=0; i < annoVals.size() && i < reachableNodes.size(); i += Vc::uint32_v::size())
         {
           // transform the data to SIMD
           Vc::uint32_v v_annoVals(&annoVals[i]);
-          Vc::uint32_v v_reachableNodes(&reachableNodes[i]);
 
-          // search for values that are the same and don't have the same LHS and RHS node
-          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate) && (v_lhsNode != v_reachableNodes);
+          // search for values that are the same
+          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate);
 
           // collect results
           collectResults(v_valid, i);
@@ -128,9 +139,10 @@ bool SIMDIndexJoin::fillMatchBuffer()
         {
           // transform the data to SIMD
           Vc::uint32_v v_annoVals(&annoVals[i]);
+          Vc::uint32_v v_reachableNodes(&reachableNodes[i]);
 
-          // search for values that are the same
-          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate);
+          // search for values that are the same and don't have the same LHS and RHS node
+          Vc::Mask<uint32_t> v_valid = (v_annoVals == valueTemplate) && (v_lhsNode != v_reachableNodes);
 
           // collect results
           collectResults(v_valid, i);

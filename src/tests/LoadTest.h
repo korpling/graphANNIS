@@ -225,7 +225,7 @@ TEST_F(LoadTest, Dom)
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "Tiefe"));
 
-  q.addOperator(std::make_shared<Dominance>("tiger", "", db.f_getGraphStorage, db.strings, 1, uintmax), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("tiger", "", db.f_getGraphStorage, db, 1, uintmax), n1, n2);
 
   while(q.next())
   {
@@ -271,7 +271,7 @@ TEST_F(LoadTest, RangedDom) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "AP"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
-  q.addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db.strings, 3, 5), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db, 3, 5), n1, n2);
 
   while(q.next() && counter < 2000)
   {
@@ -295,7 +295,7 @@ TEST_F(LoadTest, SecEdge) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "tiger", "cat", "S"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_tok, "was"));
 
-  q.addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db.strings), n1, n2);
+  q.addOperator(std::make_shared<Dominance>("", db.f_getAllGraphStorages, db), n1, n2);
 
   while(q.next() && counter < 2000)
   {
@@ -315,7 +315,7 @@ TEST_F(LoadTest, NodesOfDocument) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2/11299"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n2, n1);
 
   int counter=0;
   while(q.next())
@@ -336,7 +336,7 @@ TEST_F(LoadTest, NodesOfToplevelCorpus) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, "pcc2"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n2, n1);
 
   int counter=0;
   while(q.next())
@@ -357,7 +357,7 @@ TEST_F(LoadTest, DocumentAnno) {
   auto n1 = q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "Genre", "Politik"));
   auto n2 = q.addNode(std::make_shared<ExactAnnoKeySearch>(db, annis_ns, annis_tok));
 
-  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), n1, n2);
+  q.addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), n2, n1);
 
   int counter=0;
   while(q.next())

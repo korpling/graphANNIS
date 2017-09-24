@@ -26,7 +26,7 @@
 #include <utility>              // for pair
 #include <vector>               // for vector
 #include <annis/types.h>        // for Annotation, AnnotationKey, Match (ptr...
-#include <annis/annosearch/annotationsearch.h>   // for AnnotationSearch
+#include <annis/annosearch/estimatedsearch.h>   // for EstimatedSearch
 namespace annis { class DB; }
 
 
@@ -34,7 +34,7 @@ namespace annis { class DB; }
 namespace annis
 {
 
-  class RegexAnnoSearch : public AnnotationSearch
+  class RegexAnnoSearch : public EstimatedSearch
   {
     using AnnoItType = AnnoStorage<nodeid_t>::InverseAnnoMap_t::const_iterator;
     using Range = std::pair<AnnoItType, AnnoItType>;
@@ -43,13 +43,19 @@ namespace annis
     RegexAnnoSearch(const DB& db, const std::string &name, const std::string &valRegex);
     RegexAnnoSearch(const DB& db, const std::string &ns, const std::string &name, const std::string &valRegex);
 
-    virtual const std::unordered_set<Annotation>& getValidAnnotations() override
+
+    const std::set<AnnotationKey>& getValidAnnotationKeys() const
     {
-      if (!validAnnotationsInitialized)
+      return annoKeys;
+    }
+
+    bool valueMatches(const std::string& str)
+    {
+      if(compiledValRegex.ok())
       {
-        initValidAnnotations();
+        return RE2::FullMatch(str, compiledValRegex);
       }
-      return validAnnotations;
+      return false;
     }
 
     bool valueMatchesAllStrings() const;
@@ -79,12 +85,9 @@ namespace annis
     boost::optional<std::string> annoKeyNamespace;
     std::string annoKeyName;
 
-    std::unordered_set<Annotation> validAnnotations;
-    bool validAnnotationsInitialized;
-
     std::string valRegex;
     RE2 compiledValRegex;
-    std::vector<Annotation> annoTemplates;
+    std::set<AnnotationKey> annoKeys;
 
     std::list<Range> searchRanges;
     std::list<Range>::const_iterator currentRange;
@@ -92,9 +95,10 @@ namespace annis
 
     const std::string debugDescription;
 
+    std::unordered_set<nodeid_t> uniqueResultFilter;
+
   private:
-    
-    void initValidAnnotations();
+    void initializeValidAnnotationKeys();
     
   };
 } // end namespace annis

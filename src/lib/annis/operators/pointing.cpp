@@ -26,35 +26,35 @@ using namespace annis;
 
 Pointing::Pointing(std::string ns, std::string name,
                    DB::GetGSFuncT getGraphStorageFunc,
-                   const StringStorage& strings,
+                   const DB& db,
                    unsigned int minDistance, unsigned int maxDistance)
   : AbstractEdgeOperator(ComponentType::POINTING, ns, name,
-                         getGraphStorageFunc, strings, minDistance, maxDistance)
+                         getGraphStorageFunc, db, minDistance, maxDistance)
 {
 }
 
 Pointing::Pointing(std::string name,
                    DB::GetAllGSFuncT getAllGraphStorageFunc,
-                   const StringStorage& strings,
+                   const DB& db,
                    unsigned int minDistance, unsigned int maxDistance)
   : AbstractEdgeOperator(ComponentType::POINTING, name,
-                         getAllGraphStorageFunc, strings, minDistance, maxDistance)
+                         getAllGraphStorageFunc, db, minDistance, maxDistance)
 {
 }
 
 Pointing::Pointing(std::string ns, std::string name,
                    DB::GetGSFuncT getGraphStorageFunc,
-                   const StringStorage &strings, const Annotation &edgeAnno)
+                   const DB& db, const Annotation &edgeAnno)
   : AbstractEdgeOperator(ComponentType::POINTING, ns, name,
-                         getGraphStorageFunc, strings, edgeAnno)
+                         getGraphStorageFunc, db, edgeAnno)
 {
 }
 
 Pointing::Pointing(std::string name,
                    DB::GetAllGSFuncT getAllGraphStorageFunc,
-                   const StringStorage &strings, const Annotation &edgeAnno)
+                   const DB& db, const Annotation &edgeAnno)
   : AbstractEdgeOperator(ComponentType::POINTING, name,
-                         getAllGraphStorageFunc, strings, edgeAnno)
+                         getAllGraphStorageFunc, db, edgeAnno)
 {
 }
 

@@ -34,15 +34,18 @@
 #include "annis/stringstorage.h"                    // for StringStorage
 #include <annis/types.h>
 
+#include <annis/annosearch/exactannokeysearch.h>
+
 using namespace annis;
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
                      DB::GetGSFuncT getGraphStorageFunc,
-                     const StringStorage& strings,
+                     const DB& db,
                      unsigned int minDistance, unsigned int maxDistance)
   : componentType(componentType),
     getGraphStorageFunc(getGraphStorageFunc),
-    strings(strings), ns(ns), name(name),
+    db(db),
+    strings(db.strings), ns(ns), name(name),
     minDistance(minDistance), maxDistance(maxDistance),
     anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
 {
@@ -51,11 +54,12 @@ AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::str
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string name,
                      DB::GetAllGSFuncT getAllGraphStorageFunc,
-                     const StringStorage& strings,
+                     const DB& db,
                      unsigned int minDistance, unsigned int maxDistance)
   : componentType(componentType),
     getAllGraphStorageFunc(getAllGraphStorageFunc),
-    strings(strings), ns(""), name(name),
+    db(db),
+    strings(db.strings), ns(""), name(name),
     minDistance(minDistance), maxDistance(maxDistance),
     anyAnno(Init::initAnnotation()), edgeAnno(anyAnno)
 {
@@ -65,11 +69,12 @@ AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::str
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string ns, std::string name,
     DB::GetGSFuncT getGraphStorageFunc,
-    const StringStorage& strings,
+    const DB& db,
     const Annotation& edgeAnno)
   : componentType(componentType),
     getGraphStorageFunc(getGraphStorageFunc),
-    strings(strings), ns(ns), name(name),
+    db(db),
+    strings(db.strings), ns(ns), name(name),
     minDistance(1), maxDistance(1),
     anyAnno(Init::initAnnotation()), edgeAnno(edgeAnno)
 {
@@ -78,11 +83,12 @@ AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::str
 
 AbstractEdgeOperator::AbstractEdgeOperator(ComponentType componentType, std::string name,
     DB::GetAllGSFuncT getAllGraphStorageFunc,
-    const StringStorage& strings,
+    const DB& db,
     const Annotation& edgeAnno)
   : componentType(componentType),
     getAllGraphStorageFunc(getAllGraphStorageFunc),
-    strings(strings), ns(""), name(name),
+    db(db),
+    strings(db.strings), ns(""), name(name),
     minDistance(1), maxDistance(1),
     anyAnno(Init::initAnnotation()), edgeAnno(edgeAnno)
 {
@@ -99,13 +105,13 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
   if(gs.size() == 1)
   {
      std::unique_ptr<EdgeIterator> it = gs[0]->findConnected(lhs.node, minDistance, maxDistance);
-     for(auto m = it->next(); m.first; m = it->next())
+     for(auto m = it->next(); m; m = it->next())
      {
-       if(checkEdgeAnnotation(gs[0], lhs.node, m.second))
+       if(checkEdgeAnnotation(gs[0], lhs.node, *m))
        {
          // directly add the matched node since when having only one component
          // no duplicates are possible
-         w->addMatch(m.second);
+         w->addMatch(*m);
        }
      }
   }
@@ -115,11 +121,11 @@ std::unique_ptr<AnnoIt> AbstractEdgeOperator::retrieveMatches(const Match &lhs)
     for(auto e : gs)
     {
       std::unique_ptr<EdgeIterator> it = e->findConnected(lhs.node, minDistance, maxDistance);
-      for(auto m = it->next(); m.first; m = it->next())
+      for(auto m = it->next(); m; m = it->next())
       {
-        if(checkEdgeAnnotation(e, lhs.node, m.second))
+        if(checkEdgeAnnotation(e, lhs.node, *m))
         {
-          uniqueResult.insert(m.second);
+          uniqueResult.insert(*m);
         }
       }
     }
@@ -200,7 +206,10 @@ double AbstractEdgeOperator::selectivity()
     // will not find anything
     return 0.0;
   }
-  
+
+  ExactAnnoKeySearch nodeSearch(db, annis_ns, annis_node_name);
+  double maxNodes = nodeSearch.guessMaxCount();
+
   double worstSel = 0.0;
   
   for(std::weak_ptr<const ReadableGraphStorage> gPtr: gs)
@@ -227,7 +236,9 @@ double AbstractEdgeOperator::selectivity()
         std::uint32_t reachableMin = static_cast<std::uint32_t>(std::ceil(stat.avgFanOut * (double) minPathLength));
 
         std::uint32_t reachable =  reachableMax - reachableMin;
-        graphStorageSelectivity = ((double) reachable ) / ((double) stat.nodes);
+        double p_nodeInStorage = (double) stat.nodes / maxNodes;
+
+        graphStorageSelectivity = p_nodeInStorage * ((double) reachable ) / ((double) stat.nodes);
 
       }
       else
@@ -284,7 +295,16 @@ int64_t AbstractEdgeOperator::guessMaxCountEdgeAnnos()
 {
   if(edgeAnno == anyAnno)
   {
-    return -1;
+
+    if(gs.size() == 1)
+    {
+      return gs[0]->getStatistics().nodes;
+    }
+    else
+    {
+      // TODO: implement graph storage source node search for multiple graph storages
+      return -1;
+    }
   }
   else
   {
@@ -300,15 +320,24 @@ int64_t AbstractEdgeOperator::guessMaxCountEdgeAnnos()
   }
 }
 
-std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
+std::shared_ptr<EstimatedSearch> AbstractEdgeOperator::createAnnoSearch(
     std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
     bool maximalOneNodeAnno,
+    bool returnsNothing,
     std::int64_t wrappedNodeCountEstimate,
     std::string debugDescription) const
 {
   if(edgeAnno == anyAnno)
   {
-    return std::shared_ptr<NodeByEdgeAnnoSearch>();
+    if(gs.size() == 1)
+    {
+      return gs[0]->getSourceNodeIterator(nodeAnnoMatchGenerator, maximalOneNodeAnno, returnsNothing);
+    }
+    else
+    {
+      // TODO: implement graph storage source node search for multiple graph storages
+      return std::shared_ptr<EstimatedSearch>();
+    }
   }
   else
   {
@@ -337,6 +366,7 @@ std::shared_ptr<NodeByEdgeAnnoSearch> AbstractEdgeOperator::createAnnoSearch(
     }
     return std::make_shared<NodeByEdgeAnnoSearch>(gs, validEdgeAnnos, nodeAnnoMatchGenerator,
                                                   maximalOneNodeAnno,
+                                                  returnsNothing,
                                                   wrappedNodeCountEstimate, debugDescription);
   }
 }

@@ -22,6 +22,8 @@
 #include <cereal/types/polymorphic.hpp>  // for base_class
 #include <memory>                       // for unique_ptr
 #include <vector>                       // for vector
+#include <annis/iterators.h>
+#include <annis/annosearch/estimatedsearch.h>
 
 namespace annis { class DB; }
 namespace annis { class StringStorage; }
@@ -65,10 +67,14 @@ public:
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const = 0;
 
 
+
   virtual size_t numberOfEdges() const = 0;
   virtual size_t numberOfEdgeAnnotations() const = 0;
 
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const = 0;
+
+  virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno, bool returnsNothing) const = 0;
 
   virtual GraphStatistic getStatistics() const
   {
@@ -103,8 +109,6 @@ public:
   virtual void deleteNode(nodeid_t node) = 0;
   virtual void deleteEdgeAnnotation(const Edge& edge, const AnnotationKey& anno) = 0;
 
-
-  virtual void calculateIndex() {}
 
   template<class Archive>
   void serialize(Archive & archive)

@@ -361,7 +361,7 @@ std::vector<Node> CorpusStorageManager::subcorpusGraph(std::string corpus, std::
         size_t corpusIdx = q->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_name, sourceCorpusID));
         size_t anyNodeIdx = q->addNode(std::make_shared<ExactAnnoValueSearch>(db, annis_ns, annis_node_type, "node"));
 
-        q->addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db.strings), corpusIdx, anyNodeIdx);
+        q->addOperator(std::make_shared<PartOfSubCorpus>(db.f_getGraphStorage, db), corpusIdx, anyNodeIdx);
 
         alts.push_back(q);
       }

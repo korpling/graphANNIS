@@ -18,18 +18,21 @@
 
 #include <annis/queryconfig.h>  // for QueryConfig
 #include <annis/types.h>        // for AnnotationKey, Match, nodeid_t
+
 #include <stddef.h>             // for size_t
 #include <map>                  // for map
 #include <memory>               // for shared_ptr
 #include <set>                  // for set
 #include <string>               // for string
 #include <vector>               // for vector
-namespace annis { class AnnoIt; }  // lines 34-34
-namespace annis { class AnnotationKeySearch; }  // lines 36-36
-namespace annis { class AnnotationSearch; }  // lines 35-35
-namespace annis { class DB; }  // lines 33-33
-namespace annis { class Operator; }  // lines 32-32
+#include <functional>
+
+namespace annis { class AnnoIt; }
+namespace annis { class EstimatedSearch; }
+namespace annis { class DB; }
+namespace annis { class Operator; }
 namespace annis { class Plan; }
+namespace annis { class ExecutionEstimate; }
 
 namespace annis
 {
@@ -54,8 +57,9 @@ public:
    * @param n The initial source
    * @return new node number
    */
-  size_t addNode(std::shared_ptr<AnnotationSearch> n, bool wrapAnyNodeAnno = false);
-  size_t addNode(std::shared_ptr<AnnotationKeySearch> n, bool wrapAnyNodeAnno = false);
+  size_t addNode(std::shared_ptr<EstimatedSearch> n, bool wrapAnyNodeAnno = false);
+
+  void addFilter(size_t node, std::function<bool(const Match &)> filterFunc, std::string description="");
 
   /**
    * @brief add an operator to the execution queue
@@ -82,6 +86,7 @@ private:
 
   std::shared_ptr<Plan> bestPlan;
   std::vector<std::shared_ptr<AnnoIt>> nodes;
+  std::multimap<size_t, std::pair<std::function<bool(const Match &)>, std::string >> filtersByNode;
   std::vector<OperatorEntry> operators;
 
   std::set<AnnotationKey> emptyAnnoKeySet;
@@ -100,6 +105,7 @@ private:
   
   std::shared_ptr<Plan> createPlan(const std::vector<std::shared_ptr<AnnoIt>>& nodes,
                                    const std::vector<OperatorEntry>& operators,
+                                   std::map<size_t, std::shared_ptr<ExecutionEstimate>>& baseEstimateCache,
                                    std::map<size_t, size_t> parallelizationMapping = std::map<size_t,size_t>());
   
   void optimizeUnboundRegex();
@@ -108,8 +114,8 @@ private:
 
   void optimizeEdgeAnnoUsage();
   
-  void optimizeJoinOrderRandom();
-  void optimizeJoinOrderAllPermutations();
+  void optimizeJoinOrderRandom(std::map<size_t, std::shared_ptr<ExecutionEstimate> > &baseEstimateCache);
+  void optimizeJoinOrderAllPermutations(std::map<size_t, std::shared_ptr<ExecutionEstimate> > &baseEstimateCache);
 
   void updateComponentForNodes(std::map<nodeid_t, size_t>& node2component, size_t from, size_t to);
   

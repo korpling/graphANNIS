@@ -393,7 +393,7 @@ TEST_F(SearchTestPcc2, IndirectPointingNested) {
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "pper"));
 
-  q.addOperator(std::make_shared<Pointing>("anaphor_antecedent", db.f_getAllGraphStorages, db.strings, 1, uintmax), 1, 0, true);
+  q.addOperator(std::make_shared<Pointing>("anaphor_antecedent", db.f_getAllGraphStorages, db, 1, uintmax), 1, 0, true);
 
   while (q.next() && counter < 2000) {
     std::vector<Match> m = q.getCurrent();
@@ -431,7 +431,7 @@ TEST_F(SearchTestPcc2, DirectPointingNested) {
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "defnp"));
   q.addNode(std::make_shared<ExactAnnoValueSearch>(db, "mmax", "np_form", "pper"));
 
-  q.addOperator(std::make_shared<Pointing>("anaphor_antecedent", db.f_getAllGraphStorages, db.strings, 1, 1), 1, 0, true);
+  q.addOperator(std::make_shared<Pointing>("anaphor_antecedent", db.f_getAllGraphStorages, db, 1, 1), 1, 0, true);
 
   while (q.next() && counter < 2000) {
     std::vector<Match> m = q.getCurrent();
@@ -473,7 +473,7 @@ TEST_F(SearchTestPcc2, DirectPointingWithAnnoNested) {
   std::shared_ptr<Operator> op =
           std::make_shared<Pointing>(
           "dep",
-          db.f_getAllGraphStorages, db.strings,
+          db.f_getAllGraphStorages, db,
           Init::initAnnotation(db.strings.add("func"), db.strings.add("punct")));
   q.addOperator(op, 0, 1, true);
 

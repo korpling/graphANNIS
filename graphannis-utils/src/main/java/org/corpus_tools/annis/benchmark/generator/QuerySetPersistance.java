@@ -114,7 +114,7 @@ public class QuerySetPersistance
       try
       {
         String raw = Files.asCharSource(fTime, StandardCharsets.UTF_8).read();
-        q.setExecutionTime(Optional.of(Long.parseLong(raw.trim())));
+        q.setExecutionTime(Optional.of(Double.parseDouble(raw.trim())));
       }
       catch(IOException ex)
       {
@@ -169,12 +169,13 @@ public class QuerySetPersistance
     
     String name = q.getName();
     File fAQL = new File(parentDir, name + ".aql");
-    Files.write(q.getAql() + "\n", fAQL, StandardCharsets.UTF_8);
+    String aql = q.getAql();
+    Files.write(q.getAql(), fAQL, StandardCharsets.UTF_8);
     
     if(q.getJson() != null)
     {
       File fJSON = new File(parentDir, name + ".json");
-      Files.write(q.getJson(), fJSON, StandardCharsets.UTF_8); 
+      Files.write(q.getJson().trim(), fJSON, StandardCharsets.UTF_8); 
     }
     if(q.getCount().isPresent())
     {

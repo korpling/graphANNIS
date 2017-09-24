@@ -50,11 +50,22 @@ std::shared_ptr<DB> DBCache::initDB(const DBCacheKey& key, bool preloadEdges) {
     exit(-1);
   }
 
-  if (key.forceFallback) {
-    // manually convert all components to fallback implementation
+  if (key.forceGSImpl != "") {
+    // manually convert all components to forced implementation
     auto components = result->getAllComponents();
-    for (auto c : components) {
-      result->convertComponent(c, GraphStorageRegistry::fallback);
+    for (auto c : components)
+    {
+      // only force implementation for the non-explicity given components
+      if(key.overrideImpl.find(c) == key.overrideImpl.end())
+      {
+        result->convertComponent(c, key.forceGSImpl);
+      }
+    }
+
+    // convert components that are manually overriden
+    for(auto overrideEntry : key.overrideImpl)
+    {
+      result->convertComponent(overrideEntry.first, overrideEntry.second);
     }
   }
 

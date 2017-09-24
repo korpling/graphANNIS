@@ -26,6 +26,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     cmake_minimum_required(VERSION 3.4)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   endif()
+  # CMake defaults to /W3, but some users like /W4 (or /Wall) and /WX,
+  # so we disable various warnings that aren't particularly helpful.
+  add_compile_options(/wd4100 /wd4201 /wd4456 /wd4457 /wd4702 /wd4815)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-std=c++11)
 endif()
@@ -72,59 +75,59 @@ set(RE2_SOURCES
 
 add_library(re2 ${RE2_SOURCES})
 
-set(TESTING_SOURCES
-    re2/testing/backtrack.cc
-    re2/testing/dump.cc
-    re2/testing/exhaustive_tester.cc
-    re2/testing/null_walker.cc
-    re2/testing/regexp_generator.cc
-    re2/testing/string_generator.cc
-    re2/testing/tester.cc
-    util/pcre.cc
-    )
+if(RE2_BUILD_TESTING)
+  set(TESTING_SOURCES
+      re2/testing/backtrack.cc
+      re2/testing/dump.cc
+      re2/testing/exhaustive_tester.cc
+      re2/testing/null_walker.cc
+      re2/testing/regexp_generator.cc
+      re2/testing/string_generator.cc
+      re2/testing/tester.cc
+      util/pcre.cc
+      )
 
-add_library(testing STATIC ${TESTING_SOURCES})
+  add_library(testing STATIC ${TESTING_SOURCES})
 
-set(TEST_TARGETS
-    charclass_test
-    compile_test
-    filtered_re2_test
-    mimics_pcre_test
-    parse_test
-    possible_match_test
-    re2_test
-    re2_arg_test
-    regexp_test
-    required_prefix_test
-    search_test
-    set_test
-    simplify_test
-    string_generator_test
+  set(TEST_TARGETS
+      charclass_test
+      compile_test
+      filtered_re2_test
+      mimics_pcre_test
+      parse_test
+      possible_match_test
+      re2_test
+      re2_arg_test
+      regexp_test
+      required_prefix_test
+      search_test
+      set_test
+      simplify_test
+      string_generator_test
 
-    dfa_test
-    exhaustive1_test
-    exhaustive2_test
-    exhaustive3_test
-    exhaustive_test
-    random_test
-    )
+      dfa_test
+      exhaustive1_test
+      exhaustive2_test
+      exhaustive3_test
+      exhaustive_test
+      random_test
+      )
 
-set(BENCHMARK_TARGETS
-    regexp_benchmark
-    )
+  set(BENCHMARK_TARGETS
+      regexp_benchmark
+      )
 
-foreach(target ${TEST_TARGETS})
-  add_executable(${target} re2/testing/${target}.cc util/test.cc)
-  target_link_libraries(${target} testing re2 ${EXTRA_TARGET_LINK_LIBRARIES})
-  if(RE2_BUILD_TESTING)
+  foreach(target ${TEST_TARGETS})
+    add_executable(${target} re2/testing/${target}.cc util/test.cc)
+    target_link_libraries(${target} testing re2 ${EXTRA_TARGET_LINK_LIBRARIES})
     add_test(NAME ${target} COMMAND ${target})
-  endif()
-endforeach(target)
+  endforeach(target)
 
-foreach(target ${BENCHMARK_TARGETS})
-  add_executable(${target} re2/testing/${target}.cc util/benchmark.cc)
-  target_link_libraries(${target} testing re2 ${EXTRA_TARGET_LINK_LIBRARIES})
-endforeach(target)
+  foreach(target ${BENCHMARK_TARGETS})
+    add_executable(${target} re2/testing/${target}.cc util/benchmark.cc)
+    target_link_libraries(${target} testing re2 ${EXTRA_TARGET_LINK_LIBRARIES})
+  endforeach(target)
+endif()
 
 set(RE2_HEADERS
     re2/filtered_re2.h

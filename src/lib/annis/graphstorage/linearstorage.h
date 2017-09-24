@@ -36,6 +36,7 @@
 #include "annis/db.h"                             // for DB
 #include "annis/iterators.h"                      // for EdgeIterator
 #include "annis/types.h"                          // for nodeid_t, Edge, Rel...
+#include <annis/annosearch/estimatedsearch.h>
 
 
 namespace annis
@@ -62,7 +63,7 @@ public:
       reset();
     }
 
-    virtual std::pair<bool, nodeid_t> next() override
+    virtual boost::optional<nodeid_t> next() override
     {
       bool found = false;
       nodeid_t node = 0;
@@ -73,7 +74,7 @@ public:
         chain->at(currentPos);
         currentPos++;
       }
-      return std::pair<bool, nodeid_t>(found, node);
+      return found ? node : boost::optional<nodeid_t>();
     }
 
     virtual void reset() override
@@ -123,6 +124,81 @@ public:
     unsigned int currentPos;
     unsigned int endPos;
 
+  };
+
+  class NodeIt : public BufferedEstimatedSearch
+  {
+  public:
+    using OrderIt = typename map_t<nodeid_t, RelativePosition<pos_t>>::const_iterator;
+
+    NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+           bool returnsNothing,
+           const LinearStorage<pos_t>& storage)
+      : BufferedEstimatedSearch(maximalOneNodeAnno, returnsNothing),
+        nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
+        it(storage.node2pos.begin()), itStart(storage.node2pos.begin()), itEnd(storage.node2pos.end()),
+        maxCount(storage.stat.nodes)
+    {
+
+    }
+
+
+    bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) override
+    {
+      currentMatchBuffer.clear();
+      while(it != itEnd)
+      {
+        if(!lastNode || *lastNode != it->first)
+        {
+          if(getConstAnnoValue())
+          {
+            currentMatchBuffer.push_back({it->first, *getConstAnnoValue()});
+          }
+          else
+          {
+            for(const Annotation& anno : nodeAnnoMatchGenerator(it->first))
+            {
+              currentMatchBuffer.push_back({it->first, anno});
+            }
+          }
+
+          lastNode = it->first;
+          return true;
+        }
+
+        it++;
+      }
+      return false;
+    }
+
+    virtual void reset() override
+    {
+      BufferedEstimatedSearch::reset();
+      it = itStart;
+      lastNode.reset();
+    }
+
+    virtual std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator() override
+    {
+      return nodeAnnoMatchGenerator;
+    }
+
+    virtual std::int64_t guessMaxCount() const override
+    {
+      return maxCount;
+    }
+
+    virtual ~NodeIt() {}
+  private:
+    const std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
+
+    OrderIt it;
+    OrderIt itStart;
+    OrderIt itEnd;
+
+    boost::optional<nodeid_t> lastNode;
+
+    std::int64_t maxCount;
   };
 
 
@@ -189,10 +265,10 @@ public:
       CycleSafeDFS it(orig, rootNode, 1, uintmax);
 
       uint32_t pos=1;
-      for(std::pair<bool, nodeid_t> node = it.next(); node.first; node = it.next(), pos++)
+      for(boost::optional<nodeid_t> node = it.next(); node; node = it.next(), pos++)
       {
-        chain.push_back(node.second);
-        node2pos[node.second] = {rootNode, (pos_t)(chain.size()-1)};
+        chain.push_back(*node);
+        node2pos[*node] = {rootNode, (pos_t)(chain.size()-1)};
       }
     }
 
@@ -298,6 +374,13 @@ public:
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
   {
     return edgeAnno;
+  }
+
+  virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+      bool maximalOneNodeAnno, bool returnsNothing) const override
+  {
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, returnsNothing, *this);
   }
 
   virtual size_t estimateMemorySize() override

@@ -83,7 +83,7 @@ public class QueryToJSON
     ObjectNode root = factory.objectNode();
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(jaxbModule);
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     
     if (query != null && !query.isEmpty())
     {
@@ -136,6 +136,19 @@ public class QueryToJSON
                 "negation not supported yet");
             }
           }
+          if(metaData != null)
+          {
+            for(QueryAnnotation anno : metaData)
+            {
+              if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
+                || anno.getTextMatching()== QueryNode.TextMatching.REGEXP_NOT_EQUAL)
+              {
+                throw new AnnisQLSyntaxException(
+                  "negation not supported yet");
+              }
+            }
+          }
+          
           JsonNode nodeObject = mapper.valueToTree(n);
           // manually remove some internal fields
           if (nodeObject instanceof ObjectNode)
@@ -229,6 +242,10 @@ public class QueryToJSON
       Precedence prec = (Precedence) join;
       node.put("minDistance", (long) prec.getMinDistance());
       node.put("maxDistance", (long) prec.getMaxDistance());
+      if(prec.getSegmentationName() != null)
+      {
+        node.put("segmentation-name", prec.getSegmentationName());
+      }
     }
     else if (join instanceof Overlap)
     {

@@ -48,7 +48,7 @@ public:
       unsigned int minDistance, unsigned int maxDistance);
 
   virtual DFSIteratorResult nextDFS();
-  virtual std::pair<bool, nodeid_t> next() override;
+  virtual boost::optional<nodeid_t> next() override;
 
   void reset() override;
   virtual ~DFS() {}
@@ -79,7 +79,7 @@ private:
 };
 
 /**
- * @brief Traverses a graph and visits any node at maximum once.
+ * @brief Traverses a graph and outputs any node at maximum once.
  */
 class UniqueDFS : public DFS
 {
@@ -92,12 +92,11 @@ public:
 protected:
   virtual void reset() override;
   virtual bool enterNode(nodeid_t node, unsigned int distance) override;
-  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance) override;
 
 
 private:
 
-  std::set<nodeid_t> visited;
+  std::set<nodeid_t> outputted;
 };
 
 

@@ -31,6 +31,14 @@
 
 HUMBLE_LOGGER(logger, "default");
 
+#ifdef ENABLE_VALGRIND
+  #include <valgrind/callgrind.h>
+#else
+  #define CALLGRIND_STOP_INSTRUMENTATION
+
+  #define CALLGRIND_START_INSTRUMENTATION
+#endif // ENABLE_VALGRIND
+
 using namespace annis;
 
 Console::Console()
@@ -161,12 +169,37 @@ void Console::save(const std::vector<std::string> &args)
 
 void Console::load(const std::vector<std::string> &args)
 {
-
+  CALLGRIND_STOP_INSTRUMENTATION;
   if(args.size() > 0)
   {
     std::cout << "Loading from " << args[0] << std::endl;
     auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
-    db = dbCache.get(args[0], args.size() > 1 && args[1] == "preload");
+
+    std::set<std::string> options;
+    for(int i=1; i < args.size(); i++)
+    {
+      options.insert(args[i]);
+    }
+
+    bool preload = options.find("preload") != options.end();
+
+    std::string forceGSImpl = "";
+    std::map<Component, std::string> overrideImpl;
+    if(options.find("adjancency") != options.end())
+    {
+      forceGSImpl = GraphStorageRegistry::adjacencylist;
+    }
+    else if( options.find("prepost") != options.end())
+    {
+      forceGSImpl = GraphStorageRegistry::prepostorderO32L32;
+      Component leftComponent = {ComponentType::LEFT_TOKEN, annis_ns, ""};
+      Component rightComponent = {ComponentType::RIGHT_TOKEN, annis_ns, ""};
+
+      overrideImpl[leftComponent] = GraphStorageRegistry::adjacencylist;
+      overrideImpl[rightComponent] = GraphStorageRegistry::adjacencylist;
+    }
+
+    db = dbCache.get(args[0], preload, forceGSImpl, overrideImpl);
     auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
     std::cout << "Loaded in " << (endTime - startTime) << " ms" << std::endl;
   }
@@ -174,6 +207,7 @@ void Console::load(const std::vector<std::string> &args)
   {
     std::cout << "You have to give a path as argument" << std::endl;
   }
+  CALLGRIND_START_INSTRUMENTATION;
 
 }
 
@@ -247,21 +281,32 @@ void Console::find(const std::vector<std::string> &args)
         while(q->next())
         {
           std::vector<annis::Match> m = q->getCurrent();
+          std::vector<annis::Match> outputMatches;
+          outputMatches.reserve(m.size());
+
+          // filter out the non-node matches (meta nodes)
           for(size_t i = 0; i < m.size(); i++)
           {
             const auto& n = m[i];
+
             if(db->getNodeType(n.node) == "node")
             {
-              std::cout << db->getNodeDebugName(n.node);
-              if(n.anno.ns != 0 && n.anno.name != 0)
-              {
-                std::cout << " " << db->strings.str(n.anno.ns)
-                  << "::" << db->strings.str(n.anno.name);
-              }
-              if(i < m.size()-1)
-              {
-               std::cout << ", ";
-              }
+              outputMatches.push_back(n);
+            }
+          }
+          // output the resulting matches separated by comma
+          for(size_t i = 0; i < outputMatches.size(); i++)
+          {
+            const auto& n = outputMatches[i];
+            std::cout << db->getNodeDebugName(n.node);
+            if(n.anno.ns != 0 && n.anno.name != 0)
+            {
+              std::cout << " " << db->strings.str(n.anno.ns)
+                << "::" << db->strings.str(n.anno.name);
+            }
+            if(i < outputMatches.size()-1)
+            {
+             std::cout << ", ";
             }
           }
           std::cout << std::endl;
@@ -319,11 +364,12 @@ void Console::guessRegex(const std::vector<std::string> &args)
 
     if(args.size() == 3)
     {
-      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], args[1], args[2]) << std::endl;
+
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], args[1], re2::RE2(args[2])) << std::endl;
     }
     else if(args.size() == 2)
     {
-      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], args[1]) << std::endl;
+      std::cout << "Guessed maximum count: " << db->nodeAnnos.guessMaxCountRegex(db->strings, args[0], re2::RE2(args[1])) << std::endl;
     }
     else
     {
@@ -345,7 +391,12 @@ void Console::plan(const std::vector<std::string> &args)
       try
       {
         std::shared_ptr<annis::Query> q = annis::JSONQueryParser::parse(*db, ss, config);
-        std::cout << q->debugString() << std::endl;
+        auto startTime = annis::Helper::getSystemTimeInMilliSeconds();
+        std::string debugStr = q->debugString();
+        auto endTime = annis::Helper::getSystemTimeInMilliSeconds();
+        std::cout << debugStr << std::endl;
+
+        std::cout << "planned in " << (endTime - startTime) << " ms" << std::endl;
       }
       catch(Json::RuntimeError err)
       {

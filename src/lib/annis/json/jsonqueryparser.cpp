@@ -77,7 +77,7 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGr
     for (auto it = nodes.begin(); it != nodes.end(); it++)
     {
       auto& n = *it;
-      size_t pos = parseNode(db, n, q);
+      size_t pos = parseNode(db, n, getGraphStorageFunc, q);
       nodeIdToPos[std::stoull(it.name())] = pos;
       if(!firstNodePos)
       {
@@ -102,20 +102,20 @@ std::shared_ptr<Query> JSONQueryParser::parse(const DB& db, DB::GetGSFuncT getGr
       // add an artificial node that describes the document/corpus node
       size_t metaNodeIdx = addNodeAnnotation(db, q, optStr(m["namespace"]),
             optStr(m["name"]), optStr(m["value"]),
-            optStr(m["textMatching"]));
+            optStr(m["textMatching"]), true);
 
       if(firstMetaIdx)
       {
         // avoid nested loops by joining additional meta nodes with a "identical node"
-        q->addOperator(std::make_shared<IdenticalNode>(db), metaNodeIdx, *firstMetaIdx);
+        q->addOperator(std::make_shared<IdenticalNode>(db), *firstMetaIdx, metaNodeIdx);
 
       }
       else
       {
         firstMetaIdx = metaNodeIdx;
         // add a special join to the first node of the query
-        q->addOperator(std::make_shared<PartOfSubCorpus>(getGraphStorageFunc, db.strings),
-          metaNodeIdx, *firstNodePos);
+        q->addOperator(std::make_shared<PartOfSubCorpus>(getGraphStorageFunc, db, 1),
+          *firstNodePos, metaNodeIdx);
 
       }
     }
@@ -163,7 +163,7 @@ std::shared_ptr<Query> JSONQueryParser::parseWithUpgradeableLock(DB &db,
   return annis::JSONQueryParser::parse(db, func, allFunc, ss, config);
 }
 
-size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::shared_ptr<SingleAlternativeQuery> q)
+size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, DB::GetGSFuncT getGraphStorageFunc, std::shared_ptr<SingleAlternativeQuery> q)
 {
 
   // annotation search?
@@ -182,11 +182,27 @@ size_t JSONQueryParser::parseNode(const DB& db, const Json::Value node, std::sha
     // check for special non-annotation search constructs
     // token search?
     if (node["spannedText"].isString()
-      || (node["token"].isBool() && node["token"].asBool()))
+        || (node["token"].isBool() && node["token"].asBool()))
     {
-      return addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
-        optStr(node["spannedText"]),
-        optStr(node["spanTextMatching"]), true);
+      size_t n_pos = addNodeAnnotation(db, q, optStr(annis_ns), optStr(annis_tok),
+                                       optStr(node["spannedText"]),
+                                       optStr(node["spanTextMatching"]), true);
+
+      // special treatment for explicit searches for token (tok="...)
+      if(node["token"].isBool() && node["token"].asBool())
+      {
+        std::shared_ptr<const ReadableGraphStorage> covGS = getGraphStorageFunc(ComponentType::COVERAGE, annis_ns, "");
+        if(covGS)
+        {
+          q->addFilter(n_pos, [&db, covGS] (const Match& m) -> bool
+          {
+            return static_cast<bool>(db.nodeAnnos.getAnnotations(m.node, db.getNamespaceStringID(), db.getTokStringID()))
+                && covGS->getOutgoingEdges(m.node).empty();
+          }, "is_token");
+        }
+      }
+
+      return n_pos;
     }// end if token has spanned text
     else
     {
@@ -306,9 +322,18 @@ void JSONQueryParser::parseJoin(const DB& db,
       {
         auto minDist = join["minDistance"].asUInt();
         auto maxDist = join["maxDistance"].asUInt();
-        q->addOperator(std::make_shared<Precedence>(db, getGraphStorageFunc,
-          minDist, maxDist),
-          itLeft->second, itRight->second);
+        if(join["segmentation-name"].isString() && join["segmentation-name"].asString() != "")
+        {
+          q->addOperator(std::make_shared<Precedence>(db, getGraphStorageFunc, join["segmentation-name"].asString(),
+            minDist, maxDist),
+            itLeft->second, itRight->second);
+        }
+        else
+        {
+          q->addOperator(std::make_shared<Precedence>(db, getGraphStorageFunc,
+            minDist, maxDist),
+            itLeft->second, itRight->second);
+        }
       }
       else if (op == "Inclusion")
       {
@@ -330,7 +355,7 @@ void JSONQueryParser::parseJoin(const DB& db,
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0)
         {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db.strings, anno),
+          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db, anno),
             itLeft->second, itRight->second);
 
         }
@@ -346,7 +371,7 @@ void JSONQueryParser::parseJoin(const DB& db,
             maxDist = uintmax;
           }
 
-          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db.strings,
+          q->addOperator(std::make_shared<Dominance>(name, getAllGraphStorageFunc, db,
             minDist, maxDist),
             itLeft->second, itRight->second);
         }
@@ -359,7 +384,7 @@ void JSONQueryParser::parseJoin(const DB& db,
         if (join["edgeAnnotations"].isArray() && join["edgeAnnotations"].size() > 0)
         {
           auto anno = getEdgeAnno(db, join["edgeAnnotations"][0]);
-          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db.strings, anno),
+          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db, anno),
             itLeft->second, itRight->second);
 
         }
@@ -376,7 +401,7 @@ void JSONQueryParser::parseJoin(const DB& db,
             maxDist = uintmax;
           }
 
-          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db.strings, minDist, maxDist),
+          q->addOperator(std::make_shared<Pointing>(name, getAllGraphStorageFunc, db, minDist, maxDist),
             itLeft->second, itRight->second);
         }
       }
@@ -400,21 +425,21 @@ Annotation JSONQueryParser::getEdgeAnno(const DB& db, const Json::Value& edgeAnn
       std::string nsStr = edgeAnno["namespace"].asString();
       auto search = db.strings.findID(nsStr);
       // if string is not found set to an invalid value
-      ns = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
+      ns = search ? *search : std::numeric_limits<std::uint32_t>::max();
     }
     if (edgeAnno["name"].isString())
     {
       std::string nameStr = edgeAnno["name"].asString();
       auto search = db.strings.findID(nameStr);
       // if string is not found set to an invalid value
-      name = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
+      name = search ? *search : std::numeric_limits<std::uint32_t>::max();
     }
     if (edgeAnno["value"].isString())
     {
       std::string valueStr = edgeAnno["value"].asString();
       auto search = db.strings.findID(valueStr);
       // if string is not found set to an invalid value
-      value = search.first ? search.second : std::numeric_limits<std::uint32_t>::max();
+      value = search ? *search : std::numeric_limits<std::uint32_t>::max();
     }
   }
   // TODO: what about regex?
@@ -430,7 +455,7 @@ bool JSONQueryParser::canReplaceRegex(const std::string& str)
   if(str.find_first_of(".[]\\|*+?{}()^$") == std::string::npos)
   {
     // No meta character found in string, might be replaced    
-    RE2 regex(str);
+    RE2 regex(str, RE2::Quiet);
     if(regex.ok())
     {
       return true;

@@ -45,7 +45,7 @@ public:
   SIMDIndexJoin(std::shared_ptr<Iterator> lhs, size_t lhsIdx,
                 std::shared_ptr<Operator> op,
                 const AnnoStorage<nodeid_t>& annos,
-                Annotation rhsAnnoToFind);
+                Annotation rhsAnnoToFind, boost::optional<Annotation> constAnno);
 
   virtual bool next(std::vector<Match>& tuple) override;
   virtual void reset() override;
@@ -59,6 +59,7 @@ private:
   std::shared_ptr<Operator> op;
   const AnnoStorage<nodeid_t>& annos;
   const Annotation rhsAnnoToFind;
+  const boost::optional<Annotation> constAnno;
 
   std::list<nodeid_t> matchBuffer;
   std::vector<Match> currentLHS;

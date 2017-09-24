@@ -75,11 +75,11 @@ public:
 
   inline boost::optional<nodeid_t> getNodeID(const std::string& nodeName) const
   {
-    std::pair<bool, nodeid_t> nodeNameID = strings.findID(nodeName);
-    if(nodeNameID.first)
+    auto nodeNameID = strings.findID(nodeName);
+    if(nodeNameID)
     {
       auto it = nodeAnnos.inverseAnnotations.find(
-         {annisNodeNameStringID, annisNamespaceStringID, nodeNameID.second});
+         {annisNodeNameStringID, annisNamespaceStringID, *nodeNameID});
 
       if(it != nodeAnnos.inverseAnnotations.end())
       {
@@ -105,7 +105,7 @@ public:
   inline std::uint32_t getTokStringID() const {return annisTokStringID;}
   inline std::uint32_t getNodeTypeStringID() const {return annisNodeTypeID;}
 
-  std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType ctype, const std::string& layer,
+  std::shared_ptr<annis::WriteableGraphStorage> createWritableGraphStorage(ComponentType type, const std::string& layer,
                        const std::string& name);
 
   std::shared_ptr<const ReadableGraphStorage> getGraphStorage(ComponentType type, const std::string& layer, const std::string& name);

@@ -27,10 +27,10 @@ using namespace annis;
 
 NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const ReadableGraphStorage> > gs, std::set<Annotation> validEdgeAnnos,
                                            std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
-                                           bool maximalOneNodeAnno,
+                                           bool maximalOneNodeAnno, bool returnsNothing,
                                            std::int64_t wrappedNodeCountEstimate, std::string debugDescription)
- : nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
-   maximalOneNodeAnno(maximalOneNodeAnno),
+ : BufferedEstimatedSearch(maximalOneNodeAnno, returnsNothing),
+   nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
    wrappedNodeCountEstimate(wrappedNodeCountEstimate),
    debugDescription(debugDescription + " _edgeanno_")
 {
@@ -50,25 +50,11 @@ NodeByEdgeAnnoSearch::NodeByEdgeAnnoSearch(std::vector<std::shared_ptr<const Rea
 
 }
 
-bool NodeByEdgeAnnoSearch::next(Match &m)
-{
-  do
-  {
-    if(!currentMatchBuffer.empty())
-    {
-      m = currentMatchBuffer.front();
-      currentMatchBuffer.pop_front();
-      return true;
-    }
-  } while(nextMatchBuffer());
-
-  return false;
-}
 
 void NodeByEdgeAnnoSearch::reset()
 {
+  BufferedEstimatedSearch::reset();
   visited.clear();
-  currentMatchBuffer.clear();
   currentRange = searchRanges.begin();
   if(currentRange != searchRanges.end())
   {
@@ -82,7 +68,7 @@ NodeByEdgeAnnoSearch::~NodeByEdgeAnnoSearch()
 
 }
 
-bool NodeByEdgeAnnoSearch::nextMatchBuffer()
+bool NodeByEdgeAnnoSearch::nextMatchBuffer(std::list<Match> &currentMatchBuffer)
 {
   currentMatchBuffer.clear();
 
@@ -95,9 +81,16 @@ bool NodeByEdgeAnnoSearch::nextMatchBuffer()
 
       if(visited.find(matchingEdge.source) == visited.end())
       {
-        for(const Annotation& anno : nodeAnnoMatchGenerator(matchingEdge.source))
+        if(getConstAnnoValue())
         {
-          currentMatchBuffer.push_back({matchingEdge.source, anno});
+          currentMatchBuffer.push_back({matchingEdge.source, *getConstAnnoValue()});
+        }
+        else
+        {
+          for(const Annotation& anno : nodeAnnoMatchGenerator(matchingEdge.source))
+          {
+            currentMatchBuffer.push_back({matchingEdge.source, anno});
+          }
         }
         visited.emplace(matchingEdge.source);
         valid = true;

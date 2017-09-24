@@ -83,7 +83,7 @@ namespace annis {
       }
     }
 
-    void addAnnotationBulk(std::list<std::pair<TypeAnnotationKey<ContainerType>, ContainerType>> annos)
+    void addAnnotationBulk(std::list<std::pair<TypeAnnotationKey<ContainerType>, ContainerType>>& annos)
     {
       annos.sort();
       annotations.insert(annos.begin(), annos.end());
@@ -158,12 +158,12 @@ namespace annis {
 
     inline boost::optional<Annotation> getAnnotations(const StringStorage& strings, const nodeid_t &id, const std::string& ns, const std::string& name) const
     {
-      std::pair<bool, std::uint32_t> nsID = strings.findID(ns);
-      std::pair<bool, std::uint32_t> nameID = strings.findID(name);
+      auto nsID = strings.findID(ns);
+      auto nameID = strings.findID(name);
 
-      if (nsID.first && nameID.first)
+      if (nsID && nameID)
       {
-        return getAnnotations(id, nsID.second, nameID.second);
+        return getAnnotations(id, *nsID, *nameID);
       }
       return boost::none;
     }
@@ -224,7 +224,11 @@ namespace annis {
         valueList.resize(std::min<size_t>(maxSampledAnnotations, annos.size()));
         for(size_t i=0; i < valueList.size(); i++)
         {
-          valueList[i] = strings.str(annos[i].val);
+          auto v = strings.strOpt(annos[i].val);
+          if(v)
+          {
+            valueList[i] = *v;
+          }
         }
 
       }
@@ -298,12 +302,12 @@ namespace annis {
     std::int64_t guessMaxCount(const StringStorage& strings, const std::string& ns, const std::string& name, const std::string& val) const
     {
       auto nameID = strings.findID(name);
-      if(nameID.first)
+      if(nameID)
       {
         auto nsID = strings.findID(ns);
-        if(nsID.first)
+        if(nsID)
         {
-          return guessMaxCount(boost::optional<std::uint32_t>(nsID.second), nameID.second,
+          return guessMaxCount(boost::optional<std::uint32_t>(*nsID), *nameID,
             val, val);
         }
       }
@@ -316,28 +320,29 @@ namespace annis {
     std::int64_t guessMaxCount(const StringStorage& strings, const std::string& name, const std::string& val) const
     {
       auto nameID = strings.findID(name);
-      if(nameID.first)
+      if(nameID)
       {
-        return guessMaxCount(boost::optional<std::uint32_t>(), nameID.second, val, val);
+        return guessMaxCount(boost::optional<std::uint32_t>(), *nameID, val, val);
       }
       return 0;
     }
     
-    std::int64_t guessMaxCountRegex(const StringStorage& strings, const std::string& ns, const std::string& name, const std::string& val) const
+    std::int64_t guessMaxCountRegex(const StringStorage& strings,
+                                    const std::string& ns, const std::string& name,
+                                    const re2::RE2& valPattern) const
     {
-      auto nameID = strings.findID(name);
-      if(nameID.first)
+      if(valPattern.ok())
       {
-        auto nsID = strings.findID(ns);
-        if(nsID.first)
+        auto nameID = strings.findID(name);
+        if(nameID)
         {
-          re2::RE2 pattern(val);
-          if(pattern.ok())
+          auto nsID = strings.findID(ns);
+          if(nsID)
           {
             std::string minMatch;
             std::string maxMatch;
-            pattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
-            return guessMaxCount(boost::optional<std::uint32_t>(nsID.second), nameID.second, minMatch, maxMatch);
+            valPattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
+            return guessMaxCount(boost::optional<std::uint32_t>(*nsID), *nameID, minMatch, maxMatch);
           }
         }
       }
@@ -345,18 +350,19 @@ namespace annis {
       return 0;
     }
 
-    std::int64_t guessMaxCountRegex(StringStorage& strings, const std::string& name, const std::string& val) const
+    std::int64_t guessMaxCountRegex(StringStorage& strings, const std::string& name,
+                                    const re2::RE2& valPattern) const
     {
-      auto nameID = strings.findID(name);
-      if(nameID.first)
+      if(valPattern.ok())
       {
-        re2::RE2 pattern(val);
-        if(pattern.ok())
+        auto nameID = strings.findID(name);
+        if(nameID)
         {
           std::string minMatch;
           std::string maxMatch;
-          pattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
-          return guessMaxCount(boost::optional<std::uint32_t>(), nameID.second, minMatch, maxMatch);
+          valPattern.PossibleMatchRange(&minMatch, &maxMatch, 10);
+          return guessMaxCount(boost::optional<std::uint32_t>(), *nameID, minMatch, maxMatch);
+
         }
       }
       return 0;

@@ -37,6 +37,7 @@
 #include "annis/db.h"                             // for DB
 #include "annis/iterators.h"                      // for EdgeIterator
 #include "annis/types.h"                          // for nodeid_t, Edge, Ann...
+#include <annis/annosearch/estimatedsearch.h>
 
 namespace annis
 {
@@ -130,9 +131,9 @@ public:
       init();
     }
 
-    virtual std::pair<bool, nodeid_t> next() override
+    virtual boost::optional<nodeid_t> next() override
     {
-      std::pair<bool, nodeid_t> result(0, false);
+      boost::optional<nodeid_t> result;
 
       while(!ranges.empty())
       {
@@ -153,10 +154,9 @@ public:
              && visited.find(currentNode->second) == visited.end())
           {
             // success
-            result.first = true;
-            result.second = currentNode->second;
+            result = currentNode->second;
 
-            visited.insert(result.second);
+            visited.insert(*result);
 
             currentNode++;
             return result;
@@ -237,8 +237,81 @@ public:
   };
 
 
-using NStack = std::stack<NodeStackEntry<order_t, level_t>, std::list<NodeStackEntry<order_t, level_t> > >;
-using PrePostSpec = PrePost<order_t, level_t>;
+  using NStack = std::stack<NodeStackEntry<order_t, level_t>, std::list<NodeStackEntry<order_t, level_t> > >;
+  using PrePostSpec = PrePost<order_t, level_t>;
+
+  class NodeIt : public BufferedEstimatedSearch
+  {
+  public:
+    using OrderIt = typename multimap_t<nodeid_t, PrePost<order_t, level_t>>::const_iterator;
+
+    NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+           bool returnsNothing,
+           OrderIt itStart, OrderIt itEnd, std::int64_t maxCount)
+      : BufferedEstimatedSearch(maximalOneNodeAnno, returnsNothing),
+        nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
+        it(itStart), itStart(itStart), itEnd(itEnd), maxCount(maxCount)
+    {
+
+    }
+
+    bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) override
+    {
+      currentMatchBuffer.clear();
+      while(it != itEnd)
+      {
+        if(!lastNode || *lastNode != it->first)
+        {
+          if(getConstAnnoValue())
+          {
+            currentMatchBuffer.push_back({it->first, *getConstAnnoValue()});
+          }
+          else
+          {
+            for(const Annotation& anno : nodeAnnoMatchGenerator(it->first))
+            {
+              currentMatchBuffer.push_back({it->first, anno});
+            }
+          }
+
+          lastNode = it->first;
+          return true;
+        }
+
+        it++;
+      }
+      return false;
+    }
+
+    virtual void reset() override
+    {
+      BufferedEstimatedSearch::reset();
+      it = itStart;
+      lastNode.reset();
+    }
+
+    virtual std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator() override
+    {
+      return nodeAnnoMatchGenerator;
+    }
+
+    virtual std::int64_t guessMaxCount() const override
+    {
+      return maxCount;
+    }
+
+    virtual ~NodeIt() {}
+  private:
+    const std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
+
+    OrderIt it;
+    OrderIt itStart;
+    OrderIt itEnd;
+
+    boost::optional<nodeid_t> lastNode;
+    std::int64_t maxCount;
+  };
+
 
 public:
   PrePostOrderStorage()
@@ -436,9 +509,9 @@ public:
     result.reserve(10);
 
     auto connectedIt = findConnected(node, 1, 1);
-    for(auto c=connectedIt->next(); c.first; c=connectedIt->next())
+    for(auto c=connectedIt->next(); c; c=connectedIt->next())
     {
-      result.push_back(c.second);
+      result.push_back(*c);
     }
 
     return result;
@@ -456,6 +529,14 @@ public:
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
   {
     return edgeAnno;
+  }
+
+  virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+      bool returnsNothing) const override
+  {
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, returnsNothing,
+                                    node2order.begin(), node2order.end(), stat.nodes);
   }
 
   virtual size_t estimateMemorySize() override

@@ -43,7 +43,7 @@ ENDIF()
 
 find_package(ICU 44 REQUIRED)
 set(Boost_USE_STATIC_LIBS   OFF)
-find_package(Boost REQUIRED COMPONENTS system filesystem thread)
+find_package(Boost REQUIRED COMPONENTS chrono system filesystem thread)
 find_package (Threads REQUIRED)
 
 # write found packages to property file which is used by maven
@@ -70,7 +70,7 @@ include_directories(
 
 set(SRC_LIST_LIB
   src/lib/annis/queryconfig.cpp
-  src/lib/annis/filter.cpp
+  src/lib/annis/filter/binaryfilter.cpp
   src/lib/annis/json/jsoncpp.cpp
   src/lib/annis/json/jsonqueryparser.cpp
   src/lib/annis/db.cpp
@@ -82,6 +82,7 @@ set(SRC_LIST_LIB
   src/lib/annis/graphstorage/graphstorage.cpp
   src/lib/annis/dbcache.cpp
   src/lib/annis/stringstorage.cpp
+  src/lib/annis/operators/operator.cpp
   src/lib/annis/operators/overlap.cpp
   src/lib/annis/operators/pointing.cpp
   src/lib/annis/operators/precedence.cpp
@@ -105,15 +106,15 @@ set(SRC_LIST_LIB
   src/lib/annis/util/threadpool.cpp
   src/lib/annis/annostorage.cpp
   src/lib/annis/graphstorageregistry.cpp
+  src/lib/annis/join/donothingjoin.cpp
   src/lib/annis/join/indexjoin.cpp
   src/lib/annis/join/nestedloop.cpp
   src/lib/annis/join/threadnestedloop.cpp
-  src/lib/annis/join/taskindexjoin.cpp
   src/lib/annis/join/threadindexjoin.cpp
   src/lib/annis/annosearch/exactannokeysearch.cpp
   src/lib/annis/annosearch/exactannovaluesearch.cpp
   src/lib/annis/annosearch/regexannosearch.cpp
-  src/lib/annis/annosearch/annotationsearch.cpp
+  src/lib/annis/annosearch/estimatedsearch.cpp
   src/lib/annis/annosearch/nodebyedgeannosearch.cpp
 )
 
@@ -126,7 +127,7 @@ set(SRC_LIST_RUNNER
 )
 
 if(ENABLE_SIMD_SUPPORT)
-  add_definitions(ENABLE_SIMD_SUPPORT)
+  add_definitions(-DENABLE_SIMD_SUPPORT)
   set(SRC_LIST_LIB_SIMD src/lib/annis/join/simdindexjoin.cpp)
   if(MSVC)
     set_source_files_properties(${SRC_LIST_LIB_SIMD} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
@@ -164,7 +165,7 @@ elseif ( CMAKE_COMPILER_IS_GNUCC )
    endif()
 endif ()
 
-target_link_libraries(annis ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Vc_STATIC_LIBRARY} )
+target_link_libraries(annis ${CMAKE_THREAD_LIBS_INIT} ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${Vc_STATIC_LIBRARY} )
 
 add_dependencies(annis HumbleLogging)
 add_dependencies(annis RE2)	
@@ -174,7 +175,7 @@ endif()
 
 add_executable(annis_runner ${SRC_LIST_RUNNER})
 target_compile_features(annis_runner PRIVATE ${needed_features})
-target_link_libraries(annis_runner ${HumbleLogging_LIBRARIES} ${Boost_LIBRARIES} ${RE2_LIBRARIES} ${Vc_STATIC_LIBRARY} annis)
+target_link_libraries(annis_runner annis)
 
 # install the graphANNIS API and console
 install(TARGETS annis_runner annis
@@ -206,16 +207,17 @@ set(TEST_SRC_LIST
   src/tests/SearchTestGUM.h
   src/tests/LoadTest.h
   src/tests/SearchTestTiger.h
+  src/tests/DFSTest.h
   src/tests/testmain.cpp
 )
 
 set(TEST_EXEC "test_${PROJECT_NAME}")
 
 add_executable(${TEST_EXEC}  ${TEST_SRC_LIST} )
-add_dependencies(${TEST_EXEC} GoogleTest)
+add_dependencies(${TEST_EXEC} annis GoogleTest)
 
 target_compile_features(${TEST_EXEC} PRIVATE ${needed_features})
-target_link_libraries(${TEST_EXEC} annis ${GoogleTest_LIBRARIES})
+target_link_libraries(${TEST_EXEC} ${GoogleTest_LIBRARIES} annis)
 add_test( ${TEST_EXEC} ${TEST_EXEC} )
 
 
@@ -228,18 +230,9 @@ if(GRAPHANNIS_BUILD_BENCHMARKS)
   )
   set(ANNIS_BENCHMARK_EXEC "bench_annisqueries")
   add_executable(${ANNIS_BENCHMARK_EXEC}  ${ANNIS_BENCHMARK_SRC_LIST} )
-  add_dependencies(${ANNIS_BENCHMARK_EXEC} Celero)
+  add_dependencies(${ANNIS_BENCHMARK_EXEC} annis Celero)
   target_compile_features(${ANNIS_BENCHMARK_EXEC} PRIVATE ${needed_features})
-  target_link_libraries(${ANNIS_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
+  target_link_libraries(${ANNIS_BENCHMARK_EXEC} ${CMAKE_THREAD_LIBS_INIT} ${Celero_LIBRARIES} annis  )
 
-  # benchmarking the effect of parallel execution
-  set(PARALLEL_BENCHMARK_SRC_LIST
-    src/benchmarks/parallelbenchmark.cpp
-  )
-  set(PARALLEL_BENCHMARK_EXEC "bench_parallel")
-  add_executable(${PARALLEL_BENCHMARK_EXEC}  ${PARALLEL_BENCHMARK_SRC_LIST} )
-  add_dependencies(${PARALLEL_BENCHMARK_EXEC} Celero)
-  target_compile_features(${PARALLEL_BENCHMARK_EXEC} PRIVATE ${needed_features})
-  target_link_libraries(${PARALLEL_BENCHMARK_EXEC} ${Celero_LIBRARIES} annis  )
 
 endif()

@@ -31,23 +31,23 @@ class Pointing : public AbstractEdgeOperator
 public:
   Pointing(std::string ns, std::string name,
            DB::GetGSFuncT getGraphStorageFunc,
-           const StringStorage &strings,
+           const DB& db,
            unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   Pointing(std::string name,
            DB::GetAllGSFuncT getAllGraphStorageFunc,
-           const StringStorage &strings,
+           const DB& db,
            unsigned int minDistance = 1, unsigned int maxDistance = 1);
 
   Pointing(std::string ns, std::string name,
            DB::GetGSFuncT getGraphStorageFunc,
-           const StringStorage& strings,
+           const DB& db,
            const Annotation& edgeAnno);
 
 
   Pointing(std::string name,
            DB::GetAllGSFuncT getAllGraphStorageFunc,
-           const StringStorage& strings,
+           const DB& db,
            const Annotation& edgeAnno);
 
   virtual std::string operatorString() override

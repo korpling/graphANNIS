@@ -28,7 +28,7 @@
 #include <google/btree_container.h>           // for btree_unique_container<...
 #include <google/btree_set.h>                 // for btree_set
 #include <stddef.h>                           // for size_t
-
+#include <annis/annosearch/estimatedsearch.h>
 
 
 #include <memory>                             // for unique_ptr
@@ -48,6 +48,41 @@ public:
 
   template<typename Key> using set_t = btree::btree_set<Key>;
 
+  class NodeIt : public BufferedEstimatedSearch
+  {
+  public:
+    NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+           bool maximalOneNodeAnno, bool returnsNothing,
+           const AdjacencyListStorage& storage);
+
+    virtual void reset() override;
+
+    virtual std::function<std::list<Annotation> (nodeid_t)> getNodeAnnoMatchGenerator() override
+    {
+      return nodeAnnoMatchGenerator;
+    }
+
+    virtual std::int64_t guessMaxCount() const override
+    {
+      return maxCount;
+    }
+
+    virtual ~NodeIt();
+
+  protected:
+    virtual bool nextMatchBuffer(std::list<Match>& currentMatchBuffer) override;
+  private:
+    const std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator;
+
+    set_t<Edge>::const_iterator it;
+    set_t<Edge>::const_iterator itStart;
+    set_t<Edge>::const_iterator itEnd;
+
+    boost::optional<nodeid_t> lastNode;
+
+    const std::int64_t maxCount;
+
+  };
 
   AdjacencyListStorage() {}
 
@@ -72,11 +107,11 @@ public:
   virtual std::vector<Annotation> getEdgeAnnotations(const Edge &edge) const override;
   virtual std::vector<nodeid_t> getOutgoingEdges(nodeid_t node) const override;
 
-  set_t<Edge>::const_iterator getEdgesBegin()
+  set_t<Edge>::const_iterator getEdgesBegin() const
   {
     return edges.begin();
   }
-  set_t<Edge>::const_iterator getEdgesEnd()
+  set_t<Edge>::const_iterator getEdgesEnd() const
   {
     return edges.end();
   }
@@ -88,6 +123,13 @@ public:
   virtual const BTreeMultiAnnoStorage<Edge>& getAnnoStorage() const override
   {
     return edgeAnnos;
+  }
+
+  virtual std::shared_ptr<EstimatedSearch> getSourceNodeIterator(
+      std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator, bool maximalOneNodeAnno,
+      bool returnsNothing) const override
+  {
+    return std::make_shared<NodeIt>(nodeAnnoMatchGenerator, maximalOneNodeAnno, returnsNothing, *this);
   }
 
   virtual void calculateStatistics(const StringStorage& strings) override;

@@ -50,18 +50,101 @@ int main(int argc, char **argv) {
         // get the corpus path (is subfolder of "data" folder)
         std::string corpusPath = benchmarkDir + "/data/" + corpusName;
         
-        DynamicBenchmark benchmark(subdir, corpusPath, corpusName
-          , true);
+        DynamicBenchmark benchmark(subdir, corpusPath, corpusName, 6000000, true);
 
+        {
+          // default configuration and all optimizations enabled but no parallization
+          QueryConfig config;
+          benchmark.registerFixture("default", config);
+        }
+
+        {
+          // No optimized graph storages
+          QueryConfig config;
+          config.forceGSImpl = GraphStorageRegistry::adjacencylist;
+          benchmark.registerFixture("force_adjacencylist", config);
+        }
+
+        {
+          // No optimized graph storages
+          QueryConfig config;
+          config.forceGSImpl = GraphStorageRegistry::prepostorderO32L32;
+
+          // left/right token components are cyclic and can't be used with pre/post-order
+          Component leftComponent = {ComponentType::LEFT_TOKEN, annis_ns, ""};
+          Component rightComponent = {ComponentType::RIGHT_TOKEN, annis_ns, ""};
+
+          config.overrideImpl[leftComponent] = GraphStorageRegistry::adjacencylist;
+          config.overrideImpl[rightComponent] = GraphStorageRegistry::adjacencylist;
+
+          benchmark.registerFixture("force_prepostorder", config);
+        }
+
+        {
+          // no query optimization at all
+          QueryConfig config;
+          config.optimize = false;
+          benchmark.registerFixture("no_optimization", config);
+        }
+
+        {
+          // no operand order optimization
+          QueryConfig config;
+          config.optimize_operand_order = false;
+          benchmark.registerFixture("no_operand_order", config);
+        }
+
+        {
+          // no unbound regex optimization
+          QueryConfig config;
+          config.optimize_operand_order = false;
+          benchmark.registerFixture("no_unbound_regex", config);
+        }
+
+        {
+          // no node by edge annotation search
+          QueryConfig config;
+          config.optimize_nodeby_edgeanno = false;
+          benchmark.registerFixture("no_nodeby_edgeanno", config);
+        }
+
+        {
+          // no join order optimization
+          QueryConfig config;
+          config.optimize_join_order = false;
+          benchmark.registerFixture("no_join_order", config);
+        }
+
+        {
+          // not using all permutations in join order optimization
+          QueryConfig config;
+          config.all_permutations_threshold = 0;
+          benchmark.registerFixture("no_join_order_permutation", config);
+        }
+
+
+        // add different parallel configurations for threads and SIMD (+thread)
         unsigned int numOfCPUs = std::thread::hardware_concurrency();
         std::shared_ptr<ThreadPool> sharedThreadPool = std::make_shared<ThreadPool>(numOfCPUs);
+
+        for(int i=2; i <= numOfCPUs; i += 2)
+        {
+          QueryConfig config;
+          config.threadPool = i > 0 ? sharedThreadPool : nullptr;
+          config.numOfBackgroundTasks = i;
+          config.enableSIMDIndexJoin = false;
+          config.enableThreadIndexJoin = true;
+          benchmark.registerFixture("threads_" + std::to_string(i), config);
+        }
 
         for(int i=0; i <= numOfCPUs; i += 2)
         {
           QueryConfig config;
           config.threadPool = i > 0 ? sharedThreadPool : nullptr;
           config.numOfBackgroundTasks = i;
-          benchmark.registerFixture("Jobs_" + std::to_string(i), config);
+          config.enableSIMDIndexJoin = true;
+          config.enableThreadIndexJoin = i == 0 ? false : true;
+          benchmark.registerFixture("simd_" + std::to_string(i), config);
         }
 
       }

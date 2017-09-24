@@ -60,7 +60,8 @@ namespace annis {
     virtual ~JSONQueryParser();
   private:
     
-    static size_t parseNode(const DB& db, const Json::Value node, std::shared_ptr<SingleAlternativeQuery>);
+    static size_t parseNode(const DB& db, const Json::Value node, DB::GetGSFuncT getGraphStorageFunc,
+                            std::shared_ptr<SingleAlternativeQuery>);
     static size_t addNodeAnnotation(const DB& db,
         std::shared_ptr<SingleAlternativeQuery> q,
         boost::optional<std::string> ns,

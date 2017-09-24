@@ -14,5 +14,34 @@
    limitations under the License.
 */
 
-#include "annotationsearch.h"
+#include "donothingjoin.h"
+
+#include <algorithm>                      // for move
+#include "annis/iterators.h"              // for AnnoIt, Iterator
+#include "annis/operators/operator.h"     // for Operator
+#include "annis/types.h"                  // for Match, Annotation, nodeid_t
+#include "annis/util/comparefunctions.h"  // for checkAnnotationKeyEqual
+namespace annis { class DB; }
+
+
+using namespace annis;
+
+DoNothingJoin::DoNothingJoin()
+{
+}
+
+DoNothingJoin::~DoNothingJoin()
+{
+
+}
+
+bool DoNothingJoin::next(std::vector<Match>& tuple)
+{
+  tuple.clear();
+  return false;
+}
+
+void DoNothingJoin::reset()
+{
+}
 

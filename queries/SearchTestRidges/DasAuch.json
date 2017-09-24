@@ -1,0 +1,2 @@
+{"alternatives":[{"nodes":{"1":{"id":1,"spannedText":"Das","root":false,"token":false,"spanTextMatching":"EXACT_EQUAL","variable":"1"},"2":{"id":2,"spannedText":"auch","root":false,"token":false,"spanTextMatching":"EXACT_EQUAL","variable":"2"}},"joins":[{"op":"Precedence","minDistance":1,"maxDistance":10,"segmentation-name":"dipl","left":1,"right":2}]}]}
+

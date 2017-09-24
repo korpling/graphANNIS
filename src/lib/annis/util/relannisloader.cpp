@@ -149,6 +149,7 @@ std::string RelANNISLoader::loadRelANNISCorpusTab(string dirPath,
     if(type == "CORPUS" && preOrder == 0)
     {
       toplevelCorpus = name;
+      corpusByPreOrder[preOrder] = corpusID;
     }
     else if(type == "DOCUMENT")
     {
@@ -167,20 +168,9 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
 {
   typedef multimap<TextProperty, uint32_t>::const_iterator TextPropIt;
 
-  // maps a token index to an node ID
-  map<TextProperty, uint32_t> tokenByIndex;
 
-  // map the "left" value to the nodes it belongs to
-  multimap<TextProperty, nodeid_t> leftToNode;
-  // map the "right" value to the nodes it belongs to
-  multimap<TextProperty, nodeid_t> rightToNode;
-  // map as node to it's "left" value
-  map<nodeid_t, uint32_t> nodeToLeft;
-  // map as node to it's "right" value
-  map<nodeid_t, uint32_t> nodeToRight;
 
-  // maps a character position to it's token
-  map<TextProperty, nodeid_t> tokenByTextPosition;
+  map<nodeid_t, string> missingSegmentationSpan;
 
   string nodeTabPath = dirPath + "/node" + (isANNIS33Format ? ".annis" : ".tab");
   HL_INFO(logger, (boost::format("loading %1%") % nodeTabPath).str());
@@ -195,192 +185,275 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     return false;
   }
 
+
   std::list<std::pair<NodeAnnotationKey, uint32_t>> annoList;
-
+  // start "node.annis" visibility block
   {
-    vector<string> line;
-    while((line = Helper::nextCSV(in)).size() > 0)
+    // maps a token index to an node ID
+    map<TextProperty, nodeid_t> tokenByIndex;
+
+    // map the "left" value to the nodes it belongs to
+    multimap<TextProperty, nodeid_t> leftToNode;
+    // map the "right" value to the nodes it belongs to
+    multimap<TextProperty, nodeid_t> rightToNode;
+
+    // map as node to it's "left" value
+    map<nodeid_t, uint32_t> nodeToLeft;
+    // map as node to it's "right" value
+    map<nodeid_t, uint32_t> nodeToRight;
+
+    // maps a character position to it's token
+    map<TextProperty, nodeid_t> tokenByLeftTextPos;
+    map<TextProperty, nodeid_t> tokenByRightTextPos;
+
+    // maps a token node id to the token index
+    map<nodeid_t, TextProperty> tokenToIndex;
+
+    // start "scan all lines" visibility block
     {
-      uint32_t nodeNr;
-      stringstream nodeNrStream(line[0]);
-      nodeNrStream >> nodeNr;
-
-      bool hasSegmentations = line.size() > 10;
-      string tokenIndexRaw = line[7];
-      uint32_t textID = Helper::uint32FromString(line[1]);
-      uint32_t corpusID = Helper::uint32FromString(line[2]);
-      string layer = line[3];
-
-      std::string docName = corpusIDToName[corpusID];
-      nodesByCorpusID.insert({corpusID, nodeNr});
-
-      Annotation nodeNameAnno;
-      nodeNameAnno.ns = db.strings.add(annis_ns);
-      nodeNameAnno.name = db.strings.add(annis_node_name);
-      nodeNameAnno.val = db.strings.add(toplevelCorpusName + "/" + docName + "#" + line[4]);
-      annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeNameAnno.name, nodeNameAnno.ns }, nodeNameAnno.val));
-
-
-      Annotation nodeTypeAnno;
-      nodeTypeAnno.ns = db.strings.add(annis_ns);
-      nodeTypeAnno.name = db.strings.add(annis_node_type);
-      nodeTypeAnno.val = db.strings.add("node");
-      annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeTypeAnno.name, nodeTypeAnno.ns }, nodeTypeAnno.val));
-
-      if(!layer.empty() && layer != "NULL")
+      vector<string> line;
+      while((line = Helper::nextCSV(in)).size() > 0)
       {
-        Annotation layerAnno;
-        layerAnno.ns = db.getNamespaceStringID();
-        layerAnno.name = db.strings.add("layer");
-        layerAnno.val = db.strings.add(layer);
-        annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, layerAnno.name, layerAnno.ns }, layerAnno.val));
-      }
+        uint32_t nodeNr;
+        stringstream nodeNrStream(line[0]);
+        nodeNrStream >> nodeNr;
 
-      TextProperty left;
-      left.val = Helper::uint32FromString(line[5]);
-      left.textID = textID;
-      left.corpusID = corpusID;
+        bool hasSegmentations = isANNIS33Format || line.size() > 10;
+        string tokenIndexRaw = line[7];
+        uint32_t textID = Helper::uint32FromString(line[1]);
+        uint32_t corpusID = Helper::uint32FromString(line[2]);
+        string layer = line[3];
 
-      TextProperty right;
-      right.val = Helper::uint32FromString(line[6]);
-      right.textID = textID;
-      right.corpusID = corpusID;
+        std::string docName = corpusIDToName[corpusID];
+        nodesByCorpusID.insert({corpusID, nodeNr});
 
-      if(tokenIndexRaw != "NULL")
-      {
-        string span = hasSegmentations ? line[12] : line[9];
+        Annotation nodeNameAnno;
+        nodeNameAnno.ns = db.strings.add(annis_ns);
+        nodeNameAnno.name = db.strings.add(annis_node_name);
+        nodeNameAnno.val = db.strings.add(toplevelCorpusName + "/" + docName + "#" + line[4]);
+        annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeNameAnno.name, nodeNameAnno.ns }, nodeNameAnno.val));
 
-        Annotation tokAnno;
-        tokAnno.ns = db.strings.add(annis_ns);
-        tokAnno.name = db.strings.add(annis_tok);
-        tokAnno.val = db.strings.add(span);
-        annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, tokAnno.name, tokAnno.ns }, tokAnno.val));
 
-        TextProperty index;
-        index.val = Helper::uint32FromString(tokenIndexRaw);
-        index.textID = textID;
-        index.corpusID = corpusID;
+        Annotation nodeTypeAnno;
+        nodeTypeAnno.ns = db.strings.add(annis_ns);
+        nodeTypeAnno.name = db.strings.add(annis_node_type);
+        nodeTypeAnno.val = db.strings.add("node");
+        annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, nodeTypeAnno.name, nodeTypeAnno.ns }, nodeTypeAnno.val));
 
-        tokenByIndex[index] = nodeNr;
-
-        TextProperty textPos;
-        textPos.textID = textID;
-        textPos.corpusID = corpusID;
-        for(uint32_t i=left.val; i <= right.val; i++)
+        if(!layer.empty() && layer != "NULL")
         {
-          textPos.val = i;
-          tokenByTextPosition[textPos] = nodeNr;
+          Annotation layerAnno;
+          layerAnno.ns = db.getNamespaceStringID();
+          layerAnno.name = db.strings.add("layer");
+          layerAnno.val = db.strings.add(layer);
+          annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, layerAnno.name, layerAnno.ns }, layerAnno.val));
         }
 
-      } // end if token
+        TextProperty left;
+        left.segmentation = "";
+        left.val = Helper::uint32FromString(line[5]);
+        left.textID = textID;
+        left.corpusID = corpusID;
 
-      leftToNode.insert(pair<TextProperty, uint32_t>(left, nodeNr));
-      rightToNode.insert(pair<TextProperty, uint32_t>(right, nodeNr));
-      nodeToLeft[nodeNr] = left.val;
-      nodeToRight[nodeNr] = right.val;
-    }
+        TextProperty right;
+        right.segmentation = "";
+        right.val = Helper::uint32FromString(line[6]);
+        right.textID = textID;
+        right.corpusID = corpusID;
 
-    in.close();
-  }
+        leftToNode.insert(pair<TextProperty, uint32_t>(left, nodeNr));
+        rightToNode.insert(pair<TextProperty, uint32_t>(right, nodeNr));
+        nodeToLeft[nodeNr] = left.val;
+        nodeToRight[nodeNr] = right.val;
 
-  // TODO: cleanup, better variable naming and put this into it's own function
-  // iterate over all token by their order, find the nodes with the same
-  // text coverage (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
-  if(!tokenByIndex.empty())
-  {
-    HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
-    std::shared_ptr<WriteableGraphStorage> gsOrder = db.createWritableGraphStorage(ComponentType::ORDERING, annis_ns, "");
-    std::shared_ptr<WriteableGraphStorage> gsLeft = db.createWritableGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
-    std::shared_ptr<WriteableGraphStorage> gsRight = db.createWritableGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
+        if(tokenIndexRaw != "NULL")
+        {
+          string span = hasSegmentations ? line[12] : line[9];
 
-    map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
-    uint32_t lastTextID = numeric_limits<uint32_t>::max();
-    uint32_t lastCorpusID = numeric_limits<uint32_t>::max();
-    uint32_t lastToken = numeric_limits<uint32_t>::max();
+          Annotation tokAnno;
+          tokAnno.ns = db.strings.add(annis_ns);
+          tokAnno.name = db.strings.add(annis_tok);
+          tokAnno.val = db.strings.add(span);
+          annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, tokAnno.name, tokAnno.ns }, tokAnno.val));
 
-    while(tokenIt != tokenByIndex.end())
+          TextProperty index;
+          index.segmentation = "";
+          index.val = Helper::uint32FromString(tokenIndexRaw);
+          index.textID = textID;
+          index.corpusID = corpusID;
+
+          tokenByIndex.insert({index, nodeNr});
+          tokenToIndex.insert({nodeNr, index});
+
+          tokenByLeftTextPos.insert({left, nodeNr});
+          tokenByRightTextPos.insert({right, nodeNr});
+
+        } // end if token
+        else if(hasSegmentations)
+        {
+          std::string segmentationName = isANNIS33Format ? line[11] : line[8];
+          if(segmentationName != "NULL")
+          {
+            size_t segIndex = isANNIS33Format ? Helper::uint32FromString(line[10]) : Helper::uint32FromString(line[9]);
+
+            if(isANNIS33Format)
+            {
+              // directly add the span information
+              Annotation tokAnno;
+              tokAnno.ns = db.strings.add(annis_ns);
+              tokAnno.name = db.strings.add(annis_tok);
+              tokAnno.val = db.strings.add(line[12]);
+              annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({nodeNr, tokAnno.name, tokAnno.ns }, tokAnno.val));
+            }
+            else
+            {
+              // we need to get the span information from the node_annotation file later
+              missingSegmentationSpan[nodeNr] = segmentationName;
+            }
+
+            // also add the specific segmentation index
+            TextProperty index;
+            index.segmentation = segmentationName;
+            index.val = segIndex;
+            index.textID = textID;
+            index.corpusID = corpusID;
+
+            tokenByIndex.insert({index, nodeNr});
+
+          } // end if node has segmentation info
+        } // endif if check segmentations
+
+      }
+
+      in.close();
+    } // end "scan all lines" visibility block
+
+    // TODO: cleanup, better variable naming and put this into it's own function
+    // iterate over all token by their order, find the nodes with the same
+    // text coverage (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
+    if(!tokenByIndex.empty())
     {
-      uint32_t currentToken = tokenIt->second;
-      uint32_t currentTextID = tokenIt->first.textID;
-      uint32_t currentCorpusID = tokenIt->first.corpusID;
+      HL_INFO(logger, "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
+      std::shared_ptr<WriteableGraphStorage> gsLeft = db.createWritableGraphStorage(ComponentType::LEFT_TOKEN, annis_ns, "");
+      std::shared_ptr<WriteableGraphStorage> gsRight = db.createWritableGraphStorage(ComponentType::RIGHT_TOKEN, annis_ns, "");
 
-      // find all nodes that start together with the current token
-      TextProperty currentTokenLeft;
-      currentTokenLeft.textID = currentTextID;
-      currentTokenLeft.corpusID = currentCorpusID;
-      currentTokenLeft.val = nodeToLeft[currentToken];
+      map<TextProperty, uint32_t>::const_iterator tokenIt = tokenByIndex.begin();
+      uint32_t lastTextID = numeric_limits<uint32_t>::max();
+      uint32_t lastCorpusID = numeric_limits<uint32_t>::max();
+      uint32_t lastToken = numeric_limits<uint32_t>::max();
 
-      pair<TextPropIt, TextPropIt> leftAlignedNodes = leftToNode.equal_range(currentTokenLeft);
-      for(TextPropIt itLeftAligned=leftAlignedNodes.first; itLeftAligned != leftAlignedNodes.second; itLeftAligned++)
+      std::string lastSegmentation = "";
+
+      while(tokenIt != tokenByIndex.end())
       {
-        gsLeft->addEdge(Init::initEdge(itLeftAligned->second, currentToken));
-        gsLeft->addEdge(Init::initEdge(currentToken, itLeftAligned->second));
-      }
+        uint32_t currentToken = tokenIt->second;
+        uint32_t currentTextID = tokenIt->first.textID;
+        uint32_t currentCorpusID = tokenIt->first.corpusID;
+        string currentSegmentation = tokenIt->first.segmentation;
 
-      // find all nodes that end together with the current token
-      TextProperty currentTokenRight;
-      currentTokenRight.textID = currentTextID;
-      currentTokenRight.corpusID = currentCorpusID;
-      currentTokenRight.val = nodeToRight[currentToken];
+        if(currentSegmentation == "")
+        {
+          // find all nodes that start together with the current token
+          TextProperty currentTokenLeft;
+          currentTokenLeft.segmentation = "";
+          currentTokenLeft.textID = currentTextID;
+          currentTokenLeft.corpusID = currentCorpusID;
+          currentTokenLeft.val = nodeToLeft[currentToken];
+
+          pair<TextPropIt, TextPropIt> leftAlignedNodes = leftToNode.equal_range(currentTokenLeft);
+          for(TextPropIt itLeftAligned=leftAlignedNodes.first; itLeftAligned != leftAlignedNodes.second; itLeftAligned++)
+          {
+            gsLeft->addEdge(Init::initEdge(itLeftAligned->second, currentToken));
+            gsLeft->addEdge(Init::initEdge(currentToken, itLeftAligned->second));
+          }
+
+          // find all nodes that end together with the current token
+          TextProperty currentTokenRight;
+          currentTokenRight.segmentation = "";
+          currentTokenRight.textID = currentTextID;
+          currentTokenRight.corpusID = currentCorpusID;
+          currentTokenRight.val = nodeToRight[currentToken];
 
 
-      pair<TextPropIt, TextPropIt> rightAlignedNodes = rightToNode.equal_range(currentTokenRight);
-      for(TextPropIt itRightAligned=rightAlignedNodes.first;
-          itRightAligned != rightAlignedNodes.second;
-          itRightAligned++)
-      {
-        gsRight->addEdge(Init::initEdge(itRightAligned->second, currentToken));
-        gsRight->addEdge(Init::initEdge(currentToken, itRightAligned->second));
-      }
+          pair<TextPropIt, TextPropIt> rightAlignedNodes = rightToNode.equal_range(currentTokenRight);
+          for(TextPropIt itRightAligned=rightAlignedNodes.first;
+              itRightAligned != rightAlignedNodes.second;
+              itRightAligned++)
+          {
+            gsRight->addEdge(Init::initEdge(itRightAligned->second, currentToken));
+            gsRight->addEdge(Init::initEdge(currentToken, itRightAligned->second));
+          }
+        }
 
-      // if the last token/text value is valid and we are still in the same text
-      if(tokenIt != tokenByIndex.begin()
-         && currentCorpusID == lastCorpusID
-         && currentTextID == lastTextID)
-      {
-        // we are still in the same text
-        uint32_t nextToken = tokenIt->second;
-        // add ordering between token
-        gsOrder->addEdge(Init::initEdge(lastToken, nextToken));
+        std::shared_ptr<WriteableGraphStorage> gsOrder = db.createWritableGraphStorage(ComponentType::ORDERING,
+                                                                                       annis_ns, currentSegmentation);
 
-      } // end if same text
+        // if the last token/text value is valid and we are still in the same text
+        if(tokenIt != tokenByIndex.begin()
+           && currentCorpusID == lastCorpusID
+           && currentTextID == lastTextID
+           && currentSegmentation == lastSegmentation)
+        {
+          // we are still in the same text
+          uint32_t nextToken = tokenIt->second;
+          // add ordering between token
+          gsOrder->addEdge(Init::initEdge(lastToken, nextToken));
 
-      // update the iterator and other variables
-      lastTextID = currentTextID;
-      lastCorpusID = currentCorpusID;
-      lastToken = tokenIt->second;
-      tokenIt++;
-    } // end for each token
-  }
+        } // end if same text
 
-  // add explicit coverage edges for each node in the special annis namespace coverage component
-  std::shared_ptr<WriteableGraphStorage> gsCoverage = db.createWritableGraphStorage(ComponentType::COVERAGE, annis_ns, "");
-  std::shared_ptr<WriteableGraphStorage> gsInverseCoverage = db.createWritableGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
-  HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
-  for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
-      itLeftToNode != leftToNode.end(); itLeftToNode++)
-  {
-    nodeid_t n = itLeftToNode->second;
+        // update the iterator and other variables
+        lastTextID = currentTextID;
+        lastCorpusID = currentCorpusID;
+        lastToken = tokenIt->second;
+        lastSegmentation = currentSegmentation;
+        tokenIt++;
+      } // end for each token
+    } // end if tokenByIndex not empty
 
-    TextProperty textPos;
-    textPos.textID = itLeftToNode->first.textID;
-    textPos.corpusID = itLeftToNode->first.corpusID;
 
-    uint32_t left = itLeftToNode->first.val;
-    uint32_t right = nodeToRight[n];
-
-    for(uint32_t i = left; i < right; i++)
+    // add explicit coverage edges for each node in the special annis namespace coverage component
+    std::shared_ptr<WriteableGraphStorage> gsCoverage = db.createWritableGraphStorage(ComponentType::COVERAGE, annis_ns, "");
+    std::shared_ptr<WriteableGraphStorage> gsInverseCoverage = db.createWritableGraphStorage(ComponentType::INVERSE_COVERAGE, annis_ns, "");
+    HL_INFO(logger, "calculating the automatically generated COVERAGE edges");
+    for(multimap<TextProperty, nodeid_t>::const_iterator itLeftToNode = leftToNode.begin();
+        itLeftToNode != leftToNode.end(); itLeftToNode++)
     {
-      // get the token that belongs to this text position
-      textPos.val = i;
-      nodeid_t tokenID = tokenByTextPosition[textPos];
-      if(n != tokenID)
+      nodeid_t n = itLeftToNode->second;
+
+      if(tokenToIndex.find(n) == tokenToIndex.end())
       {
-        gsCoverage->addEdge(Init::initEdge(n, tokenID));
-        gsInverseCoverage->addEdge(Init::initEdge(tokenID, n));
-      }
+        TextProperty textPosTemplate;
+        textPosTemplate.segmentation = "";
+        textPosTemplate.textID = itLeftToNode->first.textID;
+        textPosTemplate.corpusID = itLeftToNode->first.corpusID;
+
+        TextProperty leftPos = textPosTemplate;
+        TextProperty rightPos = textPosTemplate;
+        leftPos.val = itLeftToNode->first.val;
+        rightPos.val =  nodeToRight[n];
+
+
+        // find left/right aligned basic token
+        nodeid_t leftAlignedToken = tokenByLeftTextPos[leftPos];
+        nodeid_t rightAlignedToken = tokenByRightTextPos[rightPos];
+
+        TextProperty leftTokPos = tokenToIndex[leftAlignedToken];
+        TextProperty rightTokPos = tokenToIndex[rightAlignedToken];
+
+        TextProperty tokIdx = textPosTemplate;
+        for(uint32_t i = leftTokPos.val; i <= rightTokPos.val; i++)
+        {
+          tokIdx.val = i;
+          nodeid_t tokenID = tokenByIndex[tokIdx];
+          if(n != tokenID)
+          {
+            gsCoverage->addEdge(Init::initEdge(n, tokenID));
+            gsInverseCoverage->addEdge(Init::initEdge(tokenID, n));
+          }
+        }
+      } // end if not a token
     }
-  }
+  } // end "node.annis" visibility block
 
   {
     string nodeAnnoTabPath = dirPath + "/node_annotation"  + (isANNIS33Format ? ".annis" : ".tab");
@@ -392,20 +465,47 @@ bool RelANNISLoader::loadRelANNISNode(string dirPath,
     vector<string> line;
     while((line = Helper::nextCSV(in)).size() > 0)
     {
-      NodeAnnotationKey key;
-      key.id = Helper::uint32FromString(line[0]);
-      key.anno_ns = db.strings.add(line[1]);
-      key.anno_name = db.strings.add(line[2]);
+      // we have to make some sanity checks
+      if(line[1] != "annis" || line[2] != "tok")
+      {
+        NodeAnnotationKey key;
+        key.id = Helper::uint32FromString(line[0]);
+        key.anno_ns = db.strings.add(line[1]);
+        key.anno_name = db.strings.add(line[2]);
 
-      uint32_t annoVal = db.strings.add(line[3]);
-      annoList.push_back({key, annoVal});
+        uint32_t annoVal;
+        if(line[3] == "NULL")
+        {
+          // use an "invalid" string so it can't be found by its value, but only by its annotation name
+          annoVal = std::numeric_limits<uint32_t>::max();
+        }
+        else
+        {
+          annoVal = db.strings.add(line[3]);
+        }
+        annoList.push_back({key, annoVal});
+
+        // add all missing span values from the annotation, but don't add NULL values
+        auto itMissing = missingSegmentationSpan.find(key.id);
+        if(itMissing!= missingSegmentationSpan.end() && itMissing->second == line[2]
+           && line[3] != "NULL")
+        {
+          Annotation tokAnno;
+          tokAnno.ns = db.strings.add(annis_ns);
+          tokAnno.name = db.strings.add(annis_tok);
+          tokAnno.val = annoVal;
+          annoList.push_back(std::pair<NodeAnnotationKey, uint32_t>({key.id, tokAnno.name, tokAnno.ns }, tokAnno.val));
+        }
+      }
     }
 
     in.close();
   }
 
+
   HL_INFO(logger, "bulk inserting node annotations");
   db.nodeAnnos.addAnnotationBulk(annoList);
+
 
   return true;
 }
@@ -617,11 +717,11 @@ void RelANNISLoader::addSubCorpora(std::string toplevelCorpusName,
     auto itNodeEnd  = nodesByCorpusID.upper_bound(corpusID);
     for(auto itNode = itNodeStart; itNode != itNodeEnd; itNode++)
     {
-      gsSubCorpus->addEdge({nodeID, itNode->second});
+      gsSubCorpus->addEdge({itNode->second, nodeID});
     }
 
-    // also add an edge from the top-level corpus to the document
-    gsSubCorpus->addEdge({toplevelNodeID, nodeID});
+    // also add an edge from the document to the top-level corpus
+    gsSubCorpus->addEdge({nodeID, toplevelNodeID});
 
     nodeID++;
   }

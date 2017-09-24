@@ -177,13 +177,14 @@ namespace annis
 
   struct TextProperty
   {
+    std::string segmentation;
     std::uint32_t corpusID;
     std::uint32_t textID;
     std::uint32_t val;
   };
   inline bool operator<(const struct TextProperty &a, const struct TextProperty &b)
   {
-    return std::tie(a.corpusID, a.textID, a.val) < std::tie(b.corpusID, b.textID, b.val);
+    return std::tie(a.segmentation, a.corpusID, a.textID, a.val) < std::tie(b.segmentation, b.corpusID, b.textID, b.val);
   }
 
   template<typename pos_t>
@@ -235,6 +236,8 @@ namespace annis
 
     /** Average fan out  */
     double avgFanOut;
+    /** Max fan-out of 99% of the data */
+    uint32_t fanOut99Percentile;
     /** maximal number of children of a node */
     uint32_t maxFanOut;
     /** maximum length from a root node to a terminal node */
@@ -248,7 +251,8 @@ namespace annis
   void serialize(Archive & archive,
                  GraphStatistic & m)
   {
-    archive(m.valid, m.cyclic, m.rootedTree, m.nodes, m.avgFanOut, m.maxFanOut, m.maxDepth, m.dfsVisitRatio);
+    archive(m.valid, m.cyclic, m.rootedTree, m.nodes, m.avgFanOut,
+            m.fanOut99Percentile, m.maxFanOut, m.maxDepth, m.dfsVisitRatio);
   }
 
   class Init

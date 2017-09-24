@@ -29,11 +29,62 @@
 #include "annis/iterators.h"                      // for EdgeIterator
 #include "annis/types.h"                          // for Edge, GraphStatistic
 
-namespace annis { class StringStorage; }
+namespace annis { class StringStorage;}
 
 using namespace annis;
 using namespace std;
 
+AdjacencyListStorage::NodeIt::NodeIt(std::function<std::list<Annotation> (nodeid_t)> nodeAnnoMatchGenerator,
+                                     bool maximalOneNodeAnno,
+                                     bool returnsNothing,
+                                     const AdjacencyListStorage &storage)
+  : BufferedEstimatedSearch(maximalOneNodeAnno, returnsNothing),
+    nodeAnnoMatchGenerator(nodeAnnoMatchGenerator),
+    it(storage.edges.begin()), itStart(storage.edges.begin()), itEnd(storage.edges.end()),
+    maxCount(storage.stat.nodes)
+{
+}
+
+
+void AdjacencyListStorage::NodeIt::reset()
+{
+  BufferedEstimatedSearch::reset();
+  it = itStart;
+  lastNode.reset();
+}
+
+AdjacencyListStorage::NodeIt::~NodeIt()
+{
+
+}
+
+bool AdjacencyListStorage::NodeIt::nextMatchBuffer(std::list<Match>& currentMatchBuffer)
+{
+  currentMatchBuffer.clear();
+  while(it != itEnd)
+  {
+    if(!lastNode || *lastNode != it->source)
+    {
+      if(getConstAnnoValue())
+      {
+        currentMatchBuffer.push_back({it->source, *getConstAnnoValue()});
+      }
+      else
+      {
+        for(const Annotation& anno : nodeAnnoMatchGenerator(it->source))
+        {
+          currentMatchBuffer.push_back({it->source, anno});
+        }
+      }
+
+      lastNode = it->source;
+      return true;
+    }
+
+    it++;
+  }
+  return false;
+}
 
 void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
 {
@@ -59,8 +110,6 @@ void AdjacencyListStorage::copy(const DB &db, const ReadableGraphStorage &orig)
 
   stat = orig.getStatistics();
   edgeAnnos.calculateStatistics(db.strings);
-
-  calculateIndex();
 }
 
 void AdjacencyListStorage::addEdge(const Edge &edge)
@@ -68,6 +117,7 @@ void AdjacencyListStorage::addEdge(const Edge &edge)
   if(edge.source != edge.target)
   {
     edges.insert(edge);
+    inverseEdges.insert({edge.target, edge.source});
     stat.valid = false;
   }
 }
@@ -201,7 +251,6 @@ std::vector<nodeid_t> AdjacencyListStorage::getOutgoingEdges(nodeid_t node) cons
   return result;
 }
 
-
 size_t AdjacencyListStorage::numberOfEdges() const
 {
   return edges.size();
@@ -223,7 +272,6 @@ void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
   stat.nodes = 0;
 
   unsigned int sumFanOut = 0;
-
 
   btree::btree_set<nodeid_t> hasIncomingEdge;
 
@@ -253,9 +301,12 @@ void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
   stat.nodes = static_cast<uint32_t>(allNodes.size());
   allNodes.clear();
 
+
+  std::multiset<uint32_t> orderedFanOuts;
   auto itFirstEdge = edges.begin();
   if(itFirstEdge != edges.end())
   {
+
     nodeid_t lastSourceID = itFirstEdge->source;
     uint32_t currentFanout = 0;
 
@@ -265,9 +316,9 @@ void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
 
       if(lastSourceID != e.source)
       {
-
         stat.maxFanOut = std::max(stat.maxFanOut, currentFanout);
         sumFanOut += currentFanout;
+        orderedFanOuts.insert(currentFanout);
 
         currentFanout = 0;
         lastSourceID = e.source;
@@ -277,8 +328,27 @@ void AdjacencyListStorage::calculateStatistics(const StringStorage &strings)
     // add the statistics for the last node
     stat.maxFanOut = std::max(stat.maxFanOut, currentFanout);
     sumFanOut += currentFanout;
+    orderedFanOuts.insert(currentFanout);
   }
 
+
+  // get the percentile value(s)
+  // set some default values in case there are not enough elements in the component
+  if(!orderedFanOuts.empty())
+  {
+    stat.fanOut99Percentile = *(orderedFanOuts.rbegin());
+  }
+
+  // calculate the more accurate values
+  if(orderedFanOuts.size() >= 100)
+  {
+    auto it = orderedFanOuts.rbegin();
+    std::advance(it, orderedFanOuts.size()/100);
+    if(it != orderedFanOuts.rend())
+    {
+      stat.fanOut99Percentile = *it;
+    }
+  }
 
   std::uint64_t numberOfVisits = 0;
   if(roots.empty() && !edges.empty())

@@ -33,16 +33,16 @@ using namespace std;
 ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamspace, const string &annoName, const string &annoValue)
   :db(db),validAnnotationInitialized(false), debugDescription(annoNamspace + ":" + annoName + "=\"" + annoValue + "\"")
 {
-  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
-  std::pair<bool, uint32_t> namspaceID = db.strings.findID(annoNamspace);
-  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
+  auto nameID = db.strings.findID(annoName);
+  auto namspaceID = db.strings.findID(annoNamspace);
+  auto valueID = db.strings.findID(annoValue);
 
-  if(nameID.first && namspaceID.first && valueID.first)
+  if(nameID && namspaceID && valueID)
   {
     Annotation key;
-    key.name = nameID.second;
-    key.ns = namspaceID.second;
-    key.val = valueID.second;
+    key.name = *nameID;
+    key.ns = *namspaceID;
+    key.val = *valueID;
 
     searchRanges.push_back(Range(db.nodeAnnos.inverseAnnotations.equal_range(key)));
     it = searchRanges.begin()->first;
@@ -53,17 +53,23 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const string &annoNamsp
 ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &annoName, const std::string &annoValue)
   :db(db), validAnnotationInitialized(false), debugDescription(annoName + "=\"" + annoValue + "\"")
 {
-  std::pair<bool, uint32_t> nameID = db.strings.findID(annoName);
-  std::pair<bool, uint32_t> valueID = db.strings.findID(annoValue);
+  auto nameID = db.strings.findID(annoName);
+  auto valueID = db.strings.findID(annoValue);
 
-  if(nameID.first && valueID.first)
+  if(nameID && valueID)
   {
-    auto keysLower = db.nodeAnnos.annoKeys.lower_bound({nameID.second, 0});
-    auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({nameID.second, uintmax});
+    auto keysLower = db.nodeAnnos.annoKeys.lower_bound({*nameID, 0});
+    auto keysUpper = db.nodeAnnos.annoKeys.upper_bound({*nameID, uintmax});
     for(auto itKey = keysLower; itKey != keysUpper; itKey++)
     {
-      searchRanges.push_back(Range(db.nodeAnnos.inverseAnnotations.equal_range(
-      {itKey->first.name, itKey->first.ns, valueID.second})));
+      Range r = db.nodeAnnos.inverseAnnotations.equal_range(
+        {itKey->first.name, itKey->first.ns, *valueID});
+
+      // only remember ranges that actually have valid iterator pairs
+      if(r.first != r.second)
+      {
+        searchRanges.push_back(std::move(r));
+      }
     }
   }
   currentRange = searchRanges.begin();
@@ -76,10 +82,11 @@ ExactAnnoValueSearch::ExactAnnoValueSearch(const DB &db, const std::string &anno
 
 bool ExactAnnoValueSearch::next(Match& result)
 {
-  if(currentRange != searchRanges.end() && it != currentRange->second)
+  while(currentRange != searchRanges.end() && it != currentRange->second)
   {
     result.node = it->second; // node ID
     result.anno = it->first; // annotation itself
+
     it++;
     if(it == currentRange->second)
     {
@@ -89,16 +96,36 @@ bool ExactAnnoValueSearch::next(Match& result)
         it = currentRange->first;
       }
     }
-    return true;
+
+    if(getConstAnnoValue())
+    {
+      /*
+       * When we replace the resulting annotation with a constant value it is possible that duplicates
+       * can occur. Therfore we must check that each node is only included once as a result
+       */
+      if(uniqueResultFilter.find(result.node) == uniqueResultFilter.end())
+      {
+        uniqueResultFilter.insert(result.node);
+
+        result.anno = *getConstAnnoValue();
+
+        return true;
+      }
+    }
+    else
+    {
+      return true;
+    }
   }
-  else
-  {
-    return false;
-  }
+
+  return false;
+
 }
 
 void ExactAnnoValueSearch::reset()
 {
+  uniqueResultFilter.clear();
+
   currentRange = searchRanges.begin();
   if(currentRange != searchRanges.end())
   {
@@ -144,8 +171,6 @@ std::int64_t ExactAnnoValueSearch::guessMaxCount() const
   
   return sum;
 }
-
-
 
 ExactAnnoValueSearch::~ExactAnnoValueSearch()
 {

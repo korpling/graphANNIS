@@ -82,7 +82,7 @@ def plot(d, header=None):
     ax.set_yscale('log')    
     
     ax.get_xaxis().set_label_text("query")
-    ax.get_xaxis().set_visible(False)
+    ax.get_xaxis().set_visible(True)
     
     ax.set_xlim([-0.01*len(h),len(h)*1.01])
     

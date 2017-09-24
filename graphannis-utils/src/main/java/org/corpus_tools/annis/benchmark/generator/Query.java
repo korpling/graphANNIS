@@ -35,7 +35,7 @@ public class Query
 
   private Optional<Long> count = Optional.empty();
 
-  private Optional<Long> executionTime = Optional.empty();
+  private Optional<Double> executionTime = Optional.empty();
 
   private String json;
   
@@ -83,12 +83,12 @@ public class Query
     this.count = count == null ? Optional.empty() : count;
   }
 
-  public Optional<Long> getExecutionTime()
+  public Optional<Double> getExecutionTime()
   {
     return executionTime;
   }
 
-  public void setExecutionTime(Optional<Long> executionTime)
+  public void setExecutionTime(Optional<Double> executionTime)
   {
     this.executionTime = executionTime == null ? Optional.empty() : executionTime;
   }
