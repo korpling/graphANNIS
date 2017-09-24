@@ -1,6 +1,7 @@
 use libc;
 use annis::Annotation;
 use annis::annostorage::Match;
+use annis::NodeID;
 
 macro_rules! cast_mut {
     ($x:expr) => {
@@ -111,14 +112,15 @@ pub struct annis_MatchIt(pub Box<Iterator<Item = Match>>);
 #[repr(C)]
 pub struct annis_Option_Match {
     pub valid: bool,
-    pub value: Match,
+    pub node: NodeID,
+    pub anno: Annotation,
 }
 
 impl annis_Option_Match {
      pub fn from(orig: Option<Match>) -> annis_Option_Match {
          match orig {
-             Some(v) => annis_Option_Match{valid: true, value: v},
-             None => annis_Option_Match{valid:false, value : Match::default()},
+             Some(v) => annis_Option_Match{valid: true, node: v.node, anno: v.anno},
+             None => annis_Option_Match{valid:false, node: NodeID::default(), anno: Annotation::default()},
          }
      }
 }

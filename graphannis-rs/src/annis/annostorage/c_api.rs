@@ -125,12 +125,12 @@ pub extern "C" fn annis_asnode_calculate_statistics(
 #[no_mangle]
 pub extern "C" fn annis_asnode_exact_anno_search(
     ptr: *const annis_ASNodePtr,
-    namespace: annis_Option_StringID,
+    ns: annis_Option_StringID,
     name: StringID,
     value: annis_Option_StringID
 ) -> *mut annis_MatchIt {
     let it = cast_const!(ptr).exact_anno_search(
-        namespace.to_option(),
+        ns.to_option(),
         name,
         value.to_option()
     );
@@ -142,7 +142,7 @@ pub extern "C" fn annis_asnode_exact_anno_search(
 pub extern "C" fn annis_asnode_regex_anno_search(
     ptr: *const annis_ASNodePtr,
     strings_ptr: *const annis_StringStoragePtr,
-    namespace: annis_Option_StringID,
+    ns: annis_Option_StringID,
     name: StringID,
     pattern: *const libc::c_char
 ) -> *mut annis_MatchIt {
@@ -157,7 +157,7 @@ pub extern "C" fn annis_asnode_regex_anno_search(
 
     let it = cast_const!(ptr).regex_anno_search(
         strings,
-        namespace.to_option(),
+        ns.to_option(),
         name,
         pattern_str
     );
@@ -282,12 +282,12 @@ pub extern "C" fn annis_asedge_calculate_statistics(
 #[no_mangle]
 pub extern "C" fn annis_asedge_exact_anno_search(
     ptr: *const annis_ASEdgePtr,
-    namespace: annis_Option_StringID,
+    ns: annis_Option_StringID,
     name: StringID,
     value: annis_Option_StringID
 ) -> *mut annis_MatchIt {
     let it = cast_const!(ptr).exact_anno_search(
-        namespace.to_option(),
+        ns.to_option(),
         name,
         value.to_option()
     );

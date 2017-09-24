@@ -17,8 +17,8 @@ pub struct ContainerAnnoKey<T: Ord> {
 
 #[derive(Debug, Default)]
 pub struct Match {
-    node: NodeID,
-    anno: Annotation,
+    pub node: NodeID,
+    pub anno: Annotation,
 }
 
 #[derive(Serialize, Deserialize)]
