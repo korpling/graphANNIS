@@ -79,7 +79,7 @@ private:
 };
 
 /**
- * @brief Traverses a graph and visits any node at maximum once.
+ * @brief Traverses a graph and outputs any node at maximum once.
  */
 class UniqueDFS : public DFS
 {
@@ -92,12 +92,11 @@ public:
 protected:
   virtual void reset() override;
   virtual bool enterNode(nodeid_t node, unsigned int distance) override;
-  virtual bool beforeEnterNode(nodeid_t node, unsigned int distance) override;
 
 
 private:
 
-  std::set<nodeid_t> visited;
+  std::set<nodeid_t> outputted;
 };
 
 

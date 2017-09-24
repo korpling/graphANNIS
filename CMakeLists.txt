@@ -207,6 +207,7 @@ set(TEST_SRC_LIST
   src/tests/SearchTestGUM.h
   src/tests/LoadTest.h
   src/tests/SearchTestTiger.h
+  src/tests/DFSTest.h
   src/tests/testmain.cpp
 )
 

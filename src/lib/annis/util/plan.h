@@ -51,8 +51,9 @@ enum ExecutionNodeType
 };
 
 
-struct ExecutionEstimate
+class ExecutionEstimate
 {
+public:
   ExecutionEstimate()
   : output(0), intermediateSum(0), processedInStep(0)
   {}
