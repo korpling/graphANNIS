@@ -4,6 +4,7 @@ use annis::Edge;
 
 use std::collections::BTreeSet;
 use std::collections::Bound::*;
+use std::iter::FromIterator;
 
 pub struct AdjacencyListStorage {
     edges: BTreeSet<Edge>,
@@ -18,6 +19,20 @@ impl AdjacencyListStorage {
             inverse_edges: BTreeSet::new(),
             annos: AnnoStorage::new(),
         }
+    }
+}
+
+impl EdgeContainer for AdjacencyListStorage {
+    fn get_outgoing_edges(&self, source : &NodeID) -> Vec<NodeID> {
+        let start_key = Edge{source: source.clone(), target: NodeID::min_value()};
+        let end_key = Edge {source: source.clone(), target: NodeID::max_value()};
+
+        Vec::from_iter(
+            self.edges.range(start_key..end_key)
+            .map(|e| {
+                e.target
+            })
+        )
     }
 }
 
@@ -149,6 +164,11 @@ mod tests {
             source: 3,
             target: 4,
         });
+
+        assert_eq!(vec![2, 3], gs.get_outgoing_edges(&1));
+        assert_eq!(vec![4,5], gs.get_outgoing_edges(&3));
+        assert_eq!(vec![], gs.get_outgoing_edges(&6));
+        assert_eq!(vec![4], gs.get_outgoing_edges(&2));
     }
 
 }
