@@ -173,7 +173,11 @@ mod tests {
         assert_eq!(0, gs.get_outgoing_edges(&6).len());
         assert_eq!(vec![4], gs.get_outgoing_edges(&2));
 
-        let reachable = gs.find_connected(&1, 1, 100);
+        let reachable : Vec<NodeID> = gs.find_connected(&1, 1, 100).collect();
+
+        assert_eq!(vec![3,5,7,6,4,2,4], reachable);
+
+        
     }
 
 }
