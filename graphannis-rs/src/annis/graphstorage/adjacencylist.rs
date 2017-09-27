@@ -58,11 +58,14 @@ impl ReadableGraphStorage for AdjacencyListStorage {
         Box::new(it)
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> u32 {
-        unimplemented!();
+    fn distance(&self, source: &NodeID, target: &NodeID) -> usize {
+        let it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value());
+
+        unimplemented!()
     }
-    fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: u32, max_distance: u32) {
-        unimplemented!();
+    fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
+        let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance);
+        return it.next().is_some();
     }
 }
 
