@@ -49,7 +49,6 @@ impl ReadableGraphStorage for AdjacencyListStorage {
         let it = CycleSafeDFS::<'a>::new(self, source, min_distance, max_distance)
             .map(|x| {x.0})
             .scan(HashSet::<NodeID>::new(), |visited, n| {
-                println!("{:?}", Vec::from_iter(visited.iter()));
                 match visited.insert(n) {
                     true => Some(n),
                     false => None,
@@ -58,13 +57,18 @@ impl ReadableGraphStorage for AdjacencyListStorage {
         Box::new(it)
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> usize {
-        let it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value());
+    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
+        let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
+        .filter(|x| *target == x.0 )
+        .map(|x| x.1);
 
-        unimplemented!()
+        return it.next();
+
     }
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
-        let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance);
+        let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
+        .filter(|x| *target == x.0 );
+        
         return it.next().is_some();
     }
 }
