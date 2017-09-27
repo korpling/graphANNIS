@@ -4,6 +4,7 @@ use annis::Edge;
 use annis::dfs::CycleSafeDFS;
 
 use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::collections::Bound::*;
 use std::iter::FromIterator;
 
@@ -45,8 +46,16 @@ impl ReadableGraphStorage for AdjacencyListStorage {
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
 
-        let it = CycleSafeDFS::<'a>::new(self, source, min_distance, max_distance);
-        Box::new(it.map(|x| {x.0}))
+        let it = CycleSafeDFS::<'a>::new(self, source, min_distance, max_distance)
+            .map(|x| {x.0})
+            .scan(HashSet::<NodeID>::new(), |visited, n| {
+                println!("{:?}", Vec::from_iter(visited.iter()));
+                match visited.insert(n) {
+                    true => Some(n),
+                    false => None,
+                }
+            });
+        Box::new(it)
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> u32 {
@@ -173,9 +182,20 @@ mod tests {
         assert_eq!(0, gs.get_outgoing_edges(&6).len());
         assert_eq!(vec![4], gs.get_outgoing_edges(&2));
 
-        let reachable : Vec<NodeID> = gs.find_connected(&1, 1, 100).collect();
+        let mut reachable : Vec<NodeID> = gs.find_connected(&1, 1, 100).collect();
+        reachable.sort();
+        assert_eq!(vec![2,3,4,5,6,7], reachable);
 
-        assert_eq!(vec![3,5,7,6,4,2,4], reachable);
+        let mut reachable : Vec<NodeID> = gs.find_connected(&3, 2, 100).collect();
+        reachable.sort();
+        assert_eq!(vec![6,7], reachable);
+
+        let mut reachable : Vec<NodeID> = gs.find_connected(&1, 2, 4).collect();
+        reachable.sort();
+        assert_eq!(vec![4,5,6,7], reachable);
+
+        let reachable : Vec<NodeID> = gs.find_connected(&7, 1, 100).collect();
+        assert_eq!(true, reachable.is_empty());
 
         
     }
