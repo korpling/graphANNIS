@@ -6,12 +6,12 @@ pub trait EdgeContainer {
 }
 
 pub trait ReadableGraphStorage: EdgeContainer {
-    fn find_connected(
-        &self,
+    fn find_connected<'a>(
+        &'a self,
         source: &NodeID,
-        min_distance: u32,
-        max_distance: u32,
-    ) -> Box<Iterator<Item = NodeID>>;
+        min_distance: usize,
+        max_distance: usize,
+    ) -> Box<Iterator<Item = NodeID> + 'a>;
     fn distance(&self, source: &NodeID, target: &NodeID) -> u32;
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: u32, max_distance: u32);
 }

@@ -31,6 +31,8 @@ impl Edge {
 #[macro_use]
 pub mod util;
 
+pub mod dfs;
 pub mod annostorage;
 pub mod stringstorage;
 pub mod graphstorage;
+

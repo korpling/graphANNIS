@@ -1,6 +1,7 @@
 use super::*;
 use annis::annostorage::AnnoStorage;
 use annis::Edge;
+use annis::dfs::CycleSafeDFS;
 
 use std::collections::BTreeSet;
 use std::collections::Bound::*;
@@ -37,13 +38,15 @@ impl EdgeContainer for AdjacencyListStorage {
 }
 
 impl ReadableGraphStorage for AdjacencyListStorage {
-    fn find_connected(
-        &self,
+    fn find_connected<'a>(
+        &'a self,
         source: &NodeID,
-        min_distance: u32,
-        max_distance: u32,
-    ) -> Box<Iterator<Item = NodeID>> {
-        unimplemented!();
+        min_distance: usize,
+        max_distance: usize,
+    ) -> Box<Iterator<Item = NodeID> + 'a> {
+
+        let it = CycleSafeDFS::<'a>::new(self, source, min_distance, max_distance);
+        Box::new(it.map(|x| {x.0}))
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> u32 {
@@ -167,8 +170,10 @@ mod tests {
 
         assert_eq!(vec![2, 3], gs.get_outgoing_edges(&1));
         assert_eq!(vec![4,5], gs.get_outgoing_edges(&3));
-        assert_eq!(vec![], gs.get_outgoing_edges(&6));
+        assert_eq!(0, gs.get_outgoing_edges(&6).len());
         assert_eq!(vec![4], gs.get_outgoing_edges(&2));
+
+        let reachable = gs.find_connected(&1, 1, 100);
     }
 
 }
