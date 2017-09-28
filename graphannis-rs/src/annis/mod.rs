@@ -17,6 +17,12 @@ pub struct Annotation {
     pub val: StringID,
 }
 
+#[derive(Debug, Default)]
+pub struct Match {
+    pub node: NodeID,
+    pub anno: Annotation,
+}
+
 #[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
 #[repr(C)]
 pub struct Edge {
@@ -38,3 +44,4 @@ pub mod annostorage;
 pub mod stringstorage;
 pub mod graphstorage;
 pub mod graphdb;
+pub mod operator;

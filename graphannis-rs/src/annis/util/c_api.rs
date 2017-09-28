@@ -1,7 +1,5 @@
 use libc;
-use annis::Annotation;
-use annis::annostorage::Match;
-use annis::NodeID;
+use annis::{Annotation,Match,NodeID};
 
 macro_rules! cast_mut {
     ($x:expr) => {

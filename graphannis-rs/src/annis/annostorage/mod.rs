@@ -15,12 +15,6 @@ pub struct ContainerAnnoKey<T: Ord> {
     pub key: AnnoKey,
 }
 
-#[derive(Debug, Default)]
-pub struct Match {
-    pub node: NodeID,
-    pub anno: Annotation,
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct AnnoStorage<T: Ord> {
     by_container: BTreeMap<ContainerAnnoKey<T>, StringID>,
