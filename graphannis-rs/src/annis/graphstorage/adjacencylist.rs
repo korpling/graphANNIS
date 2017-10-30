@@ -130,6 +130,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
     }
 }
 
+#[test]
 mod tests {
 
     use super::*;

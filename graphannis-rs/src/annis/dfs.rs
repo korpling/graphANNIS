@@ -1,5 +1,4 @@
 use annis::graphstorage::EdgeContainer;
-use std;
 use std::collections::{HashSet};
 
 use annis::NodeID;
