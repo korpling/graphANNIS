@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::collections::Bound::*;
 use std::iter::FromIterator;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
     edges: BTreeSet<Edge>,
     inverse_edges: BTreeSet<Edge>,

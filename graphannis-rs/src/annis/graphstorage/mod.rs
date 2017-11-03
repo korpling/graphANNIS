@@ -26,3 +26,4 @@ pub trait WriteableGraphStorage: ReadableGraphStorage {
 }
 
 pub mod adjacencylist;
+pub mod registry;

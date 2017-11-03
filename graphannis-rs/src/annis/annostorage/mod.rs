@@ -15,7 +15,7 @@ pub struct ContainerAnnoKey<T: Ord> {
     pub key: AnnoKey,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AnnoStorage<T: Ord> {
     by_container: BTreeMap<ContainerAnnoKey<T>, StringID>,
     by_anno: BTreeMap<Annotation, BTreeSet<T>>,
