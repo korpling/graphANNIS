@@ -12,28 +12,48 @@ pub enum RegistryError {
 
 type Result<T> = std::result::Result<T, RegistryError>;
 
+enum Type {
+    Readable{
+        copy_constructor : fn(&ReadableGraphStorage) -> Box<ReadableGraphStorage>
+    },
+    Writable{
+        copy_constructor : fn(&ReadableGraphStorage) -> Box<WriteableGraphStorage>, 
+        empty_constructor : fn() -> Box<WriteableGraphStorage>,
+        deserializer : fn(&std::io::Read) -> Box<WriteableGraphStorage>,
+    },
+}
+
 pub struct GraphStorageRegistry {
-    readable_constructors : BTreeMap<String, fn(&ReadableGraphStorage) -> Box<ReadableGraphStorage>>,
-    writable_constructors : BTreeMap<String, fn() -> Box<WriteableGraphStorage>>,
+
+    types : BTreeMap<String, Type>,
 }
 
 impl GraphStorageRegistry {
 
     pub fn new() -> GraphStorageRegistry {
-        let mut readable_constructors = BTreeMap::new();
-        let mut writable_constructors = BTreeMap::<String, fn() -> Box<WriteableGraphStorage>>::new();
+        let mut types = BTreeMap::new();
 
-        writable_constructors.insert(String::from("AdjacencyListStorage"), || Box::new(AdjacencyListStorage::new()));
+        types.insert(String::from("AdjacencyListStorage"), Type::Writable{
+            copy_constructor : |orig : &ReadableGraphStorage| Box::new(AdjacencyListStorage::new()),
+            empty_constructor : || Box::new(AdjacencyListStorage::new()),
+            deserializer : |input : &std::io::Read| Box::new(AdjacencyListStorage::new()),
+        });
         // TODO: add other graph storages
 
-        GraphStorageRegistry{readable_constructors, writable_constructors}
+        GraphStorageRegistry{types}
     }
 
     pub fn create_writable(&self) -> Result<Box<WriteableGraphStorage>> {
-        // just use the first one available
-        let mut it = self.writable_constructors.iter();
-        let constructor = try!(it.next().ok_or(RegistryError::Empty));
+        for (_, value) in self.types.iter() {
+            // just use the first writable graph storage available
+            if let Type::Writable{copy_constructor, empty_constructor, deserializer} = *value {
+                return Ok(empty_constructor());
+            }
+        }
+        Err(RegistryError::Empty)
+    }
 
-        Ok(constructor.1())
+    pub fn load_by_name(&self) {
+
     }
 }
