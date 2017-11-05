@@ -50,7 +50,7 @@ impl GraphDB {
             location: None,
         }
     }
-
+    
     fn component_path(&self, c: &Component) -> Option<PathBuf> {
         match self.location {
             Some(ref loc) => {

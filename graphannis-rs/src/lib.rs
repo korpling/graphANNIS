@@ -7,6 +7,8 @@ extern crate bincode;
 
 extern crate libc;
 
+extern crate csv;
+
 #[macro_use]
 extern crate serde_derive;
 
