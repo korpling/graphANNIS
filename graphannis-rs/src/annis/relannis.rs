@@ -1,26 +1,81 @@
 use graphdb::GraphDB;
 use annis::{AnnoKey, Annotation};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::prelude::*;
+use std::num::ParseIntError;
 use std::collections::BTreeMap;
 use std;
+use csv;
 
 pub struct RelANNISLoader;
 
+#[derive(Debug)]
+pub enum RelANNISError {
+    IOError(std::io::Error),
+    CSVError(csv::Error),
+    MissingColumn,
+    InvalidDataType,
+    ToplevelCorpusNameNotFound,
+    DirectoryNotFound,
+    Other,
+}
 
-type Result<T> = std::result::Result<T, std::io::Error>;
+type Result<T> = std::result::Result<T, RelANNISError>;
 
+impl From<ParseIntError> for RelANNISError {
+    fn from(_: ParseIntError) -> RelANNISError {
+        RelANNISError::InvalidDataType
+    }
+}
+
+impl From<csv::Error> for RelANNISError {
+    fn from(e: csv::Error) -> RelANNISError {
+        RelANNISError::CSVError(e)
+    }
+}
+
+impl From<std::io::Error> for RelANNISError {
+    fn from(e: std::io::Error) -> RelANNISError {
+        RelANNISError::IOError(e)
+    }
+}
 
 fn load_corpus_tab(path : &PathBuf, 
     corpus_by_preorder : &mut BTreeMap<u32, u32>,
     corpus_id_to_name : &mut BTreeMap<u32, String>,
     is_annis_33 : bool) -> Result<String> {
 
-    let corpus_tab_path = PathBuf::from(path).push(if is_annis_33 {"corpus.annis"} else {"corpus.tab"});
+    let mut corpus_tab_path = PathBuf::from(path);
+    corpus_tab_path.push(if is_annis_33 {"corpus.annis"} else {"corpus.tab"});
     
+    let mut toplevel_corpus_name : Option<String> = None;
 
-    return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Can't read corpus table"));
+    let mut corpus_tab_csv = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .delimiter(b'\t')
+        .from_path(corpus_tab_path.as_path())?;
+        
+    for result in corpus_tab_csv.records() {
+        let line = result?;
+
+        let id = line.get(0).ok_or(RelANNISError::MissingColumn)?.parse::<u32>()?;
+        let name = line.get(1).ok_or(RelANNISError::MissingColumn)?;
+        let type_str = line.get(2).ok_or(RelANNISError::MissingColumn)?;
+        let pre_order = line.get(4).ok_or(RelANNISError::MissingColumn)?.parse::<u32>()?;
+
+        corpus_id_to_name.insert(id, String::from(name));
+        if type_str == "CORPUS" && pre_order == 0 {
+            toplevel_corpus_name = Some(String::from(name));
+            corpus_by_preorder.insert(pre_order, id);
+        } else if type_str == "DOCUMENT" {
+            // TODO: do not only add documents but also sub-corpora
+            corpus_by_preorder.insert(pre_order, id);
+        }
+
+    }
+
+    toplevel_corpus_name.ok_or(RelANNISError::ToplevelCorpusNameNotFound)
 }
 
     
@@ -50,7 +105,6 @@ pub fn load(path : &str) -> Result<GraphDB>{
         return Ok(db);
     }
 
-
-    return Err(std::io::Error::new(std::io::ErrorKind::NotFound, format!("Could not find path {:?}", path.to_str())));
+    return Err(RelANNISError::DirectoryNotFound);
 }
 
