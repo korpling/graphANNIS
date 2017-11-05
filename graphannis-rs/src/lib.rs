@@ -2,6 +2,8 @@ extern crate regex;
 extern crate regex_syntax;
 extern crate rand;
 extern crate multimap;
+#[macro_use]
+extern crate log;
 
 extern crate serde;
 extern crate bincode;

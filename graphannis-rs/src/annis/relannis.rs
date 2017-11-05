@@ -116,6 +116,8 @@ fn load_node_tab(
         "node.tab"
     });
 
+    info!("loading {}", node_tab_path.to_str().unwrap_or_default());
+
     // start "node.annis" visibility block
     {
         // maps a token index to an node ID
@@ -268,6 +270,9 @@ fn load_node_tab(
         // TODO: cleanup, better variable naming and put this into it's own function
         // iterate over all token by their order, find the nodes with the same
         // text coverage (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
+        if !token_by_index.is_empty() {
+            info!("calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
+        }
 
     } // "node.annis" visibility block
 
