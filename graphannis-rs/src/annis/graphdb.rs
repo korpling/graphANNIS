@@ -50,7 +50,7 @@ impl GraphDB {
             location: None,
         }
     }
-    
+
     fn component_path(&self, c: &Component) -> Option<PathBuf> {
         match self.location {
             Some(ref loc) => {
@@ -72,7 +72,7 @@ impl GraphDB {
             let e = self.loaded_components
                 .entry(c)
                 .or_insert_with(|| match cpath {
-                    Some(ref loc) => {
+                    Some(ref _loc) => {
                         // let f = std::fs::File::open(loc);
                         // if f.is_ok() {
                         //     let mut buf_reader = std::io::BufReader::new(f.unwrap());
@@ -101,6 +101,20 @@ impl GraphDB {
         AnnoKey {
             ns: self.id_annis_ns,
             name: self.id_tok,
+        }
+    }
+
+    pub fn get_node_name_key(&self) -> AnnoKey {
+        AnnoKey {
+            ns: self.id_annis_ns,
+            name: self.id_node_name,
+        }
+    }
+
+    pub fn get_node_type_key(&self) -> AnnoKey {
+        AnnoKey {
+            ns: self.id_annis_ns,
+            name: self.id_node_type,
         }
     }
 }

@@ -1,6 +1,7 @@
 extern crate regex;
 extern crate regex_syntax;
 extern crate rand;
+extern crate multimap;
 
 extern crate serde;
 extern crate bincode;
