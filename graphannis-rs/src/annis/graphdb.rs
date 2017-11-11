@@ -9,6 +9,8 @@ use annis::graphstorage::registry::{RegistryError};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::boxed::Box;
+use std::io::prelude::*;
+use std;
 
 
 const ANNIS_NS: &str = "annis";
@@ -20,6 +22,26 @@ pub enum ImplType {
     Readable(Box<ReadableGraphStorage>),
     Writable(Box<WriteableGraphStorage>),
 }
+
+pub enum Error {
+    IOerror(std::io::Error),
+    RegistryError(registry::RegistryError),
+    LocationEmpty,
+    Other,
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Error {
+        Error::IOerror(e)
+    }
+}
+
+impl From<registry::RegistryError> for Error {
+    fn from(e: registry::RegistryError) -> Error {
+        Error::RegistryError(e)
+    }
+}
+
 
 pub struct GraphDB {
     pub strings: StringStorage,
@@ -71,42 +93,42 @@ impl GraphDB {
         }
     }
 
-    fn create_writable_graphstorage(&mut self, c: Component) -> Result<&Box<WriteableGraphStorage>, RegistryError> {
+    fn create_writable_graphstorage(&mut self, c: Component) -> Result<&Box<WriteableGraphStorage>, Error> {
 
         unimplemented!();
         
         // TODO: no suitable component found, create a new one and register it
-        return Err(RegistryError::Other);
+        return Err(Error::Other);
         
     }
 
-    pub fn ensure_component_loaded(&mut self, c: Component) -> Option<&ImplType> {
+    pub fn ensure_component_loaded(&mut self, c: Component) -> Result<&ImplType, Error> {
         if self.component_keys.contains(&c) {
             // check if not loaded yet
-            let cpath = self.component_path(&c);
-            let e = self.loaded_components
-                .entry(c)
-                .or_insert_with(|| match cpath {
-                    Some(ref _loc) => {
-                        // let f = std::fs::File::open(loc);
-                        // if f.is_ok() {
-                        //     let mut buf_reader = std::io::BufReader::new(f.unwrap());
+            let cpath = try!(self.component_path(&c).ok_or(Error::LocationEmpty));
+            if !self.loaded_components.contains_key(&c) {
+                // load component into memory
+                let mut impl_path = PathBuf::from(&cpath);
+                impl_path.push("impl.cfg");
+                let mut f_impl = std::fs::File::open(impl_path)?;
+                let mut impl_name = String::new();
+                f_impl.read_to_string(&mut impl_name)?;
 
-                        //     let loaded: Result<Box<ReadableGraphStorage>, _> =
-                        //         bincode::deserialize_from(&mut buf_reader, bincode::Infinite);
-                        //     if loaded.is_ok() {
-                        //         *self = loaded.unwrap();
-                        //     }
-                        // }
-                        ImplType::Writable(registry::create_writeable())
-                    }
-                    None => {
-                        ImplType::Writable(registry::create_writeable())
-                    }
-                });
-            return Some(e);
+                let mut data_path = PathBuf::from(&cpath);
+                data_path.push("data");
+                let f_data = std::fs::File::open(data_path)?;
+                let mut buf_reader = std::io::BufReader::new(f_data);
+                let gs = registry::load_by_name(&impl_name, &mut buf_reader)?;
+
+                self.loaded_components.insert(c.clone(), ImplType::Readable(gs));
+            }
+
+            return match self.loaded_components.get(&c) {
+                Some(v) => Ok(v),
+                None => Err(Error::Other),
+            }
         }
-        return None;
+        return Err(Error::Other);
     }
 
     pub fn get_token_key(&self) -> AnnoKey {
