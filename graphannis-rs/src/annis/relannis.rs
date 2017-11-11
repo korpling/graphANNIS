@@ -272,6 +272,7 @@ fn load_node_tab(
         // text coverage (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
         if !token_by_index.is_empty() {
             info!("calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
+
         }
 
     } // "node.annis" visibility block

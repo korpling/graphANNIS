@@ -72,6 +72,10 @@ impl ReadableGraphStorage for AdjacencyListStorage {
         
         return it.next().is_some();
     }
+
+    fn copy(&mut self, other : &ReadableGraphStorage) {
+        unimplemented!();
+    }
 }
 
 impl WriteableGraphStorage for AdjacencyListStorage {

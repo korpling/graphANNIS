@@ -1,19 +1,25 @@
 use annis::stringstorage::StringStorage;
 use annis::annostorage::AnnoStorage;
-use annis::graphstorage::ReadableGraphStorage;
+use annis::graphstorage::{WriteableGraphStorage, ReadableGraphStorage};
 use annis::graphstorage::adjacencylist::AdjacencyListStorage;
 use annis::{Component, NodeID, StringID};
 use annis::AnnoKey;
+use annis::graphstorage::registry;
+use annis::graphstorage::registry::{RegistryError};
 use std::collections::{BTreeMap, BTreeSet};
-use std::string::String;
 use std::path::PathBuf;
-use std;
-use bincode;
+use std::boxed::Box;
+
 
 const ANNIS_NS: &str = "annis";
 const NODE_NAME: &str = "node_name";
 const TOK: &str = "tok";
 const NODE_TYPE: &str = "node_type";
+
+pub enum ImplType {
+    Readable(Box<ReadableGraphStorage>),
+    Writable(Box<WriteableGraphStorage>),
+}
 
 pub struct GraphDB {
     pub strings: StringStorage,
@@ -21,7 +27,7 @@ pub struct GraphDB {
 
     location: Option<PathBuf>,
     component_keys: BTreeSet<Component>,
-    loaded_components: BTreeMap<Component, Box<ReadableGraphStorage>>,
+    loaded_components: BTreeMap<Component, ImplType>,
 
     id_annis_ns: StringID,
     id_node_name: StringID,
@@ -65,7 +71,16 @@ impl GraphDB {
         }
     }
 
-    pub fn ensure_component_loaded(&mut self, c: Component) -> Option<&Box<ReadableGraphStorage>> {
+    fn create_writable_graphstorage(&mut self, c: Component) -> Result<&Box<WriteableGraphStorage>, RegistryError> {
+
+        unimplemented!();
+        
+        // TODO: no suitable component found, create a new one and register it
+        return Err(RegistryError::Other);
+        
+    }
+
+    pub fn ensure_component_loaded(&mut self, c: Component) -> Option<&ImplType> {
         if self.component_keys.contains(&c) {
             // check if not loaded yet
             let cpath = self.component_path(&c);
@@ -83,15 +98,12 @@ impl GraphDB {
                         //         *self = loaded.unwrap();
                         //     }
                         // }
-                        let empty_gs = AdjacencyListStorage::new();
-                        Box::new(empty_gs)
+                        ImplType::Writable(registry::create_writeable())
                     }
                     None => {
-                        let empty_gs = AdjacencyListStorage::new();
-                        Box::new(empty_gs)
+                        ImplType::Writable(registry::create_writeable())
                     }
                 });
-
             return Some(e);
         }
         return None;

@@ -14,6 +14,8 @@ pub trait ReadableGraphStorage: EdgeContainer {
     ) -> Box<Iterator<Item = NodeID> + 'a>;
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize>;
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool;
+
+    fn copy(&mut self, orig : &ReadableGraphStorage);
 }
 
 pub trait WriteableGraphStorage: ReadableGraphStorage {

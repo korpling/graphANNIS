@@ -1,7 +1,6 @@
 use annis::graphstorage::EdgeContainer;
 use annis::graphdb::GraphDB;
 use annis::NodeID;
-use annis::AnnoKey;
 
 pub struct TokenHelper<'a> {
     db: &'a GraphDB,
