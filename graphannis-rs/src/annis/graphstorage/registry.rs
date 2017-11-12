@@ -1,11 +1,9 @@
-use std::collections::BTreeMap;
-use std::string::String;
 use super::{WriteableGraphStorage, ReadableGraphStorage};
 use super::adjacencylist::AdjacencyListStorage;
 use std::sync::Arc;
 use std;
 use bincode;
-use annis;
+use annis::graphdb::ImplType;
 
 #[derive(Debug)]
 pub enum RegistryError {
@@ -34,12 +32,12 @@ pub fn create_writable_copy(orig : &ReadableGraphStorage) -> Box<WriteableGraphS
     return gs;
 }
 
-pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<annis::graphdb::ImplType> {
+pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<ImplType> {
 
     match impl_name {
         "AdjacencyListStorage" => {
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input, bincode::Infinite)?;
-            Ok(annis::graphdb::ImplType::Writable(Arc::new(gs)))
+            Ok(ImplType::Writable(Arc::new(gs)))
         },
         _ => Err(RegistryError::ImplementationNameNotFound)
     }

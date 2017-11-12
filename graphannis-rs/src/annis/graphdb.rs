@@ -1,14 +1,11 @@
 use annis::stringstorage::StringStorage;
 use annis::annostorage::AnnoStorage;
 use annis::graphstorage::{WriteableGraphStorage, ReadableGraphStorage};
-use annis::graphstorage::adjacencylist::AdjacencyListStorage;
 use annis::{Component, NodeID, StringID};
 use annis::AnnoKey;
 use annis::graphstorage::registry;
-use annis::graphstorage::registry::{RegistryError};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
-use std::boxed::Box;
 use std::sync::Arc;
 use std::io::prelude::*;
 use std;
@@ -25,6 +22,7 @@ pub enum ImplType {
     Writable(Arc<WriteableGraphStorage>),
 }
 
+#[derive(Debug)]
 pub enum Error {
     IOerror(std::io::Error),
     RegistryError(registry::RegistryError),
