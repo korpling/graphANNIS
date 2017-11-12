@@ -120,7 +120,7 @@ impl GraphDB {
                 let mut buf_reader = std::io::BufReader::new(f_data);
                 let gs = registry::load_by_name(&impl_name, &mut buf_reader)?;
 
-                self.loaded_components.insert(c.clone(), ImplType::Readable(gs));
+                self.loaded_components.insert(c.clone(), gs);
             }
 
             return match self.loaded_components.get(&c) {
