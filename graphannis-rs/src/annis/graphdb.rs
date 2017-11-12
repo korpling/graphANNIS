@@ -144,17 +144,18 @@ impl GraphDB {
         return Ok(());
     }
 
-    pub fn get_or_create_writable(&mut self, c : &Component) -> Result<&mut WriteableGraphStorage, Error> {
+    pub fn get_or_create_writable(&mut self, c : Component) -> Result<&mut WriteableGraphStorage, Error> {
         
-        if self.components.contains_key(c) {
+
+        if self.components.contains_key(&c) {
             // make sure the component is actually writable and loaded
-            self.insert_or_copy_writeable(c)?;
+            self.insert_or_copy_writeable(&c)?;
         } else {
             self.components.insert(c.clone(), Some(ImplType::Writable(registry::create_writeable())));
         }
         
         // get and return the reference to the entry
-        let entry : &mut Option<ImplType> = self.components.get_mut(c).ok_or(Error::Other)?;
+        let entry : &mut Option<ImplType> = self.components.get_mut(&c).ok_or(Error::Other)?;
         if entry.is_some() {
             let impl_type : &mut ImplType = entry.as_mut().unwrap();
             if let &mut ImplType::Writable(ref mut gs) = impl_type {
