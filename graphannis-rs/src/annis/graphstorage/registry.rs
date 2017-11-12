@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::string::String;
 use super::{WriteableGraphStorage, ReadableGraphStorage};
 use super::adjacencylist::AdjacencyListStorage;
+use std::sync::Arc;
 use std;
 use bincode;
 use annis;
@@ -28,8 +29,7 @@ pub fn create_writeable() -> Box<WriteableGraphStorage> {
 }
 
 pub fn create_writable_copy(orig : &ReadableGraphStorage) -> Box<WriteableGraphStorage> {
-    let mut gs  = create_writeable();
-
+    let mut gs = create_writeable();
     gs.copy(orig);
     return gs;
 }
@@ -39,7 +39,7 @@ pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<anni
     match impl_name {
         "AdjacencyListStorage" => {
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input, bincode::Infinite)?;
-            Ok(annis::graphdb::ImplType::Writable(Box::new(gs)))
+            Ok(annis::graphdb::ImplType::Writable(Arc::new(gs)))
         },
         _ => Err(RegistryError::ImplementationNameNotFound)
     }

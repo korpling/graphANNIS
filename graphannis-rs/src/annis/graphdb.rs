@@ -9,6 +9,7 @@ use annis::graphstorage::registry::{RegistryError};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::boxed::Box;
+use std::sync::Arc;
 use std::io::prelude::*;
 use std;
 
@@ -18,9 +19,10 @@ const NODE_NAME: &str = "node_name";
 const TOK: &str = "tok";
 const NODE_TYPE: &str = "node_type";
 
+#[derive(Clone)]
 pub enum ImplType {
-    Readable(Box<ReadableGraphStorage>),
-    Writable(Box<WriteableGraphStorage>),
+    Readable(Arc<ReadableGraphStorage>),
+    Writable(Arc<WriteableGraphStorage>),
 }
 
 pub enum Error {
@@ -93,16 +95,36 @@ impl GraphDB {
         }
     }
 
-    fn create_writable_graphstorage(&mut self, c: Component) -> Result<&Box<WriteableGraphStorage>, Error> {
+    pub fn create_writable_graphstorage(&mut self, c: Component) -> Result<Arc<WriteableGraphStorage>, Error> {
 
-        unimplemented!();
-        
-        // TODO: no suitable component found, create a new one and register it
-        return Err(Error::Other);
-        
+        match self.ensure_component_loaded(c.clone()) {
+            Ok(impl_type) => {
+                match impl_type {
+                    ImplType::Readable(gs) => {
+                        // convert the readable component to a writable one
+                        let gs_copy :Arc<WriteableGraphStorage> = Arc::from(registry::create_writable_copy(gs.as_ref()));
+                        // replace the current implementation
+                        self.loaded_components.insert(c.clone(), ImplType::Writable(gs_copy.clone()));
+                        Ok(gs_copy)
+                    },
+                    ImplType::Writable(gs) => {
+                        // directly return the already loaded component
+                        Ok(gs)
+                    },
+                }
+            },
+            Err(_) => {
+                // no suitable component found, create a new one and register it
+                let gs : Arc<WriteableGraphStorage> = Arc::from(registry::create_writeable());
+                self.component_keys.insert(c.clone());
+                self.loaded_components.insert(c.clone(), ImplType::Writable(gs.clone()));
+                Ok(gs)
+            }
+        }
+
     }
 
-    pub fn ensure_component_loaded(&mut self, c: Component) -> Result<&ImplType, Error> {
+    pub fn ensure_component_loaded(&mut self, c: Component) -> Result<ImplType, Error> {
         if self.component_keys.contains(&c) {
             // check if not loaded yet
             let cpath = try!(self.component_path(&c).ok_or(Error::LocationEmpty));
@@ -124,7 +146,7 @@ impl GraphDB {
             }
 
             return match self.loaded_components.get(&c) {
-                Some(v) => Ok(v),
+                Some(v) => Ok(v.clone()),
                 None => Err(Error::Other),
             }
         }
