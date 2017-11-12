@@ -1,4 +1,5 @@
 use std;
+use std::clone::Clone;
 use annis::{AnnoKey, Annotation, Edge, NodeID};
 
 pub trait EdgeContainer {
@@ -18,7 +19,7 @@ pub trait ReadableGraphStorage: EdgeContainer {
     fn copy(&mut self, orig : &ReadableGraphStorage);
 }
 
-pub trait WriteableGraphStorage: ReadableGraphStorage {
+pub trait WriteableGraphStorage:  ReadableGraphStorage {
     fn add_edge(&mut self, edge: Edge);
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation);
 

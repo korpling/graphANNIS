@@ -26,18 +26,12 @@ pub fn create_writeable() -> Box<WriteableGraphStorage> {
     Box::new(AdjacencyListStorage::new())
 }
 
-pub fn create_writable_copy(orig : &ReadableGraphStorage) -> Box<WriteableGraphStorage> {
-    let mut gs = create_writeable();
-    gs.copy(orig);
-    return gs;
-}
-
 pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<ImplType> {
 
     match impl_name {
         "AdjacencyListStorage" => {
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input, bincode::Infinite)?;
-            Ok(ImplType::Writable(Arc::new(gs)))
+            Ok(ImplType::Writable(Box::new(gs)))
         },
         _ => Err(RegistryError::ImplementationNameNotFound)
     }

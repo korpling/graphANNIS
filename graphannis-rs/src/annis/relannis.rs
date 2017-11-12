@@ -284,59 +284,59 @@ fn load_node_tab(
         if !token_by_index.is_empty() {
             info!("calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
 
-            let gs_left = db.create_writable_graphstorage(Component{ctype: ComponentType::LeftToken, 
-                layer: String::from("annis"), name: String::from("")})?;
-            let mut gs_right = db.create_writable_graphstorage(Component{ctype: ComponentType::RightToken, 
-                layer: String::from("annis"), name: String::from("")})?;    
+            // let gs_left = db.create_writable_graphstorage(Component{ctype: ComponentType::LeftToken, 
+            //     layer: String::from("annis"), name: String::from("")})?;
+            // let mut gs_right = db.create_writable_graphstorage(Component{ctype: ComponentType::RightToken, 
+            //     layer: String::from("annis"), name: String::from("")})?;    
 
-            let last_text_id : Option<u32> = None;
-            let last_corpus_id : Option<u32> = None;
-            let last_segmentation : Option<String> = None;
-            let last_token : Option<NodeID> = None;
+            // let last_text_id : Option<u32> = None;
+            // let last_corpus_id : Option<u32> = None;
+            // let last_segmentation : Option<String> = None;
+            // let last_token : Option<NodeID> = None;
 
-            for (current_textprop, current_token) in  token_by_index {
-                let current_text_id = current_textprop.text_id;
-                let current_corpus_id = current_textprop.corpus_id;
-                let current_segmentation = current_textprop.segmentation;
+            // for (current_textprop, current_token) in  token_by_index {
+            //     let current_text_id = current_textprop.text_id;
+            //     let current_corpus_id = current_textprop.corpus_id;
+            //     let current_segmentation = current_textprop.segmentation;
 
-                if current_segmentation == "" {
-                    // find all nodes that start together with the current token
-                    let current_token_left = TextProperty{
-                        segmentation: String::from(""), 
-                        text_id : current_text_id, 
-                        corpus_id : current_corpus_id,
-                        val : try!(node_to_left.get(&current_token).ok_or(Error::Other)).clone(),
-                    };
-                    let left_aligned = left_to_node.get_vec(&current_token_left);
-                    if left_aligned.is_some() {
-                        for n in left_aligned.unwrap() {
-                            // TODO: add edges
-                            //gs_left.add_edge(Edge{source: n.clone(), target: current_token});
-                            //gs_left.add_edge(Edge{source: current_token, target: n.clone()});
-                        }
-                    }
-                    // find all nodes that end together with the current token
-                    let current_token_right = TextProperty{
-                        segmentation: String::from(""), 
-                        text_id : current_text_id, 
-                        corpus_id : current_corpus_id,
-                        val : try!(node_to_right.get(&current_token).ok_or(Error::Other)).clone(),
-                    };
-                    let right_aligned = right_to_node.get_vec(&current_token_right);
-                    if right_aligned.is_some() {
-                        for n in right_aligned.unwrap() {
-                            // TODO: add edges
-                            //gs_right.add_edge(Edge{source: n.clone(), target: current_token});
-                            //gs_right.add_edge(Edge{source: current_token, target: n.clone()});
-                        }
-                    }
-                } // end if current segmentation is default
+            //     if current_segmentation == "" {
+            //         // find all nodes that start together with the current token
+            //         let current_token_left = TextProperty{
+            //             segmentation: String::from(""), 
+            //             text_id : current_text_id, 
+            //             corpus_id : current_corpus_id,
+            //             val : try!(node_to_left.get(&current_token).ok_or(Error::Other)).clone(),
+            //         };
+            //         let left_aligned = left_to_node.get_vec(&current_token_left);
+            //         if left_aligned.is_some() {
+            //             for n in left_aligned.unwrap() {
+            //                 // TODO: add edges
+            //                 gs_left.add_edge(Edge{source: n.clone(), target: current_token});
+            //                 gs_left.add_edge(Edge{source: current_token, target: n.clone()});
+            //             }
+            //         }
+            //         // find all nodes that end together with the current token
+            //         let current_token_right = TextProperty{
+            //             segmentation: String::from(""), 
+            //             text_id : current_text_id, 
+            //             corpus_id : current_corpus_id,
+            //             val : try!(node_to_right.get(&current_token).ok_or(Error::Other)).clone(),
+            //         };
+            //         let right_aligned = right_to_node.get_vec(&current_token_right);
+            //         if right_aligned.is_some() {
+            //             for n in right_aligned.unwrap() {
+            //                 // TODO: add edges
+            //                 gs_right.add_edge(Edge{source: n.clone(), target: current_token});
+            //                 gs_right.add_edge(Edge{source: current_token, target: n.clone()});
+            //             }
+            //         }
+            //     } // end if current segmentation is default
 
-                let gs_order = db.create_writable_graphstorage(Component{ctype: ComponentType::Ordering, 
-                    layer: String::from("annis"), name: current_segmentation.clone()})?;
+            //     let gs_order = db.create_writable_graphstorage(Component{ctype: ComponentType::Ordering, 
+            //         layer: String::from("annis"), name: current_segmentation.clone()})?;
                 
 
-            } // end for each token
+            // } // end for each token
 
         }
 

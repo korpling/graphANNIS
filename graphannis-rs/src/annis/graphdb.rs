@@ -7,6 +7,7 @@ use annis::graphstorage::registry;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::boxed::Box;
 use std::io::prelude::*;
 use std;
 
@@ -16,10 +17,9 @@ const NODE_NAME: &str = "node_name";
 const TOK: &str = "tok";
 const NODE_TYPE: &str = "node_type";
 
-#[derive(Clone)]
 pub enum ImplType {
-    Readable(Arc<ReadableGraphStorage>),
-    Writable(Arc<WriteableGraphStorage>),
+    Readable(Box<ReadableGraphStorage>),
+    Writable(Box<WriteableGraphStorage>),
 }
 
 #[derive(Debug)]
@@ -48,13 +48,31 @@ pub struct GraphDB {
     pub node_annos: AnnoStorage<NodeID>,
 
     location: Option<PathBuf>,
-    component_keys: BTreeSet<Component>,
-    loaded_components: BTreeMap<Component, ImplType>,
 
+    components: BTreeMap<Component, Option<ImplType>>,
     id_annis_ns: StringID,
     id_node_name: StringID,
     id_tok: StringID,
     id_node_type: StringID,
+}
+
+fn load_component_from_disk(c: Component, component_path: Option<PathBuf> ) -> Result<ImplType, Error> {
+    let cpath = try!(component_path.ok_or(Error::LocationEmpty));
+    
+    // load component into memory
+    let mut impl_path = PathBuf::from(&cpath);
+    impl_path.push("impl.cfg");
+    let mut f_impl = std::fs::File::open(impl_path)?;
+    let mut impl_name = String::new();
+    f_impl.read_to_string(&mut impl_name)?;
+
+    let mut data_path = PathBuf::from(&cpath);
+    data_path.push("data");
+    let f_data = std::fs::File::open(data_path)?;
+    let mut buf_reader = std::io::BufReader::new(f_data);
+    let gs = registry::load_by_name(&impl_name, &mut buf_reader)?;
+
+    return Ok(gs);
 }
 
 impl GraphDB {
@@ -72,8 +90,7 @@ impl GraphDB {
 
             strings,
             node_annos: AnnoStorage::<NodeID>::new(),
-            component_keys: BTreeSet::new(),
-            loaded_components: BTreeMap::new(),
+            components: BTreeMap::new(),
 
             location: None,
         }
@@ -93,63 +110,61 @@ impl GraphDB {
         }
     }
 
-    pub fn create_writable_graphstorage(&mut self, c: Component) -> Result<Arc<WriteableGraphStorage>, Error> {
-
-        match self.ensure_component_loaded(c.clone()) {
-            Ok(impl_type) => {
-                match impl_type {
-                    ImplType::Readable(gs) => {
-                        // convert the readable component to a writable one
-                        let gs_copy :Arc<WriteableGraphStorage> = Arc::from(registry::create_writable_copy(gs.as_ref()));
-                        // replace the current implementation
-                        self.loaded_components.insert(c.clone(), ImplType::Writable(gs_copy.clone()));
-                        Ok(gs_copy)
-                    },
-                    ImplType::Writable(gs) => {
-                        // directly return the already loaded component
-                        Ok(gs)
-                    },
-                }
-            },
-            Err(_) => {
-                // no suitable component found, create a new one and register it
-                let gs : Arc<WriteableGraphStorage> = Arc::from(registry::create_writeable());
-                self.component_keys.insert(c.clone());
-                self.loaded_components.insert(c.clone(), ImplType::Writable(gs.clone()));
-                Ok(gs)
-            }
+    /// Helper function to unwrap an Option<ImplType> by loading it from disk if necessary.
+    fn unwrap_or_load(&self, entry : Option<ImplType>, c : &Component) -> Result<ImplType, Error> {
+        // check if component is not loaded yet
+        if entry.is_none() {
+            let loaded : ImplType = load_component_from_disk(c.clone(), self.component_path(c))?;
+            return Ok(loaded);
+        } else {
+            return Ok(entry.unwrap());
         }
-
     }
 
-    pub fn ensure_component_loaded(&mut self, c: Component) -> Result<ImplType, Error> {
-        if self.component_keys.contains(&c) {
-            // check if not loaded yet
-            let cpath = try!(self.component_path(&c).ok_or(Error::LocationEmpty));
-            if !self.loaded_components.contains_key(&c) {
-                // load component into memory
-                let mut impl_path = PathBuf::from(&cpath);
-                impl_path.push("impl.cfg");
-                let mut f_impl = std::fs::File::open(impl_path)?;
-                let mut impl_name = String::new();
-                f_impl.read_to_string(&mut impl_name)?;
+    fn insert_or_copy_writeable(&mut self, c : &Component) ->Result<(), Error> {
+        // move the old entry into the ownership of this function
+        let entry = self.components.remove(c);
+        // component exists?
+        if entry.is_some() {
+            let loaded_comp = self.unwrap_or_load(entry.unwrap(), c)?;
+            // copy to writable implementation if needed
+            let loaded_comp = match loaded_comp {
+                ImplType::Readable(gs_orig) => {
+                    let mut gs_copy = registry::create_writeable();
+                    gs_copy.copy(gs_orig.as_ref());
+                    gs_copy 
+                },
+                ImplType::Writable(gs) => {
+                    gs
+                }
+            };
+            // (re-)insert the component into map again
+            self.components.insert(c.clone(), Some(ImplType::Writable(loaded_comp)));
+        }
+        return Ok(());
+    }
 
-                let mut data_path = PathBuf::from(&cpath);
-                data_path.push("data");
-                let f_data = std::fs::File::open(data_path)?;
-                let mut buf_reader = std::io::BufReader::new(f_data);
-                let gs = registry::load_by_name(&impl_name, &mut buf_reader)?;
-
-                self.loaded_components.insert(c.clone(), gs);
-            }
-
-            return match self.loaded_components.get(&c) {
-                Some(v) => Ok(v.clone()),
-                None => Err(Error::Other),
+    pub fn get_or_create_writable(&mut self, c : &Component) -> Result<&mut WriteableGraphStorage, Error> {
+        
+        if self.components.contains_key(c) {
+            // make sure the component is actually writable and loaded
+            self.insert_or_copy_writeable(c)?;
+        } else {
+            self.components.insert(c.clone(), Some(ImplType::Writable(registry::create_writeable())));
+        }
+        
+        // get and return the reference to the entry
+        let entry : &mut Option<ImplType> = self.components.get_mut(c).ok_or(Error::Other)?;
+        if entry.is_some() {
+            let impl_type : &mut ImplType = entry.as_mut().unwrap();
+            if let &mut ImplType::Writable(ref mut gs) = impl_type {
+                return Ok(gs.as_mut());
             }
         }
         return Err(Error::Other);
     }
+
+    
 
     pub fn get_token_key(&self) -> AnnoKey {
         AnnoKey {
