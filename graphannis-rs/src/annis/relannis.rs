@@ -283,10 +283,8 @@ fn load_node_tab(
         if !token_by_index.is_empty() {
             info!("calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
 
-            let last_text_id : Option<u32> = None;
-            let last_corpus_id : Option<u32> = None;
-            let last_segmentation : Option<String> = None;
-            let last_token : Option<NodeID> = None;
+            let mut last_textprop : Option<TextProperty> = None;
+            let mut last_token : Option<NodeID> = None;
 
             let component_left = Component{ctype: ComponentType::LeftToken, 
                     layer: String::from("annis"), name: String::from("")};
@@ -294,16 +292,13 @@ fn load_node_tab(
                 layer: String::from("annis"), name: String::from("")};
 
             for (current_textprop, current_token) in  token_by_index {
-                let current_text_id = current_textprop.text_id;
-                let current_corpus_id = current_textprop.corpus_id;
-                let current_segmentation = current_textprop.segmentation;
 
-                if current_segmentation == "" {
+                if current_textprop.segmentation == "" {
                     // find all nodes that start together with the current token
                     let current_token_left = TextProperty{
                         segmentation: String::from(""), 
-                        text_id : current_text_id, 
-                        corpus_id : current_corpus_id,
+                        text_id : current_textprop.text_id, 
+                        corpus_id : current_textprop.corpus_id,
                         val : try!(node_to_left.get(&current_token).ok_or(Error::Other)).clone(),
                     };
                     let left_aligned = left_to_node.get_vec(&current_token_left);
@@ -318,8 +313,8 @@ fn load_node_tab(
                     // find all nodes that end together with the current token
                     let current_token_right = TextProperty{
                         segmentation: String::from(""), 
-                        text_id : current_text_id, 
-                        corpus_id : current_corpus_id,
+                        text_id : current_textprop.text_id, 
+                        corpus_id : current_textprop.corpus_id,
                         val : try!(node_to_right.get(&current_token).ok_or(Error::Other)).clone(),
                     };
                     let right_aligned = right_to_node.get_vec(&current_token_right);
@@ -333,14 +328,25 @@ fn load_node_tab(
                 } // end if current segmentation is default
 
                 let component_order = Component{ctype: ComponentType::Ordering, 
-                    layer: String::from("annis"), name: current_segmentation.clone()};
+                    layer: String::from("annis"), name: current_textprop.segmentation.clone()};
 
                 let gs_order = db.get_or_create_writable(component_order.clone())?;
                 
+                // if the last token/text value is valid and we are still in the same text
+                if  last_token.is_some()
+                    && last_textprop.is_some()
+                    && last_textprop.unwrap() == current_textprop {
+                    // we are still in the same text, add ordering between token
+                    gs_order.add_edge(Edge{source: last_token.unwrap(), target: current_token});
+                } // end if same text
+
+                // update the iterator and other variables
+                last_textprop = Some(current_textprop);
+                last_token = Some(current_token);
 
             } // end for each token
 
-        }
+        } // end if token_by_index not empty
 
     } // "node.annis" visibility block
 
