@@ -427,7 +427,7 @@ fn load_node_tab(path: &PathBuf,
     } // end if token_by_index not empty
 
     calculate_automatic_coverage_edges(db, &token_by_index, &token_to_index, 
-        &node_to_right, &left_to_node, &right_to_node, &token_by_left_textpos, &token_by_right_textpos);
+        &node_to_right, &left_to_node, &right_to_node, &token_by_left_textpos, &token_by_right_textpos)?;
     Ok(())
 }
 
