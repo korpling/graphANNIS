@@ -248,6 +248,10 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         return 0;
     }
 
+    pub fn largest_key(&self) -> Option<T> {
+        self.by_container.iter().rev().map(|e| e.0.item.clone()).next()
+    }
+
     pub fn calculate_statistics(&mut self, string_storage : &stringstorage::StringStorage) {
         let max_histogram_buckets = 250;
         let max_sampled_annotations = 2500;

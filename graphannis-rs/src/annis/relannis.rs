@@ -86,7 +86,7 @@ pub fn load(path: &str) -> Result<GraphDB> {
             is_annis_33,
         )?;
 
-        load_nodes(
+        let nodes_by_corpus_id = load_nodes(
             &path,
             &mut db,
             &corpus_id_to_name,
@@ -99,6 +99,10 @@ pub fn load(path: &str) -> Result<GraphDB> {
         let (pre_to_component, pre_to_edge) =
             load_rank_tab(&path, &mut db, &component_by_id, is_annis_33)?;
         load_edge_annotation(&path, &mut db, &pre_to_component, &pre_to_edge, is_annis_33)?;
+
+        let corpus_id_to_annos = load_corpus_annotation(&path, &mut db, is_annis_33)?;
+
+        add_subcorpora(&mut db, &corpus_name, &corpus_by_preorder, &corpus_id_to_name, &nodes_by_corpus_id, &corpus_id_to_annos)?;
 
         return Ok(db);
     }
@@ -347,8 +351,9 @@ fn load_node_tab(
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
-) -> Result<BTreeMap<NodeID, String>> {
+) -> Result<(MultiMap<u32, NodeID>, BTreeMap<NodeID, String>)> {
 
+    let mut nodes_by_corpus_id : MultiMap<u32, NodeID> = MultiMap::new();
     let mut missing_seg_span : BTreeMap<NodeID, String> = BTreeMap::new();
 
     let mut node_tab_path = PathBuf::from(path);
@@ -394,6 +399,9 @@ fn load_node_tab(
             let corpus_id = line.get(2).ok_or(Error::MissingColumn)?.parse::<u32>()?;
             let layer: &str = line.get(3).ok_or(Error::MissingColumn)?;
             let node_name = line.get(4).ok_or(Error::MissingColumn)?;
+
+
+            nodes_by_corpus_id.insert(corpus_id.clone(), node_nr.clone());
 
             let doc_name = corpus_id_to_name.get(&corpus_id).ok_or(
                 Error::DocumentMissing,
@@ -526,7 +534,7 @@ fn load_node_tab(
         &token_by_left_textpos,
         &token_by_right_textpos,
     )?;
-    Ok(missing_seg_span)
+    Ok((nodes_by_corpus_id, missing_seg_span))
 }
 
 fn load_node_anno_tab(
@@ -645,9 +653,9 @@ fn load_nodes(
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
-) -> Result<()> {
+) -> Result<MultiMap<u32, NodeID>> {
     
-    let missing_seg_span = load_node_tab(
+    let (nodes_by_corpus_id, missing_seg_span) = load_node_tab(
         path,
         db,
         corpus_id_to_name,
@@ -658,7 +666,7 @@ fn load_nodes(
 
     load_component_tab(path, db, is_annis_33)?;
 
-    return Ok(());
+    return Ok(nodes_by_corpus_id);
 }
 
 fn load_rank_tab(
@@ -766,6 +774,130 @@ fn load_edge_annotation(
                 gs.add_edge_annotation(e.clone(), anno);
             }
         }
+    }
+
+    Ok(())
+}
+
+fn load_corpus_annotation(path : &PathBuf, db : &mut GraphDB, is_annis_33 : bool) -> Result<MultiMap<u32,Annotation>> {
+    
+    let mut corpus_id_to_anno = MultiMap::new();
+
+    let mut corpus_anno_tab_path = PathBuf::from(path);
+    corpus_anno_tab_path.push(if is_annis_33 {
+        "corpus_annotation.annis"
+    } else {
+        "corpus_annotation.tab"
+    });
+
+    info!("loading {}", corpus_anno_tab_path.to_str().unwrap_or_default());
+
+    let mut corpus_anno_tab_csv = postgresql_import_reader(corpus_anno_tab_path.as_path())?;
+
+    for result in corpus_anno_tab_csv.records() {
+        let line = result?;
+
+        let id = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
+        let ns = line.get(1).ok_or(Error::MissingColumn)?;
+        let ns = if ns == "NULL" {""} else {ns};
+        let name = line.get(2).ok_or(Error::MissingColumn)?;
+        let val = line.get(3).ok_or(Error::MissingColumn)?;
+
+        let anno = Annotation {
+            key : AnnoKey{ns: db.strings.add(ns), name : db.strings.add(name)},
+            val : db.strings.add(val),
+        };
+
+        corpus_id_to_anno.insert(id, anno);
+        
+    }
+
+    Ok(corpus_id_to_anno)
+}
+
+fn add_subcorpora(db : &mut GraphDB,
+    toplevel_corpus_name : &str, 
+    corpus_by_preorder : &BTreeMap<u32, u32>, 
+    corpus_id_to_name : &BTreeMap<u32, String>,
+    nodes_by_corpus_id : &MultiMap<u32, NodeID>,
+    corpus_id_to_annos : &MultiMap<u32,Annotation>,
+    ) 
+    -> Result<()> {
+
+    let component_subcorpus = Component {
+        ctype: ComponentType::PartOfSubcorpus,
+        layer: String::from("annis"),
+        name: String::from(""), 
+    };
+
+    let mut next_node_id : NodeID = if let Some(id) = db.node_annos.largest_key() {id+1} else {0};
+
+
+    // add the toplevel corpus as node
+    let top_anno = Annotation {
+        key : db.get_node_name_key(),
+        val : db.strings.add(toplevel_corpus_name),
+    };
+    db.node_annos.insert(next_node_id, top_anno);
+    // add all metadata for the top-level corpus node
+    if let Some(cid) = corpus_by_preorder.get(&0) {
+        if let Some(anno_vec) = corpus_id_to_annos.get_vec(cid) {
+            for anno in anno_vec {
+                db.node_annos.insert(next_node_id, anno.clone());
+            }
+        }   
+    }
+    let toplevel_node_id = next_node_id;
+    next_node_id += 1;
+    
+    // add all subcorpora/documents (start with the largest pre-order)
+    for (pre, corpus_id) in corpus_by_preorder.iter().rev() {
+
+        let corpus_name = corpus_id_to_name.get(corpus_id).ok_or(Error::Other)?;
+        let full_name = format!("{}/{}", toplevel_corpus_name, corpus_name);
+
+
+        // add a basic node labels for the new (sub-) corpus/document
+        let anno_name = Annotation {
+            key : db.get_node_name_key(),
+            val : db.strings.add(&full_name)
+        };
+        db.node_annos.insert(next_node_id.clone(), anno_name);
+
+        let anno_doc = Annotation {
+            key : AnnoKey {ns: db.strings.add("annis"), name : db.strings.add("doc")},
+            val : db.strings.add(corpus_name)
+        };
+        db.node_annos.insert(next_node_id.clone(), anno_doc);
+
+        let anno_type = Annotation {
+            key : db.get_node_type_key(),
+            val : db.strings.add("corpus")
+        };
+        db.node_annos.insert(next_node_id.clone(), anno_type);
+
+        // add all metadata for the document node
+        if let Some(anno_vec) = corpus_id_to_annos.get_vec(&pre) {
+            for anno in anno_vec {
+                db.node_annos.insert(next_node_id.clone(), anno.clone());
+            }
+        }
+
+        {
+            let gs = db.get_or_create_writable(component_subcorpus.clone())?;
+
+            // find all nodes belonging to this document and add a relation
+            if let Some(n_vec) = nodes_by_corpus_id.get_vec(corpus_id) {
+                
+                for n in n_vec {
+                    gs.add_edge(Edge {source: n.clone(), target: next_node_id.clone()});
+                }
+            }
+            // also add an edge from the document to the top-level corpus
+            gs.add_edge(Edge {source: next_node_id, target : toplevel_node_id});
+        }
+
+        next_node_id += 1;
     }
 
     Ok(())
