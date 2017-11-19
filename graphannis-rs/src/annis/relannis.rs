@@ -5,7 +5,6 @@ use annis;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::prelude::*;
-use std::sync::Arc;
 use std::num::ParseIntError;
 use std::collections::BTreeMap;
 use multimap::MultiMap;
@@ -65,15 +64,17 @@ struct TextProperty {
 }
 
 pub fn load(path: &str) -> Result<GraphDB> {
+
     // convert to path
     let path_str = path;
-    let mut path = PathBuf::from(path);
+    let path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
         // check if this is the ANNIS 3.3 import format
-        path.push("annis.version");
+        let mut annis_version_path = PathBuf::from(path.clone());
+        annis_version_path.push("annis.version");
         let mut is_annis_33 = false;
-        if path.exists() {
-            let mut file = File::open(&path)?;
+        if annis_version_path.exists() {
+            let mut file = File::open(&annis_version_path)?;
             let mut version_str = String::new();
             file.read_to_string(&mut version_str)?;
 
