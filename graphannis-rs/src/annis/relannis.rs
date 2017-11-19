@@ -66,6 +66,7 @@ struct TextProperty {
 
 pub fn load(path: &str) -> Result<GraphDB> {
     // convert to path
+    let path_str = path;
     let mut path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
         // check if this is the ANNIS 3.3 import format
@@ -103,6 +104,11 @@ pub fn load(path: &str) -> Result<GraphDB> {
         let corpus_id_to_annos = load_corpus_annotation(&path, &mut db, is_annis_33)?;
 
         add_subcorpora(&mut db, &corpus_name, &corpus_by_preorder, &corpus_id_to_name, &nodes_by_corpus_id, &corpus_id_to_annos)?;
+
+        // TODO: optimize all components
+        // TODO: update statistics for node annotations
+
+        info!("finished loading relANNIS from {}", path_str);
 
         return Ok(db);
     }
