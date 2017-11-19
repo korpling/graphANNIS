@@ -102,7 +102,9 @@ pub fn load(path: &str) -> Result<GraphDB> {
 
         let component_by_id = load_component_tab(&path, &mut db, is_annis_33)?;
 
-        load_rank_tab(&path, &mut db, &component_by_id, is_annis_33)?;
+        let (pre_to_component, pre_to_edge) =
+            load_rank_tab(&path, &mut db, &component_by_id, is_annis_33)?;
+        load_edge_annotation(&path, &mut db, &pre_to_component, &pre_to_edge, is_annis_33)?;
 
         return Ok(db);
     }
@@ -532,9 +534,12 @@ fn load_node_tab(
     Ok(())
 }
 
-fn load_node_anno_tab(path: &PathBuf, db: &mut GraphDB, 
-    missing_seg_span : &BTreeMap<NodeID, String>, 
-    is_annis_33: bool) -> Result<()> {
+fn load_node_anno_tab(
+    path: &PathBuf,
+    db: &mut GraphDB,
+    missing_seg_span: &BTreeMap<NodeID, String>,
+    is_annis_33: bool,
+) -> Result<()> {
 
     let mut node_anno_tab_path = PathBuf::from(path);
     node_anno_tab_path.push(if is_annis_33 {
@@ -552,16 +557,14 @@ fn load_node_anno_tab(path: &PathBuf, db: &mut GraphDB,
 
     for result in node_anno_tab_csv.records() {
         let line = result?;
-    
+
         let col_id = line.get(0).ok_or(Error::MissingColumn)?;
-        let node_id : NodeID = col_id.parse()?;
+        let node_id: NodeID = col_id.parse()?;
         let col_ns = line.get(1).ok_or(Error::MissingColumn)?;
         let col_name = line.get(2).ok_or(Error::MissingColumn)?;
         let col_val = line.get(3).ok_or(Error::MissingColumn)?;
         // we have to make some sanity checks
-        if col_ns != "annis" ||
-            col_name != "tok"
-        {
+        if col_ns != "annis" || col_name != "tok" {
             let anno_val = if col_val == "NULL" {
                 // use an "invalid" string so it can't be found by its value, but only by its annotation name
                 <StringID>::max_value()
@@ -569,21 +572,31 @@ fn load_node_anno_tab(path: &PathBuf, db: &mut GraphDB,
                 db.strings.add(col_val)
             };
 
-            db.node_annos.insert(node_id.clone(), Annotation{
-                key : AnnoKey {ns : db.strings.add(col_ns), name : db.strings.add(col_name)},
-                val : anno_val,
-            });
+            db.node_annos.insert(
+                node_id.clone(),
+                Annotation {
+                    key: AnnoKey {
+                        ns: db.strings.add(col_ns),
+                        name: db.strings.add(col_name),
+                    },
+                    val: anno_val,
+                },
+            );
 
             // add all missing span values from the annotation, but don't add NULL values
             if let Some(seg) = missing_seg_span.get(&node_id) {
-                if seg == line.get(2).ok_or(Error::MissingColumn)?
-                    && line.get(3).ok_or(Error::MissingColumn)? != "NULL" {
-               
+                if seg == line.get(2).ok_or(Error::MissingColumn)? &&
+                    line.get(3).ok_or(Error::MissingColumn)? != "NULL"
+                {
+
                     let tok_key = db.get_token_key();
-                    db.node_annos.insert(node_id.clone(), Annotation{
-                        key : tok_key,
-                        val : anno_val,
-                    });
+                    db.node_annos.insert(
+                        node_id.clone(),
+                        Annotation {
+                            key: tok_key,
+                            val: anno_val,
+                        },
+                    );
                 }
             }
         }
@@ -592,8 +605,11 @@ fn load_node_anno_tab(path: &PathBuf, db: &mut GraphDB,
     Ok(())
 }
 
-fn load_component_tab(path : &PathBuf, db : &mut GraphDB, is_annis_33 : bool)
- -> Result<BTreeMap<u32, Component>> {
+fn load_component_tab(
+    path: &PathBuf,
+    db: &mut GraphDB,
+    is_annis_33: bool,
+) -> Result<BTreeMap<u32, Component>> {
 
     let mut component_tab_path = PathBuf::from(path);
     component_tab_path.push(if is_annis_33 {
@@ -607,24 +623,20 @@ fn load_component_tab(path : &PathBuf, db : &mut GraphDB, is_annis_33 : bool)
         component_tab_path.to_str().unwrap_or_default()
     );
 
-    let mut component_by_id : BTreeMap<u32, Component> = BTreeMap::new(); 
+    let mut component_by_id: BTreeMap<u32, Component> = BTreeMap::new();
 
     let mut component_tab_csv = postgresql_import_reader(component_tab_path.as_path())?;
     for result in component_tab_csv.records() {
         let line = result?;
 
-        let cid : u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
+        let cid: u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
         let col_type = line.get(1).ok_or(Error::MissingColumn)?;
         if col_type != "NULL" {
             let layer = String::from(line.get(2).ok_or(Error::MissingColumn)?);
             let name = String::from(line.get(3).ok_or(Error::MissingColumn)?);
-                
+
             let ctype = component_type_from_short_name(col_type)?;
-            let c = Component {
-                ctype,
-                layer,
-                name,
-            };
+            let c = Component { ctype, layer, name };
             db.get_or_create_writable(c.clone())?;
             component_by_id.insert(cid, c);
         }
@@ -659,7 +671,12 @@ fn load_nodes(
     return Ok(());
 }
 
-fn load_rank_tab (path : &PathBuf, db : &mut GraphDB, component_by_id : &BTreeMap<u32, Component>, is_annis_33 : bool) -> Result<()> {
+fn load_rank_tab(
+    path: &PathBuf,
+    db: &mut GraphDB,
+    component_by_id: &BTreeMap<u32, Component>,
+    is_annis_33: bool,
+) -> Result<(BTreeMap<u32, Component>, BTreeMap<u32, Edge>)> {
 
     let mut rank_tab_path = PathBuf::from(path);
     rank_tab_path.push(if is_annis_33 {
@@ -668,46 +685,49 @@ fn load_rank_tab (path : &PathBuf, db : &mut GraphDB, component_by_id : &BTreeMa
         "rank.tab"
     });
 
-    info!(
-        "loading {}",
-        rank_tab_path.to_str().unwrap_or_default()
-    );
+    info!("loading {}", rank_tab_path.to_str().unwrap_or_default());
 
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
 
-    let pos_node_ref = if is_annis_33 {3} else {2};
-    let pos_component_ref = if is_annis_33 {4} else {3};
-    let pos_parent = if is_annis_33 {5} else {4};
+    let pos_node_ref = if is_annis_33 { 3 } else { 2 };
+    let pos_component_ref = if is_annis_33 { 4 } else { 3 };
+    let pos_parent = if is_annis_33 { 5 } else { 4 };
 
     // first run: collect all pre-order values for a node
-    let mut pre_to_node_id : BTreeMap<u32, NodeID> = BTreeMap::new();
+    let mut pre_to_node_id: BTreeMap<u32, NodeID> = BTreeMap::new();
     for result in rank_tab_csv.records() {
         let line = result?;
-        let pre : u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
-        let node_id : NodeID = line.get(pos_node_ref).ok_or(Error::MissingColumn)?.parse()?;
+        let pre: u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
+        let node_id: NodeID = line.get(pos_node_ref).ok_or(Error::MissingColumn)?.parse()?;
         pre_to_node_id.insert(pre, node_id);
     }
 
-    let mut pre_to_component : BTreeMap<u32, Component> = BTreeMap::new();
-    let mut pre_to_edge : BTreeMap<u32, Edge> = BTreeMap::new();
+    let mut pre_to_component: BTreeMap<u32, Component> = BTreeMap::new();
+    let mut pre_to_edge: BTreeMap<u32, Edge> = BTreeMap::new();
     // second run: get the actual edges
     for result in rank_tab_csv.records() {
         let line = result?;
 
         let parent_as_str = line.get(pos_parent).ok_or(Error::MissingColumn)?;
         if parent_as_str != "NULL" {
-            let parent : u32 = parent_as_str.parse()?;
+            let parent: u32 = parent_as_str.parse()?;
             if let Some(source) = pre_to_node_id.get(&parent) {
                 // find the responsible edge database by the component ID
-                let component_ref : u32 = line.get(pos_component_ref).ok_or(Error::MissingColumn)?.parse()?;
+                let component_ref: u32 = line.get(pos_component_ref)
+                    .ok_or(Error::MissingColumn)?
+                    .parse()?;
                 if let Some(c) = component_by_id.get(&component_ref) {
-                    let target : NodeID = line.get(pos_node_ref).ok_or(Error::MissingColumn)?.parse()?;
+                    let target: NodeID =
+                        line.get(pos_node_ref).ok_or(Error::MissingColumn)?.parse()?;
 
                     let gs = db.get_or_create_writable(c.clone())?;
-                    let e = Edge{source : source.clone(), target};
+                    let e = Edge {
+                        source: source.clone(),
+                        target,
+                    };
                     gs.add_edge(e.clone());
 
-                    let pre : u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
+                    let pre: u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
                     pre_to_edge.insert(pre.clone(), e);
                     pre_to_component.insert(pre, c.clone());
                 }
@@ -716,25 +736,57 @@ fn load_rank_tab (path : &PathBuf, db : &mut GraphDB, component_by_id : &BTreeMa
     }
 
 
+    Ok((pre_to_component, pre_to_edge))
+}
+
+fn load_edge_annotation(
+    path: &PathBuf,
+    db: &mut GraphDB,
+    pre_to_component: &BTreeMap<u32, Component>,
+    pre_to_edge: &BTreeMap<u32, Edge>,
+    is_annis_33: bool,
+) -> Result<()> {
+
+    let mut edge_anno_tab_path = PathBuf::from(path);
+    edge_anno_tab_path.push(if is_annis_33 {
+        "ede_annotation.annis"
+    } else {
+        "ede_annotation.tab"
+    });
+
+    info!("loading {}", edge_anno_tab_path.to_str().unwrap_or_default());
+
+    let mut edge_anno_tab_csv = postgresql_import_reader(edge_anno_tab_path.as_path())?;
+
+    for result in edge_anno_tab_csv.records() {
+        let line = result?;
+
+        let pre : u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
+        if let Some(c) = pre_to_component.get(&pre) {
+            if let Some(e) = pre_to_edge.get(&pre) {
+                let ns = line.get(1).ok_or(Error::MissingColumn)?;
+                let name = line.get(2).ok_or(Error::MissingColumn)?;
+                let val = line.get(3).ok_or(Error::MissingColumn)?;
+                
+                let anno = Annotation {
+                    key : AnnoKey {ns: db.strings.add(ns), name: db.strings.add(name)},
+                    val : db.strings.add(val),
+                };
+                let gs : &mut WriteableGraphStorage = db.get_or_create_writable(c.clone())?;
+                gs.add_edge_annotation(e.clone(), anno);
+            }
+        }
+    }
+
     Ok(())
 }
 
-fn component_type_from_short_name(short_type : &str) -> Result<ComponentType> {
+fn component_type_from_short_name(short_type: &str) -> Result<ComponentType> {
     match short_type {
-        "c" => {
-            Ok(ComponentType::Coverage)
-        },
-        "d" => {
-            Ok(ComponentType::Dominance)
-        },
-        "p" => {
-            Ok(ComponentType::Pointing)
-        },
-        "o" => {
-            Ok(ComponentType::Ordering)
-        },
-        _ => {
-            Err(Error::InvalidShortComponentType)
-        }
+        "c" => Ok(ComponentType::Coverage),
+        "d" => Ok(ComponentType::Dominance),
+        "p" => Ok(ComponentType::Pointing),
+        "o" => Ok(ComponentType::Ordering),
+        _ => Err(Error::InvalidShortComponentType),
     }
 }
