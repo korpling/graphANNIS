@@ -25,6 +25,7 @@ pub enum Error {
     ToplevelCorpusNameNotFound,
     DirectoryNotFound,
     DocumentMissing,
+    InvalidShortComponentType,
     Other,
 }
 
@@ -61,6 +62,52 @@ struct TextProperty {
     corpus_id: u32,
     text_id: u32,
     val: u32,
+}
+
+pub fn load(path: &str) -> Result<GraphDB> {
+    // convert to path
+    let mut path = PathBuf::from(path);
+    if path.is_dir() && path.exists() {
+        // check if this is the ANNIS 3.3 import format
+        path.push("annis.version");
+        let mut is_annis_33 = false;
+        if path.exists() {
+            let mut file = File::open(&path)?;
+            let mut version_str = String::new();
+            file.read_to_string(&mut version_str)?;
+
+            is_annis_33 = version_str == "3.3";
+        }
+
+        let mut db = GraphDB::new();
+
+        let mut corpus_by_preorder = BTreeMap::new();
+        let mut corpus_id_to_name = BTreeMap::new();
+        let mut nodes_by_corpus_id: MultiMap<u32, NodeID> = MultiMap::new();
+        let corpus_name = parse_corpus_tab(
+            &path,
+            &mut corpus_by_preorder,
+            &mut corpus_id_to_name,
+            is_annis_33,
+        )?;
+
+        load_nodes(
+            &path,
+            &mut db,
+            &mut nodes_by_corpus_id,
+            &mut corpus_id_to_name,
+            &corpus_name,
+            is_annis_33,
+        )?;
+
+        let component_by_id = load_component_tab(&path, &mut db, is_annis_33)?;
+
+        load_rank_tab(&path, &mut db, &component_by_id, is_annis_33)?;
+
+        return Ok(db);
+    }
+
+    return Err(Error::DirectoryNotFound);
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -545,6 +592,46 @@ fn load_node_anno_tab(path: &PathBuf, db: &mut GraphDB,
     Ok(())
 }
 
+fn load_component_tab(path : &PathBuf, db : &mut GraphDB, is_annis_33 : bool)
+ -> Result<BTreeMap<u32, Component>> {
+
+    let mut component_tab_path = PathBuf::from(path);
+    component_tab_path.push(if is_annis_33 {
+        "component.annis"
+    } else {
+        "component.tab"
+    });
+
+    info!(
+        "loading {}",
+        component_tab_path.to_str().unwrap_or_default()
+    );
+
+    let mut component_by_id : BTreeMap<u32, Component> = BTreeMap::new(); 
+
+    let mut component_tab_csv = postgresql_import_reader(component_tab_path.as_path())?;
+    for result in component_tab_csv.records() {
+        let line = result?;
+
+        let cid : u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
+        let col_type = line.get(1).ok_or(Error::MissingColumn)?;
+        if col_type != "NULL" {
+            let layer = String::from(line.get(2).ok_or(Error::MissingColumn)?);
+            let name = String::from(line.get(3).ok_or(Error::MissingColumn)?);
+                
+            let ctype = component_type_from_short_name(col_type)?;
+            let c = Component {
+                ctype,
+                layer,
+                name,
+            };
+            db.get_or_create_writable(c.clone())?;
+            component_by_id.insert(cid, c);
+        }
+    }
+    Ok(component_by_id)
+}
+
 fn load_nodes(
     path: &PathBuf,
     db: &mut GraphDB,
@@ -567,51 +654,87 @@ fn load_nodes(
     )?;
     load_node_anno_tab(path, db, &missing_seg_span, is_annis_33)?;
 
+    load_component_tab(path, db, is_annis_33)?;
 
     return Ok(());
 }
 
+fn load_rank_tab (path : &PathBuf, db : &mut GraphDB, component_by_id : &BTreeMap<u32, Component>, is_annis_33 : bool) -> Result<()> {
 
+    let mut rank_tab_path = PathBuf::from(path);
+    rank_tab_path.push(if is_annis_33 {
+        "rank.annis"
+    } else {
+        "rank.tab"
+    });
 
-pub fn load(path: &str) -> Result<GraphDB> {
-    // convert to path
-    let mut path = PathBuf::from(path);
-    if path.is_dir() && path.exists() {
-        // check if this is the ANNIS 3.3 import format
-        path.push("annis.version");
-        let mut is_annis_33 = false;
-        if path.exists() {
-            let mut file = File::open(&path)?;
-            let mut version_str = String::new();
-            file.read_to_string(&mut version_str)?;
+    info!(
+        "loading {}",
+        rank_tab_path.to_str().unwrap_or_default()
+    );
 
-            is_annis_33 = version_str == "3.3";
-        }
+    let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
 
-        let mut db = GraphDB::new();
+    let pos_node_ref = if is_annis_33 {3} else {2};
+    let pos_component_ref = if is_annis_33 {4} else {3};
+    let pos_parent = if is_annis_33 {5} else {4};
 
-        let mut corpus_by_preorder = BTreeMap::new();
-        let mut corpus_id_to_name = BTreeMap::new();
-        let mut nodes_by_corpus_id: MultiMap<u32, NodeID> = MultiMap::new();
-        let corpus_name = parse_corpus_tab(
-            &path,
-            &mut corpus_by_preorder,
-            &mut corpus_id_to_name,
-            is_annis_33,
-        )?;
-
-        load_nodes(
-            &path,
-            &mut db,
-            &mut nodes_by_corpus_id,
-            &mut corpus_id_to_name,
-            &corpus_name,
-            is_annis_33,
-        )?;
-
-
-        return Ok(db);
+    // first run: collect all pre-order values for a node
+    let mut pre_to_node_id : BTreeMap<u32, NodeID> = BTreeMap::new();
+    for result in rank_tab_csv.records() {
+        let line = result?;
+        let pre : u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
+        let node_id : NodeID = line.get(pos_node_ref).ok_or(Error::MissingColumn)?.parse()?;
+        pre_to_node_id.insert(pre, node_id);
     }
 
-    return Err(Error::DirectoryNotFound);
+    let mut pre_to_component : BTreeMap<u32, Component> = BTreeMap::new();
+    let mut pre_to_edge : BTreeMap<u32, Edge> = BTreeMap::new();
+    // second run: get the actual edges
+    for result in rank_tab_csv.records() {
+        let line = result?;
+
+        let parent_as_str = line.get(pos_parent).ok_or(Error::MissingColumn)?;
+        if parent_as_str != "NULL" {
+            let parent : u32 = parent_as_str.parse()?;
+            if let Some(source) = pre_to_node_id.get(&parent) {
+                // find the responsible edge database by the component ID
+                let component_ref : u32 = line.get(pos_component_ref).ok_or(Error::MissingColumn)?.parse()?;
+                if let Some(c) = component_by_id.get(&component_ref) {
+                    let target : NodeID = line.get(pos_node_ref).ok_or(Error::MissingColumn)?.parse()?;
+
+                    let gs = db.get_or_create_writable(c.clone())?;
+                    let e = Edge{source : source.clone(), target};
+                    gs.add_edge(e.clone());
+
+                    let pre : u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
+                    pre_to_edge.insert(pre.clone(), e);
+                    pre_to_component.insert(pre, c.clone());
+                }
+            }
+        }
+    }
+
+
+    Ok(())
+}
+
+fn component_type_from_short_name(short_type : &str) -> Result<ComponentType> {
+    match short_type {
+        "c" => {
+            Ok(ComponentType::Coverage)
+        },
+        "d" => {
+            Ok(ComponentType::Dominance)
+        },
+        "p" => {
+            Ok(ComponentType::Pointing)
+        },
+        "o" => {
+            Ok(ComponentType::Ordering)
+        },
+        _ => {
+            Err(Error::InvalidShortComponentType)
+        }
+    }
 }
