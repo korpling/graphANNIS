@@ -81,21 +81,15 @@ pub fn load(path: &str) -> Result<GraphDB> {
 
         let mut db = GraphDB::new();
 
-        let mut corpus_by_preorder = BTreeMap::new();
-        let mut corpus_id_to_name = BTreeMap::new();
-        let mut nodes_by_corpus_id: MultiMap<u32, NodeID> = MultiMap::new();
-        let corpus_name = parse_corpus_tab(
+        let (corpus_name, corpus_by_preorder, corpus_id_to_name) = parse_corpus_tab(
             &path,
-            &mut corpus_by_preorder,
-            &mut corpus_id_to_name,
             is_annis_33,
         )?;
 
         load_nodes(
             &path,
             &mut db,
-            &mut nodes_by_corpus_id,
-            &mut corpus_id_to_name,
+            &corpus_id_to_name,
             &corpus_name,
             is_annis_33,
         )?;
@@ -121,10 +115,8 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
 
 fn parse_corpus_tab(
     path: &PathBuf,
-    corpus_by_preorder: &mut BTreeMap<u32, u32>,
-    corpus_id_to_name: &mut BTreeMap<u32, String>,
     is_annis_33: bool,
-) -> Result<String> {
+) -> Result<(String, BTreeMap<u32, u32>, BTreeMap<u32, String>)> {
     let mut corpus_tab_path = PathBuf::from(path);
     corpus_tab_path.push(if is_annis_33 {
         "corpus.annis"
@@ -133,6 +125,9 @@ fn parse_corpus_tab(
     });
 
     let mut toplevel_corpus_name: Option<String> = None;
+    let mut corpus_by_preorder = BTreeMap::new();
+    let mut corpus_id_to_name = BTreeMap::new();
+        
 
     let mut corpus_tab_csv = postgresql_import_reader(corpus_tab_path.as_path())?;
 
@@ -154,7 +149,8 @@ fn parse_corpus_tab(
         }
     }
 
-    toplevel_corpus_name.ok_or(Error::ToplevelCorpusNameNotFound)
+    let toplevel_corpus_name = toplevel_corpus_name.ok_or(Error::ToplevelCorpusNameNotFound)?;
+    Ok((toplevel_corpus_name, corpus_by_preorder, corpus_id_to_name))
 }
 
 fn calculate_automatic_token_info(
@@ -348,12 +344,12 @@ fn calculate_automatic_coverage_edges(
 fn load_node_tab(
     path: &PathBuf,
     db: &mut GraphDB,
-    nodes_by_corpus_id: &mut MultiMap<u32, NodeID>,
-    corpus_id_to_name: &mut BTreeMap<u32, String>,
-    missing_seg_span: &mut BTreeMap<NodeID, String>,
+    corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
-) -> Result<()> {
+) -> Result<BTreeMap<NodeID, String>> {
+
+    let mut missing_seg_span : BTreeMap<NodeID, String> = BTreeMap::new();
 
     let mut node_tab_path = PathBuf::from(path);
     node_tab_path.push(if is_annis_33 {
@@ -402,7 +398,6 @@ fn load_node_tab(
             let doc_name = corpus_id_to_name.get(&corpus_id).ok_or(
                 Error::DocumentMissing,
             )?;
-            nodes_by_corpus_id.insert(corpus_id, node_nr);
 
             let node_qname = format!("{}/{}#{}", toplevel_corpus_name, doc_name, node_name);
             let node_name_anno = Annotation {
@@ -531,7 +526,7 @@ fn load_node_tab(
         &token_by_left_textpos,
         &token_by_right_textpos,
     )?;
-    Ok(())
+    Ok(missing_seg_span)
 }
 
 fn load_node_anno_tab(
@@ -647,20 +642,15 @@ fn load_component_tab(
 fn load_nodes(
     path: &PathBuf,
     db: &mut GraphDB,
-    nodes_by_corpus_id: &mut MultiMap<u32, NodeID>,
-    corpus_id_to_name: &mut BTreeMap<u32, String>,
+    corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
 ) -> Result<()> {
-
-    let mut missing_seg_span: BTreeMap<NodeID, String> = BTreeMap::new();
-
-    load_node_tab(
+    
+    let missing_seg_span = load_node_tab(
         path,
         db,
-        nodes_by_corpus_id,
         corpus_id_to_name,
-        &mut missing_seg_span,
         toplevel_corpus_name,
         is_annis_33,
     )?;
