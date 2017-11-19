@@ -15,11 +15,22 @@ extern crate csv;
 #[macro_use]
 extern crate serde_derive;
 
-pub mod annis;
+#[macro_use]
+pub mod util;
 
-pub use annis::*;
+mod types;
+pub use types::*;
 
-pub use annis::util::c_api::*;
-pub use annis::stringstorage::c_api::*;
-pub use annis::annostorage::c_api::*;
+pub mod dfs;
+pub mod annostorage;
+pub mod stringstorage;
+pub mod graphstorage;
+pub mod graphdb;
+pub mod operator;
+pub mod relannis;
+
+
+pub use util::c_api::*;
+pub use stringstorage::c_api::*;
+pub use annostorage::c_api::*;
 

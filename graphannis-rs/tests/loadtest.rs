@@ -2,8 +2,8 @@ extern crate graphannis;
 
 use std::env;
 use std::path::PathBuf;
-use graphannis::annis::graphdb::GraphDB;
-use graphannis::annis::relannis;
+use graphannis::graphdb::GraphDB;
+use graphannis::relannis;
 
 fn load_corpus(name : &str) -> Option<GraphDB> {
     let mut data_dir = PathBuf::from(if let Ok(path) = env::var("ANNIS4_TEST_DATA") {
