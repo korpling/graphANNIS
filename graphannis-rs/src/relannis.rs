@@ -121,6 +121,7 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
     csv::ReaderBuilder::new()
         .has_headers(false)
         .delimiter(b'\t')
+        .quote(0) // effectivly disable quoting
         .from_path(path)
 }
 
@@ -671,8 +672,6 @@ fn load_nodes(
     )?;
     load_node_anno_tab(path, db, &missing_seg_span, is_annis_33)?;
 
-    load_component_tab(path, db, is_annis_33)?;
-
     return Ok(nodes_by_corpus_id);
 }
 
@@ -754,9 +753,9 @@ fn load_edge_annotation(
 
     let mut edge_anno_tab_path = PathBuf::from(path);
     edge_anno_tab_path.push(if is_annis_33 {
-        "ede_annotation.annis"
+        "edge_annotation.annis"
     } else {
-        "ede_annotation.tab"
+        "edge_annotation.tab"
     });
 
     info!("loading {}", edge_anno_tab_path.to_str().unwrap_or_default());
