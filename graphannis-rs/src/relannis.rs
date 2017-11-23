@@ -25,7 +25,7 @@ pub enum Error {
     DirectoryNotFound,
     DocumentMissing,
     InvalidShortComponentType,
-    Other,
+    Other(String),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -55,7 +55,7 @@ impl From<graphdb::Error> for Error {
 }
 
 
-#[derive(Eq, PartialEq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 struct TextProperty {
     segmentation: String,
     corpus_id: u32,
@@ -201,7 +201,7 @@ fn calculate_automatic_token_info(
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: try!(node_to_left.get(&current_token).ok_or(Error::Other)).clone(),
+                val: try!(node_to_left.get(&current_token).ok_or(Error::Other(format!("Can't find node that starts together with token {}",current_token)))).clone(),
             };
             let left_aligned = left_to_node.get_vec(&current_token_left);
             if left_aligned.is_some() {
@@ -223,7 +223,7 @@ fn calculate_automatic_token_info(
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: try!(node_to_right.get(current_token).ok_or(Error::Other)).clone(),
+                val: try!(node_to_right.get(current_token).ok_or(Error::Other(format!("Can't find node that has the same end as token {}", current_token)))).clone(),
             };
             let right_aligned = right_to_node.get_vec(&current_token_right);
             if right_aligned.is_some() {
@@ -303,7 +303,7 @@ fn calculate_automatic_coverage_edges(
                         text_id: textprop.text_id,
                         val: textprop.val,
                     };
-                    let right_pos = node_to_right.get(&n).ok_or(Error::Other)?;
+                    let right_pos = node_to_right.get(&n).ok_or(Error::Other(format!("Can't get right position of node {}", n)))?;
                     let right_pos = TextProperty {
                         segmentation: String::from(""),
                         corpus_id: textprop.corpus_id,
@@ -313,12 +313,12 @@ fn calculate_automatic_coverage_edges(
 
                     // find left/right aligned basic token
                     let left_aligned_tok =
-                        token_by_left_textpos.get(&left_pos).ok_or(Error::Other)?;
+                        token_by_left_textpos.get(&left_pos).ok_or(Error::Other(format!("Can't get left-aligned token for node {:?}", left_pos)))?;
                     let right_aligned_tok =
-                        token_by_right_textpos.get(&right_pos).ok_or(Error::Other)?;
+                        token_by_right_textpos.get(&right_pos).ok_or(Error::Other(format!("Can't get right-aligned token for node {:?}", right_pos)))?;
 
-                    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or(Error::Other)?;
-                    let right_tok_pos = token_to_index.get(&right_aligned_tok).ok_or(Error::Other)?;
+                    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or(Error::Other(format!("Can't get position of left-aligned token {}", left_aligned_tok)))?;
+                    let right_tok_pos = token_to_index.get(&right_aligned_tok).ok_or(Error::Other(format!("Can't get position of right-aligned token {}", right_aligned_tok)))?;
                     for i in left_tok_pos.val..(right_tok_pos.val + 1) {
                         let tok_idx = TextProperty {
                             segmentation: String::from(""),
@@ -326,7 +326,7 @@ fn calculate_automatic_coverage_edges(
                             text_id: textprop.text_id,
                             val: i,
                         };
-                        let tok_id = token_by_index.get(&tok_idx).ok_or(Error::Other)?;
+                        let tok_id = token_by_index.get(&tok_idx).ok_or(Error::Other(format!("Can't get token ID for position {:?}", tok_idx)))?;
                         if n.clone() != tok_id.clone() {
                             {
                                 let gs = db.get_or_create_writable(component_coverage.clone())?;
@@ -860,7 +860,7 @@ fn add_subcorpora(db : &mut GraphDB,
     // add all subcorpora/documents (start with the largest pre-order)
     for (pre, corpus_id) in corpus_by_preorder.iter().rev() {
 
-        let corpus_name = corpus_id_to_name.get(corpus_id).ok_or(Error::Other)?;
+        let corpus_name = corpus_id_to_name.get(corpus_id).ok_or(Error::Other(format!("Can't get name for corpus with ID {}", corpus_id)))?;
         let full_name = format!("{}/{}", toplevel_corpus_name, corpus_name);
 
 
