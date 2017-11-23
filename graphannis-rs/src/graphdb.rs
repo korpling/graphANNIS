@@ -188,3 +188,25 @@ impl GraphDB {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use {ComponentType, Edge, Annotation, AnnoKey};
+
+    #[test]
+    fn create_writeable_gs() {
+        let mut db = GraphDB::new();
+        
+        let anno_key = AnnoKey{ns: db.strings.add("test"), name: db.strings.add("edge_anno")};
+        let anno_val = db.strings.add("testValue");
+        
+        let gs : &mut WriteableGraphStorage = db.get_or_create_writable(Component{ctype: ComponentType::Pointing, layer:String::from("test"), name: String::from("dep")}).unwrap();
+
+        gs.add_edge(Edge{source: 0, target: 1});
+        
+        gs.add_edge_annotation(Edge{source: 0, target: 1},
+            Annotation{key: anno_key, val: anno_val});
+        
+    }
+}
