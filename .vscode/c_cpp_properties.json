@@ -35,7 +35,8 @@
                 "${workspaceRoot}/src/lib",
                 "${workspaceRoot}/ext/cpp-btree-1.0.1",
                 "${workspaceRoot}/ext/cereal-1.2.1/include",
-                "${workspaceRoot}/ext/humblelogging-3.0.1/include"
+                "${workspaceRoot}/ext/humblelogging-3.0.1/include",
+                "${workspaceRoot}/ext/Vc-1.3.2/include/Vc"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",
