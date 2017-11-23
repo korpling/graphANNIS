@@ -37,5 +37,25 @@ fn node_annos() {
         assert_eq!("annis", db.strings.str(annos[1].key.ns).unwrap());
         assert_eq!("tok", db.strings.str(annos[1].key.name).unwrap());
         assert_eq!("so", db.strings.str(annos[1].val).unwrap());
+
+        assert_eq!("annis", db.strings.str(annos[2].key.ns).unwrap());
+        assert_eq!("node_type", db.strings.str(annos[2].key.name).unwrap());
+        assert_eq!("node", db.strings.str(annos[2].val).unwrap());
+
+        assert_eq!("annis", db.strings.str(annos[3].key.ns).unwrap());
+        assert_eq!("layer", db.strings.str(annos[3].key.name).unwrap());
+        assert_eq!("token_merged", db.strings.str(annos[3].val).unwrap());
+
+        assert_eq!("tiger", db.strings.str(annos[4].key.ns).unwrap());
+        assert_eq!("lemma", db.strings.str(annos[4].key.name).unwrap());
+        assert_eq!("so", db.strings.str(annos[4].val).unwrap());
+
+        assert_eq!("tiger", db.strings.str(annos[5].key.ns).unwrap());
+        assert_eq!("morph", db.strings.str(annos[5].key.name).unwrap());
+        assert_eq!("--", db.strings.str(annos[5].val).unwrap());
+
+        assert_eq!("tiger", db.strings.str(annos[6].key.ns).unwrap());
+        assert_eq!("pos", db.strings.str(annos[6].key.name).unwrap());
+        assert_eq!("ADV", db.strings.str(annos[6].val).unwrap());
     }
 }
