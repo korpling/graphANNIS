@@ -4,7 +4,7 @@ use std::env;
 use std::path::PathBuf;
 use graphannis::graphdb::GraphDB;
 use graphannis::relannis;
-use graphannis::{Annotation};
+use graphannis::{Annotation, Component, ComponentType, Edge};
 
 fn load_corpus(name : &str) -> Option<GraphDB> {
     let mut data_dir = PathBuf::from(if let Ok(path) = env::var("ANNIS4_TEST_DATA") {
@@ -57,5 +57,15 @@ fn node_annos() {
         assert_eq!("tiger", db.strings.str(annos[6].key.ns).unwrap());
         assert_eq!("pos", db.strings.str(annos[6].key.name).unwrap());
         assert_eq!("ADV", db.strings.str(annos[6].val).unwrap());
+    }
+
+    #[test]
+    fn edges() {
+        if let Some(db) = load_corpus("pcc2") {
+            // get some edges
+            let gs_cov = db.get_graphstorage(Component{ctype: ComponentType::Coverage, layer: String::from("annis"), name:String::from("")}).unwrap();
+            let out = gs_cov.get_outgoing_edges(&0);
+            // TODO: test edges
+        }
     }
 }

@@ -24,19 +24,18 @@
             ]
         },
         {
-            "name": "Linux",
+            "name": "Linux GCC 7",
             "includePath": [
-                "/usr/include/c++/6.3.0",
-                "/usr/include/x86_64-linux-gnu/c++/6.3.0",
+                "/usr/include/c++/7",
+                "/usr/include/x86_64-linux-gnu/c++/7",
                 "/usr/local/include",
-                "/usr/lib/clang/4.0.0/include",
                 "/usr/include",
                 "/usr/include/x86_64-linux-gnu",
                 "${workspaceRoot}/src/lib",
                 "${workspaceRoot}/ext/cpp-btree-1.0.1",
                 "${workspaceRoot}/ext/cereal-1.2.1/include",
                 "${workspaceRoot}/ext/humblelogging-3.0.1/include",
-                "${workspaceRoot}/ext/Vc-1.3.2/include/Vc"
+                "${workspaceRoot}/ext/Vc-1.3.2/include"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",

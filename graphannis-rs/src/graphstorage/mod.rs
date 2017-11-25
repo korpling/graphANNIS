@@ -26,6 +26,8 @@ pub trait WriteableGraphStorage:  ReadableGraphStorage {
     fn delete_edge(&mut self, edge: &Edge);
     fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey);
     fn delete_node(&mut self, node: &NodeID);
+
+    fn as_readable(&self) -> &ReadableGraphStorage;
 }
 
 pub mod adjacencylist;

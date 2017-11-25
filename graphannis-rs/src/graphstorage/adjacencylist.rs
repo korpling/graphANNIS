@@ -133,6 +133,10 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             self.delete_edge(&e);
         }
     }
+
+    fn as_readable(&self) -> &ReadableGraphStorage {
+        return self as &ReadableGraphStorage;
+    }
 }
 
 #[cfg(test)]

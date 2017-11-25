@@ -165,6 +165,21 @@ impl GraphDB {
         return Err(Error::Other);
     }
 
+    pub fn get_graphstorage(&self, c : Component) -> Option<&ReadableGraphStorage> {
+        
+        // get and return the reference to the entry if loaded
+        let entry : Option<& Option<ImplType>> = self.components.get(&c);
+        if let Some(gs_opt) = entry {
+            if let Some(ref impl_type) = *gs_opt {
+                return match *impl_type {
+                    ImplType::Readable(ref gs) => Some(gs.as_ref()),
+                    ImplType::Writable(ref gs) => Some(gs.as_ref().as_readable()),
+                }
+            }
+        }
+        return None;
+    }
+
     
 
     pub fn get_token_key(&self) -> AnnoKey {
