@@ -76,6 +76,25 @@ fn edges() {
             .unwrap()
             .get_edge_annos(&edge);
         assert_eq!(1, edge_annos.len());
-        // TODO: test edges
+        assert_eq!("tiger", db.strings.str(edge_annos[0].key.ns).unwrap());
+        assert_eq!("func", db.strings.str(edge_annos[0].key.name).unwrap());
+        assert_eq!("OA", db.strings.str(edge_annos[0].val).unwrap());
+
+        let edge_annos = db.get_graphstorage(&edge_components[2])
+            .unwrap()
+            .get_edge_annos(&edge);
+        assert_eq!(1, edge_annos.len());
+        assert_eq!("tiger", db.strings.str(edge_annos[0].key.ns).unwrap());
+        assert_eq!("func", db.strings.str(edge_annos[0].key.name).unwrap());
+        assert_eq!("OA", db.strings.str(edge_annos[0].val).unwrap());
+        
+        let edge_annos = db.get_graphstorage(&edge_components[0])
+            .unwrap()
+            .get_edge_annos(&edge);
+        assert_eq!(0, edge_annos.len());
+        let edge_annos = db.get_graphstorage(&edge_components[3])
+            .unwrap()
+            .get_edge_annos(&edge);
+        assert_eq!(0, edge_annos.len());
     }
 }
