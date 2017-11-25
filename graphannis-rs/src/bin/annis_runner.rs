@@ -1,9 +1,11 @@
+#[macro_use]extern crate log;
+extern crate simplelog;
 extern crate rustyline;
-
 extern crate graphannis;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use simplelog::{LogLevelFilter,TermLogger};
 use graphannis::graphdb::GraphDB;
 use graphannis::relannis;
 
@@ -23,7 +25,7 @@ fn import_relannis(path : &str) {
     }
 }
 
-fn exec(line :&str) {
+fn exec(line :&str) -> bool {
     let line_splitted : Vec<&str> = line.splitn(2, ' ').collect();
     if line_splitted.len() > 0 {
         let cmd = line_splitted[0];
@@ -37,7 +39,7 @@ fn exec(line :&str) {
             }, 
             "quit" | "exit" => {
                 println!("Goodbye!");
-                std::process::exit(0);
+                return false;
             },
             _ => {
                 // do nothing
@@ -45,9 +47,14 @@ fn exec(line :&str) {
             }
         }
     }
+    // stay in loop
+    return true;
 }
 
 fn main() {
+
+    TermLogger::init(LogLevelFilter::Info, simplelog::Config::default()).unwrap();
+
     let mut rl = Editor::<()>::new();
     if let Err(_) = rl.load_history("annis_history.txt") {
         println!("No previous history.");
@@ -56,8 +63,10 @@ fn main() {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
-                exec(&line);
                 rl.add_history_entry(&line);
+                if exec(&line) == false {
+                    break;   
+                }
             },
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C");
