@@ -17,6 +17,7 @@ rand = "0.3"
 csv = "1.0.0-beta.5"
 multimap = "0.4.0"
 log = "0.3"
+rustyline = "1.0.0"
 
 libc = "*"
 
