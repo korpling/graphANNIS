@@ -6,7 +6,7 @@ use graphannis::graphdb::GraphDB;
 use graphannis::relannis;
 use graphannis::{Annotation, Component, ComponentType, Edge};
 
-fn load_corpus(name : &str) -> Option<GraphDB> {
+fn load_corpus(name: &str) -> Option<GraphDB> {
     let mut data_dir = PathBuf::from(if let Ok(path) = env::var("ANNIS4_TEST_DATA") {
         path
     } else {
@@ -14,7 +14,7 @@ fn load_corpus(name : &str) -> Option<GraphDB> {
     });
     data_dir.push("../relannis/");
     data_dir.push(name);
-    
+
     // only execute the test if the directory exists
     if data_dir.exists() && data_dir.is_dir() {
         return Some(relannis::load(data_dir.to_str().unwrap()).unwrap());
@@ -26,10 +26,10 @@ fn load_corpus(name : &str) -> Option<GraphDB> {
 #[test]
 fn node_annos() {
     if let Some(db) = load_corpus("pcc2") {
-        let annos : Vec<Annotation> = db.node_annos.get_all(&0);
+        let annos: Vec<Annotation> = db.node_annos.get_all(&0);
 
         assert_eq!(7, annos.len());
-        
+
         assert_eq!("annis", db.strings.str(annos[0].key.ns).unwrap());
         assert_eq!("node_name", db.strings.str(annos[0].key.name).unwrap());
         assert_eq!("pcc2/4282#tok_13", db.strings.str(annos[0].val).unwrap());
@@ -58,14 +58,24 @@ fn node_annos() {
         assert_eq!("pos", db.strings.str(annos[6].key.name).unwrap());
         assert_eq!("ADV", db.strings.str(annos[6].val).unwrap());
     }
+}
 
-    #[test]
-    fn edges() {
-        if let Some(db) = load_corpus("pcc2") {
-            // get some edges
-            let gs_cov = db.get_graphstorage(Component{ctype: ComponentType::Coverage, layer: String::from("annis"), name:String::from("")}).unwrap();
-            let out = gs_cov.get_outgoing_edges(&0);
-            // TODO: test edges
-        }
+#[test]
+fn edges() {
+    if let Some(mut db) = load_corpus("pcc2") {
+        // get some edges
+        let edge = Edge {
+            source: 371,
+            target: 126,
+        };
+
+        let edge_components = db.get_direct_connected(&edge).unwrap();
+        //assert_eq!(4, edge_components.len());
+
+        let edge_annos = db.get_graphstorage(&edge_components[1])
+            .unwrap()
+            .get_edge_annos(&edge);
+        //assert_eq!(1, edge_annos.len());
+        // TODO: test edges
     }
 }

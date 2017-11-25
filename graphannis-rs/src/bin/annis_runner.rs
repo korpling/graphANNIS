@@ -6,7 +6,6 @@ extern crate graphannis;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use simplelog::{LogLevelFilter,TermLogger};
-use graphannis::graphdb::GraphDB;
 use graphannis::relannis;
 
 fn import_relannis(path : &str) {
@@ -14,7 +13,7 @@ fn import_relannis(path : &str) {
     let res = relannis::load(path);
     let load_time = t_before.elapsed();
     match res {
-        Ok(db) => {
+        Ok(_) => {
             if let Ok(t) = load_time {
                 println!{"Loaded in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }

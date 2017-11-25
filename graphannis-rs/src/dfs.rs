@@ -57,9 +57,11 @@ impl<'a> CycleSafeDFS<'a> {
             // check if distance is in valid range
             let found = dist >= self.min_distance && dist <= self.max_distance;
 
-            // add all child nodes to the stack
-            for o in self.container.get_outgoing_edges(&node) {
-                self.stack.push((o, dist+1));
+            if dist < self.max_distance {
+                // add all child nodes to the stack
+                for o in self.container.get_outgoing_edges(&node) {
+                    self.stack.push((o, dist+1));
+                }
             }
             return found;
         }

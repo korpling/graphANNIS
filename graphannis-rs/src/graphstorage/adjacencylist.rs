@@ -37,6 +37,10 @@ impl EdgeContainer for AdjacencyListStorage {
             })
         )
     }
+
+    fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
+        self.annos.get_all(edge)
+    }
 }
 
 impl ReadableGraphStorage for AdjacencyListStorage {

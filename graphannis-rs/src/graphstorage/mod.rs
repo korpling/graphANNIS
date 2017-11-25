@@ -4,6 +4,8 @@ use {AnnoKey, Annotation, Edge, NodeID};
 
 pub trait EdgeContainer {
     fn get_outgoing_edges(&self, source: &NodeID) -> Vec<NodeID>;
+
+    fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation>;
 }
 
 pub trait ReadableGraphStorage: EdgeContainer {

@@ -1,7 +1,7 @@
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
 use graphstorage::{WriteableGraphStorage, ReadableGraphStorage};
-use {Component, NodeID, StringID};
+use {Component, NodeID, StringID, Edge};
 use AnnoKey;
 use graphstorage::registry;
 use std::collections::{BTreeMap, BTreeSet};
@@ -165,10 +165,22 @@ impl GraphDB {
         return Err(Error::Other);
     }
 
-    pub fn get_graphstorage(&self, c : Component) -> Option<&ReadableGraphStorage> {
+    pub fn ensure_loaded(&mut self, c : &Component) -> Result<(), Error> {
         
         // get and return the reference to the entry if loaded
-        let entry : Option<& Option<ImplType>> = self.components.get(&c);
+        let entry : Option<Option<ImplType>> = self.components.remove(c);
+        if let Some(gs_opt) = entry {
+            
+            let loaded = self.unwrap_or_load(gs_opt, c)?;
+            self.components.insert(c.clone(), Some(loaded));
+        }
+        return Ok(());
+    }
+
+    pub fn get_graphstorage(&self, c : &Component) -> Option<&ReadableGraphStorage> {
+        
+        // get and return the reference to the entry if loaded
+        let entry : Option<& Option<ImplType>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if let Some(ref impl_type) = *gs_opt {
                 return match *impl_type {
@@ -180,7 +192,21 @@ impl GraphDB {
         return None;
     }
 
-    
+    pub fn get_direct_connected(&mut self, edge : &Edge) -> Result<Vec<Component>,Error> {
+        let mut result = Vec::new();
+
+        let all_components : Vec<Component> = self.components.keys().map(|c| c.clone()).collect();
+
+        for c in all_components {
+            self.ensure_loaded(&c)?;
+            if let Some(gs) = self.get_graphstorage(&c) {
+                if gs.is_connected(&edge.source, &edge.target, 1, 1) {
+                    result.push(c.clone());
+                }
+            }
+        }
+        return Ok(result);
+    }
 
     pub fn get_token_key(&self) -> AnnoKey {
         AnnoKey {
