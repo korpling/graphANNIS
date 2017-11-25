@@ -709,6 +709,7 @@ fn load_rank_tab(
     let mut pre_to_component: BTreeMap<u32, Component> = BTreeMap::new();
     let mut pre_to_edge: BTreeMap<u32, Edge> = BTreeMap::new();
     // second run: get the actual edges
+    let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
     for result in rank_tab_csv.records() {
         let line = result?;
 

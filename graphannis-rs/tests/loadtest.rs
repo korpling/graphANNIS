@@ -70,12 +70,12 @@ fn edges() {
         };
 
         let edge_components = db.get_direct_connected(&edge).unwrap();
-        //assert_eq!(4, edge_components.len());
+        assert_eq!(4, edge_components.len());
 
         let edge_annos = db.get_graphstorage(&edge_components[1])
             .unwrap()
             .get_edge_annos(&edge);
-        //assert_eq!(1, edge_annos.len());
+        assert_eq!(1, edge_annos.len());
         // TODO: test edges
     }
 }
