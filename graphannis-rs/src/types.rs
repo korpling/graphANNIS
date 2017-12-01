@@ -20,7 +20,7 @@ pub struct Annotation {
     pub val: StringID,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Match {
     pub node: NodeID,
     pub anno: Annotation,
