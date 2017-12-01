@@ -1,9 +1,7 @@
 use Match;
 use operator::Operator;
-use std::collections::LinkedList;
 use std::iter::Peekable;
 use std::rc::Rc;
-use std::collections::linked_list;
 
 pub struct NestedLoop {
     outer: Peekable<Box<Iterator<Item = Match>>>,

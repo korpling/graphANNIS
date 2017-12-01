@@ -1,6 +1,5 @@
-use super::{WriteableGraphStorage, ReadableGraphStorage};
+use super::{WriteableGraphStorage};
 use super::adjacencylist::AdjacencyListStorage;
-use std::sync::Arc;
 use std;
 use bincode;
 use graphdb::ImplType;

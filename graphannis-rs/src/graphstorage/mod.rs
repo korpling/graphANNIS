@@ -1,5 +1,4 @@
 use std;
-use std::clone::Clone;
 use {AnnoKey, Annotation, Edge, NodeID};
 
 pub trait EdgeContainer {

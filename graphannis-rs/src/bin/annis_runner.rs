@@ -1,4 +1,3 @@
-#[macro_use]extern crate log;
 extern crate simplelog;
 extern crate rustyline;
 extern crate graphannis;
