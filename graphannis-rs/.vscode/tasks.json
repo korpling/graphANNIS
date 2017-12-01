@@ -6,7 +6,7 @@
     },
     "tasks": [
         {
-            "taskName": "cargo build (release)",
+            "label": "cargo build (release)",
             "type": "shell",
             "command": "cargo",
             "args": [
@@ -17,54 +17,72 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": "$rustc"
+            "problemMatcher": "$rustc",
+            "presentation": {
+                "panel": "shared"
+            }
         },
         {
-            "taskName": "cargo build (debug)",
+            "label": "cargo build (debug)",
             "type": "shell",
             "command": "cargo",
             "args": [
                 "build"
             ],
             "group": "build",
-            "problemMatcher": "$rustc"
+            "problemMatcher": "$rustc",
+            "presentation": {
+                "panel": "shared"
+            }
         },
         {
-            "taskName": "cargo check",
+            "label": "cargo check",
             "type": "shell",
             "command": "cargo",
             "args": [
                 "check"
             ],
             "group": "build",
-            "problemMatcher": "$rustc"
+            "problemMatcher": "$rustc",
+            "presentation": {
+                "panel": "shared"
+            }
         },
         {
-            "taskName": "cargo run",
+            "label": "cargo run",
             "type": "shell",
             "command": "cargo",
             "args": [
                 "run"
             ],
-            "problemMatcher": "$rustc"
+            "problemMatcher": "$rustc",
+            "presentation": {
+                "panel": "shared"
+            }
         },
         {
-            "taskName": "cargo test",
+            "label": "cargo test",
             "type": "shell",
             "command": "cargo",
             "args": [
                 "test"
             ],
             "group": "test",
-            "problemMatcher": "$rustc"
+            "problemMatcher": "$rustc",
+            "presentation": {
+                "panel": "shared"
+            }
         },
         {
-            "taskName": "cargo clean",
+            "label": "cargo clean",
             "type": "shell",
             "command": "cargo",
             "args": [
                 "clean"
-            ]
+            ],
+            "presentation": {
+                "panel": "shared"
+            }
         }
     ]
 }
