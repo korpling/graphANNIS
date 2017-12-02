@@ -27,22 +27,6 @@ struct NestedLoop {
     pos_inner_cache: Option<usize>,
 }
 
-impl NestedLoop {
-    fn new(
-        lhs: Box<Iterator<Item = Match>>,
-        rhs: Box<Iterator<Item = Match>>,
-        op: Rc<Operator>,
-    ) -> NestedLoop {
-        // TODO: allow switching inner and outer
-        NestedLoop {
-            outer: lhs.peekable(),
-            inner: rhs,
-            op: op,
-            inner_cache: Vec::new(),
-            pos_inner_cache: None,
-        }
-    }
-}
 
 impl Iterator for NestedLoop {
     type Item = (Match, Match);
@@ -71,6 +55,8 @@ impl Iterator for NestedLoop {
                             return Some((m_outer.clone(), m_inner));
                         }
                     }
+                    // inner was completed once, use cache from now
+                    self.pos_inner_cache = Some(0);
                 }
             }
 
