@@ -12,6 +12,27 @@ extern "C" {
 
 
 
+typedef uint32_t NodeID;
+
+typedef uint32_t StringID;
+
+typedef struct AnnoKey {
+	StringID name;
+	StringID ns;
+} AnnoKey;
+
+typedef struct Annotation {
+	AnnoKey key;
+	StringID val;
+} Annotation;
+
+typedef struct Edge {
+	NodeID source;
+	NodeID target;
+} Edge;
+
+
+
 /**
 A non-null terminated string.
  */
