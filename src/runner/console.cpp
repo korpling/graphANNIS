@@ -22,6 +22,8 @@
 #include <thread>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include <annis/util/helper.h>
 #include <annis/util/relannisloader.h>
@@ -124,6 +126,27 @@ bool Console::execute(const std::string &cmd, const std::vector<std::string> &ar
   }
 
   return false;
+}
+
+std::string Console::getJSON(const std::vector<std::string>& args)
+{
+  if(args.size() > 1 && args[0] == "file") {
+     boost::filesystem::ifstream stream;
+     std::vector<std::string> fileArgs(args);
+     fileArgs.erase(fileArgs.begin());
+
+      stream.open(boost::join(fileArgs, " "));
+      std::string queryJSON(
+        (std::istreambuf_iterator<char>(stream)),
+        (std::istreambuf_iterator<char>()));
+      stream.close();
+
+      return queryJSON;
+  }
+  else
+  {
+    return boost::join(args, " ");
+  }
 }
 
 void Console::import(const std::vector<std::string> &args)
@@ -235,7 +258,7 @@ void Console::count(const std::vector<std::string> &args)
   {
     if(args.size() > 0)
     {
-      std::string json = boost::join(args, " ");
+      std::string json = getJSON(args);
       std::cout << "Counting..." << std::endl;
       std::stringstream ss;
       ss << json;
@@ -270,7 +293,7 @@ void Console::find(const std::vector<std::string> &args)
   {
     if(args.size() > 0)
     {
-      std::string json = boost::join(args, " ");
+      std::string json = getJSON(args);
       std::cout << "Finding..." << std::endl;
       std::stringstream ss;
       ss << json;
@@ -384,7 +407,7 @@ void Console::plan(const std::vector<std::string> &args)
   {
     if(args.size() > 0)
     {
-      std::string json = boost::join(args, " ");
+      std::string json = getJSON(args);
       std::cout << "Planning..." << std::endl;
       std::stringstream ss;
       ss << json;

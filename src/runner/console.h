@@ -57,6 +57,8 @@ private:
 
   std::shared_ptr<annis::DB> db;
   QueryConfig config;
+
+  std::string getJSON(const std::vector<std::string>& args);
 };
 
 }

@@ -24,29 +24,35 @@
             ]
         },
         {
-            "name": "Linux GCC 7",
+            "name": "Linux",
             "includePath": [
                 "/usr/include/c++/7",
                 "/usr/include/x86_64-linux-gnu/c++/7",
+                "/usr/include/c++/7/backward",
+                "/usr/lib/gcc/x86_64-linux-gnu/7/include",
                 "/usr/local/include",
-                "/usr/include",
+                "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed",
                 "/usr/include/x86_64-linux-gnu",
+                "/usr/include",
                 "${workspaceRoot}/src/lib",
-                "${workspaceRoot}/ext/cpp-btree-1.0.1",
                 "${workspaceRoot}/ext/cereal-1.2.1/include",
-                "${workspaceRoot}/ext/humblelogging-3.0.1/include",
-                "${workspaceRoot}/ext/Vc-1.3.2/include"
+                "${workspaceRoot}/ext/cpp-btree-1.0.1",
+                "${workspaceRoot}/ext/re2-2017-07-01",
+                "${workspaceRoot}/ext/gtest-1.7.0/include",
+                "${workspaceRoot}/ext/humblelogging-3.0.1/include"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [
-                    "/usr/include/c++/6.3.0",
-                    "/usr/include/x86_64-linux-gnu/c++/6.3.0",
+                    "/usr/include/c++/7",
+                    "/usr/include/x86_64-linux-gnu/c++/7",
+                    "/usr/include/c++/7/backward",
+                    "/usr/lib/gcc/x86_64-linux-gnu/7/include",
                     "/usr/local/include",
-                    "/usr/lib/clang/4.0.0/include",
-                    "/usr/include",
+                    "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed",
                     "/usr/include/x86_64-linux-gnu",
+                    "/usr/include",
                     "${workspaceRoot}"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
