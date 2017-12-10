@@ -4,15 +4,19 @@ use std::iter::Peekable;
 use std::rc::Rc;
 
 pub fn new(
-        lhs: Box<Iterator<Item = Match>>,
-        rhs: Box<Iterator<Item = Match>>,
+        lhs: Box<Iterator<Item = Vec<Match>>>,
+        rhs: Box<Iterator<Item = Vec<Match>>>,
+        lhs_idx : usize,
+        rhs_idx : usize,
         op: Rc<Operator>,
-    ) -> Box<Iterator<Item = (Match, Match)>> {
+    ) -> Box<Iterator<Item = Vec<Match>>> {
         // TODO: allow switching inner and outer
        let it =  NestedLoop {
             outer: lhs.peekable(),
             inner: rhs,
             op: op,
+            outer_idx : lhs_idx,
+            inner_idx : rhs_idx,
             inner_cache: Vec::new(),
             pos_inner_cache: None,
         };
@@ -20,19 +24,21 @@ pub fn new(
     }
 
 struct NestedLoop {
-    outer: Peekable<Box<Iterator<Item = Match>>>,
-    inner: Box<Iterator<Item = Match>>,
+    outer: Peekable<Box<Iterator<Item = Vec<Match>>>>,
+    inner: Box<Iterator<Item = Vec<Match>>>,
     op: Rc<Operator>,
-    inner_cache: Vec<Match>,
+    inner_idx : usize,
+    outer_idx : usize,
+    inner_cache: Vec<Vec<Match>>,
     pos_inner_cache: Option<usize>,
 }
 
 
 impl Iterator for NestedLoop {
-    type Item = (Match, Match);
+    type Item = Vec<Match>;
 
 
-    fn next(&mut self) -> Option<(Match, Match)> {
+    fn next(&mut self) -> Option<Vec<Match>> {
         loop {
             if let Some(m_outer) = self.outer.peek() {
                 if  self.pos_inner_cache.is_some() {
@@ -42,8 +48,10 @@ impl Iterator for NestedLoop {
                         let m_inner = &self.inner_cache[cache_pos];
                         cache_pos += 1;
                         self.pos_inner_cache = Some(cache_pos);
-                        if self.op.filter_match(m_outer, &m_inner) {
-                            return Some((m_outer.clone(), m_inner.clone()));
+                        if self.op.filter_match(&m_outer[self.outer_idx], &m_inner[self.inner_idx]) {
+                            let mut result = m_outer.clone();
+                            result.append(&mut m_inner.clone());
+                            return Some(result);
                         }
                     }
 
@@ -51,8 +59,10 @@ impl Iterator for NestedLoop {
                     while let Some(m_inner) = self.inner.next() {
                         self.inner_cache.push(m_inner.clone());
 
-                        if self.op.filter_match(m_outer, &m_inner) {
-                            return Some((m_outer.clone(), m_inner));
+                        if self.op.filter_match(&m_outer[self.outer_idx], &m_inner[self.inner_idx]) {
+                            let mut result = m_outer.clone();
+                            result.append(&mut m_inner.clone());
+                            return Some(result);
                         }
                     }
                     // inner was completed once, use cache from now
