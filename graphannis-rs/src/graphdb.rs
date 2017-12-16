@@ -107,31 +107,29 @@ impl GraphDB {
         }
     }
 
-    /// Helper function to unwrap an Option<ImplType> by loading it from disk if necessary.
-    fn unwrap_or_load(&self, entry : Option<Rc<GraphStorage>>, c : &Component) -> Result<Rc<GraphStorage>, Error> {
-        // check if component is not loaded yet
-        if entry.is_none() {
-            let loaded : Rc<GraphStorage> = load_component_from_disk(c.clone(), self.component_path(c))?;
-            return Ok(loaded);
-        } else {
-            return Ok(entry.unwrap());
-        }
-    }
-
     fn insert_or_copy_writeable(&mut self, c : &Component) ->Result<(), Error> {
         // move the old entry into the ownership of this function
         let entry = self.components.remove(c);
         // component exists?
         if entry.is_some() {
-            let loaded_comp = self.unwrap_or_load(entry.unwrap(), c)?;
-            // copy to writable implementation if needed
+            let gs_opt = entry.unwrap();
 
-            let loaded_comp = if !loaded_comp.is_writeable() {
+            let mut loaded_comp : Rc<GraphStorage> = if gs_opt.is_none() {
+                load_component_from_disk(c.clone(), self.component_path(c))?
+            } else {
+                gs_opt.unwrap()
+            };
+
+            // copy to writable implementation if needed
+            let is_writable = {Rc::get_mut(&mut loaded_comp).ok_or(Error::Other)?.as_writeable().is_some()};
+
+            let loaded_comp = if is_writable {
+                loaded_comp
+            } else {
                 let mut gs_copy = registry::create_writeable();
                 gs_copy.as_writeable().ok_or(Error::InvalidType)?.copy(loaded_comp.as_readable());
                 Rc::from(gs_copy)
-            } else {
-                loaded_comp
+   
             };
 
             // (re-)insert the component into map again
@@ -163,7 +161,12 @@ impl GraphDB {
         let entry : Option<Option<Rc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
             
-            let loaded = self.unwrap_or_load(gs_opt, c)?;
+            let loaded : Rc<GraphStorage> = if gs_opt.is_none() {
+                load_component_from_disk(c.clone(), self.component_path(c))?
+            } else {
+                gs_opt.unwrap()
+            };
+
             self.components.insert(c.clone(), Some(loaded));
         }
         return Ok(());
