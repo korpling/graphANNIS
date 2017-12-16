@@ -3,6 +3,7 @@ use graphdb;
 use {AnnoKey, Annotation, NodeID, StringID, Component, ComponentType, Edge};
 use graphstorage::WriteableGraphStorage;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::fs::File;
 use std::io::prelude::*;
 use std::num::ParseIntError;

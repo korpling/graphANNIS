@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::collections::Bound::*;
 use std::iter::FromIterator;
+use std::rc::Rc;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
@@ -80,6 +81,10 @@ impl ReadableGraphStorage for AdjacencyListStorage {
     fn copy(&mut self, other : &ReadableGraphStorage) {
         unimplemented!();
     }
+
+    fn as_graphstorage(&self) -> &GraphStorage {
+        return self;
+    }
 }
 
 impl WriteableGraphStorage for AdjacencyListStorage {
@@ -137,11 +142,13 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             self.delete_edge(&e);
         }
     }
-
-    fn as_readable(&self) -> &ReadableGraphStorage {
-        return self as &ReadableGraphStorage;
-    }
 }
+
+impl GraphStorage for AdjacencyListStorage {
+    fn as_readable(&self) -> &ReadableGraphStorage {self}
+    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
+}
+
 
 #[cfg(test)]
 mod tests {

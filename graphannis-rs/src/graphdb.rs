@@ -1,12 +1,13 @@
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
-use graphstorage::{WriteableGraphStorage, ReadableGraphStorage};
+use graphstorage::{WriteableGraphStorage, ReadableGraphStorage, GraphStorage};
 use {Component, NodeID, StringID, Edge};
 use AnnoKey;
 use graphstorage::registry;
 use std::collections::{BTreeMap};
 use std::path::PathBuf;
 use std::boxed::Box;
+use std::rc::Rc;
 use std::io::prelude::*;
 use std;
 
@@ -17,8 +18,8 @@ const TOK: &str = "tok";
 const NODE_TYPE: &str = "node_type";
 
 pub enum ImplType {
-    Readable(Box<ReadableGraphStorage>),
-    Writable(Box<WriteableGraphStorage>),
+    Readable(Rc<GraphStorage>),
+    Writable(Rc<GraphStorage>),
 }
 
 #[derive(Debug)]
@@ -26,6 +27,7 @@ pub enum Error {
     IOerror(std::io::Error),
     RegistryError(registry::RegistryError),
     LocationEmpty,
+    InvalidType,
     Other,
 }
 
@@ -130,8 +132,8 @@ impl GraphDB {
             let loaded_comp = match loaded_comp {
                 ImplType::Readable(gs_orig) => {
                     let mut gs_copy = registry::create_writeable();
-                    gs_copy.copy(gs_orig.as_ref());
-                    gs_copy 
+                    gs_copy.as_writeable().ok_or(Error::InvalidType)?.copy(gs_orig.as_readable());
+                    Rc::from(gs_copy) 
                 },
                 ImplType::Writable(gs) => {
                     gs
@@ -150,7 +152,7 @@ impl GraphDB {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(&c)?;
         } else {
-            self.components.insert(c.clone(), Some(ImplType::Writable(registry::create_writeable())));
+            self.components.insert(c.clone(), Some(ImplType::Writable(Rc::from(registry::create_writeable()))));
         }
         
         // get and return the reference to the entry
@@ -158,7 +160,10 @@ impl GraphDB {
         if entry.is_some() {
             let impl_type : &mut ImplType = entry.as_mut().unwrap();
             if let &mut ImplType::Writable(ref mut gs) = impl_type {
-                return Ok(gs.as_mut());
+                let gs_mut = Rc::get_mut(gs);
+                if gs_mut.is_some() {
+                    return Ok(gs_mut.unwrap().as_writeable().ok_or(Error::InvalidType)?);
+                }
             }
         }
         return Err(Error::Other);
@@ -176,15 +181,15 @@ impl GraphDB {
         return Ok(());
     }
 
-    pub fn get_graphstorage(&self, c : &Component) -> Option<&ReadableGraphStorage> {
+    pub fn get_graphstorage(&self, c : &Component) -> Option<Rc<GraphStorage>> {
         
         // get and return the reference to the entry if loaded
         let entry : Option<& Option<ImplType>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if let Some(ref impl_type) = *gs_opt {
                 return match *impl_type {
-                    ImplType::Readable(ref gs) => Some(gs.as_ref()),
-                    ImplType::Writable(ref gs) => Some(gs.as_ref().as_readable()),
+                    ImplType::Readable(ref gs) => Some(gs.clone()),
+                    ImplType::Writable(ref gs) => Some(gs.clone()),
                 }
             }
         }
@@ -199,7 +204,7 @@ impl GraphDB {
         for c in all_components {
             self.ensure_loaded(&c)?;
             if let Some(gs) = self.get_graphstorage(&c) {
-                if gs.is_connected(&edge.source, &edge.target, 1, 1) {
+                if gs.as_readable().is_connected(&edge.source, &edge.target, 1, 1) {
                     result.push(c.clone());
                 }
             }

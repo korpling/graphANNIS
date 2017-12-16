@@ -8,6 +8,7 @@ pub trait EdgeContainer {
 }
 
 pub trait ReadableGraphStorage: EdgeContainer {
+    
     fn find_connected<'a>(
         &'a self,
         source: &NodeID,
@@ -18,6 +19,8 @@ pub trait ReadableGraphStorage: EdgeContainer {
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool;
 
     fn copy(&mut self, orig : &ReadableGraphStorage);
+
+    fn as_graphstorage(&self) -> &GraphStorage;
 }
 
 pub trait WriteableGraphStorage:  ReadableGraphStorage {
@@ -27,8 +30,11 @@ pub trait WriteableGraphStorage:  ReadableGraphStorage {
     fn delete_edge(&mut self, edge: &Edge);
     fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey);
     fn delete_node(&mut self, node: &NodeID);
+}
 
+pub trait GraphStorage {
     fn as_readable(&self) -> &ReadableGraphStorage;
+    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> { None }
 }
 
 pub mod adjacencylist;

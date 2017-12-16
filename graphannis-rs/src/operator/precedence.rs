@@ -1,12 +1,14 @@
-pub use super::Operator;
-pub use {Match, Component, ComponentType};
-pub use graphdb::GraphDB;
-pub use graphstorage::ReadableGraphStorage;
-pub use util::token_helper::TokenHelper;
+use super::Operator;
+use {Match, Component, ComponentType};
+use graphdb::GraphDB;
+use graphstorage::{GraphStorage, ReadableGraphStorage};
+use util::token_helper::TokenHelper;
+
+use std::rc::Rc;
 
 pub struct Precedence <'a>{
-    gs_order: &'a ReadableGraphStorage,
-    gs_left: &'a ReadableGraphStorage,
+    gs_order: Rc<GraphStorage>,
+    gs_left: Rc<GraphStorage>,
     tok_helper : TokenHelper<'a>,
 }
 
