@@ -146,7 +146,6 @@ impl WriteableGraphStorage for AdjacencyListStorage {
 
 impl GraphStorage for AdjacencyListStorage {
     fn as_readable(&self) -> &ReadableGraphStorage {self}
-    fn is_writeable(&self) -> bool {true}
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
 }
 
