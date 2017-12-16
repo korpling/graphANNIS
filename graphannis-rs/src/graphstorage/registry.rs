@@ -3,7 +3,6 @@ use super::adjacencylist::AdjacencyListStorage;
 use std;
 use std::rc::Rc;
 use bincode;
-use graphdb::ImplType;
 
 #[derive(Debug)]
 pub enum RegistryError {
@@ -26,12 +25,12 @@ pub fn create_writeable() -> Box<GraphStorage> {
     Box::new(AdjacencyListStorage::new())
 }
 
-pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<ImplType> {
+pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<GraphStorage>> {
 
     match impl_name {
         "AdjacencyListStorage" => {
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input, bincode::Infinite)?;
-            Ok(ImplType::Writable(Rc::new(gs)))
+            Ok(Rc::new(gs))
         },
         _ => Err(RegistryError::ImplementationNameNotFound)
     }

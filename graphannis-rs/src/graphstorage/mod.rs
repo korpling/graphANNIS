@@ -34,6 +34,7 @@ pub trait WriteableGraphStorage:  ReadableGraphStorage {
 
 pub trait GraphStorage {
     fn as_readable(&self) -> &ReadableGraphStorage;
+    fn is_writeable(&self) -> bool { false }
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> { None }
 }
 

@@ -17,10 +17,6 @@ const NODE_NAME: &str = "node_name";
 const TOK: &str = "tok";
 const NODE_TYPE: &str = "node_type";
 
-pub enum ImplType {
-    Readable(Rc<GraphStorage>),
-    Writable(Rc<GraphStorage>),
-}
 
 #[derive(Debug)]
 pub enum Error {
@@ -50,14 +46,14 @@ pub struct GraphDB {
 
     location: Option<PathBuf>,
 
-    components: BTreeMap<Component, Option<ImplType>>,
+    components: BTreeMap<Component, Option<Rc<GraphStorage>>>,
     id_annis_ns: StringID,
     id_node_name: StringID,
     id_tok: StringID,
     id_node_type: StringID,
 }
 
-fn load_component_from_disk(c: Component, component_path: Option<PathBuf> ) -> Result<ImplType, Error> {
+fn load_component_from_disk(c: Component, component_path: Option<PathBuf> ) -> Result<Rc<GraphStorage>, Error> {
     let cpath = try!(component_path.ok_or(Error::LocationEmpty));
     
     // load component into memory
@@ -112,10 +108,10 @@ impl GraphDB {
     }
 
     /// Helper function to unwrap an Option<ImplType> by loading it from disk if necessary.
-    fn unwrap_or_load(&self, entry : Option<ImplType>, c : &Component) -> Result<ImplType, Error> {
+    fn unwrap_or_load(&self, entry : Option<Rc<GraphStorage>>, c : &Component) -> Result<Rc<GraphStorage>, Error> {
         // check if component is not loaded yet
         if entry.is_none() {
-            let loaded : ImplType = load_component_from_disk(c.clone(), self.component_path(c))?;
+            let loaded : Rc<GraphStorage> = load_component_from_disk(c.clone(), self.component_path(c))?;
             return Ok(loaded);
         } else {
             return Ok(entry.unwrap());
@@ -129,18 +125,17 @@ impl GraphDB {
         if entry.is_some() {
             let loaded_comp = self.unwrap_or_load(entry.unwrap(), c)?;
             // copy to writable implementation if needed
-            let loaded_comp = match loaded_comp {
-                ImplType::Readable(gs_orig) => {
-                    let mut gs_copy = registry::create_writeable();
-                    gs_copy.as_writeable().ok_or(Error::InvalidType)?.copy(gs_orig.as_readable());
-                    Rc::from(gs_copy) 
-                },
-                ImplType::Writable(gs) => {
-                    gs
-                }
+
+            let loaded_comp = if !loaded_comp.is_writeable() {
+                let mut gs_copy = registry::create_writeable();
+                gs_copy.as_writeable().ok_or(Error::InvalidType)?.copy(loaded_comp.as_readable());
+                Rc::from(gs_copy)
+            } else {
+                loaded_comp
             };
+
             // (re-)insert the component into map again
-            self.components.insert(c.clone(), Some(ImplType::Writable(loaded_comp)));
+            self.components.insert(c.clone(), Some(loaded_comp));
         }
         return Ok(());
     }
@@ -152,27 +147,20 @@ impl GraphDB {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(&c)?;
         } else {
-            self.components.insert(c.clone(), Some(ImplType::Writable(Rc::from(registry::create_writeable()))));
+            self.components.insert(c.clone(), Some(Rc::from(registry::create_writeable())));
         }
         
         // get and return the reference to the entry
-        let entry : &mut Option<ImplType> = self.components.get_mut(&c).ok_or(Error::Other)?;
-        if entry.is_some() {
-            let impl_type : &mut ImplType = entry.as_mut().unwrap();
-            if let &mut ImplType::Writable(ref mut gs) = impl_type {
-                let gs_mut = Rc::get_mut(gs);
-                if gs_mut.is_some() {
-                    return Ok(gs_mut.unwrap().as_writeable().ok_or(Error::InvalidType)?);
-                }
-            }
-        }
-        return Err(Error::Other);
+        let entry : &mut Rc<GraphStorage> = self.components.get_mut(&c).ok_or(Error::Other)?.as_mut() .ok_or(Error::Other)?;
+        let gs_mut_ref : &mut GraphStorage = Rc::get_mut(entry).ok_or(Error::Other)?;
+        return Ok(gs_mut_ref.as_writeable().ok_or(Error::InvalidType)?);
+
     }
 
     pub fn ensure_loaded(&mut self, c : &Component) -> Result<(), Error> {
         
         // get and return the reference to the entry if loaded
-        let entry : Option<Option<ImplType>> = self.components.remove(c);
+        let entry : Option<Option<Rc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
             
             let loaded = self.unwrap_or_load(gs_opt, c)?;
@@ -184,13 +172,10 @@ impl GraphDB {
     pub fn get_graphstorage(&self, c : &Component) -> Option<Rc<GraphStorage>> {
         
         // get and return the reference to the entry if loaded
-        let entry : Option<& Option<ImplType>> = self.components.get(c);
+        let entry : Option<& Option<Rc<GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if let Some(ref impl_type) = *gs_opt {
-                return match *impl_type {
-                    ImplType::Readable(ref gs) => Some(gs.clone()),
-                    ImplType::Writable(ref gs) => Some(gs.clone()),
-                }
+                return Some(impl_type.clone());
             }
         }
         return None;
