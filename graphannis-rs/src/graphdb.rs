@@ -6,7 +6,6 @@ use AnnoKey;
 use graphstorage::registry;
 use std::collections::{BTreeMap};
 use std::path::PathBuf;
-use std::boxed::Box;
 use std::rc::Rc;
 use std::io::prelude::*;
 use std;

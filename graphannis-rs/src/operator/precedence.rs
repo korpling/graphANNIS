@@ -10,10 +10,11 @@ pub struct Precedence <'a>{
     gs_order: Rc<GraphStorage>,
     gs_left: Rc<GraphStorage>,
     tok_helper : TokenHelper<'a>,
+    segmentation : Option<String>,
 }
 
 impl<'a> Precedence<'a> {
-    pub fn new(db : &'a mut GraphDB) -> Option<Precedence<'a>> {
+    pub fn new(db : &'a mut GraphDB, segmentation : Option<String>) -> Option<Precedence<'a>> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
@@ -35,24 +36,22 @@ impl<'a> Precedence<'a> {
             name: String::from(""),
         };
 
-        db.ensure_loaded(&component_order);
-        db.ensure_loaded(&component_left);
-        db.ensure_loaded(&component_right);
-        db.ensure_loaded(&component_cov);
+        db.ensure_loaded(&component_order).ok()?;
+        db.ensure_loaded(&component_left).ok()?;
+        db.ensure_loaded(&component_right).ok()?;
+        db.ensure_loaded(&component_cov).ok()?;
 
-        let tok_helper = TokenHelper::new(db, 
-            db.get_graphstorage(&component_left)?, 
-            db.get_graphstorage(&component_right)?,
-            db.get_graphstorage(&component_cov)?);
 
         let gs_order = db.get_graphstorage(&component_order)?;
         let gs_left = db.get_graphstorage(&component_left)?;
-        
 
+        let tok_helper = TokenHelper::new(db)?;
+        
         Some(Precedence {
             gs_order: gs_order,
             gs_left: gs_left,
             tok_helper: tok_helper,
+            segmentation,
         })
     }
 }
