@@ -48,19 +48,27 @@ impl<'a> TokenHelper<'a> {
             && self.cov_edges.get_outgoing_edges(id).is_empty()
     }
 
-    pub fn right_token_for(&self, n: &NodeID) -> NodeID {
+    pub fn right_token_for(&self, n: &NodeID) -> Option<NodeID> {
         if self.is_token(n) {
-            return n.clone();
+            return Some(n.clone());
         } else {
-            return self.right_edges.get_outgoing_edges(n)[0];
+            let out = self.right_edges.get_outgoing_edges(n);
+             if !out.is_empty() {
+                return Some(out[0]);
+            }
         }
+        return None;
     }
 
-    pub fn left_token_for(&self, n: &NodeID) -> NodeID {
+    pub fn left_token_for(&self, n: &NodeID) -> Option<NodeID> {
         if self.is_token(n) {
-            return n.clone();
+            return Some(n.clone());
         } else {
-            return self.left_edges.get_outgoing_edges(n)[0];
+            let out = self.left_edges.get_outgoing_edges(n);
+            if !out.is_empty() {
+                return Some(out[0]);
+            }
         }
+        return None;
     }
 }

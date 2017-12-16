@@ -70,7 +70,12 @@ impl<'a> Operator for Precedence<'a> {
         let start_end = if self.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
-            (self.tok_helper.right_token_for(&lhs.node), self.tok_helper.left_token_for(&rhs.node))
+            let start = self.tok_helper.right_token_for(&lhs.node);
+            let end = self.tok_helper.left_token_for(&rhs.node);
+            if start.is_none() || end.is_none() {
+                return false;
+            }
+            (start.unwrap(), end.unwrap())
         };
 
         return self.gs_order.is_connected(&start_end.0, &start_end.1, self.min_dist, self.max_dist);
