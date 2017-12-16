@@ -127,7 +127,7 @@ impl GraphDB {
                 loaded_comp
             } else {
                 let mut gs_copy = registry::create_writeable();
-                gs_copy.as_writeable().ok_or(Error::InvalidType)?.copy(loaded_comp.as_ref());
+                gs_copy.copy(loaded_comp.as_ref());
                 Rc::from(gs_copy)
    
             };
@@ -145,7 +145,9 @@ impl GraphDB {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(&c)?;
         } else {
-            self.components.insert(c.clone(), Some(Rc::from(registry::create_writeable())));
+            let w = registry::create_writeable();
+
+            self.components.insert(c.clone(), Some(Rc::from(w)));
         }
         
         // get and return the reference to the entry

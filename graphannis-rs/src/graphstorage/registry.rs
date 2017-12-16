@@ -20,9 +20,9 @@ impl From<Box<bincode::ErrorKind>> for RegistryError {
 
 type Result<T> = std::result::Result<T, RegistryError>;
 
-pub fn create_writeable() -> Box<GraphStorage> {
+pub fn create_writeable() -> AdjacencyListStorage {
     // TODO: make this configurable when there are more writeable graph storage implementations
-    Box::new(AdjacencyListStorage::new())
+    AdjacencyListStorage::new()
 }
 
 pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<GraphStorage>> {
