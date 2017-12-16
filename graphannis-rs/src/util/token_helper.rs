@@ -1,20 +1,22 @@
-use graphstorage::EdgeContainer;
+use graphstorage::{EdgeContainer, ReadableGraphStorage};
 use graphdb::GraphDB;
-use NodeID;
+use {NodeID, ComponentType, Component};
 
+#[derive(Clone)]
 pub struct TokenHelper<'a> {
     db: &'a GraphDB,
-    left_edges: &'a EdgeContainer,
-    right_edges: &'a EdgeContainer,
-    cov_edges: &'a EdgeContainer,
+    left_edges: &'a ReadableGraphStorage,
+    right_edges: &'a ReadableGraphStorage,
+    cov_edges: &'a ReadableGraphStorage,
 }
 
 impl<'a> TokenHelper<'a> {
+
     pub fn new(
         db: &'a GraphDB,
-        left_edges: &'a EdgeContainer,
-        right_edges: &'a EdgeContainer,
-        cov_edges: &'a EdgeContainer,
+        left_edges: &'a ReadableGraphStorage,
+        right_edges: &'a ReadableGraphStorage,
+        cov_edges: &'a ReadableGraphStorage,
     ) -> TokenHelper<'a> {
         TokenHelper {
             db,

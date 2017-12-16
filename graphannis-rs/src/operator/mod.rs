@@ -5,3 +5,5 @@ pub trait Operator {
 
     fn filter_match(&self, lhs : &Match, rhs : &Match) -> bool;
 }
+
+pub mod precedence;
