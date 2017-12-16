@@ -11,10 +11,12 @@ pub struct Precedence <'a>{
     gs_left: Rc<GraphStorage>,
     tok_helper : TokenHelper<'a>,
     segmentation : Option<String>,
+    min_dist : usize,
+    max_dist : usize,
 }
 
 impl<'a> Precedence<'a> {
-    pub fn new(db : &'a mut GraphDB, segmentation : Option<String>) -> Option<Precedence<'a>> {
+    pub fn new(db : &'a mut GraphDB, segmentation : Option<String>, min_dist : usize, max_dist: usize) -> Option<Precedence<'a>> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
@@ -52,6 +54,8 @@ impl<'a> Precedence<'a> {
             gs_left: gs_left,
             tok_helper: tok_helper,
             segmentation,
+            min_dist,
+            max_dist,
         })
     }
 }
@@ -63,6 +67,12 @@ impl<'a> Operator for Precedence<'a> {
      }
 
     fn filter_match(&self, lhs : &Match, rhs : &Match) -> bool {
-        unimplemented!()
+        let start_end = if self.segmentation.is_some() {
+            (lhs.node, rhs.node)
+        } else {
+            (self.tok_helper.right_token_for(&lhs.node), self.tok_helper.left_token_for(&rhs.node))
+        };
+
+        return self.gs_order.is_connected(&start_end.0, &start_end.1, self.min_dist, self.max_dist);
     }
 }

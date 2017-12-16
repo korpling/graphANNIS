@@ -1,6 +1,6 @@
-use graphstorage::{GraphStorage};
+use graphstorage::GraphStorage;
 use graphdb::GraphDB;
-use {NodeID, ComponentType, Component};
+use {Component, ComponentType, NodeID};
 
 use std::rc::Rc;
 
@@ -13,11 +13,7 @@ pub struct TokenHelper<'a> {
 }
 
 impl<'a> TokenHelper<'a> {
-
-    pub fn new(
-        db: &'a mut GraphDB,
-    ) -> Option<TokenHelper<'a>> {
-
+    pub fn new(db: &'a mut GraphDB) -> Option<TokenHelper<'a>> {
         let component_left = Component {
             ctype: ComponentType::LeftToken,
             layer: String::from("annis"),
@@ -46,9 +42,25 @@ impl<'a> TokenHelper<'a> {
         })
     }
 
-    pub fn is_token(&self, id : &NodeID) -> bool {
+    pub fn is_token(&self, id: &NodeID) -> bool {
         let tok = self.db.get_token_key();
-        self.db.node_annos.get(id, &tok).is_some() 
-            &&  self.cov_edges.get_outgoing_edges(id).is_empty()
+        self.db.node_annos.get(id, &tok).is_some()
+            && self.cov_edges.get_outgoing_edges(id).is_empty()
+    }
+
+    pub fn right_token_for(&self, n: &NodeID) -> NodeID {
+        if self.is_token(n) {
+            return n.clone();
+        } else {
+            return self.right_edges.get_outgoing_edges(n)[0];
+        }
+    }
+
+    pub fn left_token_for(&self, n: &NodeID) -> NodeID {
+        if self.is_token(n) {
+            return n.clone();
+        } else {
+            return self.left_edges.get_outgoing_edges(n)[0];
+        }
     }
 }
