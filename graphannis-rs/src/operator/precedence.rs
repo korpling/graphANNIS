@@ -1,7 +1,7 @@
 use super::Operator;
 use {Match, Component, ComponentType};
 use graphdb::GraphDB;
-use graphstorage::{GraphStorage, ReadableGraphStorage};
+use graphstorage::{GraphStorage};
 use util::token_helper::TokenHelper;
 
 use std::rc::Rc;

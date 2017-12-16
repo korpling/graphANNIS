@@ -44,7 +44,7 @@ impl EdgeContainer for AdjacencyListStorage {
     }
 }
 
-impl ReadableGraphStorage for AdjacencyListStorage {
+impl GraphStorage for AdjacencyListStorage {
     fn find_connected<'a>(
         &'a self,
         source: &NodeID,
@@ -78,13 +78,11 @@ impl ReadableGraphStorage for AdjacencyListStorage {
         return it.next().is_some();
     }
 
-    fn copy(&mut self, other : &ReadableGraphStorage) {
+    fn copy(&mut self, other : &GraphStorage) {
         unimplemented!();
     }
 
-    fn as_graphstorage(&self) -> &GraphStorage {
-        return self;
-    }
+    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
 }
 
 impl WriteableGraphStorage for AdjacencyListStorage {
@@ -144,10 +142,6 @@ impl WriteableGraphStorage for AdjacencyListStorage {
     }
 }
 
-impl GraphStorage for AdjacencyListStorage {
-    fn as_readable(&self) -> &ReadableGraphStorage {self}
-    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
-}
 
 
 #[cfg(test)]

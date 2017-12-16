@@ -1,4 +1,4 @@
-use graphstorage::{GraphStorage, WriteableGraphStorage};
+use graphstorage::{GraphStorage};
 use super::adjacencylist::AdjacencyListStorage;
 use std;
 use std::rc::Rc;

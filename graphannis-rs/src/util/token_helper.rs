@@ -1,4 +1,4 @@
-use graphstorage::{GraphStorage, ReadableGraphStorage};
+use graphstorage::{GraphStorage};
 use graphdb::GraphDB;
 use {NodeID, ComponentType, Component};
 
@@ -31,6 +31,6 @@ impl<'a> TokenHelper<'a> {
     pub fn is_token(&self, id : &NodeID) -> bool {
         let tok = self.db.get_token_key();
         self.db.node_annos.get(id, &tok).is_some() 
-            &&  self.cov_edges.as_readable().get_outgoing_edges(id).is_empty()
+            &&  self.cov_edges.get_outgoing_edges(id).is_empty()
     }
 }

@@ -1,6 +1,6 @@
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
-use graphstorage::{WriteableGraphStorage, ReadableGraphStorage, GraphStorage};
+use graphstorage::{WriteableGraphStorage, GraphStorage};
 use {Component, NodeID, StringID, Edge};
 use AnnoKey;
 use graphstorage::registry;
@@ -127,7 +127,7 @@ impl GraphDB {
                 loaded_comp
             } else {
                 let mut gs_copy = registry::create_writeable();
-                gs_copy.as_writeable().ok_or(Error::InvalidType)?.copy(loaded_comp.as_readable());
+                gs_copy.as_writeable().ok_or(Error::InvalidType)?.copy(loaded_comp.as_ref());
                 Rc::from(gs_copy)
    
             };
@@ -192,7 +192,7 @@ impl GraphDB {
         for c in all_components {
             self.ensure_loaded(&c)?;
             if let Some(gs) = self.get_graphstorage(&c) {
-                if gs.as_readable().is_connected(&edge.source, &edge.target, 1, 1) {
+                if gs.is_connected(&edge.source, &edge.target, 1, 1) {
                     result.push(c.clone());
                 }
             }
