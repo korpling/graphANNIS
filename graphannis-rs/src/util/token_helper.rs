@@ -1,6 +1,7 @@
 use graphstorage::GraphStorage;
 use graphdb::GraphDB;
 use {Component, ComponentType, NodeID};
+use std::collections::HashSet;
 
 use std::rc::Rc;
 
@@ -12,33 +13,48 @@ pub struct TokenHelper<'a> {
     cov_edges: Rc<GraphStorage>,
 }
 
-impl<'a> TokenHelper<'a> {
-    pub fn new(db: &'a mut GraphDB) -> Option<TokenHelper<'a>> {
-        let component_left = Component {
+lazy_static! {
+
+    static ref COMPONENT_LEFT : Component =  {
+        let c = Component {
             ctype: ComponentType::LeftToken,
             layer: String::from("annis"),
             name: String::from(""),
         };
-        let component_right = Component {
+        c
+    };
+
+    static ref COMPONENT_RIGHT : Component =  {
+        let c = Component {
             ctype: ComponentType::RightToken,
             layer: String::from("annis"),
             name: String::from(""),
         };
-        let component_cov = Component {
+        c
+    };
+
+    static ref COMPONENT_COV : Component =  {
+        let c = Component {
             ctype: ComponentType::Coverage,
             layer: String::from("annis"),
             name: String::from(""),
         };
+        c
+    };
+}
 
-        db.ensure_loaded(&component_left).ok()?;
-        db.ensure_loaded(&component_right).ok()?;
-        db.ensure_loaded(&component_cov).ok()?;
+pub fn necessary_components() -> Vec<Component> {
+    vec![COMPONENT_LEFT.clone(), COMPONENT_RIGHT.clone(), COMPONENT_COV.clone()]
+}
 
+impl<'a> TokenHelper<'a> {
+    pub fn new(db: &'a GraphDB) -> Option<TokenHelper<'a>> {
+     
         Some(TokenHelper {
             db,
-            left_edges: db.get_graphstorage(&component_left)?,
-            right_edges: db.get_graphstorage(&component_right)?,
-            cov_edges: db.get_graphstorage(&component_cov)?,
+            left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
+            right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
+            cov_edges: db.get_graphstorage(&COMPONENT_COV)?,
         })
     }
 

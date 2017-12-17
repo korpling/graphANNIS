@@ -16,6 +16,9 @@ extern crate csv;
 extern crate serde_derive;
 
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 pub mod util;
 
 mod types;
@@ -36,3 +39,4 @@ pub use util::c_api::*;
 pub use stringstorage::c_api::*;
 pub use annostorage::c_api::*;
 
+use std::collections::HashMap;

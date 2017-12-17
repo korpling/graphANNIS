@@ -19,6 +19,7 @@ multimap = "0.4.0"
 log = "0.3"
 rustyline = "1.0.0"
 simplelog = "^0.4.3"
+lazy_static = "1.0"
 
 libc = "*"
 

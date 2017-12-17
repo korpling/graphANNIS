@@ -1,73 +1,78 @@
-use super::Operator;
-use {Match, Component, ComponentType};
+use super::{Operator, OperatorSpec};
+use {Component, ComponentType, Match};
 use graphdb::GraphDB;
-use graphstorage::{GraphStorage};
+use graphstorage::GraphStorage;
+use util::token_helper;
 use util::token_helper::TokenHelper;
+use std::collections::HashSet;
 
 use std::rc::Rc;
 
-pub struct Precedence <'a>{
-    gs_order: Rc<GraphStorage>,
-    gs_left: Rc<GraphStorage>,
-    tok_helper : TokenHelper<'a>,
-    segmentation : Option<String>,
-    min_dist : usize,
-    max_dist : usize,
+
+pub struct PrecedenceSpec {
+    pub segmentation: Option<String>,
+    pub min_dist: usize,
+    pub max_dist: usize,
 }
 
-impl<'a> Precedence<'a> {
-    pub fn new(db : &'a mut GraphDB, segmentation : Option<String>, min_dist : usize, max_dist: usize) -> Option<Precedence<'a>> {
-        let component_order = Component {
+pub struct Precedence<'a> {
+    gs_order: Rc<GraphStorage>,
+    gs_left: Rc<GraphStorage>,
+    tok_helper: TokenHelper<'a>,
+    spec: PrecedenceSpec,
+}
+
+lazy_static! {
+
+    static ref COMPONENT_ORDER : Component =  {
+        Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
             name: String::from(""),
-        };
-        let component_left = Component {
+        }
+    };
+
+    static ref COMPONENT_LEFT : Component =  {
+        Component {
             ctype: ComponentType::LeftToken,
             layer: String::from("annis"),
             name: String::from(""),
-        };
-        let component_right = Component {
-            ctype: ComponentType::RightToken,
-            layer: String::from("annis"),
-            name: String::from(""),
-        };
-        let component_cov = Component {
-            ctype: ComponentType::Coverage,
-            layer: String::from("annis"),
-            name: String::from(""),
-        };
+        }
+    };
+}
 
-        db.ensure_loaded(&component_order).ok()?;
-        db.ensure_loaded(&component_left).ok()?;
-        db.ensure_loaded(&component_right).ok()?;
-        db.ensure_loaded(&component_cov).ok()?;
+impl OperatorSpec for PrecedenceSpec {
+    fn necessary_components(&self) -> Vec<Component> {
+        let mut v : Vec<Component> = vec![COMPONENT_ORDER.clone(), COMPONENT_LEFT.clone()];
+        v.append(&mut token_helper::necessary_components());
+        v
+    }
+}
 
-
-        let gs_order = db.get_graphstorage(&component_order)?;
-        let gs_left = db.get_graphstorage(&component_left)?;
+impl<'a> Precedence<'a> {
+    pub fn new(db: &'a GraphDB, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
+     
+        let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
+        let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
 
         let tok_helper = TokenHelper::new(db)?;
-        
+
         Some(Precedence {
             gs_order: gs_order,
             gs_left: gs_left,
             tok_helper: tok_helper,
-            segmentation,
-            min_dist,
-            max_dist,
+            spec,
         })
     }
 }
 
 impl<'a> Operator for Precedence<'a> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+        unimplemented!()
+    }
 
-    fn retrieve_matches(&self, lhs : &Match) -> Box<Iterator<Item = Match>> {
-         unimplemented!()
-     }
-
-    fn filter_match(&self, lhs : &Match, rhs : &Match) -> bool {
-        let start_end = if self.segmentation.is_some() {
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+        let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
             let start = self.tok_helper.right_token_for(&lhs.node);
@@ -78,6 +83,11 @@ impl<'a> Operator for Precedence<'a> {
             (start.unwrap(), end.unwrap())
         };
 
-        return self.gs_order.is_connected(&start_end.0, &start_end.1, self.min_dist, self.max_dist);
+        return self.gs_order.is_connected(
+            &start_end.0,
+            &start_end.1,
+            self.spec.min_dist,
+            self.spec.max_dist,
+        );
     }
 }

@@ -39,7 +39,7 @@ impl Edge {
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub enum ComponentType {
     Coverage,
     InverseCoverage,
@@ -57,7 +57,7 @@ impl fmt::Display for ComponentType {
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct Component {
     pub ctype : ComponentType,
     pub layer : String,
