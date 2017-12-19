@@ -1,12 +1,12 @@
 use super::{Operator, OperatorSpec};
-use {Component, ComponentType, Match};
+use {Component, ComponentType, Match, Annotation};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;
 use util::token_helper;
 use util::token_helper::TokenHelper;
 
 use std::rc::Rc;
-
+use std;
 
 pub struct PrecedenceSpec {
     pub segmentation: Option<String>,
@@ -67,7 +67,27 @@ impl<'a> Precedence<'a> {
 
 impl<'a> Operator for Precedence<'a> {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
-        unimplemented!()
+        let start = if self.spec.segmentation.is_some() {
+            Some(lhs.node)
+        } else {
+            self.tok_helper.right_token_for(&lhs.node)
+        };
+
+        if start.is_none() {
+            return Box::new(std::iter::empty::<Match>());
+        }
+
+        let start = start.unwrap();
+
+        let result = self.gs_order
+            .find_connected(&start, self.spec.min_dist, self.spec.max_dist)
+            .map(|n| Match {node: n, anno: Annotation::default()});
+
+        // TODO: find all left aligned token and the token itself
+        unimplemented!();
+
+        return Box::new(result);
+        
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
