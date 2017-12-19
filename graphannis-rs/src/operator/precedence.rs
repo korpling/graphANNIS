@@ -66,6 +66,7 @@ impl<'a> Precedence<'a> {
 }
 
 impl<'a> Operator for Precedence<'a> {
+
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -80,12 +81,16 @@ impl<'a> Operator for Precedence<'a> {
         let start = start.unwrap();
 
         let result = self.gs_order
+            // get all token in the range
             .find_connected(&start, self.spec.min_dist, self.spec.max_dist)
+            // find all left aligned nodes for this token and add it together with the token itself
+            .flat_map(move |t| {
+                let mut aligned = self.gs_left.get_outgoing_edges(&t);
+                aligned.push(t);
+                aligned.into_iter()})
+            // map the result as match
             .map(|n| Match {node: n, anno: Annotation::default()});
-
-        // TODO: find all left aligned token and the token itself
-        unimplemented!();
-
+            
         return Box::new(result);
         
     }
