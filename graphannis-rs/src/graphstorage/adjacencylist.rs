@@ -26,8 +26,9 @@ impl AdjacencyListStorage {
     }
 }
 
-impl EdgeContainer for AdjacencyListStorage {
-    fn get_outgoing_edges(&self, source : &NodeID) -> Vec<NodeID> {
+impl GraphStorage for AdjacencyListStorage {
+
+     fn get_outgoing_edges(&self, source : &NodeID) -> Vec<NodeID> {
         let start_key = Edge{source: source.clone(), target: NodeID::min_value()};
         let end_key = Edge {source: source.clone(), target: NodeID::max_value()};
 
@@ -42,9 +43,7 @@ impl EdgeContainer for AdjacencyListStorage {
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
         self.annos.get_all(edge)
     }
-}
 
-impl GraphStorage for AdjacencyListStorage {
     fn find_connected<'a>(
         &'a self,
         source: &NodeID,

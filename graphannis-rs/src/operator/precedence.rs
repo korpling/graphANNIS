@@ -4,7 +4,6 @@ use graphdb::GraphDB;
 use graphstorage::GraphStorage;
 use util::token_helper;
 use util::token_helper::TokenHelper;
-use std::collections::HashSet;
 
 use std::rc::Rc;
 

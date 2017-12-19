@@ -1,7 +1,6 @@
 use graphstorage::GraphStorage;
 use graphdb::GraphDB;
 use {Component, ComponentType, NodeID};
-use std::collections::HashSet;
 
 use std::rc::Rc;
 

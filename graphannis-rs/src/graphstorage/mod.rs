@@ -1,13 +1,12 @@
 use std;
 use {AnnoKey, Annotation, Edge, NodeID};
 
-pub trait EdgeContainer {
+
+pub trait GraphStorage {
+
     fn get_outgoing_edges(&self, source: &NodeID) -> Vec<NodeID>;
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation>;
-}
-
-pub trait GraphStorage: EdgeContainer {
     
     fn find_connected<'a>(
         &'a self,

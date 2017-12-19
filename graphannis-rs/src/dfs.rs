@@ -1,11 +1,11 @@
-use graphstorage::EdgeContainer;
+use graphstorage::GraphStorage;
 use std::collections::{HashSet};
 use NodeID;
 
 pub struct CycleSafeDFS<'a> {
     min_distance: usize,
     max_distance: usize,
-    container : &'a EdgeContainer,
+    container : &'a GraphStorage,
 
     stack: Vec<(NodeID, usize)>,
     path : Vec<NodeID>,
@@ -14,7 +14,7 @@ pub struct CycleSafeDFS<'a> {
 }
 
 impl<'a> CycleSafeDFS<'a> {
-    pub fn new(container : &'a EdgeContainer, node: &NodeID, min_distance: usize, max_distance: usize) -> CycleSafeDFS<'a> {
+    pub fn new(container : &'a GraphStorage, node: &NodeID, min_distance: usize, max_distance: usize) -> CycleSafeDFS<'a> {
         let mut stack = vec![];
         stack.push((node.clone(), 0));
 
