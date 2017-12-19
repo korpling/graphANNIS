@@ -1,15 +1,14 @@
 use Match;
 use operator::Operator;
 use std::iter::Peekable;
-use std::rc::Rc;
 
-pub fn new(
+pub fn new<'a>(
         lhs: Box<Iterator<Item = Vec<Match>>>,
         rhs: Box<Iterator<Item = Vec<Match>>>,
         lhs_idx : usize,
         rhs_idx : usize,
-        op: Rc<Operator>,
-    ) -> Box<Iterator<Item = Vec<Match>>> {
+        op: &'a Operator,
+    ) -> Box<Iterator<Item = Vec<Match>> + 'a> {
         // TODO: allow switching inner and outer
        let it =  NestedLoop {
             outer: lhs.peekable(),
@@ -23,10 +22,10 @@ pub fn new(
         return Box::new(it);
     }
 
-struct NestedLoop {
+struct NestedLoop<'a> {
     outer: Peekable<Box<Iterator<Item = Vec<Match>>>>,
     inner: Box<Iterator<Item = Vec<Match>>>,
-    op: Rc<Operator>,
+    op: &'a Operator,
     inner_idx : usize,
     outer_idx : usize,
     inner_cache: Vec<Vec<Match>>,
@@ -34,7 +33,7 @@ struct NestedLoop {
 }
 
 
-impl Iterator for NestedLoop {
+impl<'a> Iterator for NestedLoop<'a> {
     type Item = Vec<Match>;
 
 

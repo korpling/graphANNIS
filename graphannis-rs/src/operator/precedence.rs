@@ -66,7 +66,7 @@ impl<'a> Precedence<'a> {
 }
 
 impl<'a> Operator for Precedence<'a> {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
+    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
         unimplemented!()
     }
 

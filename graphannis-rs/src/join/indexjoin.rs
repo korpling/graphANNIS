@@ -1,12 +1,11 @@
 use {Annotation, Match};
 use operator::Operator;
-use std::rc::Rc;
 use std;
 
 pub fn new<'a>(
     lhs: Box<Iterator<Item = Vec<Match>>>,
     lhs_idx : usize,
-    op: Rc<Operator>,
+    op: &'a Operator,
     anno_cond: Box<Fn(Annotation) -> bool + 'a>,
 ) -> Box<Iterator<Item = Vec<Match>> + 'a> {
     let it = lhs.flat_map(move |m_lhs| {
