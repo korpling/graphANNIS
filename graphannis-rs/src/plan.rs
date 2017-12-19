@@ -20,10 +20,11 @@ impl Iterator for ExecutionPlan {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
-        unimplemented!();
-        /* match self.root {
-            ExecutionNode::Join{it, ..} => it.next(),
-            ExecutionNode::Base{it, ..} => it.next(),
-        } */
+        let n = match self.root {
+            ExecutionNode::Join{ref mut it, ..} => it.next(),
+            ExecutionNode::Base{ref mut it, ..} => it.next(),
+        };
+        // TODO: re-organize the match positions
+        return n;
     }
 }
