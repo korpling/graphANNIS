@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use Match;
 
-enum ExecutionNode {
+pub enum ExecutionNode {
     Join {
         it: Box<Iterator<Item = Vec<Match>>>,
         lhs: Box<ExecutionNode>,
