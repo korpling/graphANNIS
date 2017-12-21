@@ -2,9 +2,14 @@ use {Annotation, Match};
 use operator::Operator;
 use plan::ExecutionNode;
 use std;
+use std::iter::Peekable;
 
 pub struct IndexJoin {
+    lhs: Peekable<Box<Iterator<Item = Vec<Match>>>>,
+    rhs_candidate: std::vec::IntoIter<Match>,
     op: Box<Operator>,
+    lhs_idx: usize,
+    anno_cond: Box<Fn(&Annotation) -> bool>,
 }
 
 impl IndexJoin {
@@ -12,37 +17,53 @@ impl IndexJoin {
         lhs: Box<Iterator<Item = Vec<Match>>>,
         lhs_idx: usize,
         op: Box<Operator>,
-        anno_cond: Box<Fn(Annotation) -> bool>,
+        anno_cond: Box<Fn(&Annotation) -> bool>,
     ) -> IndexJoin {
-
-       /*  let it_reachable = lhs.flat_map(|m_lhs| {
-            std::iter::repeat(m_lhs.clone()).zip(op.retrieve_matches(&m_lhs[lhs_idx]))
-        });
-
-        let it_annofilter = it_reachable
-            .filter(|m| anno_cond(m.1.anno.clone()))
-            .map(|match_pair| {
-                let mut result = match_pair.0.clone();
-                result.push(match_pair.1);
-                result
-            });
-        */
+        let mut lhs_peek = lhs.peekable();
+        let initial_candidates: Vec<Match> = if let Some(m_lhs) = lhs_peek.peek() {
+            op.retrieve_matches(&m_lhs[lhs_idx.clone()]).collect()
+        } else {
+            vec![]
+        };
         return IndexJoin {
+            lhs: lhs_peek,
+            lhs_idx,
             op,
+            anno_cond,
+            rhs_candidate: initial_candidates.into_iter(),
+        };
+    }
+}
+
+impl Iterator for IndexJoin {
+    type Item = Vec<Match>;
+
+    fn next(&mut self) -> Option<Vec<Match>> {
+        loop {
+            if let Some(m_lhs) = self.lhs.peek() {
+                while let Some(m_rhs) = self.rhs_candidate.next() {
+                    // filter by annotation
+                    if (self.anno_cond)(&m_rhs.anno) {
+                        let mut result = m_lhs.clone();
+                        result.push(m_rhs.clone());
+                        return Some(result);
+                    }
+                }
+                // inner was completed once, get new candidates
+                let candidates: Vec<Match> =
+                    self.op.retrieve_matches(&m_lhs[self.lhs_idx]).collect();
+                self.rhs_candidate = candidates.into_iter();
+            }
+
+            // consume next outer
+            if self.lhs.next().is_none() {
+                return None;
+            }
         }
     }
 }
 
-impl<'a> Iterator for IndexJoin {
-    type Item = Vec<Match>;
-
-    fn next(&mut self) -> Option<Vec<Match>> {
-        unimplemented!()
-//        self.it.next()
-    }
-}
-
-impl<'a> ExecutionNode for IndexJoin {
+impl ExecutionNode for IndexJoin {
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
     }
