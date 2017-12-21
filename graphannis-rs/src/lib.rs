@@ -39,4 +39,3 @@ pub use util::c_api::*;
 pub use stringstorage::c_api::*;
 pub use annostorage::c_api::*;
 
-use std::collections::HashMap;

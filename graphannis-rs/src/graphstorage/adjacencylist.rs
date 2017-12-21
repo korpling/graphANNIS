@@ -7,7 +7,6 @@ use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::collections::Bound::*;
 use std::iter::FromIterator;
-use std::rc::Rc;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
@@ -77,7 +76,7 @@ impl GraphStorage for AdjacencyListStorage {
         return it.next().is_some();
     }
 
-    fn copy(&mut self, other : &GraphStorage) {
+    fn copy(&mut self, _other : &GraphStorage) {
         unimplemented!();
     }
 

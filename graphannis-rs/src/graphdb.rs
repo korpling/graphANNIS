@@ -52,7 +52,7 @@ pub struct GraphDB {
     id_node_type: StringID,
 }
 
-fn load_component_from_disk(c: Component, component_path: Option<PathBuf> ) -> Result<Rc<GraphStorage>, Error> {
+fn load_component_from_disk(component_path: Option<PathBuf> ) -> Result<Rc<GraphStorage>, Error> {
     let cpath = try!(component_path.ok_or(Error::LocationEmpty));
     
     // load component into memory
@@ -114,7 +114,7 @@ impl GraphDB {
             let gs_opt = entry.unwrap();
 
             let mut loaded_comp : Rc<GraphStorage> = if gs_opt.is_none() {
-                load_component_from_disk(c.clone(), self.component_path(c))?
+                load_component_from_disk(self.component_path(c))?
             } else {
                 gs_opt.unwrap()
             };
@@ -163,7 +163,7 @@ impl GraphDB {
         if let Some(gs_opt) = entry {
             
             let loaded : Rc<GraphStorage> = if gs_opt.is_none() {
-                load_component_from_disk(c.clone(), self.component_path(c))?
+                load_component_from_disk(self.component_path(c))?
             } else {
                 gs_opt.unwrap()
             };
