@@ -17,7 +17,7 @@ pub struct IndexJoin {
 
 impl IndexJoin {
 
-    /// Constructor for a new [IndexJoin](struct.IndexJoin.html)
+    /// Create a new `IndexJoin`
     /// # Arguments
     /// 
     /// * `lhs` - An iterator for a left-hand-side
@@ -46,6 +46,13 @@ impl IndexJoin {
     }
 }
 
+impl ExecutionNode for IndexJoin {
+    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+        self
+    }
+}
+
+
 impl Iterator for IndexJoin {
     type Item = Vec<Match>;
 
@@ -71,11 +78,5 @@ impl Iterator for IndexJoin {
                 return None;
             }
         }
-    }
-}
-
-impl ExecutionNode for IndexJoin {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
-        self
     }
 }
