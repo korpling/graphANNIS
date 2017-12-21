@@ -4,6 +4,9 @@ use plan::ExecutionNode;
 use std;
 use std::iter::Peekable;
 
+/// A join that takes any iterator as left-hand-side (LHS) and an annotation condition as right-hand-side (RHS).
+/// It then retrieves all matches as defined by the operator for each LHS element and checks
+/// if the annotation condition is true.
 pub struct IndexJoin {
     lhs: Peekable<Box<Iterator<Item = Vec<Match>>>>,
     rhs_candidate: std::vec::IntoIter<Match>,
@@ -13,6 +16,14 @@ pub struct IndexJoin {
 }
 
 impl IndexJoin {
+
+    /// Constructor for a new [IndexJoin](struct.IndexJoin.html)
+    /// # Arguments
+    /// 
+    /// * `lhs` - An iterator for a left-hand-side
+    /// * `lhs_idx` - The index of the element in the LHS that should be used as a source
+    /// * `op` - The operator that connects the LHS and RHS
+    /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
         lhs: Box<Iterator<Item = Vec<Match>>>,
         lhs_idx: usize,
