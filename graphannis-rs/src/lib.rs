@@ -33,6 +33,7 @@ pub mod operator;
 pub mod relannis;
 pub mod plan;
 pub mod join;
+pub mod nodesearch;
 
 
 pub use util::c_api::*;
