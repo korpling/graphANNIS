@@ -2,7 +2,23 @@ use Match;
 
 #[derive(Debug, Clone)]
 pub struct Desc {
-    pub output : usize,
+    pub component_nr : usize,
+}
+
+impl Desc {
+    pub fn join(lhs : Option<&Desc>, rhs : Option<&Desc>) -> Desc {
+        let component_nr = if let Some(d) = lhs  {
+            d.component_nr
+        } else if let Some(d) = rhs {
+            d.component_nr
+        } else {
+            0
+        };
+
+        Desc {
+            component_nr,
+        }
+    }
 }
 
 pub trait ExecutionNode : Iterator {

@@ -14,6 +14,7 @@ pub struct NestedLoop {
 
     lhs_desc: Option<Desc>,
     rhs_desc: Option<Desc>,
+    desc: Desc,
 }
 
 impl NestedLoop {
@@ -26,6 +27,9 @@ impl NestedLoop {
     ) -> NestedLoop {
         // TODO: allow switching inner and outer
         let it = NestedLoop {
+
+            desc : Desc::join(lhs.get_desc(), rhs.get_desc()),
+
             lhs_desc: lhs.get_desc().cloned(),
             rhs_desc: rhs.get_desc().cloned(),
             outer: lhs.peekable(),
@@ -35,6 +39,7 @@ impl NestedLoop {
             inner_idx: rhs_idx,
             inner_cache: Vec::new(),
             pos_inner_cache: None,
+
         };
         return it;
     }
@@ -53,6 +58,10 @@ impl ExecutionNode for NestedLoop {
 
     fn get_rhs_desc(&self) -> Option<&Desc> {
         self.rhs_desc.as_ref()
+    }
+
+    fn get_desc(&self) -> Option<&Desc> {
+        Some(&self.desc)
     }
 }
 
