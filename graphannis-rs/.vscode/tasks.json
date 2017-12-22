@@ -68,6 +68,17 @@
             "args": [
                 "clean"
             ]
+        },
+        {
+            "label": "cargo doc",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "doc"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ]
         }
     ]
 }

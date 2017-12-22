@@ -1,7 +1,22 @@
 use Match;
 
+pub struct Cost {
+    pub output : usize,
+}
+
 pub trait ExecutionNode {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>>;
+    fn as_iter(& mut self) -> &mut Iterator<Item = Vec<Match>>;
+
+    fn get_lhs(&self) -> Option<&ExecutionNode> {
+        None
+    }
+    fn get_rhs(&self) -> Option<&ExecutionNode> {
+        None
+    }
+
+    fn get_cost(&self) -> Option<&Cost> {
+        None
+    }
 }
 
 
