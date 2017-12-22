@@ -1,23 +1,25 @@
 use Match;
 
-pub struct Cost {
+#[derive(Debug, Clone)]
+pub struct Desc {
     pub output : usize,
 }
 
 pub trait ExecutionNode : Iterator {
     fn as_iter(& mut self) -> &mut Iterator<Item = Vec<Match>>;
 
-    fn get_lhs(&self) -> Option<&ExecutionNode<Item = Vec<Match>>> {
+    fn get_lhs_desc(&self) -> Option<&Desc> {
         None
     }
-    fn get_rhs(&self) -> Option<&ExecutionNode<Item = Vec<Match>>> {
+    fn get_rhs_desc(&self) -> Option<&Desc> {
         None
     }
 
-    fn get_cost(&self) -> Option<&Cost> {
+    fn get_desc(&self) -> Option<&Desc> {
         None
     }
 }
+
 
 
 pub struct ExecutionPlan {

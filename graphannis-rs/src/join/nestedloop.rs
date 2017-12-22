@@ -1,5 +1,5 @@
 use Match;
-use plan::ExecutionNode;
+use plan::{ExecutionNode,Desc};
 use operator::Operator;
 use std::iter::Peekable;
 
@@ -11,6 +11,9 @@ pub struct NestedLoop {
     outer_idx: usize,
     inner_cache: Vec<Vec<Match>>,
     pos_inner_cache: Option<usize>,
+
+    lhs_desc: Option<Desc>,
+    rhs_desc: Option<Desc>,
 }
 
 impl NestedLoop {
@@ -23,6 +26,8 @@ impl NestedLoop {
     ) -> NestedLoop {
         // TODO: allow switching inner and outer
         let it = NestedLoop {
+            lhs_desc: lhs.get_desc().cloned(),
+            rhs_desc: rhs.get_desc().cloned(),
             outer: lhs.peekable(),
             inner: rhs,
             op: op,
@@ -34,6 +39,23 @@ impl NestedLoop {
         return it;
     }
 }
+
+
+impl ExecutionNode for NestedLoop {
+
+    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+        self
+    }
+
+    fn get_lhs_desc(&self) -> Option<&Desc> {
+        self.lhs_desc.as_ref()
+    }
+
+    fn get_rhs_desc(&self) -> Option<&Desc> {
+        self.rhs_desc.as_ref()
+    }
+}
+
 
 
 impl Iterator for NestedLoop {
@@ -79,13 +101,5 @@ impl Iterator for NestedLoop {
                 return None;
             }
         }
-    }
-}
-
-
-impl ExecutionNode for NestedLoop {
-
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
-        self
     }
 }
