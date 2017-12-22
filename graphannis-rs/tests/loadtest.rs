@@ -101,36 +101,46 @@ fn edges() {
             .get_edge_annos(&edge);
         assert_eq!(0, edge_annos.len());
     }
+}
 
-    #[test]
-    fn manual_execution_plan<'a>() {
-        if let Some(mut db) = load_corpus("pcc2") {
-            let n1 = NodeSearch::new(
-                db.node_annos
-                    .exact_anno_search(Some(db.strings.add("annis")), db.strings.add("node"), None),
+#[test]
+fn manual_execution_plan() {
+    if let Some(mut db) = load_corpus("pcc2") {
+        let n1 = NodeSearch::new(
+            db.node_annos.exact_anno_search(
+                Some(db.strings.add("annis")),
+                db.strings.add("node"),
                 None,
-            );
+            ),
+            None,
+        );
 
-            let n2 = NodeSearch::new(
-                db.node_annos
-                    .exact_anno_search(Some(db.strings.add("annis")), db.strings.add("node"), None),
+        let n2 = NodeSearch::new(
+            db.node_annos.exact_anno_search(
+                Some(db.strings.add("annis")),
+                db.strings.add("node"),
                 None,
-            );
+            ),
+            None,
+        );
 
-            let op = Precedence::new(&db, PrecedenceSpec {
-                segmentation : None,
-                min_dist : 1,
-                max_dist : 1,
-            });
+        let op = Precedence::new(
+            &db,
+            PrecedenceSpec {
+                segmentation: None,
+                min_dist: 1,
+                max_dist: 1,
+            },
+        );
 
-            let op = Box::new(op.unwrap());
+        let op = Box::new(op.unwrap());
 
-            let n1 = Box::new(n1);
-            let n2 = Box::new(n2);
-            
-            //let join = NestedLoop::new(n1, n2, 0, 0, op);
+        let n1 = Box::new(n1);
+        let n2 = Box::new(n2);
 
-            //assert_eq!(2678, join.count());
-        }
+        let join = NestedLoop::new(n1, n2, 0, 0, op);
+
+        assert_eq!(2678, join.count());
     }
 }
+

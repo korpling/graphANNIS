@@ -3,10 +3,10 @@ use plan::{ExecutionNode,Desc};
 use operator::Operator;
 use std::iter::Peekable;
 
-pub struct NestedLoop {
-    outer: Peekable<Box<ExecutionNode<Item = Vec<Match>>>>,
-    inner: Box<ExecutionNode<Item = Vec<Match>>>,
-    op: Box<Operator>,
+pub struct NestedLoop<'a> {
+    outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
+    inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+    op: Box<Operator + 'a>,
     inner_idx: usize,
     outer_idx: usize,
     inner_cache: Vec<Vec<Match>>,
@@ -17,14 +17,14 @@ pub struct NestedLoop {
     desc: Desc,
 }
 
-impl NestedLoop {
+impl<'a> NestedLoop<'a> {
     pub fn new(
-        lhs: Box<ExecutionNode<Item = Vec<Match>>>,
-        rhs: Box<ExecutionNode<Item = Vec<Match>>>,
+        lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        rhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
-        op: Box<Operator>,
-    ) -> NestedLoop {
+        op: Box<Operator + 'a>,
+    ) -> NestedLoop<'a> {
         // TODO: allow switching inner and outer
         let it = NestedLoop {
 
@@ -46,7 +46,7 @@ impl NestedLoop {
 }
 
 
-impl ExecutionNode for NestedLoop {
+impl<'a> ExecutionNode for NestedLoop<'a> {
 
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
@@ -67,7 +67,7 @@ impl ExecutionNode for NestedLoop {
 
 
 
-impl Iterator for NestedLoop {
+impl<'a> Iterator for NestedLoop<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
