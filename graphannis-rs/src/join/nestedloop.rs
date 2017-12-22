@@ -4,8 +4,8 @@ use operator::Operator;
 use std::iter::Peekable;
 
 pub struct NestedLoop {
-    outer: Peekable<Box<Iterator<Item = Vec<Match>>>>,
-    inner: Box<Iterator<Item = Vec<Match>>>,
+    outer: Peekable<Box<ExecutionNode<Item = Vec<Match>>>>,
+    inner: Box<ExecutionNode<Item = Vec<Match>>>,
     op: Box<Operator>,
     inner_idx: usize,
     outer_idx: usize,
@@ -15,8 +15,8 @@ pub struct NestedLoop {
 
 impl NestedLoop {
     pub fn new(
-        lhs: Box<Iterator<Item = Vec<Match>>>,
-        rhs: Box<Iterator<Item = Vec<Match>>>,
+        lhs: Box<ExecutionNode<Item = Vec<Match>>>,
+        rhs: Box<ExecutionNode<Item = Vec<Match>>>,
         lhs_idx: usize,
         rhs_idx: usize,
         op: Box<Operator>,
