@@ -4,13 +4,13 @@ pub struct Cost {
     pub output : usize,
 }
 
-pub trait ExecutionNode {
+pub trait ExecutionNode : Iterator {
     fn as_iter(& mut self) -> &mut Iterator<Item = Vec<Match>>;
 
-    fn get_lhs(&self) -> Option<&ExecutionNode> {
+    fn get_lhs(&self) -> Option<&ExecutionNode<Item = Vec<Match>>> {
         None
     }
-    fn get_rhs(&self) -> Option<&ExecutionNode> {
+    fn get_rhs(&self) -> Option<&ExecutionNode<Item = Vec<Match>>> {
         None
     }
 
@@ -21,7 +21,7 @@ pub trait ExecutionNode {
 
 
 pub struct ExecutionPlan {
-    root: Box<ExecutionNode>,
+    root: Box<ExecutionNode<Item = Vec<Match>>>,
 }
 
 impl Iterator for ExecutionPlan {
