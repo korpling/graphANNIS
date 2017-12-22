@@ -1,6 +1,6 @@
 use {Annotation, Match};
 use operator::Operator;
-use plan::ExecutionNode;
+use plan::{ExecutionNode,Desc};
 use std;
 use std::iter::Peekable;
 
@@ -13,6 +13,9 @@ pub struct IndexJoin {
     op: Box<Operator>,
     lhs_idx: usize,
     anno_cond: Box<Fn(&Annotation) -> bool>,
+
+    lhs_desc: Option<Desc>,
+    rhs_desc: Option<Desc>,
 }
 
 impl IndexJoin {
@@ -30,6 +33,7 @@ impl IndexJoin {
         op: Box<Operator>,
         anno_cond: Box<Fn(&Annotation) -> bool>,
     ) -> IndexJoin {
+        let lhs_desc = lhs.get_desc().cloned();
         let mut lhs_peek = lhs.peekable();
         let initial_candidates: Vec<Match> = if let Some(m_lhs) = lhs_peek.peek() {
             op.retrieve_matches(&m_lhs[lhs_idx.clone()]).collect()
@@ -37,6 +41,8 @@ impl IndexJoin {
             vec![]
         };
         return IndexJoin {
+            lhs_desc,
+            rhs_desc: None,
             lhs: lhs_peek,
             lhs_idx,
             op,
@@ -49,6 +55,14 @@ impl IndexJoin {
 impl ExecutionNode for IndexJoin {
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
+    }
+
+    fn get_lhs_desc(&self) -> Option<&Desc> {
+        self.lhs_desc.as_ref()
+    }
+
+    fn get_rhs_desc(&self) -> Option<&Desc> {
+        self.rhs_desc.as_ref()
     }
 }
 
