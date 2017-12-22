@@ -8,7 +8,7 @@ use std::iter::Peekable;
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin {
-    lhs: Peekable<Box<Iterator<Item = Vec<Match>>>>,
+    lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>>>>,
     rhs_candidate: std::vec::IntoIter<Match>,
     op: Box<Operator>,
     lhs_idx: usize,
@@ -25,7 +25,7 @@ impl IndexJoin {
     /// * `op` - The operator that connects the LHS and RHS
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
-        lhs: Box<Iterator<Item = Vec<Match>>>,
+        lhs: Box<ExecutionNode<Item = Vec<Match>>>,
         lhs_idx: usize,
         op: Box<Operator>,
         anno_cond: Box<Fn(&Annotation) -> bool>,
