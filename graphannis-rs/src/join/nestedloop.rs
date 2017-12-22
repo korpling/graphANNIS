@@ -20,7 +20,7 @@ impl NestedLoop {
         lhs_idx: usize,
         rhs_idx: usize,
         op: Box<Operator>,
-    ) -> Box<Iterator<Item = Vec<Match>>> {
+    ) -> NestedLoop {
         // TODO: allow switching inner and outer
         let it = NestedLoop {
             outer: lhs.peekable(),
@@ -31,7 +31,7 @@ impl NestedLoop {
             inner_cache: Vec::new(),
             pos_inner_cache: None,
         };
-        return Box::new(it);
+        return it;
     }
 }
 
