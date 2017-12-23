@@ -39,7 +39,8 @@ fn node_annos() {
         assert_eq!("pcc2/4282#tok_13", db.strings.str(annos[0].val).unwrap());
 
         assert_eq!("annis", db.strings.str(annos[1].key.ns).unwrap());
-        assert_eq!("tok", db.strings.str(annos[1].key.name).unwrap());
+        assert_eq!("tok", db.strings
+        .str(annos[1].key.name).unwrap());
         assert_eq!("so", db.strings.str(annos[1].val).unwrap());
 
         assert_eq!("annis", db.strings.str(annos[2].key.ns).unwrap());
@@ -109,8 +110,8 @@ fn manual_execution_plan() {
         let n1 = NodeSearch::new(
             db.node_annos.exact_anno_search(
                 Some(db.strings.add("annis")),
-                db.strings.add("node"),
-                None,
+                db.strings.add("node_type"),
+                Some(db.strings.add("node")),
             ),
             None,
         );
@@ -118,8 +119,8 @@ fn manual_execution_plan() {
         let n2 = NodeSearch::new(
             db.node_annos.exact_anno_search(
                 Some(db.strings.add("annis")),
-                db.strings.add("node"),
-                None,
+                db.strings.add("node_type"),
+                Some(db.strings.add("node")),
             ),
             None,
         );

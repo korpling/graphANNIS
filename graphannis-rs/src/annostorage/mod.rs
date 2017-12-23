@@ -1,5 +1,6 @@
 use super::*;
 use std::collections::{BTreeMap, BTreeSet};
+use std::collections::Bound::*;
 use std;
 use rand;
 use regex_syntax;
@@ -132,7 +133,7 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         namespace: Option<StringID>,
         name: StringID,
         value: Option<StringID>,
-    ) -> std::ops::Range<Annotation> {
+    ) -> (std::collections::Bound<types::Annotation>, std::collections::Bound<types::Annotation>) {
         let ns_pair = match namespace {
             Some(v) => (v, v),
             None => (StringID::min_value(), StringID::max_value()),
@@ -158,7 +159,8 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
             val: val_pair.1,
         };
 
-        anno_min..anno_max
+        
+        (Included(anno_min),Included(anno_max))
     }
 
     pub fn guess_max_count(
