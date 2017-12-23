@@ -12,8 +12,6 @@ pub struct NestedLoop<'a> {
     inner_cache: Vec<Vec<Match>>,
     pos_inner_cache: Option<usize>,
 
-    lhs_desc: Option<Desc>,
-    rhs_desc: Option<Desc>,
     desc: Desc,
 }
 
@@ -30,8 +28,6 @@ impl<'a> NestedLoop<'a> {
 
             desc : Desc::join(lhs.get_desc(), rhs.get_desc()),
 
-            lhs_desc: lhs.get_desc().cloned(),
-            rhs_desc: rhs.get_desc().cloned(),
             outer: lhs.peekable(),
             inner: rhs,
             op: op,
@@ -50,14 +46,6 @@ impl<'a> ExecutionNode for NestedLoop<'a> {
 
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
-    }
-
-    fn get_lhs_desc(&self) -> Option<&Desc> {
-        self.lhs_desc.as_ref()
-    }
-
-    fn get_rhs_desc(&self) -> Option<&Desc> {
-        self.rhs_desc.as_ref()
     }
 
     fn get_desc(&self) -> Option<&Desc> {

@@ -40,13 +40,6 @@ impl Desc {
 pub trait ExecutionNode : Iterator {
     fn as_iter(& mut self) -> &mut Iterator<Item = Vec<Match>>;
 
-    fn get_lhs_desc(&self) -> Option<&Desc> {
-        None
-    }
-    fn get_rhs_desc(&self) -> Option<&Desc> {
-        None
-    }
-
     fn get_desc(&self) -> Option<&Desc> {
         None
     }

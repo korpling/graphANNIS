@@ -13,9 +13,7 @@ pub struct IndexJoin {
     op: Box<Operator>,
     lhs_idx: usize,
     anno_cond: Box<Fn(&Annotation) -> bool>,
-
-    lhs_desc: Option<Desc>,
-    rhs_desc: Option<Desc>,
+    desc: Desc,
 }
 
 impl IndexJoin {
@@ -32,8 +30,10 @@ impl IndexJoin {
         lhs_idx: usize,
         op: Box<Operator>,
         anno_cond: Box<Fn(&Annotation) -> bool>,
+        rhs_desc: Option<&Desc>,
     ) -> IndexJoin {
         let lhs_desc = lhs.get_desc().cloned();
+        // TODO, we 
         let mut lhs_peek = lhs.peekable();
         let initial_candidates: Vec<Match> = if let Some(m_lhs) = lhs_peek.peek() {
             op.retrieve_matches(&m_lhs[lhs_idx.clone()]).collect()
@@ -41,8 +41,7 @@ impl IndexJoin {
             vec![]
         };
         return IndexJoin {
-            lhs_desc,
-            rhs_desc: None,
+            desc: Desc::join(lhs_desc.as_ref(), rhs_desc),
             lhs: lhs_peek,
             lhs_idx,
             op,
@@ -55,14 +54,6 @@ impl IndexJoin {
 impl ExecutionNode for IndexJoin {
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
-    }
-
-    fn get_lhs_desc(&self) -> Option<&Desc> {
-        self.lhs_desc.as_ref()
-    }
-
-    fn get_rhs_desc(&self) -> Option<&Desc> {
-        self.rhs_desc.as_ref()
     }
 }
 
