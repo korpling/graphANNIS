@@ -3,6 +3,8 @@ use Match;
 #[derive(Debug, Clone)]
 pub struct Desc {
     pub component_nr : usize,
+    pub lhs: Option<Box<Desc>>,
+    pub rhs: Option<Box<Desc>>,
 }
 
 impl Desc {
@@ -15,8 +17,22 @@ impl Desc {
             0
         };
 
+        let lhs = if let Some(d) = lhs {
+            Some(Box::new(d.clone()))
+        } else {
+            None
+        };
+
+        let rhs = if let Some(d) = rhs {
+            Some(Box::new(d.clone()))
+        } else {
+            None
+        };
+
         Desc {
             component_nr,
+            lhs,
+            rhs,
         }
     }
 }
