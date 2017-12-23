@@ -1,6 +1,5 @@
 use plan::{ExecutionNode, Desc};
 use {Match};
-use std;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
 pub struct NodeSearch<'a> {

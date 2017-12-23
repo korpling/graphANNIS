@@ -4,8 +4,8 @@ use std::env;
 use std::path::PathBuf;
 use graphannis::graphdb::GraphDB;
 use graphannis::relannis;
-use graphannis::{Annotation, Component, ComponentType, Edge};
-use graphannis::plan::ExecutionPlan;
+use graphannis::{Annotation, ComponentType, Edge};
+use graphannis::operator::OperatorSpec;
 use graphannis::nodesearch::NodeSearch;
 use graphannis::join::nestedloop::NestedLoop;
 use graphannis::operator::precedence::{Precedence, PrecedenceSpec};
@@ -107,6 +107,19 @@ fn edges() {
 #[test]
 fn manual_execution_plan() {
     if let Some(mut db) = load_corpus("pcc2") {
+
+
+        let op_spec =  PrecedenceSpec {
+            segmentation: None,
+            min_dist: 1,
+            max_dist: 1,
+        };
+
+        // make sure to load all components
+        for c in op_spec.necessary_components() {
+            db.ensure_loaded(&c).expect("Loading component unsuccessful");
+        }
+
         let n1 = NodeSearch::new(
             db.node_annos.exact_anno_search(
                 Some(db.strings.add("annis")),
@@ -125,16 +138,15 @@ fn manual_execution_plan() {
             None,
         );
 
+
         let op = Precedence::new(
             &db,
-            PrecedenceSpec {
-                segmentation: None,
-                min_dist: 1,
-                max_dist: 1,
-            },
+            op_spec,
         );
 
         let op = Box::new(op.unwrap());
+
+
 
         let n1 = Box::new(n1);
         let n2 = Box::new(n2);
