@@ -55,6 +55,10 @@ impl ExecutionNode for IndexJoin {
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
     }
+
+    fn get_desc(&self) -> Option<&Desc> {
+        Some(&self.desc)
+    }
 }
 
 
