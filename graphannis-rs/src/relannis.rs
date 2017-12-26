@@ -251,14 +251,16 @@ fn calculate_automatic_token_info(
         let gs_order = db.get_or_create_writable(component_order.clone())?;
 
         // if the last token/text value is valid and we are still in the same text
-        if last_token.is_some() && last_textprop.is_some() &&
-            last_textprop.unwrap() == current_textprop.clone()
-        {
-            // we are still in the same text, add ordering between token
-            gs_order.add_edge(Edge {
-                source: last_token.unwrap(),
-                target: current_token.clone(),
-            });
+        if last_token.is_some() && last_textprop.is_some() {
+            let last = last_textprop.clone().unwrap();
+            if last.corpus_id == current_textprop.corpus_id && last.text_id == current_textprop.text_id
+                && last.segmentation == current_textprop.segmentation {
+                // we are still in the same text, add ordering between token
+                gs_order.add_edge(Edge {
+                    source: last_token.unwrap(),
+                    target: current_token.clone(),
+                });
+            }
         } // end if same text
 
         // update the iterator and other variables

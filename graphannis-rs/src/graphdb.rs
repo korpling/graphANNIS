@@ -11,10 +11,10 @@ use std::io::prelude::*;
 use std;
 
 
-const ANNIS_NS: &str = "annis";
-const NODE_NAME: &str = "node_name";
-const TOK: &str = "tok";
-const NODE_TYPE: &str = "node_type";
+pub const ANNIS_NS: &str = "annis";
+pub const NODE_NAME: &str = "node_name";
+pub const TOK: &str = "tok";
+pub const NODE_TYPE: &str = "node_type";
 
 
 #[derive(Debug)]
