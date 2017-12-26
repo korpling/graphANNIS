@@ -133,34 +133,45 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         namespace: Option<StringID>,
         name: StringID,
         value: Option<StringID>,
-    ) -> (std::collections::Bound<types::Annotation>, std::collections::Bound<types::Annotation>) {
-        let ns_pair = match namespace {
-            Some(v) => (v, v),
-            None => (StringID::min_value(), StringID::max_value()),
+    ) -> Vec<(std::collections::Bound<types::Annotation>, std::collections::Bound<types::Annotation>)> {
+        ;
+
+        let mut search_ranges : Vec<(std::collections::Bound<types::Annotation>, std::collections::Bound<types::Annotation>)> 
+            = vec![];
+        
+        let key_range : Vec<AnnoKey> = if let Some(ns) = namespace {
+            vec![AnnoKey {
+                ns,
+                name
+            }]
+        } else {
+            self.anno_keys
+            .range(AnnoKey{name, ns: StringID::min_value()}..AnnoKey{name, ns: StringID::max_value()})
+            .map(|r| r.0)
+            .cloned()
+            .collect::<Vec<AnnoKey>>()
+            
         };
 
         let val_pair = match value {
             Some(v) => (v, v),
             None => (StringID::min_value(), StringID::max_value()),
         };
-
-        let anno_min = Annotation {
-            key: AnnoKey {
-                name,
-                ns: ns_pair.0,
-            },
-            val: val_pair.0,
-        };
-        let anno_max = Annotation {
-            key: AnnoKey {
-                name,
-                ns: ns_pair.1,
-            },
-            val: val_pair.1,
-        };
-
         
-        (Included(anno_min),Included(anno_max))
+        // find all annotation keys with correct name
+        for key in key_range {
+            let anno_min = Annotation {
+                key: key.clone(),
+                val: val_pair.0,
+            };
+            let anno_max = Annotation {
+                key,
+                val: val_pair.1,
+            };
+            search_ranges.push((Included(anno_min),Included(anno_max)));    
+            
+        }
+        return search_ranges;
     }
 
     pub fn guess_max_count(
@@ -352,19 +363,18 @@ impl AnnoStorage<NodeID> {
         value: Option<StringID>,
     ) -> Box<Iterator<Item = Match> + 'a> {
         
-        let anno_range = self.anno_range_exact(namespace, name, value);
+        let anno_ranges = self.anno_range_exact(namespace, name, value);
 
-        Box::new(
-            self.by_anno
-                .range(anno_range)
-                .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
-                .map(|m| {
-                    Match {
-                        node: m.0.clone(),
-                        anno: m.1.clone(),
-                    }
-                }),
-        )
+        let it = anno_ranges.into_iter()
+            .flat_map(move |r| self.by_anno.range(r))
+            .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
+                    .map(|m| {
+                        Match {
+                            node: m.0.clone(),
+                            anno: m.1.clone(),
+                        }
+                    });
+        Box::new(it)
     }
 
     pub fn regex_anno_search<'a> (
@@ -435,19 +445,18 @@ impl AnnoStorage<Edge> {
         value: Option<StringID>,
     ) -> Box<Iterator<Item = Match> + 'a> {
        
-       let anno_range = self.anno_range_exact(namespace, name, value);
-
-        Box::new(
-            self.by_anno
-                .range(anno_range)
-                .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
-                .map(|m| {
-                    Match {
-                        node: m.0.source.clone(),
-                        anno: m.1.clone(),
-                    }
-                }),
-        )
+       
+        let mut anno_ranges = self.anno_range_exact(namespace, name, value);
+        let it = anno_ranges.into_iter()
+            .flat_map(move |r| self.by_anno.range(r))
+            .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
+                    .map(|m| {
+                        Match {
+                            node: m.0.source.clone(),
+                            anno: m.1.clone(),
+                        }
+                    });
+        Box::new(it)
     }
 }
 
