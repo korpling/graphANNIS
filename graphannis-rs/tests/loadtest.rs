@@ -2,7 +2,7 @@ extern crate graphannis;
 
 use std::env;
 use std::path::PathBuf;
-use graphannis::graphdb::GraphDB;
+use graphannis::graphdb::*;
 use graphannis::relannis;
 use graphannis::{Annotation, ComponentType, Edge};
 use graphannis::operator::OperatorSpec;
@@ -105,6 +105,33 @@ fn edges() {
 }
 
 #[test]
+fn count_annos() {
+    if let Some(mut db) = load_corpus("pcc2") {
+
+
+        let n = NodeSearch::new(
+            db.node_annos.exact_anno_search(
+                Some(db.strings.add(ANNIS_NS)),
+                db.strings.add(TOK),
+                Some(db.strings.add("der")),
+            ),
+            None,
+        );
+        assert_eq!(9, n.count());
+
+        let n = NodeSearch::new(
+            db.node_annos.exact_anno_search(
+                None,
+                db.strings.add("pos"),
+                Some(db.strings.add("ADJA")),
+            ),
+            None,
+        );
+        assert_eq!(18, n.count());
+    }
+}
+
+#[test]
 fn manual_execution_plan() {
     if let Some(mut db) = load_corpus("pcc2") {
 
@@ -122,18 +149,18 @@ fn manual_execution_plan() {
 
         let n1 = NodeSearch::new(
             db.node_annos.exact_anno_search(
-                Some(db.strings.add("annis")),
-                db.strings.add("node_type"),
-                Some(db.strings.add("node")),
+                Some(db.strings.add(ANNIS_NS)),
+                db.strings.add(TOK),
+                Some(db.strings.add("der")),
             ),
             None,
         );
 
         let n2 = NodeSearch::new(
             db.node_annos.exact_anno_search(
-                Some(db.strings.add("annis")),
-                db.strings.add("node_type"),
-                Some(db.strings.add("node")),
+                None,
+                db.strings.add("pos"),
+                Some(db.strings.add("ADJA")),
             ),
             None,
         );
@@ -153,7 +180,7 @@ fn manual_execution_plan() {
 
         let join = NestedLoop::new(n1, n2, 0, 0, op);
 
-        assert_eq!(2678, join.count());
+        assert_eq!(3, join.count());
     }
 }
 
