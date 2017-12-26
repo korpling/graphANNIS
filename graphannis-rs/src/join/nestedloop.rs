@@ -88,9 +88,9 @@ impl<'a> Iterator for NestedLoop<'a> {
                             return Some(result);
                         }
                     }
-                    // inner was completed once, use cache from now
-                    self.pos_inner_cache = Some(0);
                 }
+                // inner was completed once, use cache from now, or reset to first item once completed
+                 self.pos_inner_cache = Some(0)
             }
 
             // consume next outer

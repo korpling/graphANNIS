@@ -446,7 +446,7 @@ impl AnnoStorage<Edge> {
     ) -> Box<Iterator<Item = Match> + 'a> {
        
        
-        let mut anno_ranges = self.anno_range_exact(namespace, name, value);
+        let anno_ranges = self.anno_range_exact(namespace, name, value);
         let it = anno_ranges.into_iter()
             .flat_map(move |r| self.by_anno.range(r))
             .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
