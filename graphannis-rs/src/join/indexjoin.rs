@@ -136,23 +136,25 @@ impl<'a> Iterator for IndexJoin<'a> {
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
                 while let Some(m_rhs) = self.rhs_candidate.next() {
-                    // get all annotations and check if the filter is true
-                    for m_rhs_anno in self.node_annos.get_all(&m_rhs.node) {
-                        if (self.anno_cond)(m_rhs_anno) {
-                            let mut result = m_lhs.clone();
-                            result.push(m_rhs.clone());
-                            return Some(result);
-                        }
+                    // check if the filter is true
+                    if (self.anno_cond)(m_rhs.anno.clone()) {
+                        let mut result = m_lhs.clone();
+                        result.push(m_rhs);
+                        return Some(result);
                     }                    
                 }
-                // inner was completed once, get new candidates
-                let candidates: Vec<Match> = next_candidates(self.op.as_ref(), &m_lhs, self.lhs_idx.clone(), &self.anno_qname, self.node_annos);
-                self.rhs_candidate = candidates.into_iter();
             }
 
             // consume next outer
             if self.lhs.next().is_none() {
                 return None;
+            }
+
+            // inner was completed once, get new candidates
+            if let Some(m_lhs) = self.lhs.peek() {
+                let candidates: Vec<Match> = next_candidates(self.op.as_ref(), 
+                    &m_lhs, self.lhs_idx.clone(), &self.anno_qname, self.node_annos);
+                self.rhs_candidate = candidates.into_iter();
             }
         }
     }

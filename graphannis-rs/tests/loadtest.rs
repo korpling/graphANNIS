@@ -1,10 +1,13 @@
 extern crate graphannis;
+#[macro_use]
+extern crate log;
+
 
 use std::env;
 use std::path::PathBuf;
 use graphannis::graphdb::*;
 use graphannis::relannis;
-use graphannis::{Annotation, ComponentType, Edge};
+use graphannis::{Annotation, Edge};
 use graphannis::operator::OperatorSpec;
 use graphannis::nodesearch::NodeSearch;
 use graphannis::join::nestedloop::NestedLoop;
