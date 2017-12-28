@@ -74,7 +74,7 @@
             "type": "shell",
             "command": "cargo",
             "args": [
-                "doc"
+                "doc", "--no-deps"
             ],
             "problemMatcher": [
                 "$rustc"

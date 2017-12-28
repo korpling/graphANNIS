@@ -35,6 +35,8 @@ pub mod plan;
 pub mod join;
 pub mod nodesearch;
 
+pub mod api;
+
 
 pub use util::c_api::*;
 pub use stringstorage::c_api::*;
