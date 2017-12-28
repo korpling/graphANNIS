@@ -45,9 +45,20 @@ impl CorpusStorage {
         return entry.clone();
     }
 
+    fn load_corpus(&self, status : LoadStatus) -> Arc<GraphDB> {
+        let result = match status {
+            LoadStatus::NotLoaded(location) => Arc::new(GraphDB::from_disk(location)),
+            LoadStatus::NodesLoaded(corpus) | LoadStatus::FullyLoaded(corpus) => corpus, 
+        };
+
+        return result;
+    }
+
     /// Import a corpus from an external location into this corpus storage
     pub fn import(&mut self, path_to_corpus : &Path, new_corpus_name : &str) {
         let corpus = self.get_corpus_from_cache(new_corpus_name);
+        // load the corpus data from the external location
+        
         unimplemented!()
     }
 }

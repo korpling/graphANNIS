@@ -72,9 +72,7 @@ fn load_component_from_disk(component_path: Option<PathBuf> ) -> Result<Rc<Graph
 }
 
 impl GraphDB {
-    /**
-     * Create a new and empty instance.
-     */
+    /// Create a new and empty instance without any location on the disk
     pub fn new() -> GraphDB {
         let mut strings = StringStorage::new();
 
@@ -90,6 +88,22 @@ impl GraphDB {
 
             location: None,
         }
+    }
+
+    /// Create an instance from a location on the disk
+    pub fn from_disk(location : PathBuf) -> GraphDB {
+
+        let mut db = GraphDB::new();
+        // TODO: implement WAL support
+        let strings_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "strings.bin"].iter().collect();
+        let nodes_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "nodes.bin"].iter().collect();
+
+        db.location = Some(location);
+        // load strings and node annotations from location
+        db.strings.load_from_file(strings_path.to_string_lossy().as_ref());
+        db.node_annos.load_from_file(nodes_path.to_string_lossy().as_ref());
+
+        return db;
     }
 
     fn component_path(&self, c: &Component) -> Option<PathBuf> {
