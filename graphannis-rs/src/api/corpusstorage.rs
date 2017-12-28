@@ -25,7 +25,7 @@ fn load_corpus(status : LoadStatus) -> Arc<GraphDB> {
         let result = match status {
             LoadStatus::NotLoaded(location) => {
                 let mut db = GraphDB::new();
-                db.load(&location, false);
+                db.load_from(&location, false);
                 Arc::new(db)
             },
             LoadStatus::NodesLoaded(corpus) | LoadStatus::FullyLoaded(corpus) => corpus, 
@@ -68,6 +68,6 @@ impl CorpusStorage {
         // TODO: load the corpus data from the external location
         
         // make sure the corpus is properly saved at least once (so it is in a consistent state)
-        corpus.save();
+        corpus.persist();
     }
 }
