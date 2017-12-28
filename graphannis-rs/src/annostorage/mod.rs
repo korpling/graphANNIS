@@ -128,6 +128,15 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         self.histogram_bounds.clear();
     }
 
+    /// Get all qualified annotation names (including namespace) for a given annotation name
+    pub fn get_qnames(&self, name: StringID) -> Vec<AnnoKey> {
+        self.anno_keys
+            .range(AnnoKey{name, ns: StringID::min_value()}..AnnoKey{name, ns: StringID::max_value()})
+            .map(|r| r.0)
+            .cloned()
+            .collect::<Vec<AnnoKey>>()
+    }
+
      pub fn anno_range_exact(
         & self,
         namespace: Option<StringID>,
@@ -145,11 +154,7 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
                 name
             }]
         } else {
-            self.anno_keys
-            .range(AnnoKey{name, ns: StringID::min_value()}..AnnoKey{name, ns: StringID::max_value()})
-            .map(|r| r.0)
-            .cloned()
-            .collect::<Vec<AnnoKey>>()
+            self.get_qnames(name)
             
         };
 

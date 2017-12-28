@@ -1,4 +1,4 @@
-use {Annotation, Match, NodeID, StringID};
+use {Annotation, Match, NodeID, StringID, AnnoKey};
 use operator::Operator;
 use annostorage::AnnoStorage;
 use plan::{ExecutionNode,Desc};
@@ -19,8 +19,63 @@ pub struct IndexJoin<'a> {
     desc: Desc,
 }
 
-fn next_candidates(op : &Operator, m_lhs : &Vec<Match>, lhs_idx : usize) -> Vec<Match> {
-    return op.retrieve_matches(&m_lhs[lhs_idx]).collect();
+fn next_candidates(op : &Operator, m_lhs : &Vec<Match>, lhs_idx : usize, 
+    anno_qname: &(Option<StringID>, Option<StringID>),
+    node_annos : &AnnoStorage<NodeID>) -> Vec<Match> {
+
+    let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]);
+    
+    if let Some(name) = anno_qname.1 {
+        if let Some(ns) = anno_qname.0 {
+            // return the only possible annotation for each node
+            return it_nodes
+                .filter_map(|match_node| {
+                    let key = AnnoKey {ns: ns, name: name};
+                    if let Some(val) = node_annos.get(&match_node.node, &key) {
+                        Some(Match {node: match_node.node, anno: Annotation {
+                            key,
+                            val: val.clone(),
+                        }})
+                    } else {
+                        // this annotation was not found for this node, remove it from iterator
+                        None
+                    }
+                })
+                .collect();
+            
+        } else {
+            let keys = node_annos.get_qnames(name);
+            // return all annotations with the correct name for each node
+            return it_nodes
+                .flat_map(|match_node| {
+                    let mut matches : Vec<Match> = Vec::new();
+                    matches.reserve(keys.len());
+                    for k in keys.clone() {
+                        if let Some(val) = node_annos.get(&match_node.node, &k) {
+                            matches.push(Match{node: match_node.node, anno: Annotation {
+                                key: k,
+                                val: val.clone()
+                            }})
+                        }
+                    }
+                    matches.into_iter()
+                })
+                .collect();
+        }
+    } else {
+        // return all annotations for each node
+        return it_nodes
+            .flat_map(|match_node| {
+                let annos = node_annos.get_all(&match_node.node);
+                let mut matches : Vec<Match> = Vec::new();
+                matches.reserve(annos.len());
+                for a in annos {
+                    matches.push(Match{node: match_node.node, anno: a});
+                }
+                matches.into_iter()
+            })
+            .collect();
+    }
 }
 
 impl<'a> IndexJoin<'a> {
@@ -46,7 +101,7 @@ impl<'a> IndexJoin<'a> {
         // TODO, we 
         let mut lhs_peek = lhs.peekable();
         let initial_candidates: Vec<Match> = if let Some(m_lhs) = lhs_peek.peek() {
-            next_candidates(op.as_ref(), &m_lhs, lhs_idx.clone())
+            next_candidates(op.as_ref(), &m_lhs, lhs_idx.clone(), &anno_qname, node_annos)
         } else {
             vec![]
         };
@@ -91,7 +146,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                     }                    
                 }
                 // inner was completed once, get new candidates
-                let candidates: Vec<Match> = next_candidates(self.op.as_ref(), &m_lhs, self.lhs_idx.clone());
+                let candidates: Vec<Match> = next_candidates(self.op.as_ref(), &m_lhs, self.lhs_idx.clone(), &self.anno_qname, self.node_annos);
                 self.rhs_candidate = candidates.into_iter();
             }
 
