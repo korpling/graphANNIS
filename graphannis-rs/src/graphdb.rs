@@ -1,14 +1,16 @@
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
 use graphstorage::{WriteableGraphStorage, GraphStorage};
-use {Component, NodeID, StringID, Edge};
+use {Component, NodeID, StringID, Edge, ComponentType};
 use AnnoKey;
 use graphstorage::registry;
 use std::collections::{BTreeMap};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::io::prelude::*;
 use std;
+use strum::IntoEnumIterator;
+
 
 
 pub const ANNIS_NS: &str = "annis";
@@ -90,20 +92,47 @@ impl GraphDB {
         }
     }
 
-    /// Create an instance from a location on the disk
-    pub fn from_disk(location : PathBuf) -> GraphDB {
+    pub fn clear(&mut self) {
+        self.strings.clear();
+        self.node_annos.clear();
+        self.components.clear();
+    }
 
-        let mut db = GraphDB::new();
+    pub fn load(&mut self, location : &Path, preload: bool) {
+
+        self.clear();
+
         // TODO: implement WAL support
         let strings_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "strings.bin"].iter().collect();
         let nodes_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "nodes.bin"].iter().collect();
 
-        db.location = Some(location);
+        
+        self.location = Some(PathBuf::from(location));
         // load strings and node annotations from location
-        db.strings.load_from_file(strings_path.to_string_lossy().as_ref());
-        db.node_annos.load_from_file(nodes_path.to_string_lossy().as_ref());
+        self.strings.load_from_file(strings_path.to_string_lossy().as_ref());
+        self.node_annos.load_from_file(nodes_path.to_string_lossy().as_ref());
 
-        return db;
+        self.load_graph_storages(location, preload);
+    }
+
+    fn load_graph_storages(&mut self, location : &Path, preload : bool) {
+        self.components.clear();
+
+        // for all component types
+        for c in ComponentType::iter() {
+            // TODO: load components
+        }
+    }
+
+    pub fn save(&self) {
+        if let Some(ref location) = self.location {
+            let strings_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "strings.bin"].iter().collect();
+            let nodes_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "nodes.bin"].iter().collect();
+
+            self.strings.save_to_file(strings_path.to_string_lossy().as_ref());
+            self.node_annos.save_to_file(nodes_path.to_string_lossy().as_ref());
+        }
+        unimplemented!()
     }
 
     fn component_path(&self, c: &Component) -> Option<PathBuf> {

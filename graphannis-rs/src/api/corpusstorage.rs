@@ -21,6 +21,21 @@ pub struct CorpusStorage {
     corpus_cache: RwLock<BTreeMap<String, LoadStatus>>,
 }
 
+fn load_corpus(status : LoadStatus) -> Arc<GraphDB> {
+        let result = match status {
+            LoadStatus::NotLoaded(location) => {
+                let mut db = GraphDB::new();
+                db.load(&location, false);
+                Arc::new(db)
+            },
+            LoadStatus::NodesLoaded(corpus) | LoadStatus::FullyLoaded(corpus) => corpus, 
+        };
+
+        return result;
+}
+
+
+
 impl CorpusStorage {
     pub fn new(db_dir : PathBuf, max_allowed_cache_size : Option<usize>) -> CorpusStorage {
 
@@ -45,20 +60,14 @@ impl CorpusStorage {
         return entry.clone();
     }
 
-    fn load_corpus(&self, status : LoadStatus) -> Arc<GraphDB> {
-        let result = match status {
-            LoadStatus::NotLoaded(location) => Arc::new(GraphDB::from_disk(location)),
-            LoadStatus::NodesLoaded(corpus) | LoadStatus::FullyLoaded(corpus) => corpus, 
-        };
-
-        return result;
-    }
 
     /// Import a corpus from an external location into this corpus storage
     pub fn import(&mut self, path_to_corpus : &Path, new_corpus_name : &str) {
         let corpus = self.get_corpus_from_cache(new_corpus_name);
-        // load the corpus data from the external location
+        let corpus = load_corpus(corpus);
+        // TODO: load the corpus data from the external location
         
-        unimplemented!()
+        // make sure the corpus is properly saved at least once (so it is in a consistent state)
+        corpus.save();
     }
 }

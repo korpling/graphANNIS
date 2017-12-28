@@ -87,7 +87,6 @@ impl StringStorage {
         self.by_value.clear();
     }
 
-    #[allow(unused_must_use)]
     pub fn save_to_file(&self, path: &str) {
 
         let f = std::fs::File::create(path).unwrap();

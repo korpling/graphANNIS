@@ -39,7 +39,7 @@ impl Edge {
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter)]
 pub enum ComponentType {
     Coverage,
     InverseCoverage,
