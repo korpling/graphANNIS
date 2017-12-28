@@ -10,6 +10,9 @@ extern crate bincode;
 
 extern crate libc;
 
+#[macro_use]
+extern crate downcast_rs;
+
 extern crate csv;
 
 extern crate strum;

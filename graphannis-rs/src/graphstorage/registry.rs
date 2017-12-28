@@ -2,12 +2,14 @@ use graphstorage::{GraphStorage};
 use super::adjacencylist::AdjacencyListStorage;
 use std;
 use std::rc::Rc;
+use std::any::Any;
 use bincode;
 
 #[derive(Debug)]
 pub enum RegistryError {
     Empty,
     ImplementationNameNotFound,
+    TypeNotFound,
     Serialization(Box<bincode::ErrorKind>),
     Other,
 }
@@ -35,3 +37,5 @@ pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<G
         _ => Err(RegistryError::ImplementationNameNotFound)
     }
 }
+
+

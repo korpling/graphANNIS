@@ -15,7 +15,6 @@ use bincode;
 use serde;
 
 
-
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
@@ -227,6 +226,23 @@ impl GraphDB {
 
         save_bincode(&location, "strings.bin", &self.strings)?;
         save_bincode(&location, "nodes.bin", &self.node_annos)?;
+
+        for (c, e) in self.components.iter() {
+
+            // only store the actually loaded components
+            if let Some(ref data) = *e {
+                let dir = component_to_relative_path(c);
+
+                let mut data_path = PathBuf::from(&dir);
+                data_path.push("component.bin");
+                let f_data = std::fs::File::create(data_path)?;
+                let mut writer = std::io::BufWriter::new(f_data);
+//                let a : Box<erased_serde::Serialize> = Box::new(data);
+
+
+            }
+        }
+
         // TODO: save all loaded graph storages
         unimplemented!()
     }
