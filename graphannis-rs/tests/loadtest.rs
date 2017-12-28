@@ -8,6 +8,7 @@ use graphannis::{Annotation, ComponentType, Edge};
 use graphannis::operator::OperatorSpec;
 use graphannis::nodesearch::NodeSearch;
 use graphannis::join::nestedloop::NestedLoop;
+use graphannis::join::indexjoin::IndexJoin;
 use graphannis::operator::precedence::{Precedence, PrecedenceSpec};
 
 fn load_corpus(name: &str) -> Option<GraphDB> {
@@ -132,7 +133,7 @@ fn count_annos() {
 }
 
 #[test]
-fn manual_execution_plan() {
+fn nested_loop_join() {
     if let Some(mut db) = load_corpus("pcc2") {
 
 
@@ -184,3 +185,48 @@ fn manual_execution_plan() {
     }
 }
 
+#[test]
+fn index_join() {
+    if let Some(mut db) = load_corpus("pcc2") {
+
+
+        let op_spec =  PrecedenceSpec {
+            segmentation: None,
+            min_dist: 1,
+            max_dist: 1,
+        };
+
+
+        let anno_name = db.strings.add("pos");
+        let anno_val = db.strings.add("ADJA");
+
+        // make sure to load all components
+        for c in op_spec.necessary_components() {
+            db.ensure_loaded(&c).expect("Loading component unsuccessful");
+        }
+
+        let n1 = NodeSearch::new(
+            db.node_annos.exact_anno_search(
+                Some(db.strings.add(ANNIS_NS)),
+                db.strings.add(TOK),
+                Some(db.strings.add("der")),
+            ),
+            None,
+        );
+
+
+        let op = Precedence::new(
+            &db,
+            op_spec,
+        );
+
+        let op = Box::new(op.unwrap());
+
+        let n1 = Box::new(n1);
+
+        let anno_cond  = move |anno : Annotation|  {return anno.key.name == anno_name && anno.val == anno_val };
+        let join = IndexJoin::new(n1, 0, op, (None, Some(anno_name)), Box::new(anno_cond), &db.node_annos, None);
+
+        assert_eq!(3, join.count());
+    }
+}
