@@ -332,7 +332,6 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         }
     }
 
-    #[allow(unused_must_use)]
     pub fn save_to_file(&self, path: &str) {
 
         let f = std::fs::File::create(path).unwrap();

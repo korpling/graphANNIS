@@ -10,6 +10,9 @@ use std::rc::Rc;
 use std::io::prelude::*;
 use std;
 use strum::IntoEnumIterator;
+use std::string::ToString;
+use bincode;
+use serde;
 
 
 
@@ -22,7 +25,9 @@ pub const NODE_TYPE: &str = "node_type";
 #[derive(Debug)]
 pub enum Error {
     IOerror(std::io::Error),
+    StringError(std::ffi::OsString),
     RegistryError(registry::RegistryError),
+    SerializationError(bincode::Error),
     LocationEmpty,
     InvalidType,
     Other,
@@ -37,6 +42,18 @@ impl From<std::io::Error> for Error {
 impl From<registry::RegistryError> for Error {
     fn from(e: registry::RegistryError) -> Error {
         Error::RegistryError(e)
+    }
+}
+
+impl From<std::ffi::OsString> for Error {
+    fn from(e: std::ffi::OsString) -> Error {
+        Error::StringError(e)
+    }
+}
+
+impl From<bincode::Error> for Error {
+    fn from(e: bincode::Error) -> Error {
+        Error::SerializationError(e)
     }
 }
 
@@ -73,6 +90,7 @@ fn load_component_from_disk(component_path: Option<PathBuf> ) -> Result<Rc<Graph
     return Ok(gs);
 }
 
+
 impl GraphDB {
     /// Create a new and empty instance without any location on the disk
     pub fn new() -> GraphDB {
@@ -98,40 +116,80 @@ impl GraphDB {
         self.components.clear();
     }
 
-    pub fn load(&mut self, location : &Path, preload: bool) {
+    fn load_bincode<T>(&self, path : &str) -> Result<T, Error> 
+        where for<'de> T: serde::Deserialize<'de> {
+        if let Some(ref loc) = self.location {
+            let mut full_path = PathBuf::from(loc);
+            full_path.push(path);
+
+            let f = std::fs::File::open(full_path)?;
+            let mut reader = std::io::BufReader::new(f);
+            let result : T  = bincode::deserialize_from(&mut reader, bincode::Infinite)?;
+            return Ok(result);
+        } else {
+            return Err(Error::LocationEmpty);
+        }
+    }
+
+    fn save_bincode<T>(&self, path : &str, object : &T) -> Result<(), Error> 
+        where T: serde::Serialize {
+        if let Some(ref loc) = self.location {
+            let mut full_path = PathBuf::from(loc);
+            full_path.push(path);
+
+            let f = std::fs::File::open(full_path)?;
+            let mut writer = std::io::BufWriter::new(f);
+            bincode::serialize_into(&mut writer, object, bincode::Infinite)?;
+            return Ok(());
+        } else {
+            return Err(Error::LocationEmpty);
+        }
+    }
+
+    pub fn load(&mut self, location : &Path, preload: bool) -> Result<(), Error> {
 
         self.clear();
 
         // TODO: implement WAL support
-        let strings_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "strings.bin"].iter().collect();
-        let nodes_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "nodes.bin"].iter().collect();
-
+        self.strings = self.load_bincode("current/strings.bin")?;
+        self.node_annos = self.load_bincode("current/strings/nodes.bin")?;
         
-        self.location = Some(PathBuf::from(location));
-        // load strings and node annotations from location
-        self.strings.load_from_file(strings_path.to_string_lossy().as_ref());
-        self.node_annos.load_from_file(nodes_path.to_string_lossy().as_ref());
+        self.load_graph_storages(location, preload)?;
 
-        self.load_graph_storages(location, preload);
+        Ok(())
     }
 
-    fn load_graph_storages(&mut self, location : &Path, preload : bool) {
+    fn load_graph_storages(&mut self, location : &Path, preload : bool) -> Result<(), Error> {
         self.components.clear();
 
         // for all component types
         for c in ComponentType::iter() {
+            let mut component_path = PathBuf::new();
+            component_path.push(location);
+            component_path.push("gs");
+            component_path.push(c.to_string());
+            if component_path.is_dir() {
+                // get all the namespaces/layers
+                for layer in component_path.read_dir()? {
+                    let layer = layer?;
+                    // try to load the component with the empty name
+                    let empty_name_component = Component {
+                        ctype: c.clone(),
+                        layer: layer.file_name().into_string()?,
+                        name: String::from(""),
+                    };
+                }
+            }
             // TODO: load components
         }
+
+        Ok(())
     }
 
-    pub fn save(&self) {
-        if let Some(ref location) = self.location {
-            let strings_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "strings.bin"].iter().collect();
-            let nodes_path  : PathBuf = [location.to_string_lossy().as_ref(), "current", "nodes.bin"].iter().collect();
-
-            self.strings.save_to_file(strings_path.to_string_lossy().as_ref());
-            self.node_annos.save_to_file(nodes_path.to_string_lossy().as_ref());
-        }
+    pub fn save(&self) -> Result<(),Error> {
+        self.save_bincode("current/strings.bin", &self.strings)?;
+        self.save_bincode("current/nodes.bin", &self.node_annos)?;
+        // TODO: save all loaded graph storages
         unimplemented!()
     }
 
