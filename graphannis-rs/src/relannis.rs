@@ -63,10 +63,9 @@ struct TextProperty {
     val: u32,
 }
 
-pub fn load(path: &str) -> Result<GraphDB> {
+pub fn load(path: &Path) -> Result<GraphDB> {
 
     // convert to path
-    let path_str = path;
     let path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
         // check if this is the ANNIS 3.3 import format
@@ -109,7 +108,7 @@ pub fn load(path: &str) -> Result<GraphDB> {
         // TODO: optimize all components
         // TODO: update statistics for node annotations
 
-        info!("finished loading relANNIS from {}", path_str);
+        info!("finished loading relANNIS from {}", path.to_string_lossy());
 
         return Ok(db);
     }

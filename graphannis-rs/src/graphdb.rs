@@ -118,7 +118,7 @@ where
     let mut full_path = PathBuf::from(location);
     full_path.push(path);
 
-    let f = std::fs::File::open(full_path)?;
+    let f = std::fs::File::create(full_path)?;
     let mut writer = std::io::BufWriter::new(f);
     bincode::serialize_into(&mut writer, object, bincode::Infinite)?;
     return Ok(());
@@ -223,12 +223,15 @@ impl GraphDB {
         let mut location = PathBuf::from(location);
         location.push("current");
 
+        std::fs::create_dir_all(&location)?; 
+
         save_bincode(&location, "strings.bin", &self.strings)?;
         save_bincode(&location, "nodes.bin", &self.node_annos)?;
 
         for (c, e) in self.components.iter() {
             if let Some(ref data) = *e {
                 let dir = component_to_relative_path(c);
+                std::fs::create_dir_all(&dir)?;
 
                 let mut data_path = PathBuf::from(&dir);
                 data_path.push("component.bin");
@@ -248,10 +251,7 @@ impl GraphDB {
     pub fn save_to(&mut self, location: &Path) -> Result<(), Error> {
         
         // make sure all components are loaded, otherwise saving them does not make any sense
-        let all_components: Vec<Component> = self.components.keys().cloned().collect();
-        for c in all_components {
-            self.ensure_loaded(&c)?;
-        }
+        self.ensure_loaded_all()?;
 
         return self.internal_save(location);       
     }
@@ -334,6 +334,14 @@ impl GraphDB {
             .ok_or(Error::Other)?;
         let gs_mut_ref: &mut GraphStorage = Rc::get_mut(entry).ok_or(Error::Other)?;
         return Ok(gs_mut_ref.as_writeable().ok_or(Error::InvalidType)?);
+    }
+
+    pub fn ensure_loaded_all(&mut self) -> Result<(), Error> {
+        let all_components: Vec<Component> = self.components.keys().cloned().collect();
+        for c in all_components {
+            self.ensure_loaded(&c)?;
+        }
+        Ok(())
     }
 
     pub fn ensure_loaded(&mut self, c: &Component) -> Result<(), Error> {

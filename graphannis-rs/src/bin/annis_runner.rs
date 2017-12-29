@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 extern crate graphannis;
 extern crate rustyline;
 extern crate simplelog;
@@ -21,7 +24,7 @@ impl AnnisRunner {
         }
     }
 
-    pub fn start_loop(&self) {
+    pub fn start_loop(&mut self) {
         let mut rl = Editor::<()>::new();
         if let Err(_) = rl.load_history("annis_history.txt") {
             println!("No previous history.");
@@ -52,15 +55,20 @@ impl AnnisRunner {
         rl.save_history("annis_history.txt").unwrap();
     }
 
-    fn exec(&self, line: &str) -> bool {
+    fn exec(&mut self, line: &str) -> bool {
         let line_splitted: Vec<&str> = line.splitn(2, ' ').collect();
         if line_splitted.len() > 0 {
             let cmd = line_splitted[0];
+            let args = if line_splitted.len() > 1 {
+                line_splitted[1].split(' ').collect()
+            } else {
+                vec![]
+            };
             match cmd {
-                "import" => if line_splitted.len() > 1 {
-                    self.import_relannis(&line_splitted[1]);
+                "import" => if args.len() >= 2 {
+                    self.import_relannis(&args[0], &args[1]);
                 } else {
-                    println!("You need to give the location of the relANNIS files as argument");
+                    println!("You need to give the name of the corpus and the location of the relANNIS files and  as argument");
                 },
                 "quit" | "exit" => {
                     return false;
@@ -75,13 +83,16 @@ impl AnnisRunner {
         return true;
     }
 
-    fn import_relannis(&self, path: &str) {
+    fn import_relannis(&mut self, name: &str, path: &str) {
         let t_before = std::time::SystemTime::now();
-        let res = relannis::load(path);
+        let res = relannis::load(&PathBuf::from(path));
         let load_time = t_before.elapsed();
         match res {
-            Ok(_) => if let Ok(t) = load_time {
-                println!{"Loaded in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            Ok(db) => if let Ok(t) = load_time {
+                info!{"Loaded corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info!("Saving imported corpus to disk");
+                self.storage.import(name, db);
+                info!("Finsished saving corpus {} to disk", name);
             },
             Err(err) => {
                 println!("Can't import relANNIS from {}, error:\n{:?}", path, err);
@@ -110,7 +121,7 @@ fn main() {
                 std::process::exit(3);
             }
 
-            let runner = AnnisRunner::new(&dir);
+            let mut runner = AnnisRunner::new(&dir);
             runner.start_loop();
         }
         _ => {

@@ -5,6 +5,8 @@ use std::sync::{Arc,RwLock};
 use std::path::{PathBuf, Path};
 use std::collections::BTreeMap;
 use graphdb::GraphDB;
+use relannis;
+use std;
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
 
 #[derive(Clone)]
@@ -61,13 +63,55 @@ impl CorpusStorage {
     }
 
 
+
     /// Import a corpus from an external location into this corpus storage
-    pub fn import(&mut self, path_to_corpus : &Path, new_corpus_name : &str) {
+    pub fn import_from_dir(&mut self, new_corpus_name : &str, path_to_corpus : &Path) {
         let corpus = self.get_corpus_from_cache(new_corpus_name);
-        let corpus = load_corpus(corpus);
-        // TODO: load the corpus data from the external location
+        let  corpus = load_corpus(corpus);
         
+        // TODO: load the corpus data from the external location      
+//        corpus.load_from(path_to_corpus, false);
+
         // make sure the corpus is properly saved at least once (so it is in a consistent state)
         corpus.persist();
+    }
+
+    /// Import a corpus in relANNIS format from an external location into this corpus storage
+    pub fn import(&mut self, corpus_name : &str, mut db : GraphDB) {
+
+        let r = db.ensure_loaded_all();
+        
+        let mut db_path = PathBuf::from(&self.db_dir);
+        db_path.push(corpus_name);
+        
+        let mut cache_lock =  self.corpus_cache.write().unwrap();
+        let cache : &mut BTreeMap<String, LoadStatus> = &mut *cache_lock;
+        
+        // remove any possible old corpus 
+        let old_entry = cache.remove(corpus_name);
+        if let Some(old_db) = old_entry {
+            // TODO: remove the folder from disk
+        }
+
+        if let Err(e) = std::fs::create_dir_all(&db_path) {
+             error!("Can't create directory {}: {:?}", db_path.to_string_lossy(), e);
+        }        
+
+        // save to its location
+        let save_result = db.save_to(&db_path);
+        if let Err(e) = save_result {
+            error!("Can't save corpus to {}: {:?}", db_path.to_string_lossy(), e);
+        }
+
+        // make it known to the cache
+        if let Err(e) = r {
+            error!("Some error occured when attempting to load components from disk: {:?}", e);
+            cache.insert(String::from(corpus_name), LoadStatus::NodesLoaded(Arc::new(db)));
+        } else {
+            cache.insert(String::from(corpus_name), LoadStatus::FullyLoaded(Arc::new(db)));
+        }
+
+
+
     }
 }
