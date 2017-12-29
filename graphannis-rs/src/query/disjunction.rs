@@ -1,11 +1,11 @@
 use super::conjunction::Conjunction;
 
-pub struct Disjunction {
-    alternatives : Vec<Conjunction>,
+pub struct Disjunction<'a> {
+    alternatives : Vec<Conjunction<'a>>,
 }
 
-impl Disjunction {
-    pub fn new(alt : Conjunction) -> Disjunction {
+impl<'a> Disjunction<'a> {
+    pub fn new(alt : Conjunction<'a>) -> Disjunction<'a> {
         Disjunction {
             alternatives : vec![alt],
         }

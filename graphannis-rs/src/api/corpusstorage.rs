@@ -2,12 +2,16 @@
 //! It is transactional and thread-safe.
 
 use {Component, ComponentType};
+use nodesearch::NodeSearch;
+use operator::OperatorSpec;
+use operator::precedence::PrecedenceSpec;
 use std::sync::{Arc, Mutex, RwLock};
 use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, HashSet};
-use graphdb::GraphDB;
+use graphdb::{GraphDB, ANNIS_NS, TOK, NODE_NAME, NODE_TYPE};
 use graphdb;
 use std;
+use plan::ExecutionPlan;
 use query::conjunction::Conjunction;
 use std::iter::FromIterator;
 
@@ -70,6 +74,8 @@ impl DBLoader {
 pub enum Error {
     IOerror(std::io::Error),
     DBError(graphdb::Error),
+    LoadingFailed,
+    ImpossibleSearch,
     StringConvert(std::ffi::OsString),
 }
 
@@ -100,6 +106,12 @@ pub struct CorpusStorage {
     corpus_cache: RwLock<BTreeMap<String, Arc<RwLock<DBLoader>>>>,
 }
 
+
+struct PreparationResult {
+    db_loader : Arc<RwLock<DBLoader>>,
+    missing_components: Vec<Component>,
+    plan: ExecutionPlan, 
+}
 
 
 impl CorpusStorage {
@@ -220,35 +232,77 @@ impl CorpusStorage {
         );
     }
 
-    pub fn count(&mut self, corpus_name: &str, query_as_json: &str) {
-        
-         let db_loader = self.get_loader(corpus_name);
+    fn prepare_query(
+        &mut self,
+        corpus_name: &str,
+        query_as_json: &str,
+    ) -> Result<PreparationResult, Error> {
+        let db_loader = self.get_loader(corpus_name);
+
+        let empty_components : Vec<Component> = vec![];
+
+        // make sure the database is loaded at all
+        let needs_loading = {
+            let lock = db_loader.read().unwrap();
+            (&*lock).needs_loading(&empty_components)
+        };
+        if needs_loading {
+            // load the basic information (string storage and node annotations)
+            let mut lock = db_loader.write().unwrap();
+            let db: &GraphDB = (&mut *lock).get_with_components_loaded(empty_components.iter());
+        }
+
+        // accuire a read-only lock for the loaded database
+        let lock = db_loader.read().unwrap();
+        let db: &GraphDB = try!((&*lock).get().ok_or(Error::LoadingFailed));
 
         // TODO: actually parse the JSON and create query
-        let q = Conjunction::new();
-        let example_components = vec![
-                Component {
-                    ctype: ComponentType::Coverage,
-                    layer: "annis".to_string(),
-                    name: "".to_string(),
-                },
-            ];
+        // this is just an example query
+        let mut q = Conjunction::new();
 
-        let needs_loading = {
-            
-            let lock = db_loader.read().unwrap();
-            (&*lock).needs_loading(&example_components)
-        };
+        let tok_key = db.get_token_key();
+        let n1 = NodeSearch::new(
+            db.node_annos.exact_anno_search(
+                Some(tok_key.ns),
+                tok_key.name,
+                Some(try!(db.strings.find_id("der").ok_or(Error::ImpossibleSearch)).clone()),
+            ),
+            None,
+        );
+        let n1 = q.add_node(n1);
+        let n2 = NodeSearch::new(
+            db.node_annos.exact_anno_search(
+                None,
+                try!(db.strings.find_id("pos").ok_or(Error::ImpossibleSearch)).clone(),
+                Some(try!(db.strings.find_id("NN").ok_or(Error::ImpossibleSearch)).clone()),
+            ),
+            None,
+        );
+        let n2 = q.add_node(n2);
 
-        if needs_loading {
-            let mut lock = db_loader.write().unwrap();
-            let db: &GraphDB = (&mut *lock).get_with_components_loaded(example_components.iter());
-            // do something with DB
+        let prec = PrecedenceSpec {segmentation: None, min_dist: 1, max_dist: 1};
+        q.add_operator(Box::new(prec), n1, n2);
+
+        unimplemented!();
+    }
+
+    pub fn count(&mut self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
+
+        let prep = self.prepare_query(corpus_name, query_as_json)?;
+        
+
+
+        if prep.missing_components.is_empty() == false {
+            let mut lock = prep.db_loader.write().unwrap();
+            let db: &GraphDB = (&mut *lock).get_with_components_loaded(prep.missing_components.iter());
+        // do something with DB
         } else {
-            let lock = db_loader.read().unwrap();
+            let lock = prep.db_loader.read().unwrap();
             let db: &GraphDB = (&*lock).get().unwrap();
-            
+
             // do something with DB
         };
+
+        return Ok(0);
     }
 }

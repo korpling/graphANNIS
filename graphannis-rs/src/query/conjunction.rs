@@ -1,7 +1,6 @@
-use {Match};
+use nodesearch::NodeSearch;
 use operator::OperatorSpec;
 use super::disjunction::Disjunction;
-use std::iter::Iterator;
 
 struct OperatorEntry {
     op : Box<OperatorSpec>,
@@ -10,24 +9,24 @@ struct OperatorEntry {
     original_order : usize,
 }
 
-pub struct Conjunction {
-    nodes : Vec<Box<Iterator<Item = Vec<Match>>>>,
+pub struct Conjunction<'a> {
+    nodes : Vec<NodeSearch<'a>>,
     operators : Vec<OperatorEntry>,
 }
 
-impl Conjunction {
-    pub fn new() -> Conjunction {
+impl<'a> Conjunction<'a> {
+    pub fn new() -> Conjunction<'a> {
         Conjunction {
             nodes: vec![],
             operators: vec![],
         }
     }
 
-    pub fn into_disjunction(self) -> Disjunction {
+    pub fn into_disjunction(self) -> Disjunction<'a> {
         Disjunction::new(self)
     }
 
-    pub fn add_node(&mut self, node : Box<Iterator<Item = Vec<Match>>>) -> usize {
+    pub fn add_node(&mut self, node : NodeSearch<'a>) -> usize {
         let idx = self.nodes.len();
 
         // TODO allow wrapping with an "any node anno" search
