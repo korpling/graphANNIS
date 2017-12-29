@@ -7,7 +7,7 @@ extern crate simplelog;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use rustyline::completion::Completer;
+use rustyline::completion::{Completer, FilenameCompleter};
 use simplelog::{LogLevelFilter, TermLogger};
 use graphannis::relannis;
 use std::env;
@@ -19,6 +19,7 @@ use std::iter::FromIterator;
 
 struct CommandCompleter {
     known_commands : BTreeSet<String>,
+    filename_completer : FilenameCompleter,
 }
 
 impl CommandCompleter {
@@ -31,7 +32,8 @@ impl CommandCompleter {
         known_commands.insert("exit".to_string());
         
         CommandCompleter {
-            known_commands: known_commands,
+            known_commands,
+            filename_completer: FilenameCompleter::new(),
         }
     }
 }
@@ -39,7 +41,13 @@ impl CommandCompleter {
 impl Completer for CommandCompleter {
     fn complete(&self, line: &str, pos: usize) -> Result<(usize, Vec<String>), ReadlineError> {
         let mut cmds = Vec::new();
-        // only check at end of line
+
+        // check for more specialized completers
+        if line.starts_with("import ") {
+            return self.filename_completer.complete(line, pos);
+        }
+
+        // only check at end of line for initial command strings
         if pos == line.len() {
             // check alll commands if the current string is a valid suffix
             for candidate in self.known_commands.iter() {
