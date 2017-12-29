@@ -52,7 +52,8 @@ pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<Gr
     }
 }
 
-pub fn serialize(data : &Any, writer : &mut std::io::Write) -> Result<String> {
+pub fn serialize(data : Rc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
+    let data :&Any = &data;
     if let Some(adja) = data.downcast_ref::<Rc<AdjacencyListStorage>>() {
         bincode::serialize_into(writer, adja.as_ref(), bincode::Infinite)?;
         return Ok(ImplTypes::AdjacencyV1.to_string());
