@@ -38,6 +38,7 @@ pub mod relannis;
 pub mod plan;
 pub mod join;
 pub mod nodesearch;
+pub mod query;
 
 pub mod api;
 
