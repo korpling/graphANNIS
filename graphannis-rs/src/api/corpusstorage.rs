@@ -5,6 +5,7 @@ use std::sync::{Arc,RwLock};
 use std::path::{PathBuf, Path};
 use std::collections::BTreeMap;
 use graphdb::GraphDB;
+use graphdb;
 use relannis;
 use std;
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
@@ -15,6 +16,33 @@ enum LoadStatus {
     NodesLoaded(Arc<GraphDB>),
     FullyLoaded(Arc<GraphDB>),
 }
+
+#[derive(Debug)]
+pub enum Error {
+    IOerror(std::io::Error),
+    DBError(graphdb::Error),
+    StringConvert(std::ffi::OsString),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Error {
+        Error::IOerror(e)
+    }
+}
+
+impl From<graphdb::Error> for Error {
+    fn from(e: graphdb::Error) -> Error {
+        Error::DBError(e)
+    }
+}
+
+impl From<std::ffi::OsString> for Error {
+    fn from(e: std::ffi::OsString) -> Error {
+        Error::StringConvert(e)
+    }
+}
+
+
 
 pub struct CorpusStorage {
     db_dir : PathBuf,
@@ -39,13 +67,32 @@ fn load_corpus(status : LoadStatus) -> Arc<GraphDB> {
 
 
 impl CorpusStorage {
-    pub fn new(db_dir : &Path, max_allowed_cache_size : Option<usize>) -> CorpusStorage {
+    pub fn new(db_dir : &Path, max_allowed_cache_size : Option<usize>) -> Result<CorpusStorage, Error> {
 
-        CorpusStorage {
+        let mut cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             max_allowed_cache_size,
             corpus_cache: RwLock::new(BTreeMap::new()),
+        };
+
+        cs.load_available_from_disk()?;
+
+        Ok(cs)
+    }
+
+    fn load_available_from_disk(&mut self) -> Result<(),Error> {
+        let mut cache_lock =  self.corpus_cache.write().unwrap();
+        let cache : &mut BTreeMap<String, LoadStatus> = &mut *cache_lock;
+
+        for c_dir in self.db_dir.read_dir()? {
+            let c_dir = c_dir?;
+            let ftype = c_dir.file_type()?;
+            if ftype.is_dir()  {
+                cache.insert(c_dir.file_name().into_string()?, LoadStatus::NotLoaded(c_dir.path()));
+            }
         }
+
+        Ok(())
     }
 
     fn get_corpus_from_cache(&mut self, corpus_name : &str) -> LoadStatus {
@@ -67,13 +114,14 @@ impl CorpusStorage {
     /// Import a corpus from an external location into this corpus storage
     pub fn import_from_dir(&mut self, new_corpus_name : &str, path_to_corpus : &Path) {
         let corpus = self.get_corpus_from_cache(new_corpus_name);
-        let  corpus = load_corpus(corpus);
+        let corpus = load_corpus(corpus);
         
         // TODO: load the corpus data from the external location      
 //        corpus.load_from(path_to_corpus, false);
 
         // make sure the corpus is properly saved at least once (so it is in a consistent state)
         corpus.persist();
+        unimplemented!();
     }
 
     /// Import a corpus in relANNIS format from an external location into this corpus storage

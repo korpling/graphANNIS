@@ -12,16 +12,17 @@ use graphannis::relannis;
 use std::env;
 use std::path::{Path, PathBuf};
 use graphannis::api::corpusstorage::CorpusStorage;
+use graphannis::api::corpusstorage::Error;
 
 struct AnnisRunner {
     storage: CorpusStorage,
 }
 
 impl AnnisRunner {
-    pub fn new(data_dir: &Path) -> AnnisRunner {
-        AnnisRunner {
-            storage: CorpusStorage::new(data_dir, None),
-        }
+    pub fn new(data_dir: &Path) -> Result<AnnisRunner, Error> {
+        Ok(AnnisRunner {
+            storage: CorpusStorage::new(data_dir, None)?,
+        })
     }
 
     pub fn start_loop(&mut self) {
@@ -123,8 +124,12 @@ fn main() {
                 std::process::exit(3);
             }
 
-            let mut runner = AnnisRunner::new(&dir);
-            runner.start_loop();
+            let runner_result = AnnisRunner::new(&dir);
+            match runner_result {
+                 Ok(mut runner) =>  runner.start_loop(),
+                 Err(e) => println!("Can't start console because of loading error: {:?}", e)
+            };
+
         }
         _ => {
             println!("Too many arguments given, only give the data directory as argument");
