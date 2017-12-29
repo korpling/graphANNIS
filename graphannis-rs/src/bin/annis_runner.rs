@@ -105,7 +105,9 @@ impl AnnisRunner {
 
 
 fn main() {
-    TermLogger::init(LogLevelFilter::Info, simplelog::Config::default()).unwrap();
+    if let Err(e) = TermLogger::init(LogLevelFilter::Info, simplelog::Config::default()) {
+        println!("Error, can't initialize the terminal log output: {}", e)
+    }
 
     let args: Vec<String> = env::args().collect();
 

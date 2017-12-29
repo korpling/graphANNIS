@@ -82,6 +82,8 @@ impl GraphStorage for AdjacencyListStorage {
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
 
+    fn as_any(&self) -> &Any {self}
+
 }
 
 impl WriteableGraphStorage for AdjacencyListStorage {

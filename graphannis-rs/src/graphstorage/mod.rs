@@ -1,4 +1,5 @@
 use std;
+use std::any::Any;
 use {AnnoKey, Annotation, Edge, NodeID};
 
 pub trait GraphStorage  {
@@ -19,6 +20,7 @@ pub trait GraphStorage  {
     fn copy(&mut self, orig : &GraphStorage);
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
+    fn as_any(&self) -> &Any;
 
 }
 

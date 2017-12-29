@@ -4,6 +4,15 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Console",
+            "program": "${workspaceRoot}/target/debug/annis_runner",
+            "args": ["data"],
+            "cwd": "${workspaceRoot}",
+            "terminal": "external"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug Test",
             "program": "${workspaceRoot}/target/debug/loadtest-f8c036fb8224ca9b",
             "args": ["index_join"],

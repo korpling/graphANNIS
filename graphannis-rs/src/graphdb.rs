@@ -230,7 +230,8 @@ impl GraphDB {
 
         for (c, e) in self.components.iter() {
             if let Some(ref data) = *e {
-                let dir = component_to_relative_path(c);
+                let mut dir = PathBuf::from(&location);
+                dir.push(component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
 
                 let mut data_path = PathBuf::from(&dir);
