@@ -126,7 +126,7 @@ where
 
 
 impl GraphDB {
-    /// Create a new and empty instance without any location on the disk
+    /// Create a new and empty in	stance without any location on the disk
     pub fn new() -> GraphDB {
         let mut strings = StringStorage::new();
 
@@ -163,7 +163,7 @@ impl GraphDB {
         self.find_components_from_disk(&location)?;
 
         if preload {
-            let all_components : Vec<Component> = self.components.keys().cloned().collect();
+            let all_components: Vec<Component> = self.components.keys().cloned().collect();
             for c in all_components {
                 self.ensure_loaded(&c)?;
             }
@@ -219,18 +219,14 @@ impl GraphDB {
         Ok(())
     }
 
-    pub fn save_to(&self, location: &Path) -> Result<(), Error> {
+    fn internal_save(&self, location: &Path) -> Result<(), Error> {
         let mut location = PathBuf::from(location);
-
-        // TODO: implement WAL support
         location.push("current");
 
         save_bincode(&location, "strings.bin", &self.strings)?;
         save_bincode(&location, "nodes.bin", &self.node_annos)?;
 
         for (c, e) in self.components.iter() {
-
-            // only store the actually loaded components
             if let Some(ref data) = *e {
                 let dir = component_to_relative_path(c);
 
@@ -249,11 +245,21 @@ impl GraphDB {
         Ok(())
     }
 
+    pub fn save_to(&mut self, location: &Path) -> Result<(), Error> {
+        
+        // make sure all components are loaded, otherwise saving them does not make any sense
+        let all_components: Vec<Component> = self.components.keys().cloned().collect();
+        for c in all_components {
+            self.ensure_loaded(&c)?;
+        }
+
+        return self.internal_save(location);       
+    }
+
     /// Save the current database at is original location
     pub fn persist(&self) -> Result<(), Error> {
-
         if let Some(ref loc) = self.location {
-            return self.save_to(loc);
+            return self.internal_save(loc);
         } else {
             return Err(Error::LocationEmpty);
         }
