@@ -1,4 +1,10 @@
 use Match;
+use query::disjunction::Disjunction;
+use query::conjunction::Conjunction;
+
+pub enum Error {
+    ImpossiblePlan,
+}
 
 #[derive(Debug, Clone)]
 pub struct Desc {
@@ -48,14 +54,37 @@ pub trait ExecutionNode : Iterator {
 
 
 pub struct ExecutionPlan {
-    root: Box<ExecutionNode<Item = Vec<Match>>>,
+    root: Box<Iterator<Item = Vec<Match>>>,
+}
+
+impl ExecutionPlan {
+    pub fn from_conjunction(query : &Conjunction) -> Result<ExecutionPlan, Error> {
+        unimplemented!()
+    }
+    pub fn from_disjunction(query : &Disjunction) -> Result<ExecutionPlan, Error> {
+        let mut plans : Vec<ExecutionPlan> = Vec::new();
+        for alt in query.alternatives.iter() {
+            let p = ExecutionPlan::from_conjunction(alt);
+            if let Ok(p) = p {
+                plans.push(p);
+            }
+        }
+
+        if plans.is_empty() {
+            return Err(Error::ImpossiblePlan);
+        } else {
+            let it = plans.into_iter().flat_map(|p| p.root);
+            let box_it : Box<Iterator<Item = Vec<Match>>> = Box::new(it);
+            return Ok(ExecutionPlan {root: box_it});
+        }
+    }
 }
 
 impl Iterator for ExecutionPlan {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
-        let n = self.root.as_iter().next();
+        let n = self.root.next();
         // TODO: re-organize the match positions
         return n;
     }

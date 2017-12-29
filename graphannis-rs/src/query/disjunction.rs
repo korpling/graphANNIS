@@ -1,7 +1,7 @@
 use super::conjunction::Conjunction;
 
 pub struct Disjunction<'a> {
-    alternatives : Vec<Conjunction<'a>>,
+    pub alternatives : Vec<Conjunction<'a>>,
 }
 
 impl<'a> Disjunction<'a> {
