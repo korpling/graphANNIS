@@ -22,7 +22,7 @@ fn load_corpus(name: &str) -> Option<GraphDB> {
 
     // only execute the test if the directory exists
     if data_dir.exists() && data_dir.is_dir() {
-        return Some(relannis::load(data_dir.to_str().unwrap()).unwrap());
+        return Some(relannis::load(&data_dir).unwrap());
     } else {
         return None;
     }
