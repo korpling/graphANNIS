@@ -7,6 +7,7 @@ extern crate simplelog;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use rustyline::completion::Completer;
 use simplelog::{LogLevelFilter, TermLogger};
 use graphannis::relannis;
 use std::env;
@@ -16,6 +17,40 @@ use graphannis::api::corpusstorage::Error;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
+struct CommandCompleter {
+    known_commands : BTreeSet<String>,
+}
+
+impl CommandCompleter {
+    pub fn new() -> CommandCompleter {
+        let mut known_commands = BTreeSet::new();
+        known_commands.insert("import".to_string());
+        known_commands.insert("list".to_string());
+        known_commands.insert("corpus".to_string());
+        known_commands.insert("quit".to_string());
+        known_commands.insert("exit".to_string());
+        
+        CommandCompleter {
+            known_commands: known_commands,
+        }
+    }
+}
+
+impl Completer for CommandCompleter {
+    fn complete(&self, line: &str, pos: usize) -> Result<(usize, Vec<String>), ReadlineError> {
+        let mut cmds = Vec::new();
+        // only check at end of line
+        if pos == line.len() {
+            // check alll commands if the current string is a valid suffix
+            for candidate in self.known_commands.iter() {
+                if candidate.starts_with(line) {
+                    cmds.push(candidate.clone());
+                }
+            }
+        }
+        Ok((0, cmds))
+    }
+}
 struct AnnisRunner {
     storage: CorpusStorage,
     current_corpus : Option<String>,
@@ -30,10 +65,13 @@ impl AnnisRunner {
     }
 
     pub fn start_loop(&mut self) {
-        let mut rl = Editor::<()>::new();
+        let mut rl = Editor::<CommandCompleter>::new();
         if let Err(_) = rl.load_history("annis_history.txt") {
             println!("No previous history.");
         }
+        rl.set_completer(Some(CommandCompleter::new()));
+    
+
         loop {
             let prompt = if let Some(ref c) = self.current_corpus {
                 format!("{}> ", c)
