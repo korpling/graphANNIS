@@ -71,6 +71,9 @@ impl AnnisRunner {
                 } else {
                     println!("You need to give the name of the corpus and the location of the relANNIS files and  as argument");
                 },
+                "list" => {
+                    self.list();
+                },
                 "quit" | "exit" => {
                     return false;
                 }
@@ -98,6 +101,13 @@ impl AnnisRunner {
             Err(err) => {
                 println!("Can't import relANNIS from {}, error:\n{:?}", path, err);
             }
+        }
+    }
+
+    fn list(&self) {
+        let corpora = self.storage.list();
+        for c in corpora {
+            println!("{}", c);
         }
     }
 }

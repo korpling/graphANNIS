@@ -95,7 +95,19 @@ impl CorpusStorage {
         Ok(())
     }
 
+    pub fn list(&self) -> Vec<String> {
+        let mut result : Vec<String> = Vec::new();
+
+        if let Ok(cache_lock) = self.corpus_cache.read() {
+            let cache = & *cache_lock;
+            result = cache.keys().cloned().collect();
+        }
+
+        return result;
+    }
+
     fn get_corpus_from_cache(&mut self, corpus_name : &str) -> LoadStatus {
+
         let mut cache_lock =  self.corpus_cache.write().unwrap();
         
         let cache : &mut BTreeMap<String, LoadStatus> = &mut *cache_lock;
