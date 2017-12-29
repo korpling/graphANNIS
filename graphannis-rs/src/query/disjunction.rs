@@ -1,13 +1,13 @@
 use super::conjunction::Conjunction;
 
 pub struct Disjunction {
-    alts : Vec<Conjunction>,
+    alternatives : Vec<Conjunction>,
 }
 
 impl Disjunction {
-    pub fn new() -> Disjunction {
+    pub fn new(alt : Conjunction) -> Disjunction {
         Disjunction {
-            alts : vec![],
+            alternatives : vec![alt],
         }
     }
 }

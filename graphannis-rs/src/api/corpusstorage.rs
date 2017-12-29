@@ -8,6 +8,8 @@ use graphdb::GraphDB;
 use graphdb;
 use relannis;
 use std;
+use query::conjunction::Conjunction;
+
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
 
 #[derive(Clone)]
@@ -49,19 +51,6 @@ pub struct CorpusStorage {
     max_allowed_cache_size : Option<usize>,
 
     corpus_cache: RwLock<BTreeMap<String, LoadStatus>>,
-}
-
-fn load_corpus(status : LoadStatus) -> Arc<GraphDB> {
-        let result = match status {
-            LoadStatus::NotLoaded(location) => {
-                let mut db = GraphDB::new();
-                db.load_from(&location, false);
-                Arc::new(db)
-            },
-            LoadStatus::NodesLoaded(corpus) | LoadStatus::FullyLoaded(corpus) => corpus, 
-        };
-
-        return result;
 }
 
 
@@ -106,27 +95,40 @@ impl CorpusStorage {
         return result;
     }
 
-    fn get_corpus_from_cache(&mut self, corpus_name : &str) -> LoadStatus {
-
+    fn load_corpus(&mut self, corpus_name : &str) -> Arc<GraphDB> {
         let mut cache_lock =  self.corpus_cache.write().unwrap();
         
         let cache : &mut BTreeMap<String, LoadStatus> = &mut *cache_lock;
         
-        let entry = cache.entry(String::from(corpus_name)).or_insert_with(|| {
-            // Create a new LoadStatus and put it into the cache. This will not load
-            // the database itself, this can be done with the resulting object from the caller.
-            let db_path : PathBuf = [self.db_dir.to_string_lossy().as_ref(), corpus_name].iter().collect();
-            LoadStatus::NotLoaded(db_path)
-        });
-        return entry.clone();
-    }
+        let status =
+        {
+            let entry = cache.entry(String::from(corpus_name)).or_insert_with(|| {
+                // Create a new LoadStatus and put it into the cache. This will not load
+                // the database itself, this can be done with the resulting object from the caller.
+                let db_path : PathBuf = [self.db_dir.to_string_lossy().as_ref(), corpus_name].iter().collect();
+                LoadStatus::NotLoaded(db_path)
+            });
 
+            entry.clone()
+        };
+        
+        match status {
+            LoadStatus::NotLoaded(location) => {
+                // load corpus if necessary
+                let mut db = GraphDB::new();
+                db.load_from(&location, false);
+                let db = Arc::new(db);
+                cache.insert(corpus_name.to_string(), LoadStatus::NodesLoaded(db.clone()));
+                db
+            },
+            LoadStatus::FullyLoaded(db) | LoadStatus::NodesLoaded(db) => db,
+        }
+    }
 
 
     /// Import a corpus from an external location into this corpus storage
     pub fn import_from_dir(&mut self, new_corpus_name : &str, path_to_corpus : &Path) {
-        let corpus = self.get_corpus_from_cache(new_corpus_name);
-        let corpus = load_corpus(corpus);
+        let corpus = self.load_corpus(new_corpus_name);
         
         // TODO: load the corpus data from the external location      
 //        corpus.load_from(path_to_corpus, false);
@@ -170,8 +172,14 @@ impl CorpusStorage {
         } else {
             cache.insert(String::from(corpus_name), LoadStatus::FullyLoaded(Arc::new(db)));
         }
+    }
 
-
+    pub fn count(&mut self, corpus_name : &str, query_as_json : &str) {
+        
+        let c = self.load_corpus(corpus_name);
+        // TODO: actually parse the JSON and create query
+        
+        let q = Conjunction::new();
 
     }
 }

@@ -28,6 +28,7 @@ impl CommandCompleter {
         known_commands.insert("import".to_string());
         known_commands.insert("list".to_string());
         known_commands.insert("corpus".to_string());
+        known_commands.insert("count".to_string());
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
         
@@ -124,6 +125,7 @@ impl AnnisRunner {
                 "import" =>  self.import_relannis(&args),
                 "list" => self.list(),
                 "corpus" => self.corpus(&args),
+                "count" => self.count(&args),
                 "quit" | "exit" => return false,
                 _ => println!("unknown command \"{}\"", cmd),
             };
@@ -178,6 +180,12 @@ impl AnnisRunner {
                 println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
             }
         }
+    }
+
+    fn count(&mut self, args : &str) {
+
+
+       
     }
 }
 
