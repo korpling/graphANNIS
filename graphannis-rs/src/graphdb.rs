@@ -83,7 +83,7 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Rc<GraphS
     data_path.push("component.bin");
     let f_data = std::fs::File::open(data_path)?;
     let mut buf_reader = std::io::BufReader::new(f_data);
-    let gs = registry::load_by_name(&impl_name, &mut buf_reader)?;
+    let gs = registry::deserialize(&impl_name, &mut buf_reader)?;
 
     return Ok(gs);
 }

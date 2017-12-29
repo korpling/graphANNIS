@@ -40,7 +40,7 @@ pub fn create_writeable() -> AdjacencyListStorage {
     AdjacencyListStorage::new()
 }
 
-pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<GraphStorage>> {
+pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<GraphStorage>> {
 
     let impl_type = ImplTypes::from_str(impl_name)?;
 
