@@ -37,10 +37,10 @@ fn load_corpus(status : LoadStatus) -> Arc<GraphDB> {
 
 
 impl CorpusStorage {
-    pub fn new(db_dir : PathBuf, max_allowed_cache_size : Option<usize>) -> CorpusStorage {
+    pub fn new(db_dir : &Path, max_allowed_cache_size : Option<usize>) -> CorpusStorage {
 
         CorpusStorage {
-            db_dir,
+            db_dir: PathBuf::from(db_dir),
             max_allowed_cache_size,
             corpus_cache: RwLock::new(BTreeMap::new()),
         }
