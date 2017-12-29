@@ -27,7 +27,7 @@ libc = "*"
 
 [dev-dependencies]
 tempdir = "0.3"
-simplelog = "^0.4.3"
+simplelog = "0.4"
 
 
 [build-dependencies]
