@@ -18,7 +18,7 @@ pub enum RegistryError {
 
 #[derive(ToString, EnumString)]
 enum ImplTypes {
-    adjacency_v1,
+    AdjacencyV1,
 }
 
 impl From<Box<bincode::ErrorKind>> for RegistryError {
@@ -45,7 +45,7 @@ pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<G
     let impl_type = ImplTypes::from_str(impl_name)?;
 
     match impl_type {
-        ImplTypes::adjacency_v1 => {
+        ImplTypes::AdjacencyV1 => {
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input, bincode::Infinite)?;
             Ok(Rc::new(gs))
         }
@@ -55,7 +55,7 @@ pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<G
 pub fn serialize(data : &Any, writer : &mut std::io::Write) -> Result<String> {
     if let Some(adja) = data.downcast_ref::<Rc<AdjacencyListStorage>>() {
         bincode::serialize_into(writer, adja.as_ref(), bincode::Infinite)?;
-        return Ok(ImplTypes::adjacency_v1.to_string());
+        return Ok(ImplTypes::AdjacencyV1.to_string());
     }
     return Err(RegistryError::TypeNotFound);
 }
