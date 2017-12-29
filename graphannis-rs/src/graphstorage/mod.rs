@@ -1,8 +1,8 @@
 use std;
 use {AnnoKey, Annotation, Edge, NodeID};
-use downcast_rs::Downcast;
+use std::any::Any;
 
-pub trait GraphStorage :Downcast  {
+pub trait GraphStorage  {
 
     fn get_outgoing_edges(&self, source: &NodeID) -> Vec<NodeID>;
 
@@ -20,8 +20,8 @@ pub trait GraphStorage :Downcast  {
     fn copy(&mut self, orig : &GraphStorage);
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
+    fn as_any(&self) -> &Any;
 }
-impl_downcast!(GraphStorage);
 
 pub trait WriteableGraphStorage:  GraphStorage {
     fn add_edge(&mut self, edge: Edge);

@@ -2,8 +2,8 @@ use graphstorage::{GraphStorage};
 use super::adjacencylist::AdjacencyListStorage;
 use std;
 use std::rc::Rc;
-use std::any::Any;
 use bincode;
+use std::any::Any;
 
 #[derive(Debug)]
 pub enum RegistryError {
@@ -38,7 +38,7 @@ pub fn load_by_name(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<G
     }
 }
 
-pub fn serialize(data : Rc<GraphStorage>, writer : &mut std::io::Write) -> Result<&'static str> {
+pub fn serialize(data : &Any, writer : &mut std::io::Write) -> Result<&'static str> {
     if let Some(adja) = data.downcast_ref::<AdjacencyListStorage>() {
         bincode::serialize_into(writer, adja, bincode::Infinite)?;
         return Ok("AdjacencyListStorage");

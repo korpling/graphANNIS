@@ -14,8 +14,6 @@ use std::string::ToString;
 use bincode;
 use serde;
 
-use graphstorage::adjacencylist::AdjacencyListStorage;
-
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
@@ -238,7 +236,7 @@ impl GraphDB {
                 data_path.push("component.bin");
                 let f_data = std::fs::File::create(data_path)?;
                 let mut writer = std::io::BufWriter::new(f_data);
-                let impl_name = registry::serialize(data.clone(), &mut writer)?;
+                let impl_name = registry::serialize(&data.clone(), &mut writer)?;
 
                 let mut cfg_path = PathBuf::from(&dir);
                 cfg_path.push("impl.cfg");
