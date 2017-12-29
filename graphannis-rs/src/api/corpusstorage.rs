@@ -1,38 +1,67 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use std::sync::{Arc, RwLock, Mutex};
+use {Component, ComponentType};
+use std::sync::{Arc, Mutex, RwLock};
 use std::path::{Path, PathBuf};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use graphdb::GraphDB;
 use graphdb;
-use relannis;
 use std;
 use query::conjunction::Conjunction;
+use std::iter::FromIterator;
 
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
 
 
-enum LoadStatus {
-    NotLoaded{corpus_name : String, db_path : PathBuf},
-    NodesLoaded(Arc<GraphDB>),
-    FullyLoaded(Arc<GraphDB>),
-}
-
 struct DBLoader {
-    db : Option<GraphDB>,
+    db: Option<GraphDB>,
     db_path: PathBuf,
 }
 
 impl DBLoader {
-    fn get<'a>(&'a mut self) -> &'a GraphDB {
+    fn needs_loading(&self, components: &Vec<Component>) -> bool {
+        let mut missing: HashSet<Component> = HashSet::from_iter(components.iter().cloned());
+
+        if let Some(db) = self.db.as_ref() {
+            // remove all that are already loaded
+            for c in components.iter() {
+                if db.get_graphstorage(c).is_some() {
+                    missing.remove(c);
+                }
+            }
+        } else {
+            return true;
+        }
+
+        return missing.is_empty() == true;
+    }
+
+    /// Get the database without loading it.
+    fn get<'a>(&'a self) -> Option<&'a GraphDB> {
+        return self.db.as_ref();
+    }
+
+
+    /// Get the database and load components (and itself) when necessary
+    fn get_with_components_loaded<'a, I>(&'a mut self, components: I) -> &'a GraphDB
+    where
+        I: Iterator<Item = &'a Component>,
+    {
         if self.db.is_none() {
             let mut loaded_db = GraphDB::new();
             // TODO: what if loading fails?
             loaded_db.load_from(&self.db_path, false);
             self.db = Some(loaded_db);
         }
-        return  &self.db.as_ref().unwrap();
+        {
+            let mut_db: &mut GraphDB = self.db.as_mut().unwrap();
+            for c in components {
+                // TODO: what if loading fails?
+                mut_db.ensure_loaded(c);
+            }
+        }
+        return &self.db.as_ref().unwrap();
     }
     // TODO: add callback
 }
@@ -68,7 +97,7 @@ pub struct CorpusStorage {
     db_dir: PathBuf,
     max_allowed_cache_size: Option<usize>,
 
-    corpus_cache: RwLock<BTreeMap<String, Arc<Mutex<DBLoader>>>>,
+    corpus_cache: RwLock<BTreeMap<String, Arc<RwLock<DBLoader>>>>,
 }
 
 
@@ -91,16 +120,19 @@ impl CorpusStorage {
 
     fn load_available_from_disk(&mut self) -> Result<(), Error> {
         let mut cache_lock = self.corpus_cache.write().unwrap();
-        let cache: &mut BTreeMap<String, Arc<Mutex<DBLoader>>> = &mut *cache_lock;
+        let cache = &mut *cache_lock;
 
         for c_dir in self.db_dir.read_dir()? {
             let c_dir = c_dir?;
             let ftype = c_dir.file_type()?;
             if ftype.is_dir() {
-                let corpus_name  = c_dir.file_name().into_string()?;
+                let corpus_name = c_dir.file_name().into_string()?;
                 cache.insert(
                     corpus_name.clone(),
-                    Arc::new(Mutex::new(DBLoader{db: None, db_path: c_dir.path()})),
+                    Arc::new(RwLock::new(DBLoader {
+                        db: None,
+                        db_path: c_dir.path(),
+                    })),
                 );
             }
         }
@@ -120,18 +152,18 @@ impl CorpusStorage {
     }
 
 
-    fn get_loader(&mut self, corpus_name: &str) -> Arc<Mutex<DBLoader>> {
+    fn get_loader(&mut self, corpus_name: &str) -> Arc<RwLock<DBLoader>> {
         let mut cache_lock = self.corpus_cache.write().unwrap();
-        let cache: & mut BTreeMap<String, Arc<Mutex<DBLoader>>> = &mut *cache_lock;
+        let cache = &mut *cache_lock;
 
         let corpus_name = corpus_name.to_string();
         let entry = cache.entry(corpus_name.clone()).or_insert_with(|| {
-            // Create a new LoadStatus and put it into the cache. This will not load
+            // Create a new empty DB loader and put it into the cache. This will not load
             // the database itself, this can be done with the resulting object from the caller.
             let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
                 .iter()
                 .collect();
-            Arc::new(Mutex::new(DBLoader{db: None, db_path}))
+            Arc::new(RwLock::new(DBLoader { db: None, db_path }))
         });
 
         return entry.clone();
@@ -152,7 +184,7 @@ impl CorpusStorage {
         db_path.push(corpus_name);
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
-        let cache: &mut BTreeMap<String, Arc<Mutex<DBLoader>>> = &mut *cache_lock;
+        let cache = &mut *cache_lock;
 
         // remove any possible old corpus
         let old_entry = cache.remove(corpus_name);
@@ -177,22 +209,46 @@ impl CorpusStorage {
                 e
             );
         }
-        
+
         // make it known to the cache
         cache.insert(
             String::from(corpus_name),
-            Arc::new(Mutex::new(DBLoader{db: Some(db), db_path: db_path}))
+            Arc::new(RwLock::new(DBLoader {
+                db: Some(db),
+                db_path: db_path,
+            })),
         );
-
-
     }
 
     pub fn count(&mut self, corpus_name: &str, query_as_json: &str) {
-        let db_loader = self.get_loader(corpus_name);
+        
+         let db_loader = self.get_loader(corpus_name);
 
-//        let db = self.load_corpus(db_loader);
         // TODO: actually parse the JSON and create query
-
         let q = Conjunction::new();
+        let example_components = vec![
+                Component {
+                    ctype: ComponentType::Coverage,
+                    layer: "annis".to_string(),
+                    name: "".to_string(),
+                },
+            ];
+
+        let needs_loading = {
+            
+            let lock = db_loader.read().unwrap();
+            (&*lock).needs_loading(&example_components)
+        };
+
+        if needs_loading {
+            let mut lock = db_loader.write().unwrap();
+            let db: &GraphDB = (&mut *lock).get_with_components_loaded(example_components.iter());
+            // do something with DB
+        } else {
+            let lock = db_loader.read().unwrap();
+            let db: &GraphDB = (&*lock).get().unwrap();
+            
+            // do something with DB
+        };
     }
 }
