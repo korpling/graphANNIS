@@ -193,7 +193,7 @@ impl GraphDB {
                     {
                         let mut input_file = component_to_relative_path(&empty_name_component);
                         input_file.push("component.bin");
-                        if input_file.exists() && input_file.is_file() {
+                        if input_file.is_file() {
                             self.components.insert(empty_name_component.clone(), None);
                         }
                     }
@@ -205,9 +205,11 @@ impl GraphDB {
                             layer: layer.file_name().into_string()?,
                             name: name.file_name().into_string()?,
                         };
-                        let mut input_file = component_to_relative_path(&named_component);
-                        input_file.push("component.bin");
-                        if input_file.exists() &&  input_file.is_file() {
+                        let mut data_file = component_to_relative_path(&named_component);
+                        data_file.push("component.bin");
+                        let mut cfg_file = component_to_relative_path(&named_component);
+                        cfg_file.push("impl.cfg");
+                        if data_file.is_file() && cfg_file.is_file() {
                             self.components.insert(named_component, None);
                         }
                     }
