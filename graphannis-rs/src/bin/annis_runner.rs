@@ -13,15 +13,19 @@ use std::env;
 use std::path::{Path, PathBuf};
 use graphannis::api::corpusstorage::CorpusStorage;
 use graphannis::api::corpusstorage::Error;
+use std::collections::BTreeSet;
+use std::iter::FromIterator;
 
 struct AnnisRunner {
     storage: CorpusStorage,
+    current_corpus : Option<String>,
 }
 
 impl AnnisRunner {
     pub fn new(data_dir: &Path) -> Result<AnnisRunner, Error> {
         Ok(AnnisRunner {
             storage: CorpusStorage::new(data_dir, None)?,
+            current_corpus: None,
         })
     }
 
@@ -31,7 +35,12 @@ impl AnnisRunner {
             println!("No previous history.");
         }
         loop {
-            let readline = rl.readline(">> ");
+            let prompt = if let Some(ref c) = self.current_corpus {
+                format!("{}> ", c)
+            } else {
+                String::from(">> ")
+            };
+            let readline = rl.readline(&prompt);
             match readline {
                 Ok(line) => {
                     rl.add_history_entry(&line);
@@ -61,33 +70,33 @@ impl AnnisRunner {
         if line_splitted.len() > 0 {
             let cmd = line_splitted[0];
             let args = if line_splitted.len() > 1 {
-                line_splitted[1].split(' ').collect()
+                String::from(line_splitted[1])
             } else {
-                vec![]
+                String::from("")
             };
             match cmd {
-                "import" => if args.len() >= 2 {
-                    self.import_relannis(&args[0], &args[1]);
-                } else {
-                    println!("You need to give the name of the corpus and the location of the relANNIS files and  as argument");
-                },
-                "list" => {
-                    self.list();
-                },
-                "quit" | "exit" => {
-                    return false;
-                }
-                _ => {
-                    // do nothing
-                    println!("unknown command \"{}\"", cmd);
-                }
-            }
+                "import" =>  self.import_relannis(&args),
+                "list" => self.list(),
+                "corpus" => self.corpus(&args),
+                "quit" | "exit" => return false,
+                _ => println!("unknown command \"{}\"", cmd),
+            };
         }
         // stay in loop
         return true;
     }
 
-    fn import_relannis(&mut self, name: &str, path: &str) {
+    fn import_relannis(&mut self, args : &str) {
+
+        let args : Vec<&str> = args.split(' ').collect();
+        if args.len() < 2 {
+            println!("You need to give the name of the corpus and the location of the relANNIS files and  as argument");
+            return;
+        }
+
+        let name = args[0];
+        let path = args[1];
+
         let t_before = std::time::SystemTime::now();
         let res = relannis::load(&PathBuf::from(path));
         let load_time = t_before.elapsed();
@@ -108,6 +117,20 @@ impl AnnisRunner {
         let corpora = self.storage.list();
         for c in corpora {
             println!("{}", c);
+        }
+    }
+
+    fn corpus(&mut self, args : &str) {
+        if args.is_empty() {
+            self.current_corpus = None;
+        } else {
+            let corpora = BTreeSet::from_iter(self.storage.list().into_iter());
+            let selected = String::from(args);
+            if corpora.contains(&selected) {
+                self.current_corpus = Some(String::from(args));    
+            } else {
+                println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
+            }
         }
     }
 }
