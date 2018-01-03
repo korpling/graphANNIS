@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 pub enum Error {
     ImpossibleQuery,
     MissingDescription,
+    ComponentsNotConnected,
 }
 
 struct OperatorEntry<'a> {
@@ -94,6 +95,8 @@ impl<'a> Conjunction<'a> {
 
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
+        // 1. add all nodes
+
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
         let mut component2exec: BTreeMap<usize, Box<ExecutionNode<Item = Vec<Match>>>> =
@@ -126,7 +129,7 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        // add the joins which produce the results
+        // 2. add the joins which produce the results
         for op_entry in self.operators.drain(..) {
             let component_left = node2component
                 .get(&op_entry.idx_left)
@@ -203,6 +206,21 @@ impl<'a> Conjunction<'a> {
             component2exec.insert(new_component_nr, new_exec);
         }
 
-        unimplemented!()
+        // 3. check if there is only one component left (all nodes are connected)
+        let mut first_component_id : Option<usize> = None;
+        for (n, cid) in node2component.iter() {
+            if first_component_id.is_none() {
+                first_component_id = Some(*cid);
+            }
+            else if let Some(first) = first_component_id {
+                if first != *cid {
+                    return Err(Error::ComponentsNotConnected);
+                }
+            }
+        }
+
+        let first_component_id = first_component_id.ok_or(Error::ImpossibleQuery)?;
+        return component2exec.remove(&first_component_id).ok_or(Error::ImpossibleQuery);
+
     }
 }
