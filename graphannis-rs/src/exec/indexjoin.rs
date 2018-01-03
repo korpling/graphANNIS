@@ -1,7 +1,7 @@
 use {Annotation, Match, NodeID, StringID, AnnoKey};
 use operator::Operator;
 use annostorage::AnnoStorage;
-use super::{ExecutionNode,Desc};
+use super::{ExecutionNode,Desc, NodeSearchDesc};
 use std;
 use std::iter::Peekable;
 
@@ -13,8 +13,7 @@ pub struct IndexJoin<'a> {
     rhs_candidate: std::vec::IntoIter<Match>,
     op: Box<Operator + 'a>,
     lhs_idx: usize,
-    anno_qname: (Option<StringID>, Option<StringID>),
-    anno_cond: Box<Fn(Annotation) -> bool + 'a>,
+    node_search_desc: NodeSearchDesc<'a>,
     node_annos : &'a AnnoStorage<NodeID>,
     desc: Desc,
 }
@@ -92,8 +91,7 @@ impl<'a> IndexJoin<'a> {
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         op: Box<Operator + 'a>,
-        anno_qname: (Option<StringID>, Option<StringID>),
-        anno_cond: Box<Fn(Annotation) -> bool + 'a>,
+        node_search_desc: NodeSearchDesc<'a>,
         node_annos : &'a AnnoStorage<NodeID>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
@@ -101,7 +99,7 @@ impl<'a> IndexJoin<'a> {
         // TODO, we 
         let mut lhs_peek = lhs.peekable();
         let initial_candidates: Vec<Match> = if let Some(m_lhs) = lhs_peek.peek() {
-            next_candidates(op.as_ref(), &m_lhs, lhs_idx.clone(), &anno_qname, node_annos)
+            next_candidates(op.as_ref(), &m_lhs, lhs_idx.clone(), &node_search_desc.anno_qname, node_annos)
         } else {
             vec![]
         };
@@ -110,8 +108,7 @@ impl<'a> IndexJoin<'a> {
             lhs: lhs_peek,
             lhs_idx,
             op,
-            anno_qname,
-            anno_cond,
+            node_search_desc,
             node_annos,
             rhs_candidate: initial_candidates.into_iter(),
         };
@@ -137,7 +134,7 @@ impl<'a> Iterator for IndexJoin<'a> {
             if let Some(m_lhs) = self.lhs.peek() {
                 while let Some(m_rhs) = self.rhs_candidate.next() {
                     // check if the filter is true
-                    if (self.anno_cond)(m_rhs.anno.clone()) {
+                    if (self.node_search_desc.anno_cond)(m_rhs.anno.clone()) {
                         let mut result = m_lhs.clone();
                         result.push(m_rhs);
                         return Some(result);
@@ -153,7 +150,7 @@ impl<'a> Iterator for IndexJoin<'a> {
             // inner was completed once, get new candidates
             if let Some(m_lhs) = self.lhs.peek() {
                 let candidates: Vec<Match> = next_candidates(self.op.as_ref(), 
-                    &m_lhs, self.lhs_idx.clone(), &self.anno_qname, self.node_annos);
+                    &m_lhs, self.lhs_idx.clone(), &self.node_search_desc.anno_qname, self.node_annos);
                 self.rhs_candidate = candidates.into_iter();
             }
         }

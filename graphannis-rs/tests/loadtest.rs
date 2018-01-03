@@ -6,9 +6,10 @@ use graphannis::graphdb::*;
 use graphannis::relannis;
 use graphannis::{Annotation, Edge};
 use graphannis::operator::OperatorSpec;
-use graphannis::nodesearch::NodeSearch;
-use graphannis::join::nestedloop::NestedLoop;
-use graphannis::join::indexjoin::IndexJoin;
+use graphannis::exec::NodeSearchDesc;
+use graphannis::exec::nodesearch::NodeSearch;
+use graphannis::exec::nestedloop::NestedLoop;
+use graphannis::exec::indexjoin::IndexJoin;
 use graphannis::operator::precedence::{Precedence, PrecedenceSpec};
 
 fn load_corpus(name: &str) -> Option<GraphDB> {
@@ -116,7 +117,7 @@ fn count_annos() {
                 db.strings.add(TOK),
                 Some(db.strings.add("der")),
             ),
-            None,
+            None, None
         );
         assert_eq!(9, n.count());
 
@@ -126,7 +127,7 @@ fn count_annos() {
                 db.strings.add("pos"),
                 Some(db.strings.add("ADJA")),
             ),
-            None,
+            None, None
         );
         assert_eq!(18, n.count());
     }
@@ -154,7 +155,7 @@ fn nested_loop_join() {
                 db.strings.add(TOK),
                 Some(db.strings.add("der")),
             ),
-            None,
+            None, None
         );
 
         let n2 = NodeSearch::new(
@@ -163,7 +164,7 @@ fn nested_loop_join() {
                 db.strings.add("pos"),
                 Some(db.strings.add("ADJA")),
             ),
-            None,
+            None, None
         );
 
 
@@ -211,7 +212,7 @@ fn index_join() {
                 db.strings.add(TOK),
                 Some(db.strings.add("der")),
             ),
-            None,
+            None, None
         );
 
 
@@ -224,8 +225,12 @@ fn index_join() {
 
         let n1 = Box::new(n1);
 
-        let anno_cond  = move |anno : Annotation|  {return anno.key.name == anno_name && anno.val == anno_val };
-        let join = IndexJoin::new(n1, 0, op, (None, Some(anno_name)), Box::new(anno_cond), &db.node_annos, None);
+        let node_search_desc  = NodeSearchDesc {
+            anno_cond: Box::new(move |anno : Annotation|  {return anno.key.name == anno_name && anno.val == anno_val }),
+            anno_qname: (None, Some(anno_name)),
+        };
+
+        let join = IndexJoin::new(n1, 0, op, node_search_desc, &db.node_annos, None);
 
         assert_eq!(3, join.count());
     }

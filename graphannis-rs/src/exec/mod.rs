@@ -61,8 +61,8 @@ impl Desc {
 }
 
 pub struct NodeSearchDesc<'a> {
-    anno_qname: (Option<StringID>, Option<StringID>),
-    anno_cond: Box<Fn(Annotation) -> bool + 'a>,
+    pub anno_qname: (Option<StringID>, Option<StringID>),
+    pub anno_cond: Box<Fn(Annotation) -> bool + 'a>,
 }
 
 pub trait ExecutionNode : Iterator {
