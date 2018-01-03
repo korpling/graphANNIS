@@ -1,5 +1,4 @@
-use {Match};
-use self::nodesearch::NodeSearch;
+use {Match, StringID, Annotation};
 
 use std::collections::BTreeMap;
 
@@ -61,14 +60,19 @@ impl Desc {
     }
 }
 
+pub struct NodeSearchDesc<'a> {
+    anno_qname: (Option<StringID>, Option<StringID>),
+    anno_cond: Box<Fn(Annotation) -> bool + 'a>,
+}
+
 pub trait ExecutionNode : Iterator {
     fn as_iter(& mut self) -> &mut Iterator<Item = Vec<Match>>;
 
-    fn as_nodesearch(&self) -> Option<&NodeSearch> {
-        None
-    }
 
     fn get_desc(&self) -> Option<&Desc> {
+        None
+    }
+    fn get_node_search_desc(&self) -> Option<&NodeSearchDesc> {
         None
     }
 

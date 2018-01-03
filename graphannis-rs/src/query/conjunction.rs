@@ -62,9 +62,12 @@ impl<'a> Conjunction<'a> {
 
     pub fn make_exec_node(mut self, db : &'a GraphDB) -> Result<Box<ExecutionNode<Item=Vec<Match>>>, Error> {
 
-        let mut node2component : BTreeMap<usize, usize> = BTreeMap::new();
         // TODO: handle cost estimations
+        // TODO: parallization mapping
 
+
+        let mut node2component : BTreeMap<usize, usize> = BTreeMap::new();
+        
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
         let mut component2exec : BTreeMap<usize, Box<ExecutionNode<Item=Vec<Match>>>> = BTreeMap::new();
@@ -83,7 +86,6 @@ impl<'a> Conjunction<'a> {
             let component_left = node2component.get(&op_entry.idx_left).ok_or(Error::ImpossibleQuery)?.clone();
             let component_right = node2component.get(&op_entry.idx_right).ok_or(Error::ImpossibleQuery)?.clone();
 
-            // TODO: parallization mapping
             let exec_left = component2exec.remove(&component_left).ok_or(Error::ImpossibleQuery)?;
             let exec_right = component2exec.remove(&component_right).ok_or(Error::ImpossibleQuery)?;
 
@@ -98,10 +100,15 @@ impl<'a> Conjunction<'a> {
                 let op : Box<Operator> = op_entry.op.create_operator(db).ok_or(Error::ImpossibleQuery)?;
                 let filter = BinaryFilter::new(exec_left, idx_left, idx_right, op);
                 Box::new(filter)
-            } else if exec_right.as_nodesearch().is_some() {
-                // TODO: use cost estimation to check if an IndexJoin is actually better
+            } else if exec_right.get_node_search_desc().is_some() {
+                // TODO: use cost estimation to check if an IndexJoin is really better
 
                 // use index join
+
+                let node_search_desc = exec_right.get_node_search_desc().unwrap();
+
+//                let join = IndexJoin::new(n1, 0, op, (None, Some(anno_name)), Box::new(anno_cond), &db.node_annos, None);
+
                 unimplemented!()
 
             } else {

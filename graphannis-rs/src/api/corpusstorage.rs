@@ -266,7 +266,7 @@ impl CorpusStorage {
                 tok_key.name,
                 Some(try!(db.strings.find_id("der").ok_or(Error::ImpossibleSearch)).clone()),
             ),
-            None,
+            None, None,
         );
         let n1 = q.add_node(n1);
         let n2 = NodeSearch::new(
@@ -275,7 +275,7 @@ impl CorpusStorage {
                 try!(db.strings.find_id("pos").ok_or(Error::ImpossibleSearch)).clone(),
                 Some(try!(db.strings.find_id("NN").ok_or(Error::ImpossibleSearch)).clone()),
             ),
-            None,
+            None, None,
         );
         let n2 = q.add_node(n2);
 
