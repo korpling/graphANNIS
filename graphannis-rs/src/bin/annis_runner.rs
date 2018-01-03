@@ -8,7 +8,7 @@ extern crate simplelog;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline::completion::{Completer, FilenameCompleter};
-use simplelog::{LogLevelFilter, TermLogger};
+use simplelog::{LogLevelFilter, TermLogger, SimpleLogger};
 use graphannis::relannis;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -205,8 +205,11 @@ impl AnnisRunner {
 
 fn main() {
     if let Err(e) = TermLogger::init(LogLevelFilter::Info, simplelog::Config::default()) {
-        println!("Error, can't initialize the terminal log output: {}", e)
-    }
+        println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
+        if let Err(e_simple) = SimpleLogger::init(LogLevelFilter::Info, simplelog::Config::default()) {
+            println!("Simple logging failed too: {}", e_simple);
+        }
+     }
 
     let args: Vec<String> = env::args().collect();
 
