@@ -79,6 +79,7 @@ pub enum Error {
     DBError(graphdb::Error),
     LoadingFailed,
     ImpossibleSearch,
+    NoSuchCorpus,
     QueryCreationError(plan::Error),
     StringConvert(std::ffi::OsString),
 }
@@ -177,7 +178,7 @@ impl CorpusStorage {
     }
 
 
-    fn get_loader(&self, corpus_name: &str) -> Arc<RwLock<DBLoader>> {
+    fn get_or_create_loader(&self, corpus_name: &str) -> Arc<RwLock<DBLoader>> {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
@@ -192,6 +193,17 @@ impl CorpusStorage {
         });
 
         return entry.clone();
+    }
+
+    fn get_loader(&self, corpus_name: &str) -> Option<Arc<RwLock<DBLoader>>> {
+
+        let corpus_name = corpus_name.to_string();
+
+        let cache_lock = self.corpus_cache.read().unwrap();
+        let cache = &*cache_lock;
+
+        let entry = cache.get(&corpus_name);
+        return entry.cloned();
     }
 
 
@@ -266,7 +278,7 @@ impl CorpusStorage {
 
         // TODO: make this a Disjunction function that collects all components
         let necessary_components = q.necessary_components();
-        let db_loader = self.get_loader(corpus_name);
+        let db_loader = self.get_loader(corpus_name).ok_or(Error::NoSuchCorpus)?;
 
 
         // make sure the database is loaded at all
