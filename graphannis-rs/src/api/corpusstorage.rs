@@ -130,7 +130,7 @@ impl CorpusStorage {
         Ok(cs)
     }
 
-    fn load_available_from_disk(&mut self) -> Result<(), Error> {
+    fn load_available_from_disk(&self) -> Result<(), Error> {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
@@ -164,7 +164,7 @@ impl CorpusStorage {
     }
 
 
-    fn get_loader(&mut self, corpus_name: &str) -> Arc<RwLock<DBLoader>> {
+    fn get_loader(&self, corpus_name: &str) -> Arc<RwLock<DBLoader>> {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
@@ -183,7 +183,7 @@ impl CorpusStorage {
 
 
     /// Import a corpus in relANNIS format from an external location into this corpus storage
-    pub fn import(&mut self, corpus_name: &str, mut db: GraphDB) {
+    pub fn import(&self, corpus_name: &str, mut db: GraphDB) {
         let r = db.ensure_loaded_all();
         if let Err(e) = r {
             error!(
@@ -233,7 +233,7 @@ impl CorpusStorage {
     }
 
     fn prepare_query(
-        &mut self,
+        &self,
         corpus_name: &str,
         query_as_json: &str,
     ) -> Result<PreparationResult, Error> {
@@ -286,7 +286,7 @@ impl CorpusStorage {
         unimplemented!();
     }
 
-    pub fn count(&mut self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
+    pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
 
         let prep = self.prepare_query(corpus_name, query_as_json)?;
         
