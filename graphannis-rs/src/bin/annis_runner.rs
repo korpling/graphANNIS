@@ -185,8 +185,15 @@ impl AnnisRunner {
     fn count(&self, args : &str) {
 
         if let Some(ref corpus) = self.current_corpus {
+            let t_before = std::time::SystemTime::now();
             let c = self.storage.count(corpus, args);
-            if let Ok(c) = c {
+            let load_time = t_before.elapsed();
+
+            if let Ok(t) = load_time {
+                info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            }
+
+            if let Ok(c) = c {                
                 println!("result: {} matches", c);
             } else {
                 println!("Error when executing query: {:?}", c);
