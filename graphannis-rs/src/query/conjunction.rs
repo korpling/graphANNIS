@@ -1,13 +1,17 @@
 use {Match, NodeID};
+use graphdb::GraphDB;
 use nodesearch::NodeSearch;
-use operator::OperatorSpec;
-use plan::ExecutionNode;
+use operator::{Operator, OperatorSpec};
+use plan::{ExecutionNode, Desc};
+use join::indexjoin::IndexJoin;
+use join::nestedloop::NestedLoop;
 use super::disjunction::Disjunction;
 
 use std::collections::BTreeMap;
 
 pub enum Error {
     ImpossibleQuery,
+    MissingDescription,
 }
 
 struct OperatorEntry {
@@ -54,13 +58,57 @@ impl<'a> Conjunction<'a> {
 
     }
 
-    pub fn make_exec_node(&self) -> Result<Box<ExecutionNode<Item=Vec<Match>>>, Error> {
-        let mut node2component : BTreeMap<NodeID, usize> = BTreeMap::new();
-        let mut component2exec : BTreeMap<usize, Box<ExecutionNode<Item=Vec<Match>>>> = BTreeMap::new();
+    pub fn make_exec_node(mut self, db : &'a GraphDB) -> Result<Box<ExecutionNode<Item=Vec<Match>>>, Error> {
 
-        // 1. add all nodes
-        let mut i = 0;
+        let mut node2component : BTreeMap<usize, usize> = BTreeMap::new();
+        // TODO: handle cost estimations
+
+        // Create a map where the key is the component number
+        // and move all nodes with their index as component number.
+        let mut component2exec : BTreeMap<usize, Box<ExecutionNode<Item=Vec<Match>>>> = BTreeMap::new();
+        {
+            let mut node_nr : usize = 0;
+            for n in self.nodes.drain(..) {
+                node2component.insert(node_nr, node_nr);
+                component2exec.insert(node_nr, Box::new(n));
+                node_nr += 1;
+            }
+        }
+         
+        // add the joins which produce the results
+        for op_entry in self.operators.drain(..) {
+
+            let component_left = node2component.get(&op_entry.idx_left).ok_or(Error::ImpossibleQuery)?.clone();
+            let component_right = node2component.get(&op_entry.idx_right).ok_or(Error::ImpossibleQuery)?.clone();
+
+            // TODO: parallization mapping
+            let exec_left = component2exec.remove(&component_left).ok_or(Error::ImpossibleQuery)?;
+            let exec_right = component2exec.remove(&component_right).ok_or(Error::ImpossibleQuery)?;
+
+            if component_left == component_right {
+                // use a filter, not a join
+            } else if exec_right.as_nodesearch().is_some() {
+                // TODO: use cost estimation to check if an IndexJoin is actually better
+
+                // use index join
+            } else {
+                // use nested loop as "fallback"
+
+                // TODO: check if LHS and RHS should be switched
+                
+                let idx_left = exec_left.get_desc().ok_or(Error::MissingDescription)?
+                    .node_pos.get(&op_entry.idx_left).unwrap_or(&0).clone();
+                let idx_right = exec_right.get_desc().ok_or(Error::MissingDescription)?
+                    .node_pos.get(&op_entry.idx_right).unwrap_or(&0).clone();
+
+                let op : Box<Operator> = op_entry.op.create_operator(db).ok_or(Error::ImpossibleQuery)?;
+                let join = NestedLoop::new(exec_left, exec_right, idx_left, idx_right, op);
+            }
+
+            
+        }
 
         unimplemented!()
     }
+
 }

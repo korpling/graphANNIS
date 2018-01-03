@@ -8,6 +8,7 @@ use util::token_helper::TokenHelper;
 use std::rc::Rc;
 use std;
 
+#[derive(Clone)]
 pub struct PrecedenceSpec {
     pub segmentation: Option<String>,
     pub min_dist: usize,
@@ -45,6 +46,15 @@ impl OperatorSpec for PrecedenceSpec {
         let mut v : Vec<Component> = vec![COMPONENT_ORDER.clone(), COMPONENT_LEFT.clone()];
         v.append(&mut token_helper::necessary_components());
         v
+    }
+
+    fn create_operator<'b>(&self, db : &'b GraphDB) -> Option<Box<Operator + 'b>> {
+        let optional_op = Precedence::new(db, self.clone());
+        if let Some(op) = optional_op {
+            return Some(Box::new(op));
+        } else {
+            return None;
+        }
     }
 }
 

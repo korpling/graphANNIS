@@ -1,4 +1,5 @@
 use Match;
+use graphdb::GraphDB;
 use query::disjunction::Disjunction;
 use query::conjunction::Conjunction;
 use nodesearch::NodeSearch;
@@ -86,10 +87,10 @@ pub struct ExecutionPlan {
 
 impl ExecutionPlan {
     
-    pub fn from_disjunction(query : &Disjunction) -> Result<ExecutionPlan, Error> {
+    pub fn from_disjunction(mut query : Disjunction, db : &GraphDB) -> Result<ExecutionPlan, Error> {
         let mut plans : Vec<Box<ExecutionNode<Item=Vec<Match>>>> = Vec::new();
-        for alt in query.alternatives.iter() {
-            let p = alt.make_exec_node();
+        for alt in query.alternatives.drain(..) {
+            let p = alt.make_exec_node(db);
             if let Ok(p) = p {
                 plans.push(p);
             }
