@@ -5,6 +5,7 @@ use exec::{ExecutionNode};
 use exec::indexjoin::IndexJoin;
 use exec::nestedloop::NestedLoop;
 use exec::nodesearch::NodeSearch;
+use exec::binary_filter::BinaryFilter;
 
 use super::disjunction::Disjunction;
 
@@ -86,9 +87,17 @@ impl<'a> Conjunction<'a> {
             let exec_left = component2exec.remove(&component_left).ok_or(Error::ImpossibleQuery)?;
             let exec_right = component2exec.remove(&component_right).ok_or(Error::ImpossibleQuery)?;
 
+            let idx_left = exec_left.get_desc().ok_or(Error::MissingDescription)?
+                    .node_pos.get(&op_entry.idx_left).unwrap_or(&0).clone();
+            let idx_right = exec_right.get_desc().ok_or(Error::MissingDescription)?
+                .node_pos.get(&op_entry.idx_right).unwrap_or(&0).clone();
+
             let new_exec : Box<ExecutionNode<Item = Vec<Match>>> = if component_left == component_right {
-                // use a filter, not a join
-                unimplemented!()
+                // don't create new tuples, only filter the existing ones
+                // TODO: check if LHS or RHS is better suited as filter input iterator
+                let op : Box<Operator> = op_entry.op.create_operator(db).ok_or(Error::ImpossibleQuery)?;
+                let filter = BinaryFilter::new(exec_left, idx_left, idx_right, op);
+                Box::new(filter)
             } else if exec_right.as_nodesearch().is_some() {
                 // TODO: use cost estimation to check if an IndexJoin is actually better
 
@@ -100,11 +109,6 @@ impl<'a> Conjunction<'a> {
 
                 // TODO: check if LHS and RHS should be switched
                 
-                let idx_left = exec_left.get_desc().ok_or(Error::MissingDescription)?
-                    .node_pos.get(&op_entry.idx_left).unwrap_or(&0).clone();
-                let idx_right = exec_right.get_desc().ok_or(Error::MissingDescription)?
-                    .node_pos.get(&op_entry.idx_right).unwrap_or(&0).clone();
-
                 let op : Box<Operator> = op_entry.op.create_operator(db).ok_or(Error::ImpossibleQuery)?;
                 let join = NestedLoop::new(exec_left, exec_right, idx_left, idx_right, op);
                 
