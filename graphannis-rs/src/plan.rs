@@ -1,6 +1,9 @@
 use Match;
 use query::disjunction::Disjunction;
 use query::conjunction::Conjunction;
+use nodesearch::NodeSearch;
+
+use std::collections::BTreeMap;
 
 pub enum Error {
     ImpossiblePlan,
@@ -11,6 +14,7 @@ pub struct Desc {
     pub component_nr : usize,
     pub lhs: Option<Box<Desc>>,
     pub rhs: Option<Box<Desc>>,
+    pub node_pos : BTreeMap<usize, usize>,
 }
 
 impl Desc {
@@ -23,22 +27,42 @@ impl Desc {
             0
         };
 
-        let lhs = if let Some(d) = lhs {
+
+        let mut lhs = if let Some(d) = lhs {
             Some(Box::new(d.clone()))
         } else {
             None
         };
 
-        let rhs = if let Some(d) = rhs {
+        let mut rhs = if let Some(d) = rhs {
             Some(Box::new(d.clone()))
         } else {
             None
         };
+
+        // merge both node positions
+        let mut node_pos = BTreeMap::new();
+        let offset = if let Some(ref mut lhs) = lhs {
+            node_pos.append(&mut lhs.node_pos);
+            node_pos.len()
+        } else {
+            0
+        };
+        if let Some(ref mut rhs) = rhs {
+            for e in rhs.node_pos.iter() {
+                // the RHS has an offset after the join
+                node_pos.insert(e.0.clone(), e.1 + offset);
+            }
+            // move values to new map, the old should be empty (as with the append() function)
+            rhs.node_pos.clear();
+        }
+
 
         Desc {
             component_nr,
             lhs,
             rhs,
+            node_pos,
         }
     }
 }
@@ -46,9 +70,14 @@ impl Desc {
 pub trait ExecutionNode : Iterator {
     fn as_iter(& mut self) -> &mut Iterator<Item = Vec<Match>>;
 
+    fn as_nodesearch(&self) -> Option<&NodeSearch> {
+        None
+    }
+
     fn get_desc(&self) -> Option<&Desc> {
         None
     }
+
 }
 
 pub struct ExecutionPlan {
