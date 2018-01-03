@@ -2,12 +2,14 @@ extern crate graphannis;
 
 use std::env;
 use std::path::PathBuf;
+use std::rc::Rc;
+
 use graphannis::graphdb::*;
 use graphannis::relannis;
 use graphannis::{Annotation, Edge};
 use graphannis::operator::OperatorSpec;
 use graphannis::exec::NodeSearchDesc;
-use graphannis::exec::nodesearch::NodeSearch;
+use graphannis::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use graphannis::exec::nestedloop::NestedLoop;
 use graphannis::exec::indexjoin::IndexJoin;
 use graphannis::operator::precedence::{Precedence, PrecedenceSpec};
@@ -111,10 +113,10 @@ fn count_annos() {
     if let Some(db) = load_corpus("pcc2") {
 
 
-        let n = NodeSearch::exact_value(Some(ANNIS_NS), TOK, Some("der"), &db).unwrap();
+        let n = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")}, &db).unwrap();
         assert_eq!(9, n.count());
 
-        let n = NodeSearch::exact_value(None, "pos", Some("ADJA"), &db).unwrap();
+        let n = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: None, name: "pos", val: Some("ADJA")}, &db).unwrap();
         assert_eq!(18, n.count());
     }
 }
@@ -135,10 +137,9 @@ fn nested_loop_join() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
-        let n1 = NodeSearch::exact_value(Some(ANNIS_NS), TOK, Some("der"), &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")}, &db).unwrap();
 
-        let n2 = NodeSearch::exact_value(None, "pos", Some("ADJA"), &db).unwrap();
-
+        let n2 = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: None, name: "pos", val: Some("ADJA")}, &db).unwrap();
 
         let op = Precedence::new(
             &db,
@@ -178,7 +179,7 @@ fn index_join() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
-        let n1 = NodeSearch::exact_value(Some(ANNIS_NS), TOK, Some("der"), &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")}, &db).unwrap();
 
 
         let op = Precedence::new(
@@ -195,7 +196,7 @@ fn index_join() {
             qname: (None, Some(anno_name)),
         };
 
-        let join = IndexJoin::new(n1, 0, op, node_search_desc, &db.node_annos, None);
+        let join = IndexJoin::new(n1, 0, op, Rc::new(node_search_desc), &db.node_annos, None);
 
         assert_eq!(3, join.count());
     }

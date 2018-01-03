@@ -3,8 +3,9 @@ use graphdb::GraphDB;
 use query::disjunction::Disjunction;
 use exec::ExecutionNode;
 
+#[derive(Debug)]
 pub enum Error {
-    ImpossiblePlan,
+    ImpossibleSearch,
 }
 
 pub struct ExecutionPlan<'a> {
@@ -23,7 +24,7 @@ impl<'a> ExecutionPlan<'a> {
         }
 
         if plans.is_empty() {
-            return Err(Error::ImpossiblePlan);
+            return Err(Error::ImpossibleSearch);
         } else {
             let it = plans.into_iter().flat_map(|p| p);
             let box_it : Box<Iterator<Item = Vec<Match>>> = Box::new(it);

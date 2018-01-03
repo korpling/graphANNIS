@@ -23,6 +23,9 @@ extern crate serde_derive;
 extern crate lazy_static;
 
 #[macro_use]
+extern crate json;
+
+#[macro_use]
 pub mod util;
 
 mod types;

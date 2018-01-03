@@ -22,6 +22,7 @@ simplelog = "0.4"
 lazy_static = "1.0"
 strum = "*"
 strum_macros = "*"
+json = "0.11"
 
 libc = "*"
 

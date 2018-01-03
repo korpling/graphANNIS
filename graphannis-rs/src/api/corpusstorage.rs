@@ -2,7 +2,7 @@
 //! It is transactional and thread-safe.
 
 use {Component};
-use exec::nodesearch::NodeSearch;
+use exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use operator::precedence::PrecedenceSpec;
 use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
@@ -10,8 +10,10 @@ use std::collections::{BTreeMap, HashSet};
 use graphdb;
 use graphdb::{GraphDB, ANNIS_NS, TOK};
 use std;
+use plan;
 use plan::ExecutionPlan;
 use query::conjunction::Conjunction;
+use query::disjunction::Disjunction;
 use std::iter::FromIterator;
 
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
@@ -75,6 +77,7 @@ pub enum Error {
     DBError(graphdb::Error),
     LoadingFailed,
     ImpossibleSearch,
+    QueryCreationError(plan::Error),
     StringConvert(std::ffi::OsString),
 }
 
@@ -87,6 +90,16 @@ impl From<std::io::Error> for Error {
 impl From<graphdb::Error> for Error {
     fn from(e: graphdb::Error) -> Error {
         Error::DBError(e)
+    }
+}
+
+impl From<plan::Error> for Error {
+    fn from(e: plan::Error) -> Error {
+
+        match e {
+            plan::Error::ImpossibleSearch => Error::ImpossibleSearch,
+            _ => Error::QueryCreationError(e),
+        }
     }
 }
 
@@ -106,10 +119,9 @@ pub struct CorpusStorage {
 }
 
 
-struct PreparationResult<'a> {
+struct PreparationResult {
     db_loader : Arc<RwLock<DBLoader>>,
     missing_components: Vec<Component>,
-    plan: ExecutionPlan<'a>, 
 }
 
 
@@ -259,16 +271,15 @@ impl CorpusStorage {
         // this is just an example query
         let mut q = Conjunction::new();
 
-        let n1 = NodeSearch::exact_value(Some(ANNIS_NS), TOK, Some("der"), db).ok_or(Error::ImpossibleSearch)?;
-        let n1 = q.add_node(n1);
-        let n2 = NodeSearch::exact_value(None, "pos", Some("NN"), db).ok_or(Error::ImpossibleSearch)?;
-        let n2 = q.add_node(n2);
-
+        let n1 = NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")};
+        let n1 = q.add_node(NodeSearch::from_spec(n1,db).ok_or(Error::ImpossibleSearch)?);
+        let n2 = NodeSearchSpec::ExactValue {ns: None, name: "pos", val: Some("ADJA")};
+        let n2 = q.add_node(NodeSearch::from_spec(n2,db).ok_or(Error::ImpossibleSearch)?);
+ 
         let prec = PrecedenceSpec {segmentation: None, min_dist: 1, max_dist: 1};
         q.add_operator(Box::new(prec), n1, n2);
 
-
-        unimplemented!();
+        unimplemented!()
     }
 
     pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
@@ -278,16 +289,17 @@ impl CorpusStorage {
 
 
         if prep.missing_components.is_empty() == false {
+            // load missing components in database with a write-lock (this will block all other queries on this DB)
             let mut lock = prep.db_loader.write().unwrap();
-            let db: &GraphDB = (&mut *lock).get_with_components_loaded(prep.missing_components.iter());
-        // do something with DB
-        } else {
-            let lock = prep.db_loader.read().unwrap();
-            let db: &GraphDB = (&*lock).get().unwrap();
+            (&mut *lock).get_with_components_loaded(prep.missing_components.iter());
+        }
 
-            // do something with DB
-        };
+        // accuire read-only lock and execute query
+        let lock = prep.db_loader.read().unwrap();
+        let db: &GraphDB = (&*lock).get().unwrap();
 
-        return Ok(0);
+        unimplemented!()
+        
+
     }
 }

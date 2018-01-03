@@ -11,8 +11,9 @@ use super::disjunction::Disjunction;
 
 use std::collections::BTreeMap;
 
+#[derive(Debug)]
 pub enum Error {
-    ImpossibleQuery,
+    ImpossibleSearch,
     MissingDescription,
     ComponentsNotConnected,
 }
@@ -133,19 +134,19 @@ impl<'a> Conjunction<'a> {
         for op_entry in self.operators.drain(..) {
             let component_left = node2component
                 .get(&op_entry.idx_left)
-                .ok_or(Error::ImpossibleQuery)?
+                .ok_or(Error::ImpossibleSearch)?
                 .clone();
             let component_right = node2component
                 .get(&op_entry.idx_right)
-                .ok_or(Error::ImpossibleQuery)?
+                .ok_or(Error::ImpossibleSearch)?
                 .clone();
 
             let exec_left = component2exec
                 .remove(&component_left)
-                .ok_or(Error::ImpossibleQuery)?;
+                .ok_or(Error::ImpossibleSearch)?;
             let exec_right = component2exec
                 .remove(&component_right)
-                .ok_or(Error::ImpossibleQuery)?;
+                .ok_or(Error::ImpossibleSearch)?;
 
             let idx_left = exec_left
                 .get_desc()
@@ -165,7 +166,7 @@ impl<'a> Conjunction<'a> {
             let op: Box<Operator> = op_entry
                 .op
                 .create_operator(db)
-                .ok_or(Error::ImpossibleQuery)?;
+                .ok_or(Error::ImpossibleSearch)?;
 
             let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
@@ -199,7 +200,7 @@ impl<'a> Conjunction<'a> {
 
             let new_component_nr = new_exec
                 .get_desc()
-                .ok_or(Error::ImpossibleQuery)?
+                .ok_or(Error::ImpossibleSearch)?
                 .component_nr;
             update_components_for_nodes(&mut node2component, component_left, new_component_nr);
             update_components_for_nodes(&mut node2component, component_right, new_component_nr);
@@ -219,8 +220,8 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        let first_component_id = first_component_id.ok_or(Error::ImpossibleQuery)?;
-        return component2exec.remove(&first_component_id).ok_or(Error::ImpossibleQuery);
+        let first_component_id = first_component_id.ok_or(Error::ImpossibleSearch)?;
+        return component2exec.remove(&first_component_id).ok_or(Error::ImpossibleSearch);
 
     }
 }
