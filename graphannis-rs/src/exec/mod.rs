@@ -1,7 +1,3 @@
-pub mod nestedloop;
-pub mod indexjoin;
-pub mod nodesearch;
-
 use {Match};
 use self::nodesearch::NodeSearch;
 
@@ -78,3 +74,7 @@ pub trait ExecutionNode : Iterator {
 
 }
 
+pub mod nestedloop;
+pub mod indexjoin;
+pub mod nodesearch;
+pub mod binary_filter;
