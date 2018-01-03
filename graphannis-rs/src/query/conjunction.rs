@@ -1,4 +1,4 @@
-use Match;
+use {Match, Component};
 use graphdb::GraphDB;
 use operator::{Operator, OperatorSpec};
 use exec::{Desc, ExecutionNode};
@@ -83,6 +83,17 @@ impl<'a> Conjunction<'a> {
             idx_right,
             original_order,
         });
+    }
+
+    pub fn necessary_components(&self) -> Vec<Component> {
+        let mut result = vec![];
+        
+        for op_entry in self.operators.iter() {
+            let mut c = op_entry.op.necessary_components();
+            result.append(&mut c);
+        }
+
+        return result;
     }
 
 

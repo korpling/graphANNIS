@@ -182,8 +182,19 @@ impl AnnisRunner {
         }
     }
 
-    fn count(&mut self, args : &str) {
+    fn count(&self, args : &str) {
 
+        if let Some(ref corpus) = self.current_corpus {
+            let c = self.storage.count(corpus, args);
+            if let Ok(c) = c {
+                println!("result: {} matches", c);
+            } else {
+                println!("Error when executing query: {:?}", c);
+            }
+            
+        } else {
+            println!("You need to select a corpus first with the \"corpus\" command");
+        }
 
        
     }

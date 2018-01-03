@@ -262,12 +262,10 @@ impl CorpusStorage {
  
         let prec = PrecedenceSpec {segmentation: None, min_dist: 1, max_dist: 1};
 
-        // TODO: make this a Disjunction function that collects all components
-        let necessary_components = prec.necessary_components().clone();
-
         q.add_operator(Box::new(prec), n1, n2);
 
-
+        // TODO: make this a Disjunction function that collects all components
+        let necessary_components = q.necessary_components();
         let db_loader = self.get_loader(corpus_name);
 
 
