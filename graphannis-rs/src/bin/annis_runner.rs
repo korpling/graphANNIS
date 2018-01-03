@@ -206,7 +206,7 @@ impl AnnisRunner {
 fn main() {
     if let Err(e) = TermLogger::init(LogLevelFilter::Info, simplelog::Config::default()) {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
-        if let Err(e_simple) = SimpleLogger::init(LogLevelFilter::Info, simplelog::Config::default()) {
+        if let Err(e_simple) = SimpleLogger::init(LogLevelFilter::Debug, simplelog::Config::default()) {
             println!("Simple logging failed too: {}", e_simple);
         }
      }

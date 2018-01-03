@@ -13,6 +13,7 @@ use strum::IntoEnumIterator;
 use std::string::ToString;
 use bincode;
 use serde;
+use log;
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
@@ -162,6 +163,7 @@ impl GraphDB {
 
         self.find_components_from_disk(&location)?;
 
+
         if preload {
             let all_components: Vec<Component> = self.components.keys().cloned().collect();
             for c in all_components {
@@ -191,10 +193,12 @@ impl GraphDB {
                         name: String::from(""),
                     };
                     {
-                        let mut input_file = component_to_relative_path(&empty_name_component);
+                        let mut input_file = PathBuf::from(location);
+                        input_file.push(component_to_relative_path(&empty_name_component));
                         input_file.push("component.bin");
                         if input_file.is_file() {
                             self.components.insert(empty_name_component.clone(), None);
+                            debug!("Registered component {:?}", empty_name_component);
                         }
                     }
                     // also load all named components
@@ -205,12 +209,15 @@ impl GraphDB {
                             layer: layer.file_name().into_string()?,
                             name: name.file_name().into_string()?,
                         };
-                        let mut data_file = component_to_relative_path(&named_component);
+                        let mut data_file = PathBuf::from(location);
+                        data_file.push(component_to_relative_path(&named_component));
                         data_file.push("component.bin");
-                        let mut cfg_file = component_to_relative_path(&named_component);
+                        let mut cfg_file = PathBuf::from(location);
+                        cfg_file.push(component_to_relative_path(&named_component));
                         cfg_file.push("impl.cfg");
                         if data_file.is_file() && cfg_file.is_file() {
-                            self.components.insert(named_component, None);
+                            self.components.insert(named_component.clone(), None);
+                            debug!("Registered component {:?}", named_component);
                         }
                     }
                 }
