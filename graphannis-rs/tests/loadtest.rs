@@ -108,27 +108,13 @@ fn edges() {
 
 #[test]
 fn count_annos() {
-    if let Some(mut db) = load_corpus("pcc2") {
+    if let Some(db) = load_corpus("pcc2") {
 
 
-        let n = NodeSearch::new(
-            db.node_annos.exact_anno_search(
-                Some(db.strings.add(ANNIS_NS)),
-                db.strings.add(TOK),
-                Some(db.strings.add("der")),
-            ),
-            None, None
-        );
+        let n = NodeSearch::exact_value(Some(ANNIS_NS), TOK, Some("der"), &db).unwrap();
         assert_eq!(9, n.count());
 
-        let n = NodeSearch::new(
-            db.node_annos.exact_anno_search(
-                None,
-                db.strings.add("pos"),
-                Some(db.strings.add("ADJA")),
-            ),
-            None, None
-        );
+        let n = NodeSearch::exact_value(None, "pos", Some("ADJA"), &db).unwrap();
         assert_eq!(18, n.count());
     }
 }
@@ -149,23 +135,9 @@ fn nested_loop_join() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
-        let n1 = NodeSearch::new(
-            db.node_annos.exact_anno_search(
-                Some(db.strings.add(ANNIS_NS)),
-                db.strings.add(TOK),
-                Some(db.strings.add("der")),
-            ),
-            None, None
-        );
+        let n1 = NodeSearch::exact_value(Some(ANNIS_NS), TOK, Some("der"), &db).unwrap();
 
-        let n2 = NodeSearch::new(
-            db.node_annos.exact_anno_search(
-                None,
-                db.strings.add("pos"),
-                Some(db.strings.add("ADJA")),
-            ),
-            None, None
-        );
+        let n2 = NodeSearch::exact_value(None, "pos", Some("ADJA"), &db).unwrap();
 
 
         let op = Precedence::new(
@@ -206,14 +178,7 @@ fn index_join() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
-        let n1 = NodeSearch::new(
-            db.node_annos.exact_anno_search(
-                Some(db.strings.add(ANNIS_NS)),
-                db.strings.add(TOK),
-                Some(db.strings.add("der")),
-            ),
-            None, None
-        );
+        let n1 = NodeSearch::exact_value(Some(ANNIS_NS), TOK, Some("der"), &db).unwrap();
 
 
         let op = Precedence::new(
@@ -226,8 +191,8 @@ fn index_join() {
         let n1 = Box::new(n1);
 
         let node_search_desc  = NodeSearchDesc {
-            anno_cond: Box::new(move |anno : Annotation|  {return anno.key.name == anno_name && anno.val == anno_val }),
-            anno_qname: (None, Some(anno_name)),
+            cond: Box::new(move |anno : Annotation|  {return anno.key.name == anno_name && anno.val == anno_val }),
+            qname: (None, Some(anno_name)),
         };
 
         let join = IndexJoin::new(n1, 0, op, node_search_desc, &db.node_annos, None);

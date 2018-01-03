@@ -19,7 +19,7 @@ impl<'a> NodeSearch<'a> {
         let name_id : StringID = db.strings.find_id(name)?.clone();
         // not finding the strings will result in an None result, not in an less specific search
         let ns_id : Option<StringID> = if let Some(ns) = ns {Some(db.strings.find_id(ns)?).cloned()} else {None};
-        let val_id : Option<StringID> = if let Some(val) = ns {Some(db.strings.find_id(val)?).cloned()} else {None};
+        let val_id : Option<StringID> = if let Some(val) = val {Some(db.strings.find_id(val)?).cloned()} else {None};
 
         let it = db.node_annos.exact_anno_search(ns_id, name_id, val_id).map(|n| vec![n]);
         
@@ -51,21 +51,6 @@ impl<'a> NodeSearch<'a> {
                 cond: filter_func,
             })
         })
-    }
-
-    pub fn new(
-        it: Box<Iterator<Item = Match> + 'a>,
-        node_search_desc: Option<NodeSearchDesc<'a>>,
-        desc: Option<Desc>,
-    ) -> NodeSearch<'a> {
-        // map result of iterator to vector in order to be compatible to
-        // the other execution plan operations
-
-        NodeSearch {
-            it: Box::from(it.map(|n| vec![n])),
-            desc,
-            node_search_desc,
-        }
     }
 
     pub fn set_desc(&mut self, desc : Option<Desc>) {

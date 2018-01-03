@@ -8,7 +8,7 @@ use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, HashSet};
 use graphdb;
-use graphdb::GraphDB;
+use graphdb::{GraphDB, ANNIS_NS, TOK};
 use std;
 use plan::ExecutionPlan;
 use query::conjunction::Conjunction;
@@ -259,24 +259,9 @@ impl CorpusStorage {
         // this is just an example query
         let mut q = Conjunction::new();
 
-        let tok_key = db.get_token_key();
-        let n1 = NodeSearch::new(
-            db.node_annos.exact_anno_search(
-                Some(tok_key.ns),
-                tok_key.name,
-                Some(try!(db.strings.find_id("der").ok_or(Error::ImpossibleSearch)).clone()),
-            ),
-            None, None,
-        );
+        let n1 = NodeSearch::exact_value(Some(ANNIS_NS), TOK, Some("der"), db).ok_or(Error::ImpossibleSearch)?;
         let n1 = q.add_node(n1);
-        let n2 = NodeSearch::new(
-            db.node_annos.exact_anno_search(
-                None,
-                try!(db.strings.find_id("pos").ok_or(Error::ImpossibleSearch)).clone(),
-                Some(try!(db.strings.find_id("NN").ok_or(Error::ImpossibleSearch)).clone()),
-            ),
-            None, None,
-        );
+        let n2 = NodeSearch::exact_value(None, "pos", Some("NN"), db).ok_or(Error::ImpossibleSearch)?;
         let n2 = q.add_node(n2);
 
         let prec = PrecedenceSpec {segmentation: None, min_dist: 1, max_dist: 1};
