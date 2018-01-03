@@ -2,6 +2,7 @@ use super::{Desc, ExecutionNode, NodeSearchDesc};
 use graphdb::GraphDB;
 use {Match, StringID, Annotation};
 
+use std::rc::Rc;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
 pub struct NodeSearch<'a> {
@@ -9,7 +10,7 @@ pub struct NodeSearch<'a> {
     it: Box<Iterator<Item = Vec<Match>> + 'a>,
 
     desc: Option<Desc>,
-    node_search_desc: Option<NodeSearchDesc<'a>>,
+    node_search_desc: Rc<NodeSearchDesc>,
 }
 
 impl<'a> NodeSearch<'a> {
@@ -46,7 +47,7 @@ impl<'a> NodeSearch<'a> {
         Some(NodeSearch {
             it: Box::from(it),
             desc: Some(Desc::empty_with_fragment(&query_fragment)),
-            node_search_desc: Some(NodeSearchDesc {
+            node_search_desc: Rc::new(NodeSearchDesc {
                 qname : (ns_id, Some(name_id)),
                 cond: filter_func,
             })
@@ -55,6 +56,11 @@ impl<'a> NodeSearch<'a> {
 
     pub fn set_desc(&mut self, desc : Option<Desc>) {
         self.desc = desc;
+    }
+
+
+    pub fn get_node_search_desc(&self) -> Rc<NodeSearchDesc> {
+        self.node_search_desc.clone()
     }
 }
 
@@ -67,9 +73,10 @@ impl<'a> ExecutionNode for NodeSearch<'a> {
         self.desc.as_ref()
     }
 
-    fn get_node_search_desc(&self) -> Option<&NodeSearchDesc> {
-        self.node_search_desc.as_ref()
+    fn as_nodesearch(&self) -> Option<&NodeSearch> {
+        Some(self)
     }
+
 }
 
 impl<'a> Iterator for NodeSearch<'a> {

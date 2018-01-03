@@ -7,14 +7,14 @@ pub enum Error {
     ImpossiblePlan,
 }
 
-pub struct ExecutionPlan {
-    root: Box<Iterator<Item = Vec<Match>>>,
+pub struct ExecutionPlan<'a> {
+    root: Box<Iterator<Item = Vec<Match>> + 'a>,
 }
 
-impl ExecutionPlan {
+impl<'a> ExecutionPlan<'a> {
     
-    pub fn from_disjunction(mut query : Disjunction, db : &GraphDB) -> Result<ExecutionPlan, Error> {
-        let mut plans : Vec<Box<ExecutionNode<Item=Vec<Match>>>> = Vec::new();
+    pub fn from_disjunction(mut query : Disjunction<'a>, db : &'a GraphDB) -> Result<ExecutionPlan<'a>, Error> {
+        let mut plans : Vec<Box<ExecutionNode<Item=Vec<Match>>+'a>> = Vec::new();
         for alt in query.alternatives.drain(..) {
             let p = alt.make_exec_node(db);
             if let Ok(p) = p {
@@ -32,7 +32,7 @@ impl ExecutionPlan {
     }
 }
 
-impl Iterator for ExecutionPlan {
+impl<'a> Iterator for ExecutionPlan<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {

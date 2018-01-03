@@ -14,8 +14,8 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug Test",
-            "program": "${workspaceRoot}/target/debug/loadtest-f8c036fb8224ca9b",
-            "args": ["index_join"],
+            "program": "${workspaceRoot}/target/debug/loadtest-102b2b3c4a8fdbc3",
+            "args": ["count_annos"],
             "cwd": "${workspaceRoot}"
         }
     ]

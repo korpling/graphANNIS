@@ -106,10 +106,10 @@ pub struct CorpusStorage {
 }
 
 
-struct PreparationResult {
+struct PreparationResult<'a> {
     db_loader : Arc<RwLock<DBLoader>>,
     missing_components: Vec<Component>,
-    plan: ExecutionPlan, 
+    plan: ExecutionPlan<'a>, 
 }
 
 

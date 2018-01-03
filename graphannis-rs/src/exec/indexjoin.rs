@@ -4,6 +4,7 @@ use annostorage::AnnoStorage;
 use super::{ExecutionNode,Desc, NodeSearchDesc};
 use std;
 use std::iter::Peekable;
+use std::rc::Rc;
 
 /// A join that takes any iterator as left-hand-side (LHS) and an annotation condition as right-hand-side (RHS).
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
@@ -13,7 +14,7 @@ pub struct IndexJoin<'a> {
     rhs_candidate: std::vec::IntoIter<Match>,
     op: Box<Operator + 'a>,
     lhs_idx: usize,
-    node_search_desc: NodeSearchDesc<'a>,
+    node_search_desc: Rc<NodeSearchDesc>,
     node_annos : &'a AnnoStorage<NodeID>,
     desc: Desc,
 }
@@ -91,7 +92,7 @@ impl<'a> IndexJoin<'a> {
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         op: Box<Operator + 'a>,
-        node_search_desc: NodeSearchDesc<'a>,
+        node_search_desc: Rc<NodeSearchDesc>,
         node_annos : &'a AnnoStorage<NodeID>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
