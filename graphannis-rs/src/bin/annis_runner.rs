@@ -153,7 +153,7 @@ impl AnnisRunner {
                 info!{"Loaded corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
                 info!("Saving imported corpus to disk");
                 self.storage.import(name, db);
-                info!("Finsished saving corpus {} to disk", name);
+                info!("Finished saving corpus {} to disk", name);
             },
             Err(err) => {
                 println!("Can't import relANNIS from {}, error:\n{:?}", path, err);
