@@ -1,7 +1,7 @@
 use {Match};
 use graphdb::GraphDB;
 use operator::{Operator, OperatorSpec};
-use exec::{ExecutionNode};
+use exec::{ExecutionNode, Desc};
 use exec::indexjoin::IndexJoin;
 use exec::nestedloop::NestedLoop;
 use exec::nodesearch::NodeSearch;
@@ -73,8 +73,27 @@ impl<'a> Conjunction<'a> {
         let mut component2exec : BTreeMap<usize, Box<ExecutionNode<Item=Vec<Match>>>> = BTreeMap::new();
         {
             let mut node_nr : usize = 0;
-            for n in self.nodes.drain(..) {
+            for mut n in self.nodes.drain(..) {
                 node2component.insert(node_nr, node_nr);
+
+                let orig_query_frag = if let Some(d) = n.get_desc() {
+                    d.query_fragment.clone()
+                } else {
+                    String::from("")
+                };
+                // make sure the description is correct
+                let mut node_pos = BTreeMap::new();
+                node_pos.insert(node_nr.clone(), 0);
+                let new_desc = Desc {
+                    component_nr: node_nr,
+                    lhs: None,
+                    rhs: None,
+                    node_pos,
+                    query_fragment: orig_query_frag,
+                };
+                n.set_desc(Some(new_desc));
+
+                // move to map
                 component2exec.insert(node_nr, Box::new(n));
                 node_nr += 1;
             }

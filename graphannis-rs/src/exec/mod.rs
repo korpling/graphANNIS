@@ -8,9 +8,21 @@ pub struct Desc {
     pub lhs: Option<Box<Desc>>,
     pub rhs: Option<Box<Desc>>,
     pub node_pos : BTreeMap<usize, usize>,
+    pub query_fragment : String,
 }
 
 impl Desc {
+
+    pub fn empty_with_fragment(query_fragment : &str) -> Desc {
+        Desc {
+            component_nr: 0,
+            lhs: None,
+            rhs: None,
+            node_pos : BTreeMap::new(),
+            query_fragment: String::from(query_fragment),
+        }
+    }
+
     pub fn join(lhs : Option<&Desc>, rhs : Option<&Desc>) -> Desc {
         let component_nr = if let Some(d) = lhs  {
             d.component_nr
@@ -50,19 +62,20 @@ impl Desc {
             rhs.node_pos.clear();
         }
 
-
+        // TODO: add query fragment
         Desc {
             component_nr,
             lhs,
             rhs,
             node_pos,
+            query_fragment: String::from(""),
         }
     }
 }
 
 pub struct NodeSearchDesc<'a> {
-    pub anno_qname: (Option<StringID>, Option<StringID>),
-    pub anno_cond: Box<Fn(Annotation) -> bool + 'a>,
+    pub qname: (Option<StringID>, Option<StringID>),
+    pub cond: Box<Fn(Annotation) -> bool + 'a>,
 }
 
 pub trait ExecutionNode : Iterator {
