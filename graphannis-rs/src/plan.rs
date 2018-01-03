@@ -51,20 +51,16 @@ pub trait ExecutionNode : Iterator {
     }
 }
 
-
-
 pub struct ExecutionPlan {
     root: Box<Iterator<Item = Vec<Match>>>,
 }
 
 impl ExecutionPlan {
-    pub fn from_conjunction(query : &Conjunction) -> Result<ExecutionPlan, Error> {
-        unimplemented!()
-    }
+    
     pub fn from_disjunction(query : &Disjunction) -> Result<ExecutionPlan, Error> {
-        let mut plans : Vec<ExecutionPlan> = Vec::new();
+        let mut plans : Vec<Box<ExecutionNode<Item=Vec<Match>>>> = Vec::new();
         for alt in query.alternatives.iter() {
-            let p = ExecutionPlan::from_conjunction(alt);
+            let p = alt.make_exec_node();
             if let Ok(p) = p {
                 plans.push(p);
             }
@@ -73,7 +69,7 @@ impl ExecutionPlan {
         if plans.is_empty() {
             return Err(Error::ImpossiblePlan);
         } else {
-            let it = plans.into_iter().flat_map(|p| p.root);
+            let it = plans.into_iter().flat_map(|p| p);
             let box_it : Box<Iterator<Item = Vec<Match>>> = Box::new(it);
             return Ok(ExecutionPlan {root: box_it});
         }

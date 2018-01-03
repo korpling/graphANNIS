@@ -119,7 +119,7 @@ impl CorpusStorage {
         db_dir: &Path,
         max_allowed_cache_size: Option<usize>,
     ) -> Result<CorpusStorage, Error> {
-        let mut cs = CorpusStorage {
+        let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             max_allowed_cache_size,
             corpus_cache: RwLock::new(BTreeMap::new()),
@@ -282,6 +282,7 @@ impl CorpusStorage {
 
         let prec = PrecedenceSpec {segmentation: None, min_dist: 1, max_dist: 1};
         q.add_operator(Box::new(prec), n1, n2);
+
 
         unimplemented!();
     }

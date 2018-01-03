@@ -1,6 +1,14 @@
+use {Match, NodeID};
 use nodesearch::NodeSearch;
 use operator::OperatorSpec;
+use plan::ExecutionNode;
 use super::disjunction::Disjunction;
+
+use std::collections::BTreeMap;
+
+pub enum Error {
+    ImpossibleQuery,
+}
 
 struct OperatorEntry {
     op : Box<OperatorSpec>,
@@ -44,5 +52,15 @@ impl<'a> Conjunction<'a> {
             original_order,
         });
 
+    }
+
+    pub fn make_exec_node(&self) -> Result<Box<ExecutionNode<Item=Vec<Match>>>, Error> {
+        let mut node2component : BTreeMap<NodeID, usize> = BTreeMap::new();
+        let mut component2exec : BTreeMap<usize, Box<ExecutionNode<Item=Vec<Match>>>> = BTreeMap::new();
+
+        // 1. add all nodes
+        let mut i = 0;
+
+        unimplemented!()
     }
 }
