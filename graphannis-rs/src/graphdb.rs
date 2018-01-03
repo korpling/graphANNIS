@@ -84,6 +84,7 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Rc<GraphS
     data_path.push("component.bin");
     let f_data = std::fs::File::open(data_path)?;
     let mut buf_reader = std::io::BufReader::new(f_data);
+
     let gs = registry::deserialize(&impl_name, &mut buf_reader)?;
 
     return Ok(gs);
@@ -156,13 +157,14 @@ impl GraphDB {
 
         let mut location = PathBuf::from(location);
 
+        self.location = Some(location.clone());
+
         // TODO: implement WAL support
         location.push("current");
         self.strings = load_bincode(&location, "strings.bin")?;
         self.node_annos = load_bincode(&location, "nodes.bin")?;
 
         self.find_components_from_disk(&location)?;
-
 
         if preload {
             let all_components: Vec<Component> = self.components.keys().cloned().collect();
@@ -357,6 +359,7 @@ impl GraphDB {
         let entry: Option<Option<Rc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
             let loaded: Rc<GraphStorage> = if gs_opt.is_none() {
+            info!("Loading component {:?} from disk", c);
                 load_component_from_disk(self.component_path(c))?
             } else {
                 gs_opt.unwrap()

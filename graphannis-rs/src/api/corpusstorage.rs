@@ -41,7 +41,7 @@ impl DBLoader {
             return true;
         }
 
-        return missing.is_empty() == true;
+        return missing.len() > 0;
     }
 
     /// Get the database without loading it.
