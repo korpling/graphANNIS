@@ -1,10 +1,11 @@
-use {Match, NodeID};
+use {Match};
 use graphdb::GraphDB;
-use nodesearch::NodeSearch;
 use operator::{Operator, OperatorSpec};
-use plan::{ExecutionNode, Desc};
-use join::indexjoin::IndexJoin;
-use join::nestedloop::NestedLoop;
+use exec::{ExecutionNode};
+use exec::indexjoin::IndexJoin;
+use exec::nestedloop::NestedLoop;
+use exec::nodesearch::NodeSearch;
+
 use super::disjunction::Disjunction;
 
 use std::collections::BTreeMap;
@@ -85,12 +86,15 @@ impl<'a> Conjunction<'a> {
             let exec_left = component2exec.remove(&component_left).ok_or(Error::ImpossibleQuery)?;
             let exec_right = component2exec.remove(&component_right).ok_or(Error::ImpossibleQuery)?;
 
-            if component_left == component_right {
+            let new_exec : Box<ExecutionNode<Item = Vec<Match>>> = if component_left == component_right {
                 // use a filter, not a join
+                unimplemented!()
             } else if exec_right.as_nodesearch().is_some() {
                 // TODO: use cost estimation to check if an IndexJoin is actually better
 
                 // use index join
+                unimplemented!()
+
             } else {
                 // use nested loop as "fallback"
 
@@ -103,8 +107,9 @@ impl<'a> Conjunction<'a> {
 
                 let op : Box<Operator> = op_entry.op.create_operator(db).ok_or(Error::ImpossibleQuery)?;
                 let join = NestedLoop::new(exec_left, exec_right, idx_left, idx_right, op);
-            }
-
+                
+                Box::new(join)
+            };
             
         }
 

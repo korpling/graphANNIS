@@ -1,15 +1,14 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use {Component, ComponentType};
-use nodesearch::NodeSearch;
-use operator::OperatorSpec;
+use {Component};
+use exec::nodesearch::NodeSearch;
 use operator::precedence::PrecedenceSpec;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, HashSet};
-use graphdb::{GraphDB, ANNIS_NS, TOK, NODE_NAME, NODE_TYPE};
 use graphdb;
+use graphdb::GraphDB;
 use std;
 use plan::ExecutionPlan;
 use query::conjunction::Conjunction;

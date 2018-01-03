@@ -1,4 +1,4 @@
-use plan::{ExecutionNode, Desc};
+use super::{ExecutionNode, Desc};
 use {Match};
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.

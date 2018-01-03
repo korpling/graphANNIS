@@ -1,7 +1,7 @@
 use {Annotation, Match, NodeID, StringID, AnnoKey};
 use operator::Operator;
 use annostorage::AnnoStorage;
-use plan::{ExecutionNode,Desc};
+use super::{ExecutionNode,Desc};
 use std;
 use std::iter::Peekable;
 

@@ -36,8 +36,7 @@ pub mod graphdb;
 pub mod operator;
 pub mod relannis;
 pub mod plan;
-pub mod join;
-pub mod nodesearch;
+pub mod exec;
 pub mod query;
 
 pub mod api;
