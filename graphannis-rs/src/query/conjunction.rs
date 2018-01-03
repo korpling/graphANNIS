@@ -1,10 +1,10 @@
 use Match;
 use graphdb::GraphDB;
 use operator::{Operator, OperatorSpec};
-use exec::{Desc, ExecutionNode, NodeSearchDesc};
+use exec::{Desc, ExecutionNode};
 use exec::indexjoin::IndexJoin;
 use exec::nestedloop::NestedLoop;
-use exec::nodesearch::NodeSearch;
+use exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use exec::binary_filter::BinaryFilter;
 
 use super::disjunction::Disjunction;
@@ -26,7 +26,7 @@ struct OperatorEntry<'a> {
 }
 
 pub struct Conjunction<'a> {
-    nodes: Vec<NodeSearch<'a>>,
+    nodes: Vec<NodeSearchSpec<'a>>,
     operators: Vec<OperatorEntry<'a>>,
 }
 
@@ -66,7 +66,7 @@ impl<'a> Conjunction<'a> {
         Disjunction::new(self)
     }
 
-    pub fn add_node(&mut self, node: NodeSearch<'a>) -> usize {
+    pub fn add_node(&mut self, node: NodeSearchSpec<'a>) -> usize {
         let idx = self.nodes.len();
 
         // TODO allow wrapping with an "any node anno" search
@@ -104,7 +104,8 @@ impl<'a> Conjunction<'a> {
             BTreeMap::new();
         {
             let mut node_nr: usize = 0;
-            for mut n in self.nodes.drain(..) {
+            for n_spec in self.nodes.drain(..) {
+                let mut n = NodeSearch::from_spec(n_spec, db).ok_or(Error::ImpossibleSearch)?;
                 node2component.insert(node_nr, node_nr);
 
                 let orig_query_frag = if let Some(d) = n.get_desc() {

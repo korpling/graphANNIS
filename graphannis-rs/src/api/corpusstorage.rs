@@ -14,6 +14,8 @@ use plan;
 use plan::ExecutionPlan;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
+use operator::OperatorSpec;
+
 use std::iter::FromIterator;
 
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
@@ -119,9 +121,9 @@ pub struct CorpusStorage {
 }
 
 
-struct PreparationResult {
+struct PreparationResult<'a> {
+    query: Disjunction<'a>,
     db_loader : Arc<RwLock<DBLoader>>,
-    missing_components: Vec<Component>,
 }
 
 
@@ -248,38 +250,42 @@ impl CorpusStorage {
         corpus_name: &str,
         query_as_json: &str,
     ) -> Result<PreparationResult, Error> {
-        let db_loader = self.get_loader(corpus_name);
-
-        let empty_components : Vec<Component> = vec![];
-
-        // make sure the database is loaded at all
-        let needs_loading = {
-            let lock = db_loader.read().unwrap();
-            (&*lock).needs_loading(&empty_components)
-        };
-        if needs_loading {
-            // load the basic information (string storage and node annotations)
-            let mut lock = db_loader.write().unwrap();
-            let db: &GraphDB = (&mut *lock).get_with_components_loaded(empty_components.iter());
-        }
-
-        // accuire a read-only lock for the loaded database
-        let lock = db_loader.read().unwrap();
-        let db: &GraphDB = try!((&*lock).get().ok_or(Error::LoadingFailed));
 
         // TODO: actually parse the JSON and create query
         // this is just an example query
         let mut q = Conjunction::new();
 
         let n1 = NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")};
-        let n1 = q.add_node(NodeSearch::from_spec(n1,db).ok_or(Error::ImpossibleSearch)?);
+        let n1 = q.add_node(n1);
         let n2 = NodeSearchSpec::ExactValue {ns: None, name: "pos", val: Some("ADJA")};
-        let n2 = q.add_node(NodeSearch::from_spec(n2,db).ok_or(Error::ImpossibleSearch)?);
+        let n2 = q.add_node(n2);
  
         let prec = PrecedenceSpec {segmentation: None, min_dist: 1, max_dist: 1};
+
+        // TODO: make this a Disjunction function that collects all components
+        let necessary_components = prec.necessary_components().clone();
+
         q.add_operator(Box::new(prec), n1, n2);
 
-        unimplemented!()
+
+        let db_loader = self.get_loader(corpus_name);
+
+
+        // make sure the database is loaded at all
+        let needs_loading = {
+            let lock = db_loader.read().unwrap();
+            (&*lock).needs_loading(&necessary_components)
+        };
+        if needs_loading {
+            // load the needed components
+            let mut lock = db_loader.write().unwrap();
+            (&mut *lock).get_with_components_loaded(necessary_components.iter());
+        };
+
+        return Ok(PreparationResult {
+            query: q.into_disjunction(),
+            db_loader: db_loader,
+        });
     }
 
     pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
@@ -287,18 +293,13 @@ impl CorpusStorage {
         let prep = self.prepare_query(corpus_name, query_as_json)?;
         
 
-
-        if prep.missing_components.is_empty() == false {
-            // load missing components in database with a write-lock (this will block all other queries on this DB)
-            let mut lock = prep.db_loader.write().unwrap();
-            (&mut *lock).get_with_components_loaded(prep.missing_components.iter());
-        }
-
         // accuire read-only lock and execute query
         let lock = prep.db_loader.read().unwrap();
         let db: &GraphDB = (&*lock).get().unwrap();
 
-        unimplemented!()
+        let plan = ExecutionPlan::from_disjunction(prep.query, db)?;
+
+        return Ok(plan.count());
         
 
     }
