@@ -31,16 +31,17 @@ pub mod util;
 mod types;
 pub use types::*;
 
-pub mod dfs;
-pub mod annostorage;
-pub mod stringstorage;
-pub mod graphstorage;
-pub mod graphdb;
-pub mod operator;
+mod dfs;
+mod annostorage;
+mod stringstorage;
+mod graphstorage;
+mod graphdb;
+mod operator;
 pub mod relannis;
-pub mod plan;
-pub mod exec;
-pub mod query;
+mod plan;
+mod exec;
+mod query;
+mod parser;
 
 pub mod api;
 
