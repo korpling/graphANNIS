@@ -63,7 +63,7 @@ impl<'a> Conjunction<'a> {
     }
 
     pub fn into_disjunction(self) -> Disjunction<'a> {
-        Disjunction::new(self)
+        Disjunction::new(vec![self])
     }
 
     pub fn add_node(&mut self, node: NodeSearchSpec<'a>) -> usize {

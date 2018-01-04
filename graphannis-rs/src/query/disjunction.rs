@@ -6,9 +6,9 @@ pub struct Disjunction<'a> {
 }
 
 impl<'a> Disjunction<'a> {
-    pub fn new(alt : Conjunction<'a>) -> Disjunction<'a> {
+    pub fn new(alternatives :Vec<Conjunction<'a>>) -> Disjunction<'a> {
         Disjunction {
-            alternatives : vec![alt],
+            alternatives : alternatives,
         }
     }
 
