@@ -22,7 +22,7 @@ struct OperatorEntry<'a> {
     op: Box<OperatorSpec + 'a>,
     idx_left: usize,
     idx_right: usize,
-    original_order: usize,
+/*    original_order: usize, */
 }
 
 pub struct Conjunction<'a> {
@@ -76,12 +76,12 @@ impl<'a> Conjunction<'a> {
     }
 
     pub fn add_operator(&mut self, op: Box<OperatorSpec>, idx_left: usize, idx_right: usize) {
-        let original_order = self.operators.len();
+        //let original_order = self.operators.len();
         self.operators.push(OperatorEntry {
             op,
             idx_left,
             idx_right,
-            original_order,
+/*            original_order, */
         });
     }
 
@@ -221,7 +221,7 @@ impl<'a> Conjunction<'a> {
 
         // 3. check if there is only one component left (all nodes are connected)
         let mut first_component_id : Option<usize> = None;
-        for (n, cid) in node2component.iter() {
+        for (_, cid) in node2component.iter() {
             if first_component_id.is_none() {
                 first_component_id = Some(*cid);
             }

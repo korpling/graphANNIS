@@ -3,17 +3,14 @@
 
 use {Component};
 use parser::jsonqueryparser;
-use exec::nodesearch::{NodeSearchSpec};
-use operator::precedence::PrecedenceSpec;
 use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, HashSet};
 use graphdb;
-use graphdb::{GraphDB, ANNIS_NS, TOK};
+use graphdb::{GraphDB};
 use std;
 use plan;
 use plan::ExecutionPlan;
-use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 
 use std::iter::FromIterator;
@@ -51,24 +48,24 @@ impl DBLoader {
 
 
     /// Get the database and load components (and itself) when necessary
-    fn get_with_components_loaded<'a, I>(&'a mut self, components: I) -> &'a GraphDB
+    fn get_with_components_loaded<'a, I>(&'a mut self, components: I) -> Option<&'a GraphDB>
     where
         I: Iterator<Item = &'a Component>,
     {
         if self.db.is_none() {
             let mut loaded_db = GraphDB::new();
             // TODO: what if loading fails?
-            loaded_db.load_from(&self.db_path, false);
+            loaded_db.load_from(&self.db_path, false).ok()?;
             self.db = Some(loaded_db);
         }
         {
             let mut_db: &mut GraphDB = self.db.as_mut().unwrap();
             for c in components {
                 // TODO: what if loading fails?
-                mut_db.ensure_loaded(c);
+                mut_db.ensure_loaded(c).ok()?;
             }
         }
-        return &self.db.as_ref().unwrap();
+        return self.db.as_ref();
     }
     // TODO: add callback
 }
@@ -82,6 +79,7 @@ pub enum Error {
     NoSuchCorpus,
     QueryCreationError(plan::Error),
     StringConvert(std::ffi::OsString),
+    ParserError,
 }
 
 impl From<std::io::Error> for Error {
@@ -115,7 +113,7 @@ impl From<std::ffi::OsString> for Error {
 
 pub struct CorpusStorage {
     db_dir: PathBuf,
-    max_allowed_cache_size: Option<usize>,
+/*    max_allowed_cache_size: Option<usize>, */
 
     corpus_cache: RwLock<BTreeMap<String, Arc<RwLock<DBLoader>>>>,
 }
@@ -130,11 +128,11 @@ struct PreparationResult<'a> {
 impl CorpusStorage {
     pub fn new(
         db_dir: &Path,
-        max_allowed_cache_size: Option<usize>,
+/*        max_allowed_cache_size: Option<usize>, */
     ) -> Result<CorpusStorage, Error> {
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
-            max_allowed_cache_size,
+/*            max_allowed_cache_size, */
             corpus_cache: RwLock::new(BTreeMap::new()),
         };
 
@@ -176,7 +174,7 @@ impl CorpusStorage {
         return result;
     }
 
-
+/*
     fn get_or_create_loader(&self, corpus_name: &str) -> Arc<RwLock<DBLoader>> {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
@@ -193,7 +191,7 @@ impl CorpusStorage {
 
         return entry.clone();
     }
-
+*/
     fn get_loader(&self, corpus_name: &str) -> Option<Arc<RwLock<DBLoader>>> {
 
         let corpus_name = corpus_name.to_string();
@@ -256,27 +254,14 @@ impl CorpusStorage {
         );
     }
 
-    fn prepare_query(
+    fn prepare_query<'a>(
         &self,
         corpus_name: &str,
-        query_as_json: &str,
-    ) -> Result<PreparationResult, Error> {
+        query_as_json: &'a str,
+    ) -> Result<PreparationResult<'a>, Error> {
 
-        let parsed_query = jsonqueryparser::parse(query_as_json);
-        // TODO: actually parse the JSON and create query
-        // this is just an example query
-        let mut q = Conjunction::new();
-
-        let n1 = NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"));
-        let n1 = q.add_node(n1);
-        let n2 = NodeSearchSpec::new_exact(None, "pos", Some("ADJA"));
-        let n2 = q.add_node(n2);
- 
-        let prec = PrecedenceSpec {segmentation: None, min_dist: 1, max_dist: 1};
-
-        q.add_operator(Box::new(prec), n1, n2);
-
-        // TODO: make this a Disjunction function that collects all components
+        let q = jsonqueryparser::parse(query_as_json).ok_or(Error::ParserError)?;
+        
         let necessary_components = q.necessary_components();
         let db_loader = self.get_loader(corpus_name).ok_or(Error::NoSuchCorpus)?;
 
@@ -293,7 +278,7 @@ impl CorpusStorage {
         };
 
         return Ok(PreparationResult {
-            query: q.into_disjunction(),
+            query: q,
             db_loader: db_loader,
         });
     }

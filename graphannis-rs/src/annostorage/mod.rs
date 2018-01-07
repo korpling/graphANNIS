@@ -332,13 +332,13 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         }
     }
 
-    pub fn save_to_file(&self, path: &str) {
+    pub fn save_to_file(&self, path: &str) -> bool {
 
         let f = std::fs::File::create(path).unwrap();
 
         let mut buf_writer = std::io::BufWriter::new(f);
 
-        bincode::serialize_into(&mut buf_writer, self, bincode::Infinite);
+        bincode::serialize_into(&mut buf_writer, self, bincode::Infinite).is_ok()
     }
 
     pub fn load_from_file(&mut self, path: &str) {
