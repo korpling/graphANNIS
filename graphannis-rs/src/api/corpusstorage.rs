@@ -2,7 +2,8 @@
 //! It is transactional and thread-safe.
 
 use {Component};
-use exec::nodesearch::{NodeSearch, NodeSearchSpec};
+use parser::jsonqueryparser;
+use exec::nodesearch::{NodeSearchSpec};
 use operator::precedence::PrecedenceSpec;
 use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
@@ -14,7 +15,6 @@ use plan;
 use plan::ExecutionPlan;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
-use operator::OperatorSpec;
 
 use std::iter::FromIterator;
 
@@ -101,7 +101,6 @@ impl From<plan::Error> for Error {
 
         match e {
             plan::Error::ImpossibleSearch => Error::ImpossibleSearch,
-            _ => Error::QueryCreationError(e),
         }
     }
 }
@@ -263,6 +262,7 @@ impl CorpusStorage {
         query_as_json: &str,
     ) -> Result<PreparationResult, Error> {
 
+        let parsed_query = jsonqueryparser::parse(query_as_json);
         // TODO: actually parse the JSON and create query
         // this is just an example query
         let mut q = Conjunction::new();

@@ -1,1 +1,1 @@
-mod jsonqueryparser;
+pub mod jsonqueryparser;

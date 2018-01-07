@@ -28,7 +28,7 @@ impl From<Box<bincode::ErrorKind>> for RegistryError {
 }
 
 impl From<strum::ParseError> for RegistryError {
-    fn from(e: strum::ParseError) -> RegistryError {
+    fn from(_: strum::ParseError) -> RegistryError {
         RegistryError::ImplementationNameNotFound
     }
 }

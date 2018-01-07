@@ -13,7 +13,6 @@ use strum::IntoEnumIterator;
 use std::string::ToString;
 use bincode;
 use serde;
-use log;
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";

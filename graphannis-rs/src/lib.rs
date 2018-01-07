@@ -22,7 +22,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;
 
-#[macro_use]
 extern crate json;
 
 #[macro_use]
@@ -41,7 +40,7 @@ pub mod relannis;
 mod plan;
 mod exec;
 mod query;
-mod parser;
+pub mod parser;
 
 pub mod api;
 
