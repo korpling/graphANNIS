@@ -14,30 +14,42 @@ pub struct NodeSearch<'a> {
     node_search_desc: Rc<NodeSearchDesc>,
 }
 
-pub enum NodeSearchSpec<'a> {
+#[derive(Clone)]
+pub enum NodeSearchSpec {
     ExactValue {
-        ns: Option<&'a str>,
-        name: &'a str,
-        val: Option<&'a str>,
+        ns: Option<String>,
+        name: String,
+        val: Option<String>,
     },
 }
 
-impl<'a> fmt::Display for NodeSearchSpec<'a> {
+impl NodeSearchSpec {
+    pub fn new_exact(ns : Option<&str>, name : &str, val : Option<&str>) -> NodeSearchSpec {
+        NodeSearchSpec::ExactValue {
+            ns: ns.map(|v| String::from((v))),
+            name : String::from(name),
+            val: val.map(|v| String::from(v)),
+        }
+    }
+
+}
+
+impl fmt::Display for NodeSearchSpec {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            NodeSearchSpec::ExactValue {ns, name, val } =>
+        match self {
+            &NodeSearchSpec::ExactValue {ref ns, ref name, ref val } =>
             if ns.is_some() && val.is_some() {
                 write!(
                     f,
                     "{}:{}=\"{}\"",
-                    ns.unwrap(),
+                    ns.as_ref().unwrap(),
                     name,
-                    val.unwrap()
+                    val.as_ref().unwrap()
                 )
             } else if ns.is_some() {
-                write!(f, "{}:{}", ns.unwrap(), name)
+                write!(f, "{}:{}", ns.as_ref().unwrap(), name)
             } else if val.is_some() {
-                write!(f, "{}=\"{}\"", name, val.unwrap())
+                write!(f, "{}=\"{}\"", name, val.as_ref().unwrap())
             } else {
                 write!(f, "{}", name)
             },
@@ -48,17 +60,20 @@ impl<'a> fmt::Display for NodeSearchSpec<'a> {
 impl<'a> NodeSearch<'a> {
    
     pub fn from_spec(spec: NodeSearchSpec, db: &'a GraphDB) -> Option<NodeSearch<'a>> {
+
+        let query_fragment = format!("{}", spec);
+        
         match spec {
-            NodeSearchSpec::ExactValue { ns, name, val } => {
+            NodeSearchSpec::ExactValue {ns, name, val } => {
                  let name_id: StringID = db.strings.find_id(&name)?.clone();
             // not finding the strings will result in an None result, not in an less specific search
-            let ns_id: Option<StringID> = if let Some(ns) = ns {
-                Some(db.strings.find_id(&ns)?).cloned()
+            let ns_id: Option<StringID> = if let Some(ns) = ns.as_ref() {
+                Some(db.strings.find_id(ns)?).cloned()
             } else {
                 None
             };
-            let val_id: Option<StringID> = if let Some(val) = val {
-                Some(db.strings.find_id(&val)?).cloned()
+            let val_id: Option<StringID> = if let Some(val) = val.as_ref() {
+                Some(db.strings.find_id(val)?).cloned()
             } else {
                 None
             };
@@ -72,11 +87,11 @@ impl<'a> NodeSearch<'a> {
                     return anno.key.ns == ns_id.unwrap() && anno.key.name == name_id
                         && anno.val == val_id.unwrap();
                 })
-            } else if ns.is_some() {
+            } else if ns_id.is_some() {
                 Box::new(move |anno: Annotation| {
                     return anno.key.ns == ns_id.unwrap() && anno.key.name == name_id;
                 })
-            } else if val.is_some() {
+            } else if val_id.is_some() {
                 Box::new(move |anno: Annotation| {
                     return anno.key.name == name_id && anno.val == val_id.unwrap();
                 })
@@ -84,7 +99,6 @@ impl<'a> NodeSearch<'a> {
                 Box::new(move |anno: Annotation| return anno.key.name == name_id)
             };
 
-            let query_fragment = format!("{}", spec);
 
             return Some(NodeSearch {
                 it: Box::from(it),

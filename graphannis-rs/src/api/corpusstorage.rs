@@ -267,9 +267,9 @@ impl CorpusStorage {
         // this is just an example query
         let mut q = Conjunction::new();
 
-        let n1 = NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")};
+        let n1 = NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"));
         let n1 = q.add_node(n1);
-        let n2 = NodeSearchSpec::ExactValue {ns: None, name: "pos", val: Some("ADJA")};
+        let n2 = NodeSearchSpec::new_exact(None, "pos", Some("ADJA"));
         let n2 = q.add_node(n2);
  
         let prec = PrecedenceSpec {segmentation: None, min_dist: 1, max_dist: 1};

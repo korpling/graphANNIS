@@ -26,7 +26,7 @@ struct OperatorEntry<'a> {
 }
 
 pub struct Conjunction<'a> {
-    nodes: Vec<NodeSearchSpec<'a>>,
+    nodes: Vec<NodeSearchSpec>,
     operators: Vec<OperatorEntry<'a>>,
 }
 
@@ -66,7 +66,7 @@ impl<'a> Conjunction<'a> {
         Disjunction::new(vec![self])
     }
 
-    pub fn add_node(&mut self, node: NodeSearchSpec<'a>) -> usize {
+    pub fn add_node(&mut self, node: NodeSearchSpec) -> usize {
         let idx = self.nodes.len();
 
         // TODO allow wrapping with an "any node anno" search
