@@ -59,33 +59,43 @@ fn parse_node(node: &json::object::Object, q: &mut Conjunction) -> usize {
                 a["namespace"].as_str(),
                 a["name"].as_str(),
                 a["value"].as_str(),
-                a["textMatching"].as_str(),
-                false,
+                is_regex(a),
             );
         }
     } else {
         // check for special non-annotation search constructs
         // token search?
         if node["spannedText"].is_string()
-            || (node["token"].is_boolean() && node["token"].is_boolean())
-        {
-            let n_pos = add_node_annotation(
-                q,
-                Some(ANNIS_NS),
-                Some(TOK),
-                node["spannedText"].as_str(),
-                node["textMatching"].as_str(),
-                true,
-            );
-            // special treatment for explicit searches for token (tok="...)
+            || (node["token"].is_boolean() && node["token"].is_boolean()) {
+            let spanned = node["spannedText"].as_str();
+
+            let mut leafs_only = false;
             if let Some(is_token) = node["token"].as_bool() {
                 if is_token {
-                    
+                    // special treatment for explicit searches for token (tok="...)
+                    leafs_only = true;
                 }
             }
+
+            if let Some(tok_val) = spanned {
+                return q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,});
+            } else {
+                return q.add_node(NodeSearchSpec::AnyToken);
+            }
+
+
         }
     }
     unimplemented!()
+}
+
+fn is_regex(json_node : &JsonValue) -> bool {
+    if let Some(tm) = json_node["textMatching"].as_str() {
+        if tm == "REGEXP_EQUAL" {
+            return true;
+        }
+    }
+    return false;
 }
 
 fn add_node_annotation(
@@ -93,22 +103,19 @@ fn add_node_annotation(
     ns: Option<&str>,
     name: Option<&str>,
     value: Option<&str>,
-    text_matching: Option<&str>,
-    any_anno_result: bool,
+    regex : bool,
 ) -> usize {
     if let Some(name_val) = name {
-        let exact = text_matching == Some("EXACT_EQUAL");
-        let regex = text_matching == Some("REGEXP_EQUAL");
         // TODO: replace regex with normal text matching if this is not an actual regular expression
 
         // search for the value
-        if exact {
+        if regex {
+            // TODO regex
+        } else  {
             // has namespace?
             let mut n: NodeSearchSpec =
                 NodeSearchSpec::new_exact(ns, name_val, value);
             return q.add_node(n);
-        } else if regex {
-            // TODO regex
         }
     }
     unimplemented!()
