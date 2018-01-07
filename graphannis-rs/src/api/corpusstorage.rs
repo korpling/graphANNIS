@@ -222,7 +222,7 @@ impl CorpusStorage {
 
         // remove any possible old corpus
         let old_entry = cache.remove(corpus_name);
-        if let Some(old_db) = old_entry {
+        if let Some(_) = old_entry {
             // TODO: remove the folder from disk
         }
 

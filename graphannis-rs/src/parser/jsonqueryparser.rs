@@ -4,6 +4,8 @@ use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use exec::nodesearch::NodeSearchSpec;
 
+use graphdb::{ANNIS_NS, TOK};
+
 use std::collections::BTreeMap;
 
 pub fn parse(query_as_string: &str) -> Option<Disjunction> {
@@ -58,7 +60,29 @@ fn parse_node(node: &json::object::Object, q: &mut Conjunction) -> usize {
                 a["name"].as_str(),
                 a["value"].as_str(),
                 a["textMatching"].as_str(),
+                false,
             );
+        }
+    } else {
+        // check for special non-annotation search constructs
+        // token search?
+        if node["spannedText"].is_string()
+            || (node["token"].is_boolean() && node["token"].is_boolean())
+        {
+            let n_pos = add_node_annotation(
+                q,
+                Some(ANNIS_NS),
+                Some(TOK),
+                node["spannedText"].as_str(),
+                node["textMatching"].as_str(),
+                true,
+            );
+            // special treatment for explicit searches for token (tok="...)
+            if let Some(is_token) = node["token"].as_bool() {
+                if is_token {
+                    
+                }
+            }
         }
     }
     unimplemented!()
@@ -70,6 +94,7 @@ fn add_node_annotation(
     name: Option<&str>,
     value: Option<&str>,
     text_matching: Option<&str>,
+    any_anno_result: bool,
 ) -> usize {
     if let Some(name_val) = name {
         let exact = text_matching == Some("EXACT_EQUAL");
@@ -79,10 +104,11 @@ fn add_node_annotation(
         // search for the value
         if exact {
             // has namespace?
-            let n = NodeSearchSpec::new_exact(ns, name_val, value);
+            let mut n: NodeSearchSpec =
+                NodeSearchSpec::new_exact(ns, name_val, value);
             return q.add_node(n);
         } else if regex {
-
+            // TODO regex
         }
     }
     unimplemented!()
