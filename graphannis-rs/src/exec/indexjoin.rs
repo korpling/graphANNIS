@@ -1,7 +1,6 @@
 use {Annotation, Match, NodeID, StringID, AnnoKey};
 use operator::Operator;
 use annostorage::AnnoStorage;
-use stringstorage::StringStorage;
 use graphdb::GraphDB;
 use super::{ExecutionNode,Desc, NodeSearchDesc};
 use std;
