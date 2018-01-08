@@ -26,10 +26,15 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
                             if let JsonValue::Object(ref node_object) = *node {
                                 if let Ok(ref node_id) = node_name.parse::<usize>() {
                                     let pos = parse_node(node_object, &mut q);
+                                    node_id_to_pos.insert(node_id.clone(), pos);
                                 }
                             }
                         }
                     }
+
+                    // TODO: add all joins
+
+                    // TODO: add all meta-data
 
                     conjunctions.push(q);
                     unimplemented!();
