@@ -78,7 +78,11 @@ fn parse_node(node: &json::object::Object, q: &mut Conjunction) -> usize {
             }
 
             if let Some(tok_val) = spanned {
-                return q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,});
+                if node["textMatching"].as_str() == Some("REGEXP_EQUAL") {
+                    return q.add_node(NodeSearchSpec::RegexTokenValue{val: String::from(tok_val), leafs_only,});
+                } else {
+                    return q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,});
+                }
             } else {
                 return q.add_node(NodeSearchSpec::AnyToken);
             }
@@ -110,7 +114,11 @@ fn add_node_annotation(
 
         // search for the value
         if regex {
-            // TODO regex
+            if let Some(val) = value {
+                let mut n: NodeSearchSpec =
+                    NodeSearchSpec::new_regex(ns, name_val, val);
+                return q.add_node(n);
+            }
         } else  {
             // has namespace?
             let mut n: NodeSearchSpec =

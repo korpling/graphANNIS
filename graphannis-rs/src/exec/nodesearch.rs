@@ -25,7 +25,13 @@ pub enum NodeSearchSpec {
         name: String,
         val: Option<String>,
     },
+    RegexValue {
+        ns: Option<String>,
+        name: String,
+        val: String,
+    },
     ExactTokenValue { val: String, leafs_only: bool },
+    RegexTokenValue { val: String, leafs_only: bool },
     AnyToken,
     AnyNode,
 }
@@ -36,6 +42,14 @@ impl NodeSearchSpec {
             ns: ns.map(|v| String::from((v))),
             name: String::from(name),
             val: val.map(|v| String::from(v)),
+        }
+    }
+
+    pub fn new_regex(ns: Option<&str>, name: &str, val: &str) -> NodeSearchSpec {
+        NodeSearchSpec::RegexValue {
+            ns: ns.map(|v| String::from((v))),
+            name: String::from(name),
+            val: String::from(val),
         }
     }
 }
@@ -63,6 +77,22 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "{}", name)
             },
+            &NodeSearchSpec::RegexValue {
+                ref ns,
+                ref name,
+                ref val,
+                ..
+            } => if ns.is_some() {
+                write!(
+                    f,
+                    "{}:{}=/{}/",
+                    ns.as_ref().unwrap(),
+                    name,
+                    &val
+                )
+            } else {
+                write!(f, "{}=/{}/", name, &val)
+            },
             &NodeSearchSpec::ExactTokenValue {
                 ref val,
                 ref leafs_only,
@@ -71,8 +101,17 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "\"{}\"", val)
             },
+            &NodeSearchSpec::RegexTokenValue {
+                ref val,
+                ref leafs_only,
+            } => if *leafs_only {
+                write!(f, "tok=/{}/", val)
+            } else {
+                write!(f, "/{}/", val)
+            },
             &NodeSearchSpec::AnyToken => write!(f, "tok"),
             &NodeSearchSpec::AnyNode => write!(f, "node"),
+            
         }
     }
 }
@@ -84,13 +123,19 @@ impl<'a> NodeSearch<'a> {
         match spec {
             NodeSearchSpec::ExactValue { ns, name, val } => {
                 NodeSearch::new_annosearch(db, ns, name, val, false, &query_fragment)
-            }
+            },
+            NodeSearchSpec::RegexValue { ns, name, val } => {
+                NodeSearch::new_annosearch(db, ns, name, Some(val), true, &query_fragment)
+            },
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => {
                 NodeSearch::new_tokensearch(db, Some(val), leafs_only, false, &query_fragment)
-            }
+            },
+            NodeSearchSpec::RegexTokenValue { val, leafs_only } => {
+                NodeSearch::new_tokensearch(db, Some(val), leafs_only, true, &query_fragment)
+            },
             NodeSearchSpec::AnyToken => {
                 NodeSearch::new_tokensearch(db, None, false, false, &query_fragment)
-            }
+            },
             NodeSearchSpec::AnyNode => {
                 let type_key = db.get_node_type_key();
                 let node_id = db.strings.find_id("node")?.clone();
@@ -113,7 +158,7 @@ impl<'a> NodeSearch<'a> {
                         cond: filter_func,
                     }),
                 })
-            }
+            },
         }
     }
 
