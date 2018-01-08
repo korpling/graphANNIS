@@ -1,6 +1,10 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use graphdb::{GraphDB, ANNIS_NS};
 use {Annotation, Match, StringID, Component, ComponentType};
+use stringstorage::StringStorage;
+
+use util;
+use regex;
 
 use std::rc::Rc;
 use std::fmt;
@@ -90,8 +94,8 @@ impl<'a> NodeSearch<'a> {
                         .exact_anno_search(Some(type_key.ns), type_key.name, None)
                         .map(move |n| vec![n]);
 
-                let filter_func: Box<Fn(Annotation) -> bool> = 
-                    Box::new(move |anno: Annotation| {
+                let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> = 
+                    Box::new(move |anno, _| {
                         return anno.val == node_id;
                     });
 
@@ -135,12 +139,12 @@ impl<'a> NodeSearch<'a> {
                     .map(|n| vec![n]);
             
 
-            let filter_func: Box<Fn(Annotation) -> bool> = if val_id.is_some() {
-                Box::new(move |anno: Annotation| {
+            let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> = if val_id.is_some() {
+                Box::new(move |anno, _| {
                     return anno.val == val_id.unwrap();
                 })
             } else {
-                Box::new(move |_anno: Annotation| {
+                Box::new(move |_, _| {
                     return true;
                 })
             };
@@ -167,29 +171,51 @@ impl<'a> NodeSearch<'a> {
 
             if let Some(v) = val {
 
-                let val_id = db.strings.find_id(&v)?.clone();
-
                 let cov_gs = db.get_graphstorage(&Component { ctype: ComponentType::Coverage, layer: String::from(ANNIS_NS), name: String::from("")});
+
+                let base_it = if match_regex {
+                    db.node_annos.regex_anno_search(&db.strings, Some(tok_key.ns), tok_key.name, &v)
+                } else {
+                    let val_id = db.strings.find_id(&v)?.clone();
+                    db.node_annos.exact_anno_search(Some(tok_key.ns), tok_key.name, Some(val_id))
+                };
 
                 let it : Box<Iterator<Item = Vec<Match>> + 'a> = if leafs_only {
                     Box::new(
-                        db.node_annos
-                        .exact_anno_search(Some(tok_key.ns), tok_key.name, Some(val_id))
+                        base_it
                         .filter(move |n| if let Some(ref cov) = cov_gs {cov.get_outgoing_edges(&n.node).is_empty()} else {true})
                         .map(move |n| vec![Match {node: n.node, anno: any_anno.clone()}])
                     )
                 } else {
                     Box::new(
-                        db.node_annos
-                        .exact_anno_search(Some(tok_key.ns), tok_key.name, Some(val_id))
+                        base_it
                         .map(move |n| vec![Match {node: n.node, anno: any_anno.clone()}])
                     )
                 };
 
-                let filter_func: Box<Fn(Annotation) -> bool> = 
-                    Box::new(move |anno: Annotation| {
+                let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> = if match_regex {
+                    let full_match_pattern = util::regex_full_match(&v);
+                    let compiled_result = regex::Regex::new(&full_match_pattern);
+                    if compiled_result.is_ok() {
+                        let re = compiled_result.unwrap();
+                        Box::new(move |anno, strings| {
+                            let val_str_opt = strings.str(anno.val);
+                            if let Some(val_str) = val_str_opt {
+                                return re.is_match(val_str);
+                            } else {
+                                return false;
+                            };
+                        })
+                    } else {
+                        Box::new(|_,_| false)
+                    }
+                    
+                } else {
+                    let val_id = db.strings.find_id(&v)?.clone();
+                    Box::new(move |anno, _ | {
                         return anno.val == val_id;
-                    });
+                    })
+                };
 
                 let tok_key = db.get_token_key();
 
@@ -208,8 +234,8 @@ impl<'a> NodeSearch<'a> {
                         .exact_anno_search(Some(tok_key.ns), tok_key.name, None)
                         .map(move |n| vec![Match {node: n.node, anno: any_anno.clone()}]);
 
-                let filter_func: Box<Fn(Annotation) -> bool> = 
-                    Box::new(move |_anno: Annotation| {
+                let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> = 
+                    Box::new(move |_anno, _| {
                         return true;
                     });
 
@@ -232,7 +258,7 @@ impl<'a> NodeSearch<'a> {
     }
 
 
-    pub fn get_node_search_desc(&self) -> Rc<NodeSearchDesc> {
+    pub fn get_node_search_desc(&'a self) -> Rc<NodeSearchDesc> {
         self.node_search_desc.clone()
     }
 }

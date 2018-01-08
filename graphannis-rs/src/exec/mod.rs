@@ -1,5 +1,6 @@
 use {Match, StringID, Annotation};
 use self::nodesearch::NodeSearch;
+use stringstorage::StringStorage;
 
 use std::collections::BTreeMap;
 
@@ -76,7 +77,7 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<StringID>, Option<StringID>),
-    pub cond: Box<Fn(Annotation) -> bool>,
+    pub cond: Box<Fn(Annotation, &StringStorage) -> bool>,
 }
 
 pub trait ExecutionNode : Iterator {

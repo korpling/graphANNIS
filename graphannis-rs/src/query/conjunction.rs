@@ -196,7 +196,7 @@ impl<'a> Conjunction<'a> {
                         idx_left,
                         op,
                         exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                        &db.node_annos,
+                        &db,
                         None,
                     );
                     Box::new(join)
