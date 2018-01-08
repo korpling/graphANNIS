@@ -62,35 +62,37 @@ fn parse_node(node: &json::object::Object, q: &mut Conjunction) -> usize {
                 is_regex(a),
             );
         }
-    } else {
-        // check for special non-annotation search constructs
-        // token search?
-        if node["spannedText"].is_string()
-            || (node["token"].is_boolean() && node["token"].is_boolean()) {
-            let spanned = node["spannedText"].as_str();
-
-            let mut leafs_only = false;
-            if let Some(is_token) = node["token"].as_bool() {
-                if is_token {
-                    // special treatment for explicit searches for token (tok="...)
-                    leafs_only = true;
-                }
-            }
-
-            if let Some(tok_val) = spanned {
-                if node["textMatching"].as_str() == Some("REGEXP_EQUAL") {
-                    return q.add_node(NodeSearchSpec::RegexTokenValue{val: String::from(tok_val), leafs_only,});
-                } else {
-                    return q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,});
-                }
-            } else {
-                return q.add_node(NodeSearchSpec::AnyToken);
-            }
-
-
-        }
     }
-    unimplemented!()
+
+    // check for special non-annotation search constructs
+    // token search?
+    if node["spannedText"].is_string()
+        || (node["token"].is_boolean() && node["token"].is_boolean()) {
+        let spanned = node["spannedText"].as_str();
+
+        let mut leafs_only = false;
+        if let Some(is_token) = node["token"].as_bool() {
+            if is_token {
+                // special treatment for explicit searches for token (tok="...)
+                leafs_only = true;
+            }
+        }
+
+        if let Some(tok_val) = spanned {
+            if node["textMatching"].as_str() == Some("REGEXP_EQUAL") {
+                return q.add_node(NodeSearchSpec::RegexTokenValue{val: String::from(tok_val), leafs_only,});
+            } else {
+                return q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,});
+            }
+        } else {
+            return q.add_node(NodeSearchSpec::AnyToken);
+        }
+
+
+    } else {
+        // just search for any node
+        return q.add_node((NodeSearchSpec::AnyNode));
+    }
 }
 
 fn is_regex(json_node : &JsonValue) -> bool {
