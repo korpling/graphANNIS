@@ -13,6 +13,7 @@ use graphannis::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use graphannis::exec::nestedloop::NestedLoop;
 use graphannis::exec::indexjoin::IndexJoin;
 use graphannis::operator::precedence::{Precedence, PrecedenceSpec};
+use graphannis::stringstorage::StringStorage;
 
 fn load_corpus(name: &str) -> Option<GraphDB> {
     let mut data_dir = PathBuf::from(if let Ok(path) = env::var("ANNIS4_TEST_DATA") {
@@ -113,10 +114,10 @@ fn count_annos() {
     if let Some(db) = load_corpus("pcc2") {
 
 
-        let n = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")}, &db).unwrap();
+        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der")), &db).unwrap();
         assert_eq!(9, n.count());
 
-        let n = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: None, name: "pos", val: Some("ADJA")}, &db).unwrap();
+        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA")), &db).unwrap();
         assert_eq!(18, n.count());
     }
 }
@@ -137,9 +138,9 @@ fn nested_loop_join() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
-        let n1 = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")}, &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der")), &db).unwrap();
 
-        let n2 = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: None, name: "pos", val: Some("ADJA")}, &db).unwrap();
+        let n2 = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA")), &db).unwrap();
 
         let op = Precedence::new(
             &db,
@@ -178,8 +179,7 @@ fn index_join() {
         for c in op_spec.necessary_components() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
-
-        let n1 = NodeSearch::from_spec(NodeSearchSpec::ExactValue {ns: Some(ANNIS_NS), name: TOK, val: Some("der")}, &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der")), &db).unwrap();
 
 
         let op = Precedence::new(
@@ -192,11 +192,11 @@ fn index_join() {
         let n1 = Box::new(n1);
 
         let node_search_desc  = NodeSearchDesc {
-            cond: Box::new(move |anno : Annotation|  {return anno.key.name == anno_name && anno.val == anno_val }),
+            cond: Box::new(move |anno : Annotation, _ : &StringStorage|  {return anno.key.name == anno_name && anno.val == anno_val }),
             qname: (None, Some(anno_name)),
         };
 
-        let join = IndexJoin::new(n1, 0, op, Rc::new(node_search_desc), &db.node_annos, None);
+        let join = IndexJoin::new(n1, 0, op, Rc::new(node_search_desc), &db, None);
 
         assert_eq!(3, join.count());
     }

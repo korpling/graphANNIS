@@ -32,13 +32,13 @@ pub use types::*;
 
 mod dfs;
 mod annostorage;
-mod stringstorage;
+pub mod stringstorage;
 mod graphstorage;
-mod graphdb;
-mod operator;
+pub mod graphdb;
+pub mod operator;
 pub mod relannis;
 mod plan;
-mod exec;
+pub mod exec;
 mod query;
 pub mod parser;
 
