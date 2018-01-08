@@ -92,8 +92,7 @@ impl<'a> NodeSearch<'a> {
 
                 let filter_func: Box<Fn(Annotation) -> bool> = 
                     Box::new(move |anno: Annotation| {
-                        return anno.key.ns == type_key.ns && anno.key.name == type_key.name
-                            && anno.val == node_id;
+                        return anno.val == node_id;
                     });
 
                 let type_key = db.get_node_type_key();
@@ -136,21 +135,14 @@ impl<'a> NodeSearch<'a> {
                     .map(|n| vec![n]);
             
 
-            let filter_func: Box<Fn(Annotation) -> bool> = if ns_id.is_some() && val_id.is_some() {
+            let filter_func: Box<Fn(Annotation) -> bool> = if val_id.is_some() {
                 Box::new(move |anno: Annotation| {
-                    return anno.key.ns == ns_id.unwrap() && anno.key.name == name_id
-                        && anno.val == val_id.unwrap();
-                })
-            } else if ns_id.is_some() {
-                Box::new(move |anno: Annotation| {
-                    return anno.key.ns == ns_id.unwrap() && anno.key.name == name_id;
-                })
-            } else if val_id.is_some() {
-                Box::new(move |anno: Annotation| {
-                    return anno.key.name == name_id && anno.val == val_id.unwrap();
+                    return anno.val == val_id.unwrap();
                 })
             } else {
-                Box::new(move |anno: Annotation| return anno.key.name == name_id)
+                Box::new(move |_anno: Annotation| {
+                    return true;
+                })
             };
 
             return Some(NodeSearch {
@@ -196,8 +188,7 @@ impl<'a> NodeSearch<'a> {
 
                 let filter_func: Box<Fn(Annotation) -> bool> = 
                     Box::new(move |anno: Annotation| {
-                        return anno.key.ns == tok_key.ns && anno.key.name == tok_key.name
-                            && anno.val == val_id;
+                        return anno.val == val_id;
                     });
 
                 let tok_key = db.get_token_key();
@@ -218,8 +209,8 @@ impl<'a> NodeSearch<'a> {
                         .map(move |n| vec![Match {node: n.node, anno: any_anno.clone()}]);
 
                 let filter_func: Box<Fn(Annotation) -> bool> = 
-                    Box::new(move |anno: Annotation| {
-                        return anno.key.ns == tok_key.ns && anno.key.name == tok_key.name;
+                    Box::new(move |_anno: Annotation| {
+                        return true;
                     });
 
                 let tok_key = db.get_token_key();
