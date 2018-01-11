@@ -234,10 +234,14 @@ double AbstractEdgeOperator::selectivity()
 
         if (stat.avgFanOut > 1.0)
         {
-          double f = stat.avgFanOut;
+          // Assume two complete k-ary trees (with the average fan-out as k)
+          // as defined in "Thomas Cormen: Introduction to algorithms (2009), page 1179)
+          // with the maximum and minimum height. Calculate the number of nodes for both complete trees and
+          // subtract them to get an estimation of the number of nodes that fullfull the path length criteria.
+          double k = stat.avgFanOut;
 
-          double reachableMax = std::ceil((std::pow(f, (double) maxPathLength + 1.0) - 1.0) / (f - 1.0 ));
-          double reachableMin = std::ceil((std::pow(f, (double) minPathLength + 1.0) - 1.0) / (f - 1.0));
+          double reachableMax = std::ceil((std::pow(k, (double) maxPathLength) - 1.0) / (k - 1.0 ));
+          double reachableMin = std::ceil((std::pow(k, (double) minPathLength) - 1.0) / (k - 1.0));
 
           double reachable =  reachableMax - reachableMin;
 
@@ -245,6 +249,8 @@ double AbstractEdgeOperator::selectivity()
         }
         else
         {
+          // We can't use the formula for complete k-ary trees because we can't divide by zero and don't want negative
+          // numbers. Use the simplified estimation with multiplication instead.
           double reachableMax = std::ceil(stat.avgFanOut * (double) maxPathLength);
           double reachableMin = std::ceil(stat.avgFanOut * (double) minPathLength);
 
