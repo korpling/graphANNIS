@@ -1,3 +1,12 @@
+release 0.5.0
+=============
+
+Enhancements
+------------
+
+- [#22](https://github.com/thomaskrause/graphANNIS/issues/22) Use text-book function for estimating the selectivity for the abstract edge operator
+- [#21](https://github.com/thomaskrause/graphANNIS/issues/21) Allow to load query in console from file
+
 release 0.4.0
 =============
 
