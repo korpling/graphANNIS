@@ -44,5 +44,5 @@ deploy:
     - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/macosx-x86_64/libboost_filesystem-mt.dylib"
   on:
     repo: thomaskrause/graphANNIS
-    tags: true
+    branch: staging
   skip_cleanup: true
