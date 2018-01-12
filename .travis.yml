@@ -1,14 +1,12 @@
 language: cpp
 os:
-  - linux
-  - osx
-
+- linux
+- osx
 dist: trusty
 sudo: false
-
 addons:
   apt:
-   packages:
+    packages:
     - libboost-dev
     - libboost-thread-dev
     - libboost-system-dev
@@ -16,19 +14,35 @@ addons:
     - libicu-dev
     - maven
     - wget
-
 before_install:
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install icu4c ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force icu4c ; fi
-
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install icu4c ; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force icu4c ; fi
 script:
- - ./misc/download-gum-corpus.sh
- - mkdir build
- - cd build/
- - cmake -DENABLE_SIMD_SUPPORT=OFF ..
- - make
- - cd ..
- - ./build/annis_runner import relannis/GUM data/GUM
- - ./build/test_graphANNIS --gtest_filter="SearchTestGUM.*:CorpusStorageManagerTest.*"
- - mvn test
+- "./misc/download-gum-corpus.sh"
+- mkdir build
+- cd build/
+- cmake -DENABLE_SIMD_SUPPORT=OFF ..
+- make
+- cd ..
+- "./build/annis_runner import relannis/GUM data/GUM"
+- ./build/test_graphANNIS --gtest_filter="SearchTestGUM.*:CorpusStorageManagerTest.*"
+- mvn test
+deploy:
+  provider: releases
+  api_key:
+    secure: pJwgiTNjb48zOvLH3RkvGGN1rEA4hO9nWHDJu79/uYgSzQFD3KPJg9k0n86DvGLyP7wcKFU97fC3FEZKp0Z3h3WXn6OK4toc6F6PjKUoWzL7vIgF+QP9c0TIkDya3C8+lNPbK9LqCHMlVbmgUnqa2yGq6eUJpocPK932dGLRKUjMjKwkvQ9lhAOBvzafyovG3HkIhr7uwpjAN1rF8CUjOM4VT6SV3uJvPCO8mRyyd0nL2dcIjpfGEGTs+BMmCAHr2rts+scCiy9cDeDyp9IAWe6AmpKWelUyRdDSeXRWFvrSFKI5/4CXcvRs738dmISsFlEFFvHzbR0l+KnSi/8elvUJ04LQ15jrsg+MUhxaNbyykUb6C91P9BiRMah0Jx2RUYYB+RcVB6MXEcAk5GgjGr9rFU2UpomOSxk1P/2Q12Us9lf/fQnIDXgfep8Fk2VY9eBrieljv1pNcaar5mZYNjEoFx4SyovSxlM3pucgV4PVc/GspCsDpR4BYs9d5gLPql/CGL1+IJ7zhDwd8sVb9cACyKPQ2QXcl7TVzaPpEQd/JkJ1K2SjLWZXrtLF6nL821JQFz1Ff9cJfYM8UnpiZI4/ajB4WChk2rGynJN37jURfEXJq0RGwugZAZ5iWC9DxvPZI8pVSfxDtMELSqI7IpFSX6v2Drsg24ZOBpy0jo8=
+  file: 
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/linux-x86_64/libjniAnnisApiInfo.so"
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/linux-x86_64/libboost_filesystem.so"
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/linux-x86_64/libboost_system.so"
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/linux-x86_64/libboost_thread.so"
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/linux-x86_64/libre2.so"
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/macosx-x86_64/libjniAnnisApiInfo.dylib"
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/macosx-x86_64/libboost_thread-mt.dylib"
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/macosx-x86_64/libboost_system-mt.dylib"
+    - "graphannis-api/src/main/resources/org/corpus_tools/graphannis/macosx-x86_64/libboost_filesystem-mt.dylib"
+  on:
+    repo: thomaskrause/graphANNIS
+    tags: true
+  skip_cleanup: true
