@@ -34,7 +34,7 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
         if let serde_json::Value::Array(ref joins) = alt["joins"] {
             for j in joins.iter() {
                 if let &serde_json::Value::Object(ref j_obj) = j {
-                    parse_join(j_obj, &mut q);
+                    parse_join(j_obj, &mut q, &node_id_to_pos);
                 }
             }
         }
@@ -101,8 +101,17 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
     }
 }
 
-fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction) -> usize { 
+fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction, node_id_to_pos: &BTreeMap<usize, usize>) -> usize { 
     // get left and right index
+    if let Some(left_id) = join["left"].as_u64() {
+        if let Some(right_id) = join["right"].as_u64() {
+            //if let Some(pos_left) = node_id_to_pos[left_id] {
+            //    if let Some(pos_right) = node_id_to_pos[right_id] {
+            //    
+            //    }
+            //}
+        }
+    }
     
     unimplemented!()
 }
