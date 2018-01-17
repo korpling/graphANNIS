@@ -1,5 +1,4 @@
-use json;
-use json::JsonValue;
+use serde_json;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use exec::nodesearch::NodeSearchSpec;
@@ -9,60 +8,55 @@ use graphdb::{ANNIS_NS, TOK};
 use std::collections::BTreeMap;
 
 pub fn parse(query_as_string: &str) -> Option<Disjunction> {
-    let parsed = json::parse(query_as_string);
+    let root : serde_json::Value = serde_json::from_str(query_as_string).ok()?;
 
-    if let Ok(root) = parsed {
-        let mut conjunctions: Vec<Conjunction> = Vec::new();
-        // iterate over all alternatives
-        match root["alternatives"] {
-            JsonValue::Array(ref alternatices) => {
-                for alt in alternatices.iter() {
-                    let mut q = Conjunction::new();
+    let mut conjunctions: Vec<Conjunction> = Vec::new();
+    // iterate over all alternatives
+    let alternatives = root["alternatives"].as_array()?;
+    
+    for alt in alternatives.iter() {
+        let mut q = Conjunction::new();
 
-                    // add all nodes
-                    let mut node_id_to_pos: BTreeMap<usize, usize> = BTreeMap::new();
-                    if let JsonValue::Object(ref nodes) = alt["nodes"] {
-                        for (node_name, node) in nodes.iter() {
-                            if let JsonValue::Object(ref node_object) = *node {
-                                if let Ok(ref node_id) = node_name.parse::<usize>() {
-                                    let pos = parse_node(node_object, &mut q);
-                                    node_id_to_pos.insert(node_id.clone(), pos);
-                                }
-                            }
-                        }
+        // add all nodes
+        let mut node_id_to_pos: BTreeMap<usize, usize> = BTreeMap::new();
+        if let serde_json::Value::Object(ref nodes) = alt["nodes"] {
+            for (node_name, node) in nodes.iter() {
+                if let Some(node_obj) = node.as_object() {
+                    if let Ok(ref node_id) = node_name.parse::<usize>() {
+                        let pos = parse_node(node_obj, &mut q);
+                        node_id_to_pos.insert(node_id.clone(), pos);
                     }
-
-                    // TODO: add all joins
-                    if let JsonValue::Array(ref joins) = alt["joins"] {
-                        for j in joins.iter() {
-                            if let &JsonValue::Object(ref j_obj) = j {
-                                parse_join(j_obj, &mut q);
-                            }
-                        }
-                    }
-
-                    // TODO: add all meta-data
-
-                    conjunctions.push(q);
-                    unimplemented!();
                 }
             }
-            _ => {
-                return None;
-            }
-        };
-
-        if !conjunctions.is_empty() {
-            return Some(Disjunction::new(conjunctions));
         }
+
+        // TODO: add all joins
+        if let serde_json::Value::Array(ref joins) = alt["joins"] {
+            for j in joins.iter() {
+                if let &serde_json::Value::Object(ref j_obj) = j {
+                    parse_join(j_obj, &mut q);
+                }
+            }
+        }
+
+        // TODO: add all meta-data
+
+        conjunctions.push(q);
+        unimplemented!();
     }
 
+
+
+    if !conjunctions.is_empty() {
+        return Some(Disjunction::new(conjunctions));
+    }
+    
     return None;
 }
 
-fn parse_node(node: &json::object::Object, q: &mut Conjunction) -> usize {
+fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction) -> usize {
     // annotation search?
-    if let JsonValue::Array(ref a) = node["nodeAnnotations"] {
+    if let serde_json::Value::Array(ref a) = node["nodeAnnotations"] {
         if !a.is_empty() {
             // get the first one
             let a = &a[0];
@@ -107,13 +101,13 @@ fn parse_node(node: &json::object::Object, q: &mut Conjunction) -> usize {
     }
 }
 
-fn parse_join(join: &json::object::Object, q: &mut Conjunction) -> usize { 
+fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction) -> usize { 
     // get left and right index
     
     unimplemented!()
 }
 
-fn is_regex(json_node : &JsonValue) -> bool {
+fn is_regex(json_node : &serde_json::Value) -> bool {
     if let Some(tm) = json_node["textMatching"].as_str() {
         if tm == "REGEXP_EQUAL" {
             return true;
