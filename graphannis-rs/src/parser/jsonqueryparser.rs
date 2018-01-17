@@ -33,6 +33,13 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
                     }
 
                     // TODO: add all joins
+                    if let JsonValue::Array(ref joins) = alt["joins"] {
+                        for j in joins.iter() {
+                            if let &JsonValue::Object(ref j_obj) = j {
+                                parse_join(j_obj, &mut q);
+                            }
+                        }
+                    }
 
                     // TODO: add all meta-data
 
@@ -98,6 +105,12 @@ fn parse_node(node: &json::object::Object, q: &mut Conjunction) -> usize {
         // just search for any node
         return q.add_node((NodeSearchSpec::AnyNode));
     }
+}
+
+fn parse_join(join: &json::object::Object, q: &mut Conjunction) -> usize { 
+    // get left and right index
+    
+    unimplemented!()
 }
 
 fn is_regex(json_node : &JsonValue) -> bool {
