@@ -178,11 +178,7 @@ impl<'a> NodeSearch<'a> {
         } else {
             None
         };
-        let val_id: Option<StringID> = if let Some(val) = val.as_ref() {
-            Some(db.strings.find_id(val)?).cloned()
-        } else {
-            None
-        };
+        let val_id: Option<StringID> = val.clone().and_then(|v| db.strings.find_id(&v).cloned());
 
         let base_it = if match_regex {
             // match_regex works only with values
