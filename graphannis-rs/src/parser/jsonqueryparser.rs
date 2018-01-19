@@ -25,7 +25,7 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
                     if let Ok(ref node_id) = node_name.parse::<u64>() {
                         let node_id = node_id.clone() as usize;
 
-                        let pos = parse_node(node_obj, &mut q);
+                        let pos = parse_node(node_obj, &mut q)?;
                         node_id_to_pos.insert(node_id, pos);
                     }
                 }
@@ -53,7 +53,7 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
     return None;
 }
 
-fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction) -> usize {
+fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction) -> Option<usize> {
     // annotation search?
     if node.contains_key("nodeAnnotations") {
         if let serde_json::Value::Array(ref a) = node["nodeAnnotations"] {
@@ -87,18 +87,18 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
 
         if let Some(tok_val) = spanned {
             if node.contains_key("textMatching") && node["textMatching"].as_str() == Some("REGEXP_EQUAL") {
-                return q.add_node(NodeSearchSpec::RegexTokenValue{val: String::from(tok_val), leafs_only,});
+                return Some(q.add_node(NodeSearchSpec::RegexTokenValue{val: String::from(tok_val), leafs_only,}));
             } else {
-                return q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,});
+                return Some(q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,}));
             }
         } else {
-            return q.add_node(NodeSearchSpec::AnyToken);
+            return Some(q.add_node(NodeSearchSpec::AnyToken));
         }
 
 
     } else {
         // just search for any node
-        return q.add_node((NodeSearchSpec::AnyNode));
+        return Some(q.add_node((NodeSearchSpec::AnyNode)));
     }
 }
 
@@ -147,7 +147,7 @@ fn add_node_annotation(
     name: Option<&str>,
     value: Option<&str>,
     regex : bool,
-) -> usize {
+) -> Option<usize> {
     if let Some(name_val) = name {
         // TODO: replace regex with normal text matching if this is not an actual regular expression
 
@@ -156,14 +156,14 @@ fn add_node_annotation(
             if let Some(val) = value {
                 let mut n: NodeSearchSpec =
                     NodeSearchSpec::new_regex(ns, name_val, val);
-                return q.add_node(n);
+                return Some(q.add_node(n));
             }
         } else  {
             // has namespace?
             let mut n: NodeSearchSpec =
                 NodeSearchSpec::new_exact(ns, name_val, value);
-            return q.add_node(n);
+            return Some(q.add_node(n));
         }
     }
-    unimplemented!()
+    return None;
 }
