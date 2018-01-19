@@ -22,9 +22,11 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
         if let serde_json::Value::Object(ref nodes) = alt["nodes"] {
             for (node_name, node) in nodes.iter() {
                 if let Some(node_obj) = node.as_object() {
-                    if let Ok(ref node_id) = node_name.parse::<usize>() {
+                    if let Ok(ref node_id) = node_name.parse::<u64>() {
+                        let node_id = node_id.clone() as usize;
+
                         let pos = parse_node(node_obj, &mut q);
-                        node_id_to_pos.insert(node_id.clone(), pos);
+                        node_id_to_pos.insert(node_id, pos);
                     }
                 }
             }
@@ -103,13 +105,13 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
 
 fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction, node_id_to_pos: &BTreeMap<usize, usize>) -> usize { 
     // get left and right index
-    if let Some(left_id) = join["left"].as_u64() {
-        if let Some(right_id) = join["right"].as_u64() {
-            //if let Some(pos_left) = node_id_to_pos[left_id] {
-            //    if let Some(pos_right) = node_id_to_pos[right_id] {
-            //    
-            //    }
-            //}
+    if let (Some(left_id), Some(right_id)) = (join["left"].as_u64(), join["right"].as_u64()) {
+        let left_id = left_id as usize;
+        let right_id = right_id as usize;
+        if let (Some(pos_left),Some(pos_right)) = (node_id_to_pos.get(&left_id),node_id_to_pos.get(&right_id)) {
+            if let Some(op) = join["op"].as_str() {
+
+            }
         }
     }
     
