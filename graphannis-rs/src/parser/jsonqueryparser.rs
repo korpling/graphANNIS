@@ -5,8 +5,6 @@ use exec::nodesearch::NodeSearchSpec;
 
 use operator::precedence::PrecedenceSpec;
 
-use graphdb::{ANNIS_NS, TOK};
-
 use std::collections::BTreeMap;
 
 pub fn parse(query_as_string: &str) -> Option<Disjunction> {
@@ -14,14 +12,14 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
 
     let mut conjunctions: Vec<Conjunction> = Vec::new();
     // iterate over all alternatives
-    let alternatives = root["alternatives"].as_array()?;
+    let alternatives = root.get("alternatives")?.as_array()?;
     
     for alt in alternatives.iter() {
         let mut q = Conjunction::new();
 
         // add all nodes
         let mut node_id_to_pos: BTreeMap<usize, usize> = BTreeMap::new();
-        if let serde_json::Value::Object(ref nodes) = alt["nodes"] {
+        if let &serde_json::Value::Object(ref nodes) = alt.get("nodes")? {
             for (node_name, node) in nodes.iter() {
                 if let Some(node_obj) = node.as_object() {
                     if let Ok(ref node_id) = node_name.parse::<u64>() {
@@ -34,8 +32,8 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
             }
         }
 
-        // TODO: add all joins
-        if let serde_json::Value::Array(ref joins) = alt["joins"] {
+        // add all joins
+        if let &serde_json::Value::Array(ref joins) = alt.get("joins")? {
             for j in joins.iter() {
                 if let &serde_json::Value::Object(ref j_obj) = j {
                     parse_join(j_obj, &mut q, &node_id_to_pos);
@@ -46,10 +44,7 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
         // TODO: add all meta-data
 
         conjunctions.push(q);
-        unimplemented!();
     }
-
-
 
     if !conjunctions.is_empty() {
         return Some(Disjunction::new(conjunctions));
@@ -60,24 +55,26 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
 
 fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction) -> usize {
     // annotation search?
-    if let serde_json::Value::Array(ref a) = node["nodeAnnotations"] {
-        if !a.is_empty() {
-            // get the first one
-            let a = &a[0];
-            return add_node_annotation(
-                q,
-                a["namespace"].as_str(),
-                a["name"].as_str(),
-                a["value"].as_str(),
-                is_regex(a),
-            );
+    if node.contains_key("nodeAnnotations") {
+        if let serde_json::Value::Array(ref a) = node["nodeAnnotations"] {
+            if !a.is_empty() {
+                // get the first one
+                let a = &a[0];
+                return add_node_annotation(
+                    q,
+                    a.get("namespace").and_then(|n| n.as_str()),
+                    a.get("name").and_then(|n| n.as_str()),
+                    a.get("value").and_then(|n| n.as_str()),
+                    is_regex(a),
+                );
+            }
         }
     }
 
     // check for special non-annotation search constructs
     // token search?
-    if node["spannedText"].is_string()
-        || (node["token"].is_boolean() && node["token"].is_boolean()) {
+    if node.contains_key("spannedText") && node["spannedText"].is_string()
+        || (node.contains_key("token") && node["token"].is_boolean()) {
         let spanned = node["spannedText"].as_str();
 
         let mut leafs_only = false;
@@ -89,7 +86,7 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
         }
 
         if let Some(tok_val) = spanned {
-            if node["textMatching"].as_str() == Some("REGEXP_EQUAL") {
+            if node.contains_key("textMatching") && node["textMatching"].as_str() == Some("REGEXP_EQUAL") {
                 return q.add_node(NodeSearchSpec::RegexTokenValue{val: String::from(tok_val), leafs_only,});
             } else {
                 return q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,});
@@ -107,16 +104,16 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
 
 fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction, node_id_to_pos: &BTreeMap<usize, usize>) { 
     // get left and right index
-    if let (Some(left_id), Some(right_id)) = (join["left"].as_u64(), join["right"].as_u64()) {
+    if let (Some(left_id), Some(right_id)) = (join.get("left").and_then(|n| n.as_u64()), join.get("right").and_then(|n| n.as_u64())) {
         let left_id = left_id as usize;
         let right_id = right_id as usize;
         if let (Some(pos_left),Some(pos_right)) = (node_id_to_pos.get(&left_id),node_id_to_pos.get(&right_id)) {
             
-            let spec_opt = match join["op"].as_str() {
+            let spec_opt = match join.get("op").and_then(|s| s.as_str()) {
                 Some("Precedence") => {
-                    let min_dist = join["minDistance"].as_u64();
-                    let max_dist = join["maxDistance"].as_u64();
-                    let seg_name = join["segmentation-name"].as_str();
+                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
+                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
+                    let seg_name = join.get("segmentation-name").and_then(|s| s.as_str());
                     
                     let spec = PrecedenceSpec {
                         segmentation: seg_name.map(|s| String::from(s)),
@@ -133,12 +130,10 @@ fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
             }
         }
     }
-    
-    unimplemented!()
 }
 
 fn is_regex(json_node : &serde_json::Value) -> bool {
-    if let Some(tm) = json_node["textMatching"].as_str() {
+    if let Some(tm) = json_node.get("textMatching").and_then(|n| n.as_str()) {
         if tm == "REGEXP_EQUAL" {
             return true;
         }
