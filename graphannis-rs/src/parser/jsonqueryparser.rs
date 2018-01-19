@@ -3,6 +3,8 @@ use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use exec::nodesearch::NodeSearchSpec;
 
+use operator::precedence::PrecedenceSpec;
+
 use graphdb::{ANNIS_NS, TOK};
 
 use std::collections::BTreeMap;
@@ -103,14 +105,31 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
     }
 }
 
-fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction, node_id_to_pos: &BTreeMap<usize, usize>) -> usize { 
+fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction, node_id_to_pos: &BTreeMap<usize, usize>) { 
     // get left and right index
     if let (Some(left_id), Some(right_id)) = (join["left"].as_u64(), join["right"].as_u64()) {
         let left_id = left_id as usize;
         let right_id = right_id as usize;
         if let (Some(pos_left),Some(pos_right)) = (node_id_to_pos.get(&left_id),node_id_to_pos.get(&right_id)) {
-            if let Some(op) = join["op"].as_str() {
-
+            
+            let spec_opt = match join["op"].as_str() {
+                Some("Precedence") => {
+                    let min_dist = join["minDistance"].as_u64();
+                    let max_dist = join["maxDistance"].as_u64();
+                    let seg_name = join["segmentation-name"].as_str();
+                    
+                    let spec = PrecedenceSpec {
+                        segmentation: seg_name.map(|s| String::from(s)),
+                        min_dist: min_dist.unwrap_or(1) as usize,
+                        max_dist: max_dist.unwrap_or(1) as usize,
+                    };
+                    Some(Box::new(spec))
+                },
+                // TODO: add more operators
+                _ => {None},
+            };
+            if let Some(spec) = spec_opt {
+                q.add_operator(spec, pos_left.clone() as usize , pos_right.clone() as usize);
             }
         }
     }
