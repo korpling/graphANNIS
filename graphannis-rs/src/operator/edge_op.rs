@@ -6,40 +6,40 @@ use util;
 use std::rc::Rc;
 
 #[derive(Clone)]
-pub struct AbstractEdgeOpSpec {
+pub struct BaseEdgeOpSpec {
     pub components: Vec<Component>,
     pub min_dist: usize,
     pub max_dist: usize,
     pub edge_anno : Option<Annotation>,
 }
 
-pub struct AbstractEdgeOp {
+pub struct BaseEdgeOp {
     gs: Vec<Rc<GraphStorage>>,
-    spec: AbstractEdgeOpSpec,
+    spec: BaseEdgeOpSpec,
 }
 
-impl AbstractEdgeOp {
-    pub fn new(db: &GraphDB, spec: AbstractEdgeOpSpec) -> Option<AbstractEdgeOp> {
+impl BaseEdgeOp {
+    pub fn new(db: &GraphDB, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
      
         let mut gs : Vec<Rc<GraphStorage>> = Vec::new();
         for c in spec.components.iter() {
             gs.push(db.get_graphstorage(c)?);
         }
-        Some(AbstractEdgeOp {
+        Some(BaseEdgeOp {
             gs,
             spec,
         })
     }
 }
 
-impl OperatorSpec for AbstractEdgeOpSpec {
+impl OperatorSpec for BaseEdgeOpSpec {
     fn necessary_components(&self) -> Vec<Component> {
         self.components.clone()
     }
 
     fn create_operator<'b>(&self, db : &'b GraphDB) -> Option<Box<Operator + 'b>> {
         
-        let optional_op = AbstractEdgeOp::new(db, self.clone());
+        let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
         } else {
@@ -48,7 +48,7 @@ impl OperatorSpec for AbstractEdgeOpSpec {
     }
 }
 
-impl AbstractEdgeOp {
+impl BaseEdgeOp {
     fn check_edge_annotation(&self, gs : &GraphStorage, source : &NodeID, target : &NodeID) -> bool {
         if self.spec.edge_anno.is_none() {
             return true;
@@ -70,7 +70,7 @@ impl AbstractEdgeOp {
     }
 }
 
-impl Operator for AbstractEdgeOp {
+impl Operator for BaseEdgeOp {
 
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
         unimplemented!()
