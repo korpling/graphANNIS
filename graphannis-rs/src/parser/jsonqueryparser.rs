@@ -11,12 +11,12 @@ use operator::edge_op::DominanceSpec;
 use std::collections::BTreeMap;
 
 pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>> {
-    let root : serde_json::Value = serde_json::from_str(query_as_string).ok()?;
+    let root: serde_json::Value = serde_json::from_str(query_as_string).ok()?;
 
     let mut conjunctions: Vec<Conjunction> = Vec::new();
     // iterate over all alternatives
     let alternatives = root.get("alternatives")?.as_array()?;
-    
+
     for alt in alternatives.iter() {
         let mut q = Conjunction::new();
 
@@ -52,11 +52,14 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
     if !conjunctions.is_empty() {
         return Some(Disjunction::new(conjunctions));
     }
-    
+
     return None;
 }
 
-fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction) -> Option<usize> {
+fn parse_node(
+    node: &serde_json::Map<String, serde_json::Value>,
+    q: &mut Conjunction,
+) -> Option<usize> {
     // annotation search?
     if node.contains_key("nodeAnnotations") {
         if let serde_json::Value::Array(ref a) = node["nodeAnnotations"] {
@@ -77,7 +80,8 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
     // check for special non-annotation search constructs
     // token search?
     if node.contains_key("spannedText") && node["spannedText"].is_string()
-        || (node.contains_key("token") && node["token"].is_boolean()) {
+        || (node.contains_key("token") && node["token"].is_boolean())
+    {
         let spanned = node["spannedText"].as_str();
 
         let mut leafs_only = false;
@@ -89,65 +93,84 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
         }
 
         if let Some(tok_val) = spanned {
-            if node.contains_key("textMatching") && node["textMatching"].as_str() == Some("REGEXP_EQUAL") {
-                return Some(q.add_node(NodeSearchSpec::RegexTokenValue{val: String::from(tok_val), leafs_only,}));
+            if node.contains_key("textMatching")
+                && node["textMatching"].as_str() == Some("REGEXP_EQUAL")
+            {
+                return Some(q.add_node(NodeSearchSpec::RegexTokenValue {
+                    val: String::from(tok_val),
+                    leafs_only,
+                }));
             } else {
-                return Some(q.add_node(NodeSearchSpec::ExactTokenValue{val: String::from(tok_val), leafs_only,}));
+                return Some(q.add_node(NodeSearchSpec::ExactTokenValue {
+                    val: String::from(tok_val),
+                    leafs_only,
+                }));
             }
         } else {
             return Some(q.add_node(NodeSearchSpec::AnyToken));
         }
-
-
     } else {
         // just search for any node
         return Some(q.add_node((NodeSearchSpec::AnyNode)));
     }
 }
 
-fn parse_join(join: &serde_json::Map<String, serde_json::Value>, 
-              q: &mut Conjunction,
-              node_id_to_pos: &BTreeMap<usize, usize>,
-              db: &GraphDB) { 
+fn parse_join(
+    join: &serde_json::Map<String, serde_json::Value>,
+    q: &mut Conjunction,
+    node_id_to_pos: &BTreeMap<usize, usize>,
+    db: &GraphDB,
+) {
     // get left and right index
-    if let (Some(left_id), Some(right_id)) = (join.get("left").and_then(|n| n.as_u64()), join.get("right").and_then(|n| n.as_u64())) {
+    if let (Some(left_id), Some(right_id)) = (
+        join.get("left").and_then(|n| n.as_u64()),
+        join.get("right").and_then(|n| n.as_u64()),
+    ) {
         let left_id = left_id as usize;
         let right_id = right_id as usize;
-        if let (Some(pos_left),Some(pos_right)) = (node_id_to_pos.get(&left_id),node_id_to_pos.get(&right_id)) {
-            
-            let spec_opt : Option<Box<OperatorSpec>> = match join.get("op").and_then(|s| s.as_str()) {
+        if let (Some(pos_left), Some(pos_right)) =
+            (node_id_to_pos.get(&left_id), node_id_to_pos.get(&right_id))
+        {
+            let spec_opt: Option<Box<OperatorSpec>> = match join.get("op").and_then(|s| s.as_str())
+            {
                 Some("Precedence") => {
                     let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
                     let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
                     let seg_name = join.get("segmentation-name").and_then(|s| s.as_str());
-                    
+
                     let spec = PrecedenceSpec {
                         segmentation: seg_name.map(|s| String::from(s)),
                         min_dist: min_dist.unwrap_or(1) as usize,
                         max_dist: max_dist.unwrap_or(1) as usize,
                     };
                     Some(Box::new(spec))
-                },
+                }
                 Some("Dominance") => {
                     let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
                     let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
-                    
+
                     let name = join.get("name").and_then(|n| n.as_str());
                     // TODO: edge anno spec
-                    let spec = DominanceSpec::new(db, name.unwrap_or(""), min_dist.unwrap_or(1) as usize , max_dist.unwrap_or(1) as usize, None);
+                    let spec = DominanceSpec::new(
+                        db,
+                        name.unwrap_or(""),
+                        min_dist.unwrap_or(1) as usize,
+                        max_dist.unwrap_or(1) as usize,
+                        None,
+                    );
                     Some(Box::new(spec))
-                },
+                }
                 // TODO: add more operators
-                _ => {None},
+                _ => None,
             };
             if let Some(spec) = spec_opt {
-                q.add_operator(spec, pos_left.clone() as usize , pos_right.clone() as usize);
+                q.add_operator(spec, pos_left.clone() as usize, pos_right.clone() as usize);
             }
         }
     }
 }
 
-fn is_regex(json_node : &serde_json::Value) -> bool {
+fn is_regex(json_node: &serde_json::Value) -> bool {
     if let Some(tm) = json_node.get("textMatching").and_then(|n| n.as_str()) {
         if tm == "REGEXP_EQUAL" {
             return true;
@@ -161,7 +184,7 @@ fn add_node_annotation(
     ns: Option<&str>,
     name: Option<&str>,
     value: Option<&str>,
-    regex : bool,
+    regex: bool,
 ) -> Option<usize> {
     if let Some(name_val) = name {
         // TODO: replace regex with normal text matching if this is not an actual regular expression
@@ -169,14 +192,12 @@ fn add_node_annotation(
         // search for the value
         if regex {
             if let Some(val) = value {
-                let mut n: NodeSearchSpec =
-                    NodeSearchSpec::new_regex(ns, name_val, val);
+                let mut n: NodeSearchSpec = NodeSearchSpec::new_regex(ns, name_val, val);
                 return Some(q.add_node(n));
             }
-        } else  {
+        } else {
             // has namespace?
-            let mut n: NodeSearchSpec =
-                NodeSearchSpec::new_exact(ns, name_val, value);
+            let mut n: NodeSearchSpec = NodeSearchSpec::new_exact(ns, name_val, value);
             return Some(q.add_node(n));
         }
     }
