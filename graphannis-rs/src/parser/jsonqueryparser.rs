@@ -1,14 +1,16 @@
 use serde_json;
 
-use {Annotation};
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use exec::nodesearch::NodeSearchSpec;
+use operator::edge_op::EdgeAnnoSearchSpec;
 use graphdb::GraphDB;
 
 use operator::OperatorSpec;
 use operator::precedence::PrecedenceSpec;
 use operator::edge_op::DominanceSpec;
+use operator::edge_op::PointingSpec;
+
 
 use std::collections::BTreeMap;
 
@@ -152,16 +154,35 @@ fn parse_join(
                     let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
 
                     let name = join.get("name").and_then(|n| n.as_str());
-                    // TODO: edge anno spec
+                    let edge_anno = join.get("edgeAnnotations")
+                        .and_then(|a| a.as_array())
+                        .and_then(|a| get_edge_anno(&a[0]));
                     let spec = DominanceSpec::new(
                         db,
                         name.unwrap_or(""),
                         min_dist.unwrap_or(1) as usize,
                         max_dist.unwrap_or(1) as usize,
-                        None,
+                        edge_anno,
                     );
                     Some(Box::new(spec))
-                }
+                },
+                Some("Pointing") => {
+                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
+                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
+
+                    let name = join.get("name").and_then(|n| n.as_str());
+                    let edge_anno = join.get("edgeAnnotations")
+                        .and_then(|a| a.as_array())
+                        .and_then(|a| get_edge_anno(&a[0]));
+                    let spec = PointingSpec::new(
+                        db,
+                        name.unwrap_or(""),
+                        min_dist.unwrap_or(1) as usize,
+                        max_dist.unwrap_or(1) as usize,
+                        edge_anno,
+                    );
+                    Some(Box::new(spec))
+                },
                 // TODO: add more operators
                 _ => None,
             };
@@ -172,20 +193,29 @@ fn parse_join(
     }
 }
 
-fn get_edge_anno(json_node: &serde_json::Value, db : &GraphDB) -> Option<Annotation> {
+fn get_edge_anno(json_node: &serde_json::Value) -> Option<EdgeAnnoSearchSpec> {
     if let Some(tm) = json_node.get("textMatching").and_then(|n| n.as_str()) {
         if tm == "EXACT_EQUAL" {
-            let mut ns = 0;
-            let mut name = 0;
-            let mut val = 0;
+            let name = json_node.get("name")?.as_str()?;
 
+            return Some(EdgeAnnoSearchSpec::ExactValue {
+                ns: json_node
+                    .get("namespace")
+                    .and_then(|n| n.as_str())
+                    .map(|s| String::from(s)),
+                val: json_node
+                    .get("value")
+                    .and_then(|n| n.as_str())
+                    .map(|s| String::from(s)),
+                name: String::from(name),
+            });
         }
         // TODO: what about regex?
     }
 
     unimplemented!()
 }
- 
+
 fn is_regex(json_node: &serde_json::Value) -> bool {
     if let Some(tm) = json_node.get("textMatching").and_then(|n| n.as_str()) {
         if tm == "REGEXP_EQUAL" {
