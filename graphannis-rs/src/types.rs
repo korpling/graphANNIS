@@ -60,7 +60,7 @@ impl fmt::Display for ComponentType {
 #[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct Component {
     pub ctype : ComponentType,
-    pub layer : String,
     pub name : String,
+    pub layer : String,
 }
 

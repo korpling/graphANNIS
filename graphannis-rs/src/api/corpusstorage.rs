@@ -25,23 +25,24 @@ struct DBLoader {
 
 impl DBLoader {
     fn needs_loading(&self, components: &Vec<Component>) -> bool {
-        let mut missing: HashSet<Component> = HashSet::from_iter(components.iter().cloned());
-
+        
         if let Some(db) = self.db.as_ref() {
+            let mut missing: HashSet<Component> = HashSet::from_iter(components.iter().cloned());
+
             // remove all that are already loaded
             for c in components.iter() {
                 if db.get_graphstorage(c).is_some() {
                     missing.remove(c);
                 }
             }
+
+            return missing.len() > 0;
         } else {
             return true;
         }
-
-        return missing.len() > 0;
     }
 
-    /// Get the database without loading it.
+    /// Get the database without loading components of it.
     fn get<'a>(&'a self) -> Option<&'a GraphDB> {
         return self.db.as_ref();
     }
@@ -260,16 +261,28 @@ impl CorpusStorage {
         query_as_json: &'a str,
     ) -> Result<PreparationResult<'a>, Error> {
 
-        let q = jsonqueryparser::parse(query_as_json).ok_or(Error::ParserError)?;
-        
-        let necessary_components = q.necessary_components();
         let db_loader = self.get_loader(corpus_name).ok_or(Error::NoSuchCorpus)?;
 
-
         // make sure the database is loaded at all
-        let needs_loading = {
+        let needs_loading_base = {
             let lock = db_loader.read().unwrap();
-            (&*lock).needs_loading(&necessary_components)
+            (&*lock).get().is_none()
+        };
+        if needs_loading_base {
+            let mut lock = db_loader.write().unwrap();
+            (&mut *lock).get_with_components_loaded(std::iter::empty());
+        };
+
+        // make sure the database is loaded with all necessary components
+        let (q, needs_loading, necessary_components) = {
+            let lock = db_loader.read().unwrap();
+            
+            let db = (&*lock).get().ok_or(Error::LoadingFailed)?;
+            let q = jsonqueryparser::parse(query_as_json, db).ok_or(Error::ParserError)?;
+            let necessary_components = q.necessary_components();
+            let needs_loading = (&*lock).needs_loading(&necessary_components);
+
+            (q, needs_loading, necessary_components)
         };
         if needs_loading {
             // load the needed components

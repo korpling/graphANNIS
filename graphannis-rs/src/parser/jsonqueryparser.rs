@@ -2,12 +2,15 @@ use serde_json;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use exec::nodesearch::NodeSearchSpec;
+use graphdb::GraphDB;
 
+use operator::OperatorSpec;
 use operator::precedence::PrecedenceSpec;
+use operator::edge_op::DominanceSpec;
 
 use std::collections::BTreeMap;
 
-pub fn parse(query_as_string: &str) -> Option<Disjunction> {
+pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>> {
     let root : serde_json::Value = serde_json::from_str(query_as_string).ok()?;
 
     let mut conjunctions: Vec<Conjunction> = Vec::new();
@@ -36,7 +39,7 @@ pub fn parse(query_as_string: &str) -> Option<Disjunction> {
         if let &serde_json::Value::Array(ref joins) = alt.get("joins")? {
             for j in joins.iter() {
                 if let &serde_json::Value::Object(ref j_obj) = j {
-                    parse_join(j_obj, &mut q, &node_id_to_pos);
+                    parse_join(j_obj, &mut q, &node_id_to_pos, db);
                 }
             }
         }
@@ -102,14 +105,17 @@ fn parse_node(node: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
     }
 }
 
-fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunction, node_id_to_pos: &BTreeMap<usize, usize>) { 
+fn parse_join(join: &serde_json::Map<String, serde_json::Value>, 
+              q: &mut Conjunction,
+              node_id_to_pos: &BTreeMap<usize, usize>,
+              db: &GraphDB) { 
     // get left and right index
     if let (Some(left_id), Some(right_id)) = (join.get("left").and_then(|n| n.as_u64()), join.get("right").and_then(|n| n.as_u64())) {
         let left_id = left_id as usize;
         let right_id = right_id as usize;
         if let (Some(pos_left),Some(pos_right)) = (node_id_to_pos.get(&left_id),node_id_to_pos.get(&right_id)) {
             
-            let spec_opt = match join.get("op").and_then(|s| s.as_str()) {
+            let spec_opt : Option<Box<OperatorSpec>> = match join.get("op").and_then(|s| s.as_str()) {
                 Some("Precedence") => {
                     let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
                     let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
@@ -120,6 +126,15 @@ fn parse_join(join: &serde_json::Map<String, serde_json::Value>, q: &mut Conjunc
                         min_dist: min_dist.unwrap_or(1) as usize,
                         max_dist: max_dist.unwrap_or(1) as usize,
                     };
+                    Some(Box::new(spec))
+                },
+                Some("Dominance") => {
+                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
+                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
+                    
+                    let name = join.get("name").and_then(|n| n.as_str());
+                    // TODO: edge anno spec
+                    let spec = DominanceSpec::new(db, name.unwrap_or(""), min_dist.unwrap_or(1) as usize , max_dist.unwrap_or(1) as usize, None);
                     Some(Box::new(spec))
                 },
                 // TODO: add more operators

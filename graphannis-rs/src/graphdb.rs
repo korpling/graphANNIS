@@ -380,6 +380,24 @@ impl GraphDB {
         return None;
     }
 
+    pub fn get_all_components(&self, ctype : ComponentType, name : &str) -> Vec<Component> {
+        let mut result : Vec<Component> = Vec::new();
+        let ckey = Component {
+            ctype,
+            name: String::from(name),
+            layer: String::from(""),
+        };
+
+        for (c, _) in self.components.range(ckey..) {
+            if c.name != name {
+                break;
+            }
+            result.push(c.clone());
+        }
+
+        return result;
+    }
+
     pub fn get_direct_connected(&mut self, edge: &Edge) -> Result<Vec<Component>, Error> {
         let mut result = Vec::new();
 
