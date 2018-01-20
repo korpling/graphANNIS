@@ -5,7 +5,7 @@ use {Component};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashSet, BTreeSet};
 use graphdb;
 use graphdb::{GraphDB};
 use std;
@@ -19,32 +19,28 @@ use std::iter::FromIterator;
 
 
 struct DBLoader {
-    db: Option<GraphDB>,
-    db_path: PathBuf,
+    db: GraphDB,
 }
 
 impl DBLoader {
     fn needs_loading(&self, components: &Vec<Component>) -> bool {
         
-        if let Some(db) = self.db.as_ref() {
-            let mut missing: HashSet<Component> = HashSet::from_iter(components.iter().cloned());
+        let mut missing: HashSet<Component> = HashSet::from_iter(components.iter().cloned());
 
-            // remove all that are already loaded
-            for c in components.iter() {
-                if db.get_graphstorage(c).is_some() {
-                    missing.remove(c);
-                }
+        // remove all that are already loaded
+        for c in components.iter() {
+            if self.db.get_graphstorage(c).is_some() {
+                missing.remove(c);
             }
-
-            return missing.len() > 0;
-        } else {
-            return true;
         }
+
+        return missing.len() > 0;
+    
     }
 
     /// Get the database without loading components of it.
-    fn get<'a>(&'a self) -> Option<&'a GraphDB> {
-        return self.db.as_ref();
+    fn get<'a>(&'a self) -> &'a GraphDB {
+        return &self.db;
     }
 
 
@@ -53,20 +49,12 @@ impl DBLoader {
     where
         I: Iterator<Item = &'a Component>,
     {
-        if self.db.is_none() {
-            let mut loaded_db = GraphDB::new();
+        for c in components {
             // TODO: what if loading fails?
-            loaded_db.load_from(&self.db_path, false).ok()?;
-            self.db = Some(loaded_db);
+            self.db.ensure_loaded(c).ok()?;
         }
-        {
-            let mut_db: &mut GraphDB = self.db.as_mut().unwrap();
-            for c in components {
-                // TODO: what if loading fails?
-                mut_db.ensure_loaded(c).ok()?;
-            }
-        }
-        return self.db.as_ref();
+    
+        return Some(&self.db);
     }
     // TODO: add callback
 }
@@ -115,7 +103,6 @@ impl From<std::ffi::OsString> for Error {
 pub struct CorpusStorage {
     db_dir: PathBuf,
 /*    max_allowed_cache_size: Option<usize>, */
-
     corpus_cache: RwLock<BTreeMap<String, Arc<RwLock<DBLoader>>>>,
 }
 
@@ -137,71 +124,50 @@ impl CorpusStorage {
             corpus_cache: RwLock::new(BTreeMap::new()),
         };
 
-        cs.load_available_from_disk()?;
-
         Ok(cs)
     }
 
-    fn load_available_from_disk(&self) -> Result<(), Error> {
-        let mut cache_lock = self.corpus_cache.write().unwrap();
-        let cache = &mut *cache_lock;
-
+    fn list_from_disk(&self) -> Result<Vec<String>,Error> {
+        let mut corpora: Vec<String> = Vec::new();
         for c_dir in self.db_dir.read_dir()? {
             let c_dir = c_dir?;
             let ftype = c_dir.file_type()?;
             if ftype.is_dir() {
                 let corpus_name = c_dir.file_name().into_string()?;
-                cache.insert(
-                    corpus_name.clone(),
-                    Arc::new(RwLock::new(DBLoader {
-                        db: None,
-                        db_path: c_dir.path(),
-                    })),
-                );
+                corpora.push(corpus_name.clone());
             }
         }
-
-        Ok(())
+        Ok(corpora)
     }
 
     pub fn list(&self) -> Vec<String> {
-        let mut result: Vec<String> = Vec::new();
-
-        if let Ok(cache_lock) = self.corpus_cache.read() {
-            let cache = &*cache_lock;
-            result = cache.keys().cloned().collect();
-        }
-
+        let result: Vec<String> = self.list_from_disk().unwrap_or_default();
         return result;
     }
 
-/*
-    fn get_or_create_loader(&self, corpus_name: &str) -> Arc<RwLock<DBLoader>> {
+
+    fn get_loader(&self, corpus_name: &str) -> Result<Arc<RwLock<DBLoader>>, Error> {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
         let corpus_name = corpus_name.to_string();
-        let entry = cache.entry(corpus_name.clone()).or_insert_with(|| {
-            // Create a new empty DB loader and put it into the cache. This will not load
-            // the database itself, this can be done with the resulting object from the caller.
+        if !cache.contains_key(&corpus_name) {
             let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
                 .iter()
                 .collect();
-            Arc::new(RwLock::new(DBLoader { db: None, db_path }))
-        });
 
-        return entry.clone();
-    }
-*/
-    fn get_loader(&self, corpus_name: &str) -> Option<Arc<RwLock<DBLoader>>> {
+            if !db_path.is_dir() {
+                return Err(Error::NoSuchCorpus);
+            }
+            let mut db = GraphDB::new();
+            // TODO: what if loading fails?
+            db.load_from(&db_path, false)?;
+            cache.insert(corpus_name.clone(), Arc::new(RwLock::new(DBLoader {db})));
+        }
 
-        let corpus_name = corpus_name.to_string();
+        let entry = cache.get(&corpus_name).ok_or(Error::LoadingFailed)?;
 
-        let cache_lock = self.corpus_cache.read().unwrap();
-        let cache = &*cache_lock;
-
-        let entry = cache.get(&corpus_name);
-        return entry.cloned();
+        return Ok(entry.clone());
     }
 
 
@@ -249,8 +215,7 @@ impl CorpusStorage {
         cache.insert(
             String::from(corpus_name),
             Arc::new(RwLock::new(DBLoader {
-                db: Some(db),
-                db_path: db_path,
+                db,
             })),
         );
     }
@@ -261,23 +226,13 @@ impl CorpusStorage {
         query_as_json: &'a str,
     ) -> Result<PreparationResult<'a>, Error> {
 
-        let db_loader = self.get_loader(corpus_name).ok_or(Error::NoSuchCorpus)?;
-
-        // make sure the database is loaded at all
-        let needs_loading_base = {
-            let lock = db_loader.read().unwrap();
-            (&*lock).get().is_none()
-        };
-        if needs_loading_base {
-            let mut lock = db_loader.write().unwrap();
-            (&mut *lock).get_with_components_loaded(std::iter::empty());
-        };
+        let db_loader = self.get_loader(corpus_name)?;
 
         // make sure the database is loaded with all necessary components
         let (q, needs_loading, necessary_components) = {
             let lock = db_loader.read().unwrap();
             
-            let db = (&*lock).get().ok_or(Error::LoadingFailed)?;
+            let db = (&*lock).get();
             let q = jsonqueryparser::parse(query_as_json, db).ok_or(Error::ParserError)?;
             let necessary_components = q.necessary_components();
             let needs_loading = (&*lock).needs_loading(&necessary_components);
@@ -303,7 +258,7 @@ impl CorpusStorage {
 
         // accuire read-only lock and execute query
         let lock = prep.db_loader.read().unwrap();
-        let db: &GraphDB = (&*lock).get().unwrap();
+        let db: &GraphDB = (&*lock).get();
 
         let plan = ExecutionPlan::from_disjunction(prep.query, db)?;
 

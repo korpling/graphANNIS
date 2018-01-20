@@ -1,4 +1,6 @@
 use serde_json;
+
+use {Annotation};
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use exec::nodesearch::NodeSearchSpec;
@@ -170,6 +172,10 @@ fn parse_join(
     }
 }
 
+/* fn get_edge_anno(json_node: &serde_json::Value) -> Option<Annotation> {
+
+}
+ */
 fn is_regex(json_node: &serde_json::Value) -> bool {
     if let Some(tm) = json_node.get("textMatching").and_then(|n| n.as_str()) {
         if tm == "REGEXP_EQUAL" {
