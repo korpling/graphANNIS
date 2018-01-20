@@ -172,10 +172,20 @@ fn parse_join(
     }
 }
 
-/* fn get_edge_anno(json_node: &serde_json::Value) -> Option<Annotation> {
+fn get_edge_anno(json_node: &serde_json::Value, db : &GraphDB) -> Option<Annotation> {
+    if let Some(tm) = json_node.get("textMatching").and_then(|n| n.as_str()) {
+        if tm == "EXACT_EQUAL" {
+            let mut ns = 0;
+            let mut name = 0;
+            let mut val = 0;
 
+        }
+        // TODO: what about regex?
+    }
+
+    unimplemented!()
 }
- */
+ 
 fn is_regex(json_node: &serde_json::Value) -> bool {
     if let Some(tm) = json_node.get("textMatching").and_then(|n| n.as_str()) {
         if tm == "REGEXP_EQUAL" {
