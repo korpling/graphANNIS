@@ -125,10 +125,7 @@ impl Operator for BaseEdgeOp {
                 .map(|n| {
                     Match {
                         node: n,
-                        anno: Annotation {
-                            key: AnnoKey { ns: 0, name: 0 },
-                            val: 0,
-                        },
+                        anno: Annotation::default(),
                     }
                 })
         });

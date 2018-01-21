@@ -8,6 +8,7 @@ use graphdb::GraphDB;
 
 use operator::OperatorSpec;
 use operator::precedence::PrecedenceSpec;
+use operator::identical_cov::IdenticalCoverageSpec;
 use operator::edge_op::DominanceSpec;
 use operator::edge_op::PointingSpec;
 
@@ -148,7 +149,11 @@ fn parse_join(
                         max_dist: max_dist.unwrap_or(1) as usize,
                     };
                     Some(Box::new(spec))
-                }
+                },
+                Some("IdenticalCoverage") => {
+                    let spec = IdenticalCoverageSpec {};
+                    Some(Box::new(spec))
+                },
                 Some("Dominance") => {
                     let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
                     let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
