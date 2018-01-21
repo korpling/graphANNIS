@@ -6,7 +6,8 @@ use exec::nodesearch::NodeSearchSpec;
 use operator::edge_op::EdgeAnnoSearchSpec;
 use graphdb::GraphDB;
 
-use operator::{OperatorSpec, PrecedenceSpec, IdenticalCoverageSpec, InclusionSpec, OverlapSpec, DominanceSpec, PointingSpec};
+use operator::{DominanceSpec, IdenticalCoverageSpec, InclusionSpec, OperatorSpec, OverlapSpec,
+               PointingSpec, PrecedenceSpec, IdenticalNodeSpec, PartOfSubCorpusSpec};
 
 
 use std::collections::BTreeMap;
@@ -21,6 +22,8 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
     for alt in alternatives.iter() {
         let mut q = Conjunction::new();
 
+        let mut first_node_pos : Option<usize> = None;
+
         // add all nodes
         let mut node_id_to_pos: BTreeMap<usize, usize> = BTreeMap::new();
         if let &serde_json::Value::Object(ref nodes) = alt.get("nodes")? {
@@ -30,6 +33,9 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
                         let node_id = node_id.clone() as usize;
 
                         let pos = parse_node(node_obj, &mut q)?;
+                        if first_node_pos.is_none() {
+                            first_node_pos = Some(pos.clone());
+                        }
                         node_id_to_pos.insert(node_id, pos);
                     }
                 }
@@ -45,7 +51,33 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
             }
         }
 
-        // TODO: add all meta-data
+        // add all meta-data
+        if let Some(meta_obj) = alt.get("meta") {
+            let mut first_meta_idx : Option<usize> = None;
+
+            if let Some(meta_array) = meta_obj.as_array() {
+                for m in meta_array.iter() {
+                    // add an artificial node that describes the document/corpus node
+                    if let Some(meta_node_idx) = add_node_annotation(
+                        &mut q,
+                        m.get("namespace").and_then(|n| n.as_str()),
+                        m.get("name").and_then(|n| n.as_str()),
+                        m.get("value").and_then(|n| n.as_str()),
+                        is_regex(m)
+                    ) {
+
+                        if let Some(first_meta_idx) = first_meta_idx {
+                            // avoid nested loops by joining additional meta nodes with a "identical node"
+                            q.add_operator(Box::new(IdenticalNodeSpec {}), first_meta_idx, meta_node_idx);
+                        } else if let Some(first_node_pos) = first_node_pos {
+                            first_meta_idx = Some(meta_node_idx);
+                            // add a special join to the first node of the query
+                            q.add_operator(Box::new(PartOfSubCorpusSpec::new(1)),first_node_pos, meta_node_idx);
+                        }
+                    }
+                }
+            }
+        }
 
         conjunctions.push(q);
     }
@@ -145,19 +177,19 @@ fn parse_join(
                         max_dist: max_dist.unwrap_or(1) as usize,
                     };
                     Some(Box::new(spec))
-                },
+                }
                 Some("IdenticalCoverage") => {
                     let spec = IdenticalCoverageSpec {};
                     Some(Box::new(spec))
-                },
+                }
                 Some("Inclusion") => {
                     let spec = InclusionSpec {};
                     Some(Box::new(spec))
-                },
+                }
                 Some("Overlap") => {
                     let spec = OverlapSpec {};
                     Some(Box::new(spec))
-                },
+                }
                 Some("Dominance") => {
                     let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
                     let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
@@ -174,7 +206,7 @@ fn parse_join(
                         edge_anno,
                     );
                     Some(Box::new(spec))
-                },
+                }
                 Some("Pointing") => {
                     let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
                     let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
@@ -191,7 +223,7 @@ fn parse_join(
                         edge_anno,
                     );
                     Some(Box::new(spec))
-                },
+                }
                 // TODO: add more operators
                 _ => None,
             };

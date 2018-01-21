@@ -19,9 +19,11 @@ pub mod edge_op;
 pub mod identical_cov;
 pub mod inclusion;
 pub mod overlap;
+pub mod identical_node;
 
 pub use self::precedence::PrecedenceSpec;
-pub use self::edge_op::{DominanceSpec, PointingSpec};
+pub use self::edge_op::{DominanceSpec, PointingSpec, PartOfSubCorpusSpec};
 pub use self::inclusion::InclusionSpec;
 pub use self::overlap::OverlapSpec;
 pub use self::identical_cov::IdenticalCoverageSpec;
+pub use self::identical_node::IdenticalNodeSpec;
