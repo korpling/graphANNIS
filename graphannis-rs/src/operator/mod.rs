@@ -17,3 +17,4 @@ pub trait OperatorSpec {
 pub mod precedence;
 pub mod edge_op;
 pub mod identical_cov;
+pub mod inclusion;
