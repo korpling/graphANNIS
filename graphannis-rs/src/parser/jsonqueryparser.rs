@@ -97,8 +97,8 @@ fn parse_node(
         }
 
         if let Some(tok_val) = spanned {
-            if node.contains_key("textMatching")
-                && node["textMatching"].as_str() == Some("REGEXP_EQUAL")
+            if node.contains_key("spanTextMatching")
+                && node["spanTextMatching"].as_str() == Some("REGEXP_EQUAL")
             {
                 return Some(q.add_node(NodeSearchSpec::RegexTokenValue {
                     val: String::from(tok_val),
@@ -212,8 +212,7 @@ fn get_edge_anno(json_node: &serde_json::Value) -> Option<EdgeAnnoSearchSpec> {
         }
         // TODO: what about regex?
     }
-
-    unimplemented!()
+    None
 }
 
 fn is_regex(json_node: &serde_json::Value) -> bool {
