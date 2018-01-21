@@ -108,11 +108,9 @@ impl<'a> Operator for Inclusion<'a> {
                         .map(|n| Match{node: n, anno: Annotation::default()});
                 return Box::new(it);
             }
-
-            return Box::new(std::iter::empty());
         }
 
-        unimplemented!();
+        return Box::new(std::iter::empty());
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {

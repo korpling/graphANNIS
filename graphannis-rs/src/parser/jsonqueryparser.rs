@@ -6,12 +6,7 @@ use exec::nodesearch::NodeSearchSpec;
 use operator::edge_op::EdgeAnnoSearchSpec;
 use graphdb::GraphDB;
 
-use operator::OperatorSpec;
-use operator::precedence::PrecedenceSpec;
-use operator::identical_cov::IdenticalCoverageSpec;
-use operator::inclusion::InclusionSpec;
-use operator::edge_op::DominanceSpec;
-use operator::edge_op::PointingSpec;
+use operator::{OperatorSpec, PrecedenceSpec, IdenticalCoverageSpec, InclusionSpec, OverlapSpec, DominanceSpec, PointingSpec};
 
 
 use std::collections::BTreeMap;
@@ -157,6 +152,10 @@ fn parse_join(
                 },
                 Some("Inclusion") => {
                     let spec = InclusionSpec {};
+                    Some(Box::new(spec))
+                },
+                Some("Overlap") => {
+                    let spec = OverlapSpec {};
                     Some(Box::new(spec))
                 },
                 Some("Dominance") => {

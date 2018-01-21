@@ -6,7 +6,6 @@ use dfs::CycleSafeDFS;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::collections::Bound::*;
-use std::iter::FromIterator;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {

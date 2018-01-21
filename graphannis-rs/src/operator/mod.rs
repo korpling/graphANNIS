@@ -18,3 +18,10 @@ pub mod precedence;
 pub mod edge_op;
 pub mod identical_cov;
 pub mod inclusion;
+pub mod overlap;
+
+pub use self::precedence::PrecedenceSpec;
+pub use self::edge_op::{DominanceSpec, PointingSpec};
+pub use self::inclusion::InclusionSpec;
+pub use self::overlap::OverlapSpec;
+pub use self::identical_cov::IdenticalCoverageSpec;
