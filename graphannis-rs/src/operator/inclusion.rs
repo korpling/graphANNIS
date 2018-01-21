@@ -14,6 +14,7 @@ pub struct InclusionSpec;
 pub struct Inclusion<'a> {
     gs_order: Rc<GraphStorage>,
     gs_left: Rc<GraphStorage>,
+    gs_right: Rc<GraphStorage>,
     tok_helper: TokenHelper<'a>,
 }
 
@@ -34,11 +35,19 @@ lazy_static! {
             name: String::from(""),
         }
     };
+
+    static ref COMPONENT_RIGHT : Component =  {
+        Component {
+            ctype: ComponentType::RightToken,
+            layer: String::from("annis"),
+            name: String::from(""),
+        }
+    };
 }
 
 impl OperatorSpec for InclusionSpec {
     fn necessary_components(&self) -> Vec<Component> {
-        let mut v: Vec<Component> = vec![COMPONENT_ORDER.clone(), COMPONENT_LEFT.clone()];
+        let mut v: Vec<Component> = vec![COMPONENT_ORDER.clone(), COMPONENT_LEFT.clone(), COMPONENT_RIGHT.clone()];
         v.append(&mut token_helper::necessary_components());
         v
     }
@@ -57,19 +66,53 @@ impl<'a> Inclusion<'a> {
     pub fn new(db: &'a GraphDB) -> Option<Inclusion<'a>> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
+        let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
+        
 
         let tok_helper = TokenHelper::new(db)?;
 
         Some(Inclusion {
-            gs_order: gs_order,
-            gs_left: gs_left,
-            tok_helper: tok_helper,
+            gs_order,
+            gs_left,
+            gs_right,
+            tok_helper,
         })
     }
 }
 
 impl<'a> Operator for Inclusion<'a> {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+        if let (Some(start_lhs), Some(end_lhs)) = (
+            self.tok_helper.left_token_for(&lhs.node),
+            self.tok_helper.right_token_for(&lhs.node),
+        ) {
+            // span length of LHS
+            if let Some(l) = self.gs_order.distance(&start_lhs, &end_lhs) {
+                // find each token which is between the left and right border
+                let it = self.gs_order.find_connected(&start_lhs, 0, l)
+                        .flat_map(move |t| {
+                            let it_aligned = self.gs_left.get_outgoing_edges(&t).into_iter()
+                                .filter(move |n| {
+                                    // right-aligned token of candidate
+                                    let end_n = self.gs_right.get_outgoing_edges(&n);
+                                    if !end_n.is_empty() {
+                                        let end_n = end_n[0];
+                                        // path between right-most tokens exists in ORDERING component 
+                                        // and has maximum length l
+                                        return self.gs_order.is_connected(&end_n, &end_lhs, 0, l);
+                                    }
+                                    return false;
+                                });
+                            // return the token itself and all aligned nodes
+                            return std::iter::once(t).chain(it_aligned);
+                        })
+                        .map(|n| Match{node: n, anno: Annotation::default()});
+                return Box::new(it);
+            }
+
+            return Box::new(std::iter::empty());
+        }
+
         unimplemented!();
     }
 

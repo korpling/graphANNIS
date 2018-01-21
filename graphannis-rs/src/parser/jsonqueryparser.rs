@@ -9,6 +9,7 @@ use graphdb::GraphDB;
 use operator::OperatorSpec;
 use operator::precedence::PrecedenceSpec;
 use operator::identical_cov::IdenticalCoverageSpec;
+use operator::inclusion::InclusionSpec;
 use operator::edge_op::DominanceSpec;
 use operator::edge_op::PointingSpec;
 
@@ -152,6 +153,10 @@ fn parse_join(
                 },
                 Some("IdenticalCoverage") => {
                     let spec = IdenticalCoverageSpec {};
+                    Some(Box::new(spec))
+                },
+                Some("Inclusion") => {
+                    let spec = InclusionSpec {};
                     Some(Box::new(spec))
                 },
                 Some("Dominance") => {
