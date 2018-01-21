@@ -201,10 +201,10 @@ mod tests {
             target: 4,
         });
 
-        assert_eq!(vec![2, 3], gs.get_outgoing_edges(&1));
-        assert_eq!(vec![4,5], gs.get_outgoing_edges(&3));
-        assert_eq!(0, gs.get_outgoing_edges(&6).len());
-        assert_eq!(vec![4], gs.get_outgoing_edges(&2));
+        assert_eq!(vec![2, 3], gs.get_outgoing_edges(&1).collect::<Vec<NodeID>>());
+        assert_eq!(vec![4,5], gs.get_outgoing_edges(&3).collect::<Vec<NodeID>>());
+        assert_eq!(0, gs.get_outgoing_edges(&6).count());
+        assert_eq!(vec![4], gs.get_outgoing_edges(&2).collect::<Vec<NodeID>>());
 
         let mut reachable : Vec<NodeID> = gs.find_connected(&1, 1, 100).collect();
         reachable.sort();
