@@ -83,10 +83,10 @@ fn parse_node(
 
     // check for special non-annotation search constructs
     // token search?
-    if node.contains_key("spannedText") && node["spannedText"].is_string()
+    if (node.contains_key("spannedText") && node["spannedText"].is_string())
         || (node.contains_key("token") && node["token"].is_boolean())
     {
-        let spanned = node["spannedText"].as_str();
+        let spanned = node.get("spannedText").and_then(|s| s.as_str());
 
         let mut leafs_only = false;
         if let Some(is_token) = node["token"].as_bool() {

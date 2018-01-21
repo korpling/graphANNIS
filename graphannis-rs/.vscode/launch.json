@@ -8,7 +8,10 @@
             "program": "${workspaceRoot}/target/debug/annis_runner",
             "args": ["data"],
             "cwd": "${workspaceRoot}",
-            "terminal": "external"
+            "terminal": "external",
+            "env": {
+                "RUST_BACKTRACE" : "1"
+            }
         },
         {
             "type": "lldb",
