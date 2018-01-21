@@ -5,7 +5,7 @@ use {Component};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
-use std::collections::{BTreeMap, HashSet, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use graphdb;
 use graphdb::{GraphDB};
 use std;
@@ -165,26 +165,33 @@ impl CorpusStorage {
 
 
     fn get_loader(&self, corpus_name: &str) -> Result<Arc<RwLock<DBLoader>>, Error> {
-        let mut cache_lock = self.corpus_cache.write().unwrap();
-            
-        let entry = {
-            let cache = &mut *cache_lock;
+        let corpus_name = corpus_name.to_string();
+        
+        {
+            // test with read-only access if corpus is contained in cache
+            let cache_lock = self.corpus_cache.read().unwrap();
+            let cache = &*cache_lock;
+            if let Some(loader) = cache.get(&corpus_name) {
+                return Ok(loader.clone());
+            }
+        }
 
-            let corpus_name = corpus_name.to_string();
-            if !cache.contains_key(&corpus_name) {
-                let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
+    
+        // if not yet available, change to write-lock and insert DBLoader
+        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
                     .iter()
                     .collect();
+        
+        if !db_path.is_dir() {
+            return Err(Error::NoSuchCorpus);
+        }
 
-                if !db_path.is_dir() {
-                    return Err(Error::NoSuchCorpus);
-                }
-
-                cache.insert(corpus_name.clone(), Arc::new(RwLock::new(DBLoader {db: None, db_path,})));
-            }
-            cache.get(&corpus_name).ok_or(Error::LoadingFailed)?
-        };
-
+        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let cache = &mut *cache_lock;
+            
+        let entry = cache.entry(corpus_name.clone()).or_insert_with(|| {
+            Arc::new(RwLock::new(DBLoader {db: None, db_path,}))
+        });
         
         return Ok(entry.clone());
     }
