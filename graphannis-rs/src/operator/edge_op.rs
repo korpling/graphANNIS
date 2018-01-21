@@ -1,6 +1,6 @@
 use {AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
 use graphstorage::GraphStorage;
-use graphdb::GraphDB;
+use graphdb::{GraphDB, ANNIS_NS};
 use operator::{Operator, OperatorSpec};
 use util;
 use std::rc::Rc;
@@ -23,18 +23,24 @@ impl EdgeAnnoSearchSpec {
                 ref name,
                 ref val,
             } => {
-                let ns = if let &Some(ref s) = ns {strings.find_id(s)?.clone()} else {0};
-                let val = if let &Some(ref s) = val {strings.find_id(s)?.clone()} else {0};
+                let ns = if let &Some(ref s) = ns {
+                    strings.find_id(s)?.clone()
+                } else {
+                    0
+                };
+                let val = if let &Some(ref s) = val {
+                    strings.find_id(s)?.clone()
+                } else {
+                    0
+                };
                 let name = strings.find_id(name)?.clone();
                 let mut anno = Annotation {
-                    key: AnnoKey {
-                        ns, name,
-                    },
+                    key: AnnoKey { ns, name },
                     val,
                 };
 
                 Some(anno)
-            },
+            }
         }
     }
 }
@@ -49,7 +55,7 @@ struct BaseEdgeOpSpec {
 
 struct BaseEdgeOp {
     gs: Vec<Rc<GraphStorage>>,
-    edge_anno : Option<Annotation>,
+    edge_anno: Option<Annotation>,
     spec: BaseEdgeOpSpec,
 }
 
@@ -59,8 +65,16 @@ impl BaseEdgeOp {
         for c in spec.components.iter() {
             gs.push(db.get_graphstorage(c)?);
         }
-        let edge_anno = if let Some(a) = spec.edge_anno.as_ref() {Some(a.get_anno(&db.strings)?)} else {None};
-        Some(BaseEdgeOp { gs, edge_anno, spec})
+        let edge_anno = if let Some(a) = spec.edge_anno.as_ref() {
+            Some(a.get_anno(&db.strings)?)
+        } else {
+            None
+        };
+        Some(BaseEdgeOp {
+            gs,
+            edge_anno,
+            spec,
+        })
     }
 }
 
@@ -216,6 +230,41 @@ impl PointingSpec {
 
 
 impl OperatorSpec for PointingSpec {
+    fn necessary_components(&self) -> Vec<Component> {
+        self.base.necessary_components()
+    }
+
+    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+        self.base.create_operator(db)
+    }
+}
+
+pub struct PartOfSubCorpusSpec {
+    base: BaseEdgeOpSpec,
+}
+
+impl PartOfSubCorpusSpec {
+    pub fn new(max_dist: usize) -> PartOfSubCorpusSpec {
+        let components = vec![
+            Component {
+                ctype: ComponentType::PartOfSubcorpus,
+                layer: String::from(ANNIS_NS),
+                name: String::from(""),
+            },
+        ];
+        PartOfSubCorpusSpec {
+            base: BaseEdgeOpSpec {
+                components,
+                min_dist: 1,
+                max_dist,
+                edge_anno: None,
+            },
+        }
+    }
+}
+
+
+impl OperatorSpec for PartOfSubCorpusSpec {
     fn necessary_components(&self) -> Vec<Component> {
         self.base.necessary_components()
     }
