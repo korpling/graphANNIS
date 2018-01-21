@@ -94,9 +94,8 @@ impl<'a> Operator for Inclusion<'a> {
                             let it_aligned = self.gs_left.get_outgoing_edges(&t).into_iter()
                                 .filter(move |n| {
                                     // right-aligned token of candidate
-                                    let end_n = self.gs_right.get_outgoing_edges(&n);
-                                    if !end_n.is_empty() {
-                                        let end_n = end_n[0];
+                                    let mut end_n = self.gs_right.get_outgoing_edges(&n);
+                                    if let Some(end_n) = end_n.next() {
                                         // path between right-most tokens exists in ORDERING component 
                                         // and has maximum length l
                                         return self.gs_order.is_connected(&end_n, &end_lhs, 0, l);

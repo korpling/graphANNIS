@@ -60,16 +60,16 @@ impl<'a> TokenHelper<'a> {
     pub fn is_token(&self, id: &NodeID) -> bool {
         let tok = self.db.get_token_key();
         self.db.node_annos.get(id, &tok).is_some()
-            && self.cov_edges.get_outgoing_edges(id).is_empty()
+            && self.cov_edges.get_outgoing_edges(id).next().is_none()
     }
 
     pub fn right_token_for(&self, n: &NodeID) -> Option<NodeID> {
         if self.is_token(n) {
             return Some(n.clone());
         } else {
-            let out = self.right_edges.get_outgoing_edges(n);
-             if !out.is_empty() {
-                return Some(out[0]);
+            let mut out = self.right_edges.get_outgoing_edges(n);
+             if let Some(out) = out.next() {
+                return Some(out);
             }
         }
         return None;
@@ -79,9 +79,9 @@ impl<'a> TokenHelper<'a> {
         if self.is_token(n) {
             return Some(n.clone());
         } else {
-            let out = self.left_edges.get_outgoing_edges(n);
-            if !out.is_empty() {
-                return Some(out[0]);
+            let mut out = self.left_edges.get_outgoing_edges(n);
+            if let Some(out) = out.next() {
+                return Some(out);
             }
         }
         return None;

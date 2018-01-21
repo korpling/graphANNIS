@@ -257,7 +257,7 @@ impl<'a> NodeSearch<'a> {
                 Box::new(
                     base_it
                         .filter(move |n| if let Some(ref cov) = cov_gs {
-                            cov.get_outgoing_edges(&n.node).is_empty()
+                            cov.get_outgoing_edges(&n.node).next().is_none()
                         } else {
                             true
                         })

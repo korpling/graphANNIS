@@ -27,16 +27,17 @@ impl AdjacencyListStorage {
 
 impl GraphStorage for AdjacencyListStorage {
 
-     fn get_outgoing_edges(&self, source : &NodeID) -> Vec<NodeID> {
+     fn get_outgoing_edges<'a>(&'a self, source : &NodeID) -> Box<Iterator<Item=NodeID> + 'a> {
         let start_key = Edge{source: source.clone(), target: NodeID::min_value()};
         let end_key = Edge {source: source.clone(), target: NodeID::max_value()};
 
-        Vec::from_iter(
-            self.edges.range(start_key..end_key)
+        let it = self.edges.range(start_key..end_key)
             .map(|e| {
                 e.target
-            })
-        )
+            });
+
+        return Box::new(it);
+
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {

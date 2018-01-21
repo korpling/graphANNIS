@@ -95,9 +95,9 @@ impl<'a> Operator for Precedence<'a> {
             .find_connected(&start, self.spec.min_dist, self.spec.max_dist)
             // find all left aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let mut aligned = self.gs_left.get_outgoing_edges(&t);
-                aligned.push(t);
-                aligned.into_iter()})
+                let it_aligned = self.gs_left.get_outgoing_edges(&t);
+                std::iter::once(t).chain(it_aligned)
+            })
             // map the result as match
             .map(|n| Match {node: n, anno: Annotation::default()});
             

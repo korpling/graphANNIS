@@ -4,7 +4,7 @@ use {AnnoKey, Annotation, Edge, NodeID};
 
 pub trait GraphStorage  {
 
-    fn get_outgoing_edges(&self, source: &NodeID) -> Vec<NodeID>;
+    fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation>;
     
