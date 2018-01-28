@@ -83,9 +83,7 @@ fn main() {
 
     let result = panic::catch_unwind(|| {
         generage_capi_header(vec![
-        "types",   
-        "stringstorage",
-        "annostorage"
+        "corpusstorage"
         ],
         "include/graphannis-capi.h"); 
     });
