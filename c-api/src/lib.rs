@@ -23,6 +23,15 @@ macro_rules! cast_const {
     };
 }
 
+macro_rules! cstr {
+    ($x:expr) => {
+        unsafe {
+            assert!(!$x.is_null());
+            std::ffi::CStr::from_ptr($x)
+        }
+    }
+}
+
 
 pub mod corpusstorage;
 
