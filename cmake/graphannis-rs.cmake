@@ -3,7 +3,7 @@ ExternalProject_Add(
     DOWNLOAD_COMMAND ""
     CONFIGURE_COMMAND ""
     BUILD_COMMAND cargo build --release --all
-    BINARY_DIR "${CMAKE_SOURCE_DIR}/graphannis-rs"
+    BINARY_DIR "${CMAKE_SOURCE_DIR}/graphannis"
     INSTALL_COMMAND ""
     LOG_BUILD OFF)
 
@@ -16,5 +16,5 @@ ExternalProject_Add(
     set(GRAPHANNIS_RUST_LIBS "")
   endif()
 
-  set(GRAPHANNISRS_LIBRARIES "${CMAKE_SOURCE_DIR}/graphannis-rs/target/release/${CMAKE_STATIC_LIBRARY_PREFIX}graphannis${CMAKE_STATIC_LIBRARY_SUFFIX}" ${GRAPHANNIS_RUST_LIBS})
-  set(GRAPHANNISRS_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/graphannis-rs/include/")
+  set(GRAPHANNISRS_LIBRARIES "${CMAKE_SOURCE_DIR}/graphannis/target/release/${CMAKE_STATIC_LIBRARY_PREFIX}graphannis${CMAKE_STATIC_LIBRARY_SUFFIX}" ${GRAPHANNIS_RUST_LIBS})
+  set(GRAPHANNISRS_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/graphannis/include/")

@@ -17,3 +17,4 @@ CMakeLists.txt.user
 /benchmark_annis4.log
 /graphannis-utils/target/
 /target/
+*.lock
