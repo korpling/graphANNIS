@@ -3,35 +3,8 @@ rust:
   - stable
 os:
   - linux
-  - osx
 
 dist: trusty
 sudo: false
 
-addons:
-  apt:
-   packages:
-    - build-essential      
-    - libboost-dev
-    - libboost-thread-dev
-    - libboost-system-dev
-    - libboost-filesystem-dev
-    - libicu-dev
-    - maven
-    - wget
-
-before_install:
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install icu4c ; fi
- - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew link --force icu4c ; fi
-
-script:
- - ./misc/download-gum-corpus.sh
- - mkdir build
- - cd build/
- - cmake -DENABLE_SIMD_SUPPORT=OFF ..
- - make
- - cd ..
- - ./build/annis_runner import relannis/GUM data/GUM
- - ./build/test_graphANNIS --gtest_filter="SearchTestGUM.*:CorpusStorageManagerTest.*"
- - mvn test
+cache: cargo
