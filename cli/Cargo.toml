@@ -1,0 +1,10 @@
+[package]
+name = "graphannis-cli"
+version = "0.1.0"
+authors = ["Thomas Krause <thomaskrause@posteo.de>"]
+
+[dependencies]
+graphannis = {path = "../graphannis"}
+rustyline = "1.0"
+log = "0.3"
+simplelog = "0.4"

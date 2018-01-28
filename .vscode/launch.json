@@ -2,23 +2,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
-            "type": "cppdbg",
+            "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/build-reldbg/annis_runner",
-            "args": [],
-            "stopAtEntry": false,
+            "name": "Console",
+            "program": "${workspaceRoot}/target/debug/annis_runner",
+            "args": ["data"],
             "cwd": "${workspaceRoot}",
-            "environment": [],
-            "externalConsole": true,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
+            "terminal": "external",
+            "env": {
+                "RUST_BACKTRACE" : "1"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Test",
+            "program": "${workspaceRoot}/target/debug/loadtest-102b2b3c4a8fdbc3",
+            "args": ["count_annos"],
+            "cwd": "${workspaceRoot}"
         }
     ]
 }
