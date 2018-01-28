@@ -155,7 +155,7 @@
   </profiles>
 
   <modules>
-    <module>graphannis-api</module>
+    <module>java-api</module>
     <module>graphannis-utils</module>
   </modules>
 </project>
