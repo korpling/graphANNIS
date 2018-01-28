@@ -464,7 +464,5 @@ impl AnnoStorage<Edge> {
     }
 }
 
-pub mod c_api;
-
 #[cfg(test)]
 mod tests;

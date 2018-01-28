@@ -1,8 +1,6 @@
 pub mod token_helper;
 
 pub mod memory_estimation;
-#[macro_use]
-pub mod c_api;
 
 use Annotation;
 

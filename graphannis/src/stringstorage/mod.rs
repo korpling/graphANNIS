@@ -120,8 +120,6 @@ impl StringStorage {
     }
 }
 
-pub mod c_api;
-
 #[cfg(test)]
 mod tests;
 

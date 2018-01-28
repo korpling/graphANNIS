@@ -2,10 +2,8 @@
 name = "graphannis"
 version = "0.1.0" #:version
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
-build = "build.rs"
 
 [lib]
-crate-type = ["rlib","staticlib","cdylib"]
 
 [dependencies]
 regex = "0.2"
@@ -22,14 +20,8 @@ strum = "*"
 strum_macros = "*"
 serde_json = "1.0"
 
-libc = "*"
-
 [dev-dependencies]
 tempdir = "0.3"
 simplelog = "0.4"
 
-
-[build-dependencies]
-moz-cheddar = "0.4"
-rust-crypto = "^0.2"
 

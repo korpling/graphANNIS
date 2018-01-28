@@ -8,8 +8,6 @@ extern crate log;
 extern crate serde;
 extern crate bincode;
 
-extern crate libc;
-
 extern crate csv;
 
 extern crate strum;
@@ -43,9 +41,4 @@ mod query;
 pub mod parser;
 
 pub mod api;
-
-
-pub use util::c_api::*;
-pub use stringstorage::c_api::*;
-pub use annostorage::c_api::*;
 

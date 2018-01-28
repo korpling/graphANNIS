@@ -1,2 +1,2 @@
 [workspace]
-members = ["graphannis", "cli"]
+members = ["graphannis", "cli", "c-api"]
