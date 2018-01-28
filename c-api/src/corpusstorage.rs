@@ -36,8 +36,8 @@ pub extern "C" fn annis_cs_free(ptr: *mut annis_CorpusStorage) {
 #[no_mangle]
 pub extern "C" fn annis_cs_count(
     ptr: *const annis_CorpusStorage,
-    query_as_json: *const libc::c_char,
     corpus: *const libc::c_char,
+    query_as_json: *const libc::c_char,
 ) -> libc::uint64_t {
     let cs: &CorpusStorage = cast_const!(ptr);
 

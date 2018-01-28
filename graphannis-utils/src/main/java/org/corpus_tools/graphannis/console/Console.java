@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 import jline.console.ConsoleReader;
 import jline.console.completer.StringsCompleter;
 import jline.console.history.FileHistory;
-import org.corpus_tools.graphannis.API;
+import org.corpus_tools.graphannis.CAPI;
 
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.graphannis.SaltExport;
@@ -33,6 +33,7 @@ import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.util.VisJsVisualizer;
 import org.eclipse.emf.common.util.URI;
+import org.corpus_tools.graphannis.api.CorpusStorageManager;
 
 /**
  * An interactive console for testing the graphANNIS API.
@@ -42,26 +43,27 @@ import org.eclipse.emf.common.util.URI;
 public class Console
 {
 
-  private final API.CorpusStorageManager mgr;
+  private final CorpusStorageManager mgr;
 
   public Console(String databaseDir)
   {
-    mgr = new API.CorpusStorageManager(databaseDir);
+    mgr = new CorpusStorageManager(databaseDir);
   }
 
   private void list()
   {
-    API.StringVector result = mgr.list();
-    for (long i = 0; i < result.size(); i++)
-    {
-      String corpus = result.get(i).getString();
-
-      API.CorpusStorageManager.CorpusInfo info = mgr.info(corpus);
-      double memoryBytes = info.memoryUsageInBytes();
-      String memoryInMB = String.format("%.2f", memoryBytes / (1024.0 * 1024.0));
-      System.out.println(result.get(i).getString()
-        + ": " + info.loadStatus().getString() + " (" + memoryInMB + " MB)");
-    }
+    throw new UnsupportedOperationException();
+//    CAPI.StringVector result = mgr.list();
+//    for (long i = 0; i < result.size(); i++)
+//    {
+//      String corpus = result.get(i).getString();
+//
+//      CAPI.CorpusStorageManager.CorpusInfo info = mgr.info(corpus);
+//      double memoryBytes = info.memoryUsageInBytes();
+//      String memoryInMB = String.format("%.2f", memoryBytes / (1024.0 * 1024.0));
+//      System.out.println(result.get(i).getString()
+//        + ": " + info.loadStatus().getString() + " (" + memoryInMB + " MB)");
+//    }
   }
 
   private void count(String argsRaw)
@@ -74,78 +76,81 @@ public class Console
       return;
     }
 
-    long result = mgr.count(new API.StringVector(args.get(0)), aqlToJSON(args.get(1)));
+    long result = mgr.count(args.get(0), aqlToJSON(args.get(1)));
 
     System.out.println("" + result + " results.");
   }
   
   private void find(String argsRaw)
   {
-    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
-
-    if (args.size() != 2)
-    {
-      System.out.println("You must give the corpus name and the query as argument");
-      return;
-    }
-
-    API.StringVector result = mgr.find(new API.StringVector(args.get(0)), aqlToJSON(args.get(1)));
-    
-    for(long i=0; i < result.size(); i++)
-    {
-      System.out.println(result.get(i).getString());
-    }
-
-    System.out.println("" + result.size() + " results.");
+    throw new UnsupportedOperationException();
+//    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
+//
+//    if (args.size() != 2)
+//    {
+//      System.out.println("You must give the corpus name and the query as argument");
+//      return;
+//    }
+//
+//    CAPI.StringVector result = mgr.find(new CAPI.StringVector(args.get(0)), aqlToJSON(args.get(1)));
+//    
+//    for(long i=0; i < result.size(); i++)
+//    {
+//      System.out.println(result.get(i).getString());
+//    }
+//
+//    System.out.println("" + result.size() + " results.");
   }
   
   private void subgraph(String argsRaw)
   {
-    try
-    {
-      List<String> args = Splitter.on(" ").omitEmptyStrings().trimResults().splitToList(argsRaw);
-      
-      if (args.size() < 2)
-      {
-        System.out.println("You must give the corpus name and the node IDs as argument");
-        return;
-      }
-      
-      API.StringVector nodeIDs = new API.StringVector();
-      for(int i=1; i < args.size(); i++)
-      {
-        nodeIDs.put(args.get(i));
-      }
-      
-      System.out.println("Querying subgraph...");
-      API.NodeVector result = mgr.subgraph(args.get(0), nodeIDs, 5, 5);
-      
-      System.out.println("Mapping result...");
-      SDocumentGraph docGraph = SaltExport.map(result);
-      System.out.println("Saving as interactive HTML page...");
-      SDocument docWrapper = SaltFactory.createSDocument();
-      docWrapper.setDocumentGraph(docGraph);
-      new VisJsVisualizer(docWrapper).visualize(URI.createFileURI("/tmp/graphannis_vis/"));
-      System.out.println("Result saved to /tmp/graphannis_vis/");
-    }
-    catch (Exception ex)
-    {
-      Logger.getLogger(Console.class.getName()).log(Level.SEVERE, null, ex);
-    }
+    throw new UnsupportedOperationException();
+//    try
+//    {
+//      List<String> args = Splitter.on(" ").omitEmptyStrings().trimResults().splitToList(argsRaw);
+//      
+//      if (args.size() < 2)
+//      {
+//        System.out.println("You must give the corpus name and the node IDs as argument");
+//        return;
+//      }
+//      
+//      CAPI.StringVector nodeIDs = new CAPI.StringVector();
+//      for(int i=1; i < args.size(); i++)
+//      {
+//        nodeIDs.put(args.get(i));
+//      }
+//      
+//      System.out.println("Querying subgraph...");
+//      CAPI.NodeVector result = mgr.subgraph(args.get(0), nodeIDs, 5, 5);
+//      
+//      System.out.println("Mapping result...");
+//      SDocumentGraph docGraph = SaltExport.map(result);
+//      System.out.println("Saving as interactive HTML page...");
+//      SDocument docWrapper = SaltFactory.createSDocument();
+//      docWrapper.setDocumentGraph(docGraph);
+//      new VisJsVisualizer(docWrapper).visualize(URI.createFileURI("/tmp/graphannis_vis/"));
+//      System.out.println("Result saved to /tmp/graphannis_vis/");
+//    }
+//    catch (Exception ex)
+//    {
+//      Logger.getLogger(Console.class.getName()).log(Level.SEVERE, null, ex);
+//    }
   }
 
   private void relannis(String argsRaw)
   {
-    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
-    if (args.size() != 2)
-    {
-      System.out.println("You must give path to the relANNIS files  and the corpus name as argument");
-      return;
-    }
-    
-    mgr.importRelANNIS(args.get(0), args.get(1));
-
-    System.out.println("Imported.");
+    throw new UnsupportedOperationException();
+//    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
+//    if (args.size() != 2)
+//    {
+//      System.out.println("You must give path to the relANNIS files  and the corpus name as argument");
+//      return;
+//    }
+//    
+//    mgr.importRelANNIS(args.get(0), args.get(1));
+//
+//    System.out.println("Imported.");
   }
 
   public static void main(String[] args)

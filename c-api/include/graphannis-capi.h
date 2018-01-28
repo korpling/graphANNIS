@@ -20,7 +20,7 @@ annis_CorpusStorage* annis_cs_new(char const* db_dir);
 /// Delete a corpus storage
 void annis_cs_free(annis_CorpusStorage* ptr);
 
-uint64_t annis_cs_count(annis_CorpusStorage const* ptr, char const* query_as_json, char const* corpus);
+uint64_t annis_cs_count(annis_CorpusStorage const* ptr, char const* corpus, char const* query_as_json);
 
 
 
