@@ -3,6 +3,8 @@ name = "graphannis"
 version = "0.1.0" #:version
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
+workspace = ".."
+
 [lib]
 
 [dependencies]

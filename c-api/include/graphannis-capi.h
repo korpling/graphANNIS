@@ -12,6 +12,16 @@ extern "C" {
 
 
 
+typedef struct annis_CorpusStorage annis_CorpusStorage;
+
+/// Create a new corpus storage
+annis_CorpusStorage* annis_csm_new(char const* db_dir);
+
+/// Delete a corpus storage 
+void annis_csm_free(annis_CorpusStorage* ptr);
+
+uint64_t annis_csm_count(annis_CorpusStorage const* ptr);
+
 
 
 

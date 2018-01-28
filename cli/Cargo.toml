@@ -3,6 +3,8 @@ name = "graphannis-cli"
 version = "0.1.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
+workspace = ".."
+
 [dependencies]
 graphannis = {path = "../graphannis"}
 rustyline = "1.0"
