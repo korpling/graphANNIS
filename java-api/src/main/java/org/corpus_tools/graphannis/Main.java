@@ -37,7 +37,7 @@ public class Main
         String aql = args.length > 2 ? args[2] : "tok";
         
         
-        System.out.println(manager.count(args[1], aql));
+        System.out.println(manager.count(args[1], QueryToJSON.aqlToJSON(aql)));
 
       }
     }
