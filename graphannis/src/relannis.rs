@@ -859,7 +859,7 @@ fn add_subcorpora(db : &mut GraphDB,
     next_node_id += 1;
     
     // add all subcorpora/documents (start with the largest pre-order)
-    for (pre, corpus_id) in corpus_by_preorder.iter().rev() {
+    for (_, corpus_id) in corpus_by_preorder.iter().rev() {
 
         let corpus_name = corpus_id_to_name.get(corpus_id).ok_or(Error::Other(format!("Can't get name for corpus with ID {}", corpus_id)))?;
         let full_name = format!("{}/{}", toplevel_corpus_name, corpus_name);
@@ -885,7 +885,7 @@ fn add_subcorpora(db : &mut GraphDB,
         db.node_annos.insert(next_node_id.clone(), anno_type);
 
         // add all metadata for the document node
-        if let Some(anno_vec) = corpus_id_to_annos.get_vec(&pre) {
+        if let Some(anno_vec) = corpus_id_to_annos.get_vec(&corpus_id) {
             for anno in anno_vec {
                 db.node_annos.insert(next_node_id.clone(), anno.clone());
             }
