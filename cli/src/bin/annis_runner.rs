@@ -29,6 +29,7 @@ impl CommandCompleter {
         known_commands.insert("list".to_string());
         known_commands.insert("corpus".to_string());
         known_commands.insert("count".to_string());
+        known_commands.insert("find".to_string());
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
         
@@ -126,6 +127,7 @@ impl AnnisRunner {
                 "list" => self.list(),
                 "corpus" => self.corpus(&args),
                 "count" => self.count(&args),
+                "find" => self.find(&args),
                 "quit" | "exit" => return false,
                 _ => println!("unknown command \"{}\"", cmd),
             };
@@ -202,8 +204,30 @@ impl AnnisRunner {
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
+    }
 
-       
+    fn find(&self, args : &str) {
+
+        if let Some(ref corpus) = self.current_corpus {
+            let t_before = std::time::SystemTime::now();
+            let matches = self.storage.find(corpus, args, 0, usize::max_value());
+            let load_time = t_before.elapsed();
+
+            if let Ok(t) = load_time {
+                info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            }
+
+            if let Ok(matches) = matches {       
+                for m in matches {
+                    println!("{}", m);
+                }         
+            } else {
+                println!("Error when executing query: {:?}", matches);
+            }
+            
+        } else {
+            println!("You need to select a corpus first with the \"corpus\" command");
+        }
     }
 }
 

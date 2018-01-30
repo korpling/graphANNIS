@@ -69,6 +69,7 @@ pub struct GraphDB {
     id_node_type: StringID,
 }
 
+
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Rc<GraphStorage>, Error> {
     let cpath = try!(component_path.ok_or(Error::LocationEmpty));
 

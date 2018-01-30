@@ -1,7 +1,7 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use {Component};
+use {Component, Match};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
@@ -301,6 +301,38 @@ impl CorpusStorage {
         let plan = ExecutionPlan::from_disjunction(prep.query, db)?;
 
         return Ok(plan.count());
+        
+
+    }
+
+    pub fn find(&self, corpus_name: &str, query_as_json: &str, offset : usize, limit : usize) -> Result<Vec<String>, Error> {
+
+        let prep = self.prepare_query(corpus_name, query_as_json)?;
+        
+
+        // accuire read-only lock and execute query
+        let lock = prep.db_loader.read().unwrap();
+        let db: &GraphDB = (&*lock).get().ok_or(Error::LoadingFailed)?;
+
+        let plan = ExecutionPlan::from_disjunction(prep.query, db)?;
+
+        let it : Vec<String> = plan.skip(offset).take(limit).map(|m : Vec<Match>| {
+            let mut match_desc : Vec<String> = Vec::new();
+            for singlematch in m.iter() {
+                let mut node_desc = String::from("salt:/");
+                if let Some(name_id) = db.node_annos.get(&singlematch.node, &db.get_node_name_key()) {
+                    if let Some(name) = db.strings.str(name_id.clone()) {
+                        node_desc.push_str(name);
+                    }
+                }
+                match_desc.push(node_desc);
+            }
+            let mut result = String::new();
+            result.push_str(&match_desc.join(" "));
+            return result;
+        }).collect();
+
+        return Ok(it);
         
 
     }
