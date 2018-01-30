@@ -17,9 +17,9 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug Test",
-            "program": "${workspaceRoot}/target/debug/loadtest-102b2b3c4a8fdbc3",
-            "args": ["count_annos"],
-            "cwd": "${workspaceRoot}"
+            "program": "${workspaceRoot}/target/debug/searchtest-c274c8746900ca15",
+            "args": ["count_gum"],
+            "cwd": "${workspaceRoot}/graphannis/"
         }
     ]
 }

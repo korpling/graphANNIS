@@ -18,3 +18,4 @@ CMakeLists.txt.user
 /graphannis-utils/target/
 /target/
 *.lock
+/annis_history.txt
