@@ -180,7 +180,7 @@ impl<'a> NodeSearch<'a> {
         };
         let val_id: Option<StringID> = val.clone().and_then(|v| db.strings.find_id(&v).cloned());
 
-        if val.is_some() && val_id.is_none() {
+        if !match_regex && val.is_some() && val_id.is_none() {
             // searched string not found, impossible search
             return None;
         }
