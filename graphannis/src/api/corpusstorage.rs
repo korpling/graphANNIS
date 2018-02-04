@@ -1,7 +1,7 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use {Component, Match};
+use {Component, Match, StringID};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock};
 use std::path::{Path, PathBuf};
@@ -287,6 +287,28 @@ impl CorpusStorage {
             query: q,
             db_loader: db_loader,
         });
+    }
+
+    pub fn get_string(&self, corpus_name : &str, str_id : StringID) -> Result<String, Error> {
+        let db_loader = self.get_loader(corpus_name)?;
+
+        // make sure the basics of the database are loaded
+        let needs_basic_loading = {
+            let lock = db_loader.read().unwrap();
+            (&*lock).get().is_none()
+        };
+
+        if needs_basic_loading {
+            let mut lock = db_loader.write().unwrap();
+            (&mut *lock).load()?;
+        }
+
+        // accuire read-only lock and get string
+        let lock = db_loader.read().unwrap();
+        let db: &GraphDB = (&*lock).get().ok_or(Error::LoadingFailed)?;
+
+        let result = db.strings.str(str_id).cloned().ok_or(Error::ImpossibleSearch)?;
+        return Ok(result);
     }
 
     pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {

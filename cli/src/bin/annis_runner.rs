@@ -12,6 +12,7 @@ use simplelog::{LogLevelFilter, TermLogger, SimpleLogger};
 use graphannis::relannis;
 use std::env;
 use std::path::{Path, PathBuf};
+use graphannis::StringID;
 use graphannis::api::corpusstorage::CorpusStorage;
 use graphannis::api::corpusstorage::Error;
 use std::collections::BTreeSet;
@@ -30,6 +31,7 @@ impl CommandCompleter {
         known_commands.insert("corpus".to_string());
         known_commands.insert("count".to_string());
         known_commands.insert("find".to_string());
+        known_commands.insert("str".to_string());
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
         
@@ -128,6 +130,7 @@ impl AnnisRunner {
                 "corpus" => self.corpus(&args),
                 "count" => self.count(&args),
                 "find" => self.find(&args),
+                "str" => self.get_string(&args),
                 "quit" | "exit" => return false,
                 _ => println!("unknown command \"{}\"", cmd),
             };
@@ -227,6 +230,22 @@ impl AnnisRunner {
             
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
+        }
+    }
+
+    fn get_string(&self, args : &str) {
+
+        if let Some(ref corpus) = self.current_corpus {
+            // try to parse ID
+            if let Ok(str_id) = args.trim().parse::<StringID>() {
+                if let Ok(r) = self.storage.get_string(&corpus, str_id) {
+                    println!("{}", r);
+                } else {
+                    println!("String ID not found");
+                }
+            } else {
+                println!("Could not parse string ID");
+            }
         }
     }
 }
