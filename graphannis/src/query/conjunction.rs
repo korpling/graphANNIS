@@ -16,6 +16,7 @@ pub enum Error {
     ImpossibleSearch,
     MissingDescription,
     ComponentsNotConnected,
+    OperatorIdxNotFound,
 }
 
 struct OperatorEntry<'a> {
@@ -165,14 +166,14 @@ impl<'a> Conjunction<'a> {
                 .ok_or(Error::MissingDescription)?
                 .node_pos
                 .get(&op_entry.idx_left)
-                .unwrap_or(&0)
+                .ok_or(Error::OperatorIdxNotFound)?
                 .clone();
             let idx_right = exec_right
                 .get_desc()
                 .ok_or(Error::MissingDescription)?
                 .node_pos
                 .get(&op_entry.idx_right)
-                .unwrap_or(&0)
+                .ok_or(Error::OperatorIdxNotFound)?
                 .clone();
 
             let op: Box<Operator> = op_entry
@@ -197,7 +198,7 @@ impl<'a> Conjunction<'a> {
                         op,
                         exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                         &db,
-                        None,
+                        exec_right.get_desc(),
                     );
                     Box::new(join)
                 } else {
