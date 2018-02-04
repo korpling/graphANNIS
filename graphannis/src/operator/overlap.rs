@@ -96,9 +96,12 @@ impl<'a> Operator for  Overlap<'a> {
         };
 
         for t in covered {
+             // get all nodes that are covering the token
             for n in self.gs_invcov.find_connected(&t, 1, 1) {
                 result.insert(n);
             }
+            // also add the token itself
+            result.insert(t);
         }
 
         return Box::new(result.into_iter().map(|n| Match{node: n, anno : Annotation::default()}));
