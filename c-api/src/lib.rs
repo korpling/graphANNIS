@@ -1,6 +1,7 @@
 extern crate libc;
 extern crate graphannis;
 
+#[allow(unused_macros)]
 macro_rules! cast_mut {
     ($x:expr) => {
         {
