@@ -106,7 +106,7 @@ impl<'a> IndexJoin<'a> {
             vec![]
         };
         return IndexJoin {
-            desc: Desc::join(lhs_desc.as_ref(), rhs_desc),
+            desc: Desc::join(lhs_desc.as_ref(), rhs_desc, "indexjoin"),
             lhs: lhs_peek,
             lhs_idx,
             op,

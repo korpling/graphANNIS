@@ -31,6 +31,7 @@ impl CommandCompleter {
         known_commands.insert("corpus".to_string());
         known_commands.insert("count".to_string());
         known_commands.insert("find".to_string());
+        known_commands.insert("plan".to_string());
         known_commands.insert("str".to_string());
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
@@ -128,6 +129,7 @@ impl AnnisRunner {
                 "import" =>  self.import_relannis(&args),
                 "list" => self.list(),
                 "corpus" => self.corpus(&args),
+                "plan" => self.plan(&args),
                 "count" => self.count(&args),
                 "find" => self.find(&args),
                 "str" => self.get_string(&args),
@@ -184,6 +186,28 @@ impl AnnisRunner {
             } else {
                 println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
             }
+        }
+    }
+
+    fn plan(&self, args : &str) {
+
+        if let Some(ref corpus) = self.current_corpus {
+            let t_before = std::time::SystemTime::now();
+            let plan = self.storage.plan(corpus, args);
+            let load_time = t_before.elapsed();
+
+            if let Ok(t) = load_time {
+                info!{"Planned query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            }
+
+            if let Ok(plan) = plan {    
+                println!("{}", plan);   
+            } else {
+                println!("Error when executing query: {:?}", plan);
+            }
+            
+        } else {
+            println!("You need to select a corpus first with the \"corpus\" command");
         }
     }
 

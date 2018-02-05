@@ -311,6 +311,19 @@ impl CorpusStorage {
         return Ok(result);
     }
 
+    pub fn plan(&self, corpus_name: &str, query_as_json: &str) -> Result<String, Error> {
+        let prep = self.prepare_query(corpus_name, query_as_json)?;
+        
+
+        // accuire read-only lock and plan
+        let lock = prep.db_loader.read().unwrap();
+        let db: &GraphDB = (&*lock).get().ok_or(Error::LoadingFailed)?;
+
+        let plan = ExecutionPlan::from_disjunction(prep.query, db)?;
+
+        return Ok(format!("{}", plan));
+    }
+
     pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
 
         let prep = self.prepare_query(corpus_name, query_as_json)?;

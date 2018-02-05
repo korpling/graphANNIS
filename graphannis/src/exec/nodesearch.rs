@@ -117,42 +117,42 @@ impl fmt::Display for NodeSearchSpec {
 }
 
 impl<'a> NodeSearch<'a> {
-    pub fn from_spec(spec: NodeSearchSpec, db: &'a GraphDB) -> Option<NodeSearch<'a>> {
+    pub fn from_spec(spec: NodeSearchSpec, node_nr : usize, db: &'a GraphDB) -> Option<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
 
         match spec {
             NodeSearchSpec::ExactValue { ns, name, val } => {
-                NodeSearch::new_annosearch(db, ns, name, val, false, &query_fragment)
+                NodeSearch::new_annosearch(db, ns, name, val, false, &query_fragment, node_nr)
             },
             NodeSearchSpec::RegexValue { ns, name, val } => {
-                NodeSearch::new_annosearch(db, ns, name, Some(val), true, &query_fragment)
+                NodeSearch::new_annosearch(db, ns, name, Some(val), true, &query_fragment, node_nr)
             },
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => {
-                NodeSearch::new_tokensearch(db, Some(val), leafs_only, false, &query_fragment)
+                NodeSearch::new_tokensearch(db, Some(val), leafs_only, false, &query_fragment, node_nr)
             },
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => {
-                NodeSearch::new_tokensearch(db, Some(val), leafs_only, true, &query_fragment)
+                NodeSearch::new_tokensearch(db, Some(val), leafs_only, true, &query_fragment, node_nr)
             },
             NodeSearchSpec::AnyToken => {
-                NodeSearch::new_tokensearch(db, None, false, false, &query_fragment)
+                NodeSearch::new_tokensearch(db, None, false, false, &query_fragment, node_nr)
             },
             NodeSearchSpec::AnyNode => {
                 let type_key = db.get_node_type_key();
-                let node_id = db.strings.find_id("node")?.clone();
+                let node_str_id = db.strings.find_id("node")?.clone();
                 let it = db.node_annos
                     .exact_anno_search(Some(type_key.ns), type_key.name, None)
                     .map(move |n| vec![n]);
 
                 let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> =
                     Box::new(move |anno, _| {
-                        return anno.val == node_id;
+                        return anno.val == node_str_id;
                     });
 
                 let type_key = db.get_node_type_key();
 
                 Some(NodeSearch {
                     it: Box::new(it),
-                    desc: Some(Desc::empty_with_fragment("tok")),
+                    desc: Some(Desc::empty_with_fragment("tok",  node_nr)),
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: filter_func,
@@ -170,6 +170,7 @@ impl<'a> NodeSearch<'a> {
         val: Option<String>,
         match_regex: bool,
         query_fragment: &str,
+        node_nr : usize,
     ) -> Option<NodeSearch<'a>> {
         let name_id: StringID = db.strings.find_id(&name)?.clone();
         // not finding the strings will result in an None result, not in an less specific search
@@ -220,7 +221,7 @@ impl<'a> NodeSearch<'a> {
 
         return Some(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(&query_fragment)),
+            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (ns_id, Some(name_id)),
                 cond: filter_func,
@@ -234,6 +235,7 @@ impl<'a> NodeSearch<'a> {
         leafs_only: bool,
         match_regex: bool,
         query_fragment: &str,
+        node_nr : usize,
     ) -> Option<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
         let any_anno = Annotation {
@@ -310,7 +312,7 @@ impl<'a> NodeSearch<'a> {
 
             return Some(NodeSearch {
                 it,
-                desc: Some(Desc::empty_with_fragment(&query_fragment)),
+                desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
                 node_search_desc: Rc::new(NodeSearchDesc {
                     qname: (Some(tok_key.ns), Some(tok_key.name)),
                     cond: filter_func,
@@ -337,7 +339,7 @@ impl<'a> NodeSearch<'a> {
 
             Some(NodeSearch {
                 it: Box::new(it),
-                desc: Some(Desc::empty_with_fragment("tok")),
+                desc: Some(Desc::empty_with_fragment("tok", node_nr)),
                 node_search_desc: Rc::new(NodeSearchDesc {
                     qname: (Some(tok_key.ns), Some(tok_key.name)),
                     cond: filter_func,

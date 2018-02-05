@@ -117,13 +117,13 @@ impl<'a> Conjunction<'a> {
         {
             let mut node_nr: usize = 0;
             for n_spec in self.nodes.drain(..) {
-                let mut n = NodeSearch::from_spec(n_spec, db).ok_or(Error::ImpossibleSearch)?;
+                let mut n = NodeSearch::from_spec(n_spec, node_nr, db).ok_or(Error::ImpossibleSearch)?;
                 node2component.insert(node_nr, node_nr);
 
-                let orig_query_frag = if let Some(d) = n.get_desc() {
-                    d.query_fragment.clone()
+                let (orig_query_frag, orig_impl_desc) = if let Some(d) = n.get_desc() {
+                    (d.query_fragment.clone(), d.impl_description.clone())
                 } else {
-                    String::from("")
+                    (String::from(""), String::from(""))
                 };
                 // make sure the description is correct
                 let mut node_pos = BTreeMap::new();
@@ -133,6 +133,7 @@ impl<'a> Conjunction<'a> {
                     lhs: None,
                     rhs: None,
                     node_pos,
+                    impl_description: orig_impl_desc,
                     query_fragment: orig_query_frag,
                 };
                 n.set_desc(Some(new_desc));

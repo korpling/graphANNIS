@@ -10,22 +10,26 @@ pub struct Desc {
     pub lhs: Option<Box<Desc>>,
     pub rhs: Option<Box<Desc>>,
     pub node_pos : BTreeMap<usize, usize>,
+    pub impl_description: String,
     pub query_fragment : String,
 }
 
 impl Desc {
 
-    pub fn empty_with_fragment(query_fragment : &str) -> Desc {
+    pub fn empty_with_fragment(query_fragment : &str, node_nr : usize) -> Desc {
+        let mut node_pos = BTreeMap::new();
+        node_pos.insert(node_nr, 0);
         Desc {
             component_nr: 0,
             lhs: None,
             rhs: None,
-            node_pos : BTreeMap::new(),
+            node_pos,
+            impl_description: String::from(""),
             query_fragment: String::from(query_fragment),
         }
     }
 
-    pub fn join(lhs : Option<&Desc>, rhs : Option<&Desc>) -> Desc {
+    pub fn join(lhs : Option<&Desc>, rhs : Option<&Desc>, impl_description : &str) -> Desc {
         let component_nr = if let Some(d) = lhs  {
             d.component_nr
         } else if let Some(d) = rhs {
@@ -60,8 +64,6 @@ impl Desc {
                 // the RHS has an offset after the join
                 node_pos.insert(e.0.clone(), e.1 + offset);
             }
-            // move values to new map, the old should be empty (as with the append() function)
-            rhs.node_pos.clear();
         }
 
         // TODO: add query fragment
@@ -70,9 +72,36 @@ impl Desc {
             lhs,
             rhs,
             node_pos,
+            impl_description: String::from(impl_description),
             query_fragment: String::from(""),
         }
     }
+
+    pub fn debug_string(&self, indention : &str) -> String {
+        let mut result = String::from(indention);
+       
+        // output the node number and query fragment for base nodes
+        if self.lhs.is_none() && self.rhs.is_none() {
+            let node_nr = self.node_pos.keys().next().cloned().unwrap_or(0) + 1; 
+
+            result.push_str(&format!("#{} ({})\n", &node_nr.to_string(), &self.query_fragment));
+        } else {
+            result.push_str(&format!("+|{} ({})\n", &self.impl_description , &self.query_fragment));
+          
+            let new_indention = format!("{}    ", indention);
+            if let Some(ref lhs) = self.lhs {
+                result.push_str(&lhs.debug_string(&new_indention));
+            }
+            if let Some(ref rhs) = self.rhs {
+                 result.push_str(&rhs.debug_string(&new_indention));
+            }
+
+            return result;
+        }
+        // TODO: cost info
+
+        return result;
+    } 
 }
 
 pub struct NodeSearchDesc {
