@@ -92,6 +92,8 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
+        node_nr_lhs: usize,
+        node_nr_rhs: usize,
         op: Box<Operator + 'a>,
         node_search_desc: Rc<NodeSearchDesc>,
         db : &'a GraphDB,
@@ -106,7 +108,7 @@ impl<'a> IndexJoin<'a> {
             vec![]
         };
         return IndexJoin {
-            desc: Desc::join(lhs_desc.as_ref(), rhs_desc, "indexjoin"),
+            desc: Desc::join(lhs_desc.as_ref(), rhs_desc, "indexjoin", &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs)),
             lhs: lhs_peek,
             lhs_idx,
             op,

@@ -82,6 +82,12 @@ impl<'a>  Overlap<'a> {
     }
 }
 
+impl<'a> std::fmt::Display for Overlap<'a> {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "_o_")
+    }
+}
+
 impl<'a> Operator for  Overlap<'a> {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
 

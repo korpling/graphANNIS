@@ -75,6 +75,12 @@ impl<'a> Precedence<'a> {
     }
 }
 
+impl<'a> std::fmt::Display for Precedence<'a> {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, ".?")
+    }
+}
+
 impl<'a> Operator for Precedence<'a> {
 
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {

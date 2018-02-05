@@ -6,6 +6,7 @@ use util::token_helper;
 use util::token_helper::TokenHelper;
 
 use std::rc::Rc;
+use std;
 
 #[derive(Clone)]
 pub struct IdenticalCoverageSpec {}
@@ -53,6 +54,12 @@ impl<'a> IdenticalCoverage<'a> {
             gs_left,
             tok_helper: tok_helper,
         })
+    }
+}
+
+impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "_=_")
     }
 }
 

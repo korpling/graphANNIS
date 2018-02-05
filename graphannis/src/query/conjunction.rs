@@ -1,4 +1,4 @@
-use {Match, Component};
+use {Component, Match};
 use graphdb::GraphDB;
 use operator::{Operator, OperatorSpec};
 use exec::{Desc, ExecutionNode};
@@ -23,14 +23,13 @@ struct OperatorEntry<'a> {
     op: Box<OperatorSpec + 'a>,
     idx_left: usize,
     idx_right: usize,
-/*    original_order: usize, */
+    /*    original_order: usize, */
 }
 
 pub struct Conjunction<'a> {
     nodes: Vec<NodeSearchSpec>,
     operators: Vec<OperatorEntry<'a>>,
 }
-
 
 fn update_components_for_nodes(
     node2component: &mut BTreeMap<usize, usize>,
@@ -82,13 +81,13 @@ impl<'a> Conjunction<'a> {
             op,
             idx_left,
             idx_right,
-/*            original_order, */
+            /*            original_order, */
         });
     }
 
     pub fn necessary_components(&self) -> Vec<Component> {
         let mut result = vec![];
-        
+
         for op_entry in self.operators.iter() {
             let mut c = op_entry.op.necessary_components();
             result.append(&mut c);
@@ -97,14 +96,12 @@ impl<'a> Conjunction<'a> {
         return result;
     }
 
-
     pub fn make_exec_node(
         mut self,
         db: &'a GraphDB,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
         // TODO: handle cost estimations
         // TODO: parallization mapping
-
 
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
@@ -117,7 +114,8 @@ impl<'a> Conjunction<'a> {
         {
             let mut node_nr: usize = 0;
             for n_spec in self.nodes.drain(..) {
-                let mut n = NodeSearch::from_spec(n_spec, node_nr, db).ok_or(Error::ImpossibleSearch)?;
+                let mut n =
+                    NodeSearch::from_spec(n_spec, node_nr, db).ok_or(Error::ImpossibleSearch)?;
                 node2component.insert(node_nr, node_nr);
 
                 let (orig_query_frag, orig_impl_desc) = if let Some(d) = n.get_desc() {
@@ -196,6 +194,8 @@ impl<'a> Conjunction<'a> {
                     let join = IndexJoin::new(
                         exec_left,
                         idx_left,
+                        op_entry.idx_left + 1,
+                        op_entry.idx_right + 1,
                         op,
                         exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                         &db,
@@ -207,7 +207,15 @@ impl<'a> Conjunction<'a> {
 
                     // TODO: check if LHS and RHS should be switched
 
-                    let join = NestedLoop::new(exec_left, exec_right, idx_left, idx_right, op);
+                    let join = NestedLoop::new(
+                        exec_left,
+                        exec_right,
+                        idx_left,
+                        idx_right,
+                        op_entry.idx_left + 1,
+                        op_entry.idx_right + 1,
+                        op,
+                    );
 
                     Box::new(join)
                 };
@@ -222,12 +230,11 @@ impl<'a> Conjunction<'a> {
         }
 
         // 3. check if there is only one component left (all nodes are connected)
-        let mut first_component_id : Option<usize> = None;
+        let mut first_component_id: Option<usize> = None;
         for (_, cid) in node2component.iter() {
             if first_component_id.is_none() {
                 first_component_id = Some(*cid);
-            }
-            else if let Some(first) = first_component_id {
+            } else if let Some(first) = first_component_id {
                 if first != *cid {
                     return Err(Error::ComponentsNotConnected);
                 }
@@ -235,7 +242,8 @@ impl<'a> Conjunction<'a> {
         }
 
         let first_component_id = first_component_id.ok_or(Error::ImpossibleSearch)?;
-        return component2exec.remove(&first_component_id).ok_or(Error::ImpossibleSearch);
-
+        return component2exec
+            .remove(&first_component_id)
+            .ok_or(Error::ImpossibleSearch);
     }
 }

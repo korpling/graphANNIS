@@ -29,7 +29,7 @@ impl Desc {
         }
     }
 
-    pub fn join(lhs : Option<&Desc>, rhs : Option<&Desc>, impl_description : &str) -> Desc {
+    pub fn join(lhs : Option<&Desc>, rhs : Option<&Desc>, impl_description : &str, query_fragment : &str) -> Desc {
         let component_nr = if let Some(d) = lhs  {
             d.component_nr
         } else if let Some(d) = rhs {
@@ -73,7 +73,7 @@ impl Desc {
             rhs,
             node_pos,
             impl_description: String::from(impl_description),
-            query_fragment: String::from(""),
+            query_fragment: String::from(query_fragment),
         }
     }
 

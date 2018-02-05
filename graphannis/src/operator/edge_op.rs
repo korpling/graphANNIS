@@ -3,6 +3,7 @@ use graphstorage::GraphStorage;
 use graphdb::{GraphDB, ANNIS_NS};
 use operator::{Operator, OperatorSpec};
 use util;
+use std;
 use std::rc::Rc;
 use stringstorage::StringStorage;
 
@@ -122,6 +123,12 @@ fn check_edge_annotation(
 }
 
 impl BaseEdgeOp {}
+
+impl std::fmt::Display for BaseEdgeOp {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "?")
+    }
+}
 
 impl Operator for BaseEdgeOp {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {

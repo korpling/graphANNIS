@@ -21,12 +21,14 @@ impl<'a> NestedLoop<'a> {
         rhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
+        node_nr_lhs: usize,
+        node_nr_rhs: usize,
         op: Box<Operator + 'a>,
     ) -> NestedLoop<'a> {
         // TODO: allow switching inner and outer
         let it = NestedLoop {
 
-            desc : Desc::join(lhs.get_desc(), rhs.get_desc(), "nestedloop"),
+            desc : Desc::join(lhs.get_desc(), rhs.get_desc(), "nestedloop", &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs)),
 
             outer: lhs.peekable(),
             inner: rhs,

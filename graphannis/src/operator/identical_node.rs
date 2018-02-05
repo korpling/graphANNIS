@@ -17,6 +17,12 @@ impl OperatorSpec for IdenticalNodeSpec {
 
 pub struct IdenticalNode;
 
+impl std::fmt::Display for IdenticalNode {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "_ident_")
+    }
+}
+
 impl Operator for IdenticalNode {
     fn retrieve_matches<'a>(&'a self, lhs : &Match) -> Box<Iterator<Item = Match> + 'a> {
         return Box::new(std::iter::once(

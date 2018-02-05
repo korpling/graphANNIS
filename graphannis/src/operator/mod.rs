@@ -1,7 +1,8 @@
 use {Match, Component};
 use graphdb::GraphDB;
+use std;
 
-pub trait Operator {
+pub trait Operator : std::fmt::Display {
     fn retrieve_matches<'a>(&'a self, lhs : &Match) -> Box<Iterator<Item = Match> + 'a>;
 
     fn filter_match(&self, lhs : &Match, rhs : &Match) -> bool;

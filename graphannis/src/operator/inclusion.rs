@@ -80,6 +80,12 @@ impl<'a> Inclusion<'a> {
     }
 }
 
+impl<'a> std::fmt::Display for Inclusion<'a> {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "_i_")
+    }
+}
+
 impl<'a> Operator for Inclusion<'a> {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
         if let (Some(start_lhs), Some(end_lhs)) = (
