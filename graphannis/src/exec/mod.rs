@@ -38,28 +38,15 @@ impl Desc {
             0
         };
 
-
-        let mut lhs = if let Some(d) = lhs {
-            Some(Box::new(d.clone()))
-        } else {
-            None
-        };
-
-        let mut rhs = if let Some(d) = rhs {
-            Some(Box::new(d.clone()))
-        } else {
-            None
-        };
-
         // merge both node positions
         let mut node_pos = BTreeMap::new();
-        let offset = if let Some(ref mut lhs) = lhs {
-            node_pos.append(&mut lhs.node_pos);
+        let offset = if let Some(ref lhs) = lhs {
+            node_pos = lhs.node_pos.clone();
             node_pos.len()
         } else {
             0
         };
-        if let Some(ref mut rhs) = rhs {
+        if let Some(ref rhs) = rhs {
             for e in rhs.node_pos.iter() {
                 // the RHS has an offset after the join
                 node_pos.insert(e.0.clone(), e.1 + offset);
@@ -69,8 +56,8 @@ impl Desc {
         // TODO: add query fragment
         Desc {
             component_nr,
-            lhs,
-            rhs,
+            lhs: lhs.map(|x| Box::new(x.clone())),
+            rhs: rhs.map(|x| Box::new(x.clone())),
             node_pos,
             impl_description: String::from(impl_description),
             query_fragment: String::from(query_fragment),

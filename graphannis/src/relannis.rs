@@ -645,8 +645,8 @@ fn load_component_tab(
         let col_type = line.get(1).ok_or(Error::MissingColumn)?;
         if col_type != "NULL" {
             let layer = String::from(line.get(2).ok_or(Error::MissingColumn)?);
-            let name = String::from(line.get(3).ok_or(Error::MissingColumn)?);
-
+            let mut name = String::from(line.get(3).ok_or(Error::MissingColumn)?);
+            let name = if name == "NULL" {String::from("")} else {name};
             let ctype = component_type_from_short_name(col_type)?;
             let c = Component { ctype, layer, name };
             db.get_or_create_writable(c.clone())?;

@@ -39,7 +39,7 @@ pub enum NodeSearchSpec {
 impl NodeSearchSpec {
     pub fn new_exact(ns: Option<&str>, name: &str, val: Option<&str>) -> NodeSearchSpec {
         NodeSearchSpec::ExactValue {
-            ns: ns.map(|v| String::from((v))),
+            ns: ns.map(|v| String::from(v)),
             name: String::from(name),
             val: val.map(|v| String::from(v)),
         }
@@ -47,7 +47,7 @@ impl NodeSearchSpec {
 
     pub fn new_regex(ns: Option<&str>, name: &str, val: &str) -> NodeSearchSpec {
         NodeSearchSpec::RegexValue {
-            ns: ns.map(|v| String::from((v))),
+            ns: ns.map(|v| String::from(v)),
             name: String::from(name),
             val: String::from(val),
         }
