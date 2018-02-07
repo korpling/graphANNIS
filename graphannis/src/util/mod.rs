@@ -13,6 +13,21 @@ pub fn regex_full_match(pattern: &str) -> String {
     full_match_pattern
 }
 
+pub fn check_annotation_key_equal(a: &Annotation, b: &Annotation) -> bool {
+     // compare by name (non lexical but just by the ID)
+    if a.key.name != 0 && b.key.name != 0 && a.key.name != b.key.name {
+        return false;
+    }
+
+    // if equal, compare by namespace (non lexical but just by the ID)
+    if a.key.ns != 0 && b.key.ns != 0 && a.key.ns != b.key.ns {
+        return false;
+    }
+
+    // they are equal
+    return true;
+}
+
 pub fn check_annotation_equal(a: &Annotation, b: &Annotation) -> bool {
     // compare by name (non lexical but just by the ID)
     if a.key.name != 0 && b.key.name != 0 && a.key.name != b.key.name {

@@ -1,5 +1,6 @@
 use Match;
-use super::{ExecutionNode,Desc};
+use util;
+use super::{Desc, ExecutionNode};
 use operator::Operator;
 use std::iter::Peekable;
 
@@ -27,8 +28,12 @@ impl<'a> NestedLoop<'a> {
     ) -> NestedLoop<'a> {
         // TODO: allow switching inner and outer
         let it = NestedLoop {
-
-            desc : Desc::join(lhs.get_desc(), rhs.get_desc(), "nestedloop", &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs)),
+            desc: Desc::join(
+                lhs.get_desc(),
+                rhs.get_desc(),
+                "nestedloop",
+                &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+            ),
 
             outer: lhs.peekable(),
             inner: rhs,
@@ -37,15 +42,12 @@ impl<'a> NestedLoop<'a> {
             inner_idx: rhs_idx,
             inner_cache: Vec::new(),
             pos_inner_cache: None,
-
         };
         return it;
     }
 }
 
-
 impl<'a> ExecutionNode for NestedLoop<'a> {
-
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
     }
@@ -54,8 +56,6 @@ impl<'a> ExecutionNode for NestedLoop<'a> {
         Some(&self.desc)
     }
 }
-
-
 
 impl<'a> Iterator for NestedLoop<'a> {
     type Item = Vec<Match>;
@@ -73,9 +73,17 @@ impl<'a> Iterator for NestedLoop<'a> {
                         if self.op
                             .filter_match(&m_outer[self.outer_idx], &m_inner[self.inner_idx])
                         {
-                            let mut result = m_outer.clone();
-                            result.append(&mut m_inner.clone());
-                            return Some(result);
+                            // filter by reflexivity if necessary
+                            if self.op.is_reflexive()
+                                || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
+                                || !util::check_annotation_key_equal(
+                                    &m_outer[self.outer_idx].anno,
+                                    &m_inner[self.inner_idx].anno,
+                                ) {
+                                let mut result = m_outer.clone();
+                                result.append(&mut m_inner.clone());
+                                return Some(result);
+                            }
                         }
                     }
                 } else {
@@ -85,14 +93,22 @@ impl<'a> Iterator for NestedLoop<'a> {
                         if self.op
                             .filter_match(&m_outer[self.outer_idx], &m_inner[self.inner_idx])
                         {
-                            let mut result = m_outer.clone();
-                            result.append(&mut m_inner.clone());
-                            return Some(result);
+                            // filter by reflexivity if necessary
+                            if self.op.is_reflexive()
+                                || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
+                                || !util::check_annotation_key_equal(
+                                    &m_outer[self.outer_idx].anno,
+                                    &m_inner[self.inner_idx].anno,
+                                ) {
+                                let mut result = m_outer.clone();
+                                result.append(&mut m_inner.clone());
+                                return Some(result);
+                            }
                         }
                     }
                 }
                 // inner was completed once, use cache from now, or reset to first item once completed
-                 self.pos_inner_cache = Some(0)
+                self.pos_inner_cache = Some(0)
             }
 
             // consume next outer

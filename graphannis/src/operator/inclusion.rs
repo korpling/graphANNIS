@@ -139,4 +139,8 @@ impl<'a> Operator for Inclusion<'a> {
 
         return false;
     }
+
+    fn is_commutative(&self) -> bool {
+        false
+    }
 }

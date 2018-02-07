@@ -109,4 +109,12 @@ impl<'a> Operator for IdenticalCoverage<'a> {
 
         return start_lhs.unwrap() == start_rhs.unwrap() && end_lhs.unwrap() == end_rhs.unwrap();
     }
+
+    fn is_commutative(&self) -> bool {
+        false
+    }
+
+    fn is_reflexive(&self) -> bool {
+        true
+    }
 }

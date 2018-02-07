@@ -52,6 +52,7 @@ struct BaseEdgeOpSpec {
     pub min_dist: usize,
     pub max_dist: usize,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
+    pub is_commutative: bool,
 }
 
 struct BaseEdgeOp {
@@ -174,6 +175,10 @@ impl Operator for BaseEdgeOp {
         }
         return false;
     }
+
+    fn is_commutative(&self) -> bool {
+        self.spec.is_commutative
+    }
 }
 
 pub struct DominanceSpec {
@@ -195,6 +200,7 @@ impl DominanceSpec {
                 min_dist,
                 max_dist,
                 edge_anno,
+                is_commutative: true,
             },
         }
     }
@@ -230,6 +236,7 @@ impl PointingSpec {
                 min_dist,
                 max_dist,
                 edge_anno,
+                is_commutative: true,
             },
         }
     }
@@ -265,6 +272,7 @@ impl PartOfSubCorpusSpec {
                 min_dist: 1,
                 max_dist,
                 edge_anno: None,
+                is_commutative: false,
             },
         }
     }

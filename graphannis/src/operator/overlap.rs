@@ -130,4 +130,12 @@ impl<'a> Operator for  Overlap<'a> {
         }
         return false;
     }
+
+    fn is_commutative(&self) -> bool {
+        false
+    }
+
+    fn is_reflexive(&self) -> bool {
+        true
+    }
 }

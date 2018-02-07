@@ -6,6 +6,9 @@ pub trait Operator : std::fmt::Display {
     fn retrieve_matches<'a>(&'a self, lhs : &Match) -> Box<Iterator<Item = Match> + 'a>;
 
     fn filter_match(&self, lhs : &Match, rhs : &Match) -> bool;
+
+    fn is_reflexive(&self) -> bool {true}
+    fn is_commutative(&self) -> bool {false}
 }
 
 pub trait OperatorSpec {
