@@ -146,3 +146,27 @@ fn count_gum() {
         }
     };
 }
+
+#[test]
+fn count_pcc2() {
+
+    let cs = get_corpus_storage();
+
+    if let Some(cs) = cs {
+        let corpora : HashSet<String> = cs.list().into_iter().collect();
+        // ignore of corpus does not exist
+        if corpora.contains("pcc2") {
+            let mut d = get_query_dir();
+            d.push("SearchTestPcc2");
+            for def in get_queries_from_folder(&d) {
+                let count = cs.count("pcc2", &def.json).unwrap_or(0);
+                assert_eq!(
+                    def.count, count,
+                    "Query '{}' should have had count {} but was {}.",
+                    def.aql, def.count, count
+                );
+                    
+            }
+        }
+    };
+}

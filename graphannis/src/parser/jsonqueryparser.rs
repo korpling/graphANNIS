@@ -113,7 +113,7 @@ fn parse_node(
     // check for special non-annotation search constructs
     // token search?
     if (node.contains_key("spannedText") && node["spannedText"].is_string())
-        || (node.contains_key("token") && node["token"].is_boolean())
+        || (node.contains_key("token") && node["token"].is_boolean() && node["token"].as_bool() == Some(true))
     {
         let spanned = node.get("spannedText").and_then(|s| s.as_str());
 
@@ -144,7 +144,7 @@ fn parse_node(
         }
     } else {
         // just search for any node
-        return Some(q.add_node((NodeSearchSpec::AnyNode)));
+        return Some(q.add_node(NodeSearchSpec::AnyNode));
     }
 }
 

@@ -152,7 +152,7 @@ impl<'a> NodeSearch<'a> {
 
                 Some(NodeSearch {
                     it: Box::new(it),
-                    desc: Some(Desc::empty_with_fragment("tok",  node_nr)),
+                    desc: Some(Desc::empty_with_fragment(&query_fragment,  node_nr)),
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: filter_func,
