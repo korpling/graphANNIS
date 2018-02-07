@@ -140,7 +140,7 @@ impl<'a> Operator for Inclusion<'a> {
         return false;
     }
 
-    fn is_commutative(&self) -> bool {
+    fn is_reflexive(&self) -> bool {
         false
     }
 }

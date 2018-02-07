@@ -131,11 +131,13 @@ impl<'a> Operator for  Overlap<'a> {
         return false;
     }
 
-    fn is_commutative(&self) -> bool {
+    fn is_reflexive(&self) -> bool {
         false
     }
 
-    fn is_reflexive(&self) -> bool {
+    fn is_commutative(&self) -> bool {
         true
     }
+
+    
 }
