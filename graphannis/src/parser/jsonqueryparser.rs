@@ -191,8 +191,8 @@ fn parse_join(
                     Some(Box::new(spec))
                 }
                 Some("Dominance") => {
-                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
-                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
+                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64()).unwrap_or(1) as usize;
+                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64()).unwrap_or(1) as usize;
 
                     let name = join.get("name").and_then(|n| n.as_str());
                     let edge_anno = join.get("edgeAnnotations")
@@ -201,25 +201,28 @@ fn parse_join(
                     let spec = DominanceSpec::new(
                         db,
                         name.unwrap_or(""),
-                        min_dist.unwrap_or(1) as usize,
-                        max_dist.unwrap_or(1) as usize,
+                        min_dist,
+                        if max_dist == 0 {usize::max_value()} else {max_dist},
                         edge_anno,
                     );
                     Some(Box::new(spec))
                 }
                 Some("Pointing") => {
-                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64());
-                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64());
+                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64()).unwrap_or(1) as usize;
+                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64()).unwrap_or(1) as usize;
+
+
 
                     let name = join.get("name").and_then(|n| n.as_str());
                     let edge_anno = join.get("edgeAnnotations")
                         .and_then(|a| a.as_array())
                         .and_then(|a| get_edge_anno(&a[0]));
+
                     let spec = PointingSpec::new(
                         db,
                         name.unwrap_or(""),
-                        min_dist.unwrap_or(1) as usize,
-                        max_dist.unwrap_or(1) as usize,
+                        min_dist,
+                        if max_dist == 0 {usize::max_value()} else {max_dist},
                         edge_anno,
                     );
                     Some(Box::new(spec))
