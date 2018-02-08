@@ -2,6 +2,7 @@ extern crate graphannis;
 
 use graphannis::api::corpusstorage::CorpusStorage;
 use std::path::{Path, PathBuf};
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::Read;
 use std::cell::RefCell;
@@ -30,6 +31,7 @@ struct SearchDef {
     pub aql: String,
     pub json: String,
     pub count: usize,
+    pub name: String,
 }
 
 impl SearchDef {
@@ -43,7 +45,7 @@ impl SearchDef {
         let mut p_count = PathBuf::from(base);
         p_count.set_extension("count");
 
-        let f_aql = File::open(p_aql);
+        let f_aql = File::open(p_aql.clone());
         let f_json = File::open(p_json);
         let f_count = File::open(p_count);
 
@@ -59,10 +61,13 @@ impl SearchDef {
             ) {
                 // try to parse the count value
                 if let Ok(count) = count.trim().parse::<usize>() {
+                    let unknown_name = OsString::from("<unknown>");
+                    let name : &OsStr = p_aql.file_stem().unwrap_or(&unknown_name);
                     return Some(SearchDef {
                         aql: String::from(aql.trim()),
                         json: String::from(json.trim()),
                         count,
+                        name: String::from(name.to_string_lossy()),
                     });
                 }
             }
@@ -141,8 +146,8 @@ fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
                 let count = cs.count(corpus, &def.json).unwrap_or(0);
                 assert_eq!(
                     def.count, count,
-                    "Query '{}' on corpus {} should have had count {} but was {}.",
-                    def.aql, corpus, def.count, count
+                    "Query '{}' ({}) on corpus {} should have had count {} but was {}.",
+                    def.aql, def.name, corpus, def.count, count
                 );
                     
             }
@@ -169,4 +174,10 @@ fn count_parlament() {
 fn count_tiger() {
     search_test_base("tiger2", "SearchTestTiger", true);
 }
+
+#[test]
+fn count_ridges() {
+    search_test_base("ridges7", "SearchTestRidges", false);
+}
+
 
