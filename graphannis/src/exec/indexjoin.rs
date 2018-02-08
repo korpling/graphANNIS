@@ -161,8 +161,16 @@ impl<'a> Iterator for IndexJoin<'a> {
                     if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
                         || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
                     {
-                        // check if the filter is true
-                        if (self.node_search_desc.cond)(m_rhs.clone(), &self.db.strings) {
+                        // check if all filters are true
+                        let mut filter_result = true;
+                        for f in self.node_search_desc.cond.iter() {
+                            if !(f)(m_rhs.clone(), &self.db.strings) {
+                                filter_result = false;
+                                break;
+                            }
+                        }
+                        // filters have been checked, return the result
+                        if filter_result {
                             let mut result = m_lhs.clone();
                             result.push(m_rhs);
                             return Some(result);

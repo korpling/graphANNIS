@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use graphannis::graphdb::*;
 use graphannis::relannis;
-use graphannis::{Annotation, Edge};
+use graphannis::{Annotation, Edge, Match};
 use graphannis::operator::OperatorSpec;
 use graphannis::exec::NodeSearchDesc;
 use graphannis::exec::nodesearch::{NodeSearch, NodeSearchSpec};
@@ -192,7 +192,7 @@ fn index_join() {
         let n1 = Box::new(n1);
 
         let node_search_desc  = NodeSearchDesc {
-            cond: Box::new(move |anno : Annotation, _ : &StringStorage|  {return anno.key.name == anno_name && anno.val == anno_val }),
+            cond: vec![Box::new(move |m : Match, _ : &StringStorage|  {return m.anno.key.name == anno_name && m.anno.val == anno_val })],
             qname: (None, Some(anno_name)),
         };
 

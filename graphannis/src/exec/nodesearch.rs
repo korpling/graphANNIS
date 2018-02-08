@@ -156,10 +156,9 @@ impl<'a> NodeSearch<'a> {
                     .exact_anno_search(Some(type_key.ns), type_key.name, Some(node_str_id))
                     .map(move |n| vec![n]);
 
-                let filter_func: Box<Fn(Match, &StringStorage) -> bool> =
-                    Box::new(move |m, _| {
-                        return m.anno.val == node_str_id;
-                    });
+                let filter_func: Box<Fn(Match, &StringStorage) -> bool> = Box::new(move |m, _| {
+                    return m.anno.val == node_str_id;
+                });
 
                 let type_key = db.get_node_type_key();
 
@@ -168,7 +167,7 @@ impl<'a> NodeSearch<'a> {
                     desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
-                        cond: filter_func,
+                        cond: vec![filter_func],
                     }),
                 })
             }
@@ -208,27 +207,29 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let filter_func: Box<Fn(Match, &StringStorage) -> bool> = if match_regex {
+        let mut filters : Vec<Box<Fn(Match, &StringStorage) -> bool>> = Vec::new();
+
+        if match_regex {
             // match_regex works only with values
             let val = val?.clone();
             let full_match_pattern = util::regex_full_match(&val);
             let re = regex::Regex::new(&full_match_pattern).ok()?;
-            Box::new(move |m, strings| {
-                let val_str_opt = strings.str(m.anno.val);
-                if let Some(val_str) = val_str_opt {
-                    return re.is_match(val_str);
-                } else {
-                    return false;
-                };
-            })
+            filters.push(
+                Box::new(move |m, strings| {
+                    let val_str_opt = strings.str(m.anno.val);
+                    if let Some(val_str) = val_str_opt {
+                        return re.is_match(val_str);
+                    } else {
+                        return false;
+                    };
+                })
+            );
         } else if val_id.is_some() {
-            Box::new(move |m, _| {
-                return m.anno.val == val_id.unwrap();
-            })
-        } else {
-            Box::new(move |_, _| {
-                return true;
-            })
+            filters.push(
+                Box::new(move |m, _| {
+                    return m.anno.val == val_id.unwrap();
+                })
+            );
         };
 
         return Some(NodeSearch {
@@ -236,7 +237,7 @@ impl<'a> NodeSearch<'a> {
             desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (ns_id, Some(name_id)),
-                cond: filter_func,
+                cond: filters,
             }),
         });
     }
@@ -255,14 +256,8 @@ impl<'a> NodeSearch<'a> {
             val: 0,
         };
 
-        let cov_gs = db.get_graphstorage(&Component {
-            ctype: ComponentType::Coverage,
-            layer: String::from(ANNIS_NS),
-            name: String::from(""),
-        });
-
-        if let Some(v) = val {
-            let base_it = if match_regex {
+        let it_base: Box<Iterator<Item = Match>> = if let Some(v) = val.clone() {
+            let it = if match_regex {
                 db.node_annos
                     .regex_anno_search(&db.strings, Some(tok_key.ns), tok_key.name, &v)
             } else {
@@ -270,115 +265,90 @@ impl<'a> NodeSearch<'a> {
                 db.node_annos
                     .exact_anno_search(Some(tok_key.ns), tok_key.name, Some(val_id))
             };
-
-            let it: Box<Iterator<Item = Vec<Match>> + 'a> = if leafs_only {
-                Box::new(
-                    base_it
-                        .filter(move |n| {
-                            if let Some(ref cov) = cov_gs {
-                                cov.get_outgoing_edges(&n.node).next().is_none()
-                            } else {
-                                true
-                            }
-                        })
-                        .map(move |n| {
-                            vec![
-                                Match {
-                                    node: n.node,
-                                    anno: any_anno.clone(),
-                                },
-                            ]
-                        }),
-                )
-            } else {
-                Box::new(base_it.map(move |n| {
-                    vec![
-                        Match {
-                            node: n.node,
-                            anno: any_anno.clone(),
-                        },
-                    ]
-                }))
-            };
-
-            let filter_func: Box<Fn(Match, &StringStorage) -> bool> = if match_regex {
+            Box::new(it)
+        } else {
+            let it = db.node_annos
+                .exact_anno_search(Some(tok_key.ns), tok_key.name, None);
+            Box::new(it)
+        };
+        let it_base = if leafs_only {
+            let cov_gs = db.get_graphstorage(&Component {
+                ctype: ComponentType::Coverage,
+                layer: String::from(ANNIS_NS),
+                name: String::from(""),
+            });
+            let it = it_base.filter(move |n| {
+                if let Some(ref cov) = cov_gs {
+                    cov.get_outgoing_edges(&n.node).next().is_none()
+                } else {
+                    true
+                }
+            });
+            Box::new(it)
+        } else {
+            it_base
+        };
+        // map to vector
+        let it = it_base.map(move |n| {
+            vec![
+                Match {
+                    node: n.node,
+                    anno: any_anno.clone(),
+                },
+            ]
+        });
+        // create filter functions
+        let mut filters : Vec<Box<Fn(Match, &StringStorage) -> bool>> = Vec::new();
+        
+        if let Some(v) = val {
+            if match_regex {
                 let full_match_pattern = util::regex_full_match(&v);
                 let re = regex::Regex::new(&full_match_pattern).ok()?;
-                Box::new(move |m, strings| {
-                    let val_str_opt = strings.str(m.anno.val);
-                    if let Some(val_str) = val_str_opt {
-                        return re.is_match(val_str);
-                    } else {
-                        return false;
-                    };
-                })
+                filters.push(
+                    Box::new(move |m, strings| {
+                        let val_str_opt = strings.str(m.anno.val);
+                        if let Some(val_str) = val_str_opt {
+                            return re.is_match(val_str);
+                        } else {
+                            return false;
+                        };
+                    })
+                );
             } else {
                 let val_id = db.strings.find_id(&v)?.clone();
-                Box::new(move |m, _| {
-                    return m.anno.val == val_id;
-                })
-            };
-
-            let tok_key = db.get_token_key();
-
-            return Some(NodeSearch {
-                it,
-                desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
-                node_search_desc: Rc::new(NodeSearchDesc {
-                    qname: (Some(tok_key.ns), Some(tok_key.name)),
-                    cond: filter_func,
-                }),
-            });
-        } else {
-            let it: Box<Iterator<Item = Vec<Match>>> = if leafs_only {
-                let it = db.node_annos
-                    .exact_anno_search(Some(tok_key.ns), tok_key.name, None)
-                    .filter(move |n| {
-                        if let Some(ref cov) = cov_gs {
-                            cov.get_outgoing_edges(&n.node).next().is_none()
-                        } else {
-                            true
-                        }
+                filters.push(
+                    Box::new(move |m, _| {
+                        return m.anno.val == val_id;
                     })
-                    .map(move |n| {
-                        vec![
-                            Match {
-                                node: n.node,
-                                anno: any_anno.clone(),
-                            },
-                        ]
-                    });
-                Box::new(it)
-            } else {
-                let it = db.node_annos
-                    .exact_anno_search(Some(tok_key.ns), tok_key.name, None)
-                    .map(move |n| {
-                        vec![
-                            Match {
-                                node: n.node,
-                                anno: any_anno.clone(),
-                            },
-                        ]
-                    });
-                Box::new(it)
+                );
             };
+        };
 
-            let filter_func: Box<Fn(Match, &StringStorage) -> bool> =
-                Box::new(move |_m, _| {
-                    return true;
-                });
+        if leafs_only {
+            let cov_gs = db.get_graphstorage(&Component {
+                ctype: ComponentType::Coverage,
+                layer: String::from(ANNIS_NS),
+                name: String::from(""),
+            });
+            let filter_func: Box<Fn(Match, &StringStorage) -> bool> = Box::new(move |m, _| {
+                if let Some(ref cov) = cov_gs {
+                    cov.get_outgoing_edges(&m.node).next().is_none()
+                } else {
+                    true
+                }
+            });
+            filters.push(filter_func);
+        };
 
-            let tok_key = db.get_token_key();
+        return Some(NodeSearch {
+            it: Box::new(it),
+            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
+            node_search_desc: Rc::new(NodeSearchDesc {
+                qname: (Some(tok_key.ns), Some(tok_key.name)),
+                cond: filters,
+            }),
+        });
 
-            Some(NodeSearch {
-                it,
-                desc: Some(Desc::empty_with_fragment("tok", node_nr)),
-                node_search_desc: Rc::new(NodeSearchDesc {
-                    qname: (Some(tok_key.ns), Some(tok_key.name)),
-                    cond: filter_func,
-                }),
-            })
-        }
     }
 
     pub fn set_desc(&mut self, desc: Option<Desc>) {

@@ -93,7 +93,7 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<StringID>, Option<StringID>),
-    pub cond: Box<Fn(Match, &StringStorage) -> bool>,
+    pub cond: Vec<Box<Fn(Match, &StringStorage) -> bool>>,
 }
 
 pub trait ExecutionNode : Iterator {
