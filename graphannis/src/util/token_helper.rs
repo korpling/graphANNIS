@@ -9,7 +9,7 @@ pub struct TokenHelper<'a> {
     db: &'a GraphDB,
     left_edges: Rc<GraphStorage>,
     right_edges: Rc<GraphStorage>,
-    cov_edges: Rc<GraphStorage>,
+    cov_edges: Option<Rc<GraphStorage>>,
 }
 
 lazy_static! {
@@ -53,14 +53,22 @@ impl<'a> TokenHelper<'a> {
             db,
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
             right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
-            cov_edges: db.get_graphstorage(&COMPONENT_COV)?,
+            cov_edges: db.get_graphstorage(&COMPONENT_COV),
         })
     }
 
     pub fn is_token(&self, id: &NodeID) -> bool {
         let tok = self.db.get_token_key();
-        self.db.node_annos.get(id, &tok).is_some()
-            && self.cov_edges.get_outgoing_edges(id).next().is_none()
+        if self.db.node_annos.get(id, &tok).is_some() {
+            if let Some(ref cov_edges) = self.cov_edges {
+                // check if there are no outgoing edges for this node in the coverage component
+                return cov_edges.get_outgoing_edges(id).next().is_none();
+            } else {
+                // if there is no covering component, the outgoing edges are always empty
+                return true;
+            }
+        }
+        return false;
     }
 
     pub fn right_token_for(&self, n: &NodeID) -> Option<NodeID> {
