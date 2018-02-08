@@ -11,7 +11,7 @@ pub trait Operator : std::fmt::Display {
     fn is_commutative(&self) -> bool {false}
 }
 
-pub trait OperatorSpec {
+pub trait OperatorSpec : std::fmt::Debug {
     fn necessary_components(&self) -> Vec<Component>;
 
     fn create_operator<'a>(&self, db: &'a GraphDB) -> Option<Box<Operator + 'a>>;

@@ -8,8 +8,8 @@ use util::token_helper::TokenHelper;
 use std::rc::Rc;
 use std;
 
-#[derive(Clone)]
-pub struct IdenticalCoverageSpec {}
+#[derive(Clone, Debug)]
+pub struct IdenticalCoverageSpec;
 
 pub struct IdenticalCoverage<'a> {
     gs_left: Rc<GraphStorage>,

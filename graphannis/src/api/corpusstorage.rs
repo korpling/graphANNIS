@@ -82,7 +82,7 @@ pub enum Error {
     IOerror(std::io::Error),
     DBError(graphdb::Error),
     LoadingFailed,
-    ImpossibleSearch,
+    ImpossibleSearch(String),
     NoSuchCorpus,
     QueryCreationError(plan::Error),
     StringConvert(std::ffi::OsString),
@@ -105,7 +105,10 @@ impl From<plan::Error> for Error {
     fn from(e: plan::Error) -> Error {
 
         match e {
-            plan::Error::ImpossibleSearch => Error::ImpossibleSearch,
+            plan::Error::ImpossibleSearch(error_vec) => {
+                let error_msg : Vec<String> = error_vec.into_iter().map(|x| format!("{:?}", x)).collect();
+                Error::ImpossibleSearch(error_msg.join("\n"))
+            },
         }
     }
 }
@@ -307,7 +310,7 @@ impl CorpusStorage {
         let lock = db_loader.read().unwrap();
         let db: &GraphDB = (&*lock).get().ok_or(Error::LoadingFailed)?;
 
-        let result = db.strings.str(str_id).cloned().ok_or(Error::ImpossibleSearch)?;
+        let result = db.strings.str(str_id).cloned().ok_or(Error::ImpossibleSearch(format!("string with ID {} does not exist", str_id)))?;
         return Ok(result);
     }
 

@@ -4,6 +4,7 @@ use {Component, Annotation};
 use graphdb::GraphDB;
 use std;
 
+#[derive(Debug)]
 pub struct IdenticalNodeSpec;
 
 impl OperatorSpec for IdenticalNodeSpec {

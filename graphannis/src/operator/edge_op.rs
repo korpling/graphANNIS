@@ -7,7 +7,7 @@ use std;
 use std::rc::Rc;
 use stringstorage::StringStorage;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum EdgeAnnoSearchSpec {
     ExactValue {
         ns: Option<String>,
@@ -46,7 +46,7 @@ impl EdgeAnnoSearchSpec {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct BaseEdgeOpSpec {
     pub components: Vec<Component>,
     pub min_dist: usize,
@@ -181,6 +181,7 @@ impl Operator for BaseEdgeOp {
     }
 }
 
+#[derive(Debug)]
 pub struct DominanceSpec {
     base: BaseEdgeOpSpec,
 }
@@ -217,6 +218,7 @@ impl OperatorSpec for DominanceSpec {
     }
 }
 
+#[derive(Debug)]
 pub struct PointingSpec {
     base: BaseEdgeOpSpec,
 }
@@ -253,6 +255,7 @@ impl OperatorSpec for PointingSpec {
     }
 }
 
+#[derive(Debug)]
 pub struct PartOfSubCorpusSpec {
     base: BaseEdgeOpSpec,
 }

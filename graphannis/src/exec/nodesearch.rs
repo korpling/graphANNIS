@@ -18,7 +18,7 @@ pub struct NodeSearch<'a> {
     node_search_desc: Rc<NodeSearchDesc>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum NodeSearchSpec {
     ExactValue {
         ns: Option<String>,

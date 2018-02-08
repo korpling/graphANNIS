@@ -13,12 +13,13 @@ use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub enum Error {
-    ImpossibleSearch,
+    ImpossibleSearch(String),
     MissingDescription,
     ComponentsNotConnected,
     OperatorIdxNotFound,
 }
 
+#[derive(Debug)]
 struct OperatorEntry<'a> {
     op: Box<OperatorSpec + 'a>,
     idx_left: usize,
@@ -26,6 +27,7 @@ struct OperatorEntry<'a> {
     /*    original_order: usize, */
 }
 
+#[derive(Debug)]
 pub struct Conjunction<'a> {
     nodes: Vec<NodeSearchSpec>,
     operators: Vec<OperatorEntry<'a>>,
@@ -115,7 +117,7 @@ impl<'a> Conjunction<'a> {
             let mut node_nr: usize = 0;
             for n_spec in self.nodes.drain(..) {
                 let mut n =
-                    NodeSearch::from_spec(n_spec, node_nr, db).ok_or(Error::ImpossibleSearch)?;
+                    NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(Error::ImpossibleSearch(format!("could not create node search for node {} ({})", node_nr, n_spec)))?;
                 node2component.insert(node_nr, node_nr);
 
                 let (orig_query_frag, orig_impl_desc) = if let Some(d) = n.get_desc() {
@@ -146,19 +148,19 @@ impl<'a> Conjunction<'a> {
         for op_entry in self.operators.drain(..) {
             let component_left = node2component
                 .get(&op_entry.idx_left)
-                .ok_or(Error::ImpossibleSearch)?
+                .ok_or(Error::ImpossibleSearch(format!("no component for node #{}", op_entry.idx_left+1)))?
                 .clone();
             let component_right = node2component
                 .get(&op_entry.idx_right)
-                .ok_or(Error::ImpossibleSearch)?
+                .ok_or(Error::ImpossibleSearch(format!("no component for node #{}", op_entry.idx_right+1)))?
                 .clone();
 
             let exec_left = component2exec
                 .remove(&component_left)
-                .ok_or(Error::ImpossibleSearch)?;
+                .ok_or(Error::ImpossibleSearch(format!("no execution node for component {}", component_left)))?;
             let exec_right = component2exec
                 .remove(&component_right)
-                .ok_or(Error::ImpossibleSearch)?;
+                .ok_or(Error::ImpossibleSearch(format!("no execution node for component {}", component_right)))?;
 
             let idx_left = exec_left
                 .get_desc()
@@ -178,7 +180,7 @@ impl<'a> Conjunction<'a> {
             let op: Box<Operator> = op_entry
                 .op
                 .create_operator(db)
-                .ok_or(Error::ImpossibleSearch)?;
+                .ok_or(Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)))?;
 
             let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
@@ -222,7 +224,7 @@ impl<'a> Conjunction<'a> {
 
             let new_component_nr = new_exec
                 .get_desc()
-                .ok_or(Error::ImpossibleSearch)?
+                .ok_or(Error::ImpossibleSearch(String::from("missing description for execution node")))?
                 .component_nr;
             update_components_for_nodes(&mut node2component, component_left, new_component_nr);
             update_components_for_nodes(&mut node2component, component_right, new_component_nr);
@@ -241,9 +243,9 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        let first_component_id = first_component_id.ok_or(Error::ImpossibleSearch)?;
+        let first_component_id = first_component_id.ok_or(Error::ImpossibleSearch(String::from("no component in query at all")))?;
         return component2exec
             .remove(&first_component_id)
-            .ok_or(Error::ImpossibleSearch);
+            .ok_or(Error::ImpossibleSearch(String::from("could not find execution node for query component")));
     }
 }

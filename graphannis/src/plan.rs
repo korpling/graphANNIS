@@ -1,5 +1,6 @@
 use Match;
 use graphdb::GraphDB;
+use query::conjunction;
 use query::disjunction::Disjunction;
 use exec::{ExecutionNode, Desc};
 use std;
@@ -7,7 +8,7 @@ use std::fmt::Formatter;
 
 #[derive(Debug)]
 pub enum Error {
-    ImpossibleSearch,
+    ImpossibleSearch(Vec<conjunction::Error>),
 }
 
 pub struct ExecutionPlan<'a> {
@@ -20,16 +21,19 @@ impl<'a> ExecutionPlan<'a> {
     pub fn from_disjunction(mut query : Disjunction<'a>, db : &'a GraphDB) -> Result<ExecutionPlan<'a>, Error> {
         let mut plans : Vec<Box<ExecutionNode<Item=Vec<Match>>+'a>> = Vec::new();
         let mut descriptions : Vec<Option<Desc>> = Vec::new();
+        let mut errors : Vec<conjunction::Error> = Vec::new();
         for alt in query.alternatives.drain(..) {
             let p = alt.make_exec_node(db);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);
+            } else if let Err(e) = p {
+                errors.push(e);
             }
         }
 
         if plans.is_empty() {
-            return Err(Error::ImpossibleSearch);
+            return Err(Error::ImpossibleSearch(errors));
         } else {
             let it = plans.into_iter().flat_map(|p| p);
             let box_it : Box<Iterator<Item = Vec<Match>>> = Box::new(it);

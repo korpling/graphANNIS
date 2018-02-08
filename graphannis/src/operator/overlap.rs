@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OverlapSpec;
 
 pub struct  Overlap<'a> {

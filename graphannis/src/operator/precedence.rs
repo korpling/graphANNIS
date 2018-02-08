@@ -8,7 +8,7 @@ use util::token_helper::TokenHelper;
 use std::rc::Rc;
 use std;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PrecedenceSpec {
     pub segmentation: Option<String>,
     pub min_dist: usize,
