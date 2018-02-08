@@ -269,7 +269,8 @@ impl AnnisRunner {
 
 fn main() {
     let matches = App::new("graphANNIS CLI")
-        .author("Thomas Krause <thomaskrause@posteo.de>")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author(env!("CARGO_PKG_AUTHORS"))
         .about("Command line interface to the graphANNIS API.")
         .arg(
             Arg::with_name("debug")
