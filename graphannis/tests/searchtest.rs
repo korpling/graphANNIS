@@ -82,18 +82,23 @@ fn get_query_dir() -> PathBuf {
     query_dir
 }
 
-fn get_queries_from_folder(folder: &Path) -> Box<Iterator<Item = SearchDef>> {
+fn get_queries_from_folder(folder: &Path, panic_on_invalid : bool) -> Box<Iterator<Item = SearchDef>> {
     // get an iterator over all files in the folder
     if let Ok(it_folder) = folder.read_dir() {
         // filter by file type and read both the ".aql", ".json" and ".count" files
-        let it = it_folder.filter_map(|e| -> Option<SearchDef> {
+        let it = it_folder.filter_map(move |e| -> Option<SearchDef> {
             if let Ok(e) = e {
                 let p = e.path();
                 if p.exists() && p.is_file()
                     && p.extension() == Some(&std::ffi::OsString::from("aql"))
                 {
                     let r = SearchDef::from_file(&p);
-                    return r;
+                    if panic_on_invalid {
+                        let r = r.expect(&format!("Search definition for query {} is incomplete", p.to_string_lossy()));
+                        return Some(r);
+                    } else {
+                        return r;
+                    }
                 }
             }
 
@@ -134,7 +139,7 @@ fn count_gum() {
         if corpora.contains("GUM") {
             let mut d = get_query_dir();
             d.push("SearchTestGUM");
-            for def in get_queries_from_folder(&d) {
+            for def in get_queries_from_folder(&d, true) {
                 let count = cs.count("GUM", &def.json).unwrap_or(0);
                 assert_eq!(
                     def.count, count,
@@ -158,7 +163,7 @@ fn count_pcc2() {
         if corpora.contains("pcc2") {
             let mut d = get_query_dir();
             d.push("SearchTestPcc2");
-            for def in get_queries_from_folder(&d) {
+            for def in get_queries_from_folder(&d, true) {
                 let count = cs.count("pcc2", &def.json).unwrap_or(0);
                 assert_eq!(
                     def.count, count,
