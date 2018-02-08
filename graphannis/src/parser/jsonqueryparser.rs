@@ -6,9 +6,8 @@ use exec::nodesearch::NodeSearchSpec;
 use operator::edge_op::EdgeAnnoSearchSpec;
 use graphdb::GraphDB;
 
-use operator::{DominanceSpec, IdenticalCoverageSpec, InclusionSpec, OperatorSpec, OverlapSpec,
-               PointingSpec, PrecedenceSpec, IdenticalNodeSpec, PartOfSubCorpusSpec};
-
+use operator::{DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec,
+               OperatorSpec, OverlapSpec, PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec};
 
 use std::collections::BTreeMap;
 
@@ -22,7 +21,7 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
     for alt in alternatives.iter() {
         let mut q = Conjunction::new();
 
-        let mut first_node_pos : Option<usize> = None;
+        let mut first_node_pos: Option<usize> = None;
 
         // add all nodes
         let mut node_id_to_pos: BTreeMap<usize, usize> = BTreeMap::new();
@@ -53,7 +52,7 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
 
         // add all meta-data
         if let Some(meta_obj) = alt.get("meta") {
-            let mut first_meta_idx : Option<usize> = None;
+            let mut first_meta_idx: Option<usize> = None;
 
             if let Some(meta_array) = meta_obj.as_array() {
                 for m in meta_array.iter() {
@@ -63,16 +62,23 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
                         m.get("namespace").and_then(|n| n.as_str()),
                         m.get("name").and_then(|n| n.as_str()),
                         m.get("value").and_then(|n| n.as_str()),
-                        is_regex(m)
+                        is_regex(m),
                     ) {
-
                         if let Some(first_meta_idx) = first_meta_idx {
                             // avoid nested loops by joining additional meta nodes with a "identical node"
-                            q.add_operator(Box::new(IdenticalNodeSpec {}), first_meta_idx, meta_node_idx);
+                            q.add_operator(
+                                Box::new(IdenticalNodeSpec {}),
+                                first_meta_idx,
+                                meta_node_idx,
+                            );
                         } else if let Some(first_node_pos) = first_node_pos {
                             first_meta_idx = Some(meta_node_idx);
                             // add a special join to the first node of the query
-                            q.add_operator(Box::new(PartOfSubCorpusSpec::new(1)),first_node_pos, meta_node_idx);
+                            q.add_operator(
+                                Box::new(PartOfSubCorpusSpec::new(1)),
+                                first_node_pos,
+                                meta_node_idx,
+                            );
                         }
                     }
                 }
@@ -113,19 +119,19 @@ fn parse_node(
     // check for special non-annotation search constructs
     // token search?
     if (node.contains_key("spannedText") && node["spannedText"].is_string())
-        || (node.contains_key("token") && node["token"].is_boolean() && node["token"].as_bool() == Some(true))
+        || (node.contains_key("token") && node["token"].is_boolean()
+            && node["token"].as_bool() == Some(true))
     {
         let spanned = node.get("spannedText").and_then(|s| s.as_str());
 
-        let mut leafs_only = false;
-        if let Some(is_token) = node["token"].as_bool() {
-            if is_token {
-                // special treatment for explicit searches for token (tok="...)
-                leafs_only = true;
-            }
-        }
-
         if let Some(tok_val) = spanned {
+            let mut leafs_only = false;
+            if let Some(is_token) = node["token"].as_bool() {
+                if is_token {
+                    // special treatment for explicit searches for token (tok="...)
+                    leafs_only = true;
+                }
+            }
             if node.contains_key("spanTextMatching")
                 && node["spanTextMatching"].as_str() == Some("REGEXP_EQUAL")
             {
@@ -191,8 +197,12 @@ fn parse_join(
                     Some(Box::new(spec))
                 }
                 Some("Dominance") => {
-                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64()).unwrap_or(1) as usize;
-                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64()).unwrap_or(1) as usize;
+                    let min_dist = join.get("minDistance")
+                        .and_then(|n| n.as_u64())
+                        .unwrap_or(1) as usize;
+                    let max_dist = join.get("maxDistance")
+                        .and_then(|n| n.as_u64())
+                        .unwrap_or(1) as usize;
 
                     let name = join.get("name").and_then(|n| n.as_str());
                     let edge_anno = join.get("edgeAnnotations")
@@ -202,16 +212,22 @@ fn parse_join(
                         db,
                         name.unwrap_or(""),
                         min_dist,
-                        if max_dist == 0 {usize::max_value()} else {max_dist},
+                        if max_dist == 0 {
+                            usize::max_value()
+                        } else {
+                            max_dist
+                        },
                         edge_anno,
                     );
                     Some(Box::new(spec))
                 }
                 Some("Pointing") => {
-                    let min_dist = join.get("minDistance").and_then(|n| n.as_u64()).unwrap_or(1) as usize;
-                    let max_dist = join.get("maxDistance").and_then(|n| n.as_u64()).unwrap_or(1) as usize;
-
-
+                    let min_dist = join.get("minDistance")
+                        .and_then(|n| n.as_u64())
+                        .unwrap_or(1) as usize;
+                    let max_dist = join.get("maxDistance")
+                        .and_then(|n| n.as_u64())
+                        .unwrap_or(1) as usize;
 
                     let name = join.get("name").and_then(|n| n.as_str());
                     let edge_anno = join.get("edgeAnnotations")
@@ -222,7 +238,11 @@ fn parse_join(
                         db,
                         name.unwrap_or(""),
                         min_dist,
-                        if max_dist == 0 {usize::max_value()} else {max_dist},
+                        if max_dist == 0 {
+                            usize::max_value()
+                        } else {
+                            max_dist
+                        },
                         edge_anno,
                     );
                     Some(Box::new(spec))

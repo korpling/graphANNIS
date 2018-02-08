@@ -30,8 +30,14 @@ pub enum NodeSearchSpec {
         name: String,
         val: String,
     },
-    ExactTokenValue { val: String, leafs_only: bool },
-    RegexTokenValue { val: String, leafs_only: bool },
+    ExactTokenValue {
+        val: String,
+        leafs_only: bool,
+    },
+    RegexTokenValue {
+        val: String,
+        leafs_only: bool,
+    },
     AnyToken,
     AnyNode,
 }
@@ -83,13 +89,7 @@ impl fmt::Display for NodeSearchSpec {
                 ref val,
                 ..
             } => if ns.is_some() {
-                write!(
-                    f,
-                    "{}:{}=/{}/",
-                    ns.as_ref().unwrap(),
-                    name,
-                    &val
-                )
+                write!(f, "{}:{}=/{}/", ns.as_ref().unwrap(), name, &val)
             } else {
                 write!(f, "{}=/{}/", name, &val)
             },
@@ -111,31 +111,44 @@ impl fmt::Display for NodeSearchSpec {
             },
             &NodeSearchSpec::AnyToken => write!(f, "tok"),
             &NodeSearchSpec::AnyNode => write!(f, "node"),
-            
         }
     }
 }
 
 impl<'a> NodeSearch<'a> {
-    pub fn from_spec(spec: NodeSearchSpec, node_nr : usize, db: &'a GraphDB) -> Option<NodeSearch<'a>> {
+    pub fn from_spec(
+        spec: NodeSearchSpec,
+        node_nr: usize,
+        db: &'a GraphDB,
+    ) -> Option<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
 
         match spec {
             NodeSearchSpec::ExactValue { ns, name, val } => {
                 NodeSearch::new_annosearch(db, ns, name, val, false, &query_fragment, node_nr)
-            },
+            }
             NodeSearchSpec::RegexValue { ns, name, val } => {
                 NodeSearch::new_annosearch(db, ns, name, Some(val), true, &query_fragment, node_nr)
-            },
-            NodeSearchSpec::ExactTokenValue { val, leafs_only } => {
-                NodeSearch::new_tokensearch(db, Some(val), leafs_only, false, &query_fragment, node_nr)
-            },
-            NodeSearchSpec::RegexTokenValue { val, leafs_only } => {
-                NodeSearch::new_tokensearch(db, Some(val), leafs_only, true, &query_fragment, node_nr)
-            },
+            }
+            NodeSearchSpec::ExactTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
+                db,
+                Some(val),
+                leafs_only,
+                false,
+                &query_fragment,
+                node_nr,
+            ),
+            NodeSearchSpec::RegexTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
+                db,
+                Some(val),
+                leafs_only,
+                true,
+                &query_fragment,
+                node_nr,
+            ),
             NodeSearchSpec::AnyToken => {
-                NodeSearch::new_tokensearch(db, None, false, false, &query_fragment, node_nr)
-            },
+                NodeSearch::new_tokensearch(db, None, true, false, &query_fragment, node_nr)
+            }
             NodeSearchSpec::AnyNode => {
                 let type_key = db.get_node_type_key();
                 let node_str_id = db.strings.find_id("node")?.clone();
@@ -152,16 +165,15 @@ impl<'a> NodeSearch<'a> {
 
                 Some(NodeSearch {
                     it: Box::new(it),
-                    desc: Some(Desc::empty_with_fragment(&query_fragment,  node_nr)),
+                    desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: filter_func,
                     }),
                 })
-            },
+            }
         }
     }
-
 
     fn new_annosearch(
         db: &'a GraphDB,
@@ -170,7 +182,7 @@ impl<'a> NodeSearch<'a> {
         val: Option<String>,
         match_regex: bool,
         query_fragment: &str,
-        node_nr : usize,
+        node_nr: usize,
     ) -> Option<NodeSearch<'a>> {
         let name_id: StringID = db.strings.find_id(&name)?.clone();
         // not finding the strings will result in an None result, not in an less specific search
@@ -235,7 +247,7 @@ impl<'a> NodeSearch<'a> {
         leafs_only: bool,
         match_regex: bool,
         query_fragment: &str,
-        node_nr : usize,
+        node_nr: usize,
     ) -> Option<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
         let any_anno = Annotation {
@@ -243,14 +255,13 @@ impl<'a> NodeSearch<'a> {
             val: 0,
         };
 
+        let cov_gs = db.get_graphstorage(&Component {
+            ctype: ComponentType::Coverage,
+            layer: String::from(ANNIS_NS),
+            name: String::from(""),
+        });
 
         if let Some(v) = val {
-            let cov_gs = db.get_graphstorage(&Component {
-                ctype: ComponentType::Coverage,
-                layer: String::from(ANNIS_NS),
-                name: String::from(""),
-            });
-
             let base_it = if match_regex {
                 db.node_annos
                     .regex_anno_search(&db.strings, Some(tok_key.ns), tok_key.name, &v)
@@ -263,10 +274,12 @@ impl<'a> NodeSearch<'a> {
             let it: Box<Iterator<Item = Vec<Match>> + 'a> = if leafs_only {
                 Box::new(
                     base_it
-                        .filter(move |n| if let Some(ref cov) = cov_gs {
-                            cov.get_outgoing_edges(&n.node).next().is_none()
-                        } else {
-                            true
+                        .filter(move |n| {
+                            if let Some(ref cov) = cov_gs {
+                                cov.get_outgoing_edges(&n.node).next().is_none()
+                            } else {
+                                true
+                            }
                         })
                         .map(move |n| {
                             vec![
@@ -299,7 +312,6 @@ impl<'a> NodeSearch<'a> {
                         return false;
                     };
                 })
-            
             } else {
                 let val_id = db.strings.find_id(&v)?.clone();
                 Box::new(move |anno, _| {
@@ -308,7 +320,6 @@ impl<'a> NodeSearch<'a> {
             };
 
             let tok_key = db.get_token_key();
-
 
             return Some(NodeSearch {
                 it,
@@ -319,16 +330,38 @@ impl<'a> NodeSearch<'a> {
                 }),
             });
         } else {
-            let it = db.node_annos
-                .exact_anno_search(Some(tok_key.ns), tok_key.name, None)
-                .map(move |n| {
-                    vec![
-                        Match {
-                            node: n.node,
-                            anno: any_anno.clone(),
-                        },
-                    ]
-                });
+            let it: Box<Iterator<Item = Vec<Match>>> = if leafs_only {
+                let it = db.node_annos
+                    .exact_anno_search(Some(tok_key.ns), tok_key.name, None)
+                    .filter(move |n| {
+                        if let Some(ref cov) = cov_gs {
+                            cov.get_outgoing_edges(&n.node).next().is_none()
+                        } else {
+                            true
+                        }
+                    })
+                    .map(move |n| {
+                        vec![
+                            Match {
+                                node: n.node,
+                                anno: any_anno.clone(),
+                            },
+                        ]
+                    });
+                Box::new(it)
+            } else {
+                let it = db.node_annos
+                    .exact_anno_search(Some(tok_key.ns), tok_key.name, None)
+                    .map(move |n| {
+                        vec![
+                            Match {
+                                node: n.node,
+                                anno: any_anno.clone(),
+                            },
+                        ]
+                    });
+                Box::new(it)
+            };
 
             let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> =
                 Box::new(move |_anno, _| {
@@ -338,7 +371,7 @@ impl<'a> NodeSearch<'a> {
             let tok_key = db.get_token_key();
 
             Some(NodeSearch {
-                it: Box::new(it),
+                it,
                 desc: Some(Desc::empty_with_fragment("tok", node_nr)),
                 node_search_desc: Rc::new(NodeSearchDesc {
                     qname: (Some(tok_key.ns), Some(tok_key.name)),
@@ -348,11 +381,9 @@ impl<'a> NodeSearch<'a> {
         }
     }
 
-
     pub fn set_desc(&mut self, desc: Option<Desc>) {
         self.desc = desc;
     }
-
 
     pub fn get_node_search_desc(&'a self) -> Rc<NodeSearchDesc> {
         self.node_search_desc.clone()
