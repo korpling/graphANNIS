@@ -156,9 +156,9 @@ impl<'a> NodeSearch<'a> {
                     .exact_anno_search(Some(type_key.ns), type_key.name, Some(node_str_id))
                     .map(move |n| vec![n]);
 
-                let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> =
-                    Box::new(move |anno, _| {
-                        return anno.val == node_str_id;
+                let filter_func: Box<Fn(Match, &StringStorage) -> bool> =
+                    Box::new(move |m, _| {
+                        return m.anno.val == node_str_id;
                     });
 
                 let type_key = db.get_node_type_key();
@@ -208,13 +208,13 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> = if match_regex {
+        let filter_func: Box<Fn(Match, &StringStorage) -> bool> = if match_regex {
             // match_regex works only with values
             let val = val?.clone();
             let full_match_pattern = util::regex_full_match(&val);
             let re = regex::Regex::new(&full_match_pattern).ok()?;
-            Box::new(move |anno, strings| {
-                let val_str_opt = strings.str(anno.val);
+            Box::new(move |m, strings| {
+                let val_str_opt = strings.str(m.anno.val);
                 if let Some(val_str) = val_str_opt {
                     return re.is_match(val_str);
                 } else {
@@ -222,8 +222,8 @@ impl<'a> NodeSearch<'a> {
                 };
             })
         } else if val_id.is_some() {
-            Box::new(move |anno, _| {
-                return anno.val == val_id.unwrap();
+            Box::new(move |m, _| {
+                return m.anno.val == val_id.unwrap();
             })
         } else {
             Box::new(move |_, _| {
@@ -301,11 +301,11 @@ impl<'a> NodeSearch<'a> {
                 }))
             };
 
-            let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> = if match_regex {
+            let filter_func: Box<Fn(Match, &StringStorage) -> bool> = if match_regex {
                 let full_match_pattern = util::regex_full_match(&v);
                 let re = regex::Regex::new(&full_match_pattern).ok()?;
-                Box::new(move |anno, strings| {
-                    let val_str_opt = strings.str(anno.val);
+                Box::new(move |m, strings| {
+                    let val_str_opt = strings.str(m.anno.val);
                     if let Some(val_str) = val_str_opt {
                         return re.is_match(val_str);
                     } else {
@@ -314,8 +314,8 @@ impl<'a> NodeSearch<'a> {
                 })
             } else {
                 let val_id = db.strings.find_id(&v)?.clone();
-                Box::new(move |anno, _| {
-                    return anno.val == val_id;
+                Box::new(move |m, _| {
+                    return m.anno.val == val_id;
                 })
             };
 
@@ -363,8 +363,8 @@ impl<'a> NodeSearch<'a> {
                 Box::new(it)
             };
 
-            let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> =
-                Box::new(move |_anno, _| {
+            let filter_func: Box<Fn(Match, &StringStorage) -> bool> =
+                Box::new(move |_m, _| {
                     return true;
                 });
 

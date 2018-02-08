@@ -162,7 +162,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                         || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
                     {
                         // check if the filter is true
-                        if (self.node_search_desc.cond)(m_rhs.anno.clone(), &self.db.strings) {
+                        if (self.node_search_desc.cond)(m_rhs.clone(), &self.db.strings) {
                             let mut result = m_lhs.clone();
                             result.push(m_rhs);
                             return Some(result);

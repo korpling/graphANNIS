@@ -1,4 +1,4 @@
-use {Match, StringID, Annotation};
+use {Match, StringID};
 use self::nodesearch::NodeSearch;
 use stringstorage::StringStorage;
 
@@ -93,7 +93,7 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<StringID>, Option<StringID>),
-    pub cond: Box<Fn(Annotation, &StringStorage) -> bool>,
+    pub cond: Box<Fn(Match, &StringStorage) -> bool>,
 }
 
 pub trait ExecutionNode : Iterator {
