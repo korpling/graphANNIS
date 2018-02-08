@@ -24,14 +24,6 @@ pub struct Precedence<'a> {
 
 lazy_static! {
 
-    static ref COMPONENT_ORDER : Component =  {
-        Component {
-            ctype: ComponentType::Ordering,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
-
     static ref COMPONENT_LEFT : Component =  {
         Component {
             ctype: ComponentType::LeftToken,
@@ -43,7 +35,13 @@ lazy_static! {
 
 impl OperatorSpec for PrecedenceSpec {
     fn necessary_components(&self) -> Vec<Component> {
-        let mut v : Vec<Component> = vec![COMPONENT_ORDER.clone(), COMPONENT_LEFT.clone()];
+        let component_order = Component {
+            ctype: ComponentType::Ordering,
+            layer: String::from("annis"),
+            name: self.segmentation.clone().unwrap_or(String::from("")),
+        };
+    
+        let mut v : Vec<Component> = vec![component_order.clone(), COMPONENT_LEFT.clone()];
         v.append(&mut token_helper::necessary_components());
         v
     }
@@ -60,8 +58,14 @@ impl OperatorSpec for PrecedenceSpec {
 
 impl<'a> Precedence<'a> {
     pub fn new(db: &'a GraphDB, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
-     
-        let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
+        
+        let component_order = Component {
+            ctype: ComponentType::Ordering,
+            layer: String::from("annis"),
+            name: spec.segmentation.clone().unwrap_or(String::from("")),
+        };
+    
+        let gs_order = db.get_graphstorage(&component_order)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
 
         let tok_helper = TokenHelper::new(db)?;
