@@ -1,5 +1,8 @@
+extern crate clap;
 #[macro_use]
 extern crate log;
+
+use clap::{App, Arg};
 
 extern crate graphannis;
 extern crate rustyline;
@@ -8,9 +11,8 @@ extern crate simplelog;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline::completion::{Completer, FilenameCompleter};
-use simplelog::{LogLevelFilter, TermLogger, SimpleLogger};
+use simplelog::{LogLevelFilter, SimpleLogger, TermLogger};
 use graphannis::relannis;
-use std::env;
 use std::path::{Path, PathBuf};
 use graphannis::StringID;
 use graphannis::api::corpusstorage::CorpusStorage;
@@ -19,8 +21,8 @@ use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
 struct CommandCompleter {
-    known_commands : BTreeSet<String>,
-    filename_completer : FilenameCompleter,
+    known_commands: BTreeSet<String>,
+    filename_completer: FilenameCompleter,
 }
 
 impl CommandCompleter {
@@ -35,7 +37,7 @@ impl CommandCompleter {
         known_commands.insert("str".to_string());
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
-        
+
         CommandCompleter {
             known_commands,
             filename_completer: FilenameCompleter::new(),
@@ -66,7 +68,7 @@ impl Completer for CommandCompleter {
 }
 struct AnnisRunner {
     storage: CorpusStorage,
-    current_corpus : Option<String>,
+    current_corpus: Option<String>,
 }
 
 impl AnnisRunner {
@@ -83,7 +85,6 @@ impl AnnisRunner {
             println!("No previous history.");
         }
         rl.set_completer(Some(CommandCompleter::new()));
-    
 
         loop {
             let prompt = if let Some(ref c) = self.current_corpus {
@@ -126,7 +127,7 @@ impl AnnisRunner {
                 String::from("")
             };
             match cmd {
-                "import" =>  self.import_relannis(&args),
+                "import" => self.import_relannis(&args),
                 "list" => self.list(),
                 "corpus" => self.corpus(&args),
                 "plan" => self.plan(&args),
@@ -141,9 +142,8 @@ impl AnnisRunner {
         return true;
     }
 
-    fn import_relannis(&mut self, args : &str) {
-
-        let args : Vec<&str> = args.split(' ').collect();
+    fn import_relannis(&mut self, args: &str) {
+        let args: Vec<&str> = args.split(' ').collect();
         if args.len() < 2 {
             println!("You need to give the name of the corpus and the location of the relANNIS files and  as argument");
             return;
@@ -175,22 +175,21 @@ impl AnnisRunner {
         }
     }
 
-    fn corpus(&mut self, args : &str) {
+    fn corpus(&mut self, args: &str) {
         if args.is_empty() {
             self.current_corpus = None;
         } else {
             let corpora = BTreeSet::from_iter(self.storage.list().into_iter());
             let selected = String::from(args);
             if corpora.contains(&selected) {
-                self.current_corpus = Some(String::from(args));    
+                self.current_corpus = Some(String::from(args));
             } else {
                 println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
             }
         }
     }
 
-    fn plan(&self, args : &str) {
-
+    fn plan(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
             let plan = self.storage.plan(corpus, args);
@@ -200,19 +199,17 @@ impl AnnisRunner {
                 info!{"Planned query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(plan) = plan {    
-                println!("{}", plan);   
+            if let Ok(plan) = plan {
+                println!("{}", plan);
             } else {
                 println!("Error when executing query: {:?}", plan);
             }
-            
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
     }
 
-    fn count(&self, args : &str) {
-
+    fn count(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
             let c = self.storage.count(corpus, args);
@@ -222,19 +219,17 @@ impl AnnisRunner {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(c) = c {                
+            if let Ok(c) = c {
                 println!("result: {} matches", c);
             } else {
                 println!("Error when executing query: {:?}", c);
             }
-            
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
     }
 
-    fn find(&self, args : &str) {
-
+    fn find(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
             let matches = self.storage.find(corpus, args, 0, usize::max_value());
@@ -244,21 +239,19 @@ impl AnnisRunner {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(matches) = matches {       
+            if let Ok(matches) = matches {
                 for m in matches {
                     println!("{}", m);
-                }         
+                }
             } else {
                 println!("Error when executing query: {:?}", matches);
             }
-            
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
     }
 
-    fn get_string(&self, args : &str) {
-
+    fn get_string(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
             // try to parse ID
             if let Ok(str_id) = args.trim().parse::<StringID>() {
@@ -274,42 +267,49 @@ impl AnnisRunner {
     }
 }
 
-
-
-
 fn main() {
-    if let Err(e) = TermLogger::init(LogLevelFilter::Info, simplelog::Config::default()) {
+    let matches = App::new("graphANNIS CLI")
+        .author("Thomas Krause <thomaskrause@posteo.de>")
+        .about("Command line interface to the graphANNIS API.")
+        .arg(
+            Arg::with_name("debug")
+                .short("d")
+                .long("debug")
+                .help("Enables debug output")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("DATA_DIR")
+                .help("directory containing the data")
+                .required(true)
+                .index(1),
+        )
+        .get_matches();
+
+    let log_filter = if matches.is_present("debug") {
+        LogLevelFilter::Trace
+    } else {
+        LogLevelFilter::Info
+    };
+
+    if let Err(e) = TermLogger::init(log_filter, simplelog::Config::default()) {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
-        if let Err(e_simple) = SimpleLogger::init(LogLevelFilter::Debug, simplelog::Config::default()) {
+        if let Err(e_simple) = SimpleLogger::init(log_filter, simplelog::Config::default()) {
             println!("Simple logging failed too: {}", e_simple);
         }
-     }
+    }
 
-    let args: Vec<String> = env::args().collect();
+    let dir = std::path::PathBuf::from(matches.value_of("DATA_DIR").unwrap());
+    if !dir.is_dir() {
+        println!("Must give a valid directory as argument");
+        std::process::exit(3);
+    }
 
-    match args.len() {
-        1 => {
-            println!("Please give the data directory as argument.");
-            std::process::exit(1);
-        }
-        2 => {
-            let dir = std::path::PathBuf::from(&args[1]);
-            if !dir.is_dir() {
-                println!("Must give a valid directory as argument");
-                std::process::exit(3);
-            }
-
-            let runner_result = AnnisRunner::new(&dir);
-            match runner_result {
-                 Ok(mut runner) =>  runner.start_loop(),
-                 Err(e) => println!("Can't start console because of loading error: {:?}", e)
-            };
-
-        }
-        _ => {
-            println!("Too many arguments given, only give the data directory as argument");
-            std::process::exit(2)
-        }
+    let runner_result = AnnisRunner::new(&dir);
+    match runner_result {
+        Ok(mut runner) => runner.start_loop(),
+        Err(e) => println!("Can't start console because of loading error: {:?}", e),
     };
+
     println!("graphANNIS says good-bye!");
 }

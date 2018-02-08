@@ -35,23 +35,27 @@ impl<'a> CycleSafeDFS<'a> {
     fn enter_node(&mut self, entry: (NodeID, usize)) -> bool {
         let node = entry.0;
         let dist = entry.1;
+
+        trace!("enter node {}", node);
         // test if subgraph was completed
         if self.last_distance >= dist {
             // remove all entries below the parent node from the path
             for i in dist..self.path.len() {
+                trace!("truncating {} from path", &self.path[i]);
                 self.nodes_in_path.remove(&self.path[i]);
             }
             self.path.truncate(dist);
         }
         // test for cycle
         if self.nodes_in_path.contains(&node) {
+            trace!("cycle detected for node {} with distance {}", &node, dist);
             self.last_distance = dist;
             return false;
         } else {
             self.path.push(node.clone());
             self.nodes_in_path.insert(node);
             self.last_distance = dist;
-
+            trace!("removing from stack");
             self.stack.pop();
 
             // check if distance is in valid range
@@ -60,9 +64,11 @@ impl<'a> CycleSafeDFS<'a> {
             if dist < self.max_distance {
                 // add all child nodes to the stack
                 for o in self.container.get_outgoing_edges(&node) {
+                    trace!("adding {} to stack", o);
                     self.stack.push((o, dist+1));
                 }
             }
+            trace!("enter_node finished with result {}", found);
             return found;
         }
     }
