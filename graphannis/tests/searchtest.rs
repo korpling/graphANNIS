@@ -164,3 +164,9 @@ fn count_pcc2() {
 fn count_parlament() {
     search_test_base("parlament", "SearchTestParlament", true);
 }
+
+#[test]
+fn count_tiger() {
+    search_test_base("tiger2", "SearchTestTiger", true);
+}
+
