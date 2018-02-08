@@ -128,23 +128,21 @@ fn get_corpus_storage() -> Option<CorpusStorage> {
     return cs;
 }
 
-#[test]
-fn count_gum() {
-
+fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
     let cs = get_corpus_storage();
 
     if let Some(cs) = cs {
         let corpora : HashSet<String> = cs.list().into_iter().collect();
         // ignore of corpus does not exist
-        if corpora.contains("GUM") {
+        if corpora.contains(corpus) {
             let mut d = get_query_dir();
-            d.push("SearchTestGUM");
-            for def in get_queries_from_folder(&d, true) {
-                let count = cs.count("GUM", &def.json).unwrap_or(0);
+            d.push(query_set);
+            for def in get_queries_from_folder(&d, panic_on_invalid) {
+                let count = cs.count(corpus, &def.json).unwrap_or(0);
                 assert_eq!(
                     def.count, count,
-                    "Query '{}' should have had count {} but was {}.",
-                    def.aql, def.count, count
+                    "Query '{}' on corpus {} should have had count {} but was {}.",
+                    def.aql, corpus, def.count, count
                 );
                     
             }
@@ -153,25 +151,16 @@ fn count_gum() {
 }
 
 #[test]
+fn count_gum() {
+    search_test_base("GUM", "SearchTestGUM", true);
+}
+
+#[test]
 fn count_pcc2() {
+    search_test_base("pcc2", "SearchTestPcc2", true);
+}
 
-    let cs = get_corpus_storage();
-
-    if let Some(cs) = cs {
-        let corpora : HashSet<String> = cs.list().into_iter().collect();
-        // ignore of corpus does not exist
-        if corpora.contains("pcc2") {
-            let mut d = get_query_dir();
-            d.push("SearchTestPcc2");
-            for def in get_queries_from_folder(&d, true) {
-                let count = cs.count("pcc2", &def.json).unwrap_or(0);
-                assert_eq!(
-                    def.count, count,
-                    "Query '{}' should have had count {} but was {}.",
-                    def.aql, def.count, count
-                );
-                    
-            }
-        }
-    };
+#[test]
+fn count_parlament() {
+    search_test_base("parlament", "SearchTestParlament", true);
 }
