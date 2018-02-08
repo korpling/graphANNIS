@@ -177,7 +177,7 @@ fn count_tiger() {
 
 #[test]
 fn count_ridges() {
-    search_test_base("ridges7", "SearchTestRidges", false);
+    search_test_base("ridges7", "SearchTestRidges", true);
 }
 
 
