@@ -64,11 +64,11 @@ impl<'a> CycleSafeDFS<'a> {
             if dist < self.max_distance {
                 // add all child nodes to the stack
                 for o in self.container.get_outgoing_edges(&node) {
-                    trace!("adding {} to stack", o);
                     self.stack.push((o, dist+1));
+                    trace!("adding {} to stack with new size {}", o, self.stack.len());
                 }
             }
-            trace!("enter_node finished with result {}", found);
+            trace!("enter_node finished with result {} for node {}", found, node);
             return found;
         }
     }

@@ -49,15 +49,10 @@ impl GraphStorage for AdjacencyListStorage {
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-
+        let mut visited = HashSet::<NodeID>::new();
         let it = CycleSafeDFS::<'a>::new(self, source, min_distance, max_distance)
             .map(|x| {x.0})
-            .scan(HashSet::<NodeID>::new(), |visited, n| {
-                match visited.insert(n) {
-                    true => Some(n),
-                    false => None,
-                }
-            });
+            .filter(move |n| visited.insert(n.clone()));
         Box::new(it)
     }
 
