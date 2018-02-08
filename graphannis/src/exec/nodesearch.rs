@@ -140,7 +140,7 @@ impl<'a> NodeSearch<'a> {
                 let type_key = db.get_node_type_key();
                 let node_str_id = db.strings.find_id("node")?.clone();
                 let it = db.node_annos
-                    .exact_anno_search(Some(type_key.ns), type_key.name, None)
+                    .exact_anno_search(Some(type_key.ns), type_key.name, Some(node_str_id))
                     .map(move |n| vec![n]);
 
                 let filter_func: Box<Fn(Annotation, &StringStorage) -> bool> =
