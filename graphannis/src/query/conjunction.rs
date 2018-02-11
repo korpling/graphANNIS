@@ -135,6 +135,7 @@ impl<'a> Conjunction<'a> {
                     node_pos,
                     impl_description: orig_impl_desc,
                     query_fragment: orig_query_frag,
+                    cost: None,
                 };
                 n.set_desc(Some(new_desc));
 

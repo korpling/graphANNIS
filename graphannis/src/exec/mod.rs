@@ -5,6 +5,13 @@ use stringstorage::StringStorage;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone)]
+pub struct CostEstimate {
+    pub output: usize,
+    pub intermediate_sum: usize,
+    pub processed_in_step: usize,
+}
+
+#[derive(Debug, Clone)]
 pub struct Desc {
     pub component_nr : usize,
     pub lhs: Option<Box<Desc>>,
@@ -12,6 +19,7 @@ pub struct Desc {
     pub node_pos : BTreeMap<usize, usize>,
     pub impl_description: String,
     pub query_fragment : String,
+    pub cost : Option<CostEstimate>,
 }
 
 impl Desc {
@@ -26,6 +34,7 @@ impl Desc {
             node_pos,
             impl_description: String::from(""),
             query_fragment: String::from(query_fragment),
+            cost: None,
         }
     }
 
@@ -53,7 +62,6 @@ impl Desc {
             }
         }
 
-        // TODO: add query fragment
         Desc {
             component_nr,
             lhs: lhs.map(|x| Box::new(x.clone())),
@@ -61,6 +69,7 @@ impl Desc {
             node_pos,
             impl_description: String::from(impl_description),
             query_fragment: String::from(query_fragment),
+            cost: None,
         }
     }
 
@@ -85,7 +94,10 @@ impl Desc {
 
             return result;
         }
-        // TODO: cost info
+
+        if let Some(ref cost) = self.cost {
+            result.push_str(&format!(" [out: {}, sum: {}, instep: {}]", cost.output, cost.intermediate_sum, cost.processed_in_step));
+        }
 
         return result;
     } 
