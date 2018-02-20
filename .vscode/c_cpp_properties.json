@@ -7,6 +7,7 @@
                 "/usr/local/include",
                 "${workspaceRoot}"
             ],
+            "compileCommands": "${workspaceRoot}/compile_commands.json",
             "defines": [],
             "intelliSenseMode": "clang-x64",
             "browse": {
@@ -34,13 +35,9 @@
                 "/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed",
                 "/usr/include/x86_64-linux-gnu",
                 "/usr/include",
-                "${workspaceRoot}/src/lib",
-                "${workspaceRoot}/ext/cereal-1.2.1/include",
-                "${workspaceRoot}/ext/cpp-btree-1.0.1",
-                "${workspaceRoot}/ext/re2-2017-07-01",
-                "${workspaceRoot}/ext/gtest-1.7.0/include",
-                "${workspaceRoot}/ext/humblelogging-3.0.1/include"
+                "${workspaceRoot}"
             ],
+            "compileCommands": "${workspaceRoot}/compile_commands.json",
             "defines": [],
             "intelliSenseMode": "clang-x64",
             "browse": {
@@ -65,9 +62,11 @@
                 "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include",
                 "${workspaceRoot}"
             ],
+            "compileCommands": "${workspaceRoot}/compile_commands.json",
             "defines": [
                 "_DEBUG",
-                "UNICODE"
+                "UNICODE",
+                "_UNICODE"
             ],
             "intelliSenseMode": "msvc-x64",
             "browse": {
