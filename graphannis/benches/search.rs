@@ -24,11 +24,14 @@ struct GUM {
 }
 
 impl bencher::TDynBenchFn for GUM {
+
+    #[allow(unused_must_use)]
     fn run(&self, bench: &mut Bencher) {
         let cs = CorpusStorage::new(&self.db_dir).unwrap();
 
         // plan query to make sure all needed components are in main memory
-        assert_eq!(true, cs.plan("GUM", &self.def.json).is_ok());
+        
+        cs.plan("GUM", &self.def.json);
 
         bench.iter(|| {
                 if let Ok(count) = cs.count("GUM", &self.def.json) {
