@@ -34,7 +34,7 @@
             "type": "shell",
             "command": "cargo",
             "args": [
-                "check"
+                "check", "--tests", "--benches"
             ],
             "group": "build",
             "problemMatcher": "$rustc"
@@ -59,6 +59,15 @@
                 "test"
             ],
             "group": "test",
+            "problemMatcher": "$rustc"
+        },
+        {
+            "label": "cargo bench",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "bench"
+            ],
             "problemMatcher": "$rustc"
         },
         {
