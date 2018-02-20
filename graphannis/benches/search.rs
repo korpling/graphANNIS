@@ -27,9 +27,15 @@ impl bencher::TDynBenchFn for GUM {
     fn run(&self, bench: &mut Bencher) {
         let cs = CorpusStorage::new(&self.db_dir).unwrap();
 
+        // plan query to make sure all needed components are in main memory
+        assert_eq!(true, cs.plan("GUM", &self.def.json).is_ok());
+
         bench.iter(|| {
-                let count = cs.count("GUM", &self.def.json);
-                assert_eq!(self.def.count, count.unwrap());
+                if let Ok(count) = cs.count("GUM", &self.def.json) {
+                    assert_eq!(self.def.count, count);
+                } else {
+                    assert_eq!(self.def.count, 0);
+                }
         });
     }
 }
@@ -44,13 +50,14 @@ pub fn count_gum() -> std::vec::Vec<bencher::TestDescAndFn> {
         String::from("../data")
     });
     let mut d = get_query_dir();
-    d.push("GUM");
+    d.push("SearchTestGUM");
 
     let queries = util::get_queries_from_folder(&d, true);
 
     let mut benches = std::vec::Vec::new();
 
-    for def in queries {        
+    for def in queries {
+
         benches.push(TestDescAndFn {
             desc: TestDesc {
                 name: Cow::from(def.name.clone()),
