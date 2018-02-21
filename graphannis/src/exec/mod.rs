@@ -1,8 +1,10 @@
 use {Match, StringID};
 use self::nodesearch::NodeSearch;
 use stringstorage::StringStorage;
+use operator::{Operator, EstimationType};
 
 use std::collections::BTreeMap;
+use std;
 
 #[derive(Debug, Clone)]
 pub struct CostEstimate {
@@ -45,7 +47,7 @@ impl Desc {
         }
     }
 
-    pub fn join(lhs : Option<&Desc>, rhs : Option<&Desc>, impl_description : &str, query_fragment : &str) -> Desc {
+    pub fn join<'a>(op: &Box<Operator + 'a>, lhs : Option<&Desc>, rhs : Option<&Desc>, impl_description : &str, query_fragment : &str) -> Desc {
         let component_nr = if let Some(d) = lhs  {
             d.component_nr
         } else if let Some(d) = rhs {
@@ -69,6 +71,34 @@ impl Desc {
             }
         }
 
+        // merge costs
+        let cost = if let (Some(ref lhs), Some(ref rhs)) = (lhs, rhs) {
+            if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&lhs.cost, &rhs.cost) {
+                let output = match op.estimation_type() {
+                    EstimationType::SELECTIVITY(selectivity) => {
+                        let cross_product = (cost_lhs.output * cost_rhs.output) as f64;
+                        (cross_product * selectivity).round() as usize
+                    },
+                    EstimationType::MIN => {
+                        std::cmp::min(cost_lhs.output, cost_rhs.output)
+                    },
+                    EstimationType::MAX => {
+                        std::cmp::max(cost_lhs.output, cost_rhs.output)
+                    }
+                };
+                Some(CostEstimate {
+                    output,
+                    intermediate_sum: 0,
+                    processed_in_step: 0,
+                })
+            } else {
+                None
+            }
+        } else {
+
+            None
+        };
+
         Desc {
             component_nr,
             lhs: lhs.map(|x| Box::new(x.clone())),
@@ -76,7 +106,7 @@ impl Desc {
             node_pos,
             impl_description: String::from(impl_description),
             query_fragment: String::from(query_fragment),
-            cost: None,
+            cost,
         }
     }
 

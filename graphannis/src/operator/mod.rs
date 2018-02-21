@@ -2,6 +2,10 @@ use {Match, Component};
 use graphdb::GraphDB;
 use std;
 
+pub enum EstimationType {
+    SELECTIVITY(f64), MAX, MIN
+}
+
 pub trait Operator : std::fmt::Display {
     fn retrieve_matches<'a>(&'a self, lhs : &Match) -> Box<Iterator<Item = Match> + 'a>;
 
@@ -9,6 +13,8 @@ pub trait Operator : std::fmt::Display {
 
     fn is_reflexive(&self) -> bool {true}
     fn is_commutative(&self) -> bool {false}
+
+    fn estimation_type(&self) -> EstimationType {EstimationType::SELECTIVITY(0.1)}
 }
 
 pub trait OperatorSpec : std::fmt::Debug {

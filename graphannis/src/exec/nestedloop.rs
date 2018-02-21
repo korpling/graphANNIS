@@ -29,6 +29,7 @@ impl<'a> NestedLoop<'a> {
         // TODO: allow switching inner and outer
         let it = NestedLoop {
             desc: Desc::join(
+                &op,
                 lhs.get_desc(),
                 rhs.get_desc(),
                 "nestedloop",
