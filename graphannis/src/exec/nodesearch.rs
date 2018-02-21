@@ -8,6 +8,7 @@ use regex;
 
 use std::rc::Rc;
 use std::fmt;
+use std;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
 pub struct NodeSearch<'a> {
@@ -162,9 +163,12 @@ impl<'a> NodeSearch<'a> {
 
                 let type_key = db.get_node_type_key();
 
+                let est_output = db.node_annos.guess_max_count(Some(type_key.ns), type_key.name, "node", "node");
+                let est_output = std::cmp::max(1, est_output);
+
                 Some(NodeSearch {
                     it: Box::new(it),
-                    desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, None)),
+                    desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, Some(est_output))),
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
@@ -207,7 +211,7 @@ impl<'a> NodeSearch<'a> {
         } else {
             db.node_annos.exact_anno_search(ns_id, name_id, val_id)
         };
-        let mut est_output = if match_regex {
+        let est_output = if match_regex {
             db.node_annos.guess_max_count_regex(ns_id, name_id, &val.clone()?)
         } else {
             if let Some(ref val) = val {
@@ -217,10 +221,9 @@ impl<'a> NodeSearch<'a> {
             }
         };
 
-        if est_output <= 0 {
-            // always assume at least one output item otherwise very small selectivity can fool the planner
-            est_output = 1;
-        }
+        // always assume at least one output item otherwise very small selectivity can fool the planner
+        let est_output = std::cmp::max(1, est_output);
+      
 
         let it = base_it.map(|n| vec![n]);
 
@@ -316,9 +319,9 @@ impl<'a> NodeSearch<'a> {
         // create filter functions
         let mut filters : Vec<Box<Fn(Match, &StringStorage) -> bool>> = Vec::new();
         
-        if let Some(v) = val {
+        if let Some(ref v) = val {
             if match_regex {
-                let full_match_pattern = util::regex_full_match(&v);
+                let full_match_pattern = util::regex_full_match(v);
                 let re = regex::Regex::new(&full_match_pattern).ok()?;
                 filters.push(
                     Box::new(move |m, strings| {
@@ -331,7 +334,7 @@ impl<'a> NodeSearch<'a> {
                     })
                 );
             } else {
-                let val_id = db.strings.find_id(&v)?.clone();
+                let val_id = db.strings.find_id(v)?.clone();
                 filters.push(
                     Box::new(move |m, _| {
                         return m.anno.val == val_id;
@@ -356,9 +359,22 @@ impl<'a> NodeSearch<'a> {
             filters.push(filter_func);
         };
 
+        // TODO: is_leaf should be part of the estimation
+        let est_output = if let Some(ref val) = val {
+            if match_regex {
+                db.node_annos.guess_max_count_regex(Some(tok_key.ns), tok_key.name, &val)
+            } else {
+                db.node_annos.guess_max_count(Some(tok_key.ns), tok_key.name, &val, &val)
+            }
+        } else {
+            db.node_annos.num_of_annotations(Some(tok_key.ns), tok_key.name)
+        };
+        // always assume at least one output item otherwise very small selectivity can fool the planner
+        let est_output = std::cmp::max(1, est_output);
+
         return Some(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, None)),
+            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, Some(est_output))),
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (Some(tok_key.ns), Some(tok_key.name)),
                 cond: filters,
