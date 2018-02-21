@@ -106,7 +106,9 @@ pub fn load(path: &Path) -> Result<GraphDB> {
         add_subcorpora(&mut db, &corpus_name, &corpus_by_preorder, &corpus_id_to_name, &nodes_by_corpus_id, &corpus_id_to_annos)?;
 
         // TODO: optimize all components
-        // TODO: update statistics for node annotations
+
+        info!("calculating statistics");
+        db.node_annos.calculate_statistics(&db.strings);
 
         info!("finished loading relANNIS from {}", path.to_string_lossy());
 

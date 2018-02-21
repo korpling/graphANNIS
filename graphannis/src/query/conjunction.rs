@@ -120,10 +120,10 @@ impl<'a> Conjunction<'a> {
                     NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(Error::ImpossibleSearch(format!("could not create node search for node {} ({})", node_nr, n_spec)))?;
                 node2component.insert(node_nr, node_nr);
 
-                let (orig_query_frag, orig_impl_desc) = if let Some(d) = n.get_desc() {
-                    (d.query_fragment.clone(), d.impl_description.clone())
+                let (orig_query_frag, orig_impl_desc, cost) = if let Some(d) = n.get_desc() {
+                    (d.query_fragment.clone(), d.impl_description.clone(), d.cost.clone())
                 } else {
-                    (String::from(""), String::from(""))
+                    (String::from(""), String::from(""), None)
                 };
                 // make sure the description is correct
                 let mut node_pos = BTreeMap::new();
@@ -135,7 +135,7 @@ impl<'a> Conjunction<'a> {
                     node_pos,
                     impl_description: orig_impl_desc,
                     query_fragment: orig_query_frag,
-                    cost: None,
+                    cost: cost,
                 };
                 n.set_desc(Some(new_desc));
 

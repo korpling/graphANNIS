@@ -179,6 +179,27 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         return search_ranges;
     }
 
+    pub fn num_of_annotations(&self, ns: Option<StringID>, name : StringID) -> usize {
+        let qualified_keys = match ns {
+            Some(ns_id) => self.anno_keys
+                .range(AnnoKey { name, ns: ns_id }..AnnoKey { name, ns: ns_id }),
+            None => self.anno_keys.range(
+                AnnoKey {
+                    name,
+                    ns: StringID::min_value(),
+                }..AnnoKey {
+                    name,
+                    ns: StringID::max_value(),
+                },
+            ),
+        };
+        let mut result = 0;
+        for (_anno_key, anno_size ) in qualified_keys {
+            result += anno_size;
+        }
+        return result;
+    }
+
     pub fn guess_max_count(
         &self,
         ns: Option<StringID>,
@@ -288,14 +309,16 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
             };
             let max_anno = Annotation {
                 key: anno_key.0.clone(),
-                val: StringID::min_value(),
+                val: StringID::max_value(),
             };
 
             // sample a maximal number of annotation values
             let mut rng = rand::thread_rng();
             let mut sampled_anno_values = rand::sample(
                 &mut rng,
-                self.by_anno.range(min_anno..max_anno).map(|a| a.0.val),
+                self.by_anno.range(min_anno..max_anno).map(|a| {
+                    a.0.val
+                }),
                 max_sampled_annotations,
             );
 
@@ -317,7 +340,7 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
 
                 let mut pos = 0;
                 let mut pos_fraction = 0;
-                for i in 0..sampled_anno_values.len() {
+                for i in 0..num_hist_bounds {
                     let val_raw : StringID = sampled_anno_values[pos];
                     hist[i] = string_storage.str(val_raw).unwrap_or(&String::from("")).clone();
                     pos += delta;

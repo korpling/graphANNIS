@@ -24,9 +24,16 @@ pub struct Desc {
 
 impl Desc {
 
-    pub fn empty_with_fragment(query_fragment : &str, node_nr : usize) -> Desc {
+    pub fn empty_with_fragment(query_fragment : &str, node_nr : usize, est_size : Option<usize>) -> Desc {
         let mut node_pos = BTreeMap::new();
         node_pos.insert(node_nr, 0);
+
+        let cost = if let Some(output) = est_size {
+            Some(CostEstimate {output, intermediate_sum: 0, processed_in_step: 0})
+        } else {
+            None   
+        };
+
         Desc {
             component_nr: 0,
             lhs: None,
@@ -34,7 +41,7 @@ impl Desc {
             node_pos,
             impl_description: String::from(""),
             query_fragment: String::from(query_fragment),
-            cost: None,
+            cost,
         }
     }
 
@@ -75,14 +82,20 @@ impl Desc {
 
     pub fn debug_string(&self, indention : &str) -> String {
         let mut result = String::from(indention);
+
+        let cost_str =  if let Some(ref cost) = self.cost {
+            format!("out: {}, sum: {}, instep: {}", cost.output, cost.intermediate_sum, cost.processed_in_step)
+        } else {
+            String::from("no cost estimated")
+        };
        
         // output the node number and query fragment for base nodes
         if self.lhs.is_none() && self.rhs.is_none() {
             let node_nr = self.node_pos.keys().next().cloned().unwrap_or(0) + 1; 
 
-            result.push_str(&format!("#{} ({})\n", &node_nr.to_string(), &self.query_fragment));
+            result.push_str(&format!("#{} ({}) [{}]\n", &node_nr.to_string(), &self.query_fragment, &cost_str));
         } else {
-            result.push_str(&format!("+|{} ({})\n", &self.impl_description , &self.query_fragment));
+            result.push_str(&format!("+|{} ({}) [{}]\n", &self.impl_description , &self.query_fragment, &cost_str));
           
             let new_indention = format!("{}    ", indention);
             if let Some(ref lhs) = self.lhs {
@@ -91,14 +104,7 @@ impl Desc {
             if let Some(ref rhs) = self.rhs {
                  result.push_str(&rhs.debug_string(&new_indention));
             }
-
-            return result;
         }
-
-        if let Some(ref cost) = self.cost {
-            result.push_str(&format!(" [out: {}, sum: {}, instep: {}]", cost.output, cost.intermediate_sum, cost.processed_in_step));
-        }
-
         return result;
     } 
 }
@@ -118,7 +124,6 @@ pub trait ExecutionNode : Iterator {
     fn get_desc(&self) -> Option<&Desc> {
         None
     }
-    
 
 }
 

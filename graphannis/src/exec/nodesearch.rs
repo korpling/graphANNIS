@@ -164,7 +164,7 @@ impl<'a> NodeSearch<'a> {
 
                 Some(NodeSearch {
                     it: Box::new(it),
-                    desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
+                    desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, None)),
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
@@ -183,6 +183,9 @@ impl<'a> NodeSearch<'a> {
         query_fragment: &str,
         node_nr: usize,
     ) -> Option<NodeSearch<'a>> {
+
+       
+
         let name_id: StringID = db.strings.find_id(&name)?.clone();
         // not finding the strings will result in an None result, not in an less specific search
         let ns_id: Option<StringID> = if let Some(ns) = ns.as_ref() {
@@ -204,6 +207,20 @@ impl<'a> NodeSearch<'a> {
         } else {
             db.node_annos.exact_anno_search(ns_id, name_id, val_id)
         };
+        let mut est_output = if match_regex {
+            db.node_annos.guess_max_count_regex(ns_id, name_id, &val.clone()?)
+        } else {
+            if let Some(ref val) = val {
+                db.node_annos.guess_max_count(ns_id, name_id, val, val)
+            } else {
+                db.node_annos.num_of_annotations(ns_id, name_id)
+            }
+        };
+
+        if est_output <= 0 {
+            // always assume at least one output item otherwise very small selectivity can fool the planner
+            est_output = 1;
+        }
 
         let it = base_it.map(|n| vec![n]);
 
@@ -231,10 +248,9 @@ impl<'a> NodeSearch<'a> {
                 })
             );
         };
-
         return Some(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
+            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, Some(est_output))),
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (ns_id, Some(name_id)),
                 cond: filters,
@@ -342,7 +358,7 @@ impl<'a> NodeSearch<'a> {
 
         return Some(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr)),
+            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, None)),
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (Some(tok_key.ns), Some(tok_key.name)),
                 cond: filters,

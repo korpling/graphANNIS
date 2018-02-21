@@ -200,7 +200,7 @@ impl CorpusStorage {
     }
 
 
-    /// Import a corpus in relANNIS format from an external location into this corpus storage
+    /// Import a corpusfrom an external location into this corpus storage
     pub fn import(&self, corpus_name: &str, mut db: GraphDB) {
         let r = db.ensure_loaded_all();
         if let Err(e) = r {
@@ -229,6 +229,8 @@ impl CorpusStorage {
                 e
             );
         }
+
+        // always calculate statistics
 
         // save to its location
         let save_result = db.save_to(&db_path);
