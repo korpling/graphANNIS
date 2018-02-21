@@ -1,5 +1,5 @@
 use {AnnoKey, Annotation, Match, NodeID, StringID};
-use operator::Operator;
+use operator::{Operator, EstimationType};
 use annostorage::AnnoStorage;
 use util;
 use graphdb::GraphDB;
@@ -124,6 +124,30 @@ impl<'a> IndexJoin<'a> {
         } else {
             vec![]
         };
+
+        let processed_func = |est_type: EstimationType, out_lhs: usize, out_rhs: usize| {
+            match est_type {
+                EstimationType::SELECTIVITY(op_sel) => {
+                    // A index join processes each LHS and for each LHS the number of reachable nodes given by the operator.
+                    // The selectivity of the operator itself an estimation how many nodes are filtered out by the cross product.
+                    // We can use this number (without the edge annotation selectivity) to re-construct the number of reachable nodes.
+
+                    // avgReachable = (sel * cross) / lhs
+                    //              = (sel * lhs * rhs) / lhs
+                    //              = sel * rhs
+                    // processedInStep = lhs + (avgReachable * lhs)
+                    //                 = lhs + (sel * rhs * lhs)
+
+                    let result = (out_lhs as f64) + (op_sel * (out_rhs as f64) * (out_lhs as f64));
+
+                    return result.round() as usize;
+                }
+                EstimationType::MIN | EstimationType::MAX => { 
+                    return out_lhs;
+                },
+            }
+        };
+
         return IndexJoin {
             desc: Desc::join(
                 &op,
@@ -131,6 +155,7 @@ impl<'a> IndexJoin<'a> {
                 rhs_desc,
                 "indexjoin",
                 &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                &processed_func,
             ),
             lhs: lhs_peek,
             lhs_idx,

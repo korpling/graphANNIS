@@ -27,6 +27,17 @@ impl<'a> NestedLoop<'a> {
         op: Box<Operator + 'a>,
     ) -> NestedLoop<'a> {
         // TODO: allow switching inner and outer
+
+        let processed_func = |_, out_lhs: usize, out_rhs: usize| {
+            if out_lhs <= out_rhs {
+                // we use LHS as outer
+                return out_lhs + (out_lhs * out_rhs);
+            } else {
+                // we use RHS as outer
+                return out_rhs + (out_rhs * out_lhs);
+            }
+        };
+
         let it = NestedLoop {
             desc: Desc::join(
                 &op,
@@ -34,6 +45,7 @@ impl<'a> NestedLoop<'a> {
                 rhs.get_desc(),
                 "nestedloop",
                 &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                &processed_func,
             ),
 
             outer: lhs.peekable(),
