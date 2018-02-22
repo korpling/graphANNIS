@@ -24,7 +24,7 @@
             "command": "cargo",
             "args": [
                 "build",
-                "--all",
+                "--all"
             ],
             "group": "build",
             "problemMatcher": "$rustc"
@@ -34,10 +34,24 @@
             "type": "shell",
             "command": "cargo",
             "args": [
-                "check", "--all", "--tests", "--benches"
+                "check",
+                "--all",
+                "--tests",
+                "--benches"
             ],
             "group": "build",
             "problemMatcher": "$rustc"
+        },
+        {
+            "type": "shell",
+            "label": "cargo test",
+            "command": "cargo",
+            "args": [
+                "test", "--all", "--release"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ]
         }
     ]
 }
