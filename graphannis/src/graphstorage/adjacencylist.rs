@@ -12,6 +12,7 @@ pub struct AdjacencyListStorage {
     edges: BTreeSet<Edge>,
     inverse_edges: BTreeSet<Edge>,
     annos: AnnoStorage<Edge>,
+    stats : Option<GraphStatistic>,
 }
 
 impl AdjacencyListStorage {
@@ -20,7 +21,123 @@ impl AdjacencyListStorage {
             edges: BTreeSet::new(),
             inverse_edges: BTreeSet::new(),
             annos: AnnoStorage::new(),
+            stats: None,
         }
+    }
+
+    pub fn calculate_statistics(&mut self) {
+        let mut stats = GraphStatistic {
+            max_depth: 1,
+            max_fan_out: 0,
+            avg_fan_out: 0.0,
+            fan_out_99_percentile: 0,
+            cyclic: false,
+            rooted_tree : false,
+            nodes: 0,
+            dfs_visit_ratio: 0.0,
+        };
+
+        let mut sum_fan_out = 0;
+        let mut has_incoming_edge : BTreeSet<NodeID> = BTreeSet::new();
+
+         // find all root nodes
+        let mut roots : BTreeSet<NodeID> = BTreeSet::new();
+        {
+
+            let mut all_nodes : BTreeSet<NodeID> = BTreeSet::new();
+            for e in self.edges.iter() {
+                roots.insert(e.source);
+                all_nodes.insert(e.source);
+                all_nodes.insert(e.target);
+                
+                if stats.rooted_tree {
+                    if has_incoming_edge.contains(&e.target) {
+                        stats.rooted_tree = false;
+                    } else {
+                        has_incoming_edge.insert(e.target);
+                    }
+                }
+            }
+            stats.nodes = all_nodes.len();
+        }
+
+        let mut fan_outs : Vec<usize> = Vec::new();
+        let mut last_source_id : Option<NodeID> = None;
+        let mut current_fan_out = 0;
+        if !self.edges.is_empty() {
+            for e in self.edges.iter() {
+                roots.remove(&e.target);
+
+                if let Some(last) = last_source_id {
+                    if last != e.source {
+                        stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
+                        sum_fan_out += current_fan_out;
+                        fan_outs.push(current_fan_out);
+
+                        current_fan_out = 0;
+                        last_source_id = Some(e.source);
+                    }
+                }
+                current_fan_out += 1;
+            }
+            // add the statistics for the last node
+            stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
+            sum_fan_out += current_fan_out;
+            fan_outs.push(current_fan_out);
+        }
+        // order the fan-outs
+        fan_outs.sort();
+
+        // get the percentile value(s)
+        // set some default values in case there are not enough elements in the component
+        if ! fan_outs.is_empty() {
+            stats.fan_out_99_percentile = fan_outs[fan_outs.len()-1];
+        }
+        // calculate the more accurate values
+        if fan_outs.len() >= 100 {
+            let idx : usize = fan_outs.len() / 100;
+            if idx < fan_outs.len() {
+                stats.fan_out_99_percentile = fan_outs[idx];
+            }
+        }
+
+        let mut number_of_visits = 0;
+        if roots.is_empty() && !self.edges.is_empty() {
+            // if we have edges but no roots at all there must be a cycle
+            stats.cyclic = true;
+        } else {
+            for root_node in roots.iter() {
+                let mut dfs = CycleSafeDFS::new(self, &root_node, 0, usize::max_value());
+                while let Some((_, depth)) = dfs.next() {
+                    number_of_visits += 1;
+                    stats.max_depth = std::cmp::max(stats.max_depth, depth);
+                }
+                if dfs.is_cyclic() {
+                    stats.cyclic = true;
+                }
+            }
+        }
+
+        if stats.cyclic {
+            stats.rooted_tree = false;
+            // it's infinite
+            stats.max_depth = 0;
+            stats.dfs_visit_ratio = 0.0; 
+        }
+        else
+        {
+            if stats.nodes > 0 {
+                stats.dfs_visit_ratio = (number_of_visits as f64) / (stats.nodes as f64);
+            }
+        }
+
+        if sum_fan_out > 0 && stats.nodes > 0 {
+            stats.avg_fan_out = (sum_fan_out as f64) / (stats.nodes as f64);
+        }
+
+        // TODO: also calculate the annotation statistics
+
+        self.stats = Some(stats);
     }
 }
 

@@ -35,4 +35,6 @@ impl Operator for IdenticalNode {
     fn filter_match(&self, lhs : &Match, rhs : &Match) -> bool {
         return lhs.node == rhs.node;
     }
+
+    fn estimation_type(&self) -> EstimationType {EstimationType::MIN}
 }

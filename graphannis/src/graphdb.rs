@@ -128,7 +128,7 @@ where
 
 
 impl GraphDB {
-    /// Create a new and empty in	stance without any location on the disk
+    /// Create a new and empty instance without any location on the disk
     pub fn new() -> GraphDB {
         let mut strings = StringStorage::new();
 

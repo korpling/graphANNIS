@@ -11,6 +11,7 @@ pub struct CycleSafeDFS<'a> {
     path : Vec<NodeID>,
     nodes_in_path: HashSet<NodeID>,
     last_distance: usize,
+    cycle_detected : bool,
 }
 
 impl<'a> CycleSafeDFS<'a> {
@@ -29,7 +30,12 @@ impl<'a> CycleSafeDFS<'a> {
             path,
             nodes_in_path,
             last_distance: 0,
+            cycle_detected: false,
         }
+    }
+
+    pub fn is_cyclic(&self) -> bool {
+        self.cycle_detected
     }
 
     fn enter_node(&mut self, entry: (NodeID, usize)) -> bool {
@@ -50,6 +56,7 @@ impl<'a> CycleSafeDFS<'a> {
         if self.nodes_in_path.contains(&node) {
             trace!("cycle detected for node {} with distance {}", &node, dist);
             self.last_distance = dist;
+            self.cycle_detected = true;
             return false;
         } else {
             self.path.push(node.clone());

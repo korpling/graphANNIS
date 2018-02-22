@@ -1,7 +1,7 @@
 use {AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
 use graphstorage::GraphStorage;
 use graphdb::{GraphDB, ANNIS_NS};
-use operator::{Operator, OperatorSpec};
+use operator::{Operator, OperatorSpec, EstimationType};
 use util;
 use std;
 use std::rc::Rc;
@@ -178,6 +178,10 @@ impl Operator for BaseEdgeOp {
 
     fn is_commutative(&self) -> bool {
         self.spec.is_commutative
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        EstimationType::SELECTIVITY(0.1)
     }
 }
 
