@@ -16,7 +16,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": "$rustc"
+            "problemMatcher": {"base":"$rustc", "fileLocation":["relative", "${workspaceRoot}/../"]}
         },
         {
             "label": "cargo build (debug)",
@@ -27,7 +27,7 @@
                 "--all"
             ],
             "group": "build",
-            "problemMatcher": "$rustc"
+            "problemMatcher": {"base":"$rustc", "fileLocation":["relative", "${workspaceRoot}/../"]}
         },
         {
             "label": "cargo check",
@@ -40,7 +40,7 @@
                 "--benches"
             ],
             "group": "build",
-            "problemMatcher": "$rustc"
+            "problemMatcher": {"base":"$rustc", "fileLocation":["relative", "${workspaceRoot}/../"]}
         },
         {
             "type": "shell",
@@ -49,9 +49,7 @@
             "args": [
                 "test", "--all", "--release"
             ],
-            "problemMatcher": [
-                "$rustc"
-            ]
+            "problemMatcher": {"base":"$rustc", "fileLocation":["relative", "${workspaceRoot}/../"]}
         }
     ]
 }
