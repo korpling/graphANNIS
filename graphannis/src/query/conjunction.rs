@@ -21,6 +21,7 @@ use rand::distributions::Sample;
 pub enum Error {
     ImpossibleSearch(String),
     MissingDescription,
+    MissingCost,
     ComponentsNotConnected,
     OperatorIdxNotFound,
 }
@@ -112,17 +113,63 @@ impl<'a> Conjunction<'a> {
         }
 
         // use a constant seed to make the result deterministic
-        let mut rand_gen = XorShiftRng::from_seed([4711,1,2,3]);
+        let mut rng = XorShiftRng::from_seed([4711,1,2,3]);
         let mut dist = Range::new(0, self.operators.len());
 
-        let opt_operator_order = Vec::from_iter(0..self.operators.len());
+        let mut best_operator_order = Vec::from_iter(0..self.operators.len());
 
-        let best_plan = self.make_exec_plan_with_order(db, opt_operator_order.clone())?;
-        let _best_cost = &best_plan.get_desc().ok_or(Error::MissingDescription)?.cost;
+        let initial_plan = self.make_exec_plan_with_order(db, best_operator_order.clone())?;
+        let mut best_cost = initial_plan.get_desc().ok_or(Error::MissingDescription)?.cost.clone().ok_or(Error::MissingCost)?.intermediate_sum.clone();
 
-        dist.sample(&mut rand_gen);
+        let num_new_generations = 4;
+        let max_unsuccessful_tries = 5*self.operators.len();
+        let mut unsucessful = 0;
+        loop {
 
-        Ok(opt_operator_order)
+            let mut family_operators : Vec<Vec<usize>> = Vec::new();
+            family_operators.reserve(num_new_generations+1);
+
+            family_operators.push(best_operator_order.clone());
+            
+            for i in 0..num_new_generations {
+                // use the the previous generation as basis
+                let mut tmp_operators = family_operators[i].clone();
+                // randomly select two joins
+                let mut a = 0;
+                let mut b = 0;
+                while a == b {
+                    a = dist.sample(&mut rng);
+                    b = dist.sample(&mut rng);
+                }
+                // switch the order of the selected joins
+                tmp_operators.swap(a,b);
+                family_operators.push(tmp_operators);
+            }
+
+            let mut found_better_plan = false;
+            for i in 1..family_operators.len() {
+                let alt_plan = self.make_exec_plan_with_order(db, family_operators[i].clone())?;
+                let alt_cost = alt_plan.get_desc().ok_or(Error::MissingDescription)?.cost.clone().ok_or(Error::MissingCost)?.intermediate_sum;
+
+                if alt_cost < best_cost {
+                    best_operator_order = family_operators[i].clone();
+                    found_better_plan = true;
+
+                    best_cost = alt_cost;
+                    unsucessful = 0;
+                }
+            }
+
+            if !found_better_plan {
+                unsucessful += 1;
+            }
+
+            if unsucessful >= max_unsuccessful_tries {
+                break;
+            }
+        }
+
+        Ok(best_operator_order)
     }
 
     fn make_exec_plan_with_order(&self, db: &'a GraphDB, operator_order : Vec<usize>) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error>  {
