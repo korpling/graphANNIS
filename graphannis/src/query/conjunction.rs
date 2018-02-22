@@ -199,7 +199,14 @@ impl<'a> Conjunction<'a> {
                         .ok_or(Error::OperatorIdxNotFound)?
                         .clone();
 
-                    let filter = BinaryFilter::new(exec_left, idx_left, idx_right, op);
+                    let filter = BinaryFilter::new(
+                        exec_left,
+                        idx_left,
+                        idx_right,
+                        op_entry.idx_left + 1,
+                        op_entry.idx_right + 1,
+                        op,
+                    );
                     Box::new(filter)
                 } else {
                     let exec_right = component2exec.remove(&component_right).ok_or(

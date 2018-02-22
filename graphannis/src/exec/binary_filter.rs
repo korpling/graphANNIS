@@ -1,9 +1,27 @@
 use Match;
-use super::{ExecutionNode,Desc};
-use operator::Operator;
+use super::{ExecutionNode,Desc, CostEstimate};
+use operator::{Operator, EstimationType};
+use std;
+
 pub struct BinaryFilter<'a> {
     it: Box<Iterator<Item = Vec<Match>> + 'a>,
     desc: Option<Desc>,
+}
+
+fn calculate_outputsize<'a>(
+    op: &Box<Operator + 'a>,
+    num_tuples: usize,
+) -> usize {
+    let output = match op.estimation_type() {
+        EstimationType::SELECTIVITY(selectivity) => {
+            let num_tuples = num_tuples as f64;
+            (num_tuples * selectivity).round() as usize
+        }
+        EstimationType::MIN => num_tuples,
+        EstimationType::MAX => num_tuples,
+    };
+    // always assume at least one output item otherwise very small selectivity can fool the planner
+    return std::cmp::max(output, 1);
 }
 
 impl<'a> BinaryFilter<'a> {
@@ -11,9 +29,30 @@ impl<'a> BinaryFilter<'a> {
         exec: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
+        node_nr_lhs: usize,
+        node_nr_rhs: usize,
         op: Box<Operator + 'a>,
     ) -> BinaryFilter<'a> {
-        let desc = exec.get_desc().cloned();
+ 
+        let desc = if let Some(orig_desc) =  exec.get_desc() {
+            let cost_est = if let Some(ref orig_cost) = orig_desc.cost { 
+                Some(CostEstimate {
+                    output:  calculate_outputsize(&op, orig_cost.output),
+                    processed_in_step: orig_cost.processed_in_step,
+                    intermediate_sum: orig_cost.intermediate_sum + orig_cost.processed_in_step,
+                })
+            } else {None};
+
+            Some(Desc {
+                component_nr: orig_desc.component_nr,
+                node_pos: orig_desc.node_pos.clone(),
+                impl_description: String::from("filter"),
+                query_fragment: format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                cost: cost_est,
+                lhs: Some(Box::new(orig_desc.clone())),
+                rhs: None,
+            })
+        } else {None};
         let it = exec.filter(move |tuple| op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
         let filter = BinaryFilter {
             desc,
