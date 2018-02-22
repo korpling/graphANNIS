@@ -118,13 +118,14 @@ impl<'a> Conjunction<'a> {
 
         let mut best_operator_order = Vec::from_iter(0..self.operators.len());
 
+        // TODO: cache the base estimates
         let initial_plan = self.make_exec_plan_with_order(db, best_operator_order.clone())?;
         let mut best_cost = initial_plan.get_desc().ok_or(Error::MissingDescription)?.cost.clone().ok_or(Error::MissingCost)?.intermediate_sum.clone();
 
         let num_new_generations = 4;
         let max_unsuccessful_tries = 5*self.operators.len();
         let mut unsucessful = 0;
-        loop {
+        while unsucessful < max_unsuccessful_tries {
 
             let mut family_operators : Vec<Vec<usize>> = Vec::new();
             family_operators.reserve(num_new_generations+1);
@@ -162,10 +163,6 @@ impl<'a> Conjunction<'a> {
 
             if !found_better_plan {
                 unsucessful += 1;
-            }
-
-            if unsucessful >= max_unsuccessful_tries {
-                break;
             }
         }
 
