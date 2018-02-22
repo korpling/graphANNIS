@@ -107,9 +107,11 @@ impl<'a> Conjunction<'a> {
 
     fn optimize_join_order_heuristics(&self, db: &'a GraphDB) -> Result<Vec<usize>, Error> {
 
+        // check if there is something to optimize
         if self.operators.is_empty() {
-            // nothing to optimize
             return Ok(vec![]);
+        } else if self.operators.len() == 1 {
+            return Ok(vec![0]);
         }
 
         // use a constant seed to make the result deterministic
