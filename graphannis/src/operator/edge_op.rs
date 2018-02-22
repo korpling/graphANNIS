@@ -198,7 +198,7 @@ impl DominanceSpec {
         max_dist: usize,
         edge_anno: Option<EdgeAnnoSearchSpec>,
     ) -> DominanceSpec {
-        let components = db.get_all_components(ComponentType::Dominance, name);
+        let components = db.get_all_components(Some(ComponentType::Dominance), Some(name));
         DominanceSpec {
             base: BaseEdgeOpSpec {
                 components,
@@ -235,7 +235,7 @@ impl PointingSpec {
         max_dist: usize,
         edge_anno: Option<EdgeAnnoSearchSpec>,
     ) -> DominanceSpec {
-        let components = db.get_all_components(ComponentType::Pointing, name);
+        let components = db.get_all_components(Some(ComponentType::Pointing), Some(name));
         DominanceSpec {
             base: BaseEdgeOpSpec {
                 components,

@@ -17,7 +17,7 @@ pub enum RegistryError {
 }
 
 #[derive(ToString, EnumString)]
-enum ImplTypes {
+pub enum ImplTypes {
     AdjacencyListV1,
 }
 

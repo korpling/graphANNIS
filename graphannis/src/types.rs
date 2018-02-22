@@ -1,5 +1,6 @@
 use std::string::String;
 use std::fmt;
+use std;
 
 pub type NodeID = u32;
 pub type StringID = u32;
@@ -62,5 +63,11 @@ pub struct Component {
     pub ctype : ComponentType,
     pub name : String,
     pub layer : String,
+}
+
+impl std::fmt::Display for Component {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}/{}/{}", self.ctype, self.layer, self.name)
+    }
 }
 

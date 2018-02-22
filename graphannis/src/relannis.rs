@@ -107,8 +107,16 @@ pub fn load(path: &Path) -> Result<GraphDB> {
 
         // TODO: optimize all components
 
-        info!("calculating statistics");
+        info!("calculating node statistics");
         db.node_annos.calculate_statistics(&db.strings);
+
+        for c in db.get_all_components(None, None) {
+            info!("calculating statistics for component {}", c);
+            let gs = db.get_or_create_writable(c);
+            if let Ok(gs) = gs {
+                gs.calculate_statistics();
+            }
+        }
 
         info!("finished loading relANNIS from {}", path.to_string_lossy());
 

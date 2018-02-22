@@ -381,22 +381,41 @@ impl GraphDB {
         return None;
     }
 
-    pub fn get_all_components(&self, ctype : ComponentType, name : &str) -> Vec<Component> {
-        let mut result : Vec<Component> = Vec::new();
-        let ckey = Component {
-            ctype,
-            name: String::from(name),
-            layer: String::from(""),
-        };
+    pub fn get_all_components(&self, ctype : Option<ComponentType>, name : Option<&str>) -> Vec<Component> {
+        
+        if let (Some(ctype),Some(name)) = (ctype.clone(), name) {
+            // lookup component from sorted map
+            let mut result : Vec<Component> = Vec::new();
+            let ckey = Component {
+                ctype,
+                name: String::from(name),
+                layer: String::from(""),
+            };
 
-        for (c, _) in self.components.range(ckey..) {
-            if c.name != name {
-                break;
+            for (c, _) in self.components.range(ckey..) {
+                if c.name != name {
+                    break;
+                }
+                result.push(c.clone());
             }
-            result.push(c.clone());
+            return result;
+        } else {
+            // filter all entries
+            let filtered_components = self.components.keys().cloned().filter(move |c : &Component| {
+                if let Some(ctype) = ctype.clone() {
+                    if ctype != c.ctype {
+                        return false;
+                    }
+                }
+                if let Some(name) = name {
+                    if name != c.name {
+                        return false;
+                    }
+                }
+                return true;
+            });
+            return filtered_components.collect();
         }
-
-        return result;
     }
 
     pub fn get_direct_connected(&mut self, edge: &Edge) -> Result<Vec<Component>, Error> {
