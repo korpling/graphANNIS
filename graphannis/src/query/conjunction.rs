@@ -104,23 +104,22 @@ impl<'a> Conjunction<'a> {
         return result;
     }
 
-    pub fn optimize(&mut self, db: &'a GraphDB) {
-        self.optimize_join_order_heuristics(db);
-    }
-
-    fn optimize_join_order_heuristics(&mut self, db: &'a GraphDB) {
+    fn optimize_join_order_heuristics(&self, db: &'a GraphDB) -> Result<Vec<usize>, Error> {
         // use a constant seed to make the result deterministic
         let mut rand_gen = XorShiftRng::from_seed([4711,1,2,3]);
         let mut dist = Range::new(0, self.operators.len());
 
         let opt_operator_order = Vec::from_iter(0..self.operators.len());
 
-        let _best_plan = self.make_exec_plan_with_order(db, opt_operator_order);
+        let best_plan = self.make_exec_plan_with_order(db, opt_operator_order.clone())?;
+        let _best_cost = &best_plan.get_desc().ok_or(Error::MissingDescription)?.cost;
+
         dist.sample(&mut rand_gen);
-        unimplemented!()
+
+        Ok(opt_operator_order)
     }
 
-    fn make_exec_plan_with_order(&mut self, db: &'a GraphDB, operator_order : Vec<usize>) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error>  {
+    fn make_exec_plan_with_order(&self, db: &'a GraphDB, operator_order : Vec<usize>) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error>  {
         // TODO: parallization mapping
 
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
@@ -133,7 +132,7 @@ impl<'a> Conjunction<'a> {
             BTreeMap::new();
         {
             let mut node_nr: usize = 0;
-            for n_spec in self.nodes.drain(..) {
+            for n_spec in self.nodes.iter() {
                 let mut n = NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(
                     Error::ImpossibleSearch(format!(
                         "could not create node search for node {} ({})",
@@ -314,10 +313,10 @@ impl<'a> Conjunction<'a> {
     }
 
     pub fn make_exec_node(
-        mut self,
+        self,
         db: &'a GraphDB,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
-        let operator_order = Vec::from_iter(0..self.operators.len());
+        let operator_order = self.optimize_join_order_heuristics(db)?;
         return self.make_exec_plan_with_order(db, operator_order);
     }
 }
