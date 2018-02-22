@@ -203,8 +203,8 @@ impl Operator for BaseEdgeOp {
                     return EstimationType::SELECTIVITY(1.0);
                 }
                 // get number of nodes reachable from min to max distance
-                let max_path_length = std::cmp::max(self.spec.max_dist, stats.max_depth) as i32;
-                let min_path_length = std::cmp::min(0, self.spec.min_dist-1) as i32;
+                let max_path_length = std::cmp::min(self.spec.max_dist, stats.max_depth) as i32;
+                let min_path_length = std::cmp::max(0, self.spec.min_dist-1) as i32;
 
                 if stats.avg_fan_out > 1.0 {
                      // Assume two complete k-ary trees (with the average fan-out as k)
@@ -228,7 +228,7 @@ impl Operator for BaseEdgeOp {
                     gs_selectivity = (reachable_max - reachable_min) / max_nodes;
                 }
             }
-            
+
             if worst_sel < gs_selectivity {
                 worst_sel = gs_selectivity;
             }
