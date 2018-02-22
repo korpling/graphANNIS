@@ -2,6 +2,7 @@ use super::{Operator, OperatorSpec};
 use {Annotation, Component, ComponentType, Match, NodeID};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;
+use operator::EstimationType;
 use util::token_helper;
 use util::token_helper::TokenHelper;
 use std::collections::HashSet;
@@ -139,5 +140,28 @@ impl<'a> Operator for  Overlap<'a> {
         true
     }
 
+    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+        if let (Some(stats_cov), Some(stats_order), Some(stats_invcov)) = (
+            self.gs_cov.get_statistics(),
+            self.gs_order.get_statistics(),
+            self.gs_invcov.get_statistics(),
+        ) {
+            let num_of_token = stats_order.nodes as f64;
+            if stats_cov.nodes == 0 {
+                // only token in this corpus
+                return EstimationType::SELECTIVITY(1.0 / num_of_token);
+            } else {
+                let covered_token_per_node: f64 = stats_cov.fan_out_99_percentile as f64;
+                // for each covered token get the number of inverse covered non-token nodes
+                let aligned_non_token: f64 =
+                    covered_token_per_node * (stats_invcov.fan_out_99_percentile as f64);
+
+                let sum_included = covered_token_per_node + aligned_non_token;
+                return EstimationType::SELECTIVITY(sum_included / (stats_cov.nodes as f64));
+            }
+        }
+
+        return EstimationType::SELECTIVITY(0.1);
+    }
     
 }

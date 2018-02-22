@@ -2,6 +2,7 @@ use super::{Operator, OperatorSpec};
 use {Annotation, Component, ComponentType, Match};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;
+use operator::EstimationType;
 use util::token_helper;
 use util::token_helper::TokenHelper;
 
@@ -15,6 +16,8 @@ pub struct Inclusion<'a> {
     gs_order: Rc<GraphStorage>,
     gs_left: Rc<GraphStorage>,
     gs_right: Rc<GraphStorage>,
+    gs_cov: Rc<GraphStorage>,
+
     tok_helper: TokenHelper<'a>,
 }
 
@@ -43,11 +46,25 @@ lazy_static! {
             name: String::from(""),
         }
     };
+
+    static ref COMPONENT_COV : Component =  {
+        let c = Component {
+            ctype: ComponentType::Coverage,
+            layer: String::from("annis"),
+            name: String::from(""),
+        };
+        c
+    };
 }
 
 impl OperatorSpec for InclusionSpec {
     fn necessary_components(&self) -> Vec<Component> {
-        let mut v: Vec<Component> = vec![COMPONENT_ORDER.clone(), COMPONENT_LEFT.clone(), COMPONENT_RIGHT.clone()];
+        let mut v: Vec<Component> = vec![
+            COMPONENT_ORDER.clone(),
+            COMPONENT_LEFT.clone(),
+            COMPONENT_RIGHT.clone(),
+            COMPONENT_COV.clone(),
+        ];
         v.append(&mut token_helper::necessary_components());
         v
     }
@@ -67,7 +84,7 @@ impl<'a> Inclusion<'a> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
-        
+        let gs_cov = db.get_graphstorage(&COMPONENT_COV)?;
 
         let tok_helper = TokenHelper::new(db)?;
 
@@ -75,13 +92,14 @@ impl<'a> Inclusion<'a> {
             gs_order,
             gs_left,
             gs_right,
+            gs_cov,
             tok_helper,
         })
     }
 }
 
 impl<'a> std::fmt::Display for Inclusion<'a> {
-     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_i_")
     }
 }
@@ -95,23 +113,28 @@ impl<'a> Operator for Inclusion<'a> {
             // span length of LHS
             if let Some(l) = self.gs_order.distance(&start_lhs, &end_lhs) {
                 // find each token which is between the left and right border
-                let it = self.gs_order.find_connected(&start_lhs, 0, l)
-                        .flat_map(move |t| {
-                            let it_aligned = self.gs_left.get_outgoing_edges(&t).into_iter()
-                                .filter(move |n| {
-                                    // right-aligned token of candidate
-                                    let mut end_n = self.gs_right.get_outgoing_edges(&n);
-                                    if let Some(end_n) = end_n.next() {
-                                        // path between right-most tokens exists in ORDERING component 
-                                        // and has maximum length l
-                                        return self.gs_order.is_connected(&end_n, &end_lhs, 0, l);
-                                    }
-                                    return false;
-                                });
-                            // return the token itself and all aligned nodes
-                            return std::iter::once(t).chain(it_aligned);
-                        })
-                        .map(|n| Match{node: n, anno: Annotation::default()});
+                let it = self.gs_order
+                    .find_connected(&start_lhs, 0, l)
+                    .flat_map(move |t| {
+                        let it_aligned = self.gs_left.get_outgoing_edges(&t).into_iter().filter(
+                            move |n| {
+                                // right-aligned token of candidate
+                                let mut end_n = self.gs_right.get_outgoing_edges(&n);
+                                if let Some(end_n) = end_n.next() {
+                                    // path between right-most tokens exists in ORDERING component
+                                    // and has maximum length l
+                                    return self.gs_order.is_connected(&end_n, &end_lhs, 0, l);
+                                }
+                                return false;
+                            },
+                        );
+                        // return the token itself and all aligned nodes
+                        return std::iter::once(t).chain(it_aligned);
+                    })
+                    .map(|n| Match {
+                        node: n,
+                        anno: Annotation::default(),
+                    });
                 return Box::new(it);
             }
         }
@@ -131,7 +154,8 @@ impl<'a> Operator for Inclusion<'a> {
                 // path between left-most tokens exists in ORDERING component and has maximum length l
                 if self.gs_order.is_connected(&start_lhs, &start_rhs, 0, l)
                 // path between right-most tokens exists in ORDERING component and has maximum length l
-                && self.gs_order.is_connected(&end_rhs, &end_lhs, 0, l) {
+                && self.gs_order.is_connected(&end_rhs, &end_lhs, 0, l)
+                {
                     return true;
                 }
             }
@@ -142,5 +166,28 @@ impl<'a> Operator for Inclusion<'a> {
 
     fn is_reflexive(&self) -> bool {
         false
+    }
+
+    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+        if let (Some(stats_cov), Some(stats_order), Some(stats_left)) = (
+            self.gs_cov.get_statistics(),
+            self.gs_order.get_statistics(),
+            self.gs_left.get_statistics(),
+        ) {
+            let num_of_token = stats_order.nodes as f64;
+            if stats_cov.nodes == 0 {
+                // only token in this corpus
+                return EstimationType::SELECTIVITY(1.0 / num_of_token);
+            } else {
+                let covered_token_per_node: f64 = stats_cov.fan_out_99_percentile as f64;
+                let aligned_non_token: f64 =
+                    covered_token_per_node * (stats_left.fan_out_99_percentile as f64);
+
+                let sum_included = covered_token_per_node + aligned_non_token;
+                return EstimationType::SELECTIVITY(sum_included / (stats_cov.nodes as f64));
+            }
+        }
+
+        return EstimationType::SELECTIVITY(0.1);
     }
 }

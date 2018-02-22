@@ -2,6 +2,7 @@ use super::{Operator, OperatorSpec};
 use {Component, ComponentType, Match, Annotation};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;
+use operator::EstimationType;
 use util::token_helper;
 use util::token_helper::TokenHelper;
 
@@ -133,5 +134,17 @@ impl<'a> Operator for Precedence<'a> {
             self.spec.min_dist,
             self.spec.max_dist,
         );
+    }
+
+    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+        if let Some(stats_order) = self.gs_order.get_statistics() {
+
+            let max_possible_dist = std::cmp::max(self.spec.max_dist, stats_order.max_depth);
+            let num_of_descendants = max_possible_dist - self.spec.min_dist + 1;
+
+            return EstimationType::SELECTIVITY((num_of_descendants as f64) / (stats_order.nodes as f64 / 2.0));
+        }
+
+        return EstimationType::SELECTIVITY(0.1);
     }
 }
