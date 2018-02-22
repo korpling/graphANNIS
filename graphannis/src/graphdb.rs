@@ -359,7 +359,7 @@ impl GraphDB {
         let entry: Option<Option<Rc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
             let loaded: Rc<GraphStorage> = if gs_opt.is_none() {
-            info!("Loading component {:?} from disk", c);
+            info!("Loading component {} from disk", c);
                 load_component_from_disk(self.component_path(c))?
             } else {
                 gs_opt.unwrap()
