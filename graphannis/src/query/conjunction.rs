@@ -115,7 +115,7 @@ impl<'a> Conjunction<'a> {
 
         let opt_operator_order = Vec::from_iter(0..self.operators.len());
 
-        let best_plan = self.make_exec_plan_with_order(db, opt_operator_order);
+        let _best_plan = self.make_exec_plan_with_order(db, opt_operator_order);
         dist.sample(&mut rand_gen);
         unimplemented!()
     }
