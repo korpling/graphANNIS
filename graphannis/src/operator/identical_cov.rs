@@ -1,7 +1,8 @@
 use super::{Operator, OperatorSpec};
 use {Annotation, Component, ComponentType, Match};
 use graphdb::GraphDB;
-use graphstorage::GraphStorage;
+use graphstorage::{GraphStorage};
+use operator::EstimationType;
 use util::token_helper;
 use util::token_helper::TokenHelper;
 
@@ -13,6 +14,7 @@ pub struct IdenticalCoverageSpec;
 
 pub struct IdenticalCoverage<'a> {
     gs_left: Rc<GraphStorage>,
+    gs_order: Rc<GraphStorage>,
     tok_helper: TokenHelper<'a>,
 }
 
@@ -25,11 +27,19 @@ lazy_static! {
             name: String::from(""),
         }
     };
+
+    static ref COMPONENT_ORDER : Component =  {
+        Component {
+            ctype: ComponentType::Ordering,
+            layer: String::from("annis"),
+            name: String::from(""),
+        }
+    };
 }
 
 impl OperatorSpec for IdenticalCoverageSpec {
     fn necessary_components(&self) -> Vec<Component> {
-        let mut v: Vec<Component> = vec![COMPONENT_LEFT.clone()];
+        let mut v: Vec<Component> = vec![COMPONENT_LEFT.clone(), COMPONENT_ORDER.clone()];
         v.append(&mut token_helper::necessary_components());
         v
     }
@@ -47,11 +57,13 @@ impl OperatorSpec for IdenticalCoverageSpec {
 impl<'a> IdenticalCoverage<'a> {
     pub fn new(db: &'a GraphDB) -> Option<IdenticalCoverage<'a>> {
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
+        let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let tok_helper = TokenHelper::new(db)?;
 
 
         Some(IdenticalCoverage {
             gs_left,
+            gs_order,
             tok_helper: tok_helper,
         })
     }
@@ -116,6 +128,21 @@ impl<'a> Operator for IdenticalCoverage<'a> {
 
     fn is_commutative(&self) -> bool {
         true
+    }
+
+    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+        if let Some(order_stats) = self.gs_order.get_statistics() {
+            let num_of_token = order_stats.nodes as f64;
+
+             // Assume two nodes have same identical coverage if they have the same
+            // left covered token and the same length (right covered token is not independent
+            // of the left one, this is why we should use length).
+            // The probability for the same length is taken is assumed to be 1.0, histograms
+            // of the distribution would help here.
+
+            return EstimationType::SELECTIVITY(1.0 / num_of_token);
+        }
+        return EstimationType::SELECTIVITY(0.1)
     }
 
     
