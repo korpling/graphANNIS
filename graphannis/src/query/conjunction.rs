@@ -105,6 +105,12 @@ impl<'a> Conjunction<'a> {
     }
 
     fn optimize_join_order_heuristics(&self, db: &'a GraphDB) -> Result<Vec<usize>, Error> {
+
+        if self.operators.is_empty() {
+            // nothing to optimize
+            return Ok(vec![]);
+        }
+
         // use a constant seed to make the result deterministic
         let mut rand_gen = XorShiftRng::from_seed([4711,1,2,3]);
         let mut dist = Range::new(0, self.operators.len());
