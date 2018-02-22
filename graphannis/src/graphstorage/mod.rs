@@ -6,23 +6,23 @@ use {AnnoKey, Annotation, Edge, NodeID};
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GraphStatistic
 {
-    cyclic : bool,
-    rooted_tree : bool,
+    pub cyclic : bool,
+    pub rooted_tree : bool,
 
     /// number of nodes
-    nodes: usize,
+    pub nodes: usize,
 
     /// Average fan out
-    avg_fan_out : f64,
+    pub avg_fan_out : f64,
     /// Max fan-out of 99% of the data
-    fan_out_99_percentile : usize,
+    pub fan_out_99_percentile : usize,
     /// maximal number of children of a node
-    max_fan_out : usize,
+    pub max_fan_out : usize,
     /// maximum length from a root node to a terminal node
-    max_depth : usize,
+    pub max_depth : usize,
 
     /// only for acyclic graphs: the average number of times a DFS will visit each node
-    dfs_visit_ratio : f64,
+    pub dfs_visit_ratio : f64,
 }
 
 pub trait GraphStorage  {
@@ -44,6 +44,8 @@ pub trait GraphStorage  {
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
     fn as_any(&self) -> &Any;
+
+    fn get_statistics(&self) -> Option<&GraphStatistic> {None}
 
 }
 

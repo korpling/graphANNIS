@@ -151,6 +151,7 @@ impl<'a> IndexJoin<'a> {
         return IndexJoin {
             desc: Desc::join(
                 &op,
+                db,
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",

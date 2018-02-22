@@ -154,7 +154,7 @@ fn nested_loop_join() {
         let n1 = Box::new(n1);
         let n2 = Box::new(n2);
 
-        let join = NestedLoop::new(n1, n2, 0, 0, 1, 2, op);
+        let join = NestedLoop::new(n1, n2, 0, 0, 1, 2, op, &db);
 
         assert_eq!(3, join.count());
     }

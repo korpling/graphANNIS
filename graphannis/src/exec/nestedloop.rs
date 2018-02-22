@@ -1,3 +1,4 @@
+use graphdb::GraphDB;
 use Match;
 use util;
 use super::{Desc, ExecutionNode};
@@ -25,6 +26,7 @@ impl<'a> NestedLoop<'a> {
         node_nr_lhs: usize,
         node_nr_rhs: usize,
         op: Box<Operator + 'a>,
+        db: &'a GraphDB,
     ) -> NestedLoop<'a> {
         // TODO: allow switching inner and outer
 
@@ -41,6 +43,7 @@ impl<'a> NestedLoop<'a> {
         let it = NestedLoop {
             desc: Desc::join(
                 &op,
+                db,
                 lhs.get_desc(),
                 rhs.get_desc(),
                 "nestedloop",

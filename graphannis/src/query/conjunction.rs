@@ -206,6 +206,7 @@ impl<'a> Conjunction<'a> {
                         op_entry.idx_left + 1,
                         op_entry.idx_right + 1,
                         op,
+                        db,
                     );
                     Box::new(filter)
                 } else {
@@ -251,6 +252,7 @@ impl<'a> Conjunction<'a> {
                             op_entry.idx_left + 1,
                             op_entry.idx_right + 1,
                             op,
+                            db,
                         );
 
                         Box::new(join)

@@ -82,6 +82,10 @@ impl GraphStorage for AdjacencyListStorage {
 
     fn as_any(&self) -> &Any {self}
 
+    fn get_statistics(&self) -> Option<&GraphStatistic> {
+        return self.stats.as_ref();
+    }
+
 }
 
 impl WriteableGraphStorage for AdjacencyListStorage {
