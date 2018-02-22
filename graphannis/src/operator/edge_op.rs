@@ -238,7 +238,7 @@ impl Operator for BaseEdgeOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct DominanceSpec {
     base: BaseEdgeOpSpec,
 }
@@ -275,7 +275,7 @@ impl OperatorSpec for DominanceSpec {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct PointingSpec {
     base: BaseEdgeOpSpec,
 }
@@ -312,7 +312,7 @@ impl OperatorSpec for PointingSpec {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct PartOfSubCorpusSpec {
     base: BaseEdgeOpSpec,
 }

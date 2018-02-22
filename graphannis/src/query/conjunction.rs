@@ -10,6 +10,12 @@ use exec::binary_filter::BinaryFilter;
 use super::disjunction::Disjunction;
 
 use std::collections::BTreeMap;
+use std::iter::FromIterator;
+
+use rand::XorShiftRng;
+use rand::SeedableRng;
+use rand::distributions::Range;
+use rand::distributions::Sample;
 
 #[derive(Debug)]
 pub enum Error {
@@ -98,10 +104,23 @@ impl<'a> Conjunction<'a> {
         return result;
     }
 
-    pub fn make_exec_node(
-        mut self,
-        db: &'a GraphDB,
-    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
+    pub fn optimize(&mut self, db: &'a GraphDB) {
+        self.optimize_join_order_heuristics(db);
+    }
+
+    fn optimize_join_order_heuristics(&mut self, db: &'a GraphDB) {
+        // use a constant seed to make the result deterministic
+        let mut rand_gen = XorShiftRng::from_seed([4711,1,2,3]);
+        let mut dist = Range::new(0, self.operators.len());
+
+        let opt_operator_order = Vec::from_iter(0..self.operators.len());
+
+        let best_plan = self.make_exec_plan_with_order(db, opt_operator_order);
+        dist.sample(&mut rand_gen);
+        unimplemented!()
+    }
+
+    fn make_exec_plan_with_order(&mut self, db: &'a GraphDB, operator_order : Vec<usize>) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error>  {
         // TODO: parallization mapping
 
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
@@ -152,8 +171,10 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        // 2. add the joins which produce the results
-        for op_entry in self.operators.drain(..) {
+        // 2. add the joins which produce the results in operand order
+        for i in operator_order.into_iter() {
+            let op_entry = &self.operators[i];
+        
             let component_left = node2component
                 .get(&op_entry.idx_left)
                 .ok_or(Error::ImpossibleSearch(format!(
@@ -290,5 +311,13 @@ impl<'a> Conjunction<'a> {
             .ok_or(Error::ImpossibleSearch(String::from(
                 "could not find execution node for query component",
             )));
+    }
+
+    pub fn make_exec_node(
+        mut self,
+        db: &'a GraphDB,
+    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
+        let operator_order = Vec::from_iter(0..self.operators.len());
+        return self.make_exec_plan_with_order(db, operator_order);
     }
 }
