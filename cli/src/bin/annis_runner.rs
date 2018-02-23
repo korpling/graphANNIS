@@ -31,6 +31,7 @@ impl CommandCompleter {
         known_commands.insert("import".to_string());
         known_commands.insert("list".to_string());
         known_commands.insert("corpus".to_string());
+        known_commands.insert("preload".to_string());
         known_commands.insert("count".to_string());
         known_commands.insert("find".to_string());
         known_commands.insert("plan".to_string());
@@ -130,6 +131,7 @@ impl AnnisRunner {
                 "import" => self.import_relannis(&args),
                 "list" => self.list(),
                 "corpus" => self.corpus(&args),
+                "preload" => self.preload(),
                 "plan" => self.plan(&args),
                 "count" => self.count(&args),
                 "find" => self.find(&args),
@@ -189,6 +191,24 @@ impl AnnisRunner {
         }
     }
 
+    fn preload(&mut self) {
+        if let Some(ref corpus) = self.current_corpus {
+            let t_before = std::time::SystemTime::now();
+            let c = self.storage.preload(corpus);
+            let load_time = t_before.elapsed();
+
+            if let Ok(t) = load_time {
+                info!{"Preloaded corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            }
+
+            if c.is_err() {
+                println!("Error when preloading: {:?}", c);
+            }
+        } else {
+            println!("You need to select a corpus first with the \"corpus\" command");
+        }
+    }
+
     fn plan(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
@@ -196,7 +216,7 @@ impl AnnisRunner {
             let load_time = t_before.elapsed();
 
             if let Ok(t) = load_time {
-                info!{"Planned query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info!{"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             if let Ok(plan) = plan {
