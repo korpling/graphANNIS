@@ -6,7 +6,7 @@ use operator::EstimationType;
 use util::token_helper;
 use util::token_helper::TokenHelper;
 
-use std::rc::Rc;
+use std::sync::Arc;
 use std;
 
 #[derive(Clone, Debug)]
@@ -17,8 +17,8 @@ pub struct PrecedenceSpec {
 }
 
 pub struct Precedence<'a> {
-    gs_order: Rc<GraphStorage>,
-    gs_left: Rc<GraphStorage>,
+    gs_order: Arc<GraphStorage>,
+    gs_left: Arc<GraphStorage>,
     tok_helper: TokenHelper<'a>,
     spec: PrecedenceSpec,
 }

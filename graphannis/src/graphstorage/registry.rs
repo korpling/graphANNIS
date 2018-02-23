@@ -1,7 +1,7 @@
 use graphstorage::{GraphStorage};
 use super::adjacencylist::AdjacencyListStorage;
 use std;
-use std::rc::Rc;
+use std::sync::Arc;
 use bincode;
 use std::any::Any;
 use std::str::FromStr;
@@ -40,19 +40,19 @@ pub fn create_writeable() -> AdjacencyListStorage {
     AdjacencyListStorage::new()
 }
 
-pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Rc<GraphStorage>> {
+pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<GraphStorage>> {
 
     let impl_type = ImplTypes::from_str(impl_name)?;
 
     match impl_type {
         ImplTypes::AdjacencyListV1 => {
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input, bincode::Infinite)?;
-            Ok(Rc::new(gs))
+            Ok(Arc::new(gs))
         }
     }
 }
 
-pub fn serialize(data : Rc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
+pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
     let data :&Any = data.as_any();
     if let Some(adja) = data.downcast_ref::<AdjacencyListStorage>() {
         bincode::serialize_into(writer, adja, bincode::Infinite)?;

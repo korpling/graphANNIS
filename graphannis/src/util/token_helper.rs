@@ -2,14 +2,14 @@ use graphstorage::GraphStorage;
 use graphdb::GraphDB;
 use {Component, ComponentType, NodeID};
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TokenHelper<'a> {
     db: &'a GraphDB,
-    left_edges: Rc<GraphStorage>,
-    right_edges: Rc<GraphStorage>,
-    cov_edges: Option<Rc<GraphStorage>>,
+    left_edges: Arc<GraphStorage>,
+    right_edges: Arc<GraphStorage>,
+    cov_edges: Option<Arc<GraphStorage>>,
 }
 
 lazy_static! {

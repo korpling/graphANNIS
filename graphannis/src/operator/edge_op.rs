@@ -4,7 +4,7 @@ use graphdb::{GraphDB, ANNIS_NS};
 use operator::{Operator, OperatorSpec, EstimationType};
 use util;
 use std;
-use std::rc::Rc;
+use std::sync::Arc;
 use stringstorage::StringStorage;
 
 #[derive(Clone, Debug)]
@@ -56,14 +56,14 @@ struct BaseEdgeOpSpec {
 }
 
 struct BaseEdgeOp {
-    gs: Vec<Rc<GraphStorage>>,
+    gs: Vec<Arc<GraphStorage>>,
     edge_anno: Option<Annotation>,
     spec: BaseEdgeOpSpec,
 }
 
 impl BaseEdgeOp {
     pub fn new(db: &GraphDB, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
-        let mut gs: Vec<Rc<GraphStorage>> = Vec::new();
+        let mut gs: Vec<Arc<GraphStorage>> = Vec::new();
         for c in spec.components.iter() {
             gs.push(db.get_graphstorage(c)?);
         }
@@ -192,7 +192,7 @@ impl Operator for BaseEdgeOp {
         let mut worst_sel : f64 = 0.0;
 
         for g  in self.gs.iter() {
-            let g : &Rc<GraphStorage> = g;
+            let g : &Arc<GraphStorage> = g;
 
             let mut gs_selectivity = 0.01;
 
@@ -245,7 +245,7 @@ impl Operator for BaseEdgeOp {
             } else {
                 let mut worst_sel = 0.0;
                 for g  in self.gs.iter() {
-                    let g : &Rc<GraphStorage> = g;
+                    let g : &Arc<GraphStorage> = g;
                     let anno_storage = g.get_anno_storage();
                     let num_of_annos = anno_storage.len();
                     if num_of_annos == 0 {

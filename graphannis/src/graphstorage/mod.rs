@@ -26,7 +26,7 @@ pub struct GraphStatistic
     pub dfs_visit_ratio : f64,
 }
 
-pub trait GraphStorage  {
+pub trait GraphStorage : Sync + Send  {
 
     fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 

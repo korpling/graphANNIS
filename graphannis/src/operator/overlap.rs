@@ -7,16 +7,16 @@ use util::token_helper;
 use util::token_helper::TokenHelper;
 use std::collections::HashSet;
 
-use std::rc::Rc;
+use std::sync::Arc;
 use std;
 
 #[derive(Clone, Debug)]
 pub struct OverlapSpec;
 
 pub struct  Overlap<'a> {
-    gs_order: Rc<GraphStorage>,
-    gs_cov: Rc<GraphStorage>,
-    gs_invcov: Rc<GraphStorage>,
+    gs_order: Arc<GraphStorage>,
+    gs_cov: Arc<GraphStorage>,
+    gs_invcov: Arc<GraphStorage>,
     tok_helper: TokenHelper<'a>,
 }
 

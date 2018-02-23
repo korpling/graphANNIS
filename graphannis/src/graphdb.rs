@@ -6,7 +6,7 @@ use AnnoKey;
 use graphstorage::registry;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
+use std::sync::Arc;
 use std::io::prelude::*;
 use std;
 use strum::IntoEnumIterator;
@@ -62,7 +62,7 @@ pub struct GraphDB {
 
     location: Option<PathBuf>,
 
-    components: BTreeMap<Component, Option<Rc<GraphStorage>>>,
+    components: BTreeMap<Component, Option<Arc<GraphStorage>>>,
     id_annis_ns: StringID,
     id_node_name: StringID,
     id_tok: StringID,
@@ -70,7 +70,7 @@ pub struct GraphDB {
 }
 
 
-fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Rc<GraphStorage>, Error> {
+fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<GraphStorage>, Error> {
     let cpath = try!(component_path.ok_or(Error::LocationEmpty));
 
     // load component into memory
@@ -295,7 +295,7 @@ impl GraphDB {
         if entry.is_some() {
             let gs_opt = entry.unwrap();
 
-            let mut loaded_comp: Rc<GraphStorage> = if gs_opt.is_none() {
+            let mut loaded_comp: Arc<GraphStorage> = if gs_opt.is_none() {
                 load_component_from_disk(self.component_path(c))?
             } else {
                 gs_opt.unwrap()
@@ -303,7 +303,7 @@ impl GraphDB {
 
             // copy to writable implementation if needed
             let is_writable = {
-                Rc::get_mut(&mut loaded_comp)
+                Arc::get_mut(&mut loaded_comp)
                     .ok_or(Error::Other)?
                     .as_writeable()
                     .is_some()
@@ -314,7 +314,7 @@ impl GraphDB {
             } else {
                 let mut gs_copy = registry::create_writeable();
                 gs_copy.copy(loaded_comp.as_ref());
-                Rc::from(gs_copy)
+                Arc::from(gs_copy)
             };
 
             // (re-)insert the component into map again
@@ -333,16 +333,16 @@ impl GraphDB {
         } else {
             let w = registry::create_writeable();
 
-            self.components.insert(c.clone(), Some(Rc::from(w)));
+            self.components.insert(c.clone(), Some(Arc::from(w)));
         }
 
         // get and return the reference to the entry
-        let entry: &mut Rc<GraphStorage> = self.components
+        let entry: &mut Arc<GraphStorage> = self.components
             .get_mut(&c)
             .ok_or(Error::Other)?
             .as_mut()
             .ok_or(Error::Other)?;
-        let gs_mut_ref: &mut GraphStorage = Rc::get_mut(entry).ok_or(Error::Other)?;
+        let gs_mut_ref: &mut GraphStorage = Arc::get_mut(entry).ok_or(Error::Other)?;
         return Ok(gs_mut_ref.as_writeable().ok_or(Error::InvalidType)?);
     }
 
@@ -356,9 +356,9 @@ impl GraphDB {
 
     pub fn ensure_loaded(&mut self, c: &Component) -> Result<(), Error> {
         // get and return the reference to the entry if loaded
-        let entry: Option<Option<Rc<GraphStorage>>> = self.components.remove(c);
+        let entry: Option<Option<Arc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
-            let loaded: Rc<GraphStorage> = if gs_opt.is_none() {
+            let loaded: Arc<GraphStorage> = if gs_opt.is_none() {
             info!("Loading component {} from disk", c);
                 load_component_from_disk(self.component_path(c))?
             } else {
@@ -370,9 +370,9 @@ impl GraphDB {
         return Ok(());
     }
 
-    pub fn get_graphstorage(&self, c: &Component) -> Option<Rc<GraphStorage>> {
+    pub fn get_graphstorage(&self, c: &Component) -> Option<Arc<GraphStorage>> {
         // get and return the reference to the entry if loaded
-        let entry: Option<&Option<Rc<GraphStorage>>> = self.components.get(c);
+        let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if let Some(ref impl_type) = *gs_opt {
                 return Some(impl_type.clone());

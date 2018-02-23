@@ -5,6 +5,7 @@ extern crate graphannis;
 
 use bencher::Bencher;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use graphannis::util;
 use graphannis::api::corpusstorage::CorpusStorage;
@@ -19,7 +20,7 @@ fn get_query_dir() -> PathBuf {
 }
 
 struct GUM {
-    pub db_dir : PathBuf,
+    pub cs : Arc<CorpusStorage>,
     pub def : util::SearchDef,
 }
 
@@ -27,14 +28,12 @@ impl bencher::TDynBenchFn for GUM {
 
     #[allow(unused_must_use)]
     fn run(&self, bench: &mut Bencher) {
-        let cs = CorpusStorage::new(&self.db_dir).unwrap();
-
-        // plan query to make sure all needed components are in main memory
         
-        cs.plan("GUM", &self.def.json);
+        // plan query to make sure all needed components are in main memory
+        self.cs.plan("GUM", &self.def.json);
 
         bench.iter(|| {
-                if let Ok(count) = cs.count("GUM", &self.def.json) {
+                if let Ok(count) = self.cs.count("GUM", &self.def.json) {
                     assert_eq!(self.def.count, count);
                 } else {
                     assert_eq!(self.def.count, 0);
@@ -59,6 +58,9 @@ pub fn count_gum() -> std::vec::Vec<bencher::TestDescAndFn> {
 
     let mut benches = std::vec::Vec::new();
 
+    let cs = Arc::new(CorpusStorage::new(&db_dir).unwrap());
+    cs.preload("GUM").unwrap();
+
     for def in queries {
 
         benches.push(TestDescAndFn {
@@ -66,7 +68,7 @@ pub fn count_gum() -> std::vec::Vec<bencher::TestDescAndFn> {
                 name: Cow::from(def.name.clone()),
                 ignore: false,
             },
-            testfn: TestFn::DynBenchFn(Box::new(GUM{db_dir: db_dir.clone(), def})),
+            testfn: TestFn::DynBenchFn(Box::new(GUM{cs: cs.clone(), def})),
         });
     }
 

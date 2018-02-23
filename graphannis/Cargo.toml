@@ -28,6 +28,6 @@ simplelog = "0.4"
 bencher = "0.1"
 
 [[bench]]
-name = "search"
+name = "bench_search"
 harness = false
 
