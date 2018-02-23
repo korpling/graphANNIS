@@ -15,6 +15,10 @@ pub trait Operator : std::fmt::Display {
     fn is_commutative(&self) -> bool {false}
 
     fn estimation_type<'a>(&self, _db: &'a GraphDB) -> EstimationType {EstimationType::SELECTIVITY(0.1)}
+
+    fn edge_anno_selectivity<'a>(&self, _db: &'a GraphDB) -> Option<f64> {
+        None
+    }
 }
 
 pub trait OperatorSpec : std::fmt::Debug {

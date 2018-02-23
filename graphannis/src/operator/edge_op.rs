@@ -236,6 +236,42 @@ impl Operator for BaseEdgeOp {
 
         return EstimationType::SELECTIVITY(worst_sel);
     }
+
+    fn edge_anno_selectivity<'a>(&self, db: &'a GraphDB) -> Option<f64> {
+        if let Some(ref edge_anno) = self.edge_anno {
+            let edge_anno : Annotation = edge_anno.clone();
+            if edge_anno == Annotation::default() {
+                return Some(1.0)
+            } else {
+                let mut worst_sel = 0.0;
+                for g  in self.gs.iter() {
+                    let g : &Rc<GraphStorage> = g;
+                    let anno_storage = g.get_anno_storage();
+                    let num_of_annos = anno_storage.len();
+                    if num_of_annos == 0 {
+                        // we won't be able to find anything if there are no annotations
+                        return Some(0.0);
+                    } else {
+                        
+                        if let Some(val_str) = db.strings.str(edge_anno.val) {
+                            let ns = if edge_anno.key.ns == 0 {None} else {Some(edge_anno.key.name)};
+                            let guessed_count = anno_storage.guess_max_count(ns, edge_anno.key.name, val_str, val_str);
+
+                            let g_sel : f64 = (guessed_count as f64) / (num_of_annos as f64);
+                            if g_sel > worst_sel {
+                                worst_sel = g_sel;
+                            }
+                        } else {
+                            // if value string is unknown, there is nothing to find
+                            return Some(0.0);
+                        }
+                    }
+                }
+                return Some(worst_sel);
+            }
+        }
+        return None;
+    }
 }
 
 #[derive(Debug,Clone)]

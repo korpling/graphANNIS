@@ -33,8 +33,13 @@ fn calculate_outputsize<'a>(
 ) -> usize {
     let output = match op.estimation_type(db) {
         EstimationType::SELECTIVITY(selectivity) => {
-            let cross_product = (cost_lhs.output * cost_rhs.output) as f64;
-            (cross_product * selectivity).round() as usize
+            let num_tuples = (cost_lhs.output * cost_rhs.output) as f64;
+            if let Some(edge_sel) = op.edge_anno_selectivity(db) {
+                (num_tuples * selectivity * edge_sel).round() as usize
+            } else {
+                (num_tuples * selectivity).round() as usize
+            }
+            
         }
         EstimationType::MIN => std::cmp::min(cost_lhs.output, cost_rhs.output),
         EstimationType::MAX => std::cmp::max(cost_lhs.output, cost_rhs.output),

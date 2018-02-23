@@ -1,6 +1,7 @@
 use std;
 use std::any::Any;
 use {AnnoKey, Annotation, Edge, NodeID};
+use annostorage::AnnoStorage;
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone)]
@@ -41,6 +42,8 @@ pub trait GraphStorage  {
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool;
 
     fn copy(&mut self, orig : &GraphStorage);
+
+    fn get_anno_storage(&self) -> &AnnoStorage<Edge>;
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
     fn as_any(&self) -> &Any;

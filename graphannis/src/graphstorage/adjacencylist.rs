@@ -86,6 +86,10 @@ impl GraphStorage for AdjacencyListStorage {
         return self.stats.as_ref();
     }
 
+    fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
+        return &self.annos;
+    }
+
 }
 
 impl WriteableGraphStorage for AdjacencyListStorage {

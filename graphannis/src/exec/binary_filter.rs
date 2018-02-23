@@ -17,7 +17,11 @@ fn calculate_outputsize<'a>(
     let output = match op.estimation_type(db) {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = num_tuples as f64;
-            (num_tuples * selectivity).round() as usize
+            if let Some(edge_sel) = op.edge_anno_selectivity(db) {
+                (num_tuples * selectivity * edge_sel).round() as usize
+            } else {
+                (num_tuples * selectivity).round() as usize
+            }
         }
         EstimationType::MIN => num_tuples,
         EstimationType::MAX => num_tuples,
