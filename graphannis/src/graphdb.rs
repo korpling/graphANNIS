@@ -28,6 +28,8 @@ pub enum Error {
     SerializationError(bincode::Error),
     LocationEmpty,
     InvalidType,
+    MissingComponent,
+    ComponentInUse,
     Other,
 }
 
@@ -200,7 +202,7 @@ impl GraphDB {
                         input_file.push("component.bin");
                         if input_file.is_file() {
                             self.components.insert(empty_name_component.clone(), None);
-                            debug!("Registered component {:?}", empty_name_component);
+                            debug!("Registered component {}", empty_name_component);
                         }
                     }
                     // also load all named components
@@ -219,7 +221,7 @@ impl GraphDB {
                         cfg_file.push("impl.cfg");
                         if data_file.is_file() && cfg_file.is_file() {
                             self.components.insert(named_component.clone(), None);
-                            debug!("Registered component {:?}", named_component);
+                            debug!("Registered component {}", named_component);
                         }
                     }
                 }
@@ -321,6 +323,22 @@ impl GraphDB {
             self.components.insert(c.clone(), Some(loaded_comp));
         }
         return Ok(());
+    }
+
+    pub fn calculate_component_statistics(&mut self, c: Component) -> Result<(), Error> {
+        let mut result : Result<(), Error> = Ok(());
+        let mut entry = self.components.remove(&c).ok_or(Error::MissingComponent)?;
+        if let Some(ref mut gs) = entry {
+            if let Some(gs_mut) = Arc::get_mut(gs) {
+                gs_mut.calculate_statistics(&self.strings);
+            } else {
+                result = Err(Error::ComponentInUse);
+            }
+        }
+        // re-insert component entry
+        self.components.insert(c, entry);
+        return result;
+        
     }
 
     pub fn get_or_create_writable(

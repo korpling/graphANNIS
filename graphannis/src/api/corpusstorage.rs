@@ -323,6 +323,12 @@ impl CorpusStorage {
         return Ok(());
     }
 
+/*     pub fn recalculate_statistics(&self, corpus_name : &str) -> Result<(), Error> {
+        let db_entry = self.get_loaded_entry(corpus_name)?;
+        let mut lock = db_entry.write().unwrap();
+
+    }  */
+
     pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
 
         let prep = self.prepare_query(corpus_name, query_as_json)?;

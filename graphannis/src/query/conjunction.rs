@@ -1,7 +1,7 @@
 use {Component, Match};
 use graphdb::GraphDB;
 use operator::{Operator, OperatorSpec};
-use exec::{Desc, ExecutionNode};
+use exec::{Desc, ExecutionNode, CostEstimate};
 use exec::indexjoin::IndexJoin;
 use exec::nestedloop::NestedLoop;
 use exec::nodesearch::{NodeSearch, NodeSearchSpec};
@@ -11,6 +11,7 @@ use super::disjunction::Disjunction;
 
 use std::collections::BTreeMap;
 use std::iter::FromIterator;
+use std;
 
 use rand::XorShiftRng;
 use rand::SeedableRng;
@@ -63,6 +64,20 @@ fn update_components_for_nodes(
     }
 }
 
+fn optimized_operand_order<'a>(op_entry : &mut OperatorEntry, op : &'a Box<Operator + 'a>, node2cost : &BTreeMap<usize, CostEstimate>) {
+        if op.is_commutative() {
+            if let (Some(cost_lhs), Some(cost_rhs)) = (node2cost.get(&op_entry.idx_left), node2cost.get(&op_entry.idx_right)) {
+                let cost_lhs : &CostEstimate = cost_lhs;
+                let cost_rhs : &CostEstimate = cost_rhs;
+
+                if cost_rhs.output < cost_lhs.output {
+                    // switch operands
+                    std::mem::swap(&mut op_entry.idx_left, &mut op_entry.idx_right);
+                } 
+            }
+        }
+    }
+
 impl<'a> Conjunction<'a> {
     pub fn new() -> Conjunction<'a> {
         Conjunction {
@@ -105,8 +120,7 @@ impl<'a> Conjunction<'a> {
         return result;
     }
 
-    fn optimize_join_order_heuristics(&self, db: &'a GraphDB) -> Result<Vec<usize>, Error> {
-
+    fn optimize_join_order_heuristics(&mut self, db: &'a GraphDB) -> Result<Vec<usize>, Error> {
         // check if there is something to optimize
         if self.operators.is_empty() {
             return Ok(vec![]);
@@ -115,25 +129,32 @@ impl<'a> Conjunction<'a> {
         }
 
         // use a constant seed to make the result deterministic
-        let mut rng = XorShiftRng::from_seed([4711,1,2,3]);
+        let mut rng = XorShiftRng::from_seed([4711, 1, 2, 3]);
         let mut dist = Range::new(0, self.operators.len());
 
         let mut best_operator_order = Vec::from_iter(0..self.operators.len());
 
         // TODO: cache the base estimates
         let initial_plan = self.make_exec_plan_with_order(db, best_operator_order.clone())?;
-        let mut best_cost = initial_plan.get_desc().ok_or(Error::MissingDescription)?.cost.clone().ok_or(Error::MissingCost)?.intermediate_sum.clone();
+        let mut best_cost = initial_plan
+            .get_desc()
+            .ok_or(Error::MissingDescription)?
+            .cost
+            .clone()
+            .ok_or(Error::MissingCost)?
+            .intermediate_sum
+            .clone();
+        trace!("initial plan:\n{}", initial_plan.get_desc().ok_or(Error::MissingDescription)?.debug_string("  "));
 
         let num_new_generations = 4;
-        let max_unsuccessful_tries = 5*self.operators.len();
+        let max_unsuccessful_tries = 5 * self.operators.len();
         let mut unsucessful = 0;
         while unsucessful < max_unsuccessful_tries {
-
-            let mut family_operators : Vec<Vec<usize>> = Vec::new();
-            family_operators.reserve(num_new_generations+1);
+            let mut family_operators: Vec<Vec<usize>> = Vec::new();
+            family_operators.reserve(num_new_generations + 1);
 
             family_operators.push(best_operator_order.clone());
-            
+
             for i in 0..num_new_generations {
                 // use the the previous generation as basis
                 let mut tmp_operators = family_operators[i].clone();
@@ -145,19 +166,26 @@ impl<'a> Conjunction<'a> {
                     b = dist.sample(&mut rng);
                 }
                 // switch the order of the selected joins
-                tmp_operators.swap(a,b);
+                tmp_operators.swap(a, b);
                 family_operators.push(tmp_operators);
             }
 
             let mut found_better_plan = false;
             for i in 1..family_operators.len() {
                 let alt_plan = self.make_exec_plan_with_order(db, family_operators[i].clone())?;
-                let alt_cost = alt_plan.get_desc().ok_or(Error::MissingDescription)?.cost.clone().ok_or(Error::MissingCost)?.intermediate_sum;
+                let alt_cost = alt_plan
+                    .get_desc()
+                    .ok_or(Error::MissingDescription)?
+                    .cost
+                    .clone()
+                    .ok_or(Error::MissingCost)?
+                    .intermediate_sum;
+                trace!("alternatives plan: \n{}", initial_plan.get_desc().ok_or(Error::MissingDescription)?.debug_string("  "));
 
                 if alt_cost < best_cost {
                     best_operator_order = family_operators[i].clone();
                     found_better_plan = true;
-
+                    trace!("Found better plan");
                     best_cost = alt_cost;
                     unsucessful = 0;
                 }
@@ -171,7 +199,12 @@ impl<'a> Conjunction<'a> {
         Ok(best_operator_order)
     }
 
-    fn make_exec_plan_with_order(&self, db: &'a GraphDB, operator_order : Vec<usize>) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error>  {
+
+    fn make_exec_plan_with_order(
+        &mut self,
+        db: &'a GraphDB,
+        operator_order: Vec<usize>,
+    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
         // TODO: parallization mapping
 
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
@@ -182,6 +215,8 @@ impl<'a> Conjunction<'a> {
         // and move all nodes with their index as component number.
         let mut component2exec: BTreeMap<usize, Box<ExecutionNode<Item = Vec<Match>>>> =
             BTreeMap::new();
+        let mut node2cost : BTreeMap<usize, CostEstimate> = BTreeMap::new();
+
         {
             let mut node_nr: usize = 0;
             for n_spec in self.nodes.iter() {
@@ -194,6 +229,10 @@ impl<'a> Conjunction<'a> {
                 node2component.insert(node_nr, node_nr);
 
                 let (orig_query_frag, orig_impl_desc, cost) = if let Some(d) = n.get_desc() {
+                    if let Some(ref c) = d.cost {
+                        node2cost.insert(node_nr, c.clone());
+                    }
+                    
                     (
                         d.query_fragment.clone(),
                         d.impl_description.clone(),
@@ -224,8 +263,14 @@ impl<'a> Conjunction<'a> {
 
         // 2. add the joins which produce the results in operand order
         for i in operator_order.into_iter() {
-            let op_entry = &self.operators[i];
-        
+            let mut op_entry = &mut self.operators[i];
+
+            let op: Box<Operator> = op_entry.op.create_operator(db).ok_or(
+                Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
+            )?;
+
+            optimized_operand_order(&mut op_entry, &op, &node2cost);
+
             let component_left = node2component
                 .get(&op_entry.idx_left)
                 .ok_or(Error::ImpossibleSearch(format!(
@@ -255,9 +300,7 @@ impl<'a> Conjunction<'a> {
                 .ok_or(Error::OperatorIdxNotFound)?
                 .clone();
 
-            let op: Box<Operator> = op_entry.op.create_operator(db).ok_or(
-                Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
-            )?;
+            
 
             let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
@@ -365,9 +408,10 @@ impl<'a> Conjunction<'a> {
     }
 
     pub fn make_exec_node(
-        self,
+        mut self,
         db: &'a GraphDB,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
+
         let operator_order = self.optimize_join_order_heuristics(db)?;
         return self.make_exec_plan_with_order(db, operator_order);
     }

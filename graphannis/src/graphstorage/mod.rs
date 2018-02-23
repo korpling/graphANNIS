@@ -2,6 +2,7 @@ use std;
 use std::any::Any;
 use {AnnoKey, Annotation, Edge, NodeID};
 use annostorage::AnnoStorage;
+use stringstorage::StringStorage;
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone)]
@@ -50,6 +51,8 @@ pub trait GraphStorage : Sync + Send  {
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {None}
 
+    fn calculate_statistics(&mut self, _string_storage : &StringStorage) {}
+
 }
 
 pub trait WriteableGraphStorage:  GraphStorage {
@@ -59,8 +62,6 @@ pub trait WriteableGraphStorage:  GraphStorage {
     fn delete_edge(&mut self, edge: &Edge);
     fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey);
     fn delete_node(&mut self, node: &NodeID);
-
-    fn calculate_statistics(&mut self);
 }
 
 pub mod adjacencylist;
