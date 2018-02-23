@@ -52,7 +52,7 @@ struct BaseEdgeOpSpec {
     pub min_dist: usize,
     pub max_dist: usize,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
-    pub is_commutative: bool,
+    pub is_reflexive: bool,
 }
 
 struct BaseEdgeOp {
@@ -176,8 +176,8 @@ impl Operator for BaseEdgeOp {
         return false;
     }
 
-    fn is_commutative(&self) -> bool {
-        self.spec.is_commutative
+    fn is_reflexive(&self) -> bool {
+        self.spec.is_reflexive
     }
 
     fn estimation_type<'a>(&self, db: &'a GraphDB) -> EstimationType {
@@ -294,7 +294,7 @@ impl DominanceSpec {
                 min_dist,
                 max_dist,
                 edge_anno,
-                is_commutative: true,
+                is_reflexive: true,
             },
         }
     }
@@ -331,7 +331,7 @@ impl PointingSpec {
                 min_dist,
                 max_dist,
                 edge_anno,
-                is_commutative: true,
+                is_reflexive: true,
             },
         }
     }
@@ -368,7 +368,7 @@ impl PartOfSubCorpusSpec {
                 min_dist: 1,
                 max_dist,
                 edge_anno: None,
-                is_commutative: false,
+                is_reflexive: false,
             },
         }
     }
