@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Console",
+            "program": "${workspaceRoot}/target/debug/annis_runner",
+            "args": ["data"],
+            "cwd": "${workspaceRoot}",
+            "terminal": "integrated",
+            "env": {
+                "RUST_BACKTRACE" : "1"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Test",
+            "program": "${workspaceRoot}/target/debug/loadtest-12a561c8a04ae7c6",
+            "args": ["index_join"],
+            "cwd": "${workspaceRoot}/graphannis/"
+        }
+    ]
+}
