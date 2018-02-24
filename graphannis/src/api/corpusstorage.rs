@@ -323,11 +323,20 @@ impl CorpusStorage {
         return Ok(());
     }
 
-/*     pub fn recalculate_statistics(&self, corpus_name : &str) -> Result<(), Error> {
+     pub fn update_statistics(&self, corpus_name : &str) -> Result<(), Error> {
         let db_entry = self.get_loaded_entry(corpus_name)?;
-        let mut lock = db_entry.write().unwrap();
+         let mut lock = db_entry.write().unwrap();
+         let db : &mut GraphDB = get_write_or_error(&mut lock)?;
 
-    }  */
+        db.node_annos.calculate_statistics(&db.strings);
+        for c in db.get_all_components(None, None).into_iter() {
+            db.calculate_component_statistics(c)?;
+        }
+
+        // TODO: persist changes
+
+        Ok(())
+    }
 
     pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
 

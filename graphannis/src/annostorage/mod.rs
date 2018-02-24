@@ -236,7 +236,7 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         };
 
         let mut universe_size: usize = 0;
-        let mut sum_histogram_buckest: usize = 0;
+        let mut sum_histogram_buckets: usize = 0;
         let mut count_matches: usize = 0;
 
         // guess for each fully qualified annotation key and return the sum of all guesses
@@ -250,7 +250,7 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
 
                 // we need to make sure the histogram is not empty -> should have at least two bounds
                 if histo.len() >= 2 {
-                    sum_histogram_buckest += histo.len() - 1;
+                    sum_histogram_buckets += histo.len() - 1;
 
                     for i in 0..histo.len() - 1 {
                         let bucket_begin = &histo[i];
@@ -266,8 +266,8 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
             }
         }
 
-        if sum_histogram_buckest > 0 {
-            let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckest as f64);
+        if sum_histogram_buckets > 0 {
+            let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
             return (selectivity * (universe_size as f64)).round() as usize;
         } else {
             return 0;
@@ -331,12 +331,19 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
 
             // sample a maximal number of annotation values
             let mut rng = rand::thread_rng();
-            let sampled_anno_values: Vec<StringID> = self.by_anno
+            let sampled_anno_values: Vec<&String> = self.by_anno
                 .range(min_anno..max_anno)
                 .flat_map(|a| {
-                    // repeat value corresponding to the number of nodes with this annotation
-                    let v = vec![a.0.val; a.1.len()];
+                    let s = string_storage.str(a.0.val);
+                    let v = if let Some(s) = s {
+                        // repeat value corresponding to the number of nodes with this annotation
+                        vec![s; a.1.len()]
+                        
+                    } else {
+                        vec![]
+                    };
                     v.into_iter()
+                    
                 })
                 .collect();
             let sampled_anno_indexes: HashSet<usize> = rand::seq::sample_indices(
@@ -346,7 +353,7 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
             ).into_iter()
                 .collect();
 
-            let mut sampled_anno_values: Vec<StringID> = sampled_anno_values
+            let mut sampled_anno_values: Vec<&String> = sampled_anno_values
                 .into_iter()
                 .enumerate()
                 .filter(|x| sampled_anno_indexes.contains(&x.0))
@@ -370,11 +377,7 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
                 let mut pos = 0;
                 let mut pos_fraction = 0;
                 for i in 0..num_hist_bounds {
-                    let val_raw: StringID = sampled_anno_values[pos];
-                    hist[i] = string_storage
-                        .str(val_raw)
-                        .unwrap_or(&String::from(""))
-                        .clone();
+                    hist[i] = sampled_anno_values[pos].clone();
                     pos += delta;
                     pos_fraction += delta_fraction;
 
