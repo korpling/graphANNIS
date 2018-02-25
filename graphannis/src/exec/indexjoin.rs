@@ -13,7 +13,7 @@ use std::rc::Rc;
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
-    rhs_candidate: std::vec::IntoIter<Match>,
+    rhs_candidate: Option<std::vec::IntoIter<Match>>,
     op: Box<Operator + 'a>,
     lhs_idx: usize,
     node_search_desc: Rc<NodeSearchDesc>,
@@ -112,19 +112,8 @@ impl<'a> IndexJoin<'a> {
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
         // TODO, we
-        let mut lhs_peek = lhs.peekable();
-        let initial_candidates: Vec<Match> = if let Some(m_lhs) = lhs_peek.peek() {
-            next_candidates(
-                op.as_ref(),
-                &m_lhs,
-                lhs_idx.clone(),
-                &node_search_desc.qname,
-                &db.node_annos,
-            )
-        } else {
-            vec![]
-        };
-
+        let lhs_peek = lhs.peekable();
+        
         let processed_func = |est_type: EstimationType, out_lhs: usize, out_rhs: usize| {
             match est_type {
                 EstimationType::SELECTIVITY(op_sel) => {
@@ -163,7 +152,7 @@ impl<'a> IndexJoin<'a> {
             op,
             node_search_desc,
             db,
-            rhs_candidate: initial_candidates.into_iter(),
+            rhs_candidate: None,
         };
     }
 }
@@ -182,9 +171,31 @@ impl<'a> Iterator for IndexJoin<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
+
+        // lazily initialize the RHS candidates for the first LHS
+        if self.rhs_candidate.is_none() {
+            self.rhs_candidate = Some(if let Some(m_lhs) = self.lhs.peek() {
+                next_candidates(
+                    self.op.as_ref(),
+                    &m_lhs,
+                    self.lhs_idx.clone(),
+                    &self.node_search_desc.qname,
+                    &self.db.node_annos,
+                ).into_iter()
+            } else {
+                vec![].into_iter()
+            });
+        }
+
+        if self.rhs_candidate.is_none() {
+            return None; 
+        }
+    
+
+
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
-                while let Some(m_rhs) = self.rhs_candidate.next() {
+                while let Some(m_rhs) = self.rhs_candidate.as_mut().unwrap().next() {
                     if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
                         || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
                     {
@@ -220,7 +231,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                     &self.node_search_desc.qname,
                     &self.db.node_annos,
                 );
-                self.rhs_candidate = candidates.into_iter();
+                self.rhs_candidate = Some(candidates.into_iter());
             }
         }
     }
