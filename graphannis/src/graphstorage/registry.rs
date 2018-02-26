@@ -45,6 +45,16 @@ pub fn create_writeable() -> AdjacencyListStorage {
     AdjacencyListStorage::new()
 }
 
+pub fn create_from_type(impl_type : ImplTypes) -> Arc<GraphStorage> {
+    match impl_type {
+        ImplTypes::AdjacencyListV1 => Arc::new(AdjacencyListStorage::new()),
+        ImplTypes::PrePostOrderO32L32V1 => Arc::new(PrePostOrderStorage::<u32,u32>::new()),
+        ImplTypes::PrePostOrderO32L8V1 => Arc::new(PrePostOrderStorage::<u32,u8>::new()),
+        ImplTypes::PrePostOrderO16L32V1 => Arc::new(PrePostOrderStorage::<u16,u32>::new()),
+        ImplTypes::PrePostOrderO16L8V1 => Arc::new(PrePostOrderStorage::<u16,u8>::new()),
+    }
+}
+
 fn get_prepostorder_by_size(stats : &GraphStatistic) -> ImplTypes {
     if stats.rooted_tree {
         // There are exactly two order values per node and there can be only one order value per node
