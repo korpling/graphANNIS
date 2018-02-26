@@ -46,9 +46,10 @@ pub trait GraphStorage : Sync + Send  {
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge>;
 
-    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
     fn as_any(&self) -> &Any;
 
+    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
+    
     fn get_statistics(&self) -> Option<&GraphStatistic> {None}
 
     fn calculate_statistics(&mut self, _string_storage : &StringStorage) {}
@@ -65,4 +66,5 @@ pub trait WriteableGraphStorage:  GraphStorage {
 }
 
 pub mod adjacencylist;
+pub mod prepost;
 pub mod registry;
