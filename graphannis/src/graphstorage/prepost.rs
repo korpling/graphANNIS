@@ -14,9 +14,9 @@ use {NodeID, Edge, Annotation, AnnoKey, Match};
 use super::GraphStorage;
 use annostorage::AnnoStorage;
 use graphdb::GraphDB;
+use dfs::{CycleSafeDFS, DFSStep};
 
-
-#[derive(PartialOrd, PartialEq, Ord,Eq)]
+#[derive(PartialOrd, PartialEq, Ord,Eq,Clone)]
 pub struct PrePost<OrderT,LevelT> {
     pub pre : OrderT,
     pub post : OrderT,
@@ -40,7 +40,7 @@ struct NodeStackEntry<OrderT, LevelT>
 
 impl<OrderT, LevelT>  PrePostOrderStorage<OrderT,LevelT> 
 where OrderT : Num + Ord + AddAssign + Clone, 
-    LevelT : Num + Ord {
+    LevelT : Num + Ord + Clone {
 
     pub fn new() -> PrePostOrderStorage<OrderT, LevelT> {
         PrePostOrderStorage {
@@ -56,7 +56,7 @@ where OrderT : Num + Ord + AddAssign + Clone,
     }
 
 
-    fn enter_node(&mut self, current_order : &mut OrderT, node_id : &NodeID, level : LevelT, node_stack : &mut NStack<OrderT,LevelT>) {
+    fn enter_node(current_order : &mut OrderT, node_id : &NodeID, level : LevelT, node_stack : &mut NStack<OrderT,LevelT>) {
         let new_entry = NodeStackEntry {
             id: node_id.clone(),
             order : PrePost {
@@ -68,6 +68,19 @@ where OrderT : Num + Ord + AddAssign + Clone,
         current_order.add_assign(OrderT::one());
         node_stack.push_front(new_entry);
     }
+
+    fn exit_node(&mut self, current_order : &mut OrderT, node_stack : &mut NStack<OrderT,LevelT>) {
+         // find the correct pre/post entry and update the post-value
+        if let Some(entry) = node_stack.front_mut() {
+            entry.order.post = current_order.clone();
+            current_order.add_assign(OrderT::one());
+
+            self.node_to_order.insert(entry.id, entry.order.clone());
+            self.order_to_node.insert(entry.order.clone(), entry.id);
+
+        }
+        node_stack.pop_front();
+    }
 }
 
 type NStack<OrderT,LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT,LevelT>>;
@@ -75,7 +88,7 @@ type NStack<OrderT,LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT,
 
 impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
 where OrderT : Send + Sync + Ord + Num + AddAssign + Clone, 
-    LevelT : Send + Sync + Ord + Num  {
+    LevelT : Send + Sync + Ord + Num + Clone {
 
 
 
@@ -151,7 +164,17 @@ where OrderT : Send + Sync + Ord + Num + AddAssign + Clone,
 
             let mut node_stack : NStack<OrderT,LevelT> = NStack::new();
           
-            self.enter_node(&mut current_order, start_node, LevelT::zero(), &mut node_stack);
+            PrePostOrderStorage::enter_node(&mut current_order, start_node, LevelT::zero(), &mut node_stack);
+
+            let dfs = CycleSafeDFS::new(self, start_node, 1, usize::max_value());
+            for step in dfs {
+                let step : DFSStep = step;
+                if step.distance > last_distance {
+                    // first visited, set pre-order
+//                    PrePostOrderStorage::enter_node(&mut current_order, start_node, step.distance, &mut node_stack);
+
+                }
+            }
         }
         unimplemented!()
     }

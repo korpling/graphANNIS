@@ -2,7 +2,7 @@ use super::*;
 use annostorage::AnnoStorage;
 use stringstorage::StringStorage;
 use Edge;
-use dfs::CycleSafeDFS;
+use dfs::{CycleSafeDFS,DFSStep};
 
 use std::collections::BTreeSet;
 use std::collections::HashSet;
@@ -55,22 +55,22 @@ impl GraphStorage for AdjacencyListStorage {
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         let mut visited = HashSet::<NodeID>::new();
         let it = CycleSafeDFS::<'a>::new(self, source, min_distance, max_distance)
-            .map(|x| {x.0})
+            .map(|x| {x.node})
             .filter(move |n| visited.insert(n.clone()));
         Box::new(it)
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
         let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
-        .filter(|x| *target == x.0 )
-        .map(|x| x.1);
+        .filter(|x| *target == x.node )
+        .map(|x| x.distance);
 
         return it.next();
 
     }
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
         let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
-        .filter(|x| *target == x.0 );
+        .filter(|x| *target == x.node );
         
         return it.next().is_some();
     }
@@ -176,9 +176,9 @@ impl GraphStorage for AdjacencyListStorage {
         } else {
             for root_node in roots.iter() {
                 let mut dfs = CycleSafeDFS::new(self, &root_node, 0, usize::max_value());
-                while let Some((_, depth)) = dfs.next() {
+                while let Some(step) = dfs.next() {
                     number_of_visits += 1;
-                    stats.max_depth = std::cmp::max(stats.max_depth, depth);
+                    stats.max_depth = std::cmp::max(stats.max_depth, step.distance);
                 }
                 if dfs.is_cyclic() {
                     stats.cyclic = true;

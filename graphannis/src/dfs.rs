@@ -14,6 +14,11 @@ pub struct CycleSafeDFS<'a> {
     cycle_detected : bool,
 }
 
+pub struct DFSStep {
+    pub node : NodeID,
+    pub distance : usize,
+}
+
 impl<'a> CycleSafeDFS<'a> {
     pub fn new(container : &'a GraphStorage, node: &NodeID, min_distance: usize, max_distance: usize) -> CycleSafeDFS<'a> {
         let mut stack = vec![];
@@ -82,14 +87,14 @@ impl<'a> CycleSafeDFS<'a> {
 }
 
 impl<'a> Iterator for CycleSafeDFS<'a> {
-    type Item = (NodeID, usize);
+    type Item = DFSStep;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut result: Option<(NodeID, usize)> = None;
+        let mut result: Option<DFSStep> = None;
         while result.is_none() && !self.stack.is_empty() {
             let top = self.stack.last().unwrap().clone();
             if self.enter_node(top) {
-                result = Some(top);
+                result = Some(DFSStep{node: top.0, distance: top.1});
             }
         }
 
