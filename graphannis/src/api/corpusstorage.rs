@@ -330,7 +330,7 @@ impl CorpusStorage {
 
         db.node_annos.calculate_statistics(&db.strings);
         for c in db.get_all_components(None, None).into_iter() {
-            db.calculate_component_statistics(c)?;
+            db.calculate_component_statistics(&c)?;
         }
 
         // TODO: persist changes

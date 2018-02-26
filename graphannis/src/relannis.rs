@@ -112,8 +112,10 @@ pub fn load(path: &Path) -> Result<GraphDB> {
 
         for c in db.get_all_components(None, None) {
             info!("calculating statistics for component {}", c);
-            db.calculate_component_statistics(c)?;
+            db.calculate_component_statistics(&c)?;
+            db.optimize_impl(&c);
         }
+
 
         info!("finished loading relANNIS from {}", path.to_string_lossy());
 

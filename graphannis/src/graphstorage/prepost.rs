@@ -6,7 +6,6 @@ use std::any::Any;
 use std::cmp::Ord;
 use std::ops::AddAssign;
 use std::clone::Clone;
-use std::convert::From;
 use std;
 
 use num::{Num,FromPrimitive, Bounded, ToPrimitive};

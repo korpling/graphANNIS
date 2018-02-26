@@ -17,7 +17,7 @@ pub enum RegistryError {
     Other,
 }
 
-#[derive(ToString, EnumString,PartialEq)]
+#[derive(ToString, Clone, EnumString,PartialEq)]
 pub enum ImplTypes {
     AdjacencyListV1,
     PrePostOrderO32L32V1,
@@ -132,15 +132,15 @@ pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<G
 
 pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
     let data :&Any = data.as_any();
-    if let Some(gs) = data.downcast_ref::<AdjacencyListStorage>() {
+    if let Some(_) = data.downcast_ref::<AdjacencyListStorage>() {
         return Ok(ImplTypes::AdjacencyListV1);
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u32>>() {
+    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u32,u32>>() {
         return Ok(ImplTypes::PrePostOrderO32L32V1);
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u8>>() {
+    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u32,u8>>() {
         return Ok(ImplTypes::PrePostOrderO32L8V1);
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u32>>() {
+    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u16,u32>>() {
         return Ok(ImplTypes::PrePostOrderO16L32V1);
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u8>>() {
+    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u16,u8>>() {
         return Ok(ImplTypes::PrePostOrderO16L8V1);
     }
     return Err(RegistryError::TypeNotFound);

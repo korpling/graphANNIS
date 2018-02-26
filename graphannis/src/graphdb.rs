@@ -1,6 +1,6 @@
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
-use graphstorage::{GraphStorage, WriteableGraphStorage, GraphStatistic};
+use graphstorage::{GraphStorage, WriteableGraphStorage};
 use {Component, ComponentType, Edge, NodeID, StringID};
 use AnnoKey;
 use graphstorage::registry;
@@ -325,9 +325,9 @@ impl GraphDB {
         return Ok(());
     }
 
-    pub fn calculate_component_statistics(&mut self, c: Component) -> Result<(), Error> {
+    pub fn calculate_component_statistics(&mut self, c: &Component) -> Result<(), Error> {
         let mut result : Result<(), Error> = Ok(());
-        let mut entry = self.components.remove(&c).ok_or(Error::MissingComponent)?;
+        let mut entry = self.components.remove(c).ok_or(Error::MissingComponent)?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 gs_mut.calculate_statistics(&self.strings);
@@ -336,7 +336,7 @@ impl GraphDB {
             }
         }
         // re-insert component entry
-        self.components.insert(c, entry);
+        self.components.insert(c.clone(), entry);
         return result;
         
     }
@@ -397,7 +397,7 @@ impl GraphDB {
                 
                 // convert if necessary
                 if existing_type.is_err() || opt_type == existing_type.unwrap() {
-                    let mut new_gs = registry::create_from_type(opt_type);
+                    let mut new_gs = registry::create_from_type(opt_type.clone());
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
                         new_gs_mut.copy(self, gs.as_ref());
                         true
@@ -406,6 +406,7 @@ impl GraphDB {
                     };
                     if converted {
                         // insert into components map
+                        info!("Converted component {} to implementation {}", c, opt_type.to_string());
                         self.components.insert(c.clone(), Some(new_gs.clone()));
                     }
                 }

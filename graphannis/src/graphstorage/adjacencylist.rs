@@ -2,7 +2,7 @@ use super::*;
 use annostorage::AnnoStorage;
 use stringstorage::StringStorage;
 use Edge;
-use dfs::{CycleSafeDFS,DFSStep};
+use dfs::{CycleSafeDFS};
 
 use std::collections::BTreeSet;
 use std::collections::HashSet;
