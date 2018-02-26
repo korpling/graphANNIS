@@ -1,5 +1,6 @@
 use graphstorage::{GraphStorage};
 use super::adjacencylist::AdjacencyListStorage;
+use super::prepost::PrePostOrderStorage;
 use std;
 use std::sync::Arc;
 use bincode;
@@ -19,6 +20,10 @@ pub enum RegistryError {
 #[derive(ToString, EnumString)]
 pub enum ImplTypes {
     AdjacencyListV1,
+    PrePostOrderO32L32V1,
+    PrePostOrderO32L8V1,
+    PrePostOrderO16L32V1,
+    PrePostOrderO16L8V1,
 }
 
 impl From<Box<bincode::ErrorKind>> for RegistryError {
@@ -48,15 +53,43 @@ pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<G
         ImplTypes::AdjacencyListV1 => {
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input, bincode::Infinite)?;
             Ok(Arc::new(gs))
+        },
+        ImplTypes::PrePostOrderO32L32V1 => {
+            let gs : PrePostOrderStorage<u32,u32> = bincode::deserialize_from(input, bincode::Infinite)?;
+            Ok(Arc::new(gs))
+        },
+        ImplTypes::PrePostOrderO32L8V1 => {
+            let gs : PrePostOrderStorage<u32,u8> = bincode::deserialize_from(input, bincode::Infinite)?;
+            Ok(Arc::new(gs))
+        },
+        ImplTypes::PrePostOrderO16L32V1 => {
+            let gs : PrePostOrderStorage<u16,u32> = bincode::deserialize_from(input, bincode::Infinite)?;
+            Ok(Arc::new(gs))
+        },
+        ImplTypes::PrePostOrderO16L8V1 => {
+            let gs : PrePostOrderStorage<u16,u8> = bincode::deserialize_from(input, bincode::Infinite)?;
+            Ok(Arc::new(gs))
         }
     }
 }
 
 pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
     let data :&Any = data.as_any();
-    if let Some(adja) = data.downcast_ref::<AdjacencyListStorage>() {
-        bincode::serialize_into(writer, adja, bincode::Infinite)?;
+    if let Some(gs) = data.downcast_ref::<AdjacencyListStorage>() {
+        bincode::serialize_into(writer, gs, bincode::Infinite)?;
         return Ok(ImplTypes::AdjacencyListV1.to_string());
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u32>>() {
+        bincode::serialize_into(writer, gs, bincode::Infinite)?;
+        return Ok(ImplTypes::PrePostOrderO32L32V1.to_string());
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u8>>() {
+        bincode::serialize_into(writer, gs, bincode::Infinite)?;
+        return Ok(ImplTypes::PrePostOrderO32L8V1.to_string());
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u32>>() {
+        bincode::serialize_into(writer, gs, bincode::Infinite)?;
+        return Ok(ImplTypes::PrePostOrderO16L32V1.to_string());
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u8>>() {
+        bincode::serialize_into(writer, gs, bincode::Infinite)?;
+        return Ok(ImplTypes::PrePostOrderO16L8V1.to_string());
     }
     return Err(RegistryError::TypeNotFound);
 }

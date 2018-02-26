@@ -17,14 +17,24 @@ use annostorage::AnnoStorage;
 use graphdb::{GraphDB};
 use dfs::{CycleSafeDFS, DFSStep};
 
-#[derive(PartialOrd, PartialEq, Ord,Eq,Clone)]
+#[derive(PartialOrd, PartialEq, Ord,Eq,Clone,Serialize, Deserialize)]
 pub struct PrePost<OrderT,LevelT> {
     pub pre : OrderT,
     pub post : OrderT,
     pub level : LevelT,
 }
 
-pub struct PrePostOrderStorage<OrderT, LevelT> {
+pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive {
+
+}
+
+impl NumValue for u64 {}
+impl NumValue for u32 {}
+impl NumValue for u16 {}
+impl NumValue for u8 {}
+
+#[derive(Serialize, Deserialize,Clone)]
+pub struct PrePostOrderStorage<OrderT : NumValue, LevelT : NumValue> {
     //type PrePostSpec = PrePost<OrderT, LevelT>;
 
     node_to_order : MultiMap<NodeID, PrePost<OrderT,LevelT>>,
@@ -39,9 +49,6 @@ struct NodeStackEntry<OrderT, LevelT>
   pub order : PrePost<OrderT,LevelT>,
 }
 
-pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive + From<usize> {
-
-}
 
 
 impl<OrderT, LevelT>  PrePostOrderStorage<OrderT,LevelT> 
