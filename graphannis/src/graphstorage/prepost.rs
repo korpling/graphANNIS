@@ -134,13 +134,14 @@ where OrderT : NumValue,
                         post: OrderT::max_value(),
                         level: LevelT::max_value(),
                     };
-                    self.order_to_node.range((Included(start_range),Included(end_range)))
-                    .map(move |o| -> OrderIterEntry<OrderT,LevelT> { 
-                        OrderIterEntry{
-                            root: root_order.clone(), 
-                            current: o.0.clone(), 
-                            node: o.1.clone()}
-                    }) 
+                    self.order_to_node
+                        .range((Included(start_range),Included(end_range)))
+                        .map(move |o| -> OrderIterEntry<OrderT,LevelT> { 
+                            OrderIterEntry{
+                                root: root_order.clone(), 
+                                current: o.0.clone(), 
+                                node: o.1.clone()}
+                        }) 
                 })
                 .filter(move |o : &OrderIterEntry<OrderT,LevelT>| {
                     if let (Some(current_level), Some(root_level)) = (o.current.level.to_usize(), o.root.level.to_usize()) {
@@ -160,10 +161,54 @@ where OrderT : NumValue,
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
-        unimplemented!()
+        if source == target {
+            return Some(0);
+        }
+
+        let mut min_level = usize::max_value();
+        let mut was_found = false;
+
+        if let (Some(order_source), Some(order_target)) = (self.node_to_order.get_vec(source),self.node_to_order.get_vec(target)) {
+            for order_source in order_source.iter() {
+                for order_target in order_target.iter() {
+                    if order_source.pre <= order_target.pre && order_target.post <= order_source.post {
+                        // check the level
+                        if let (Some(source_level), Some(target_level)) = (order_source.level.to_usize(), order_target.level.to_usize()) {
+                            if source_level <= target_level {
+                                was_found = true;
+                                min_level = std::cmp::min(target_level - source_level, min_level);
+                            }
+                        }
+                    }
+                }
+            }            
+        }
+
+        if was_found {
+            return Some(min_level);
+        } else {
+            return None;
+        }
     }
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
-        unimplemented!()
+        
+        if let (Some(order_source), Some(order_target)) = (self.node_to_order.get_vec(source),self.node_to_order.get_vec(target)) {
+            for order_source in order_source.iter() {
+                for order_target in order_target.iter() {
+                    if order_source.pre <= order_target.pre && order_target.post <= order_source.post {
+                        // check the level
+                        if let (Some(source_level), Some(target_level)) = (order_source.level.to_usize(), order_target.level.to_usize()) {
+                            if source_level <= target_level {
+                                let diff_level = target_level-source_level;
+                                return min_distance <= diff_level && diff_level <= max_distance;
+                            }
+                        }
+                    }
+                }
+            }            
+        }
+
+        return false;
     }
 
     fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
