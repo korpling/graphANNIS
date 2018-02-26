@@ -1,4 +1,4 @@
-use graphstorage::{GraphStorage};
+use graphstorage::{GraphStorage, GraphStatistic};
 use super::adjacencylist::AdjacencyListStorage;
 use super::prepost::PrePostOrderStorage;
 use std;
@@ -17,7 +17,7 @@ pub enum RegistryError {
     Other,
 }
 
-#[derive(ToString, EnumString)]
+#[derive(ToString, EnumString,PartialEq)]
 pub enum ImplTypes {
     AdjacencyListV1,
     PrePostOrderO32L32V1,
@@ -43,6 +43,53 @@ type Result<T> = std::result::Result<T, RegistryError>;
 pub fn create_writeable() -> AdjacencyListStorage {
     // TODO: make this configurable when there are more writeable graph storage implementations
     AdjacencyListStorage::new()
+}
+
+fn get_prepostorder_by_size(stats : &GraphStatistic) -> ImplTypes {
+    if stats.rooted_tree {
+        // There are exactly two order values per node and there can be only one order value per node
+        // in a tree.
+        if stats.nodes < (u16::max_value() / 2) as usize {
+            if stats.max_depth < u8::max_value() as usize {
+                return ImplTypes::PrePostOrderO16L8V1;
+            } else {
+                return ImplTypes::PrePostOrderO16L32V1;
+            }
+        } else if stats.nodes < (u32::max_value() / 2) as usize {
+            if stats.max_depth < u8::max_value() as usize {
+                return ImplTypes::PrePostOrderO32L8V1;
+            } else {
+                return ImplTypes::PrePostOrderO32L32V1;
+            }
+        }
+    } else {
+        if stats.max_depth < u8::max_value() as usize {
+            return ImplTypes::PrePostOrderO32L8V1;
+        }
+    }
+    return ImplTypes::PrePostOrderO32L32V1;
+}
+
+pub fn get_optimal_impl_heuristic(stats : &GraphStatistic) -> ImplTypes {
+
+    if stats.max_depth <= 1 {
+        // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
+        return ImplTypes::AdjacencyListV1;
+    } else if stats.rooted_tree {
+        // TODO: linear tree
+        return get_prepostorder_by_size(stats);
+    } else if !stats.cyclic {
+        // it might be still wise to use pre/post order if the graph is "almost" a tree, thus
+        // does not have many exceptions
+        if stats.dfs_visit_ratio <= 1.03 {
+            // there is no more than 3% overhead
+            // TODO: how to determine the border?
+            return get_prepostorder_by_size(stats);
+        }
+    }
+
+    // fallback
+    return ImplTypes::AdjacencyListV1;
 }
 
 pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<GraphStorage>> {
@@ -71,6 +118,22 @@ pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<G
             Ok(Arc::new(gs))
         }
     }
+}
+
+pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
+    let data :&Any = data.as_any();
+    if let Some(gs) = data.downcast_ref::<AdjacencyListStorage>() {
+        return Ok(ImplTypes::AdjacencyListV1);
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u32>>() {
+        return Ok(ImplTypes::PrePostOrderO32L32V1);
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u8>>() {
+        return Ok(ImplTypes::PrePostOrderO32L8V1);
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u32>>() {
+        return Ok(ImplTypes::PrePostOrderO16L32V1);
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u8>>() {
+        return Ok(ImplTypes::PrePostOrderO16L8V1);
+    }
+    return Err(RegistryError::TypeNotFound);
 }
 
 pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {

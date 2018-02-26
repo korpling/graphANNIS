@@ -1,6 +1,6 @@
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
-use graphstorage::{GraphStorage, WriteableGraphStorage};
+use graphstorage::{GraphStorage, WriteableGraphStorage, GraphStatistic};
 use {Component, ComponentType, Edge, NodeID, StringID};
 use AnnoKey;
 use graphstorage::registry;
@@ -386,6 +386,23 @@ impl GraphDB {
             self.components.insert(c.clone(), Some(loaded));
         }
         return Ok(());
+    }
+
+    pub fn optimize_impl(&mut self, c: &Component) {
+        if let Some(gs) = self.get_graphstorage(c) {
+            let existing_type = registry::get_type(gs.clone());
+
+            if let Some(stats) = gs.get_statistics() {
+                let opt_type = registry::get_optimal_impl_heuristic(stats);
+                
+                // TODO convert if necessary
+                if existing_type.is_err() || opt_type == existing_type.unwrap() {
+
+                }
+
+
+            }
+        }
     }
 
     pub fn get_graphstorage(&self, c: &Component) -> Option<Arc<GraphStorage>> {
