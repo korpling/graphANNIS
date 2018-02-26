@@ -75,7 +75,7 @@ impl GraphStorage for AdjacencyListStorage {
         return it.next().is_some();
     }
 
-    fn copy(&mut self, _other : &GraphStorage) {
+    fn copy(&mut self, _db : &GraphDB, _other : &GraphStorage) {
         unimplemented!();
     }
 

@@ -3,6 +3,7 @@ use std::any::Any;
 use {AnnoKey, Annotation, Edge, NodeID};
 use annostorage::AnnoStorage;
 use stringstorage::StringStorage;
+use graphdb::GraphDB;
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone)]
@@ -42,7 +43,7 @@ pub trait GraphStorage : Sync + Send  {
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize>;
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool;
 
-    fn copy(&mut self, orig : &GraphStorage);
+    fn copy(&mut self, db : &GraphDB, orig : &GraphStorage);
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge>;
 

@@ -315,7 +315,7 @@ impl GraphDB {
                 loaded_comp
             } else {
                 let mut gs_copy = registry::create_writeable();
-                gs_copy.copy(loaded_comp.as_ref());
+                gs_copy.copy(&self, loaded_comp.as_ref());
                 Arc::from(gs_copy)
             };
 
