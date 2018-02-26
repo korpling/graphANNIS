@@ -1,6 +1,7 @@
 use multimap::MultiMap;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
+use std::collections::Bound::*;
 use std::any::Any;
 use std::cmp::Ord;
 use std::ops::AddAssign;
@@ -8,7 +9,7 @@ use std::clone::Clone;
 use std::convert::From;
 use std;
 
-use num::{Num,FromPrimitive};
+use num::{Num,FromPrimitive, Bounded, ToPrimitive};
 
 use {NodeID, Edge, Annotation, AnnoKey, Match};
 use super::{GraphStorage, GraphStatistic};
@@ -38,10 +39,14 @@ struct NodeStackEntry<OrderT, LevelT>
   pub order : PrePost<OrderT,LevelT>,
 }
 
+pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive + From<usize> {
+
+}
+
 
 impl<OrderT, LevelT>  PrePostOrderStorage<OrderT,LevelT> 
-where OrderT : Num + Ord + AddAssign + Clone, 
-    LevelT : Num + Ord + Clone + From<usize> {
+where OrderT : NumValue, 
+    LevelT : NumValue {
 
     pub fn new() -> PrePostOrderStorage<OrderT, LevelT> {
         PrePostOrderStorage {
@@ -87,19 +92,24 @@ where OrderT : Num + Ord + AddAssign + Clone,
 
 type NStack<OrderT,LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT,LevelT>>;
 
+struct OrderIterEntry<OrderT,LevelT> {
+    pub root : PrePost<OrderT,LevelT>,
+    pub current: PrePost<OrderT,LevelT>,
+    pub node: NodeID, 
+}
 
 impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
-where OrderT : Send + Sync + Ord + Num + AddAssign + Clone, 
-    LevelT : Send + Sync + Ord + Num + Clone + FromPrimitive + From<usize> {
+where OrderT : NumValue, 
+    LevelT : NumValue {
 
 
 
     fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        unimplemented!()
+        return self.find_connected(source, 1, 1);
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
-        unimplemented!()
+        return self.annos.get_all(edge);
     }
     
     fn find_connected<'a>(
@@ -108,7 +118,45 @@ where OrderT : Send + Sync + Ord + Num + AddAssign + Clone,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        unimplemented!()
+        
+        if let Some(start_orders) = self.node_to_order.get_vec(source) {
+            let mut visited = HashSet::<NodeID>::new();
+        
+            let it = start_orders.into_iter()
+                .flat_map(move |root_order : &PrePost<OrderT, LevelT>| {
+                    let start_range : PrePost<OrderT,LevelT> = PrePost {
+                        pre: root_order.pre.clone(),
+                        post: OrderT::zero(),
+                        level: LevelT::zero(),
+                    };
+                    let end_range : PrePost<OrderT,LevelT> = PrePost {
+                        pre: root_order.post.clone(),
+                        post: OrderT::max_value(),
+                        level: LevelT::max_value(),
+                    };
+                    self.order_to_node.range((Included(start_range),Included(end_range)))
+                    .map(move |o| -> OrderIterEntry<OrderT,LevelT> { 
+                        OrderIterEntry{
+                            root: root_order.clone(), 
+                            current: o.0.clone(), 
+                            node: o.1.clone()}
+                    }) 
+                })
+                .filter(move |o : &OrderIterEntry<OrderT,LevelT>| {
+                    if let (Some(current_level), Some(root_level)) = (o.current.level.to_usize(), o.root.level.to_usize()) {
+                        let diff_level = current_level - root_level;
+                        return o.current.post <= o.root.post 
+                            && min_distance <= diff_level && diff_level <= max_distance;
+                    } else {
+                        return false;
+                    }
+                })
+                .map(|o : OrderIterEntry<OrderT,LevelT>| o.node)
+                .filter(move |n| visited.insert(n.clone()));
+            return Box::new(it);
+        } else {
+            return Box::new(std::iter::empty());
+        }
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
@@ -204,9 +252,11 @@ where OrderT : Send + Sync + Ord + Num + AddAssign + Clone,
 
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
-        unimplemented!()
+        &self.annos
     }
 
     fn as_any(&self) -> &Any {self}
+
+    fn get_statistics(&self) -> Option<&GraphStatistic> {self.stats.as_ref()}
 
 }
