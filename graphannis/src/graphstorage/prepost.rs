@@ -4,16 +4,16 @@ use std::collections::HashSet;
 use std::any::Any;
 use std::cmp::Ord;
 use std::ops::AddAssign;
-use std::default::Default;
 use std::clone::Clone;
+use std::convert::From;
 use std;
 
-use num::Num;
+use num::{Num,FromPrimitive};
 
 use {NodeID, Edge, Annotation, AnnoKey, Match};
-use super::GraphStorage;
+use super::{GraphStorage, GraphStatistic};
 use annostorage::AnnoStorage;
-use graphdb::GraphDB;
+use graphdb::{GraphDB};
 use dfs::{CycleSafeDFS, DFSStep};
 
 #[derive(PartialOrd, PartialEq, Ord,Eq,Clone)]
@@ -29,6 +29,7 @@ pub struct PrePostOrderStorage<OrderT, LevelT> {
     node_to_order : MultiMap<NodeID, PrePost<OrderT,LevelT>>,
     order_to_node : BTreeMap<PrePost<OrderT,LevelT>,NodeID>,
     annos: AnnoStorage<Edge>,
+    stats : Option<GraphStatistic>,
 }
 
 struct NodeStackEntry<OrderT, LevelT>
@@ -40,13 +41,14 @@ struct NodeStackEntry<OrderT, LevelT>
 
 impl<OrderT, LevelT>  PrePostOrderStorage<OrderT,LevelT> 
 where OrderT : Num + Ord + AddAssign + Clone, 
-    LevelT : Num + Ord + Clone {
+    LevelT : Num + Ord + Clone + From<usize> {
 
     pub fn new() -> PrePostOrderStorage<OrderT, LevelT> {
         PrePostOrderStorage {
             node_to_order: MultiMap::new(),
             order_to_node: BTreeMap::new(),
             annos: AnnoStorage::new(),
+            stats: None,
         }
     }
 
@@ -88,7 +90,7 @@ type NStack<OrderT,LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT,
 
 impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
 where OrderT : Send + Sync + Ord + Num + AddAssign + Clone, 
-    LevelT : Send + Sync + Ord + Num + Clone {
+    LevelT : Send + Sync + Ord + Num + Clone + FromPrimitive + From<usize> {
 
 
 
@@ -163,20 +165,41 @@ where OrderT : Send + Sync + Ord + Num + AddAssign + Clone,
             let mut last_distance : usize = 0;
 
             let mut node_stack : NStack<OrderT,LevelT> = NStack::new();
-          
+
             PrePostOrderStorage::enter_node(&mut current_order, start_node, LevelT::zero(), &mut node_stack);
 
-            let dfs = CycleSafeDFS::new(self, start_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig, start_node, 1, usize::max_value());
             for step in dfs {
                 let step : DFSStep = step;
                 if step.distance > last_distance {
                     // first visited, set pre-order
-//                    PrePostOrderStorage::enter_node(&mut current_order, start_node, step.distance, &mut node_stack);
-
+                    if let Some(dist) = LevelT::from_usize(step.distance) {
+                        PrePostOrderStorage::enter_node(&mut current_order, start_node, dist, &mut node_stack);
+                    }
+                } else {
+                    // Neighbour node, the last subtree was iterated completly, thus the last node
+                    // can be assigned a post-order.
+                    // The parent node must be at the top of the node stack,
+                    // thus exit every node which comes after the parent node.
+                    // Distance starts with 0 but the stack size starts with 1.
+                    while node_stack.len() > step.distance {
+                        self.exit_node(&mut current_order, &mut node_stack);
+                    }
+                    // new node
+                    if let Some(dist) = LevelT::from_usize(step.distance) {
+                        PrePostOrderStorage::enter_node(&mut current_order, &step.node, dist, &mut node_stack);
+                    }
                 }
+                last_distance = step.distance;
+            } // end for each DFS step
+
+            while !node_stack.is_empty() {
+                self.exit_node(&mut current_order,&mut node_stack);
             }
-        }
-        unimplemented!()
+        } // end for each root
+
+        self.stats = orig.get_statistics().cloned();
+        self.annos.calculate_statistics(&db.strings);
     }
 
 
