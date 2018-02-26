@@ -396,7 +396,7 @@ impl GraphDB {
                 let opt_type = registry::get_optimal_impl_heuristic(stats);
                 
                 // convert if necessary
-                if existing_type.is_err() || opt_type == existing_type.unwrap() {
+                if existing_type.is_err() || opt_type != existing_type.unwrap() {
                     let mut new_gs = registry::create_from_type(opt_type.clone());
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
                         new_gs_mut.copy(self, gs.as_ref());

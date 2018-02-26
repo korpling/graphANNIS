@@ -17,7 +17,7 @@ pub enum RegistryError {
     Other,
 }
 
-#[derive(ToString, Clone, EnumString,PartialEq)]
+#[derive(ToString, Debug, Clone, EnumString,PartialEq)]
 pub enum ImplTypes {
     AdjacencyListV1,
     PrePostOrderO32L32V1,
