@@ -34,8 +34,7 @@ impl NumValue for u8 {}
 
 #[derive(Serialize, Deserialize,Clone)]
 pub struct PrePostOrderStorage<OrderT : NumValue, LevelT : NumValue> {
-    //type PrePostSpec = PrePost<OrderT, LevelT>;
-
+    
     node_to_order : MultiMap<NodeID, PrePost<OrderT,LevelT>>,
     order_to_node : BTreeMap<PrePost<OrderT,LevelT>,NodeID>,
     annos: AnnoStorage<Edge>,
@@ -273,7 +272,7 @@ where OrderT : NumValue,
                 if step.distance > last_distance {
                     // first visited, set pre-order
                     if let Some(dist) = LevelT::from_usize(step.distance) {
-                        PrePostOrderStorage::enter_node(&mut current_order, start_node, dist, &mut node_stack);
+                        PrePostOrderStorage::enter_node(&mut current_order, &step.node, dist, &mut node_stack);
                     }
                 } else {
                     // Neighbour node, the last subtree was iterated completly, thus the last node
