@@ -203,13 +203,13 @@ pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Resu
         return Ok(ImplTypes::PrePostOrderO16L8V1.to_string());
     } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u32>>() {
         bincode::serialize_into(writer, gs, bincode::Infinite)?;
-        return Ok(ImplTypes::PrePostOrderO16L8V1.to_string());
+        return Ok(ImplTypes::LinearO32V1.to_string());
     } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u16>>() {
         bincode::serialize_into(writer, gs, bincode::Infinite)?;
-        return Ok(ImplTypes::PrePostOrderO16L8V1.to_string());
+        return Ok(ImplTypes::LinearO16V1.to_string());
     } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u8>>() {
         bincode::serialize_into(writer, gs, bincode::Infinite)?;
-        return Ok(ImplTypes::PrePostOrderO16L8V1.to_string());
+        return Ok(ImplTypes::LinearO8V1.to_string());
     }
     return Err(RegistryError::TypeNotFound);
 }

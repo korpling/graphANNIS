@@ -82,10 +82,16 @@ where PosT : NumValue {
 
         if let Some(start_pos) = self.node_to_pos.get(source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
-                let max_distance = std::cmp::min(chain.len(), max_distance+1);
-                if min_distance >= chain.len()-1 {
-                    // return all entries in the chain between min_distance..max_distance
-                    return Box::new(chain[min_distance..max_distance].iter().cloned());
+                if let Some(offset) = start_pos.pos.to_usize() {
+                    let max_distance = offset + max_distance;
+                    let min_distance = offset + min_distance;
+
+                    // clip to chain length
+                    let max_distance = std::cmp::min(chain.len(), max_distance+1);
+                    if min_distance < chain.len() {
+                        // return all entries in the chain between min_distance..max_distance
+                        return Box::new(chain[min_distance..max_distance].iter().cloned());
+                    }
                 }
             }
         }
