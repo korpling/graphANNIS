@@ -31,10 +31,10 @@ pub struct LinearGraphStorage<PosT : NumValue> {
 
 
 
-impl<OrderT>  LinearGraphStorage<OrderT> 
-where OrderT : NumValue {
+impl<PosT>  LinearGraphStorage<PosT> 
+where PosT : NumValue {
 
-    pub fn new() -> LinearGraphStorage<OrderT> {
+    pub fn new() -> LinearGraphStorage<PosT> {
         LinearGraphStorage {
             node_to_pos : BTreeMap::new(),
             node_chains : BTreeMap::new(),
@@ -53,8 +53,8 @@ where OrderT : NumValue {
 }
 
 
-impl<OrderT: 'static> GraphStorage for  LinearGraphStorage<OrderT> 
-where OrderT : NumValue {
+impl<PosT: 'static> GraphStorage for  LinearGraphStorage<PosT> 
+where PosT : NumValue {
 
 
 
@@ -91,7 +91,68 @@ where OrderT : NumValue {
 
         self.clear();
 
-        unimplemented!();
+        // find all roots of the component
+        let mut roots : HashSet<NodeID> = HashSet::new();
+        let node_name_key : AnnoKey = db.get_node_name_key();
+        let nodes : Box<Iterator<Item = Match>> = 
+            db.node_annos.exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
+
+        // first add all nodes that are a source of an edge as possible roots
+        for m in nodes {
+            let m : Match = m;
+            let n = m.node;
+            // insert all nodes to the root candidate list which are part of this component
+            if orig.get_outgoing_edges(&n).next().is_some() {
+                roots.insert(n);
+            }
+        }
+
+        let nodes : Box<Iterator<Item = Match>> = 
+            db.node_annos.exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
+        for m in nodes {
+            let m : Match = m;
+
+            let source = m.node;
+
+            let out_edges = orig.get_outgoing_edges(&source);
+            for target in out_edges {
+                // remove the nodes that have an incoming edge from the root list
+                roots.remove(&target);
+
+                // add the edge annotations for this edge
+                let e = Edge {source, target};
+                let edge_annos = orig.get_edge_annos(&e);
+                for a in edge_annos.into_iter() {
+                    self.annos.insert(e.clone(), a);
+                }
+            }
+        }
+
+        
+        for root_node in roots.iter() {
+            // iterate over all edges beginning from the root
+            let mut chain : Vec<NodeID> = vec![root_node.clone()];
+            let pos : RelativePosition<PosT> = RelativePosition {
+                root: root_node.clone(), pos: PosT::zero(),
+            };
+            self.node_to_pos.insert(root_node.clone(), pos);
+
+            let dfs = CycleSafeDFS::new(orig, &root_node, 1, usize::max_value());
+            for step in dfs {
+                let step : DFSStep = step;
+
+                if let Some(pos) = PosT::from_usize(chain.len()) {
+                    let pos : RelativePosition<PosT> = RelativePosition {
+                        root: root_node.clone(),
+                        pos: pos,
+                    };
+                    self.node_to_pos.insert(step.node.clone(), pos);
+                }                
+                chain.push(step.node);
+            }
+
+            self.node_chains.insert(root_node.clone(), chain);
+        }
 
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics(&db.strings);
