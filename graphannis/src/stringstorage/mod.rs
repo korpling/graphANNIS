@@ -112,12 +112,6 @@ impl StringStorage {
             }
         }
     }
-
-    pub fn estimate_memory_size(&self) -> usize {
-
-        return ::util::memory_estimation::hash_map_size(&self.by_id) +
-            ::util::memory_estimation::btree_map_size(&self.by_value);
-    }
 }
 
 #[cfg(test)]

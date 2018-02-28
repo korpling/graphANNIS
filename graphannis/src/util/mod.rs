@@ -1,7 +1,5 @@
 pub mod token_helper;
 
-pub mod memory_estimation;
-
 use Annotation;
 
 use std::ffi::{OsStr, OsString};
