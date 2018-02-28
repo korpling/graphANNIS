@@ -1,5 +1,7 @@
+use num::{Num,FromPrimitive, Bounded, ToPrimitive};
 use std::string::String;
 use std::fmt;
+use std::ops::AddAssign;
 use std;
 
 pub type NodeID = u32;
@@ -71,3 +73,11 @@ impl std::fmt::Display for Component {
     }
 }
 
+pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive {
+
+}
+
+impl NumValue for u64 {}
+impl NumValue for u32 {}
+impl NumValue for u16 {}
+impl NumValue for u8 {}

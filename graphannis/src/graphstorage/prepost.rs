@@ -3,14 +3,10 @@ use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::collections::Bound::*;
 use std::any::Any;
-use std::cmp::Ord;
-use std::ops::AddAssign;
 use std::clone::Clone;
 use std;
 
-use num::{Num,FromPrimitive, Bounded, ToPrimitive};
-
-use {NodeID, Edge, Annotation, AnnoKey, Match};
+use {NodeID, Edge, Annotation, AnnoKey, Match, NumValue};
 use super::{GraphStorage, GraphStatistic};
 use annostorage::AnnoStorage;
 use graphdb::{GraphDB};
@@ -22,15 +18,6 @@ pub struct PrePost<OrderT,LevelT> {
     pub post : OrderT,
     pub level : LevelT,
 }
-
-pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive {
-
-}
-
-impl NumValue for u64 {}
-impl NumValue for u32 {}
-impl NumValue for u16 {}
-impl NumValue for u8 {}
 
 #[derive(Serialize, Deserialize,Clone)]
 pub struct PrePostOrderStorage<OrderT : NumValue, LevelT : NumValue> {
@@ -65,6 +52,8 @@ where OrderT : NumValue,
     pub fn clear(&mut self) {
         self.node_to_order.clear();
         self.order_to_node.clear();
+        self.annos.clear();
+        self.stats = None;
     }
 
 

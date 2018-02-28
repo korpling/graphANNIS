@@ -68,4 +68,5 @@ pub trait WriteableGraphStorage:  GraphStorage {
 
 pub mod adjacencylist;
 pub mod prepost;
+pub mod linear;
 pub mod registry;
