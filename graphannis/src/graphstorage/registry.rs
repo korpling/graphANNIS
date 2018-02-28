@@ -90,7 +90,7 @@ fn get_prepostorder_by_size(stats : &GraphStatistic) -> ImplTypes {
 fn get_linear_by_size(stats : &GraphStatistic) -> ImplTypes {
     if stats.max_depth < u8::max_value() as usize {
         return ImplTypes::LinearO8V1;
-    } else if stats.max_depth < u8::max_value() as usize {
+    } else if stats.max_depth < u16::max_value() as usize {
         return ImplTypes::LinearO16V1;
     }else {
         return ImplTypes::LinearO32V1;

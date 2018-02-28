@@ -98,7 +98,7 @@ impl GraphStorage for AdjacencyListStorage {
             avg_fan_out: 0.0,
             fan_out_99_percentile: 0,
             cyclic: false,
-            rooted_tree : false,
+            rooted_tree : true,
             nodes: 0,
             dfs_visit_ratio: 0.0,
         };
