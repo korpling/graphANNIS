@@ -173,9 +173,10 @@ impl AnnisRunner {
     }
 
     fn list(&self) {
-        let corpora = self.storage.list();
-        for c in corpora {
-            println!("{}", c);
+        if let Ok(corpora) = self.storage.list() {
+            for c in corpora {
+                println!("{} ({:?})", c.name, c.load_status);
+            }
         }
     }
 
@@ -183,12 +184,14 @@ impl AnnisRunner {
         if args.is_empty() {
             self.current_corpus = None;
         } else {
-            let corpora = BTreeSet::from_iter(self.storage.list().into_iter());
-            let selected = String::from(args);
-            if corpora.contains(&selected) {
-                self.current_corpus = Some(String::from(args));
-            } else {
-                println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
+            if let Ok(corpora) = self.storage.list() {
+                let corpora = BTreeSet::from_iter(corpora.into_iter().map(|c| c.name));
+                let selected = String::from(args);
+                if corpora.contains(&selected) {
+                    self.current_corpus = Some(String::from(args));
+                } else {
+                    println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
+                }
             }
         }
     }

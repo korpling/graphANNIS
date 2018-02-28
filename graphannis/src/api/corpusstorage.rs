@@ -65,7 +65,19 @@ impl From<std::ffi::OsString> for Error {
     }
 }
 
+#[derive(Debug)]
+pub enum LoadStatus {
+    NotLoaded,
+    PartiallyLoaded,
+    FullyLoaded,
+}
 
+pub struct CorpusInfo {
+    pub name : String,
+    pub load_status: LoadStatus,
+    pub memory_size : usize,
+
+}
 
 pub struct CorpusStorage {
     db_dir: PathBuf,
@@ -122,11 +134,44 @@ impl CorpusStorage {
         Ok(corpora)
     }
 
-    pub fn list(&self) -> Vec<String> {
-        let result: Vec<String> = self.list_from_disk().unwrap_or_default();
-        return result;
-    }
+    pub fn list(&self) -> Result<Vec<CorpusInfo>, Error> {
+        let names: Vec<String> = self.list_from_disk().unwrap_or_default();
+        let mut result : Vec<CorpusInfo> = vec![];
 
+        for n in names {
+            let cache_entry = self.get_entry(&n)?;
+            let lock = cache_entry.read().unwrap();
+            let corpus_info : CorpusInfo = match &*lock {
+                &CacheEntry::Loaded(ref db) => {
+                    // check if all components are loaded
+                    let mut load_status = LoadStatus::FullyLoaded;
+
+                    for c in db.get_all_components(None, None) {
+                        if !db.is_loaded(&c) {
+                            load_status = LoadStatus::PartiallyLoaded;
+                            break;
+                        }
+                    }
+                    
+                    CorpusInfo {
+                        name: n.clone(),
+                        load_status,
+                        memory_size: 0,
+                    }
+                },
+                &CacheEntry::NotLoaded => {
+                    CorpusInfo {
+                        name: n.clone(),
+                        load_status: LoadStatus::NotLoaded,
+                        memory_size: 0,
+                    }
+                },
+            };
+            result.push(corpus_info);
+        }
+
+        return Ok(result);
+    }
 
     fn get_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>, Error> {
         let corpus_name = corpus_name.to_string();

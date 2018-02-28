@@ -57,19 +57,21 @@ fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
     let cs = get_corpus_storage();
 
     if let Some(cs) = cs {
-        let corpora : HashSet<String> = cs.list().into_iter().collect();
-        // ignore of corpus does not exist
-        if corpora.contains(corpus) {
-            let mut d = get_query_dir();
-            d.push(query_set);
-            for def in util::get_queries_from_folder(&d, panic_on_invalid) {
-                let count = cs.count(corpus, &def.json).unwrap_or(0);
-                assert_eq!(
-                    def.count, count,
-                    "Query '{}' ({}) on corpus {} should have had count {} but was {}.",
-                    def.aql, def.name, corpus, def.count, count
-                );
-                    
+        if let Ok(corpora) = cs.list() {
+            let corpora : HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
+            // ignore of corpus does not exist
+            if corpora.contains(corpus) {
+                let mut d = get_query_dir();
+                d.push(query_set);
+                for def in util::get_queries_from_folder(&d, panic_on_invalid) {
+                    let count = cs.count(corpus, &def.json).unwrap_or(0);
+                    assert_eq!(
+                        def.count, count,
+                        "Query '{}' ({}) on corpus {} should have had count {} but was {}.",
+                        def.aql, def.name, corpus, def.count, count
+                    );
+                        
+                }
             }
         }
     };

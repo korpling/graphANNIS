@@ -364,6 +364,16 @@ impl GraphDB {
         return Ok(gs_mut_ref.as_writeable().ok_or(Error::InvalidType)?);
     }
 
+    pub fn is_loaded(&self, c : &Component) -> bool {
+        let entry : Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
+        if let Some(gs_opt) = entry {
+            if gs_opt.is_some() {
+                return true;
+            }
+        }
+        return false;
+    }
+
     pub fn ensure_loaded_all(&mut self) -> Result<(), Error> {
         let all_components: Vec<Component> = self.components.keys().cloned().collect();
         for c in all_components {
