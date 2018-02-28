@@ -1,10 +1,6 @@
-use multimap::MultiMap;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
-use std::collections::Bound::*;
 use std::any::Any;
-use std::cmp::Ord;
-use std::ops::AddAssign;
 use std::clone::Clone;
 use std;
 
@@ -59,7 +55,18 @@ where PosT : NumValue {
 
 
     fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        unimplemented!()
+        if let Some(pos) = self.node_to_pos.get(source) {
+            // find the next node in the chain
+            if let Some(chain) = self.node_chains.get(&pos.root) {
+                let next_pos = pos.pos.clone() + PosT::one();
+                if let Some(next_pos) = next_pos.to_usize() {
+                    if next_pos < chain.len() {
+                        return Box::from(std::iter::once(chain[next_pos]));
+                    }
+                }
+            }
+        }
+        return Box::from(std::iter::empty());
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
@@ -90,8 +97,17 @@ where PosT : NumValue {
             return Some(0);
         }
 
-        unimplemented!()
+        if let (Some(source_pos), Some(target_pos)) = (self.node_to_pos.get(source), self.node_to_pos.get(target)) {
+            if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos  {
+                let diff = target_pos.pos.clone() - source_pos.pos.clone();
+                if let Some(diff) = diff.to_usize() {
+                    return Some(diff);
+                }
+            }
+        }
+        return None;
     }
+
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
 
         if let (Some(source_pos), Some(target_pos)) = (self.node_to_pos.get(source), self.node_to_pos.get(target)) {
