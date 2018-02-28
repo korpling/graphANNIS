@@ -27,8 +27,3 @@ num = "0.1"
 tempdir = "0.3"
 simplelog = "0.4"
 bencher = "0.1"
-
-[[bench]]
-name = "bench_search"
-harness = false
-
