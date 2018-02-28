@@ -93,8 +93,19 @@ where PosT : NumValue {
         unimplemented!()
     }
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
-        
-        unimplemented!()
+
+        if let (Some(source_pos), Some(target_pos)) = (self.node_to_pos.get(source), self.node_to_pos.get(target)) {
+            if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos  {
+                let diff = target_pos.pos.clone() - source_pos.pos.clone();
+                if let Some(diff) = diff.to_usize() {
+                    if diff >= min_distance && diff <= max_distance {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
