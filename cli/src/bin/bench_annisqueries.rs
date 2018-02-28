@@ -80,7 +80,7 @@ fn main() {
 
     let matches = App::new("graphANNIS search benchmark")
         .arg(Arg::with_name("logfile").long("logfile").takes_value(true))
-        .arg(Arg::with_name("dir").long("dir").takes_value(true))
+        .arg(Arg::with_name("dir").long("dir").short("d").takes_value(true))
         .arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
