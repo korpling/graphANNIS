@@ -281,6 +281,8 @@ impl CorpusStorage {
         db.load_from(&db_path, false)?;
 
         let entry = Arc::new(RwLock::new(CacheEntry::Loaded(db)));
+        // first remove entry, than add it: this ensures it is at the end of the linked hash map
+        cache.remove(corpus_name);
         cache.insert(String::from(corpus_name), entry.clone());
         
         check_cache_size_and_remove(self.max_allowed_cache_size, cache);
