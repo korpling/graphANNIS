@@ -29,7 +29,7 @@ pub struct Match {
     pub anno: Annotation,
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, HeapSizeOf)]
 #[repr(C)]
 pub struct Edge {
     pub source: NodeID,

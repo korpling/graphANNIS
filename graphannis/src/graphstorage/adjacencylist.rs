@@ -8,12 +8,25 @@ use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::collections::Bound::*;
 
+use heapsize::HeapSizeOf;
+use util::memory_estimation;
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
     edges: BTreeSet<Edge>,
     inverse_edges: BTreeSet<Edge>,
     annos: AnnoStorage<Edge>,
     stats : Option<GraphStatistic>,
+}
+
+impl HeapSizeOf for AdjacencyListStorage {
+    fn heap_size_of_children(&self) -> usize {
+        return memory_estimation::heap_size_of_children(&self.edges)
+            + memory_estimation::heap_size_of_children(&self.inverse_edges)
+            + self.annos.heap_size_of_children()
+            + self.stats.heap_size_of_children()
+            + std::mem::size_of::<AdjacencyListStorage>();
+    }
 }
 
 impl AdjacencyListStorage {

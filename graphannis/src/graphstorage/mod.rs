@@ -6,7 +6,7 @@ use stringstorage::StringStorage;
 use graphdb::GraphDB;
 
 /// Some general statistical numbers specific to a graph component
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct GraphStatistic
 {
     pub cyclic : bool,
