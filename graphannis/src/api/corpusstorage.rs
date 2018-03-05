@@ -12,7 +12,7 @@ use std;
 use plan;
 use plan::ExecutionPlan;
 use query::disjunction::Disjunction;
-
+use heapsize::HeapSizeOf;
 use std::iter::FromIterator;
 
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
@@ -68,8 +68,8 @@ impl From<std::ffi::OsString> for Error {
 #[derive(Debug)]
 pub enum LoadStatus {
     NotLoaded,
-    PartiallyLoaded,
-    FullyLoaded,
+    PartiallyLoaded(usize),
+    FullyLoaded(usize),
 }
 
 pub struct CorpusInfo {
@@ -144,11 +144,12 @@ impl CorpusStorage {
             let corpus_info : CorpusInfo = match &*lock {
                 &CacheEntry::Loaded(ref db) => {
                     // check if all components are loaded
-                    let mut load_status = LoadStatus::FullyLoaded;
+                    let heap_size = db.heap_size_of_children();
+                    let mut load_status = LoadStatus::FullyLoaded(heap_size);
 
                     for c in db.get_all_components(None, None) {
                         if !db.is_loaded(&c) {
-                            load_status = LoadStatus::PartiallyLoaded;
+                            load_status = LoadStatus::PartiallyLoaded(heap_size);
                             break;
                         }
                     }
