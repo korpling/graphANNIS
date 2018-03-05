@@ -4,6 +4,8 @@ use std::fmt;
 use std::ops::AddAssign;
 use std;
 
+use heapsize::HeapSizeOf;
+
 pub type NodeID = u32;
 pub type StringID = u32;
 
@@ -42,7 +44,7 @@ impl Edge {
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter, HeapSizeOf)]
 pub enum ComponentType {
     Coverage,
     InverseCoverage,
@@ -60,7 +62,7 @@ impl fmt::Display for ComponentType {
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, HeapSizeOf)]
 pub struct Component {
     pub ctype : ComponentType,
     pub name : String,
@@ -73,7 +75,7 @@ impl std::fmt::Display for Component {
     }
 }
 
-pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive {
+pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive + HeapSizeOf {
 
 }
 

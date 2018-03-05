@@ -4,6 +4,7 @@ use {AnnoKey, Annotation, Edge, NodeID};
 use annostorage::AnnoStorage;
 use stringstorage::StringStorage;
 use graphdb::GraphDB;
+use heapsize::HeapSizeOf;
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
@@ -28,7 +29,7 @@ pub struct GraphStatistic
     pub dfs_visit_ratio : f64,
 }
 
-pub trait GraphStorage : Sync + Send {
+pub trait GraphStorage : Sync + Send + HeapSizeOf {
 
     fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 

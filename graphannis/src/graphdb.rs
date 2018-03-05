@@ -13,6 +13,7 @@ use strum::IntoEnumIterator;
 use std::string::ToString;
 use bincode;
 use serde;
+use heapsize::HeapSizeOf;
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
@@ -57,7 +58,6 @@ impl From<bincode::Error> for Error {
     }
 }
 
-
 pub struct GraphDB {
     pub strings: StringStorage,
     pub node_annos: AnnoStorage<NodeID>,
@@ -69,6 +69,20 @@ pub struct GraphDB {
     id_node_name: StringID,
     id_tok: StringID,
     id_node_type: StringID,
+}
+
+impl HeapSizeOf for GraphDB {
+    fn heap_size_of_children(&self) -> usize {
+        let mut size = self.strings.heap_size_of_children()
+            + self.node_annos.heap_size_of_children();
+
+        for (c,gs) in self.components.iter() {
+            // TODO: overhead by map is not measured
+            size += c.heap_size_of_children() + gs.heap_size_of_children();
+        }
+
+        return size;
+    }
 }
 
 
