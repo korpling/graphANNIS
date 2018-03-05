@@ -38,7 +38,7 @@ impl TDynBenchFn for CountBench {
 pub fn count_bench(data_dir: &Path, queries_dir: &Path) -> std::vec::Vec<bencher::TestDescAndFn> {
     let mut benches = std::vec::Vec::new();
 
-    let cs = Arc::new(CorpusStorage::new(data_dir).unwrap());
+    let cs = Arc::new(CorpusStorage::new_auto_cache_size(data_dir).unwrap());
 
     // each folder is one corpus
     if let Ok(paths) = std::fs::read_dir(queries_dir) {

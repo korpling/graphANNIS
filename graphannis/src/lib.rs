@@ -6,6 +6,7 @@ extern crate regex;
 extern crate regex_syntax;
 extern crate rand;
 extern crate multimap;
+extern crate linked_hash_map;
 #[macro_use]
 extern crate log;
 

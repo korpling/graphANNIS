@@ -19,7 +19,7 @@ thread_local!{
 
         // only execute the test if the directory exists
         let cs = if db_dir.exists() && db_dir.is_dir() {
-            CorpusStorage::new(&db_dir).ok()
+            CorpusStorage::new_auto_cache_size(&db_dir).ok()
         } else {
             None
         };
@@ -45,7 +45,7 @@ fn get_corpus_storage() -> Option<CorpusStorage> {
 
     // only execute the test if the directory exists
     let cs = if db_dir.exists() && db_dir.is_dir() {
-        CorpusStorage::new(&db_dir).ok()
+        CorpusStorage::new_auto_cache_size(&db_dir).ok()
     } else {
         None
     };
