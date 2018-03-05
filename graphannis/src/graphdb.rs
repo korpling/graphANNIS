@@ -1,6 +1,7 @@
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
 use graphstorage::{GraphStorage, WriteableGraphStorage};
+use api::update::{GraphUpdate, UpdateEvent};
 use {Component, ComponentType, Edge, NodeID, StringID};
 use AnnoKey;
 use graphstorage::registry;
@@ -289,6 +290,10 @@ impl GraphDB {
         } else {
             return Err(Error::LocationEmpty);
         }
+    }
+
+    pub fn apply_update(&mut self, u : GraphUpdate) {
+       unimplemented!()
     }
 
     fn component_path(&self, c: &Component) -> Option<PathBuf> {
