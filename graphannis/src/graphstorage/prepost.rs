@@ -1,6 +1,4 @@
-use multimap::MultiMap;
-use std::collections::BTreeMap;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::collections::Bound::*;
 use std::any::Any;
 use std::clone::Clone;
@@ -12,17 +10,17 @@ use annostorage::AnnoStorage;
 use graphdb::{GraphDB};
 use dfs::{CycleSafeDFS, DFSStep};
 
-#[derive(PartialOrd, PartialEq, Ord,Eq,Clone,Serialize, Deserialize)]
+#[derive(PartialOrd, PartialEq, Ord,Eq,Clone,Serialize, Deserialize,HeapSizeOf)]
 pub struct PrePost<OrderT,LevelT> {
     pub pre : OrderT,
     pub post : OrderT,
     pub level : LevelT,
 }
 
-#[derive(Serialize, Deserialize,Clone)]
+#[derive(Serialize, Deserialize,Clone,HeapSizeOf)]
 pub struct PrePostOrderStorage<OrderT : NumValue, LevelT : NumValue> {
     
-    node_to_order : MultiMap<NodeID, PrePost<OrderT,LevelT>>,
+    node_to_order : HashMap<NodeID, Vec<PrePost<OrderT,LevelT>>>,
     order_to_node : BTreeMap<PrePost<OrderT,LevelT>,NodeID>,
     annos: AnnoStorage<Edge>,
     stats : Option<GraphStatistic>,
@@ -42,7 +40,7 @@ where OrderT : NumValue,
 
     pub fn new() -> PrePostOrderStorage<OrderT, LevelT> {
         PrePostOrderStorage {
-            node_to_order: MultiMap::new(),
+            node_to_order: HashMap::new(),
             order_to_node: BTreeMap::new(),
             annos: AnnoStorage::new(),
             stats: None,
@@ -76,7 +74,7 @@ where OrderT : NumValue,
             entry.order.post = current_order.clone();
             current_order.add_assign(OrderT::one());
 
-            self.node_to_order.insert(entry.id, entry.order.clone());
+            self.node_to_order.entry(entry.id).or_insert(vec![]).push(entry.order.clone());
             self.order_to_node.insert(entry.order.clone(), entry.id);
 
         }
@@ -113,7 +111,7 @@ where OrderT : NumValue,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         
-        if let Some(start_orders) = self.node_to_order.get_vec(source) {
+        if let Some(start_orders) = self.node_to_order.get(source) {
             let mut visited = HashSet::<NodeID>::new();
         
             let it = start_orders.into_iter()
@@ -162,7 +160,7 @@ where OrderT : NumValue,
         let mut min_level = usize::max_value();
         let mut was_found = false;
 
-        if let (Some(order_source), Some(order_target)) = (self.node_to_order.get_vec(source),self.node_to_order.get_vec(target)) {
+        if let (Some(order_source), Some(order_target)) = (self.node_to_order.get(source),self.node_to_order.get(target)) {
             for order_source in order_source.iter() {
                 for order_target in order_target.iter() {
                     if order_source.pre <= order_target.pre && order_target.post <= order_source.post {
@@ -186,7 +184,7 @@ where OrderT : NumValue,
     }
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
         
-        if let (Some(order_source), Some(order_target)) = (self.node_to_order.get_vec(source),self.node_to_order.get_vec(target)) {
+        if let (Some(order_source), Some(order_target)) = (self.node_to_order.get(source),self.node_to_order.get(target)) {
             for order_source in order_source.iter() {
                 for order_target in order_target.iter() {
                     if order_source.pre <= order_target.pre && order_target.post <= order_source.post {
