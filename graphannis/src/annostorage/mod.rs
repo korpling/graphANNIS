@@ -1,6 +1,7 @@
 use super::*;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, HashSet};
 use std::collections::Bound::*;
+use std::hash::Hash;
 use std;
 use rand;
 use regex_syntax;
@@ -10,23 +11,23 @@ use bincode;
 use serde;
 use serde::de::DeserializeOwned;
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf)]
 pub struct ContainerAnnoKey<T: Ord> {
     pub item: T,
     pub key: AnnoKey,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct AnnoStorage<T: Ord> {
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+pub struct AnnoStorage<T: Ord + Hash> {
     by_container: BTreeMap<ContainerAnnoKey<T>, StringID>,
-    by_anno: BTreeMap<Annotation, BTreeSet<T>>,
+    by_anno: BTreeMap<Annotation, HashSet<T>>,
     /// Maps a distinct annotation key to the number of keys available.
     anno_keys: BTreeMap<AnnoKey, usize>,
     /// additional statistical information
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
 }
 
-impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
+impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
     pub fn new() -> AnnoStorage<T> {
         AnnoStorage {
             by_container: BTreeMap::new(),
@@ -52,7 +53,7 @@ impl<T: Ord + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
         // if set is not existing yet it is created
         self.by_anno
             .entry(anno.clone())
-            .or_insert(BTreeSet::new())
+            .or_insert(HashSet::new())
             .insert(item);
     }
 

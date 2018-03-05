@@ -9,14 +9,14 @@ pub type StringID = u32;
 
 
 
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf)]
 #[repr(C)]
 pub struct AnnoKey {
     pub name: StringID,
     pub ns: StringID,
 }
 
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf)]
 #[repr(C)]
 pub struct Annotation {
     pub key: AnnoKey,
@@ -29,7 +29,7 @@ pub struct Match {
     pub anno: Annotation,
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
 #[repr(C)]
 pub struct Edge {
     pub source: NodeID,

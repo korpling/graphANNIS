@@ -1,3 +1,7 @@
+extern crate heapsize;
+#[macro_use]
+extern crate heapsize_derive;
+
 extern crate regex;
 extern crate regex_syntax;
 extern crate rand;
