@@ -120,13 +120,17 @@ fn check_cache_size_and_remove(max_cache_size : Option<usize>, cache : &mut Link
                 size_sum += s;
                 db_sizes.insert(corpus.clone(), s);
             }
-
         }
-        // remove older entries (at the beginning) until cache size requirements are met, but never remove the last entry
+        let mut num_of_loaded_corpora = db_sizes.len();
+
+        // remove older entries (at the beginning) until cache size requirements are met, 
+        // but never remove the last loaded entry
         for (corpus_name, corpus_size) in db_sizes.iter() {
-            if cache.len() > 1 && size_sum > max_cache_size {
+            if num_of_loaded_corpora > 1 && size_sum > max_cache_size {
+                info!("Removing corpus {} from cache", corpus_name);
                 cache.remove(corpus_name);
                 size_sum -= corpus_size;
+                num_of_loaded_corpora -= 1;
             } else {
                 // nothing to do
                 break;
