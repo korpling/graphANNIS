@@ -80,11 +80,17 @@ impl GraphUpdate {
         }
     }
 
-    pub fn into_consistent_changes_iter(self) -> Box<Iterator<Item=UpdateEvent>> {
+    pub fn finish(&mut self) {
+        if !self.diffs.is_empty() {
+            self.last_consistent_change_id = self.diffs[self.diffs.len()-1].0;
+        }
+    }
+
+    pub fn consistent_changes<'a>(&'a self) -> Box<Iterator<Item=UpdateEvent> + 'a> {
         let last_consistent_change_id = self.last_consistent_change_id.clone();
-        let it = self.diffs.into_iter().filter_map(move |d| {
+        let it = self.diffs.iter().filter_map(move |d| {
             if d.0 <= last_consistent_change_id {
-                Some(d.1)
+                Some(d.1.clone())
             } else {
                 None
             }

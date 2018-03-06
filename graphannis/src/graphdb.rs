@@ -288,8 +288,8 @@ impl GraphDB {
         }
     }
 
-    pub fn apply_update(&mut self, u: GraphUpdate) -> Result<(), Error> {
-        for change in u.into_consistent_changes_iter() {
+    fn apply_update_in_memory(&mut self, u : &GraphUpdate) -> Result<(), Error> {
+        for change in u.consistent_changes() {
             match change {
                 UpdateEvent::AddNode {
                     node_name,
@@ -474,6 +474,37 @@ impl GraphDB {
             }
         }
         Ok(())
+    }
+
+    pub fn apply_update(&mut self, mut u: GraphUpdate) -> Result<(), Error> {
+
+        // Always mark the update state as consistent, even if caller forgot this.
+        if !u.is_consistent() {
+            u.finish();
+        }
+
+        // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
+        self.ensure_loaded_all()?;
+
+        let result = self.apply_update_in_memory(&u);
+
+        if let Some(ref location) = self.location {
+            if result.is_ok() {
+                // if successfull write log
+                let mut log_path = PathBuf::from(location);
+                log_path.push("current");
+                log_path.push("update_log.bin");
+
+                let f_log = std::fs::File::open(log_path)?;
+                let mut buf_writer = std::io::BufWriter::new(f_log);
+                bincode::serialize_into(&mut buf_writer, &mut u, bincode::Infinite)?;
+                
+            } else {
+                // load corpus from disk again
+            }
+        }
+
+        unimplemented!();
     }
 
     fn component_path(&self, c: &Component) -> Option<PathBuf> {
