@@ -1,14 +1,15 @@
 extern crate heapsize;
 #[macro_use]
 extern crate heapsize_derive;
+#[macro_use]
+extern crate log;
 
 extern crate regex;
 extern crate regex_syntax;
 extern crate rand;
 extern crate multimap;
 extern crate linked_hash_map;
-#[macro_use]
-extern crate log;
+extern crate tempdir;
 
 extern crate serde;
 extern crate bincode;

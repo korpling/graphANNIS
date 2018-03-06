@@ -25,6 +25,7 @@ num = "0.1"
 heapsize = "0.4"
 heapsize_derive = "0.1"
 linked-hash-map = "0.5"
+tempdir = "0.3"
 
 [dev-dependencies]
 tempdir = "0.3"

@@ -17,6 +17,9 @@ use bincode;
 use serde;
 use heapsize::HeapSizeOf;
 
+use tempdir::TempDir;
+
+
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
@@ -70,6 +73,8 @@ pub struct GraphDB {
     id_node_name: StringID,
     id_tok: StringID,
     id_node_type: StringID,
+
+    current_change_id : u64,
 }
 
 impl HeapSizeOf for GraphDB {
@@ -155,6 +160,8 @@ impl GraphDB {
             components: BTreeMap::new(),
 
             location: None,
+
+            current_change_id: 0,
         }
     }
 
@@ -172,24 +179,52 @@ impl GraphDB {
 
         let backup = location.join("backup");
         
+        let mut backup_was_loaded = false;
         let dir2load = if backup.exists() && backup.is_dir() {
-            backup
+            backup_was_loaded = true;
+            backup.clone()
         } else {
             location.join("current")
         };
 
-        // TODO: implement WAL support
         self.strings = load_bincode(&dir2load, "strings.bin")?;
         self.node_annos = load_bincode(&dir2load, "nodes.bin")?;
 
+        let log_path = dir2load.join("update_log.bin");
+
+        let logfile_exists = log_path.exists() && log_path.is_file();
+
         self.find_components_from_disk(&dir2load)?;
 
-        if preload {
+        // If backup is active or a write log exists, always  a pre-load to get the complete corpus.
+        if preload | logfile_exists | backup_was_loaded {
             let all_components: Vec<Component> = self.components.keys().cloned().collect();
             for c in all_components {
                 self.ensure_loaded(&c)?;
             }
         }
+
+        if logfile_exists {
+            // apply any outstanding log file updates
+            let f_log = std::fs::File::open(log_path)?;
+            let mut buf_reader = std::io::BufReader::new(f_log);
+            let update : GraphUpdate = bincode::deserialize_from(&mut buf_reader, bincode::Infinite)?;
+            if update.get_last_consistent_change_id() > self.current_change_id {
+                self.apply_update_in_memory(&update)?;
+            }
+        } else {
+            self.current_change_id = 0;
+        }
+
+        if backup_was_loaded {
+            // save the current corpus under the actual location
+            self.save_to(&location.join("current"))?;
+            // rename backup folder (renaming is atomic and deleting could leave an incomplete backup folder on disk)
+            let tmp_dir = TempDir::new_in(location,"temporary-graphannis-backup")?;
+            std::fs::rename(&backup, tmp_dir.path())?;
+            // remove it after renaming it
+            tmp_dir.close()?;
+        } 
 
         Ok(())
     }
@@ -249,7 +284,7 @@ impl GraphDB {
     }
 
     fn internal_save(&self, location: &Path) -> Result<(), Error> {
-        let location = PathBuf::from(location).join("current");
+        let location = PathBuf::from(location);
 
         std::fs::create_dir_all(&location)?;
 
@@ -278,20 +313,20 @@ impl GraphDB {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
 
-        return self.internal_save(location);
+        return self.internal_save(&location.join("current"));
     }
 
     /// Save the current database at is original location
     pub fn persist(&self) -> Result<(), Error> {
         if let Some(ref loc) = self.location {
-            return self.internal_save(loc);
+            return self.internal_save(&loc.join("current"));
         } else {
             return Err(Error::LocationEmpty);
         }
     }
 
     fn apply_update_in_memory(&mut self, u : &GraphUpdate) -> Result<(), Error> {
-        for change in u.consistent_changes() {
+        for (id, change) in u.consistent_changes() {
             match change {
                 UpdateEvent::AddNode {
                     node_name,
@@ -473,8 +508,9 @@ impl GraphDB {
                         }
                     }
                 }
-            }
-        }
+            } // end match update entry type
+            self.current_change_id = id;
+        } // end for each consistent update entry
         Ok(())
     }
 
