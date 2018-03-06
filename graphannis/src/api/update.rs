@@ -35,6 +35,7 @@ pub enum UpdateEvent {
     AddEdgeLabel {
         source_node: String,
         target_node: String,
+        layer: String,
         component_type: String,
         component_name: String,
         anno_ns: String,
@@ -44,6 +45,7 @@ pub enum UpdateEvent {
     DeleteEdgeLabel {
         source_node: String,
         target_node: String,
+        layer: String,
         component_type: String,
         component_name: String,
         anno_ns: String,

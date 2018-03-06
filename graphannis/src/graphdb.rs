@@ -2,13 +2,14 @@ use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
 use graphstorage::{GraphStorage, WriteableGraphStorage};
 use api::update::{GraphUpdate, UpdateEvent};
-use {Component, ComponentType, Edge, NodeID, StringID};
+use {Annotation, Component, ComponentType, Edge, NodeID, StringID};
 use AnnoKey;
 use graphstorage::registry;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::io::prelude::*;
+use std::str::FromStr;
 use std;
 use strum::IntoEnumIterator;
 use std::string::ToString;
@@ -20,7 +21,6 @@ pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
-
 
 #[derive(Debug)]
 pub enum Error {
@@ -74,10 +74,10 @@ pub struct GraphDB {
 
 impl HeapSizeOf for GraphDB {
     fn heap_size_of_children(&self) -> usize {
-        let mut size = self.strings.heap_size_of_children()
-            + self.node_annos.heap_size_of_children();
+        let mut size =
+            self.strings.heap_size_of_children() + self.node_annos.heap_size_of_children();
 
-        for (c,gs) in self.components.iter() {
+        for (c, gs) in self.components.iter() {
             // TODO: overhead by map is not measured
             size += c.heap_size_of_children() + gs.heap_size_of_children();
         }
@@ -85,7 +85,6 @@ impl HeapSizeOf for GraphDB {
         return size;
     }
 }
-
 
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<GraphStorage>, Error> {
     let cpath = try!(component_path.ok_or(Error::LocationEmpty));
@@ -116,7 +115,6 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     return p;
 }
 
-
 fn load_bincode<T>(location: &Path, path: &str) -> Result<T, Error>
 where
     for<'de> T: serde::Deserialize<'de>,
@@ -142,7 +140,6 @@ where
     bincode::serialize_into(&mut writer, object, bincode::Infinite)?;
     return Ok(());
 }
-
 
 impl GraphDB {
     /// Create a new and empty instance without any location on the disk
@@ -249,7 +246,7 @@ impl GraphDB {
         let mut location = PathBuf::from(location);
         location.push("current");
 
-        std::fs::create_dir_all(&location)?; 
+        std::fs::create_dir_all(&location)?;
 
         save_bincode(&location, "strings.bin", &self.strings)?;
         save_bincode(&location, "nodes.bin", &self.node_annos)?;
@@ -276,11 +273,10 @@ impl GraphDB {
     }
 
     pub fn save_to(&mut self, location: &Path) -> Result<(), Error> {
-        
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
 
-        return self.internal_save(location);       
+        return self.internal_save(location);
     }
 
     /// Save the current database at is original location
@@ -292,8 +288,192 @@ impl GraphDB {
         }
     }
 
-    pub fn apply_update(&mut self, u : GraphUpdate) {
-       unimplemented!()
+    pub fn apply_update(&mut self, u: GraphUpdate) -> Result<(), Error> {
+        for change in u.into_consistent_changes_iter() {
+            match change {
+                UpdateEvent::AddNode {
+                    node_name,
+                    node_type,
+                } => {
+                    let existing_node_id = self.get_node_id_from_name(&node_name);
+                    // only add node if it does not exist yet
+                    if existing_node_id.is_none() {
+                        let new_node_id: NodeID = if let Some(id) = self.node_annos.largest_key() {
+                            id + 1
+                        } else {
+                            0
+                        };
+                        let new_anno_name = Annotation {
+                            key: self.get_node_name_key(),
+                            val: self.strings.add(&node_name),
+                        };
+                        let new_anno_type = Annotation {
+                            key: self.get_node_type_key(),
+                            val: self.strings.add(&node_type),
+                        };
+
+                        // add the new node (with minimum labels)
+                        self.node_annos.insert(new_node_id, new_anno_name);
+                        self.node_annos.insert(new_node_id, new_anno_type);
+                    }
+                }
+                UpdateEvent::DeleteNode { node_name } => {
+                    if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
+                        // delete all annotations
+                        for a in self.node_annos.get_all(&existing_node_id) {
+                            self.node_annos.remove(&existing_node_id, &a.key);
+                        }
+                        // delete all edges pointing to this node either as source or target
+                        for c in self.get_all_components(None, None) {
+                            self.components.remove(&c);
+                        }
+                    }
+                }
+                UpdateEvent::AddNodeLabel {
+                    node_name,
+                    anno_ns,
+                    anno_name,
+                    anno_value,
+                } => {
+                    if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
+                        let anno = Annotation {
+                            key: AnnoKey {
+                                ns: self.strings.add(&anno_ns),
+                                name: self.strings.add(&anno_name),
+                            },
+                            val: self.strings.add(&anno_value),
+                        };
+                        self.node_annos.insert(existing_node_id, anno);
+                    }
+                }
+                UpdateEvent::DeleteNodeLabel {
+                    node_name,
+                    anno_ns,
+                    anno_name,
+                } => {
+                    if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
+                        let key = AnnoKey {
+                            ns: self.strings.add(&anno_ns),
+                            name: self.strings.add(&anno_name),
+                        };
+                        self.node_annos.remove(&existing_node_id, &key);
+                    }
+                }
+                UpdateEvent::AddEdge {
+                    source_node,
+                    target_node,
+                    layer,
+                    component_type,
+                    component_name,
+                } => {
+                    // only add edge if both nodes already exist
+                    if let (Some(source), Some(target)) = (
+                        self.get_node_id_from_name(&source_node),
+                        self.get_node_id_from_name(&target_node),
+                    ) {
+                        if let Ok(ctype) = ComponentType::from_str(&component_type) {
+                            let c = Component {
+                                ctype,
+                                layer,
+                                name: component_name,
+                            };
+                            let gs = self.get_or_create_writable(c)?;
+                            gs.add_edge(Edge { source, target });
+                        }
+                    }
+                }
+                UpdateEvent::DeleteEdge {
+                    source_node,
+                    target_node,
+                    layer,
+                    component_type,
+                    component_name,
+                } => {
+                    if let (Some(source), Some(target)) = (
+                        self.get_node_id_from_name(&source_node),
+                        self.get_node_id_from_name(&target_node),
+                    ) {
+                        if let Ok(ctype) = ComponentType::from_str(&component_type) {
+                            let c = Component {
+                                ctype,
+                                layer,
+                                name: component_name,
+                            };
+                            let gs = self.get_or_create_writable(c)?;
+                            gs.delete_edge(&Edge { source, target });
+                        }
+                    }
+                }
+                UpdateEvent::AddEdgeLabel {
+                    source_node,
+                    target_node,
+                    layer,
+                    component_type,
+                    component_name,
+                    anno_ns,
+                    anno_name,
+                    anno_value,
+                } => {
+                    if let (Some(source), Some(target)) = (
+                        self.get_node_id_from_name(&source_node),
+                        self.get_node_id_from_name(&target_node),
+                    ) {
+                        if let Ok(ctype) = ComponentType::from_str(&component_type) {
+                            let c = Component {
+                                ctype,
+                                layer,
+                                name: component_name,
+                            };
+                            let ns = self.strings.add(&anno_ns);
+                            let name = self.strings.add(&anno_name);
+                            let val = self.strings.add(&anno_value);
+                            let gs = self.get_or_create_writable(c)?;
+                            // only add label if the edge already exists
+                            let e = Edge { source, target };
+                            if gs.is_connected(&source, &target, 1, 1) {
+                                let anno = Annotation {
+                                    key: AnnoKey { ns, name },
+                                    val,
+                                };
+                                gs.add_edge_annotation(e, anno);
+                            }
+                        }
+                    }
+                }
+                UpdateEvent::DeleteEdgeLabel {
+                    source_node,
+                    target_node,
+                    layer,
+                    component_type,
+                    component_name,
+                    anno_ns,
+                    anno_name,
+                } => {
+                     if let (Some(source), Some(target)) = (
+                        self.get_node_id_from_name(&source_node),
+                        self.get_node_id_from_name(&target_node),
+                    ) {
+                        if let Ok(ctype) = ComponentType::from_str(&component_type) {
+                            let c = Component {
+                                ctype,
+                                layer,
+                                name: component_name,
+                            };
+                            let ns = self.strings.add(&anno_ns);
+                            let name = self.strings.add(&anno_name);
+                            let gs = self.get_or_create_writable(c)?;
+                            // only add label if the edge already exists
+                            let e = Edge { source, target };
+                            if gs.is_connected(&source, &target, 1, 1) {
+                                let key = AnnoKey { ns, name };
+                                gs.delete_edge_annotation(&e, &key);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     fn component_path(&self, c: &Component) -> Option<PathBuf> {
@@ -345,7 +525,7 @@ impl GraphDB {
     }
 
     pub fn calculate_component_statistics(&mut self, c: &Component) -> Result<(), Error> {
-        let mut result : Result<(), Error> = Ok(());
+        let mut result: Result<(), Error> = Ok(());
         let mut entry = self.components.remove(c).ok_or(Error::MissingComponent)?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
@@ -357,7 +537,6 @@ impl GraphDB {
         // re-insert component entry
         self.components.insert(c.clone(), entry);
         return result;
-        
     }
 
     pub fn get_or_create_writable(
@@ -383,8 +562,8 @@ impl GraphDB {
         return Ok(gs_mut_ref.as_writeable().ok_or(Error::InvalidType)?);
     }
 
-    pub fn is_loaded(&self, c : &Component) -> bool {
-        let entry : Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
+    pub fn is_loaded(&self, c: &Component) -> bool {
+        let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if gs_opt.is_some() {
                 return true;
@@ -406,7 +585,7 @@ impl GraphDB {
         let entry: Option<Option<Arc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
             let loaded: Arc<GraphStorage> = if gs_opt.is_none() {
-            info!("Loading component {} from disk", c);
+                info!("Loading component {} from disk", c);
                 load_component_from_disk(self.component_path(c))?
             } else {
                 gs_opt.unwrap()
@@ -423,7 +602,7 @@ impl GraphDB {
 
             if let Some(stats) = gs.get_statistics() {
                 let opt_type = registry::get_optimal_impl_heuristic(stats);
-                
+
                 // convert if necessary
                 if existing_type.is_err() || opt_type != existing_type.unwrap() {
                     let mut new_gs = registry::create_from_type(opt_type.clone());
@@ -435,14 +614,30 @@ impl GraphDB {
                     };
                     if converted {
                         // insert into components map
-                        info!("Converted component {} to implementation {}", c, opt_type.to_string());
+                        info!(
+                            "Converted component {} to implementation {}",
+                            c,
+                            opt_type.to_string()
+                        );
                         self.components.insert(c.clone(), Some(new_gs.clone()));
                     }
                 }
-
-
             }
         }
+    }
+
+    pub fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
+        if let Some(node_name_id) = self.strings.find_id(node_name) {
+            let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
+                Some(self.id_annis_ns),
+                self.id_node_name,
+                Some(node_name_id.clone()),
+            );
+            if let Some(m) = all_nodes_with_anno.next() {
+                return Some(m.node);
+            }
+        }
+        return None;
     }
 
     pub fn get_graphstorage(&self, c: &Component) -> Option<Arc<GraphStorage>> {
@@ -456,11 +651,14 @@ impl GraphDB {
         return None;
     }
 
-    pub fn get_all_components(&self, ctype : Option<ComponentType>, name : Option<&str>) -> Vec<Component> {
-        
-        if let (Some(ctype),Some(name)) = (ctype.clone(), name) {
+    pub fn get_all_components(
+        &self,
+        ctype: Option<ComponentType>,
+        name: Option<&str>,
+    ) -> Vec<Component> {
+        if let (Some(ctype), Some(name)) = (ctype.clone(), name) {
             // lookup component from sorted map
-            let mut result : Vec<Component> = Vec::new();
+            let mut result: Vec<Component> = Vec::new();
             let ckey = Component {
                 ctype,
                 name: String::from(name),
@@ -476,19 +674,21 @@ impl GraphDB {
             return result;
         } else {
             // filter all entries
-            let filtered_components = self.components.keys().cloned().filter(move |c : &Component| {
-                if let Some(ctype) = ctype.clone() {
-                    if ctype != c.ctype {
-                        return false;
+            let filtered_components = self.components.keys().cloned().filter(
+                move |c: &Component| {
+                    if let Some(ctype) = ctype.clone() {
+                        if ctype != c.ctype {
+                            return false;
+                        }
                     }
-                }
-                if let Some(name) = name {
-                    if name != c.name {
-                        return false;
+                    if let Some(name) = name {
+                        if name != c.name {
+                            return false;
+                        }
                     }
-                }
-                return true;
-            });
+                    return true;
+                },
+            );
             return filtered_components.collect();
         }
     }
