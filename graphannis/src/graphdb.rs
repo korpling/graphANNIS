@@ -90,14 +90,12 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<Graph
     let cpath = try!(component_path.ok_or(Error::LocationEmpty));
 
     // load component into memory
-    let mut impl_path = PathBuf::from(&cpath);
-    impl_path.push("impl.cfg");
+    let impl_path = PathBuf::from(&cpath).join("impl.cfg");
     let mut f_impl = std::fs::File::open(impl_path)?;
     let mut impl_name = String::new();
     f_impl.read_to_string(&mut impl_name)?;
 
-    let mut data_path = PathBuf::from(&cpath);
-    data_path.push("component.bin");
+    let data_path = PathBuf::from(&cpath).join("component.bin");
     let f_data = std::fs::File::open(data_path)?;
     let mut buf_reader = std::io::BufReader::new(f_data);
 
@@ -169,16 +167,22 @@ impl GraphDB {
     pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<(), Error> {
         self.clear();
 
-        let mut location = PathBuf::from(location);
-
+        let location = PathBuf::from(location);
         self.location = Some(location.clone());
 
-        // TODO: implement WAL support
-        location.push("current");
-        self.strings = load_bincode(&location, "strings.bin")?;
-        self.node_annos = load_bincode(&location, "nodes.bin")?;
+        let backup = location.join("backup");
+        
+        let dir2load = if backup.exists() && backup.is_dir() {
+            backup
+        } else {
+            location.join("current")
+        };
 
-        self.find_components_from_disk(&location)?;
+        // TODO: implement WAL support
+        self.strings = load_bincode(&dir2load, "strings.bin")?;
+        self.node_annos = load_bincode(&dir2load, "nodes.bin")?;
+
+        self.find_components_from_disk(&dir2load)?;
 
         if preload {
             let all_components: Vec<Component> = self.components.keys().cloned().collect();
@@ -195,9 +199,8 @@ impl GraphDB {
 
         // for all component types
         for c in ComponentType::iter() {
-            let mut cpath = PathBuf::from(location);
-            cpath.push("gs");
-            cpath.push(c.to_string());
+            let cpath = PathBuf::from(location).join("gs").join(c.to_string());
+          
             if cpath.is_dir() {
                 // get all the namespaces/layers
                 for layer in cpath.read_dir()? {
@@ -209,9 +212,10 @@ impl GraphDB {
                         name: String::from(""),
                     };
                     {
-                        let mut input_file = PathBuf::from(location);
-                        input_file.push(component_to_relative_path(&empty_name_component));
-                        input_file.push("component.bin");
+                        let input_file = PathBuf::from(location)
+                            .join(component_to_relative_path(&empty_name_component))
+                            .join("component.bin");
+                       
                         if input_file.is_file() {
                             self.components.insert(empty_name_component.clone(), None);
                             debug!("Registered component {}", empty_name_component);
@@ -225,12 +229,14 @@ impl GraphDB {
                             layer: layer.file_name().into_string()?,
                             name: name.file_name().into_string()?,
                         };
-                        let mut data_file = PathBuf::from(location);
-                        data_file.push(component_to_relative_path(&named_component));
-                        data_file.push("component.bin");
-                        let mut cfg_file = PathBuf::from(location);
-                        cfg_file.push(component_to_relative_path(&named_component));
-                        cfg_file.push("impl.cfg");
+                        let data_file = PathBuf::from(location)
+                            .join(component_to_relative_path(&named_component))
+                            .join("component.bin");
+
+                        let cfg_file = PathBuf::from(location)
+                            .join(component_to_relative_path(&named_component))
+                            .join("impl.cfg");
+                            
                         if data_file.is_file() && cfg_file.is_file() {
                             self.components.insert(named_component.clone(), None);
                             debug!("Registered component {}", named_component);
@@ -243,8 +249,7 @@ impl GraphDB {
     }
 
     fn internal_save(&self, location: &Path) -> Result<(), Error> {
-        let mut location = PathBuf::from(location);
-        location.push("current");
+        let location = PathBuf::from(location).join("current");
 
         std::fs::create_dir_all(&location)?;
 
@@ -253,18 +258,15 @@ impl GraphDB {
 
         for (c, e) in self.components.iter() {
             if let Some(ref data) = *e {
-                let mut dir = PathBuf::from(&location);
-                dir.push(component_to_relative_path(c));
+                let dir = PathBuf::from(&location).join(component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
 
-                let mut data_path = PathBuf::from(&dir);
-                data_path.push("component.bin");
-                let f_data = std::fs::File::create(data_path)?;
+                let data_path = PathBuf::from(&dir).join("component.bin");
+                let f_data = std::fs::File::create(&data_path)?;
                 let mut writer = std::io::BufWriter::new(f_data);
                 let impl_name = registry::serialize(data.clone(), &mut writer)?;
 
-                let mut cfg_path = PathBuf::from(&dir);
-                cfg_path.push("impl.cfg");
+                let cfg_path = PathBuf::from(&dir).join("impl.cfg");
                 let mut f_cfg = std::fs::File::create(cfg_path)?;
                 f_cfg.write_all(impl_name.as_bytes())?;
             }
@@ -491,10 +493,8 @@ impl GraphDB {
         if let Some(ref location) = self.location {
             if result.is_ok() {
                 // if successfull write log
-                let mut log_path = PathBuf::from(location);
-                log_path.push("current");
-                log_path.push("update_log.bin");
-
+                let log_path = PathBuf::from(location).join("current").join("update_log.bin");
+                
                 let f_log = std::fs::File::open(log_path)?;
                 let mut buf_writer = std::io::BufWriter::new(f_log);
                 bincode::serialize_into(&mut buf_writer, &mut u, bincode::Infinite)?;

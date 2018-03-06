@@ -69,8 +69,7 @@ pub fn load(path: &Path) -> Result<GraphDB> {
     let path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
         // check if this is the ANNIS 3.3 import format
-        let mut annis_version_path = PathBuf::from(path.clone());
-        annis_version_path.push("annis.version");
+        let annis_version_path = PathBuf::from(path.clone()).join("annis.version");
         let mut is_annis_33 = false;
         if annis_version_path.exists() {
             let mut file = File::open(&annis_version_path)?;

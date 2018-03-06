@@ -16,13 +16,11 @@ use graphannis::operator::precedence::{Precedence, PrecedenceSpec};
 use graphannis::stringstorage::StringStorage;
 
 fn load_corpus(name: &str) -> Option<GraphDB> {
-    let mut data_dir = PathBuf::from(if let Ok(path) = env::var("ANNIS4_TEST_DATA") {
+    let data_dir = PathBuf::from(if let Ok(path) = env::var("ANNIS4_TEST_DATA") {
         path
     } else {
         String::from("../data")
-    });
-    data_dir.push("../relannis/");
-    data_dir.push(name);
+    }).join("../relannis/").join(name);
 
     // only execute the test if the directory exists
     if data_dir.exists() && data_dir.is_dir() {
