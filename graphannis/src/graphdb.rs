@@ -7,9 +7,10 @@ use AnnoKey;
 use graphstorage::registry;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::io::prelude::*;
 use std::str::FromStr;
+use std::sync::{Arc,Mutex,RwLock};
+use std::thread;
 use std;
 use strum::IntoEnumIterator;
 use std::string::ToString;
@@ -75,6 +76,8 @@ pub struct GraphDB {
     id_node_type: StringID,
 
     current_change_id : u64,
+
+    background_persistance : Arc<Mutex<()>>,
 }
 
 impl HeapSizeOf for GraphDB {
@@ -162,6 +165,8 @@ impl GraphDB {
             location: None,
 
             current_change_id: 0,
+
+            background_persistance: Arc::new(Mutex::new(())),
         }
     }
 
@@ -535,13 +540,49 @@ impl GraphDB {
                 let mut buf_writer = std::io::BufWriter::new(f_log);
                 bincode::serialize_into(&mut buf_writer, &mut u, bincode::Infinite)?;
                 
+                // Until now only the write log is persisted. Start a background thread that writes the whole
+                // corpus to the folder (without the need to apply the write log).
+                // TODO: this must be a thread
+                self.background_persistance()?;
+
             } else {
                 // load corpus from disk again
                 self.load_from(&location, true)?;
+                return result;
             }
         }
 
-        unimplemented!();
+        Ok(())
+    }
+
+    fn background_persistance(&self) -> Result<(), Error> {
+        
+        // TODO: friendly abort any currently running threadl
+
+        if let Some(ref location) = self.location {
+    
+            // Accuire lock, so that only one thread can write background data at the same time
+            let lock = self.background_persistance.lock().unwrap();
+
+            // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
+            // the backup will be used instead of the original possible corrupted files.
+            // The current version is only the real one if no backup folder exists. If there is a backup folder
+            // there is nothing to do since the backup already contains the last consistent version.
+            // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
+            // is possible.
+            if !location.join("backup").exists() {
+                std::fs::rename(location.join("current"), location.join(location.join("backup")))?;
+            }
+
+            // Save the complete corpus without the write log to the target location
+            self.internal_save(&location.join("current"))?;
+
+            // remove the backup folder (since the new folder was completly written)
+            std::fs::remove_dir_all(location.join("backup"))?;
+        } 
+
+        Ok(())   
+
     }
 
     fn component_path(&self, c: &Component) -> Option<PathBuf> {
