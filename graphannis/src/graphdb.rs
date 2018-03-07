@@ -526,7 +526,7 @@ impl GraphDB {
 
         let result = self.apply_update_in_memory(&u);
 
-        if let Some(ref location) = self.location {
+        if let Some(location) = self.location.clone() {
             if result.is_ok() {
                 // if successfull write log
                 let log_path = PathBuf::from(location).join("current").join("update_log.bin");
@@ -537,6 +537,7 @@ impl GraphDB {
                 
             } else {
                 // load corpus from disk again
+                self.load_from(&location, true)?;
             }
         }
 
