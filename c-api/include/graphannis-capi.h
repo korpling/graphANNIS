@@ -1,34 +1,40 @@
+/* SPDX-License-Identifier:  Apache-2.0
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-#ifndef cheddar_generated_annis_graphanniscapi_h
-#define cheddar_generated_annis_graphanniscapi_h
+    http://www.apache.org/licenses/LICENSE-2.0
 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.s 
+*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef graphannis_capi_h
+#define graphannis_capi_h
+
+/* Generated with cbindgen:0.5.0 */
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
+typedef struct ANNIS_CorpusStorage ANNIS_CorpusStorage;
 
+uint64_t annis_cs_count(const ANNIS_CorpusStorage *ptr,
+                        const char *corpus,
+                        const char *query_as_json);
 
-typedef struct annis_CorpusStorage annis_CorpusStorage;
+/*
+ * Delete a corpus storage
+ */
+void annis_cs_free(ANNIS_CorpusStorage *ptr);
 
-/// Create a new corpus storage
-annis_CorpusStorage* annis_cs_new(char const* db_dir);
+/*
+ * Create a new corpus storage
+ */
+ANNIS_CorpusStorage *annis_cs_new(const char *db_dir);
 
-/// Delete a corpus storage
-void annis_cs_free(annis_CorpusStorage* ptr);
-
-uint64_t annis_cs_count(annis_CorpusStorage const* ptr, char const* corpus, char const* query_as_json);
-
-
-
-
-
-#ifdef __cplusplus
-}
-#endif
-
-
-#endif
+#endif /* graphannis_capi_h */

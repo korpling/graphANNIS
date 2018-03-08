@@ -2,7 +2,6 @@
 name = "graphannis-capi"
 version = "0.1.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
-build = "build.rs"
 
 workspace = ".."
 
@@ -13,8 +12,3 @@ crate-type = ["staticlib","cdylib"]
 graphannis = {path = "../graphannis"}
 
 libc = "*"
-
-
-[build-dependencies]
-moz-cheddar = "0.4"
-rust-crypto = "^0.2"

@@ -9,8 +9,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::io::prelude::*;
 use std::str::FromStr;
-use std::sync::{Arc,Mutex,RwLock};
-use std::thread;
+use std::sync::{Arc,Mutex};
 use std;
 use strum::IntoEnumIterator;
 use std::string::ToString;
@@ -563,7 +562,7 @@ impl GraphDB {
         if let Some(ref location) = self.location {
     
             // Accuire lock, so that only one thread can write background data at the same time
-            let lock = self.background_persistance.lock().unwrap();
+            let _lock = self.background_persistance.lock().unwrap();
 
             // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
             // the backup will be used instead of the original possible corrupted files.

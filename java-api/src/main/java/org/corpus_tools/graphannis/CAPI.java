@@ -28,15 +28,15 @@ public interface CAPI extends Library {
                                CAPI.class);
     
     
-     public static class annis_CorpusStorage extends PointerType {
+     public static class ANNIS_CorpusStorage extends PointerType {
 
      }
 
     
-     public annis_CorpusStorage annis_cs_new(String db_dir);
-     public void annis_cs_free(annis_CorpusStorage cs); 
+     public ANNIS_CorpusStorage annis_cs_new(String db_dir);
+     public void annis_cs_free(ANNIS_CorpusStorage cs); 
      
-     public long annis_cs_count(annis_CorpusStorage cs, String corpusName, String queryAsJSON);
+     public long annis_cs_count(ANNIS_CorpusStorage cs, String corpusName, String queryAsJSON);
      
 
 

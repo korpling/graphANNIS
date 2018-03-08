@@ -3,12 +3,9 @@ use std;
 use graphannis::api::corpusstorage::CorpusStorage;
 use std::path::PathBuf;
 
-#[repr(C)]
-pub struct annis_CorpusStorage(CorpusStorage);
-
 /// Create a new corpus storage
 #[no_mangle]
-pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut annis_CorpusStorage {
+pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut CorpusStorage {
     let db_dir = cstr!(db_dir);
 
     if let Ok(db_dir) = db_dir.to_str() {
@@ -16,7 +13,7 @@ pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut annis_Corpus
 
         let s = CorpusStorage::new_auto_cache_size(&db_dir_path);
         if let Ok(s) = s {
-            return Box::into_raw(Box::new(annis_CorpusStorage(s)));
+            return Box::into_raw(Box::new(s));
         }
     }
 
@@ -25,7 +22,7 @@ pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut annis_Corpus
 
 /// Delete a corpus storage
 #[no_mangle]
-pub extern "C" fn annis_cs_free(ptr: *mut annis_CorpusStorage) {
+pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
     if ptr.is_null() {
         return;
     };
@@ -35,7 +32,7 @@ pub extern "C" fn annis_cs_free(ptr: *mut annis_CorpusStorage) {
 
 #[no_mangle]
 pub extern "C" fn annis_cs_count(
-    ptr: *const annis_CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus: *const libc::c_char,
     query_as_json: *const libc::c_char,
 ) -> libc::uint64_t {

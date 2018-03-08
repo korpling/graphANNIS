@@ -24,7 +24,7 @@ import org.corpus_tools.graphannis.CAPI;
  */
 public class CorpusStorageManager
 {
-  private final CAPI.annis_CorpusStorage instance;
+  private final CAPI.ANNIS_CorpusStorage instance;
   
   public CorpusStorageManager(String dbDir) {
     this.instance = CAPI.INSTANCE.annis_cs_new(dbDir);

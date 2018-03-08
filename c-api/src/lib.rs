@@ -7,7 +7,7 @@ macro_rules! cast_mut {
         {
             unsafe {
                 assert!(!$x.is_null());
-                (&mut (*$x).0)
+                (&mut (*$x))
             }
         }
     };
@@ -18,7 +18,7 @@ macro_rules! cast_const {
         {
             unsafe {
                 assert!(!$x.is_null());
-                (&(*$x).0)
+                (&(*$x))
             }
         }
     };

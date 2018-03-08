@@ -1,5 +1,6 @@
 {
     "rust-client.channel": "nightly",
     "rust.workspace_mode": true,
-    "rust.unstable_features": true
+    "rust.unstable_features": true,
+    "cquery.cacheDirectory": "${workspaceFolder}/.vscode/cquery_cached_index/"
 }
