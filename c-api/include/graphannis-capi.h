@@ -30,6 +30,90 @@ typedef struct {
   const char *error_msg;
 } ANNIS_OptError;
 
+typedef enum {
+  AddNode,
+  DeleteNode,
+  AddNodeLabel,
+  DeleteNodeLabel,
+  AddEdge,
+  DeleteEdge,
+  AddEdgeLabel,
+  DeleteEdgeLabel,
+} ANNIS_UpdateEvent_Tag;
+
+typedef struct {
+  const char *node_name;
+  const char *node_type;
+} ANNIS_AddNode_Body;
+
+typedef struct {
+  const char *node_name;
+} ANNIS_DeleteNode_Body;
+
+typedef struct {
+  const char *node_name;
+  const char *anno_ns;
+  const char *anno_name;
+  const char *anno_value;
+} ANNIS_AddNodeLabel_Body;
+
+typedef struct {
+  const char *node_name;
+  const char *anno_ns;
+  const char *anno_name;
+} ANNIS_DeleteNodeLabel_Body;
+
+typedef struct {
+  const char *source_node;
+  const char *target_node;
+  const char *layer;
+  const char *component_type;
+  const char *component_name;
+} ANNIS_AddEdge_Body;
+
+typedef struct {
+  const char *source_node;
+  const char *target_node;
+  const char *layer;
+  const char *component_type;
+  const char *component_name;
+} ANNIS_DeleteEdge_Body;
+
+typedef struct {
+  const char *source_node;
+  const char *target_node;
+  const char *layer;
+  const char *component_type;
+  const char *component_name;
+  const char *anno_ns;
+  const char *anno_name;
+  const char *anno_value;
+} ANNIS_AddEdgeLabel_Body;
+
+typedef struct {
+  const char *source_node;
+  const char *target_node;
+  const char *layer;
+  const char *component_type;
+  const char *component_name;
+  const char *anno_ns;
+  const char *anno_name;
+} ANNIS_DeleteEdgeLabel_Body;
+
+typedef struct {
+  ANNIS_UpdateEvent_Tag tag;
+  union {
+    ANNIS_AddNode_Body add_node;
+    ANNIS_DeleteNode_Body delete_node;
+    ANNIS_AddNodeLabel_Body add_node_label;
+    ANNIS_DeleteNodeLabel_Body delete_node_label;
+    ANNIS_AddEdge_Body add_edge;
+    ANNIS_DeleteEdge_Body delete_edge;
+    ANNIS_AddEdgeLabel_Body add_edge_label;
+    ANNIS_DeleteEdgeLabel_Body delete_edge_label;
+  };
+} ANNIS_UpdateEvent;
+
 ANNIS_OptError annis_cs_apply_update(ANNIS_CorpusStorage *ptr,
                                      const char *corpus,
                                      ANNIS_GraphUpdate *update);
@@ -47,6 +131,8 @@ void annis_cs_free(ANNIS_CorpusStorage *ptr);
  * Create a new corpus storage
  */
 ANNIS_CorpusStorage *annis_cs_new(const char *db_dir);
+
+void annis_graphupdate_add_event(ANNIS_GraphUpdate *ptr, ANNIS_UpdateEvent event);
 
 void annis_graphupdate_add_node(ANNIS_GraphUpdate *ptr,
                                 const char *node_name,

@@ -1,4 +1,5 @@
 use libc;
+use libc::{c_char};
 use std;
 use graphannis::api::update::*;
 
@@ -18,6 +19,66 @@ pub extern "C" fn annis_graphupdate_free(ptr: *mut GraphUpdate) {
     };
     // take ownership and destroy the pointer
     unsafe { Box::from_raw(ptr) };
+}
+
+#[repr(C)]
+pub enum UpdateEvent {
+    AddNode {
+        node_name: * const c_char,
+        node_type: * const c_char,
+    },
+    DeleteNode {
+        node_name: * const c_char,
+    },
+    AddNodeLabel {
+        node_name: * const c_char,
+        anno_ns: * const c_char,
+        anno_name: * const c_char,
+        anno_value: * const c_char,
+    },
+    DeleteNodeLabel {
+        node_name: * const c_char,
+        anno_ns: * const c_char,
+        anno_name: * const c_char,
+    },
+    AddEdge {
+        source_node: * const c_char,
+        target_node: * const c_char,
+        layer: * const c_char,
+        component_type: * const c_char,
+        component_name: * const c_char,
+    },
+    DeleteEdge {
+        source_node: * const c_char,
+        target_node: * const c_char,
+        layer: * const c_char,
+        component_type: * const c_char,
+        component_name: * const c_char,
+    },
+    AddEdgeLabel {
+        source_node: * const c_char,
+        target_node: * const c_char,
+        layer: * const c_char,
+        component_type: * const c_char,
+        component_name: * const c_char,
+        anno_ns: * const c_char,
+        anno_name: * const c_char,
+        anno_value: * const c_char,
+    },
+    DeleteEdgeLabel {
+        source_node: * const c_char,
+        target_node: * const c_char,
+        layer: * const c_char,
+        component_type: * const c_char,
+        component_name: * const c_char,
+        anno_ns: * const c_char,
+        anno_name: * const c_char,
+    },
+}
+
+#[no_mangle]
+pub extern "C" fn annis_graphupdate_add_event(ptr: *mut GraphUpdate, event : UpdateEvent) {
+
 }
 
 #[no_mangle]
