@@ -5,7 +5,7 @@ use {Component, Match, StringID};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::path::{Path, PathBuf};
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use graphdb;
 use graphdb::GraphDB;
 use std;
@@ -15,6 +15,7 @@ use query::disjunction::Disjunction;
 use heapsize::HeapSizeOf;
 use std::iter::FromIterator;
 use linked_hash_map::LinkedHashMap;
+use api::update::GraphUpdate;
 
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
 
@@ -107,23 +108,26 @@ fn get_write_or_error<'a>(
     }
 }
 
-fn check_cache_size_and_remove(max_cache_size : Option<usize>, cache : &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>) {
+fn check_cache_size_and_remove(
+    max_cache_size: Option<usize>,
+    cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+) {
     // only prune corpora from the cache if max. size was set
     if let Some(max_cache_size) = max_cache_size {
         // check size of each corpus
-        let mut size_sum : usize = 0;
-        let mut db_sizes : LinkedHashMap<String, usize> = LinkedHashMap::new();
+        let mut size_sum: usize = 0;
+        let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
         for (corpus, db_entry) in cache.iter() {
             let lock = db_entry.read().unwrap();
-            if let &CacheEntry::Loaded(ref db) = &*lock {    
-                let s = db.heap_size_of_children();        
+            if let &CacheEntry::Loaded(ref db) = &*lock {
+                let s = db.heap_size_of_children();
                 size_sum += s;
                 db_sizes.insert(corpus.clone(), s);
             }
         }
         let mut num_of_loaded_corpora = db_sizes.len();
 
-        // remove older entries (at the beginning) until cache size requirements are met, 
+        // remove older entries (at the beginning) until cache size requirements are met,
         // but never remove the last loaded entry
         for (corpus_name, corpus_size) in db_sizes.iter() {
             if num_of_loaded_corpora > 1 && size_sum > max_cache_size {
@@ -153,12 +157,10 @@ impl CorpusStorage {
         Ok(cs)
     }
 
-    pub fn new_auto_cache_size(
-        db_dir: &Path,
-    ) -> Result<CorpusStorage, Error> {
+    pub fn new_auto_cache_size(db_dir: &Path) -> Result<CorpusStorage, Error> {
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
-            max_allowed_cache_size: Some(1024*1024*1024), // 1 GB
+            max_allowed_cache_size: Some(1024 * 1024 * 1024), // 1 GB
             corpus_cache: RwLock::new(LinkedHashMap::new()),
         };
 
@@ -275,7 +277,6 @@ impl CorpusStorage {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
-
         let mut db = GraphDB::new();
 
         db.load_from(&db_path, false)?;
@@ -284,7 +285,7 @@ impl CorpusStorage {
         // first remove entry, than add it: this ensures it is at the end of the linked hash map
         cache.remove(corpus_name);
         cache.insert(String::from(corpus_name), entry.clone());
-        
+
         check_cache_size_and_remove(self.max_allowed_cache_size, cache);
 
         return Ok(entry);
@@ -477,5 +478,27 @@ impl CorpusStorage {
             .collect();
 
         return Ok(it);
+    }
+
+    pub fn apply_update(&self, corpus_name: &str, update: GraphUpdate) -> Result<(), Error> {
+        let db_entry = self.get_loaded_entry(corpus_name)?;
+        {
+            let mut lock = db_entry.write().unwrap();
+            let db: &mut GraphDB = get_write_or_error(&mut lock)?;
+
+            db.apply_update(update)?;
+        }
+        // start background thread to persists the results
+        std::thread::spawn(move || {
+            let lock = db_entry.read().unwrap();
+            if let Ok(db) = get_read_or_error(&lock) {
+                let db : &GraphDB = db;
+                if let Err(e) = db.background_sync_wal_updates() {
+                    error!("Can't sync changes in background thread: {:?}", e);
+                }
+            }
+        });
+
+        Ok(())
     }
 }

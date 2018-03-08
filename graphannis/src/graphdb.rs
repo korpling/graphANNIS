@@ -543,7 +543,7 @@ impl GraphDB {
                 // Until now only the write log is persisted. Start a background thread that writes the whole
                 // corpus to the folder (without the need to apply the write log).
                 // TODO: this must be a thread
-                self.background_persistance()?;
+                self.background_sync_wal_updates()?;
 
             } else {
                 // load corpus from disk again
@@ -555,7 +555,8 @@ impl GraphDB {
         Ok(())
     }
 
-    fn background_persistance(&self) -> Result<(), Error> {
+    /// A function to persist the changes of a write-ahead-log update on the disk. Should be run in a background thread.
+    pub fn background_sync_wal_updates(&self) -> Result<(), Error> {
         
         // TODO: friendly abort any currently running threadl
 
