@@ -518,7 +518,7 @@ impl GraphDB {
         Ok(())
     }
 
-    pub fn apply_update(&mut self, mut u: GraphUpdate) -> Result<(), Error> {
+    pub fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<(), Error> {
 
         // Always mark the update state as consistent, even if caller forgot this.
         if !u.is_consistent() {

@@ -1,7 +1,9 @@
 use libc;
 use std;
 use graphannis::api::corpusstorage::CorpusStorage;
+use graphannis::api::update::GraphUpdate;
 use std::path::PathBuf;
+use super::OptError;
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -46,3 +48,24 @@ pub extern "C" fn annis_cs_count(
 
     return 0;
 }
+
+#[no_mangle]
+pub extern "C" fn annis_cs_apply_update(
+    ptr: *mut CorpusStorage,
+    corpus: *const libc::c_char,
+    update: *mut GraphUpdate,
+) -> OptError {
+    let cs: &mut CorpusStorage = cast_mut!(ptr);
+    let update: &mut GraphUpdate = cast_mut!(update);
+    if let Ok(corpus) = cstr!(corpus).to_str() {
+        if let Err(e) = cs.apply_update(corpus, update) {
+            return OptError::from(e);
+        }
+    }
+
+    OptError {
+        is_error: false,
+        error_msg: std::ptr::null(),
+    }
+}
+

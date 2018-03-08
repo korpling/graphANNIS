@@ -25,6 +25,7 @@ enum CacheEntry {
 }
 
 #[derive(Debug)]
+#[repr(C)]
 pub enum Error {
     IOerror(std::io::Error),
     DBError(graphdb::Error),
@@ -480,7 +481,7 @@ impl CorpusStorage {
         return Ok(it);
     }
 
-    pub fn apply_update(&self, corpus_name: &str, update: GraphUpdate) -> Result<(), Error> {
+    pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {
         let db_entry = self.get_loaded_entry(corpus_name)?;
         {
             let mut lock = db_entry.write().unwrap();

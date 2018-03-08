@@ -54,6 +54,7 @@ pub enum UpdateEvent {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[repr(C)]
 pub struct GraphUpdate {
     diffs : Vec<(u64, UpdateEvent)>,
     last_consistent_change_id : u64,

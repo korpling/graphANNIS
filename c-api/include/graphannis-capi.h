@@ -23,6 +23,17 @@ limitations under the License.s
 
 typedef struct ANNIS_CorpusStorage ANNIS_CorpusStorage;
 
+typedef struct ANNIS_GraphUpdate ANNIS_GraphUpdate;
+
+typedef struct {
+  bool is_error;
+  const char *error_msg;
+} ANNIS_OptError;
+
+ANNIS_OptError annis_cs_apply_update(ANNIS_CorpusStorage *ptr,
+                                     const char *corpus,
+                                     ANNIS_GraphUpdate *update);
+
 uint64_t annis_cs_count(const ANNIS_CorpusStorage *ptr,
                         const char *corpus,
                         const char *query_as_json);
@@ -36,5 +47,19 @@ void annis_cs_free(ANNIS_CorpusStorage *ptr);
  * Create a new corpus storage
  */
 ANNIS_CorpusStorage *annis_cs_new(const char *db_dir);
+
+void annis_graphupdate_add_node(ANNIS_GraphUpdate *ptr,
+                                const char *node_name,
+                                const char *node_type);
+
+/*
+ * Delete a graph update instance
+ */
+void annis_graphupdate_free(ANNIS_GraphUpdate *ptr);
+
+/*
+ * Create a new graph update instance
+ */
+ANNIS_GraphUpdate *annis_graphupdate_new(void);
 
 #endif /* graphannis_capi_h */
