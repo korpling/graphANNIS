@@ -83,11 +83,11 @@ public class SaltImport
        // add an edge both for the named component and for the un-named
        if(rel.getType() != null)
        {
-         updateList.addEdge(sourceName, targetName, l, "DOMINANCE", rel.getType());
-         addEdgeLabels(rel, l, "DOMINANCE", rel.getType());
+         updateList.addEdge(sourceName, targetName, l, "Dominance", rel.getType());
+         addEdgeLabels(rel, l, "Dominance", rel.getType());
        }
-       updateList.addEdge(sourceName, targetName, l, "DOMINANCE", "");
-       addEdgeLabels(rel, l, "DOMINANCE", "");
+       updateList.addEdge(sourceName, targetName, l, "Dominance", "");
+       addEdgeLabels(rel, l, "Dominance", "");
      }
    }
 
@@ -99,8 +99,8 @@ public class SaltImport
      for (String l : getLayerNames(rel.getLayers()))
      {
        // add an edge both for the named component (or "null" if not named)
-       updateList.addEdge(sourceName, targetName, l, "POINTING", "" + rel.getType());
-       addEdgeLabels(rel, l, "POINTING", "" + rel.getType());
+       updateList.addEdge(sourceName, targetName, l, "Pointing", "" + rel.getType());
+       addEdgeLabels(rel, l, "Pointing", "" + rel.getType());
      }
    }
 
@@ -128,7 +128,7 @@ public class SaltImport
        if (lastToken != null && textDS == lastTextDS)
        {
          // add an explicit ORDERING edge between the token
-         updateList.addEdge(nodeName(lastToken), nodeName, ANNIS_NS, "ORDERING", "");
+         updateList.addEdge(nodeName(lastToken), nodeName, ANNIS_NS, "Ordering", "");
        }
        lastToken = t;
        lastTextDS = textDS;
@@ -179,17 +179,17 @@ public class SaltImport
    String firstOverlappedToken = nodeName(sortedOverlappedToken.get(0));
    String lastOverlappedToken = nodeName(sortedOverlappedToken.get(sortedOverlappedToken.size() - 1));
 
-   updateList.addEdge(firstOverlappedToken, name, ANNIS_NS, "LEFT_TOKEN", "");
-   updateList.addEdge(name, firstOverlappedToken, ANNIS_NS, "LEFT_TOKEN", "");
+   updateList.addEdge(firstOverlappedToken, name, ANNIS_NS, "LeftToken", "");
+   updateList.addEdge(name, firstOverlappedToken, ANNIS_NS, "LeftToken", "");
    
-   updateList.addEdge(lastOverlappedToken, name, ANNIS_NS, "RIGHT_TOKEN", "");
-   updateList.addEdge(name, lastOverlappedToken, ANNIS_NS, "RIGHT_TOKEN", "");
+   updateList.addEdge(lastOverlappedToken, name, ANNIS_NS, "RightToken", "");
+   updateList.addEdge(name, lastOverlappedToken, ANNIS_NS, "RightToken", "");
 
    // add the COVERAGE and INVERSE_COVERAGE edges
    for(SToken covered : sortedOverlappedToken)
    {
-     updateList.addEdge(name, nodeName(covered), ANNIS_NS, "COVERAGE", "");
-     updateList.addEdge(nodeName(covered), name, ANNIS_NS, "INVERSE_COVERAGE", "");
+     updateList.addEdge(name, nodeName(covered), ANNIS_NS, "Coverage", "");
+     updateList.addEdge(nodeName(covered), name, ANNIS_NS, "InverseCoverage", "");
    }
    
  }
