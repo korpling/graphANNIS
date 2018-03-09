@@ -38,8 +38,7 @@ public interface CAPI extends Library
   {
   }
 
-
-  public void annis_str_free(Pointer s);
+  public void annis_str_free(String s);
 
   public AnnisCorpusStorage annis_cs_new(String db_dir);
 

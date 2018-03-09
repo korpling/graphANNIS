@@ -37,7 +37,16 @@ public class CorpusStorageManager
 
   public String[] list()
   {
-    return CAPI.INSTANCE.annis_cs_list(instance);
+    String[] orig = CAPI.INSTANCE.annis_cs_list(instance);
+    String[] copy = new String[orig.length];
+    for(int i=0; i < copy.length; i++)
+    {
+      copy[i] = new String(orig[i]);
+      // delete the original string with the correct function "free(...)" will result in memory leaks
+      CAPI.INSTANCE.annis_str_free(orig[i]);
+    }
+
+    return copy;
   }
 
   public long count(String corpusName, String queryAsJSON)
@@ -49,7 +58,9 @@ public class CorpusStorageManager
   {
     String result = CAPI.INSTANCE.annis_cs_apply_update(instance, corpusName, update.getInstance());
     if(result != null) {
-      throw new RuntimeException(result);
+      String msg = new String(result);
+      CAPI.INSTANCE.annis_str_free(result);
+      throw new RuntimeException(msg);
     }
   }
 
