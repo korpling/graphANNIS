@@ -27,7 +27,7 @@ typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
 typedef struct {
   bool is_error;
-  const char *error_msg;
+  char *error_msg;
 } AnnisOptError;
 
 AnnisOptError annis_cs_apply_update(AnnisCorpusStorage *ptr,
@@ -52,6 +52,8 @@ char **annis_cs_list(const AnnisCorpusStorage *ptr);
  * Create a new corpus storage
  */
 AnnisCorpusStorage *annis_cs_new(const char *db_dir);
+
+void annis_free_str(char *s);
 
 void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,

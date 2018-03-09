@@ -43,7 +43,16 @@ macro_rules! cstr {
 #[repr(C)]
 pub struct OptError {
     is_error: bool,
-    error_msg: *const c_char,
+    error_msg: *mut c_char,
+}
+
+#[no_mangle]
+pub extern "C" fn annis_free_str(s : *mut c_char) {
+    unsafe {
+        if s.is_null() { return }
+        // take ownership and destruct
+        CString::from_raw(s)
+    };
 }
 
 impl From<graphannis::api::corpusstorage::Error> for OptError {
@@ -57,7 +66,7 @@ impl From<graphannis::api::corpusstorage::Error> for OptError {
             // meta-error
             OptError {
                 is_error: true,
-                error_msg: std::ptr::null(),
+                error_msg: std::ptr::null_mut(),
             }
         }
         

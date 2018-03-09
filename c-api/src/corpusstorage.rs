@@ -90,7 +90,7 @@ pub extern "C" fn annis_cs_apply_update(
 
     OptError {
         is_error: false,
-        error_msg: std::ptr::null(),
+        error_msg: std::ptr::null_mut(),
     }
 }
 
