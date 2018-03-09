@@ -232,14 +232,6 @@ impl CorpusStorage {
         }
 
         // if not yet available, change to write-lock and insert cache entry
-        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
-            .iter()
-            .collect();
-
-        if !db_path.is_dir() {
-            return Err(Error::NoSuchCorpus);
-        }
-
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
@@ -250,7 +242,9 @@ impl CorpusStorage {
         return Ok(entry.clone());
     }
 
-    fn get_loaded_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>, Error> {
+
+
+    fn get_loaded_entry(&self, corpus_name: &str, create_if_missing : bool) -> Result<Arc<RwLock<CacheEntry>>, Error> {
         let cache_entry = self.get_entry(corpus_name)?;
 
         // check if basics (node annotation, strings) of the database are loaded
@@ -271,16 +265,25 @@ impl CorpusStorage {
             .iter()
             .collect();
 
-        if !db_path.is_dir() {
-            return Err(Error::NoSuchCorpus);
-        }
+        let create_corpus = if db_path.is_dir() {
+            false
+        } else {
+            if create_if_missing {
+                true
+            } else {
+                return Err(Error::NoSuchCorpus);
+            }
+        };
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
         let mut db = GraphDB::new();
-
-        db.load_from(&db_path, false)?;
+        if create_corpus {
+            db.save_to(&db_path)?;
+        } else {
+            db.load_from(&db_path, false)?;
+        }
 
         let entry = Arc::new(RwLock::new(CacheEntry::Loaded(db)));
         // first remove entry, than add it: this ensures it is at the end of the linked hash map
@@ -311,7 +314,9 @@ impl CorpusStorage {
         // remove any possible old corpus
         let old_entry = cache.remove(corpus_name);
         if let Some(_) = old_entry {
-            // TODO: remove the folder from disk
+            if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
+                error!("Error when removing existing files {}", e);
+            }
         }
 
         if let Err(e) = std::fs::create_dir_all(&db_path) {
@@ -347,7 +352,7 @@ impl CorpusStorage {
         corpus_name: &str,
         query_as_json: &'a str,
     ) -> Result<PreparationResult<'a>, Error> {
-        let db_entry = self.get_loaded_entry(corpus_name)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
         // make sure the database is loaded with all necessary components
         let (q, missing_components) = {
@@ -382,7 +387,7 @@ impl CorpusStorage {
     }
 
     pub fn get_string(&self, corpus_name: &str, str_id: StringID) -> Result<String, Error> {
-        let db_entry = self.get_loaded_entry(corpus_name)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
         // accuire read-only lock and get string
         let lock = db_entry.read().unwrap();
@@ -409,7 +414,7 @@ impl CorpusStorage {
     }
 
     pub fn preload(&self, corpus_name: &str) -> Result<(), Error> {
-        let db_entry = self.get_loaded_entry(corpus_name)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let mut lock = db_entry.write().unwrap();
         let db = get_write_or_error(&mut lock)?;
         db.ensure_loaded_all()?;
@@ -417,7 +422,7 @@ impl CorpusStorage {
     }
 
     pub fn update_statistics(&self, corpus_name: &str) -> Result<(), Error> {
-        let db_entry = self.get_loaded_entry(corpus_name)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let mut lock = db_entry.write().unwrap();
         let db: &mut GraphDB = get_write_or_error(&mut lock)?;
 
@@ -482,7 +487,7 @@ impl CorpusStorage {
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {
-        let db_entry = self.get_loaded_entry(corpus_name)?;
+        let db_entry = self.get_loaded_entry(corpus_name, true)?;
         {
             let mut lock = db_entry.write().unwrap();
             let db: &mut GraphDB = get_write_or_error(&mut lock)?;
@@ -493,7 +498,7 @@ impl CorpusStorage {
         std::thread::spawn(move || {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
-                let db : &GraphDB = db;
+                let db: &GraphDB = db;
                 if let Err(e) = db.background_sync_wal_updates() {
                     error!("Can't sync changes in background thread: {:?}", e);
                 }
