@@ -26,7 +26,6 @@ typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
 typedef struct {
-  bool is_error;
   char *error_msg;
 } AnnisOptError;
 

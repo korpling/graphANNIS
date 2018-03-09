@@ -38,26 +38,8 @@ public interface CAPI extends Library
   {
   }
 
-  public static class AnnisOptError extends Structure {
-    public boolean is_error;
-    public String error_msg;
- 
-    protected List<String> getFieldOrder() {
-      return Arrays.asList("is_error", "error_msg");
-    }
 
-    public static class ByValue extends AnnisOptError implements Structure.ByValue {
-    };
-
-    @Override
-    protected void finalize() throws Throwable
-    {
-      // strings created by RUST need special treatment
-      INSTANCE.annis_str_free(error_msg);
-    }
-  }
-
-  public void annis_str_free(String s);
+  public void annis_str_free(Pointer s);
 
   public AnnisCorpusStorage annis_cs_new(String db_dir);
 
@@ -67,7 +49,7 @@ public interface CAPI extends Library
 
   public long annis_cs_count(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
 
-  public AnnisOptError annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
+  public String annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
       AnnisGraphUpdate update);
 
   public AnnisGraphUpdate annis_graphupdate_new();

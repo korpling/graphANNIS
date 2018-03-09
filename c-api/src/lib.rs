@@ -1,8 +1,8 @@
-extern crate libc;
 extern crate graphannis;
+extern crate libc;
 
 use std::ffi::CString;
-use libc::{c_char};
+use libc::c_char;
 
 #[allow(unused_macros)]
 macro_rules! cast_mut {
@@ -35,44 +35,32 @@ macro_rules! cstr {
                 Cow::from("")
             } else {
                 std::ffi::CStr::from_ptr($x).to_string_lossy()
-            }            
+            }
         }
     }
 }
 
-#[repr(C)]
-pub struct OptError {
-    is_error: bool,
-    error_msg: *mut c_char,
-}
-
 #[no_mangle]
-pub extern "C" fn annis_str_free(s : *mut c_char) {
+pub extern "C" fn annis_str_free(s: *mut c_char) {
     unsafe {
-        if s.is_null() { return }
+        if s.is_null() {
+            return;
+        }
         // take ownership and destruct
         CString::from_raw(s)
     };
 }
 
-impl From<graphannis::api::corpusstorage::Error> for OptError {
-    fn from(e: graphannis::api::corpusstorage::Error) -> OptError {
-        if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
-            OptError {
-                is_error: true,
-                error_msg: error_msg.into_raw(),
-            }
-        } else {
-            // meta-error
-            OptError {
-                is_error: true,
-                error_msg: std::ptr::null_mut(),
-            }
-        }
-        
+pub fn error_string(e: graphannis::api::corpusstorage::Error) -> *mut c_char {
+    if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
+        error_msg.into_raw()
+    } else {
+        // meta-error
+        CString::new(String::from("Some error occured"))
+            .unwrap()
+            .into_raw()
     }
 }
-
 
 pub mod corpusstorage;
 pub mod update;

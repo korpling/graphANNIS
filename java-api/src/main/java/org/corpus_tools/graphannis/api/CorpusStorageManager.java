@@ -15,11 +15,11 @@
  */
 package org.corpus_tools.graphannis.api;
 
+import com.sun.jna.Pointer;
 import java.util.Arrays;
 import java.util.List;
 
 import org.corpus_tools.graphannis.CAPI;
-import org.corpus_tools.graphannis.CAPI.AnnisOptError;
 
 /**
  * An API for managing corpora stored in a common location on the file system.
@@ -47,11 +47,10 @@ public class CorpusStorageManager
 
   public void applyUpdate(String corpusName, GraphUpdate update)
   {
-    CAPI.INSTANCE.annis_cs_apply_update(instance, corpusName, update.getInstance());
-//     if(result.is_error)
-//     {
-// //      throw new RuntimeException(result.error_msg.getString(0));
-//     }
+    String result = CAPI.INSTANCE.annis_cs_apply_update(instance, corpusName, update.getInstance());
+    if(result != null) {
+      throw new RuntimeException(result);
+    }
   }
 
   @Override
