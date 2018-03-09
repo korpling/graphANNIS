@@ -25,23 +25,30 @@ import org.corpus_tools.graphannis.CAPI;
 public class CorpusStorageManager
 {
   private final CAPI.ANNIS_CorpusStorage instance;
-  
-  public CorpusStorageManager(String dbDir) {
+
+  public CorpusStorageManager(String dbDir)
+  {
     this.instance = CAPI.INSTANCE.annis_cs_new(dbDir);
   }
-  
-  public long count(String corpusName, String queryAsJSON) {
+
+  public long count(String corpusName, String queryAsJSON)
+  {
     return CAPI.INSTANCE.annis_cs_count(instance, corpusName, queryAsJSON);
+  }
+
+  public void applyUpdate(String corpusName, GraphUpdate update)
+  {
+    CAPI.INSTANCE.annis_cs_apply_update(instance, corpusName, update.getInstance());
   }
 
   @Override
   protected void finalize() throws Throwable
   {
     super.finalize();
-    if(instance != null) {
+    if (instance != null)
+    {
       CAPI.INSTANCE.annis_cs_free(instance);
     }
   }
-  
-  
+
 }
