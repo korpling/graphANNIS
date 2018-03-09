@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 import org.corpus_tools.graphannis.api.CorpusStorageManager;
+import org.corpus_tools.graphannis.api.GraphUpdate;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.samples.SampleGenerator;
@@ -80,8 +81,7 @@ public class SaltImportTest
   @Test
   public void testMapComplexExample()
   {
-    // TODO: re-enable test
-    /*
+  
     SDocument doc = SaltFactory.createSDocument();
     
     SampleGenerator.createTokens(doc);
@@ -93,11 +93,11 @@ public class SaltImportTest
     SampleGenerator.createAnaphoricAnnotations(doc);
     SampleGenerator.createDependencies(doc);
     
-    CAPI.GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
+    GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     
     storage.applyUpdate("testCorpus", result);
     
-    CAPI.StringVector corpus = new CAPI.StringVector("testCorpus");
+    String corpus = "testCorpus";
     
     assertEquals(26, storage.count(corpus, aqlToJSON("node")));
     
@@ -154,7 +154,6 @@ public class SaltImportTest
     assertEquals(1, storage.count(corpus, aqlToJSON("\"it\" ->anaphoric node _o_ \"example\"")));
     assertEquals(9, storage.count(corpus, aqlToJSON("tok ->null tok")));
     assertEquals(1, storage.count(corpus, aqlToJSON("\"complicated\" ->null[dependency=\"cop\"] \"Is\"")));
-    */
   }
   
   @Test

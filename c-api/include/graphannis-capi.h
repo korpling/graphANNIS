@@ -21,41 +21,46 @@ limitations under the License.s
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct ANNIS_CorpusStorage ANNIS_CorpusStorage;
+typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
-typedef struct ANNIS_GraphUpdate ANNIS_GraphUpdate;
+typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
 typedef struct {
   bool is_error;
   const char *error_msg;
-} ANNIS_OptError;
+} AnnisOptError;
 
-ANNIS_OptError annis_cs_apply_update(ANNIS_CorpusStorage *ptr,
-                                     const char *corpus,
-                                     ANNIS_GraphUpdate *update);
+AnnisOptError annis_cs_apply_update(AnnisCorpusStorage *ptr,
+                                    const char *corpus,
+                                    AnnisGraphUpdate *update);
 
-uint64_t annis_cs_count(const ANNIS_CorpusStorage *ptr,
+uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
                         const char *corpus,
                         const char *query_as_json);
 
 /*
  * Delete a corpus storage
  */
-void annis_cs_free(ANNIS_CorpusStorage *ptr);
+void annis_cs_free(AnnisCorpusStorage *ptr);
+
+/*
+ * Return an NULL-terminated array of strings that contains the names of all known corpora.
+ */
+char **annis_cs_list(const AnnisCorpusStorage *ptr);
 
 /*
  * Create a new corpus storage
  */
-ANNIS_CorpusStorage *annis_cs_new(const char *db_dir);
+AnnisCorpusStorage *annis_cs_new(const char *db_dir);
 
-void annis_graphupdate_add_edge(ANNIS_GraphUpdate *ptr,
+void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,
                                 const char *target_node,
                                 const char *layer,
                                 const char *component_type,
                                 const char *component_name);
 
-void annis_graphupdate_add_edge_label(ANNIS_GraphUpdate *ptr,
+void annis_graphupdate_add_edge_label(AnnisGraphUpdate *ptr,
                                       const char *source_node,
                                       const char *target_node,
                                       const char *layer,
@@ -65,24 +70,24 @@ void annis_graphupdate_add_edge_label(ANNIS_GraphUpdate *ptr,
                                       const char *anno_name,
                                       const char *anno_value);
 
-void annis_graphupdate_add_node(ANNIS_GraphUpdate *ptr,
+void annis_graphupdate_add_node(AnnisGraphUpdate *ptr,
                                 const char *node_name,
                                 const char *node_type);
 
-void annis_graphupdate_add_node_label(ANNIS_GraphUpdate *ptr,
+void annis_graphupdate_add_node_label(AnnisGraphUpdate *ptr,
                                       const char *node_name,
                                       const char *anno_ns,
                                       const char *anno_name,
                                       const char *anno_value);
 
-void annis_graphupdate_delete_edge(ANNIS_GraphUpdate *ptr,
+void annis_graphupdate_delete_edge(AnnisGraphUpdate *ptr,
                                    const char *source_node,
                                    const char *target_node,
                                    const char *layer,
                                    const char *component_type,
                                    const char *component_name);
 
-void annis_graphupdate_delete_edge_label(ANNIS_GraphUpdate *ptr,
+void annis_graphupdate_delete_edge_label(AnnisGraphUpdate *ptr,
                                          const char *source_node,
                                          const char *target_node,
                                          const char *layer,
@@ -91,9 +96,9 @@ void annis_graphupdate_delete_edge_label(ANNIS_GraphUpdate *ptr,
                                          const char *anno_ns,
                                          const char *anno_name);
 
-void annis_graphupdate_delete_node(ANNIS_GraphUpdate *ptr, const char *node_name);
+void annis_graphupdate_delete_node(AnnisGraphUpdate *ptr, const char *node_name);
 
-void annis_graphupdate_delete_node_label(ANNIS_GraphUpdate *ptr,
+void annis_graphupdate_delete_node_label(AnnisGraphUpdate *ptr,
                                          const char *node_name,
                                          const char *anno_ns,
                                          const char *anno_name);
@@ -101,11 +106,11 @@ void annis_graphupdate_delete_node_label(ANNIS_GraphUpdate *ptr,
 /*
  * Delete a graph update instance
  */
-void annis_graphupdate_free(ANNIS_GraphUpdate *ptr);
+void annis_graphupdate_free(AnnisGraphUpdate *ptr);
 
 /*
  * Create a new graph update instance
  */
-ANNIS_GraphUpdate *annis_graphupdate_new(void);
+AnnisGraphUpdate *annis_graphupdate_new(void);
 
 #endif /* graphannis_capi_h */

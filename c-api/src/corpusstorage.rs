@@ -1,30 +1,31 @@
 use libc;
+use libc::c_char;
 use std;
-use graphannis::api::corpusstorage::CorpusStorage;
+use std::ffi::CString;
+use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
 use std::path::PathBuf;
 use super::OptError;
 
 /// Create a new corpus storage
 #[no_mangle]
-pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut CorpusStorage {
+pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut cs::CorpusStorage {
     let db_dir = cstr!(db_dir);
 
-    if let Ok(db_dir) = db_dir.to_str() {
-        let db_dir_path = PathBuf::from(db_dir);
+    let db_dir_path = PathBuf::from(String::from(db_dir));
 
-        let s = CorpusStorage::new_auto_cache_size(&db_dir_path);
-        if let Ok(s) = s {
-            return Box::into_raw(Box::new(s));
-        }
+    let s = cs::CorpusStorage::new_auto_cache_size(&db_dir_path);
+    if let Ok(s) = s {
+        return Box::into_raw(Box::new(s));
     }
+
 
     return std::ptr::null_mut();
 }
 
 /// Delete a corpus storage
 #[no_mangle]
-pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
+pub extern "C" fn annis_cs_free(ptr: *mut cs::CorpusStorage) {
     if ptr.is_null() {
         return;
     };
@@ -34,34 +35,58 @@ pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
 
 #[no_mangle]
 pub extern "C" fn annis_cs_count(
-    ptr: *const CorpusStorage,
+    ptr: *const cs::CorpusStorage,
     corpus: *const libc::c_char,
     query_as_json: *const libc::c_char,
 ) -> libc::uint64_t {
-    let cs: &CorpusStorage = cast_const!(ptr);
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    if let (Ok(query), Ok(corpus)) = (cstr!(query_as_json).to_str(), cstr!(corpus).to_str()) {
+    let query = cstr!(query_as_json);
+    let corpus =  cstr!(corpus);
 
-        return cs.count(corpus, query).unwrap_or(0) as u64;
+    return cs.count(&corpus, &query).unwrap_or(0) as u64;
+}
 
+/// Return an NULL-terminated array of strings that contains the names of all known corpora.
+#[no_mangle]
+pub extern "C" fn annis_cs_list(
+    ptr: *const cs::CorpusStorage,
+) -> *mut *mut c_char {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+
+    let mut corpora : Vec<* mut c_char> = vec![];
+
+    if let Ok(info) = cs.list() {
+        for c in info {
+            if let Ok(name) = CString::new(c.name) {
+                corpora.push(name.into_raw());
+            }
+        }  
     }
 
-    return 0;
+    // add a null-pointer to the end
+    corpora.push(std::ptr::null_mut());
+
+    corpora.shrink_to_fit();
+    let corpora_ref = corpora.as_mut_ptr();
+    std::mem::forget(corpora);
+
+    return corpora_ref;
 }
 
 #[no_mangle]
 pub extern "C" fn annis_cs_apply_update(
-    ptr: *mut CorpusStorage,
+    ptr: *mut cs::CorpusStorage,
     corpus: *const libc::c_char,
     update: *mut GraphUpdate,
 ) -> OptError {
-    let cs: &mut CorpusStorage = cast_mut!(ptr);
+    let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let update: &mut GraphUpdate = cast_mut!(update);
-    if let Ok(corpus) = cstr!(corpus).to_str() {
-        if let Err(e) = cs.apply_update(corpus, update) {
-            return OptError::from(e);
-        }
+    let corpus = cstr!(corpus); 
+    if let Err(e) = cs.apply_update(&corpus, update) {
+        return OptError::from(e);
     }
+    
 
     OptError {
         is_error: false,

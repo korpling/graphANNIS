@@ -52,18 +52,19 @@ public class Console
 
   private void list()
   {
-    throw new UnsupportedOperationException();
-//    CAPI.StringVector result = mgr.list();
-//    for (long i = 0; i < result.size(); i++)
-//    {
-//      String corpus = result.get(i).getString();
-//
-//      CAPI.CorpusStorageManager.CorpusInfo info = mgr.info(corpus);
-//      double memoryBytes = info.memoryUsageInBytes();
-//      String memoryInMB = String.format("%.2f", memoryBytes / (1024.0 * 1024.0));
-//      System.out.println(result.get(i).getString()
-//        + ": " + info.loadStatus().getString() + " (" + memoryInMB + " MB)");
-//    }
+
+   String[] result = mgr.list();
+   for (int i = 0; i < result.length; i++)
+   {
+     String corpus = result[i];
+     System.out.println(corpus);
+
+    //  CAPI.CorpusStorageManager.CorpusInfo info = mgr.info(corpus);
+    //  double memoryBytes = info.memoryUsageInBytes();
+    //  String memoryInMB = String.format("%.2f", memoryBytes / (1024.0 * 1024.0));
+    //  System.out.println(result.get(i).getString()
+    //    + ": " + info.loadStatus().getString() + " (" + memoryInMB + " MB)");
+   }
   }
 
   private void count(String argsRaw)

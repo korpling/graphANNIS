@@ -18,13 +18,7 @@ package org.corpus_tools.graphannis;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
-import com.sun.jna.Structure;
-
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 
 public interface CAPI extends Library
 {
