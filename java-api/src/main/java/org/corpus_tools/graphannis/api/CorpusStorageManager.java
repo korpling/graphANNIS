@@ -15,6 +15,9 @@
  */
 package org.corpus_tools.graphannis.api;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.corpus_tools.graphannis.CAPI;
 
 /**
@@ -24,11 +27,16 @@ import org.corpus_tools.graphannis.CAPI;
  */
 public class CorpusStorageManager
 {
-  private final CAPI.ANNIS_CorpusStorage instance;
+  private final CAPI.AnnisCorpusStorage instance;
 
   public CorpusStorageManager(String dbDir)
   {
     this.instance = CAPI.INSTANCE.annis_cs_new(dbDir);
+  }
+
+  public String[] list()
+  {
+    return CAPI.INSTANCE.annis_cs_list(instance);
   }
 
   public long count(String corpusName, String queryAsJSON)

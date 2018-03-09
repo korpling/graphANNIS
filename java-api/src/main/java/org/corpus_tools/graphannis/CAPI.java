@@ -18,55 +18,67 @@ package org.corpus_tools.graphannis;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
+import com.sun.jna.Structure;
+
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 public interface CAPI extends Library
 {
 
-    CAPI INSTANCE = (CAPI) Native.loadLibrary("graphannis_capi", CAPI.class);
+        CAPI INSTANCE = (CAPI) Native.loadLibrary("graphannis_capi", CAPI.class);
 
-    public static class ANNIS_CorpusStorage extends PointerType
-    {
-    }
+        public static class AnnisCorpusStorage extends PointerType
+        {
+        }
 
-    public static class ANNIS_GraphUpdate extends PointerType
-    {
-    }
+        public static class AnnisGraphUpdate extends PointerType
+        {
+        }
 
-    public ANNIS_CorpusStorage annis_cs_new(String db_dir);
+        public AnnisCorpusStorage annis_cs_new(String db_dir);
 
-    public void annis_cs_free(ANNIS_CorpusStorage cs);
+        public void annis_cs_free(AnnisCorpusStorage cs);
 
-    public long annis_cs_count(ANNIS_CorpusStorage cs, String corpusName, String queryAsJSON);
-    public void annis_cs_apply_update(ANNIS_CorpusStorage cs, String corpusName, ANNIS_GraphUpdate update);
+        public String[] annis_cs_list(AnnisCorpusStorage cs);
 
-    public ANNIS_GraphUpdate annis_graphupdate_new();
+        public long annis_cs_count(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
 
-    public void annis_graphupdate_free(ANNIS_GraphUpdate ptr);
+        public void annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
+                        AnnisGraphUpdate update);
 
-    public void annis_graphupdate_add_node(ANNIS_GraphUpdate ptr, String node_name,
-            String node_type);
+        public AnnisGraphUpdate annis_graphupdate_new();
 
-    public void annis_graphupdate_delete_node(ANNIS_GraphUpdate ptr, String node_name);
+        public void annis_graphupdate_free(AnnisGraphUpdate ptr);
 
-    public void annis_graphupdate_add_node_label(ANNIS_GraphUpdate ptr, String node_name,
-            String anno_ns, String anno_name, String anno_value);
+        public void annis_graphupdate_add_node(AnnisGraphUpdate ptr, String node_name,
+                        String node_type);
 
-    public void annis_graphupdate_delete_node_label(ANNIS_GraphUpdate ptr, String node_name,
-            String anno_ns, String anno_name);
+        public void annis_graphupdate_delete_node(AnnisGraphUpdate ptr, String node_name);
 
-    public void annis_graphupdate_add_edge(ANNIS_GraphUpdate ptr, String source_node,
-            String target_node, String layer, String component_type, String component_name);
+        public void annis_graphupdate_add_node_label(AnnisGraphUpdate ptr, String node_name,
+                        String anno_ns, String anno_name, String anno_value);
 
-    public void annis_graphupdate_delete_edge(ANNIS_GraphUpdate ptr, String source_node,
-            String target_node, String layer, String component_type, String component_name);
+        public void annis_graphupdate_delete_node_label(AnnisGraphUpdate ptr, String node_name,
+                        String anno_ns, String anno_name);
 
-    public void annis_graphupdate_add_edge_label(ANNIS_GraphUpdate ptr, String source_node,
-            String target_node, String layer, String component_type, String component_name,
-            String anno_ns, String anno_name, String anno_value);
+        public void annis_graphupdate_add_edge(AnnisGraphUpdate ptr, String source_node,
+                        String target_node, String layer, String component_type,
+                        String component_name);
 
-    public void annis_graphupdate_delete_edge_label(ANNIS_GraphUpdate ptr, String source_node,
-            String target_node, String layer, String component_type, String component_name,
-            String anno_ns, String anno_name);
+        public void annis_graphupdate_delete_edge(AnnisGraphUpdate ptr, String source_node,
+                        String target_node, String layer, String component_type,
+                        String component_name);
+
+        public void annis_graphupdate_add_edge_label(AnnisGraphUpdate ptr, String source_node,
+                        String target_node, String layer, String component_type,
+                        String component_name, String anno_ns, String anno_name, String anno_value);
+
+        public void annis_graphupdate_delete_edge_label(AnnisGraphUpdate ptr, String source_node,
+                        String target_node, String layer, String component_type,
+                        String component_name, String anno_ns, String anno_name);
 
 }

@@ -24,14 +24,14 @@ import org.corpus_tools.graphannis.CAPI;
  */
 public class GraphUpdate
 {
-    private final CAPI.ANNIS_GraphUpdate instance;
+    private final CAPI.AnnisGraphUpdate instance;
 
     public GraphUpdate()
     {
         this.instance = CAPI.INSTANCE.annis_graphupdate_new();
     }
 
-    public CAPI.ANNIS_GraphUpdate getInstance() 
+    public CAPI.AnnisGraphUpdate getInstance() 
     {
         return this.instance;
     }
