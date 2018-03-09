@@ -47,7 +47,7 @@ pub struct OptError {
 }
 
 #[no_mangle]
-pub extern "C" fn annis_free_str(s : *mut c_char) {
+pub extern "C" fn annis_str_free(s : *mut c_char) {
     unsafe {
         if s.is_null() { return }
         // take ownership and destruct

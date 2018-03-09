@@ -53,8 +53,6 @@ char **annis_cs_list(const AnnisCorpusStorage *ptr);
  */
 AnnisCorpusStorage *annis_cs_new(const char *db_dir);
 
-void annis_free_str(char *s);
-
 void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,
                                 const char *target_node,
@@ -114,5 +112,7 @@ void annis_graphupdate_free(AnnisGraphUpdate *ptr);
  * Create a new graph update instance
  */
 AnnisGraphUpdate *annis_graphupdate_new(void);
+
+void annis_str_free(char *s);
 
 #endif /* graphannis_capi_h */

@@ -39,7 +39,7 @@ public interface CAPI extends Library
   }
 
   public static class AnnisOptError extends Structure {
-    public double is_error;
+    public boolean is_error;
     public String error_msg;
  
     protected List<String> getFieldOrder() {
@@ -49,7 +49,15 @@ public interface CAPI extends Library
     public static class ByValue extends AnnisOptError implements Structure.ByValue {
     };
 
+    @Override
+    protected void finalize() throws Throwable
+    {
+      // strings created by RUST need special treatment
+      INSTANCE.annis_str_free(error_msg);
+    }
   }
+
+  public void annis_str_free(String s);
 
   public AnnisCorpusStorage annis_cs_new(String db_dir);
 
