@@ -1,21 +1,26 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use {Component, Match, StringID};
+use {Component, Match, StringID, NodeID};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::path::{Path, PathBuf};
-use std::collections::HashSet;
+use std::collections::{HashSet, BTreeSet, BTreeMap};
 use graphdb;
+use operator;
 use graphdb::GraphDB;
 use std;
 use plan;
+use types;
 use plan::ExecutionPlan;
+use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
+use exec::nodesearch::NodeSearchSpec;
 use heapsize::HeapSizeOf;
 use std::iter::FromIterator;
 use linked_hash_map::LinkedHashMap;
 use api::update::GraphUpdate;
+use api::graph::{Edge, Node};
 
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
 
@@ -143,6 +148,51 @@ fn check_cache_size_and_remove(
     }
 }
 
+
+fn create_subgraph_node(id : NodeID, db : &GraphDB, all_components : &Vec<Component>) -> Node {
+     let empty_str = String::from("");
+    // add all node labels
+    let mut labels : BTreeMap<String,String> = BTreeMap::new();
+    for a in db.node_annos.get_all(&id) {
+       
+        let qname = format!("{}::{}", db.strings.str(a.key.ns).unwrap_or(&empty_str), db.strings.str(a.key.name).unwrap_or(&empty_str));
+        if let Some(val) = db.strings.str(a.val) {
+            labels.insert(qname, val.to_string());
+        }
+    }
+
+    // find outgoing edges
+    let mut outgoing_edges = vec![];
+    for c in all_components {
+        if let Some(gs) = db.get_graphstorage(c) {
+            for target in gs.get_outgoing_edges(&id) {
+                let mut edge_labels : BTreeMap<String,String> = BTreeMap::new();
+                for a in gs.get_edge_annos(&types::Edge {source: id, target}).into_iter() {
+                    let qname = format!("{}::{}", db.strings.str(a.key.ns).unwrap_or(&empty_str), db.strings.str(a.key.name).unwrap_or(&empty_str));
+                    
+                    if let Some(val) = db.strings.str(a.val) {
+                        edge_labels.insert(qname, val.to_string());
+                    }
+                }
+                outgoing_edges.push(Edge {
+                    source_id: id,
+                    target_id: target,
+                    component_type: c.ctype.to_string(),
+                    component_layer: c.layer.clone(),
+                    component_name: c.name.clone(),
+                    labels: edge_labels,
+                });
+            }
+        }
+    }
+
+    return Node {
+        id,
+        labels,
+        outgoing_edges,
+    };
+}
+
 impl CorpusStorage {
     pub fn new(
         db_dir: &Path,
@@ -241,9 +291,11 @@ impl CorpusStorage {
         return Ok(entry.clone());
     }
 
-
-
-    fn get_loaded_entry(&self, corpus_name: &str, create_if_missing : bool) -> Result<Arc<RwLock<CacheEntry>>, Error> {
+    fn get_loaded_entry(
+        &self,
+        corpus_name: &str,
+        create_if_missing: bool,
+    ) -> Result<Arc<RwLock<CacheEntry>>, Error> {
         let cache_entry = self.get_entry(corpus_name)?;
 
         // check if basics (node annotation, strings) of the database are loaded
@@ -483,6 +535,132 @@ impl CorpusStorage {
             .collect();
 
         return Ok(it);
+    }
+
+    pub fn subgraph(
+        &self,
+        corpus_name: &str,
+        node_ids: Vec<String>,
+        ctx_left: usize,
+        ctx_right: usize,
+    ) -> Result<Vec<Node>, Error> {
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let missing_components = {
+            let lock = db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+
+            let mut missing: HashSet<Component> = HashSet::new();
+            for c in db.get_all_components(None, None).into_iter() {
+                if !db.is_loaded(&c) {
+                    missing.insert(c);
+                }
+            }
+            missing
+        };
+        if !missing_components.is_empty() {
+            // load the needed components
+            let mut lock = db_entry.write().unwrap();
+            let db = get_write_or_error(&mut lock)?;
+            for c in missing_components {
+                db.ensure_loaded(&c)?;
+            }
+        };
+        
+
+        let mut query = Disjunction {
+            alternatives: vec![],
+        };
+
+        // find all nodes covering the same token
+        for source_node_id in node_ids {
+            let source_node_id: &str = if source_node_id.starts_with("salt:/") {
+                // remove the "salt:/" prefix
+                &source_node_id[6..]
+            } else {
+                &source_node_id
+            };
+
+            // left context
+            {
+                let mut q_left: Conjunction = Conjunction::new();
+                let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
+                    ns: Some(graphdb::ANNIS_NS.to_string()),
+                    name: graphdb::NODE_NAME.to_string(),
+                    val: Some(source_node_id.to_string()),
+                });
+                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken);
+                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken);
+                let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode);
+
+                q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_left.add_operator(
+                    Box::new(operator::PrecedenceSpec {
+                        segmentation: None,
+                        min_dist: 0,
+                        max_dist: ctx_left,
+                    }),
+                    tok_precedence_idx,
+                    tok_covered_idx,
+                );
+                q_left.add_operator(Box::new(operator::OverlapSpec{}), any_node_idx, tok_precedence_idx);
+
+                query.alternatives.push(q_left);
+            }
+
+            // right context
+            {
+                let mut q_right: Conjunction = Conjunction::new();
+                let n_idx = q_right.add_node(NodeSearchSpec::ExactValue {
+                    ns: Some(graphdb::ANNIS_NS.to_string()),
+                    name: graphdb::NODE_NAME.to_string(),
+                    val: Some(source_node_id.to_string()),
+                });
+                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken);
+                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken);
+                let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode);
+
+                q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_right.add_operator(
+                    Box::new(operator::PrecedenceSpec {
+                        segmentation: None,
+                        min_dist: 0,
+                        max_dist: ctx_right,
+                    }),
+                    tok_covered_idx,
+                    tok_precedence_idx
+                );
+                q_right.add_operator(Box::new(operator::OverlapSpec{}), any_node_idx, tok_precedence_idx);
+                
+                query.alternatives.push(q_right);
+            }
+        }
+
+        // accuire read-only lock and create query that finds the context nodes
+        let lock = db_entry.read().unwrap();
+        let db = get_read_or_error(&lock)?;
+
+        let plan = ExecutionPlan::from_disjunction(query, &db)?;
+
+        let all_components = db.get_all_components(None, None);
+
+        // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
+        // match vector differ.
+        let mut match_result : BTreeSet<Match> = BTreeSet::new();
+
+        let mut result : Vec<Node> = vec![];
+
+        // create the subgraph description
+        for r in plan {
+            let m : &Match = &r[3];
+            if !match_result.contains(m) {
+                match_result.insert(m.clone());
+
+                let new_node = create_subgraph_node(m.node, db, &all_components);
+                result.push(new_node);
+            }
+        }
+
+        return Ok(result);
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {
