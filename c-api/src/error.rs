@@ -29,15 +29,6 @@ pub fn new(err : graphannis::api::corpusstorage::Error) -> * mut Error {
 }
 
 #[no_mangle]
-pub extern "C" fn annis_error_free(ptr : * mut Error) {
-     if ptr.is_null() {
-        return;
-    };
-    // take ownership and destroy the pointer
-    unsafe { Box::from_raw(ptr) };
-}
-
-#[no_mangle]
 pub extern "C" fn annis_error_get_msg(ptr : * const Error) -> * const c_char {
     let err: &Error = cast_const!(ptr);
     return err.msg.as_ptr();

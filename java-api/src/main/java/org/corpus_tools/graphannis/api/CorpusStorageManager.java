@@ -42,7 +42,7 @@ public class CorpusStorageManager
       copy[i] = CAPI.INSTANCE.annis_stringvec_get(orig, i);
     }
     
-    CAPI.INSTANCE.annis_stringvec_free(orig);
+    CAPI.INSTANCE.annis_free(orig);
 
     return copy;
   }
@@ -62,7 +62,7 @@ public class CorpusStorageManager
       result[i] = CAPI.INSTANCE.annis_stringvec_get(vec, i);
     }
     
-    CAPI.INSTANCE.annis_stringvec_free(vec);
+    CAPI.INSTANCE.annis_free(vec);
     
     return result;
   }
@@ -73,11 +73,11 @@ public class CorpusStorageManager
     
     if(result != null) {
       String msg = CAPI.INSTANCE.annis_error_get_msg(result);
-      CAPI.INSTANCE.annis_error_free(result);
+      CAPI.INSTANCE.annis_free(result);
       
       throw new RuntimeException(msg);
     } else {
-        CAPI.INSTANCE.annis_error_free(result);
+        CAPI.INSTANCE.annis_free(result);
     }
   }
 
@@ -87,7 +87,7 @@ public class CorpusStorageManager
     super.finalize();
     if (instance != null)
     {
-      CAPI.INSTANCE.annis_cs_free(instance);
+      CAPI.INSTANCE.annis_free(instance);
     }
   }
 

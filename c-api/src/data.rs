@@ -1,6 +1,16 @@
 use std::ffi::CString;
-use libc::{size_t, c_char};
+use libc::{size_t, c_char, c_void};
 use std;
+
+
+#[no_mangle]
+pub extern "C" fn annis_free(ptr: *mut c_void) {
+    if ptr.is_null() {
+        return;
+    }
+    // take ownership and destroy the pointer
+    unsafe { Box::from_raw(ptr) };
+}
 
 #[no_mangle]
 pub extern "C" fn annis_str_free(s: *mut c_char) {
@@ -11,15 +21,6 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
         // take ownership and destruct
         CString::from_raw(s)
     };
-}
-
-#[no_mangle]
-pub extern "C" fn annis_stringvec_free(ptr : * mut Vec<CString>) {
-    if ptr.is_null() {
-        return;
-    };
-    // take ownership and destroy the pointer
-    unsafe { Box::from_raw(ptr) };
 }
 
 #[no_mangle]

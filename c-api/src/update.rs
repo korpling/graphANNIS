@@ -10,16 +10,6 @@ pub extern "C" fn annis_graphupdate_new() -> *mut GraphUpdate {
     return Box::into_raw(Box::new(gu));
 }
 
-/// Delete a graph update instance
-#[no_mangle]
-pub extern "C" fn annis_graphupdate_free(ptr: *mut GraphUpdate) {
-    if ptr.is_null() {
-        return;
-    };
-    // take ownership and destroy the pointer
-    unsafe { Box::from_raw(ptr) };
-}
-
 
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_node(

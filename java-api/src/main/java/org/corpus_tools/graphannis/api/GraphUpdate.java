@@ -97,7 +97,7 @@ public class GraphUpdate
         super.finalize();
         if (instance != null)
         {
-            CAPI.INSTANCE.annis_graphupdate_free(instance);
+            CAPI.INSTANCE.annis_free(instance);
         }
     }
 }

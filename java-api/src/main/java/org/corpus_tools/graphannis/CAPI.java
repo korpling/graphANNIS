@@ -41,11 +41,12 @@ public interface CAPI extends Library
   {
   }
 
-  public void annis_str_free(String s);
+  public void annis_free(PointerType ptr);
+  
+  public void annis_str_free(PointerType ptr);
 
   public AnnisCorpusStorage annis_cs_new(String db_dir);
 
-  public void annis_cs_free(AnnisCorpusStorage cs);
 
   public AnnisVec_AnnisCString annis_cs_list(AnnisCorpusStorage cs);
 
@@ -56,8 +57,6 @@ public interface CAPI extends Library
       AnnisGraphUpdate update);
 
   public AnnisGraphUpdate annis_graphupdate_new();
-
-  public void annis_graphupdate_free(AnnisGraphUpdate ptr);
 
   public void annis_graphupdate_add_node(AnnisGraphUpdate ptr, String node_name, String node_type);
 
@@ -83,11 +82,9 @@ public interface CAPI extends Library
       String target_node, String layer, String component_type, String component_name,
       String anno_ns, String anno_name);
   
-  public void annis_error_free(AnnisError ptr);
 
   public String annis_error_get_msg(AnnisError ptr);
   
-  public void annis_stringvec_free(AnnisVec_AnnisCString ptr);
   public long annis_stringvec_size(AnnisVec_AnnisCString ptr);
   public String annis_stringvec_get(AnnisVec_AnnisCString ptr, long i);
   

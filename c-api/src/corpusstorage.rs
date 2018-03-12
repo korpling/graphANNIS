@@ -22,16 +22,6 @@ pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut cs::CorpusSt
     return std::ptr::null_mut();
 }
 
-/// Delete a corpus storage
-#[no_mangle]
-pub extern "C" fn annis_cs_free(ptr: *mut cs::CorpusStorage) {
-    if ptr.is_null() {
-        return;
-    };
-    // take ownership and destroy the pointer
-    unsafe { Box::from_raw(ptr) };
-}
-
 #[no_mangle]
 pub extern "C" fn annis_cs_count(
     ptr: *const cs::CorpusStorage,

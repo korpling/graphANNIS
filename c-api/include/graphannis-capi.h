@@ -50,11 +50,6 @@ AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      size_t limit);
 
 /*
- * Delete a corpus storage
- */
-void annis_cs_free(AnnisCorpusStorage *ptr);
-
-/*
  * List all known corpora.
  */
 AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
@@ -78,9 +73,9 @@ uint64_t annis_edge_source(const AnnisEdge *e);
 
 uint64_t annis_edge_target(const AnnisEdge *e);
 
-void annis_error_free(AnnisError *ptr);
-
 const char *annis_error_get_msg(const AnnisError *ptr);
+
+void annis_free(void *ptr);
 
 void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,
@@ -133,11 +128,6 @@ void annis_graphupdate_delete_node_label(AnnisGraphUpdate *ptr,
                                          const char *anno_name);
 
 /*
- * Delete a graph update instance
- */
-void annis_graphupdate_free(AnnisGraphUpdate *ptr);
-
-/*
  * Create a new graph update instance
  */
 AnnisGraphUpdate *annis_graphupdate_new(void);
@@ -154,11 +144,7 @@ const AnnisEdge *annis_node_outgoing_get(const AnnisNode *n, size_t i);
 
 size_t annis_node_outgoing_len(const AnnisNode *n);
 
-void annis_nodevec_free(AnnisVec_AnnisNode *ptr);
-
 void annis_str_free(char *s);
-
-void annis_stringvec_free(AnnisVec_AnnisCString *ptr);
 
 const char *annis_stringvec_get(const AnnisVec_AnnisCString *ptr, size_t i);
 
