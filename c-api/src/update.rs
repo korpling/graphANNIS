@@ -162,3 +162,12 @@ pub extern "C" fn annis_graphupdate_delete_edge_label(
         anno_name: String::from(cstr!(anno_name)),
     });
 }
+
+#[no_mangle]
+pub extern "C" fn annis_graphupdate_size(
+    ptr: *const GraphUpdate
+) -> libc::size_t {
+    let g : &GraphUpdate = cast_const!(ptr);
+    return g.len();
+}
+

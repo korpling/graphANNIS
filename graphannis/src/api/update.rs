@@ -103,4 +103,8 @@ impl GraphUpdate {
 
         return Box::new(it);
     }
+
+    pub fn len(&self) -> usize {
+        self.diffs.len()
+    }
 }
