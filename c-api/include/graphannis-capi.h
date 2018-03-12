@@ -64,11 +64,11 @@ AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
  */
 AnnisCorpusStorage *annis_cs_new(const char *db_dir);
 
-AnnisVec_AnnisNode annis_cs_subgraph(const AnnisCorpusStorage *ptr,
-                                     const char *corpus_name,
-                                     const AnnisVec_AnnisCString *node_ids,
-                                     size_t ctx_left,
-                                     size_t ctx_right);
+AnnisVec_AnnisNode *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
+                                      const char *corpus_name,
+                                      const AnnisVec_AnnisCString *node_ids,
+                                      size_t ctx_left,
+                                      size_t ctx_right);
 
 AnnisVec_AnnisCString *annis_edge_label_names(const AnnisEdge *n);
 
@@ -149,6 +149,12 @@ uint64_t annis_node_id(const AnnisNode *n);
 AnnisVec_AnnisCString *annis_node_label_names(const AnnisNode *n);
 
 char *annis_node_label_value(const AnnisNode *n, const char *name);
+
+const AnnisEdge *annis_node_outgoing_get(const AnnisNode *n, size_t i);
+
+size_t annis_node_outgoing_len(const AnnisNode *n);
+
+void annis_nodevec_free(AnnisVec_AnnisNode *ptr);
 
 void annis_str_free(char *s);
 

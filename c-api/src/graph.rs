@@ -3,11 +3,34 @@ use libc;
 use std;
 use std::ffi::CString;
 
+#[no_mangle]
+pub extern "C" fn annis_nodevec_free(ptr : * mut Vec<Node>) {
+    if ptr.is_null() {
+        return;
+    };
+    // take ownership and destroy the pointer
+    unsafe { Box::from_raw(ptr) };
+}
 
 #[no_mangle]
 pub extern "C" fn annis_node_id(n : * const Node) -> libc::uint64_t {
     let n : &Node = cast_const!(n);
     return n.id as libc::uint64_t;
+}
+
+#[no_mangle]
+pub extern "C" fn annis_node_outgoing_len(n : * const Node) -> libc::size_t {
+    let n : &Node = cast_const!(n);
+    return n.outgoing_edges.len();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_node_outgoing_get(n : * const Node, i : libc::size_t) -> * const Edge {
+    let n : &Node = cast_const!(n);
+    if i < n.outgoing_edges.len() {
+        return &n.outgoing_edges[i] as *const Edge;
+    }
+    return std::ptr::null();
 }
 
 #[no_mangle]

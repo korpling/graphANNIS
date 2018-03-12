@@ -1,9 +1,6 @@
 extern crate graphannis;
 extern crate libc;
 
-use std::ffi::CString;
-use libc::c_char;
-
 #[allow(unused_macros)]
 macro_rules! cast_mut {
     ($x:expr) => {
