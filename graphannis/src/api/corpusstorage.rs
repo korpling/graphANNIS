@@ -149,7 +149,7 @@ fn check_cache_size_and_remove(
 }
 
 
-fn create_subgraph_node(id : NodeID, db : &GraphDB, all_components : &Vec<Component>) -> Node {
+fn create_subgraph_node(id : NodeID, db : &GraphDB, all_components : &Vec<Component>) -> Node<String> {
      let empty_str = String::from("");
     // add all node labels
     let mut labels : BTreeMap<String,String> = BTreeMap::new();
@@ -543,7 +543,7 @@ impl CorpusStorage {
         node_ids: Vec<String>,
         ctx_left: usize,
         ctx_right: usize,
-    ) -> Result<Vec<Node>, Error> {
+    ) -> Result<Vec<Node<String>>, Error> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
             let lock = db_entry.read().unwrap();
@@ -647,7 +647,7 @@ impl CorpusStorage {
         // match vector differ.
         let mut match_result : BTreeSet<Match> = BTreeSet::new();
 
-        let mut result : Vec<Node> = vec![];
+        let mut result : Vec<Node<String>> = vec![];
 
         // create the subgraph description
         for r in plan {

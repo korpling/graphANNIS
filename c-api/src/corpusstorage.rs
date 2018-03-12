@@ -3,6 +3,7 @@ use std;
 use std::ffi::CString;
 use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
+use graphannis::api::graph::{Edge, Node};
 use std::path::PathBuf;
 use super::error::Error;
 
@@ -67,6 +68,11 @@ pub extern "C" fn annis_cs_find(
     };
 
     return Box::into_raw(Box::new(vec_result));
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_subgraph(ptr: *const cs::CorpusStorage) -> Vec<Node<CString>> {
+    unimplemented!()
 }
 
 /// List all known corpora.
