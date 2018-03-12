@@ -54,3 +54,4 @@ pub mod corpusstorage;
 pub mod update;
 pub mod data;
 pub mod error;
+pub mod graph;

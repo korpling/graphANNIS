@@ -27,7 +27,11 @@ typedef struct AnnisError AnnisError;
 
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
+typedef struct AnnisNode AnnisNode;
+
 typedef struct AnnisVec_AnnisCString AnnisVec_AnnisCString;
+
+typedef struct AnnisVec_AnnisNode AnnisVec_AnnisNode;
 
 AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
                                   const char *corpus,
@@ -58,11 +62,11 @@ AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
  */
 AnnisCorpusStorage *annis_cs_new(const char *db_dir);
 
-AnnisGraphUpdate annis_cs_subgraph(const AnnisCorpusStorage *ptr,
-                                   const char *corpus_name,
-                                   const AnnisVec_AnnisCString *node_ids,
-                                   size_t ctx_left,
-                                   size_t ctx_right);
+AnnisVec_AnnisNode annis_cs_subgraph(const AnnisCorpusStorage *ptr,
+                                     const char *corpus_name,
+                                     const AnnisVec_AnnisCString *node_ids,
+                                     size_t ctx_left,
+                                     size_t ctx_right);
 
 void annis_error_free(AnnisError *ptr);
 
@@ -129,6 +133,10 @@ void annis_graphupdate_free(AnnisGraphUpdate *ptr);
 AnnisGraphUpdate *annis_graphupdate_new(void);
 
 size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
+
+uint64_t annis_node_getid(const AnnisNode *n);
+
+AnnisVec_AnnisCString *annis_node_label_names(const AnnisNode *n);
 
 void annis_str_free(char *s);
 
