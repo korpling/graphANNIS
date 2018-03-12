@@ -23,15 +23,13 @@ limitations under the License.s
 
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
+typedef struct AnnisError AnnisError;
+
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
-typedef struct {
-  char *error_msg;
-} AnnisOptError;
-
-AnnisOptError annis_cs_apply_update(AnnisCorpusStorage *ptr,
-                                    const char *corpus,
-                                    AnnisGraphUpdate *update);
+AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
+                                  const char *corpus,
+                                  AnnisGraphUpdate *update);
 
 uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
                         const char *corpus,
@@ -51,6 +49,10 @@ char **annis_cs_list(const AnnisCorpusStorage *ptr);
  * Create a new corpus storage
  */
 AnnisCorpusStorage *annis_cs_new(const char *db_dir);
+
+void annis_error_free(AnnisError *ptr);
+
+const char *annis_error_get_msg(const AnnisError *ptr);
 
 void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,

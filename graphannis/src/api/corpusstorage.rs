@@ -25,7 +25,6 @@ enum CacheEntry {
 }
 
 #[derive(Debug)]
-#[repr(C)]
 pub enum Error {
     IOerror(std::io::Error),
     DBError(graphdb::Error),

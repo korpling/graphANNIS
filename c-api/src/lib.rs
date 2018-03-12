@@ -51,21 +51,6 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
     };
 }
 
-pub fn error_string(e: graphannis::api::corpusstorage::Error) -> *mut c_char {
-    if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
-        error_msg.into_raw()
-    } else {
-        // meta-error
-        CString::new(String::from("Some error occured"))
-            .unwrap()
-            .into_raw()
-    }
-}
-
 pub mod corpusstorage;
 pub mod update;
-
-// put all the C-APIs in parent scope
-pub use corpusstorage::*;
-pub use update::*;
-pub use graphannis::api::update::UpdateEvent;
+pub mod error;

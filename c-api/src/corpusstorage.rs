@@ -5,6 +5,7 @@ use std::ffi::CString;
 use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
 use std::path::PathBuf;
+use super::error::Error;
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -78,14 +79,13 @@ pub extern "C" fn annis_cs_apply_update(
     ptr: *mut cs::CorpusStorage,
     corpus: *const libc::c_char,
     update: *mut GraphUpdate,
-) -> * mut c_char {
+) -> * mut Error {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let update: &mut GraphUpdate = cast_mut!(update);
     let corpus = cstr!(corpus); 
     if let Err(e) = cs.apply_update(&corpus, update) {
-        return super::error_string(e);
+        return super::error::new(e);
     }
-    
 
     std::ptr::null_mut()
 }

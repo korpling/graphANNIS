@@ -15,9 +15,6 @@
  */
 package org.corpus_tools.graphannis.api;
 
-import com.sun.jna.Pointer;
-import java.util.Arrays;
-import java.util.List;
 
 import org.corpus_tools.graphannis.CAPI;
 
@@ -56,10 +53,10 @@ public class CorpusStorageManager
 
   public void applyUpdate(String corpusName, GraphUpdate update)
   {
-    String result = CAPI.INSTANCE.annis_cs_apply_update(instance, corpusName, update.getInstance());
+    CAPI.AnnisError result = CAPI.INSTANCE.annis_cs_apply_update(instance, corpusName, update.getInstance());
     if(result != null) {
-      String msg = new String(result);
-      CAPI.INSTANCE.annis_str_free(result);
+      String msg = CAPI.INSTANCE.annis_error_get_msg(result);
+      CAPI.INSTANCE.annis_error_free(result);
       throw new RuntimeException(msg);
     }
   }

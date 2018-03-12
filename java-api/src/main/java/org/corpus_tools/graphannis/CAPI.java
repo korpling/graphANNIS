@@ -37,6 +37,10 @@ public interface CAPI extends Library
   public static class AnnisGraphUpdate extends PointerType
   {
   }
+  
+  public static class AnnisError extends PointerType
+  {
+  }
 
   public void annis_str_free(String s);
 
@@ -48,7 +52,7 @@ public interface CAPI extends Library
 
   public long annis_cs_count(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
 
-  public String annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
+  public AnnisError annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
       AnnisGraphUpdate update);
 
   public AnnisGraphUpdate annis_graphupdate_new();
@@ -78,5 +82,9 @@ public interface CAPI extends Library
   public void annis_graphupdate_delete_edge_label(AnnisGraphUpdate ptr, String source_node,
       String target_node, String layer, String component_type, String component_name,
       String anno_ns, String anno_name);
+  
+  public void annis_error_free(AnnisError ptr);
+
+  public String annis_error_get_msg(AnnisError ptr);
 
 }
