@@ -1,5 +1,4 @@
 use libc;
-use libc::c_char;
 use std;
 use std::ffi::CString;
 use graphannis::api::corpusstorage as cs;
@@ -47,31 +46,24 @@ pub extern "C" fn annis_cs_count(
     return cs.count(&corpus, &query).unwrap_or(0) as u64;
 }
 
-/// Return an NULL-terminated array of strings that contains the names of all known corpora.
+/// List all known corpora.
 #[no_mangle]
 pub extern "C" fn annis_cs_list(
     ptr: *const cs::CorpusStorage,
-) -> *mut *mut c_char {
+) -> * mut Vec<CString> {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let mut corpora : Vec<* mut c_char> = vec![];
+    let mut corpora : Vec<CString> = vec![];
 
     if let Ok(info) = cs.list() {
         for c in info {
             if let Ok(name) = CString::new(c.name) {
-                corpora.push(name.into_raw());
+                corpora.push(name);
             }
         }  
     }
 
-    // add a null-pointer to the end
-    corpora.push(std::ptr::null_mut());
-
-    corpora.shrink_to_fit();
-    let corpora_ref = corpora.as_mut_ptr();
-    std::mem::forget(corpora);
-
-    return corpora_ref;
+    return Box::into_raw(Box::new(corpora));
 }
 
 #[no_mangle]

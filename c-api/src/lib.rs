@@ -50,7 +50,7 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
         CString::from_raw(s)
     };
 }
-
 pub mod corpusstorage;
 pub mod update;
+pub mod data;
 pub mod error;

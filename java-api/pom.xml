@@ -232,7 +232,6 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Export-Package>org.corpus_tools.graphannis,org.corpus_tools.annis.ql.*</Export-Package>
             <Import-Package>!org.apache.maven.*,*</Import-Package>
             <Bundle-NativeCode>${bundle-native-libs}</Bundle-NativeCode>
            

@@ -38,6 +38,10 @@ public interface CAPI extends Library
   {
   }
   
+  public static class AnnisVec_AnnisCString extends PointerType
+  {
+  }
+  
   public static class AnnisError extends PointerType
   {
   }
@@ -48,7 +52,7 @@ public interface CAPI extends Library
 
   public void annis_cs_free(AnnisCorpusStorage cs);
 
-  public String[] annis_cs_list(AnnisCorpusStorage cs);
+  public AnnisVec_AnnisCString annis_cs_list(AnnisCorpusStorage cs);
 
   public long annis_cs_count(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
 
@@ -86,5 +90,10 @@ public interface CAPI extends Library
   public void annis_error_free(AnnisError ptr);
 
   public String annis_error_get_msg(AnnisError ptr);
+  
+  public void annis_stringvec_free(AnnisVec_AnnisCString ptr);
+  public long annis_stringvec_size(AnnisVec_AnnisCString ptr);
+  public String annis_stringvec_get(AnnisVec_AnnisCString ptr, long i);
+  
 
 }

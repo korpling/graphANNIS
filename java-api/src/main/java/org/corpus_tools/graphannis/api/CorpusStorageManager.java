@@ -16,6 +16,7 @@
 package org.corpus_tools.graphannis.api;
 
 
+import com.sun.jna.Pointer;
 import org.corpus_tools.graphannis.CAPI;
 
 /**
@@ -34,14 +35,14 @@ public class CorpusStorageManager
 
   public String[] list()
   {
-    String[] orig = CAPI.INSTANCE.annis_cs_list(instance);
-    String[] copy = new String[orig.length];
+    CAPI.AnnisVec_AnnisCString orig = CAPI.INSTANCE.annis_cs_list(instance);
+    String[] copy = new String[(int) CAPI.INSTANCE.annis_stringvec_size(orig)];
     for(int i=0; i < copy.length; i++)
     {
-      copy[i] = new String(orig[i]);
-      // delete the original string with the correct function "free(...)" will result in memory leaks
-      CAPI.INSTANCE.annis_str_free(orig[i]);
+      copy[i] = CAPI.INSTANCE.annis_stringvec_get(orig, i);
     }
+    
+    CAPI.INSTANCE.annis_stringvec_free(orig);
 
     return copy;
   }

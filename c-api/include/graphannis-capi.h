@@ -27,6 +27,8 @@ typedef struct AnnisError AnnisError;
 
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
+typedef struct AnnisVec_AnnisCString AnnisVec_AnnisCString;
+
 AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
                                   const char *corpus,
                                   AnnisGraphUpdate *update);
@@ -41,9 +43,9 @@ uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
 void annis_cs_free(AnnisCorpusStorage *ptr);
 
 /*
- * Return an NULL-terminated array of strings that contains the names of all known corpora.
+ * List all known corpora.
  */
-char **annis_cs_list(const AnnisCorpusStorage *ptr);
+AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
 
 /*
  * Create a new corpus storage
@@ -115,5 +117,11 @@ void annis_graphupdate_free(AnnisGraphUpdate *ptr);
 AnnisGraphUpdate *annis_graphupdate_new(void);
 
 void annis_str_free(char *s);
+
+void annis_stringvec_free(AnnisVec_AnnisCString *ptr);
+
+const char *annis_stringvec_get(const AnnisVec_AnnisCString *ptr, size_t i);
+
+size_t annis_stringvec_size(const AnnisVec_AnnisCString *ptr);
 
 #endif /* graphannis_capi_h */
