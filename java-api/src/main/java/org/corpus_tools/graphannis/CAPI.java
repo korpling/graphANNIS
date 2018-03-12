@@ -18,12 +18,7 @@ package org.corpus_tools.graphannis;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
-import com.sun.jna.Structure;
-
-import java.util.Arrays;
-import java.util.List;
 
 public interface CAPI extends Library
 {
@@ -55,6 +50,7 @@ public interface CAPI extends Library
   public AnnisVec_AnnisCString annis_cs_list(AnnisCorpusStorage cs);
 
   public long annis_cs_count(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
+  public AnnisVec_AnnisCString annis_cs_find(AnnisCorpusStorage cs, String corpusName, String queryAsJSON, long offset, long limit);
 
   public AnnisError annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
       AnnisGraphUpdate update);

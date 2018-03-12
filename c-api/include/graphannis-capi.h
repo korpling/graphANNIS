@@ -37,6 +37,12 @@ uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
                         const char *corpus,
                         const char *query_as_json);
 
+AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
+                                     const char *corpus_name,
+                                     const char *query_as_json,
+                                     size_t offset,
+                                     size_t limit);
+
 /*
  * Delete a corpus storage
  */

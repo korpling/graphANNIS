@@ -18,7 +18,6 @@ pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut cs::CorpusSt
         return Box::into_raw(Box::new(s));
     }
 
-
     return std::ptr::null_mut();
 }
 
@@ -41,26 +40,48 @@ pub extern "C" fn annis_cs_count(
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_json);
-    let corpus =  cstr!(corpus);
+    let corpus = cstr!(corpus);
 
     return cs.count(&corpus, &query).unwrap_or(0) as u64;
 }
 
-/// List all known corpora.
 #[no_mangle]
-pub extern "C" fn annis_cs_list(
+pub extern "C" fn annis_cs_find(
     ptr: *const cs::CorpusStorage,
+    corpus_name: *const libc::c_char,
+    query_as_json: *const libc::c_char,
+    offset: libc::size_t,
+    limit: libc::size_t,
 ) -> * mut Vec<CString> {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let mut corpora : Vec<CString> = vec![];
+    let query = cstr!(query_as_json);
+    let corpus = cstr!(corpus_name);
+
+    let result = cs.find(&corpus, &query, offset, limit);
+
+    let vec_result : Vec<CString> = if let Ok(result) = result {
+        result.into_iter().map(|x| CString::new(x).unwrap_or_default()).collect()
+    } else {
+        vec![]
+    };
+
+    return Box::into_raw(Box::new(vec_result));
+}
+
+/// List all known corpora.
+#[no_mangle]
+pub extern "C" fn annis_cs_list(ptr: *const cs::CorpusStorage) -> *mut Vec<CString> {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+
+    let mut corpora: Vec<CString> = vec![];
 
     if let Ok(info) = cs.list() {
         for c in info {
             if let Ok(name) = CString::new(c.name) {
                 corpora.push(name);
             }
-        }  
+        }
     }
 
     return Box::into_raw(Box::new(corpora));
@@ -71,14 +92,13 @@ pub extern "C" fn annis_cs_apply_update(
     ptr: *mut cs::CorpusStorage,
     corpus: *const libc::c_char,
     update: *mut GraphUpdate,
-) -> * mut Error {
+) -> *mut Error {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let update: &mut GraphUpdate = cast_mut!(update);
-    let corpus = cstr!(corpus); 
+    let corpus = cstr!(corpus);
     if let Err(e) = cs.apply_update(&corpus, update) {
         return super::error::new(e);
     }
 
     std::ptr::null_mut()
 }
-

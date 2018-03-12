@@ -51,14 +51,33 @@ public class CorpusStorageManager
   {
     return CAPI.INSTANCE.annis_cs_count(instance, corpusName, queryAsJSON);
   }
+  
+  public String[] find(String corpusName, String queryAsJSON, long offset, long limit)
+  {
+    CAPI.AnnisVec_AnnisCString vec = CAPI.INSTANCE.annis_cs_find(instance,
+      corpusName, queryAsJSON, offset, limit);
+    
+    String[] result = new String[(int) CAPI.INSTANCE.annis_stringvec_size(vec)];
+    for(int i=0; i < result.length; i++) {
+      result[i] = CAPI.INSTANCE.annis_stringvec_get(vec, i);
+    }
+    
+    CAPI.INSTANCE.annis_stringvec_free(vec);
+    
+    return result;
+  }
 
   public void applyUpdate(String corpusName, GraphUpdate update)
   {
     CAPI.AnnisError result = CAPI.INSTANCE.annis_cs_apply_update(instance, corpusName, update.getInstance());
+    
     if(result != null) {
       String msg = CAPI.INSTANCE.annis_error_get_msg(result);
       CAPI.INSTANCE.annis_error_free(result);
+      
       throw new RuntimeException(msg);
+    } else {
+        CAPI.INSTANCE.annis_error_free(result);
     }
   }
 

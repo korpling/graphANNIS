@@ -84,23 +84,22 @@ public class Console
   
   private void find(String argsRaw)
   {
-    throw new UnsupportedOperationException();
-//    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
-//
-//    if (args.size() != 2)
-//    {
-//      System.out.println("You must give the corpus name and the query as argument");
-//      return;
-//    }
-//
-//    CAPI.StringVector result = mgr.find(new CAPI.StringVector(args.get(0)), aqlToJSON(args.get(1)));
-//    
-//    for(long i=0; i < result.size(); i++)
-//    {
-//      System.out.println(result.get(i).getString());
-//    }
-//
-//    System.out.println("" + result.size() + " results.");
+    List<String> args = Splitter.on(" ").limit(2).omitEmptyStrings().trimResults().splitToList(argsRaw);
+
+    if (args.size() != 2)
+    {
+      System.out.println("You must give the corpus name and the query as argument");
+      return;
+    }
+
+    String[] result = mgr.find(args.get(0), aqlToJSON(args.get(1)), 0 , Long.MAX_VALUE);
+    
+    for(int i=0; i < result.length; i++)
+    {
+      System.out.println(result[i]);
+    }
+
+    System.out.println("" + result.length + " results.");
   }
   
   private void subgraph(String argsRaw)
