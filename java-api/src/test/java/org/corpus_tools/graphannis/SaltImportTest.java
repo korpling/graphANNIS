@@ -159,12 +159,10 @@ public class SaltImportTest
   @Test
   public void testTwoDocumentsSameNodeName()
   {
-    // TODO: re-enable test
-    /*
+
     SaltProject project = SaltFactory.createSaltProject();
     SCorpusGraph corpusGraph = project.createCorpusGraph();
     
-    CAPI.StringVector corpus = new CAPI.StringVector("root");
     SCorpus root = corpusGraph.createCorpus(null, "root");
     
     // add two documents which have a token with the same name
@@ -200,12 +198,12 @@ public class SaltImportTest
     doc2.getDocumentGraph().addNode(tok2);
     
     
-    CAPI.GraphUpdate result1 = new SaltImport()
+    GraphUpdate result1 = new SaltImport()
             .map(doc1.getDocumentGraph())
             .finish();
     storage.applyUpdate("root", result1);
     
-    CAPI.GraphUpdate result2 = new SaltImport()
+    GraphUpdate result2 = new SaltImport()
             .map(doc2.getDocumentGraph())
             .finish();
     storage.applyUpdate("root", result2);
@@ -214,17 +212,16 @@ public class SaltImportTest
     
     Set<String> matches = new HashSet<>();
     
-    StringVector result = storage.find(corpus, QueryToJSON.aqlToJSON("tok"));
-    assertEquals(2, result.size());
-    for(long i=0; i < 2; i++)
+    String[] result = storage.find("root", QueryToJSON.aqlToJSON("tok"), 0, Long.MAX_VALUE);
+    assertEquals(2, result.length);
+    for(int i=0; i < 2; i++)
     {
-      matches.add(result.get(i).getString());
+      matches.add(result[i]);
     }
     assertEquals(2, matches.size());
     Assert.assertTrue(matches.contains("salt:/root/doc1#MyToken"));
     Assert.assertTrue(matches.contains("salt:/root/doc2#MyToken"));
 
-    */
   }
   
 }
