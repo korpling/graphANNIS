@@ -23,6 +23,8 @@ limitations under the License.s
 
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
+typedef struct AnnisEdge AnnisEdge;
+
 typedef struct AnnisError AnnisError;
 
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
@@ -67,6 +69,14 @@ AnnisVec_AnnisNode annis_cs_subgraph(const AnnisCorpusStorage *ptr,
                                      const AnnisVec_AnnisCString *node_ids,
                                      size_t ctx_left,
                                      size_t ctx_right);
+
+AnnisVec_AnnisCString *annis_edge_label_names(const AnnisEdge *n);
+
+char *annis_edge_label_value(const AnnisEdge *n, const char *name);
+
+uint64_t annis_edge_source(const AnnisEdge *e);
+
+uint64_t annis_edge_target(const AnnisEdge *e);
 
 void annis_error_free(AnnisError *ptr);
 
@@ -134,9 +144,11 @@ AnnisGraphUpdate *annis_graphupdate_new(void);
 
 size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
 
-uint64_t annis_node_getid(const AnnisNode *n);
+uint64_t annis_node_id(const AnnisNode *n);
 
 AnnisVec_AnnisCString *annis_node_label_names(const AnnisNode *n);
+
+char *annis_node_label_value(const AnnisNode *n, const char *name);
 
 void annis_str_free(char *s);
 

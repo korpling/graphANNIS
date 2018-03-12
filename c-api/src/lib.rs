@@ -40,16 +40,7 @@ macro_rules! cstr {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn annis_str_free(s: *mut c_char) {
-    unsafe {
-        if s.is_null() {
-            return;
-        }
-        // take ownership and destruct
-        CString::from_raw(s)
-    };
-}
+
 pub mod corpusstorage;
 pub mod update;
 pub mod data;
