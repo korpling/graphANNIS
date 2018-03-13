@@ -1,7 +1,7 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use {Component, Match, StringID, NodeID};
+use {Component, Match, StringID, NodeID, AnnoKey, Annotation, Edge};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::path::{Path, PathBuf};
@@ -19,8 +19,8 @@ use exec::nodesearch::NodeSearchSpec;
 use heapsize::HeapSizeOf;
 use std::iter::FromIterator;
 use linked_hash_map::LinkedHashMap;
-use api::update::GraphUpdate;
-use api::graph::{Edge, Node};
+use api::update::{GraphUpdate, UpdateEvent};
+
 
 //use {Annotation, Match, NodeID, StringID, AnnoKey};
 
@@ -149,48 +149,53 @@ fn check_cache_size_and_remove(
 }
 
 
-fn create_subgraph_node(id : NodeID, db : &GraphDB, all_components : &Vec<Component>) -> Node {
-     let empty_str = String::from("");
-    // add all node labels
-    let mut labels : BTreeMap<String,String> = BTreeMap::new();
-    for a in db.node_annos.get_all(&id) {
-       
-        let qname = format!("{}::{}", db.strings.str(a.key.ns).unwrap_or(&empty_str), db.strings.str(a.key.name).unwrap_or(&empty_str));
-        if let Some(val) = db.strings.str(a.val) {
-            labels.insert(qname, val.to_string());
+fn create_subgraph_node(id : NodeID, db : &mut GraphDB, orig_db : &GraphDB) {
+    
+    // add all node labels with the same node ID
+    for a in orig_db.node_annos.get_all(&id) {
+        if let (Some(ns),Some(name),Some(val)) = (orig_db.strings.str(a.key.ns), orig_db.strings.str(a.key.name), orig_db.strings.str(a.val)) {
+            let new_anno = Annotation {
+                key: AnnoKey {
+                    ns: db.strings.add(ns),
+                    name: db.strings.add(name),
+                },
+                val: db.strings.add(val),
+            };
+            db.node_annos.insert(id, new_anno);
         }
     }
+}
+fn create_subgraph_edge(source_id : NodeID, db : &mut GraphDB, orig_db : &GraphDB, all_components : &Vec<Component>) {
 
     // find outgoing edges
-    let mut outgoing_edges = vec![];
     for c in all_components {
-        if let Some(gs) = db.get_graphstorage(c) {
-            for target in gs.get_outgoing_edges(&id) {
-                let mut edge_labels : BTreeMap<String,String> = BTreeMap::new();
-                for a in gs.get_edge_annos(&types::Edge {source: id, target}).into_iter() {
-                    let qname = format!("{}::{}", db.strings.str(a.key.ns).unwrap_or(&empty_str), db.strings.str(a.key.name).unwrap_or(&empty_str));
-                    
-                    if let Some(val) = db.strings.str(a.val) {
-                        edge_labels.insert(qname, val.to_string());
+        if let Some(orig_gs) = orig_db.get_graphstorage(c) {
+            
+            for target in orig_gs.get_outgoing_edges(&source_id) {
+                let e = Edge{source: source_id, target};
+                if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
+                    new_gs.add_edge(e.clone());
+                }
+
+                for a in orig_gs.get_edge_annos(&types::Edge {source: source_id, target}).into_iter() {
+
+                    if let (Some(ns),Some(name),Some(val)) = (orig_db.strings.str(a.key.ns), orig_db.strings.str(a.key.name), orig_db.strings.str(a.val)) {
+                        let new_anno = Annotation {
+                            key: AnnoKey {
+                                ns: db.strings.add(ns),
+                                name: db.strings.add(name),
+                            },
+                            val: db.strings.add(val),
+                        };
+                        if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
+                             new_gs.add_edge_annotation(e.clone(), new_anno.clone());
+                        }
                     }
                 }
-                outgoing_edges.push(Edge {
-                    source_id: id,
-                    target_id: target,
-                    component_type: c.ctype.to_string(),
-                    component_layer: c.layer.clone(),
-                    component_name: c.name.clone(),
-                    labels: edge_labels,
-                });
             }
+        
         }
     }
-
-    return Node {
-        id,
-        labels,
-        outgoing_edges,
-    };
 }
 
 impl CorpusStorage {
@@ -543,7 +548,7 @@ impl CorpusStorage {
         node_ids: Vec<String>,
         ctx_left: usize,
         ctx_right: usize,
-    ) -> Result<Vec<Node>, Error> {
+    ) -> Result<GraphDB, Error> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
             let lock = db_entry.read().unwrap();
@@ -637,17 +642,17 @@ impl CorpusStorage {
 
         // accuire read-only lock and create query that finds the context nodes
         let lock = db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
+        let orig_db = get_read_or_error(&lock)?;
 
-        let plan = ExecutionPlan::from_disjunction(query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(query, &orig_db)?;
 
-        let all_components = db.get_all_components(None, None);
+        let all_components = orig_db.get_all_components(None, None);
 
         // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
         // match vector differ.
         let mut match_result : BTreeSet<Match> = BTreeSet::new();
 
-        let mut result : Vec<Node> = vec![];
+        let mut result = GraphDB::new();
 
         // create the subgraph description
         for r in plan {
@@ -655,9 +660,12 @@ impl CorpusStorage {
             if !match_result.contains(m) {
                 match_result.insert(m.clone());
 
-                let new_node = create_subgraph_node(m.node, db, &all_components);
-                result.push(new_node);
+                create_subgraph_node(m.node, &mut result, orig_db);
             }
+        }
+
+        for m in match_result.iter() {
+            create_subgraph_edge(m.node, &mut result, orig_db, &all_components);
         }
 
         return Ok(result);

@@ -72,7 +72,9 @@ pub extern "C" fn annis_cs_subgraph(ptr: *const cs::CorpusStorage,
     let corpus = cstr!(corpus_name);
 
     if let Ok(result) = cs.subgraph(&corpus, node_ids, ctx_left, ctx_right) {
-        return Box::into_raw(Box::new(result));
+        // TODO: use GraphDB opaque object
+        unimplemented!()
+        //return Box::into_raw(Box::new(result));
     }
     return std::ptr::null_mut();
 }
