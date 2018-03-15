@@ -110,6 +110,10 @@ bool Console::execute(const std::string &cmd, const std::vector<std::string> &ar
     {
       memory(args);
     }
+    else if(cmd == "threads")
+    {
+      set_num_threads(args);
+    }
     else if (cmd == "quit" || cmd == "exit")
     {
       return true;
@@ -459,6 +463,30 @@ void Console::memory(const std::vector<std::string> args)
   {
     dbCache.releaseAll();
     std::cout << "Cleared cache" << std::endl;
+  }
+}
+
+void Console::set_num_threads(const std::vector<std::string> args)
+{
+  if(args.size() >= 1)
+  {
+    int num =std::stoi(args[0], nullptr);
+    if(num > 0)
+    {
+      config.numOfBackgroundTasks = num;
+      config.enableThreadIndexJoin = true;
+      std::cout << "Number of trhreads set to " << num << std::endl;
+    }
+    else
+    {
+      config.numOfBackgroundTasks = 0;
+      config.enableThreadIndexJoin = false;
+      std::cout << "parallization disabled" << std::endl;
+    }
+  }
+  else
+  {
+    std::cout << "need number of CPUs as argument" << std::endl;
   }
 }
 

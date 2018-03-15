@@ -49,6 +49,7 @@ public:
   void guessRegex(const std::vector<std::string>& args);
   void plan(const std::vector<std::string>& args);
   void memory(const std::vector<std::string> args);
+  void set_num_threads(const std::vector<std::string> args);
 
 private:
   // our main database
