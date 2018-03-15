@@ -335,7 +335,7 @@ bool DB::ensureGraphStorageIsLoaded(const Component &c)
     {
       HL_DEBUG(logger, (boost::format("loading component %1%")
                        % debugComponentString(itLocation->first)).str());
-      std::ifstream is(itLocation->second + "/component.cereal");
+      std::ifstream is(itLocation->second + "/component.cereal", std::ios::binary);
       if(is.is_open())
       {
         cereal::BinaryInputArchive ar(is);
