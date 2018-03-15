@@ -295,7 +295,7 @@ double AbstractEdgeOperator::edgeAnnoSelectivity()
         }
         else
         {
-          // the edge annotation will filter the selectiviy even more
+          // the edge annotation will filter the selectivity even more
           size_t guessedCount = g->getAnnoStorage().guessMaxCount(strings, edgeAnno);
 
           worstSel = std::max(worstSel, (double) guessedCount /  (double) numOfAnnos);
