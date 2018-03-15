@@ -1,3 +1,11 @@
+release 0.6.0
+=============
+
+Fixed Bugs
+----------
+
+- [#23](https://github.com/thomaskrause/graphANNIS/issues/23) Problems loading the cereal archive under Windows
+
 release 0.5.0
 =============
 
