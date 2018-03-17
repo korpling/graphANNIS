@@ -15,7 +15,7 @@ limitations under the License.s
 #ifndef graphannis_capi_h
 #define graphannis_capi_h
 
-/* Generated with cbindgen:0.5.0 */
+/* Generated with cbindgen:0.5.2 */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -23,17 +23,13 @@ limitations under the License.s
 
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
-typedef struct AnnisEdge AnnisEdge;
-
 typedef struct AnnisError AnnisError;
+
+typedef struct AnnisGraphDB AnnisGraphDB;
 
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
-typedef struct AnnisNode AnnisNode;
-
 typedef struct AnnisVec_AnnisCString AnnisVec_AnnisCString;
-
-typedef struct AnnisVec_AnnisNode AnnisVec_AnnisNode;
 
 AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
                                   const char *corpus,
@@ -59,23 +55,17 @@ AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
  */
 AnnisCorpusStorage *annis_cs_new(const char *db_dir);
 
-AnnisVec_AnnisNode *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
-                                      const char *corpus_name,
-                                      const AnnisVec_AnnisCString *node_ids,
-                                      size_t ctx_left,
-                                      size_t ctx_right);
-
-AnnisVec_AnnisCString *annis_edge_label_names(const AnnisEdge *n);
-
-char *annis_edge_label_value(const AnnisEdge *n, const char *name);
-
-uint64_t annis_edge_source(const AnnisEdge *e);
-
-uint64_t annis_edge_target(const AnnisEdge *e);
+AnnisGraphDB *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
+                                const char *corpus_name,
+                                const AnnisVec_AnnisCString *node_ids,
+                                size_t ctx_left,
+                                size_t ctx_right);
 
 const char *annis_error_get_msg(const AnnisError *ptr);
 
 void annis_free(void *ptr);
+
+char *annis_graph_get_node_label_value(const AnnisGraphDB *g, uint64_t node, const char *qname);
 
 void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,
@@ -133,16 +123,6 @@ void annis_graphupdate_delete_node_label(AnnisGraphUpdate *ptr,
 AnnisGraphUpdate *annis_graphupdate_new(void);
 
 size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
-
-uint64_t annis_node_id(const AnnisNode *n);
-
-AnnisVec_AnnisCString *annis_node_label_names(const AnnisNode *n);
-
-char *annis_node_label_value(const AnnisNode *n, const char *name);
-
-const AnnisEdge *annis_node_outgoing_get(const AnnisNode *n, size_t i);
-
-size_t annis_node_outgoing_len(const AnnisNode *n);
 
 void annis_str_free(char *s);
 

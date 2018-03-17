@@ -3,7 +3,7 @@ use std;
 use std::ffi::CString;
 use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
-use graphannis::api::graph::{Node};
+use graphannis::graphdb::GraphDB;
 use std::path::PathBuf;
 use super::error::Error;
 
@@ -65,16 +65,14 @@ pub extern "C" fn annis_cs_subgraph(ptr: *const cs::CorpusStorage,
         corpus_name: * const libc::c_char,
         node_ids: * const Vec<CString>,
         ctx_left: libc::size_t,
-        ctx_right: libc::size_t) -> * mut Vec<Node> {
+        ctx_right: libc::size_t) -> * mut GraphDB {
 
     let cs : &cs::CorpusStorage = cast_const!(ptr);
     let node_ids : Vec<String> = cast_const!(node_ids).iter().map(|id| String::from(id.to_string_lossy())).collect();
     let corpus = cstr!(corpus_name);
 
     if let Ok(result) = cs.subgraph(&corpus, node_ids, ctx_left, ctx_right) {
-        // TODO: use GraphDB opaque object
-        unimplemented!()
-        //return Box::into_raw(Box::new(result));
+        return Box::into_raw(Box::new(result));
     }
     return std::ptr::null_mut();
 }

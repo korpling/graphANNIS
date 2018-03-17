@@ -1,7 +1,8 @@
 pub mod token_helper;
 pub mod memory_estimation;
 
-use Annotation;
+use {Annotation, AnnoKey};
+use graphdb::GraphDB;
 
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -131,4 +132,22 @@ pub fn get_queries_from_folder(folder: &Path, panic_on_invalid : bool) -> Box<It
 
     return Box::new(std::iter::empty());
 }
+
+pub fn qname_to_anno_key(qname : &str, db : &GraphDB) -> Option<AnnoKey> {
+    // split qname
+    let qname : Vec<&str> = qname.splitn(2, "::").collect();
+    if qname.len() == 1 {
+        return Some(AnnoKey {
+            ns: db.strings.find_id("")?.clone(),
+            name: db.strings.find_id(qname[0])?.clone(),
+        });
+    } else if qname.len() == 2 {
+        return Some(AnnoKey {
+            ns: db.strings.find_id(qname[0])?.clone(),
+            name: db.strings.find_id(qname[1])?.clone(),
+        });
+    }
+    None
+}
+
 

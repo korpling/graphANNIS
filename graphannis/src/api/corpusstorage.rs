@@ -5,7 +5,7 @@ use {Component, Match, StringID, NodeID, AnnoKey, Annotation, Edge};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::path::{Path, PathBuf};
-use std::collections::{HashSet, BTreeSet, BTreeMap};
+use std::collections::{HashSet, BTreeSet};
 use graphdb;
 use operator;
 use graphdb::GraphDB;
@@ -19,10 +19,8 @@ use exec::nodesearch::NodeSearchSpec;
 use heapsize::HeapSizeOf;
 use std::iter::FromIterator;
 use linked_hash_map::LinkedHashMap;
-use api::update::{GraphUpdate, UpdateEvent};
+use api::update::{GraphUpdate};
 
-
-//use {Annotation, Match, NodeID, StringID, AnnoKey};
 
 enum CacheEntry {
     Loaded(GraphDB),
