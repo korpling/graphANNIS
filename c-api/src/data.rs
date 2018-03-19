@@ -2,6 +2,8 @@ use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
 
+use graphannis::Match;
+
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {
@@ -23,6 +25,8 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
     };
 }
 
+pub type IterPtr<T> = Box<Iterator<Item=T>>;
+
 pub fn iter_next<T>(ptr : * mut Box<Iterator<Item=T>>) -> * const T {
     let it : &mut Box<Iterator<Item=T>> = cast_mut!(ptr);
     if let Some(v) = it.next() {
@@ -30,6 +34,9 @@ pub fn iter_next<T>(ptr : * mut Box<Iterator<Item=T>>) -> * const T {
     }
     return std::ptr::null();
 }
+
+#[no_mangle]
+pub extern "C" fn annis_iter_u64_next(ptr : * mut IterPtr<Match>) -> * const Match {return iter_next(ptr)}
 
 pub fn vec_size<T>(ptr : * const Vec<T>) -> size_t {
     let v : &Vec<T> = cast_const!(ptr);

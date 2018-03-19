@@ -93,6 +93,18 @@
             ]
         },
         {
+            "label": "Generate C Bindings Header",
+            "command": "cbindgen",
+            "args": [
+                "--lockfile", "${workspaceFolder}/Cargo.lock",
+                "-o", "include/graphannis-capi.h"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/c-api/"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "mvn install",
             "command": "mvn",
             "args": [
