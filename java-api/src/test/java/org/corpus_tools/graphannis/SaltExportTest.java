@@ -78,7 +78,7 @@ public class SaltExportTest
   }
  
   @Test
-  public void testMapNodesOnly() throws IOException, XMLStreamException
+  public void testMapTokensOnly() throws IOException, XMLStreamException
   {
     SDocument doc = SaltFactory.createSDocument();
     
@@ -86,11 +86,14 @@ public class SaltExportTest
     GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     storage.applyUpdate("testCorpus", result);
 
+    int origTokensSize = doc.getDocumentGraph().getTokens().size();
+    assertEquals(origTokensSize, storage.count("testCorpus", aqlToJSON("tok")));
+
     // get a subgraph for the complete document
     SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
     SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] {sampleTok.getId()}, 100, 100);
 
-    assertEquals(doc.getDocumentGraph().getTokens().size(), exportedGraph.getTokens().size());
+    assertEquals(origTokensSize, exportedGraph.getTokens().size());
   }
   
   @Test
