@@ -70,7 +70,7 @@ public class SaltExport
     
    }
    
-   private static boolean hasDominanceEdge(CAPI.NodeID nID, CAPI.AnnisGraphDB g)
+   private static boolean hasDominanceEdge(CAPI.NodeIDByRef nID, CAPI.AnnisGraphDB g)
    {
 
     // TODO: implement
@@ -90,13 +90,14 @@ public class SaltExport
      return false;
    }
    
-    private static SNode mapNode(CAPI.NodeID nID, CAPI.AnnisGraphDB g)
+    private static SNode mapNode(CAPI.NodeIDByRef nID, CAPI.AnnisGraphDB g)
     {
      SNode newNode;
 
      // get all annotations for the node into a map, also create the node itself
      Map<Pair<String,String>,String> labels = new LinkedHashMap<>();
-     CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_node_labels(g, nID);
+     int actualID = nID.getValue();
+     CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_node_labels(g, new CAPI.NodeID(actualID));
      for(long i=0; i < CAPI.annis_vec_annotation_size(annos).longValue(); i++) {
        CAPI.AnnisAnnotation.ByReference a = 
          CAPI.annis_vec_annotation_get(annos, new NativeLong(i));
@@ -332,7 +333,7 @@ public class SaltExport
     CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "node");
     try
     {
-      for(CAPI.NodeID.ByReference nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; 
+      for(CAPI.NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; 
         nID = CAPI.annis_iter_nodeid_next(itNodes))
       {
         SNode n = mapNode(nID, orig);

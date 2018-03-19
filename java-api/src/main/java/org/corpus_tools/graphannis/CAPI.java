@@ -27,6 +27,7 @@ import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
 import com.sun.jna.PointerType;
 import com.sun.jna.Structure;
+import com.sun.jna.ptr.IntByReference;
 
 import annis.exceptions.AnnisQLSemanticsException;
 
@@ -50,11 +51,12 @@ public class CAPI implements Library
     {
       super(SIZE, value, false);
     }
-
-    public static class ByReference extends NodeID implements Structure.ByReference {
-			
-		};
   }
+
+  public static class NodeIDByRef extends IntByReference {
+
+  }
+
   public static class StringID extends IntegerType {
     public static final int SIZE = 4;
     public StringID()
@@ -65,9 +67,6 @@ public class CAPI implements Library
     {
       super(SIZE, value, false);
     }
-    public static class ByReference extends StringID implements Structure.ByReference {
-			
-		};
   }
 
   public static class AnnisPtr extends PointerType
@@ -160,7 +159,7 @@ public class CAPI implements Library
   public static native AnnisAnnotation.ByReference annis_vec_annotation_get(AnnisVec_AnnisAnnotation ptr,
       NativeLong i);
 
-  public static native NodeID.ByReference annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID ptr); 
+  public static native NodeIDByRef annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID ptr); 
 
   // corpus storage class
 
