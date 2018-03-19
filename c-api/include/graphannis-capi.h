@@ -126,8 +126,8 @@ size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
 
 void annis_str_free(char *s);
 
-const char *annis_stringvec_get(const AnnisVec_AnnisCString *ptr, size_t i);
+const char *annis_vec_str_get(const AnnisVec_AnnisCString *ptr, size_t i);
 
-size_t annis_stringvec_size(const AnnisVec_AnnisCString *ptr);
+size_t annis_vec_str_size(const AnnisVec_AnnisCString *ptr);
 
 #endif /* graphannis_capi_h */

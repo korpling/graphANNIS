@@ -85,8 +85,8 @@ public interface CAPI extends Library
 
   public String annis_error_get_msg(AnnisError ptr);
   
-  public long annis_stringvec_size(AnnisVec_AnnisCString ptr);
-  public String annis_stringvec_get(AnnisVec_AnnisCString ptr, long i);
+  public long annis_vec_str_size(AnnisVec_AnnisCString ptr);
+  public String annis_vec_str_get(AnnisVec_AnnisCString ptr, long i);
   
 
 }

@@ -34,7 +34,9 @@
             "type": "shell",
             "command": "cargo",
             "args": [
-                "check", "--tests", "--benches"
+                "check",
+                "--tests",
+                "--benches"
             ],
             "group": "build",
             "problemMatcher": "$rustc"
@@ -83,11 +85,28 @@
             "type": "shell",
             "command": "cargo",
             "args": [
-                "doc", "--no-deps"
+                "doc",
+                "--no-deps"
             ],
             "problemMatcher": [
                 "$rustc"
             ]
+        },
+        {
+            "label": "mvn install",
+            "command": "mvn",
+            "args": [
+                "install"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "mvn clean",
+            "command": "mvn",
+            "args": [
+                "clean"
+            ],
+            "problemMatcher": []
         }
     ]
 }

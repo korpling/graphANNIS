@@ -70,7 +70,7 @@ pub extern "C" fn annis_cs_subgraph(ptr: *const cs::CorpusStorage,
     let cs : &cs::CorpusStorage = cast_const!(ptr);
     let node_ids : Vec<String> = cast_const!(node_ids).iter().map(|id| String::from(id.to_string_lossy())).collect();
     let corpus = cstr!(corpus_name);
-
+    
     if let Ok(result) = cs.subgraph(&corpus, node_ids, ctx_left, ctx_right) {
         return Box::into_raw(Box::new(result));
     }

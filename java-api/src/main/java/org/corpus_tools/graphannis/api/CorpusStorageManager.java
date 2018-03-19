@@ -36,10 +36,10 @@ public class CorpusStorageManager
   public String[] list()
   {
     CAPI.AnnisVec_AnnisCString orig = CAPI.INSTANCE.annis_cs_list(instance);
-    String[] copy = new String[(int) CAPI.INSTANCE.annis_stringvec_size(orig)];
+    String[] copy = new String[(int) CAPI.INSTANCE.annis_vec_str_size(orig)];
     for(int i=0; i < copy.length; i++)
     {
-      copy[i] = CAPI.INSTANCE.annis_stringvec_get(orig, i);
+      copy[i] = CAPI.INSTANCE.annis_vec_str_get(orig, i);
     }
     
     CAPI.INSTANCE.annis_free(orig);
@@ -57,9 +57,9 @@ public class CorpusStorageManager
     CAPI.AnnisVec_AnnisCString vec = CAPI.INSTANCE.annis_cs_find(instance,
       corpusName, queryAsJSON, offset, limit);
     
-    String[] result = new String[(int) CAPI.INSTANCE.annis_stringvec_size(vec)];
+    String[] result = new String[(int) CAPI.INSTANCE.annis_vec_str_size(vec)];
     for(int i=0; i < result.length; i++) {
-      result[i] = CAPI.INSTANCE.annis_stringvec_get(vec, i);
+      result[i] = CAPI.INSTANCE.annis_vec_str_get(vec, i);
     }
     
     CAPI.INSTANCE.annis_free(vec);
