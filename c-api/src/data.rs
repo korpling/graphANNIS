@@ -27,16 +27,16 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
 
 pub type IterPtr<T> = Box<Iterator<Item=T>>;
 
-pub fn iter_next<T>(ptr : * mut Box<Iterator<Item=T>>) -> * const T {
+pub fn iter_next<T>(ptr : * mut Box<Iterator<Item=T>>) -> * mut T {
     let it : &mut Box<Iterator<Item=T>> = cast_mut!(ptr);
     if let Some(v) = it.next() {
-        return &v as * const T;
+        return Box::into_raw(Box::new(v));
     }
-    return std::ptr::null();
+    return std::ptr::null_mut();
 }
 
 #[no_mangle]
-pub extern "C" fn annis_iter_nodeid_next(ptr : * mut IterPtr<NodeID>) -> * const NodeID {return iter_next(ptr)}
+pub extern "C" fn annis_iter_nodeid_next(ptr : * mut IterPtr<NodeID>) -> * mut NodeID {return iter_next(ptr);}
 
 pub fn vec_size<T>(ptr : * const Vec<T>) -> size_t {
     let v : &Vec<T> = cast_const!(ptr);

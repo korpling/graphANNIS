@@ -142,6 +142,7 @@ public class CAPI implements Library
   // general functions
 
   public static native void annis_free(AnnisPtr ptr);
+  public static native void annis_free(NodeIDByRef ptr);
 
   public static native void annis_str_free(AnnisPtr ptr);
 

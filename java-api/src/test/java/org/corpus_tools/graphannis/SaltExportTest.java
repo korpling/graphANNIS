@@ -90,7 +90,7 @@ public class SaltExportTest
     SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
     SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] {sampleTok.getId()}, 100, 100);
 
-    assertEquals(doc.getDocumentGraph().getTokens().size(), exportedGraph.getNodes().size());
+    assertEquals(doc.getDocumentGraph().getTokens().size(), exportedGraph.getTokens().size());
   }
   
   @Test

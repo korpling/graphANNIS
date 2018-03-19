@@ -114,6 +114,7 @@ public class SaltExport
           }
         }
      }
+     CAPI.annis_free(annos);
 
      if(labels.containsKey(new ImmutablePair<>("annis", "tok")))
      {
@@ -142,7 +143,7 @@ public class SaltExport
      }
      
      mapLabels(newNode, labels);
-         
+     
      return newNode;
    }
   //  
@@ -337,6 +338,8 @@ public class SaltExport
         nID = CAPI.annis_iter_nodeid_next(itNodes))
       {
         SNode n = mapNode(nID, orig);
+        g.addNode(n);
+        CAPI.annis_free(nID);
       }
     }
     finally
