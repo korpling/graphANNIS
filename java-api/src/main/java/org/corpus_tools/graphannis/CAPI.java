@@ -18,75 +18,87 @@ package org.corpus_tools.graphannis;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
-public interface CAPI extends Library
+public class CAPI implements Library
 {
 
-  CAPI INSTANCE = (CAPI) Native.loadLibrary("graphannis_capi", CAPI.class);
+    public static class AnnisPtr extends PointerType
+    {
 
-  public static class AnnisCorpusStorage extends PointerType
-  {
-  }
+    }
 
-  public static class AnnisGraphUpdate extends PointerType
-  {
-  }
-  
-  public static class AnnisVec_AnnisCString extends PointerType
-  {
-  }
-  
-  public static class AnnisError extends PointerType
-  {
-  }
+    public static class AnnisCorpusStorage extends AnnisPtr
+    {
+    }
 
-  public void annis_free(PointerType ptr);
-  
-  public void annis_str_free(PointerType ptr);
+    public static class AnnisGraphUpdate extends AnnisPtr
+    {
+    }
 
-  public AnnisCorpusStorage annis_cs_new(String db_dir);
+    public static class AnnisVec_AnnisCString extends AnnisPtr
+    {
+    }
 
+    public static class AnnisError extends AnnisPtr
+    {
+    }
 
-  public AnnisVec_AnnisCString annis_cs_list(AnnisCorpusStorage cs);
+    public static native void annis_free(AnnisPtr ptr);
 
-  public long annis_cs_count(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
-  public AnnisVec_AnnisCString annis_cs_find(AnnisCorpusStorage cs, String corpusName, String queryAsJSON, long offset, long limit);
+    public static native void annis_str_free(AnnisPtr ptr);
 
-  public AnnisError annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
-      AnnisGraphUpdate update);
+    public static native AnnisCorpusStorage annis_cs_new(String db_dir);
 
-  public AnnisGraphUpdate annis_graphupdate_new();
+    public static native AnnisVec_AnnisCString annis_cs_list(AnnisCorpusStorage cs);
 
-  public void annis_graphupdate_add_node(AnnisGraphUpdate ptr, String node_name, String node_type);
+    public static native long annis_cs_count(AnnisCorpusStorage cs, String corpusName,
+            String queryAsJSON);
 
-  public void annis_graphupdate_delete_node(AnnisGraphUpdate ptr, String node_name);
+    public static native AnnisVec_AnnisCString annis_cs_find(AnnisCorpusStorage cs,
+            String corpusName, String queryAsJSON, long offset, long limit);
 
-  public void annis_graphupdate_add_node_label(AnnisGraphUpdate ptr, String node_name,
-      String anno_ns, String anno_name, String anno_value);
+    public static native AnnisError annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
+            AnnisGraphUpdate update);
 
-  public void annis_graphupdate_delete_node_label(AnnisGraphUpdate ptr, String node_name,
-      String anno_ns, String anno_name);
+    public static native AnnisGraphUpdate annis_graphupdate_new();
 
-  public void annis_graphupdate_add_edge(AnnisGraphUpdate ptr, String source_node,
-      String target_node, String layer, String component_type, String component_name);
+    public static native void annis_graphupdate_add_node(AnnisGraphUpdate ptr, String node_name,
+            String node_type);
 
-  public void annis_graphupdate_delete_edge(AnnisGraphUpdate ptr, String source_node,
-      String target_node, String layer, String component_type, String component_name);
+    public static native void annis_graphupdate_delete_node(AnnisGraphUpdate ptr, String node_name);
 
-  public void annis_graphupdate_add_edge_label(AnnisGraphUpdate ptr, String source_node,
-      String target_node, String layer, String component_type, String component_name,
-      String anno_ns, String anno_name, String anno_value);
+    public static native void annis_graphupdate_add_node_label(AnnisGraphUpdate ptr,
+            String node_name, String anno_ns, String anno_name, String anno_value);
 
-  public void annis_graphupdate_delete_edge_label(AnnisGraphUpdate ptr, String source_node,
-      String target_node, String layer, String component_type, String component_name,
-      String anno_ns, String anno_name);
-  
+    public static native void annis_graphupdate_delete_node_label(AnnisGraphUpdate ptr,
+            String node_name, String anno_ns, String anno_name);
 
-  public String annis_error_get_msg(AnnisError ptr);
-  
-  public long annis_vec_str_size(AnnisVec_AnnisCString ptr);
-  public String annis_vec_str_get(AnnisVec_AnnisCString ptr, long i);
-  
+    public static native void annis_graphupdate_add_edge(AnnisGraphUpdate ptr, String source_node,
+            String target_node, String layer, String component_type, String component_name);
+
+    public static native void annis_graphupdate_delete_edge(AnnisGraphUpdate ptr,
+            String source_node, String target_node, String layer, String component_type,
+            String component_name);
+
+    public static native void annis_graphupdate_add_edge_label(AnnisGraphUpdate ptr,
+            String source_node, String target_node, String layer, String component_type,
+            String component_name, String anno_ns, String anno_name, String anno_value);
+
+    public static native void annis_graphupdate_delete_edge_label(AnnisGraphUpdate ptr,
+            String source_node, String target_node, String layer, String component_type,
+            String component_name, String anno_ns, String anno_name);
+
+    public static native String annis_error_get_msg(AnnisError ptr);
+
+    public static native long annis_vec_str_size(AnnisVec_AnnisCString ptr);
+
+    public static native String annis_vec_str_get(AnnisVec_AnnisCString ptr, long i);
+
+    static
+    {
+        Native.register(CAPI.class, "graphannis_capi");
+    }
 
 }

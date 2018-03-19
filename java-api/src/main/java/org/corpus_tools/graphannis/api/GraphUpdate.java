@@ -28,66 +28,65 @@ public class GraphUpdate
 
     public GraphUpdate()
     {
-        this.instance = CAPI.INSTANCE.annis_graphupdate_new();
+        this.instance = CAPI.annis_graphupdate_new();
     }
 
-    public CAPI.AnnisGraphUpdate getInstance() 
+    public CAPI.AnnisGraphUpdate getInstance()
     {
         return this.instance;
     }
 
     public void addNode(String node_name, String node_type)
     {
-        CAPI.INSTANCE.annis_graphupdate_add_node(instance, node_name, node_type);
+        CAPI.annis_graphupdate_add_node(instance, node_name, node_type);
     }
 
     public void addNode(String node_name)
     {
-        CAPI.INSTANCE.annis_graphupdate_add_node(instance, node_name, "node");
+        CAPI.annis_graphupdate_add_node(instance, node_name, "node");
     }
 
     public void deleteNode(String node_name)
     {
-        CAPI.INSTANCE.annis_graphupdate_delete_node(instance, node_name);
+        CAPI.annis_graphupdate_delete_node(instance, node_name);
     }
 
     public void addNodeLabel(String node_name, String anno_ns, String anno_name, String anno_value)
     {
-        CAPI.INSTANCE.annis_graphupdate_add_node_label(instance, node_name, anno_ns, anno_name,
-                anno_value);
+        CAPI.annis_graphupdate_add_node_label(instance, node_name, anno_ns, anno_name, anno_value);
     }
 
     public void deleteNodeLabel(String node_name, String anno_ns, String anno_name)
     {
-        CAPI.INSTANCE.annis_graphupdate_delete_node_label(instance, node_name, anno_ns, anno_name);
+        CAPI.annis_graphupdate_delete_node_label(instance, node_name, anno_ns, anno_name);
     }
 
     public void addEdge(String source_node, String target_node, String layer, String component_type,
             String component_name)
     {
-        CAPI.INSTANCE.annis_graphupdate_add_edge(instance, source_node, target_node, layer,
-                component_type, component_name);
+        CAPI.annis_graphupdate_add_edge(instance, source_node, target_node, layer, component_type,
+                component_name);
     }
 
     public void deleteEdge(String source_node, String target_node, String layer,
             String component_type, String component_name)
     {
-        CAPI.INSTANCE.annis_graphupdate_add_edge(instance, source_node, target_node, layer,
-                component_type, component_name);
+        CAPI.annis_graphupdate_add_edge(instance, source_node, target_node, layer, component_type,
+                component_name);
     }
 
     public void addEdgeLabel(String source_node, String target_node, String layer,
             String component_type, String component_name, String anno_ns, String anno_name,
             String anno_value)
     {
-        CAPI.INSTANCE.annis_graphupdate_add_edge_label(instance, source_node, target_node, layer,
+        CAPI.annis_graphupdate_add_edge_label(instance, source_node, target_node, layer,
                 component_type, component_name, anno_ns, anno_name, anno_value);
     }
 
     public void deleteEdgeLabel(String source_node, String target_node, String layer,
             String component_type, String component_name, String anno_ns, String anno_name)
     {
-        CAPI.INSTANCE.annis_graphupdate_delete_edge_label(instance, source_node, target_node, layer,
+        CAPI.annis_graphupdate_delete_edge_label(instance, source_node, target_node, layer,
                 component_type, component_name, anno_ns, anno_name);
     }
 
@@ -97,7 +96,7 @@ public class GraphUpdate
         super.finalize();
         if (instance != null)
         {
-            CAPI.INSTANCE.annis_free(instance);
+            CAPI.annis_free(instance);
         }
     }
 }

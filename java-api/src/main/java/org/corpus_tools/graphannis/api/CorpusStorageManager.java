@@ -30,54 +30,54 @@ public class CorpusStorageManager
 
   public CorpusStorageManager(String dbDir)
   {
-    this.instance = CAPI.INSTANCE.annis_cs_new(dbDir);
+    this.instance = CAPI.annis_cs_new(dbDir);
   }
 
   public String[] list()
   {
-    CAPI.AnnisVec_AnnisCString orig = CAPI.INSTANCE.annis_cs_list(instance);
-    String[] copy = new String[(int) CAPI.INSTANCE.annis_vec_str_size(orig)];
+    CAPI.AnnisVec_AnnisCString orig = CAPI.annis_cs_list(instance);
+    String[] copy = new String[(int) CAPI.annis_vec_str_size(orig)];
     for(int i=0; i < copy.length; i++)
     {
-      copy[i] = CAPI.INSTANCE.annis_vec_str_get(orig, i);
+      copy[i] = CAPI.annis_vec_str_get(orig, i);
     }
     
-    CAPI.INSTANCE.annis_free(orig);
+    CAPI.annis_free(orig);
 
     return copy;
   }
 
   public long count(String corpusName, String queryAsJSON)
   {
-    return CAPI.INSTANCE.annis_cs_count(instance, corpusName, queryAsJSON);
+    return CAPI.annis_cs_count(instance, corpusName, queryAsJSON);
   }
   
   public String[] find(String corpusName, String queryAsJSON, long offset, long limit)
   {
-    CAPI.AnnisVec_AnnisCString vec = CAPI.INSTANCE.annis_cs_find(instance,
+    CAPI.AnnisVec_AnnisCString vec = CAPI.annis_cs_find(instance,
       corpusName, queryAsJSON, offset, limit);
     
-    String[] result = new String[(int) CAPI.INSTANCE.annis_vec_str_size(vec)];
+    String[] result = new String[(int) CAPI.annis_vec_str_size(vec)];
     for(int i=0; i < result.length; i++) {
-      result[i] = CAPI.INSTANCE.annis_vec_str_get(vec, i);
+      result[i] = CAPI.annis_vec_str_get(vec, i);
     }
     
-    CAPI.INSTANCE.annis_free(vec);
+    CAPI.annis_free(vec);
     
     return result;
   }
 
   public void applyUpdate(String corpusName, GraphUpdate update)
   {
-    CAPI.AnnisError result = CAPI.INSTANCE.annis_cs_apply_update(instance, corpusName, update.getInstance());
+    CAPI.AnnisError result = CAPI.annis_cs_apply_update(instance, corpusName, update.getInstance());
     
     if(result != null) {
-      String msg = CAPI.INSTANCE.annis_error_get_msg(result);
-      CAPI.INSTANCE.annis_free(result);
+      String msg = CAPI.annis_error_get_msg(result);
+      CAPI.annis_free(result);
       
       throw new RuntimeException(msg);
     } else {
-        CAPI.INSTANCE.annis_free(result);
+        CAPI.annis_free(result);
     }
   }
 
@@ -87,7 +87,7 @@ public class CorpusStorageManager
     super.finalize();
     if (instance != null)
     {
-      CAPI.INSTANCE.annis_free(instance);
+      CAPI.annis_free(instance);
     }
   }
 
