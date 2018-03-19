@@ -29,7 +29,9 @@ typedef struct AnnisGraphDB AnnisGraphDB;
 
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
-typedef struct AnnisIterPtr_AnnisMatch AnnisIterPtr_AnnisMatch;
+typedef struct AnnisIterPtr_AnnisNodeID AnnisIterPtr_AnnisNodeID;
+
+typedef struct AnnisVec_AnnisAnnotation AnnisVec_AnnisAnnotation;
 
 typedef struct AnnisVec_AnnisCString AnnisVec_AnnisCString;
 
@@ -46,11 +48,6 @@ typedef struct {
   AnnisAnnoKey key;
   AnnisStringID val;
 } AnnisAnnotation;
-
-typedef struct {
-  AnnisNodeID node;
-  AnnisAnnotation anno;
-} AnnisMatch;
 
 AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
                                   const char *corpus,
@@ -86,9 +83,11 @@ const char *annis_error_get_msg(const AnnisError *ptr);
 
 void annis_free(void *ptr);
 
-AnnisIterPtr_AnnisMatch *annis_graph_get_anno_nodes(const AnnisGraphDB *g);
+AnnisVec_AnnisAnnotation *annis_graph_node_labels(const AnnisGraphDB *g, AnnisNodeID node);
 
-char *annis_graph_get_node_label_value(const AnnisGraphDB *g, AnnisNodeID node, const char *qname);
+AnnisIterPtr_AnnisNodeID *annis_graph_nodes_by_type(const AnnisGraphDB *g, const char *node_type);
+
+char *annis_graph_str(const AnnisGraphDB *g, AnnisStringID str_id);
 
 void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,
@@ -147,9 +146,13 @@ AnnisGraphUpdate *annis_graphupdate_new(void);
 
 size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
 
-const AnnisMatch *annis_iter_u64_next(AnnisIterPtr_AnnisMatch *ptr);
+const AnnisNodeID *annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID *ptr);
 
 void annis_str_free(char *s);
+
+const AnnisAnnotation *annis_vec_annotation_get(const AnnisVec_AnnisAnnotation *ptr, size_t i);
+
+size_t annis_vec_annotation_size(const AnnisVec_AnnisAnnotation *ptr);
 
 const char *annis_vec_str_get(const AnnisVec_AnnisCString *ptr, size_t i);
 

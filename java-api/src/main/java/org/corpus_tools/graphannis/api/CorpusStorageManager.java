@@ -16,7 +16,8 @@
 package org.corpus_tools.graphannis.api;
 
 
-import com.sun.jna.Pointer;
+import com.sun.jna.NativeLong;
+
 import org.corpus_tools.graphannis.CAPI;
 
 /**
@@ -39,7 +40,7 @@ public class CorpusStorageManager
     String[] copy = new String[(int) CAPI.annis_vec_str_size(orig)];
     for(int i=0; i < copy.length; i++)
     {
-      copy[i] = CAPI.annis_vec_str_get(orig, i);
+      copy[i] = CAPI.annis_vec_str_get(orig, new NativeLong(i));
     }
     
     CAPI.annis_free(orig);
@@ -59,7 +60,7 @@ public class CorpusStorageManager
     
     String[] result = new String[(int) CAPI.annis_vec_str_size(vec)];
     for(int i=0; i < result.length; i++) {
-      result[i] = CAPI.annis_vec_str_get(vec, i);
+      result[i] = CAPI.annis_vec_str_get(vec, new NativeLong(i));
     }
     
     CAPI.annis_free(vec);

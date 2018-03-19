@@ -2,7 +2,7 @@ use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
 
-use graphannis::Match;
+use graphannis::{Annotation, NodeID};
 
 
 #[no_mangle]
@@ -36,7 +36,7 @@ pub fn iter_next<T>(ptr : * mut Box<Iterator<Item=T>>) -> * const T {
 }
 
 #[no_mangle]
-pub extern "C" fn annis_iter_u64_next(ptr : * mut IterPtr<Match>) -> * const Match {return iter_next(ptr)}
+pub extern "C" fn annis_iter_nodeid_next(ptr : * mut IterPtr<NodeID>) -> * const NodeID {return iter_next(ptr)}
 
 pub fn vec_size<T>(ptr : * const Vec<T>) -> size_t {
     let v : &Vec<T> = cast_const!(ptr);
@@ -63,4 +63,12 @@ pub extern "C" fn annis_vec_str_get(ptr : * const Vec<CString>, i : size_t) -> *
     } else {
         return std::ptr::null();
     }
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_annotation_size(ptr : * const Vec<Annotation>) -> size_t {vec_size(ptr)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_annotation_get(ptr : * const Vec<Annotation>, i : size_t) -> * const Annotation {
+    vec_get(ptr, i)
 }
