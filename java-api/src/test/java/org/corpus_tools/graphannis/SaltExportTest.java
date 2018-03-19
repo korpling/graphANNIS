@@ -88,9 +88,22 @@ public class SaltExportTest
 
     int origTokensSize = doc.getDocumentGraph().getTokens().size();
     assertEquals(origTokensSize, storage.count("testCorpus", aqlToJSON("tok")));
+    assertEquals(origTokensSize, storage.count("testCorpus", aqlToJSON("node")));
+    
 
     // get a subgraph for the complete document
     SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
+    String name = sampleTok.getId();
+    if(name.startsWith("salt:/")) {
+      name = name.substring("salt:/".length());
+    }
+
+    long overlapCount = storage.count("testCorpus", aqlToJSON(
+      "(n1#annis:node_name=\"" + name + "\" & n2#tok & n3#tok & n4#node & #n1 _o_ #n2 & #n3 .1,100 #n2 & #n3 _o_ #n4) | " +
+      "(n1#annis:node_name=\"" + name + "\" & n2#tok & n3#tok & n4#node & #n1 _o_ #n2 & #n2 .1,100 #n3 & #n3 _o_ #n4) | " +
+      "(annis:node_name=\"" + name + "\")"));
+    assertEquals(origTokensSize, overlapCount);
+    
     SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] {sampleTok.getId()}, 100, 100);
 
     assertEquals(origTokensSize, exportedGraph.getTokens().size());
