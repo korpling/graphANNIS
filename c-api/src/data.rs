@@ -66,6 +66,21 @@ pub extern "C" fn annis_vec_str_get(ptr : * const Vec<CString>, i : size_t) -> *
 }
 
 #[no_mangle]
+pub extern "C" fn annis_vec_str_new() -> * mut Vec<CString> {
+    let result : Vec<CString> = Vec::new();
+    return Box::into_raw(Box::new(result));
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_str_push(ptr : * mut Vec<CString>, v : * const c_char) {
+    let strvec : &mut Vec<CString> = cast_mut!(ptr);
+    let v : &str = &cstr!(v);
+    if let Ok(cval) = CString::new(v) {
+        strvec.push(cval);
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn annis_vec_annotation_size(ptr : * const Vec<Annotation>) -> size_t {vec_size(ptr)}
 
 #[no_mangle]

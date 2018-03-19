@@ -19,6 +19,8 @@ package org.corpus_tools.graphannis.api;
 import com.sun.jna.NativeLong;
 
 import org.corpus_tools.graphannis.CAPI;
+import org.corpus_tools.graphannis.SaltExport;
+import org.corpus_tools.salt.common.SDocumentGraph;
 
 /**
  * An API for managing corpora stored in a common location on the file system.
@@ -37,7 +39,7 @@ public class CorpusStorageManager
   public String[] list()
   {
     CAPI.AnnisVec_AnnisCString orig = CAPI.annis_cs_list(instance);
-    String[] copy = new String[(int) CAPI.annis_vec_str_size(orig)];
+    String[] copy = new String[CAPI.annis_vec_str_size(orig).intValue()];
     for(int i=0; i < copy.length; i++)
     {
       copy[i] = CAPI.annis_vec_str_get(orig, new NativeLong(i));
@@ -57,15 +59,39 @@ public class CorpusStorageManager
   {
     CAPI.AnnisVec_AnnisCString vec = CAPI.annis_cs_find(instance,
       corpusName, queryAsJSON, offset, limit);
-    
-    String[] result = new String[(int) CAPI.annis_vec_str_size(vec)];
-    for(int i=0; i < result.length; i++) {
-      result[i] = CAPI.annis_vec_str_get(vec, new NativeLong(i));
+    String[] result = new String[0];
+    try
+    {
+      result = new String[CAPI.annis_vec_str_size(vec).intValue()];
+      for(int i=0; i < result.length; i++) {
+        result[i] = CAPI.annis_vec_str_get(vec, new NativeLong(i));
+      }
     }
-    
-    CAPI.annis_free(vec);
-    
+    finally
+    {
+      CAPI.annis_free(vec);
+    }
+
     return result;
+  }
+
+  public SDocumentGraph subgraph(String corpusName, String[] node_ids, long ctx_left, long ctx_right)
+  {
+    CAPI.AnnisVec_AnnisCString c_node_ids = CAPI.annis_vec_str_new();
+    for(String id : node_ids)
+    {
+      CAPI.annis_vec_str_push(c_node_ids, id);
+    }
+    CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph(instance, corpusName, c_node_ids, new NativeLong(ctx_left), new NativeLong(ctx_right));
+    try
+    {
+      return SaltExport.map(graph);
+    }
+    finally
+    {
+      CAPI.annis_free(c_node_ids);
+      CAPI.annis_free(graph);
+    }
   }
 
   public void applyUpdate(String corpusName, GraphUpdate update)

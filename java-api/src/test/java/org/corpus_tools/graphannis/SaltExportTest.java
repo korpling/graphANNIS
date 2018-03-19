@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.List;
 import javax.xml.stream.XMLStreamException;
 import org.corpus_tools.graphannis.api.CorpusStorageManager;
+import org.corpus_tools.graphannis.api.GraphUpdate;
+
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
@@ -73,6 +75,22 @@ public class SaltExportTest
   @After
   public void tearDown()
   {
+  }
+ 
+  @Test
+  public void testMapNodesOnly() throws IOException, XMLStreamException
+  {
+    SDocument doc = SaltFactory.createSDocument();
+    
+    SampleGenerator.createTokens(doc);
+    GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
+    storage.applyUpdate("testCorpus", result);
+
+    // get a subgraph for the complete document
+    SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
+    SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] {sampleTok.getId()}, 100, 100);
+
+    assertEquals(doc.getDocumentGraph().getTokens().size(), exportedGraph.getNodes().size());
   }
   
   @Test

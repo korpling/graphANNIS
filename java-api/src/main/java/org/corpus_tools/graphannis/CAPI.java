@@ -27,7 +27,6 @@ import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
 import com.sun.jna.PointerType;
 import com.sun.jna.Structure;
-import com.sun.jna.Structure.ByReference;
 
 import annis.exceptions.AnnisQLSemanticsException;
 
@@ -52,7 +51,7 @@ public class CAPI implements Library
       super(SIZE, value, false);
     }
 
-    public static class ByRef extends NodeID implements ByReference {
+    public static class ByReference extends NodeID implements Structure.ByReference {
 			
 		};
   }
@@ -66,7 +65,7 @@ public class CAPI implements Library
     {
       super(SIZE, value, false);
     }
-    public static class ByRef extends StringID implements ByReference {
+    public static class ByReference extends StringID implements Structure.ByReference {
 			
 		};
   }
@@ -134,10 +133,10 @@ public class CAPI implements Library
     {
       return Arrays.asList("key", "value");
     }
-    public static class ByReference extends AnnisAnnoKey implements Structure.ByReference {
+    public static class ByReference extends AnnisAnnotation implements Structure.ByReference {
 			
 		};
-		public static class ByValue extends AnnisAnnoKey implements Structure.ByValue {
+		public static class ByValue extends AnnisAnnotation implements Structure.ByValue {
 			
 		};
   }
@@ -150,16 +149,18 @@ public class CAPI implements Library
   public static native String annis_error_get_msg(AnnisError ptr);
 
   // vector and iterator functions 
-  public static native long annis_vec_str_size(AnnisVec_AnnisCString ptr);
+  public static native NativeLong annis_vec_str_size(AnnisVec_AnnisCString ptr);
 
   public static native String annis_vec_str_get(AnnisVec_AnnisCString ptr, NativeLong i);
+  public static native AnnisVec_AnnisCString annis_vec_str_new();
+  public static native void annis_vec_str_push(AnnisVec_AnnisCString ptr, String v);
 
-  public static native long annis_vec_annotation_size(AnnisVec_AnnisAnnotation ptr);
+  public static native NativeLong annis_vec_annotation_size(AnnisVec_AnnisAnnotation ptr);
 
-  public static native AnnisAnnotation annis_vec_annotation_get(AnnisVec_AnnisAnnotation ptr,
+  public static native AnnisAnnotation.ByReference annis_vec_annotation_get(AnnisVec_AnnisAnnotation ptr,
       NativeLong i);
 
-  public static native NodeID.ByRef annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID ptr); 
+  public static native NodeID.ByReference annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID ptr); 
 
   // corpus storage class
 
@@ -172,6 +173,9 @@ public class CAPI implements Library
 
   public static native AnnisVec_AnnisCString annis_cs_find(AnnisCorpusStorage cs, String corpusName,
       String queryAsJSON, long offset, long limit);
+
+  public static native AnnisGraphDB annis_cs_subgraph(AnnisCorpusStorage cs, String corpusName,
+    AnnisVec_AnnisCString node_ids, NativeLong ctx_left, NativeLong ctx_right);
 
   public static native AnnisError annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
       AnnisGraphUpdate update);
