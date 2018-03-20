@@ -126,7 +126,18 @@ public class CAPI implements Library
 
   public static class AnnisIterPtr_AnnisNodeID extends AnnisPtr
   {
+  }
 
+  public static class AnnisComponent extends AnnisPtr 
+  { 
+  }
+
+  public static class AnnisVec_AnnisComponent extends AnnisPtr 
+  {
+  }
+
+  public static class AnnisVec_AnnisEdge extends AnnisPtr 
+  {
   }
 
   public static class AnnisAnnoKey extends Structure
@@ -162,6 +173,24 @@ public class CAPI implements Library
 			
 		};
 		public static class ByValue extends AnnisAnnotation implements Structure.ByValue {
+			
+		};
+  }
+
+  public static class AnnisEdge extends Structure
+  {
+    public NodeID source;
+    public NodeID target;
+
+    @Override
+    protected List<String> getFieldOrder()
+    {
+      return Arrays.asList("source", "target");
+    }
+    public static class ByReference extends AnnisAnnoKey implements Structure.ByReference {
+			
+		};
+		public static class ByValue extends AnnisAnnoKey implements Structure.ByValue {
 			
 		};
   }
@@ -210,6 +239,17 @@ public class CAPI implements Library
     }
   }
 
+  public static interface AnnisComponentType {
+		public static final int Coverage = 0;
+		public static final int InverseCoverage = 1;
+		public static final int Dominance = 2;
+		public static final int Pointing = 3;
+		public static final int Ordering = 4;
+		public static final int LeftToken = 5;
+		public static final int RightToken = 6;
+		public static final int PartOfSubcorpus = 7;
+	};
+
   // general functions
 
   protected static native void annis_free(AnnisPtr ptr);
@@ -221,14 +261,20 @@ public class CAPI implements Library
 
   // vector and iterator functions 
   public static native NativeLong annis_vec_str_size(AnnisVec_AnnisCString ptr);
-
   public static native String annis_vec_str_get(AnnisVec_AnnisCString ptr, NativeLong i);
   public static native AnnisVec_AnnisCString annis_vec_str_new();
   public static native void annis_vec_str_push(AnnisVec_AnnisCString ptr, String v);
 
   public static native NativeLong annis_vec_annotation_size(AnnisVec_AnnisAnnotation ptr);
-
   public static native AnnisAnnotation.ByReference annis_vec_annotation_get(AnnisVec_AnnisAnnotation ptr,
+      NativeLong i);
+
+  public static native NativeLong annis_vec_component_size(AnnisVec_AnnisComponent ptr);
+  public static native AnnisComponent annis_vec_component_get(AnnisVec_AnnisComponent ptr,
+      NativeLong i);
+
+  public static native NativeLong annis_vec_edge_size(AnnisVec_AnnisEdge ptr);
+  public static native AnnisEdge annis_vec_edge_get(AnnisVec_AnnisEdge ptr,
       NativeLong i);
 
   public static native NodeIDByRef annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID ptr); 
@@ -282,7 +328,14 @@ public class CAPI implements Library
 
   // GraphDB classes
 
+  public static native AnnisString annis_component_layer(AnnisComponent component);
+  public static native AnnisString annis_component_name(AnnisComponent component);
+  public static native AnnisComponentType annis_component_type(AnnisComponent component);
+
   public static native AnnisVec_AnnisAnnotation annis_graph_node_labels(AnnisGraphDB g, NodeID nodeID);
   public static native AnnisIterPtr_AnnisNodeID annis_graph_nodes_by_type(AnnisGraphDB g, String node_type);
+  public static native AnnisVec_AnnisComponent annis_graph_all_components(AnnisGraphDB g);
+  public static native AnnisVec_AnnisEdge annis_graph_outgoing_edges(AnnisGraphDB g, NodeID source, AnnisComponent component);
+
   public static native AnnisString annis_graph_str(AnnisGraphDB g, StringID str_id);
 }

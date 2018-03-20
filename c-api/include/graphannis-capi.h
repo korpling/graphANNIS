@@ -111,6 +111,8 @@ const char *annis_error_get_msg(const AnnisError *ptr);
 
 void annis_free(void *ptr);
 
+AnnisVec_AnnisComponent *annis_graph_all_components(const AnnisGraphDB *g);
+
 AnnisVec_AnnisAnnotation *annis_graph_node_labels(const AnnisGraphDB *g, AnnisNodeID node);
 
 AnnisIterPtr_AnnisNodeID *annis_graph_nodes_by_type(const AnnisGraphDB *g, const char *node_type);
