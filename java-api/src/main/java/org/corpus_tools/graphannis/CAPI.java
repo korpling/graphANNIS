@@ -330,7 +330,7 @@ public class CAPI implements Library
 
   public static native AnnisString annis_component_layer(AnnisComponent component);
   public static native AnnisString annis_component_name(AnnisComponent component);
-  public static native AnnisComponentType annis_component_type(AnnisComponent component);
+  public static native int annis_component_type(AnnisComponent component);
 
   public static native AnnisVec_AnnisAnnotation annis_graph_node_labels(AnnisGraphDB g, NodeID nodeID);
   public static native AnnisIterPtr_AnnisNodeID annis_graph_nodes_by_type(AnnisGraphDB g, String node_type);
