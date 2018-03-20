@@ -12,7 +12,8 @@ pub enum Error {
 }
 
 pub struct ExecutionPlan<'a> {
-    root: Box<Iterator<Item = Vec<Match>> + 'a>,
+    plans : Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
+    current_plan: usize,
     descriptions : Vec<Option<Desc>>,
 }
 
@@ -35,9 +36,7 @@ impl<'a> ExecutionPlan<'a> {
         if plans.is_empty() {
             return Err(Error::ImpossibleSearch(errors));
         } else {
-            let it = plans.into_iter().flat_map(|p| p);
-            let box_it : Box<Iterator<Item = Vec<Match>>> = Box::new(it);
-            return Ok(ExecutionPlan {root: box_it, descriptions});
+            return Ok(ExecutionPlan {plans, current_plan: 0, descriptions});
         }
     }
 }
@@ -59,8 +58,30 @@ impl<'a> Iterator for ExecutionPlan<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
-        let n = self.root.next();
-        // TODO: re-organize the match positions
-        return n;
+        while self.current_plan < self.plans.len() {
+            let n = self.plans[self.current_plan].next();
+            if let Some(tmp) = n {
+                if let Some(ref desc) = self.descriptions[self.current_plan] {
+                    let desc : &Desc = desc;
+                    // re-order the matched nodes by the original node position of the query
+                    let mut result : Vec<Match> = Vec::new();
+                    result.reserve(tmp.len());
+                    for i in 0..tmp.len() {
+                        if let Some(mapped_pos) = desc.node_pos.get(&i) {
+                            result.push(tmp[mapped_pos.clone()].clone());
+                        } else {
+                            result.push(tmp[i].clone());
+                        }
+                    }
+                    return Some(result);
+                } else {
+                    return Some(tmp);
+                }
+            } else {
+                self.current_plan += 1;
+            } 
+        }
+        // all possible plans exhausted
+        return None;
     }
 }

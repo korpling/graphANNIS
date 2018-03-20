@@ -653,10 +653,7 @@ impl CorpusStorage {
         let mut result = GraphDB::new();
 
         // create the subgraph description
-        let mut i=0; 
         for r in plan {
-            println!("{}th match for subgraph: {},{},{},{}", i, &r[0].node, &r[1].node, &r[2].node, &r[3].node);
-            i += 1;
             let m : &Match = &r[3];
             if !match_result.contains(m) {
                 match_result.insert(m.clone());

@@ -4,7 +4,7 @@ use stringstorage::StringStorage;
 use operator::{EstimationType, Operator};
 use graphdb::GraphDB;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap};
 use std;
 
 #[derive(Debug, Clone)]
