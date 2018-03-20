@@ -16,11 +16,8 @@
 
 package org.corpus_tools.graphannis;
 
-import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.List;
-
-import javax.xml.soap.Node;
 
 import com.sun.jna.IntegerType;
 import com.sun.jna.Library;
@@ -31,8 +28,6 @@ import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 import com.sun.jna.Structure;
 import com.sun.jna.ptr.IntByReference;
-
-import annis.exceptions.AnnisQLSemanticsException;
 
 
 
