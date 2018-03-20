@@ -33,6 +33,7 @@ pub struct Match {
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, HeapSizeOf)]
+#[repr(C)]
 pub struct Edge {
     pub source: NodeID,
     pub target: NodeID,
@@ -45,6 +46,7 @@ impl Edge {
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter, EnumString, HeapSizeOf)]
+#[repr(C)]
 pub enum ComponentType {
     Coverage,
     InverseCoverage,

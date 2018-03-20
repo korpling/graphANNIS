@@ -39,7 +39,7 @@ pub use types::*;
 mod dfs;
 mod annostorage;
 pub mod stringstorage;
-mod graphstorage;
+pub mod graphstorage;
 pub mod graphdb;
 pub mod operator;
 pub mod relannis;

@@ -21,6 +21,19 @@ limitations under the License.s
 #include <stdlib.h>
 #include <stdbool.h>
 
+typedef enum {
+  Coverage,
+  InverseCoverage,
+  Dominance,
+  Pointing,
+  Ordering,
+  LeftToken,
+  RightToken,
+  PartOfSubcorpus,
+} AnnisComponentType;
+
+typedef struct AnnisComponent AnnisComponent;
+
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
 typedef struct AnnisError AnnisError;
@@ -35,6 +48,10 @@ typedef struct AnnisVec_AnnisAnnotation AnnisVec_AnnisAnnotation;
 
 typedef struct AnnisVec_AnnisCString AnnisVec_AnnisCString;
 
+typedef struct AnnisVec_AnnisComponent AnnisVec_AnnisComponent;
+
+typedef struct AnnisVec_AnnisEdge AnnisVec_AnnisEdge;
+
 typedef uint32_t AnnisNodeID;
 
 typedef uint32_t AnnisStringID;
@@ -48,6 +65,17 @@ typedef struct {
   AnnisAnnoKey key;
   AnnisStringID val;
 } AnnisAnnotation;
+
+typedef struct {
+  AnnisNodeID source;
+  AnnisNodeID target;
+} AnnisEdge;
+
+char *annis_component_layer(const AnnisComponent *c);
+
+char *annis_component_name(const AnnisComponent *c);
+
+AnnisComponentType annis_component_type(const AnnisComponent *c);
 
 AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
                                   const char *corpus,
@@ -86,6 +114,10 @@ void annis_free(void *ptr);
 AnnisVec_AnnisAnnotation *annis_graph_node_labels(const AnnisGraphDB *g, AnnisNodeID node);
 
 AnnisIterPtr_AnnisNodeID *annis_graph_nodes_by_type(const AnnisGraphDB *g, const char *node_type);
+
+AnnisVec_AnnisEdge *annis_graph_outgoing_edges(const AnnisGraphDB *g,
+                                               AnnisNodeID source,
+                                               AnnisComponent component);
 
 char *annis_graph_str(const AnnisGraphDB *g, AnnisStringID str_id);
 
@@ -146,7 +178,7 @@ AnnisGraphUpdate *annis_graphupdate_new(void);
 
 size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
 
-const AnnisNodeID *annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID *ptr);
+AnnisNodeID *annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID *ptr);
 
 void annis_str_free(char *s);
 
@@ -154,7 +186,19 @@ const AnnisAnnotation *annis_vec_annotation_get(const AnnisVec_AnnisAnnotation *
 
 size_t annis_vec_annotation_size(const AnnisVec_AnnisAnnotation *ptr);
 
+const AnnisComponent *annis_vec_component_get(const AnnisVec_AnnisComponent *ptr, size_t i);
+
+size_t annis_vec_component_size(const AnnisVec_AnnisComponent *ptr);
+
+const AnnisEdge *annis_vec_edge_get(const AnnisVec_AnnisEdge *ptr, size_t i);
+
+size_t annis_vec_edge_size(const AnnisVec_AnnisEdge *ptr);
+
 const char *annis_vec_str_get(const AnnisVec_AnnisCString *ptr, size_t i);
+
+AnnisVec_AnnisCString *annis_vec_str_new(void);
+
+void annis_vec_str_push(AnnisVec_AnnisCString *ptr, const char *v);
 
 size_t annis_vec_str_size(const AnnisVec_AnnisCString *ptr);
 

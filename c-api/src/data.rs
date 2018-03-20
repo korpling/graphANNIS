@@ -2,7 +2,7 @@ use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
 
-use graphannis::{Annotation, NodeID};
+use graphannis::{Annotation, NodeID, Edge, Component};
 
 
 #[no_mangle]
@@ -84,6 +84,16 @@ pub extern "C" fn annis_vec_str_push(ptr : * mut Vec<CString>, v : * const c_cha
 pub extern "C" fn annis_vec_annotation_size(ptr : * const Vec<Annotation>) -> size_t {vec_size(ptr)}
 
 #[no_mangle]
-pub extern "C" fn annis_vec_annotation_get(ptr : * const Vec<Annotation>, i : size_t) -> * const Annotation {
-    vec_get(ptr, i)
-}
+pub extern "C" fn annis_vec_annotation_get(ptr : * const Vec<Annotation>, i : size_t) -> * const Annotation {vec_get(ptr, i)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_edge_size(ptr : * const Vec<Edge>) -> size_t {vec_size(ptr)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_edge_get(ptr : * const Vec<Edge>, i : size_t) -> * const Edge { vec_get(ptr, i)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_component_size(ptr : * const Vec<Component>) -> size_t {vec_size(ptr)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_component_get(ptr : * const Vec<Component>, i : size_t) -> * const Component { vec_get(ptr, i)}

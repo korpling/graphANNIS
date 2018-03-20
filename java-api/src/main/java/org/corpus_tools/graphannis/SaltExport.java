@@ -96,8 +96,8 @@ public class SaltExport
 
      // get all annotations for the node into a map, also create the node itself
      Map<Pair<String,String>,String> labels = new LinkedHashMap<>();
-     int actualID = nID.getValue();
-     CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_node_labels(g, new CAPI.NodeID(actualID));
+     int copyID = nID.getValue();
+     CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_node_labels(g, new CAPI.NodeID(copyID));
      for(long i=0; i < CAPI.annis_vec_annotation_size(annos).longValue(); i++) {
        CAPI.AnnisAnnotation.ByReference a = 
          CAPI.annis_vec_annotation_get(annos, new NativeLong(i));
@@ -128,6 +128,7 @@ public class SaltExport
      {
        newNode = SaltFactory.createSSpan();
      }
+     newNode.createFeature("annis", "node_id", copyID);
 
      String nodeName = labels.get(new ImmutablePair<>("annis", "node_name"));
      if(nodeName != null)
@@ -337,9 +338,9 @@ public class SaltExport
       nID = CAPI.annis_iter_nodeid_next(itNodes))
     {
       SNode n = mapNode(nID, orig);
+      // add them to the graph
       g.addNode(n);
     }
-    
     itNodes.dispose();
 
     //    Map<Long, SNode> newNodesByID = new LinkedHashMap<>();

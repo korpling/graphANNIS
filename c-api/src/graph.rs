@@ -2,9 +2,30 @@ use libc;
 use std;
 use std::ffi::CString;
 use data::IterPtr;
-use graphannis::{NodeID, Match, Annotation, StringID};
+use graphannis::{NodeID, Match, Annotation, StringID, Edge, Component, ComponentType};
 use graphannis::graphdb::{GraphDB};
+use graphannis::graphstorage::GraphStorage;
+use std::sync::Arc;
 
+#[no_mangle]
+pub extern "C" fn annis_component_type(c : * const Component) -> ComponentType {
+    let c : &Component = cast_const!(c);
+    return c.ctype.clone();    
+}
+
+#[no_mangle]
+pub extern "C" fn annis_component_layer(c : * const Component) -> * mut libc::c_char {
+    let c : &Component = cast_const!(c);
+    let as_string : &str = &c.layer;
+    return CString::new(as_string).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_component_name(c : * const Component) -> * mut libc::c_char {
+    let c : &Component = cast_const!(c);
+    let as_string : &str = &c.name;
+    return CString::new(as_string).unwrap_or_default().into_raw();
+}
 
 #[no_mangle]
 pub extern "C" fn annis_graph_nodes_by_type(g : * const GraphDB, node_type : * const libc::c_char) -> * mut IterPtr<NodeID> {
@@ -25,6 +46,20 @@ pub extern "C" fn annis_graph_node_labels(g : * const GraphDB,  node : NodeID) -
     let db : &GraphDB = cast_const!(g);
 
     Box::into_raw(Box::new(db.node_annos.get_all(&node)))
+}
+
+#[no_mangle]
+pub extern "C" fn annis_graph_outgoing_edges(g : * const GraphDB,  source : NodeID, component : Component) -> * mut Vec<Edge> {
+    let db : &GraphDB = cast_const!(g);
+
+    let mut result : Vec<Edge> = Vec::new();
+
+    if let Some(gs) = db.get_graphstorage(&component) {
+        let gs : Arc<GraphStorage> = gs;
+        result.extend(gs.get_outgoing_edges(&source).map(|target| Edge {source: source.clone(), target}));
+    }   
+
+    Box::into_raw(Box::new(result))
 }
 
 #[no_mangle]
