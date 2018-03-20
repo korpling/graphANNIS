@@ -102,9 +102,9 @@ public class SaltExport
        CAPI.AnnisAnnotation.ByReference a = 
          CAPI.annis_vec_annotation_get(annos, new NativeLong(i));
          
-         String ns = CAPI.annis_graph_str(g, a.key.ns);
-         String name = CAPI.annis_graph_str(g, a.key.name);
-         String value = CAPI.annis_graph_str(g, a.value);
+         String ns = CAPI.annis_graph_str(g, a.key.ns).toString();
+         String name = CAPI.annis_graph_str(g, a.key.name).toString();
+         String value = CAPI.annis_graph_str(g, a.value).toString();
          
          if(name != null && value != null) {
           if(ns == null) {

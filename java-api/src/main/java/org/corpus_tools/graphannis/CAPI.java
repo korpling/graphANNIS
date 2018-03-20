@@ -16,6 +16,7 @@
 
 package org.corpus_tools.graphannis;
 
+import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.List;
 
@@ -164,12 +165,57 @@ public class CAPI implements Library
 			
 		};
   }
+
+  public static class AnnisString extends PointerType implements CharSequence {
+    public void dispose() {
+      if(this.getPointer() != Pointer.NULL) {
+        annis_str_free(this);
+        this.setPointer(Pointer.NULL);
+      }
+    }
+
+    @Override
+    protected void finalize() throws Throwable
+    {
+      this.dispose();
+      super.finalize();
+    }
+
+    @Override
+    public String toString()
+    {
+      if(getPointer() == Pointer.NULL) {
+        return "";
+      } else {
+        return getPointer().getString(0);
+      }
+    }
+
+    @Override
+    public CharSequence subSequence(int start, int end)
+    {
+      return toString().subSequence(start, end);
+    }
+
+    @Override
+    public int length()
+    {
+      return toString().length();
+    }
+
+    @Override
+    public char charAt(int index)
+    {
+      return toString().charAt(index);
+    }
+  }
+
   // general functions
 
   protected static native void annis_free(AnnisPtr ptr);
   protected static native void annis_free(NodeIDByRef ptr);
 
-  public static native void annis_str_free(AnnisPtr ptr);
+  public static native void annis_str_free(AnnisString ptr);
 
   public static native String annis_error_get_msg(AnnisError ptr);
 
@@ -238,5 +284,5 @@ public class CAPI implements Library
 
   public static native AnnisVec_AnnisAnnotation annis_graph_node_labels(AnnisGraphDB g, NodeID nodeID);
   public static native AnnisIterPtr_AnnisNodeID annis_graph_nodes_by_type(AnnisGraphDB g, String node_type);
-  public static native String annis_graph_str(AnnisGraphDB g, StringID str_id);
+  public static native AnnisString annis_graph_str(AnnisGraphDB g, StringID str_id);
 }
