@@ -45,7 +45,7 @@ public class CorpusStorageManager
       copy[i] = CAPI.annis_vec_str_get(orig, new NativeLong(i));
     }
     
-    CAPI.annis_free(orig);
+    orig.dispose();
 
     return copy;
   }
@@ -60,17 +60,13 @@ public class CorpusStorageManager
     CAPI.AnnisVec_AnnisCString vec = CAPI.annis_cs_find(instance,
       corpusName, queryAsJSON, offset, limit);
     String[] result = new String[0];
-    try
-    {
-      result = new String[CAPI.annis_vec_str_size(vec).intValue()];
-      for(int i=0; i < result.length; i++) {
-        result[i] = CAPI.annis_vec_str_get(vec, new NativeLong(i));
-      }
+    
+    result = new String[CAPI.annis_vec_str_size(vec).intValue()];
+    for(int i=0; i < result.length; i++) {
+      result[i] = CAPI.annis_vec_str_get(vec, new NativeLong(i));
     }
-    finally
-    {
-      CAPI.annis_free(vec);
-    }
+  
+    vec.dispose();
 
     return result;
   }
@@ -83,15 +79,12 @@ public class CorpusStorageManager
       CAPI.annis_vec_str_push(c_node_ids, id);
     }
     CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph(instance, corpusName, c_node_ids, new NativeLong(ctx_left), new NativeLong(ctx_right));
-    try
-    {
-      return SaltExport.map(graph);
-    }
-    finally
-    {
-      CAPI.annis_free(c_node_ids);
-      CAPI.annis_free(graph);
-    }
+    
+    SDocumentGraph result = SaltExport.map(graph);
+    c_node_ids.dispose();
+    graph.dispose();
+
+    return result;
   }
 
   public void applyUpdate(String corpusName, GraphUpdate update)
@@ -100,21 +93,9 @@ public class CorpusStorageManager
     
     if(result != null) {
       String msg = CAPI.annis_error_get_msg(result);
-      CAPI.annis_free(result);
+      result.dispose();
       
       throw new RuntimeException(msg);
-    } else {
-        CAPI.annis_free(result);
-    }
-  }
-
-  @Override
-  protected void finalize() throws Throwable
-  {
-    super.finalize();
-    if (instance != null)
-    {
-      CAPI.annis_free(instance);
     }
   }
 

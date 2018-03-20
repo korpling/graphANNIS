@@ -89,14 +89,4 @@ public class GraphUpdate
         CAPI.annis_graphupdate_delete_edge_label(instance, source_node, target_node, layer,
                 component_type, component_name, anno_ns, anno_name);
     }
-
-    @Override
-    protected void finalize() throws Throwable
-    {
-        super.finalize();
-        if (instance != null)
-        {
-            CAPI.annis_free(instance);
-        }
-    }
 }

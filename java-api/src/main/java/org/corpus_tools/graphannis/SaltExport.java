@@ -114,7 +114,7 @@ public class SaltExport
           }
         }
      }
-     CAPI.annis_free(annos);
+     annos.dispose();
 
      if(labels.containsKey(new ImmutablePair<>("annis", "tok")))
      {
@@ -332,20 +332,15 @@ public class SaltExport
 
     // create all new nodes
     CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "node");
-    try
+    
+    for(CAPI.NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; 
+      nID = CAPI.annis_iter_nodeid_next(itNodes))
     {
-      for(CAPI.NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; 
-        nID = CAPI.annis_iter_nodeid_next(itNodes))
-      {
-        SNode n = mapNode(nID, orig);
-        g.addNode(n);
-        CAPI.annis_free(nID);
-      }
+      SNode n = mapNode(nID, orig);
+      g.addNode(n);
     }
-    finally
-    {
-      CAPI.annis_free(itNodes);
-    }
+    
+    itNodes.dispose();
 
     //    Map<Long, SNode> newNodesByID = new LinkedHashMap<>();
     //    for(Map.Entry<Long, CAPI.Node> entry : nodesByID.entrySet())

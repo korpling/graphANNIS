@@ -23,8 +23,10 @@ import javax.xml.soap.Node;
 
 import com.sun.jna.IntegerType;
 import com.sun.jna.Library;
+import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
+import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 import com.sun.jna.Structure;
 import com.sun.jna.ptr.IntByReference;
@@ -54,7 +56,18 @@ public class CAPI implements Library
   }
 
   public static class NodeIDByRef extends IntByReference {
-
+    public void dispose() {
+      if(getPointer() != Pointer.NULL && !(getPointer() instanceof Memory)) {
+        annis_free(this);
+        setPointer(Pointer.NULL);
+      }
+    }
+    @Override
+    protected void finalize() throws Throwable
+    {
+      this.dispose();
+      super.finalize();
+    }
   }
 
   public static class StringID extends IntegerType {
@@ -71,7 +84,19 @@ public class CAPI implements Library
 
   public static class AnnisPtr extends PointerType
   {
+    public void dispose() {
+      if(this.getPointer() != Pointer.NULL) {
+        annis_free(this);
+        this.setPointer(Pointer.NULL);
+      }
+    }
 
+    @Override
+    protected void finalize() throws Throwable
+    {
+      this.dispose();
+      super.finalize();
+    }
   }
 
   public static class AnnisCorpusStorage extends AnnisPtr
@@ -141,8 +166,8 @@ public class CAPI implements Library
   }
   // general functions
 
-  public static native void annis_free(AnnisPtr ptr);
-  public static native void annis_free(NodeIDByRef ptr);
+  protected static native void annis_free(AnnisPtr ptr);
+  protected static native void annis_free(NodeIDByRef ptr);
 
   public static native void annis_str_free(AnnisPtr ptr);
 
