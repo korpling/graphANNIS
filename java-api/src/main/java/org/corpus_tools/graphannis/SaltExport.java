@@ -30,6 +30,8 @@ import java.util.Map;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.corpus_tools.graphannis.CAPI.AnnisComponent;
+import org.corpus_tools.graphannis.CAPI.AnnisVec_AnnisComponent;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocumentGraph;
@@ -74,18 +76,13 @@ public class SaltExport
    {
 
     // TODO: implement
-     
-    //  for(long i=0; i < n.outgoingEdges().size(); i++)
-    //  {
-    //    CAPI.Edge e = n.outgoingEdges().get(i);
-       
-    //    if("DOMINANCE".equals(e.componentType().getString()))
-    //    {
-    //      return true;
-    //    }
-       
-    //  }
-
+    AnnisVec_AnnisComponent components = CAPI.annis_graph_all_components(g);
+    for(int i=0; i < CAPI.annis_vec_component_size(components).intValue(); i++) {
+      AnnisComponent c = CAPI.annis_vec_component_get(components, new NativeLong(i));
+      if(CAPI.AnnisComponentType.Dominance == CAPI.annis_component_type(c)) {
+        return true;
+      }
+    }
      
      return false;
    }
