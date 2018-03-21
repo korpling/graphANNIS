@@ -29,10 +29,9 @@ pub extern "C" fn annis_component_name(c : * const Component) -> * mut libc::c_c
 
 #[no_mangle]
 pub extern "C" fn annis_graph_nodes_by_type(g : * const GraphDB, node_type : * const libc::c_char) -> * mut IterPtr<NodeID> {
-    debug!("annis_graph_nodes_by_type({:?},{:?}) called", g, node_type);
     let db : &GraphDB = cast_const!(g);
     let node_type = cstr!(node_type);
-
+    
     let type_key = db.get_node_type_key();
     if let Some(val_id) = db.strings.find_id(&node_type) {
         let it = db.node_annos.exact_anno_search(Some(type_key.ns), type_key.name, Some(val_id.clone()))

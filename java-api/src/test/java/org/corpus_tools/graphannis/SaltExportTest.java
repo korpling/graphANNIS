@@ -157,7 +157,7 @@ public class SaltExportTest {
     
     
     // get a subgraph for the complete document
-    SDocumentGraph exportedGraph = storage.subcorpusGraph("testCorpus", Arrays.asList(doc.getName()));
+    SDocumentGraph exportedGraph = storage.subcorpusGraph("testCorpus", Arrays.asList(doc.getId()));
     
     assertNotNull(exportedGraph);
     

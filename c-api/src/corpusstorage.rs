@@ -103,6 +103,8 @@ pub extern "C" fn annis_cs_subcorpus_graph(ptr: *const cs::CorpusStorage,
     let corpus_ids : Vec<String> = cast_const!(corpus_ids).iter().map(|id| String::from(id.to_string_lossy())).collect();
     let corpus = cstr!(corpus_name);
     
+    trace!("annis_cs_subcorpus_graph(..., {}, {:?}) called", corpus, corpus_ids);
+
     if let Ok(result) = cs.subcorpus_graph(&corpus, corpus_ids) {
         return Box::into_raw(Box::new(result));
     }
