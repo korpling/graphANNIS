@@ -56,6 +56,13 @@ pub extern "C" fn annis_graph_all_components(g : * const GraphDB) -> * mut Vec<C
 }
 
 #[no_mangle]
+pub extern "C" fn annis_graph_all_components_by_type(g : * const GraphDB, ctype : ComponentType) -> * mut Vec<Component> {
+    let db : &GraphDB = cast_const!(g);
+
+    Box::into_raw(Box::new(db.get_all_components(Some(ctype), None)))
+}
+
+#[no_mangle]
 pub extern "C" fn annis_graph_outgoing_edges(g : * const GraphDB,  source : NodeID, component : * const Component) -> * mut Vec<Edge> {
     let db : &GraphDB = cast_const!(g);
     let component : &Component = cast_const!(component);

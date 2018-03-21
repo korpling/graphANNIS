@@ -113,6 +113,9 @@ void annis_free(void *ptr);
 
 AnnisVec_AnnisComponent *annis_graph_all_components(const AnnisGraphDB *g);
 
+AnnisVec_AnnisComponent *annis_graph_all_components_by_type(const AnnisGraphDB *g,
+                                                            AnnisComponentType ctype);
+
 AnnisVec_AnnisAnnotation *annis_graph_edge_labels(const AnnisGraphDB *g,
                                                   AnnisEdge edge,
                                                   const AnnisComponent *component);

@@ -314,6 +314,7 @@ public class CAPI implements Library {
   public static native AnnisIterPtr_AnnisNodeID annis_graph_nodes_by_type(AnnisGraphDB g, String node_type);
 
   public static native AnnisVec_AnnisComponent annis_graph_all_components(AnnisGraphDB g);
+  public static native AnnisVec_AnnisComponent annis_graph_all_components_by_type(AnnisGraphDB g, int ctype);
 
   public static native AnnisVec_AnnisEdge annis_graph_outgoing_edges(AnnisGraphDB g, NodeID source,
       AnnisComponent component);

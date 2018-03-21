@@ -150,15 +150,22 @@ public class SaltExport {
         if (edgeType == null || edgeType.isEmpty()) {
           // We don't include edges that have no type if there is an edge
           // between the same nodes which has a type.
-          AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, origEdge.source, component);
-          for (int i = 0; i < CAPI.annis_vec_edge_size(outEdges).intValue(); i++) {
-            CAPI.AnnisEdge outEdge = CAPI.annis_vec_edge_get(outEdges, new NativeLong(i));
+          AnnisVec_AnnisComponent domComponents = CAPI.annis_graph_all_components_by_type(orig, CAPI.AnnisComponentType.Dominance);
+          for(int cIdx = 0; cIdx < CAPI.annis_vec_component_size(domComponents).intValue(); cIdx++) {
+            CAPI.AnnisComponent dc = CAPI.annis_vec_component_get(domComponents, new NativeLong(cIdx));
 
-            if (outEdge.target.equals(origEdge.target)) {
-              // exclude this relation
-              return;
+            if(!CAPI.annis_component_name(dc).toString().isEmpty() && !CAPI.annis_component_layer(dc).toString().isEmpty()) {
+              AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, origEdge.source, dc);
+              for (int i = 0; i < CAPI.annis_vec_edge_size(outEdges).intValue(); i++) {
+                CAPI.AnnisEdge outEdge = CAPI.annis_vec_edge_get(outEdges, new NativeLong(i));
+    
+                if (outEdge.target.equals(origEdge.target)) {
+                  // exclude this relation
+                  return;
+                }
+              }
             }
-          }
+          }          
         } // end mirror check
         rel = g.createRelation(source, target, SALT_TYPE.SDOMINANCE_RELATION, null);
 
@@ -179,6 +186,7 @@ public class SaltExport {
 
       if (rel != null) {
         rel.setType(edgeType);
+
         // map edge labels
         Map<Pair<String, String>, String> labels = new LinkedHashMap<>();
         CAPI.AnnisEdge.ByValue copyEdge = new CAPI.AnnisEdge.ByValue();

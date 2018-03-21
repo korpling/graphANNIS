@@ -72,40 +72,9 @@ public class SaltExportTest {
   }
 
   @Test
-  public void testMapTokensOnly() throws IOException, XMLStreamException {
-    SDocument doc = SaltFactory.createSDocument();
-
-    SampleGenerator.createTokens(doc);
-    GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
-    storage.applyUpdate("testCorpus", result);
-
-    int origTokensSize = doc.getDocumentGraph().getTokens().size();
-    assertEquals(origTokensSize, storage.count("testCorpus", aqlToJSON("tok")));
-    assertEquals(origTokensSize, storage.count("testCorpus", aqlToJSON("node")));
-
-    // get a subgraph for the complete document
-    SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
-    String name = sampleTok.getId();
-    if (name.startsWith("salt:/")) {
-      name = name.substring("salt:/".length());
-    }
-
-    long overlapCount = storage.count("testCorpus", aqlToJSON("(n1#annis:node_name=\"" + name
-        + "\" & n2#tok & n3#tok & n4#node & #n1 _o_ #n2 & #n3 .1,100 #n2 & #n3 _o_ #n4) | " + "(n1#annis:node_name=\""
-        + name + "\" & n2#tok & n3#tok & n4#node & #n1 _o_ #n2 & #n2 .1,100 #n3 & #n3 _o_ #n4) | "
-        + "(annis:node_name=\"" + name + "\")"));
-    assertEquals(origTokensSize, overlapCount);
-
-    SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] { sampleTok.getId() }, 100, 100);
-
-    assertEquals(origTokensSize, exportedGraph.getTokens().size());
-  }
-
-  @Test
   public void testMapComplexExample() throws IOException, XMLStreamException {
-    // TODO: re-enable test
+ 
 
-    /*
     SDocument doc = SaltFactory.createSDocument();
     
     SampleGenerator.createTokens(doc);
@@ -119,18 +88,16 @@ public class SaltExportTest {
     
     assertEquals(27, doc.getDocumentGraph().getNodes().size());
     
-    CAPI.GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
+    GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     
     storage.applyUpdate("testCorpus", result);
     
-    assertEquals(26, storage.count(new StringVector("testCorpus"), aqlToJSON("node")));
+    assertEquals(26, storage.count("testCorpus", aqlToJSON("node")));
     
     SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
     
     // get a subgraph for the complete document
-    CAPI.NodeVector nodeVector = storage.subgraph("testCorpus", new CAPI.StringVector(sampleTok.getId()), 100, 100);
-    
-    SDocumentGraph exportedGraph = SaltExport.map(nodeVector);
+    SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] { sampleTok.getId() }, 100, 100);
     
     ValidationResult validResult = SaltUtil.validate(exportedGraph).andFindInvalidities();
     assertTrue("Invalid graph detected:\n" + validResult.toString(), validResult.isValid());
@@ -157,7 +124,7 @@ public class SaltExportTest {
     int numOfOrderRels = exportedGraph.getRelations(SALT_TYPE.SORDER_RELATION).size();
     
     assertEquals(doc.getDocumentGraph().getRelations().size() , exportedGraph.getRelations().size() - numOfOrderRels);
-    */
+
     // TODO: actual diff
   }
 
