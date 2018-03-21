@@ -219,26 +219,21 @@ public class SaltExport {
     }
   }
 
-  //  
-  //  private static void addNodeLayers(SDocumentGraph g)
-  //  {
-  //    List<SNode> nodeList = new LinkedList<>(g.getNodes());
-  //    for(SNode n : nodeList)
-  //    {
-  //      SFeature featLayer = n.getFeature("annis", "layer");
-  //      if(featLayer != null)
-  //      {
-  //        SLayer layer = g.getLayer(featLayer.getValue_STEXT());
-  //        if(layer == null)
-  //        {
-  //          layer = SaltFactory.createSLayer();
-  //          layer.setName(featLayer.getValue_STEXT());
-  //          g.addLayer(layer);
-  //        }
-  //        layer.addNode(n);
-  //      }
-  //    }
-  //  }
+  private static void addNodeLayers(SDocumentGraph g) {
+    List<SNode> nodeList = new LinkedList<>(g.getNodes());
+    for (SNode n : nodeList) {
+      SFeature featLayer = n.getFeature("annis", "layer");
+      if (featLayer != null) {
+        SLayer layer = g.getLayer(featLayer.getValue_STEXT());
+        if (layer == null) {
+          layer = SaltFactory.createSLayer();
+          layer.setName(featLayer.getValue_STEXT());
+          g.addLayer(layer);
+        }
+        layer.addNode(n);
+      }
+    }
+  }
 
   private static void recreateText(final String name, List<SNode> rootNodes, final SDocumentGraph g) {
     final StringBuilder text = new StringBuilder();
@@ -345,7 +340,7 @@ public class SaltExport {
       recreateText(name, roots, g);
     });
 
-    //    addNodeLayers(g);
+    addNodeLayers(g);
 
     return g;
   }
