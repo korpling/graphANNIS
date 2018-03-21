@@ -21,7 +21,6 @@ use std::iter::FromIterator;
 use linked_hash_map::LinkedHashMap;
 use api::update::{GraphUpdate};
 
-
 enum CacheEntry {
     Loaded(GraphDB),
     NotLoaded,
@@ -550,7 +549,7 @@ impl CorpusStorage {
                     if let Some(node_name) = db.strings.str(node_name_id.clone()) {
                         let node_name : &str = node_name;
                         // extract the document path from the node name
-                        let doc_path = &node_name[0..node_name.len() - node_name.rfind("#").unwrap_or(0)];
+                        let doc_path = &node_name[0..node_name.rfind('#').unwrap_or(node_name.len())];
                         known_documents.insert(doc_path);
                     }
                 }
