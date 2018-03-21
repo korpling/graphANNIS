@@ -33,7 +33,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.corpus_tools.graphannis.capi.AnnisAnnotation;
 import org.corpus_tools.graphannis.capi.AnnisComponentType;
-import org.corpus_tools.graphannis.capi.AnnisEdge;
 import org.corpus_tools.graphannis.capi.CAPI.AnnisComponent;
 import org.corpus_tools.graphannis.capi.AnnisEdge;
 import org.corpus_tools.graphannis.capi.AnnisString;
