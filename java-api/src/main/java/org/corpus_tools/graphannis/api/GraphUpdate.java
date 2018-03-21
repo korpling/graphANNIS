@@ -15,7 +15,7 @@
  */
 package org.corpus_tools.graphannis.api;
 
-import org.corpus_tools.graphannis.CAPI;
+import org.corpus_tools.graphannis.capi.CAPI;
 
 /**
  * An API for applying atomic updates to a graph DB.

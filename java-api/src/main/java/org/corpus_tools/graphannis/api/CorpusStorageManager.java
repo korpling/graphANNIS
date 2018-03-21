@@ -17,7 +17,7 @@ package org.corpus_tools.graphannis.api;
 
 import com.sun.jna.NativeLong;
 
-import org.corpus_tools.graphannis.CAPI;
+import org.corpus_tools.graphannis.capi.CAPI;
 import org.corpus_tools.graphannis.SaltExport;
 import org.corpus_tools.salt.common.SDocumentGraph;
 

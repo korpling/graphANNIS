@@ -14,20 +14,11 @@
    limitations under the License.
 */
 
-package org.corpus_tools.graphannis;
+package org.corpus_tools.graphannis.capi;
 
-import java.util.Arrays;
-import java.util.List;
-
-import com.sun.jna.IntegerType;
 import com.sun.jna.Library;
-import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
-import com.sun.jna.Pointer;
-import com.sun.jna.PointerType;
-import com.sun.jna.Structure;
-import com.sun.jna.ptr.IntByReference;
 
 public class CAPI implements Library {
 
@@ -35,59 +26,9 @@ public class CAPI implements Library {
     Native.register(CAPI.class, "graphannis_capi");
   }
 
-  public static class NodeID extends IntegerType {
-    public static final int SIZE = 4;
 
-    public NodeID() {
-      this(0);
-    }
 
-    public NodeID(int value) {
-      super(SIZE, value, false);
-    }
-  }
 
-  public static class NodeIDByRef extends IntByReference {
-    public void dispose() {
-      if (getPointer() != Pointer.NULL && !(getPointer() instanceof Memory)) {
-        annis_free(this);
-        setPointer(Pointer.NULL);
-      }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-      this.dispose();
-      super.finalize();
-    }
-  }
-
-  public static class StringID extends IntegerType {
-    public static final int SIZE = 4;
-
-    public StringID() {
-      this(0);
-    }
-
-    public StringID(int value) {
-      super(SIZE, value, false);
-    }
-  }
-
-  public static class AnnisPtr extends PointerType {
-    public void dispose() {
-      if (this.getPointer() != Pointer.NULL) {
-        annis_free(this);
-        this.setPointer(Pointer.NULL);
-      }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-      this.dispose();
-      super.finalize();
-    }
-  }
 
   public static class AnnisCorpusStorage extends AnnisPtr {
   }
@@ -119,110 +60,10 @@ public class CAPI implements Library {
   public static class AnnisVec_AnnisEdge extends AnnisPtr {
   }
 
-  public static class AnnisAnnoKey extends Structure {
-    public StringID name;
-    public StringID ns;
 
-    @Override
-    protected List<String> getFieldOrder() {
-      return Arrays.asList("name", "ns");
-    }
 
-    public static class ByReference extends AnnisAnnoKey implements Structure.ByReference {
 
-    };
 
-    public static class ByValue extends AnnisAnnoKey implements Structure.ByValue {
-
-    };
-  }
-
-  public static class AnnisAnnotation extends Structure {
-
-    public AnnisAnnoKey key;
-    public StringID value;
-
-    @Override
-    protected List<String> getFieldOrder() {
-      return Arrays.asList("key", "value");
-    }
-
-    public static class ByReference extends AnnisAnnotation implements Structure.ByReference {
-
-    };
-
-    public static class ByValue extends AnnisAnnotation implements Structure.ByValue {
-
-    };
-  }
-
-  public static class AnnisEdge extends Structure {
-    public NodeID source;
-    public NodeID target;
-
-    @Override
-    protected List<String> getFieldOrder() {
-      return Arrays.asList("source", "target");
-    }
-
-    public static class ByReference extends AnnisEdge implements Structure.ByReference {
-
-    };
-
-    public static class ByValue extends AnnisEdge implements Structure.ByValue {
-
-    };
-  }
-
-  public static class AnnisString extends PointerType implements CharSequence {
-    public void dispose() {
-      if (this.getPointer() != Pointer.NULL) {
-        annis_str_free(this);
-        this.setPointer(Pointer.NULL);
-      }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-      this.dispose();
-      super.finalize();
-    }
-
-    @Override
-    public String toString() {
-      if (getPointer() == Pointer.NULL) {
-        return "";
-      } else {
-        return getPointer().getString(0);
-      }
-    }
-
-    @Override
-    public CharSequence subSequence(int start, int end) {
-      return toString().subSequence(start, end);
-    }
-
-    @Override
-    public int length() {
-      return toString().length();
-    }
-
-    @Override
-    public char charAt(int index) {
-      return toString().charAt(index);
-    }
-  }
-
-  public static interface AnnisComponentType {
-    public static final int Coverage = 0;
-    public static final int InverseCoverage = 1;
-    public static final int Dominance = 2;
-    public static final int Pointing = 3;
-    public static final int Ordering = 4;
-    public static final int LeftToken = 5;
-    public static final int RightToken = 6;
-    public static final int PartOfSubcorpus = 7;
-  };
 
   // general functions
 

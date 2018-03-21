@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 import jline.console.ConsoleReader;
 import jline.console.completer.StringsCompleter;
 import jline.console.history.FileHistory;
-import org.corpus_tools.graphannis.CAPI;
+import org.corpus_tools.graphannis.capi.CAPI;
 
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.graphannis.SaltExport;
