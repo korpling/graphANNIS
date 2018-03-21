@@ -71,6 +71,20 @@ pub extern "C" fn annis_graph_outgoing_edges(g : * const GraphDB,  source : Node
 }
 
 #[no_mangle]
+pub extern "C" fn annis_graph_edge_labels(g : * const GraphDB,  edge : Edge, component : *const Component) -> * mut Vec<Annotation> {
+    let db : &GraphDB = cast_const!(g);
+    let component : &Component = cast_const!(component);
+
+    let annos : Vec<Annotation> = if let Some(gs) = db.get_graphstorage(component) {
+        gs.get_edge_annos(&edge)
+    } else {
+        vec![]
+    };
+
+    Box::into_raw(Box::new(annos))
+}
+
+#[no_mangle]
 pub extern "C" fn annis_graph_str(g : * const GraphDB,  str_id : StringID) -> * mut libc::c_char {
     let db : &GraphDB = cast_const!(g);
 

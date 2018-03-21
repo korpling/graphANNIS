@@ -165,11 +165,11 @@ public class CAPI implements Library {
       return Arrays.asList("source", "target");
     }
 
-    public static class ByReference extends AnnisAnnoKey implements Structure.ByReference {
+    public static class ByReference extends AnnisEdge implements Structure.ByReference {
 
     };
 
-    public static class ByValue extends AnnisAnnoKey implements Structure.ByValue {
+    public static class ByValue extends AnnisEdge implements Structure.ByValue {
 
     };
   }
@@ -317,6 +317,8 @@ public class CAPI implements Library {
 
   public static native AnnisVec_AnnisEdge annis_graph_outgoing_edges(AnnisGraphDB g, NodeID source,
       AnnisComponent component);
+
+  public static native AnnisVec_AnnisAnnotation annis_graph_edge_labels(AnnisGraphDB g, AnnisEdge.ByValue edge, AnnisComponent component);
 
   public static native AnnisString annis_graph_str(AnnisGraphDB g, StringID str_id);
 }

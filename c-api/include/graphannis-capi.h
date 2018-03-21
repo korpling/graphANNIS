@@ -54,6 +54,11 @@ typedef struct AnnisVec_AnnisEdge AnnisVec_AnnisEdge;
 
 typedef uint32_t AnnisNodeID;
 
+typedef struct {
+  AnnisNodeID source;
+  AnnisNodeID target;
+} AnnisEdge;
+
 typedef uint32_t AnnisStringID;
 
 typedef struct {
@@ -65,11 +70,6 @@ typedef struct {
   AnnisAnnoKey key;
   AnnisStringID val;
 } AnnisAnnotation;
-
-typedef struct {
-  AnnisNodeID source;
-  AnnisNodeID target;
-} AnnisEdge;
 
 char *annis_component_layer(const AnnisComponent *c);
 
@@ -112,6 +112,10 @@ const char *annis_error_get_msg(const AnnisError *ptr);
 void annis_free(void *ptr);
 
 AnnisVec_AnnisComponent *annis_graph_all_components(const AnnisGraphDB *g);
+
+AnnisVec_AnnisAnnotation *annis_graph_edge_labels(const AnnisGraphDB *g,
+                                                  AnnisEdge edge,
+                                                  const AnnisComponent *component);
 
 AnnisVec_AnnisAnnotation *annis_graph_node_labels(const AnnisGraphDB *g, AnnisNodeID node);
 

@@ -179,8 +179,29 @@ public class SaltExport {
 
       if (rel != null) {
         rel.setType(edgeType);
-        // TODO: map edge labels
-        // mapLabels(rel, origEdge.labels());
+        // map edge labels
+        Map<Pair<String, String>, String> labels = new LinkedHashMap<>();
+        CAPI.AnnisEdge.ByValue copyEdge = new CAPI.AnnisEdge.ByValue();
+        copyEdge.source = origEdge.source;
+        copyEdge.target = origEdge.target;
+        CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_edge_labels(orig, copyEdge, component);
+        for (long i = 0; i < CAPI.annis_vec_annotation_size(annos).longValue(); i++) {
+          CAPI.AnnisAnnotation.ByReference a = CAPI.annis_vec_annotation_get(annos, new NativeLong(i));
+
+          String ns = CAPI.annis_graph_str(orig, a.key.ns).toString();
+          String name = CAPI.annis_graph_str(orig, a.key.name).toString();
+          String value = CAPI.annis_graph_str(orig, a.value).toString();
+
+          if (name != null && value != null) {
+            if (ns == null) {
+              labels.put(new ImmutablePair<>("", name), value);
+            } else {
+              labels.put(new ImmutablePair<>(ns, name), value);
+            }
+          }
+        }
+        annos.dispose();
+        mapLabels(rel, labels);
 
         CAPI.AnnisString layerNameRaw = CAPI.annis_component_layer(component);
         String layerName = layerNameRaw == null ? null : layerNameRaw.toString();
