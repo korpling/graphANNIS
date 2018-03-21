@@ -28,7 +28,7 @@ public class AnnisString extends PointerType implements CharSequence {
   {
     if (this.getPointer() != Pointer.NULL)
     {
-      CAPI.annis_str_free(this);
+      CAPI.annis_str_free(this.getPointer());
       this.setPointer(Pointer.NULL);
     }
   }

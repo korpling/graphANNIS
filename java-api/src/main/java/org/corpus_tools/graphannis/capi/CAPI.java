@@ -19,6 +19,7 @@ package org.corpus_tools.graphannis.capi;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
+import com.sun.jna.Pointer;
 
 public class CAPI implements Library {
 
@@ -62,11 +63,9 @@ public class CAPI implements Library {
 
   // general functions
 
-  protected static native void annis_free(AnnisPtr ptr);
+  protected static native void annis_free(Pointer ptr);
 
-  protected static native void annis_free(NodeIDByRef ptr);
-
-  public static native void annis_str_free(AnnisString ptr);
+  public static native void annis_str_free(Pointer ptr);
 
   public static native String annis_error_get_msg(AnnisError ptr);
   

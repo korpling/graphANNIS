@@ -19,3 +19,4 @@ CMakeLists.txt.user
 /target/
 *.lock
 /annis_history.txt
+/java-api/nbproject/

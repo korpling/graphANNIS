@@ -29,7 +29,7 @@ public class NodeIDByRef extends IntByReference {
   {
     if (getPointer() != Pointer.NULL && !(getPointer() instanceof Memory))
     {
-      CAPI.annis_free(this);
+      CAPI.annis_free(this.getPointer());
       setPointer(Pointer.NULL);
     }
   }

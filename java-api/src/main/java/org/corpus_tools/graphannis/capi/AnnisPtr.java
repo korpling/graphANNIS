@@ -28,7 +28,7 @@ public class AnnisPtr extends PointerType {
   {
     if (this.getPointer() != Pointer.NULL)
     {
-      CAPI.annis_free(this);
+      CAPI.annis_free(this.getPointer());
       this.setPointer(Pointer.NULL);
     }
   }
