@@ -1,4 +1,4 @@
 {
     "cquery.cacheDirectory": "${workspaceFolder}/.vscode/cquery_cached_index/",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "automatic"
 }

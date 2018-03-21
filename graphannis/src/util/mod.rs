@@ -57,7 +57,7 @@ pub fn check_annotation_equal(a: &Annotation, b: &Annotation) -> bool {
 pub struct SearchDef {
     pub aql: String,
     pub json: String,
-    pub count: usize,
+    pub count: u64,
     pub name: String,
 }
 
@@ -87,7 +87,7 @@ impl SearchDef {
                 f_count.read_to_string(&mut count),
             ) {
                 // try to parse the count value
-                if let Ok(count) = count.trim().parse::<usize>() {
+                if let Ok(count) = count.trim().parse::<u64>() {
                     let unknown_name = OsString::from("<unknown>");
                     let name : &OsStr = p_aql.file_stem().unwrap_or(&unknown_name);
                     return Some(SearchDef {

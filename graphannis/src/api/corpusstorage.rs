@@ -1,7 +1,7 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use {Component, Match, StringID, NodeID, AnnoKey, Annotation, Edge};
+use {Component, Match, StringID, NodeID, AnnoKey, Annotation, Edge, CountExtra};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::path::{Path, PathBuf};
@@ -490,7 +490,7 @@ impl CorpusStorage {
         Ok(())
     }
 
-    pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<usize, Error> {
+    pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<u64, Error> {
         let prep = self.prepare_query(corpus_name, query_as_json)?;
 
         // accuire read-only lock and execute query
@@ -498,7 +498,38 @@ impl CorpusStorage {
         let db = get_read_or_error(&lock)?;
         let plan = ExecutionPlan::from_disjunction(prep.query, &db)?;
 
-        return Ok(plan.count());
+        return Ok(plan.count() as u64);
+    }
+
+    pub fn count_extra(&self, corpus_name: &str, query_as_json: &str) -> Result<CountExtra, Error> {
+        let prep = self.prepare_query(corpus_name, query_as_json)?;
+
+        // accuire read-only lock and execute query
+        let lock = prep.db_entry.read().unwrap();
+        let db : &GraphDB = get_read_or_error(&lock)?;
+        let plan = ExecutionPlan::from_disjunction(prep.query, &db)?;
+
+        let mut known_documents = HashSet::new();
+
+        let result = plan.fold((0,0), move |acc : (u64, usize), m : Vec<Match>| {
+            if !m.is_empty() {
+                let m : &Match = &m[0];
+                if let Some(node_name_id) = db.node_annos.get(&m.node, &db.get_node_name_key()) {
+                    if let Some(node_name) = db.strings.str(node_name_id.clone()) {
+                        let node_name : &str = node_name;
+                        // extract the document path from the node name
+                        let doc_path = &node_name[0..node_name.len() - node_name.rfind("#").unwrap_or(0)];
+                        known_documents.insert(doc_path);
+                    }
+                }
+            }
+            (acc.0 + 1, known_documents.len())
+        });
+
+        return Ok(CountExtra {
+            match_count: result.0,
+            document_count: result.1 as u64,
+        });
     }
 
     pub fn find(

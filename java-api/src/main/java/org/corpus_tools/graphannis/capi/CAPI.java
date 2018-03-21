@@ -105,6 +105,7 @@ public class CAPI implements Library {
   public static native AnnisVec_AnnisCString annis_cs_list(AnnisCorpusStorage cs);
 
   public static native long annis_cs_count(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
+  public static native AnnisCountExtra annis_cs_count_extra(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
 
   public static native AnnisVec_AnnisCString annis_cs_find(AnnisCorpusStorage cs, String corpusName, String queryAsJSON,
       long offset, long limit);

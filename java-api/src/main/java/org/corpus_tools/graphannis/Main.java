@@ -15,6 +15,7 @@
  */
 package org.corpus_tools.graphannis;
 
+import java.util.Arrays;
 import org.corpus_tools.graphannis.api.CorpusStorageManager;
 
 /**
@@ -32,7 +33,7 @@ public class Main {
       if (args.length > 1) {
         String aql = args.length > 2 ? args[2] : "tok";
 
-        System.out.println(manager.count(args[1], QueryToJSON.aqlToJSON(aql)));
+        System.out.println(manager.count(Arrays.asList(args[1]), QueryToJSON.aqlToJSON(aql)));
 
       }
     } else {

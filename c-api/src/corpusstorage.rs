@@ -4,6 +4,7 @@ use std::ffi::CString;
 use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
 use graphannis::graphdb::GraphDB;
+use graphannis::CountExtra;
 use std::path::PathBuf;
 use super::error::Error;
 
@@ -33,7 +34,21 @@ pub extern "C" fn annis_cs_count(
     let query = cstr!(query_as_json);
     let corpus = cstr!(corpus);
 
-    return cs.count(&corpus, &query).unwrap_or(0) as u64;
+    return cs.count(&corpus, &query).unwrap_or(0);
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_count_extra(
+    ptr: *const cs::CorpusStorage,
+    corpus: *const libc::c_char,
+    query_as_json: *const libc::c_char,
+) -> CountExtra {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+
+    let query = cstr!(query_as_json);
+    let corpus = cstr!(corpus);
+
+    return cs.count_extra(&corpus, &query).unwrap_or(CountExtra::default()) ;
 }
 
 #[no_mangle]

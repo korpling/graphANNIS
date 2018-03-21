@@ -18,6 +18,7 @@ package org.corpus_tools.graphannis;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import javax.xml.stream.XMLStreamException;
 import org.corpus_tools.graphannis.api.CorpusStorageManager;
@@ -92,12 +93,12 @@ public class SaltExportTest {
     
     storage.applyUpdate("testCorpus", result);
     
-    assertEquals(26, storage.count("testCorpus", aqlToJSON("node")));
+    assertEquals(26, storage.count(Arrays.asList("testCorpus"), aqlToJSON("node")));
     
     SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
     
     // get a subgraph for the complete document
-    SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] { sampleTok.getId() }, 100, 100);
+    SDocumentGraph exportedGraph = storage.subgraph("testCorpus", Arrays.asList(sampleTok.getId()), 100, 100);
     
     ValidationResult validResult = SaltUtil.validate(exportedGraph).andFindInvalidities();
     assertTrue("Invalid graph detected:\n" + validResult.toString(), validResult.isValid());

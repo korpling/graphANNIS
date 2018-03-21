@@ -17,28 +17,29 @@ package org.corpus_tools.graphannis;
 
 import com.google.common.io.Files;
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.graphannis.api.CorpusStorageManager;
 import org.corpus_tools.graphannis.api.GraphUpdate;
 import org.corpus_tools.salt.SaltFactory;
-import org.corpus_tools.salt.common.SDocument;
-import org.corpus_tools.salt.samples.SampleGenerator;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.salt.common.SCorpus;
 import org.corpus_tools.salt.common.SCorpusGraph;
+import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.STextualDS;
 import org.corpus_tools.salt.common.STextualRelation;
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.common.SaltProject;
+import org.corpus_tools.salt.samples.SampleGenerator;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  *
@@ -90,7 +91,7 @@ public class SaltImportTest {
 
     storage.applyUpdate("testCorpus", result);
 
-    String corpus = "testCorpus";
+    List<String> corpus = Arrays.asList("testCorpus");
 
     assertEquals(26, storage.count(corpus, aqlToJSON("node")));
 
@@ -200,7 +201,7 @@ public class SaltImportTest {
 
     Set<String> matches = new HashSet<>();
 
-    String[] result = storage.find("root", QueryToJSON.aqlToJSON("tok"), 0, Long.MAX_VALUE);
+    String[] result = storage.find(Arrays.asList("root"), QueryToJSON.aqlToJSON("tok"), 0, Long.MAX_VALUE);
     assertEquals(2, result.length);
     for (int i = 0; i < 2; i++) {
       matches.add(result[i]);

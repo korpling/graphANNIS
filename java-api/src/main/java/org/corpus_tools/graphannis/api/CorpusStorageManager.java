@@ -16,9 +16,11 @@
 package org.corpus_tools.graphannis.api;
 
 import com.sun.jna.NativeLong;
-
-import org.corpus_tools.graphannis.capi.CAPI;
+import java.util.ArrayList;
+import java.util.List;
 import org.corpus_tools.graphannis.SaltExport;
+import org.corpus_tools.graphannis.capi.AnnisCountExtra;
+import org.corpus_tools.graphannis.capi.CAPI;
 import org.corpus_tools.salt.common.SDocumentGraph;
 
 /**
@@ -28,6 +30,11 @@ import org.corpus_tools.salt.common.SDocumentGraph;
  */
 public class CorpusStorageManager {
   private final CAPI.AnnisCorpusStorage instance;
+  
+  public static class CountResult {
+    public long matchCount;
+    public long documentCount;
+  }
 
   public CorpusStorageManager(String dbDir) {
     this.instance = CAPI.annis_cs_new(dbDir);
@@ -45,25 +52,41 @@ public class CorpusStorageManager {
     return copy;
   }
 
-  public long count(String corpusName, String queryAsJSON) {
-    return CAPI.annis_cs_count(instance, corpusName, queryAsJSON);
-  }
-
-  public String[] find(String corpusName, String queryAsJSON, long offset, long limit) {
-    CAPI.AnnisVec_AnnisCString vec = CAPI.annis_cs_find(instance, corpusName, queryAsJSON, offset, limit);
-    String[] result = new String[0];
-
-    result = new String[CAPI.annis_vec_str_size(vec).intValue()];
-    for (int i = 0; i < result.length; i++) {
-      result[i] = CAPI.annis_vec_str_get(vec, new NativeLong(i));
+  public long count(List<String> corpora, String queryAsJSON) {
+    long result = 0l;
+    for(String corpusName : corpora) {
+      result += CAPI.annis_cs_count(instance, corpusName, queryAsJSON);
     }
-
-    vec.dispose();
-
+    return result;
+  }
+  
+  public CountResult countExtra(List<String> corpora, String queryAsJSON) {
+    CountResult result = new CountResult();
+    result.documentCount = 0;
+    result.matchCount = 0;
+    for(String corpusName : corpora) {
+      AnnisCountExtra resultForCorpus = CAPI.annis_cs_count_extra(instance, corpusName, queryAsJSON);
+      result.matchCount += resultForCorpus.matchCount;
+      result.documentCount += resultForCorpus.documentCount;
+    }
     return result;
   }
 
-  public SDocumentGraph subgraph(String corpusName, String[] node_ids, long ctx_left, long ctx_right) {
+  public String[] find(List<String> corpora, String queryAsJSON, long offset, long limit) {
+    ArrayList<String> result = new ArrayList<>();
+    for(String corpusName : corpora) {
+      CAPI.AnnisVec_AnnisCString vec = CAPI.annis_cs_find(instance, corpusName, queryAsJSON, offset, limit);
+      final int vecSize = CAPI.annis_vec_str_size(vec).intValue();
+      for (int i = 0; i < vecSize; i++) {
+        result.add(CAPI.annis_vec_str_get(vec, new NativeLong(i)));
+      }
+      vec.dispose();
+    }
+
+    return result.toArray(new String[0]);
+  }
+
+  public SDocumentGraph subgraph(String corpusName, List<String> node_ids, long ctx_left, long ctx_right) {
     CAPI.AnnisVec_AnnisCString c_node_ids = CAPI.annis_vec_str_new();
     for (String id : node_ids) {
       CAPI.annis_vec_str_push(c_node_ids, id);

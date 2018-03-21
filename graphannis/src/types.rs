@@ -32,6 +32,13 @@ pub struct Match {
     pub anno: Annotation,
 }
 
+#[derive(Debug, Default, Clone)]
+#[repr(C)]
+pub struct CountExtra {
+    pub match_count: u64,
+    pub document_count: u64,
+}
+
 #[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, HeapSizeOf)]
 #[repr(C)]
 pub struct Edge {

@@ -52,6 +52,11 @@ typedef struct AnnisVec_AnnisComponent AnnisVec_AnnisComponent;
 
 typedef struct AnnisVec_AnnisEdge AnnisVec_AnnisEdge;
 
+typedef struct {
+  uint64_t match_count;
+  uint64_t document_count;
+} AnnisCountExtra;
+
 typedef uint32_t AnnisNodeID;
 
 typedef struct {
@@ -84,6 +89,10 @@ AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
 uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
                         const char *corpus,
                         const char *query_as_json);
+
+AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
+                                     const char *corpus,
+                                     const char *query_as_json);
 
 AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      const char *corpus_name,
