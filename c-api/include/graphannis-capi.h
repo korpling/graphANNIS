@@ -100,6 +100,8 @@ AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      size_t offset,
                                      size_t limit);
 
+AnnisError *annis_cs_import_relannis(AnnisCorpusStorage *ptr, const char *corpus, const char *path);
+
 /*
  * List all known corpora.
  */

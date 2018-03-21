@@ -5,6 +5,7 @@ use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
 use graphannis::graphdb::GraphDB;
 use graphannis::CountExtra;
+use graphannis::relannis;
 use std::path::PathBuf;
 use super::error::Error;
 
@@ -123,6 +124,30 @@ pub extern "C" fn annis_cs_list(ptr: *const cs::CorpusStorage) -> *mut Vec<CStri
     }
 
     return Box::into_raw(Box::new(corpora));
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_import_relannis(
+    ptr: *mut cs::CorpusStorage,
+    corpus: *const libc::c_char,
+    path: *const libc::c_char,
+) -> *mut Error {
+    let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
+    let corpus : &str = &cstr!(corpus);
+    let path: &str = &cstr!(path);
+    
+    let res = relannis::load(&PathBuf::from(path));
+
+     match res {
+        Ok(db) => {
+            cs.import(corpus, db);
+        },
+        Err(err) => {
+            return Box::into_raw(Box::new(Error::from(err)));
+        }
+    };
+
+    std::ptr::null_mut()
 }
 
 #[no_mangle]

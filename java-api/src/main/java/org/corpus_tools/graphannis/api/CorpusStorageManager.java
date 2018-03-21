@@ -114,6 +114,16 @@ public class CorpusStorageManager {
 
     return result;
   }
+  
+  public void importRelANNIS(String corpusName, String path) {
+    CAPI.AnnisError result = CAPI.annis_cs_import_relannis(instance, corpusName, path);
+    if (result != null) {
+      String msg = CAPI.annis_error_get_msg(result);
+      result.dispose();
+
+      throw new RuntimeException(msg);
+    }
+  }
 
   public void applyUpdate(String corpusName, GraphUpdate update) {
     CAPI.AnnisError result = CAPI.annis_cs_apply_update(instance, corpusName, update.getInstance());

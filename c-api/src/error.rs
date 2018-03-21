@@ -24,6 +24,22 @@ impl From<graphannis::api::corpusstorage::Error> for Error {
     }
 }
 
+impl From<graphannis::relannis::Error> for Error {
+    fn from(e: graphannis::relannis::Error) -> Error {
+        let err = if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
+            Error {
+                msg: error_msg,
+            }
+        } else {
+            // meta-error
+            Error {
+                msg:  CString::new(String::from("Some error occured")).unwrap(),
+            }
+        };
+        return err;
+    }
+}
+
 pub fn new(err : graphannis::api::corpusstorage::Error) -> * mut Error {
     Box::into_raw(Box::new(Error::from(err)))
 }
