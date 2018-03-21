@@ -146,6 +146,38 @@ fn check_cache_size_and_remove(
     }
 }
 
+fn extract_subgraph_by_query(db_entry : Arc<RwLock<CacheEntry>>, query : Disjunction) -> Result<GraphDB, Error> {
+    // accuire read-only lock and create query that finds the context nodes
+    let lock = db_entry.read().unwrap();
+    let orig_db = get_read_or_error(&lock)?;
+
+    let plan = ExecutionPlan::from_disjunction(query, &orig_db)?;
+
+    let all_components = orig_db.get_all_components(None, None);
+
+    // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
+    // match vector differ.
+    let mut match_result : BTreeSet<Match> = BTreeSet::new();
+
+    let mut result = GraphDB::new();
+
+    // create the subgraph description
+    for r in plan {
+        let m : &Match = &r[3];
+        if !match_result.contains(m) {
+            match_result.insert(m.clone());
+
+            create_subgraph_node(m.node, &mut result, orig_db);
+        }
+    }
+
+    for m in match_result.iter() {
+        create_subgraph_edge(m.node, &mut result, orig_db, &all_components);
+    }
+
+    return Ok(result);
+}
+
 
 fn create_subgraph_node(id : NodeID, db : &mut GraphDB, orig_db : &GraphDB) {
     
@@ -669,35 +701,58 @@ impl CorpusStorage {
             }
         }
 
-        // accuire read-only lock and create query that finds the context nodes
-        let lock = db_entry.read().unwrap();
-        let orig_db = get_read_or_error(&lock)?;
+        return extract_subgraph_by_query(db_entry, query);
+    }
 
-        let plan = ExecutionPlan::from_disjunction(query, &orig_db)?;
+    pub fn subcorpus_graph(
+        &self,
+        corpus_name: &str,
+        corpus_ids: Vec<String>,
+    ) -> Result<GraphDB, Error> {
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let missing_components = {
+            let lock = db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
 
-        let all_components = orig_db.get_all_components(None, None);
-
-        // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
-        // match vector differ.
-        let mut match_result : BTreeSet<Match> = BTreeSet::new();
-
-        let mut result = GraphDB::new();
-
-        // create the subgraph description
-        for r in plan {
-            let m : &Match = &r[3];
-            if !match_result.contains(m) {
-                match_result.insert(m.clone());
-
-                create_subgraph_node(m.node, &mut result, orig_db);
+            let mut missing: HashSet<Component> = HashSet::new();
+            for c in db.get_all_components(None, None).into_iter() {
+                if !db.is_loaded(&c) {
+                    missing.insert(c);
+                }
             }
+            missing
+        };
+        if !missing_components.is_empty() {
+            // load the needed components
+            let mut lock = db_entry.write().unwrap();
+            let db = get_write_or_error(&mut lock)?;
+            for c in missing_components {
+                db.ensure_loaded(&c)?;
+            }
+        };
+        let mut query = Disjunction {
+            alternatives: vec![],
+        };
+        // find all nodes that a connected with the corpus IDs
+        for source_corpus_id in corpus_ids {
+            let source_corpus_id: &str = if source_corpus_id.starts_with("salt:/") {
+                // remove the "salt:/" prefix
+                &source_corpus_id[6..]
+            } else {
+                &source_corpus_id
+            };
+            let mut q = Conjunction::new();
+            let corpus_idx = q.add_node(NodeSearchSpec::ExactValue{
+                ns: Some(graphdb::ANNIS_NS.to_string()),
+                name: graphdb::NODE_NAME.to_string(),
+                val: Some(source_corpus_id.to_string()),}
+            );
+            let any_node_idx = q.add_node(NodeSearchSpec::AnyNode);
+            q.add_operator(Box::new(operator::PartOfSubCorpusSpec::new(1)), corpus_idx, any_node_idx);
+            query.alternatives.push(q);
         }
 
-        for m in match_result.iter() {
-            create_subgraph_edge(m.node, &mut result, orig_db, &all_components);
-        }
-
-        return Ok(result);
+        return extract_subgraph_by_query(db_entry, query);
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {

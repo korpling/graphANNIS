@@ -110,6 +110,10 @@ AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
  */
 AnnisCorpusStorage *annis_cs_new(const char *db_dir);
 
+AnnisGraphDB *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
+                                       const char *corpus_name,
+                                       const AnnisVec_AnnisCString *corpus_ids);
+
 AnnisGraphDB *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
                                 const char *corpus_name,
                                 const AnnisVec_AnnisCString *node_ids,

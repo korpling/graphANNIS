@@ -100,6 +100,20 @@ public class CorpusStorageManager {
 
     return result;
   }
+  
+  public SDocumentGraph subcorpusGraph(String corpusName, List<String> document_ids) {
+    CAPI.AnnisVec_AnnisCString c_document_ids = CAPI.annis_vec_str_new();
+    for (String id : document_ids) {
+      CAPI.annis_vec_str_push(c_document_ids, id);
+    }
+    CAPI.AnnisGraphDB graph = CAPI.annis_cs_subcorpus_graph(instance, corpusName, c_document_ids);
+
+    SDocumentGraph result = SaltExport.map(graph);
+    c_document_ids.dispose();
+    graph.dispose();
+
+    return result;
+  }
 
   public void applyUpdate(String corpusName, GraphUpdate update) {
     CAPI.AnnisError result = CAPI.annis_cs_apply_update(instance, corpusName, update.getInstance());

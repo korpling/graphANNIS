@@ -112,6 +112,8 @@ public class CAPI implements Library {
 
   public static native AnnisGraphDB annis_cs_subgraph(AnnisCorpusStorage cs, String corpusName,
       AnnisVec_AnnisCString node_ids, NativeLong ctx_left, NativeLong ctx_right);
+  public static native AnnisGraphDB annis_cs_subcorpus_graph(AnnisCorpusStorage cs, String corpusName,
+      AnnisVec_AnnisCString corpus_ids);
 
   public static native AnnisError annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
       AnnisGraphUpdate update);

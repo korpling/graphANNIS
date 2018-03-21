@@ -92,6 +92,21 @@ pub extern "C" fn annis_cs_subgraph(ptr: *const cs::CorpusStorage,
     return std::ptr::null_mut();
 }
 
+#[no_mangle]
+pub extern "C" fn annis_cs_subcorpus_graph(ptr: *const cs::CorpusStorage, 
+        corpus_name: * const libc::c_char,
+        corpus_ids: * const Vec<CString>,) -> * mut GraphDB {
+
+    let cs : &cs::CorpusStorage = cast_const!(ptr);
+    let corpus_ids : Vec<String> = cast_const!(corpus_ids).iter().map(|id| String::from(id.to_string_lossy())).collect();
+    let corpus = cstr!(corpus_name);
+    
+    if let Ok(result) = cs.subcorpus_graph(&corpus, corpus_ids) {
+        return Box::into_raw(Box::new(result));
+    }
+    return std::ptr::null_mut();
+}
+
 /// List all known corpora.
 #[no_mangle]
 pub extern "C" fn annis_cs_list(ptr: *const cs::CorpusStorage) -> *mut Vec<CString> {
