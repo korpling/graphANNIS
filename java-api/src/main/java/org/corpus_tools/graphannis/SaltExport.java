@@ -239,86 +239,67 @@ public class SaltExport {
   //      }
   //    }
   //  }
-  //  
-  //  private static void recreateText(final String name, List<SNode> rootNodes, final SDocumentGraph g)
-  //  {
-  //    final StringBuilder text = new StringBuilder();
-  //    final STextualDS ds = g.createTextualDS("");
-  //    
-  //    ds.setName(name);
-  //    
-  //    Map<SToken, Range<Integer>> token2Range = new HashMap<>();
-  //    
-  //    
-  //    // traverse the token chain using the order relations
-  //    g.traverse(rootNodes, SGraph.GRAPH_TRAVERSE_TYPE.TOP_DOWN_DEPTH_FIRST,
-  //      "ORDERING_" + name,
-  //      new GraphTraverseHandler()
-  //    {
-  //      @Override
-  //      public void nodeReached(SGraph.GRAPH_TRAVERSE_TYPE traversalType,
-  //        String traversalId, SNode currNode, SRelation<SNode, SNode> relation,
-  //        SNode fromNode, long order)
-  //      {
-  //        if(fromNode != null)
-  //        {
-  //          text.append(" ");
-  //        }
-  //        
-  //        SFeature featTok = currNode.getFeature("annis::tok");
-  //        if(featTok != null && currNode instanceof SToken)
-  //        {
-  //          int idxStart = text.length();
-  //          text.append(featTok.getValue_STEXT());
-  //          token2Range.put((SToken) currNode, Range.closed(idxStart, text.length()));
-  //        }
-  //      }
-  //
-  //      @Override
-  //      public void nodeLeft(SGraph.GRAPH_TRAVERSE_TYPE traversalType,
-  //        String traversalId, SNode currNode, SRelation<SNode, SNode> relation,
-  //        SNode fromNode, long order)
-  //      {
-  //      }
-  //
-  //      @Override
-  //      public boolean checkConstraint(SGraph.GRAPH_TRAVERSE_TYPE traversalType,
-  //        String traversalId, SRelation relation, SNode currNode,
-  //        long order)
-  //      {
-  //        if(relation == null)
-  //        {
-  //          // TODO: check if this is ever true
-  //          return true;
-  //        }
-  //        else if(relation instanceof SOrderRelation && Objects.equal(name, relation.getType()))
-  //        {
-  //          return true;
-  //        }
-  //        else
-  //        {
-  //          return false;
-  //        }
-  //      }
-  //    });
-  // 
-  //    // update the actual text
-  //    ds.setText(text.toString());
-  //    
-  //    // add all relations
-  //    
-  //    token2Range.forEach((t, r) -> 
-  //    {
-  //      STextualRelation rel = SaltFactory.createSTextualRelation();
-  //      rel.setSource(t);
-  //      rel.setTarget(ds);
-  //      rel.setStart(r.lowerEndpoint());
-  //      rel.setEnd(r.upperEndpoint());
-  //      g.addRelation(rel);
-  //    });
-  //  }
-  //  
-  //  
+
+  private static void recreateText(final String name, List<SNode> rootNodes, final SDocumentGraph g) {
+    final StringBuilder text = new StringBuilder();
+    final STextualDS ds = g.createTextualDS("");
+
+    ds.setName(name);
+
+    Map<SToken, Range<Integer>> token2Range = new HashMap<>();
+
+    // traverse the token chain using the order relations
+    g.traverse(rootNodes, SGraph.GRAPH_TRAVERSE_TYPE.TOP_DOWN_DEPTH_FIRST, "ORDERING_" + name,
+        new GraphTraverseHandler() {
+          @Override
+          public void nodeReached(SGraph.GRAPH_TRAVERSE_TYPE traversalType, String traversalId, SNode currNode,
+              SRelation<SNode, SNode> relation, SNode fromNode, long order) {
+            if (fromNode != null) {
+              text.append(" ");
+            }
+
+            SFeature featTok = currNode.getFeature("annis::tok");
+            if (featTok != null && currNode instanceof SToken) {
+              int idxStart = text.length();
+              text.append(featTok.getValue_STEXT());
+              token2Range.put((SToken) currNode, Range.closed(idxStart, text.length()));
+            }
+          }
+
+          @Override
+          public void nodeLeft(SGraph.GRAPH_TRAVERSE_TYPE traversalType, String traversalId, SNode currNode,
+              SRelation<SNode, SNode> relation, SNode fromNode, long order) {
+          }
+
+          @Override
+          public boolean checkConstraint(SGraph.GRAPH_TRAVERSE_TYPE traversalType, String traversalId,
+              SRelation relation, SNode currNode, long order) {
+            if (relation == null) {
+              // TODO: check if this is ever true
+              return true;
+            } else if (relation instanceof SOrderRelation && Objects.equal(name, relation.getType())) {
+              return true;
+            } else {
+              return false;
+            }
+          }
+        });
+
+    // update the actual text
+    ds.setText(text.toString());
+
+    // add all relations
+
+    token2Range.forEach((t, r) -> {
+      STextualRelation rel = SaltFactory.createSTextualRelation();
+      rel.setSource(t);
+      rel.setTarget(ds);
+      rel.setStart(r.lowerEndpoint());
+      rel.setEnd(r.upperEndpoint());
+      g.addRelation(rel);
+    });
+  }
+
   public static SDocumentGraph map(CAPI.AnnisGraphDB orig) {
     SDocumentGraph g = SaltFactory.createSDocumentGraph();
 
@@ -354,22 +335,18 @@ public class SaltExport {
     components.dispose();
     components = null;
 
-    //    
-    //    // find all chains of SOrderRelations and reconstruct the texts belonging to them
-    //    Multimap<String, SNode> orderRoots = g.getRootsByRelationType(SALT_TYPE.SORDER_RELATION);
-    //    orderRoots.keySet().
-    //      forEach((name) ->
-    //    {
-    //      ArrayList<SNode> roots = new ArrayList<>(orderRoots.get(name));
-    //      if(SaltUtil.SALT_NULL_VALUE.equals(name))
-    //      {
-    //        name = null;
-    //      }
-    //      recreateText(name, roots , g);
-    //    });
-    //    
+    // find all chains of SOrderRelations and reconstruct the texts belonging to them
+    Multimap<String, SNode> orderRoots = g.getRootsByRelationType(SALT_TYPE.SORDER_RELATION);
+    orderRoots.keySet().forEach((name) -> {
+      ArrayList<SNode> roots = new ArrayList<>(orderRoots.get(name));
+      if (SaltUtil.SALT_NULL_VALUE.equals(name)) {
+        name = null;
+      }
+      recreateText(name, roots, g);
+    });
+
     //    addNodeLayers(g);
-    //    
+
     return g;
   }
 }
