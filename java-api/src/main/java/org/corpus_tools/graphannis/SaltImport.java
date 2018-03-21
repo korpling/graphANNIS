@@ -43,100 +43,85 @@ import org.slf4j.LoggerFactory;
  *
  * @author Thomas Krause <thomaskrause@posteo.de>
  */
-public class SaltImport
-{
+public class SaltImport {
 
   public static final String ANNIS_NS = "annis";
 
   private static final Logger log = LoggerFactory.getLogger(SaltImport.class);
 
- private final GraphUpdate updateList = new GraphUpdate();
- 
- public GraphUpdate finish()
- {
-   return updateList;
- }
- 
- 
- public SaltImport map(SDocumentGraph g)
- {
-   // add all nodes and their annotations
-   for (SNode n : g.getNodes())
-   {
-     addNode(n);
-   }
+  private final GraphUpdate updateList = new GraphUpdate();
 
-   addTokenInformation(g);
-   
-   for(SNode n : g.getNodes())
-   {
-     addCoverageInformation(n, g);
-   }
-     
-   for (SDominanceRelation rel : g.getDominanceRelations())
-   {
-     String sourceName = nodeName(rel.getSource());
-     String targetName = nodeName(rel.getTarget());
+  public GraphUpdate finish() {
+    return updateList;
+  }
 
-     for (String l : getLayerNames(rel.getLayers()))
-     {
-       // add an edge both for the named component and for the un-named
-       if(rel.getType() != null)
-       {
-         updateList.addEdge(sourceName, targetName, l, "Dominance", rel.getType());
-         addEdgeLabels(rel, l, "Dominance", rel.getType());
-       }
-       updateList.addEdge(sourceName, targetName, l, "Dominance", "");
-       addEdgeLabels(rel, l, "Dominance", "");
-     }
-   }
+  public SaltImport map(SDocumentGraph g) {
+    // add all nodes and their annotations
+    for (SNode n : g.getNodes()) {
+      addNode(n);
+    }
 
-   for (SPointingRelation rel : g.getPointingRelations())
-   {
-     String sourceName = nodeName(rel.getSource());
-     String targetName = nodeName(rel.getTarget());
+    addTokenInformation(g);
 
-     for (String l : getLayerNames(rel.getLayers()))
-     {
-       // add an edge both for the named component (or "null" if not named)
-       updateList.addEdge(sourceName, targetName, l, "Pointing", "" + rel.getType());
-       addEdgeLabels(rel, l, "Pointing", "" + rel.getType());
-     }
-   }
+    for (SNode n : g.getNodes()) {
+      addCoverageInformation(n, g);
+    }
 
-   return this;
- }
+    for (SDominanceRelation rel : g.getDominanceRelations()) {
+      String sourceName = nodeName(rel.getSource());
+      String targetName = nodeName(rel.getTarget());
 
- private void addTokenInformation(SDocumentGraph g)
- {
+      for (String l : getLayerNames(rel.getLayers())) {
+        // add an edge both for the named component and for the un-named
+        if (rel.getType() != null) {
+          updateList.addEdge(sourceName, targetName, l, "Dominance", rel.getType());
+          addEdgeLabels(rel, l, "Dominance", rel.getType());
+        }
+        updateList.addEdge(sourceName, targetName, l, "Dominance", "");
+        addEdgeLabels(rel, l, "Dominance", "");
+      }
+    }
 
-   SToken lastToken = null;
-   STextualDS lastTextDS = null;
+    for (SPointingRelation rel : g.getPointingRelations()) {
+      String sourceName = nodeName(rel.getSource());
+      String targetName = nodeName(rel.getTarget());
 
-   List<SToken> sortedToken = g.getSortedTokenByText();
+      for (String l : getLayerNames(rel.getLayers())) {
+        // add an edge both for the named component (or "null" if not named)
+        updateList.addEdge(sourceName, targetName, l, "Pointing", "" + rel.getType());
+        addEdgeLabels(rel, l, "Pointing", "" + rel.getType());
+      }
+    }
 
-   if (sortedToken != null)
-   {
-     for (SToken t : sortedToken)
-     {
+    return this;
+  }
 
-       String nodeName = nodeName(t);
-       // each token must have it's spanned text as label
-       updateList.addNodeLabel(nodeName, ANNIS_NS, "tok", g.getText(t));
+  private void addTokenInformation(SDocumentGraph g) {
 
-       STextualDS textDS = getTextForToken(t);
-       if (lastToken != null && textDS == lastTextDS)
-       {
-         // add an explicit ORDERING edge between the token
-         updateList.addEdge(nodeName(lastToken), nodeName, ANNIS_NS, "Ordering", "");
-       }
-       lastToken = t;
-       lastTextDS = textDS;
-     }
-   }
- }
+    SToken lastToken = null;
+    STextualDS lastTextDS = null;
 
- /**
+    List<SToken> sortedToken = g.getSortedTokenByText();
+
+    if (sortedToken != null) {
+      for (SToken t : sortedToken) {
+
+        String nodeName = nodeName(t);
+        // each token must have it's spanned text as label
+        updateList.addNodeLabel(nodeName, ANNIS_NS, "tok", g.getText(t));
+
+        STextualDS textDS = getTextForToken(t);
+        if (lastToken != null && textDS == lastTextDS) {
+          // add an explicit ORDERING edge between the token
+          updateList.addEdge(nodeName(lastToken), nodeName, ANNIS_NS, "Ordering", "");
+        }
+        lastToken = t;
+        lastTextDS = textDS;
+      }
+    }
+  }
+
+  /**
   * Add edges related to coverage.
   *
   * This will add the LEFT_TOKEN, RIGHT_TOKEN, COVERAGE and INVERSE_COVERAGE edges.
@@ -144,160 +129,125 @@ public class SaltImport
   * @param node
   * @param graph
   */
- private void addCoverageInformation(SNode node, SDocumentGraph graph)
- {
-   List<SToken> overlappedToken;
-   if (node instanceof SToken)
-   {
-     overlappedToken = Arrays.asList((SToken) node);
-   }
-   else if (node instanceof SStructure)
-   {
-     overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION,
-       SALT_TYPE.SDOMINANCE_RELATION);
-   }
-   else if (node instanceof STextualDS) {
-     // ignore
-     return;
-   }
-   else
-   {
-     overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION);
-   }
-   if (overlappedToken.isEmpty())
-   {
-     log.warn("Node {} is not connected to any token. This is invalid for graphANNIS and the node will be excluded.", node.getId());
-     return;
-   }
+  private void addCoverageInformation(SNode node, SDocumentGraph graph) {
+    List<SToken> overlappedToken;
+    if (node instanceof SToken) {
+      overlappedToken = Arrays.asList((SToken) node);
+    } else if (node instanceof SStructure) {
+      overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION, SALT_TYPE.SDOMINANCE_RELATION);
+    } else if (node instanceof STextualDS) {
+      // ignore
+      return;
+    } else {
+      overlappedToken = graph.getOverlappedTokens(node, SALT_TYPE.SSPANNING_RELATION);
+    }
+    if (overlappedToken.isEmpty()) {
+      log.warn("Node {} is not connected to any token. This is invalid for graphANNIS and the node will be excluded.",
+          node.getId());
+      return;
+    }
 
-   // sort the token by left index
-   List<SToken> sortedOverlappedToken = graph.getSortedTokenByText(overlappedToken);
-   
-   String name = nodeName(node);
-   
-   // add the LEFT_TOKEN and RIGHT_TOKEN edges
-   String firstOverlappedToken = nodeName(sortedOverlappedToken.get(0));
-   String lastOverlappedToken = nodeName(sortedOverlappedToken.get(sortedOverlappedToken.size() - 1));
+    // sort the token by left index
+    List<SToken> sortedOverlappedToken = graph.getSortedTokenByText(overlappedToken);
 
-   updateList.addEdge(firstOverlappedToken, name, ANNIS_NS, "LeftToken", "");
-   updateList.addEdge(name, firstOverlappedToken, ANNIS_NS, "LeftToken", "");
-   
-   updateList.addEdge(lastOverlappedToken, name, ANNIS_NS, "RightToken", "");
-   updateList.addEdge(name, lastOverlappedToken, ANNIS_NS, "RightToken", "");
+    String name = nodeName(node);
 
-   // add the COVERAGE and INVERSE_COVERAGE edges
-   for(SToken covered : sortedOverlappedToken)
-   {
-     updateList.addEdge(name, nodeName(covered), ANNIS_NS, "Coverage", "");
-     updateList.addEdge(nodeName(covered), name, ANNIS_NS, "InverseCoverage", "");
-   }
-   
- }
- 
- private static String documentName(SNode node)
- {
-   if(node != null)
-   {
-     String[] segments = node.getPath().segments();
-     if (segments.length > 0)
-     {
-       return segments[segments.length - 1];
-     }
-   }
-   
-   return null;
- }
- 
- private static String documentPath(SNode node)
- {
-   if(node != null)
-   {
-     String[] segments = node.getPath().segments();
-     if (segments.length > 0)
-     {
-       return Joiner.on("/").join(segments);
-     }
-   }
-   
-   return null;
- }
- 
- 
- private static String nodeName(SNode node)
- {
-   if(node != null)
-   {
-     String path = documentPath(node);
-     return path == null ? "#" + node.getPath().fragment() : path + "#" + node.getPath().fragment() ;
-   }
-   else
-   {
-     return null;
-   }
- }
+    // add the LEFT_TOKEN and RIGHT_TOKEN edges
+    String firstOverlappedToken = nodeName(sortedOverlappedToken.get(0));
+    String lastOverlappedToken = nodeName(sortedOverlappedToken.get(sortedOverlappedToken.size() - 1));
 
- private static STextualDS getTextForToken(SToken t)
- {
-   List<SRelation> out = t.getOutRelations();
-   if (out != null)
-   {
-     for (SRelation<?, ?> rel : out)
-     {
-       if (rel instanceof STextualRelation)
-       {
-         return ((STextualRelation) rel).getTarget();
-       }
-     }
-   }
-   return null;
- }
+    updateList.addEdge(firstOverlappedToken, name, ANNIS_NS, "LeftToken", "");
+    updateList.addEdge(name, firstOverlappedToken, ANNIS_NS, "LeftToken", "");
 
- private static Set<String> getLayerNames(Set<SLayer> layers)
- {
-   Set<String> result = new LinkedHashSet<>();
+    updateList.addEdge(lastOverlappedToken, name, ANNIS_NS, "RightToken", "");
+    updateList.addEdge(name, lastOverlappedToken, ANNIS_NS, "RightToken", "");
 
-   if (layers == null || layers.isEmpty())
-   {
-     // add the edge to the default empty layer
-     result.add("");
-   }
-   else
-   {
-     for (SLayer l : layers)
-     {
-       result.add(l.getName());
-     }
-   }
+    // add the COVERAGE and INVERSE_COVERAGE edges
+    for (SToken covered : sortedOverlappedToken) {
+      updateList.addEdge(name, nodeName(covered), ANNIS_NS, "Coverage", "");
+      updateList.addEdge(nodeName(covered), name, ANNIS_NS, "InverseCoverage", "");
+    }
 
-   return result;
- }
+  }
 
- private void addNode(SNode n)
- {
-   if (n instanceof SStructuredNode)
-   {
-     // use the unique name
-     String name = nodeName(n);
-     updateList.addNode(name);
-     // add all annotations
-     for (SAnnotation anno : n.getAnnotations())
-     {
-       updateList.addNodeLabel(name, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
-     }
-   }
- }
- 
- private void addEdgeLabels(SRelation<?,?> rel, String layer,  String componentType, String componentName)
- {
-   Set<SAnnotation> annos = rel.getAnnotations();
-   if(annos != null)
-   {
-     for(SAnnotation anno : annos)
-     {
-       updateList.addEdgeLabel(nodeName(rel.getSource()), nodeName(rel.getTarget()), layer, componentType, 
-         componentName, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
-     }
-   }
- }
+  private static String documentName(SNode node) {
+    if (node != null) {
+      String[] segments = node.getPath().segments();
+      if (segments.length > 0) {
+        return segments[segments.length - 1];
+      }
+    }
+
+    return null;
+  }
+
+  private static String documentPath(SNode node) {
+    if (node != null) {
+      String[] segments = node.getPath().segments();
+      if (segments.length > 0) {
+        return Joiner.on("/").join(segments);
+      }
+    }
+
+    return null;
+  }
+
+  private static String nodeName(SNode node) {
+    if (node != null) {
+      String path = documentPath(node);
+      return path == null ? "#" + node.getPath().fragment() : path + "#" + node.getPath().fragment();
+    } else {
+      return null;
+    }
+  }
+
+  private static STextualDS getTextForToken(SToken t) {
+    List<SRelation> out = t.getOutRelations();
+    if (out != null) {
+      for (SRelation<?, ?> rel : out) {
+        if (rel instanceof STextualRelation) {
+          return ((STextualRelation) rel).getTarget();
+        }
+      }
+    }
+    return null;
+  }
+
+  private static Set<String> getLayerNames(Set<SLayer> layers) {
+    Set<String> result = new LinkedHashSet<>();
+
+    if (layers == null || layers.isEmpty()) {
+      // add the edge to the default empty layer
+      result.add("");
+    } else {
+      for (SLayer l : layers) {
+        result.add(l.getName());
+      }
+    }
+
+    return result;
+  }
+
+  private void addNode(SNode n) {
+    if (n instanceof SStructuredNode) {
+      // use the unique name
+      String name = nodeName(n);
+      updateList.addNode(name);
+      // add all annotations
+      for (SAnnotation anno : n.getAnnotations()) {
+        updateList.addNodeLabel(name, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
+      }
+    }
+  }
+
+  private void addEdgeLabels(SRelation<?, ?> rel, String layer, String componentType, String componentName) {
+    Set<SAnnotation> annos = rel.getAnnotations();
+    if (annos != null) {
+      for (SAnnotation anno : annos) {
+        updateList.addEdgeLabel(nodeName(rel.getSource()), nodeName(rel.getTarget()), layer, componentType,
+            componentName, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
+      }
+    }
+  }
 
 }

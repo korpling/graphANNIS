@@ -28,11 +28,9 @@ import java.util.Properties;
 import java.util.Set;
 import org.slf4j.LoggerFactory;
 
-public class QueryData implements Cloneable
-{
+public class QueryData implements Cloneable {
 
-  private static final org.slf4j.Logger log = LoggerFactory.getLogger(
-    QueryData.class);
+  private static final org.slf4j.Logger log = LoggerFactory.getLogger(QueryData.class);
 
   private List<List<QueryNode>> alternatives;
 
@@ -48,8 +46,7 @@ public class QueryData implements Cloneable
 
   private HashMap<Long, Properties> corpusConfiguration;
 
-  public QueryData()
-  {
+  public QueryData() {
     alternatives = new ArrayList<>();
     corpusList = new ArrayList<>();
     documents = new ArrayList<>();
@@ -58,52 +55,42 @@ public class QueryData implements Cloneable
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     StringBuilder sb = new StringBuilder();
     Iterator<List<QueryNode>> itOr = getAlternatives().iterator();
 
     sb.append("ALTERNATIVES\n");
-    while (itOr.hasNext())
-    {
+    while (itOr.hasNext()) {
       sb.append("\t");
       List<QueryNode> nextNodes = itOr.next();
       Iterator<QueryNode> itAnd = nextNodes.iterator();
-      while (itAnd.hasNext())
-      {
+      while (itAnd.hasNext()) {
         sb.append("{").append(itAnd.next());
         sb.append("}");
-        if (itAnd.hasNext())
-        {
+        if (itAnd.hasNext()) {
           sb.append(" AND ");
         }
       }
 
-      if (itOr.hasNext())
-      {
+      if (itOr.hasNext()) {
         sb.append("\n");
       }
     }
     Iterator<QueryAnnotation> itMeta = getMetaData().iterator();
-    if (itMeta.hasNext())
-    {
+    if (itMeta.hasNext()) {
       sb.append("META");
       sb.append("\n");
     }
-    while (itMeta.hasNext())
-    {
+    while (itMeta.hasNext()) {
       sb.append("\t").append(itMeta.next().toString());
       sb.append("\n");
     }
-    if (!extensions.isEmpty())
-    {
+    if (!extensions.isEmpty()) {
       sb.append("EXTENSIONS\n");
     }
-    for (Object extension : extensions)
-    {
+    for (Object extension : extensions) {
       String toString = extension.toString();
-      if (!"".equals(toString))
-      {
+      if (!"".equals(toString)) {
         sb.append("\t" + toString + "\n");
       }
     }
@@ -117,28 +104,23 @@ public class QueryData implements Cloneable
    * @param alternative
    * @return
    */
-  public static String toAQL(List<QueryNode> alternative)
-  {
+  public static String toAQL(List<QueryNode> alternative) {
     List<String> fragments = new LinkedList<>();
-    
-    for(QueryNode n : alternative)
-    {
+
+    for (QueryNode n : alternative) {
       String frag = n.toAQLNodeFragment();
-      if(frag != null && !frag.isEmpty())
-      {
+      if (frag != null && !frag.isEmpty()) {
         fragments.add(frag);
       }
     }
-    
-    for(QueryNode n : alternative)
-    {
+
+    for (QueryNode n : alternative) {
       String frag = n.toAQLEdgeFragment();
-      if(frag != null && !frag.isEmpty())
-      {
+      if (frag != null && !frag.isEmpty()) {
         fragments.add(frag);
       }
     }
-    
+
     return Joiner.on(" & ").join(fragments);
   }
 
@@ -147,28 +129,22 @@ public class QueryData implements Cloneable
    *
    * @return
    */
-  public String toAQL()
-  {
+  public String toAQL() {
     StringBuilder sb = new StringBuilder();
     Iterator<List<QueryNode>> itAlternative = alternatives.iterator();
 
-
-    while (itAlternative.hasNext())
-    {
+    while (itAlternative.hasNext()) {
       List<QueryNode> alt = itAlternative.next();
 
-      if (alternatives.size() > 1)
-      {
+      if (alternatives.size() > 1) {
         sb.append("(");
       }
 
       sb.append(toAQL(alt));
 
-      if (alternatives.size() > 1)
-      {
+      if (alternatives.size() > 1) {
         sb.append(")");
-        if (itAlternative.hasNext())
-        {
+        if (itAlternative.hasNext()) {
           sb.append("\n|\n");
         }
       }
@@ -178,94 +154,74 @@ public class QueryData implements Cloneable
     return sb.toString();
   }
 
-  public List<List<QueryNode>> getAlternatives()
-  {
+  public List<List<QueryNode>> getAlternatives() {
     return alternatives;
   }
 
-  public void setAlternatives(List<List<QueryNode>> alternatives)
-  {
+  public void setAlternatives(List<List<QueryNode>> alternatives) {
     this.alternatives = alternatives;
   }
 
-  public List<Long> getCorpusList()
-  {
+  public List<Long> getCorpusList() {
     return corpusList;
   }
 
-  public void setCorpusList(List<Long> corpusList)
-  {
+  public void setCorpusList(List<Long> corpusList) {
     this.corpusList = corpusList;
   }
 
-  public List<QueryAnnotation> getMetaData()
-  {
+  public List<QueryAnnotation> getMetaData() {
     return metaData;
   }
 
-  public void setMetaData(List<QueryAnnotation> metaData)
-  {
+  public void setMetaData(List<QueryAnnotation> metaData) {
     this.metaData = metaData;
   }
 
-  public int getMaxWidth()
-  {
+  public int getMaxWidth() {
     return maxWidth;
   }
 
-  public void setMaxWidth(int maxWidth)
-  {
+  public void setMaxWidth(int maxWidth) {
     this.maxWidth = maxWidth;
   }
 
-  public boolean addAlternative(List<QueryNode> nodes)
-  {
+  public boolean addAlternative(List<QueryNode> nodes) {
     return alternatives.add(nodes);
   }
 
-  public boolean addMetaAnnotations(List<QueryAnnotation> annotations)
-  {
+  public boolean addMetaAnnotations(List<QueryAnnotation> annotations) {
     return metaData.addAll(annotations);
   }
 
   // FIXME: warum diese spezielle clone-Funktion?
   @Override
-  public QueryData clone()
-  {
-    try
-    {
+  public QueryData clone() {
+    try {
       return (QueryData) super.clone();
-    }
-    catch (CloneNotSupportedException ex)
-    {
+    } catch (CloneNotSupportedException ex) {
       log.error(null, ex);
       throw new InternalError("could not clone QueryData");
     }
   }
 
-  public List<Long> getDocuments()
-  {
+  public List<Long> getDocuments() {
     return documents;
   }
 
-  public void setDocuments(List<Long> documents)
-  {
+  public void setDocuments(List<Long> documents) {
     this.documents = documents;
   }
 
-  public Set<Object> getExtensions()
-  {
+  public Set<Object> getExtensions() {
     return extensions;
   }
 
-  public <T> List<T> getExtensions(Class<T> clazz)
-  {
+  public <T> List<T> getExtensions(Class<T> clazz) {
     List<T> result = new LinkedList<>();
 
-    for (Object o : extensions)
-    {
-      if (clazz.isInstance(o))
-      {
+    for (Object o : extensions) {
+      if (clazz.isInstance(o)) {
         result.add((T) o);
       }
     }
@@ -273,19 +229,15 @@ public class QueryData implements Cloneable
     return result;
   }
 
-  public boolean addExtension(Object extension)
-  {
+  public boolean addExtension(Object extension) {
     return extensions.add(extension);
   }
 
-  public HashMap<Long, Properties> getCorpusConfiguration()
-  {
+  public HashMap<Long, Properties> getCorpusConfiguration() {
     return corpusConfiguration;
   }
 
-  public void setCorpusConfiguration(
-    HashMap<Long, Properties> corpusConfiguration)
-  {
+  public void setCorpusConfiguration(HashMap<Long, Properties> corpusConfiguration) {
     this.corpusConfiguration = corpusConfiguration;
   }
 }

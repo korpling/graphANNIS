@@ -28,8 +28,7 @@ import org.antlr.v4.runtime.misc.Interval;
  * 
  * @author Thomas Krause <krauseto@hu-berlin.de>
  */
-public class NodeIDListener extends AqlParserBaseListener
-{
+public class NodeIDListener extends AqlParserBaseListener {
   /**
    * Maps a global character position in the input stream to a parse token interval.
    */
@@ -38,69 +37,56 @@ public class NodeIDListener extends AqlParserBaseListener
    * Maps a parse token interval to the node ID it overlaps.
    */
   private final Map<Interval, Long> nodeIntervalToID = new HashMap<>();
-  
-  private void addNode(AqlParser.VariableExprContext ctx)
-  {
+
+  private void addNode(AqlParser.VariableExprContext ctx) {
     // first only collect all node intervals
     Interval i = ctx.getSourceInterval();
     allNodeIntervals.put(ctx.getStart().getStartIndex(), i);
   }
 
   @Override
-  public void enterAnnoEqTextExpr(AqlParser.AnnoEqTextExprContext ctx)
-  {
+  public void enterAnnoEqTextExpr(AqlParser.AnnoEqTextExprContext ctx) {
     addNode(ctx);
   }
 
   @Override
-  public void enterTokOnlyExpr(AqlParser.TokOnlyExprContext ctx)
-  {
+  public void enterTokOnlyExpr(AqlParser.TokOnlyExprContext ctx) {
     addNode(ctx);
   }
 
   @Override
-  public void enterNodeExpr(AqlParser.NodeExprContext ctx)
-  {
+  public void enterNodeExpr(AqlParser.NodeExprContext ctx) {
     addNode(ctx);
   }
 
   @Override
-  public void enterTokTextExpr(AqlParser.TokTextExprContext ctx)
-  {
+  public void enterTokTextExpr(AqlParser.TokTextExprContext ctx) {
     addNode(ctx);
   }
 
   @Override
-  public void enterTextOnly(AqlParser.TextOnlyContext ctx)
-  {
+  public void enterTextOnly(AqlParser.TextOnlyContext ctx) {
     addNode(ctx);
   }
 
   @Override
-  public void enterAnnoOnlyExpr(AqlParser.AnnoOnlyExprContext ctx)
-  {
+  public void enterAnnoOnlyExpr(AqlParser.AnnoOnlyExprContext ctx) {
     addNode(ctx);
   }
-  
 
   @Override
-  public void exitStart(AqlParser.StartContext ctx)
-  {
+  public void exitStart(AqlParser.StartContext ctx) {
     // Iterate over all intervals in order and set the IDs.
     // Since the map is ordered by the global character position
     // nodes which are mentioned first get their ID first.
-    long id=1;
-    for(Interval i : allNodeIntervals.values())
-    {
+    long id = 1;
+    for (Interval i : allNodeIntervals.values()) {
       nodeIntervalToID.put(i, id++);
     }
   }
 
-  
-  public Map<Interval, Long> getNodeIntervalToID()
-  {
+  public Map<Interval, Long> getNodeIntervalToID() {
     return nodeIntervalToID;
   }
-  
-  
+
 }

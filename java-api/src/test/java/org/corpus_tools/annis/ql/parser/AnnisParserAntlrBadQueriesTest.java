@@ -30,67 +30,39 @@ import org.junit.runners.Parameterized;
  * @author thomas
  */
 @RunWith(value = Parameterized.class)
-public class AnnisParserAntlrBadQueriesTest
-{
+public class AnnisParserAntlrBadQueriesTest {
 
   private final AnnisParserAntlr fixture = new AnnisParserAntlr();
 
   @Parameterized.Parameters(name = "{0}")
-  public static Iterable<? extends Object> data()
-  {
-    return Arrays.asList(
-      "tok &",
-      "#1 . #2",
-      "/das/ & /Haus/",
-      "/das/ & cat=/NP/ & node & #1 . #2",
-      "/das/ & /Haus/ & #1 . #3",
-      "node & ( cat=/NP/ & #1 . #2 | /Haus/ & #1 . #2 )",
-      "( node & cat=/NP/ & #1 . #2 | /das/ & /Haus/ & #1 . #2 )",
-      "key! =value", "key!", // no ! in IDs
-      "tok & tok & #1 .1,norm #2",
-      "tok & tok & #1 .3,norm,4 #2",
-      "tok & tok & #1 .2, #2",
-      "pos == lemma",
-      "pos != lemma",
-      // catch invalid reflexivity already when parsing the query
-      "tok . tok & #1 _o_ #1",
-      "tok . tok & #2 _o_ #2",
-      "tok . tok & #1 _or_ #1",
-      "tok . tok & #2 _or_ #2",
-      "tok . tok & #1 _ol_ #1",
-      "tok . tok & #2 _ol_ #2",
-      "tok . tok & #1 _i_ #1",
-      "tok . tok & #2 _i_ #2",
-      "tok . tok & #1 _l_ #1",
-      "tok . tok & #2 _l_ #2",
-      "tok . tok & #1 _r_ #1",
-      "tok . tok & #2 _r_ #2",
-      "tok . tok & #1 _o_ #1",
-      "tok . tok & #2 _=_ #2"
-    );
-  }
-  ;
-  
+  public static Iterable<? extends Object> data() {
+    return Arrays.asList("tok &", "#1 . #2", "/das/ & /Haus/", "/das/ & cat=/NP/ & node & #1 . #2",
+        "/das/ & /Haus/ & #1 . #3", "node & ( cat=/NP/ & #1 . #2 | /Haus/ & #1 . #2 )",
+        "( node & cat=/NP/ & #1 . #2 | /das/ & /Haus/ & #1 . #2 )", "key! =value", "key!", // no ! in IDs
+        "tok & tok & #1 .1,norm #2", "tok & tok & #1 .3,norm,4 #2", "tok & tok & #1 .2, #2", "pos == lemma",
+        "pos != lemma",
+        // catch invalid reflexivity already when parsing the query
+        "tok . tok & #1 _o_ #1", "tok . tok & #2 _o_ #2", "tok . tok & #1 _or_ #1", "tok . tok & #2 _or_ #2",
+        "tok . tok & #1 _ol_ #1", "tok . tok & #2 _ol_ #2", "tok . tok & #1 _i_ #1", "tok . tok & #2 _i_ #2",
+        "tok . tok & #1 _l_ #1", "tok . tok & #2 _l_ #2", "tok . tok & #1 _r_ #1", "tok . tok & #2 _r_ #2",
+        "tok . tok & #1 _o_ #1", "tok . tok & #2 _=_ #2");
+  };
+
   @Parameterized.Parameter(value = 0)
   public String aql;
 
   @Before
-  public void setUp()
-  {
+  public void setUp() {
   }
 
   @Test
-  public void testBadQueriesAntLR()
-  {
+  public void testBadQueriesAntLR() {
 
-    try
-    {
+    try {
       fixture.parse(aql, new LinkedList<>());
 
       fail("bad query passed as good: " + aql);
-    }
-    catch (AnnisQLSyntaxException | AnnisQLSemanticsException ex)
-    {
+    } catch (AnnisQLSyntaxException | AnnisQLSemanticsException ex) {
       // ok
     }
 

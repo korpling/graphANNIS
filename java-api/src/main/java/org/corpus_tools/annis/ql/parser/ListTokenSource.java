@@ -29,109 +29,82 @@ import org.antlr.v4.runtime.TokenSource;
  *
  * @author Thomas Krause <krauseto@hu-berlin.de>
  */
-public class ListTokenSource implements TokenSource
-{
+public class ListTokenSource implements TokenSource {
   private final List<Token> token;
   private TokenFactory factory;
   private final CommonToken eofToken = new CommonToken(Lexer.EOF, "");
 
-  public ListTokenSource(List<Token> token)
-  {
+  public ListTokenSource(List<Token> token) {
     this.token = token;
     Preconditions.checkNotNull(token);
     Preconditions.checkArgument(!token.isEmpty(), "Internal token list must not be empty");
-    
-    for(Token t : token)
-    {
-      if(t.getTokenSource() != null)
-      {
+
+    for (Token t : token) {
+      if (t.getTokenSource() != null) {
         this.factory = t.getTokenSource().getTokenFactory();
         break;
       }
     }
     Preconditions.checkNotNull(this.factory, "Internal token list needs a valid TokenSource");
-    
-    Token lastToken = token.get(token.size()-1);
+
+    Token lastToken = token.get(token.size() - 1);
     eofToken.setLine(lastToken.getLine());
     eofToken.setCharPositionInLine(lastToken.getCharPositionInLine());
   }
 
   @Override
-  public Token nextToken()
-  {
-    if(token.isEmpty())
-    {
+  public Token nextToken() {
+    if (token.isEmpty()) {
       return eofToken;
-    }
-    else
-    {
+    } else {
       return token.remove(0);
     }
   }
 
   @Override
-  public int getLine()
-  {
-    if(token.isEmpty())
-    {
+  public int getLine() {
+    if (token.isEmpty()) {
       return eofToken.getLine();
-    }
-    else
-    {
+    } else {
       return token.get(0).getLine();
     }
   }
 
   @Override
-  public int getCharPositionInLine()
-  {
-    if(token.isEmpty())
-    {
+  public int getCharPositionInLine() {
+    if (token.isEmpty()) {
       return eofToken.getCharPositionInLine();
-    }
-    else
-    {
+    } else {
       return token.get(0).getCharPositionInLine();
     }
   }
 
   @Override
-  public CharStream getInputStream()
-  {
-    if(token.isEmpty())
-    {
+  public CharStream getInputStream() {
+    if (token.isEmpty()) {
       return eofToken.getInputStream();
-    }
-    else
-    {
+    } else {
       return token.get(0).getInputStream();
     }
   }
 
   @Override
-  public String getSourceName()
-  {
-    if(token.isEmpty())
-    {
+  public String getSourceName() {
+    if (token.isEmpty()) {
       return eofToken.getInputStream().getSourceName();
-    }
-    else
-    {
+    } else {
       return token.get(0).getInputStream().getSourceName();
     }
   }
 
   @Override
-  public TokenFactory getTokenFactory()
-  {
+  public TokenFactory getTokenFactory() {
     return factory;
   }
 
   @Override
-  public void setTokenFactory(TokenFactory factory)
-  {
+  public void setTokenFactory(TokenFactory factory) {
     this.factory = factory;
   }
-  
-  
+
 }

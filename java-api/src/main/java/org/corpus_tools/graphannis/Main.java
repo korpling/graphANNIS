@@ -21,30 +21,23 @@ import org.corpus_tools.graphannis.api.CorpusStorageManager;
  *
  * @author thomas
  */
-public class Main
-{
+public class Main {
 
   /**
    * @param args the command line arguments
    */
-  public static void main(String[] args)
-  {
-    if(args.length > 0)
-    {
+  public static void main(String[] args) {
+    if (args.length > 0) {
       CorpusStorageManager manager = new CorpusStorageManager(args[0]);
-      if(args.length > 1)
-      {
+      if (args.length > 1) {
         String aql = args.length > 2 ? args[2] : "tok";
-        
-        
+
         System.out.println(manager.count(args[1], QueryToJSON.aqlToJSON(aql)));
 
       }
-    }
-    else
-    {
+    } else {
       System.err.println("You have to a give a database directory as argument.");
     }
   }
-  
+
 }

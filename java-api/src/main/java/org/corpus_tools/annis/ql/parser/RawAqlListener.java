@@ -29,115 +29,91 @@ import org.antlr.v4.runtime.tree.ParseTree;
  *
  * @author Thomas Krause <krauseto@hu-berlin.de>
  */
-public class RawAqlListener extends RawAqlPreParserBaseListener
-{
+public class RawAqlListener extends RawAqlPreParserBaseListener {
   private LogicClause root;
   private LogicClause current;
 
   @Override
-  public void enterStart(RawAqlPreParser.StartContext ctx)
-  {
+  public void enterStart(RawAqlPreParser.StartContext ctx) {
     root = null;
   }
 
-  
   @Override
-  public void enterAndExpr(RawAqlPreParser.AndExprContext ctx)
-  {
+  public void enterAndExpr(RawAqlPreParser.AndExprContext ctx) {
     LogicClause nodeAnd = new LogicClause(LogicClause.Operator.AND);
     nodeAnd.setContent(Lists.newArrayList(ctx.AND().getSymbol()));
-    if(current != null)
-    {
+    if (current != null) {
       current.addChild(nodeAnd);
     }
-    
+
     current = nodeAnd;
   }
 
   @Override
-  public void exitAndExpr(RawAqlPreParser.AndExprContext ctx)
-  {
+  public void exitAndExpr(RawAqlPreParser.AndExprContext ctx) {
     switchToParent();
   }
-  
+
   @Override
-  public void enterOrExpr(RawAqlPreParser.OrExprContext ctx)
-  {
+  public void enterOrExpr(RawAqlPreParser.OrExprContext ctx) {
     LogicClause nodeOr = new LogicClause(LogicClause.Operator.OR);
     nodeOr.setContent(Lists.newArrayList(ctx.OR().getSymbol()));
-    if(current != null)
-    {
+    if (current != null) {
       current.addChild(nodeOr);
     }
     current = nodeOr;
   }
 
   @Override
-  public void exitOrExpr(RawAqlPreParser.OrExprContext ctx)
-  {
+  public void exitOrExpr(RawAqlPreParser.OrExprContext ctx) {
     switchToParent();
   }
-  
-  
 
   @Override
-  public void enterLeafExpr(RawAqlPreParser.LeafExprContext ctx)
-  {
+  public void enterLeafExpr(RawAqlPreParser.LeafExprContext ctx) {
     LogicClause nodeLeaf = new LogicClause(LogicClause.Operator.LEAF);
-    if(current != null)
-    {
+    if (current != null) {
       current.addChild(nodeLeaf);
     }
-    
+
     // get all token covered by this node
     nodeLeaf.setContent(collectToken(ctx));
-    
+
     current = nodeLeaf;
   }
-  
-  private static List<Token> collectToken(ParseTree node)
-  {
+
+  private static List<Token> collectToken(ParseTree node) {
     List<Token> token = new LinkedList<>();
     collectToken(node, token);
     return token;
   }
-  
-  private static void collectToken(ParseTree node, List<Token> token)
-  {
-    for(int i=0; i < node.getChildCount(); i++)
-    {
+
+  private static void collectToken(ParseTree node, List<Token> token) {
+    for (int i = 0; i < node.getChildCount(); i++) {
       ParseTree child = node.getChild(i);
-      if(child.getPayload() instanceof Token)
-      {
+      if (child.getPayload() instanceof Token) {
         token.add((Token) child.getPayload());
-      }
-      else
-      {
+      } else {
         collectToken(child, token);
       }
     }
   }
 
   @Override
-  public void exitLeafExpr(RawAqlPreParser.LeafExprContext ctx)
-  {
+  public void exitLeafExpr(RawAqlPreParser.LeafExprContext ctx) {
     switchToParent();
   }
-  
-  private void switchToParent()
-  {
-    if(current.getParent() == null)
-    {
+
+  private void switchToParent() {
+    if (current.getParent() == null) {
       Preconditions.checkArgument(root == null, "There is only one root node allowed");
       root = current;
     }
     current = current.getParent();
   }
 
-  public LogicClause getRoot()
-  {
+  public LogicClause getRoot() {
     return root;
   }
-  
-  
+
 }

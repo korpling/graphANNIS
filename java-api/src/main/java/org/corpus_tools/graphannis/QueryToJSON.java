@@ -49,21 +49,19 @@ import org.corpus_tools.annis.ql.parser.QueryData;
  *
  * @author Thomas Krause <thomaskrause@posteo.de>
  */
-public class QueryToJSON
-{
+public class QueryToJSON {
 
   private static final JsonNodeFactory factory = new JsonNodeFactory(true);
 
   private static final JaxbAnnotationModule jaxbModule = new JaxbAnnotationModule();
-  
-  public static String aqlToJSON(String aql)
-  {
+
+  public static String aqlToJSON(String aql) {
     AnnisParserAntlr parser = new AnnisParserAntlr();
-    
+
     QueryData qd = parser.parse(aql, new LinkedList<>());
     return serializeQuery(qd.getAlternatives(), qd.getMetaData());
   }
-  
+
   /**
    * This will serialize the query part of the {@link QueryData} to JSON.
    *
@@ -71,198 +69,145 @@ public class QueryToJSON
    * @param metaData
    * @return
    */
-  public static String serializeQuery(List<List<QueryNode>> query, 
-      List<QueryAnnotation> metaData)
-  {
+  public static String serializeQuery(List<List<QueryNode>> query, List<QueryAnnotation> metaData) {
     return queryAsJSON(query, metaData).toString();
   }
 
-  public static ObjectNode queryAsJSON(List<List<QueryNode>> query, 
-      List<QueryAnnotation> metaData)
-  {
+  public static ObjectNode queryAsJSON(List<List<QueryNode>> query, List<QueryAnnotation> metaData) {
     ObjectNode root = factory.objectNode();
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(jaxbModule);
     mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    
-    if (query != null && !query.isEmpty())
-    {
+
+    if (query != null && !query.isEmpty()) {
       ArrayNode alternatives = root.putArray("alternatives");
-      for (List<QueryNode> alt : query)
-      {
+      for (List<QueryNode> alt : query) {
         ObjectNode altNode = alternatives.addObject();
 
         ObjectNode nodes = altNode.putObject("nodes");
         ArrayNode joinObject = altNode.putArray("joins");
-        
+
         // map each node
-        for (QueryNode n : alt)
-        {
-          if(n.getSpanTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL || n.getSpanTextMatching() == QueryNode.TextMatching.REGEXP_NOT_EQUAL)
-          {
+        for (QueryNode n : alt) {
+          if (n.getSpanTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL
+              || n.getSpanTextMatching() == QueryNode.TextMatching.REGEXP_NOT_EQUAL) {
             throw new AnnisQLSyntaxException("negation not supported yet");
           }
-          
-          if(n.isRoot())
-          {
+
+          if (n.isRoot()) {
             throw new AnnisQLSyntaxException("\"root\" operator not supported yet");
           }
-          
-          if(n.getArity() != null)
-          {
+
+          if (n.getArity() != null) {
             throw new AnnisQLSyntaxException("\"arity\" operator not supported yet");
           }
-          
-          if(n.getTokenArity() != null)
-          {
+
+          if (n.getTokenArity() != null) {
             throw new AnnisQLSyntaxException("\"tokenarity\" operator not supported yet");
           }
-          
-          for(QueryAnnotation anno : n.getNodeAnnotations())
-          {
-            if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
-              || anno.getTextMatching()== QueryNode.TextMatching.REGEXP_NOT_EQUAL)
-            {
-              throw new AnnisQLSyntaxException(
-                "negation not supported yet");
+
+          for (QueryAnnotation anno : n.getNodeAnnotations()) {
+            if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL
+                || anno.getTextMatching() == QueryNode.TextMatching.REGEXP_NOT_EQUAL) {
+              throw new AnnisQLSyntaxException("negation not supported yet");
             }
           }
-          for(QueryAnnotation anno : n.getEdgeAnnotations())
-          {
-            if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
-              || anno.getTextMatching()== QueryNode.TextMatching.REGEXP_NOT_EQUAL)
-            {
-              throw new AnnisQLSyntaxException(
-                "negation not supported yet");
+          for (QueryAnnotation anno : n.getEdgeAnnotations()) {
+            if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL
+                || anno.getTextMatching() == QueryNode.TextMatching.REGEXP_NOT_EQUAL) {
+              throw new AnnisQLSyntaxException("negation not supported yet");
             }
           }
-          if(metaData != null)
-          {
-            for(QueryAnnotation anno : metaData)
-            {
-              if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL 
-                || anno.getTextMatching()== QueryNode.TextMatching.REGEXP_NOT_EQUAL)
-              {
-                throw new AnnisQLSyntaxException(
-                  "negation not supported yet");
+          if (metaData != null) {
+            for (QueryAnnotation anno : metaData) {
+              if (anno.getTextMatching() == QueryNode.TextMatching.EXACT_NOT_EQUAL
+                  || anno.getTextMatching() == QueryNode.TextMatching.REGEXP_NOT_EQUAL) {
+                throw new AnnisQLSyntaxException("negation not supported yet");
               }
             }
           }
-          
+
           JsonNode nodeObject = mapper.valueToTree(n);
           // manually remove some internal fields
-          if (nodeObject instanceof ObjectNode)
-          {
-            ((ObjectNode) nodeObject).remove(Arrays.asList("partOfEdge",
-              "artificial", "alternativeNumber", "parseLocation"));
+          if (nodeObject instanceof ObjectNode) {
+            ((ObjectNode) nodeObject)
+                .remove(Arrays.asList("partOfEdge", "artificial", "alternativeNumber", "parseLocation"));
           }
           nodes.set("" + n.getId(), nodeObject);
 
           // map outgoing joins
-          for (Join aqlJoin : n.getOutgoingJoins())
-          {
+          for (Join aqlJoin : n.getOutgoingJoins()) {
             ObjectNode j = joinObject.addObject();
             mapJoin(aqlJoin, n, j, mapper);
           }
         } // end for each node of a single alternative
-        
+
         // also add the meta-data as a special node and connect it with a SubPartOfCorpus join
-        if(metaData != null && !metaData.isEmpty() && !alt.isEmpty())
-        {
+        if (metaData != null && !metaData.isEmpty() && !alt.isEmpty()) {
           altNode.set("meta", mapper.valueToTree(metaData));
         }
-        
+
       } // end for each alternative
     } // end if query not empty
 
     return root;
   }
 
-  private static void mapJoin(Join join, QueryNode source, ObjectNode node,
-    ObjectMapper mapper)
-  {
+  private static void mapJoin(Join join, QueryNode source, ObjectNode node, ObjectMapper mapper) {
     // TODO: more join types and features
-    if(join instanceof CommonAncestor
-        || join instanceof LeftDominance
-        || join instanceof RightDominance
-        || join instanceof Sibling)
-    {
+    if (join instanceof CommonAncestor || join instanceof LeftDominance || join instanceof RightDominance
+        || join instanceof Sibling) {
       // these are specializations of Dominance we explicitly don't support yet
-      throw new AnnisQLSyntaxException(
-          "This join type can't be mapped yet: " + join.toAQLFragment(source));
-      
-    }
-    else if (join instanceof Dominance)
-    {
+      throw new AnnisQLSyntaxException("This join type can't be mapped yet: " + join.toAQLFragment(source));
+
+    } else if (join instanceof Dominance) {
       node.put("op", "Dominance");
       Dominance dom = (Dominance) join;
       node.put("name", dom.getName() == null ? "" : dom.getName());
       node.put("minDistance", (long) dom.getMinDistance());
       node.put("maxDistance", (long) dom.getMaxDistance());
-      if (!dom.getEdgeAnnotations().isEmpty())
-      {
-        for(QueryAnnotation anno : dom.getEdgeAnnotations())
-        {
-          if(anno.getTextMatching() != TextMatching.EXACT_EQUAL)
-          {
-            throw new AnnisQLSyntaxException(
-                "Only non-regex and non-negated edge annotations are supported yet");
+      if (!dom.getEdgeAnnotations().isEmpty()) {
+        for (QueryAnnotation anno : dom.getEdgeAnnotations()) {
+          if (anno.getTextMatching() != TextMatching.EXACT_EQUAL) {
+            throw new AnnisQLSyntaxException("Only non-regex and non-negated edge annotations are supported yet");
           }
         }
-        
+
         JsonNode edgeAnnos = mapper.valueToTree(dom.getEdgeAnnotations());
         node.set("edgeAnnotations", edgeAnnos);
       }
-    }
-    else if (join instanceof PointingRelation)
-    {
+    } else if (join instanceof PointingRelation) {
       node.put("op", "Pointing");
       PointingRelation pointing = (PointingRelation) join;
       node.put("name", pointing.getName() == null ? "" : pointing.getName());
       node.put("minDistance", (long) pointing.getMinDistance());
       node.put("maxDistance", (long) pointing.getMaxDistance());
-      if (!pointing.getEdgeAnnotations().isEmpty())
-      {
-        for(QueryAnnotation anno : pointing.getEdgeAnnotations())
-        {
-          if(anno.getTextMatching() != TextMatching.EXACT_EQUAL)
-          {
-            throw new AnnisQLSyntaxException(
-                "Only non-regex and non-negated edge annotations are supported yet");
+      if (!pointing.getEdgeAnnotations().isEmpty()) {
+        for (QueryAnnotation anno : pointing.getEdgeAnnotations()) {
+          if (anno.getTextMatching() != TextMatching.EXACT_EQUAL) {
+            throw new AnnisQLSyntaxException("Only non-regex and non-negated edge annotations are supported yet");
           }
         }
-        
+
         JsonNode edgeAnnos = mapper.valueToTree(pointing.getEdgeAnnotations());
         node.set("edgeAnnotations", edgeAnnos);
       }
-    }
-    else if (join instanceof Precedence)
-    {
+    } else if (join instanceof Precedence) {
       node.put("op", "Precedence");
       Precedence prec = (Precedence) join;
       node.put("minDistance", (long) prec.getMinDistance());
       node.put("maxDistance", (long) prec.getMaxDistance());
-      if(prec.getSegmentationName() != null)
-      {
+      if (prec.getSegmentationName() != null) {
         node.put("segmentation-name", prec.getSegmentationName());
       }
-    }
-    else if (join instanceof Overlap)
-    {
+    } else if (join instanceof Overlap) {
       node.put("op", "Overlap");
-    }
-    else if (join instanceof Inclusion)
-    {
+    } else if (join instanceof Inclusion) {
       node.put("op", "Inclusion");
-    }
-    else if(join instanceof SameSpan)
-    {
+    } else if (join instanceof SameSpan) {
       node.put("op", "IdenticalCoverage");
-    }
-    else
-    {
-      throw new AnnisQLSyntaxException(
-        "This join type can't be mapped yet: " + join.toAQLFragment(source));
+    } else {
+      throw new AnnisQLSyntaxException("This join type can't be mapped yet: " + join.toAQLFragment(source));
     }
 
     node.put("left", (long) source.getId());

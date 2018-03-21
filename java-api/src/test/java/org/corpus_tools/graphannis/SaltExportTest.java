@@ -46,42 +46,35 @@ import static org.junit.Assert.*;
  *
  * @author thomas
  */
-public class SaltExportTest
-{
+public class SaltExportTest {
   private CorpusStorageManager storage;
-  
-  public SaltExportTest()
-  {
+
+  public SaltExportTest() {
   }
-  
+
   @BeforeClass
-  public static void setUpClass()
-  {
+  public static void setUpClass() {
   }
-  
+
   @AfterClass
-  public static void tearDownClass()
-  {
+  public static void tearDownClass() {
   }
-  
+
   @Before
-  public void setUp()
-  {
+  public void setUp() {
     File tmpDir = Files.createTempDir();
-    
+
     storage = new CorpusStorageManager(tmpDir.getAbsolutePath());
   }
-  
+
   @After
-  public void tearDown()
-  {
+  public void tearDown() {
   }
- 
+
   @Test
-  public void testMapTokensOnly() throws IOException, XMLStreamException
-  {
+  public void testMapTokensOnly() throws IOException, XMLStreamException {
     SDocument doc = SaltFactory.createSDocument();
-    
+
     SampleGenerator.createTokens(doc);
     GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
     storage.applyUpdate("testCorpus", result);
@@ -89,31 +82,29 @@ public class SaltExportTest
     int origTokensSize = doc.getDocumentGraph().getTokens().size();
     assertEquals(origTokensSize, storage.count("testCorpus", aqlToJSON("tok")));
     assertEquals(origTokensSize, storage.count("testCorpus", aqlToJSON("node")));
-    
 
     // get a subgraph for the complete document
     SToken sampleTok = doc.getDocumentGraph().getTokens().get(2);
     String name = sampleTok.getId();
-    if(name.startsWith("salt:/")) {
+    if (name.startsWith("salt:/")) {
       name = name.substring("salt:/".length());
     }
 
-    long overlapCount = storage.count("testCorpus", aqlToJSON(
-      "(n1#annis:node_name=\"" + name + "\" & n2#tok & n3#tok & n4#node & #n1 _o_ #n2 & #n3 .1,100 #n2 & #n3 _o_ #n4) | " +
-      "(n1#annis:node_name=\"" + name + "\" & n2#tok & n3#tok & n4#node & #n1 _o_ #n2 & #n2 .1,100 #n3 & #n3 _o_ #n4) | " +
-      "(annis:node_name=\"" + name + "\")"));
+    long overlapCount = storage.count("testCorpus", aqlToJSON("(n1#annis:node_name=\"" + name
+        + "\" & n2#tok & n3#tok & n4#node & #n1 _o_ #n2 & #n3 .1,100 #n2 & #n3 _o_ #n4) | " + "(n1#annis:node_name=\""
+        + name + "\" & n2#tok & n3#tok & n4#node & #n1 _o_ #n2 & #n2 .1,100 #n3 & #n3 _o_ #n4) | "
+        + "(annis:node_name=\"" + name + "\")"));
     assertEquals(origTokensSize, overlapCount);
-    
-    SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] {sampleTok.getId()}, 100, 100);
+
+    SDocumentGraph exportedGraph = storage.subgraph("testCorpus", new String[] { sampleTok.getId() }, 100, 100);
 
     assertEquals(origTokensSize, exportedGraph.getTokens().size());
   }
-  
+
   @Test
-  public void testMapComplexExample() throws IOException, XMLStreamException
-  {
+  public void testMapComplexExample() throws IOException, XMLStreamException {
     // TODO: re-enable test
-    
+
     /*
     SDocument doc = SaltFactory.createSDocument();
     
@@ -166,10 +157,8 @@ public class SaltExportTest
     int numOfOrderRels = exportedGraph.getRelations(SALT_TYPE.SORDER_RELATION).size();
     
     assertEquals(doc.getDocumentGraph().getRelations().size() , exportedGraph.getRelations().size() - numOfOrderRels);
-*/
+    */
     // TODO: actual diff
   }
-  
-  
-  
+
 }

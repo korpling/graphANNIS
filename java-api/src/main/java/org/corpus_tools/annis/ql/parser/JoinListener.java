@@ -62,11 +62,10 @@ import annis.sqlgen.model.Sibling;
  *
  * @author Thomas Krause <krauseto@hu-berlin.de>
  */
-public class JoinListener extends AqlParserBaseListener
-{
-  
+public class JoinListener extends AqlParserBaseListener {
+
   private static final Logger log = LoggerFactory.getLogger(JoinListener.class);
-  
+
   private final int precedenceBound;
   /** An array which has an entry for each alternative. 
    *  Each entry maps node variables to a collection of query nodes.
@@ -76,31 +75,28 @@ public class JoinListener extends AqlParserBaseListener
    */
   private final List<Map<Interval, QueryNode>> tokenPositions;
   private int alternativeIndex;
-  
+
   private ArrayList<QueryNode> relationChain = new ArrayList<>();
   private int relationIdx;
- 
+
   /**
    * Constructor.
    * @param data The {@link QueryData} containing the already parsed nodes.
    * @param precedenceBound  maximal range of precedence
    * @param tokenPositionToNode maps a token interval to a query nodes
    */
-  public JoinListener(QueryData data, int precedenceBound, List<Map<Interval, QueryNode>> tokenPositionToNode)
-  {
+  public JoinListener(QueryData data, int precedenceBound, List<Map<Interval, QueryNode>> tokenPositionToNode) {
     this.precedenceBound = precedenceBound;
     this.alternativeNodes = new ArrayList<>(data.getAlternatives().size());
     this.tokenPositions = tokenPositionToNode;
-    
-    for(List<QueryNode> alternative : data.getAlternatives())
-    {
+
+    for (List<QueryNode> alternative : data.getAlternatives()) {
       HashMap<String, QueryNode> m = new HashMap<>();
       alternativeNodes.add(m);
-      for(QueryNode n : alternative)
-      {
-        if(m.containsKey(n.getVariable()))
-        {
-          throw new AnnisQLSemanticsException(n, "A node variable name is only allowed once per normalized alternative");
+      for (QueryNode n : alternative) {
+        if (m.containsKey(n.getVariable())) {
+          throw new AnnisQLSemanticsException(n,
+              "A node variable name is only allowed once per normalized alternative");
         }
         m.put(n.getVariable(), n);
       }
@@ -108,321 +104,241 @@ public class JoinListener extends AqlParserBaseListener
   }
 
   @Override
-  public void enterAndExpr(AqlParser.AndExprContext ctx)
-  {
+  public void enterAndExpr(AqlParser.AndExprContext ctx) {
     Preconditions.checkArgument(alternativeIndex < alternativeNodes.size());
   }
 
   @Override
-  public void exitAndExpr(AqlParser.AndExprContext ctx)
-  {
+  public void exitAndExpr(AqlParser.AndExprContext ctx) {
     alternativeIndex++;
   }
 
-
   @Override
-  public void exitOperator(AqlParser.OperatorContext ctx)
-  {
+  public void exitOperator(AqlParser.OperatorContext ctx) {
     relationIdx++;
   }
 
   @Override
-  public void enterBindingRelation(AqlParser.BindingRelationContext ctx)
-  {
+  public void enterBindingRelation(AqlParser.BindingRelationContext ctx) {
     int numOfReferences = ctx.refOrNode().size();
     relationIdx = 0;
     relationChain.clear();
     relationChain.ensureCapacity(numOfReferences);
-    
-    for(int i=0; i < numOfReferences; i++)
-    {
+
+    for (int i = 0; i < numOfReferences; i++) {
       QueryNode n = node(ctx.refOrNode(i));
-      if(n == null)
-      {
-        throw new AnnisQLSemanticsException(
-          AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()), 
-          "invalid reference to '" + ctx.refOrNode(i).getText() + "'");
+      if (n == null) {
+        throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+            "invalid reference to '" + ctx.refOrNode(i).getText() + "'");
       }
       relationChain.add(i, n);
     }
   }
 
   @Override
-  public void enterNonBindingRelation(AqlParser.NonBindingRelationContext ctx)
-  {
+  public void enterNonBindingRelation(AqlParser.NonBindingRelationContext ctx) {
     int numOfReferences = ctx.REF().size();
     relationIdx = 0;
     relationChain.clear();
     relationChain.ensureCapacity(numOfReferences);
-    
-    for(int i=0; i < numOfReferences; i++)
-    {
+
+    for (int i = 0; i < numOfReferences; i++) {
       QueryNode n = nodeByRef(ctx.REF(i).getSymbol());
-      if(n == null)
-      {
-        throw new AnnisQLSemanticsException(
-          AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()), 
-          "invalid reference to '" + ctx.REF(i).getText() + "'");
+      if (n == null) {
+        throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+            "invalid reference to '" + ctx.REF(i).getText() + "'");
       }
       relationChain.add(i, n);
     }
   }
-  
+
   @Override
-  public void enterRootTerm(AqlParser.RootTermContext ctx)
-  {
+  public void enterRootTerm(AqlParser.RootTermContext ctx) {
     QueryNode target = nodeByRef(ctx.left);
-    Preconditions.checkArgument(target != null, errorLHS("root") 
-      + ": " + ctx.getText());
+    Preconditions.checkArgument(target != null, errorLHS("root") + ": " + ctx.getText());
     target.setRoot(true);
   }
 
   @Override
-  public void enterArityTerm(AqlParser.ArityTermContext ctx)
-  {
+  public void enterArityTerm(AqlParser.ArityTermContext ctx) {
     QueryNode target = nodeByRef(ctx.left);
-    Preconditions.checkArgument(target != null, errorLHS("arity") 
-      + ": " + ctx.getText());
+    Preconditions.checkArgument(target != null, errorLHS("arity") + ": " + ctx.getText());
     target.setArity(annisRangeFromARangeSpec(ctx.rangeSpec()));
-    
+
   }
 
   @Override
-  public void enterTokenArityTerm(AqlParser.TokenArityTermContext ctx)
-  {
+  public void enterTokenArityTerm(AqlParser.TokenArityTermContext ctx) {
     QueryNode target = nodeByRef(ctx.left);
-    Preconditions.checkArgument(target != null, errorLHS("token-arity") 
-      + ": " + ctx.getText());
-    
+    Preconditions.checkArgument(target != null, errorLHS("token-arity") + ": " + ctx.getText());
+
     target.setTokenArity(annisRangeFromARangeSpec(ctx.rangeSpec()));
-    
+
   }
 
   @Override
-  public void enterDirectPrecedence(
-    AqlParser.DirectPrecedenceContext ctx)
-  {
+  public void enterDirectPrecedence(AqlParser.DirectPrecedenceContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
+    QueryNode right = relationChain.get(relationIdx + 1);
 
-    
     String segmentationName = null;
-    if(ctx.NAMED_PRECEDENCE() != null)
-    {
-      segmentationName=ctx.NAMED_PRECEDENCE().getText().substring(1);
+    if (ctx.NAMED_PRECEDENCE() != null) {
+      segmentationName = ctx.NAMED_PRECEDENCE().getText().substring(1);
     }
     left.addOutgoingJoin(addParsedLocation(ctx, new Precedence(right, 1, segmentationName)));
-    
+
   }
-  
 
-    @Override
-  public void enterDirectNear(
-    AqlParser.DirectNearContext ctx)
-  {
+  @Override
+  public void enterDirectNear(AqlParser.DirectNearContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
+    QueryNode right = relationChain.get(relationIdx + 1);
 
-    
     String segmentationName = getLayerName(ctx.NAMED_NEAR());
     left.addOutgoingJoin(addParsedLocation(ctx, new Near(right, 1, segmentationName)));
-    
+
   }
-  
+
   @Override
-  public void enterEqualvalue(AqlParser.EqualvalueContext ctx)
-  {
+  public void enterEqualvalue(AqlParser.EqualvalueContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
     left.addOutgoingJoin(addParsedLocation(ctx, new EqualValue(right)));
   }
 
   @Override
-  public void enterNotequalvalue(org.corpus_tools.annis.ql.AqlParser.NotequalvalueContext ctx)
-  {
+  public void enterNotequalvalue(org.corpus_tools.annis.ql.AqlParser.NotequalvalueContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
     left.addOutgoingJoin(addParsedLocation(ctx, new NotEqualValue(right)));
   }
-  
-  
-
 
   @Override
-  public void enterIndirectPrecedence(
-    AqlParser.IndirectPrecedenceContext ctx)
-  {
+  public void enterIndirectPrecedence(AqlParser.IndirectPrecedenceContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
+    QueryNode right = relationChain.get(relationIdx + 1);
 
     String segmentationName = getLayerName(ctx.NAMED_PRECEDENCE());
-    
-    if (precedenceBound > 0)
-    {
-      left.addOutgoingJoin(
-        addParsedLocation(ctx, new Precedence(right, 1, precedenceBound, segmentationName)));
-    }
-    else
-    {
+
+    if (precedenceBound > 0) {
+      left.addOutgoingJoin(addParsedLocation(ctx, new Precedence(right, 1, precedenceBound, segmentationName)));
+    } else {
       left.addOutgoingJoin(addParsedLocation(ctx, new Precedence(right, segmentationName)));
     }
   }
 
-  
   @Override
-  public void enterIndirectNear(
-    AqlParser.IndirectNearContext ctx)
-  {
+  public void enterIndirectNear(AqlParser.IndirectNearContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
+    QueryNode right = relationChain.get(relationIdx + 1);
 
     String segmentationName = getLayerName(ctx.NAMED_NEAR());
-    
-    if (precedenceBound > 0)
-    {
-      left.addOutgoingJoin(
-        addParsedLocation(ctx, new Near(right, 1, precedenceBound, segmentationName)));
-    }
-    else
-    {
+
+    if (precedenceBound > 0) {
+      left.addOutgoingJoin(addParsedLocation(ctx, new Near(right, 1, precedenceBound, segmentationName)));
+    } else {
       left.addOutgoingJoin(addParsedLocation(ctx, new Near(right, segmentationName)));
     }
   }
-  
+
   @Override
-  public void enterRangePrecedence(AqlParser.RangePrecedenceContext ctx)
-  {
+  public void enterRangePrecedence(AqlParser.RangePrecedenceContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
+    QueryNode right = relationChain.get(relationIdx + 1);
 
     QueryNode.Range range = annisRangeFromARangeSpec(ctx.rangeSpec());
-    if(range.getMin() == 0 || range.getMax() == 0)
-    {
-       throw new AnnisQLSemanticsException(
-         AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
-         "Distance can't be 0");
-    }
-    else if(range.getMin() > range.getMax())
-    {
-      throw new AnnisQLSemanticsException(
-         AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
-         "Minimal distance can't be larger than maximal distance");
-    }
-    else
-    {
+    if (range.getMin() == 0 || range.getMax() == 0) {
+      throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+          "Distance can't be 0");
+    } else if (range.getMin() > range.getMax()) {
+      throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+          "Minimal distance can't be larger than maximal distance");
+    } else {
       String segmentationName = getLayerName(ctx.NAMED_PRECEDENCE());
-      
+
       left.addOutgoingJoin(
-        addParsedLocation(ctx,
-          new Precedence(right, range.getMin(), range.getMax(),
-            segmentationName)));
+          addParsedLocation(ctx, new Precedence(right, range.getMin(), range.getMax(), segmentationName)));
 
     }
   }
 
-    @Override
-  public void enterRangeNear(AqlParser.RangeNearContext ctx)
-  {
+  @Override
+  public void enterRangeNear(AqlParser.RangeNearContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
+    QueryNode right = relationChain.get(relationIdx + 1);
 
     QueryNode.Range range = annisRangeFromARangeSpec(ctx.rangeSpec());
-    if(range.getMin() == 0 || range.getMax() == 0)
-    {
-      throw new AnnisQLSemanticsException(
-         AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
-         "Distance can't be 0");
-    }
-    else if(range.getMin() > range.getMax())
-    {
-      throw new AnnisQLSemanticsException(
-         AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
-         "Minimal distance can't be larger than maximal distance");
-    }
-    else
-    {
+    if (range.getMin() == 0 || range.getMax() == 0) {
+      throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+          "Distance can't be 0");
+    } else if (range.getMin() > range.getMax()) {
+      throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+          "Minimal distance can't be larger than maximal distance");
+    } else {
       String segmentationName = getLayerName(ctx.NAMED_NEAR());
-      
-      left.addOutgoingJoin(
-        addParsedLocation(ctx, new Near(right, range.getMin(), range.getMax(),
-            segmentationName)));
-      
+
+      left.addOutgoingJoin(addParsedLocation(ctx, new Near(right, range.getMin(), range.getMax(), segmentationName)));
+
     }
   }
-  
+
   @Override
-  public void enterIdenticalCoverage(AqlParser.IdenticalCoverageContext ctx)
-  {
+  public void enterIdenticalCoverage(AqlParser.IdenticalCoverageContext ctx) {
     join(ctx, SameSpan.class);
   }
 
   @Override
-  public void enterLeftAlign(AqlParser.LeftAlignContext ctx)
-  {
+  public void enterLeftAlign(AqlParser.LeftAlignContext ctx) {
     join(ctx, LeftAlignment.class);
   }
 
   @Override
-  public void enterRightAlign(AqlParser.RightAlignContext ctx)
-  {
+  public void enterRightAlign(AqlParser.RightAlignContext ctx) {
     join(ctx, RightAlignment.class);
   }
 
   @Override
-  public void enterInclusion(AqlParser.InclusionContext ctx)
-  {
+  public void enterInclusion(AqlParser.InclusionContext ctx) {
     join(ctx, Inclusion.class);
   }
 
   @Override
-  public void enterOverlap(AqlParser.OverlapContext ctx)
-  {
+  public void enterOverlap(AqlParser.OverlapContext ctx) {
     join(ctx, Overlap.class);
   }
 
   @Override
-  public void enterRightOverlap(AqlParser.RightOverlapContext ctx)
-  {
+  public void enterRightOverlap(AqlParser.RightOverlapContext ctx) {
     join(ctx, RightOverlap.class);
   }
 
   @Override
-  public void enterLeftOverlap(AqlParser.LeftOverlapContext ctx)
-  {
+  public void enterLeftOverlap(AqlParser.LeftOverlapContext ctx) {
     join(ctx, LeftOverlap.class);
   }
 
   @Override
-  public void enterDirectDominance(AqlParser.DirectDominanceContext ctx)
-  {
+  public void enterDirectDominance(AqlParser.DirectDominanceContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
-    String layer = getLayerName(ctx.NAMED_DOMINANCE());    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
+    String layer = getLayerName(ctx.NAMED_DOMINANCE());
 
     Join j;
-    
 
-    if(ctx.LEFT_CHILD() != null)
-    {
+    if (ctx.LEFT_CHILD() != null) {
       j = new LeftDominance(right, layer);
-    }
-    else if(ctx.RIGHT_CHILD() != null)
-    {
+    } else if (ctx.RIGHT_CHILD() != null) {
       j = new RightDominance(right, layer);
-    }
-    else
-    {
+    } else {
       j = new Dominance(right, layer, 1);
     }
     left.addOutgoingJoin(addParsedLocation(ctx, j));
-    if(ctx.anno != null)
-    {
+    if (ctx.anno != null) {
       LinkedList<QueryAnnotation> annotations = fromRelationAnnotation(ctx.anno);
-      for (QueryAnnotation a : annotations)
-      {
+      for (QueryAnnotation a : annotations) {
         j.addEdgeAnnotation(a);
       }
     }
@@ -430,55 +346,45 @@ public class JoinListener extends AqlParserBaseListener
   }
 
   @Override
-  public void enterIndirectDominance(AqlParser.IndirectDominanceContext ctx)
-  {
+  public void enterIndirectDominance(AqlParser.IndirectDominanceContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
+    QueryNode right = relationChain.get(relationIdx + 1);
 
     String layer = getLayerName(ctx.NAMED_DOMINANCE());
-   
+
     left.addOutgoingJoin(addParsedLocation(ctx, new Dominance(right, layer)));
   }
 
   @Override
-  public void enterRangeDominance(AqlParser.RangeDominanceContext ctx)
-  {
+  public void enterRangeDominance(AqlParser.RangeDominanceContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
     String layer = getLayerName(ctx.NAMED_DOMINANCE());
-   
+
     QueryNode.Range range = annisRangeFromARangeSpec(ctx.rangeSpec());
-    if(range.getMin() == 0 || range.getMax() == 0)
-    {
-      throw new AnnisQLSemanticsException(
-         AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
-         "Distance can't be 0");
+    if (range.getMin() == 0 || range.getMax() == 0) {
+      throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+          "Distance can't be 0");
+    } else if (range.getMin() > range.getMax()) {
+      throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+          "Minimal distance can't be larger than maximal distance");
     }
-    else if(range.getMin() > range.getMax())
-    {
-      throw new AnnisQLSemanticsException(
-         AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
-         "Minimal distance can't be larger than maximal distance");
-    }
-    
+
     left.addOutgoingJoin(addParsedLocation(ctx, new Dominance(right, layer, range.getMin(), range.getMax())));
   }
 
   @Override
-  public void enterDirectPointing(AqlParser.DirectPointingContext ctx)
-  {
+  public void enterDirectPointing(AqlParser.DirectPointingContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
     String label = getLayerName(ctx.POINTING(), 2);
-    
+
     Join j = new PointingRelation(right, label, 1);
-    if (ctx.anno != null)
-    {
+    if (ctx.anno != null) {
       LinkedList<QueryAnnotation> annotations = fromRelationAnnotation(ctx.anno);
-      for (QueryAnnotation a : annotations)
-      {
+      for (QueryAnnotation a : annotations) {
         j.addEdgeAnnotation(a);
       }
     }
@@ -488,70 +394,60 @@ public class JoinListener extends AqlParserBaseListener
   }
 
   @Override
-  public void enterIndirectPointing(AqlParser.IndirectPointingContext ctx)
-  {
+  public void enterIndirectPointing(AqlParser.IndirectPointingContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
     String label = getLayerName(ctx.POINTING(), 2);
-   
+
     left.addOutgoingJoin(addParsedLocation(ctx, new PointingRelation(right, label)));
-    
+
   }
 
   @Override
-  public void enterRangePointing(AqlParser.RangePointingContext ctx)
-  {
+  public void enterRangePointing(AqlParser.RangePointingContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
     String label = getLayerName(ctx.POINTING(), 2);
-   
+
     QueryNode.Range range = annisRangeFromARangeSpec(ctx.rangeSpec());
-    if(range.getMin() == 0 || range.getMax() == 0)
-    {
-      throw new AnnisQLSemanticsException(
-         AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
-         "Distance can't be 0");
+    if (range.getMin() == 0 || range.getMax() == 0) {
+      throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+          "Distance can't be 0");
+    } else if (range.getMin() > range.getMax()) {
+      throw new AnnisQLSemanticsException(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
+          "Minimal distance can't be larger than maximal distance");
     }
-    else if(range.getMin() > range.getMax())
-    {
-      throw new AnnisQLSemanticsException(
-         AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()),
-         "Minimal distance can't be larger than maximal distance");
-    }
-    
+
     left.addOutgoingJoin(addParsedLocation(ctx, new PointingRelation(right, label, range.getMin(), range.getMax())));
   }
 
   @Override
-  public void enterCommonparent(AqlParser.CommonparentContext ctx)
-  {
+  public void enterCommonparent(AqlParser.CommonparentContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
     String label = ctx.label == null ? null : ctx.label.getText();
-    
+
     left.addOutgoingJoin(addParsedLocation(ctx, new Sibling(right, label)));
   }
 
   @Override
-  public void enterCommonancestor(AqlParser.CommonancestorContext ctx)
-  {
+  public void enterCommonancestor(AqlParser.CommonancestorContext ctx) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
-    
+    QueryNode right = relationChain.get(relationIdx + 1);
+
     String label = ctx.label == null ? null : ctx.label.getText();
-    
+
     left.addOutgoingJoin(addParsedLocation(ctx, new CommonAncestor(right, label)));
   }
-  
+
   @Override
-  public void enterIdentity(AqlParser.IdentityContext ctx)
-  {
+  public void enterIdentity(AqlParser.IdentityContext ctx) {
     join(ctx, Identical.class);
   }
-  
+
   /**
    * Automatically create a join from a node and a join class.
    *
@@ -563,142 +459,101 @@ public class JoinListener extends AqlParserBaseListener
    * @node
    * @type00
    */
-  private void join(ParserRuleContext ctx, Class<? extends Join> type)
-  {
+  private void join(ParserRuleContext ctx, Class<? extends Join> type) {
     QueryNode left = relationChain.get(relationIdx);
-    QueryNode right = relationChain.get(relationIdx+1);
+    QueryNode right = relationChain.get(relationIdx + 1);
 
-    try
-    {
+    try {
       Constructor<? extends Join> c = type.getConstructor(QueryNode.class);
       Join newJoin = c.newInstance(right);
       left.addOutgoingJoin(addParsedLocation(ctx, newJoin));
-      
-    }
-    catch (NoSuchMethodException ex)
-    {
+
+    } catch (NoSuchMethodException ex) {
       log.error(null, ex);
-    }
-    catch (InstantiationException ex)
-    {
+    } catch (InstantiationException ex) {
       log.error(null, ex);
-    }
-    catch (IllegalAccessException ex)
-    {
+    } catch (IllegalAccessException ex) {
       log.error(null, ex);
-    }
-    catch (InvocationTargetException ex)
-    {
+    } catch (InvocationTargetException ex) {
       log.error(null, ex);
     }
 
   }
-  
-  private Join addParsedLocation(ParserRuleContext ctx, Join j)
-  {
+
+  private Join addParsedLocation(ParserRuleContext ctx, Join j) {
     j.setParseLocation(AnnisParserAntlr.getLocation(ctx.getStart(), ctx.getStop()));
     return j;
   }
-  
-  
-  private QueryNode.Range annisRangeFromARangeSpec(
-    AqlParser.RangeSpecContext spec)
-  {
+
+  private QueryNode.Range annisRangeFromARangeSpec(AqlParser.RangeSpecContext spec) {
     String min = spec.min.getText();
     String max = spec.max != null ? spec.max.getText() : null;
-    if (max == null)
-    {
+    if (max == null) {
       return new QueryNode.Range(Integer.parseInt(min), Integer.parseInt(min));
-    }
-    else
-    {
+    } else {
       return new QueryNode.Range(Integer.parseInt(min), Integer.parseInt(max));
     }
   }
-  
-  private LinkedList<QueryAnnotation> fromRelationAnnotation(
-    AqlParser.EdgeSpecContext ctx)
-  {
+
+  private LinkedList<QueryAnnotation> fromRelationAnnotation(AqlParser.EdgeSpecContext ctx) {
     LinkedList<QueryAnnotation> annos = new LinkedList<>();
-    for(AqlParser.EdgeAnnoContext annoCtx : ctx.edgeAnno())
-    {
-      String namespace = annoCtx.qName().namespace == null
-        ? null : annoCtx.qName().namespace.getText();
+    for (AqlParser.EdgeAnnoContext annoCtx : ctx.edgeAnno()) {
+      String namespace = annoCtx.qName().namespace == null ? null : annoCtx.qName().namespace.getText();
       String name = annoCtx.qName().name.getText();
       String value = QueryNodeListener.textFromSpec(annoCtx.value);
-      QueryNode.TextMatching matching = QueryNodeListener.textMatchingFromSpec(
-        annoCtx.value, annoCtx.NEQ() != null);
-      
+      QueryNode.TextMatching matching = QueryNodeListener.textMatchingFromSpec(annoCtx.value, annoCtx.NEQ() != null);
+
       annos.add(new QueryAnnotation(namespace, name, value, matching));
-      
+
     }
     return annos;
   }
-  
-  private String getLayerName(TerminalNode node)
-  {
+
+  private String getLayerName(TerminalNode node) {
     return getLayerName(node, 1);
   }
-  
-  private String getLayerName(TerminalNode node, int lengthOfOperator)
-  {
-    if(node == null || node.getText() == null)
-    {
+
+  private String getLayerName(TerminalNode node, int lengthOfOperator) {
+    if (node == null || node.getText() == null) {
       return null;
     }
     return node.getText().substring(lengthOfOperator);
   }
-  
-  private QueryNode node(AqlParser.RefOrNodeContext ctx)
-  {
-    if(ctx instanceof AqlParser.ReferenceNodeContext)
-    {
+
+  private QueryNode node(AqlParser.RefOrNodeContext ctx) {
+    if (ctx instanceof AqlParser.ReferenceNodeContext) {
       return nodeByDef((AqlParser.ReferenceNodeContext) ctx);
-    }
-    else if(ctx instanceof AqlParser.ReferenceRefContext)
-    {
+    } else if (ctx instanceof AqlParser.ReferenceRefContext) {
       return nodeByRef(((AqlParser.ReferenceRefContext) ctx).REF().getSymbol());
-    }
-    else
-    {
+    } else {
       return null;
     }
   }
-  
-  private QueryNode nodeByDef(AqlParser.ReferenceNodeContext ctx)
-  {
-    if(ctx.VAR_DEF() == null)
-    {
+
+  private QueryNode nodeByDef(AqlParser.ReferenceNodeContext ctx) {
+    if (ctx.VAR_DEF() == null) {
       QueryNode result = tokenPositions.get(alternativeIndex).get(ctx.variableExpr().getSourceInterval());
-      if(result == null)
-      {
+      if (result == null) {
         return null;
-      }
-      else
-      {
+      } else {
         return result;
       }
-    }
-    else
-    {
+    } else {
       String varDefText = ctx.VAR_DEF().getText();
       // remove trailing #
-      varDefText = varDefText.substring(0, varDefText.length()-1);
+      varDefText = varDefText.substring(0, varDefText.length() - 1);
       return alternativeNodes.get(alternativeIndex).get(varDefText);
     }
   }
-  
-  private QueryNode nodeByRef(Token ref)
-  {
+
+  private QueryNode nodeByRef(Token ref) {
     return alternativeNodes.get(alternativeIndex).get("" + ref.getText().substring(1));
   }
-  
-  
-  private String errorLHS(String function)
-  {
+
+  private String errorLHS(String function) {
     return function + " operator needs a left-hand-side";
   }
-/*
+  /*
   private String errorRHS(String function)
   {
     return function + " operator needs a right-hand-side";

@@ -53,97 +53,82 @@ import org.corpus_tools.salt.util.SaltUtil;
  * Allows to extract a Salt-Graph from a database subgraph.
  * @author Thomas Krause <thomaskrause@posteo.de>
  */
-public class SaltExport
-{
-   
-   private static void mapLabels(SAnnotationContainer n, Map<Pair<String,String>, String> labels)
-   {       
-     for(Map.Entry<Pair<String,String>,String> e : labels.entrySet())
-     {
-      if("annis".equals(e.getKey().getKey()))
-      {
+public class SaltExport {
+
+  private static void mapLabels(SAnnotationContainer n, Map<Pair<String, String>, String> labels) {
+    for (Map.Entry<Pair<String, String>, String> e : labels.entrySet()) {
+      if ("annis".equals(e.getKey().getKey())) {
         n.createFeature(e.getKey().getKey(), e.getKey().getValue(), e.getValue());
-      }
-      else
-      {
+      } else {
         n.createAnnotation(e.getKey().getKey(), e.getKey().getValue(), e.getValue());
       }
     }
-    
-   }
-   
-   private static boolean hasDominanceEdge(CAPI.NodeIDByRef nID, CAPI.AnnisGraphDB g)
-   {
+
+  }
+
+  private static boolean hasDominanceEdge(CAPI.NodeIDByRef nID, CAPI.AnnisGraphDB g) {
 
     // TODO: implement
     AnnisVec_AnnisComponent components = CAPI.annis_graph_all_components(g);
-    for(int i=0; i < CAPI.annis_vec_component_size(components).intValue(); i++) {
+    for (int i = 0; i < CAPI.annis_vec_component_size(components).intValue(); i++) {
       AnnisComponent c = CAPI.annis_vec_component_get(components, new NativeLong(i));
-      if(CAPI.AnnisComponentType.Dominance == CAPI.annis_component_type(c)) {
+      if (CAPI.AnnisComponentType.Dominance == CAPI.annis_component_type(c)) {
         return true;
       }
     }
-     
-     return false;
-   }
-   
-    private static SNode mapNode(CAPI.NodeIDByRef nID, CAPI.AnnisGraphDB g)
-    {
-     SNode newNode;
 
-     // get all annotations for the node into a map, also create the node itself
-     Map<Pair<String,String>,String> labels = new LinkedHashMap<>();
-     int copyID = nID.getValue();
-     CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_node_labels(g, new CAPI.NodeID(copyID));
-     for(long i=0; i < CAPI.annis_vec_annotation_size(annos).longValue(); i++) {
-       CAPI.AnnisAnnotation.ByReference a = 
-         CAPI.annis_vec_annotation_get(annos, new NativeLong(i));
-         
-         String ns = CAPI.annis_graph_str(g, a.key.ns).toString();
-         String name = CAPI.annis_graph_str(g, a.key.name).toString();
-         String value = CAPI.annis_graph_str(g, a.value).toString();
-         
-         if(name != null && value != null) {
-          if(ns == null) {
-           labels.put(new ImmutablePair<>("", name), value);
-          } else {
-            labels.put(new ImmutablePair<>(ns, name), value);
-          }
+    return false;
+  }
+
+  private static SNode mapNode(CAPI.NodeIDByRef nID, CAPI.AnnisGraphDB g) {
+    SNode newNode;
+
+    // get all annotations for the node into a map, also create the node itself
+    Map<Pair<String, String>, String> labels = new LinkedHashMap<>();
+    int copyID = nID.getValue();
+    CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_node_labels(g, new CAPI.NodeID(copyID));
+    for (long i = 0; i < CAPI.annis_vec_annotation_size(annos).longValue(); i++) {
+      CAPI.AnnisAnnotation.ByReference a = CAPI.annis_vec_annotation_get(annos, new NativeLong(i));
+
+      String ns = CAPI.annis_graph_str(g, a.key.ns).toString();
+      String name = CAPI.annis_graph_str(g, a.key.name).toString();
+      String value = CAPI.annis_graph_str(g, a.value).toString();
+
+      if (name != null && value != null) {
+        if (ns == null) {
+          labels.put(new ImmutablePair<>("", name), value);
+        } else {
+          labels.put(new ImmutablePair<>(ns, name), value);
         }
-     }
-     annos.dispose();
+      }
+    }
+    annos.dispose();
 
-     if(labels.containsKey(new ImmutablePair<>("annis", "tok")))
-     {
+    if (labels.containsKey(new ImmutablePair<>("annis", "tok"))) {
       newNode = SaltFactory.createSToken();
-     } 
-     else if(hasDominanceEdge(nID, g))
-     {
-       newNode = SaltFactory.createSStructure();
-     }
-     else
-     {
-       newNode = SaltFactory.createSSpan();
-     }
-     newNode.createFeature("annis", "node_id", copyID);
+    } else if (hasDominanceEdge(nID, g)) {
+      newNode = SaltFactory.createSStructure();
+    } else {
+      newNode = SaltFactory.createSSpan();
+    }
+    newNode.createFeature("annis", "node_id", copyID);
 
-     String nodeName = labels.get(new ImmutablePair<>("annis", "node_name"));
-     if(nodeName != null)
-     {
-       if(!nodeName.startsWith("salt:/"))
-       {
+    String nodeName = labels.get(new ImmutablePair<>("annis", "node_name"));
+    if (nodeName != null) {
+      if (!nodeName.startsWith("salt:/")) {
         nodeName = "salt:/" + nodeName;
-       }
-       newNode.setId(nodeName);
-       // get the name from the ID
-       newNode.setName(newNode.getPath().fragment());
-     
-     }
-     
-     mapLabels(newNode, labels);
-     
-     return newNode;
-   }
+      }
+      newNode.setId(nodeName);
+      // get the name from the ID
+      newNode.setName(newNode.getPath().fragment());
+
+    }
+
+    mapLabels(newNode, labels);
+
+    return newNode;
+  }
+
   //  
   //  private static void mapAndAddEdge(SDocumentGraph g, CAPI.Node node, CAPI.Edge origEdge, Map<Long, SNode> nodesByID)
   //  {
@@ -324,16 +309,14 @@ public class SaltExport
   //  }
   //  
   //  
-  public static SDocumentGraph map(CAPI.AnnisGraphDB orig)
-  {
+  public static SDocumentGraph map(CAPI.AnnisGraphDB orig) {
     SDocumentGraph g = SaltFactory.createSDocumentGraph();
 
     // create all new nodes
     CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "node");
-    
-    for(CAPI.NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; 
-      nID = CAPI.annis_iter_nodeid_next(itNodes))
-    {
+
+    for (CAPI.NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; nID = CAPI
+        .annis_iter_nodeid_next(itNodes)) {
       SNode n = mapNode(nID, orig);
       // add them to the graph
       g.addNode(n);

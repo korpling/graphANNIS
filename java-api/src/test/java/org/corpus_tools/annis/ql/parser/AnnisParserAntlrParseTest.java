@@ -32,94 +32,61 @@ import org.junit.runners.Parameterized;
 /**
  * @author Thomas Krause <krauseto@hu-berlin.de>
  */
-@RunWith(value= Parameterized.class)
-public class AnnisParserAntlrParseTest
-{
-  
+@RunWith(value = Parameterized.class)
+public class AnnisParserAntlrParseTest {
+
   private final AnnisParserAntlr instance = new AnnisParserAntlr();
-  
+
   private final String aql;
   private final String expected;
-  
-  public AnnisParserAntlrParseTest(String aql, String expected)
-  {
+
+  public AnnisParserAntlrParseTest(String aql, String expected) {
     this.aql = aql;
     this.expected = expected;
   }
-  
-  
+
   @Parameterized.Parameters
   public static Collection<Object[]> data() {
-    Object[][] data = new Object[][]
-    {
-      {"tok", 
-        "tok"
-      },
-      {"/abc/", 
-        "/abc/"
-      },
-      {
-        "tok=/abc/",
-        "tok=/abc/"
-      },
-      {" (node & cat=/NP/ & #1 . #2) | (/das/ & tok!=/Haus/ & #3 . #4) ", 
-        "(node & cat=/NP/ & #1 . #2)\n|\n(/das/ & tok!=/Haus/ & #3 . #4)"
-      },
-      {"\"das\" & ( x#\"Haus\" | x#\"Schaf\") & #1 . #x",
-        "(\"das\" & x#\"Haus\" & #1 . #x)\n|\n(\"das\" & x#\"Schaf\" & #1 . #x)"
-      },
-      {
-        "tok=/abc/ . pos . node", "tok=/abc/ & pos & node & #1 . #2 & #2 . #3"
-      },
-      {
-        "tok=/abc/ . right#pos",
-        "tok=/abc/ & right#pos & #1 . #right"
-      },
-      {
-        "word & word & (#1 . #2 | #2 . #1)",
-        "(word & word & #1 . #2)\n" +
-        "|\n" +
-        "(word & word & #2 . #1)"
-      }
-    };
+    Object[][] data = new Object[][] { { "tok", "tok" }, { "/abc/", "/abc/" }, { "tok=/abc/", "tok=/abc/" },
+        { " (node & cat=/NP/ & #1 . #2) | (/das/ & tok!=/Haus/ & #3 . #4) ",
+            "(node & cat=/NP/ & #1 . #2)\n|\n(/das/ & tok!=/Haus/ & #3 . #4)" },
+        { "\"das\" & ( x#\"Haus\" | x#\"Schaf\") & #1 . #x",
+            "(\"das\" & x#\"Haus\" & #1 . #x)\n|\n(\"das\" & x#\"Schaf\" & #1 . #x)" },
+        { "tok=/abc/ . pos . node", "tok=/abc/ & pos & node & #1 . #2 & #2 . #3" },
+        { "tok=/abc/ . right#pos", "tok=/abc/ & right#pos & #1 . #right" },
+        { "word & word & (#1 . #2 | #2 . #1)", "(word & word & #1 . #2)\n" + "|\n" + "(word & word & #2 . #1)" } };
     return Arrays.asList(data);
   }
-  
+
   @BeforeClass
-  public static void setUpClass()
-  {
+  public static void setUpClass() {
   }
-  
+
   @AfterClass
-  public static void tearDownClass()
-  {
+  public static void tearDownClass() {
   }
-  
+
   @Before
-  public void setUp()
-  {
+  public void setUp() {
   }
-  
+
   @After
-  public void tearDown()
-  {
+  public void tearDown() {
   }
 
   /**
    * Test of parse method, of class AnnisParserAntlr.
    */
   @Test
-  public void testParse()
-  {
+  public void testParse() {
     System.out.println("parse " + aql);
     List<Long> corpusList = new LinkedList<>();
     corpusList.add(1234l);
-    
+
     QueryData result = instance.parse(aql, corpusList);
     assertNotNull(result);
     assertEquals(expected, result.toAQL());
-    
+
   }
 
- 
 }

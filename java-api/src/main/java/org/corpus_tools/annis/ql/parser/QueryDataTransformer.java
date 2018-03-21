@@ -19,8 +19,7 @@ package org.corpus_tools.annis.ql.parser;
  * Transformer or optimizer for {@link QueryData}.
  * @author Thomas Krause <krauseto@hu-berlin.de>
  */
-public interface QueryDataTransformer
-{
+public interface QueryDataTransformer {
   /**
    * Transforms or optimizes a specific {@link QueryData}.
    * The resulting opject might be a clone of the original one.
