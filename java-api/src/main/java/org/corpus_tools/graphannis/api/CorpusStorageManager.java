@@ -35,8 +35,14 @@ public class CorpusStorageManager {
     public long matchCount;
     public long documentCount;
   }
-
+  
+  
   public CorpusStorageManager(String dbDir) {
+    this(dbDir, null, LogLevel.Off);
+  }
+
+  public CorpusStorageManager(String dbDir, String logfile, LogLevel level) {
+    CAPI.annis_init_logging(logfile, level.getRaw());
     this.instance = CAPI.annis_cs_new(dbDir);
   }
 

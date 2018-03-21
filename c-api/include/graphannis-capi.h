@@ -32,6 +32,15 @@ typedef enum {
   PartOfSubcorpus,
 } AnnisComponentType;
 
+typedef enum {
+  Off,
+  Error,
+  Warn,
+  Info,
+  Debug,
+  Trace,
+} AnnisLogLevel;
+
 typedef struct AnnisComponent AnnisComponent;
 
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
@@ -201,6 +210,8 @@ void annis_graphupdate_delete_node_label(AnnisGraphUpdate *ptr,
 AnnisGraphUpdate *annis_graphupdate_new(void);
 
 size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
+
+AnnisError *annis_init_logging(const char *logfile, AnnisLogLevel level);
 
 AnnisNodeID *annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID *ptr);
 

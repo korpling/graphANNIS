@@ -9,6 +9,7 @@ use graphannis::relannis;
 use std::path::PathBuf;
 use super::error::Error;
 
+
 /// Create a new corpus storage
 #[no_mangle]
 pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut cs::CorpusStorage {

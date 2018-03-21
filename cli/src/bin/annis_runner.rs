@@ -11,7 +11,7 @@ extern crate simplelog;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use rustyline::completion::{Completer, FilenameCompleter};
-use simplelog::{LogLevelFilter, SimpleLogger, TermLogger};
+use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use graphannis::relannis;
 use std::path::{Path, PathBuf};
 use graphannis::StringID;
@@ -338,9 +338,9 @@ fn main() {
         .get_matches();
 
     let log_filter = if matches.is_present("debug") {
-        LogLevelFilter::Trace
+        LevelFilter::Trace
     } else {
-        LogLevelFilter::Info
+        LevelFilter::Info
     };
 
     if let Err(e) = TermLogger::init(log_filter, simplelog::Config::default()) {

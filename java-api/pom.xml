@@ -232,7 +232,7 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Import-Package>!org.apache.maven.*,*</Import-Package>
+            <!--<Import-Package>!org.apache.maven.*,*</Import-Package>-->
             <Bundle-NativeCode>${bundle-native-libs}</Bundle-NativeCode>
            
           </instructions>

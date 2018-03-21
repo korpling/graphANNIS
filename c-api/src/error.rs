@@ -1,5 +1,7 @@
 use std::ffi::CString;
 use libc::c_char;
+use std;
+use log;
 
 use graphannis;
 
@@ -26,6 +28,38 @@ impl From<graphannis::api::corpusstorage::Error> for Error {
 
 impl From<graphannis::relannis::Error> for Error {
     fn from(e: graphannis::relannis::Error) -> Error {
+        let err = if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
+            Error {
+                msg: error_msg,
+            }
+        } else {
+            // meta-error
+            Error {
+                msg:  CString::new(String::from("Some error occured")).unwrap(),
+            }
+        };
+        return err;
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Error {
+        let err = if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
+            Error {
+                msg: error_msg,
+            }
+        } else {
+            // meta-error
+            Error {
+                msg:  CString::new(String::from("Some error occured")).unwrap(),
+            }
+        };
+        return err;
+    }
+}
+
+impl From<log::SetLoggerError> for Error {
+    fn from(e: log::SetLoggerError) -> Error {
         let err = if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
             Error {
                 msg: error_msg,

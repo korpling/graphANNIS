@@ -60,11 +60,6 @@ public class CAPI implements Library {
   public static class AnnisVec_AnnisEdge extends AnnisPtr {
   }
 
-
-
-
-
-
   // general functions
 
   protected static native void annis_free(AnnisPtr ptr);
@@ -74,6 +69,8 @@ public class CAPI implements Library {
   public static native void annis_str_free(AnnisString ptr);
 
   public static native String annis_error_get_msg(AnnisError ptr);
+  
+  public static native AnnisError annis_init_logging(String logfile, int level);
 
   // vector and iterator functions 
   public static native NativeLong annis_vec_str_size(AnnisVec_AnnisCString ptr);
@@ -105,7 +102,7 @@ public class CAPI implements Library {
   public static native AnnisVec_AnnisCString annis_cs_list(AnnisCorpusStorage cs);
 
   public static native long annis_cs_count(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
-  public static native AnnisCountExtra annis_cs_count_extra(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
+  public static native AnnisCountExtra.ByValue annis_cs_count_extra(AnnisCorpusStorage cs, String corpusName, String queryAsJSON);
 
   public static native AnnisVec_AnnisCString annis_cs_find(AnnisCorpusStorage cs, String corpusName, String queryAsJSON,
       long offset, long limit);

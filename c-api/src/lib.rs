@@ -1,5 +1,7 @@
 extern crate graphannis;
 extern crate libc;
+extern crate log;
+extern crate simplelog;
 
 #[allow(unused_macros)]
 macro_rules! cast_mut {
@@ -43,3 +45,4 @@ pub mod update;
 pub mod data;
 pub mod error;
 pub mod graph;
+pub mod logging;
