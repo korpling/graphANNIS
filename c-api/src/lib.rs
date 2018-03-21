@@ -1,5 +1,6 @@
 extern crate graphannis;
 extern crate libc;
+#[macro_use]
 extern crate log;
 extern crate simplelog;
 

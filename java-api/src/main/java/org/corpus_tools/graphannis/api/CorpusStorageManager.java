@@ -112,12 +112,18 @@ public class CorpusStorageManager {
     for (String id : document_ids) {
       CAPI.annis_vec_str_push(c_document_ids, id);
     }
-    CAPI.AnnisGraphDB graph = CAPI.annis_cs_subcorpus_graph(instance, corpusName, c_document_ids);
-
-    SDocumentGraph result = SaltExport.map(graph);
-    c_document_ids.dispose();
-    graph.dispose();
-
+    
+    SDocumentGraph result = null;
+    if(instance != null) {
+      CAPI.AnnisGraphDB graph = CAPI.annis_cs_subcorpus_graph(instance, corpusName, c_document_ids);
+      
+      result = SaltExport.map(graph);
+      c_document_ids.dispose();
+      if(graph != null) {
+        graph.dispose();
+      }
+    }
+    
     return result;
   }
   

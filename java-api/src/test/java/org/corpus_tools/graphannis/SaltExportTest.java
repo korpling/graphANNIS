@@ -25,6 +25,7 @@ import org.corpus_tools.graphannis.api.CorpusStorageManager;
 import org.corpus_tools.graphannis.api.GraphUpdate;
 
 import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
+import org.corpus_tools.graphannis.api.LogLevel;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocument;
@@ -38,9 +39,7 @@ import org.junit.Test;
 
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.util.SaltUtil;
-import org.corpus_tools.salt.util.VisJsVisualizer;
 import org.corpus_tools.salt.util.internal.ValidationResult;
-import org.eclipse.emf.common.util.URI;
 import static org.junit.Assert.*;
 
 /**
@@ -64,8 +63,11 @@ public class SaltExportTest {
   @Before
   public void setUp() {
     File tmpDir = Files.createTempDir();
-
-    storage = new CorpusStorageManager(tmpDir.getAbsolutePath());
+    
+    File logfile =  new File(tmpDir, "graphannis.log");
+    System.out.println("logging to " + logfile.getAbsolutePath());
+    storage = new CorpusStorageManager(tmpDir.getAbsolutePath(), 
+     logfile.getAbsolutePath(), LogLevel.Trace);
   }
 
   @After
@@ -99,6 +101,65 @@ public class SaltExportTest {
     
     // get a subgraph for the complete document
     SDocumentGraph exportedGraph = storage.subgraph("testCorpus", Arrays.asList(sampleTok.getId()), 100, 100);
+    
+    ValidationResult validResult = SaltUtil.validate(exportedGraph).andFindInvalidities();
+    assertTrue("Invalid graph detected:\n" + validResult.toString(), validResult.isValid());
+    
+    assertEquals(doc.getDocumentGraph().getNodes().size(), exportedGraph.getNodes().size());
+    assertEquals(doc.getDocumentGraph().getTokens().size(), exportedGraph.getTokens().size());
+    
+    List<SToken> sortedTokenOrig = doc.getDocumentGraph().getSortedTokenByText();
+    List<SToken> sortedTokenSubgraph = exportedGraph.getSortedTokenByText();
+    
+    for(int i=0; i < sortedTokenOrig.size(); i++)
+    {
+      assertEquals(doc.getDocumentGraph().getText(sortedTokenOrig.get(i)), 
+        exportedGraph.getText(sortedTokenSubgraph.get(i)));
+    }
+    
+    assertEquals(doc.getDocumentGraph().getRelations(SALT_TYPE.SSPANNING_RELATION).size(), 
+      exportedGraph.getRelations(SALT_TYPE.SSPANNING_RELATION).size());
+    assertEquals(doc.getDocumentGraph().getRelations(SALT_TYPE.SPOINTING_RELATION).size(), 
+      exportedGraph.getRelations(SALT_TYPE.SPOINTING_RELATION).size());
+    assertEquals(doc.getDocumentGraph().getRelations(SALT_TYPE.SDOMINANCE_RELATION).size(), 
+      exportedGraph.getRelations(SALT_TYPE.SDOMINANCE_RELATION).size());
+    
+    int numOfOrderRels = exportedGraph.getRelations(SALT_TYPE.SORDER_RELATION).size();
+    
+    assertEquals(doc.getDocumentGraph().getRelations().size() , exportedGraph.getRelations().size() - numOfOrderRels);
+
+    // TODO: actual diff
+  }
+  
+  @Test
+  public void testMapComplexExampleDoc() throws IOException, XMLStreamException {
+ 
+
+    SDocument doc = SaltFactory.createSDocument();
+    doc.setName("TestDoc");
+    
+    SampleGenerator.createTokens(doc);
+    SampleGenerator.createMorphologyAnnotations(doc);
+    SampleGenerator.createInformationStructureSpan(doc);
+    SampleGenerator.createInformationStructureAnnotations(doc);
+    SampleGenerator.createSyntaxStructure(doc);
+    SampleGenerator.createSyntaxAnnotations(doc);
+    SampleGenerator.createAnaphoricAnnotations(doc);
+    SampleGenerator.createDependencies(doc);
+    
+    assertEquals(27, doc.getDocumentGraph().getNodes().size());
+    
+    GraphUpdate result = new SaltImport().map(doc.getDocumentGraph()).finish();
+    
+    storage.applyUpdate("testCorpus", result);
+    
+    assertEquals(26, storage.count(Arrays.asList("testCorpus"), aqlToJSON("node")));
+    
+    
+    // get a subgraph for the complete document
+    SDocumentGraph exportedGraph = storage.subcorpusGraph("testCorpus", Arrays.asList(doc.getName()));
+    
+    assertNotNull(exportedGraph);
     
     ValidationResult validResult = SaltUtil.validate(exportedGraph).andFindInvalidities();
     assertTrue("Invalid graph detected:\n" + validResult.toString(), validResult.isValid());

@@ -310,8 +310,12 @@ public class SaltExport {
   }
 
   public static SDocumentGraph map(CAPI.AnnisGraphDB orig) {
+    if(orig == null) {
+      return null;
+    }
+    
     SDocumentGraph g = SaltFactory.createSDocumentGraph();
-
+    
     // create all new nodes
     CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "node");
 
