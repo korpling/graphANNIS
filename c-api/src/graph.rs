@@ -56,12 +56,13 @@ pub extern "C" fn annis_graph_all_components(g : * const GraphDB) -> * mut Vec<C
 }
 
 #[no_mangle]
-pub extern "C" fn annis_graph_outgoing_edges(g : * const GraphDB,  source : NodeID, component : Component) -> * mut Vec<Edge> {
+pub extern "C" fn annis_graph_outgoing_edges(g : * const GraphDB,  source : NodeID, component : * const Component) -> * mut Vec<Edge> {
     let db : &GraphDB = cast_const!(g);
+    let component : &Component = cast_const!(component);
 
     let mut result : Vec<Edge> = Vec::new();
 
-    if let Some(gs) = db.get_graphstorage(&component) {
+    if let Some(gs) = db.get_graphstorage(component) {
         let gs : Arc<GraphStorage> = gs;
         result.extend(gs.get_outgoing_edges(&source).map(|target| Edge {source: source.clone(), target}));
     }   

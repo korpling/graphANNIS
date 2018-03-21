@@ -31,7 +31,9 @@ import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.corpus_tools.graphannis.CAPI.AnnisComponent;
+import org.corpus_tools.graphannis.CAPI.AnnisEdge;
 import org.corpus_tools.graphannis.CAPI.AnnisVec_AnnisComponent;
+import org.corpus_tools.graphannis.CAPI.AnnisVec_AnnisEdge;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SDocumentGraph;
@@ -68,15 +70,17 @@ public class SaltExport {
 
   private static boolean hasDominanceEdge(CAPI.NodeIDByRef nID, CAPI.AnnisGraphDB g) {
 
-    // TODO: implement
     AnnisVec_AnnisComponent components = CAPI.annis_graph_all_components(g);
     for (int i = 0; i < CAPI.annis_vec_component_size(components).intValue(); i++) {
       AnnisComponent c = CAPI.annis_vec_component_get(components, new NativeLong(i));
       if (CAPI.AnnisComponentType.Dominance == CAPI.annis_component_type(c)) {
-        return true;
+        // check if the node has an outgoing edge of this component
+        AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(g, new CAPI.NodeID(nID.getValue()), c);
+        if (CAPI.annis_vec_edge_size(outEdges).longValue() > 0) {
+          return true;
+        }
       }
     }
-
     return false;
   }
 
@@ -129,86 +133,71 @@ public class SaltExport {
     return newNode;
   }
 
-  //  
-  //  private static void mapAndAddEdge(SDocumentGraph g, CAPI.Node node, CAPI.Edge origEdge, Map<Long, SNode> nodesByID)
-  //  {
-  //    SNode source = nodesByID.get(origEdge.sourceID());
-  //    SNode target = nodesByID.get(origEdge.targetID());
-  //    
-  //    
-  //    String edgeType = null;
-  //    if(source != null && target != null && source != target)
-  //    {      
-  //      if (origEdge.componentName() != null)
-  //      {
-  //        edgeType = origEdge.componentName().getString();
-  //      }
-  //
-  //      
-  //      SRelation<?,?> rel = null;
-  //      switch(origEdge.componentType().getString())
-  //      {
-  //        case "DOMINANCE":
-  //          if (edgeType == null || edgeType.isEmpty())
-  //          {
-  //            // We don't include edges that have no type if there is an edge
-  //            // between the same nodes which has a type.
-  //            for(long i=0; i < node.outgoingEdges().size(); i++)
-  //            {
-  //              CAPI.Edge outEdge = node.outgoingEdges().get(i);
-  //              if(outEdge.targetID() == origEdge.targetID() 
-  //                && outEdge.componentName() != null
-  //                && !outEdge.componentName().getString().isEmpty())
-  //              {
-  //                // exclude this relation
-  //                return;
-  //              }
-  //            }
-  //          } // end mirror check
-  //          
-  //          rel = g.createRelation(source, target, SALT_TYPE.SDOMINANCE_RELATION, null);
-  //          
-  //          break;
-  //        case "POINTING":
-  //          rel = g.createRelation(source, target, SALT_TYPE.SPOINTING_RELATION, null);
-  //          break;
-  //        case "ORDERING":
-  //          rel = g.createRelation(source, target, SALT_TYPE.SORDER_RELATION, null);
-  //          break;
-  //        case "COVERAGE":
-  //          // only add coverage edges in salt to spans, not structures
-  //          if(source instanceof SSpan && target instanceof SToken)
-  //          {
-  //            rel = g.createRelation(source, target, SALT_TYPE.SSPANNING_RELATION, null);
-  //          }
-  //          break;
-  //      }
-  //      
-  //      
-  //      if(rel != null)
-  //      {
-  //        if(edgeType != null)
-  //        {
-  //          rel.setType(edgeType);
-  //        }
-  //        
-  //        mapLabels(rel, origEdge.labels());
-  //        String layerName = origEdge.componentLayer() == null ? null : origEdge.componentLayer().getString();
-  //        if(layerName != null && !layerName.isEmpty())
-  //        {
-  //          List<SLayer> layer = g.getLayerByName(layerName);
-  //          if(layer == null || layer.isEmpty())
-  //          {
-  //            SLayer newLayer = SaltFactory.createSLayer();
-  //            newLayer.setName(layerName);
-  //            g.addLayer(newLayer);
-  //            layer = Arrays.asList(newLayer);
-  //          }
-  //          layer.get(0).addRelation(rel);
-  //        }
-  //      }
-  //    }
-  //  }
+  private static void mapAndAddEdge(SDocumentGraph g, CAPI.AnnisGraphDB orig, CAPI.NodeID node, CAPI.AnnisEdge origEdge,
+      CAPI.AnnisComponent component, Map<Integer, SNode> nodesByID) {
+    SNode source = nodesByID.get(origEdge.source.intValue());
+    SNode target = nodesByID.get(origEdge.target.intValue());
+
+    String edgeType = null;
+    if (source != null && target != null && source != target) {
+      CAPI.AnnisString cName = CAPI.annis_component_name(component);
+      if (cName != null) {
+        edgeType = cName.toString();
+      }
+      SRelation<?, ?> rel = null;
+      switch (CAPI.annis_component_type(component)) {
+      case CAPI.AnnisComponentType.Dominance:
+        if (edgeType == null || edgeType.isEmpty()) {
+          // We don't include edges that have no type if there is an edge
+          // between the same nodes which has a type.
+          AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, origEdge.source, component);
+          for (int i = 0; i < CAPI.annis_vec_edge_size(outEdges).intValue(); i++) {
+            CAPI.AnnisEdge outEdge = CAPI.annis_vec_edge_get(outEdges, new NativeLong(i));
+
+            if (outEdge.target.equals(origEdge.target)) {
+              // exclude this relation
+              return;
+            }
+          }
+        } // end mirror check
+        rel = g.createRelation(source, target, SALT_TYPE.SDOMINANCE_RELATION, null);
+
+        break;
+      case CAPI.AnnisComponentType.Pointing:
+        rel = g.createRelation(source, target, SALT_TYPE.SPOINTING_RELATION, null);
+        break;
+      case CAPI.AnnisComponentType.Ordering:
+        rel = g.createRelation(source, target, SALT_TYPE.SORDER_RELATION, null);
+        break;
+      case CAPI.AnnisComponentType.Coverage:
+        // only add coverage edges in salt to spans, not structures
+        if (source instanceof SSpan && target instanceof SToken) {
+          rel = g.createRelation(source, target, SALT_TYPE.SSPANNING_RELATION, null);
+        }
+        break;
+      }
+
+      if (rel != null) {
+        rel.setType(edgeType);
+        // TODO: map edge labels
+        // mapLabels(rel, origEdge.labels());
+
+        CAPI.AnnisString layerNameRaw = CAPI.annis_component_layer(component);
+        String layerName = layerNameRaw == null ? null : layerNameRaw.toString();
+        if (layerName != null && !layerName.isEmpty()) {
+          List<SLayer> layer = g.getLayerByName(layerName);
+          if (layer == null || layer.isEmpty()) {
+            SLayer newLayer = SaltFactory.createSLayer();
+            newLayer.setName(layerName);
+            g.addLayer(newLayer);
+            layer = Arrays.asList(newLayer);
+          }
+          layer.get(0).addRelation(rel);
+        }
+      }
+    }
+  }
+
   //  
   //  private static void addNodeLayers(SDocumentGraph g)
   //  {
@@ -315,33 +304,35 @@ public class SaltExport {
     // create all new nodes
     CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "node");
 
+    Map<Integer, SNode> newNodesByID = new LinkedHashMap<>();
+
     for (CAPI.NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; nID = CAPI
         .annis_iter_nodeid_next(itNodes)) {
       SNode n = mapNode(nID, orig);
-      // add them to the graph
-      g.addNode(n);
+      newNodesByID.put(nID.getValue(), n);
     }
     itNodes.dispose();
 
-    //    Map<Long, SNode> newNodesByID = new LinkedHashMap<>();
-    //    for(Map.Entry<Long, CAPI.Node> entry : nodesByID.entrySet())
-    //    {
-    //      CAPI.Node v = entry.getValue();
-    //      SNode n = mapNode(v);
-    //      newNodesByID.put(entry.getKey(), n);
-    //    }
-    //    // add them to the graph
-    //    newNodesByID.values().stream().forEach(n -> g.addNode(n));
-    //    
-    //    // create and add all edges
-    //    nodesByID.values().
-    //      forEach((n) ->
-    //    {
-    //      for(long i=0; i < n.outgoingEdges().size(); i++)
-    //      {
-    //        mapAndAddEdge(g, n, n.outgoingEdges().get(i), newNodesByID);
-    //      }
-    //    });
+    // add them to the graph
+    newNodesByID.values().stream().forEach(n -> g.addNode(n));
+
+    // create and add all edges
+    AnnisVec_AnnisComponent components = CAPI.annis_graph_all_components(orig);
+    for (Map.Entry<Integer, SNode> nodeEntry : newNodesByID.entrySet()) {
+      for (int i = 0; i < CAPI.annis_vec_component_size(components).intValue(); i++) {
+        AnnisComponent c = CAPI.annis_vec_component_get(components, new NativeLong(i));
+        CAPI.NodeID nId = new CAPI.NodeID(nodeEntry.getKey());
+        AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, nId, c);
+        for (int edgeIdx = 0; edgeIdx < CAPI.annis_vec_edge_size(outEdges).intValue(); edgeIdx++) {
+          AnnisEdge edge = CAPI.annis_vec_edge_get(outEdges, new NativeLong(edgeIdx));
+          mapAndAddEdge(g, orig, nId, edge, c, newNodesByID);
+        }
+      }
+    }
+    ;
+    components.dispose();
+    components = null;
+
     //    
     //    // find all chains of SOrderRelations and reconstruct the texts belonging to them
     //    Multimap<String, SNode> orderRoots = g.getRootsByRelationType(SALT_TYPE.SORDER_RELATION);

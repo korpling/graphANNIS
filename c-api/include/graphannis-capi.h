@@ -119,7 +119,7 @@ AnnisIterPtr_AnnisNodeID *annis_graph_nodes_by_type(const AnnisGraphDB *g, const
 
 AnnisVec_AnnisEdge *annis_graph_outgoing_edges(const AnnisGraphDB *g,
                                                AnnisNodeID source,
-                                               AnnisComponent component);
+                                               const AnnisComponent *component);
 
 char *annis_graph_str(const AnnisGraphDB *g, AnnisStringID str_id);
 

@@ -17,7 +17,7 @@ macro_rules! cast_const {
     ($x:expr) => {
         {
             unsafe {
-                assert!(!$x.is_null());
+                assert!(!$x.is_null(), "Object argument was null");
                 (&(*$x))
             }
         }
