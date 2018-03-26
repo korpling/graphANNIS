@@ -320,13 +320,16 @@ public class SaltExport {
     CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "node");
 
     Map<Integer, SNode> newNodesByID = new LinkedHashMap<>();
+    
+    if(itNodes != null) {
 
-    for (NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; nID = CAPI
-        .annis_iter_nodeid_next(itNodes)) {
-      SNode n = mapNode(nID, orig);
-      newNodesByID.put(nID.getValue(), n);
+      for (NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; nID = CAPI
+          .annis_iter_nodeid_next(itNodes)) {
+        SNode n = mapNode(nID, orig);
+        newNodesByID.put(nID.getValue(), n);
+      }
+      itNodes.dispose();
     }
-    itNodes.dispose();
 
     // add them to the graph
     newNodesByID.values().stream().forEach(n -> g.addNode(n));

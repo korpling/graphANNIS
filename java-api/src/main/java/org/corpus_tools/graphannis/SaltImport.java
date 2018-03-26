@@ -35,6 +35,7 @@ import org.corpus_tools.salt.core.SAnnotation;
 import org.corpus_tools.salt.core.SLayer;
 import org.corpus_tools.salt.core.SNode;
 import org.corpus_tools.salt.core.SRelation;
+import org.eclipse.emf.common.util.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,9 +57,27 @@ public class SaltImport {
   }
 
   public SaltImport map(SDocumentGraph g) {
+    
+    // create the (sub-) corpus and the document nodes
+    URI docPath = g.getPath();
+    String documentNodeName = null;
+    if(docPath != null) {
+      String[] segments = docPath.segments();
+      if(segments != null) {
+        for(int i=0; i < segments.length; i++) {
+          String nodeName = Joiner.on('/').join(Arrays.copyOfRange(segments, 0, i+1));
+          updateList.addNode(nodeName, "corpus");
+          updateList.addNodeLabel(nodeName, "annis", "doc", segments[i]);
+          if(i == segments.length-1) {
+            documentNodeName = nodeName;
+          }
+        }
+      }      
+    }
+    
     // add all nodes and their annotations
     for (SNode n : g.getNodes()) {
-      addNode(n);
+      addNode(n, documentNodeName);
     }
 
     addTokenInformation(g);
@@ -170,16 +189,6 @@ public class SaltImport {
 
   }
 
-  private static String documentName(SNode node) {
-    if (node != null) {
-      String[] segments = node.getPath().segments();
-      if (segments.length > 0) {
-        return segments[segments.length - 1];
-      }
-    }
-
-    return null;
-  }
 
   private static String documentPath(SNode node) {
     if (node != null) {
@@ -228,7 +237,7 @@ public class SaltImport {
     return result;
   }
 
-  private void addNode(SNode n) {
+  private void addNode(SNode n, String documentNodeName) {
     if (n instanceof SStructuredNode) {
       // use the unique name
       String name = nodeName(n);
@@ -236,6 +245,11 @@ public class SaltImport {
       // add all annotations
       for (SAnnotation anno : n.getAnnotations()) {
         updateList.addNodeLabel(name, anno.getNamespace(), anno.getName(), anno.getValue_STEXT());
+      }
+      
+      // add connection to document node if available
+      if(documentNodeName != null) {
+        updateList.addEdge(name, documentNodeName, "annis", "PartOfSubcorpus", "");
       }
     }
   }

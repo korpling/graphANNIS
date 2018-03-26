@@ -28,6 +28,8 @@ import static org.corpus_tools.graphannis.QueryToJSON.aqlToJSON;
 import org.corpus_tools.graphannis.api.LogLevel;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
+import org.corpus_tools.salt.common.SCorpus;
+import org.corpus_tools.salt.common.SCorpusGraph;
 import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.samples.SampleGenerator;
@@ -134,9 +136,12 @@ public class SaltExportTest {
   @Test
   public void testMapComplexExampleDoc() throws IOException, XMLStreamException {
  
-
-    SDocument doc = SaltFactory.createSDocument();
-    doc.setName("TestDoc");
+    
+    SCorpusGraph corpusGraph = SaltFactory.createSCorpusGraph();
+    
+    SCorpus topCorpus = corpusGraph.createCorpus(null, "testMapComplexExampleDoc");
+    SCorpus subCorpus = corpusGraph.createCorpus(topCorpus, "subcorpus");
+    SDocument doc = corpusGraph.createDocument(subCorpus, "TestDoc");
     
     SampleGenerator.createTokens(doc);
     SampleGenerator.createMorphologyAnnotations(doc);
