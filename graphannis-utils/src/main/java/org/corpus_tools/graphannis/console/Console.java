@@ -18,6 +18,7 @@ package org.corpus_tools.graphannis.console;
 import com.google.common.base.Splitter;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -77,7 +78,7 @@ public class Console
       return;
     }
 
-    long result = mgr.count(args.get(0), aqlToJSON(args.get(1)));
+    long result = mgr.count(Arrays.asList(args.get(0)), aqlToJSON(args.get(1)));
 
     System.out.println("" + result + " results.");
   }
@@ -92,7 +93,7 @@ public class Console
       return;
     }
 
-    String[] result = mgr.find(args.get(0), aqlToJSON(args.get(1)), 0 , Long.MAX_VALUE);
+    String[] result = mgr.find(Arrays.asList(args.get(0)), aqlToJSON(args.get(1)), 0 , Long.MAX_VALUE);
     
     for(int i=0; i < result.length; i++)
     {
