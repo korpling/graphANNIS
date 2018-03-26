@@ -24,11 +24,13 @@ import com.sun.jna.PointerType;
  */
 public class AnnisString extends PointerType implements CharSequence {
   
-  public void dispose()
+  public synchronized void dispose()
   {
-    if (this.getPointer() != Pointer.NULL)
-    {
-      CAPI.annis_str_free(this.getPointer());
+    try {
+      if (this.getPointer() != Pointer.NULL) {
+        CAPI.annis_str_free(this.getPointer());
+      }
+    } finally {
       this.setPointer(Pointer.NULL);
     }
   }

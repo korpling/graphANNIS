@@ -24,11 +24,14 @@ import com.sun.jna.PointerType;
  */
 public class AnnisPtr extends PointerType {
   
-  public void dispose()
+  public synchronized void dispose()
   {
-    if (this.getPointer() != Pointer.NULL)
-    {
-      CAPI.annis_free(this.getPointer());
+    try {
+      if (this.getPointer() != Pointer.NULL)
+      {
+        CAPI.annis_free(this.getPointer());
+      }
+    } finally {
       this.setPointer(Pointer.NULL);
     }
   }

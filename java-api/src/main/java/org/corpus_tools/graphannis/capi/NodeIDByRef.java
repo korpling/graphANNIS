@@ -25,12 +25,15 @@ import com.sun.jna.ptr.IntByReference;
  */
 public class NodeIDByRef extends IntByReference {
   
-  public void dispose()
+  public synchronized void dispose()
   {
-    if (getPointer() != Pointer.NULL && !(getPointer() instanceof Memory))
-    {
-      CAPI.annis_free(this.getPointer());
-      setPointer(Pointer.NULL);
+    try {
+      if (getPointer() != Pointer.NULL && !(getPointer() instanceof Memory))
+      {
+        CAPI.annis_free(this.getPointer());
+      }
+    } finally {
+      this.setPointer(Pointer.NULL);
     }
   }
 
