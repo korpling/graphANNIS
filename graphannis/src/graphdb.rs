@@ -331,6 +331,7 @@ impl GraphDB {
 
     fn apply_update_in_memory(&mut self, u : &GraphUpdate) -> Result<(), Error> {
         for (id, change) in u.consistent_changes() {
+            trace!("applying event {:?}", &change);
             match change {
                 UpdateEvent::AddNode {
                     node_name,

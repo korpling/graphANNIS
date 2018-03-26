@@ -145,12 +145,14 @@ fn check_cache_size_and_remove(
     }
 }
 
-fn extract_subgraph_by_query(db_entry : Arc<RwLock<CacheEntry>>, query : Disjunction) -> Result<GraphDB, Error> {
+fn extract_subgraph_by_query(db_entry : Arc<RwLock<CacheEntry>>, query : Disjunction, match_idx : usize) -> Result<GraphDB, Error> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
     let plan = ExecutionPlan::from_disjunction(query, &orig_db)?;
+
+    trace!("executing subgraph query\n{}", plan);
 
     let all_components = orig_db.get_all_components(None, None);
 
@@ -162,11 +164,12 @@ fn extract_subgraph_by_query(db_entry : Arc<RwLock<CacheEntry>>, query : Disjunc
 
     // create the subgraph description
     for r in plan {
-        let m : &Match = &r[3];
-        if !match_result.contains(m) {
-            match_result.insert(m.clone());
-
-            create_subgraph_node(m.node, &mut result, orig_db);
+        if match_idx < r.len() {
+            let m : &Match = &r[match_idx];
+            if !match_result.contains(m) {
+                match_result.insert(m.clone());
+                create_subgraph_node(m.node, &mut result, orig_db);
+            }
         }
     }
 
@@ -193,6 +196,9 @@ fn create_subgraph_node(id : NodeID, db : &mut GraphDB, orig_db : &GraphDB) {
             db.node_annos.insert(id, new_anno);
         }
     }
+
+
+    trace!("adding node \"{}\" to subgraph", db.strings.str(db.node_annos.get(&id, &db.get_node_name_key()).cloned().unwrap_or(0)).unwrap_or(&String::from("")));
 }
 fn create_subgraph_edge(source_id : NodeID, db : &mut GraphDB, orig_db : &GraphDB, all_components : &Vec<Component>) {
 
@@ -700,7 +706,7 @@ impl CorpusStorage {
             }
         }
 
-        return extract_subgraph_by_query(db_entry, query);
+        return extract_subgraph_by_query(db_entry, query, 3);
     }
 
     pub fn subcorpus_graph(
@@ -747,11 +753,11 @@ impl CorpusStorage {
                 val: Some(source_corpus_id.to_string()),}
             );
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode);
-            q.add_operator(Box::new(operator::PartOfSubCorpusSpec::new(1)), corpus_idx, any_node_idx);
+            q.add_operator(Box::new(operator::PartOfSubCorpusSpec::new(1)), any_node_idx, corpus_idx);
             query.alternatives.push(q);
         }
 
-        return extract_subgraph_by_query(db_entry, query);
+        return extract_subgraph_by_query(db_entry, query, 1);
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {

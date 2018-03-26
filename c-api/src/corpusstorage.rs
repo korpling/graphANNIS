@@ -105,9 +105,14 @@ pub extern "C" fn annis_cs_subcorpus_graph(ptr: *const cs::CorpusStorage,
     
     trace!("annis_cs_subcorpus_graph(..., {}, {:?}) called", corpus, corpus_ids);
 
-    if let Ok(result) = cs.subcorpus_graph(&corpus, corpus_ids) {
-        return Box::into_raw(Box::new(result));
-    }
+    let res = cs.subcorpus_graph(&corpus, corpus_ids);
+    match res {
+        Ok(result) =>  {
+            trace!("annis_cs_subcorpus_graph(...) returns subgraph with {} labels", result.node_annos.len());
+            return Box::into_raw(Box::new(result));
+        }
+        Err(err) => warn!("Could not get subgraph, error message was:\n{:?}", err),
+    };
     return std::ptr::null_mut();
 }
 

@@ -16,6 +16,26 @@ pub enum EdgeAnnoSearchSpec {
     },
 }
 
+impl std::fmt::Display for EdgeAnnoSearchSpec {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+         match self {
+             &EdgeAnnoSearchSpec::ExactValue{ref ns, ref name, ref val} => {
+                 let qname = if let &Some(ref ns) = ns {
+                    format!("{}:{}", ns, name)
+                } else {
+                    name.clone()
+                };
+                
+                if let &Some(ref val) = val {
+                    write!(f, "{}={}", qname, val)
+                } else {
+                    write!(f, "{}", qname)
+                }
+             }
+         }
+    }
+}
+
 impl EdgeAnnoSearchSpec {
     pub fn get_anno(&self, strings: &StringStorage) -> Option<Annotation> {
         match self {
@@ -53,6 +73,7 @@ struct BaseEdgeOpSpec {
     pub max_dist: usize,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
     pub is_reflexive: bool,
+    pub query_fragment: Option<String>,
 }
 
 struct BaseEdgeOp {
@@ -127,7 +148,11 @@ impl BaseEdgeOp {}
 
 impl std::fmt::Display for BaseEdgeOp {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "?")
+         if let Some(ref query_fragment) = self.spec.query_fragment {
+             write!(f, "{}", query_fragment)
+         } else {
+            write!(f, "?")
+         }
     }
 }
 
@@ -288,8 +313,14 @@ impl DominanceSpec {
         edge_anno: Option<EdgeAnnoSearchSpec>,
     ) -> DominanceSpec {
         let components = db.get_all_components(Some(ComponentType::Dominance), Some(name));
+        let frag = if let Some(ref edge_anno) = edge_anno {
+            format!(">{}[{}]", name, edge_anno)
+        } else {
+            format!(">{} {},{}", name, min_dist.clone(), max_dist.clone())
+        };
         DominanceSpec {
             base: BaseEdgeOpSpec {
+                query_fragment: Some(frag),
                 components,
                 min_dist,
                 max_dist,
@@ -325,6 +356,11 @@ impl PointingSpec {
         edge_anno: Option<EdgeAnnoSearchSpec>,
     ) -> DominanceSpec {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(name));
+        let frag = if let Some(ref edge_anno) = edge_anno {
+            format!("->{}[{}]", name, edge_anno)
+        } else {
+            format!("->{} {},{}", name, min_dist.clone(), max_dist.clone())
+        };
         DominanceSpec {
             base: BaseEdgeOpSpec {
                 components,
@@ -332,6 +368,7 @@ impl PointingSpec {
                 max_dist,
                 edge_anno,
                 is_reflexive: true,
+                query_fragment: Some(frag),
             },
         }
     }
@@ -364,6 +401,7 @@ impl PartOfSubCorpusSpec {
         ];
         PartOfSubCorpusSpec {
             base: BaseEdgeOpSpec {
+                query_fragment: Some(format!("<part-of-subcorpus>1,{}", max_dist.clone())),
                 components,
                 min_dist: 1,
                 max_dist,

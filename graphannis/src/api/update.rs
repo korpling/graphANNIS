@@ -1,4 +1,4 @@
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum UpdateEvent {
     AddNode {
         node_name: String,
@@ -53,7 +53,7 @@ pub enum UpdateEvent {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[repr(C)]
 pub struct GraphUpdate {
     diffs : Vec<(u64, UpdateEvent)>,
