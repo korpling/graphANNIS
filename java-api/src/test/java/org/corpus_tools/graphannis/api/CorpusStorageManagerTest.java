@@ -102,6 +102,7 @@ public class CorpusStorageManagerTest
     
     // repeat several times to make it more likely that garbage collection is run
     for(int i=0; i < 25; i++) {
+      System.out.println("subcorpusGraph run " + (i+1));
        SDocumentGraph docCreated = storage.subcorpusGraph(corpusName, Arrays.asList(docOrig.getId()));
        docCreated = null;
        System.gc();
