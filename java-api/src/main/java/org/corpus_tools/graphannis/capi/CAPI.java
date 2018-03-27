@@ -20,6 +20,7 @@ import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
+import com.sun.jna.PointerType;
 
 public class CAPI implements Library {
 
@@ -52,7 +53,7 @@ public class CAPI implements Library {
   public static class AnnisIterPtr_AnnisNodeID extends AnnisPtr {
   }
 
-  public static class AnnisComponent extends AnnisPtr {
+  public static class AnnisComponentConst extends PointerType {
   }
 
   public static class AnnisVec_AnnisComponent extends AnnisPtr {
@@ -86,7 +87,7 @@ public class CAPI implements Library {
 
   public static native NativeLong annis_vec_component_size(AnnisVec_AnnisComponent ptr);
 
-  public static native AnnisComponent annis_vec_component_get(AnnisVec_AnnisComponent ptr, NativeLong i);
+  public static native AnnisComponentConst annis_vec_component_get(AnnisVec_AnnisComponent ptr, NativeLong i);
 
   public static native NativeLong annis_vec_edge_size(AnnisVec_AnnisEdge ptr);
 
@@ -145,11 +146,11 @@ public class CAPI implements Library {
 
   // GraphDB classes
 
-  public static native AnnisString annis_component_layer(AnnisComponent component);
+  public static native AnnisString annis_component_layer(AnnisComponentConst component);
 
-  public static native AnnisString annis_component_name(AnnisComponent component);
+  public static native AnnisString annis_component_name(AnnisComponentConst component);
 
-  public static native int annis_component_type(AnnisComponent component);
+  public static native int annis_component_type(AnnisComponentConst component);
 
   public static native AnnisVec_AnnisAnnotation annis_graph_node_labels(AnnisGraphDB g, NodeID nodeID);
 
@@ -159,9 +160,9 @@ public class CAPI implements Library {
   public static native AnnisVec_AnnisComponent annis_graph_all_components_by_type(AnnisGraphDB g, int ctype);
 
   public static native AnnisVec_AnnisEdge annis_graph_outgoing_edges(AnnisGraphDB g, NodeID source,
-      AnnisComponent component);
+      AnnisComponentConst component);
 
-  public static native AnnisVec_AnnisAnnotation annis_graph_edge_labels(AnnisGraphDB g, AnnisEdge.ByValue edge, AnnisComponent component);
+  public static native AnnisVec_AnnisAnnotation annis_graph_edge_labels(AnnisGraphDB g, AnnisEdge.ByValue edge, AnnisComponentConst component);
 
   public static native AnnisString annis_graph_str(AnnisGraphDB g, StringID str_id);
 }

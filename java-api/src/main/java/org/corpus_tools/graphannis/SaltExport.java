@@ -33,7 +33,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.corpus_tools.graphannis.capi.AnnisAnnotation;
 import org.corpus_tools.graphannis.capi.AnnisComponentType;
-import org.corpus_tools.graphannis.capi.CAPI.AnnisComponent;
 import org.corpus_tools.graphannis.capi.AnnisEdge;
 import org.corpus_tools.graphannis.capi.AnnisString;
 import org.corpus_tools.graphannis.capi.CAPI.AnnisVec_AnnisComponent;
@@ -78,7 +77,7 @@ public class SaltExport {
 
     AnnisVec_AnnisComponent components = CAPI.annis_graph_all_components(g);
     for (int i = 0; i < CAPI.annis_vec_component_size(components).intValue(); i++) {
-      AnnisComponent c = CAPI.annis_vec_component_get(components, new NativeLong(i));
+      CAPI.AnnisComponentConst c = CAPI.annis_vec_component_get(components, new NativeLong(i));
       if (AnnisComponentType.Dominance == CAPI.annis_component_type(c)) {
         // check if the node has an outgoing edge of this component
         AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(g, new NodeID(nID.getValue()), c);
@@ -140,7 +139,7 @@ public class SaltExport {
   }
 
   private static void mapAndAddEdge(SDocumentGraph g, CAPI.AnnisGraphDB orig, NodeID node, AnnisEdge origEdge,
-      CAPI.AnnisComponent component, Map<Integer, SNode> nodesByID) {
+      CAPI.AnnisComponentConst component, Map<Integer, SNode> nodesByID) {
     SNode source = nodesByID.get(origEdge.source.intValue());
     SNode target = nodesByID.get(origEdge.target.intValue());
 
@@ -158,7 +157,7 @@ public class SaltExport {
           // between the same nodes which has a type.
           AnnisVec_AnnisComponent domComponents = CAPI.annis_graph_all_components_by_type(orig, AnnisComponentType.Dominance);
           for(int cIdx = 0; cIdx < CAPI.annis_vec_component_size(domComponents).intValue(); cIdx++) {
-            CAPI.AnnisComponent dc = CAPI.annis_vec_component_get(domComponents, new NativeLong(cIdx));
+            CAPI.AnnisComponentConst dc = CAPI.annis_vec_component_get(domComponents, new NativeLong(cIdx));
 
             if(!CAPI.annis_component_name(dc).toString().isEmpty() && !CAPI.annis_component_layer(dc).toString().isEmpty()) {
               AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, origEdge.source, dc);
@@ -338,7 +337,7 @@ public class SaltExport {
     AnnisVec_AnnisComponent components = CAPI.annis_graph_all_components(orig);
     for (Map.Entry<Integer, SNode> nodeEntry : newNodesByID.entrySet()) {
       for (int i = 0; i < CAPI.annis_vec_component_size(components).intValue(); i++) {
-        AnnisComponent c = CAPI.annis_vec_component_get(components, new NativeLong(i));
+        CAPI.AnnisComponentConst c = CAPI.annis_vec_component_get(components, new NativeLong(i));
         NodeID nId = new NodeID(nodeEntry.getKey());
         AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, nId, c);
         for (int edgeIdx = 0; edgeIdx < CAPI.annis_vec_edge_size(outEdges).intValue(); edgeIdx++) {
