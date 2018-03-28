@@ -1,7 +1,7 @@
 use {Component, Match};
 use graphdb::GraphDB;
 use operator::{Operator, OperatorSpec};
-use exec::{Desc, ExecutionNode, CostEstimate};
+use exec::{CostEstimate, Desc, ExecutionNode};
 use exec::indexjoin::IndexJoin;
 use exec::nestedloop::NestedLoop;
 use exec::nodesearch::{NodeSearch, NodeSearchSpec};
@@ -63,22 +63,27 @@ fn update_components_for_nodes(
     }
 }
 
-fn optimized_operand_order<'a>(op_entry : &OperatorEntry, 
-    op : &'a Box<Operator + 'a>, 
-    node2cost : &BTreeMap<usize, CostEstimate>) -> (usize, usize) {
-        if op.is_commutative() {
-            if let (Some(cost_lhs), Some(cost_rhs)) = (node2cost.get(&op_entry.idx_left), node2cost.get(&op_entry.idx_right)) {
-                let cost_lhs : &CostEstimate = cost_lhs;
-                let cost_rhs : &CostEstimate = cost_rhs;
+fn optimized_operand_order<'a>(
+    op_entry: &OperatorEntry,
+    op: &'a Box<Operator + 'a>,
+    node2cost: &BTreeMap<usize, CostEstimate>,
+) -> (usize, usize) {
+    if op.is_commutative() {
+        if let (Some(cost_lhs), Some(cost_rhs)) = (
+            node2cost.get(&op_entry.idx_left),
+            node2cost.get(&op_entry.idx_right),
+        ) {
+            let cost_lhs: &CostEstimate = cost_lhs;
+            let cost_rhs: &CostEstimate = cost_rhs;
 
-                if cost_rhs.output < cost_lhs.output {
-                    // switch operands
-                    return (op_entry.idx_right, op_entry.idx_left);
-                } 
+            if cost_rhs.output < cost_lhs.output {
+                // switch operands
+                return (op_entry.idx_right, op_entry.idx_left);
             }
         }
-        return (op_entry.idx_left, op_entry.idx_right);
     }
+    return (op_entry.idx_left, op_entry.idx_right);
+}
 
 impl<'a> Conjunction<'a> {
     pub fn new() -> Conjunction<'a> {
@@ -146,7 +151,13 @@ impl<'a> Conjunction<'a> {
             .ok_or(Error::MissingCost)?
             .intermediate_sum
             .clone();
-        trace!("initial plan:\n{}", initial_plan.get_desc().ok_or(Error::MissingDescription)?.debug_string("  "));
+        trace!(
+            "initial plan:\n{}",
+            initial_plan
+                .get_desc()
+                .ok_or(Error::MissingDescription)?
+                .debug_string("  ")
+        );
 
         let num_new_generations = 4;
         let max_unsuccessful_tries = 5 * self.operators.len();
@@ -182,7 +193,13 @@ impl<'a> Conjunction<'a> {
                     .clone()
                     .ok_or(Error::MissingCost)?
                     .intermediate_sum;
-                trace!("alternatives plan: \n{}", initial_plan.get_desc().ok_or(Error::MissingDescription)?.debug_string("  "));
+                trace!(
+                    "alternatives plan: \n{}",
+                    initial_plan
+                        .get_desc()
+                        .ok_or(Error::MissingDescription)?
+                        .debug_string("  ")
+                );
 
                 if alt_cost < best_cost {
                     best_operator_order = family_operators[i].clone();
@@ -201,6 +218,7 @@ impl<'a> Conjunction<'a> {
         Ok(best_operator_order)
     }
 
+    fn optimize_node_by_graphstorage_search() {}
 
     fn make_exec_plan_with_order(
         &self,
@@ -217,12 +235,12 @@ impl<'a> Conjunction<'a> {
         // and move all nodes with their index as component number.
         let mut component2exec: BTreeMap<usize, Box<ExecutionNode<Item = Vec<Match>>>> =
             BTreeMap::new();
-        let mut node2cost : BTreeMap<usize, CostEstimate> = BTreeMap::new();
+        let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
         {
             let mut node_nr: usize = 0;
             for n_spec in self.nodes.iter() {
-                let mut n = NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(
+                let mut node_search = NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(
                     Error::ImpossibleSearch(format!(
                         "could not create node search for node {} ({})",
                         node_nr, n_spec
@@ -230,19 +248,20 @@ impl<'a> Conjunction<'a> {
                 )?;
                 node2component.insert(node_nr, node_nr);
 
-                let (orig_query_frag, orig_impl_desc, cost) = if let Some(d) = n.get_desc() {
-                    if let Some(ref c) = d.cost {
-                        node2cost.insert(node_nr, c.clone());
-                    }
-                    
-                    (
-                        d.query_fragment.clone(),
-                        d.impl_description.clone(),
-                        d.cost.clone(),
-                    )
-                } else {
-                    (String::from(""), String::from(""), None)
-                };
+                let (orig_query_frag, orig_impl_desc, cost) =
+                    if let Some(d) = node_search.get_desc() {
+                        if let Some(ref c) = d.cost {
+                            node2cost.insert(node_nr, c.clone());
+                        }
+
+                        (
+                            d.query_fragment.clone(),
+                            d.impl_description.clone(),
+                            d.cost.clone(),
+                        )
+                    } else {
+                        (String::from(""), String::from(""), None)
+                    };
                 // make sure the description is correct
                 let mut node_pos = BTreeMap::new();
                 node_pos.insert(node_nr.clone(), 0);
@@ -255,10 +274,10 @@ impl<'a> Conjunction<'a> {
                     query_fragment: orig_query_frag,
                     cost: cost,
                 };
-                n.set_desc(Some(new_desc));
+                node_search.set_desc(Some(new_desc));
 
                 // move to map
-                component2exec.insert(node_nr, Box::new(n));
+                component2exec.insert(node_nr, Box::new(node_search));
                 node_nr += 1;
             }
         }
@@ -271,7 +290,8 @@ impl<'a> Conjunction<'a> {
                 Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
             )?;
 
-            let (spec_idx_left, spec_idx_right) = optimized_operand_order(&op_entry, &op, &node2cost);
+            let (spec_idx_left, spec_idx_right) =
+                optimized_operand_order(&op_entry, &op, &node2cost);
 
             let component_left = node2component
                 .get(&spec_idx_left)
@@ -301,8 +321,6 @@ impl<'a> Conjunction<'a> {
                 .get(&spec_idx_left)
                 .ok_or(Error::OperatorIdxNotFound)?
                 .clone();
-
-            
 
             let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
@@ -413,7 +431,6 @@ impl<'a> Conjunction<'a> {
         self,
         db: &'a GraphDB,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
-
         let operator_order = self.optimize_join_order_heuristics(db)?;
         return self.make_exec_plan_with_order(db, operator_order);
     }
