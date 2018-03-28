@@ -419,8 +419,6 @@ impl CorpusStorage {
             );
         }
 
-        // always calculate statistics
-
         // save to its location
         let save_result = db.save_to(&db_path);
         if let Err(e) = save_result {

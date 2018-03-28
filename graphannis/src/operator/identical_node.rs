@@ -16,6 +16,7 @@ impl OperatorSpec for IdenticalNodeSpec {
    
 }
 
+#[derive(Debug)]
 pub struct IdenticalNode;
 
 impl std::fmt::Display for IdenticalNode {

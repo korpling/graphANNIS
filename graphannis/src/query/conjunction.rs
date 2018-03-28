@@ -11,7 +11,6 @@ use super::disjunction::Disjunction;
 
 use std::collections::BTreeMap;
 use std::iter::FromIterator;
-use std;
 
 use rand::XorShiftRng;
 use rand::SeedableRng;
@@ -64,7 +63,9 @@ fn update_components_for_nodes(
     }
 }
 
-fn optimized_operand_order<'a>(op_entry : &mut OperatorEntry, op : &'a Box<Operator + 'a>, node2cost : &BTreeMap<usize, CostEstimate>) {
+fn optimized_operand_order<'a>(op_entry : &OperatorEntry, 
+    op : &'a Box<Operator + 'a>, 
+    node2cost : &BTreeMap<usize, CostEstimate>) -> (usize, usize) {
         if op.is_commutative() {
             if let (Some(cost_lhs), Some(cost_rhs)) = (node2cost.get(&op_entry.idx_left), node2cost.get(&op_entry.idx_right)) {
                 let cost_lhs : &CostEstimate = cost_lhs;
@@ -72,10 +73,11 @@ fn optimized_operand_order<'a>(op_entry : &mut OperatorEntry, op : &'a Box<Opera
 
                 if cost_rhs.output < cost_lhs.output {
                     // switch operands
-                    std::mem::swap(&mut op_entry.idx_left, &mut op_entry.idx_right);
+                    return (op_entry.idx_right, op_entry.idx_left);
                 } 
             }
         }
+        return (op_entry.idx_left, op_entry.idx_right);
     }
 
 impl<'a> Conjunction<'a> {
@@ -120,7 +122,7 @@ impl<'a> Conjunction<'a> {
         return result;
     }
 
-    fn optimize_join_order_heuristics(&mut self, db: &'a GraphDB) -> Result<Vec<usize>, Error> {
+    fn optimize_join_order_heuristics(&self, db: &'a GraphDB) -> Result<Vec<usize>, Error> {
         // check if there is something to optimize
         if self.operators.is_empty() {
             return Ok(vec![]);
@@ -201,7 +203,7 @@ impl<'a> Conjunction<'a> {
 
 
     fn make_exec_plan_with_order(
-        &mut self,
+        &self,
         db: &'a GraphDB,
         operator_order: Vec<usize>,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
@@ -263,26 +265,26 @@ impl<'a> Conjunction<'a> {
 
         // 2. add the joins which produce the results in operand order
         for i in operator_order.into_iter() {
-            let mut op_entry = &mut self.operators[i];
+            let op_entry = &self.operators[i];
 
             let op: Box<Operator> = op_entry.op.create_operator(db).ok_or(
                 Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
             )?;
 
-            optimized_operand_order(&mut op_entry, &op, &node2cost);
+            let (spec_idx_left, spec_idx_right) = optimized_operand_order(&op_entry, &op, &node2cost);
 
             let component_left = node2component
-                .get(&op_entry.idx_left)
+                .get(&spec_idx_left)
                 .ok_or(Error::ImpossibleSearch(format!(
                     "no component for node #{}",
-                    op_entry.idx_left + 1
+                    spec_idx_left + 1
                 )))?
                 .clone();
             let component_right = node2component
-                .get(&op_entry.idx_right)
+                .get(&spec_idx_right)
                 .ok_or(Error::ImpossibleSearch(format!(
                     "no component for node #{}",
-                    op_entry.idx_right + 1
+                    spec_idx_right + 1
                 )))?
                 .clone();
 
@@ -296,7 +298,7 @@ impl<'a> Conjunction<'a> {
                 .get_desc()
                 .ok_or(Error::MissingDescription)?
                 .node_pos
-                .get(&op_entry.idx_left)
+                .get(&spec_idx_left)
                 .ok_or(Error::OperatorIdxNotFound)?
                 .clone();
 
@@ -310,7 +312,7 @@ impl<'a> Conjunction<'a> {
                         .get_desc()
                         .ok_or(Error::MissingDescription)?
                         .node_pos
-                        .get(&op_entry.idx_right)
+                        .get(&spec_idx_right)
                         .ok_or(Error::OperatorIdxNotFound)?
                         .clone();
 
@@ -318,8 +320,8 @@ impl<'a> Conjunction<'a> {
                         exec_left,
                         idx_left,
                         idx_right,
-                        op_entry.idx_left + 1,
-                        op_entry.idx_right + 1,
+                        spec_idx_left + 1,
+                        spec_idx_right + 1,
                         op,
                         db,
                     );
@@ -335,7 +337,7 @@ impl<'a> Conjunction<'a> {
                         .get_desc()
                         .ok_or(Error::MissingDescription)?
                         .node_pos
-                        .get(&op_entry.idx_right)
+                        .get(&spec_idx_right)
                         .ok_or(Error::OperatorIdxNotFound)?
                         .clone();
 
@@ -346,8 +348,8 @@ impl<'a> Conjunction<'a> {
                         let join = IndexJoin::new(
                             exec_left,
                             idx_left,
-                            op_entry.idx_left + 1,
-                            op_entry.idx_right + 1,
+                            spec_idx_left + 1,
+                            spec_idx_right + 1,
                             op,
                             exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                             &db,
@@ -364,8 +366,8 @@ impl<'a> Conjunction<'a> {
                             exec_right,
                             idx_left,
                             idx_right,
-                            op_entry.idx_left + 1,
-                            op_entry.idx_right + 1,
+                            spec_idx_left + 1,
+                            spec_idx_right + 1,
                             op,
                             db,
                         );
@@ -408,7 +410,7 @@ impl<'a> Conjunction<'a> {
     }
 
     pub fn make_exec_node(
-        mut self,
+        self,
         db: &'a GraphDB,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
 

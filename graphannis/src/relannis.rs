@@ -104,8 +104,6 @@ pub fn load(path: &Path) -> Result<(String, GraphDB)> {
 
         add_subcorpora(&mut db, &corpus_name, &corpus_by_preorder, &corpus_id_to_name, &nodes_by_corpus_id, &corpus_id_to_annos)?;
 
-        // TODO: optimize all components
-
         info!("calculating node statistics");
         db.node_annos.calculate_statistics(&db.strings);
 
