@@ -80,7 +80,8 @@ fn main() {
 
     let matches = App::new("graphANNIS search benchmark")
         .arg(Arg::with_name("logfile").long("logfile").takes_value(true))
-        .arg(Arg::with_name("dir").long("dir").short("d").takes_value(true))
+        .arg(Arg::with_name("data").long("data").short("d").takes_value(true).required(true))
+        .arg(Arg::with_name("queries").long("queries").short("q").takes_value(true).required(true))
         .arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
@@ -94,16 +95,16 @@ fn main() {
         test_opts.logfile = Some(PathBuf::from(log));
     }
 
-    let path: String = if let Some(dir) = matches.value_of("dir") {
-        String::from(dir)
-    } else if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
-        path
+    let data_dir: PathBuf = if let Some(dir) = matches.value_of("data") {
+        PathBuf::from(dir)
     } else {
-        String::from(".")
+        PathBuf::from("data")
     };
-
-    let data_dir: PathBuf = [&path, "data"].iter().collect();
-    let queries_dir: PathBuf = [&path, "queries"].iter().collect();
+    let queries_dir: PathBuf = if let Some(dir) = matches.value_of("queries") {
+        PathBuf::from(dir)
+    } else {
+        PathBuf::from("queries")
+    };
 
     let benches = count_bench(&data_dir, &queries_dir);
     run_tests_console(&test_opts, benches).unwrap();

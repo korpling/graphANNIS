@@ -2,6 +2,7 @@
 /build*
 /data
 /data_*
+/queries_*
 /relannis
 CMakeLists.txt.user
 *.*~
