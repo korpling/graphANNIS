@@ -141,14 +141,16 @@ pub extern "C" fn annis_cs_import_relannis(
     path: *const libc::c_char,
 ) -> *mut Error {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
-    let corpus : &str = &cstr!(corpus);
+
+    let override_corpus_name : Option<String> = if corpus.is_null() {None} else {Some(String::from(cstr!(corpus)))};
     let path: &str = &cstr!(path);
     
     let res = relannis::load(&PathBuf::from(path));
 
      match res {
-        Ok(db) => {
-            cs.import(corpus, db);
+        Ok((corpus, db)) => {
+            let corpus : String = if let Some(o) = override_corpus_name {o} else {corpus};
+            cs.import(&corpus, db);
         },
         Err(err) => {
             return Box::into_raw(Box::new(Error::from(err)));

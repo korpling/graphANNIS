@@ -149,21 +149,21 @@ impl AnnisRunner {
 
     fn import_relannis(&mut self, args: &str) {
         let args: Vec<&str> = args.split(' ').collect();
-        if args.len() < 2 {
-            println!("You need to give the name of the corpus and the location of the relANNIS files and  as argument");
+        if args.is_empty() {
+            println!("You need to location of the relANNIS files and optionally a name as argument");
             return;
         }
 
-        let name = args[0];
-        let path = args[1];
+        let path = args[0];
 
         let t_before = std::time::SystemTime::now();
         let res = relannis::load(&PathBuf::from(path));
         let load_time = t_before.elapsed();
         match res {
-            Ok(db) => if let Ok(t) = load_time {
+            Ok((name,db)) => if let Ok(t) = load_time {
                 info!{"Loaded corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
                 info!("Saving imported corpus to disk");
+                let name = if args.len() > 1 {args[1]} else {&name};
                 self.storage.import(name, db);
                 info!("Finished saving corpus {} to disk", name);
             },

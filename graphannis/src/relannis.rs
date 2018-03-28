@@ -63,7 +63,7 @@ struct TextProperty {
     val: u32,
 }
 
-pub fn load(path: &Path) -> Result<GraphDB> {
+pub fn load(path: &Path) -> Result<(String, GraphDB)> {
 
     // convert to path
     let path = PathBuf::from(path);
@@ -118,7 +118,7 @@ pub fn load(path: &Path) -> Result<GraphDB> {
 
         info!("finished loading relANNIS from {}", path.to_string_lossy());
 
-        return Ok(db);
+        return Ok((corpus_name,db));
     }
 
     return Err(Error::DirectoryNotFound);
