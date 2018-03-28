@@ -41,6 +41,13 @@ impl AdjacencyListStorage {
         }
     }
 
+
+    pub fn clear(&mut self) {
+        self.edges.clear();
+        self.inverse_edges.clear();
+        self.annos.clear();
+        self.stats = None;
+    }
 }
 
 impl GraphStorage for AdjacencyListStorage {
@@ -95,8 +102,21 @@ impl GraphStorage for AdjacencyListStorage {
         return Box::new(it);
     }
 
-    fn copy(&mut self, _db : &GraphDB, _other : &GraphStorage) {
-        unimplemented!();
+    fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
+        self.clear();
+
+        for source in orig.source_nodes() {
+            for target in orig.get_outgoing_edges(&source) {
+                let e = Edge{source, target};
+                self.add_edge(e.clone());
+                for a in orig.get_edge_annos(&e) {
+                    self.add_edge_annotation(e.clone(), a);
+                }
+            }
+        }
+
+        self.stats = orig.get_statistics().cloned();
+        self.annos.calculate_statistics(&db.strings);
     }
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
