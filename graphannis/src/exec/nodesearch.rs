@@ -178,6 +178,11 @@ impl<'a> NodeSearch<'a> {
         }
     }
 
+    pub fn new_partofcomponent_search(orig : &NodeSearch<'a>, components : Vec<Component>) -> NodeSearch<'a> {
+
+        unimplemented!()
+    }
+
     fn new_annosearch(
         db: &'a GraphDB,
         ns: Option<String>,

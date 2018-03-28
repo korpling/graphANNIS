@@ -1,5 +1,6 @@
 use {Component, Match};
 use graphdb::GraphDB;
+use graphstorage::GraphStatistic;
 use operator::{Operator, OperatorSpec};
 use exec::{CostEstimate, Desc, ExecutionNode};
 use exec::indexjoin::IndexJoin;
@@ -84,7 +85,6 @@ fn optimized_operand_order<'a>(
     }
     return (op_entry.idx_left, op_entry.idx_right);
 }
-
 
 impl<'a> Conjunction<'a> {
     pub fn new() -> Conjunction<'a> {
@@ -219,6 +219,40 @@ impl<'a> Conjunction<'a> {
         Ok(best_operator_order)
     }
 
+    fn optimize_node_search_by_operator(
+        &self,
+        node_search: Option<&'a NodeSearch>,
+        op_spec : &'a OperatorSpec,
+        db : &'a GraphDB
+    ) -> Option<Box<ExecutionNode<Item = Vec<Match>>>> {
+        if let Some(node_search) = node_search {
+            
+            // check if we can replace this node search with a generic "all nodes from either of these components" search
+
+            let node_search_cost : &CostEstimate = node_search.get_desc()?.cost.as_ref()?;
+
+            // get the necessary components and count the number of nodes in these components
+            let components = op_spec.necessary_components();
+            if components.len() > 0 {
+                let mut nodes_in_components = 0;
+                for c in components.iter() {
+                    if let Some(gs) = db.get_graphstorage(c) {
+                        if let Some(stats) = gs.get_statistics() {
+                            let stats : &GraphStatistic = stats;
+                            nodes_in_components += stats.nodes;
+                        }
+                    }
+                }
+
+                if node_search_cost.output > nodes_in_components {
+                    //return Some(Box::new(NodeSearch::new_partofcomponent_search(node_search, components)));
+                }
+            }
+
+            // TODO: check if we can apply an even more restrictive edge annotation search
+        }
+        return None;
+    }
 
     fn make_exec_plan_with_order(
         &self,
@@ -283,7 +317,7 @@ impl<'a> Conjunction<'a> {
 
         // 2. add the joins which produce the results in operand order
         for i in operator_order.into_iter() {
-            let op_entry = &self.operators[i];
+            let op_entry: &OperatorEntry = &self.operators[i];
 
             let op: Box<Operator> = op_entry.op.create_operator(db).ok_or(
                 Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
@@ -307,12 +341,22 @@ impl<'a> Conjunction<'a> {
                 )))?
                 .clone();
 
+            // get the original execution node
             let exec_left = component2exec.remove(&component_left).ok_or(
                 Error::ImpossibleSearch(format!(
                     "no execution node for component {}",
                     component_left
                 )),
             )?;
+
+            let opt_exec_left =
+                self.optimize_node_search_by_operator(exec_left.as_nodesearch(), op_entry.op.as_ref(), db);
+            let exec_left = if let Some(opt) = opt_exec_left {
+                opt
+            } else {
+                exec_left
+            };
+
             let idx_left = exec_left
                 .get_desc()
                 .ok_or(Error::MissingDescription)?
