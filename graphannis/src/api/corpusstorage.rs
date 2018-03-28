@@ -68,13 +68,14 @@ impl From<std::ffi::OsString> for Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Ord, Eq, PartialOrd, PartialEq)]
 pub enum LoadStatus {
     NotLoaded,
     PartiallyLoaded(usize),
     FullyLoaded(usize),
 }
 
+#[derive(Ord, Eq, PartialOrd, PartialEq)]
 pub struct CorpusInfo {
     pub name: String,
     pub load_status: LoadStatus,

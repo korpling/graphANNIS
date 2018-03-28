@@ -174,7 +174,8 @@ impl AnnisRunner {
     }
 
     fn list(&self) {
-        if let Ok(corpora) = self.storage.list() {
+        if let Ok(mut corpora) = self.storage.list() {
+            corpora.sort();
             for c in corpora {
 
                 let desc = match c.load_status {
