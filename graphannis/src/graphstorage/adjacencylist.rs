@@ -11,6 +11,8 @@ use std::collections::Bound::*;
 use heapsize::HeapSizeOf;
 use util::memory_estimation;
 
+use itertools::Itertools;
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
     edges: BTreeSet<Edge>,
@@ -86,6 +88,11 @@ impl GraphStorage for AdjacencyListStorage {
         .filter(|x| *target == x.node );
         
         return it.next().is_some();
+    }
+
+    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+        let it = self.edges.iter().map(|e| e.source).dedup();
+        return Box::new(it);
     }
 
     fn copy(&mut self, _db : &GraphDB, _other : &GraphStorage) {
