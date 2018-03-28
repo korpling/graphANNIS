@@ -29,6 +29,7 @@ extern crate lazy_static;
 extern crate serde_json;
 
 extern crate num;
+extern crate itertools;
 
 #[macro_use]
 pub mod util;

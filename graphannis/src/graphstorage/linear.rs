@@ -130,6 +130,16 @@ where PosT : NumValue {
         return false;
     }
 
+    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+        // use the node chains to find source nodes, but always skip the last element
+        // because the last element is only a target node, not a source node
+        let it = self.node_chains.iter()
+            .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
+            .cloned();
+            
+        return Box::new(it);
+    }
+
     fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
 
         self.clear();

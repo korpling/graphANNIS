@@ -203,6 +203,19 @@ where OrderT : NumValue,
         return false;
     }
 
+    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+        let it = self.node_to_order.iter()
+            .filter_map(move |(n, _order)| {
+                // check if this is actual a source node (and not only a target node)
+                if self.get_outgoing_edges(n).next().is_some() {
+                    return Some(n.clone());
+                } else {
+                    return None;
+                }
+            });
+        return Box::new(it);
+    }
+
     fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
 
         self.clear();

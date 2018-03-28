@@ -44,6 +44,11 @@ pub trait GraphStorage : Sync + Send + HeapSizeOf {
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize>;
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool;
 
+    /// Provides an iterator over all nodes of this graph storage that are the source an edge
+    fn source_nodes<'a>(
+        &'a self,
+    ) -> Box<Iterator<Item = NodeID> + 'a>;
+
     fn copy(&mut self, db : &GraphDB, orig : &GraphStorage);
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge>;
