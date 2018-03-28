@@ -85,6 +85,7 @@ fn optimized_operand_order<'a>(
     return (op_entry.idx_left, op_entry.idx_right);
 }
 
+
 impl<'a> Conjunction<'a> {
     pub fn new() -> Conjunction<'a> {
         Conjunction {
@@ -218,7 +219,6 @@ impl<'a> Conjunction<'a> {
         Ok(best_operator_order)
     }
 
-    fn optimize_node_by_graphstorage_search() {}
 
     fn make_exec_plan_with_order(
         &self,
@@ -238,8 +238,8 @@ impl<'a> Conjunction<'a> {
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
         {
-            let mut node_nr: usize = 0;
-            for n_spec in self.nodes.iter() {
+            for node_nr in 0..self.nodes.len() {
+                let n_spec = &self.nodes[node_nr];
                 let mut node_search = NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(
                     Error::ImpossibleSearch(format!(
                         "could not create node search for node {} ({})",
@@ -278,7 +278,6 @@ impl<'a> Conjunction<'a> {
 
                 // move to map
                 component2exec.insert(node_nr, Box::new(node_search));
-                node_nr += 1;
             }
         }
 
