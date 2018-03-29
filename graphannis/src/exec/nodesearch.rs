@@ -130,7 +130,9 @@ impl<'a> NodeSearch<'a> {
                 NodeSearch::new_annosearch(db, ns, name, val, false, &query_fragment, node_nr)
             }
             NodeSearchSpec::RegexValue { ns, name, val } => {
-                NodeSearch::new_annosearch(db, ns, name, Some(val), true, &query_fragment, node_nr)
+                let is_regex = true;
+                // check if the regex can be replaced with an exact value
+                NodeSearch::new_annosearch(db, ns, name, Some(val), is_regex, &query_fragment, node_nr)
             }
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,

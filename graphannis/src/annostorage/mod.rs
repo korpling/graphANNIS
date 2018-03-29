@@ -306,11 +306,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
     ) -> usize {
         let full_match_pattern = util::regex_full_match(pattern);
 
-        let opt_expr = regex_syntax::Expr::parse(&full_match_pattern);
-        if opt_expr.is_ok() {
-            let expr = opt_expr.unwrap();
+        let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
+        if let Ok(parsed) = parsed {
+            let expr : regex_syntax::hir::Hir = parsed;
 
-            let prefix_set = expr.prefixes();
+            let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
             let val_prefix = std::str::from_utf8(prefix_set.longest_common_prefix());
 
             if val_prefix.is_ok() {

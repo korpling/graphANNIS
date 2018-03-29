@@ -8,7 +8,7 @@ workspace = ".."
 [dependencies]
 graphannis = {path = "../graphannis"}
 rustyline = "1.0"
-log = "0.3"
+log = "0.4"
 simplelog = "0.5"
 clap = "2"
 bencher = "0.1"

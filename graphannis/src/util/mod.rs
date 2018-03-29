@@ -19,6 +19,10 @@ pub fn regex_full_match(pattern: &str) -> String {
     full_match_pattern
 }
 
+// pub fn contains_regex_metacharacters(pattern: &str) -> bool {
+
+// }
+
 pub fn check_annotation_key_equal(a: &Annotation, b: &Annotation) -> bool {
      // compare by name (non lexical but just by the ID)
     if a.key.name != 0 && b.key.name != 0 && a.key.name != b.key.name {
