@@ -1,13 +1,12 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use graphdb::{GraphDB, ANNIS_NS};
-use graphstorage::GraphStorage;
 use {Annotation, Component, ComponentType, Match, NodeID, StringID};
 use stringstorage::StringStorage;
 
 use util;
 use regex;
 
-use std::{fmt, rc::Rc, sync::Arc};
+use std::{fmt, rc::Rc};
 use std;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
@@ -387,52 +386,12 @@ impl<'a> NodeSearch<'a> {
         });
     }
 
-    pub fn set_desc(&mut self, desc: Option<Desc>) {
-        self.desc = desc;
-    }
-
-    pub fn get_node_search_desc(&self) -> Rc<NodeSearchDesc> {
-        self.node_search_desc.clone()
-    }
-}
-
-impl<'a> ExecutionNode for NodeSearch<'a> {
-    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
-        self
-    }
-
-    fn get_desc(&self) -> Option<&Desc> {
-        self.desc.as_ref()
-    }
-
-    fn as_nodesearch(&self) -> Option<&NodeSearch> {
-        Some(self)
-    }
-}
-
-impl<'a> Iterator for NodeSearch<'a> {
-    type Item = Vec<Match>;
-
-    fn next(&mut self) -> Option<Vec<Match>> {
-        self.it.next()
-    }
-}
-
-pub struct NodeByComponentSearch<'a> {
-    /// The actual search implementation
-    it: Box<Iterator<Item = Vec<Match>> + 'a>,
-
-    desc: Option<Desc>,
-}
-
-impl<'a> NodeByComponentSearch<'a> {
-    
-    pub fn new(
+    pub fn new_partofcomponentsearch(
         db: &'a GraphDB,
         node_search_desc: Rc<NodeSearchDesc>,
         desc: Option<&Desc>,
         components: Vec<Component>,
-    ) -> NodeByComponentSearch<'a> {
+    ) -> NodeSearch<'a> {
         let node_search_desc_1 = node_search_desc.clone();
         let node_search_desc_2 = node_search_desc.clone();
 
@@ -464,14 +423,23 @@ impl<'a> NodeByComponentSearch<'a> {
                 }
                 return Some(vec![m]);
             });
-        return NodeByComponentSearch {
+        return NodeSearch {
             it: Box::new(it),
             desc: desc.cloned(),
+            node_search_desc: node_search_desc,
         };
+    }
+
+    pub fn set_desc(&mut self, desc: Option<Desc>) {
+        self.desc = desc;
+    }
+
+    pub fn get_node_search_desc(&self) -> Rc<NodeSearchDesc> {
+        self.node_search_desc.clone()
     }
 }
 
-impl<'a> ExecutionNode for NodeByComponentSearch<'a> {
+impl<'a> ExecutionNode for NodeSearch<'a> {
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
     }
@@ -479,9 +447,13 @@ impl<'a> ExecutionNode for NodeByComponentSearch<'a> {
     fn get_desc(&self) -> Option<&Desc> {
         self.desc.as_ref()
     }
+
+    fn as_nodesearch(&self) -> Option<&NodeSearch> {
+        Some(self)
+    }
 }
 
-impl<'a> Iterator for NodeByComponentSearch<'a> {
+impl<'a> Iterator for NodeSearch<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
