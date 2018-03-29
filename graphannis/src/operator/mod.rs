@@ -1,3 +1,4 @@
+use operator::edge_op::EdgeAnnoSearchSpec;
 use {Match, Component};
 use graphdb::GraphDB;
 use std;
@@ -25,6 +26,8 @@ pub trait OperatorSpec : std::fmt::Debug {
     fn necessary_components(&self) -> Vec<Component>;
 
     fn create_operator<'a>(&self, db: &'a GraphDB) -> Option<Box<Operator + 'a>>;
+
+    fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {None}
     
 }
 

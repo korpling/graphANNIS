@@ -1,3 +1,5 @@
+use types::Edge;
+use annostorage::AnnoStorage;
 use {Component, Match};
 use graphdb::GraphDB;
 use graphstorage::{GraphStatistic};
@@ -233,29 +235,39 @@ impl<'a> Conjunction<'a> {
         // get the necessary components and count the number of nodes in these components
         let components = op_spec.necessary_components();
         if components.len() > 0 {
-            let mut nodes_in_components = 0;
+
+            let mut estimated_component_search = 0;
+            
+            let mut estimation_valid = false;
             for c in components.iter() {
                 if let Some(gs) = db.get_graphstorage(c) {
-                    if let Some(stats) = gs.get_statistics() {
+                    // check if we can apply an even more restrictive edge annotation search
+                    if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
+                        let anno_storage : &AnnoStorage<Edge> = gs.get_anno_storage();  
+                        if let Some(edge_anno_est) = edge_anno_spec.guess_max_count(&anno_storage, &db.strings) {
+                            estimated_component_search += edge_anno_est;
+                            estimation_valid = true;
+                        }
+                    } else if let Some(stats) = gs.get_statistics() {
                         let stats: &GraphStatistic = stats;
-                        nodes_in_components += stats.nodes;
-                    }
+                        estimated_component_search += stats.nodes;
+                        estimation_valid = true;
+                    }    
                 }
             }
 
-            if node_search_cost.output > nodes_in_components {
+            if estimation_valid && node_search_cost.output > estimated_component_search {
                 return Some(Box::new(NodeSearch::new_partofcomponentsearch(
                     db,
                     node_search_desc,
                     desc,
                     components,
+                    op_spec.get_edge_anno_spec(),
                 )));
             }
         }
 
         return None;
-
-        // TODO: check if we can apply an even more restrictive edge annotation search
     }
 
     fn make_exec_plan_with_order(

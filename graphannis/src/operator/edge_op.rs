@@ -1,3 +1,4 @@
+use annostorage::AnnoStorage;
 use {AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
 use graphstorage::{GraphStorage, GraphStatistic};
 use graphdb::{GraphDB, ANNIS_NS};
@@ -64,6 +65,21 @@ impl EdgeAnnoSearchSpec {
             }
         }
     }
+
+    pub fn guess_max_count(&self, anno_storage : &AnnoStorage<Edge>, strings : &StringStorage) -> Option<usize> {
+        match self {
+            &EdgeAnnoSearchSpec::ExactValue{ref ns, ref name, ref val} => {
+                let val = val.clone()?;
+                let name_id = strings.find_id(&name)?;
+                if let Some(ns) = ns.clone() {
+                    let ns_id = strings.find_id(&ns)?;
+                    return Some(anno_storage.guess_max_count(Some(ns_id.clone()), name_id.clone(), &val, &val));
+                } else {
+                    return Some(anno_storage.guess_max_count(None, name_id.clone(), &val, &val)); 
+                }            
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -114,6 +130,8 @@ impl OperatorSpec for BaseEdgeOpSpec {
             return None;
         }
     }
+
+    fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> { self.edge_anno.clone() }
 }
 
 fn check_edge_annotation(

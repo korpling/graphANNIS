@@ -1,3 +1,6 @@
+use types::Edge;
+use annostorage::AnnoStorage;
+use operator::edge_op::EdgeAnnoSearchSpec;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use graphdb::{GraphDB, ANNIS_NS};
 use {Annotation, Component, ComponentType, Match, NodeID, StringID};
@@ -391,20 +394,32 @@ impl<'a> NodeSearch<'a> {
         node_search_desc: Rc<NodeSearchDesc>,
         desc: Option<&Desc>,
         components: Vec<Component>,
+        edge_anno_spec : Option<EdgeAnnoSearchSpec>,
     ) -> NodeSearch<'a> {
         let node_search_desc_1 = node_search_desc.clone();
         let node_search_desc_2 = node_search_desc.clone();
 
-        
+        let edge_anno_template : Option<Annotation> = edge_anno_spec.and_then(|e| e.get_anno(&db.strings));
         
         let it = components.into_iter()
-            .flat_map(move |c : Component| {
-                // for each component get the all its source nodes
+            .flat_map(move |c : Component| -> Box<Iterator<Item=NodeID>> {
                 if let Some(gs) = db.get_graphstorage_as_ref(&c) {
-                    return gs.source_nodes();
+                    if let Some(ref edge_anno_template) = edge_anno_template {
+                       // for each component get the source nodes with this edge annotation
+                        let anno_storage : &AnnoStorage<Edge> = gs.get_anno_storage();
+                        let ns = if edge_anno_template.key.ns == 0 {None} else {Some(edge_anno_template.key.ns)};
+                        let it = anno_storage
+                            .exact_anno_search(ns, edge_anno_template.key.name, Some(edge_anno_template.val))
+                            .map(|m : Match| m.node);
+                        return Box::new(it);
+                    } else {
+                        // for each component get the all its source nodes
+                        return gs.source_nodes();
+                    }
                 } else {
                     return Box::new(std::iter::empty());
                 }
+            
             })
             .flat_map(move |node: NodeID| {
                 // fetch annotation candidates for the node based on the original description
