@@ -19,11 +19,11 @@ pub struct ExecutionPlan<'a> {
 
 impl<'a> ExecutionPlan<'a> {
     
-    pub fn from_disjunction(mut query : Disjunction<'a>, db : &'a GraphDB) -> Result<ExecutionPlan<'a>, Error> {
+    pub fn from_disjunction(query : &'a Disjunction<'a>, db : &'a GraphDB) -> Result<ExecutionPlan<'a>, Error> {
         let mut plans : Vec<Box<ExecutionNode<Item=Vec<Match>>+'a>> = Vec::new();
         let mut descriptions : Vec<Option<Desc>> = Vec::new();
         let mut errors : Vec<conjunction::Error> = Vec::new();
-        for alt in query.alternatives.drain(..) {
+        for alt in query.alternatives.iter() {
             let p = alt.make_exec_node(db);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());

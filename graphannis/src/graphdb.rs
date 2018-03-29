@@ -761,6 +761,17 @@ impl GraphDB {
         return None;
     }
 
+    pub fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a GraphStorage> {
+        // get and return the reference to the entry if loaded
+        let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
+        if let Some(gs_opt) = entry {
+            if let Some(ref impl_type) = *gs_opt {
+                return Some(impl_type.as_ref());
+            }
+        }
+        return None;
+    }
+
     pub fn get_all_components(
         &self,
         ctype: Option<ComponentType>,

@@ -190,7 +190,7 @@ fn index_join() {
         let n1 = Box::new(n1);
 
         let node_search_desc  = NodeSearchDesc {
-            cond: vec![Box::new(move |m : Match, _ : &StringStorage|  {return m.anno.key.name == anno_name && m.anno.val == anno_val })],
+            cond: vec![Box::new(move |m : &Match, _ : &StringStorage|  {return m.anno.key.name == anno_name && m.anno.val == anno_val })],
             qname: (None, Some(anno_name)),
         };
 

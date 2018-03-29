@@ -151,7 +151,7 @@ fn extract_subgraph_by_query(db_entry : Arc<RwLock<CacheEntry>>, query : Disjunc
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(query, &orig_db)?;
+    let plan = ExecutionPlan::from_disjunction(&query, &orig_db)?;
 
     trace!("executing subgraph query\n{}", plan);
 
@@ -498,7 +498,7 @@ impl CorpusStorage {
         // accuire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(prep.query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
 
         return Ok(format!("{}", plan));
     }
@@ -532,7 +532,7 @@ impl CorpusStorage {
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(prep.query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
 
         return Ok(plan.count() as u64);
     }
@@ -543,7 +543,7 @@ impl CorpusStorage {
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db : &GraphDB = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(prep.query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
 
         let mut known_documents = HashSet::new();
 
@@ -581,7 +581,7 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
-        let plan = ExecutionPlan::from_disjunction(prep.query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
 
         let it: Vec<String> = plan.skip(offset)
             .take(limit)

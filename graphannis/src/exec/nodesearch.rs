@@ -1,13 +1,13 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use graphdb::{GraphDB, ANNIS_NS};
-use {Annotation, Component, ComponentType, Match, StringID};
+use graphstorage::GraphStorage;
+use {Annotation, Component, ComponentType, Match, NodeID, StringID};
 use stringstorage::StringStorage;
 
 use util;
 use regex;
 
-use std::rc::Rc;
-use std::fmt;
+use std::{fmt, rc::Rc, sync::Arc};
 use std;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
@@ -18,7 +18,6 @@ pub struct NodeSearch<'a> {
     desc: Option<Desc>,
     node_search_desc: Rc<NodeSearchDesc>,
 }
-
 #[derive(Clone, Debug)]
 pub enum NodeSearchSpec {
     ExactValue {
@@ -157,18 +156,24 @@ impl<'a> NodeSearch<'a> {
                     .exact_anno_search(Some(type_key.ns), type_key.name, Some(node_str_id))
                     .map(move |n| vec![n]);
 
-                let filter_func: Box<Fn(Match, &StringStorage) -> bool> = Box::new(move |m, _| {
+                let filter_func: Box<Fn(&Match, &StringStorage) -> bool> = Box::new(move |m, _| {
                     return m.anno.val == node_str_id;
                 });
 
                 let type_key = db.get_node_type_key();
 
-                let est_output = db.node_annos.guess_max_count(Some(type_key.ns), type_key.name, "node", "node");
+                let est_output =
+                    db.node_annos
+                        .guess_max_count(Some(type_key.ns), type_key.name, "node", "node");
                 let est_output = std::cmp::max(1, est_output);
 
                 Some(NodeSearch {
                     it: Box::new(it),
-                    desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, Some(est_output))),
+                    desc: Some(Desc::empty_with_fragment(
+                        &query_fragment,
+                        node_nr,
+                        Some(est_output),
+                    )),
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
@@ -176,11 +181,6 @@ impl<'a> NodeSearch<'a> {
                 })
             }
         }
-    }
-
-    pub fn new_partofcomponent_search(orig : &NodeSearch<'a>, components : Vec<Component>) -> NodeSearch<'a> {
-
-        unimplemented!()
     }
 
     fn new_annosearch(
@@ -192,9 +192,6 @@ impl<'a> NodeSearch<'a> {
         query_fragment: &str,
         node_nr: usize,
     ) -> Option<NodeSearch<'a>> {
-
-       
-
         let name_id: StringID = db.strings.find_id(&name)?.clone();
         // not finding the strings will result in an None result, not in an less specific search
         let ns_id: Option<StringID> = if let Some(ns) = ns.as_ref() {
@@ -217,7 +214,8 @@ impl<'a> NodeSearch<'a> {
             db.node_annos.exact_anno_search(ns_id, name_id, val_id)
         };
         let est_output = if match_regex {
-            db.node_annos.guess_max_count_regex(ns_id, name_id, &val.clone()?)
+            db.node_annos
+                .guess_max_count_regex(ns_id, name_id, &val.clone()?)
         } else {
             if let Some(ref val) = val {
                 db.node_annos.guess_max_count(ns_id, name_id, val, val)
@@ -228,37 +226,36 @@ impl<'a> NodeSearch<'a> {
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
-      
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters : Vec<Box<Fn(Match, &StringStorage) -> bool>> = Vec::new();
+        let mut filters: Vec<Box<Fn(&Match, &StringStorage) -> bool>> = Vec::new();
 
         if match_regex {
             // match_regex works only with values
             let val = val?.clone();
             let full_match_pattern = util::regex_full_match(&val);
             let re = regex::Regex::new(&full_match_pattern).ok()?;
-            filters.push(
-                Box::new(move |m, strings| {
-                    let val_str_opt = strings.str(m.anno.val);
-                    if let Some(val_str) = val_str_opt {
-                        return re.is_match(val_str);
-                    } else {
-                        return false;
-                    };
-                })
-            );
+            filters.push(Box::new(move |m, strings| {
+                let val_str_opt = strings.str(m.anno.val.clone());
+                if let Some(val_str) = val_str_opt {
+                    return re.is_match(val_str);
+                } else {
+                    return false;
+                };
+            }));
         } else if val_id.is_some() {
-            filters.push(
-                Box::new(move |m, _| {
-                    return m.anno.val == val_id.unwrap();
-                })
-            );
+            filters.push(Box::new(move |m, _| {
+                return m.anno.val == val_id.unwrap();
+            }));
         };
         return Some(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, Some(est_output))),
+            desc: Some(Desc::empty_with_fragment(
+                &query_fragment,
+                node_nr,
+                Some(est_output),
+            )),
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (ns_id, Some(name_id)),
                 cond: filters,
@@ -322,29 +319,25 @@ impl<'a> NodeSearch<'a> {
             ]
         });
         // create filter functions
-        let mut filters : Vec<Box<Fn(Match, &StringStorage) -> bool>> = Vec::new();
-        
+        let mut filters: Vec<Box<Fn(&Match, &StringStorage) -> bool>> = Vec::new();
+
         if let Some(ref v) = val {
             if match_regex {
                 let full_match_pattern = util::regex_full_match(v);
                 let re = regex::Regex::new(&full_match_pattern).ok()?;
-                filters.push(
-                    Box::new(move |m, strings| {
-                        let val_str_opt = strings.str(m.anno.val);
-                        if let Some(val_str) = val_str_opt {
-                            return re.is_match(val_str);
-                        } else {
-                            return false;
-                        };
-                    })
-                );
+                filters.push(Box::new(move |m, strings| {
+                    let val_str_opt = strings.str(m.anno.val.clone());
+                    if let Some(val_str) = val_str_opt {
+                        return re.is_match(val_str);
+                    } else {
+                        return false;
+                    };
+                }));
             } else {
                 let val_id = db.strings.find_id(v)?.clone();
-                filters.push(
-                    Box::new(move |m, _| {
-                        return m.anno.val == val_id;
-                    })
-                );
+                filters.push(Box::new(move |m, _| {
+                    return m.anno.val == val_id;
+                }));
             };
         };
 
@@ -354,7 +347,7 @@ impl<'a> NodeSearch<'a> {
                 layer: String::from(ANNIS_NS),
                 name: String::from(""),
             });
-            let filter_func: Box<Fn(Match, &StringStorage) -> bool> = Box::new(move |m, _| {
+            let filter_func: Box<Fn(&Match, &StringStorage) -> bool> = Box::new(move |m, _| {
                 if let Some(ref cov) = cov_gs {
                     cov.get_outgoing_edges(&m.node).next().is_none()
                 } else {
@@ -367,32 +360,38 @@ impl<'a> NodeSearch<'a> {
         // TODO: is_leaf should be part of the estimation
         let est_output = if let Some(ref val) = val {
             if match_regex {
-                db.node_annos.guess_max_count_regex(Some(tok_key.ns), tok_key.name, &val)
+                db.node_annos
+                    .guess_max_count_regex(Some(tok_key.ns), tok_key.name, &val)
             } else {
-                db.node_annos.guess_max_count(Some(tok_key.ns), tok_key.name, &val, &val)
+                db.node_annos
+                    .guess_max_count(Some(tok_key.ns), tok_key.name, &val, &val)
             }
         } else {
-            db.node_annos.num_of_annotations(Some(tok_key.ns), tok_key.name)
+            db.node_annos
+                .num_of_annotations(Some(tok_key.ns), tok_key.name)
         };
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
         return Some(NodeSearch {
             it: Box::new(it),
-            desc: Some(Desc::empty_with_fragment(&query_fragment, node_nr, Some(est_output))),
+            desc: Some(Desc::empty_with_fragment(
+                &query_fragment,
+                node_nr,
+                Some(est_output),
+            )),
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (Some(tok_key.ns), Some(tok_key.name)),
                 cond: filters,
             }),
         });
-
     }
 
     pub fn set_desc(&mut self, desc: Option<Desc>) {
         self.desc = desc;
     }
 
-    pub fn get_node_search_desc(&'a self) -> Rc<NodeSearchDesc> {
+    pub fn get_node_search_desc(&self) -> Rc<NodeSearchDesc> {
         self.node_search_desc.clone()
     }
 }
@@ -412,6 +411,77 @@ impl<'a> ExecutionNode for NodeSearch<'a> {
 }
 
 impl<'a> Iterator for NodeSearch<'a> {
+    type Item = Vec<Match>;
+
+    fn next(&mut self) -> Option<Vec<Match>> {
+        self.it.next()
+    }
+}
+
+pub struct NodeByComponentSearch<'a> {
+    /// The actual search implementation
+    it: Box<Iterator<Item = Vec<Match>> + 'a>,
+
+    desc: Option<Desc>,
+}
+
+impl<'a> NodeByComponentSearch<'a> {
+    
+    pub fn new(
+        db: &'a GraphDB,
+        node_search_desc: Rc<NodeSearchDesc>,
+        desc: Option<&Desc>,
+        components: Vec<Component>,
+    ) -> NodeByComponentSearch<'a> {
+        let node_search_desc_1 = node_search_desc.clone();
+        let node_search_desc_2 = node_search_desc.clone();
+
+        
+        
+        let it = components.into_iter()
+            .flat_map(move |c : Component| {
+                // for each component get the all its source nodes
+                if let Some(gs) = db.get_graphstorage_as_ref(&c) {
+                    return gs.source_nodes();
+                } else {
+                    return Box::new(std::iter::empty());
+                }
+            })
+            .flat_map(move |node: NodeID| {
+                // fetch annotation candidates for the node based on the original description
+                let node_search_desc = node_search_desc_1.clone();
+                db.node_annos
+                    .find_by_name(&node, node_search_desc.qname.0, node_search_desc.qname.1)
+                    .into_iter()
+                    .map(move |anno| Match { node, anno })
+            })
+            .filter_map(move |m: Match| -> Option<Vec<Match>> {
+                // only include the nodes that fullfill all original node search predicates
+                for cond in node_search_desc_2.cond.iter() {
+                    if !cond(&m, &db.strings) {
+                        return None;
+                    }
+                }
+                return Some(vec![m]);
+            });
+        return NodeByComponentSearch {
+            it: Box::new(it),
+            desc: desc.cloned(),
+        };
+    }
+}
+
+impl<'a> ExecutionNode for NodeByComponentSearch<'a> {
+    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+        self
+    }
+
+    fn get_desc(&self) -> Option<&Desc> {
+        self.desc.as_ref()
+    }
+}
+
+impl<'a> Iterator for NodeByComponentSearch<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {

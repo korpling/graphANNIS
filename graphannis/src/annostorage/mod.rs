@@ -93,6 +93,29 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
         self.by_container.get(&container_key)
     }
 
+    pub fn find_by_name(&self, item: &T, ns : Option<StringID>, name : Option<StringID>) -> Vec<Annotation> {
+        if let Some(name) = name {
+            if let Some(ns) = ns {
+                // fully qualified search
+                let key = AnnoKey{ns,name};
+                let res = self.get(item, &key);
+                if let Some(val) = res {
+                    return vec![Annotation {key, val: val.clone()}];
+                } else {
+                    return vec![];
+                }
+            } else {
+                // get all qualified names for the given annotation name
+                let res : Vec<Annotation> = self.get_qnames(name).into_iter()
+                .filter_map(|key| self.get(item, &key).map(|val| Annotation{key, val: val.clone()})).collect();
+                return res;
+            }
+        } else {
+            // no annotation name given, return all
+            return self.get_all(item);
+        }
+    }
+
     pub fn get_all(&self, item: &T) -> Vec<Annotation> {
         let min_key = AnnoKey { name: 0, ns: 0 };
         let max_key = AnnoKey {

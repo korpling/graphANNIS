@@ -184,12 +184,12 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<StringID>, Option<StringID>),
-    pub cond: Vec<Box<Fn(Match, &StringStorage) -> bool>>,
+    pub cond: Vec<Box<Fn(&Match, &StringStorage) -> bool>>,
 }
 
 pub trait ExecutionNode: Iterator {
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>>;
-    fn as_nodesearch(&self) -> Option<&NodeSearch> {
+    fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
         None
     }
 

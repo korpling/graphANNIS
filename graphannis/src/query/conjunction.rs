@@ -1,17 +1,18 @@
 use {Component, Match};
 use graphdb::GraphDB;
-use graphstorage::GraphStatistic;
+use graphstorage::{GraphStatistic,GraphStorage};
 use operator::{Operator, OperatorSpec};
-use exec::{CostEstimate, Desc, ExecutionNode};
+use exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use exec::indexjoin::IndexJoin;
 use exec::nestedloop::NestedLoop;
-use exec::nodesearch::{NodeSearch, NodeSearchSpec};
+use exec::nodesearch::{NodeSearch, NodeSearchSpec, NodeByComponentSearch};
 use exec::binary_filter::BinaryFilter;
 
 use super::disjunction::Disjunction;
 
 use std::collections::BTreeMap;
 use std::iter::FromIterator;
+use std::rc::Rc;
 
 use rand::XorShiftRng;
 use rand::SeedableRng;
@@ -220,16 +221,17 @@ impl<'a> Conjunction<'a> {
     }
 
     fn optimize_node_search_by_operator(
-        &self,
-        node_search: Option<&'a NodeSearch>,
+        &'a self,
+        node_search_desc: Rc<NodeSearchDesc>,
+        desc : Option<&Desc>,
         op_spec : &'a OperatorSpec,
         db : &'a GraphDB
-    ) -> Option<Box<ExecutionNode<Item = Vec<Match>>>> {
-        if let Some(node_search) = node_search {
+    ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
+            
             
             // check if we can replace this node search with a generic "all nodes from either of these components" search
 
-            let node_search_cost : &CostEstimate = node_search.get_desc()?.cost.as_ref()?;
+        let node_search_cost : &CostEstimate = desc?.cost.as_ref()?;
 
             // get the necessary components and count the number of nodes in these components
             let components = op_spec.necessary_components();
@@ -245,17 +247,18 @@ impl<'a> Conjunction<'a> {
                 }
 
                 if node_search_cost.output > nodes_in_components {
-                    //return Some(Box::new(NodeSearch::new_partofcomponent_search(node_search, components)));
+                    return Some(Box::new(NodeByComponentSearch::new(db, node_search_desc, desc, components)));
                 }
             }
 
-            // TODO: check if we can apply an even more restrictive edge annotation search
-        }
         return None;
+
+            // TODO: check if we can apply an even more restrictive edge annotation search
+    
     }
 
     fn make_exec_plan_with_order(
-        &self,
+        &'a self,
         db: &'a GraphDB,
         operator_order: Vec<usize>,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
@@ -267,7 +270,7 @@ impl<'a> Conjunction<'a> {
 
         // Create a map where the key is the component number
         // and move all nodes with their index as component number.
-        let mut component2exec: BTreeMap<usize, Box<ExecutionNode<Item = Vec<Match>>>> =
+        let mut component2exec: BTreeMap<usize, Box<ExecutionNode<Item = Vec<Match>> + 'a>> =
             BTreeMap::new();
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
@@ -317,7 +320,7 @@ impl<'a> Conjunction<'a> {
 
         // 2. add the joins which produce the results in operand order
         for i in operator_order.into_iter() {
-            let op_entry: &OperatorEntry = &self.operators[i];
+            let op_entry: &OperatorEntry<'a> = &self.operators[i];
 
             let op: Box<Operator> = op_entry.op.create_operator(db).ok_or(
                 Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
@@ -342,15 +345,17 @@ impl<'a> Conjunction<'a> {
                 .clone();
 
             // get the original execution node
-            let exec_left = component2exec.remove(&component_left).ok_or(
+            let exec_left : Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec.remove(&component_left).ok_or(
                 Error::ImpossibleSearch(format!(
                     "no execution node for component {}",
                     component_left
                 )),
             )?;
 
-            let opt_exec_left =
-                self.optimize_node_search_by_operator(exec_left.as_nodesearch(), op_entry.op.as_ref(), db);
+            let opt_exec_left = if let Some(node_search) = exec_left.as_nodesearch() {
+                self.optimize_node_search_by_operator(node_search.get_node_search_desc(), exec_left.get_desc(), op_entry.op.as_ref(), db)
+            } else {None};
+     
             let exec_left = if let Some(opt) = opt_exec_left {
                 opt
             } else {
@@ -471,7 +476,7 @@ impl<'a> Conjunction<'a> {
     }
 
     pub fn make_exec_node(
-        self,
+        &'a self,
         db: &'a GraphDB,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
         let operator_order = self.optimize_join_order_heuristics(db)?;

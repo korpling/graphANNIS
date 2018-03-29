@@ -202,7 +202,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                         // check if all filters are true
                         let mut filter_result = true;
                         for f in self.node_search_desc.cond.iter() {
-                            if !(f)(m_rhs.clone(), &self.db.strings) {
+                            if !(f)(&m_rhs, &self.db.strings) {
                                 filter_result = false;
                                 break;
                             }
