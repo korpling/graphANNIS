@@ -3,6 +3,7 @@ pub mod memory_estimation;
 
 use {Annotation, AnnoKey};
 use graphdb::GraphDB;
+use regex_syntax;
 
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
@@ -19,9 +20,14 @@ pub fn regex_full_match(pattern: &str) -> String {
     full_match_pattern
 }
 
-// pub fn contains_regex_metacharacters(pattern: &str) -> bool {
-
-// }
+pub fn contains_regex_metacharacters(pattern: &str) -> bool {
+    for c in pattern.chars() {
+        if regex_syntax::is_meta_character(c) {
+            return true;
+        }
+    }
+    return false;
+}
 
 pub fn check_annotation_key_equal(a: &Annotation, b: &Annotation) -> bool {
      // compare by name (non lexical but just by the ID)
