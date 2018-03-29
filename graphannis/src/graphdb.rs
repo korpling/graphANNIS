@@ -129,7 +129,7 @@ where
 
     let f = std::fs::File::open(full_path)?;
     let mut reader = std::io::BufReader::new(f);
-    let result: T = bincode::deserialize_from(&mut reader, bincode::Infinite)?;
+    let result: T = bincode::deserialize_from(&mut reader)?;
     return Ok(result);
 }
 
@@ -142,7 +142,7 @@ where
 
     let f = std::fs::File::create(full_path)?;
     let mut writer = std::io::BufWriter::new(f);
-    bincode::serialize_into(&mut writer, object, bincode::Infinite)?;
+    bincode::serialize_into(&mut writer, object)?;
     return Ok(());
 }
 
@@ -212,7 +212,7 @@ impl GraphDB {
             // apply any outstanding log file updates
             let f_log = std::fs::File::open(log_path)?;
             let mut buf_reader = std::io::BufReader::new(f_log);
-            let update : GraphUpdate = bincode::deserialize_from(&mut buf_reader, bincode::Infinite)?;
+            let update : GraphUpdate = bincode::deserialize_from(&mut buf_reader)?;
             if update.get_last_consistent_change_id() > self.current_change_id {
                 self.apply_update_in_memory(&update)?;
             }
@@ -538,7 +538,7 @@ impl GraphDB {
                 
                 let f_log = std::fs::File::open(log_path)?;
                 let mut buf_writer = std::io::BufWriter::new(f_log);
-                bincode::serialize_into(&mut buf_writer, &mut u, bincode::Infinite)?;
+                bincode::serialize_into(&mut buf_writer, &mut u)?;
                 
                 // Until now only the write log is persisted. Start a background thread that writes the whole
                 // corpus to the folder (without the need to apply the write log).

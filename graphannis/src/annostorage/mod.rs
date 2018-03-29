@@ -419,7 +419,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
 
         let mut buf_writer = std::io::BufWriter::new(f);
 
-        bincode::serialize_into(&mut buf_writer, self, bincode::Infinite).is_ok()
+        bincode::serialize_into(&mut buf_writer, self).is_ok()
     }
 
     pub fn load_from_file(&mut self, path: &str) {
@@ -431,7 +431,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
             let mut buf_reader = std::io::BufReader::new(f.unwrap());
 
             let loaded: Result<AnnoStorage<T>, _> =
-                bincode::deserialize_from(&mut buf_reader, bincode::Infinite);
+                bincode::deserialize_from(&mut buf_reader);
             if loaded.is_ok() {
                 *self = loaded.unwrap();
             }
