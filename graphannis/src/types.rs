@@ -11,7 +11,7 @@ pub type StringID = u32;
 
 
 
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf, Hash)]
 #[repr(C)]
 pub struct AnnoKey {
     pub name: StringID,
