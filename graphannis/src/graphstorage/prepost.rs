@@ -298,6 +298,8 @@ where OrderT : NumValue,
 
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics(&db.strings);
+
+        self.node_to_order.shrink_to_fit();
     }
 
 

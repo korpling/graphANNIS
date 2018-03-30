@@ -203,7 +203,7 @@ where PosT : NumValue {
                 }                
                 chain.push(step.node);
             }
-
+            chain.shrink_to_fit();
             self.node_chains.insert(root_node.clone(), chain);
         }
 
