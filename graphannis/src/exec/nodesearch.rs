@@ -26,11 +26,13 @@ pub enum NodeSearchSpec {
         ns: Option<String>,
         name: String,
         val: Option<String>,
+        is_meta: bool,
     },
     RegexValue {
         ns: Option<String>,
         name: String,
         val: String,
+        is_meta: bool,
     },
     ExactTokenValue {
         val: String,
@@ -45,19 +47,26 @@ pub enum NodeSearchSpec {
 }
 
 impl NodeSearchSpec {
-    pub fn new_exact(ns: Option<&str>, name: &str, val: Option<&str>) -> NodeSearchSpec {
+    pub fn new_exact(
+        ns: Option<&str>,
+        name: &str,
+        val: Option<&str>,
+        is_meta: bool,
+    ) -> NodeSearchSpec {
         NodeSearchSpec::ExactValue {
             ns: ns.map(|v| String::from(v)),
             name: String::from(name),
             val: val.map(|v| String::from(v)),
+            is_meta,
         }
     }
 
-    pub fn new_regex(ns: Option<&str>, name: &str, val: &str) -> NodeSearchSpec {
+    pub fn new_regex(ns: Option<&str>, name: &str, val: &str, is_meta: bool) -> NodeSearchSpec {
         NodeSearchSpec::RegexValue {
             ns: ns.map(|v| String::from(v)),
             name: String::from(name),
             val: String::from(val),
+            is_meta,
         }
     }
 }
@@ -126,13 +135,39 @@ impl<'a> NodeSearch<'a> {
         let query_fragment = format!("{}", spec);
 
         match spec {
-            NodeSearchSpec::ExactValue { ns, name, val } => {
-                NodeSearch::new_annosearch(db, ns, name, val, false, &query_fragment, node_nr)
-            }
-            NodeSearchSpec::RegexValue { ns, name, val } => {
+            NodeSearchSpec::ExactValue {
+                ns,
+                name,
+                val,
+                is_meta,
+            } => NodeSearch::new_annosearch(
+                db,
+                ns,
+                name,
+                val,
+                false,
+                is_meta,
+                &query_fragment,
+                node_nr,
+            ),
+            NodeSearchSpec::RegexValue {
+                ns,
+                name,
+                val,
+                is_meta,
+            } => {
                 // check if the regex can be replaced with an exact value search
                 let is_regex = util::contains_regex_metacharacters(&val);
-                NodeSearch::new_annosearch(db, ns, name, Some(val), is_regex, &query_fragment, node_nr)
+                NodeSearch::new_annosearch(
+                    db,
+                    ns,
+                    name,
+                    Some(val),
+                    is_regex,
+                    is_meta,
+                    &query_fragment,
+                    node_nr,
+                )
             }
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
@@ -181,6 +216,7 @@ impl<'a> NodeSearch<'a> {
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
+                        const_output: None,
                     }),
                 })
             }
@@ -193,6 +229,7 @@ impl<'a> NodeSearch<'a> {
         name: String,
         val: Option<String>,
         match_regex: bool,
+        is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
     ) -> Option<NodeSearch<'a>> {
@@ -217,6 +254,22 @@ impl<'a> NodeSearch<'a> {
         } else {
             db.node_annos.exact_anno_search(ns_id, name_id, val_id)
         };
+
+        let const_output = if is_meta { Some(Annotation {
+            key: db.get_node_type_key(),
+            val: db.strings.find_id("corpus").cloned().unwrap_or(0),
+        })} else {None};
+
+        let base_it = if let Some(const_output) = const_output.clone() {
+            // replace the result annotation with a constant value
+            Box::new(base_it.map(move |m| Match {
+                node: m.node,
+                anno: const_output.clone(),
+            }))
+        } else {
+            base_it
+        };
+
         let est_output = if match_regex {
             db.node_annos
                 .guess_max_count_regex(ns_id, name_id, &val.clone()?)
@@ -263,6 +316,7 @@ impl<'a> NodeSearch<'a> {
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (ns_id, Some(name_id)),
                 cond: filters,
+                const_output: const_output,
             }),
         });
     }
@@ -387,6 +441,7 @@ impl<'a> NodeSearch<'a> {
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (Some(tok_key.ns), Some(tok_key.name)),
                 cond: filters,
+                const_output: None,
             }),
         });
     }
@@ -396,23 +451,33 @@ impl<'a> NodeSearch<'a> {
         node_search_desc: Rc<NodeSearchDesc>,
         desc: Option<&Desc>,
         components: Vec<Component>,
-        edge_anno_spec : Option<EdgeAnnoSearchSpec>,
+        edge_anno_spec: Option<EdgeAnnoSearchSpec>,
     ) -> NodeSearch<'a> {
         let node_search_desc_1 = node_search_desc.clone();
         let node_search_desc_2 = node_search_desc.clone();
 
-        let edge_anno_template : Option<Annotation> = edge_anno_spec.and_then(|e| e.get_anno(&db.strings));
-        
-        let it = components.into_iter()
-            .flat_map(move |c : Component| -> Box<Iterator<Item=NodeID>> {
+        let edge_anno_template: Option<Annotation> =
+            edge_anno_spec.and_then(|e| e.get_anno(&db.strings));
+
+        let it = components
+            .into_iter()
+            .flat_map(move |c: Component| -> Box<Iterator<Item = NodeID>> {
                 if let Some(gs) = db.get_graphstorage_as_ref(&c) {
                     if let Some(ref edge_anno_template) = edge_anno_template {
-                       // for each component get the source nodes with this edge annotation
-                        let anno_storage : &AnnoStorage<Edge> = gs.get_anno_storage();
-                        let ns = if edge_anno_template.key.ns == 0 {None} else {Some(edge_anno_template.key.ns)};
+                        // for each component get the source nodes with this edge annotation
+                        let anno_storage: &AnnoStorage<Edge> = gs.get_anno_storage();
+                        let ns = if edge_anno_template.key.ns == 0 {
+                            None
+                        } else {
+                            Some(edge_anno_template.key.ns)
+                        };
                         let it = anno_storage
-                            .exact_anno_search(ns, edge_anno_template.key.name, Some(edge_anno_template.val))
-                            .map(|m : Match| m.node);
+                            .exact_anno_search(
+                                ns,
+                                edge_anno_template.key.name,
+                                Some(edge_anno_template.val),
+                            )
+                            .map(|m: Match| m.node);
                         return Box::new(it);
                     } else {
                         // for each component get the all its source nodes
@@ -421,7 +486,6 @@ impl<'a> NodeSearch<'a> {
                 } else {
                     return Box::new(std::iter::empty());
                 }
-            
             })
             .flat_map(move |node: NodeID| {
                 // fetch annotation candidates for the node based on the original description

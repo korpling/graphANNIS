@@ -195,7 +195,7 @@ impl<'a> Iterator for IndexJoin<'a> {
 
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
-                while let Some(m_rhs) = self.rhs_candidate.as_mut().unwrap().next() {
+                while let Some(mut m_rhs) = self.rhs_candidate.as_mut().unwrap().next() {
                     if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
                         || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
                     {
@@ -207,8 +207,14 @@ impl<'a> Iterator for IndexJoin<'a> {
                                 break;
                             }
                         }
+
                         // filters have been checked, return the result
                         if filter_result {
+
+                            if let Some(ref const_anno) = self.node_search_desc.const_output {
+                                m_rhs.anno = const_anno.clone();
+                            }
+
                             let mut result = m_lhs.clone();
                             result.push(m_rhs);
                             return Some(result);

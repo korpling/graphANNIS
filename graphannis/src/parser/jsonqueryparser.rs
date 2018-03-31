@@ -62,7 +62,7 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
                         m.get("namespace").and_then(|n| n.as_str()),
                         m.get("name").and_then(|n| n.as_str()),
                         m.get("value").and_then(|n| n.as_str()),
-                        is_regex(m),
+                        is_regex(m), true
                     ) {
                         if let Some(first_meta_idx) = first_meta_idx {
                             // avoid nested loops by joining additional meta nodes with a "identical node"
@@ -110,7 +110,7 @@ fn parse_node(
                     a.get("namespace").and_then(|n| n.as_str()),
                     a.get("name").and_then(|n| n.as_str()),
                     a.get("value").and_then(|n| n.as_str()),
-                    is_regex(a),
+                    is_regex(a), false
                 );
             }
         }
@@ -294,6 +294,7 @@ fn add_node_annotation(
     name: Option<&str>,
     value: Option<&str>,
     regex: bool,
+    is_meta: bool,
 ) -> Option<usize> {
     if let Some(name_val) = name {
         // TODO: replace regex with normal text matching if this is not an actual regular expression
@@ -301,12 +302,12 @@ fn add_node_annotation(
         // search for the value
         if regex {
             if let Some(val) = value {
-                let mut n: NodeSearchSpec = NodeSearchSpec::new_regex(ns, name_val, val);
+                let mut n: NodeSearchSpec = NodeSearchSpec::new_regex(ns, name_val, val, is_meta);
                 return Some(q.add_node(n));
             }
         } else {
             // has namespace?
-            let mut n: NodeSearchSpec = NodeSearchSpec::new_exact(ns, name_val, value);
+            let mut n: NodeSearchSpec = NodeSearchSpec::new_exact(ns, name_val, value, is_meta);
             return Some(q.add_node(n));
         }
     }

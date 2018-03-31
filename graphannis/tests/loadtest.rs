@@ -112,10 +112,10 @@ fn count_annos() {
     if let Some(db) = load_corpus("pcc2") {
 
 
-        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der")), 0, &db).unwrap();
+        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
         assert_eq!(9, n.count());
 
-        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA")), 0, &db).unwrap();
+        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 0, &db).unwrap();
         assert_eq!(18, n.count());
     }
 }
@@ -136,9 +136,9 @@ fn nested_loop_join() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
-        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der")), 0, &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
 
-        let n2 = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA")), 1, &db).unwrap();
+        let n2 = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 1, &db).unwrap();
 
         let op = Precedence::new(
             &db,
@@ -177,7 +177,7 @@ fn index_join() {
         for c in op_spec.necessary_components() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
-        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der")), 0, &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
 
 
         let op = Precedence::new(
@@ -192,6 +192,7 @@ fn index_join() {
         let node_search_desc  = NodeSearchDesc {
             cond: vec![Box::new(move |m : &Match, _ : &StringStorage|  {return m.anno.key.name == anno_name && m.anno.val == anno_val })],
             qname: (None, Some(anno_name)),
+            const_output: None,
         };
 
         let join = IndexJoin::new(n1, 0, 1, 2, op, Rc::new(node_search_desc), &db, None);

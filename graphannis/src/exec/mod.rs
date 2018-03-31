@@ -1,4 +1,4 @@
-use {Match, StringID};
+use {Match, StringID, Annotation};
 use self::nodesearch::NodeSearch;
 use stringstorage::StringStorage;
 use operator::{EstimationType, Operator};
@@ -185,6 +185,7 @@ impl Desc {
 pub struct NodeSearchDesc {
     pub qname: (Option<StringID>, Option<StringID>),
     pub cond: Vec<Box<Fn(&Match, &StringStorage) -> bool>>,
+    pub const_output: Option<Annotation>,
 }
 
 pub trait ExecutionNode: Iterator {

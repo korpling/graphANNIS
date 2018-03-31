@@ -664,6 +664,7 @@ impl CorpusStorage {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
                     val: Some(source_node_id.to_string()),
+                    is_meta: false,
                 });
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken);
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken);
@@ -691,6 +692,7 @@ impl CorpusStorage {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
                     val: Some(source_node_id.to_string()),
+                    is_meta: false,
                 });
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken);
                 let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken);
@@ -756,7 +758,8 @@ impl CorpusStorage {
             let corpus_idx = q.add_node(NodeSearchSpec::ExactValue{
                 ns: Some(graphdb::ANNIS_NS.to_string()),
                 name: graphdb::NODE_NAME.to_string(),
-                val: Some(source_corpus_id.to_string()),}
+                val: Some(source_corpus_id.to_string()),
+                is_meta: false}
             );
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode);
             q.add_operator(Box::new(operator::PartOfSubCorpusSpec::new(1)), any_node_idx, corpus_idx);
