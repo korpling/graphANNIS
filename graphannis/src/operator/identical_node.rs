@@ -38,4 +38,6 @@ impl Operator for IdenticalNode {
     }
 
     fn estimation_type<'a>(&self, _db: &'a GraphDB) -> EstimationType {EstimationType::MIN}
+
+    fn is_commutative(&self) -> bool {true}
 }

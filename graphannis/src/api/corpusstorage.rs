@@ -596,10 +596,17 @@ impl CorpusStorage {
                             node_desc.push_str(name);
                         }
                     }
+                    let anno_key : &AnnoKey = &singlematch.anno.key;
+                    if let (Some(anno_ns), Some(anno_name)) = (db.strings.str(anno_key.ns), db.strings.str(anno_key.name)) {
+                        node_desc.push_str(" ");
+                        node_desc.push_str(anno_ns);
+                        node_desc.push_str("::");
+                        node_desc.push_str(anno_name);
+                    }
                     match_desc.push(node_desc);
                 }
                 let mut result = String::new();
-                result.push_str(&match_desc.join(" "));
+                result.push_str(&match_desc.join(", "));
                 return result;
             })
             .collect();
