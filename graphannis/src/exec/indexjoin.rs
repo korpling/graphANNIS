@@ -196,30 +196,33 @@ impl<'a> Iterator for IndexJoin<'a> {
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
                 while let Some(mut m_rhs) = self.rhs_candidate.as_mut().unwrap().next() {
-                    if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
-                        || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
-                    {
-                        // check if all filters are true
-                        let mut filter_result = true;
-                        for f in self.node_search_desc.cond.iter() {
-                            if !(f)(&m_rhs, &self.db.strings) {
-                                filter_result = false;
-                                break;
-                            }
+                    // check if all filters are true
+                    let mut filter_result = true;
+                    for f in self.node_search_desc.cond.iter() {
+                        if !(f)(&m_rhs, &self.db.strings) {
+                            filter_result = false;
+                            break;
+                        }
+                    }
+
+                    // filters have been checked, return the result
+                    if filter_result {
+
+                        // replace the annotation with a constant value if needed
+                        if let Some(ref const_anno) = self.node_search_desc.const_output {
+                            m_rhs.anno = const_anno.clone();
                         }
 
-                        // filters have been checked, return the result
-                        if filter_result {
-
-                            if let Some(ref const_anno) = self.node_search_desc.const_output {
-                                m_rhs.anno = const_anno.clone();
-                            }
+                        // check if lhs and rhs are equal and if this is allowed in this query
+                        if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
+                            || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno) {
 
                             let mut result = m_lhs.clone();
                             result.push(m_rhs);
                             return Some(result);
                         }
                     }
+                
                 }
             }
 
