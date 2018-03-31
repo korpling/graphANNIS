@@ -1,5 +1,5 @@
 use {AnnoKey, Annotation, Match, NodeID, StringID};
-use operator::{Operator, EstimationType};
+use operator::{EstimationType, Operator};
 use annostorage::AnnoStorage;
 use util;
 use graphdb::GraphDB;
@@ -13,7 +13,7 @@ use std::rc::Rc;
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
-    rhs_candidate: Option<std::vec::IntoIter<Match>>,
+    rhs_candidate: Option<std::iter::Peekable<std::vec::IntoIter<Match>>>,
     op: Box<Operator + 'a>,
     lhs_idx: usize,
     node_search_desc: Rc<NodeSearchDesc>,
@@ -113,7 +113,7 @@ impl<'a> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
         // TODO, we
         let lhs_peek = lhs.peekable();
-        
+
         let processed_func = |est_type: EstimationType, out_lhs: usize, out_rhs: usize| {
             match est_type {
                 EstimationType::SELECTIVITY(op_sel) => {
@@ -131,9 +131,9 @@ impl<'a> IndexJoin<'a> {
 
                     return result.round() as usize;
                 }
-                EstimationType::MIN | EstimationType::MAX => { 
+                EstimationType::MIN | EstimationType::MAX => {
                     return out_lhs;
-                },
+                }
             }
         };
 
@@ -171,7 +171,6 @@ impl<'a> Iterator for IndexJoin<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
-
         // lazily initialize the RHS candidates for the first LHS
         if self.rhs_candidate.is_none() {
             self.rhs_candidate = Some(if let Some(m_lhs) = self.lhs.peek() {
@@ -181,48 +180,57 @@ impl<'a> Iterator for IndexJoin<'a> {
                     self.lhs_idx.clone(),
                     &self.node_search_desc.qname,
                     &self.db.node_annos,
-                ).into_iter()
+                ).into_iter().peekable()
             } else {
-                vec![].into_iter()
+                vec![].into_iter().peekable()
             });
         }
 
         if self.rhs_candidate.is_none() {
-            return None; 
+            return None;
         }
-    
-
 
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
-                while let Some(mut m_rhs) = self.rhs_candidate.as_mut().unwrap().next() {
-                    // check if all filters are true
-                    let mut filter_result = true;
-                    for f in self.node_search_desc.cond.iter() {
-                        if !(f)(&m_rhs, &self.db.strings) {
-                            filter_result = false;
-                            break;
-                        }
-                    }
-
-                    // filters have been checked, return the result
-                    if filter_result {
-
-                        // replace the annotation with a constant value if needed
-                        if let Some(ref const_anno) = self.node_search_desc.const_output {
-                            m_rhs.anno = const_anno.clone();
+                let rhs_candidate : &mut std::iter::Peekable<std::vec::IntoIter<Match>> = 
+                    self.rhs_candidate.as_mut().unwrap();
+                while let Some(m_rhs) = rhs_candidate.next() {
+                    // check if lhs and rhs are equal and if this is allowed in this query
+                    if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
+                        || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
+                    {
+                        // check if all filters are true
+                        let mut filter_result = true;
+                        for f in self.node_search_desc.cond.iter() {
+                            if !(f)(&m_rhs, &self.db.strings) {
+                                filter_result = false;
+                                break;
+                            }
                         }
 
-                        // check if lhs and rhs are equal and if this is allowed in this query
-                        if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
-                            || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno) {
-
+                        // filters have been checked, return the result
+                        if filter_result {
                             let mut result = m_lhs.clone();
-                            result.push(m_rhs);
+                            if let &Some(ref const_anno) = &self.node_search_desc.const_output {
+                                result.push(Match{node: m_rhs.node, anno: const_anno.clone()});
+                                // only return the one unique constAnno for this node and no duplicates
+                                // skip all RHS candidates that have the same node ID
+                                loop {
+                                    if let Some(next_match) = rhs_candidate.peek() {
+                                        if next_match.node != m_rhs.node {
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                    rhs_candidate.next();
+                                }
+                            } else {
+                                result.push(m_rhs);
+                            }
                             return Some(result);
                         }
                     }
-                
                 }
             }
 
@@ -240,7 +248,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                     &self.node_search_desc.qname,
                     &self.db.node_annos,
                 );
-                self.rhs_candidate = Some(candidates.into_iter());
+                self.rhs_candidate = Some(candidates.into_iter().peekable());
             }
         }
     }
