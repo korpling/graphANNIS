@@ -130,6 +130,14 @@ fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File
         .from_path(path)
 }
 
+fn get_field_str(record : &csv::StringRecord, i : usize) -> Option<String> {
+    if let Some(r) = record.get(i) {
+        // replace some known escape sequences
+        return Some(r.replace("\\t", "\t").replace("\\'", "'").replace("\\\\", "\\"));
+    }
+    return None;
+}
+
 fn parse_corpus_tab(
     path: &PathBuf,
     is_annis_33: bool,
@@ -152,13 +160,13 @@ fn parse_corpus_tab(
         let line = result?;
 
         let id = line.get(0).ok_or(Error::MissingColumn)?.parse::<u32>()?;
-        let name = line.get(1).ok_or(Error::MissingColumn)?;
-        let type_str = line.get(2).ok_or(Error::MissingColumn)?;
+        let name = get_field_str(&line, 1).ok_or(Error::MissingColumn)?;
+        let type_str = get_field_str(&line, 2).ok_or(Error::MissingColumn)?;
         let pre_order = line.get(4).ok_or(Error::MissingColumn)?.parse::<u32>()?;
 
-        corpus_id_to_name.insert(id, String::from(name));
+        corpus_id_to_name.insert(id, name.clone());
         if type_str == "CORPUS" && pre_order == 0 {
-            toplevel_corpus_name = Some(String::from(name));
+            toplevel_corpus_name = Some(name);
             corpus_by_preorder.insert(pre_order, id);
         } else if type_str == "DOCUMENT" {
             // TODO: do not only add documents but also sub-corpora
@@ -412,8 +420,8 @@ fn load_node_tab(
             let token_index_raw = line.get(7).ok_or(Error::MissingColumn)?;
             let text_id = line.get(1).ok_or(Error::MissingColumn)?.parse::<u32>()?;
             let corpus_id = line.get(2).ok_or(Error::MissingColumn)?.parse::<u32>()?;
-            let layer: &str = line.get(3).ok_or(Error::MissingColumn)?;
-            let node_name = line.get(4).ok_or(Error::MissingColumn)?;
+            let layer = get_field_str(&line, 3).ok_or(Error::MissingColumn)?;
+            let node_name = get_field_str(&line, 4).ok_or(Error::MissingColumn)?;
 
 
             nodes_by_corpus_id.insert(corpus_id.clone(), node_nr.clone());
@@ -441,7 +449,7 @@ fn load_node_tab(
                         ns: db.strings.add("annis"),
                         name: db.strings.add("layer"),
                     },
-                    val: db.strings.add(layer),
+                    val: db.strings.add(&layer),
                 };
                 db.node_annos.insert(node_nr, layer_anno);
             }
@@ -467,14 +475,14 @@ fn load_node_tab(
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
-                    line.get(12).ok_or(Error::MissingColumn)?
+                    get_field_str(&line, 12).ok_or(Error::MissingColumn)?
                 } else {
-                    line.get(9).ok_or(Error::MissingColumn)?
+                    get_field_str(&line, 9).ok_or(Error::MissingColumn)?
                 };
 
                 let tok_anno = Annotation {
                     key: db.get_token_key(),
-                    val: db.strings.add(span),
+                    val: db.strings.add(&span),
                 };
                 db.node_annos.insert(node_nr, tok_anno);
 
@@ -491,9 +499,9 @@ fn load_node_tab(
 
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
-                    line.get(11).ok_or(Error::MissingColumn)?
+                    get_field_str(&line, 11).ok_or(Error::MissingColumn)?
                 } else {
-                    line.get(8).ok_or(Error::MissingColumn)?
+                    get_field_str(&line, 8).ok_or(Error::MissingColumn)?
                 };
 
                 if segmentation_name != "NULL" {
@@ -507,16 +515,16 @@ fn load_node_tab(
                         // directly add the span information
                         let tok_anno = Annotation {
                             key: db.get_token_key(),
-                            val: db.strings.add(line.get(12).ok_or(Error::MissingColumn)?),
+                            val: db.strings.add(&get_field_str(&line, 12).ok_or(Error::MissingColumn)?),
                         };
                         db.node_annos.insert(node_nr, tok_anno);
                     } else {
                         // we need to get the span information from the node_annotation file later
-                        missing_seg_span.insert(node_nr, String::from(segmentation_name));
+                        missing_seg_span.insert(node_nr, segmentation_name.clone());
                     }
                     // also add the specific segmentation index
                     let index = TextProperty {
-                        segmentation: String::from(segmentation_name),
+                        segmentation: segmentation_name,
                         val: seg_index,
                         corpus_id,
                         text_id,
@@ -578,24 +586,24 @@ fn load_node_anno_tab(
 
         let col_id = line.get(0).ok_or(Error::MissingColumn)?;
         let node_id: NodeID = col_id.parse()?;
-        let col_ns = line.get(1).ok_or(Error::MissingColumn)?;
-        let col_name = line.get(2).ok_or(Error::MissingColumn)?;
-        let col_val = line.get(3).ok_or(Error::MissingColumn)?;
+        let col_ns = get_field_str(&line, 1).ok_or(Error::MissingColumn)?;
+        let col_name = get_field_str(&line, 2).ok_or(Error::MissingColumn)?;
+        let col_val = get_field_str(&line, 3).ok_or(Error::MissingColumn)?;
         // we have to make some sanity checks
         if col_ns != "annis" || col_name != "tok" {
             let anno_val = if col_val == "NULL" {
                 // use an "invalid" string so it can't be found by its value, but only by its annotation name
                 <StringID>::max_value()
             } else {
-                db.strings.add(col_val)
+                db.strings.add(&col_val)
             };
 
             db.node_annos.insert(
                 node_id.clone(),
                 Annotation {
                     key: AnnoKey {
-                        ns: db.strings.add(col_ns),
-                        name: db.strings.add(col_name),
+                        ns: db.strings.add(&col_ns),
+                        name: db.strings.add(&col_name),
                     },
                     val: anno_val,
                 },
@@ -603,8 +611,8 @@ fn load_node_anno_tab(
 
             // add all missing span values from the annotation, but don't add NULL values
             if let Some(seg) = missing_seg_span.get(&node_id) {
-                if seg == line.get(2).ok_or(Error::MissingColumn)? &&
-                    line.get(3).ok_or(Error::MissingColumn)? != "NULL"
+                if seg == &get_field_str(&line, 2).ok_or(Error::MissingColumn)? &&
+                    get_field_str(&line, 3).ok_or(Error::MissingColumn)? != "NULL"
                 {
 
                     let tok_key = db.get_token_key();
@@ -648,12 +656,12 @@ fn load_component_tab(
         let line = result?;
 
         let cid: u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
-        let col_type = line.get(1).ok_or(Error::MissingColumn)?;
+        let col_type = get_field_str(&line, 1).ok_or(Error::MissingColumn)?;
         if col_type != "NULL" {
-            let layer = String::from(line.get(2).ok_or(Error::MissingColumn)?);
-            let mut name = String::from(line.get(3).ok_or(Error::MissingColumn)?);
+            let layer = get_field_str(&line, 2).ok_or(Error::MissingColumn)?;
+            let mut name = get_field_str(&line, 3).ok_or(Error::MissingColumn)?;
             let name = if name == "NULL" {String::from("")} else {name};
-            let ctype = component_type_from_short_name(col_type)?;
+            let ctype = component_type_from_short_name(&col_type)?;
             let c = Component { ctype, layer, name };
             db.get_or_create_writable(c.clone())?;
             component_by_id.insert(cid, c);
@@ -776,13 +784,13 @@ fn load_edge_annotation(
         let pre : u32 = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
         if let Some(c) = pre_to_component.get(&pre) {
             if let Some(e) = pre_to_edge.get(&pre) {
-                let ns = line.get(1).ok_or(Error::MissingColumn)?;
-                let name = line.get(2).ok_or(Error::MissingColumn)?;
-                let val = line.get(3).ok_or(Error::MissingColumn)?;
+                let ns = get_field_str(&line, 1).ok_or(Error::MissingColumn)?;
+                let name = get_field_str(&line, 2).ok_or(Error::MissingColumn)?;
+                let val = get_field_str(&line, 3).ok_or(Error::MissingColumn)?;
                 
                 let anno = Annotation {
-                    key : AnnoKey {ns: db.strings.add(ns), name: db.strings.add(name)},
-                    val : db.strings.add(val),
+                    key : AnnoKey {ns: db.strings.add(&ns), name: db.strings.add(&name)},
+                    val : db.strings.add(&val),
                 };
                 let gs : &mut WriteableGraphStorage = db.get_or_create_writable(c.clone())?;
                 gs.add_edge_annotation(e.clone(), anno);
@@ -812,14 +820,14 @@ fn load_corpus_annotation(path : &PathBuf, db : &mut GraphDB, is_annis_33 : bool
         let line = result?;
 
         let id = line.get(0).ok_or(Error::MissingColumn)?.parse()?;
-        let ns = line.get(1).ok_or(Error::MissingColumn)?;
-        let ns = if ns == "NULL" {""} else {ns};
-        let name = line.get(2).ok_or(Error::MissingColumn)?;
-        let val = line.get(3).ok_or(Error::MissingColumn)?;
+        let ns = get_field_str(&line, 1).ok_or(Error::MissingColumn)?;
+        let ns = if ns == "NULL" {""} else {&ns};
+        let name = get_field_str(&line, 2).ok_or(Error::MissingColumn)?;
+        let val = get_field_str(&line, 3).ok_or(Error::MissingColumn)?;
 
         let anno = Annotation {
-            key : AnnoKey{ns: db.strings.add(ns), name : db.strings.add(name)},
-            val : db.strings.add(val),
+            key : AnnoKey{ns: db.strings.add(ns), name : db.strings.add(&name)},
+            val : db.strings.add(&val),
         };
 
         corpus_id_to_anno.insert(id, anno);
