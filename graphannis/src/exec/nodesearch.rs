@@ -504,9 +504,13 @@ impl<'a> NodeSearch<'a> {
                 }
                 return Some(vec![m]);
             });
+        let mut new_desc = desc.cloned();
+        if let Some(ref mut new_desc) = new_desc {
+            new_desc.impl_description = String::from("part-of-component-search");
+        }
         return NodeSearch {
             it: Box::new(it),
-            desc: desc.cloned(),
+            desc: new_desc,
             node_search_desc: node_search_desc,
         };
     }

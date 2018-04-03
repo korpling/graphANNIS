@@ -159,10 +159,11 @@ impl Desc {
             let node_nr = self.node_pos.keys().next().cloned().unwrap_or(0) + 1;
 
             result.push_str(&format!(
-                "#{} ({}) [{}]\n",
+                "#{} ({}) [{}] {}\n",
                 &node_nr.to_string(),
                 &self.query_fragment,
-                &cost_str
+                &cost_str,
+                &self.impl_description,
             ));
         } else {
             result.push_str(&format!(
