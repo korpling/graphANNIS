@@ -428,8 +428,6 @@ impl<'a> Conjunction<'a> {
                         .clone();
 
                     if exec_right.as_nodesearch().is_some() {
-                        // TODO: use cost estimation to check if an IndexJoin is really better
-
                         // use index join
                         let join = IndexJoin::new(
                             exec_left,
@@ -442,10 +440,22 @@ impl<'a> Conjunction<'a> {
                             exec_right.get_desc(),
                         );
                         Box::new(join)
+                    } else if exec_left.as_nodesearch().is_some() && op.is_commutative() {
+                        // avoid a nested loop join by switching the operand and using and index join
+                        let join = IndexJoin::new(
+                            exec_right,
+                            idx_right,
+                            spec_idx_right + 1,
+                            spec_idx_left + 1,
+                            op,
+                            exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                            &db,
+                            exec_left.get_desc(),
+                        );
+                        Box::new(join)
+
                     } else {
                         // use nested loop as "fallback"
-
-                        // TODO: check if LHS and RHS should be switched
 
                         let join = NestedLoop::new(
                             exec_left,
