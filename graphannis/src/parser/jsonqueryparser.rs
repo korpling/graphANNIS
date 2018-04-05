@@ -204,6 +204,13 @@ fn parse_join(
                         .and_then(|n| n.as_u64())
                         .unwrap_or(1) as usize;
 
+                    let (min_dist, max_dist) = if min_dist == 0 && max_dist == 0 {
+                        // unlimited range
+                        (1, usize::max_value())
+                    } else {
+                        (min_dist,max_dist)
+                    };
+
                     let name = join.get("name").and_then(|n| n.as_str());
                     let edge_anno = join.get("edgeAnnotations")
                         .and_then(|a| a.as_array())
@@ -212,11 +219,7 @@ fn parse_join(
                         db,
                         name.unwrap_or(""),
                         min_dist,
-                        if max_dist == 0 {
-                            usize::max_value()
-                        } else {
-                            max_dist
-                        },
+                        max_dist,
                         edge_anno,
                     );
                     Some(Box::new(spec))
@@ -233,16 +236,19 @@ fn parse_join(
                     let edge_anno = join.get("edgeAnnotations")
                         .and_then(|a| a.as_array())
                         .and_then(|a| get_edge_anno(&a[0]));
+                    
+                    let (min_dist, max_dist) = if min_dist == 0 && max_dist == 0 {
+                        // unlimited range
+                        (1, usize::max_value())
+                    } else {
+                        (min_dist,max_dist)
+                    };
 
                     let spec = PointingSpec::new(
                         db,
                         name.unwrap_or(""),
                         min_dist,
-                        if max_dist == 0 {
-                            usize::max_value()
-                        } else {
-                            max_dist
-                        },
+                        max_dist,
                         edge_anno,
                     );
                     Some(Box::new(spec))
