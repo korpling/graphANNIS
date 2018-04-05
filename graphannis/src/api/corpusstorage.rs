@@ -588,25 +588,33 @@ impl CorpusStorage {
             .map(|m: Vec<Match>| {
                 let mut match_desc: Vec<String> = Vec::new();
                 for singlematch in m.iter() {
-                    let mut node_desc = String::from("salt:/");
+                    let mut node_desc = String::new();
+
+                    let anno_key : &AnnoKey = &singlematch.anno.key;
+                    if let (Some(anno_ns), Some(anno_name)) = (db.strings.str(anno_key.ns), db.strings.str(anno_key.name)) {
+                        if anno_ns != "annis" {
+                            if !anno_ns.is_empty() {
+                                node_desc.push_str(anno_ns);
+                                node_desc.push_str("::");
+                            }
+                            node_desc.push_str(anno_name);
+                            node_desc.push_str("::");
+                        }
+                    }
+
                     if let Some(name_id) = db.node_annos
                         .get(&singlematch.node, &db.get_node_name_key())
                     {
                         if let Some(name) = db.strings.str(name_id.clone()) {
+                            node_desc.push_str("salt:/");
                             node_desc.push_str(name);
                         }
                     }
-                    let anno_key : &AnnoKey = &singlematch.anno.key;
-                    if let (Some(anno_ns), Some(anno_name)) = (db.strings.str(anno_key.ns), db.strings.str(anno_key.name)) {
-                        node_desc.push_str(" ");
-                        node_desc.push_str(anno_ns);
-                        node_desc.push_str("::");
-                        node_desc.push_str(anno_name);
-                    }
+                    
                     match_desc.push(node_desc);
                 }
                 let mut result = String::new();
-                result.push_str(&match_desc.join(", "));
+                result.push_str(&match_desc.join(" "));
                 return result;
             })
             .collect();
