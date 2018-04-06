@@ -58,7 +58,7 @@ public class AnnisParserAntlr {
     precedenceBound = 0;
   }
 
-  public QueryData parse(String aql, List<Long> corpusList) {
+  public QueryData parse(String aql, List<String> corpusList) {
     final List<AqlParseError> errors = new LinkedList<>();
 
     AqlLexer lexerNonDNF = new AqlLexer(new ANTLRInputStream(aql));

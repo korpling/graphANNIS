@@ -80,8 +80,8 @@ public class AnnisParserAntlrParseTest {
   @Test
   public void testParse() {
     System.out.println("parse " + aql);
-    List<Long> corpusList = new LinkedList<>();
-    corpusList.add(1234l);
+    List<String> corpusList = new LinkedList<>();
+    corpusList.add("corpus1234");
 
     QueryData result = instance.parse(aql, corpusList);
     assertNotNull(result);
