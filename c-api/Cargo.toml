@@ -14,7 +14,7 @@ workspace = ".."
 crate-type = ["staticlib","cdylib"]
 
 [dependencies]
-graphannis = {path = "../graphannis"}
+graphannis = {path = "../graphannis", version = "0.1.0"}
 simplelog = "0.5"
 log = "0.4"
 

@@ -11,7 +11,7 @@ repository= "https://github.com/thomaskrause/graphANNIS"
 workspace = ".."
 
 [dependencies]
-graphannis = {path = "../graphannis"}
+graphannis = {path = "../graphannis", version="0.1.0"}
 rustyline = "1.0"
 log = "0.4"
 simplelog = "0.5"
