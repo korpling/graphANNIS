@@ -307,6 +307,11 @@ fn calculate_automatic_coverage_edges(
         layer: String::from("annis"),
         name: String::from(""),
     };
+
+    // make sure the components exists, even if they are empty
+    db.get_or_create_writable(component_coverage.clone())?;
+    db.get_or_create_writable(component_inv_cov.clone())?;
+
     {
         info!("calculating the automatically generated COVERAGE edges");
         for (textprop, n_vec) in left_to_node {
