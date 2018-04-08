@@ -126,6 +126,20 @@ public class CorpusStorageManager {
 
         return result;
     }
+    
+    public SCorpusGraph corpusGraph(String corpusName) {
+        if(instance != null) {
+            CAPI.AnnisGraphDB graph = CAPI.annis_cs_corpus_graph(instance, corpusName);
+            
+            SCorpusGraph result = SaltExport.mapCorpusGraph(graph);
+            if(graph != null) {
+                graph.dispose();
+            }
+            return result;
+        }
+        return null;
+    }
+    
 
     public void importRelANNIS(String corpusName, String path) {
         CAPI.AnnisError result = CAPI.annis_cs_import_relannis(instance, corpusName, path);

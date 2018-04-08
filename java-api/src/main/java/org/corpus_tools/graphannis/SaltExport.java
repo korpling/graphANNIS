@@ -15,12 +15,6 @@
  */
 package org.corpus_tools.graphannis;
 
-import org.corpus_tools.graphannis.capi.CAPI;
-import com.google.common.base.Objects;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Range;
-import com.sun.jna.NativeLong;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,16 +25,23 @@ import java.util.Map;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.codehaus.stax2.evt.NotationDeclaration2;
 import org.corpus_tools.graphannis.capi.AnnisAnnotation;
 import org.corpus_tools.graphannis.capi.AnnisComponentType;
 import org.corpus_tools.graphannis.capi.AnnisEdge;
 import org.corpus_tools.graphannis.capi.AnnisString;
+import org.corpus_tools.graphannis.capi.CAPI;
+import org.corpus_tools.graphannis.capi.CAPI.AnnisComponentConst;
 import org.corpus_tools.graphannis.capi.CAPI.AnnisVec_AnnisComponent;
 import org.corpus_tools.graphannis.capi.CAPI.AnnisVec_AnnisEdge;
 import org.corpus_tools.graphannis.capi.NodeID;
 import org.corpus_tools.graphannis.capi.NodeIDByRef;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
+import org.corpus_tools.salt.common.SCorpus;
+import org.corpus_tools.salt.common.SCorpusGraph;
+import org.corpus_tools.salt.common.SCorpusRelation;
+import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.common.SOrderRelation;
 import org.corpus_tools.salt.common.SSpan;
@@ -56,6 +57,12 @@ import org.corpus_tools.salt.core.SNode;
 import org.corpus_tools.salt.core.SRelation;
 import org.corpus_tools.salt.util.SaltUtil;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Range;
+import com.sun.jna.NativeLong;
+
 /**
  * Allows to extract a Salt-Graph from a database subgraph.
  * 
@@ -63,11 +70,13 @@ import org.corpus_tools.salt.util.SaltUtil;
  */
 public class SaltExport {
 
-    private static void mapLabels(SAnnotationContainer n, Map<Pair<String, String>, String> labels) {
+    private static void mapLabels(SAnnotationContainer n, Map<Pair<String, String>, String> labels, boolean isMeta) {
         for (Map.Entry<Pair<String, String>, String> e : labels.entrySet()) {
             if ("annis".equals(e.getKey().getKey())) {
                 n.createFeature(e.getKey().getKey(), e.getKey().getValue(), e.getValue());
-            } else {
+            } else if (isMeta) {
+                n.createMetaAnnotation(e.getKey().getKey(), e.getKey().getValue(), e.getValue());
+            }else {
                 n.createAnnotation(e.getKey().getKey(), e.getKey().getValue(), e.getValue());
             }
         }
@@ -90,13 +99,9 @@ public class SaltExport {
         return false;
     }
 
-    private static SNode mapNode(NodeIDByRef nID, CAPI.AnnisGraphDB g) {
-        SNode newNode;
-
-        // get all annotations for the node into a map, also create the node itself
+    private static Map<Pair<String, String>, String> getNodeLabels(CAPI.AnnisGraphDB g, int nID) {
         Map<Pair<String, String>, String> labels = new LinkedHashMap<>();
-        int copyID = nID.getValue();
-        CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_node_labels(g, new NodeID(copyID));
+        CAPI.AnnisVec_AnnisAnnotation annos = CAPI.annis_graph_node_labels(g, new NodeID(nID));
         for (long i = 0; i < CAPI.annis_vec_annotation_size(annos).longValue(); i++) {
             AnnisAnnotation.ByReference a = CAPI.annis_vec_annotation_get(annos, new NativeLong(i));
 
@@ -113,6 +118,16 @@ public class SaltExport {
             }
         }
         annos.dispose();
+
+        return labels;
+    }
+
+    private static SNode mapNode(NodeIDByRef nID, CAPI.AnnisGraphDB g) {
+        SNode newNode;
+
+        // get all annotations for the node into a map, also create the node itself
+        int copyID = nID.getValue();
+        Map<Pair<String, String>, String> labels = getNodeLabels(g, copyID);
 
         if (labels.containsKey(new ImmutablePair<>("annis", "tok"))) {
             newNode = SaltFactory.createSToken();
@@ -134,7 +149,7 @@ public class SaltExport {
 
         }
 
-        mapLabels(newNode, labels);
+        mapLabels(newNode, labels, false);
 
         return newNode;
     }
@@ -217,7 +232,7 @@ public class SaltExport {
                     }
                 }
                 annos.dispose();
-                mapLabels(rel, labels);
+                mapLabels(rel, labels, false);
 
                 AnnisString layerNameRaw = CAPI.annis_component_layer(component);
                 String layerName = layerNameRaw == null ? null : layerNameRaw.toString();
@@ -367,5 +382,84 @@ public class SaltExport {
         addNodeLayers(g);
 
         return g;
+    }
+
+    public static SCorpusGraph mapCorpusGraph(CAPI.AnnisGraphDB orig) {
+        if (orig == null) {
+            return null;
+        }
+        SCorpusGraph cg = SaltFactory.createSCorpusGraph();
+
+        // find the part-of-subcorpus component
+        AnnisVec_AnnisComponent components = CAPI.annis_graph_all_components(orig);
+        AnnisComponentConst subcorpusComponent = null;
+        for (int i = 0; i < CAPI.annis_vec_component_size(components).intValue(); i++) {
+            CAPI.AnnisComponentConst c = CAPI.annis_vec_component_get(components, new NativeLong(i));
+            if (CAPI.annis_component_type(c) == AnnisComponentType.PartOfSubcorpus) {
+                subcorpusComponent = c;
+            }
+        }
+
+        if (subcorpusComponent == null) {
+            // a graph without the subcorpus component is not a corpus graph
+            return null;
+        }
+
+        Multimap<Long, Long> childrenOfNode = HashMultimap.create();
+
+        // iterate over all nodes and get their outgoing edges
+        CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "corpus");
+        if (itNodes != null) {
+
+            for (NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; nID = CAPI
+                    .annis_iter_nodeid_next(itNodes)) {
+                AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, new NodeID(nID.getValue()),
+                        subcorpusComponent);
+                for (int edgeIdx = 0; edgeIdx < CAPI.annis_vec_edge_size(outEdges).intValue(); edgeIdx++) {
+                    AnnisEdge edge = CAPI.annis_vec_edge_get(outEdges, new NativeLong(edgeIdx));
+
+                    // add a reversed edge
+                    childrenOfNode.put(edge.target.longValue(), edge.source.longValue());
+
+                }
+            }
+            itNodes.dispose();
+        }
+
+        // add all (sub-)corpora which are always a parent to some other subcorpus or
+        // document
+        Map<Long, SCorpus> nodeID2corpus = new LinkedHashMap<>();
+        for (long l : childrenOfNode.keys()) {
+            Map<Pair<String, String>, String> labels = getNodeLabels(orig, (int) l);
+            
+            String corpusName = labels.getOrDefault(new ImmutablePair<>("annis", "node_name"), "corpus");
+            
+            SCorpus c = SaltFactory.createSCorpus();
+            c.setName(corpusName);
+            
+            mapLabels(c, labels, true);
+            nodeID2corpus.put(l, c); 
+        }
+        
+        // add all relations between the (sub)-corpora, add documents if needed
+        for(Map.Entry<Long, SCorpus> corpusEntry : nodeID2corpus.entrySet()) {
+            for(long childCorpus : childrenOfNode.get(corpusEntry.getKey())) {
+                SCorpus existingChild = nodeID2corpus.get(childCorpus);
+                if(existingChild == null) {
+                    // this is a new document
+                    Map<Pair<String, String>, String> labels = getNodeLabels(orig, (int) childCorpus);
+                    String docName = labels.getOrDefault(new ImmutablePair<>("annis", "node_name"), "document");
+                    SDocument doc = cg.createDocument(corpusEntry.getValue(), docName);
+                    mapLabels(doc, labels, true);
+                    
+                } else {
+                    // add the corpus relation
+                    SCorpusRelation rel = SaltFactory.createSCorpusRelation();
+                    rel.setSource(corpusEntry.getValue());
+                    rel.setTarget(existingChild);
+                }
+            }
+        }
+        return cg;
     }
 }
