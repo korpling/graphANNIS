@@ -1,11 +1,12 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use {Component, Match, StringID, NodeID, AnnoKey, Annotation, Edge, CountExtra};
+use graphdb::{NODE_TYPE, ANNIS_NS};
+use {AnnoKey, Annotation, Component, CountExtra, Edge, Match, NodeID, StringID};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::path::{Path, PathBuf};
-use std::collections::{HashSet, BTreeSet};
+use std::collections::{BTreeSet, HashSet};
 use graphdb;
 use operator;
 use graphdb::GraphDB;
@@ -19,7 +20,7 @@ use exec::nodesearch::NodeSearchSpec;
 use heapsize::HeapSizeOf;
 use std::iter::FromIterator;
 use linked_hash_map::LinkedHashMap;
-use api::update::{GraphUpdate};
+use api::update::GraphUpdate;
 
 enum CacheEntry {
     Loaded(GraphDB),
@@ -146,7 +147,11 @@ fn check_cache_size_and_remove(
     }
 }
 
-fn extract_subgraph_by_query(db_entry : Arc<RwLock<CacheEntry>>, query : Disjunction, match_idx : usize) -> Result<GraphDB, Error> {
+fn extract_subgraph_by_query(
+    db_entry: Arc<RwLock<CacheEntry>>,
+    query: Disjunction,
+    match_idx: usize,
+) -> Result<GraphDB, Error> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
@@ -159,14 +164,14 @@ fn extract_subgraph_by_query(db_entry : Arc<RwLock<CacheEntry>>, query : Disjunc
 
     // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
     // match vector differ.
-    let mut match_result : BTreeSet<Match> = BTreeSet::new();
+    let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
     let mut result = GraphDB::new();
 
     // create the subgraph description
     for r in plan {
         if match_idx < r.len() {
-            let m : &Match = &r[match_idx];
+            let m: &Match = &r[match_idx];
             if !match_result.contains(m) {
                 match_result.insert(m.clone());
                 create_subgraph_node(m.node, &mut result, orig_db);
@@ -181,12 +186,14 @@ fn extract_subgraph_by_query(db_entry : Arc<RwLock<CacheEntry>>, query : Disjunc
     return Ok(result);
 }
 
-
-fn create_subgraph_node(id : NodeID, db : &mut GraphDB, orig_db : &GraphDB) {
-    
+fn create_subgraph_node(id: NodeID, db: &mut GraphDB, orig_db: &GraphDB) {
     // add all node labels with the same node ID
     for a in orig_db.node_annos.get_all(&id) {
-        if let (Some(ns),Some(name),Some(val)) = (orig_db.strings.str(a.key.ns), orig_db.strings.str(a.key.name), orig_db.strings.str(a.val)) {
+        if let (Some(ns), Some(name), Some(val)) = (
+            orig_db.strings.str(a.key.ns),
+            orig_db.strings.str(a.key.name),
+            orig_db.strings.str(a.val),
+        ) {
             let new_anno = Annotation {
                 key: AnnoKey {
                     ns: db.strings.add(ns),
@@ -198,24 +205,48 @@ fn create_subgraph_node(id : NodeID, db : &mut GraphDB, orig_db : &GraphDB) {
         }
     }
 
-
-    trace!("adding node \"{}\" to subgraph", db.strings.str(db.node_annos.get(&id, &db.get_node_name_key()).cloned().unwrap_or(0)).unwrap_or(&String::from("")));
+    trace!(
+        "adding node \"{}\" to subgraph",
+        db.strings
+            .str(
+                db.node_annos
+                    .get(&id, &db.get_node_name_key())
+                    .cloned()
+                    .unwrap_or(0)
+            )
+            .unwrap_or(&String::from(""))
+    );
 }
-fn create_subgraph_edge(source_id : NodeID, db : &mut GraphDB, orig_db : &GraphDB, all_components : &Vec<Component>) {
-
+fn create_subgraph_edge(
+    source_id: NodeID,
+    db: &mut GraphDB,
+    orig_db: &GraphDB,
+    all_components: &Vec<Component>,
+) {
     // find outgoing edges
     for c in all_components {
         if let Some(orig_gs) = orig_db.get_graphstorage(c) {
-            
             for target in orig_gs.get_outgoing_edges(&source_id) {
-                let e = Edge{source: source_id, target};
+                let e = Edge {
+                    source: source_id,
+                    target,
+                };
                 if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
                     new_gs.add_edge(e.clone());
                 }
 
-                for a in orig_gs.get_edge_annos(&types::Edge {source: source_id, target}).into_iter() {
-
-                    if let (Some(ns),Some(name),Some(val)) = (orig_db.strings.str(a.key.ns), orig_db.strings.str(a.key.name), orig_db.strings.str(a.val)) {
+                for a in orig_gs
+                    .get_edge_annos(&types::Edge {
+                        source: source_id,
+                        target,
+                    })
+                    .into_iter()
+                {
+                    if let (Some(ns), Some(name), Some(val)) = (
+                        orig_db.strings.str(a.key.ns),
+                        orig_db.strings.str(a.key.name),
+                        orig_db.strings.str(a.val),
+                    ) {
                         let new_anno = Annotation {
                             key: AnnoKey {
                                 ns: db.strings.add(ns),
@@ -224,12 +255,11 @@ fn create_subgraph_edge(source_id : NodeID, db : &mut GraphDB, orig_db : &GraphD
                             val: db.strings.add(val),
                         };
                         if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
-                             new_gs.add_edge_annotation(e.clone(), new_anno.clone());
+                            new_gs.add_edge_annotation(e.clone(), new_anno.clone());
                         }
                     }
                 }
             }
-        
         }
     }
 }
@@ -387,6 +417,37 @@ impl CorpusStorage {
         return Ok(entry);
     }
 
+    fn get_fully_loaded_entry(
+        &self,
+        corpus_name: &str,
+    ) -> Result<Arc<RwLock<CacheEntry>>, Error> {
+
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let missing_components = {
+            let lock = db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+
+            let mut missing: HashSet<Component> = HashSet::new();
+            for c in db.get_all_components(None, None).into_iter() {
+                if !db.is_loaded(&c) {
+                    missing.insert(c);
+                }
+            }
+            missing
+        };
+        if !missing_components.is_empty() {
+            // load the needed components
+            let mut lock = db_entry.write().unwrap();
+            let db = get_write_or_error(&mut lock)?;
+            for c in missing_components {
+                db.ensure_loaded(&c)?;
+            }
+        };
+
+        Ok(db_entry)
+
+    }
+
     /// Import a corpusfrom an external location into this corpus storage
     pub fn import(&self, corpus_name: &str, mut db: GraphDB) {
         let r = db.ensure_loaded_all();
@@ -542,19 +603,20 @@ impl CorpusStorage {
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
-        let db : &GraphDB = get_read_or_error(&lock)?;
+        let db: &GraphDB = get_read_or_error(&lock)?;
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
 
         let mut known_documents = HashSet::new();
 
-        let result = plan.fold((0,0), move |acc : (u64, usize), m : Vec<Match>| {
+        let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
             if !m.is_empty() {
-                let m : &Match = &m[0];
+                let m: &Match = &m[0];
                 if let Some(node_name_id) = db.node_annos.get(&m.node, &db.get_node_name_key()) {
                     if let Some(node_name) = db.strings.str(node_name_id.clone()) {
-                        let node_name : &str = node_name;
+                        let node_name: &str = node_name;
                         // extract the document path from the node name
-                        let doc_path = &node_name[0..node_name.rfind('#').unwrap_or(node_name.len())];
+                        let doc_path =
+                            &node_name[0..node_name.rfind('#').unwrap_or(node_name.len())];
                         known_documents.insert(doc_path);
                     }
                 }
@@ -590,8 +652,10 @@ impl CorpusStorage {
                 for singlematch in m.iter() {
                     let mut node_desc = String::new();
 
-                    let anno_key : &AnnoKey = &singlematch.anno.key;
-                    if let (Some(anno_ns), Some(anno_name)) = (db.strings.str(anno_key.ns), db.strings.str(anno_key.name)) {
+                    let anno_key: &AnnoKey = &singlematch.anno.key;
+                    if let (Some(anno_ns), Some(anno_name)) =
+                        (db.strings.str(anno_key.ns), db.strings.str(anno_key.name))
+                    {
                         if anno_ns != "annis" {
                             if !anno_ns.is_empty() {
                                 node_desc.push_str(anno_ns);
@@ -610,7 +674,7 @@ impl CorpusStorage {
                             node_desc.push_str(name);
                         }
                     }
-                    
+
                     match_desc.push(node_desc);
                 }
                 let mut result = String::new();
@@ -629,29 +693,8 @@ impl CorpusStorage {
         ctx_left: usize,
         ctx_right: usize,
     ) -> Result<GraphDB, Error> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-        let missing_components = {
-            let lock = db_entry.read().unwrap();
-            let db = get_read_or_error(&lock)?;
-
-            let mut missing: HashSet<Component> = HashSet::new();
-            for c in db.get_all_components(None, None).into_iter() {
-                if !db.is_loaded(&c) {
-                    missing.insert(c);
-                }
-            }
-            missing
-        };
-        if !missing_components.is_empty() {
-            // load the needed components
-            let mut lock = db_entry.write().unwrap();
-            let db = get_write_or_error(&mut lock)?;
-            for c in missing_components {
-                db.ensure_loaded(&c)?;
-            }
-        };
+        let db_entry = self.get_fully_loaded_entry(corpus_name)?;
         
-
         let mut query = Disjunction {
             alternatives: vec![],
         };
@@ -688,7 +731,11 @@ impl CorpusStorage {
                     tok_precedence_idx,
                     tok_covered_idx,
                 );
-                q_left.add_operator(Box::new(operator::OverlapSpec{}), any_node_idx, tok_precedence_idx);
+                q_left.add_operator(
+                    Box::new(operator::OverlapSpec {}),
+                    any_node_idx,
+                    tok_precedence_idx,
+                );
 
                 query.alternatives.push(q_left);
             }
@@ -714,10 +761,14 @@ impl CorpusStorage {
                         max_dist: ctx_right,
                     }),
                     tok_covered_idx,
-                    tok_precedence_idx
+                    tok_precedence_idx,
                 );
-                q_right.add_operator(Box::new(operator::OverlapSpec{}), any_node_idx, tok_precedence_idx);
-                
+                q_right.add_operator(
+                    Box::new(operator::OverlapSpec {}),
+                    any_node_idx,
+                    tok_precedence_idx,
+                );
+
                 query.alternatives.push(q_right);
             }
         }
@@ -730,27 +781,8 @@ impl CorpusStorage {
         corpus_name: &str,
         corpus_ids: Vec<String>,
     ) -> Result<GraphDB, Error> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-        let missing_components = {
-            let lock = db_entry.read().unwrap();
-            let db = get_read_or_error(&lock)?;
-
-            let mut missing: HashSet<Component> = HashSet::new();
-            for c in db.get_all_components(None, None).into_iter() {
-                if !db.is_loaded(&c) {
-                    missing.insert(c);
-                }
-            }
-            missing
-        };
-        if !missing_components.is_empty() {
-            // load the needed components
-            let mut lock = db_entry.write().unwrap();
-            let db = get_write_or_error(&mut lock)?;
-            for c in missing_components {
-                db.ensure_loaded(&c)?;
-            }
-        };
+        let db_entry = self.get_fully_loaded_entry(corpus_name)?;
+      
         let mut query = Disjunction {
             alternatives: vec![],
         };
@@ -763,18 +795,35 @@ impl CorpusStorage {
                 &source_corpus_id
             };
             let mut q = Conjunction::new();
-            let corpus_idx = q.add_node(NodeSearchSpec::ExactValue{
+            let corpus_idx = q.add_node(NodeSearchSpec::ExactValue {
                 ns: Some(graphdb::ANNIS_NS.to_string()),
                 name: graphdb::NODE_NAME.to_string(),
                 val: Some(source_corpus_id.to_string()),
-                is_meta: false}
-            );
+                is_meta: false,
+            });
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode);
-            q.add_operator(Box::new(operator::PartOfSubCorpusSpec::new(1)), any_node_idx, corpus_idx);
+            q.add_operator(
+                Box::new(operator::PartOfSubCorpusSpec::new(1)),
+                any_node_idx,
+                corpus_idx,
+            );
             query.alternatives.push(q);
         }
 
         return extract_subgraph_by_query(db_entry, query, 1);
+    }
+
+    pub fn corpus_graph(
+        &self,
+        corpus_name: &str,
+    ) -> Result<GraphDB, Error> {
+        let db_entry = self.get_fully_loaded_entry(corpus_name)?;
+        
+        let mut query = Conjunction::new();
+
+        query.add_node(NodeSearchSpec::new_exact(Some(ANNIS_NS), NODE_TYPE, Some("corpus"), false));
+
+        return extract_subgraph_by_query(db_entry, query.into_disjunction(), 0);
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {
