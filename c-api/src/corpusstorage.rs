@@ -116,6 +116,23 @@ pub extern "C" fn annis_cs_subcorpus_graph(ptr: *const cs::CorpusStorage,
     return std::ptr::null_mut();
 }
 
+#[no_mangle]
+pub extern "C" fn annis_cs_corpus_graph(ptr: *const cs::CorpusStorage, 
+        corpus_name: * const libc::c_char,) -> * mut GraphDB {
+
+    let cs : &cs::CorpusStorage = cast_const!(ptr);
+    let corpus = cstr!(corpus_name);
+    
+    let res = cs.corpus_graph(&corpus);
+    match res {
+        Ok(result) =>  {
+            return Box::into_raw(Box::new(result));
+        }
+        Err(err) => warn!("Could not get corpus graph, error message was:\n{:?}", err),
+    };
+    return std::ptr::null_mut();
+}
+
 /// List all known corpora.
 #[no_mangle]
 pub extern "C" fn annis_cs_list(ptr: *const cs::CorpusStorage) -> *mut Vec<CString> {
