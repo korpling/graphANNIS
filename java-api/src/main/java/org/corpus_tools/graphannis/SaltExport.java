@@ -18,6 +18,7 @@ package org.corpus_tools.graphannis;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,6 +40,7 @@ import org.corpus_tools.graphannis.capi.NodeIDByRef;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SCorpus;
+import org.corpus_tools.salt.common.SCorpusDocumentRelation;
 import org.corpus_tools.salt.common.SCorpusGraph;
 import org.corpus_tools.salt.common.SCorpusRelation;
 import org.corpus_tools.salt.common.SDocument;
@@ -58,6 +60,7 @@ import org.corpus_tools.salt.core.SRelation;
 import org.corpus_tools.salt.util.SaltUtil;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
@@ -76,7 +79,7 @@ public class SaltExport {
                 n.createFeature(e.getKey().getKey(), e.getKey().getValue(), e.getValue());
             } else if (isMeta) {
                 n.createMetaAnnotation(e.getKey().getKey(), e.getKey().getValue(), e.getValue());
-            }else {
+            } else {
                 n.createAnnotation(e.getKey().getKey(), e.getKey().getValue(), e.getValue());
             }
         }
@@ -384,6 +387,38 @@ public class SaltExport {
         return g;
     }
 
+    private static SCorpus addCorpusAndParents(SCorpusGraph cg, long id,
+            Map<Long, Long> parentOfNode,
+            Map<Long, SCorpus> id2corpus,
+            Map<Long, Map<Pair<String, String>, String>> node2labels) {
+        
+        
+        if(id2corpus.containsKey(id)) {
+            return id2corpus.get(id);
+        }
+        
+        Map<Pair<String, String>, String> labels = node2labels.get(id);
+        if(labels == null) {
+            return null;
+        }
+
+        // create parents first
+        Long parentID = parentOfNode.get(id);
+        SCorpus parent = null;
+        if(parentID != null) {
+            parent = addCorpusAndParents(cg, parentID, parentOfNode, id2corpus, node2labels);
+        }
+        
+        String corpusName = labels.getOrDefault(new ImmutablePair<>("annis", "node_name"), "corpus");
+        List<String> corpusNameSplitted = Splitter.on('/').trimResults().splitToList(corpusName);
+        // use last part of the path as name
+        SCorpus newCorpus = cg.createCorpus(parent, corpusNameSplitted.get(corpusNameSplitted.size()-1));
+        id2corpus.put(id, newCorpus);
+        
+        return newCorpus;
+
+    }
+
     public static SCorpusGraph mapCorpusGraph(CAPI.AnnisGraphDB orig) {
         if (orig == null) {
             return null;
@@ -405,7 +440,8 @@ public class SaltExport {
             return null;
         }
 
-        Multimap<Long, Long> childrenOfNode = HashMultimap.create();
+        Map<Long, Map<Pair<String, String>, String>> node2labels = new LinkedHashMap<>();
+        Map<Long, Long> parentOfNode = new LinkedHashMap<>();
 
         // iterate over all nodes and get their outgoing edges
         CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "corpus");
@@ -413,53 +449,50 @@ public class SaltExport {
 
             for (NodeIDByRef nID = CAPI.annis_iter_nodeid_next(itNodes); nID != null; nID = CAPI
                     .annis_iter_nodeid_next(itNodes)) {
+
+                Map<Pair<String, String>, String> nodeLabels = getNodeLabels(orig, nID.getValue());
+                node2labels.put((long) nID.getValue(), nodeLabels);
+               
                 AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, new NodeID(nID.getValue()),
                         subcorpusComponent);
                 for (int edgeIdx = 0; edgeIdx < CAPI.annis_vec_edge_size(outEdges).intValue(); edgeIdx++) {
                     AnnisEdge edge = CAPI.annis_vec_edge_get(outEdges, new NativeLong(edgeIdx));
-
-                    // add a reversed edge
-                    childrenOfNode.put(edge.target.longValue(), edge.source.longValue());
-
+                    // add edge
+                    parentOfNode.put(edge.source.longValue(), edge.target.longValue());
                 }
             }
             itNodes.dispose();
         }
-
-        // add all (sub-)corpora which are always a parent to some other subcorpus or
-        // document
-        Map<Long, SCorpus> nodeID2corpus = new LinkedHashMap<>();
-        for (long l : childrenOfNode.keys()) {
-            Map<Pair<String, String>, String> labels = getNodeLabels(orig, (int) l);
-            
-            String corpusName = labels.getOrDefault(new ImmutablePair<>("annis", "node_name"), "corpus");
-            
-            SCorpus c = SaltFactory.createSCorpus();
-            c.setName(corpusName);
-            
-            mapLabels(c, labels, true);
-            nodeID2corpus.put(l, c); 
+        
+        Map<Long, SCorpus> id2corpus = new HashMap<>();
+        // add all non-documents first
+        for(Long id : parentOfNode.values()) {
+            addCorpusAndParents(cg, id, parentOfNode, id2corpus, node2labels);
+        }
+        for(Map.Entry<Long, SCorpus> e : id2corpus.entrySet()) {
+            Map<Pair<String, String>, String> labels = node2labels.get(e.getKey());
+            if(labels != null) {
+                mapLabels(e.getValue(), labels, true);
+            }
         }
         
-        // add all relations between the (sub)-corpora, add documents if needed
-        for(Map.Entry<Long, SCorpus> corpusEntry : nodeID2corpus.entrySet()) {
-            for(long childCorpus : childrenOfNode.get(corpusEntry.getKey())) {
-                SCorpus existingChild = nodeID2corpus.get(childCorpus);
-                if(existingChild == null) {
-                    // this is a new document
-                    Map<Pair<String, String>, String> labels = getNodeLabels(orig, (int) childCorpus);
-                    String docName = labels.getOrDefault(new ImmutablePair<>("annis", "node_name"), "document");
-                    SDocument doc = cg.createDocument(corpusEntry.getValue(), docName);
-                    mapLabels(doc, labels, true);
+        // add all documents next
+        for(Map.Entry<Long, Long> edge : parentOfNode.entrySet()) {
+            long childID = edge.getKey();
+            long parentID = edge.getValue();
+            if (!id2corpus.containsKey(childID)) {
+                Map<Pair<String, String>, String> labels = node2labels.get(childID);
+                if(labels != null) {
+                    String docName = labels.getOrDefault(new ImmutablePair<>("annis", "doc"), "document");
+                    SCorpus parent = id2corpus.get(parentID);
+                    SDocument doc = cg.createDocument(parent, docName);
                     
-                } else {
-                    // add the corpus relation
-                    SCorpusRelation rel = SaltFactory.createSCorpusRelation();
-                    rel.setSource(corpusEntry.getValue());
-                    rel.setTarget(existingChild);
+                    mapLabels(doc, labels, true);
                 }
             }
         }
+        
+
         return cg;
     }
 }

@@ -859,72 +859,81 @@ fn add_subcorpora(db : &mut GraphDB,
 
     let mut next_node_id : NodeID = if let Some(id) = db.node_annos.largest_key() {id+1} else {0};
 
-
     // add the toplevel corpus as node
-    let top_anno = Annotation {
-        key : db.get_node_name_key(),
-        val : db.strings.add(toplevel_corpus_name),
-    };
-    db.node_annos.insert(next_node_id, top_anno);
-    // add all metadata for the top-level corpus node
-    if let Some(cid) = corpus_by_preorder.get(&0) {
-        if let Some(anno_vec) = corpus_id_to_annos.get_vec(cid) {
-            for anno in anno_vec {
-                db.node_annos.insert(next_node_id, anno.clone());
-            }
-        }   
+    {
+        let top_anno = Annotation {
+            key : db.get_node_name_key(),
+            val : db.strings.add(toplevel_corpus_name),
+        };
+        db.node_annos.insert(next_node_id, top_anno);
+        let anno_type = Annotation {
+            key : db.get_node_type_key(),
+            val : db.strings.add("corpus")
+        };
+        db.node_annos.insert(next_node_id, anno_type);
+        // add all metadata for the top-level corpus node
+        if let Some(cid) = corpus_by_preorder.get(&0) {
+            if let Some(anno_vec) = corpus_id_to_annos.get_vec(cid) {
+                for anno in anno_vec {
+                    db.node_annos.insert(next_node_id, anno.clone());
+                }
+            }   
+        }
     }
     let toplevel_node_id = next_node_id;
     next_node_id += 1;
     
     // add all subcorpora/documents (start with the largest pre-order)
-    for (_, corpus_id) in corpus_by_preorder.iter().rev() {
+    for (pre, corpus_id) in corpus_by_preorder.iter().rev() {
 
-        let corpus_name = corpus_id_to_name.get(corpus_id).ok_or(Error::Other(format!("Can't get name for corpus with ID {}", corpus_id)))?;
-        let full_name = format!("{}/{}", toplevel_corpus_name, corpus_name);
+        if pre.clone() != 0 {
+
+            let corpus_name = corpus_id_to_name.get(corpus_id).ok_or(Error::Other(format!("Can't get name for corpus with ID {}", corpus_id)))?;
+            let full_name = format!("{}/{}", toplevel_corpus_name, corpus_name);
 
 
-        // add a basic node labels for the new (sub-) corpus/document
-        let anno_name = Annotation {
-            key : db.get_node_name_key(),
-            val : db.strings.add(&full_name)
-        };
-        db.node_annos.insert(next_node_id.clone(), anno_name);
+            // add a basic node labels for the new (sub-) corpus/document
+            let anno_name = Annotation {
+                key : db.get_node_name_key(),
+                val : db.strings.add(&full_name)
+            };
+            db.node_annos.insert(next_node_id.clone(), anno_name);
 
-        let anno_doc = Annotation {
-            key : AnnoKey {ns: db.strings.add("annis"), name : db.strings.add("doc")},
-            val : db.strings.add(corpus_name)
-        };
-        db.node_annos.insert(next_node_id.clone(), anno_doc);
+            let anno_doc = Annotation {
+                key : AnnoKey {ns: db.strings.add("annis"), name : db.strings.add("doc")},
+                val : db.strings.add(corpus_name)
+            };
+            db.node_annos.insert(next_node_id.clone(), anno_doc);
 
-        let anno_type = Annotation {
-            key : db.get_node_type_key(),
-            val : db.strings.add("corpus")
-        };
-        db.node_annos.insert(next_node_id.clone(), anno_type);
+            let anno_type = Annotation {
+                key : db.get_node_type_key(),
+                val : db.strings.add("corpus")
+            };
+            db.node_annos.insert(next_node_id.clone(), anno_type);
 
-        // add all metadata for the document node
-        if let Some(anno_vec) = corpus_id_to_annos.get_vec(&corpus_id) {
-            for anno in anno_vec {
-                db.node_annos.insert(next_node_id.clone(), anno.clone());
-            }
-        }
-
-        {
-            let gs = db.get_or_create_writable(component_subcorpus.clone())?;
-
-            // find all nodes belonging to this document and add a relation
-            if let Some(n_vec) = nodes_by_corpus_id.get_vec(corpus_id) {
-                
-                for n in n_vec {
-                    gs.add_edge(Edge {source: n.clone(), target: next_node_id.clone()});
+            // add all metadata for the document node
+            if let Some(anno_vec) = corpus_id_to_annos.get_vec(&corpus_id) {
+                for anno in anno_vec {
+                    db.node_annos.insert(next_node_id.clone(), anno.clone());
                 }
             }
-            // also add an edge from the document to the top-level corpus
-            gs.add_edge(Edge {source: next_node_id, target : toplevel_node_id});
-        }
 
-        next_node_id += 1;
+            {
+                let gs = db.get_or_create_writable(component_subcorpus.clone())?;
+
+                // find all nodes belonging to this document and add a relation
+                if let Some(n_vec) = nodes_by_corpus_id.get_vec(corpus_id) {
+                    
+                    for n in n_vec {
+                        gs.add_edge(Edge {source: n.clone(), target: next_node_id.clone()});
+                    }
+                }
+                // also add an edge from the document to the top-level corpus
+                gs.add_edge(Edge {source: next_node_id, target : toplevel_node_id});
+            }
+
+            next_node_id += 1;
+        }
     }
 
     Ok(())
