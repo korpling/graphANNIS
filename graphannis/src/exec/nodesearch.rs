@@ -9,7 +9,8 @@ use stringstorage::StringStorage;
 use util;
 use regex;
 
-use std::{fmt, rc::Rc};
+use std::fmt;
+use std::rc::Rc;
 use std;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.

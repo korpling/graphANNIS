@@ -95,6 +95,8 @@ AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
                                   const char *corpus,
                                   AnnisGraphUpdate *update);
 
+AnnisGraphDB *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr, const char *corpus_name);
+
 uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
                         const char *corpus,
                         const char *query_as_json);
