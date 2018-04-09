@@ -39,24 +39,25 @@ import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
 import org.corpus_tools.annis.ql.AqlParser;
 import org.corpus_tools.annis.ql.AqlParserBaseListener;
-import annis.sqlgen.model.CommonAncestor;
-import annis.sqlgen.model.Dominance;
-import annis.sqlgen.model.EqualValue;
-import annis.sqlgen.model.Identical;
-import annis.sqlgen.model.Inclusion;
-import annis.sqlgen.model.LeftAlignment;
-import annis.sqlgen.model.LeftDominance;
-import annis.sqlgen.model.LeftOverlap;
-import annis.sqlgen.model.Near;
-import annis.sqlgen.model.NotEqualValue;
-import annis.sqlgen.model.Overlap;
-import annis.sqlgen.model.PointingRelation;
-import annis.sqlgen.model.Precedence;
-import annis.sqlgen.model.RightAlignment;
-import annis.sqlgen.model.RightDominance;
-import annis.sqlgen.model.RightOverlap;
-import annis.sqlgen.model.SameSpan;
-import annis.sqlgen.model.Sibling;
+import org.corpus_tools.annis.ql.AqlParser.DirectPartOfSubcorpusContext;
+import org.corpus_tools.annis.ql.model.CommonAncestor;
+import org.corpus_tools.annis.ql.model.Dominance;
+import org.corpus_tools.annis.ql.model.EqualValue;
+import org.corpus_tools.annis.ql.model.Identical;
+import org.corpus_tools.annis.ql.model.Inclusion;
+import org.corpus_tools.annis.ql.model.LeftAlignment;
+import org.corpus_tools.annis.ql.model.LeftDominance;
+import org.corpus_tools.annis.ql.model.LeftOverlap;
+import org.corpus_tools.annis.ql.model.Near;
+import org.corpus_tools.annis.ql.model.NotEqualValue;
+import org.corpus_tools.annis.ql.model.Overlap;
+import org.corpus_tools.annis.ql.model.PointingRelation;
+import org.corpus_tools.annis.ql.model.Precedence;
+import org.corpus_tools.annis.ql.model.RightAlignment;
+import org.corpus_tools.annis.ql.model.RightDominance;
+import org.corpus_tools.annis.ql.model.RightOverlap;
+import org.corpus_tools.annis.ql.model.SameSpan;
+import org.corpus_tools.annis.ql.model.Sibling;
 
 /**
  *
@@ -422,6 +423,18 @@ public class JoinListener extends AqlParserBaseListener {
 
     left.addOutgoingJoin(addParsedLocation(ctx, new PointingRelation(right, label, range.getMin(), range.getMax())));
   }
+  
+  @Override
+    public void enterDirectPartOfSubcorpus(DirectPartOfSubcorpusContext ctx) {
+      QueryNode left = relationChain.get(relationIdx);
+      QueryNode right = relationChain.get(relationIdx + 1);
+
+      String label = getLayerName(ctx.PART_OF_SUBCORPUS(), 2);
+
+      Join j = new PointingRelation(right, label, 1);
+
+      left.addOutgoingJoin(addParsedLocation(ctx, j));
+    }
 
   @Override
   public void enterCommonparent(AqlParser.CommonparentContext ctx) {

@@ -19,14 +19,7 @@ import annis.exceptions.AnnisQLSemanticsException;
 import annis.model.AqlParseError;
 import annis.model.Join;
 import annis.model.QueryNode;
-import annis.sqlgen.model.Inclusion;
-import annis.sqlgen.model.LeftAlignment;
-import annis.sqlgen.model.LeftOverlap;
-import annis.sqlgen.model.NonBindingJoin;
-import annis.sqlgen.model.Overlap;
-import annis.sqlgen.model.RightAlignment;
-import annis.sqlgen.model.RightOverlap;
-import annis.sqlgen.model.SameSpan;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -37,6 +30,15 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import org.corpus_tools.annis.ql.model.Inclusion;
+import org.corpus_tools.annis.ql.model.LeftAlignment;
+import org.corpus_tools.annis.ql.model.LeftOverlap;
+import org.corpus_tools.annis.ql.model.NonBindingJoin;
+import org.corpus_tools.annis.ql.model.Overlap;
+import org.corpus_tools.annis.ql.model.RightAlignment;
+import org.corpus_tools.annis.ql.model.RightOverlap;
+import org.corpus_tools.annis.ql.model.SameSpan;
 
 /**
  * Performs semantic checks on the parsed query.

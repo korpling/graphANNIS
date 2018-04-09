@@ -31,17 +31,19 @@ import annis.model.Join;
 import annis.model.QueryAnnotation;
 import annis.model.QueryNode;
 import annis.model.QueryNode.TextMatching;
-import annis.sqlgen.model.CommonAncestor;
-import annis.sqlgen.model.Dominance;
-import annis.sqlgen.model.Inclusion;
-import annis.sqlgen.model.LeftDominance;
-import annis.sqlgen.model.Overlap;
-import annis.sqlgen.model.PointingRelation;
-import annis.sqlgen.model.Precedence;
-import annis.sqlgen.model.RightDominance;
-import annis.sqlgen.model.SameSpan;
-import annis.sqlgen.model.Sibling;
+
 import java.util.LinkedList;
+
+import org.corpus_tools.annis.ql.model.CommonAncestor;
+import org.corpus_tools.annis.ql.model.Dominance;
+import org.corpus_tools.annis.ql.model.Inclusion;
+import org.corpus_tools.annis.ql.model.LeftDominance;
+import org.corpus_tools.annis.ql.model.Overlap;
+import org.corpus_tools.annis.ql.model.PointingRelation;
+import org.corpus_tools.annis.ql.model.Precedence;
+import org.corpus_tools.annis.ql.model.RightDominance;
+import org.corpus_tools.annis.ql.model.SameSpan;
+import org.corpus_tools.annis.ql.model.Sibling;
 import org.corpus_tools.annis.ql.parser.AnnisParserAntlr;
 import org.corpus_tools.annis.ql.parser.QueryData;
 

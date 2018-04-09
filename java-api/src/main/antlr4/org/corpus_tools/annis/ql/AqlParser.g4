@@ -79,6 +79,12 @@ pointing
 	| POINTING (anno=edgeSpec)? STAR # IndirectPointing
 	| POINTING (anno=edgeSpec)? COMMA? rangeSpec # RangePointing
 	;
+	
+part_of_subcorpus
+	: PART_OF_SUBCORPUS  # DirectPartOfSubcorpus
+	| PART_OF_SUBCORPUS STAR # IndirectPartOfSubcorpus
+	| PART_OF_SUBCORPUS COMMA? rangeSpec # RangePartOfSubcorpus
+	;
 
 spanrelation
   : IDENT_COV # IdenticalCoverage

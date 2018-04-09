@@ -16,12 +16,14 @@
 package org.corpus_tools.annis.benchmark.generator;
 
 import annis.model.QueryNode;
+
+import org.corpus_tools.annis.ql.model.Dominance;
+import org.corpus_tools.annis.ql.model.Inclusion;
+import org.corpus_tools.annis.ql.model.Overlap;
+import org.corpus_tools.annis.ql.model.PointingRelation;
+import org.corpus_tools.annis.ql.model.Precedence;
 import org.corpus_tools.annis.ql.parser.QueryData;
-import annis.sqlgen.model.Dominance;
-import annis.sqlgen.model.Inclusion;
-import annis.sqlgen.model.Overlap;
-import annis.sqlgen.model.PointingRelation;
-import annis.sqlgen.model.Precedence;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
