@@ -121,6 +121,8 @@ public class CAPI implements Library {
             AnnisGraphUpdate update);
 
     public static native AnnisError annis_cs_import_relannis(AnnisCorpusStorage cs, String corpusName, String path);
+    
+    public static native AnnisError annis_cs_delete(AnnisCorpusStorage cs, String corpusName);
 
     // graph update class
 

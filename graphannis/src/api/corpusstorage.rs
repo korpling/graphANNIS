@@ -500,6 +500,23 @@ impl CorpusStorage {
         check_cache_size_and_remove(self.max_allowed_cache_size, cache);
     }
 
+    /// delete a corpus
+    pub fn delete(&self, corpus_name: &str) {
+        let mut db_path = PathBuf::from(&self.db_dir);
+        db_path.push(corpus_name);
+
+        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let cache = &mut *cache_lock;
+
+        // remove any possible old corpus
+        let old_entry = cache.remove(corpus_name);
+        if let Some(_) = old_entry {
+            if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
+                error!("Error when removing existing files {}", e);
+            }
+        }
+    }
+
     fn prepare_query<'a>(
         &self,
         corpus_name: &str,

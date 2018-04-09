@@ -225,6 +225,17 @@ pub extern "C" fn annis_cs_import_relannis(
 }
 
 #[no_mangle]
+pub extern "C" fn annis_cs_delete(
+    ptr: *mut cs::CorpusStorage,
+    corpus: *const libc::c_char,
+) {
+    let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
+    let corpus = cstr!(corpus);
+
+    cs.delete(&corpus);
+}
+
+#[no_mangle]
 pub extern "C" fn annis_cs_apply_update(
     ptr: *mut cs::CorpusStorage,
     corpus: *const libc::c_char,

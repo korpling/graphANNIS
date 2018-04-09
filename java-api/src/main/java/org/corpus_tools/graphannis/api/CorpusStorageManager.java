@@ -170,12 +170,20 @@ public class CorpusStorageManager {
     }
 
     public void importRelANNIS(String corpusName, String path) {
-        CAPI.AnnisError result = CAPI.annis_cs_import_relannis(instance, corpusName, path);
-        if (result != null) {
-            String msg = CAPI.annis_error_get_msg(result);
-            result.dispose();
-
-            throw new RuntimeException(msg);
+        if(instance != null) {
+            CAPI.AnnisError result = CAPI.annis_cs_import_relannis(instance, corpusName, path);
+            if (result != null) {
+                String msg = CAPI.annis_error_get_msg(result);
+                result.dispose();
+    
+                throw new RuntimeException(msg);
+            }
+        }
+    }
+    
+    public void deleteCorpus(String corpusName) {
+        if(instance != null) {
+            CAPI.annis_cs_delete(instance, corpusName);
         }
     }
 
