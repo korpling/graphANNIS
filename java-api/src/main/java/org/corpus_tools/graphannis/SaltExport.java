@@ -435,14 +435,10 @@ public class SaltExport {
             }
         }
 
-        if (subcorpusComponent == null) {
-            // a graph without the subcorpus component is not a corpus graph
-            return null;
-        }
 
         Map<Long, Map<Pair<String, String>, String>> node2labels = new LinkedHashMap<>();
         Map<Long, Long> parentOfNode = new LinkedHashMap<>();
-
+        
         // iterate over all nodes and get their outgoing edges
         CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "corpus");
         if (itNodes != null) {
@@ -453,44 +449,63 @@ public class SaltExport {
                 Map<Pair<String, String>, String> nodeLabels = getNodeLabels(orig, nID.getValue());
                 node2labels.put((long) nID.getValue(), nodeLabels);
                
-                AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, new NodeID(nID.getValue()),
-                        subcorpusComponent);
-                for (int edgeIdx = 0; edgeIdx < CAPI.annis_vec_edge_size(outEdges).intValue(); edgeIdx++) {
-                    AnnisEdge edge = CAPI.annis_vec_edge_get(outEdges, new NativeLong(edgeIdx));
-                    // add edge
-                    parentOfNode.put(edge.source.longValue(), edge.target.longValue());
+                if(subcorpusComponent != null) {
+                    AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, new NodeID(nID.getValue()),
+                            subcorpusComponent);
+                    for (int edgeIdx = 0; edgeIdx < CAPI.annis_vec_edge_size(outEdges).intValue(); edgeIdx++) {
+                        AnnisEdge edge = CAPI.annis_vec_edge_get(outEdges, new NativeLong(edgeIdx));
+                        // add edge
+                        parentOfNode.put(edge.source.longValue(), edge.target.longValue());
+                    }
                 }
             }
             itNodes.dispose();
         }
         
-        Map<Long, SCorpus> id2corpus = new HashMap<>();
-        // add all non-documents first
-        for(Long id : parentOfNode.values()) {
-            addCorpusAndParents(cg, id, parentOfNode, id2corpus, node2labels);
-        }
-        for(Map.Entry<Long, SCorpus> e : id2corpus.entrySet()) {
-            Map<Pair<String, String>, String> labels = node2labels.get(e.getKey());
-            if(labels != null) {
-                mapLabels(e.getValue(), labels, true);
+        if(parentOfNode.isEmpty()) {
+            // if there are no edges at all, there are only root corpora (or a single root corpus)
+            for(Map<Pair<String, String>, String> labels : node2labels.values()) {
+                
+                String corpusName = labels.getOrDefault(new ImmutablePair<>("annis", "node_name"), "corpus");
+                List<String> corpusNameSplitted = Splitter.on('/').trimResults().splitToList(corpusName);
+                // use last part of the path as name
+                SCorpus rootCorpus = cg.createCorpus(null, corpusNameSplitted.get(corpusNameSplitted.size()-1));
+                mapLabels(rootCorpus, labels, true);
             }
-        }
-        
-        // add all documents next
-        for(Map.Entry<Long, Long> edge : parentOfNode.entrySet()) {
-            long childID = edge.getKey();
-            long parentID = edge.getValue();
-            if (!id2corpus.containsKey(childID)) {
-                Map<Pair<String, String>, String> labels = node2labels.get(childID);
+
+        } else {
+            
+            Map<Long, SCorpus> id2corpus = new HashMap<>();
+            // add all non-documents first
+            for(Long id : parentOfNode.values()) {
+                addCorpusAndParents(cg, id, parentOfNode, id2corpus, node2labels);
+            }
+            for(Map.Entry<Long, SCorpus> e : id2corpus.entrySet()) {
+                Map<Pair<String, String>, String> labels = node2labels.get(e.getKey());
                 if(labels != null) {
-                    String docName = labels.getOrDefault(new ImmutablePair<>("annis", "doc"), "document");
-                    SCorpus parent = id2corpus.get(parentID);
-                    SDocument doc = cg.createDocument(parent, docName);
-                    
-                    mapLabels(doc, labels, true);
+                    mapLabels(e.getValue(), labels, true);
+                }
+            }
+            
+            // add all documents next
+            for(Map.Entry<Long, Long> edge : parentOfNode.entrySet()) {
+                long childID = edge.getKey();
+                long parentID = edge.getValue();
+                if (!id2corpus.containsKey(childID)) {
+                    Map<Pair<String, String>, String> labels = node2labels.get(childID);
+                    if(labels != null) {
+                        String docName = labels.getOrDefault(new ImmutablePair<>("annis", "doc"), "document");
+                        
+                        SCorpus parent = id2corpus.get(parentID);
+                        SDocument doc = cg.createDocument(parent, docName);
+                        
+                        mapLabels(doc, labels, true);
+                    }
                 }
             }
         }
+        
+        
         
 
         return cg;

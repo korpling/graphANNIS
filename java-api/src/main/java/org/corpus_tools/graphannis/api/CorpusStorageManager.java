@@ -144,7 +144,8 @@ public class CorpusStorageManager {
     
     public SCorpusGraph corpusGraphForQuery(String corpusName, String aql) {
         if(instance != null) {
-            CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph_for_query(instance, corpusName, QueryToJSON.aqlToJSON(aql));
+            String json = QueryToJSON.aqlToJSON(aql);
+            CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph_for_query(instance, corpusName, json);
             
             SCorpusGraph result = SaltExport.mapCorpusGraph(graph);
             if(graph != null) {

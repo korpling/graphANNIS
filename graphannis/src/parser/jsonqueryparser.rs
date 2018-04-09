@@ -274,6 +274,9 @@ fn parse_join(
                     );
                     Some(Box::new(spec))
                 }
+                Some("IdenticalNode") => {
+                    Some(Box::new(IdenticalNodeSpec))
+                }
                 // TODO: add more operators
                 _ => None,
             };

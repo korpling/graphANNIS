@@ -36,6 +36,7 @@ import java.util.LinkedList;
 
 import org.corpus_tools.annis.ql.model.CommonAncestor;
 import org.corpus_tools.annis.ql.model.Dominance;
+import org.corpus_tools.annis.ql.model.Identical;
 import org.corpus_tools.annis.ql.model.Inclusion;
 import org.corpus_tools.annis.ql.model.LeftDominance;
 import org.corpus_tools.annis.ql.model.Overlap;
@@ -218,6 +219,8 @@ public class QueryToJSON {
             node.put("op", "Inclusion");
         } else if (join instanceof SameSpan) {
             node.put("op", "IdenticalCoverage");
+        } else if (join instanceof Identical) {
+            node.put("op", "IdenticalNode");
         } else {
             throw new AnnisQLSyntaxException("This join type can't be mapped yet: " + join.toAQLFragment(source));
         }
