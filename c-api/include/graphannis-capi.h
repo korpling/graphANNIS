@@ -133,6 +133,10 @@ AnnisGraphDB *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
                                 size_t ctx_left,
                                 size_t ctx_right);
 
+AnnisGraphDB *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
+                                          const char *corpus_name,
+                                          const char *query_as_json);
+
 const char *annis_error_get_msg(const AnnisError *ptr);
 
 void annis_free(void *ptr);

@@ -9,7 +9,6 @@ use graphannis::relannis;
 use std::path::PathBuf;
 use super::error::Error;
 
-
 /// Create a new corpus storage
 #[no_mangle]
 pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut cs::CorpusStorage {
@@ -50,7 +49,8 @@ pub extern "C" fn annis_cs_count_extra(
     let query = cstr!(query_as_json);
     let corpus = cstr!(corpus);
 
-    return cs.count_extra(&corpus, &query).unwrap_or(CountExtra::default()) ;
+    return cs.count_extra(&corpus, &query)
+        .unwrap_or(CountExtra::default());
 }
 
 #[no_mangle]
@@ -60,7 +60,7 @@ pub extern "C" fn annis_cs_find(
     query_as_json: *const libc::c_char,
     offset: libc::size_t,
     limit: libc::size_t,
-) -> * mut Vec<CString> {
+) -> *mut Vec<CString> {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_json);
@@ -68,8 +68,11 @@ pub extern "C" fn annis_cs_find(
 
     let result = cs.find(&corpus, &query, offset, limit);
 
-    let vec_result : Vec<CString> = if let Ok(result) = result {
-        result.into_iter().map(|x| CString::new(x).unwrap_or_default()).collect()
+    let vec_result: Vec<CString> = if let Ok(result) = result {
+        result
+            .into_iter()
+            .map(|x| CString::new(x).unwrap_or_default())
+            .collect()
     } else {
         vec![]
     };
@@ -78,16 +81,20 @@ pub extern "C" fn annis_cs_find(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_subgraph(ptr: *const cs::CorpusStorage, 
-        corpus_name: * const libc::c_char,
-        node_ids: * const Vec<CString>,
-        ctx_left: libc::size_t,
-        ctx_right: libc::size_t) -> * mut GraphDB {
-
-    let cs : &cs::CorpusStorage = cast_const!(ptr);
-    let node_ids : Vec<String> = cast_const!(node_ids).iter().map(|id| String::from(id.to_string_lossy())).collect();
+pub extern "C" fn annis_cs_subgraph(
+    ptr: *const cs::CorpusStorage,
+    corpus_name: *const libc::c_char,
+    node_ids: *const Vec<CString>,
+    ctx_left: libc::size_t,
+    ctx_right: libc::size_t,
+) -> *mut GraphDB {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let node_ids: Vec<String> = cast_const!(node_ids)
+        .iter()
+        .map(|id| String::from(id.to_string_lossy()))
+        .collect();
     let corpus = cstr!(corpus_name);
-    
+
     if let Ok(result) = cs.subgraph(&corpus, node_ids, ctx_left, ctx_right) {
         return Box::into_raw(Box::new(result));
     }
@@ -95,20 +102,31 @@ pub extern "C" fn annis_cs_subgraph(ptr: *const cs::CorpusStorage,
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_subcorpus_graph(ptr: *const cs::CorpusStorage, 
-        corpus_name: * const libc::c_char,
-        corpus_ids: * const Vec<CString>,) -> * mut GraphDB {
-
-    let cs : &cs::CorpusStorage = cast_const!(ptr);
-    let corpus_ids : Vec<String> = cast_const!(corpus_ids).iter().map(|id| String::from(id.to_string_lossy())).collect();
+pub extern "C" fn annis_cs_subcorpus_graph(
+    ptr: *const cs::CorpusStorage,
+    corpus_name: *const libc::c_char,
+    corpus_ids: *const Vec<CString>,
+) -> *mut GraphDB {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let corpus_ids: Vec<String> = cast_const!(corpus_ids)
+        .iter()
+        .map(|id| String::from(id.to_string_lossy()))
+        .collect();
     let corpus = cstr!(corpus_name);
-    
-    trace!("annis_cs_subcorpus_graph(..., {}, {:?}) called", corpus, corpus_ids);
+
+    trace!(
+        "annis_cs_subcorpus_graph(..., {}, {:?}) called",
+        corpus,
+        corpus_ids
+    );
 
     let res = cs.subcorpus_graph(&corpus, corpus_ids);
     match res {
-        Ok(result) =>  {
-            trace!("annis_cs_subcorpus_graph(...) returns subgraph with {} labels", result.node_annos.len());
+        Ok(result) => {
+            trace!(
+                "annis_cs_subcorpus_graph(...) returns subgraph with {} labels",
+                result.node_annos.len()
+            );
             return Box::into_raw(Box::new(result));
         }
         Err(err) => warn!("Could not get subgraph, error message was:\n{:?}", err),
@@ -117,18 +135,39 @@ pub extern "C" fn annis_cs_subcorpus_graph(ptr: *const cs::CorpusStorage,
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_corpus_graph(ptr: *const cs::CorpusStorage, 
-        corpus_name: * const libc::c_char,) -> * mut GraphDB {
-
-    let cs : &cs::CorpusStorage = cast_const!(ptr);
+pub extern "C" fn annis_cs_corpus_graph(
+    ptr: *const cs::CorpusStorage,
+    corpus_name: *const libc::c_char,
+) -> *mut GraphDB {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
-    
+
     let res = cs.corpus_graph(&corpus);
     match res {
-        Ok(result) =>  {
+        Ok(result) => {
             return Box::into_raw(Box::new(result));
         }
         Err(err) => warn!("Could not get corpus graph, error message was:\n{:?}", err),
+    };
+    return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_subgraph_for_query(
+    ptr: *const cs::CorpusStorage,
+    corpus_name: *const libc::c_char,
+    query_as_json: *const libc::c_char,
+) -> *mut GraphDB  {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let corpus = cstr!(corpus_name);
+    let query_as_json = cstr!(query_as_json);
+
+    let res = cs.subgraph_for_query(&corpus, &query_as_json);
+    match res {
+        Ok(result) => {
+            return Box::into_raw(Box::new(result));
+        }
+        Err(err) => warn!("Could not get subcorpus graph for query, error message was:\n{:?}", err),
     };
     return std::ptr::null_mut();
 }
@@ -159,16 +198,24 @@ pub extern "C" fn annis_cs_import_relannis(
 ) -> *mut Error {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
 
-    let override_corpus_name : Option<String> = if corpus.is_null() {None} else {Some(String::from(cstr!(corpus)))};
+    let override_corpus_name: Option<String> = if corpus.is_null() {
+        None
+    } else {
+        Some(String::from(cstr!(corpus)))
+    };
     let path: &str = &cstr!(path);
-    
+
     let res = relannis::load(&PathBuf::from(path));
 
-     match res {
+    match res {
         Ok((corpus, db)) => {
-            let corpus : String = if let Some(o) = override_corpus_name {o} else {corpus};
+            let corpus: String = if let Some(o) = override_corpus_name {
+                o
+            } else {
+                corpus
+            };
             cs.import(&corpus, db);
-        },
+        }
         Err(err) => {
             return Box::into_raw(Box::new(Error::from(err)));
         }

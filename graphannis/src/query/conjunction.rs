@@ -120,6 +120,10 @@ impl<'a> Conjunction<'a> {
         });
     }
 
+    pub fn num_of_nodes(&self) -> usize {
+        self.nodes.len()
+    }
+
     pub fn necessary_components(&self) -> Vec<Component> {
         let mut result = vec![];
 

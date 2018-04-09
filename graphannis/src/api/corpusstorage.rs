@@ -150,7 +150,7 @@ fn check_cache_size_and_remove(
 fn extract_subgraph_by_query(
     db_entry: Arc<RwLock<CacheEntry>>,
     query: Disjunction,
-    match_idx: usize,
+    match_idx: Vec<usize>,
 ) -> Result<GraphDB, Error> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
@@ -170,11 +170,13 @@ fn extract_subgraph_by_query(
 
     // create the subgraph description
     for r in plan {
-        if match_idx < r.len() {
-            let m: &Match = &r[match_idx];
-            if !match_result.contains(m) {
-                match_result.insert(m.clone());
-                create_subgraph_node(m.node, &mut result, orig_db);
+        for i in match_idx.iter().cloned() {
+            if i < r.len() {
+                let m: &Match = &r[i];
+                if !match_result.contains(m) {
+                    match_result.insert(m.clone());
+                    create_subgraph_node(m.node, &mut result, orig_db);
+                }
             }
         }
     }
@@ -773,7 +775,23 @@ impl CorpusStorage {
             }
         }
 
-        return extract_subgraph_by_query(db_entry, query, 3);
+        return extract_subgraph_by_query(db_entry, query, vec![3]);
+    }
+
+    pub fn subgraph_for_query(
+        &self,
+        corpus_name: &str,
+        query_as_json: &str,
+    ) -> Result<GraphDB, Error> {
+        
+        let prep = self.prepare_query(corpus_name, query_as_json)?;
+
+        let mut max_alt_size = 0;
+        for alt in prep.query.alternatives.iter() {
+            max_alt_size = std::cmp::max(max_alt_size, alt.num_of_nodes());
+        }
+
+        return extract_subgraph_by_query(prep.db_entry.clone(), prep.query, (0..max_alt_size).collect());
     }
 
     pub fn subcorpus_graph(
@@ -810,7 +828,7 @@ impl CorpusStorage {
             query.alternatives.push(q);
         }
 
-        return extract_subgraph_by_query(db_entry, query, 1);
+        return extract_subgraph_by_query(db_entry, query, vec![1]);
     }
 
     pub fn corpus_graph(
@@ -823,7 +841,7 @@ impl CorpusStorage {
 
         query.add_node(NodeSearchSpec::new_exact(Some(ANNIS_NS), NODE_TYPE, Some("corpus"), false));
 
-        return extract_subgraph_by_query(db_entry, query.into_disjunction(), 0);
+        return extract_subgraph_by_query(db_entry, query.into_disjunction(), vec![0]);
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {
