@@ -18,6 +18,8 @@ package org.corpus_tools.graphannis.api;
 import com.sun.jna.NativeLong;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.corpus_tools.graphannis.QueryToJSON;
 import org.corpus_tools.graphannis.SaltExport;
 import org.corpus_tools.graphannis.capi.AnnisCountExtra;
 import org.corpus_tools.graphannis.capi.CAPI;
@@ -140,6 +142,31 @@ public class CorpusStorageManager {
         return null;
     }
     
+    public SCorpusGraph corpusGraphForQuery(String corpusName, String aql) {
+        if(instance != null) {
+            CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph_for_query(instance, corpusName, QueryToJSON.aqlToJSON(aql));
+            
+            SCorpusGraph result = SaltExport.mapCorpusGraph(graph);
+            if(graph != null) {
+                graph.dispose();
+            }
+            return result;
+        }
+        return null;
+    }
+    
+    public SDocumentGraph subGraphForQuery(String corpusName, String aql) {
+        if(instance != null) {
+            CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph_for_query(instance, corpusName, QueryToJSON.aqlToJSON(aql));
+            
+            SDocumentGraph result = SaltExport.map(graph);
+            if(graph != null) {
+                graph.dispose();
+            }
+            return result;
+        }
+        return null;
+    }
 
     public void importRelANNIS(String corpusName, String path) {
         CAPI.AnnisError result = CAPI.annis_cs_import_relannis(instance, corpusName, path);
