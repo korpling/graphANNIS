@@ -821,7 +821,7 @@ impl CorpusStorage {
             });
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode);
             q.add_operator(
-                Box::new(operator::PartOfSubCorpusSpec::new(1)),
+                Box::new(operator::PartOfSubCorpusSpec::new(1,1)),
                 any_node_idx,
                 corpus_idx,
             );

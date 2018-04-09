@@ -123,6 +123,7 @@ operator
   | spanrelation
   | dominance
   | pointing
+  | part_of_subcorpus
   | commonparent
   | commonancestor
   | identity

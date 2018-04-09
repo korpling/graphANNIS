@@ -409,7 +409,7 @@ pub struct PartOfSubCorpusSpec {
 }
 
 impl PartOfSubCorpusSpec {
-    pub fn new(max_dist: usize) -> PartOfSubCorpusSpec {
+    pub fn new(min_dist : usize, max_dist: usize) -> PartOfSubCorpusSpec {
         let components = vec![
             Component {
                 ctype: ComponentType::PartOfSubcorpus,
@@ -419,9 +419,9 @@ impl PartOfSubCorpusSpec {
         ];
         PartOfSubCorpusSpec {
             base: BaseEdgeOpSpec {
-                query_fragment: Some(format!("<part-of-subcorpus>1,{}", max_dist.clone())),
+                query_fragment: Some(format!("@{},{}", min_dist.clone(), max_dist.clone())),
                 components,
-                min_dist: 1,
+                min_dist,
                 max_dist,
                 edge_anno: None,
                 is_reflexive: false,

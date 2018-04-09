@@ -75,7 +75,7 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
                             first_meta_idx = Some(meta_node_idx);
                             // add a special join to the first node of the query
                             q.add_operator(
-                                Box::new(PartOfSubCorpusSpec::new(1)),
+                                Box::new(PartOfSubCorpusSpec::new(1,1)),
                                 first_node_pos,
                                 meta_node_idx,
                             );
@@ -250,6 +250,27 @@ fn parse_join(
                         min_dist,
                         max_dist,
                         edge_anno,
+                    );
+                    Some(Box::new(spec))
+                }
+                Some("PartOfSubcorpus") => {
+                    let min_dist = join.get("minDistance")
+                        .and_then(|n| n.as_u64())
+                        .unwrap_or(1) as usize;
+                    let max_dist = join.get("maxDistance")
+                        .and_then(|n| n.as_u64())
+                        .unwrap_or(1) as usize;
+                    
+                    let (min_dist, max_dist) = if min_dist == 0 && max_dist == 0 {
+                        // unlimited range
+                        (1, usize::max_value())
+                    } else {
+                        (min_dist,max_dist)
+                    };
+
+                    let spec = PartOfSubCorpusSpec::new(
+                        min_dist,
+                        max_dist,
                     );
                     Some(Box::new(spec))
                 }
