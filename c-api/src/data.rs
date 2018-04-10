@@ -4,6 +4,12 @@ use std;
 
 use graphannis::{Annotation, NodeID, Edge, Component};
 
+#[repr(C)]
+pub struct AnnoListItem {
+    ns: CString,
+    name: CString,
+    val: CString,
+}
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {

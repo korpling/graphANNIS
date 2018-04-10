@@ -9,6 +9,8 @@ use graphannis::{ComponentType, Component, CountExtra};
 use std::path::PathBuf;
 use super::error::Error;
 
+use data::AnnoListItem;
+
 /// Create a new corpus storage
 #[no_mangle]
 pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut cs::CorpusStorage {
@@ -239,6 +241,7 @@ pub extern "C" fn annis_cs_all_components_by_type(
 
     Box::into_raw(Box::new(cs.get_all_components(&corpus, Some(ctype), None)))
 }
+
 
 #[no_mangle]
 pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char) {
