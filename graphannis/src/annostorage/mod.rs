@@ -10,6 +10,7 @@ use stringstorage::StringStorage;
 use bincode;
 use serde;
 use serde::de::DeserializeOwned;
+use itertools::Itertools;
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf)]
 pub struct ContainerAnnoKey<T: Ord> {
@@ -21,7 +22,7 @@ pub struct ContainerAnnoKey<T: Ord> {
 pub struct AnnoStorage<T: Ord + Hash> {
     by_container: BTreeMap<ContainerAnnoKey<T>, StringID>,
     by_anno: BTreeMap<Annotation, HashSet<T>>,
-    /// Maps a distinct annotation key to the number of keys available.
+    /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_keys: BTreeMap<AnnoKey, usize>,
     /// additional statistical information
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
@@ -168,7 +169,36 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
             .collect::<Vec<AnnoKey>>()
     }
 
-    pub fn anno_range_exact(
+    /// Get all the annotation keys which are part of this annotation storage
+    pub fn get_all_keys(&self) -> Vec<AnnoKey> {
+        return self.anno_keys.keys().cloned().collect();
+    }
+
+    pub fn get_all_values<'a>(&'a self, key : AnnoKey, most_frequent_first : bool) -> Box<Iterator<Item=StringID> + 'a> {
+        let anno_min = Annotation {
+            key: key.clone(),
+            val: StringID::min_value(),
+        };
+        let anno_max = Annotation {
+            key,
+            val: StringID::max_value(),
+        };
+        if most_frequent_first {
+            let it = self.by_anno.range((Included(anno_min), Included(anno_max)))
+                .map(|(ref anno, ref items)| (items.len(), anno.val.clone()))
+                .sorted().into_iter()
+                .rev()
+                .map(|(_,val)| val);
+
+            return Box::from(it);
+        } else {
+            let it = self.by_anno.range((Included(anno_min), Included(anno_max)))
+                .map(|(anno, _items)| anno.val.clone());
+            return Box::from(it);   
+        }
+    }
+
+    fn anno_range_exact(
         &self,
         namespace: Option<StringID>,
         name: StringID,
