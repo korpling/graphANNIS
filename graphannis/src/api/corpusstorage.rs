@@ -3,6 +3,7 @@
 
 use graphdb::{ANNIS_NS, NODE_TYPE};
 use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID};
+use annostorage::AnnoStorage;
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::path::{Path, PathBuf};
@@ -873,6 +874,44 @@ impl CorpusStorage {
             }
         }
         return vec![];
+    }
+
+    pub fn list_node_annotations(
+        &self,
+        corpus_name: &str,
+        list_values: bool,
+        only_most_frequent_values: bool,
+    ) -> Vec<(String, String, String)> {
+        let mut result = Vec::new();
+        if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
+            let lock = db_entry.read().unwrap();
+            if let Ok(db) = get_read_or_error(&lock) {
+                let node_annos: &AnnoStorage<NodeID> = &db.node_annos;
+                for key in node_annos.get_all_keys() {
+                    if let (Some(ns), Some(name)) =
+                        (db.strings.str(key.ns), db.strings.str(key.name))
+                    {
+                        if list_values {
+                            if only_most_frequent_values {
+                                // get the first value
+                                if let Some(val) = node_annos.get_all_values(key, true).next() {
+                                    result.push((ns.clone(), name.clone(), db.strings.str(val).cloned().unwrap_or_default()));
+                                }
+                            } else {
+                                // get all values
+                                for val in node_annos.get_all_values(key, false) {
+                                    result.push((ns.clone(), name.clone(), db.strings.str(val).cloned().unwrap_or_default()));
+                                }
+                            }
+                        } else {
+                            result.push((ns.clone(), name.clone(), String::new()));
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {
