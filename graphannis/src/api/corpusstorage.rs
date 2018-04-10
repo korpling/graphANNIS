@@ -1,8 +1,8 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use graphdb::{NODE_TYPE, ANNIS_NS};
-use {AnnoKey, Annotation, Component, CountExtra, Edge, Match, NodeID, StringID};
+use graphdb::{ANNIS_NS, NODE_TYPE};
+use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID};
 use parser::jsonqueryparser;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::path::{Path, PathBuf};
@@ -419,11 +419,7 @@ impl CorpusStorage {
         return Ok(entry);
     }
 
-    fn get_fully_loaded_entry(
-        &self,
-        corpus_name: &str,
-    ) -> Result<Arc<RwLock<CacheEntry>>, Error> {
-
+    fn get_fully_loaded_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>, Error> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
             let lock = db_entry.read().unwrap();
@@ -447,7 +443,6 @@ impl CorpusStorage {
         };
 
         Ok(db_entry)
-
     }
 
     /// Import a corpusfrom an external location into this corpus storage
@@ -713,7 +708,7 @@ impl CorpusStorage {
         ctx_right: usize,
     ) -> Result<GraphDB, Error> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
-        
+
         let mut query = Disjunction {
             alternatives: vec![],
         };
@@ -800,7 +795,6 @@ impl CorpusStorage {
         corpus_name: &str,
         query_as_json: &str,
     ) -> Result<GraphDB, Error> {
-        
         let prep = self.prepare_query(corpus_name, query_as_json)?;
 
         let mut max_alt_size = 0;
@@ -808,16 +802,19 @@ impl CorpusStorage {
             max_alt_size = std::cmp::max(max_alt_size, alt.num_of_nodes());
         }
 
-        return extract_subgraph_by_query(prep.db_entry.clone(), prep.query, (0..max_alt_size).collect());
+        return extract_subgraph_by_query(
+            prep.db_entry.clone(),
+            prep.query,
+            (0..max_alt_size).collect(),
+        );
     }
-
     pub fn subcorpus_graph(
         &self,
         corpus_name: &str,
         corpus_ids: Vec<String>,
     ) -> Result<GraphDB, Error> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
-      
+
         let mut query = Disjunction {
             alternatives: vec![],
         };
@@ -838,7 +835,7 @@ impl CorpusStorage {
             });
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode);
             q.add_operator(
-                Box::new(operator::PartOfSubCorpusSpec::new(1,1)),
+                Box::new(operator::PartOfSubCorpusSpec::new(1, 1)),
                 any_node_idx,
                 corpus_idx,
             );
@@ -848,17 +845,34 @@ impl CorpusStorage {
         return extract_subgraph_by_query(db_entry, query, vec![1]);
     }
 
-    pub fn corpus_graph(
-        &self,
-        corpus_name: &str,
-    ) -> Result<GraphDB, Error> {
+    pub fn corpus_graph(&self, corpus_name: &str) -> Result<GraphDB, Error> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
-        
+
         let mut query = Conjunction::new();
 
-        query.add_node(NodeSearchSpec::new_exact(Some(ANNIS_NS), NODE_TYPE, Some("corpus"), false));
+        query.add_node(NodeSearchSpec::new_exact(
+            Some(ANNIS_NS),
+            NODE_TYPE,
+            Some("corpus"),
+            false,
+        ));
 
         return extract_subgraph_by_query(db_entry, query.into_disjunction(), vec![0]);
+    }
+
+    pub fn get_all_components(
+        &self,
+        corpus_name: &str,
+        ctype: Option<ComponentType>,
+        name: Option<&str>,
+    ) -> Vec<Component> {
+        if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
+            let lock = db_entry.read().unwrap();
+            if let Ok(db) = get_read_or_error(&lock) {
+                return db.get_all_components(ctype, name);
+            }
+        }
+        return vec![];
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<(), Error> {

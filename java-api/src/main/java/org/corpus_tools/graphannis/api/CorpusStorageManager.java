@@ -15,16 +15,21 @@
  */
 package org.corpus_tools.graphannis.api;
 
-import com.sun.jna.NativeLong;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.corpus_tools.graphannis.QueryToJSON;
 import org.corpus_tools.graphannis.SaltExport;
+import org.corpus_tools.graphannis.capi.AnnisComponentType;
 import org.corpus_tools.graphannis.capi.AnnisCountExtra;
+import org.corpus_tools.graphannis.capi.AnnisString;
 import org.corpus_tools.graphannis.capi.CAPI;
+import org.corpus_tools.graphannis.capi.CAPI.AnnisComponentConst;
 import org.corpus_tools.salt.common.SCorpusGraph;
 import org.corpus_tools.salt.common.SDocumentGraph;
+
+import com.sun.jna.NativeLong;
 
 /**
  * An API for managing corpora stored in a common location on the file system.
@@ -58,6 +63,23 @@ public class CorpusStorageManager {
         orig.dispose();
 
         return copy;
+    }
+
+    public List<String> getAllOrderRelationNames(String corpusName) {
+        List<String> result = new LinkedList<>();
+        if (instance != null) {
+            CAPI.AnnisVec_AnnisComponent orig = CAPI.annis_cs_all_components_by_type(instance, corpusName,
+                    AnnisComponentType.Ordering);
+
+            for (int i = 0; i < CAPI.annis_vec_component_size(orig).intValue(); i++) {
+                AnnisComponentConst c = CAPI.annis_vec_component_get(orig, new NativeLong(i));
+                AnnisString cname = CAPI.annis_component_name(c);
+                if (cname != null) {
+                    result.add(cname.toString());
+                }
+            }
+        }
+        return result;
     }
 
     public long count(List<String> corpora, String queryAsJSON) {
@@ -128,40 +150,41 @@ public class CorpusStorageManager {
 
         return result;
     }
-    
+
     public SCorpusGraph corpusGraph(String corpusName) {
-        if(instance != null) {
+        if (instance != null) {
             CAPI.AnnisGraphDB graph = CAPI.annis_cs_corpus_graph(instance, corpusName);
-            
+
             SCorpusGraph result = SaltExport.mapCorpusGraph(graph);
-            if(graph != null) {
+            if (graph != null) {
                 graph.dispose();
             }
             return result;
         }
         return null;
     }
-    
+
     public SCorpusGraph corpusGraphForQuery(String corpusName, String aql) {
-        if(instance != null) {
+        if (instance != null) {
             String json = QueryToJSON.aqlToJSON(aql);
             CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph_for_query(instance, corpusName, json);
-            
+
             SCorpusGraph result = SaltExport.mapCorpusGraph(graph);
-            if(graph != null) {
+            if (graph != null) {
                 graph.dispose();
             }
             return result;
         }
         return null;
     }
-    
+
     public SDocumentGraph subGraphForQuery(String corpusName, String aql) {
-        if(instance != null) {
-            CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph_for_query(instance, corpusName, QueryToJSON.aqlToJSON(aql));
-            
+        if (instance != null) {
+            CAPI.AnnisGraphDB graph = CAPI.annis_cs_subgraph_for_query(instance, corpusName,
+                    QueryToJSON.aqlToJSON(aql));
+
             SDocumentGraph result = SaltExport.map(graph);
-            if(graph != null) {
+            if (graph != null) {
                 graph.dispose();
             }
             return result;
@@ -170,19 +193,19 @@ public class CorpusStorageManager {
     }
 
     public void importRelANNIS(String corpusName, String path) {
-        if(instance != null) {
+        if (instance != null) {
             CAPI.AnnisError result = CAPI.annis_cs_import_relannis(instance, corpusName, path);
             if (result != null) {
                 String msg = CAPI.annis_error_get_msg(result);
                 result.dispose();
-    
+
                 throw new RuntimeException(msg);
             }
         }
     }
-    
+
     public void deleteCorpus(String corpusName) {
-        if(instance != null) {
+        if (instance != null) {
             CAPI.annis_cs_delete(instance, corpusName);
         }
     }

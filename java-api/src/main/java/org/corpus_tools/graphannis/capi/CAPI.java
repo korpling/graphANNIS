@@ -117,11 +117,14 @@ public class CAPI implements Library {
     public static native AnnisGraphDB annis_cs_subgraph_for_query(AnnisCorpusStorage cs, String corpusName,
             String queryAsJSON);
 
+    public static native AnnisVec_AnnisComponent annis_cs_all_components_by_type(AnnisCorpusStorage cs,
+            String corpusName, int ctype);
+
     public static native AnnisError annis_cs_apply_update(AnnisCorpusStorage cs, String corpusName,
             AnnisGraphUpdate update);
 
     public static native AnnisError annis_cs_import_relannis(AnnisCorpusStorage cs, String corpusName, String path);
-    
+
     public static native AnnisError annis_cs_delete(AnnisCorpusStorage cs, String corpusName);
 
     // graph update class

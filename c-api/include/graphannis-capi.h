@@ -91,6 +91,10 @@ char *annis_component_name(const AnnisComponent *c);
 
 AnnisComponentType annis_component_type(const AnnisComponent *c);
 
+AnnisVec_AnnisComponent *annis_cs_all_components_by_type(AnnisCorpusStorage *ptr,
+                                                         const char *corpus_name,
+                                                         AnnisComponentType ctype);
+
 AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
                                   const char *corpus,
                                   AnnisGraphUpdate *update);
@@ -104,6 +108,8 @@ uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
 AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
                                      const char *corpus,
                                      const char *query_as_json);
+
+void annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus);
 
 AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      const char *corpus_name,

@@ -4,8 +4,8 @@ use std::ffi::CString;
 use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
 use graphannis::graphdb::GraphDB;
-use graphannis::CountExtra;
 use graphannis::relannis;
+use graphannis::{ComponentType, Component, CountExtra};
 use std::path::PathBuf;
 use super::error::Error;
 
@@ -157,7 +157,7 @@ pub extern "C" fn annis_cs_subgraph_for_query(
     ptr: *const cs::CorpusStorage,
     corpus_name: *const libc::c_char,
     query_as_json: *const libc::c_char,
-) -> *mut GraphDB  {
+) -> *mut GraphDB {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
     let query_as_json = cstr!(query_as_json);
@@ -167,7 +167,10 @@ pub extern "C" fn annis_cs_subgraph_for_query(
         Ok(result) => {
             return Box::into_raw(Box::new(result));
         }
-        Err(err) => warn!("Could not get subcorpus graph for query, error message was:\n{:?}", err),
+        Err(err) => warn!(
+            "Could not get subcorpus graph for query, error message was:\n{:?}",
+            err
+        ),
     };
     return std::ptr::null_mut();
 }
@@ -225,10 +228,20 @@ pub extern "C" fn annis_cs_import_relannis(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_delete(
+pub extern "C" fn annis_cs_all_components_by_type(
     ptr: *mut cs::CorpusStorage,
-    corpus: *const libc::c_char,
-) {
+    corpus_name: *const libc::c_char,
+    ctype: ComponentType,
+) -> *mut Vec<Component> {
+
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let corpus = cstr!(corpus_name);
+
+    Box::into_raw(Box::new(cs.get_all_components(&corpus, Some(ctype), None)))
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char) {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let corpus = cstr!(corpus);
 
