@@ -200,14 +200,19 @@ pub extern "C" fn annis_cs_list_node_annotations(
         corpus_name: *const libc::c_char,
         list_values: bool,
         only_most_frequent_values: bool,
-    ) -> Matrix<CString> {
+    ) -> *mut Matrix<CString> {
 
         let cs: &cs::CorpusStorage = cast_const!(ptr);
         let corpus = cstr!(corpus_name);
 
-        cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
-
-        unimplemented!()
+        let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
+        let mut result : Matrix<CString> = Matrix::new();
+        for (ns, name, val) in orig_vec.into_iter() {
+            if let (Ok(ns), Ok(name), Ok(val)) = (CString::new(ns), CString::new(name), CString::new(val)) {
+                result.push(vec![ns, name, val]);
+            }
+        }
+        return Box::into_raw(Box::new(result));
     }
 
 #[no_mangle]
@@ -234,7 +239,7 @@ pub extern "C" fn annis_cs_import_relannis(
             } else {
                 corpus
             };
-            cs.import(&corpus, db);
+            cs.import(&corpus, db); 
         }
         Err(err) => {
             return Box::into_raw(Box::new(Error::from(err)));
