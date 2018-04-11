@@ -2,14 +2,9 @@ use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
 
-use graphannis::{Annotation, NodeID, Edge, Component};
+use super::Matrix;
 
-#[repr(C)]
-pub struct AnnoListItem {
-    ns: CString,
-    name: CString,
-    val: CString,
-}
+use graphannis::{Annotation, NodeID, Edge, Component};
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {
@@ -103,3 +98,28 @@ pub extern "C" fn annis_vec_component_size(ptr : * const Vec<Component>) -> size
 
 #[no_mangle]
 pub extern "C" fn annis_vec_component_get(ptr : * const Vec<Component>, i : size_t) -> * const Component { vec_get(ptr, i)}
+
+#[no_mangle]
+pub extern "C" fn annis_matrix_str_nrows(ptr : * const Matrix<CString>) -> size_t {vec_size(ptr)}
+
+#[no_mangle]
+pub extern "C" fn annis_matrix_str_ncols(ptr : * const Matrix<CString>) -> size_t {
+    let v : &Vec<Vec<CString>> = cast_const!(ptr);
+    if !v.is_empty() {
+        return v[0].len();
+    }
+    return 0;
+}
+
+
+#[no_mangle]
+pub extern "C" fn annis_matrix_str_get(ptr : * const Matrix<CString>, row : size_t, col : size_t) -> * const c_char {
+    // custom implementation for string matrix, don't return a referance to CString but a char pointer
+    let strmatrix : &Vec<Vec<CString>> = cast_const!(ptr);
+    if row < strmatrix.len() {
+        if col < strmatrix[row].len() {
+            return strmatrix[row][col].as_ptr();
+        }
+    }
+    return std::ptr::null();
+}

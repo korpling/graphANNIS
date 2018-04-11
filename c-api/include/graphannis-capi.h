@@ -61,10 +61,14 @@ typedef struct AnnisVec_AnnisComponent AnnisVec_AnnisComponent;
 
 typedef struct AnnisVec_AnnisEdge AnnisVec_AnnisEdge;
 
+typedef struct AnnisVec_AnnisVec_AnnisT AnnisVec_AnnisVec_AnnisT;
+
 typedef struct {
   uint64_t match_count;
   uint64_t document_count;
 } AnnisCountExtra;
+
+typedef AnnisVec_AnnisVec_AnnisT AnnisMatrix_AnnisCString;
 
 typedef uint32_t AnnisNodeID;
 
@@ -123,6 +127,11 @@ AnnisError *annis_cs_import_relannis(AnnisCorpusStorage *ptr, const char *corpus
  * List all known corpora.
  */
 AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
+
+AnnisMatrix_AnnisCString annis_cs_list_node_annotations(const AnnisCorpusStorage *ptr,
+                                                        const char *corpus_name,
+                                                        bool list_values,
+                                                        bool only_most_frequent_values);
 
 /*
  * Create a new corpus storage
@@ -226,6 +235,12 @@ size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
 AnnisError *annis_init_logging(const char *logfile, AnnisLogLevel level);
 
 AnnisNodeID *annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID *ptr);
+
+const char *annis_matrix_str_get(const AnnisMatrix_AnnisCString *ptr, size_t row, size_t col);
+
+size_t annis_matrix_str_ncols(const AnnisMatrix_AnnisCString *ptr);
+
+size_t annis_matrix_str_nrows(const AnnisMatrix_AnnisCString *ptr);
 
 void annis_str_free(char *s);
 

@@ -8,8 +8,7 @@ use graphannis::relannis;
 use graphannis::{ComponentType, Component, CountExtra};
 use std::path::PathBuf;
 use super::error::Error;
-
-use data::AnnoListItem;
+use super::Matrix;
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -194,6 +193,22 @@ pub extern "C" fn annis_cs_list(ptr: *const cs::CorpusStorage) -> *mut Vec<CStri
 
     return Box::into_raw(Box::new(corpora));
 }
+
+ #[no_mangle]
+pub extern "C" fn annis_cs_list_node_annotations(
+        ptr: *const cs::CorpusStorage,
+        corpus_name: *const libc::c_char,
+        list_values: bool,
+        only_most_frequent_values: bool,
+    ) -> Matrix<CString> {
+
+        let cs: &cs::CorpusStorage = cast_const!(ptr);
+        let corpus = cstr!(corpus_name);
+
+        cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
+
+        unimplemented!()
+    }
 
 #[no_mangle]
 pub extern "C" fn annis_cs_import_relannis(
