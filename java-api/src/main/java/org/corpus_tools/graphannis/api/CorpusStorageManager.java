@@ -31,6 +31,8 @@ import org.corpus_tools.salt.common.SDocumentGraph;
 
 import com.sun.jna.NativeLong;
 
+import annis.model.Annotation;
+
 /**
  * An API for managing corpora stored in a common location on the file system.
  * 
@@ -63,6 +65,34 @@ public class CorpusStorageManager {
         orig.dispose();
 
         return copy;
+    }
+
+    public List<Annotation> listNodeAnnotations(String corpusName, boolean listValues, boolean onlyMostFrequentValues) {
+        List<Annotation> result = new LinkedList<>();
+        if (instance != null) {
+            CAPI.AnnisMatrix_AnnisCString orig = CAPI.annis_cs_list_node_annotations(instance, corpusName, listValues,
+                    onlyMostFrequentValues);
+
+            final int nrows = CAPI.annis_matrix_str_nrows(orig).intValue();
+            final int ncols = CAPI.annis_matrix_str_ncols(orig).intValue();
+            if (ncols >= (listValues ? 3 : 2)) {
+                for (int i = 0; i < nrows; i++) {
+                    Annotation anno = new Annotation();
+                    String ns = CAPI.annis_matrix_str_get(orig, new NativeLong(i), new NativeLong(0));
+                    String name = CAPI.annis_matrix_str_get(orig, new NativeLong(i), new NativeLong(1));
+                    
+                    anno.setNamespace(ns);
+                    anno.setName(name);
+                    if(listValues) {
+                        String val = CAPI.annis_matrix_str_get(orig, new NativeLong(i), new NativeLong(3));
+                        anno.setValue(val);
+                    }
+                }
+            }
+
+            orig.dispose();
+        }
+        return result;
     }
 
     public List<String> getAllOrderRelationNames(String corpusName) {
