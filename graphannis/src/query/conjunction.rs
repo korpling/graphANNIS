@@ -230,44 +230,48 @@ impl<'a> Conjunction<'a> {
         &'a self,
         node_search_desc: Rc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        op_spec: &'a OperatorSpec,
+        op_entries: Box<Iterator<Item=&'a OperatorEntry>+'a>,
         db: &'a GraphDB,
     ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         // check if we can replace this node search with a generic "all nodes from either of these components" search
         let node_search_cost: &CostEstimate = desc?.cost.as_ref()?;
 
-        // get the necessary components and count the number of nodes in these components
-        let components = op_spec.necessary_components();
-        if components.len() > 0 {
+        for e in op_entries {
+            let op_spec = &e.op;
+            // get the necessary components and count the number of nodes in these components
+            let components = op_spec.necessary_components();
+            if components.len() > 0 {
 
-            let mut estimated_component_search = 0;
-            
-            let mut estimation_valid = false;
-            for c in components.iter() {
-                if let Some(gs) = db.get_graphstorage(c) {
-                    // check if we can apply an even more restrictive edge annotation search
-                    if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                        let anno_storage : &AnnoStorage<Edge> = gs.get_anno_storage();  
-                        if let Some(edge_anno_est) = edge_anno_spec.guess_max_count(&anno_storage, &db.strings) {
-                            estimated_component_search += edge_anno_est;
+                let mut estimated_component_search = 0;
+                
+                let mut estimation_valid = false;
+                for c in components.iter() {
+                    if let Some(gs) = db.get_graphstorage(c) {
+                        // check if we can apply an even more restrictive edge annotation search
+                        if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
+                            let anno_storage : &AnnoStorage<Edge> = gs.get_anno_storage();  
+                            if let Some(edge_anno_est) = edge_anno_spec.guess_max_count(&anno_storage, &db.strings) {
+                                estimated_component_search += edge_anno_est;
+                                estimation_valid = true;
+                            }
+                        } else if let Some(stats) = gs.get_statistics() {
+                            let stats: &GraphStatistic = stats;
+                            estimated_component_search += stats.nodes;
                             estimation_valid = true;
-                        }
-                    } else if let Some(stats) = gs.get_statistics() {
-                        let stats: &GraphStatistic = stats;
-                        estimated_component_search += stats.nodes;
-                        estimation_valid = true;
-                    }    
+                        }    
+                    }
                 }
-            }
 
-            if estimation_valid && node_search_cost.output > estimated_component_search {
-                return Some(Box::new(NodeSearch::new_partofcomponentsearch(
-                    db,
-                    node_search_desc,
-                    desc,
-                    components,
-                    op_spec.get_edge_anno_spec(),
-                )));
+                if estimation_valid && node_search_cost.output > estimated_component_search {
+                    // TODO: check if there is another operator with even better estimates
+                    return Some(Box::new(NodeSearch::new_partofcomponentsearch(
+                        db,
+                        node_search_desc,
+                        desc,
+                        components,
+                        op_spec.get_edge_anno_spec(),
+                    )));
+                }
             }
         }
 
@@ -373,7 +377,7 @@ impl<'a> Conjunction<'a> {
                 self.optimize_node_search_by_operator(
                     node_search.get_node_search_desc(),
                     exec_left.get_desc(),
-                    op_entry.op.as_ref(),
+                    Box::new(self.operators.iter()),
                     db,
                 )
             } else {
