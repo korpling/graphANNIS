@@ -8,7 +8,7 @@ pub enum EstimationType {
 }
 
 pub trait Operator : std::fmt::Display {
-    fn retrieve_matches<'a>(&'a self, lhs : &Match) -> Box<Iterator<Item = Match> + 'a>;
+    fn retrieve_matches(&self, lhs : &Match) -> Box<Iterator<Item = Match>>;
 
     fn filter_match(&self, lhs : &Match, rhs : &Match) -> bool;
 

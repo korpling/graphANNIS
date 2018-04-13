@@ -90,7 +90,7 @@ impl std::fmt::Display for Overlap {
 }
 
 impl Operator for  Overlap {
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
 
         // use set to filter out duplicates
         let mut result = HashSet::new();

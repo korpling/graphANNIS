@@ -76,7 +76,7 @@ impl std::fmt::Display for IdenticalCoverage {
 }
 
 impl Operator for IdenticalCoverage {
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let n_left = self.tok_helper.left_token_for(&lhs.node);
         let n_right = self.tok_helper.right_token_for(&lhs.node);
 

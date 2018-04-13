@@ -7,6 +7,7 @@ use util::token_helper;
 use util::token_helper::TokenHelper;
 
 use std::sync::Arc;
+use std::collections::VecDeque;
 use std;
 
 #[derive(Clone, Debug)]
@@ -88,7 +89,7 @@ impl std::fmt::Display for Precedence {
 
 impl Operator for Precedence {
 
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
@@ -101,7 +102,8 @@ impl Operator for Precedence {
 
         let start = start.unwrap();
 
-        let result = self.gs_order
+        // materialize a list of all matches 
+        let result : VecDeque<Match> = self.gs_order
             // get all token in the range
             .find_connected(&start, self.spec.min_dist, self.spec.max_dist)
             // find all left aligned nodes for this token and add it together with the token itself
@@ -110,9 +112,10 @@ impl Operator for Precedence {
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
-            .map(|n| Match {node: n, anno: Annotation::default()});
+            .map(|n| Match {node: n, anno: Annotation::default()})
+            .collect();
             
-        return Box::new(result);
+        return Box::new(result.into_iter());
         
     }
 

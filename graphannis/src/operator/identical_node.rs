@@ -26,7 +26,7 @@ impl std::fmt::Display for IdenticalNode {
 }
 
 impl Operator for IdenticalNode {
-    fn retrieve_matches<'a>(&'a self, lhs : &Match) -> Box<Iterator<Item = Match> + 'a> {
+    fn retrieve_matches(&self, lhs : &Match) -> Box<Iterator<Item = Match>> {
         return Box::new(std::iter::once(
             Match{node: lhs.node.clone(), anno: Annotation::default()}
             )

@@ -7,6 +7,7 @@ use util::token_helper;
 use util::token_helper::TokenHelper;
 
 use std::sync::Arc;
+use std::collections::VecDeque;
 use std;
 
 #[derive(Clone, Debug)]
@@ -105,13 +106,13 @@ impl std::fmt::Display for Inclusion {
 }
 
 impl Operator for Inclusion {
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = 
             self.tok_helper.left_right_token_for(&lhs.node) {
             // span length of LHS
             if let Some(l) = self.gs_order.distance(&start_lhs, &end_lhs) {
                 // find each token which is between the left and right border
-                let it = self.gs_order
+                let result : VecDeque<Match> = self.gs_order
                     .find_connected(&start_lhs, 0, l)
                     .flat_map(move |t| {
                         let it_aligned = self.gs_left.get_outgoing_edges(&t).into_iter().filter(
@@ -132,8 +133,9 @@ impl Operator for Inclusion {
                     .map(|n| Match {
                         node: n,
                         anno: Annotation::default(),
-                    });
-                return Box::new(it);
+                    })
+                    .collect();
+                return Box::new(result.into_iter());
             }
         }
 
