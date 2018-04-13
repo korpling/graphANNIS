@@ -1,12 +1,13 @@
 use graphstorage::GraphStorage;
 use graphdb::GraphDB;
+use annostorage::AnnoStorage;
 use {Component, ComponentType, NodeID, AnnoKey};
 
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct TokenHelper<'a> {
-    db: &'a GraphDB,
+pub struct TokenHelper {
+    node_annos: Arc<AnnoStorage<NodeID>>,
     left_edges: Arc<GraphStorage>,
     right_edges: Arc<GraphStorage>,
     cov_edges: Option<Arc<GraphStorage>>,
@@ -47,11 +48,11 @@ pub fn necessary_components() -> Vec<Component> {
     vec![COMPONENT_LEFT.clone(), COMPONENT_RIGHT.clone(), COMPONENT_COV.clone()]
 }
 
-impl<'a> TokenHelper<'a> {
-    pub fn new(db: &'a GraphDB) -> Option<TokenHelper<'a>> {
+impl TokenHelper {
+    pub fn new(db: &GraphDB) -> Option<TokenHelper> {
      
         Some(TokenHelper {
-            db,
+            node_annos: db.node_annos.clone(),
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
             right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
             cov_edges: db.get_graphstorage(&COMPONENT_COV),
@@ -61,7 +62,7 @@ impl<'a> TokenHelper<'a> {
 
     pub fn is_token(&self, id: &NodeID) -> bool {
       
-      return self.db.node_annos.get(id, &self.tok_key).is_some() 
+      return self.node_annos.get(id, &self.tok_key).is_some() 
         && self.cov_edges.is_some() && self.cov_edges.as_ref().unwrap().get_outgoing_edges(id).next().is_none();
     }
 

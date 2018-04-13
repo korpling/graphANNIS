@@ -16,10 +16,10 @@ pub struct PrecedenceSpec {
     pub max_dist: usize,
 }
 
-pub struct Precedence<'a> {
+pub struct Precedence {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
     spec: PrecedenceSpec,
 }
 
@@ -57,8 +57,8 @@ impl OperatorSpec for PrecedenceSpec {
     }
 }
 
-impl<'a> Precedence<'a> {
-    pub fn new(db: &'a GraphDB, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
+impl Precedence {
+    pub fn new(db: &GraphDB, spec: PrecedenceSpec) -> Option<Precedence> {
         
         let component_order = Component {
             ctype: ComponentType::Ordering,
@@ -80,13 +80,13 @@ impl<'a> Precedence<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Precedence<'a> {
+impl std::fmt::Display for Precedence {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, ".?")
     }
 }
 
-impl<'a> Operator for Precedence<'a> {
+impl Operator for Precedence {
 
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
         let start = if self.spec.segmentation.is_some() {

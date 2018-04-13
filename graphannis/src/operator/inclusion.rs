@@ -12,13 +12,13 @@ use std;
 #[derive(Clone, Debug)]
 pub struct InclusionSpec;
 
-pub struct Inclusion<'a> {
+pub struct Inclusion {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
     gs_right: Arc<GraphStorage>,
     gs_cov: Arc<GraphStorage>,
 
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
 }
 
 lazy_static! {
@@ -79,8 +79,8 @@ impl OperatorSpec for InclusionSpec {
     }
 }
 
-impl<'a> Inclusion<'a> {
-    pub fn new(db: &'a GraphDB) -> Option<Inclusion<'a>> {
+impl Inclusion {
+    pub fn new(db: &GraphDB) -> Option<Inclusion> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
@@ -98,13 +98,13 @@ impl<'a> Inclusion<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Inclusion<'a> {
+impl std::fmt::Display for Inclusion {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_i_")
     }
 }
 
-impl<'a> Operator for Inclusion<'a> {
+impl Operator for Inclusion {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
         if let (Some(start_lhs), Some(end_lhs)) = 
             self.tok_helper.left_right_token_for(&lhs.node) {

@@ -191,6 +191,7 @@ fn extract_subgraph_by_query(
 
 fn create_subgraph_node(id: NodeID, db: &mut GraphDB, orig_db: &GraphDB) {
     // add all node labels with the same node ID
+    let node_annos = Arc::make_mut(&mut db.node_annos);
     for a in orig_db.node_annos.get_all(&id) {
         if let (Some(ns), Some(name), Some(val)) = (
             orig_db.strings.str(a.key.ns),
@@ -204,21 +205,9 @@ fn create_subgraph_node(id: NodeID, db: &mut GraphDB, orig_db: &GraphDB) {
                 },
                 val: db.strings.add(val),
             };
-            db.node_annos.insert(id, new_anno);
+            node_annos.insert(id, new_anno);
         }
     }
-
-    trace!(
-        "adding node \"{}\" to subgraph",
-        db.strings
-            .str(
-                db.node_annos
-                    .get(&id, &db.get_node_name_key())
-                    .cloned()
-                    .unwrap_or(0)
-            )
-            .unwrap_or(&String::from(""))
-    );
 }
 fn create_subgraph_edge(
     source_id: NodeID,
@@ -592,7 +581,7 @@ impl CorpusStorage {
         let mut lock = db_entry.write().unwrap();
         let db: &mut GraphDB = get_write_or_error(&mut lock)?;
 
-        db.node_annos.calculate_statistics(&db.strings);
+        Arc::make_mut(&mut db.node_annos).calculate_statistics(&db.strings);
         for c in db.get_all_components(None, None).into_iter() {
             db.calculate_component_statistics(&c)?;
         }

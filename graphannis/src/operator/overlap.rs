@@ -13,11 +13,11 @@ use std;
 #[derive(Clone, Debug)]
 pub struct OverlapSpec;
 
-pub struct  Overlap<'a> {
+pub struct  Overlap {
     gs_order: Arc<GraphStorage>,
     gs_cov: Arc<GraphStorage>,
     gs_invcov: Arc<GraphStorage>,
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
 }
 
 lazy_static! {
@@ -66,8 +66,8 @@ impl OperatorSpec for  OverlapSpec {
     }
 }
 
-impl<'a>  Overlap<'a> {
-    pub fn new(db: &'a GraphDB) -> Option< Overlap<'a>> {
+impl  Overlap {
+    pub fn new(db: &GraphDB) -> Option< Overlap> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_cov = db.get_graphstorage(&COMPONENT_COVERAGE)?;
         let gs_invcov = db.get_graphstorage(&COMPONENT_INV_COVERAGE)?;        
@@ -83,13 +83,13 @@ impl<'a>  Overlap<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Overlap<'a> {
+impl std::fmt::Display for Overlap {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_o_")
     }
 }
 
-impl<'a> Operator for  Overlap<'a> {
+impl Operator for  Overlap {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
 
         // use set to filter out duplicates

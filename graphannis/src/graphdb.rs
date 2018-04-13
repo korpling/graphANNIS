@@ -64,7 +64,7 @@ impl From<bincode::Error> for Error {
 
 pub struct GraphDB {
     pub strings: StringStorage,
-    pub node_annos: AnnoStorage<NodeID>,
+    pub node_annos: Arc<AnnoStorage<NodeID>>,
 
     location: Option<PathBuf>,
 
@@ -158,7 +158,7 @@ impl GraphDB {
             id_node_type: strings.add(NODE_TYPE),
 
             strings,
-            node_annos: AnnoStorage::<NodeID>::new(),
+            node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
             components: BTreeMap::new(),
 
             location: None,
@@ -171,7 +171,7 @@ impl GraphDB {
 
     pub fn clear(&mut self) {
         self.strings.clear();
-        self.node_annos.clear();
+        self.node_annos = Arc::new(AnnoStorage::new());
         self.components.clear();
     }
 
@@ -192,7 +192,8 @@ impl GraphDB {
         };
 
         self.strings = load_bincode(&dir2load, "strings.bin")?;
-        self.node_annos = load_bincode(&dir2load, "nodes.bin")?;
+        let node_annos_tmp : AnnoStorage<NodeID> = load_bincode(&dir2load, "nodes.bin")?; 
+        self.node_annos = Arc::from(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");
 
@@ -293,7 +294,7 @@ impl GraphDB {
         std::fs::create_dir_all(&location)?;
 
         save_bincode(&location, "strings.bin", &self.strings)?;
-        save_bincode(&location, "nodes.bin", &self.node_annos)?;
+        save_bincode(&location, "nodes.bin", self.node_annos.as_ref())?;
 
         for (c, e) in self.components.iter() {
             if let Some(ref data) = *e {
@@ -355,15 +356,19 @@ impl GraphDB {
                         };
 
                         // add the new node (with minimum labels)
-                        self.node_annos.insert(new_node_id, new_anno_name);
-                        self.node_annos.insert(new_node_id, new_anno_type);
+                        let node_annos = Arc::make_mut(&mut self.node_annos);
+                        node_annos.insert(new_node_id, new_anno_name);
+                        node_annos.insert(new_node_id, new_anno_type);
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         // delete all annotations
-                        for a in self.node_annos.get_all(&existing_node_id) {
-                            self.node_annos.remove(&existing_node_id, &a.key);
+                        {
+                            let node_annos = Arc::make_mut(&mut self.node_annos);
+                            for a in node_annos.get_all(&existing_node_id) {
+                                node_annos.remove(&existing_node_id, &a.key);
+                            }
                         }
                         // delete all edges pointing to this node either as source or target
                         for c in self.get_all_components(None, None) {
@@ -385,7 +390,7 @@ impl GraphDB {
                             },
                             val: self.strings.add(&anno_value),
                         };
-                        self.node_annos.insert(existing_node_id, anno);
+                        Arc::make_mut(&mut self.node_annos).insert(existing_node_id, anno);
                     }
                 }
                 UpdateEvent::DeleteNodeLabel {
@@ -398,7 +403,7 @@ impl GraphDB {
                             ns: self.strings.add(&anno_ns),
                             name: self.strings.add(&anno_name),
                         };
-                        self.node_annos.remove(&existing_node_id, &key);
+                        Arc::make_mut(&mut self.node_annos).remove(&existing_node_id, &key);
                     }
                 }
                 UpdateEvent::AddEdge {

@@ -12,10 +12,10 @@ use std;
 #[derive(Clone, Debug)]
 pub struct IdenticalCoverageSpec;
 
-pub struct IdenticalCoverage<'a> {
+pub struct IdenticalCoverage {
     gs_left: Arc<GraphStorage>,
     gs_order: Arc<GraphStorage>,
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
 }
 
 lazy_static! {
@@ -54,8 +54,8 @@ impl OperatorSpec for IdenticalCoverageSpec {
     }
 }
 
-impl<'a> IdenticalCoverage<'a> {
-    pub fn new(db: &'a GraphDB) -> Option<IdenticalCoverage<'a>> {
+impl IdenticalCoverage {
+    pub fn new(db: &GraphDB) -> Option<IdenticalCoverage> {
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let tok_helper = TokenHelper::new(db)?;
@@ -69,13 +69,13 @@ impl<'a> IdenticalCoverage<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
+impl std::fmt::Display for IdenticalCoverage {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_=_")
     }
 }
 
-impl<'a> Operator for IdenticalCoverage<'a> {
+impl Operator for IdenticalCoverage {
     fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
         let n_left = self.tok_helper.left_token_for(&lhs.node);
         let n_right = self.tok_helper.right_token_for(&lhs.node);
