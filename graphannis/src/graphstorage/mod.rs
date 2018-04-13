@@ -29,12 +29,16 @@ pub struct GraphStatistic
     pub dfs_visit_ratio : f64,
 }
 
-pub trait GraphStorage : Sync + Send + HeapSizeOf {
-
+pub trait EdgeContainer : Sync + Send + HeapSizeOf {
     fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation>;
-    
+
+    fn get_anno_storage(&self) -> &AnnoStorage<Edge>;
+}
+
+pub trait GraphStorage : EdgeContainer {
+
     fn find_connected<'a>(
         &'a self,
         source: &NodeID,
@@ -51,8 +55,6 @@ pub trait GraphStorage : Sync + Send + HeapSizeOf {
 
     fn copy(&mut self, db : &GraphDB, orig : &GraphStorage);
 
-    fn get_anno_storage(&self) -> &AnnoStorage<Edge>;
-
     fn as_any(&self) -> &Any;
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
@@ -63,7 +65,7 @@ pub trait GraphStorage : Sync + Send + HeapSizeOf {
 
 }
 
-pub trait WriteableGraphStorage:  GraphStorage {
+pub trait WriteableGraphStorage :  GraphStorage {
     fn add_edge(&mut self, edge: Edge);
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation);
 

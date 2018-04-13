@@ -1,3 +1,4 @@
+use graphstorage::EdgeContainer;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::collections::Bound::*;
 use std::any::Any;
@@ -90,11 +91,9 @@ struct OrderIterEntry<OrderT,LevelT> {
     pub node: NodeID, 
 }
 
-impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
+impl<OrderT: 'static, LevelT : 'static> EdgeContainer for  PrePostOrderStorage<OrderT,LevelT> 
 where OrderT : NumValue, 
     LevelT : NumValue {
-
-
 
     fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         return self.find_connected(source, 1, 1);
@@ -103,6 +102,18 @@ where OrderT : NumValue,
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
         return self.annos.get_all(edge);
     }
+
+    fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
+        &self.annos
+    }
+
+}
+
+impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
+where OrderT : NumValue, 
+    LevelT : NumValue {
+
+
     
     fn find_connected<'a>(
         &'a self,
@@ -300,11 +311,6 @@ where OrderT : NumValue,
         self.annos.calculate_statistics(&db.strings);
 
         self.node_to_order.shrink_to_fit();
-    }
-
-
-    fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
-        &self.annos
     }
 
     fn as_any(&self) -> &Any {self}
