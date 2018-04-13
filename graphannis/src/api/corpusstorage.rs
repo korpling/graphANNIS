@@ -200,10 +200,10 @@ fn create_subgraph_node(id: NodeID, db: &mut GraphDB, orig_db: &GraphDB) {
         ) {
             let new_anno = Annotation {
                 key: AnnoKey {
-                    ns: db.strings.add(ns),
-                    name: db.strings.add(name),
+                    ns: Arc::make_mut(&mut db.strings).add(ns),
+                    name: Arc::make_mut(&mut db.strings).add(name),
                 },
-                val: db.strings.add(val),
+                val: Arc::make_mut(&mut db.strings).add(val),
             };
             node_annos.insert(id, new_anno);
         }
@@ -241,10 +241,10 @@ fn create_subgraph_edge(
                     ) {
                         let new_anno = Annotation {
                             key: AnnoKey {
-                                ns: db.strings.add(ns),
-                                name: db.strings.add(name),
+                                ns: Arc::make_mut(&mut db.strings).add(ns),
+                                name: Arc::make_mut(&mut db.strings).add(name),
                             },
-                            val: db.strings.add(val),
+                            val: Arc::make_mut(&mut db.strings).add(val),
                         };
                         if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
                             new_gs.add_edge_annotation(e.clone(), new_anno.clone());

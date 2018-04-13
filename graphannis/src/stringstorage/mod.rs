@@ -6,7 +6,7 @@ use regex::Regex;
 use std;
 use bincode;
 
-#[derive(Serialize, Deserialize, Debug, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Clone, Debug, HeapSizeOf)]
 pub struct StringStorage {
     by_id: HashMap<StringID, String>,
     by_value: BTreeMap<String, StringID>,

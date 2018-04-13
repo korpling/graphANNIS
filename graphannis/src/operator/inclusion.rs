@@ -169,7 +169,7 @@ impl Operator for Inclusion {
         false
     }
 
-    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if let (Some(stats_cov), Some(stats_order), Some(stats_left)) = (
             self.gs_cov.get_statistics(),
             self.gs_order.get_statistics(),

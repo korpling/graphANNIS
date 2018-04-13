@@ -2,7 +2,6 @@ use {Match, StringID, Annotation};
 use self::nodesearch::NodeSearch;
 use stringstorage::StringStorage;
 use operator::{EstimationType, Operator};
-use graphdb::GraphDB;
 
 use std::collections::{BTreeMap};
 use std;
@@ -27,14 +26,13 @@ pub struct Desc {
 
 fn calculate_outputsize<'a>(
     op: &Box<Operator + 'a>,
-    db: &'a GraphDB,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
 ) -> usize {
-    let output = match op.estimation_type(db) {
+    let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = (cost_lhs.output * cost_rhs.output) as f64;
-            if let Some(edge_sel) = op.edge_anno_selectivity(db) {
+            if let Some(edge_sel) = op.edge_anno_selectivity() {
                 (num_tuples * selectivity * edge_sel).round() as usize
             } else {
                 (num_tuples * selectivity).round() as usize
@@ -81,7 +79,6 @@ impl Desc {
 
     pub fn join<'a>(
         op: &Box<Operator + 'a>,
-        db: &'a GraphDB,
         lhs: Option<&Desc>,
         rhs: Option<&Desc>,
         impl_description: &str,
@@ -115,9 +112,9 @@ impl Desc {
         let cost = if let (Some(ref lhs), Some(ref rhs)) = (lhs, rhs) {
             if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&lhs.cost, &rhs.cost) {
                 // estimate output size using the operator
-                let output = calculate_outputsize(op, db, cost_lhs, cost_rhs);
+                let output = calculate_outputsize(op, cost_lhs, cost_rhs);
 
-                let processed_in_step = processed_func(op.estimation_type(db), cost_lhs.output, cost_rhs.output);
+                let processed_in_step = processed_func(op.estimation_type(), cost_lhs.output, cost_rhs.output);
                 Some(CostEstimate {
                     output,
                     intermediate_sum: processed_in_step + cost_lhs.intermediate_sum

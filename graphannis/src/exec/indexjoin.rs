@@ -1,7 +1,9 @@
-use {AnnoKey, Annotation, Match};
+use annostorage::AnnoStorage;
+use stringstorage::StringStorage;
+use std::sync::Arc;
+use {AnnoKey, Annotation, Match, NodeID};
 use operator::{EstimationType, Operator};
 use util;
-use graphdb::GraphDB;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use std;
 use std::iter::Peekable;
@@ -17,7 +19,8 @@ pub struct IndexJoin<'a> {
     op: Box<Operator + 'a>,
     lhs_idx: usize,
     node_search_desc: Rc<NodeSearchDesc>,
-    db: &'a GraphDB,
+    node_annos: Arc<AnnoStorage<NodeID>>,
+    strings: Arc<StringStorage>,
     desc: Desc,
 }
 
@@ -37,7 +40,8 @@ impl<'a> IndexJoin<'a> {
         node_nr_rhs: usize,
         op: Box<Operator + 'a>,
         node_search_desc: Rc<NodeSearchDesc>,
-        db: &'a GraphDB,
+        node_annos: Arc<AnnoStorage<NodeID>>,
+        strings: Arc<StringStorage>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
@@ -70,7 +74,6 @@ impl<'a> IndexJoin<'a> {
         return IndexJoin {
             desc: Desc::join(
                 &op,
-                db,
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",
@@ -81,7 +84,8 @@ impl<'a> IndexJoin<'a> {
             lhs_idx,
             op,
             node_search_desc,
-            db,
+            node_annos,
+            strings,
             rhs_candidate: None,
         };
     }
@@ -96,7 +100,7 @@ impl<'a> IndexJoin<'a> {
                     return Some(it_nodes
                         .filter_map(|match_node| {
                             let key = AnnoKey { ns: ns, name: name };
-                            if let Some(val) = self.db.node_annos.get(&match_node.node, &key) {
+                            if let Some(val) = self.node_annos.get(&match_node.node, &key) {
                                 Some(Match {
                                     node: match_node.node,
                                     anno: Annotation {
@@ -112,14 +116,14 @@ impl<'a> IndexJoin<'a> {
                         .collect()
                     );
                 } else {
-                    let keys = self.db.node_annos.get_qnames(name);
+                    let keys = self.node_annos.get_qnames(name);
                     // return all annotations with the correct name for each node
                     return Some(it_nodes
                         .flat_map(|match_node| {
                             let mut matches: Vec<Match> = Vec::new();
                             matches.reserve(keys.len());
                             for k in keys.clone() {
-                                if let Some(val) = self.db.node_annos.get(&match_node.node, &k) {
+                                if let Some(val) = self.node_annos.get(&match_node.node, &k) {
                                     matches.push(Match {
                                         node: match_node.node,
                                         anno: Annotation {
@@ -138,7 +142,7 @@ impl<'a> IndexJoin<'a> {
                 // return all annotations for each node
                 return Some(it_nodes
                     .flat_map(|match_node| {
-                        let annos = self.db.node_annos.get_all(&match_node.node);
+                        let annos = self.node_annos.get_all(&match_node.node);
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(annos.len());
                         for a in annos {
@@ -192,7 +196,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                         // check if all filters are true
                         let mut filter_result = true;
                         for f in self.node_search_desc.cond.iter() {
-                            if !(f)(&m_rhs, &self.db.strings) {
+                            if !(f)(&m_rhs, self.strings.as_ref()) {
                                 filter_result = false;
                                 break;
                             }

@@ -1,7 +1,6 @@
 use Match;
 use super::{ExecutionNode,Desc, CostEstimate};
 use operator::{Operator, EstimationType};
-use graphdb::GraphDB;
 use std;
 
 pub struct BinaryFilter<'a> {
@@ -11,13 +10,12 @@ pub struct BinaryFilter<'a> {
 
 fn calculate_outputsize<'a>(
     op: &Box<Operator + 'a>,
-    db: &'a GraphDB,
     num_tuples: usize,
 ) -> usize {
-    let output = match op.estimation_type(db) {
+    let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = num_tuples as f64;
-            if let Some(edge_sel) = op.edge_anno_selectivity(db) {
+            if let Some(edge_sel) = op.edge_anno_selectivity() {
                 (num_tuples * selectivity * edge_sel).round() as usize
             } else {
                 (num_tuples * selectivity).round() as usize
@@ -38,13 +36,12 @@ impl<'a> BinaryFilter<'a> {
         node_nr_lhs: usize,
         node_nr_rhs: usize,
         op: Box<Operator + 'a>,
-        db: &'a GraphDB,
     ) -> BinaryFilter<'a> {
  
         let desc = if let Some(orig_desc) =  exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost { 
                 Some(CostEstimate {
-                    output:  calculate_outputsize(&op, db, orig_cost.output),
+                    output:  calculate_outputsize(&op, orig_cost.output),
                     processed_in_step: orig_cost.processed_in_step,
                     intermediate_sum: orig_cost.intermediate_sum + orig_cost.processed_in_step,
                 })

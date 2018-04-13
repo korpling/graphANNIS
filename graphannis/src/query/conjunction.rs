@@ -417,7 +417,6 @@ impl<'a> Conjunction<'a> {
                         spec_idx_left + 1,
                         spec_idx_right + 1,
                         op,
-                        db,
                     );
                     Box::new(filter)
                 } else {
@@ -444,7 +443,8 @@ impl<'a> Conjunction<'a> {
                             spec_idx_right + 1,
                             op,
                             exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                            &db,
+                            db.node_annos.clone(),
+                            db.strings.clone(),
                             exec_right.get_desc(),
                         );
                         Box::new(join)
@@ -457,7 +457,8 @@ impl<'a> Conjunction<'a> {
                             spec_idx_left + 1,
                             op,
                             exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                            &db,
+                            db.node_annos.clone(),
+                            db.strings.clone(),
                             exec_left.get_desc(),
                         );
                         Box::new(join)
@@ -473,7 +474,6 @@ impl<'a> Conjunction<'a> {
                             spec_idx_left + 1,
                             spec_idx_right + 1,
                             op,
-                            db,
                         );
 
                         Box::new(join)

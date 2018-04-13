@@ -96,6 +96,9 @@ struct BaseEdgeOp {
     gs: Vec<Arc<GraphStorage>>,
     edge_anno: Option<Annotation>,
     spec: BaseEdgeOpSpec,
+    node_annos: Arc<AnnoStorage<NodeID>>,
+    strings: Arc<StringStorage>,
+    node_type_key: AnnoKey,
 }
 
 impl BaseEdgeOp {
@@ -113,6 +116,9 @@ impl BaseEdgeOp {
             gs,
             edge_anno,
             spec,
+            node_annos: db.node_annos.clone(),
+            strings: db.strings.clone(),
+            node_type_key: db.get_node_type_key(),
         })
     }
 }
@@ -223,14 +229,14 @@ impl Operator for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn estimation_type<'a>(&self, db: &'a GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if self.gs.is_empty() {
             // will not find anything
             return EstimationType::SELECTIVITY(0.0);
         }
 
-        let node_type_key = db.get_node_type_key();
-        let max_nodes : f64 = db.node_annos.guess_max_count(Some(node_type_key.ns), node_type_key.name, "node", "node") as f64;
+        
+        let max_nodes : f64 = self.node_annos.guess_max_count(Some(self.node_type_key.ns), self.node_type_key.name, "node", "node") as f64;
 
         let mut worst_sel : f64 = 0.0;
 
@@ -280,7 +286,7 @@ impl Operator for BaseEdgeOp {
         return EstimationType::SELECTIVITY(worst_sel);
     }
 
-    fn edge_anno_selectivity<'a>(&self, db: &'a GraphDB) -> Option<f64> {
+    fn edge_anno_selectivity(&self) -> Option<f64> {
         if let Some(ref edge_anno) = self.edge_anno {
             let edge_anno : Annotation = edge_anno.clone();
             if edge_anno == Annotation::default() {
@@ -296,7 +302,7 @@ impl Operator for BaseEdgeOp {
                         return Some(0.0);
                     } else {
                         
-                        if let Some(val_str) = db.strings.str(edge_anno.val) {
+                        if let Some(val_str) = self.strings.str(edge_anno.val) {
                             let ns = if edge_anno.key.ns == 0 {None} else {Some(edge_anno.key.name)};
                             let guessed_count = anno_storage.guess_max_count(ns, edge_anno.key.name, val_str, val_str);
 

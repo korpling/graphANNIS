@@ -136,7 +136,7 @@ impl Operator for Precedence {
         );
     }
 
-    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if let Some(stats_order) = self.gs_order.get_statistics() {
 
             let max_possible_dist = std::cmp::min(self.spec.max_dist, stats_order.max_depth);

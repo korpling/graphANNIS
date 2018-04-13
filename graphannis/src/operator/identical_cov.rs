@@ -130,7 +130,7 @@ impl Operator for IdenticalCoverage {
         true
     }
 
-    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if let Some(order_stats) = self.gs_order.get_statistics() {
             let num_of_token = order_stats.nodes as f64;
 
