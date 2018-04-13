@@ -88,7 +88,7 @@ impl<'a> IndexJoin<'a> {
 
     fn next_candidates(&mut self) -> Option<Vec<Match>> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
-            let it_nodes = self.op.retrieve_matches(&m_lhs[self.lhs_idx]);
+            let it_nodes = self.op.retrieve_matches(&m_lhs[self.lhs_idx]).fuse();
 
             if let Some(name) = self.node_search_desc.qname.1 {
                 if let Some(ns) = self.node_search_desc.qname.0 {

@@ -99,12 +99,12 @@ impl<'a> Operator for  Overlap<'a> {
             Box::new(std::iter::once(lhs.node))
         }  else {
             // all covered token
-            Box::new(self.gs_cov.find_connected(&lhs.node, 1, 1))
+            Box::new(self.gs_cov.find_connected(&lhs.node, 1, 1).fuse())
         };
 
         for t in covered {
              // get all nodes that are covering the token
-            for n in self.gs_invcov.find_connected(&t, 1, 1) {
+            for n in self.gs_invcov.find_connected(&t, 1, 1).fuse() {
                 result.insert(n);
             }
             // also add the token itself

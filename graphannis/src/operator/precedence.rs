@@ -103,7 +103,7 @@ impl<'a> Operator for Precedence<'a> {
 
         let result = self.gs_order
             // get all token in the range
-            .find_connected(&start, self.spec.min_dist, self.spec.max_dist)
+            .find_connected(&start, self.spec.min_dist, self.spec.max_dist).fuse()
             // find all left aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
                 let it_aligned = self.gs_left.get_outgoing_edges(&t);

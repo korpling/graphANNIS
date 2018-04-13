@@ -183,7 +183,7 @@ impl Operator for BaseEdgeOp {
             let spec = self.spec.clone();
 
             e.as_ref()
-                .find_connected(&lhs.node, spec.min_dist, spec.max_dist)
+                .find_connected(&lhs.node, spec.min_dist, spec.max_dist).fuse()
                 .filter(move |candidate| {
                     check_edge_annotation(&self.edge_anno, e.as_ref(), &lhs.clone().node, candidate)
                 })
