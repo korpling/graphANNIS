@@ -107,6 +107,21 @@ where OrderT : NumValue,
         &self.annos
     }
 
+    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+        let it = self.node_to_order.iter()
+            .filter_map(move |(n, _order)| {
+                // check if this is actual a source node (and not only a target node)
+                if self.get_outgoing_edges(n).next().is_some() {
+                    return Some(n.clone());
+                } else {
+                    return None;
+                }
+            });
+        return Box::new(it);
+    }
+
+    fn get_statistics(&self) -> Option<&GraphStatistic> {self.stats.as_ref()}
+
 }
 
 impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
@@ -214,20 +229,9 @@ where OrderT : NumValue,
         return false;
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        let it = self.node_to_order.iter()
-            .filter_map(move |(n, _order)| {
-                // check if this is actual a source node (and not only a target node)
-                if self.get_outgoing_edges(n).next().is_some() {
-                    return Some(n.clone());
-                } else {
-                    return None;
-                }
-            });
-        return Box::new(it);
-    }
+    
 
-    fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
+    fn copy(&mut self, db : &GraphDB, orig : &EdgeContainer) {
 
         self.clear();
 
@@ -315,6 +319,7 @@ where OrderT : NumValue,
 
     fn as_any(&self) -> &Any {self}
 
-    fn get_statistics(&self) -> Option<&GraphStatistic> {self.stats.as_ref()}
+    fn as_edgecontainer(&self) -> &EdgeContainer {self}
+    
 
 }

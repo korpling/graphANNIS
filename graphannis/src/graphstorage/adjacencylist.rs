@@ -71,6 +71,15 @@ impl EdgeContainer for AdjacencyListStorage {
     fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
         return &self.annos;
     }
+
+    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+        let it = self.edges.iter().map(|e| e.source).dedup();
+        return Box::new(it);
+    }
+
+    fn get_statistics(&self) -> Option<&GraphStatistic> {
+        return self.stats.as_ref();
+    }
 }
 
 impl GraphStorage for AdjacencyListStorage {
@@ -105,12 +114,9 @@ impl GraphStorage for AdjacencyListStorage {
         return it.next().is_some();
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        let it = self.edges.iter().map(|e| e.source).dedup();
-        return Box::new(it);
-    }
+    
 
-    fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
+    fn copy(&mut self, db : &GraphDB, orig : &EdgeContainer) {
         self.clear();
 
         for source in orig.source_nodes() {
@@ -128,12 +134,11 @@ impl GraphStorage for AdjacencyListStorage {
     }
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
+    fn as_edgecontainer(&self) -> &EdgeContainer {self}
 
     fn as_any(&self) -> &Any {self}
 
-    fn get_statistics(&self) -> Option<&GraphStatistic> {
-        return self.stats.as_ref();
-    }
+    
 
 
     fn calculate_statistics(&mut self, string_storage : &StringStorage) {

@@ -1,3 +1,4 @@
+use graphstorage::adjacencylist::AdjacencyListStorage;
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
 use graphstorage::{GraphStorage, WriteableGraphStorage};
@@ -628,8 +629,8 @@ impl GraphDB {
             let loaded_comp = if is_writable {
                 loaded_comp
             } else {
-                let mut gs_copy = registry::create_writeable();
-                gs_copy.copy(&self, loaded_comp.as_ref());
+                let mut gs_copy : AdjacencyListStorage = registry::create_writeable();
+                gs_copy.copy(&self, loaded_comp.as_edgecontainer());
                 Arc::from(gs_copy)
             };
 
@@ -722,7 +723,7 @@ impl GraphDB {
                 if existing_type.is_err() || opt_type != existing_type.unwrap() {
                     let mut new_gs = registry::create_from_type(opt_type.clone());
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
-                        new_gs_mut.copy(self, gs.as_ref());
+                        new_gs_mut.copy(self, gs.as_edgecontainer());
                         true
                     } else {
                         false

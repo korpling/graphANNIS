@@ -35,6 +35,13 @@ pub trait EdgeContainer : Sync + Send + HeapSizeOf {
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation>;
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge>;
+
+    fn get_statistics(&self) -> Option<&GraphStatistic> {None}
+
+    /// Provides an iterator over all nodes of this edge container that are the source an edge
+    fn source_nodes<'a>(
+        &'a self,
+    ) -> Box<Iterator<Item = NodeID> + 'a>;
 }
 
 pub trait GraphStorage : EdgeContainer {
@@ -48,18 +55,17 @@ pub trait GraphStorage : EdgeContainer {
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize>;
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool;
 
-    /// Provides an iterator over all nodes of this graph storage that are the source an edge
-    fn source_nodes<'a>(
-        &'a self,
-    ) -> Box<Iterator<Item = NodeID> + 'a>;
+    
 
-    fn copy(&mut self, db : &GraphDB, orig : &GraphStorage);
+    fn copy(&mut self, db : &GraphDB, orig : &EdgeContainer);
 
     fn as_any(&self) -> &Any;
 
+    fn as_edgecontainer(&self) -> &EdgeContainer;
+
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
     
-    fn get_statistics(&self) -> Option<&GraphStatistic> {None}
+    
 
     fn calculate_statistics(&mut self, _string_storage : &StringStorage) {}
 

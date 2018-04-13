@@ -72,6 +72,21 @@ where
     fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
         &self.annos
     }
+
+    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+        // use the node chains to find source nodes, but always skip the last element
+        // because the last element is only a target node, not a source node
+        let it = self.node_chains
+            .iter()
+            .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
+            .cloned();
+
+        return Box::new(it);
+    }
+    
+    fn get_statistics(&self) -> Option<&GraphStatistic> {
+        self.stats.as_ref()
+    }
 }
 
 impl<PosT: 'static> GraphStorage for LinearGraphStorage<PosT>
@@ -143,18 +158,8 @@ where
         return false;
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        // use the node chains to find source nodes, but always skip the last element
-        // because the last element is only a target node, not a source node
-        let it = self.node_chains
-            .iter()
-            .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
-            .cloned();
 
-        return Box::new(it);
-    }
-
-    fn copy(&mut self, db: &GraphDB, orig: &GraphStorage) {
+    fn copy(&mut self, db: &GraphDB, orig: &EdgeContainer) {
         self.clear();
 
         // find all roots of the component
@@ -230,7 +235,7 @@ where
         self
     }
 
-    fn get_statistics(&self) -> Option<&GraphStatistic> {
-        self.stats.as_ref()
-    }
+    fn as_edgecontainer(&self) -> &EdgeContainer {self}
+
+    
 }
