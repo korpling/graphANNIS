@@ -25,7 +25,7 @@ pub trait Operator : std::fmt::Display {
 pub trait OperatorSpec : std::fmt::Debug {
     fn necessary_components(&self) -> Vec<Component>;
 
-    fn create_operator<'a>(&self, db: &'a GraphDB) -> Option<Box<Operator + 'a>>;
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {None}
     

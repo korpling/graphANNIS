@@ -44,7 +44,7 @@ impl OperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));

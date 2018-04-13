@@ -56,7 +56,7 @@ impl OperatorSpec for  OverlapSpec {
         v
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
         let optional_op =  Overlap::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));

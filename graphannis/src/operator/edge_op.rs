@@ -128,7 +128,7 @@ impl OperatorSpec for BaseEdgeOpSpec {
         self.components.clone()
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -361,7 +361,7 @@ impl OperatorSpec for DominanceSpec {
         self.base.necessary_components()
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
         self.base.create_operator(db)
     }
 }
@@ -404,7 +404,7 @@ impl OperatorSpec for PointingSpec {
         self.base.necessary_components()
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator<'b>(&self, db: &GraphDB) -> Option<Box<Operator>> {
         self.base.create_operator(db)
     }
 }
@@ -442,7 +442,7 @@ impl OperatorSpec for PartOfSubCorpusSpec {
         self.base.necessary_components()
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
         self.base.create_operator(db)
     }
 }
