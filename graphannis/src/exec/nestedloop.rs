@@ -4,7 +4,6 @@ use util;
 use super::{Desc, ExecutionNode};
 use operator::Operator;
 use std::iter::Peekable;
-
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
@@ -14,6 +13,7 @@ pub struct NestedLoop<'a> {
     inner_cache: Vec<Vec<Match>>,
     pos_inner_cache: Option<usize>,
 
+    left_is_outer : bool,
     desc: Desc,
 }
 
@@ -28,8 +28,17 @@ impl<'a> NestedLoop<'a> {
         op: Box<Operator + 'a>,
         db: &'a GraphDB,
     ) -> NestedLoop<'a> {
-        // TODO: allow switching inner and outer
 
+        let mut left_is_outer = true;
+        if let (Some(ref desc_lhs), Some(ref desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
+            if let (&Some(ref cost_lhs), &Some(ref cost_rhs)) = (&desc_lhs.cost, &desc_rhs.cost) {
+
+                if cost_lhs.output > cost_rhs.output {
+                    left_is_outer = false;
+                }
+            }
+        }
+        
         let processed_func = |_, out_lhs: usize, out_rhs: usize| {
             if out_lhs <= out_rhs {
                 // we use LHS as outer
@@ -40,25 +49,50 @@ impl<'a> NestedLoop<'a> {
             }
         };
 
-        let it = NestedLoop {
-            desc: Desc::join(
-                &op,
-                db,
-                lhs.get_desc(),
-                rhs.get_desc(),
-                "nestedloop",
-                &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
-                &processed_func,
-            ),
+        let it = if left_is_outer {
+            NestedLoop {
+                desc: Desc::join(
+                    &op,
+                    db,
+                    lhs.get_desc(),
+                    rhs.get_desc(),
+                    "nestedloop L-R",
+                    &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                    &processed_func,
+                ),
 
-            outer: lhs.peekable(),
-            inner: rhs,
-            op: op,
-            outer_idx: lhs_idx,
-            inner_idx: rhs_idx,
-            inner_cache: Vec::new(),
-            pos_inner_cache: None,
+                outer: lhs.peekable(),
+                inner: rhs,
+                op: op,
+                outer_idx: lhs_idx,
+                inner_idx: rhs_idx,
+                inner_cache: Vec::new(),
+                pos_inner_cache: None,
+                left_is_outer,
+            }
+        } else {
+            NestedLoop {
+                desc: Desc::join(
+                    &op,
+                    db,
+                    lhs.get_desc(),
+                    rhs.get_desc(),
+                    "nestedloop R-L",
+                    &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                    &processed_func,
+                ),
+
+                outer: rhs.peekable(),
+                inner: lhs,
+                op: op,
+                outer_idx: rhs_idx,
+                inner_idx: lhs_idx,
+                inner_cache: Vec::new(),
+                pos_inner_cache: None,
+                left_is_outer,
+            }
         };
+
         return it;
     }
 }
@@ -86,8 +120,12 @@ impl<'a> Iterator for NestedLoop<'a> {
                         let m_inner = &self.inner_cache[cache_pos];
                         cache_pos += 1;
                         self.pos_inner_cache = Some(cache_pos);
-                        if self.op
-                            .filter_match(&m_outer[self.outer_idx], &m_inner[self.inner_idx])
+                        let filter_true = if self.left_is_outer {
+                            self.op.filter_match(&m_outer[self.outer_idx], &m_inner[self.inner_idx])
+                        } else {
+                            self.op.filter_match(&m_inner[self.inner_idx], &m_outer[self.outer_idx])
+                        };
+                        if filter_true
                         {
                             // filter by reflexivity if necessary
                             if self.op.is_reflexive()
@@ -106,8 +144,12 @@ impl<'a> Iterator for NestedLoop<'a> {
                     while let Some(m_inner) = self.inner.next() {
                         self.inner_cache.push(m_inner.clone());
 
-                        if self.op
-                            .filter_match(&m_outer[self.outer_idx], &m_inner[self.inner_idx])
+                        let filter_true = if self.left_is_outer {
+                            self.op.filter_match(&m_outer[self.outer_idx], &m_inner[self.inner_idx])
+                        } else {
+                            self.op.filter_match(&m_inner[self.inner_idx], &m_outer[self.outer_idx])
+                        };
+                        if filter_true
                         {
                             // filter by reflexivity if necessary
                             if self.op.is_reflexive()
