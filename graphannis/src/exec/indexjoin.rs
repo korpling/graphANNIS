@@ -16,7 +16,7 @@ use std::rc::Rc;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     rhs_candidate: Option<std::iter::Peekable<std::vec::IntoIter<Match>>>,
-    op: Box<Operator + 'a>,
+    op: Box<Operator>,
     lhs_idx: usize,
     node_search_desc: Rc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
@@ -38,7 +38,7 @@ impl<'a> IndexJoin<'a> {
         lhs_idx: usize,
         node_nr_lhs: usize,
         node_nr_rhs: usize,
-        op: Box<Operator + 'a>,
+        op: Box<Operator>,
         node_search_desc: Rc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         strings: Arc<StringStorage>,

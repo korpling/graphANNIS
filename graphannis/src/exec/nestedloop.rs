@@ -7,7 +7,7 @@ use std::iter::Peekable;
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-    op: Box<Operator + 'a>,
+    op: Box<Operator>,
     inner_idx: usize,
     outer_idx: usize,
     inner_cache: Vec<Vec<Match>>,
@@ -24,7 +24,7 @@ impl<'a> NestedLoop<'a> {
         rhs_idx: usize,
         node_nr_lhs: usize,
         node_nr_rhs: usize,
-        op: Box<Operator + 'a>,
+        op: Box<Operator>,
     ) -> NestedLoop<'a> {
         // TODO: allow switching inner and outer
 
