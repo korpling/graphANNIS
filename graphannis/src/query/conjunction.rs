@@ -2,7 +2,7 @@ use types::Edge;
 use annostorage::AnnoStorage;
 use {Component, Match};
 use graphdb::GraphDB;
-use graphstorage::{GraphStatistic};
+use graphstorage::GraphStatistic;
 use operator::{Operator, OperatorSpec};
 use exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use exec::indexjoin::IndexJoin;
@@ -230,7 +230,7 @@ impl<'a> Conjunction<'a> {
         &'a self,
         node_search_desc: Rc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        op_entries: Box<Iterator<Item=&'a OperatorEntry>+'a>,
+        op_entries: Box<Iterator<Item = &'a OperatorEntry> + 'a>,
         db: &'a GraphDB,
     ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         // check if we can replace this node search with a generic "all nodes from either of these components" search
@@ -241,16 +241,17 @@ impl<'a> Conjunction<'a> {
             // get the necessary components and count the number of nodes in these components
             let components = op_spec.necessary_components();
             if components.len() > 0 {
-
                 let mut estimated_component_search = 0;
-                
+
                 let mut estimation_valid = false;
                 for c in components.iter() {
                     if let Some(gs) = db.get_graphstorage(c) {
                         // check if we can apply an even more restrictive edge annotation search
                         if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                            let anno_storage : &AnnoStorage<Edge> = gs.get_anno_storage();  
-                            if let Some(edge_anno_est) = edge_anno_spec.guess_max_count(&anno_storage, &db.strings) {
+                            let anno_storage: &AnnoStorage<Edge> = gs.get_anno_storage();
+                            if let Some(edge_anno_est) =
+                                edge_anno_spec.guess_max_count(&anno_storage, &db.strings)
+                            {
                                 estimated_component_search += edge_anno_est;
                                 estimation_valid = true;
                             }
@@ -258,7 +259,7 @@ impl<'a> Conjunction<'a> {
                             let stats: &GraphStatistic = stats;
                             estimated_component_search += stats.nodes;
                             estimation_valid = true;
-                        }    
+                        }
                     }
                 }
 
@@ -398,20 +399,76 @@ impl<'a> Conjunction<'a> {
                 .ok_or(Error::OperatorIdxNotFound)?
                 .clone();
 
-            let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
-                if component_left == component_right {
-                    // don't create new tuples, only filter the existing ones
-                    // TODO: check if LHS or RHS is better suited as filter input iterator
-                    let idx_right = exec_left
-                        .get_desc()
-                        .ok_or(Error::MissingDescription)?
-                        .node_pos
-                        .get(&spec_idx_right)
-                        .ok_or(Error::OperatorIdxNotFound)?
-                        .clone();
+            let new_exec: Box<ExecutionNode<Item = Vec<Match>>> = if component_left
+                == component_right
+            {
+                // don't create new tuples, only filter the existing ones
+                // TODO: check if LHS or RHS is better suited as filter input iterator
+                let idx_right = exec_left
+                    .get_desc()
+                    .ok_or(Error::MissingDescription)?
+                    .node_pos
+                    .get(&spec_idx_right)
+                    .ok_or(Error::OperatorIdxNotFound)?
+                    .clone();
 
-                    let filter = BinaryFilter::new(
+                let filter = BinaryFilter::new(
+                    exec_left,
+                    idx_left,
+                    idx_right,
+                    spec_idx_left + 1,
+                    spec_idx_right + 1,
+                    op,
+                    db,
+                );
+                Box::new(filter)
+            } else {
+                let exec_right = component2exec.remove(&component_right).ok_or(
+                    Error::ImpossibleSearch(format!(
+                        "no execution node for component {}",
+                        component_right
+                    )),
+                )?;
+                let idx_right = exec_right
+                    .get_desc()
+                    .ok_or(Error::MissingDescription)?
+                    .node_pos
+                    .get(&spec_idx_right)
+                    .ok_or(Error::OperatorIdxNotFound)?
+                    .clone();
+
+                if exec_right.as_nodesearch().is_some() {
+                    // use index join
+                    let join = IndexJoin::new(
                         exec_left,
+                        idx_left,
+                        spec_idx_left + 1,
+                        spec_idx_right + 1,
+                        op,
+                        exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+                        &db,
+                        exec_right.get_desc(),
+                    );
+                    Box::new(join)
+                } else if exec_left.as_nodesearch().is_some() && op.is_commutative() {
+                    // avoid a nested loop join by switching the operand and using and index join
+                    let join = IndexJoin::new(
+                        exec_right,
+                        idx_right,
+                        spec_idx_right + 1,
+                        spec_idx_left + 1,
+                        op,
+                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                        &db,
+                        exec_left.get_desc(),
+                    );
+                    Box::new(join)
+                } else {
+                    // use nested loop as "fallback"
+
+                    let join = NestedLoop::new(
+                        exec_left,
+                        exec_right,
                         idx_left,
                         idx_right,
                         spec_idx_left + 1,
@@ -419,66 +476,10 @@ impl<'a> Conjunction<'a> {
                         op,
                         db,
                     );
-                    Box::new(filter)
-                } else {
-                    let exec_right = component2exec.remove(&component_right).ok_or(
-                        Error::ImpossibleSearch(format!(
-                            "no execution node for component {}",
-                            component_right
-                        )),
-                    )?;
-                    let idx_right = exec_right
-                        .get_desc()
-                        .ok_or(Error::MissingDescription)?
-                        .node_pos
-                        .get(&spec_idx_right)
-                        .ok_or(Error::OperatorIdxNotFound)?
-                        .clone();
 
-                    if exec_right.as_nodesearch().is_some() {
-                        // use index join
-                        let join = IndexJoin::new(
-                            exec_left,
-                            idx_left,
-                            spec_idx_left + 1,
-                            spec_idx_right + 1,
-                            op,
-                            exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                            &db,
-                            exec_right.get_desc(),
-                        );
-                        Box::new(join)
-                    } else if exec_left.as_nodesearch().is_some() && op.is_commutative() {
-                        // avoid a nested loop join by switching the operand and using and index join
-                        let join = IndexJoin::new(
-                            exec_right,
-                            idx_right,
-                            spec_idx_right + 1,
-                            spec_idx_left + 1,
-                            op,
-                            exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                            &db,
-                            exec_left.get_desc(),
-                        );
-                        Box::new(join)
-
-                    } else {
-                        // use nested loop as "fallback"
-
-                        let join = NestedLoop::new(
-                            exec_left,
-                            exec_right,
-                            idx_left,
-                            idx_right,
-                            spec_idx_left + 1,
-                            spec_idx_right + 1,
-                            op,
-                            db,
-                        );
-
-                        Box::new(join)
-                    }
-                };
+                    Box::new(join)
+                }
+            };
 
             let new_component_nr = new_exec
                 .get_desc()
