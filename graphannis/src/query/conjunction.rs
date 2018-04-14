@@ -233,45 +233,48 @@ impl<'a> Conjunction<'a> {
         op_entries: Box<Iterator<Item = &'a OperatorEntry> + 'a>,
         db: &'a GraphDB,
     ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
+        let desc = desc?;
         // check if we can replace this node search with a generic "all nodes from either of these components" search
-        let node_search_cost: &CostEstimate = desc?.cost.as_ref()?;
+        let node_search_cost: &CostEstimate = desc.cost.as_ref()?;
 
         for e in op_entries {
             let op_spec = &e.op;
-            // get the necessary components and count the number of nodes in these components
-            let components = op_spec.necessary_components();
-            if components.len() > 0 {
-                let mut estimated_component_search = 0;
+            if e.idx_left == desc.component_nr { 
+                // get the necessary components and count the number of nodes in these components
+                let components = op_spec.necessary_components();
+                if components.len() > 0 {
+                    let mut estimated_component_search = 0;
 
-                let mut estimation_valid = false;
-                for c in components.iter() {
-                    if let Some(gs) = db.get_graphstorage(c) {
-                        // check if we can apply an even more restrictive edge annotation search
-                        if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                            let anno_storage: &AnnoStorage<Edge> = gs.get_anno_storage();
-                            if let Some(edge_anno_est) =
-                                edge_anno_spec.guess_max_count(&anno_storage, &db.strings)
-                            {
-                                estimated_component_search += edge_anno_est;
+                    let mut estimation_valid = false;
+                    for c in components.iter() {
+                        if let Some(gs) = db.get_graphstorage(c) {
+                            // check if we can apply an even more restrictive edge annotation search
+                            if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
+                                let anno_storage: &AnnoStorage<Edge> = gs.get_anno_storage();
+                                if let Some(edge_anno_est) =
+                                    edge_anno_spec.guess_max_count(&anno_storage, &db.strings)
+                                {
+                                    estimated_component_search += edge_anno_est;
+                                    estimation_valid = true;
+                                }
+                            } else if let Some(stats) = gs.get_statistics() {
+                                let stats: &GraphStatistic = stats;
+                                estimated_component_search += stats.nodes;
                                 estimation_valid = true;
                             }
-                        } else if let Some(stats) = gs.get_statistics() {
-                            let stats: &GraphStatistic = stats;
-                            estimated_component_search += stats.nodes;
-                            estimation_valid = true;
                         }
                     }
-                }
 
-                if estimation_valid && node_search_cost.output > estimated_component_search {
-                    // TODO: check if there is another operator with even better estimates
-                    return Some(Box::new(NodeSearch::new_partofcomponentsearch(
-                        db,
-                        node_search_desc,
-                        desc,
-                        components,
-                        op_spec.get_edge_anno_spec(),
-                    )));
+                    if estimation_valid && node_search_cost.output > estimated_component_search {
+                        // TODO: check if there is another operator with even better estimates
+                        return Some(Box::new(NodeSearch::new_partofcomponentsearch(
+                            db,
+                            node_search_desc,
+                            Some(desc),
+                            components,
+                            op_spec.get_edge_anno_spec(),
+                        )));
+                    }
                 }
             }
         }
@@ -335,8 +338,19 @@ impl<'a> Conjunction<'a> {
                 };
                 node_search.set_desc(Some(new_desc));
 
+                let node_by_component_search =  self.optimize_node_search_by_operator(
+                        node_search.get_node_search_desc(),
+                        node_search.get_desc(),
+                        Box::new(self.operators.iter()),
+                        db,
+                );
+
                 // move to map
-                component2exec.insert(node_nr, Box::new(node_search));
+                if let Some(node_by_component_search) = node_by_component_search {
+                    component2exec.insert(node_nr, node_by_component_search);
+                } else {
+                    component2exec.insert(node_nr, Box::new(node_search));
+                }
             }
         }
 
@@ -374,22 +388,6 @@ impl<'a> Conjunction<'a> {
                     component_left
                 )))?;
 
-            let opt_exec_left = if let Some(node_search) = exec_left.as_nodesearch() {
-                self.optimize_node_search_by_operator(
-                    node_search.get_node_search_desc(),
-                    exec_left.get_desc(),
-                    Box::new(self.operators.iter()),
-                    db,
-                )
-            } else {
-                None
-            };
-
-            let exec_left = if let Some(opt) = opt_exec_left {
-                opt
-            } else {
-                exec_left
-            };
 
             let idx_left = exec_left
                 .get_desc()
