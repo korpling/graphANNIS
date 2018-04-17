@@ -184,41 +184,48 @@ impl<'a> Iterator for IndexJoin<'a> {
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
                 let rhs_candidate = self.rhs_candidate.as_mut().unwrap();
-                while let Some(m_rhs) = rhs_candidate.next() {
-                    // check if lhs and rhs are equal and if this is allowed in this query
-                    if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
-                        || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
-                    {
-                        // check if all filters are true
-                        let mut filter_result = true;
-                        for f in self.node_search_desc.cond.iter() {
-                            if !(f)(&m_rhs, &self.db.strings) {
-                                filter_result = false;
-                                break;
-                            }
+                while let Some(mut m_rhs) = rhs_candidate.next() {
+                    // check if all filters are true
+                    let mut filter_result = true;
+                    for f in self.node_search_desc.cond.iter() {
+                        if !(f)(&m_rhs, &self.db.strings) {
+                            filter_result = false;
+                            break;
+                        }
+                    }
+
+                    if filter_result {
+
+                        // replace the annotation with a constant value if needed
+                        if let Some(ref const_anno) = self.node_search_desc.const_output {
+                            m_rhs.anno = const_anno.clone();
                         }
 
-                        // filters have been checked, return the result
-                        if filter_result {
-                            let mut result = m_lhs.clone();
-                            if let &Some(ref const_anno) = &self.node_search_desc.const_output {
-                                result.push(Match{node: m_rhs.node, anno: const_anno.clone()});
-                                // only return the one unique constAnno for this node and no duplicates
-                                // skip all RHS candidates that have the same node ID
-                                loop {
-                                    if let Some(next_match) = rhs_candidate.peek() {
-                                        if next_match.node != m_rhs.node {
+                        // check if lhs and rhs are equal and if this is allowed in this query
+                        if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
+                            || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
+                        {
+                            // filters have been checked, return the result
+                            if filter_result {
+                                let mut result = m_lhs.clone();
+                                let matched_node = m_rhs.node;
+                                result.push(m_rhs);
+                                if self.node_search_desc.const_output.is_some() {
+                                    // only return the one unique constAnno for this node and no duplicates
+                                    // skip all RHS candidates that have the same node ID
+                                    loop {
+                                        if let Some(next_match) = rhs_candidate.peek() {
+                                            if next_match.node != matched_node {
+                                                break;
+                                            }
+                                        } else {
                                             break;
                                         }
-                                    } else {
-                                        break;
+                                        rhs_candidate.next();
                                     }
-                                    rhs_candidate.next();
                                 }
-                            } else {
-                                result.push(m_rhs);
+                                return Some(result);
                             }
-                            return Some(result);
                         }
                     }
                 }
