@@ -18,7 +18,6 @@ package org.corpus_tools.graphannis;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,7 +25,6 @@ import java.util.Map;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.codehaus.stax2.evt.NotationDeclaration2;
 import org.corpus_tools.graphannis.capi.AnnisAnnotation;
 import org.corpus_tools.graphannis.capi.AnnisComponentType;
 import org.corpus_tools.graphannis.capi.AnnisEdge;
@@ -40,15 +38,15 @@ import org.corpus_tools.graphannis.capi.NodeIDByRef;
 import org.corpus_tools.salt.SALT_TYPE;
 import org.corpus_tools.salt.SaltFactory;
 import org.corpus_tools.salt.common.SCorpus;
-import org.corpus_tools.salt.common.SCorpusDocumentRelation;
 import org.corpus_tools.salt.common.SCorpusGraph;
-import org.corpus_tools.salt.common.SCorpusRelation;
 import org.corpus_tools.salt.common.SDocument;
 import org.corpus_tools.salt.common.SDocumentGraph;
 import org.corpus_tools.salt.common.SOrderRelation;
 import org.corpus_tools.salt.common.SSpan;
 import org.corpus_tools.salt.common.STextualDS;
 import org.corpus_tools.salt.common.STextualRelation;
+import org.corpus_tools.salt.common.STimeline;
+import org.corpus_tools.salt.common.STimelineRelation;
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.core.GraphTraverseHandler;
 import org.corpus_tools.salt.core.SAnnotationContainer;
@@ -61,7 +59,6 @@ import org.corpus_tools.salt.util.SaltUtil;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Splitter;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.sun.jna.NativeLong;
@@ -269,6 +266,45 @@ public class SaltExport {
         }
     }
 
+    private static void mapTimeline(List<SNode> orderRoots, final SDocumentGraph g) {
+        final STimeline timeline = g.createTimeline();
+
+        Map<SToken, Range<Integer>> token2Range = new HashMap<>();
+        // traverse the token chain (which are now timeline events) using the order
+        // relations
+        g.traverse(orderRoots, SGraph.GRAPH_TRAVERSE_TYPE.TOP_DOWN_DEPTH_FIRST, "TIMELINE", new GraphTraverseHandler() {
+            @Override
+            public void nodeReached(SGraph.GRAPH_TRAVERSE_TYPE traversalType, String traversalId, SNode currNode,
+                    SRelation<SNode, SNode> relation, SNode fromNode, long order) {
+                SFeature featTok = currNode.getFeature("annis::tok");
+                if (featTok != null && currNode instanceof SToken) {
+                    int idxStart = timeline.getEnd();
+                    timeline.increasePointOfTime();
+                    token2Range.put((SToken) currNode, Range.closed(idxStart, timeline.getEnd()));
+                }
+            }
+
+            @Override
+            public void nodeLeft(SGraph.GRAPH_TRAVERSE_TYPE traversalType, String traversalId, SNode currNode,
+                    SRelation<SNode, SNode> relation, SNode fromNode, long order) {
+            }
+
+            @Override
+            public boolean checkConstraint(SGraph.GRAPH_TRAVERSE_TYPE traversalType, String traversalId,
+                    SRelation relation, SNode currNode, long order) {
+                if (relation == null) {
+                    // TODO: check if this is ever true
+                    return true;
+                } else if (relation instanceof SOrderRelation && relation.getType() == null) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        });
+        // TODO: add timeline relations to the token of the actual texts
+    }
+
     private static void recreateText(final String name, List<SNode> rootNodes, final SDocumentGraph g) {
         final StringBuilder text = new StringBuilder();
         final STextualDS ds = g.createTextualDS("");
@@ -318,7 +354,6 @@ public class SaltExport {
         ds.setText(text.toString());
 
         // add all relations
-
         token2Range.forEach((t, r) -> {
             STextualRelation rel = SaltFactory.createSTextualRelation();
             rel.setSource(t);
@@ -379,42 +414,46 @@ public class SaltExport {
             if (SaltUtil.SALT_NULL_VALUE.equals(name)) {
                 name = null;
             }
-            recreateText(name, roots, g);
+            if (name != null || orderRoots.size() == 1) {    
+                recreateText(name, roots, g);
+            }
         });
-
+        // create a timeline for the "default" tokenization
+        if(orderRoots.size() > 1) {
+            List<SNode> roots = new ArrayList<>(orderRoots.get(SaltUtil.SALT_NULL_VALUE));
+            mapTimeline(roots, g);
+        }
+        
         addNodeLayers(g);
 
         return g;
     }
 
-    private static SCorpus addCorpusAndParents(SCorpusGraph cg, long id,
-            Map<Long, Long> parentOfNode,
-            Map<Long, SCorpus> id2corpus,
-            Map<Long, Map<Pair<String, String>, String>> node2labels) {
-        
-        
-        if(id2corpus.containsKey(id)) {
+    private static SCorpus addCorpusAndParents(SCorpusGraph cg, long id, Map<Long, Long> parentOfNode,
+            Map<Long, SCorpus> id2corpus, Map<Long, Map<Pair<String, String>, String>> node2labels) {
+
+        if (id2corpus.containsKey(id)) {
             return id2corpus.get(id);
         }
-        
+
         Map<Pair<String, String>, String> labels = node2labels.get(id);
-        if(labels == null) {
+        if (labels == null) {
             return null;
         }
 
         // create parents first
         Long parentID = parentOfNode.get(id);
         SCorpus parent = null;
-        if(parentID != null) {
+        if (parentID != null) {
             parent = addCorpusAndParents(cg, parentID, parentOfNode, id2corpus, node2labels);
         }
-        
+
         String corpusName = labels.getOrDefault(new ImmutablePair<>("annis", "node_name"), "corpus");
         List<String> corpusNameSplitted = Splitter.on('/').trimResults().splitToList(corpusName);
         // use last part of the path as name
-        SCorpus newCorpus = cg.createCorpus(parent, corpusNameSplitted.get(corpusNameSplitted.size()-1));
+        SCorpus newCorpus = cg.createCorpus(parent, corpusNameSplitted.get(corpusNameSplitted.size() - 1));
         id2corpus.put(id, newCorpus);
-        
+
         return newCorpus;
 
     }
@@ -435,10 +474,9 @@ public class SaltExport {
             }
         }
 
-
         Map<Long, Map<Pair<String, String>, String>> node2labels = new LinkedHashMap<>();
         Map<Long, Long> parentOfNode = new LinkedHashMap<>();
-        
+
         // iterate over all nodes and get their outgoing edges
         CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "corpus");
         if (itNodes != null) {
@@ -448,8 +486,8 @@ public class SaltExport {
 
                 Map<Pair<String, String>, String> nodeLabels = getNodeLabels(orig, nID.getValue());
                 node2labels.put((long) nID.getValue(), nodeLabels);
-               
-                if(subcorpusComponent != null) {
+
+                if (subcorpusComponent != null) {
                     AnnisVec_AnnisEdge outEdges = CAPI.annis_graph_outgoing_edges(orig, new NodeID(nID.getValue()),
                             subcorpusComponent);
                     for (int edgeIdx = 0; edgeIdx < CAPI.annis_vec_edge_size(outEdges).intValue(); edgeIdx++) {
@@ -461,52 +499,50 @@ public class SaltExport {
             }
             itNodes.dispose();
         }
-        
-        if(parentOfNode.isEmpty()) {
-            // if there are no edges at all, there are only root corpora (or a single root corpus)
-            for(Map<Pair<String, String>, String> labels : node2labels.values()) {
-                
+
+        if (parentOfNode.isEmpty()) {
+            // if there are no edges at all, there are only root corpora (or a single root
+            // corpus)
+            for (Map<Pair<String, String>, String> labels : node2labels.values()) {
+
                 String corpusName = labels.getOrDefault(new ImmutablePair<>("annis", "node_name"), "corpus");
                 List<String> corpusNameSplitted = Splitter.on('/').trimResults().splitToList(corpusName);
                 // use last part of the path as name
-                SCorpus rootCorpus = cg.createCorpus(null, corpusNameSplitted.get(corpusNameSplitted.size()-1));
+                SCorpus rootCorpus = cg.createCorpus(null, corpusNameSplitted.get(corpusNameSplitted.size() - 1));
                 mapLabels(rootCorpus, labels, true);
             }
 
         } else {
-            
+
             Map<Long, SCorpus> id2corpus = new HashMap<>();
             // add all non-documents first
-            for(Long id : parentOfNode.values()) {
+            for (Long id : parentOfNode.values()) {
                 addCorpusAndParents(cg, id, parentOfNode, id2corpus, node2labels);
             }
-            for(Map.Entry<Long, SCorpus> e : id2corpus.entrySet()) {
+            for (Map.Entry<Long, SCorpus> e : id2corpus.entrySet()) {
                 Map<Pair<String, String>, String> labels = node2labels.get(e.getKey());
-                if(labels != null) {
+                if (labels != null) {
                     mapLabels(e.getValue(), labels, true);
                 }
             }
-            
+
             // add all documents next
-            for(Map.Entry<Long, Long> edge : parentOfNode.entrySet()) {
+            for (Map.Entry<Long, Long> edge : parentOfNode.entrySet()) {
                 long childID = edge.getKey();
                 long parentID = edge.getValue();
                 if (!id2corpus.containsKey(childID)) {
                     Map<Pair<String, String>, String> labels = node2labels.get(childID);
-                    if(labels != null) {
+                    if (labels != null) {
                         String docName = labels.getOrDefault(new ImmutablePair<>("annis", "doc"), "document");
-                        
+
                         SCorpus parent = id2corpus.get(parentID);
                         SDocument doc = cg.createDocument(parent, docName);
-                        
+
                         mapLabels(doc, labels, true);
                     }
                 }
             }
         }
-        
-        
-        
 
         return cg;
     }
