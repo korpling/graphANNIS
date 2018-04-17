@@ -207,6 +207,11 @@ impl<'a> NodeSearch<'a> {
                         .guess_max_count(Some(type_key.ns), type_key.name, "node", "node");
                 let est_output = std::cmp::max(1, est_output);
 
+                let const_output = Some(Annotation {
+                    key: db.get_node_type_key(),
+                    val: db.strings.find_id("node").cloned().unwrap_or(0),
+                });
+
                 Some(NodeSearch {
                     it: Box::new(it),
                     desc: Some(Desc::empty_with_fragment(
@@ -217,7 +222,7 @@ impl<'a> NodeSearch<'a> {
                     node_search_desc: Rc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
-                        const_output: None,
+                        const_output: const_output,
                     }),
                 })
             }
@@ -432,6 +437,11 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
+        let const_output = Some(Annotation {
+            key: db.get_node_type_key(),
+            val: db.strings.find_id("node").cloned().unwrap_or(0),
+        });
+
         return Some(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
@@ -442,7 +452,7 @@ impl<'a> NodeSearch<'a> {
             node_search_desc: Rc::new(NodeSearchDesc {
                 qname: (Some(tok_key.ns), Some(tok_key.name)),
                 cond: filters,
-                const_output: None,
+                const_output: const_output,
             }),
         });
     }
