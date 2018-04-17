@@ -723,9 +723,12 @@ impl CorpusStorage {
                 &source_node_id
             };
 
-            // left context
+            // left context (non-token)
             {
                 let mut q_left: Conjunction = Conjunction::new();
+                
+                let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode);
+
                 let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
@@ -734,8 +737,7 @@ impl CorpusStorage {
                 });
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken);
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken);
-                let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode);
-
+                
                 q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_left.add_operator(
                     Box::new(operator::PrecedenceSpec {
@@ -755,9 +757,40 @@ impl CorpusStorage {
                 query.alternatives.push(q_left);
             }
 
-            // right context
+            // left context (token onlys)
+            {
+                let mut q_left: Conjunction = Conjunction::new();
+
+                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken);
+            
+                let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
+                    ns: Some(graphdb::ANNIS_NS.to_string()),
+                    name: graphdb::NODE_NAME.to_string(),
+                    val: Some(source_node_id.to_string()),
+                    is_meta: false,
+                });
+                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken);
+                
+                q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_left.add_operator(
+                    Box::new(operator::PrecedenceSpec {
+                        segmentation: None,
+                        min_dist: 0,
+                        max_dist: ctx_left,
+                    }),
+                    tok_precedence_idx,
+                    tok_covered_idx,
+                );
+
+                query.alternatives.push(q_left);
+            }
+
+            // right context (non-token)
             {
                 let mut q_right: Conjunction = Conjunction::new();
+                
+                let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode);
+
                 let n_idx = q_right.add_node(NodeSearchSpec::ExactValue {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
@@ -766,8 +799,7 @@ impl CorpusStorage {
                 });
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken);
                 let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken);
-                let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode);
-
+                
                 q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_right.add_operator(
                     Box::new(operator::PrecedenceSpec {
@@ -786,9 +818,37 @@ impl CorpusStorage {
 
                 query.alternatives.push(q_right);
             }
+
+            // right context (token only)
+            {
+                let mut q_right: Conjunction = Conjunction::new();
+
+                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken);
+
+                let n_idx = q_right.add_node(NodeSearchSpec::ExactValue {
+                    ns: Some(graphdb::ANNIS_NS.to_string()),
+                    name: graphdb::NODE_NAME.to_string(),
+                    val: Some(source_node_id.to_string()),
+                    is_meta: false,
+                });
+                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken);
+                
+                q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_right.add_operator(
+                    Box::new(operator::PrecedenceSpec {
+                        segmentation: None,
+                        min_dist: 0,
+                        max_dist: ctx_right,
+                    }),
+                    tok_covered_idx,
+                    tok_precedence_idx,
+                );
+
+                query.alternatives.push(q_right);
+            }
         }
 
-        return extract_subgraph_by_query(db_entry, query, vec![3]);
+        return extract_subgraph_by_query(db_entry, query, vec![0]);
     }
 
     pub fn subgraph_for_query(
