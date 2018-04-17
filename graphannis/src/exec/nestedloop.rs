@@ -75,8 +75,8 @@ impl<'a> NestedLoop<'a> {
                 desc: Desc::join(
                     &op,
                     db,
-                    lhs.get_desc(),
                     rhs.get_desc(),
+                    lhs.get_desc(),
                     "nestedloop R-L",
                     &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
                     &processed_func,
