@@ -50,6 +50,7 @@ import org.corpus_tools.salt.common.SSpan;
 import org.corpus_tools.salt.common.STextualDS;
 import org.corpus_tools.salt.common.STextualRelation;
 import org.corpus_tools.salt.common.STimeline;
+import org.corpus_tools.salt.common.STimelineRelation;
 import org.corpus_tools.salt.common.SToken;
 import org.corpus_tools.salt.core.GraphTraverseHandler;
 import org.corpus_tools.salt.core.SAnnotationContainer;
@@ -62,12 +63,11 @@ import org.corpus_tools.salt.util.SaltUtil;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Splitter;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.sun.jna.NativeLong;
-
-import annis.model.AnnotationGraph;
 
 /**
  * Allows to extract a Salt-Graph from a database subgraph.
@@ -75,19 +75,18 @@ import annis.model.AnnotationGraph;
  * @author Thomas Krause <thomaskrause@posteo.de>
  */
 public class SaltExport {
-    
+
     private final CAPI.AnnisGraphDB orig;
     private final SDocumentGraph docGraph;
-    private final Map<Integer, SNode> nodesByID;
-    
-    
-    
+    private final BiMap<Integer, SNode> nodesByID;
+    private final Map<Integer, Integer> node2timelinePOT;
 
     protected SaltExport(AnnisGraphDB orig) {
         this.orig = orig;
-        
+
         this.docGraph = SaltFactory.createSDocumentGraph();
-        this.nodesByID = new LinkedHashMap<>();
+        this.nodesByID = HashBiMap.create();
+        this.node2timelinePOT = new HashMap<>();
     }
 
     private static void mapLabels(SAnnotationContainer n, Map<Pair<String, String>, String> labels, boolean isMeta) {
@@ -174,8 +173,7 @@ public class SaltExport {
         return newNode;
     }
 
-    private void mapAndAddEdge(NodeID node, AnnisEdge origEdge,
-            CAPI.AnnisComponentConst component) {
+    private void mapAndAddEdge(NodeID node, AnnisEdge origEdge, CAPI.AnnisComponentConst component) {
         SNode source = nodesByID.get(origEdge.source.intValue());
         SNode target = nodesByID.get(origEdge.target.intValue());
 
@@ -302,8 +300,9 @@ public class SaltExport {
 
         AnnisComponentConst timelineOrderComponent = types.get("");
         if (types.size() > 1 && timelineOrderComponent != null) {
-            
-            // there can be only one outgoing edge at maximum per node, thus use a map instead of a multimap
+
+            // there can be only one outgoing edge at maximum per node, thus use a map
+            // instead of a multimap
             Map<Integer, Integer> timelineOrderEdges = new HashMap<>();
 
             for (Map.Entry<Integer, SNode> node : nodesByID.entrySet()) {
@@ -316,27 +315,37 @@ public class SaltExport {
                     timelineOrderEdges.put(e.source.intValue(), e.target.intValue());
                 }
             }
-            
+
             Set<Integer> rootNodes = new HashSet<>(timelineOrderEdges.keySet());
-            for(Map.Entry<Integer, Integer> edge : timelineOrderEdges.entrySet()) {
+            for (Map.Entry<Integer, Integer> edge : timelineOrderEdges.entrySet()) {
                 rootNodes.remove(edge.getValue());
             }
-            
-            if(rootNodes.size() == 1) {
-                
+
+            if (rootNodes.size() == 1) {
+
                 STimeline timeline = docGraph.createTimeline();
-                
+
                 // iterate over the edges of the component starting at the root node
                 // (there should be only one chain of order relations for the timeline)
                 Integer currentNode = rootNodes.iterator().next();
-                while(currentNode != null) {
-                    // add another point of time for this token
-                    timeline.increasePointOfTime();
-                    
+                while (currentNode != null) {
+
+                    // Items on the timeline are not nodes, but "point of times", thus remove the
+                    // node from
+                    // map so it won't be added as SToken later.
+                    SNode token = nodesByID.remove(currentNode);
+                    if (token != null) {
+
+                        // add another point of time for this token
+                        timeline.increasePointOfTime();
+
+                        // remember which token node (by ID) should be mapped to which timeline POT
+                        node2timelinePOT.put(currentNode, timeline.getEnd());
+                    }
+
                     // get next node in the chain
                     currentNode = timelineOrderEdges.get(currentNode);
                 }
-
 
                 return true;
             }
@@ -393,7 +402,7 @@ public class SaltExport {
         // update the actual text
         ds.setText(text.toString());
 
-        // add all relations
+        // add all relations to the text
         token2Range.forEach((t, r) -> {
             STextualRelation rel = SaltFactory.createSTextualRelation();
             rel.setSource(t);
@@ -402,26 +411,63 @@ public class SaltExport {
             rel.setEnd(r.upperEndpoint());
             docGraph.addRelation(rel);
         });
+
+        if (docGraph.getTimeline() != null) {
+            AnnisVec_AnnisComponent coverageComponents = CAPI.annis_graph_all_components_by_type(orig,
+                    AnnisComponentType.Coverage);
+            final int coverageComponents_size = CAPI.annis_vec_component_size(coverageComponents).intValue();
+            AnnisComponentConst covComponent = null;
+            for (int i = 0; i < coverageComponents_size; i++) {
+                AnnisComponentConst c = CAPI.annis_vec_component_get(coverageComponents, new NativeLong(i));
+                AnnisString cName = CAPI.annis_component_name(c);
+                AnnisString cLayer = CAPI.annis_component_layer(c);
+                if ((cName == null || cName.toString().isEmpty()) && "annis".equals(cLayer.toString())) {
+                    covComponent = c;
+                    break;
+                }
+            }
+
+            if (covComponent != null) {
+                // create the relations to the timeline for the tokens of this text by getting
+                // the original node IDs of the coverage edges and their mapping to a point of time (POT)
+                for (SToken tok : token2Range.keySet()) {
+                    Integer tokID = nodesByID.inverse().get(tok);
+                    if (tokID != null) {
+                        AnnisVec_AnnisEdge edges = CAPI.annis_graph_outgoing_edges(orig, new NodeID(tokID),
+                                covComponent);
+                        final int edges_size = CAPI.annis_vec_edge_size(edges).intValue();
+                        for(int i=0; i < edges_size; i++) {
+                            AnnisEdge e = CAPI.annis_vec_edge_get(edges, new NativeLong(i));
+                            
+                            Integer pot = this.node2timelinePOT.get(e.target.intValue());
+                            if(pot != null) {
+                                STimelineRelation rel = SaltFactory.createSTimelineRelation();
+                                rel.setSource(tok);
+                                rel.setTarget(docGraph.getTimeline());
+                                rel.setStart(pot);
+                                rel.setEnd(pot);
+                                docGraph.addRelation(rel);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    
-    
+
     public static SDocumentGraph map(CAPI.AnnisGraphDB orig) {
-        if(orig == null) {
+        if (orig == null) {
             return null;
         }
         SaltExport export = new SaltExport(orig);
-        
+
         export.mapDocGraph();
         return export.docGraph;
     }
 
     private void mapDocGraph() {
-
-        boolean timelineCreated = false;
-
         // create all new nodes
         CAPI.AnnisIterPtr_AnnisNodeID itNodes = CAPI.annis_graph_nodes_by_type(orig, "node");
-
 
         if (itNodes != null) {
 
@@ -437,7 +483,7 @@ public class SaltExport {
         final int component_size = CAPI.annis_vec_component_size(components).intValue();
 
         // check if timeline needs to be created
-        timelineCreated = mapTimeline(components);
+        mapTimeline(components);
 
         // add nodes to the graph
         nodesByID.values().stream().forEach(n -> docGraph.addNode(n));
@@ -454,8 +500,6 @@ public class SaltExport {
                 }
             }
         }
-        components.dispose();
-        components = null;
 
         // find all chains of SOrderRelations and reconstruct the texts belonging to
         // them
@@ -465,7 +509,9 @@ public class SaltExport {
             if (SaltUtil.SALT_NULL_VALUE.equals(name)) {
                 name = null;
             }
-            if (name != null || orderRoots.size() == 1) {
+            if (name != null || docGraph.getTimeline() == null) {
+                // only re-create text if there is no timeline or this is the non-default
+                // tokenization
                 recreateText(name, roots);
             }
         });
