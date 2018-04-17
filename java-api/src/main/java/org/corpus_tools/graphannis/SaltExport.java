@@ -439,7 +439,7 @@ public class SaltExport {
             if (SaltUtil.SALT_NULL_VALUE.equals(name)) {
                 name = null;
             }
-            if (name == null) {
+            if (name == null || "".equals(name)) {
              // only re-create text if this is the default (possible virtual) tokenization
                 recreateText(name, roots);
             } else {
