@@ -70,7 +70,16 @@ where PosT : NumValue {
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        unimplemented!()
+        if let Some(pos) = self.node_to_pos.get(node) {
+            // find the previous node in the chain
+            if let Some(chain) = self.node_chains.get(&pos.root) {
+                let previous_pos = pos.pos.clone() - PosT::one();
+                if let Some(previous_pos) = previous_pos.to_usize() {
+                    return Box::from(std::iter::once(chain[previous_pos]));
+                }
+            }
+        }
+        return Box::from(std::iter::empty());
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
