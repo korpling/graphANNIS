@@ -5,6 +5,7 @@ use NodeID;
 pub struct CycleSafeDFS<'a> {
     min_distance: usize,
     max_distance: usize,
+    inverse: bool,
     container : &'a GraphStorage,
 
     stack: Vec<(NodeID, usize)>,
@@ -30,12 +31,33 @@ impl<'a> CycleSafeDFS<'a> {
         CycleSafeDFS {
             min_distance,
             max_distance,
+            inverse: false,
             container,
             stack,
             path,
             nodes_in_path,
             last_distance: 0,
             cycle_detected: false,
+        }
+    }
+
+    pub fn new_inverse(container : &'a GraphStorage, node: &NodeID, min_distance: usize, max_distance: usize) -> CycleSafeDFS<'a> {
+        let mut stack = vec![];
+        stack.push((node.clone(), 0));
+
+        let path = vec![];
+        let nodes_in_path = HashSet::new();
+
+        CycleSafeDFS {
+            min_distance,
+            max_distance,
+            inverse: false,
+            container,
+            stack,
+            path,
+            nodes_in_path,
+            last_distance: 0,
+            cycle_detected: true,
         }
     }
 
@@ -74,10 +96,18 @@ impl<'a> CycleSafeDFS<'a> {
             let found = dist >= self.min_distance && dist <= self.max_distance;
 
             if dist < self.max_distance {
-                // add all child nodes to the stack
-                for o in self.container.get_outgoing_edges(&node) {
-                    self.stack.push((o, dist+1));
-                    trace!("adding {} to stack with new size {}", o, self.stack.len());
+                if self.inverse {
+                    // add all parent nodes to the stack
+                    for o in self.container.get_ingoing_edges(&node) {
+                        self.stack.push((o, dist+1));
+                        trace!("adding {} to stack with new size {}", o, self.stack.len());
+                    }
+                } else {
+                    // add all child nodes to the stack
+                    for o in self.container.get_outgoing_edges(&node) {
+                        self.stack.push((o, dist+1));
+                        trace!("adding {} to stack with new size {}", o, self.stack.len());
+                    }
                 }
             }
             trace!("enter_node finished with result {} for node {}", found, node);

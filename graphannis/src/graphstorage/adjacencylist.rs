@@ -83,12 +83,12 @@ impl GraphStorage for AdjacencyListStorage {
 
     fn find_connected<'a>(
         &'a self,
-        source: &NodeID,
+        node: &NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         let mut visited = HashSet::<NodeID>::new();
-        let it = CycleSafeDFS::<'a>::new(self, source, min_distance, max_distance)
+        let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
             .map(|x| {x.node})
             .filter(move |n| visited.insert(n.clone()));
         Box::new(it)
@@ -100,7 +100,11 @@ impl GraphStorage for AdjacencyListStorage {
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        unimplemented!()
+        let mut visited = HashSet::<NodeID>::new();
+        let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
+            .map(|x| {x.node})
+            .filter(move |n| visited.insert(n.clone()));
+        Box::new(it)
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
