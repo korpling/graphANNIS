@@ -1,7 +1,9 @@
-use {AnnoKey, Annotation, Match};
+use annostorage::AnnoStorage;
+use stringstorage::StringStorage;
+use std::sync::Arc;
+use {AnnoKey, Annotation, Match, NodeID};
 use operator::{EstimationType, Operator};
 use util;
-use graphdb::GraphDB;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use std;
 use std::iter::Peekable;
@@ -13,11 +15,12 @@ use std::rc::Rc;
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
-    rhs_candidate: Option<std::iter::Peekable<std::vec::IntoIter<Match>>>,
-    op: Box<Operator + 'a>,
+    rhs_candidate: Option<std::iter::Peekable<Box<Iterator<Item=Match>>>>,
+    op: Box<Operator>,
     lhs_idx: usize,
     node_search_desc: Rc<NodeSearchDesc>,
-    db: &'a GraphDB,
+    node_annos: Arc<AnnoStorage<NodeID>>,
+    strings: Arc<StringStorage>,
     desc: Desc,
 }
 
@@ -35,9 +38,10 @@ impl<'a> IndexJoin<'a> {
         lhs_idx: usize,
         node_nr_lhs: usize,
         node_nr_rhs: usize,
-        op: Box<Operator + 'a>,
+        op: Box<Operator>,
         node_search_desc: Rc<NodeSearchDesc>,
-        db: &'a GraphDB,
+        node_annos: Arc<AnnoStorage<NodeID>>,
+        strings: Arc<StringStorage>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
@@ -70,7 +74,6 @@ impl<'a> IndexJoin<'a> {
         return IndexJoin {
             desc: Desc::join(
                 &op,
-                db,
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",
@@ -81,22 +84,24 @@ impl<'a> IndexJoin<'a> {
             lhs_idx,
             op,
             node_search_desc,
-            db,
+            node_annos,
+            strings,
             rhs_candidate: None,
         };
     }
 
-    fn next_candidates(&mut self) -> Option<Vec<Match>> {
+    fn next_candidates(&mut self) -> Option<Box<Iterator<Item=Match>>> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
             let it_nodes = self.op.retrieve_matches(&m_lhs[self.lhs_idx]).fuse();
 
+            let node_annos = self.node_annos.clone();
             if let Some(name) = self.node_search_desc.qname.1 {
                 if let Some(ns) = self.node_search_desc.qname.0 {
                     // return the only possible annotation for each node
-                    return Some(it_nodes
-                        .filter_map(|match_node| {
+                    return Some(Box::new(it_nodes
+                        .filter_map(move |match_node| {
                             let key = AnnoKey { ns: ns, name: name };
-                            if let Some(val) = self.db.node_annos.get(&match_node.node, &key) {
+                            if let Some(val) = node_annos.get(&match_node.node, &key) {
                                 Some(Match {
                                     node: match_node.node,
                                     anno: Annotation {
@@ -108,18 +113,17 @@ impl<'a> IndexJoin<'a> {
                                 // this annotation was not found for this node, remove it from iterator
                                 None
                             }
-                        })
-                        .collect()
+                        }))
                     );
                 } else {
-                    let keys = self.db.node_annos.get_qnames(name);
+                    let keys = self.node_annos.get_qnames(name);
                     // return all annotations with the correct name for each node
-                    return Some(it_nodes
-                        .flat_map(|match_node| {
+                    return Some(Box::new(it_nodes
+                        .flat_map(move |match_node| {
                             let mut matches: Vec<Match> = Vec::new();
                             matches.reserve(keys.len());
                             for k in keys.clone() {
-                                if let Some(val) = self.db.node_annos.get(&match_node.node, &k) {
+                                if let Some(val) = node_annos.get(&match_node.node, &k) {
                                     matches.push(Match {
                                         node: match_node.node,
                                         anno: Annotation {
@@ -130,15 +134,14 @@ impl<'a> IndexJoin<'a> {
                                 }
                             }
                             matches.into_iter()
-                        })
-                        .collect()
+                        }))
                     );
                 }
             } else {
                 // return all annotations for each node
-                return Some(it_nodes
-                    .flat_map(|match_node| {
-                        let annos = self.db.node_annos.get_all(&match_node.node);
+                return Some(Box::new(it_nodes
+                    .flat_map(move |match_node| {
+                        let annos = node_annos.get_all(&match_node.node);
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(annos.len());
                         for a in annos {
@@ -148,8 +151,7 @@ impl<'a> IndexJoin<'a> {
                             });
                         }
                         matches.into_iter()
-                    })
-                    .collect()
+                    }))
                 );
             }
         }
@@ -188,7 +190,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                     // check if all filters are true
                     let mut filter_result = true;
                     for f in self.node_search_desc.cond.iter() {
-                        if !(f)(&m_rhs, &self.db.strings) {
+                        if !(f)(&m_rhs, &self.strings) {
                             filter_result = false;
                             break;
                         }

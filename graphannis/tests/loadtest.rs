@@ -3,6 +3,7 @@ extern crate graphannis;
 use std::env;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use graphannis::graphdb::*;
 use graphannis::relannis;
@@ -152,7 +153,7 @@ fn nested_loop_join() {
         let n1 = Box::new(n1);
         let n2 = Box::new(n2);
 
-        let join = NestedLoop::new(n1, n2, 0, 0, 1, 2, op, &db);
+        let join = NestedLoop::new(n1, n2, 0, 0, 1, 2, op);
 
         assert_eq!(3, join.count());
     }
@@ -170,8 +171,8 @@ fn index_join() {
         };
 
 
-        let anno_name = db.strings.add("pos");
-        let anno_val = db.strings.add("ADJA");
+        let anno_name = Arc::make_mut(&mut db.strings).add("pos");
+        let anno_val = Arc::make_mut(&mut db.strings).add("ADJA");
 
         // make sure to load all components
         for c in op_spec.necessary_components() {
@@ -195,7 +196,7 @@ fn index_join() {
             const_output: None,
         };
 
-        let join = IndexJoin::new(n1, 0, 1, 2, op, Rc::new(node_search_desc), &db, None);
+        let join = IndexJoin::new(n1, 0, 1, 2, op, Rc::new(node_search_desc), db.node_annos.clone(), db.strings.clone(), None);
 
         assert_eq!(3, join.count());
     }

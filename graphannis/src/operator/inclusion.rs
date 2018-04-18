@@ -7,18 +7,19 @@ use util::token_helper;
 use util::token_helper::TokenHelper;
 
 use std::sync::Arc;
+use std::collections::VecDeque;
 use std;
 
 #[derive(Clone, Debug)]
 pub struct InclusionSpec;
 
-pub struct Inclusion<'a> {
+pub struct Inclusion {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
     gs_right: Arc<GraphStorage>,
     gs_cov: Arc<GraphStorage>,
 
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
 }
 
 lazy_static! {
@@ -69,7 +70,7 @@ impl OperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -79,8 +80,8 @@ impl OperatorSpec for InclusionSpec {
     }
 }
 
-impl<'a> Inclusion<'a> {
-    pub fn new(db: &'a GraphDB) -> Option<Inclusion<'a>> {
+impl Inclusion {
+    pub fn new(db: &GraphDB) -> Option<Inclusion> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
@@ -98,20 +99,20 @@ impl<'a> Inclusion<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Inclusion<'a> {
+impl std::fmt::Display for Inclusion {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_i_")
     }
 }
 
-impl<'a> Operator for Inclusion<'a> {
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+impl Operator for Inclusion {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = 
             self.tok_helper.left_right_token_for(&lhs.node) {
             // span length of LHS
             if let Some(l) = self.gs_order.distance(&start_lhs, &end_lhs) {
                 // find each token which is between the left and right border
-                let it = self.gs_order
+                let result : VecDeque<Match> = self.gs_order
                     .find_connected(&start_lhs, 0, l)
                     .flat_map(move |t| {
                         let it_aligned = self.gs_left.get_outgoing_edges(&t).into_iter().filter(
@@ -132,8 +133,9 @@ impl<'a> Operator for Inclusion<'a> {
                     .map(|n| Match {
                         node: n,
                         anno: Annotation::default(),
-                    });
-                return Box::new(it);
+                    })
+                    .collect();
+                return Box::new(result.into_iter());
             }
         }
 
@@ -169,7 +171,7 @@ impl<'a> Operator for Inclusion<'a> {
         false
     }
 
-    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if let (Some(stats_cov), Some(stats_order), Some(stats_left)) = (
             self.gs_cov.get_statistics(),
             self.gs_order.get_statistics(),

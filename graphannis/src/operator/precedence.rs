@@ -7,6 +7,7 @@ use util::token_helper;
 use util::token_helper::TokenHelper;
 
 use std::sync::Arc;
+use std::collections::VecDeque;
 use std;
 
 #[derive(Clone, Debug)]
@@ -16,10 +17,10 @@ pub struct PrecedenceSpec {
     pub max_dist: usize,
 }
 
-pub struct Precedence<'a> {
+pub struct Precedence {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
     spec: PrecedenceSpec,
 }
 
@@ -47,7 +48,7 @@ impl OperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator<'b>(&self, db : &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db : &GraphDB) -> Option<Box<Operator>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -57,8 +58,8 @@ impl OperatorSpec for PrecedenceSpec {
     }
 }
 
-impl<'a> Precedence<'a> {
-    pub fn new(db: &'a GraphDB, spec: PrecedenceSpec) -> Option<Precedence<'a>> {
+impl Precedence {
+    pub fn new(db: &GraphDB, spec: PrecedenceSpec) -> Option<Precedence> {
         
         let component_order = Component {
             ctype: ComponentType::Ordering,
@@ -80,15 +81,15 @@ impl<'a> Precedence<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Precedence<'a> {
+impl std::fmt::Display for Precedence {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, ".?")
     }
 }
 
-impl<'a> Operator for Precedence<'a> {
+impl Operator for Precedence {
 
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
@@ -101,7 +102,8 @@ impl<'a> Operator for Precedence<'a> {
 
         let start = start.unwrap();
 
-        let result = self.gs_order
+        // materialize a list of all matches 
+        let result : VecDeque<Match> = self.gs_order
             // get all token in the range
             .find_connected(&start, self.spec.min_dist, self.spec.max_dist).fuse()
             // find all left aligned nodes for this token and add it together with the token itself
@@ -110,9 +112,10 @@ impl<'a> Operator for Precedence<'a> {
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
-            .map(|n| Match {node: n, anno: Annotation::default()});
+            .map(|n| Match {node: n, anno: Annotation::default()})
+            .collect();
             
-        return Box::new(result);
+        return Box::new(result.into_iter());
         
     }
 
@@ -136,7 +139,7 @@ impl<'a> Operator for Precedence<'a> {
         );
     }
 
-    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if let Some(stats_order) = self.gs_order.get_statistics() {
 
             let max_possible_dist = std::cmp::min(self.spec.max_dist, stats_order.max_depth);
@@ -148,7 +151,7 @@ impl<'a> Operator for Precedence<'a> {
         return EstimationType::SELECTIVITY(0.1);
     }
 
-    fn get_inverse_operator<'b>(&'b self) -> Option<Box<Operator + 'b>> {
+    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
         let inv_precedence = InversePrecedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
@@ -159,15 +162,15 @@ impl<'a> Operator for Precedence<'a> {
     }
 }
 
-pub struct InversePrecedence<'a> {
+pub struct InversePrecedence {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
     spec: PrecedenceSpec,
 }
 
-impl<'a> InversePrecedence<'a> {
-    pub fn new(db: &'a GraphDB, spec: PrecedenceSpec) -> Option<InversePrecedence<'a>> {
+impl InversePrecedence {
+    pub fn new(db: &GraphDB, spec: PrecedenceSpec) -> Option<InversePrecedence> {
         
         let component_order = Component {
             ctype: ComponentType::Ordering,
@@ -189,15 +192,15 @@ impl<'a> InversePrecedence<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for InversePrecedence<'a> {
+impl std::fmt::Display for InversePrecedence {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_inv_precedence_?")
     }
 }
 
-impl<'a> Operator for InversePrecedence<'a> {
+impl Operator for InversePrecedence {
 
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
@@ -210,7 +213,8 @@ impl<'a> Operator for InversePrecedence<'a> {
 
         let start = start.unwrap();
 
-        let result = self.gs_order
+        // materialize a list of all matches 
+        let result : VecDeque<Match> = self.gs_order
             // get all token in the range
             .find_connected_inverse(&start, self.spec.min_dist, self.spec.max_dist).fuse()
             // find all left aligned nodes for this token and add it together with the token itself
@@ -219,9 +223,10 @@ impl<'a> Operator for InversePrecedence<'a> {
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
-            .map(|n| Match {node: n, anno: Annotation::default()});
+            .map(|n| Match {node: n, anno: Annotation::default()})
+            .collect();
             
-        return Box::new(result);
+        return Box::new(result.into_iter());
         
     }
 
@@ -245,7 +250,7 @@ impl<'a> Operator for InversePrecedence<'a> {
         );
     }
 
-    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if let Some(stats_order) = self.gs_order.get_statistics() {
 
             let max_possible_dist = std::cmp::min(self.spec.max_dist, stats_order.max_depth);

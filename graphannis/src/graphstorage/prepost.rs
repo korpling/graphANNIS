@@ -1,3 +1,4 @@
+use graphstorage::EdgeContainer;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::collections::Bound::*;
 use std::any::Any;
@@ -90,7 +91,7 @@ struct OrderIterEntry<OrderT,LevelT> {
     pub node: NodeID, 
 }
 
-impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
+impl<OrderT: 'static, LevelT : 'static> EdgeContainer for  PrePostOrderStorage<OrderT,LevelT> 
 where OrderT : NumValue, 
     LevelT : NumValue {
 
@@ -107,6 +108,33 @@ where OrderT : NumValue,
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
         return self.annos.get_all(edge);
     }
+
+    fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
+        &self.annos
+    }
+
+    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+        let it = self.node_to_order.iter()
+            .filter_map(move |(n, _order)| {
+                // check if this is actual a source node (and not only a target node)
+                if self.get_outgoing_edges(n).next().is_some() {
+                    return Some(n.clone());
+                } else {
+                    return None;
+                }
+            });
+        return Box::new(it);
+    }
+
+    fn get_statistics(&self) -> Option<&GraphStatistic> {self.stats.as_ref()}
+
+}
+
+impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
+where OrderT : NumValue, 
+    LevelT : NumValue {
+
+
     
     fn find_connected<'a>(
         &'a self,
@@ -256,20 +284,9 @@ where OrderT : NumValue,
         return false;
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        let it = self.node_to_order.iter()
-            .filter_map(move |(n, _order)| {
-                // check if this is actual a source node (and not only a target node)
-                if self.get_outgoing_edges(n).next().is_some() {
-                    return Some(n.clone());
-                } else {
-                    return None;
-                }
-            });
-        return Box::new(it);
-    }
+    
 
-    fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
+    fn copy(&mut self, db : &GraphDB, orig : &EdgeContainer) {
 
         self.clear();
 
@@ -355,13 +372,9 @@ where OrderT : NumValue,
         self.node_to_order.shrink_to_fit();
     }
 
-
-    fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
-        &self.annos
-    }
-
     fn as_any(&self) -> &Any {self}
 
-    fn get_statistics(&self) -> Option<&GraphStatistic> {self.stats.as_ref()}
+    fn as_edgecontainer(&self) -> &EdgeContainer {self}
+    
 
 }

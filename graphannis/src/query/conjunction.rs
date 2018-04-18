@@ -282,13 +282,13 @@ impl<'a> Conjunction<'a> {
         return None;
     }
 
-    fn create_join(&'a self, 
-        db: &'a GraphDB,
-        op: Box<Operator + 'a>,
-        exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> , 
-        exec_right : Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+    fn create_join<'b>(&self, 
+        db: &GraphDB,
+        op: Box<Operator>,
+        exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b> , 
+        exec_right : Box<ExecutionNode<Item = Vec<Match>> + 'b>,
         spec_idx_left: usize, spec_idx_right: usize,
-        idx_left: usize, idx_right: usize) -> Box<ExecutionNode<Item = Vec<Match>> + 'a> {
+        idx_left: usize, idx_right: usize) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
         
         if exec_right.as_nodesearch().is_some() {
             // use index join
@@ -299,7 +299,8 @@ impl<'a> Conjunction<'a> {
                 spec_idx_right + 1,
                 op,
                 exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                &db,
+                db.node_annos.clone(),
+                db.strings.clone(),
                 exec_right.get_desc(),
             );
             return Box::new(join);
@@ -312,7 +313,8 @@ impl<'a> Conjunction<'a> {
                 spec_idx_left + 1,
                 op,
                 exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                &db,
+                db.node_annos.clone(),
+                db.strings.clone(),
                 exec_left.get_desc(),
             );
             return Box::new(join);
@@ -327,7 +329,6 @@ impl<'a> Conjunction<'a> {
                 spec_idx_left + 1,
                 spec_idx_right + 1,
                 op,
-                db,
             );
 
             return Box::new(join);
@@ -469,7 +470,6 @@ impl<'a> Conjunction<'a> {
                     spec_idx_left + 1,
                     spec_idx_right + 1,
                     op,
-                    db,
                 );
                 Box::new(filter)
             } else {

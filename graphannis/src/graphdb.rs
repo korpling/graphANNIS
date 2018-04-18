@@ -1,3 +1,4 @@
+use graphstorage::adjacencylist::AdjacencyListStorage;
 use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
 use graphstorage::{GraphStorage, WriteableGraphStorage};
@@ -63,8 +64,8 @@ impl From<bincode::Error> for Error {
 }
 
 pub struct GraphDB {
-    pub strings: StringStorage,
-    pub node_annos: AnnoStorage<NodeID>,
+    pub strings: Arc<StringStorage>,
+    pub node_annos: Arc<AnnoStorage<NodeID>>,
 
     location: Option<PathBuf>,
 
@@ -157,8 +158,8 @@ impl GraphDB {
             id_tok: strings.add(TOK),
             id_node_type: strings.add(NODE_TYPE),
 
-            strings,
-            node_annos: AnnoStorage::<NodeID>::new(),
+            strings: Arc::new(strings),
+            node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
             components: BTreeMap::new(),
 
             location: None,
@@ -170,8 +171,8 @@ impl GraphDB {
     }
 
     pub fn clear(&mut self) {
-        self.strings.clear();
-        self.node_annos.clear();
+        self.strings = Arc::new(StringStorage::new());
+        self.node_annos = Arc::new(AnnoStorage::new());
         self.components.clear();
     }
 
@@ -191,8 +192,10 @@ impl GraphDB {
             location.join("current")
         };
 
-        self.strings = load_bincode(&dir2load, "strings.bin")?;
-        self.node_annos = load_bincode(&dir2load, "nodes.bin")?;
+        let strings_tmp : StringStorage = load_bincode(&dir2load, "strings.bin")?;
+        self.strings = Arc::new(strings_tmp);
+        let node_annos_tmp : AnnoStorage<NodeID> = load_bincode(&dir2load, "nodes.bin")?; 
+        self.node_annos = Arc::from(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");
 
@@ -292,8 +295,8 @@ impl GraphDB {
 
         std::fs::create_dir_all(&location)?;
 
-        save_bincode(&location, "strings.bin", &self.strings)?;
-        save_bincode(&location, "nodes.bin", &self.node_annos)?;
+        save_bincode(&location, "strings.bin", self.strings.as_ref())?;
+        save_bincode(&location, "nodes.bin", self.node_annos.as_ref())?;
 
         for (c, e) in self.components.iter() {
             if let Some(ref data) = *e {
@@ -347,23 +350,27 @@ impl GraphDB {
                         };
                         let new_anno_name = Annotation {
                             key: self.get_node_name_key(),
-                            val: self.strings.add(&node_name),
+                            val: Arc::make_mut(&mut self.strings).add(&node_name),
                         };
                         let new_anno_type = Annotation {
                             key: self.get_node_type_key(),
-                            val: self.strings.add(&node_type),
+                            val: Arc::make_mut(&mut self.strings).add(&node_type),
                         };
 
                         // add the new node (with minimum labels)
-                        self.node_annos.insert(new_node_id, new_anno_name);
-                        self.node_annos.insert(new_node_id, new_anno_type);
+                        let node_annos = Arc::make_mut(&mut self.node_annos);
+                        node_annos.insert(new_node_id, new_anno_name);
+                        node_annos.insert(new_node_id, new_anno_type);
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         // delete all annotations
-                        for a in self.node_annos.get_all(&existing_node_id) {
-                            self.node_annos.remove(&existing_node_id, &a.key);
+                        {
+                            let node_annos = Arc::make_mut(&mut self.node_annos);
+                            for a in node_annos.get_all(&existing_node_id) {
+                                node_annos.remove(&existing_node_id, &a.key);
+                            }
                         }
                         // delete all edges pointing to this node either as source or target
                         for c in self.get_all_components(None, None) {
@@ -380,12 +387,12 @@ impl GraphDB {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         let anno = Annotation {
                             key: AnnoKey {
-                                ns: self.strings.add(&anno_ns),
-                                name: self.strings.add(&anno_name),
+                                ns: Arc::make_mut(&mut self.strings).add(&anno_ns),
+                                name: Arc::make_mut(&mut self.strings).add(&anno_name),
                             },
-                            val: self.strings.add(&anno_value),
+                            val: Arc::make_mut(&mut self.strings).add(&anno_value),
                         };
-                        self.node_annos.insert(existing_node_id, anno);
+                        Arc::make_mut(&mut self.node_annos).insert(existing_node_id, anno);
                     }
                 }
                 UpdateEvent::DeleteNodeLabel {
@@ -395,10 +402,10 @@ impl GraphDB {
                 } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         let key = AnnoKey {
-                            ns: self.strings.add(&anno_ns),
-                            name: self.strings.add(&anno_name),
+                            ns: Arc::make_mut(&mut self.strings).add(&anno_ns),
+                            name: Arc::make_mut(&mut self.strings).add(&anno_name),
                         };
-                        self.node_annos.remove(&existing_node_id, &key);
+                        Arc::make_mut(&mut self.node_annos).remove(&existing_node_id, &key);
                     }
                 }
                 UpdateEvent::AddEdge {
@@ -466,9 +473,9 @@ impl GraphDB {
                                 layer,
                                 name: component_name,
                             };
-                            let ns = self.strings.add(&anno_ns);
-                            let name = self.strings.add(&anno_name);
-                            let val = self.strings.add(&anno_value);
+                            let ns = Arc::make_mut(&mut self.strings).add(&anno_ns);
+                            let name = Arc::make_mut(&mut self.strings).add(&anno_name);
+                            let val = Arc::make_mut(&mut self.strings).add(&anno_value);
                             let gs = self.get_or_create_writable(c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
@@ -501,8 +508,8 @@ impl GraphDB {
                                 layer,
                                 name: component_name,
                             };
-                            let ns = self.strings.add(&anno_ns);
-                            let name = self.strings.add(&anno_name);
+                            let ns = Arc::make_mut(&mut self.strings).add(&anno_ns);
+                            let name = Arc::make_mut(&mut self.strings).add(&anno_name);
                             let gs = self.get_or_create_writable(c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
@@ -623,8 +630,8 @@ impl GraphDB {
             let loaded_comp = if is_writable {
                 loaded_comp
             } else {
-                let mut gs_copy = registry::create_writeable();
-                gs_copy.copy(&self, loaded_comp.as_ref());
+                let mut gs_copy : AdjacencyListStorage = registry::create_writeable();
+                gs_copy.copy(&self, loaded_comp.as_edgecontainer());
                 Arc::from(gs_copy)
             };
 
@@ -717,7 +724,7 @@ impl GraphDB {
                 if existing_type.is_err() || opt_type != existing_type.unwrap() {
                     let mut new_gs = registry::create_from_type(opt_type.clone());
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
-                        new_gs_mut.copy(self, gs.as_ref());
+                        new_gs_mut.copy(self, gs.as_edgecontainer());
                         true
                     } else {
                         false
@@ -862,10 +869,10 @@ mod tests {
         let mut db = GraphDB::new();
 
         let anno_key = AnnoKey {
-            ns: db.strings.add("test"),
-            name: db.strings.add("edge_anno"),
+            ns: Arc::make_mut(&mut db.strings).add("test"),
+            name: Arc::make_mut(&mut db.strings).add("edge_anno"),
         };
-        let anno_val = db.strings.add("testValue");
+        let anno_val = Arc::make_mut(&mut db.strings).add("testValue");
 
         let gs: &mut WriteableGraphStorage = db.get_or_create_writable(Component {
             ctype: ComponentType::Pointing,

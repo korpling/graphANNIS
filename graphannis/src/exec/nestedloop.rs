@@ -1,4 +1,3 @@
-use graphdb::GraphDB;
 use Match;
 use util;
 use super::{Desc, ExecutionNode};
@@ -7,7 +6,7 @@ use std::iter::Peekable;
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-    op: Box<Operator + 'a>,
+    op: Box<Operator>,
     inner_idx: usize,
     outer_idx: usize,
     inner_cache: Vec<Vec<Match>>,
@@ -25,8 +24,7 @@ impl<'a> NestedLoop<'a> {
         rhs_idx: usize,
         node_nr_lhs: usize,
         node_nr_rhs: usize,
-        op: Box<Operator + 'a>,
-        db: &'a GraphDB,
+        op: Box<Operator>,
     ) -> NestedLoop<'a> {
 
         let mut left_is_outer = true;
@@ -53,7 +51,6 @@ impl<'a> NestedLoop<'a> {
             NestedLoop {
                 desc: Desc::join(
                     &op,
-                    db,
                     lhs.get_desc(),
                     rhs.get_desc(),
                     "nestedloop L-R",
@@ -74,7 +71,6 @@ impl<'a> NestedLoop<'a> {
             NestedLoop {
                 desc: Desc::join(
                     &op,
-                    db,
                     rhs.get_desc(),
                     lhs.get_desc(),
                     "nestedloop R-L",

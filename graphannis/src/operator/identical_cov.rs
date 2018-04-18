@@ -12,10 +12,10 @@ use std;
 #[derive(Clone, Debug)]
 pub struct IdenticalCoverageSpec;
 
-pub struct IdenticalCoverage<'a> {
+pub struct IdenticalCoverage {
     gs_left: Arc<GraphStorage>,
     gs_order: Arc<GraphStorage>,
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
 }
 
 lazy_static! {
@@ -44,7 +44,7 @@ impl OperatorSpec for IdenticalCoverageSpec {
         v
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -54,8 +54,8 @@ impl OperatorSpec for IdenticalCoverageSpec {
     }
 }
 
-impl<'a> IdenticalCoverage<'a> {
-    pub fn new(db: &'a GraphDB) -> Option<IdenticalCoverage<'a>> {
+impl IdenticalCoverage {
+    pub fn new(db: &GraphDB) -> Option<IdenticalCoverage> {
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let tok_helper = TokenHelper::new(db)?;
@@ -69,14 +69,14 @@ impl<'a> IdenticalCoverage<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for IdenticalCoverage<'a> {
+impl std::fmt::Display for IdenticalCoverage {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_=_")
     }
 }
 
-impl<'a> Operator for IdenticalCoverage<'a> {
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+impl Operator for IdenticalCoverage {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let n_left = self.tok_helper.left_token_for(&lhs.node);
         let n_right = self.tok_helper.right_token_for(&lhs.node);
 
@@ -130,7 +130,7 @@ impl<'a> Operator for IdenticalCoverage<'a> {
         true
     }
 
-    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if let Some(order_stats) = self.gs_order.get_statistics() {
             let num_of_token = order_stats.nodes as f64;
 

@@ -50,7 +50,7 @@ impl AdjacencyListStorage {
     }
 }
 
-impl GraphStorage for AdjacencyListStorage {
+impl EdgeContainer for AdjacencyListStorage {
 
      fn get_outgoing_edges<'a>(&'a self, node : &NodeID) -> Box<Iterator<Item=NodeID> + 'a> {
         let start_key = Edge{source: node.clone(), target: NodeID::min_value()};
@@ -80,6 +80,24 @@ impl GraphStorage for AdjacencyListStorage {
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
         self.annos.get_all(edge)
     }
+
+    fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
+        return &self.annos;
+    }
+
+    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
+        let it = self.edges.iter().map(|e| e.source).dedup();
+        return Box::new(it);
+    }
+
+    fn get_statistics(&self) -> Option<&GraphStatistic> {
+        return self.stats.as_ref();
+    }
+}
+
+impl GraphStorage for AdjacencyListStorage {
+
+     
 
     fn find_connected<'a>(
         &'a self,
@@ -122,12 +140,9 @@ impl GraphStorage for AdjacencyListStorage {
         return it.next().is_some();
     }
 
-    fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        let it = self.edges.iter().map(|e| e.source).dedup();
-        return Box::new(it);
-    }
+    
 
-    fn copy(&mut self, db : &GraphDB, orig : &GraphStorage) {
+    fn copy(&mut self, db : &GraphDB, orig : &EdgeContainer) {
         self.clear();
 
         for source in orig.source_nodes() {
@@ -145,16 +160,12 @@ impl GraphStorage for AdjacencyListStorage {
     }
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
+    fn as_edgecontainer(&self) -> &EdgeContainer {self}
 
     fn as_any(&self) -> &Any {self}
 
-    fn get_statistics(&self) -> Option<&GraphStatistic> {
-        return self.stats.as_ref();
-    }
+    
 
-    fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
-        return &self.annos;
-    }
 
     fn calculate_statistics(&mut self, string_storage : &StringStorage) {
         let mut stats = GraphStatistic {

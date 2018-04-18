@@ -10,7 +10,7 @@ pub struct IdenticalNodeSpec;
 impl OperatorSpec for IdenticalNodeSpec {
     fn necessary_components(&self) -> Vec<Component> {vec![]}
 
-    fn create_operator<'a>(&self, _db: &'a GraphDB) -> Option<Box<Operator + 'a>> {
+    fn create_operator(&self, _db: &GraphDB) -> Option<Box<Operator>> {
         Some(Box::new(IdenticalNode {}))
     }
    
@@ -26,7 +26,7 @@ impl std::fmt::Display for IdenticalNode {
 }
 
 impl Operator for IdenticalNode {
-    fn retrieve_matches<'a>(&'a self, lhs : &Match) -> Box<Iterator<Item = Match> + 'a> {
+    fn retrieve_matches(&self, lhs : &Match) -> Box<Iterator<Item = Match>> {
         return Box::new(std::iter::once(
             Match{node: lhs.node.clone(), anno: Annotation::default()}
             )
@@ -37,7 +37,7 @@ impl Operator for IdenticalNode {
         return lhs.node == rhs.node;
     }
 
-    fn estimation_type<'a>(&self, _db: &'a GraphDB) -> EstimationType {EstimationType::MIN}
+    fn estimation_type(&self) -> EstimationType {EstimationType::MIN}
 
     fn is_commutative(&self) -> bool {true}
 }

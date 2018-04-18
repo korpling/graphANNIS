@@ -13,11 +13,11 @@ use std;
 #[derive(Clone, Debug)]
 pub struct OverlapSpec;
 
-pub struct  Overlap<'a> {
+pub struct  Overlap {
     gs_order: Arc<GraphStorage>,
     gs_cov: Arc<GraphStorage>,
     gs_invcov: Arc<GraphStorage>,
-    tok_helper: TokenHelper<'a>,
+    tok_helper: TokenHelper,
 }
 
 lazy_static! {
@@ -56,7 +56,7 @@ impl OperatorSpec for  OverlapSpec {
         v
     }
 
-    fn create_operator<'b>(&self, db: &'b GraphDB) -> Option<Box<Operator + 'b>> {
+    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
         let optional_op =  Overlap::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -66,8 +66,8 @@ impl OperatorSpec for  OverlapSpec {
     }
 }
 
-impl<'a>  Overlap<'a> {
-    pub fn new(db: &'a GraphDB) -> Option< Overlap<'a>> {
+impl  Overlap {
+    pub fn new(db: &GraphDB) -> Option< Overlap> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_cov = db.get_graphstorage(&COMPONENT_COVERAGE)?;
         let gs_invcov = db.get_graphstorage(&COMPONENT_INV_COVERAGE)?;        
@@ -83,14 +83,14 @@ impl<'a>  Overlap<'a> {
     }
 }
 
-impl<'a> std::fmt::Display for Overlap<'a> {
+impl std::fmt::Display for Overlap {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "_o_")
     }
 }
 
-impl<'a> Operator for  Overlap<'a> {
-    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+impl Operator for  Overlap {
+    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
 
         // use set to filter out duplicates
         let mut result = HashSet::new();
@@ -140,7 +140,7 @@ impl<'a> Operator for  Overlap<'a> {
         true
     }
 
-    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+    fn estimation_type(&self) -> EstimationType {
         if let (Some(stats_cov), Some(stats_order), Some(stats_invcov)) = (
             self.gs_cov.get_statistics(),
             self.gs_order.get_statistics(),
