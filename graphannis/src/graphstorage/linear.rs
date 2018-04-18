@@ -54,8 +54,8 @@ where PosT : NumValue {
 
 
 
-    fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(pos) = self.node_to_pos.get(source) {
+    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        if let Some(pos) = self.node_to_pos.get(node) {
             // find the next node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 let next_pos = pos.pos.clone() + PosT::one();
@@ -67,6 +67,10 @@ where PosT : NumValue {
             }
         }
         return Box::from(std::iter::empty());
+    }
+
+    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        unimplemented!()
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {

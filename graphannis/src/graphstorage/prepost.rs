@@ -96,8 +96,12 @@ where OrderT : NumValue,
 
 
 
-    fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        return self.find_connected(source, 1, 1);
+    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        return self.find_connected(node, 1, 1);
+    }
+
+    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        unimplemented!()
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {

@@ -31,7 +31,8 @@ pub struct GraphStatistic
 
 pub trait GraphStorage : Sync + Send + HeapSizeOf {
 
-    fn get_outgoing_edges<'a>(&'a self, source: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
+    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
+    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation>;
     

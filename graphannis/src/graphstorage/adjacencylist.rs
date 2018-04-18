@@ -52,9 +52,9 @@ impl AdjacencyListStorage {
 
 impl GraphStorage for AdjacencyListStorage {
 
-     fn get_outgoing_edges<'a>(&'a self, source : &NodeID) -> Box<Iterator<Item=NodeID> + 'a> {
-        let start_key = Edge{source: source.clone(), target: NodeID::min_value()};
-        let end_key = Edge {source: source.clone(), target: NodeID::max_value()};
+     fn get_outgoing_edges<'a>(&'a self, node : &NodeID) -> Box<Iterator<Item=NodeID> + 'a> {
+        let start_key = Edge{source: node.clone(), target: NodeID::min_value()};
+        let end_key = Edge {source: node.clone(), target: NodeID::max_value()};
 
         let it = self.edges.range(start_key..end_key)
             .map(|e| {
@@ -63,6 +63,18 @@ impl GraphStorage for AdjacencyListStorage {
 
         return Box::new(it);
 
+    }
+
+    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        let start_key = Edge{source: node.clone(), target: NodeID::min_value()};
+        let end_key = Edge {source: node.clone(), target: NodeID::max_value()};
+
+        let it = self.inverse_edges.range(start_key..end_key)
+            .map(|e| {
+                e.target
+            });
+
+        return Box::new(it);
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
