@@ -147,7 +147,7 @@ where
                     let min_distance = offset.checked_sub(min_distance).unwrap_or(0);
 
                     // return all entries in the chain between min_distance..max_distance
-                    return Box::new(chain[min_distance..max_distance].iter().cloned());
+                    return Box::new(chain[max_distance..min_distance].iter().cloned());
                 
                 }
             }
