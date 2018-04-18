@@ -304,35 +304,51 @@ impl<'a> Conjunction<'a> {
                 exec_right.get_desc(),
             );
             return Box::new(join);
-        } else if exec_left.as_nodesearch().is_some() && op.is_commutative() {
+        } else if exec_left.as_nodesearch().is_some() {
+
             // avoid a nested loop join by switching the operand and using and index join
-            let join = IndexJoin::new(
-                exec_right,
-                idx_right,
-                spec_idx_right + 1,
-                spec_idx_left + 1,
-                op,
-                exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                db.node_annos.clone(),
-                db.strings.clone(),
-                exec_left.get_desc(),
-            );
-            return Box::new(join);
-        } else {
-            // use nested loop as "fallback"
-
-            let join = NestedLoop::new(
-                exec_left,
-                exec_right,
-                idx_left,
-                idx_right,
-                spec_idx_left + 1,
-                spec_idx_right + 1,
-                op,
-            );
-
-            return Box::new(join);
+            if op.is_commutative() {
+                let join = IndexJoin::new(
+                    exec_right,
+                    idx_right,
+                    spec_idx_right + 1,
+                    spec_idx_left + 1,
+                    op,
+                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                    db.node_annos.clone(),
+                    db.strings.clone(),
+                    exec_left.get_desc(),
+                );
+                return Box::new(join);
+            }
+            if let Some(inverse_op) = op.get_inverse_operator() {
+                let join = IndexJoin::new(
+                    exec_right,
+                    idx_right,
+                    spec_idx_right + 1,
+                    spec_idx_left + 1,
+                    inverse_op,
+                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                    db.node_annos.clone(),
+                    db.strings.clone(),
+                    exec_left.get_desc(),
+                );
+                return Box::new(join);
+            }
         }
+
+         // use nested loop as "fallback"
+        let join = NestedLoop::new(
+            exec_left,
+            exec_right,
+            idx_left,
+            idx_right,
+            spec_idx_left + 1,
+            spec_idx_right + 1,
+            op,
+        );
+
+        return Box::new(join);
     }
 
     fn make_exec_plan_with_order(
