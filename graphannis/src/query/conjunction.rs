@@ -282,6 +282,58 @@ impl<'a> Conjunction<'a> {
         return None;
     }
 
+    fn create_join(&'a self, 
+        db: &'a GraphDB,
+        op: Box<Operator + 'a>,
+        exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> , 
+        exec_right : Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        spec_idx_left: usize, spec_idx_right: usize,
+        idx_left: usize, idx_right: usize) -> Box<ExecutionNode<Item = Vec<Match>> + 'a> {
+        
+        if exec_right.as_nodesearch().is_some() {
+            // use index join
+            let join = IndexJoin::new(
+                exec_left,
+                idx_left,
+                spec_idx_left + 1,
+                spec_idx_right + 1,
+                op,
+                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+                &db,
+                exec_right.get_desc(),
+            );
+            return Box::new(join);
+        } else if exec_left.as_nodesearch().is_some() && op.is_commutative() {
+            // avoid a nested loop join by switching the operand and using and index join
+            let join = IndexJoin::new(
+                exec_right,
+                idx_right,
+                spec_idx_right + 1,
+                spec_idx_left + 1,
+                op,
+                exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                &db,
+                exec_left.get_desc(),
+            );
+            return Box::new(join);
+        } else {
+            // use nested loop as "fallback"
+
+            let join = NestedLoop::new(
+                exec_left,
+                exec_right,
+                idx_left,
+                idx_right,
+                spec_idx_left + 1,
+                spec_idx_right + 1,
+                op,
+                db,
+            );
+
+            return Box::new(join);
+        }
+    }
+
     fn make_exec_plan_with_order(
         &'a self,
         db: &'a GraphDB,
@@ -435,48 +487,7 @@ impl<'a> Conjunction<'a> {
                     .ok_or(Error::OperatorIdxNotFound)?
                     .clone();
 
-                if exec_right.as_nodesearch().is_some() {
-                    // use index join
-                    let join = IndexJoin::new(
-                        exec_left,
-                        idx_left,
-                        spec_idx_left + 1,
-                        spec_idx_right + 1,
-                        op,
-                        exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                        &db,
-                        exec_right.get_desc(),
-                    );
-                    Box::new(join)
-                } else if exec_left.as_nodesearch().is_some() && op.is_commutative() {
-                    // avoid a nested loop join by switching the operand and using and index join
-                    let join = IndexJoin::new(
-                        exec_right,
-                        idx_right,
-                        spec_idx_right + 1,
-                        spec_idx_left + 1,
-                        op,
-                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                        &db,
-                        exec_left.get_desc(),
-                    );
-                    Box::new(join)
-                } else {
-                    // use nested loop as "fallback"
-
-                    let join = NestedLoop::new(
-                        exec_left,
-                        exec_right,
-                        idx_left,
-                        idx_right,
-                        spec_idx_left + 1,
-                        spec_idx_right + 1,
-                        op,
-                        db,
-                    );
-
-                    Box::new(join)
-                }
+                self.create_join(db, op, exec_left, exec_right, spec_idx_left, spec_idx_right, idx_left, idx_right)
             };
 
             let new_component_nr = new_exec
