@@ -147,6 +147,16 @@ impl<'a> Operator for Precedence<'a> {
 
         return EstimationType::SELECTIVITY(0.1);
     }
+
+    fn get_inverse_operator<'b>(&'b self) -> Option<Box<Operator + 'b>> {
+        let inv_precedence = InversePrecedence {
+            gs_order: self.gs_order.clone(),
+            gs_left: self.gs_left.clone(),
+            tok_helper: self.tok_helper.clone(),
+            spec: self.spec.clone(),
+        };
+        Some(Box::new(inv_precedence))
+    }
 }
 
 pub struct InversePrecedence<'a> {
@@ -202,7 +212,7 @@ impl<'a> Operator for InversePrecedence<'a> {
 
         let result = self.gs_order
             // get all token in the range
-            .find_connected(&start, self.spec.min_dist, self.spec.max_dist).fuse()
+            .find_connected_inverse(&start, self.spec.min_dist, self.spec.max_dist).fuse()
             // find all left aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
                 let it_aligned = self.gs_left.get_outgoing_edges(&t);
