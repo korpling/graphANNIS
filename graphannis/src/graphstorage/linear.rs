@@ -73,9 +73,10 @@ where PosT : NumValue {
         if let Some(pos) = self.node_to_pos.get(node) {
             // find the previous node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
-                let previous_pos = pos.pos.clone() - PosT::one();
-                if let Some(previous_pos) = previous_pos.to_usize() {
-                    return Box::from(std::iter::once(chain[previous_pos]));
+                if let Some(pos) = pos.pos.to_usize() {
+                    if let Some(previous_pos) = pos.checked_sub(1) {
+                        return Box::from(std::iter::once(chain[previous_pos]));
+                    }
                 }
             }
         }
@@ -105,6 +106,28 @@ where PosT : NumValue {
                         // return all entries in the chain between min_distance..max_distance
                         return Box::new(chain[min_distance..max_distance].iter().cloned());
                     }
+                }
+            }
+        }
+        return Box::new(std::iter::empty());
+    }
+
+    fn find_connected_inverse<'a>(
+        &'a self,
+        source: &NodeID,
+        min_distance: usize,
+        max_distance: usize,
+    ) -> Box<Iterator<Item = NodeID> + 'a> {
+
+        if let Some(start_pos) = self.node_to_pos.get(source) {
+            if let Some(chain) = self.node_chains.get(&start_pos.root) {
+                if let Some(offset) = start_pos.pos.to_usize() {
+                    let max_distance = offset.checked_sub(max_distance).unwrap_or(0);
+                    let min_distance = offset.checked_sub(min_distance).unwrap_or(0);
+
+                    // return all entries in the chain between min_distance..max_distance
+                    return Box::new(chain[min_distance..max_distance].iter().cloned());
+                
                 }
             }
         }

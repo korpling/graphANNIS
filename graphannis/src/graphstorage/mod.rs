@@ -42,6 +42,13 @@ pub trait GraphStorage : Sync + Send + HeapSizeOf {
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a>;
+    fn find_connected_inverse<'a>(
+        &'a self,
+        node: &NodeID,
+        min_distance: usize,
+        max_distance: usize,
+    ) -> Box<Iterator<Item = NodeID> + 'a>;
+
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize>;
     fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool;
 

@@ -148,3 +148,102 @@ impl<'a> Operator for Precedence<'a> {
         return EstimationType::SELECTIVITY(0.1);
     }
 }
+
+pub struct InversePrecedence<'a> {
+    gs_order: Arc<GraphStorage>,
+    gs_left: Arc<GraphStorage>,
+    tok_helper: TokenHelper<'a>,
+    spec: PrecedenceSpec,
+}
+
+impl<'a> InversePrecedence<'a> {
+    pub fn new(db: &'a GraphDB, spec: PrecedenceSpec) -> Option<InversePrecedence<'a>> {
+        
+        let component_order = Component {
+            ctype: ComponentType::Ordering,
+            layer: String::from("annis"),
+            name: spec.segmentation.clone().unwrap_or(String::from("")),
+        };
+    
+        let gs_order = db.get_graphstorage(&component_order)?;
+        let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
+
+        let tok_helper = TokenHelper::new(db)?;
+
+        Some(InversePrecedence {
+            gs_order: gs_order,
+            gs_left: gs_left,
+            tok_helper: tok_helper,
+            spec,
+        })
+    }
+}
+
+impl<'a> std::fmt::Display for InversePrecedence<'a> {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "_inv_precedence_?")
+    }
+}
+
+impl<'a> Operator for InversePrecedence<'a> {
+
+    fn retrieve_matches<'b>(&'b self, lhs: &Match) -> Box<Iterator<Item = Match> + 'b> {
+        let start = if self.spec.segmentation.is_some() {
+            Some(lhs.node)
+        } else {
+            self.tok_helper.right_token_for(&lhs.node)
+        };
+
+        if start.is_none() {
+            return Box::new(std::iter::empty::<Match>());
+        }
+
+        let start = start.unwrap();
+
+        let result = self.gs_order
+            // get all token in the range
+            .find_connected(&start, self.spec.min_dist, self.spec.max_dist).fuse()
+            // find all left aligned nodes for this token and add it together with the token itself
+            .flat_map(move |t| {
+                let it_aligned = self.gs_left.get_outgoing_edges(&t);
+                std::iter::once(t).chain(it_aligned)
+            })
+            // map the result as match
+            .map(|n| Match {node: n, anno: Annotation::default()});
+            
+        return Box::new(result);
+        
+    }
+
+    fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
+        let start_end = if self.spec.segmentation.is_some() {
+            (lhs.node, rhs.node)
+        } else {
+            let start = self.tok_helper.right_token_for(&lhs.node);
+            let end = self.tok_helper.left_token_for(&rhs.node);
+            if start.is_none() || end.is_none() {
+                return false;
+            }
+            (start.unwrap(), end.unwrap())
+        };
+
+        return self.gs_order.is_connected(
+            &start_end.1,
+            &start_end.0,
+            self.spec.min_dist,
+            self.spec.max_dist,
+        );
+    }
+
+    fn estimation_type<'b>(&self, _db: &'b GraphDB) -> EstimationType {
+        if let Some(stats_order) = self.gs_order.get_statistics() {
+
+            let max_possible_dist = std::cmp::min(self.spec.max_dist, stats_order.max_depth);
+            let num_of_descendants = max_possible_dist - self.spec.min_dist + 1;
+
+            return EstimationType::SELECTIVITY((num_of_descendants as f64) / (stats_order.nodes as f64 / 2.0));
+        }
+
+        return EstimationType::SELECTIVITY(0.1);
+    }
+}

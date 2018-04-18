@@ -94,6 +94,15 @@ impl GraphStorage for AdjacencyListStorage {
         Box::new(it)
     }
 
+    fn find_connected_inverse<'a>(
+        &'a self,
+        node: &NodeID,
+        min_distance: usize,
+        max_distance: usize,
+    ) -> Box<Iterator<Item = NodeID> + 'a> {
+        unimplemented!()
+    }
+
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
         let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
         .filter(|x| *target == x.node )
