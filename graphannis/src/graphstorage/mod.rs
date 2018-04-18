@@ -38,7 +38,7 @@ pub trait GraphStorage : Sync + Send + HeapSizeOf {
     
     fn find_connected<'a>(
         &'a self,
-        source: &NodeID,
+        node: &NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a>;

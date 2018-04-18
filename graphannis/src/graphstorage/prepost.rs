@@ -80,6 +80,55 @@ where OrderT : NumValue,
         }
         node_stack.pop_front();
     }
+
+    fn find_connected_inverse<'a>(
+        &'a self,
+        node: &NodeID,
+        min_distance: usize,
+        max_distance: usize,
+    ) -> Box<Iterator<Item = NodeID> + 'a> {
+        
+        if let Some(start_orders) = self.node_to_order.get(node) {
+            let mut visited = HashSet::<NodeID>::new();
+        
+            let it = start_orders.into_iter()
+                .flat_map(move |root_order : &PrePost<OrderT, LevelT>| {
+                    // TODO: is there any other constraint on the lower bound?
+                    let start_range : PrePost<OrderT,LevelT> = PrePost {
+                        pre: OrderT::zero(),
+                        post: OrderT::zero(),
+                        level: LevelT::zero(),
+                    };
+                    let end_range : PrePost<OrderT,LevelT> = PrePost {
+                        pre: root_order.pre.clone(),
+                        post: OrderT::max_value(),
+                        level: LevelT::max_value(),
+                    };
+                    self.order_to_node
+                        .range((Included(start_range),Included(end_range)))
+                        .map(move |o| -> OrderIterEntry<OrderT,LevelT> { 
+                            OrderIterEntry{
+                                root: root_order.clone(), 
+                                current: o.0.clone(), 
+                                node: o.1.clone()}
+                        }) 
+                })
+                .filter(move |o : &OrderIterEntry<OrderT,LevelT>| {
+                    if let (Some(current_level), Some(root_level)) = (o.current.level.to_usize(), o.root.level.to_usize()) {
+                        let diff_level = root_level - current_level;
+                        return o.root.post >= o.current.post 
+                            && min_distance <= diff_level && diff_level <= max_distance;
+                    } else {
+                        return false;
+                    }
+                })
+                .map(|o : OrderIterEntry<OrderT,LevelT>| o.node)
+                .filter(move |n| visited.insert(n.clone()));
+            return Box::new(it);
+        } else {
+            return Box::new(std::iter::empty());
+        }
+    }
 }
 
 type NStack<OrderT,LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT,LevelT>>;
@@ -101,7 +150,7 @@ where OrderT : NumValue,
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        unimplemented!()
+        return self.find_connected_inverse(node, 1, 1);
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
@@ -110,12 +159,12 @@ where OrderT : NumValue,
     
     fn find_connected<'a>(
         &'a self,
-        source: &NodeID,
+        node: &NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         
-        if let Some(start_orders) = self.node_to_order.get(source) {
+        if let Some(start_orders) = self.node_to_order.get(node) {
             let mut visited = HashSet::<NodeID>::new();
         
             let it = start_orders.into_iter()
