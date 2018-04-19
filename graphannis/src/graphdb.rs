@@ -116,7 +116,7 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     let mut p = PathBuf::new();
     p.push("gs");
     p.push(c.ctype.to_string());
-    p.push(&c.layer);
+    p.push(if c.layer.is_empty() {"default_layer"} else {&c.layer});
     p.push(&c.name);
     return p;
 }
