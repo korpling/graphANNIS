@@ -62,6 +62,8 @@ impl std::fmt::Display for PrecedenceSpec {
         
         let range_desc = if self.min_dist == 1 && self.max_dist == usize::max_value() {
             String::from("*")
+        } else if self.min_dist == 1 && self.max_dist == 1 {
+            String::from("")
         } else {
             format!("{},{}", self.min_dist, self.max_dist)
         };
