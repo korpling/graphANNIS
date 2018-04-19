@@ -20,6 +20,7 @@ pub struct PrecedenceSpec {
 pub struct Precedence {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
+    gs_right: Arc<GraphStorage>,
     tok_helper: TokenHelper,
     spec: PrecedenceSpec,
 }
@@ -28,6 +29,14 @@ lazy_static! {
     static ref COMPONENT_LEFT: Component = {
         Component {
             ctype: ComponentType::LeftToken,
+            layer: String::from("annis"),
+            name: String::from(""),
+        }
+    };
+
+    static ref COMPONENT_RIGHT: Component = {
+        Component {
+            ctype: ComponentType::RightToken,
             layer: String::from("annis"),
             name: String::from(""),
         }
@@ -42,7 +51,7 @@ impl OperatorSpec for PrecedenceSpec {
             name: self.segmentation.clone().unwrap_or(String::from("")),
         };
 
-        let mut v: Vec<Component> = vec![component_order.clone(), COMPONENT_LEFT.clone()];
+        let mut v: Vec<Component> = vec![component_order.clone(), COMPONENT_LEFT.clone(), COMPONENT_RIGHT.clone()];
         v.append(&mut token_helper::necessary_components());
         v
     }
@@ -87,13 +96,15 @@ impl Precedence {
 
         let gs_order = db.get_graphstorage(&component_order)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
+        let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
 
         let tok_helper = TokenHelper::new(db)?;
 
         Some(Precedence {
-            gs_order: gs_order,
-            gs_left: gs_left,
-            tok_helper: tok_helper,
+            gs_order,
+            gs_left,
+            gs_right,
+            tok_helper,
             spec,
         })
     }
@@ -172,6 +183,7 @@ impl Operator for Precedence {
         let inv_precedence = InversePrecedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),
+            gs_right: self.gs_right.clone(),
             tok_helper: self.tok_helper.clone(),
             spec: self.spec.clone(),
         };
@@ -182,6 +194,7 @@ impl Operator for Precedence {
 pub struct InversePrecedence {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
+    gs_right: Arc<GraphStorage>,
     tok_helper: TokenHelper,
     spec: PrecedenceSpec,
 }
@@ -196,13 +209,15 @@ impl InversePrecedence {
 
         let gs_order = db.get_graphstorage(&component_order)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
+        let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
 
         let tok_helper = TokenHelper::new(db)?;
 
         Some(InversePrecedence {
-            gs_order: gs_order,
-            gs_left: gs_left,
-            tok_helper: tok_helper,
+            gs_order,
+            gs_left,
+            gs_right,
+            tok_helper,
             spec,
         })
     }
@@ -210,7 +225,7 @@ impl InversePrecedence {
 
 impl std::fmt::Display for InversePrecedence {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "_inv_precedence_{}", self.spec)
+        write!(f, ".\u{20D6}{}", self.spec)
     }
 }
 
@@ -232,9 +247,9 @@ impl Operator for InversePrecedence {
         let result: VecDeque<Match> = self.gs_order
             // get all token in the range
             .find_connected_inverse(&start, self.spec.min_dist, self.spec.max_dist).fuse()
-            // find all left aligned nodes for this token and add it together with the token itself
+            // find all right aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_left.get_outgoing_edges(&t);
+                let it_aligned = self.gs_right.get_outgoing_edges(&t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
@@ -262,6 +277,17 @@ impl Operator for InversePrecedence {
             self.spec.min_dist,
             self.spec.max_dist,
         );
+    }
+
+    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+        let prec = Precedence {
+            gs_order: self.gs_order.clone(),
+            gs_left: self.gs_left.clone(),
+            gs_right: self.gs_right.clone(),
+            tok_helper: self.tok_helper.clone(),
+            spec: self.spec.clone(),
+        };
+        Some(Box::new(prec))
     }
 
     fn estimation_type(&self) -> EstimationType {
