@@ -54,7 +54,10 @@ impl<'a> ExecutionPlan<'a> {
 
 impl<'a> std::fmt::Display for ExecutionPlan<'a> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        for d in self.descriptions.iter() {
+        for (i,d) in self.descriptions.iter().enumerate() {
+            if i > 0 {
+                write!(f, "---[OR]---\n")?;
+            }
             if let &Some(ref d) = d {
                 write!(f, "{}", d.debug_string(""))?;
             } else {
