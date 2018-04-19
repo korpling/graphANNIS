@@ -16,7 +16,7 @@ impl OperatorSpec for IdenticalNodeSpec {
    
 }
 
-#[derive(Debug)]
+#[derive(Clone,Debug)]
 pub struct IdenticalNode;
 
 impl std::fmt::Display for IdenticalNode {
@@ -39,5 +39,7 @@ impl Operator for IdenticalNode {
 
     fn estimation_type(&self) -> EstimationType {EstimationType::MIN}
 
-    fn is_commutative(&self) -> bool {true}
+    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+        return Some(Box::new(self.clone()));
+    }
 }

@@ -13,6 +13,7 @@ use std;
 #[derive(Clone, Debug)]
 pub struct OverlapSpec;
 
+#[derive(Clone)]
 pub struct  Overlap {
     gs_order: Arc<GraphStorage>,
     gs_cov: Arc<GraphStorage>,
@@ -136,8 +137,8 @@ impl Operator for  Overlap {
         false
     }
 
-    fn is_commutative(&self) -> bool {
-        true
+    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+        return Some(Box::new(self.clone()));
     }
 
     fn estimation_type(&self) -> EstimationType {

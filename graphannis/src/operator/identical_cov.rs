@@ -12,6 +12,7 @@ use std;
 #[derive(Clone, Debug)]
 pub struct IdenticalCoverageSpec;
 
+#[derive(Clone)]
 pub struct IdenticalCoverage {
     gs_left: Arc<GraphStorage>,
     gs_order: Arc<GraphStorage>,
@@ -126,8 +127,8 @@ impl Operator for IdenticalCoverage {
         false
     }
 
-    fn is_commutative(&self) -> bool {
-        true
+    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+        return Some(Box::new(self.clone()));
     }
 
     fn estimation_type(&self) -> EstimationType {

@@ -17,10 +17,7 @@ pub trait Operator: std::fmt::Display {
     fn is_reflexive(&self) -> bool {
         true
     }
-    fn is_commutative(&self) -> bool {
-        false
-    }
-
+    
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
         None
     }
