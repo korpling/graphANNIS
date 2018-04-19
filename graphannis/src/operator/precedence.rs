@@ -69,13 +69,7 @@ impl OperatorSpec for PrecedenceSpec {
 impl std::fmt::Display for PrecedenceSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         
-        let range_desc = if self.min_dist == 1 && self.max_dist == usize::max_value() {
-            String::from("*")
-        } else if self.min_dist == 1 && self.max_dist == 1 {
-            String::from("")
-        } else {
-            format!("{},{}", self.min_dist, self.max_dist)
-        };
+        let range_desc = super::format_range(self.min_dist, self.max_dist);
 
         if let Some(ref seg) = self.segmentation {
             write!(f, "{} {}", seg, range_desc)
