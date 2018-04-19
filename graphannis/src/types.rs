@@ -18,14 +18,14 @@ pub struct AnnoKey {
     pub ns: StringID,
 }
 
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf, Hash)]
 #[repr(C)]
 pub struct Annotation {
     pub key: AnnoKey,
     pub val: StringID,
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub struct Match {
     pub node: NodeID,

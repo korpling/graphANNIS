@@ -13,6 +13,8 @@ use std::fmt;
 use std::rc::Rc;
 use std;
 
+use itertools::Itertools;
+
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
 pub struct NodeSearch<'a> {
     /// The actual search implementation
@@ -261,17 +263,30 @@ impl<'a> NodeSearch<'a> {
             db.node_annos.exact_anno_search(ns_id, name_id, val_id)
         };
 
-        let const_output = if is_meta { Some(Annotation {
-            key: db.get_node_type_key(),
-            val: db.strings.find_id("corpus").cloned().unwrap_or(0),
-        })} else {None};
+        let const_output = if is_meta {
+            Some(Annotation {
+                key: db.get_node_type_key(),
+                val: db.strings.find_id("corpus").cloned().unwrap_or(0),
+            })
+        } else {
+            None
+        };
 
-        let base_it = if let Some(const_output) = const_output.clone() {
-            // replace the result annotation with a constant value
-            Box::new(base_it.map(move |m| Match {
-                node: m.node,
-                anno: const_output.clone(),
-            }))
+        let base_it :Box<Iterator<Item=Match>> = if let Some(const_output) = const_output.clone() {
+            let is_unique = db.node_annos.get_qnames(name_id).len() <= 1;
+            // Replace the result annotation with a constant value.
+            // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
+            if is_unique {
+                Box::new(base_it.map(move |m| Match {
+                    node: m.node,
+                    anno: const_output.clone(),
+                }))
+            } else {
+                Box::new(base_it.map(move |m| Match {
+                    node: m.node,
+                    anno: const_output.clone(),
+                }).unique())
+            }
         } else {
             base_it
         };
