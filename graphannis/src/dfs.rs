@@ -51,7 +51,7 @@ impl<'a> CycleSafeDFS<'a> {
         CycleSafeDFS {
             min_distance,
             max_distance,
-            inverse: false,
+            inverse: true,
             container,
             stack,
             path,
