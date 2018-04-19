@@ -67,26 +67,25 @@ fn update_components_for_nodes(
     }
 }
 
-fn optimized_operand_order<'a>(
+fn should_switch_operand_order<'a>(
     op_entry: &OperatorEntry,
-    op: &'a Box<Operator + 'a>,
     node2cost: &BTreeMap<usize, CostEstimate>,
-) -> (usize, usize) {
-    if op.is_commutative() {
-        if let (Some(cost_lhs), Some(cost_rhs)) = (
-            node2cost.get(&op_entry.idx_left),
-            node2cost.get(&op_entry.idx_right),
-        ) {
-            let cost_lhs: &CostEstimate = cost_lhs;
-            let cost_rhs: &CostEstimate = cost_rhs;
+) -> bool {
 
-            if cost_rhs.output < cost_lhs.output {
-                // switch operands
-                return (op_entry.idx_right, op_entry.idx_left);
-            }
+    if let (Some(cost_lhs), Some(cost_rhs)) = (
+        node2cost.get(&op_entry.idx_left),
+        node2cost.get(&op_entry.idx_right),
+    ) {
+        let cost_lhs: &CostEstimate = cost_lhs;
+        let cost_rhs: &CostEstimate = cost_rhs;
+
+        if cost_rhs.output < cost_lhs.output {
+            // switch operands
+            return true;
         }
     }
-    return (op_entry.idx_left, op_entry.idx_right);
+
+    return false;
 }
 
 impl<'a> Conjunction<'a> {
@@ -427,12 +426,23 @@ impl<'a> Conjunction<'a> {
         for i in operator_order.into_iter() {
             let op_entry: &OperatorEntry<'a> = &self.operators[i];
 
-            let op: Box<Operator> = op_entry.op.create_operator(db).ok_or(
+            let mut op: Box<Operator> = op_entry.op.create_operator(db).ok_or(
                 Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
             )?;
 
-            let (spec_idx_left, spec_idx_right) =
-                optimized_operand_order(&op_entry, &op, &node2cost);
+            let mut spec_idx_left = op_entry.idx_left;
+            let mut spec_idx_right = op_entry.idx_right;
+
+            let inverse_op = op.get_inverse_operator();
+            if let Some(inverse_op) = inverse_op {
+                if should_switch_operand_order(op_entry, &node2cost) {
+                    spec_idx_left = op_entry.idx_right;
+                    spec_idx_right = op_entry.idx_left;
+
+                    op = inverse_op;
+                }
+            }
+
 
             let component_left = node2component
                 .get(&spec_idx_left)
