@@ -230,8 +230,8 @@ impl Operator for BaseEdgeOp {
                         check_edge_annotation(
                             &self.edge_anno,
                             self.gs[0].as_ref(),
-                            &lhs.clone().node,
                             candidate,
+                            &lhs.clone().node,
                         )
                     })
                     .map(|n| Match {
@@ -272,8 +272,8 @@ impl Operator for BaseEdgeOp {
                                 check_edge_annotation(
                                     &self.edge_anno,
                                     e.as_ref(),
-                                    &lhs.clone().node,
                                     candidate,
+                                    &lhs.clone().node,
                                 )
                             })
                             .map(|n| Match {
@@ -314,14 +314,17 @@ impl Operator for BaseEdgeOp {
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         for e in self.gs.iter() {
-            let connected = if self.inverse {
-                e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist)
+            if self.inverse {
+                if e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist) {
+                    if check_edge_annotation(&self.edge_anno, e.as_ref(), &rhs.node, &lhs.node) {
+                        return true;
+                    }
+                }
             } else {
-                e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist)
-            };
-            if connected {
-                if check_edge_annotation(&self.edge_anno, e.as_ref(), &lhs.node, &rhs.node) {
-                    return true;
+                if e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist) {
+                    if check_edge_annotation(&self.edge_anno, e.as_ref(), &lhs.node, &rhs.node) {
+                        return true;
+                    }
                 }
             }
         }
