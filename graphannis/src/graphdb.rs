@@ -149,7 +149,7 @@ where
 
 impl GraphDB {
     /// Create a new and empty instance without any location on the disk
-    pub fn new() -> GraphDB {
+    pub fn new(location : Option<PathBuf>) -> GraphDB {
         let mut strings = StringStorage::new();
 
         GraphDB {
@@ -162,7 +162,7 @@ impl GraphDB {
             node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
             components: BTreeMap::new(),
 
-            location: None,
+            location,
 
             current_change_id: 0,
 
@@ -527,7 +527,7 @@ impl GraphDB {
     }
 
     pub fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<(), Error> {
-
+        trace!("applying updates");
         // Always mark the update state as consistent, even if caller forgot this.
         if !u.is_consistent() {
             u.finish();
@@ -538,21 +538,28 @@ impl GraphDB {
 
         let result = self.apply_update_in_memory(&u);
 
+        trace!("memory updates completed");
+
         if let Some(location) = self.location.clone() {
+            trace!("output location for persisting updates is {:?}", location);
             if result.is_ok() {
+
+                let current_path = PathBuf::from(location).join("current");
+                // make sure the output path exits
+                std::fs::create_dir_all(&current_path)?;
+
                 // if successfull write log
-                let log_path = PathBuf::from(location).join("current").join("update_log.bin");
+                let log_path = current_path.join("update_log.bin");
                 
-                let f_log = std::fs::File::open(log_path)?;
+                trace!("writing WAL update log to {:?}", &log_path);
+                let f_log = std::fs::File::create(log_path)?;
                 let mut buf_writer = std::io::BufWriter::new(f_log);
                 bincode::serialize_into(&mut buf_writer, &mut u)?;
-                
-                // Until now only the write log is persisted. Start a background thread that writes the whole
-                // corpus to the folder (without the need to apply the write log).
-                // TODO: this must be a thread
-                self.background_sync_wal_updates()?;
+
+                trace!("finished writing WAL update log");
 
             } else {
+                trace!("error occured while applying updates: {:?}", &result);
                 // load corpus from disk again
                 self.load_from(&location, true)?;
                 return result;
@@ -565,7 +572,7 @@ impl GraphDB {
     /// A function to persist the changes of a write-ahead-log update on the disk. Should be run in a background thread.
     pub fn background_sync_wal_updates(&self) -> Result<(), Error> {
         
-        // TODO: friendly abort any currently running threadl
+        // TODO: friendly abort any currently running thread
 
         if let Some(ref location) = self.location {
     
@@ -866,7 +873,7 @@ mod tests {
 
     #[test]
     fn create_writeable_gs() {
-        let mut db = GraphDB::new();
+        let mut db = GraphDB::new(None);
 
         let anno_key = AnnoKey {
             ns: Arc::make_mut(&mut db.strings).add("test"),

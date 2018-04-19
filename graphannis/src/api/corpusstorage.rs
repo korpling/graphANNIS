@@ -159,7 +159,7 @@ fn extract_subgraph_by_query(
 
     let plan = ExecutionPlan::from_disjunction(&query, &orig_db)?;
 
-    trace!("executing subgraph query\n{}", plan);
+    debug!("executing subgraph query\n{}", plan);
 
     let all_components = orig_db.get_all_components(None, None);
 
@@ -167,15 +167,17 @@ fn extract_subgraph_by_query(
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
-    let mut result = GraphDB::new();
+    let mut result = GraphDB::new(None);
 
     // create the subgraph description
     for r in plan {
+        trace!("subgraph query found match {:?}", r);
         for i in match_idx.iter().cloned() {
             if i < r.len() {
                 let m: &Match = &r[i];
                 if !match_result.contains(m) {
                     match_result.insert(m.clone());
+                    trace!("subgraph query extracted node {:?}", m.node);
                     create_subgraph_node(m.node, &mut result, orig_db);
                 }
             }
@@ -392,7 +394,7 @@ impl CorpusStorage {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
-        let mut db = GraphDB::new();
+        let mut db = GraphDB::new(Some(db_path.clone()));
         if create_corpus {
             db.save_to(&db_path)?;
         } else {
@@ -836,7 +838,6 @@ impl CorpusStorage {
                 query.alternatives.push(q_right);
             }
         }
-
         return extract_subgraph_by_query(db_entry, query, vec![0]);
     }
 
@@ -973,11 +974,14 @@ impl CorpusStorage {
         }
         // start background thread to persists the results
         std::thread::spawn(move || {
+            trace!("Starting background thread to sync WAL updates");
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 let db: &GraphDB = db;
                 if let Err(e) = db.background_sync_wal_updates() {
                     error!("Can't sync changes in background thread: {:?}", e);
+                } else {
+                    trace!("Finished background thread to sync WAL updates");
                 }
             }
         });
