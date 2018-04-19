@@ -167,7 +167,7 @@ fn extract_subgraph_by_query(
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
-    let mut result = GraphDB::new(None);
+    let mut result = GraphDB::new();
 
     // create the subgraph description
     for r in plan {
@@ -394,9 +394,9 @@ impl CorpusStorage {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
-        let mut db = GraphDB::new(Some(db_path.clone()));
+        let mut db = GraphDB::new();
         if create_corpus {
-            db.save_to(&db_path)?;
+            db.persist_to(&db_path)?;
         } else {
             db.load_from(&db_path, false)?;
         }

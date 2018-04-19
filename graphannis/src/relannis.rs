@@ -80,7 +80,7 @@ pub fn load(path: &Path) -> Result<(String, GraphDB)> {
             is_annis_33 = version_str == "3.3";
         }
 
-        let mut db = GraphDB::new(None);
+        let mut db = GraphDB::new();
 
         let (corpus_name, corpus_by_preorder, corpus_id_to_name) = parse_corpus_tab(
             &path,

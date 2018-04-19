@@ -149,7 +149,7 @@ where
 
 impl GraphDB {
     /// Create a new and empty instance without any location on the disk
-    pub fn new(location : Option<PathBuf>) -> GraphDB {
+    pub fn new() -> GraphDB {
         let mut strings = StringStorage::new();
 
         GraphDB {
@@ -162,7 +162,7 @@ impl GraphDB {
             node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
             components: BTreeMap::new(),
 
-            location,
+            location: None,
 
             current_change_id: 0,
 
@@ -247,41 +247,43 @@ impl GraphDB {
                 // get all the namespaces/layers
                 for layer in cpath.read_dir()? {
                     let layer = layer?;
-                    // try to load the component with the empty name
-                    let empty_name_component = Component {
-                        ctype: c.clone(),
-                        layer: layer.file_name().into_string()?,
-                        name: String::from(""),
-                    };
-                    {
-                        let input_file = PathBuf::from(location)
-                            .join(component_to_relative_path(&empty_name_component))
-                            .join("component.bin");
-                       
-                        if input_file.is_file() {
-                            self.components.insert(empty_name_component.clone(), None);
-                            debug!("Registered component {}", empty_name_component);
-                        }
-                    }
-                    // also load all named components
-                    for name in layer.path().read_dir()? {
-                        let name = name?;
-                        let named_component = Component {
+                    if layer.path().is_dir() {
+                        // try to load the component with the empty name
+                        let empty_name_component = Component {
                             ctype: c.clone(),
                             layer: layer.file_name().into_string()?,
-                            name: name.file_name().into_string()?,
+                            name: String::from(""),
                         };
-                        let data_file = PathBuf::from(location)
-                            .join(component_to_relative_path(&named_component))
-                            .join("component.bin");
+                        {
+                            let input_file = PathBuf::from(location)
+                                .join(component_to_relative_path(&empty_name_component))
+                                .join("component.bin");
+                        
+                            if input_file.is_file() {
+                                self.components.insert(empty_name_component.clone(), None);
+                                debug!("Registered component {}", empty_name_component);
+                            }
+                        }
+                        // also load all named components
+                        for name in layer.path().read_dir()? {
+                            let name = name?;
+                            let named_component = Component {
+                                ctype: c.clone(),
+                                layer: layer.file_name().into_string()?,
+                                name: name.file_name().into_string()?,
+                            };
+                            let data_file = PathBuf::from(location)
+                                .join(component_to_relative_path(&named_component))
+                                .join("component.bin");
 
-                        let cfg_file = PathBuf::from(location)
-                            .join(component_to_relative_path(&named_component))
-                            .join("impl.cfg");
-                            
-                        if data_file.is_file() && cfg_file.is_file() {
-                            self.components.insert(named_component.clone(), None);
-                            debug!("Registered component {}", named_component);
+                            let cfg_file = PathBuf::from(location)
+                                .join(component_to_relative_path(&named_component))
+                                .join("impl.cfg");
+                                
+                            if data_file.is_file() && cfg_file.is_file() {
+                                self.components.insert(named_component.clone(), None);
+                                debug!("Registered component {}", named_component);
+                            }
                         }
                     }
                 }
@@ -316,6 +318,7 @@ impl GraphDB {
         Ok(())
     }
 
+    // Save the current database to a location, but do not remember this location
     pub fn save_to(&mut self, location: &Path) -> Result<(), Error> {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
@@ -330,6 +333,13 @@ impl GraphDB {
         } else {
             return Err(Error::LocationEmpty);
         }
+    }
+
+    /// Save the current database at a new location and remember it
+    pub fn persist_to(&mut self, location: &Path) -> Result<(), Error> {
+        let location = PathBuf::from(location);
+        self.location = Some(location.clone());
+        return self.internal_save(&location.join("current"));
     }
 
     fn apply_update_in_memory(&mut self, u : &GraphUpdate) -> Result<(), Error> {
@@ -873,7 +883,7 @@ mod tests {
 
     #[test]
     fn create_writeable_gs() {
-        let mut db = GraphDB::new(None);
+        let mut db = GraphDB::new();
 
         let anno_key = AnnoKey {
             ns: Arc::make_mut(&mut db.strings).add("test"),
