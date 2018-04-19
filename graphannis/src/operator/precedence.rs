@@ -219,7 +219,7 @@ impl Operator for InversePrecedence {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
-            self.tok_helper.right_token_for(&lhs.node)
+            self.tok_helper.left_token_for(&lhs.node)
         };
 
         if start.is_none() {
@@ -248,8 +248,8 @@ impl Operator for InversePrecedence {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
-            let start = self.tok_helper.right_token_for(&lhs.node);
-            let end = self.tok_helper.left_token_for(&rhs.node);
+            let start = self.tok_helper.left_token_for(&lhs.node);
+            let end = self.tok_helper.right_token_for(&rhs.node);
             if start.is_none() || end.is_none() {
                 return false;
             }
