@@ -107,7 +107,7 @@ struct BaseEdgeOpSpec {
     pub max_dist: usize,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
     pub is_reflexive: bool,
-    pub query_fragment: Option<String>,
+    pub op_str: Option<String>,
 }
 
 struct BaseEdgeOp {
@@ -117,6 +117,7 @@ struct BaseEdgeOp {
     node_annos: Arc<AnnoStorage<NodeID>>,
     strings: Arc<StringStorage>,
     node_type_key: AnnoKey,
+    inverse: bool,
 }
 
 impl BaseEdgeOp {
@@ -137,6 +138,7 @@ impl BaseEdgeOp {
             node_annos: db.node_annos.clone(),
             strings: db.strings.clone(),
             node_type_key: db.get_node_type_key(),
+            inverse: false,
         })
     }
 }
@@ -192,8 +194,20 @@ impl BaseEdgeOp {}
 
 impl std::fmt::Display for BaseEdgeOp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if let Some(ref query_fragment) = self.spec.query_fragment {
-            write!(f, "{}", query_fragment)
+        let anno_frag = if let Some(ref edge_anno) = self.spec.edge_anno {
+            format!("[{}]", edge_anno)
+        } else {
+            String::from("")
+        };
+
+        let range_frag = super::format_range(self.spec.min_dist, self.spec.max_dist);
+
+        if let Some(ref op_str) = self.spec.op_str {
+            if self.inverse {
+                write!(f, "{}\u{20D6}{}{}", op_str, range_frag, anno_frag)
+            } else {
+                write!(f, "{}{}{}", op_str, range_frag, anno_frag)
+            }
         } else {
             write!(f, "?")
         }
@@ -208,44 +222,90 @@ impl Operator for BaseEdgeOp {
         if self.gs.len() == 1 {
             // directly return all matched nodes since when having only one component
             // no duplicates are possible
-            let result: VecDeque<Match> = self.gs[0]
-                .find_connected(&lhs.node, spec.min_dist, spec.max_dist).fuse()
-                .filter(move |candidate| {
-                    check_edge_annotation(
-                        &self.edge_anno,
-                        self.gs[0].as_ref(),
-                        &lhs.clone().node,
-                        candidate,
-                    )
-                })
-                .map(|n| Match {
-                    node: n,
-                    anno: Annotation::default(),
-                })
-                .collect();
+            let result: VecDeque<Match> = if self.inverse {
+                self.gs[0]
+                    .find_connected_inverse(&lhs.node, spec.min_dist, spec.max_dist)
+                    .fuse()
+                    .filter(move |candidate| {
+                        check_edge_annotation(
+                            &self.edge_anno,
+                            self.gs[0].as_ref(),
+                            &lhs.clone().node,
+                            candidate,
+                        )
+                    })
+                    .map(|n| Match {
+                        node: n,
+                        anno: Annotation::default(),
+                    })
+                    .collect()
+            } else {
+                self.gs[0]
+                    .find_connected(&lhs.node, spec.min_dist, spec.max_dist)
+                    .fuse()
+                    .filter(move |candidate| {
+                        check_edge_annotation(
+                            &self.edge_anno,
+                            self.gs[0].as_ref(),
+                            &lhs.clone().node,
+                            candidate,
+                        )
+                    })
+                    .map(|n| Match {
+                        node: n,
+                        anno: Annotation::default(),
+                    })
+                    .collect()
+            };
             return Box::new(result.into_iter());
         } else {
-            let mut all: Vec<Match> = self.gs
-                .iter()
-                .flat_map(move |e| {
-                    let lhs = lhs.clone();
+            let mut all: Vec<Match> = if self.inverse {
+                self.gs
+                    .iter()
+                    .flat_map(move |e| {
+                        let lhs = lhs.clone();
 
-                    e.as_ref()
-                        .find_connected(&lhs.node, spec.min_dist, spec.max_dist).fuse()
-                        .filter(move |candidate| {
-                            check_edge_annotation(
-                                &self.edge_anno,
-                                e.as_ref(),
-                                &lhs.clone().node,
-                                candidate,
-                            )
-                        })
-                        .map(|n| Match {
-                            node: n,
-                            anno: Annotation::default(),
-                        })
-                })
-                .collect();
+                        e.as_ref()
+                            .find_connected_inverse(&lhs.node, spec.min_dist, spec.max_dist)
+                            .fuse()
+                            .filter(move |candidate| {
+                                check_edge_annotation(
+                                    &self.edge_anno,
+                                    e.as_ref(),
+                                    &lhs.clone().node,
+                                    candidate,
+                                )
+                            })
+                            .map(|n| Match {
+                                node: n,
+                                anno: Annotation::default(),
+                            })
+                    })
+                    .collect()
+            } else {
+                self.gs
+                    .iter()
+                    .flat_map(move |e| {
+                        let lhs = lhs.clone();
+
+                        e.as_ref()
+                            .find_connected(&lhs.node, spec.min_dist, spec.max_dist)
+                            .fuse()
+                            .filter(move |candidate| {
+                                check_edge_annotation(
+                                    &self.edge_anno,
+                                    e.as_ref(),
+                                    &lhs.clone().node,
+                                    candidate,
+                                )
+                            })
+                            .map(|n| Match {
+                                node: n,
+                                anno: Annotation::default(),
+                            })
+                    })
+                    .collect()
+            };
             all.sort_unstable();
             all.dedup();
             return Box::new(all.into_iter());
@@ -254,7 +314,12 @@ impl Operator for BaseEdgeOp {
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         for e in self.gs.iter() {
-            if e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist) {
+            let connected = if self.inverse {
+                e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist)
+            } else {
+                e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist)
+            };
+            if connected {
                 if check_edge_annotation(&self.edge_anno, e.as_ref(), &lhs.node, &rhs.node) {
                     return true;
                 }
@@ -265,6 +330,19 @@ impl Operator for BaseEdgeOp {
 
     fn is_reflexive(&self) -> bool {
         self.spec.is_reflexive
+    }
+
+    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+        let edge_op = BaseEdgeOp {
+            gs: self.gs.clone(),
+            edge_anno: self.edge_anno.clone(),
+            spec: self.spec.clone(),
+            node_annos: self.node_annos.clone(),
+            strings: self.strings.clone(),
+            node_type_key: self.node_type_key.clone(),
+            inverse: !self.inverse,
+        };
+        Some(Box::new(edge_op))
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -387,14 +465,14 @@ impl DominanceSpec {
         edge_anno: Option<EdgeAnnoSearchSpec>,
     ) -> DominanceSpec {
         let components = db.get_all_components(Some(ComponentType::Dominance), Some(name));
-        let frag = if let Some(ref edge_anno) = edge_anno {
-            format!(">{}[{}]", name, edge_anno)
+        let op_str = if name.is_empty() {
+            String::from(">")
         } else {
-            format!(">{} {},{}", name, min_dist.clone(), max_dist.clone())
+            format!(">{} ", name)
         };
         DominanceSpec {
             base: BaseEdgeOpSpec {
-                query_fragment: Some(frag),
+                op_str: Some(op_str),
                 components,
                 min_dist,
                 max_dist,
@@ -429,11 +507,12 @@ impl PointingSpec {
         edge_anno: Option<EdgeAnnoSearchSpec>,
     ) -> DominanceSpec {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(name));
-        let frag = if let Some(ref edge_anno) = edge_anno {
-            format!("->{}[{}]", name, edge_anno)
+        let op_str = if name.is_empty() {
+            String::from("->")
         } else {
-            format!("->{} {},{}", name, min_dist.clone(), max_dist.clone())
+            format!("->{} ", name)
         };
+
         DominanceSpec {
             base: BaseEdgeOpSpec {
                 components,
@@ -441,7 +520,7 @@ impl PointingSpec {
                 max_dist,
                 edge_anno,
                 is_reflexive: true,
-                query_fragment: Some(frag),
+                op_str: Some(op_str),
             },
         }
     }
@@ -473,7 +552,7 @@ impl PartOfSubCorpusSpec {
         ];
         PartOfSubCorpusSpec {
             base: BaseEdgeOpSpec {
-                query_fragment: Some(format!("@{},{}", min_dist.clone(), max_dist.clone())),
+                op_str: Some(String::from("@")),
                 components,
                 min_dist,
                 max_dist,
