@@ -144,14 +144,16 @@ where
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
                     let max_distance = offset.checked_sub(max_distance).unwrap_or(0);
-                    let mut min_distance = offset.checked_sub(min_distance).unwrap_or(0);
-                    if min_distance < chain.len() {
-                        min_distance = min_distance + 1;
-                    }
 
-                    // return all entries in the chain between min_distance..max_distance
-                    return Box::new(chain[max_distance..min_distance].iter().cloned());
-                
+                    if let Some(min_distance) = offset.checked_sub(min_distance) {
+                        if min_distance < chain.len() {
+                            // return all entries in the chain between min_distance..max_distance
+                            return Box::new(chain[max_distance..(min_distance+1)].iter().cloned());
+                        } else {
+                            // return all entries in the chain between min_distance..max_distance
+                            return Box::new(chain[max_distance..chain.len()].iter().cloned());
+                        }
+                    }
                 }
             }
         }
