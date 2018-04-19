@@ -219,7 +219,7 @@ where OrderT : NumValue,
                 .filter(move |o : &OrderIterEntry<OrderT,LevelT>| {
                     if let (Some(current_level), Some(root_level)) = (o.current.level.to_usize(), o.root.level.to_usize()) {
                         let diff_level = root_level - current_level;
-                        return o.root.post >= o.current.post 
+                        return o.current.post >= o.root.post
                             && min_distance <= diff_level && diff_level <= max_distance;
                     } else {
                         return false;
