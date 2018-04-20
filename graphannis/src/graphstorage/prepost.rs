@@ -1,5 +1,5 @@
 use graphstorage::EdgeContainer;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::any::Any;
 use std::clone::Clone;
 use std;
@@ -35,8 +35,7 @@ enum OrderVecEntry<OrderT, LevelT> {
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct PrePostOrderStorage<OrderT: NumValue, LevelT: NumValue> {
     node_to_order: HashMap<NodeID, Vec<PrePost<OrderT, LevelT>>>,
-    order_to_node: BTreeMap<PrePost<OrderT, LevelT>, NodeID>,
-    order_to_node_vec: Vec<OrderVecEntry<OrderT, LevelT>>,
+    order_to_node: Vec<OrderVecEntry<OrderT, LevelT>>,
     annos: AnnoStorage<Edge>,
     stats: Option<GraphStatistic>,
 }
@@ -54,8 +53,7 @@ where
     pub fn new() -> PrePostOrderStorage<OrderT, LevelT> {
         PrePostOrderStorage {
             node_to_order: HashMap::new(),
-            order_to_node: BTreeMap::new(),
-            order_to_node_vec: Vec::new(),
+            order_to_node: Vec::new(),
             annos: AnnoStorage::new(),
             stats: None,
         }
@@ -64,7 +62,6 @@ where
     pub fn clear(&mut self) {
         self.node_to_order.clear();
         self.order_to_node.clear();
-        self.order_to_node_vec.clear();
         self.annos.clear();
         self.stats = None;
     }
@@ -97,7 +94,6 @@ where
                 .entry(entry.id)
                 .or_insert(vec![])
                 .push(entry.order.clone());
-            self.order_to_node.insert(entry.order.clone(), entry.id);
         }
         node_stack.pop_front();
     }
@@ -164,9 +160,9 @@ where
                     let end = root_order
                         .post
                         .to_usize()
-                        .unwrap_or(self.order_to_node_vec.len() - 1)
+                        .unwrap_or(self.order_to_node.len() - 1)
                         + 1;
-                    self.order_to_node_vec[start..end]
+                    self.order_to_node[start..end]
                         .iter()
                         .map(move |order| (root_order.clone(), order))
                 })
@@ -218,9 +214,9 @@ where
                         .pre
                         .clone()
                         .to_usize()
-                        .unwrap_or(self.order_to_node_vec.len() - 1)
+                        .unwrap_or(self.order_to_node.len() - 1)
                         + 1;
-                    self.order_to_node_vec[start..end]
+                    self.order_to_node[start..end]
                         .iter()
                         .map(move |order| (root_order.clone(), order))
                 })
@@ -421,19 +417,19 @@ where
         } // end for each root
 
         // there must be an entry in the vector for all possible order values
-        self.order_to_node_vec
+        self.order_to_node
             .resize(current_order.to_usize().unwrap_or(0), OrderVecEntry::None);
         for (node, orders_for_node) in self.node_to_order.iter() {
             for order in orders_for_node.iter() {
                 if let Some(pre) = order.pre.to_usize() {
-                    self.order_to_node_vec[pre] = OrderVecEntry::Pre {
+                    self.order_to_node[pre] = OrderVecEntry::Pre {
                         post: order.post.clone(),
                         level: order.level.clone(),
                         node: node.clone(),
                     };
                 }
                 if let Some(post) = order.post.to_usize() {
-                    self.order_to_node_vec[post] = OrderVecEntry::Post {
+                    self.order_to_node[post] = OrderVecEntry::Post {
                         pre: order.pre.clone(),
                         level: order.level.clone(),
                         node: node.clone(),
