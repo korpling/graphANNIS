@@ -197,61 +197,88 @@ where
 
     fn find_connected_inverse<'a>(
         &'a self,
-        node: &NodeID,
+        start_node: &NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_orders) = self.node_to_order.get(node) {
+        if let Some(start_orders) = self.node_to_order.get(start_node) {
             let mut visited = HashSet::<NodeID>::new();
 
             let it = start_orders
                 .into_iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
-                    let start = 0;
-                    let end = root_order
-                        .pre
+                    let root_pre = root_order.pre.clone().to_usize().unwrap_or(0);
+                    let root_post = root_order
+                        .post
                         .clone()
                         .to_usize()
-                        .unwrap_or(self.order_to_node.len() - 1) + 1;
+                        .unwrap_or(self.order_to_node.len() - 1);
+
+                    // decide which search range (either 0..pre or post..len()) is smaller
+                    let (start, end, use_post) = if self.order_to_node.len() - root_post < root_pre
+                    {
+                        // use post..len()
+                        (root_post, self.order_to_node.len(), true)
+                    } else {
+                        // use 0..pre
+                        (0, root_pre + 1, false)
+                    };
+
                     self.order_to_node[start..end]
                         .iter()
                         .enumerate()
-                        .map(move |(idx, order)| (root_order.clone(), idx, order))
+                        .map(move |(idx, order)| (use_post, root_order.clone(), start + idx, order))
                 })
-                .filter_map(move |(root, idx, order)| match order {
-                    &OrderVecEntry::Pre {
-                        ref post,
-                        ref level,
-                        ref node,
-                    } => {
-                        let current_pre = idx;
-                        if let (
-                            Some(current_level),
-                            Some(current_post),
-                            Some(root_level),
-                            Some(root_pre),
-                            Some(root_post),
-                        ) = (
-                            level.to_usize(),
-                            post.to_usize(),
-                            root.level.to_usize(),
-                            root.pre.to_usize(),
-                            root.post.to_usize(),
-                        ) {
-                            let diff_level = root_level - current_level;
-                            if current_pre <= root_pre && current_post >= root_post
-                                && min_distance <= diff_level
-                                && diff_level <= max_distance
-                            {
-                                Some(node.clone())
-                            } else {
-                                None
-                            }
+                .filter_map(move |(use_post, root, idx, order)| {
+                    let (current_pre, current_post, current_level, current_node) = if use_post {
+                        match order {
+                            &OrderVecEntry::Post {
+                                ref pre,
+                                ref level,
+                                ref node,
+                            } => (pre.to_usize(), Some(idx), level.to_usize(), Some(node)),
+                            _ => (None, None, None, None),
+                        }
+                    } else {
+                        match order {
+                            &OrderVecEntry::Pre {
+                                ref post,
+                                ref level,
+                                ref node,
+                            } => (Some(idx), post.to_usize(), level.to_usize(), Some(node)),
+                            _ => (None, None, None, None),
+                        }
+                    };
+
+                    if let (
+                        Some(current_node),
+                        Some(current_pre),
+                        Some(current_post),
+                        Some(current_level),
+                        Some(root_level),
+                        Some(root_pre),
+                        Some(root_post),
+                    ) = (
+                        current_node,
+                        current_pre,
+                        current_post,
+                        current_level,
+                        root.level.to_usize(),
+                        root.pre.to_usize(),
+                        root.post.to_usize(),
+                    ) {
+                        let diff_level = root_level - current_level;
+                        if current_pre <= root_pre && current_post >= root_post
+                            && min_distance <= diff_level
+                            && diff_level <= max_distance
+                        {
+                            Some(current_node.clone())
                         } else {
                             None
                         }
+                    } else {
+                        None
                     }
-                    _ => None,
                 })
                 .filter(move |n| visited.insert(n.clone()));
             return Box::new(it);
