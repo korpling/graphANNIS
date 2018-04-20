@@ -18,11 +18,19 @@ pub struct PrePost<OrderT,LevelT> {
     pub level : LevelT,
 }
 
+#[derive(Serialize,Deserialize, Clone, HeapSizeOf)]
+enum OrderVecEntry<LevelT> {
+    None,
+    Pre{level: LevelT, node: NodeID},
+    Post{level: LevelT, node: NodeID},
+}
+
 #[derive(Serialize, Deserialize,Clone,HeapSizeOf)]
 pub struct PrePostOrderStorage<OrderT : NumValue, LevelT : NumValue> {
     
     node_to_order : HashMap<NodeID, Vec<PrePost<OrderT,LevelT>>>,
     order_to_node : BTreeMap<PrePost<OrderT,LevelT>,NodeID>,
+    order_to_node_vec : Vec<OrderVecEntry<LevelT>>,
     annos: AnnoStorage<Edge>,
     stats : Option<GraphStatistic>,
 }
@@ -43,6 +51,7 @@ where OrderT : NumValue,
         PrePostOrderStorage {
             node_to_order: HashMap::new(),
             order_to_node: BTreeMap::new(),
+            order_to_node_vec: Vec::new(),
             annos: AnnoStorage::new(),
             stats: None,
         }
@@ -51,6 +60,7 @@ where OrderT : NumValue,
     pub fn clear(&mut self) {
         self.node_to_order.clear();
         self.order_to_node.clear();
+        self.order_to_node_vec.clear();
         self.annos.clear();
         self.stats = None;
     }
@@ -365,6 +375,19 @@ where OrderT : NumValue,
                 self.exit_node(&mut current_order,&mut node_stack);
             }
         } // end for each root
+
+        // there must be an entry in the vector for all possible order values
+        self.order_to_node_vec.resize(current_order.to_usize().unwrap_or(0), OrderVecEntry::None);
+        for (node, orders_for_node) in self.node_to_order.iter() {
+            for order in orders_for_node.iter() {
+                if let Some(pre) = order.pre.to_usize() {
+                    self.order_to_node_vec[pre] = OrderVecEntry::Pre{level: order.level.clone(), node: node.clone()};
+                }
+                if let Some(post) = order.post.to_usize() {
+                    self.order_to_node_vec[post] = OrderVecEntry::Pre{level: order.level.clone(), node: node.clone()};
+                }
+            }
+        }
 
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics(&db.strings);
