@@ -1,6 +1,5 @@
 use graphstorage::EdgeContainer;
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::collections::Bound::*;
 use std::any::Any;
 use std::clone::Clone;
 use std;
@@ -21,8 +20,16 @@ pub struct PrePost<OrderT, LevelT> {
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 enum OrderVecEntry<OrderT, LevelT> {
     None,
-    Pre { post: OrderT, level: LevelT, node: NodeID },
-    Post { pre: OrderT, level: LevelT, node: NodeID },
+    Pre {
+        post: OrderT,
+        level: LevelT,
+        node: NodeID,
+    },
+    Post {
+        pre: OrderT,
+        level: LevelT,
+        node: NodeID,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
@@ -98,12 +105,6 @@ where
 
 type NStack<OrderT, LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT, LevelT>>;
 
-struct OrderIterEntry<OrderT, LevelT> {
-    pub root: PrePost<OrderT, LevelT>,
-    pub current: PrePost<OrderT, LevelT>,
-    pub node: NodeID,
-}
-
 impl<OrderT: 'static, LevelT: 'static> EdgeContainer for PrePostOrderStorage<OrderT, LevelT>
 where
     OrderT: NumValue,
@@ -170,17 +171,22 @@ where
                         .map(move |order| (root_order.clone(), order))
                 })
                 .filter_map(move |(root, order)| match order {
-                    &OrderVecEntry::Pre {ref post, ref level, ref node} => {
+                    &OrderVecEntry::Pre {
+                        ref post,
+                        ref level,
+                        ref node,
+                    } => {
                         if let (Some(current_level), Some(root_level)) =
                             (level.to_usize(), root.level.to_usize())
                         {
                             let diff_level = current_level - root_level;
                             if *post <= root.post && min_distance <= diff_level
-                                && diff_level <= max_distance {
-                                    Some(node.clone())
-                                } else {
-                                    None
-                                }
+                                && diff_level <= max_distance
+                            {
+                                Some(node.clone())
+                            } else {
+                                None
+                            }
                         } else {
                             None
                         }
@@ -207,38 +213,40 @@ where
                 .into_iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
                     // TODO: is there any other constraint on the lower bound?
-                    let start_range: PrePost<OrderT, LevelT> = PrePost {
-                        pre: OrderT::zero(),
-                        post: OrderT::zero(),
-                        level: LevelT::zero(),
-                    };
-                    let end_range: PrePost<OrderT, LevelT> = PrePost {
-                        pre: root_order.pre.clone(),
-                        post: OrderT::max_value(),
-                        level: LevelT::max_value(),
-                    };
-                    self.order_to_node
-                        .range((Included(start_range), Included(end_range)))
-                        .map(move |o| -> OrderIterEntry<OrderT, LevelT> {
-                            OrderIterEntry {
-                                root: root_order.clone(),
-                                current: o.0.clone(),
-                                node: o.1.clone(),
+                    let start = 0;
+                    let end = root_order
+                        .pre
+                        .clone()
+                        .to_usize()
+                        .unwrap_or(self.order_to_node_vec.len() - 1)
+                        + 1;
+                    self.order_to_node_vec[start..end]
+                        .iter()
+                        .map(move |order| (root_order.clone(), order))
+                })
+                .filter_map(move |(root, order)| match order {
+                    &OrderVecEntry::Pre {
+                        ref post,
+                        ref level,
+                        ref node,
+                    } => {
+                        if let (Some(current_level), Some(root_level)) =
+                            (level.to_usize(), root.level.to_usize())
+                        {
+                            let diff_level = root_level - current_level;
+                            if *post >= root.post && min_distance <= diff_level
+                                && diff_level <= max_distance
+                            {
+                                Some(node.clone())
+                            } else {
+                                None
                             }
-                        })
-                })
-                .filter(move |o: &OrderIterEntry<OrderT, LevelT>| {
-                    if let (Some(current_level), Some(root_level)) =
-                        (o.current.level.to_usize(), o.root.level.to_usize())
-                    {
-                        let diff_level = root_level - current_level;
-                        return o.current.post >= o.root.post && min_distance <= diff_level
-                            && diff_level <= max_distance;
-                    } else {
-                        return false;
+                        } else {
+                            None
+                        }
                     }
+                    _ => None,
                 })
-                .map(|o: OrderIterEntry<OrderT, LevelT>| o.node)
                 .filter(move |n| visited.insert(n.clone()));
             return Box::new(it);
         } else {
