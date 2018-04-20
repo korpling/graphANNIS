@@ -14,7 +14,7 @@ thread_local!{
          let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
             path
         } else {
-            String::from("data")
+            String::from("../data")
         });
 
         // only execute the test if the directory exists
@@ -55,8 +55,12 @@ fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
                         );
                             
                     }
+                } else  {
+                    assert!(false, "corpus {} missing", corpus);
                 }
             }
+        } else {
+            assert!(false, "Corpus storage does not exist");
         };
     });
 }
