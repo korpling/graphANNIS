@@ -55,13 +55,9 @@ fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
                         );
                             
                     }
-                } else  {
-                    assert!(false, "corpus {} missing", corpus);
                 }
             }
-        } else {
-            assert!(false, "Corpus storage does not exist");
-        };
+        }
     });
 }
 
