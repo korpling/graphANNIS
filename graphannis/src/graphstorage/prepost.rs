@@ -17,7 +17,7 @@ pub struct PrePost<OrderT, LevelT> {
     pub level: LevelT,
 }
 
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf, Debug)]
 enum OrderVecEntry<OrderT, LevelT> {
     None,
     Pre {
@@ -160,8 +160,7 @@ where
                     let end = root_order
                         .post
                         .to_usize()
-                        .unwrap_or(self.order_to_node.len() - 1)
-                        + 1;
+                        .unwrap_or(self.order_to_node.len() - 1) + 1;
                     self.order_to_node[start..end]
                         .iter()
                         .map(move |order| (root_order.clone(), order))
@@ -208,29 +207,40 @@ where
             let it = start_orders
                 .into_iter()
                 .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
-                    // TODO: is there any other constraint on the lower bound?
                     let start = 0;
                     let end = root_order
                         .pre
                         .clone()
                         .to_usize()
-                        .unwrap_or(self.order_to_node.len() - 1)
-                        + 1;
+                        .unwrap_or(self.order_to_node.len() - 1) + 1;
                     self.order_to_node[start..end]
                         .iter()
-                        .map(move |order| (root_order.clone(), order))
+                        .enumerate()
+                        .map(move |(idx, order)| (root_order.clone(), idx, order))
                 })
-                .filter_map(move |(root, order)| match order {
+                .filter_map(move |(root, idx, order)| match order {
                     &OrderVecEntry::Pre {
                         ref post,
                         ref level,
                         ref node,
                     } => {
-                        if let (Some(current_level), Some(root_level)) =
-                            (level.to_usize(), root.level.to_usize())
-                        {
+                        let current_pre = idx;
+                        if let (
+                            Some(current_level),
+                            Some(current_post),
+                            Some(root_level),
+                            Some(root_pre),
+                            Some(root_post),
+                        ) = (
+                            level.to_usize(),
+                            post.to_usize(),
+                            root.level.to_usize(),
+                            root.pre.to_usize(),
+                            root.post.to_usize(),
+                        ) {
                             let diff_level = root_level - current_level;
-                            if *post >= root.post && min_distance <= diff_level
+                            if current_pre <= root_pre && current_post >= root_post
+                                && min_distance <= diff_level
                                 && diff_level <= max_distance
                             {
                                 Some(node.clone())
