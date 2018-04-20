@@ -5,48 +5,45 @@ use std::any::Any;
 use std::clone::Clone;
 use std;
 
-use {NodeID, Edge, Annotation, AnnoKey, Match, NumValue};
-use super::{GraphStorage, GraphStatistic};
+use {AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
+use super::{GraphStatistic, GraphStorage};
 use annostorage::AnnoStorage;
-use graphdb::{GraphDB};
+use graphdb::GraphDB;
 use dfs::{CycleSafeDFS, DFSStep};
 
-#[derive(PartialOrd, PartialEq, Ord,Eq,Clone,Serialize, Deserialize,HeapSizeOf)]
-pub struct PrePost<OrderT,LevelT> {
-    pub pre : OrderT,
-    pub post : OrderT,
-    pub level : LevelT,
+#[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, HeapSizeOf)]
+pub struct PrePost<OrderT, LevelT> {
+    pub pre: OrderT,
+    pub post: OrderT,
+    pub level: LevelT,
 }
 
-#[derive(Serialize,Deserialize, Clone, HeapSizeOf)]
-enum OrderVecEntry<LevelT> {
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+enum OrderVecEntry<OrderT, LevelT> {
     None,
-    Pre{level: LevelT, node: NodeID},
-    Post{level: LevelT, node: NodeID},
+    Pre { post: OrderT, level: LevelT, node: NodeID },
+    Post { pre: OrderT, level: LevelT, node: NodeID },
 }
 
-#[derive(Serialize, Deserialize,Clone,HeapSizeOf)]
-pub struct PrePostOrderStorage<OrderT : NumValue, LevelT : NumValue> {
-    
-    node_to_order : HashMap<NodeID, Vec<PrePost<OrderT,LevelT>>>,
-    order_to_node : BTreeMap<PrePost<OrderT,LevelT>,NodeID>,
-    order_to_node_vec : Vec<OrderVecEntry<LevelT>>,
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+pub struct PrePostOrderStorage<OrderT: NumValue, LevelT: NumValue> {
+    node_to_order: HashMap<NodeID, Vec<PrePost<OrderT, LevelT>>>,
+    order_to_node: BTreeMap<PrePost<OrderT, LevelT>, NodeID>,
+    order_to_node_vec: Vec<OrderVecEntry<OrderT, LevelT>>,
     annos: AnnoStorage<Edge>,
-    stats : Option<GraphStatistic>,
+    stats: Option<GraphStatistic>,
 }
 
-struct NodeStackEntry<OrderT, LevelT>
+struct NodeStackEntry<OrderT, LevelT> {
+    pub id: NodeID,
+    pub order: PrePost<OrderT, LevelT>,
+}
+
+impl<OrderT, LevelT> PrePostOrderStorage<OrderT, LevelT>
+where
+    OrderT: NumValue,
+    LevelT: NumValue,
 {
-  pub id : NodeID,
-  pub order : PrePost<OrderT,LevelT>,
-}
-
-
-
-impl<OrderT, LevelT>  PrePostOrderStorage<OrderT,LevelT> 
-where OrderT : NumValue, 
-    LevelT : NumValue {
-
     pub fn new() -> PrePostOrderStorage<OrderT, LevelT> {
         PrePostOrderStorage {
             node_to_order: HashMap::new(),
@@ -65,48 +62,53 @@ where OrderT : NumValue,
         self.stats = None;
     }
 
-
-    fn enter_node(current_order : &mut OrderT, node_id : &NodeID, level : LevelT, node_stack : &mut NStack<OrderT,LevelT>) {
+    fn enter_node(
+        current_order: &mut OrderT,
+        node_id: &NodeID,
+        level: LevelT,
+        node_stack: &mut NStack<OrderT, LevelT>,
+    ) {
         let new_entry = NodeStackEntry {
             id: node_id.clone(),
-            order : PrePost {
+            order: PrePost {
                 pre: current_order.clone(),
                 level: level,
-                post : OrderT::zero(),
+                post: OrderT::zero(),
             },
         };
         current_order.add_assign(OrderT::one());
         node_stack.push_front(new_entry);
     }
 
-    fn exit_node(&mut self, current_order : &mut OrderT, node_stack : &mut NStack<OrderT,LevelT>) {
-         // find the correct pre/post entry and update the post-value
+    fn exit_node(&mut self, current_order: &mut OrderT, node_stack: &mut NStack<OrderT, LevelT>) {
+        // find the correct pre/post entry and update the post-value
         if let Some(entry) = node_stack.front_mut() {
             entry.order.post = current_order.clone();
             current_order.add_assign(OrderT::one());
 
-            self.node_to_order.entry(entry.id).or_insert(vec![]).push(entry.order.clone());
+            self.node_to_order
+                .entry(entry.id)
+                .or_insert(vec![])
+                .push(entry.order.clone());
             self.order_to_node.insert(entry.order.clone(), entry.id);
-
         }
         node_stack.pop_front();
     }
 }
 
-type NStack<OrderT,LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT,LevelT>>;
+type NStack<OrderT, LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT, LevelT>>;
 
-struct OrderIterEntry<OrderT,LevelT> {
-    pub root : PrePost<OrderT,LevelT>,
-    pub current: PrePost<OrderT,LevelT>,
-    pub node: NodeID, 
+struct OrderIterEntry<OrderT, LevelT> {
+    pub root: PrePost<OrderT, LevelT>,
+    pub current: PrePost<OrderT, LevelT>,
+    pub node: NodeID,
 }
 
-impl<OrderT: 'static, LevelT : 'static> EdgeContainer for  PrePostOrderStorage<OrderT,LevelT> 
-where OrderT : NumValue, 
-    LevelT : NumValue {
-
-
-
+impl<OrderT: 'static, LevelT: 'static> EdgeContainer for PrePostOrderStorage<OrderT, LevelT>
+where
+    OrderT: NumValue,
+    LevelT: NumValue,
+{
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         return self.find_connected(node, 1, 1);
     }
@@ -115,7 +117,7 @@ where OrderT : NumValue,
         return self.find_connected_inverse(node, 1, 1);
     }
 
-    fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
+    fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
         return self.annos.get_all(edge);
     }
 
@@ -124,69 +126,67 @@ where OrderT : NumValue,
     }
 
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        let it = self.node_to_order.iter()
-            .filter_map(move |(n, _order)| {
-                // check if this is actual a source node (and not only a target node)
-                if self.get_outgoing_edges(n).next().is_some() {
-                    return Some(n.clone());
-                } else {
-                    return None;
-                }
-            });
+        let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
+            // check if this is actual a source node (and not only a target node)
+            if self.get_outgoing_edges(n).next().is_some() {
+                return Some(n.clone());
+            } else {
+                return None;
+            }
+        });
         return Box::new(it);
     }
 
-    fn get_statistics(&self) -> Option<&GraphStatistic> {self.stats.as_ref()}
-
+    fn get_statistics(&self) -> Option<&GraphStatistic> {
+        self.stats.as_ref()
+    }
 }
 
-impl<OrderT: 'static, LevelT : 'static> GraphStorage for  PrePostOrderStorage<OrderT,LevelT> 
-where OrderT : NumValue, 
-    LevelT : NumValue {
-
-
-    
+impl<OrderT: 'static, LevelT: 'static> GraphStorage for PrePostOrderStorage<OrderT, LevelT>
+where
+    OrderT: NumValue,
+    LevelT: NumValue,
+{
     fn find_connected<'a>(
         &'a self,
         node: &NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        
         if let Some(start_orders) = self.node_to_order.get(node) {
             let mut visited = HashSet::<NodeID>::new();
-        
-            let it = start_orders.into_iter()
-                .flat_map(move |root_order : &PrePost<OrderT, LevelT>| {
-                    let start_range : PrePost<OrderT,LevelT> = PrePost {
-                        pre: root_order.pre.clone(),
-                        post: OrderT::zero(),
-                        level: LevelT::zero(),
-                    };
-                    let end_range : PrePost<OrderT,LevelT> = PrePost {
-                        pre: root_order.post.clone(),
-                        post: OrderT::max_value(),
-                        level: LevelT::max_value(),
-                    };
-                    self.order_to_node
-                        .range((Included(start_range),Included(end_range)))
-                        .map(move |o| -> OrderIterEntry<OrderT,LevelT> { 
-                            OrderIterEntry{
-                                root: root_order.clone(), 
-                                current: o.0.clone(), 
-                                node: o.1.clone()}
-                        }) 
+
+            let it = start_orders
+                .into_iter()
+                .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
+                    let start = root_order.pre.to_usize().unwrap_or(0);
+                    let end = root_order
+                        .post
+                        .to_usize()
+                        .unwrap_or(self.order_to_node_vec.len() - 1)
+                        + 1;
+                    self.order_to_node_vec[start..end]
+                        .iter()
+                        .map(move |order| (root_order.clone(), order))
                 })
-                .filter(move |o : &OrderIterEntry<OrderT,LevelT>| {
-                    if let (Some(current_level), Some(root_level)) = (o.current.level.to_usize(), o.root.level.to_usize()) {
-                        let diff_level = current_level - root_level;
-                        return o.current.post <= o.root.post 
-                            && min_distance <= diff_level && diff_level <= max_distance;
-                    } else {
-                        return false;
+                .filter_map(move |(root, order)| match order {
+                    &OrderVecEntry::Pre {ref post, ref level, ref node} => {
+                        if let (Some(current_level), Some(root_level)) =
+                            (level.to_usize(), root.level.to_usize())
+                        {
+                            let diff_level = current_level - root_level;
+                            if *post <= root.post && min_distance <= diff_level
+                                && diff_level <= max_distance {
+                                    Some(node.clone())
+                                } else {
+                                    None
+                                }
+                        } else {
+                            None
+                        }
                     }
+                    _ => None,
                 })
-                .map(|o : OrderIterEntry<OrderT,LevelT>| o.node)
                 .filter(move |n| visited.insert(n.clone()));
             return Box::new(it);
         } else {
@@ -200,42 +200,45 @@ where OrderT : NumValue,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        
         if let Some(start_orders) = self.node_to_order.get(node) {
             let mut visited = HashSet::<NodeID>::new();
-        
-            let it = start_orders.into_iter()
-                .flat_map(move |root_order : &PrePost<OrderT, LevelT>| {
+
+            let it = start_orders
+                .into_iter()
+                .flat_map(move |root_order: &PrePost<OrderT, LevelT>| {
                     // TODO: is there any other constraint on the lower bound?
-                    let start_range : PrePost<OrderT,LevelT> = PrePost {
+                    let start_range: PrePost<OrderT, LevelT> = PrePost {
                         pre: OrderT::zero(),
                         post: OrderT::zero(),
                         level: LevelT::zero(),
                     };
-                    let end_range : PrePost<OrderT,LevelT> = PrePost {
+                    let end_range: PrePost<OrderT, LevelT> = PrePost {
                         pre: root_order.pre.clone(),
                         post: OrderT::max_value(),
                         level: LevelT::max_value(),
                     };
                     self.order_to_node
-                        .range((Included(start_range),Included(end_range)))
-                        .map(move |o| -> OrderIterEntry<OrderT,LevelT> { 
-                            OrderIterEntry{
-                                root: root_order.clone(), 
-                                current: o.0.clone(), 
-                                node: o.1.clone()}
-                        }) 
+                        .range((Included(start_range), Included(end_range)))
+                        .map(move |o| -> OrderIterEntry<OrderT, LevelT> {
+                            OrderIterEntry {
+                                root: root_order.clone(),
+                                current: o.0.clone(),
+                                node: o.1.clone(),
+                            }
+                        })
                 })
-                .filter(move |o : &OrderIterEntry<OrderT,LevelT>| {
-                    if let (Some(current_level), Some(root_level)) = (o.current.level.to_usize(), o.root.level.to_usize()) {
+                .filter(move |o: &OrderIterEntry<OrderT, LevelT>| {
+                    if let (Some(current_level), Some(root_level)) =
+                        (o.current.level.to_usize(), o.root.level.to_usize())
+                    {
                         let diff_level = root_level - current_level;
-                        return o.current.post >= o.root.post
-                            && min_distance <= diff_level && diff_level <= max_distance;
+                        return o.current.post >= o.root.post && min_distance <= diff_level
+                            && diff_level <= max_distance;
                     } else {
                         return false;
                     }
                 })
-                .map(|o : OrderIterEntry<OrderT,LevelT>| o.node)
+                .map(|o: OrderIterEntry<OrderT, LevelT>| o.node)
                 .filter(move |n| visited.insert(n.clone()));
             return Box::new(it);
         } else {
@@ -251,12 +254,19 @@ where OrderT : NumValue,
         let mut min_level = usize::max_value();
         let mut was_found = false;
 
-        if let (Some(order_source), Some(order_target)) = (self.node_to_order.get(source),self.node_to_order.get(target)) {
+        if let (Some(order_source), Some(order_target)) = (
+            self.node_to_order.get(source),
+            self.node_to_order.get(target),
+        ) {
             for order_source in order_source.iter() {
                 for order_target in order_target.iter() {
-                    if order_source.pre <= order_target.pre && order_target.post <= order_source.post {
+                    if order_source.pre <= order_target.pre
+                        && order_target.post <= order_source.post
+                    {
                         // check the level
-                        if let (Some(source_level), Some(target_level)) = (order_source.level.to_usize(), order_target.level.to_usize()) {
+                        if let (Some(source_level), Some(target_level)) =
+                            (order_source.level.to_usize(), order_target.level.to_usize())
+                        {
                             if source_level <= target_level {
                                 was_found = true;
                                 min_level = std::cmp::min(target_level - source_level, min_level);
@@ -264,7 +274,7 @@ where OrderT : NumValue,
                         }
                     }
                 }
-            }            
+            }
         }
 
         if was_found {
@@ -273,42 +283,52 @@ where OrderT : NumValue,
             return None;
         }
     }
-    fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
-        
-        if let (Some(order_source), Some(order_target)) = (self.node_to_order.get(source),self.node_to_order.get(target)) {
+    fn is_connected(
+        &self,
+        source: &NodeID,
+        target: &NodeID,
+        min_distance: usize,
+        max_distance: usize,
+    ) -> bool {
+        if let (Some(order_source), Some(order_target)) = (
+            self.node_to_order.get(source),
+            self.node_to_order.get(target),
+        ) {
             for order_source in order_source.iter() {
                 for order_target in order_target.iter() {
-                    if order_source.pre <= order_target.pre && order_target.post <= order_source.post {
+                    if order_source.pre <= order_target.pre
+                        && order_target.post <= order_source.post
+                    {
                         // check the level
-                        if let (Some(source_level), Some(target_level)) = (order_source.level.to_usize(), order_target.level.to_usize()) {
+                        if let (Some(source_level), Some(target_level)) =
+                            (order_source.level.to_usize(), order_target.level.to_usize())
+                        {
                             if source_level <= target_level {
-                                let diff_level = target_level-source_level;
+                                let diff_level = target_level - source_level;
                                 return min_distance <= diff_level && diff_level <= max_distance;
                             }
                         }
                     }
                 }
-            }            
+            }
         }
 
         return false;
     }
 
-    
-
-    fn copy(&mut self, db : &GraphDB, orig : &EdgeContainer) {
-
+    fn copy(&mut self, db: &GraphDB, orig: &EdgeContainer) {
         self.clear();
 
         // find all roots of the component
-        let mut roots : HashSet<NodeID> = HashSet::new();
-        let node_name_key : AnnoKey = db.get_node_name_key();
-        let nodes : Box<Iterator<Item = Match>> = 
-            db.node_annos.exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
+        let mut roots: HashSet<NodeID> = HashSet::new();
+        let node_name_key: AnnoKey = db.get_node_name_key();
+        let nodes: Box<Iterator<Item = Match>> =
+            db.node_annos
+                .exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
 
         // first add all nodes that are a source of an edge as possible roots
         for m in nodes {
-            let m : Match = m;
+            let m: Match = m;
             let n = m.node;
             // insert all nodes to the root candidate list which are part of this component
             if orig.get_outgoing_edges(&n).next().is_some() {
@@ -316,10 +336,11 @@ where OrderT : NumValue,
             }
         }
 
-        let nodes : Box<Iterator<Item = Match>> = 
-            db.node_annos.exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
+        let nodes: Box<Iterator<Item = Match>> =
+            db.node_annos
+                .exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
         for m in nodes {
-            let m : Match = m;
+            let m: Match = m;
 
             let source = m.node;
 
@@ -329,7 +350,7 @@ where OrderT : NumValue,
                 roots.remove(&target);
 
                 // add the edge annotations for this edge
-                let e = Edge {source, target};
+                let e = Edge { source, target };
                 let edge_annos = orig.get_edge_annos(&e);
                 for a in edge_annos.into_iter() {
                     self.annos.insert(e.clone(), a);
@@ -340,19 +361,29 @@ where OrderT : NumValue,
         let mut current_order = OrderT::zero();
         // traverse the graph for each sub-component
         for start_node in roots.iter() {
-            let mut last_distance : usize = 0;
+            let mut last_distance: usize = 0;
 
-            let mut node_stack : NStack<OrderT,LevelT> = NStack::new();
+            let mut node_stack: NStack<OrderT, LevelT> = NStack::new();
 
-            PrePostOrderStorage::enter_node(&mut current_order, start_node, LevelT::zero(), &mut node_stack);
+            PrePostOrderStorage::enter_node(
+                &mut current_order,
+                start_node,
+                LevelT::zero(),
+                &mut node_stack,
+            );
 
             let dfs = CycleSafeDFS::new(orig, start_node, 1, usize::max_value());
             for step in dfs {
-                let step : DFSStep = step;
+                let step: DFSStep = step;
                 if step.distance > last_distance {
                     // first visited, set pre-order
                     if let Some(dist) = LevelT::from_usize(step.distance) {
-                        PrePostOrderStorage::enter_node(&mut current_order, &step.node, dist, &mut node_stack);
+                        PrePostOrderStorage::enter_node(
+                            &mut current_order,
+                            &step.node,
+                            dist,
+                            &mut node_stack,
+                        );
                     }
                 } else {
                     // Neighbour node, the last subtree was iterated completly, thus the last node
@@ -365,26 +396,40 @@ where OrderT : NumValue,
                     }
                     // new node
                     if let Some(dist) = LevelT::from_usize(step.distance) {
-                        PrePostOrderStorage::enter_node(&mut current_order, &step.node, dist, &mut node_stack);
+                        PrePostOrderStorage::enter_node(
+                            &mut current_order,
+                            &step.node,
+                            dist,
+                            &mut node_stack,
+                        );
                     }
                 }
                 last_distance = step.distance;
             } // end for each DFS step
 
             while !node_stack.is_empty() {
-                self.exit_node(&mut current_order,&mut node_stack);
+                self.exit_node(&mut current_order, &mut node_stack);
             }
         } // end for each root
 
         // there must be an entry in the vector for all possible order values
-        self.order_to_node_vec.resize(current_order.to_usize().unwrap_or(0), OrderVecEntry::None);
+        self.order_to_node_vec
+            .resize(current_order.to_usize().unwrap_or(0), OrderVecEntry::None);
         for (node, orders_for_node) in self.node_to_order.iter() {
             for order in orders_for_node.iter() {
                 if let Some(pre) = order.pre.to_usize() {
-                    self.order_to_node_vec[pre] = OrderVecEntry::Pre{level: order.level.clone(), node: node.clone()};
+                    self.order_to_node_vec[pre] = OrderVecEntry::Pre {
+                        post: order.post.clone(),
+                        level: order.level.clone(),
+                        node: node.clone(),
+                    };
                 }
                 if let Some(post) = order.post.to_usize() {
-                    self.order_to_node_vec[post] = OrderVecEntry::Pre{level: order.level.clone(), node: node.clone()};
+                    self.order_to_node_vec[post] = OrderVecEntry::Post {
+                        pre: order.pre.clone(),
+                        level: order.level.clone(),
+                        node: node.clone(),
+                    };
                 }
             }
         }
@@ -395,9 +440,11 @@ where OrderT : NumValue,
         self.node_to_order.shrink_to_fit();
     }
 
-    fn as_any(&self) -> &Any {self}
+    fn as_any(&self) -> &Any {
+        self
+    }
 
-    fn as_edgecontainer(&self) -> &EdgeContainer {self}
-    
-
+    fn as_edgecontainer(&self) -> &EdgeContainer {
+        self
+    }
 }
