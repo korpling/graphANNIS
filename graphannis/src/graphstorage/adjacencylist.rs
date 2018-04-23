@@ -164,8 +164,7 @@ impl GraphStorage for AdjacencyListStorage {
 
     fn as_any(&self) -> &Any {self}
 
-    
-
+    fn inverse_has_same_cost(&self) -> bool {true}
 
     fn calculate_statistics(&mut self, string_storage : &StringStorage) {
         let mut stats = GraphStatistic {

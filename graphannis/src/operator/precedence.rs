@@ -174,6 +174,13 @@ impl Operator for Precedence {
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+
+        // Check if order graph storages has the same inverse cost.
+        // If not, we don't provide an inverse operator, because the plans would not account for the different costs
+        if !self.gs_order.inverse_has_same_cost() {
+            return None;
+        }
+
         let inv_precedence = InversePrecedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),

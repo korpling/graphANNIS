@@ -336,6 +336,13 @@ impl Operator for BaseEdgeOp {
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+        // Check if all graph storages have the same inverse cost.
+        // If not, we don't provide an inverse operator, because the plans would not account for the different costs
+        for g in self.gs.iter() {
+            if !g.inverse_has_same_cost() {
+                return None;
+            }
+        }
         let edge_op = BaseEdgeOp {
             gs: self.gs.clone(),
             edge_anno: self.edge_anno.clone(),

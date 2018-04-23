@@ -274,6 +274,8 @@ where
         self.annos.calculate_statistics(&db.strings);
     }
 
+    fn inverse_has_same_cost(&self) -> bool {true}  
+
     fn as_any(&self) -> &Any {
         self
     }

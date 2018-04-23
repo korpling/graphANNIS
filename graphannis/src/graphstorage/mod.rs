@@ -74,7 +74,9 @@ pub trait GraphStorage : EdgeContainer {
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {None}
     
-    
+
+    // TODO: use an actual cost model for graph storage access
+    fn inverse_has_same_cost(&self) -> bool {false}    
 
     fn calculate_statistics(&mut self, _string_storage : &StringStorage) {}
 
