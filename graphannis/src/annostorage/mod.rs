@@ -26,6 +26,7 @@ pub struct AnnoStorage<T: Ord + Hash> {
     anno_keys: BTreeMap<AnnoKey, usize>,
     /// additional statistical information
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
+    largest_item: Option<T>,
 }
 
 impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
@@ -35,6 +36,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
             by_anno: BTreeMap::new(),
             anno_keys: BTreeMap::new(),
             histogram_bounds: BTreeMap::new(),
+            largest_item: None,
         }
     }
 
@@ -46,6 +48,14 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
             },
             anno.val.clone(),
         );
+
+        if let Some(largest_item) = self.largest_item.clone() {
+            if largest_item < item {
+                self.largest_item = Some(item.clone());
+            }
+        } else {
+            self.largest_item = Some(item.clone());
+        }
 
         let anno_key_entry = self.anno_keys.entry(anno.clone().key).or_insert(0);
         *anno_key_entry = *anno_key_entry + 1;
@@ -354,12 +364,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
         return 0;
     }
 
-    pub fn largest_key(&self) -> Option<T> {
-        self.by_container
-            .iter()
-            .rev()
-            .map(|e| e.0.item.clone())
-            .next()
+    pub fn get_largest_item(&self) -> Option<T> {
+        self.largest_item.clone ()
     }
 
     pub fn calculate_statistics(&mut self, string_storage: &stringstorage::StringStorage) {

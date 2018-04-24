@@ -353,7 +353,7 @@ impl GraphDB {
                     let existing_node_id = self.get_node_id_from_name(&node_name);
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
-                        let new_node_id: NodeID = if let Some(id) = self.node_annos.largest_key() {
+                        let new_node_id: NodeID = if let Some(id) = self.node_annos.get_largest_item() {
                             id + 1
                         } else {
                             0

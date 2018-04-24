@@ -858,7 +858,7 @@ fn add_subcorpora(db : &mut GraphDB,
         name: String::from(""), 
     };
 
-    let mut next_node_id : NodeID = if let Some(id) = db.node_annos.largest_key() {id+1} else {0};
+    let mut next_node_id : NodeID = if let Some(id) = db.node_annos.get_largest_item() {id+1} else {0};
 
     // add the toplevel corpus as node
     {
