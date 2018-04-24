@@ -160,6 +160,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
         self.by_anno.clear();
         self.anno_keys.clear();
         self.histogram_bounds.clear();
+        self.largest_item = None;
     }
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
