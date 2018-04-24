@@ -270,6 +270,9 @@ where
             self.node_chains.insert(root_node.clone(), chain);
         }
 
+        self.node_chains.shrink_to_fit();
+        self.node_to_pos.shrink_to_fit();
+
         self.stats = orig.get_statistics().cloned();
         self.annos.calculate_statistics(&db.strings);
     }
