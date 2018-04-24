@@ -1,5 +1,5 @@
 use super::*;
-use std::collections::{BTreeMap, HashSet, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::collections::Bound::*;
 use std::hash::Hash;
 use std;
@@ -12,10 +12,9 @@ use serde;
 use serde::de::DeserializeOwned;
 use itertools::Itertools;
 
-
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct AnnoStorage<T: Ord + Hash> {
-    by_container: HashMap<T, BTreeMap<AnnoKey,StringID>>,
+    by_container: HashMap<T, Vec<Annotation>>,
     by_anno: BTreeMap<Annotation, HashSet<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_keys: BTreeMap<AnnoKey, usize>,
@@ -37,15 +36,54 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
         }
     }
 
+    fn remove_element_from_by_anno(&mut self, anno: &Annotation, item: &T) {
+        let remove_item_for_anno = if let Some(mut item_for_anno) = self.by_anno.get_mut(anno) {
+            item_for_anno.remove(&item);
+            item_for_anno.is_empty()
+        } else {
+            false
+        };
+        // remove the hash set of items for the original annotation if it empty
+        if remove_item_for_anno {
+            self.by_anno.remove(anno);
+        }
+    }
+
     pub fn insert(&mut self, item: T, anno: Annotation) {
         
-        let existing_entry = self.by_container
-            .entry(item.clone())
-            .or_insert(BTreeMap::new())
-            .insert(anno.key.clone(), anno.val.clone());
-        
-        if existing_entry.is_none() {
+        let existing_anno = {
+            let existing_item_entry = self.by_container.entry(item.clone()).or_insert(Vec::new());
 
+            // check if there is already an item with the same annotation key
+            let existing_entry_idx =
+                existing_item_entry.binary_search_by_key(&anno.key, |a: &Annotation| a.key.clone());
+
+            if let Ok(existing_entry_idx) = existing_entry_idx {
+                let orig_anno = existing_item_entry[existing_entry_idx].clone();
+                // insert annotation for item at existing position
+                existing_item_entry[existing_entry_idx] = anno.clone();
+                Some(orig_anno)
+            } else if let Err(insertion_idx) = existing_entry_idx {
+                // insert at sorted position -> the result will still be a sorted vector
+                existing_item_entry.insert(insertion_idx, anno.clone());
+                None
+            } else {None}
+        };
+
+        if let Some(ref existing_anno) = existing_anno {
+            // remove the relation from the original annotation to this item
+            self.remove_element_from_by_anno(existing_anno, &item);
+        }
+
+        // inserts a new relation between the annotation and the item
+        // if set is not existing yet it is created
+        self.by_anno
+            .entry(anno.clone())
+            .or_insert(HashSet::new())
+            .insert(item.clone());
+
+        if existing_anno.is_none() {
+            // a new annotation entry was inserted and did not replace an existing one
             self.total_number_of_annos += 1;
 
             if let Some(largest_item) = self.largest_item.clone() {
@@ -56,30 +94,31 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
                 self.largest_item = Some(item.clone());
             }
 
-            let anno_key_entry = self.anno_keys.entry(anno.clone().key).or_insert(0);
+            let anno_key_entry = self.anno_keys.entry(anno.key).or_insert(0);
             *anno_key_entry = *anno_key_entry + 1;
-
-            // inserts a new element into the set
-            // if set is not existing yet it is created
-            self.by_anno
-                .entry(anno.clone())
-                .or_insert(HashSet::new())
-                .insert(item);
         }
     }
 
     pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<StringID> {
-        
         let mut result = None;
 
         if let Some(mut all_annos) = self.by_container.remove(item) {
-            // remove the specific annotation key from the entry
-            if let Some(old_value) = all_annos.remove(key) {
-                // if value was found, also remove the item from the other containers
-                self.by_anno.remove(&Annotation {
-                key: key.clone(),
-                val: old_value,
-                });
+            // find the specific annotation key from the sorted vector of all annotations of this item
+            let anno_idx = all_annos.binary_search_by_key(key, |a: &Annotation| a.key.clone());
+
+            if let Ok(anno_idx) = anno_idx {
+                // since value was found, also remove the item from the other containers
+                self.remove_element_from_by_anno(
+                    &all_annos[anno_idx],
+                    item,
+                );
+
+                let old_value = all_annos[anno_idx].val;
+
+                // remove the specific annotation key from the entry
+                all_annos.remove(anno_idx);
+
+                
                 // decrease the annotation count for this key
                 let num_of_keys = self.anno_keys.get_mut(key);
                 if num_of_keys.is_some() {
@@ -95,7 +134,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
             if !all_annos.is_empty() {
                 self.by_container.insert(item.clone(), all_annos);
             }
-
         }
         return result;
     }
@@ -105,28 +143,48 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
     }
 
     pub fn get(&self, item: &T, key: &AnnoKey) -> Option<&StringID> {
-     
         if let Some(all_annos) = self.by_container.get(item) {
-            return all_annos.get(key);
+
+            let idx = all_annos.binary_search_by_key(key, |a: &Annotation| a.key.clone());
+            if let Ok(idx) = idx {
+                return Some(&all_annos[idx].val);
+            }
         }
         return None;
     }
 
-    pub fn find_by_name(&self, item: &T, ns : Option<StringID>, name : Option<StringID>) -> Vec<Annotation> {
+    pub fn find_by_name(
+        &self,
+        item: &T,
+        ns: Option<StringID>,
+        name: Option<StringID>,
+    ) -> Vec<Annotation> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
-                let key = AnnoKey{ns,name};
+                let key = AnnoKey { ns, name };
                 let res = self.get(item, &key);
                 if let Some(val) = res {
-                    return vec![Annotation {key, val: val.clone()}];
+                    return vec![
+                        Annotation {
+                            key,
+                            val: val.clone(),
+                        },
+                    ];
                 } else {
                     return vec![];
                 }
             } else {
                 // get all qualified names for the given annotation name
-                let res : Vec<Annotation> = self.get_qnames(name).into_iter()
-                .filter_map(|key| self.get(item, &key).map(|val| Annotation{key, val: val.clone()})).collect();
+                let res: Vec<Annotation> = self.get_qnames(name)
+                    .into_iter()
+                    .filter_map(|key| {
+                        self.get(item, &key).map(|val| Annotation {
+                            key,
+                            val: val.clone(),
+                        })
+                    })
+                    .collect();
                 return res;
             }
         } else {
@@ -136,18 +194,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
     }
 
     pub fn get_all(&self, item: &T) -> Vec<Annotation> {
-        let mut result = vec![];
-
+       
         if let Some(all_annos) = self.by_container.get(item) {
-            for (key, val) in all_annos.iter() {
-                result.push(Annotation {
-                    key: key.clone(),
-                    val: val.clone(),
-                })
-            }
+            return all_annos.clone();
         }
-
-        return result;
+        // return empty result if not found
+        return Vec::new();
     }
 
     pub fn clear(&mut self) {
@@ -180,7 +232,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
         return self.anno_keys.keys().cloned().collect();
     }
 
-    pub fn get_all_values<'a>(&'a self, key : AnnoKey, most_frequent_first : bool) -> Box<Iterator<Item=StringID> + 'a> {
+    pub fn get_all_values<'a>(
+        &'a self,
+        key: AnnoKey,
+        most_frequent_first: bool,
+    ) -> Box<Iterator<Item = StringID> + 'a> {
         let anno_min = Annotation {
             key: key.clone(),
             val: StringID::min_value(),
@@ -190,17 +246,20 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
             val: StringID::max_value(),
         };
         if most_frequent_first {
-            let it = self.by_anno.range((Included(anno_min), Included(anno_max)))
+            let it = self.by_anno
+                .range((Included(anno_min), Included(anno_max)))
                 .map(|(ref anno, ref items)| (items.len(), anno.val.clone()))
-                .sorted().into_iter()
+                .sorted()
+                .into_iter()
                 .rev()
-                .map(|(_,val)| val);
+                .map(|(_, val)| val);
 
             return Box::from(it);
         } else {
-            let it = self.by_anno.range((Included(anno_min), Included(anno_max)))
+            let it = self.by_anno
+                .range((Included(anno_min), Included(anno_max)))
                 .map(|(anno, _items)| anno.val.clone());
-            return Box::from(it);   
+            return Box::from(it);
         }
     }
 
@@ -344,7 +403,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
 
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
         if let Ok(parsed) = parsed {
-            let expr : regex_syntax::hir::Hir = parsed;
+            let expr: regex_syntax::hir::Hir = parsed;
 
             let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
             let val_prefix = std::str::from_utf8(prefix_set.longest_common_prefix());
@@ -361,7 +420,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
     }
 
     pub fn get_largest_item(&self) -> Option<T> {
-        self.largest_item.clone ()
+        self.largest_item.clone()
     }
 
     pub fn calculate_statistics(&mut self, string_storage: &stringstorage::StringStorage) {
@@ -394,12 +453,10 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
                     let v = if let Some(s) = s {
                         // repeat value corresponding to the number of nodes with this annotation
                         vec![s; a.1.len()]
-                        
                     } else {
                         vec![]
                     };
                     v.into_iter()
-                    
                 })
                 .collect();
             let sampled_anno_indexes: HashSet<usize> = rand::seq::sample_indices(
@@ -462,8 +519,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
         if f.is_ok() {
             let mut buf_reader = std::io::BufReader::new(f.unwrap());
 
-            let loaded: Result<AnnoStorage<T>, _> =
-                bincode::deserialize_from(&mut buf_reader);
+            let loaded: Result<AnnoStorage<T>, _> = bincode::deserialize_from(&mut buf_reader);
             if loaded.is_ok() {
                 *self = loaded.unwrap();
             }
