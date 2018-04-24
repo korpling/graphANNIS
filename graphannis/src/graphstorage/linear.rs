@@ -1,5 +1,5 @@
 use graphstorage::EdgeContainer;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::any::Any;
 use std::clone::Clone;
@@ -19,8 +19,8 @@ struct RelativePosition<PosT> {
 
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct LinearGraphStorage<PosT: NumValue> {
-    node_to_pos: BTreeMap<NodeID, RelativePosition<PosT>>,
-    node_chains: BTreeMap<NodeID, Vec<NodeID>>,
+    node_to_pos: HashMap<NodeID, RelativePosition<PosT>>,
+    node_chains: HashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorage<Edge>,
     stats: Option<GraphStatistic>,
 }
@@ -31,8 +31,8 @@ where
 {
     pub fn new() -> LinearGraphStorage<PosT> {
         LinearGraphStorage {
-            node_to_pos: BTreeMap::new(),
-            node_chains: BTreeMap::new(),
+            node_to_pos: HashMap::new(),
+            node_chains: HashMap::new(),
             annos: AnnoStorage::new(),
             stats: None,
         }
