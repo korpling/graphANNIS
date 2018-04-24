@@ -1,5 +1,5 @@
 use super::*;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashSet, HashMap};
 use std::collections::Bound::*;
 use std::hash::Hash;
 use std;
@@ -12,96 +12,104 @@ use serde;
 use serde::de::DeserializeOwned;
 use itertools::Itertools;
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf)]
-pub struct ContainerAnnoKey<T: Ord> {
-    pub item: T,
-    pub key: AnnoKey,
-}
 
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct AnnoStorage<T: Ord + Hash> {
-    by_container: BTreeMap<ContainerAnnoKey<T>, StringID>,
+    by_container: HashMap<T, BTreeMap<AnnoKey,StringID>>,
     by_anno: BTreeMap<Annotation, HashSet<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_keys: BTreeMap<AnnoKey, usize>,
     /// additional statistical information
     histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
     largest_item: Option<T>,
+    total_number_of_annos: usize,
 }
 
 impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
     pub fn new() -> AnnoStorage<T> {
         AnnoStorage {
-            by_container: BTreeMap::new(),
+            by_container: HashMap::new(),
             by_anno: BTreeMap::new(),
             anno_keys: BTreeMap::new(),
             histogram_bounds: BTreeMap::new(),
             largest_item: None,
+            total_number_of_annos: 0,
         }
     }
 
     pub fn insert(&mut self, item: T, anno: Annotation) {
-        self.by_container.insert(
-            ContainerAnnoKey {
-                item: item.clone(),
-                key: anno.key.clone(),
-            },
-            anno.val.clone(),
-        );
+        
+        let existing_entry = self.by_container
+            .entry(item.clone())
+            .or_insert(BTreeMap::new())
+            .insert(anno.key.clone(), anno.val.clone());
+        
+        if existing_entry.is_none() {
 
-        if let Some(largest_item) = self.largest_item.clone() {
-            if largest_item < item {
+            self.total_number_of_annos += 1;
+
+            if let Some(largest_item) = self.largest_item.clone() {
+                if largest_item < item {
+                    self.largest_item = Some(item.clone());
+                }
+            } else {
                 self.largest_item = Some(item.clone());
             }
-        } else {
-            self.largest_item = Some(item.clone());
+
+            let anno_key_entry = self.anno_keys.entry(anno.clone().key).or_insert(0);
+            *anno_key_entry = *anno_key_entry + 1;
+
+            // inserts a new element into the set
+            // if set is not existing yet it is created
+            self.by_anno
+                .entry(anno.clone())
+                .or_insert(HashSet::new())
+                .insert(item);
         }
-
-        let anno_key_entry = self.anno_keys.entry(anno.clone().key).or_insert(0);
-        *anno_key_entry = *anno_key_entry + 1;
-
-        // inserts a new element into the set
-        // if set is not existing yet it is created
-        self.by_anno
-            .entry(anno.clone())
-            .or_insert(HashSet::new())
-            .insert(item);
     }
 
     pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<StringID> {
-        let old_value = self.by_container.remove(&ContainerAnnoKey::<T> {
-            item: item.clone(),
-            key: key.clone(),
-        });
-        if old_value.is_some() {
-            // of value was found, also remove the item from the other containers
-            self.by_anno.remove(&Annotation {
+        
+        let mut result = None;
+
+        if let Some(mut all_annos) = self.by_container.remove(item) {
+            // remove the specific annotation key from the entry
+            if let Some(old_value) = all_annos.remove(key) {
+                // if value was found, also remove the item from the other containers
+                self.by_anno.remove(&Annotation {
                 key: key.clone(),
-                val: old_value.unwrap(),
-            });
-            // decrease the annotation count for this key
-            let num_of_keys = self.anno_keys.get_mut(key);
-            if num_of_keys.is_some() {
-                let x = num_of_keys.unwrap();
-                *x = *x - 1;
+                val: old_value,
+                });
+                // decrease the annotation count for this key
+                let num_of_keys = self.anno_keys.get_mut(key);
+                if num_of_keys.is_some() {
+                    let x = num_of_keys.unwrap();
+                    *x = *x - 1;
+                }
+
+                self.total_number_of_annos -= 1;
+
+                result = Some(old_value);
+            }
+            // if there are more annotations for this item, re-insert them
+            if !all_annos.is_empty() {
+                self.by_container.insert(item.clone(), all_annos);
             }
 
-            return old_value;
         }
-        return None;
+        return result;
     }
 
     pub fn len(&self) -> usize {
-        self.by_container.len()
+        self.total_number_of_annos
     }
 
     pub fn get(&self, item: &T, key: &AnnoKey) -> Option<&StringID> {
-        let container_key = ContainerAnnoKey::<T> {
-            item: item.clone(),
-            key: key.clone(),
-        };
-
-        self.by_container.get(&container_key)
+     
+        if let Some(all_annos) = self.by_container.get(item) {
+            return all_annos.get(key);
+        }
+        return None;
     }
 
     pub fn find_by_name(&self, item: &T, ns : Option<StringID>, name : Option<StringID>) -> Vec<Annotation> {
@@ -128,28 +136,15 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
     }
 
     pub fn get_all(&self, item: &T) -> Vec<Annotation> {
-        let min_key = AnnoKey { name: 0, ns: 0 };
-        let max_key = AnnoKey {
-            name: StringID::max_value(),
-            ns: StringID::max_value(),
-        };
-
-        let found_range = self.by_container.range(
-            ContainerAnnoKey {
-                item: item.clone(),
-                key: min_key,
-            }..ContainerAnnoKey {
-                item: item.clone(),
-                key: max_key,
-            },
-        );
-
         let mut result = vec![];
-        for (k, &v) in found_range {
-            result.push(Annotation {
-                key: k.clone().key,
-                val: v,
-            });
+
+        if let Some(all_annos) = self.by_container.get(item) {
+            for (key, val) in all_annos.iter() {
+                result.push(Annotation {
+                    key: key.clone(),
+                    val: val.clone(),
+                })
+            }
         }
 
         return result;
