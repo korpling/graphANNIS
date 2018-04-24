@@ -1,7 +1,6 @@
 use {StringID};
 use std::collections::HashMap;
-use std::collections::BTreeMap;
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 use regex::Regex;
 use std;
 use bincode;
@@ -9,7 +8,7 @@ use bincode;
 #[derive(Serialize, Deserialize, Clone, Debug, HeapSizeOf)]
 pub struct StringStorage {
     by_id: HashMap<StringID, String>,
-    by_value: BTreeMap<String, StringID>,
+    by_value: HashMap<String, StringID>,
 }
 
 
@@ -17,7 +16,7 @@ impl StringStorage {
     pub fn new() -> StringStorage {
         StringStorage {
             by_id: HashMap::new(),
-            by_value: BTreeMap::new(),
+            by_value: HashMap::new(),
         }
     }
 
@@ -48,8 +47,8 @@ impl StringStorage {
         return self.by_value.get(&String::from(val));
     }
 
-    pub fn find_regex(&self, val: &str) -> BTreeSet<&StringID> {
-        let mut result = BTreeSet::new();
+    pub fn find_regex(&self, val: &str) -> HashSet<&StringID> {
+        let mut result = HashSet::new();
 
         // we always want to match the complete string
         let full_match_pattern = ::util::regex_full_match(val);
