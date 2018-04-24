@@ -38,7 +38,7 @@ mod types;
 pub use types::*;
 
 mod dfs;
-mod annostorage;
+pub mod annostorage;
 pub mod stringstorage;
 pub mod graphstorage;
 pub mod graphdb;
