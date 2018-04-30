@@ -2,6 +2,7 @@
 extern crate bencher;
 extern crate rand;
 extern crate graphannis;
+extern crate fxhash;
 
 use bencher::Bencher;
 use graphannis::annostorage::AnnoStorage;

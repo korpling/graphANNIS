@@ -1,5 +1,6 @@
 use super::*;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap};
+use fxhash::{FxHashMap,FxHashSet};
 use std::collections::Bound::*;
 use std::hash::Hash;
 use std;
@@ -14,8 +15,8 @@ use itertools::Itertools;
 
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct AnnoStorage<T: Ord + Hash> {
-    by_container: HashMap<T, Vec<Annotation>>,
-    by_anno: BTreeMap<Annotation, HashSet<T>>,
+    by_container: FxHashMap<T, Vec<Annotation>>,
+    by_anno: BTreeMap<Annotation, FxHashSet<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_keys: BTreeMap<AnnoKey, usize>,
     /// additional statistical information
@@ -27,7 +28,7 @@ pub struct AnnoStorage<T: Ord + Hash> {
 impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
     pub fn new() -> AnnoStorage<T> {
         AnnoStorage {
-            by_container: HashMap::new(),
+            by_container: FxHashMap::default(),
             by_anno: BTreeMap::new(),
             anno_keys: BTreeMap::new(),
             histogram_bounds: BTreeMap::new(),
@@ -79,7 +80,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
         // if set is not existing yet it is created
         self.by_anno
             .entry(anno.clone())
-            .or_insert(HashSet::new())
+            .or_insert(FxHashSet::default())
             .insert(item.clone());
 
         if existing_anno.is_none() {
@@ -459,7 +460,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T>
                     v.into_iter()
                 })
                 .collect();
-            let sampled_anno_indexes: HashSet<usize> = rand::seq::sample_indices(
+            let sampled_anno_indexes: FxHashSet<usize> = rand::seq::sample_indices(
                 &mut rng,
                 sampled_anno_values.len(),
                 std::cmp::min(sampled_anno_values.len(), max_sampled_annotations),
