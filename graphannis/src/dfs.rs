@@ -1,5 +1,5 @@
 use graphstorage::{EdgeContainer};
-use std::collections::{HashSet};
+use fxhash::{FxHashSet};
 use NodeID;
 
 pub struct CycleSafeDFS<'a> {
@@ -10,7 +10,7 @@ pub struct CycleSafeDFS<'a> {
 
     stack: Vec<(NodeID, usize)>,
     path : Vec<NodeID>,
-    nodes_in_path: HashSet<NodeID>,
+    nodes_in_path: FxHashSet<NodeID>,
     last_distance: usize,
     cycle_detected : bool,
 }
@@ -26,7 +26,7 @@ impl<'a> CycleSafeDFS<'a> {
         stack.push((node.clone(), 0));
 
         let path = vec![];
-        let nodes_in_path = HashSet::new();
+        let nodes_in_path = FxHashSet::default();
 
         CycleSafeDFS {
             min_distance,
@@ -46,7 +46,7 @@ impl<'a> CycleSafeDFS<'a> {
         stack.push((node.clone(), 0));
 
         let path = vec![];
-        let nodes_in_path = HashSet::new();
+        let nodes_in_path = FxHashSet::default();
 
         CycleSafeDFS {
             min_distance,

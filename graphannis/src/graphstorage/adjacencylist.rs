@@ -5,7 +5,7 @@ use Edge;
 use dfs::{CycleSafeDFS};
 
 use std::collections::BTreeSet;
-use std::collections::HashSet;
+use fxhash::FxHashSet;
 use std::collections::Bound::*;
 
 use heapsize::HeapSizeOf;
@@ -105,7 +105,7 @@ impl GraphStorage for AdjacencyListStorage {
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        let mut visited = HashSet::<NodeID>::new();
+        let mut visited = FxHashSet::<NodeID>::default();
         let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
             .map(|x| {x.node})
             .filter(move |n| visited.insert(n.clone()));
@@ -118,7 +118,7 @@ impl GraphStorage for AdjacencyListStorage {
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        let mut visited = HashSet::<NodeID>::new();
+        let mut visited = FxHashSet::<NodeID>::default();
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
             .map(|x| {x.node})
             .filter(move |n| visited.insert(n.clone()));

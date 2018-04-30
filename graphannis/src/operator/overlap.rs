@@ -5,7 +5,7 @@ use graphstorage::GraphStorage;
 use operator::EstimationType;
 use util::token_helper;
 use util::token_helper::TokenHelper;
-use std::collections::HashSet;
+use fxhash::FxHashSet;
 
 use std::sync::Arc;
 use std;
@@ -94,7 +94,7 @@ impl Operator for  Overlap {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
 
         // use set to filter out duplicates
-        let mut result = HashSet::new();
+        let mut result = FxHashSet::default();
 
         let covered : Box<Iterator<Item=NodeID>> = if self.tok_helper.is_token(&lhs.node) {
             Box::new(std::iter::once(lhs.node))

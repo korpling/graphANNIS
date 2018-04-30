@@ -1,6 +1,6 @@
 use graphstorage::EdgeContainer;
-use std::collections::HashMap;
-use std::collections::HashSet;
+use fxhash::FxHashMap;
+use fxhash::FxHashSet;
 use std::any::Any;
 use std::clone::Clone;
 use std;
@@ -19,8 +19,8 @@ struct RelativePosition<PosT> {
 
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct LinearGraphStorage<PosT: NumValue> {
-    node_to_pos: HashMap<NodeID, RelativePosition<PosT>>,
-    node_chains: HashMap<NodeID, Vec<NodeID>>,
+    node_to_pos: FxHashMap<NodeID, RelativePosition<PosT>>,
+    node_chains: FxHashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorage<Edge>,
     stats: Option<GraphStatistic>,
 }
@@ -31,8 +31,8 @@ where
 {
     pub fn new() -> LinearGraphStorage<PosT> {
         LinearGraphStorage {
-            node_to_pos: HashMap::new(),
-            node_chains: HashMap::new(),
+            node_to_pos: FxHashMap::default(),
+            node_chains: FxHashMap::default(),
             annos: AnnoStorage::new(),
             stats: None,
         }
@@ -206,7 +206,7 @@ where
         self.clear();
 
         // find all roots of the component
-        let mut roots: HashSet<NodeID> = HashSet::new();
+        let mut roots: FxHashSet<NodeID> = FxHashSet::default();
         let node_name_key: AnnoKey = db.get_node_name_key();
         let nodes: Box<Iterator<Item = Match>> =
             db.node_annos

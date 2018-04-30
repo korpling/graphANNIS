@@ -1,5 +1,5 @@
 use graphstorage::EdgeContainer;
-use std::collections::{HashMap, HashSet};
+use fxhash::{FxHashMap, FxHashSet};
 use std::any::Any;
 use std::clone::Clone;
 use std;
@@ -34,7 +34,7 @@ enum OrderVecEntry<OrderT, LevelT> {
 
 #[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct PrePostOrderStorage<OrderT: NumValue, LevelT: NumValue> {
-    node_to_order: HashMap<NodeID, Vec<PrePost<OrderT, LevelT>>>,
+    node_to_order: FxHashMap<NodeID, Vec<PrePost<OrderT, LevelT>>>,
     order_to_node: Vec<OrderVecEntry<OrderT, LevelT>>,
     annos: AnnoStorage<Edge>,
     stats: Option<GraphStatistic>,
@@ -52,7 +52,7 @@ where
 {
     pub fn new() -> PrePostOrderStorage<OrderT, LevelT> {
         PrePostOrderStorage {
-            node_to_order: HashMap::new(),
+            node_to_order: FxHashMap::default(),
             order_to_node: Vec::new(),
             annos: AnnoStorage::new(),
             stats: None,
@@ -151,7 +151,7 @@ where
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(node) {
-            let mut visited = HashSet::<NodeID>::new();
+            let mut visited = FxHashSet::<NodeID>::default();
 
             let it = start_orders
                 .into_iter()
@@ -202,7 +202,7 @@ where
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(start_node) {
-            let mut visited = HashSet::<NodeID>::new();
+            let mut visited = FxHashSet::<NodeID>::default();
 
             let it = start_orders
                 .into_iter()
@@ -361,7 +361,7 @@ where
         self.clear();
 
         // find all roots of the component
-        let mut roots: HashSet<NodeID> = HashSet::new();
+        let mut roots: FxHashSet<NodeID> = FxHashSet::default();
         let node_name_key: AnnoKey = db.get_node_name_key();
         let nodes: Box<Iterator<Item = Match>> =
             db.node_annos

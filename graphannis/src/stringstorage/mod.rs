@@ -1,22 +1,21 @@
 use {StringID};
-use std::collections::HashMap;
-use std::collections::HashSet;
+use fxhash::{FxHashMap, FxHashSet};
 use regex::Regex;
 use std;
 use bincode;
 
 #[derive(Serialize, Deserialize, Clone, Debug, HeapSizeOf)]
 pub struct StringStorage {
-    by_id: HashMap<StringID, String>,
-    by_value: HashMap<String, StringID>,
+    by_id: FxHashMap<StringID, String>,
+    by_value: FxHashMap<String, StringID>,
 }
 
 
 impl StringStorage {
     pub fn new() -> StringStorage {
         StringStorage {
-            by_id: HashMap::new(),
-            by_value: HashMap::new(),
+            by_id: FxHashMap::default(),
+            by_value: FxHashMap::default(),
         }
     }
 
@@ -47,8 +46,8 @@ impl StringStorage {
         return self.by_value.get(&String::from(val));
     }
 
-    pub fn find_regex(&self, val: &str) -> HashSet<&StringID> {
-        let mut result = HashSet::new();
+    pub fn find_regex(&self, val: &str) -> FxHashSet<&StringID> {
+        let mut result = FxHashSet::default();
 
         // we always want to match the complete string
         let full_match_pattern = ::util::regex_full_match(val);
