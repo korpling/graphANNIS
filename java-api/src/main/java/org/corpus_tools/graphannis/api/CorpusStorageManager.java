@@ -81,7 +81,9 @@ public class CorpusStorageManager {
                     String ns = CAPI.annis_matrix_str_get(orig, new NativeLong(i), new NativeLong(0));
                     String name = CAPI.annis_matrix_str_get(orig, new NativeLong(i), new NativeLong(1));
                     
-                    anno.setNamespace(ns);
+                    if(!"".equals(ns)) {
+                        anno.setNamespace(ns);
+                    }
                     anno.setName(name);
                     if(listValues) {
                         String val = CAPI.annis_matrix_str_get(orig, new NativeLong(i), new NativeLong(2));
