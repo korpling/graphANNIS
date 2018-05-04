@@ -16,18 +16,22 @@ use graphannis::relannis;
 use std::path::{Path, PathBuf};
 use graphannis::StringID;
 use graphannis::api::corpusstorage::CorpusStorage;
+use graphannis::api::corpusstorage::CorpusInfo;
 use graphannis::api::corpusstorage::Error;
 use graphannis::api::corpusstorage::LoadStatus;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
+
+
 struct CommandCompleter {
     known_commands: BTreeSet<String>,
     filename_completer: FilenameCompleter,
+    pub corpora : Vec<CorpusInfo>,
 }
 
 impl CommandCompleter {
-    pub fn new() -> CommandCompleter {
+    pub fn new(corpora: Vec<CorpusInfo>) -> CommandCompleter {
         let mut known_commands = BTreeSet::new();
         known_commands.insert("import".to_string());
         known_commands.insert("list".to_string());
@@ -44,18 +48,31 @@ impl CommandCompleter {
         CommandCompleter {
             known_commands,
             filename_completer: FilenameCompleter::new(),
+            corpora,
         }
     }
 }
 
 impl Completer for CommandCompleter {
     fn complete(&self, line: &str, pos: usize) -> Result<(usize, Vec<String>), ReadlineError> {
-        let mut cmds = Vec::new();
-
+        
         // check for more specialized completers
         if line.starts_with("import ") {
             return self.filename_completer.complete(line, pos);
+        } else if line.starts_with("corpus ") {
+            // auto-complete the corpus names
+            let prefix_len = "corpus ".len();
+            let mut matching_corpora = vec![];
+            let corpus_prefix = &line[prefix_len..];
+            for c in self.corpora.iter() {
+                if c.name.starts_with(corpus_prefix) {
+                    matching_corpora.push(c.name.clone());
+                }
+            }
+            return Ok((pos-corpus_prefix.len(), matching_corpora));
         }
+
+        let mut cmds = Vec::new();
 
         // only check at end of line for initial command strings
         if pos == line.len() {
@@ -87,7 +104,8 @@ impl AnnisRunner {
         if let Err(_) = rl.load_history("annis_history.txt") {
             println!("No previous history.");
         }
-        rl.set_completer(Some(CommandCompleter::new()));
+        
+        rl.set_completer(Some(CommandCompleter::new(self.storage.list().unwrap_or_default())));
 
         loop {
             let prompt = if let Some(ref c) = self.current_corpus {
@@ -98,7 +116,7 @@ impl AnnisRunner {
             let readline = rl.readline(&prompt);
             match readline {
                 Ok(line) => {
-                    rl.add_history_entry(&line);
+                    rl.add_history_entry(&line.clone());
                     if self.exec(&line) == false {
                         break;
                     }
