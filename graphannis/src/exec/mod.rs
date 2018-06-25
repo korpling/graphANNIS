@@ -197,6 +197,7 @@ pub trait ExecutionNode: Iterator {
     }
 }
 
+pub mod parallel;
 pub mod nestedloop;
 pub mod indexjoin;
 pub mod nodesearch;
