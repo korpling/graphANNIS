@@ -208,26 +208,25 @@ impl<'a> Iterator for IndexJoin<'a> {
                             || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
                         {
                             // filters have been checked, return the result
-                            if filter_result {
-                                let mut result = m_lhs.clone();
-                                let matched_node = m_rhs.node;
-                                result.push(m_rhs);
-                                if self.node_search_desc.const_output.is_some() {
-                                    // only return the one unique constAnno for this node and no duplicates
-                                    // skip all RHS candidates that have the same node ID
-                                    loop {
-                                        if let Some(next_match) = rhs_candidate.peek() {
-                                            if next_match.node != matched_node {
-                                                break;
-                                            }
-                                        } else {
+                            let mut result = m_lhs.clone();
+                            let matched_node = m_rhs.node;
+                            result.push(m_rhs);
+                            if self.node_search_desc.const_output.is_some() {
+                                // only return the one unique constAnno for this node and no duplicates
+                                // skip all RHS candidates that have the same node ID
+                                loop {
+                                    if let Some(next_match) = rhs_candidate.peek() {
+                                        if next_match.node != matched_node {
                                             break;
                                         }
-                                        rhs_candidate.next();
+                                    } else {
+                                        break;
                                     }
+                                    rhs_candidate.next();
                                 }
-                                return Some(result);
                             }
+                            return Some(result);
+                        
                         }
                     }
                 }
