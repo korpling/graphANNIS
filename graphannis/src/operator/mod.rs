@@ -9,7 +9,7 @@ pub enum EstimationType {
     MIN,
 }
 
-pub trait Operator: std::fmt::Display {
+pub trait Operator: std::fmt::Display + Send + Sync {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>>;
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool;
