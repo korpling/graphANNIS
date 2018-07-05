@@ -204,27 +204,26 @@ impl<'a> Iterator for IndexJoin<'a> {
                          if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
                              || !util::check_annotation_key_equal(&m_lhs[lhs_idx].anno, &m_rhs.anno)
                          {
-                        //     // filters have been checked, return the result
-                        //     if filter_result {
-                        //         let mut result = m_lhs.clone();
-                        //         let matched_node = m_rhs.node;
-                        //         result.push(m_rhs.clone());
-                        //         if self.node_search_desc.const_output.is_some() {
-                        //             // only return the one unique constAnno for this node and no duplicates
-                        //             // skip all RHS candidates that have the same node ID
-                        //             loop {
-                        //                 if let Some(next_match) = rhs_candidate.last() {
-                        //                     if next_match.node != matched_node {
-                        //                         break;
-                        //                     }
-                        //                 } else {
-                        //                     break;
-                        //                 }
-                        //                 rhs_candidate.pop();
-                        //             }
-                        //         }
-                        //         return Some(result);
-                        //     }
+                             // filters have been checked, return the result
+                            let mut result = m_lhs.clone();
+                            let matched_node = m_rhs.node;
+                            result.push(m_rhs.clone());
+                            if node_search_desc.const_output.is_some() {
+                                // only return the one unique constAnno for this node and no duplicates
+                                // TODO: skip all RHS candidates that have the same node ID
+                                // loop {
+                                //     if let Some(next_match) = rhs_candidate.last() {
+                                //         if next_match.node != matched_node {
+                                //             break;
+                                //         }
+                                //     } else {
+                                //         break;
+                                //     }
+                                //     rhs_candidate.pop();
+                                // }
+                            }
+                            return Some(result);
+                        
                         }
                     }
                     return None;
