@@ -211,6 +211,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                             if node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // TODO: skip all RHS candidates that have the same node ID
+                                unimplemented!()
                                 // loop {
                                 //     if let Some(next_match) = rhs_candidate.last() {
                                 //         if next_match.node != matched_node {
