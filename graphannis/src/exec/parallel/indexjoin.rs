@@ -180,7 +180,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                 let strings : Arc<StringStorage> = self.strings.clone();
 
                 // check all RHS candidates in parallel
-                let cached_results : Vec<Vec<Match>> = rhs_candidate.par_iter().filter_map(|m_rhs| {
+                let cached_results : Vec<Vec<Match>> = rhs_candidate.par_iter_mut().filter_map(|m_rhs| {
                     // check if all filters are true
                     let mut filter_result = true;
                     for f in node_search_desc.cond.iter() {
@@ -190,40 +190,40 @@ impl<'a> Iterator for IndexJoin<'a> {
                         }
                     }
 
-                    // if filter_result {
+                    if filter_result {
 
-                    //     // replace the annotation with a constant value if needed
-                    //     if let Some(ref const_anno) = self.node_search_desc.const_output {
-                    //         m_rhs.anno = const_anno.clone();
-                    //     }
+                        // replace the annotation with a constant value if needed
+                        if let Some(ref const_anno) = node_search_desc.const_output {
+                            m_rhs.anno = const_anno.clone();
+                        }
 
-                    //     // check if lhs and rhs are equal and if this is allowed in this query
-                    //     if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
-                    //         || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
-                    //     {
-                    //         // filters have been checked, return the result
-                    //         if filter_result {
-                    //             let mut result = m_lhs.clone();
-                    //             let matched_node = m_rhs.node;
-                    //             result.push(m_rhs.clone());
-                    //             if self.node_search_desc.const_output.is_some() {
-                    //                 // only return the one unique constAnno for this node and no duplicates
-                    //                 // skip all RHS candidates that have the same node ID
-                    //                 loop {
-                    //                     if let Some(next_match) = rhs_candidate.last() {
-                    //                         if next_match.node != matched_node {
-                    //                             break;
-                    //                         }
-                    //                     } else {
-                    //                         break;
-                    //                     }
-                    //                     rhs_candidate.pop();
-                    //                 }
-                    //             }
-                    //             return Some(result);
-                    //         }
-                    //     }
-                    // }
+                        // check if lhs and rhs are equal and if this is allowed in this query
+                        // if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
+                        //     || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
+                        // {
+                        //     // filters have been checked, return the result
+                        //     if filter_result {
+                        //         let mut result = m_lhs.clone();
+                        //         let matched_node = m_rhs.node;
+                        //         result.push(m_rhs.clone());
+                        //         if self.node_search_desc.const_output.is_some() {
+                        //             // only return the one unique constAnno for this node and no duplicates
+                        //             // skip all RHS candidates that have the same node ID
+                        //             loop {
+                        //                 if let Some(next_match) = rhs_candidate.last() {
+                        //                     if next_match.node != matched_node {
+                        //                         break;
+                        //                     }
+                        //                 } else {
+                        //                     break;
+                        //                 }
+                        //                 rhs_candidate.pop();
+                        //             }
+                        //         }
+                        //         return Some(result);
+                        //     }
+                        // }
+                    }
                     return None;
                 }).collect();
             }
