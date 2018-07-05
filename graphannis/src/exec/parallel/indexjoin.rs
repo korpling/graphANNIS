@@ -1,20 +1,23 @@
-use annostorage::AnnoStorage;
-use stringstorage::StringStorage;
-use std::sync::Arc;
-use {AnnoKey, Annotation, Match, NodeID};
-use operator::{EstimationType, Operator};
-use util;
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
-use std::iter::Peekable;
+use annostorage::AnnoStorage;
+use operator::{EstimationType, Operator};
 use rayon::prelude::*;
+use std;
+use std::iter::Peekable;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::Arc;
+use std::thread;
+use stringstorage::StringStorage;
+use util;
+use {AnnoKey, Annotation, Match, NodeID};
 
 /// A join that takes any iterator as left-hand-side (LHS) and an annotation condition as right-hand-side (RHS).
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
-    rhs_candidate: Option<Vec<Match>>,
-    op: Box<Operator>,
+    match_receiver: Option<Receiver<Vec<Match>>>,
+    op: Arc<Operator>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
@@ -80,11 +83,11 @@ impl<'a> IndexJoin<'a> {
             ),
             lhs: lhs_peek,
             lhs_idx,
-            op,
+            op: Arc::from(op),
             node_search_desc,
             node_annos,
             strings,
-            rhs_candidate: None,
+            match_receiver: None,
         };
     }
 
@@ -126,7 +129,7 @@ impl<'a> IndexJoin<'a> {
                                 })
                             }
                         }
-                    };
+                    }
                     return Some(matches);
                 }
             } else {
@@ -147,6 +150,80 @@ impl<'a> IndexJoin<'a> {
 
         return None;
     }
+
+    fn next_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
+        if let Some(m_lhs) = self.lhs.peek().cloned() {
+            if let Some(rhs_candidate) = self.next_candidates() {
+                let (tx, rx) = channel();
+
+                // extend the vector with a seperate sender for each element
+                let mut rhs_candidate_with_tx: Vec<(Match, Sender<Vec<Match>>)> =
+                    Vec::with_capacity(rhs_candidate.len());
+                for m_rhs in rhs_candidate.into_iter() {
+                    rhs_candidate_with_tx.push((m_rhs, tx.clone()));
+                }
+
+                let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
+                let strings: Arc<StringStorage> = self.strings.clone();
+                let op: Arc<Operator> = self.op.clone();
+                let lhs_idx = self.lhs_idx;
+
+                thread::spawn(move || {
+                    let op: &Operator = op.as_ref();
+                    // check all RHS candidates in parallel
+                    rhs_candidate_with_tx
+                        .par_iter_mut()
+                        .for_each(|(m_rhs, tx)| {
+                            // check if all filters are true
+                            let mut filter_result = true;
+                            for f in node_search_desc.cond.iter() {
+                                if !(f)(&m_rhs, strings.as_ref()) {
+                                    filter_result = false;
+                                    break;
+                                }
+                            }
+
+                            if filter_result {
+                                // replace the annotation with a constant value if needed
+                                if let Some(ref const_anno) = node_search_desc.const_output {
+                                    m_rhs.anno = const_anno.clone();
+                                }
+
+                                // check if lhs and rhs are equal and if this is allowed in this query
+                                if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
+                                    || !util::check_annotation_key_equal(
+                                        &m_lhs[lhs_idx].anno,
+                                        &m_rhs.anno,
+                                    ) {
+                                    // filters have been checked, return the result
+                                    let mut result = m_lhs.clone();
+                                    let _matched_node = m_rhs.node;
+                                    result.push(m_rhs.clone());
+                                    if node_search_desc.const_output.is_some() {
+                                        // only return the one unique constAnno for this node and no duplicates
+                                        // TODO: skip all RHS candidates that have the same node ID
+                                        unimplemented!()
+                                        // loop {
+                                        //     if let Some(next_match) = rhs_candidate.last() {
+                                        //         if next_match.node != matched_node {
+                                        //             break;
+                                        //         }
+                                        //     } else {
+                                        //         break;
+                                        //     }
+                                        //     rhs_candidate.pop();
+                                        // }
+                                    }
+                                    tx.send(result);
+                                }
+                            }
+                        });
+                });
+                return Some(rx);
+            }
+        }
+        return None;
+    }
 }
 
 impl<'a> ExecutionNode for IndexJoin<'a> {
@@ -164,80 +241,38 @@ impl<'a> Iterator for IndexJoin<'a> {
 
     fn next(&mut self) -> Option<Vec<Match>> {
         // lazily initialize the RHS candidates for the first LHS
-        if self.rhs_candidate.is_none() {
-            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {Some(rhs)} else {None};
+        if self.match_receiver.is_none() {
+            self.match_receiver = if let Some(rhs) = self.next_receiver() {
+                Some(rhs)
+            } else {
+                None
+            };
         }
 
-        if self.rhs_candidate.is_none() {
+        if self.match_receiver.is_none() {
             return None;
         }
 
         loop {
-            if let Some(m_lhs) = self.lhs.peek() {
-                let rhs_candidate : &mut Vec<Match> = self.rhs_candidate.as_mut().unwrap();
+            {
+                let match_receiver: &mut Receiver<Vec<Match>> =
+                    self.match_receiver.as_mut().unwrap();
+                if let Ok(result) = match_receiver.recv() {
+                    return Some(result);
+                }
 
-                let node_search_desc : Arc<NodeSearchDesc> = self.node_search_desc.clone();
-                let strings : Arc<StringStorage> = self.strings.clone();
-                let op : &Operator = self.op.as_ref();
-                let lhs_idx = self.lhs_idx;
-
-
-                // check all RHS candidates in parallel
-                let cached_results : Vec<Vec<Match>> = rhs_candidate.par_iter_mut().filter_map(|m_rhs| {
-                    // check if all filters are true
-                    let mut filter_result = true;
-                    for f in node_search_desc.cond.iter() {
-                        if !(f)(&m_rhs, strings.as_ref()) {
-                            filter_result = false;
-                            break;
-                        }
-                    }
-
-                    if filter_result {
-
-                        // replace the annotation with a constant value if needed
-                        if let Some(ref const_anno) = node_search_desc.const_output {
-                            m_rhs.anno = const_anno.clone();
-                        }
-
-                        // check if lhs and rhs are equal and if this is allowed in this query
-                         if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
-                             || !util::check_annotation_key_equal(&m_lhs[lhs_idx].anno, &m_rhs.anno)
-                         {
-                             // filters have been checked, return the result
-                            let mut result = m_lhs.clone();
-                            let matched_node = m_rhs.node;
-                            result.push(m_rhs.clone());
-                            if node_search_desc.const_output.is_some() {
-                                // only return the one unique constAnno for this node and no duplicates
-                                // TODO: skip all RHS candidates that have the same node ID
-                                unimplemented!()
-                                // loop {
-                                //     if let Some(next_match) = rhs_candidate.last() {
-                                //         if next_match.node != matched_node {
-                                //             break;
-                                //         }
-                                //     } else {
-                                //         break;
-                                //     }
-                                //     rhs_candidate.pop();
-                                // }
-                            }
-                            return Some(result);
-                        
-                        }
-                    }
+                // consume next outer
+                if self.lhs.next().is_none() {
                     return None;
-                }).collect();
-            }
-
-            // consume next outer
-            if self.lhs.next().is_none() {
-                return None;
+                }
             }
 
             // inner was completed once, get new candidates
-            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {Some(rhs)} else {None};
+            self.match_receiver = if let Some(rhs) = self.next_receiver() {
+                Some(rhs)
+            } else {
+                None
+            };
         }
     }
 }
