@@ -178,6 +178,9 @@ impl<'a> Iterator for IndexJoin<'a> {
 
                 let node_search_desc : Arc<NodeSearchDesc> = self.node_search_desc.clone();
                 let strings : Arc<StringStorage> = self.strings.clone();
+                let op : &Operator = self.op.as_ref();
+                let lhs_idx = self.lhs_idx;
+
 
                 // check all RHS candidates in parallel
                 let cached_results : Vec<Vec<Match>> = rhs_candidate.par_iter_mut().filter_map(|m_rhs| {
@@ -198,9 +201,9 @@ impl<'a> Iterator for IndexJoin<'a> {
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
-                        // if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
-                        //     || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
-                        // {
+                         if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
+                             || !util::check_annotation_key_equal(&m_lhs[lhs_idx].anno, &m_rhs.anno)
+                         {
                         //     // filters have been checked, return the result
                         //     if filter_result {
                         //         let mut result = m_lhs.clone();
@@ -222,7 +225,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                         //         }
                         //         return Some(result);
                         //     }
-                        // }
+                        }
                     }
                     return None;
                 }).collect();
