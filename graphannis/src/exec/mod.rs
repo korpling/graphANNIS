@@ -182,7 +182,7 @@ impl Desc {
 
 pub struct NodeSearchDesc {
     pub qname: (Option<StringID>, Option<StringID>),
-    pub cond: Vec<Box<Fn(&Match, &StringStorage) -> bool>>,
+    pub cond: Vec<Box<Fn(&Match, &StringStorage) -> bool + Sync + Send>>,
     pub const_output: Option<Annotation>,
 }
 

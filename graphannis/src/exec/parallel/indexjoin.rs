@@ -6,8 +6,7 @@ use operator::{EstimationType, Operator};
 use util;
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use std::iter::Peekable;
-use std::rc::Rc;
-
+use rayon::prelude::*;
 
 /// A join that takes any iterator as left-hand-side (LHS) and an annotation condition as right-hand-side (RHS).
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
@@ -17,7 +16,7 @@ pub struct IndexJoin<'a> {
     rhs_candidate: Option<Vec<Match>>,
     op: Box<Operator>,
     lhs_idx: usize,
-    node_search_desc: Rc<NodeSearchDesc>,
+    node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
     strings: Arc<StringStorage>,
     desc: Desc,
@@ -38,7 +37,7 @@ impl<'a> IndexJoin<'a> {
         node_nr_lhs: usize,
         node_nr_rhs: usize,
         op: Box<Operator>,
-        node_search_desc: Rc<NodeSearchDesc>,
+        node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         strings: Arc<StringStorage>,
         rhs_desc: Option<&Desc>,
@@ -175,52 +174,58 @@ impl<'a> Iterator for IndexJoin<'a> {
 
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
-                let rhs_candidate = self.rhs_candidate.as_mut().unwrap();
-                while let Some(mut m_rhs) = rhs_candidate.pop() {
+                let rhs_candidate : &mut Vec<Match> = self.rhs_candidate.as_mut().unwrap();
+
+                let node_search_desc : Arc<NodeSearchDesc> = self.node_search_desc.clone();
+                let strings : Arc<StringStorage> = self.strings.clone();
+
+                // check all RHS candidates in parallel
+                let cached_results : Vec<Vec<Match>> = rhs_candidate.par_iter().filter_map(|m_rhs| {
                     // check if all filters are true
                     let mut filter_result = true;
-                    for f in self.node_search_desc.cond.iter() {
-                        if !(f)(&m_rhs, &self.strings) {
+                    for f in node_search_desc.cond.iter() {
+                        if !(f)(&m_rhs, strings.as_ref()) {
                             filter_result = false;
                             break;
                         }
                     }
 
-                    if filter_result {
+                    // if filter_result {
 
-                        // replace the annotation with a constant value if needed
-                        if let Some(ref const_anno) = self.node_search_desc.const_output {
-                            m_rhs.anno = const_anno.clone();
-                        }
+                    //     // replace the annotation with a constant value if needed
+                    //     if let Some(ref const_anno) = self.node_search_desc.const_output {
+                    //         m_rhs.anno = const_anno.clone();
+                    //     }
 
-                        // check if lhs and rhs are equal and if this is allowed in this query
-                        if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
-                            || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
-                        {
-                            // filters have been checked, return the result
-                            if filter_result {
-                                let mut result = m_lhs.clone();
-                                let matched_node = m_rhs.node;
-                                result.push(m_rhs);
-                                if self.node_search_desc.const_output.is_some() {
-                                    // only return the one unique constAnno for this node and no duplicates
-                                    // skip all RHS candidates that have the same node ID
-                                    loop {
-                                        if let Some(next_match) = rhs_candidate.last() {
-                                            if next_match.node != matched_node {
-                                                break;
-                                            }
-                                        } else {
-                                            break;
-                                        }
-                                        rhs_candidate.pop();
-                                    }
-                                }
-                                return Some(result);
-                            }
-                        }
-                    }
-                }
+                    //     // check if lhs and rhs are equal and if this is allowed in this query
+                    //     if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
+                    //         || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
+                    //     {
+                    //         // filters have been checked, return the result
+                    //         if filter_result {
+                    //             let mut result = m_lhs.clone();
+                    //             let matched_node = m_rhs.node;
+                    //             result.push(m_rhs.clone());
+                    //             if self.node_search_desc.const_output.is_some() {
+                    //                 // only return the one unique constAnno for this node and no duplicates
+                    //                 // skip all RHS candidates that have the same node ID
+                    //                 loop {
+                    //                     if let Some(next_match) = rhs_candidate.last() {
+                    //                         if next_match.node != matched_node {
+                    //                             break;
+                    //                         }
+                    //                     } else {
+                    //                         break;
+                    //                     }
+                    //                     rhs_candidate.pop();
+                    //                 }
+                    //             }
+                    //             return Some(result);
+                    //         }
+                    //     }
+                    // }
+                    return None;
+                }).collect();
             }
 
             // consume next outer

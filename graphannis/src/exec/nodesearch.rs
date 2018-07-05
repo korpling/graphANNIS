@@ -198,7 +198,7 @@ impl<'a> NodeSearch<'a> {
                     .exact_anno_search(Some(type_key.ns), type_key.name, Some(node_str_id))
                     .map(move |n| vec![n]);
 
-                let filter_func: Box<Fn(&Match, &StringStorage) -> bool> = Box::new(move |m, _| {
+                let filter_func: Box<Fn(&Match, &StringStorage) -> bool + Send + Sync> = Box::new(move |m, _| {
                     return m.anno.val == node_str_id;
                 });
 
@@ -307,7 +307,7 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters: Vec<Box<Fn(&Match, &StringStorage) -> bool>> = Vec::new();
+        let mut filters: Vec<Box<Fn(&Match, &StringStorage) -> bool + Send + Sync>> = Vec::new();
 
         if match_regex {
             // match_regex works only with values
@@ -398,7 +398,7 @@ impl<'a> NodeSearch<'a> {
             ]
         });
         // create filter functions
-        let mut filters: Vec<Box<Fn(&Match, &StringStorage) -> bool>> = Vec::new();
+        let mut filters: Vec<Box<Fn(&Match, &StringStorage) -> bool + Send + Sync>> = Vec::new();
 
         if let Some(ref v) = val {
             if match_regex {
@@ -426,7 +426,7 @@ impl<'a> NodeSearch<'a> {
                 layer: String::from(ANNIS_NS),
                 name: String::from(""),
             });
-            let filter_func: Box<Fn(&Match, &StringStorage) -> bool> = Box::new(move |m, _| {
+            let filter_func: Box<Fn(&Match, &StringStorage) -> bool + Send + Sync> = Box::new(move |m, _| {
                 if let Some(ref cov) = cov_gs {
                     cov.get_outgoing_edges(&m.node).next().is_none()
                 } else {
