@@ -5,7 +5,6 @@ use {AnnoKey, Annotation, Match, NodeID};
 use operator::{EstimationType, Operator};
 use util;
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
-use std;
 use std::iter::Peekable;
 use std::rc::Rc;
 
@@ -15,7 +14,7 @@ use std::rc::Rc;
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
-    rhs_candidate: Option<std::iter::Peekable<Box<Iterator<Item=Match>>>>,
+    rhs_candidate: Option<Vec<Match>>,
     op: Box<Operator>,
     lhs_idx: usize,
     node_search_desc: Rc<NodeSearchDesc>,
@@ -90,7 +89,7 @@ impl<'a> IndexJoin<'a> {
         };
     }
 
-    fn next_candidates(&mut self) -> Option<Box<Iterator<Item=Match>>> {
+    fn next_candidates(&mut self) -> Option<Vec<Match>> {
         if let Some(m_lhs) = self.lhs.peek().cloned() {
             let it_nodes = self.op.retrieve_matches(&m_lhs[self.lhs_idx]).fuse();
 
@@ -98,61 +97,52 @@ impl<'a> IndexJoin<'a> {
             if let Some(name) = self.node_search_desc.qname.1 {
                 if let Some(ns) = self.node_search_desc.qname.0 {
                     // return the only possible annotation for each node
-                    return Some(Box::new(it_nodes
-                        .filter_map(move |match_node| {
-                            let key = AnnoKey { ns: ns, name: name };
-                            if let Some(val) = node_annos.get(&match_node.node, &key) {
-                                Some(Match {
-                                    node: match_node.node,
-                                    anno: Annotation {
-                                        key,
-                                        val: val.clone(),
-                                    },
-                                })
-                            } else {
-                                // this annotation was not found for this node, remove it from iterator
-                                None
-                            }
-                        }))
-                    );
+                    let mut matches: Vec<Match> = Vec::new();
+                    for match_node in it_nodes {
+                        let key = AnnoKey { ns: ns, name: name };
+                        if let Some(val) = node_annos.get(&match_node.node, &key) {
+                            matches.push(Match {
+                                node: match_node.node,
+                                anno: Annotation {
+                                    key,
+                                    val: val.clone(),
+                                },
+                            });
+                        }
+                    }
+                    return Some(matches);
                 } else {
                     let keys = self.node_annos.get_qnames(name);
                     // return all annotations with the correct name for each node
-                    return Some(Box::new(it_nodes
-                        .flat_map(move |match_node| {
-                            let mut matches: Vec<Match> = Vec::new();
-                            matches.reserve(keys.len());
-                            for k in keys.clone() {
-                                if let Some(val) = node_annos.get(&match_node.node, &k) {
-                                    matches.push(Match {
-                                        node: match_node.node,
-                                        anno: Annotation {
-                                            key: k,
-                                            val: val.clone(),
-                                        },
-                                    })
-                                }
+                    let mut matches: Vec<Match> = Vec::new();
+                    for match_node in it_nodes {
+                        for k in keys.clone() {
+                            if let Some(val) = node_annos.get(&match_node.node, &k) {
+                                matches.push(Match {
+                                    node: match_node.node,
+                                    anno: Annotation {
+                                        key: k,
+                                        val: val.clone(),
+                                    },
+                                })
                             }
-                            matches.into_iter()
-                        }))
-                    );
+                        }
+                    };
+                    return Some(matches);
                 }
             } else {
                 // return all annotations for each node
-                return Some(Box::new(it_nodes
-                    .flat_map(move |match_node| {
-                        let annos = node_annos.get_all(&match_node.node);
-                        let mut matches: Vec<Match> = Vec::new();
-                        matches.reserve(annos.len());
-                        for a in annos {
-                            matches.push(Match {
-                                node: match_node.node,
-                                anno: a,
-                            });
-                        }
-                        matches.into_iter()
-                    }))
-                );
+                let mut matches: Vec<Match> = Vec::new();
+                for match_node in it_nodes {
+                    let annos = node_annos.get_all(&match_node.node);
+                    for a in annos {
+                        matches.push(Match {
+                            node: match_node.node,
+                            anno: a,
+                        });
+                    }
+                }
+                return Some(matches);
             }
         }
 
@@ -176,7 +166,7 @@ impl<'a> Iterator for IndexJoin<'a> {
     fn next(&mut self) -> Option<Vec<Match>> {
         // lazily initialize the RHS candidates for the first LHS
         if self.rhs_candidate.is_none() {
-            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {Some(rhs.into_iter().peekable())} else {None};
+            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {Some(rhs)} else {None};
         }
 
         if self.rhs_candidate.is_none() {
@@ -186,7 +176,7 @@ impl<'a> Iterator for IndexJoin<'a> {
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
                 let rhs_candidate = self.rhs_candidate.as_mut().unwrap();
-                while let Some(mut m_rhs) = rhs_candidate.next() {
+                while let Some(mut m_rhs) = rhs_candidate.pop() {
                     // check if all filters are true
                     let mut filter_result = true;
                     for f in self.node_search_desc.cond.iter() {
@@ -216,14 +206,14 @@ impl<'a> Iterator for IndexJoin<'a> {
                                     // only return the one unique constAnno for this node and no duplicates
                                     // skip all RHS candidates that have the same node ID
                                     loop {
-                                        if let Some(next_match) = rhs_candidate.peek() {
+                                        if let Some(next_match) = rhs_candidate.last() {
                                             if next_match.node != matched_node {
                                                 break;
                                             }
                                         } else {
                                             break;
                                         }
-                                        rhs_candidate.next();
+                                        rhs_candidate.pop();
                                     }
                                 }
                                 return Some(result);
@@ -239,7 +229,7 @@ impl<'a> Iterator for IndexJoin<'a> {
             }
 
             // inner was completed once, get new candidates
-            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {Some(rhs.into_iter().peekable())} else {None};
+            self.rhs_candidate = if let Some(rhs) = self.next_candidates() {Some(rhs)} else {None};
         }
     }
 }
