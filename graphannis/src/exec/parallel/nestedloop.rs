@@ -117,7 +117,7 @@ impl<'a> NestedLoop<'a> {
                         match_candidate_buffer.push((m_outer.clone(), m_inner.clone(), tx.clone()));
 
                         if match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
-                            break;
+                            return match_candidate_buffer;
                         }
                     }
                 } else {
@@ -127,7 +127,7 @@ impl<'a> NestedLoop<'a> {
                         match_candidate_buffer.push((m_outer.clone(), m_inner.clone(), tx.clone()));
 
                         if match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
-                            break;
+                            return match_candidate_buffer;
                         }
                     }
                 }
@@ -137,7 +137,7 @@ impl<'a> NestedLoop<'a> {
 
             // consume next outer
             if self.outer.next().is_none() {
-                break;
+                return match_candidate_buffer;
             }
         }
         return match_candidate_buffer; 
