@@ -17,7 +17,7 @@ pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut cs::CorpusSt
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
-    let s = cs::CorpusStorage::new_auto_cache_size(&db_dir_path);
+    let s = cs::CorpusStorage::new_auto_cache_size(&db_dir_path, false);
     if let Ok(s) = s {
         return Box::into_raw(Box::new(s));
     }

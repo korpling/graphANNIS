@@ -276,12 +276,16 @@ impl CorpusStorage {
         Ok(cs)
     }
 
-    pub fn new_auto_cache_size(db_dir: &Path) -> Result<CorpusStorage, Error> {
-        let cs = CorpusStorage {
+    pub fn new_auto_cache_size(db_dir: &Path, use_parallel_joins : bool) -> Result<CorpusStorage, Error> {
+        let query_config = query::Config {
+            use_parallel_joins,
+        };
+        
+        let  cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             max_allowed_cache_size: Some(1024 * 1024 * 1024), // 1 GB
             corpus_cache: RwLock::new(LinkedHashMap::new()),
-            query_config: query::Config::default(),
+            query_config: query_config,
         };
 
         Ok(cs)

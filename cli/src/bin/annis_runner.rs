@@ -97,7 +97,7 @@ struct AnnisRunner {
 impl AnnisRunner {
     pub fn new(data_dir: &Path) -> Result<AnnisRunner, Error> {
         Ok(AnnisRunner {
-            storage: CorpusStorage::new_auto_cache_size(data_dir)?,
+            storage: CorpusStorage::new_auto_cache_size(data_dir, false)?,
             current_corpus: None,
         })
     }
