@@ -10,7 +10,7 @@ use util;
 use regex;
 
 use std::fmt;
-use std::rc::Rc;
+use std::sync::Arc;
 use std;
 
 use itertools::Itertools;
@@ -21,7 +21,7 @@ pub struct NodeSearch<'a> {
     it: Box<Iterator<Item = Vec<Match>> + 'a>,
 
     desc: Option<Desc>,
-    node_search_desc: Rc<NodeSearchDesc>,
+    node_search_desc: Arc<NodeSearchDesc>,
 }
 #[derive(Clone, Debug)]
 pub enum NodeSearchSpec {
@@ -221,7 +221,7 @@ impl<'a> NodeSearch<'a> {
                         node_nr,
                         Some(est_output),
                     )),
-                    node_search_desc: Rc::new(NodeSearchDesc {
+                    node_search_desc: Arc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
                         const_output: const_output,
@@ -334,7 +334,7 @@ impl<'a> NodeSearch<'a> {
                 node_nr,
                 Some(est_output),
             )),
-            node_search_desc: Rc::new(NodeSearchDesc {
+            node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (ns_id, Some(name_id)),
                 cond: filters,
                 const_output: const_output,
@@ -464,7 +464,7 @@ impl<'a> NodeSearch<'a> {
                 node_nr,
                 Some(est_output),
             )),
-            node_search_desc: Rc::new(NodeSearchDesc {
+            node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (Some(tok_key.ns), Some(tok_key.name)),
                 cond: filters,
                 const_output: const_output,
@@ -474,7 +474,7 @@ impl<'a> NodeSearch<'a> {
 
     pub fn new_partofcomponentsearch(
         db: &'a GraphDB,
-        node_search_desc: Rc<NodeSearchDesc>,
+        node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
         components: Vec<Component>,
         edge_anno_spec: Option<EdgeAnnoSearchSpec>,
@@ -545,7 +545,7 @@ impl<'a> NodeSearch<'a> {
         self.desc = desc;
     }
 
-    pub fn get_node_search_desc(&self) -> Rc<NodeSearchDesc> {
+    pub fn get_node_search_desc(&self) -> Arc<NodeSearchDesc> {
         self.node_search_desc.clone()
     }
 }

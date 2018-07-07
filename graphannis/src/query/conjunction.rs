@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use types::Edge;
 use annostorage::AnnoStorage;
 use {Component, Match};
@@ -6,6 +7,7 @@ use graphstorage::GraphStatistic;
 use operator::{Operator, OperatorSpec};
 use exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use exec::indexjoin::IndexJoin;
+use exec::parallel;
 use exec::nestedloop::NestedLoop;
 use exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use exec::binary_filter::BinaryFilter;
@@ -14,7 +16,6 @@ use super::disjunction::Disjunction;
 
 use std::collections::BTreeMap;
 use std::iter::FromIterator;
-use std::rc::Rc;
 
 use rand::XorShiftRng;
 use rand::SeedableRng;
@@ -227,7 +228,7 @@ impl<'a> Conjunction<'a> {
 
     fn optimize_node_search_by_operator(
         &'a self,
-        node_search_desc: Rc<NodeSearchDesc>,
+        node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
         op_entries: Box<Iterator<Item = &'a OperatorEntry> + 'a>,
         db: &'a GraphDB,

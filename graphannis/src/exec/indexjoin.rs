@@ -7,7 +7,6 @@ use util;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use std;
 use std::iter::Peekable;
-use std::rc::Rc;
 
 
 /// A join that takes any iterator as left-hand-side (LHS) and an annotation condition as right-hand-side (RHS).
@@ -18,7 +17,7 @@ pub struct IndexJoin<'a> {
     rhs_candidate: Option<std::iter::Peekable<Box<Iterator<Item=Match>>>>,
     op: Box<Operator>,
     lhs_idx: usize,
-    node_search_desc: Rc<NodeSearchDesc>,
+    node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
     strings: Arc<StringStorage>,
     desc: Desc,
@@ -39,7 +38,7 @@ impl<'a> IndexJoin<'a> {
         node_nr_lhs: usize,
         node_nr_rhs: usize,
         op: Box<Operator>,
-        node_search_desc: Rc<NodeSearchDesc>,
+        node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         strings: Arc<StringStorage>,
         rhs_desc: Option<&Desc>,

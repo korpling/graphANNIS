@@ -2,7 +2,6 @@ extern crate graphannis;
 
 use std::env;
 use std::path::PathBuf;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use graphannis::graphdb::*;
@@ -196,7 +195,7 @@ fn index_join() {
             const_output: None,
         };
 
-        let join = IndexJoin::new(n1, 0, 1, 2, op, Rc::new(node_search_desc), db.node_annos.clone(), db.strings.clone(), None);
+        let join = IndexJoin::new(n1, 0, 1, 2, op, Arc::new(node_search_desc), db.node_annos.clone(), db.strings.clone(), None);
 
         assert_eq!(3, join.count());
     }
