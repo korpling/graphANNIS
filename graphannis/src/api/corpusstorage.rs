@@ -17,6 +17,7 @@ use types;
 use plan::ExecutionPlan;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
+use query;
 use exec::nodesearch::NodeSearchSpec;
 use heapsize::HeapSizeOf;
 use std::iter::FromIterator;
@@ -88,6 +89,7 @@ pub struct CorpusStorage {
     db_dir: PathBuf,
     max_allowed_cache_size: Option<usize>,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
+    query_config : query::Config,
 }
 
 struct PreparationResult<'a> {
@@ -152,12 +154,13 @@ fn extract_subgraph_by_query(
     db_entry: Arc<RwLock<CacheEntry>>,
     query: Disjunction,
     match_idx: Vec<usize>,
+    query_config: query::Config,
 ) -> Result<GraphDB, Error> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db)?;
+    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, query_config)?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -267,6 +270,7 @@ impl CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             max_allowed_cache_size,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
+            query_config: query::Config::default(),
         };
 
         Ok(cs)
@@ -277,6 +281,7 @@ impl CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             max_allowed_cache_size: Some(1024 * 1024 * 1024), // 1 GB
             corpus_cache: RwLock::new(LinkedHashMap::new()),
+            query_config: query::Config::default(),
         };
 
         Ok(cs)
@@ -565,7 +570,7 @@ impl CorpusStorage {
         // accuire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
         return Ok(format!("{}", plan));
     }
@@ -599,7 +604,7 @@ impl CorpusStorage {
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
         return Ok(plan.count() as u64);
     }
@@ -610,7 +615,7 @@ impl CorpusStorage {
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db: &GraphDB = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
         let mut known_documents = HashSet::new();
 
@@ -649,7 +654,7 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db)?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
         let it: Vec<String> = plan.skip(offset)
             .take(limit)
@@ -838,7 +843,7 @@ impl CorpusStorage {
                 query.alternatives.push(q_right);
             }
         }
-        return extract_subgraph_by_query(db_entry, query, vec![0]);
+        return extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone());
     }
 
     pub fn subgraph_for_query(
@@ -857,6 +862,7 @@ impl CorpusStorage {
             prep.db_entry.clone(),
             prep.query,
             (0..max_alt_size).collect(),
+            self.query_config.clone(),
         );
     }
     pub fn subcorpus_graph(
@@ -893,7 +899,7 @@ impl CorpusStorage {
             query.alternatives.push(q);
         }
 
-        return extract_subgraph_by_query(db_entry, query, vec![1]);
+        return extract_subgraph_by_query(db_entry, query, vec![1], self.query_config.clone());
     }
 
     pub fn corpus_graph(&self, corpus_name: &str) -> Result<GraphDB, Error> {
@@ -908,7 +914,7 @@ impl CorpusStorage {
             false,
         ));
 
-        return extract_subgraph_by_query(db_entry, query.into_disjunction(), vec![0]);
+        return extract_subgraph_by_query(db_entry, query.into_disjunction(), vec![0], self.query_config.clone());
     }
 
     pub fn get_all_components(

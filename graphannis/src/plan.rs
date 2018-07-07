@@ -2,6 +2,7 @@ use {Match, AnnoKey, NodeID};
 use graphdb::GraphDB;
 use query::conjunction;
 use query::disjunction::Disjunction;
+use query::Config;
 use exec::{Desc, ExecutionNode};
 use std;
 use std::fmt::Formatter;
@@ -24,12 +25,13 @@ impl<'a> ExecutionPlan<'a> {
     pub fn from_disjunction(
         query: &'a Disjunction<'a>,
         db: &'a GraphDB,
+        config : Config,
     ) -> Result<ExecutionPlan<'a>, Error> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();
         let mut errors: Vec<conjunction::Error> = Vec::new();
         for alt in query.alternatives.iter() {
-            let p = alt.make_exec_node(db);
+            let p = alt.make_exec_node(db, &config);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);

@@ -13,6 +13,7 @@ use exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use exec::binary_filter::BinaryFilter;
 
 use super::disjunction::Disjunction;
+use super::Config;
 
 use std::collections::BTreeMap;
 use std::iter::FromIterator;
@@ -135,7 +136,7 @@ impl<'a> Conjunction<'a> {
         return result;
     }
 
-    fn optimize_join_order_heuristics(&self, db: &'a GraphDB) -> Result<Vec<usize>, Error> {
+    fn optimize_join_order_heuristics(&self, db: &'a GraphDB, config : &Config) -> Result<Vec<usize>, Error> {
         // check if there is something to optimize
         if self.operators.is_empty() {
             return Ok(vec![]);
@@ -150,7 +151,7 @@ impl<'a> Conjunction<'a> {
         let mut best_operator_order = Vec::from_iter(0..self.operators.len());
 
         // TODO: cache the base estimates
-        let initial_plan = self.make_exec_plan_with_order(db, best_operator_order.clone())?;
+        let initial_plan = self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
         let mut best_cost = initial_plan
             .get_desc()
             .ok_or(Error::MissingDescription)?
@@ -193,7 +194,7 @@ impl<'a> Conjunction<'a> {
 
             let mut found_better_plan = false;
             for i in 1..family_operators.len() {
-                let alt_plan = self.make_exec_plan_with_order(db, family_operators[i].clone())?;
+                let alt_plan = self.make_exec_plan_with_order(db, config, family_operators[i].clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
                     .ok_or(Error::MissingDescription)?
@@ -284,6 +285,7 @@ impl<'a> Conjunction<'a> {
 
     fn create_join<'b>(&self, 
         db: &GraphDB,
+        config: &Config,
         op: Box<Operator>,
         exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b> , 
         exec_right : Box<ExecutionNode<Item = Vec<Match>> + 'b>,
@@ -292,34 +294,64 @@ impl<'a> Conjunction<'a> {
         
         if exec_right.as_nodesearch().is_some() {
             // use index join
-            let join = IndexJoin::new(
-                exec_left,
-                idx_left,
-                spec_idx_left + 1,
-                spec_idx_right + 1,
-                op,
-                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                db.node_annos.clone(),
-                db.strings.clone(),
-                exec_right.get_desc(),
-            );
-            return Box::new(join);
+            if config.use_parallel_joins {
+                let join = parallel::indexjoin::IndexJoin::new(
+                    exec_left,
+                    idx_left,
+                    spec_idx_left + 1,
+                    spec_idx_right + 1,
+                    op,
+                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+                    db.node_annos.clone(),
+                    db.strings.clone(),
+                    exec_right.get_desc(),
+                );
+                return Box::new(join);
+            } else {
+                let join = IndexJoin::new(
+                    exec_left,
+                    idx_left,
+                    spec_idx_left + 1,
+                    spec_idx_right + 1,
+                    op,
+                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+                    db.node_annos.clone(),
+                    db.strings.clone(),
+                    exec_right.get_desc(),
+                );
+                return Box::new(join);
+            }
         } else if exec_left.as_nodesearch().is_some() {
 
             // avoid a nested loop join by switching the operand and using and index join
             if let Some(inverse_op) = op.get_inverse_operator() {
-                let join = IndexJoin::new(
-                    exec_right,
-                    idx_right,
-                    spec_idx_right + 1,
-                    spec_idx_left + 1,
-                    inverse_op,
-                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.clone(),
-                    db.strings.clone(),
-                    exec_left.get_desc(),
-                );
-                return Box::new(join);
+                if config.use_parallel_joins {
+                    let join = parallel::indexjoin::IndexJoin::new(
+                        exec_right,
+                        idx_right,
+                        spec_idx_right + 1,
+                        spec_idx_left + 1,
+                        inverse_op,
+                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                        db.node_annos.clone(),
+                        db.strings.clone(),
+                        exec_left.get_desc(),
+                    );
+                    return Box::new(join);
+                } else {
+                    let join = IndexJoin::new(
+                        exec_right,
+                        idx_right,
+                        spec_idx_right + 1,
+                        spec_idx_left + 1,
+                        inverse_op,
+                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                        db.node_annos.clone(),
+                        db.strings.clone(),
+                        exec_left.get_desc(),
+                    );
+                    return Box::new(join);
+                }
             }
         }
 
@@ -340,10 +372,9 @@ impl<'a> Conjunction<'a> {
     fn make_exec_plan_with_order(
         &'a self,
         db: &'a GraphDB,
+        config: &Config,
         operator_order: Vec<usize>,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
-        // TODO: parallization mapping
-
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
         // 1. add all nodes
@@ -500,7 +531,7 @@ impl<'a> Conjunction<'a> {
                     .ok_or(Error::OperatorIdxNotFound)?
                     .clone();
 
-                self.create_join(db, op, exec_left, exec_right, spec_idx_left, spec_idx_right, idx_left, idx_right)
+                self.create_join(db, config, op, exec_left, exec_right, spec_idx_left, spec_idx_right, idx_left, idx_right)
             };
 
             let new_component_nr = new_exec
@@ -539,8 +570,9 @@ impl<'a> Conjunction<'a> {
     pub fn make_exec_node(
         &'a self,
         db: &'a GraphDB,
+        config: &Config,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
-        let operator_order = self.optimize_join_order_heuristics(db)?;
-        return self.make_exec_plan_with_order(db, operator_order);
+        let operator_order = self.optimize_join_order_heuristics(db, config)?;
+        return self.make_exec_plan_with_order(db, config, operator_order);
     }
 }
