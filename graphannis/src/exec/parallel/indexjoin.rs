@@ -165,9 +165,9 @@ impl<'a> IndexJoin<'a> {
                                     rhs_candidate.next();
                                 }
                             }
-                            // TODO: handle error
-                            tx.send(result);
-                        
+                            if let Err(_) = tx.send(result) {
+                                return;
+                            }
                         }
                     }
                 }
