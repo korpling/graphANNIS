@@ -2,11 +2,9 @@ use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use annostorage::AnnoStorage;
 use operator::{EstimationType, Operator};
 use rayon::prelude::*;
-use std;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
-use std::thread;
 use stringstorage::StringStorage;
 use util;
 use {AnnoKey, Annotation, Match, NodeID};
@@ -18,7 +16,6 @@ const MAX_BUFFER_SIZE : usize = 512;
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
-    lhs_buffer: Vec<(Vec<Match>, Sender<Vec<Match>>)>,
     match_receiver: Option<Receiver<Vec<Match>>>,
     op: Arc<Operator>,
     lhs_idx: usize,
@@ -85,7 +82,6 @@ impl<'a> IndexJoin<'a> {
                 &processed_func,
             ),
             lhs: lhs_peek,
-            lhs_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
             lhs_idx,
             op: Arc::from(op),
             node_search_desc,
@@ -95,14 +91,16 @@ impl<'a> IndexJoin<'a> {
         };
     }
 
-    fn fill_lhs_buffer(&mut self, tx : Sender<Vec<Match>>) {
-        while self.lhs_buffer.len() < MAX_BUFFER_SIZE {
+    fn next_lhs_buffer(&mut self, tx : Sender<Vec<Match>>) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
+        let mut lhs_buffer : Vec<(Vec<Match>, Sender<Vec<Match>>)> = Vec::with_capacity(MAX_BUFFER_SIZE);
+        while lhs_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(lhs) = self.lhs.next() {
-                self.lhs_buffer.push((lhs, tx.clone()));
+                lhs_buffer.push((lhs, tx.clone()));
             } else {
                 break;
             }
         }
+        return lhs_buffer;
     }
 
     
@@ -110,7 +108,7 @@ impl<'a> IndexJoin<'a> {
     fn next_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         
         let (tx, rx) = channel();
-        self.fill_lhs_buffer(tx);
+        let mut lhs_buffer = self.next_lhs_buffer(tx);
 
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
         let strings: Arc<StringStorage> = self.strings.clone();
@@ -121,7 +119,7 @@ impl<'a> IndexJoin<'a> {
         let op: &Operator = op.as_ref();
 
         // find all RHS in parallel
-        self.lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
+        lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
             if let Some(rhs_candidate) = next_candidates(m_lhs, op, lhs_idx, node_annos.clone(), node_search_desc.clone()) {
                 let mut rhs_candidate = rhs_candidate.into_iter().peekable();
                 while let Some(mut m_rhs) = rhs_candidate.next() {
