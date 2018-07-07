@@ -168,57 +168,56 @@ impl<'a> IndexJoin<'a> {
                 let op: Arc<Operator> = self.op.clone();
                 let lhs_idx = self.lhs_idx;
 
-                thread::spawn(move || {
-                    let op: &Operator = op.as_ref();
-                    // check all RHS candidates in parallel
-                    rhs_candidate_with_tx
-                        .par_iter_mut()
-                        .for_each(|(m_rhs, tx)| {
-                            // check if all filters are true
-                            let mut filter_result = true;
-                            for f in node_search_desc.cond.iter() {
-                                if !(f)(&m_rhs, strings.as_ref()) {
-                                    filter_result = false;
-                                    break;
-                                }
+                let op: &Operator = op.as_ref();
+                // check all RHS candidates in parallel
+                rhs_candidate_with_tx
+                    .par_iter_mut()
+                    .for_each(|(m_rhs, tx)| {
+                        // check if all filters are true
+                        let mut filter_result = true;
+                        for f in node_search_desc.cond.iter() {
+                            if !(f)(&m_rhs, strings.as_ref()) {
+                                filter_result = false;
+                                break;
+                            }
+                        }
+
+                        if filter_result {
+                            // replace the annotation with a constant value if needed
+                            if let Some(ref const_anno) = node_search_desc.const_output {
+                                m_rhs.anno = const_anno.clone();
                             }
 
-                            if filter_result {
-                                // replace the annotation with a constant value if needed
-                                if let Some(ref const_anno) = node_search_desc.const_output {
-                                    m_rhs.anno = const_anno.clone();
+                            // check if lhs and rhs are equal and if this is allowed in this query
+                            if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
+                                || !util::check_annotation_key_equal(
+                                    &m_lhs[lhs_idx].anno,
+                                    &m_rhs.anno,
+                                ) {
+                                // filters have been checked, return the result
+                                let mut result = m_lhs.clone();
+                                let _matched_node = m_rhs.node;
+                                result.push(m_rhs.clone());
+                                if node_search_desc.const_output.is_some() {
+                                    // only return the one unique constAnno for this node and no duplicates
+                                    // TODO: skip all RHS candidates that have the same node ID
+                                    unimplemented!()
+                                    // loop {
+                                    //     if let Some(next_match) = rhs_candidate.last() {
+                                    //         if next_match.node != matched_node {
+                                    //             break;
+                                    //         }
+                                    //     } else {
+                                    //         break;
+                                    //     }
+                                    //     rhs_candidate.pop();
+                                    // }
                                 }
-
-                                // check if lhs and rhs are equal and if this is allowed in this query
-                                if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
-                                    || !util::check_annotation_key_equal(
-                                        &m_lhs[lhs_idx].anno,
-                                        &m_rhs.anno,
-                                    ) {
-                                    // filters have been checked, return the result
-                                    let mut result = m_lhs.clone();
-                                    let _matched_node = m_rhs.node;
-                                    result.push(m_rhs.clone());
-                                    if node_search_desc.const_output.is_some() {
-                                        // only return the one unique constAnno for this node and no duplicates
-                                        // TODO: skip all RHS candidates that have the same node ID
-                                        unimplemented!()
-                                        // loop {
-                                        //     if let Some(next_match) = rhs_candidate.last() {
-                                        //         if next_match.node != matched_node {
-                                        //             break;
-                                        //         }
-                                        //     } else {
-                                        //         break;
-                                        //     }
-                                        //     rhs_candidate.pop();
-                                        // }
-                                    }
-                                    tx.send(result);
-                                }
+                                tx.send(result);
                             }
-                        });
-                });
+                        }
+                    });
+            
                 return Some(rx);
             }
         }
