@@ -89,7 +89,7 @@ pub struct CorpusStorage {
     db_dir: PathBuf,
     max_allowed_cache_size: Option<usize>,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
-    query_config : query::Config,
+    pub query_config : query::Config,
 }
 
 struct PreparationResult<'a> {

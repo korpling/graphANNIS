@@ -42,6 +42,9 @@ impl CommandCompleter {
         known_commands.insert("find".to_string());
         known_commands.insert("plan".to_string());
         known_commands.insert("str".to_string());
+        known_commands.insert("use_parallel".to_string());
+        
+
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
 
@@ -157,6 +160,7 @@ impl AnnisRunner {
                 "count" => self.count(&args),
                 "find" => self.find(&args),
                 "str" => self.get_string(&args),
+                "use_parallel" => self.use_parallel(&args),
                 "quit" | "exit" => return false,
                 _ => println!("unknown command \"{}\"", cmd),
             };
@@ -332,6 +336,20 @@ impl AnnisRunner {
             } else {
                 println!("Could not parse string ID");
             }
+        }
+    }
+
+    fn use_parallel(&mut self, args: &str) {
+        match args.trim().to_lowercase().as_str() {
+            "on" | "true" => self.storage.query_config.use_parallel_joins = true,
+            "off" | "false" => self.storage.query_config.use_parallel_joins = false,
+            "" => (),
+            _ => println!("unknown argument \"{}\"", args),
+        }
+        if self.storage.query_config.use_parallel_joins {
+            println!("Join parallization is enabled");
+        } else {
+            println!("Join parallization is disabled");
         }
     }
 }
