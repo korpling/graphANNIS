@@ -35,10 +35,10 @@ impl TDynBenchFn for CountBench {
     }
 }
 
-pub fn count_bench(data_dir: &Path, queries_dir: &Path) -> std::vec::Vec<bencher::TestDescAndFn> {
+pub fn count_bench(data_dir: &Path, queries_dir: &Path, use_parallel_joins : bool) -> std::vec::Vec<bencher::TestDescAndFn> {
     let mut benches = std::vec::Vec::new();
 
-    let cs = Arc::new(CorpusStorage::new_auto_cache_size(data_dir, false).unwrap());
+    let cs = Arc::new(CorpusStorage::new_auto_cache_size(data_dir, use_parallel_joins).unwrap());
 
     // each folder is one corpus
     if let Ok(paths) = std::fs::read_dir(queries_dir) {
@@ -83,6 +83,7 @@ fn main() {
         .arg(Arg::with_name("data").long("data").short("d").takes_value(true).required(true))
         .arg(Arg::with_name("queries").long("queries").short("q").takes_value(true).required(true))
         .arg(Arg::with_name("FILTER").required(false))
+        .arg(Arg::with_name("parallel").required(false))
         .get_matches();
 
     let mut test_opts = TestOpts::default();
@@ -106,6 +107,8 @@ fn main() {
         PathBuf::from("queries")
     };
 
-    let benches = count_bench(&data_dir, &queries_dir);
+    let use_parallel_joins =  matches.is_present("parallel");
+
+    let benches = count_bench(&data_dir, &queries_dir, use_parallel_joins);
     run_tests_console(&test_opts, benches).unwrap();
 }
