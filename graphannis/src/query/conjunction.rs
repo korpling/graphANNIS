@@ -356,17 +356,29 @@ impl<'a> Conjunction<'a> {
         }
 
          // use nested loop as "fallback"
-        let join = NestedLoop::new(
-            exec_left,
-            exec_right,
-            idx_left,
-            idx_right,
-            spec_idx_left + 1,
-            spec_idx_right + 1,
-            op,
-        );
-
-        return Box::new(join);
+        if config.use_parallel_joins {
+            let join = parallel::nestedloop::NestedLoop::new(
+                exec_left,
+                exec_right,
+                idx_left,
+                idx_right,
+                spec_idx_left + 1,
+                spec_idx_right + 1,
+                op,
+            );
+            return Box::new(join);
+        } else {
+            let join = NestedLoop::new(
+                exec_left,
+                exec_right,
+                idx_left,
+                idx_right,
+                spec_idx_left + 1,
+                spec_idx_right + 1,
+                op,
+            );
+            return Box::new(join);
+        }
     }
 
     fn make_exec_plan_with_order(
