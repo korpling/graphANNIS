@@ -82,8 +82,9 @@ fn main() {
         .arg(Arg::with_name("logfile").long("logfile").takes_value(true))
         .arg(Arg::with_name("data").long("data").short("d").takes_value(true).required(true))
         .arg(Arg::with_name("queries").long("queries").short("q").takes_value(true).required(true))
+        .arg(Arg::with_name("parallel").long("parallel").short("p").takes_value(false).required(false))
         .arg(Arg::with_name("FILTER").required(false))
-        .arg(Arg::with_name("parallel").required(false))
+        
         .get_matches();
 
     let mut test_opts = TestOpts::default();
