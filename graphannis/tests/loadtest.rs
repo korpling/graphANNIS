@@ -12,6 +12,7 @@ use graphannis::exec::NodeSearchDesc;
 use graphannis::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use graphannis::exec::nestedloop::NestedLoop;
 use graphannis::exec::indexjoin::IndexJoin;
+use graphannis::exec::parallel;
 use graphannis::operator::precedence::{Precedence, PrecedenceSpec};
 use graphannis::stringstorage::StringStorage;
 
@@ -159,6 +160,44 @@ fn nested_loop_join() {
 }
 
 #[test]
+fn parallel_nested_loop_join() {
+    if let Some(mut db) = load_corpus("pcc2") {
+
+
+        let op_spec =  PrecedenceSpec {
+            segmentation: None,
+            min_dist: 1,
+            max_dist: 1,
+        };
+
+        // make sure to load all components
+        for c in op_spec.necessary_components() {
+            db.ensure_loaded(&c).expect("Loading component unsuccessful");
+        }
+
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
+
+        let n2 = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 1, &db).unwrap();
+
+        let op = Precedence::new(
+            &db,
+            op_spec,
+        );
+
+        let op = Box::new(op.unwrap());
+
+
+
+        let n1 = Box::new(n1);
+        let n2 = Box::new(n2);
+
+        let join = parallel::nestedloop::NestedLoop::new(n1, n2, 0, 0, 1, 2, op);
+
+        assert_eq!(3, join.count());
+    }
+}
+
+#[test]
 fn index_join() {
     if let Some(mut db) = load_corpus("pcc2") {
 
@@ -196,6 +235,49 @@ fn index_join() {
         };
 
         let join = IndexJoin::new(n1, 0, 1, 2, op, Arc::new(node_search_desc), db.node_annos.clone(), db.strings.clone(), None);
+
+        assert_eq!(3, join.count());
+    }
+}
+
+#[test]
+fn parallel_index_join() {
+    if let Some(mut db) = load_corpus("pcc2") {
+
+
+        let op_spec =  PrecedenceSpec {
+            segmentation: None,
+            min_dist: 1,
+            max_dist: 1,
+        };
+
+
+        let anno_name = Arc::make_mut(&mut db.strings).add("pos");
+        let anno_val = Arc::make_mut(&mut db.strings).add("ADJA");
+
+        // make sure to load all components
+        for c in op_spec.necessary_components() {
+            db.ensure_loaded(&c).expect("Loading component unsuccessful");
+        }
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
+
+
+        let op = Precedence::new(
+            &db,
+            op_spec,
+        );
+
+        let op = Box::new(op.unwrap());
+
+        let n1 = Box::new(n1);
+
+        let node_search_desc  = NodeSearchDesc {
+            cond: vec![Box::new(move |m : &Match, _ : &StringStorage|  {return m.anno.key.name == anno_name && m.anno.val == anno_val })],
+            qname: (None, Some(anno_name)),
+            const_output: None,
+        };
+
+        let join = parallel::indexjoin::IndexJoin::new(n1, 0, 1, 2, op, Arc::new(node_search_desc), db.node_annos.clone(), db.strings.clone(), None);
 
         assert_eq!(3, join.count());
     }

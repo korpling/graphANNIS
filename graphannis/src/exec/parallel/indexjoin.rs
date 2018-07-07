@@ -105,7 +105,7 @@ impl<'a> IndexJoin<'a> {
 
     
 
-    fn next_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
+    fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         
         let (tx, rx) = channel();
         let mut lhs_buffer = self.next_lhs_buffer(tx);
@@ -246,9 +246,9 @@ impl<'a> Iterator for IndexJoin<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
-        // lazily initialize the RHS candidates for the first LHS
+        // lazily initialize
         if self.match_receiver.is_none() {
-            self.match_receiver = if let Some(rhs) = self.next_receiver() {
+            self.match_receiver = if let Some(rhs) = self.next_match_receiver() {
                 Some(rhs)
             } else {
                 None
@@ -269,7 +269,7 @@ impl<'a> Iterator for IndexJoin<'a> {
             }
 
             // inner was completed once, get new candidates
-            if let Some(rhs) = self.next_receiver() {
+            if let Some(rhs) = self.next_match_receiver() {
                 self.match_receiver = Some(rhs);
             } else {
                 // no more results to fetch
