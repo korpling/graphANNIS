@@ -11,11 +11,14 @@ use stringstorage::StringStorage;
 use util;
 use {AnnoKey, Annotation, Match, NodeID};
 
+const MAX_BUFFER_SIZE : usize = 512;
+
 /// A join that takes any iterator as left-hand-side (LHS) and an annotation condition as right-hand-side (RHS).
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
 /// if the annotation condition is true.
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
+    lhs_buffer: Vec<(Vec<Match>, Sender<Vec<Match>>)>,
     match_receiver: Option<Receiver<Vec<Match>>>,
     op: Arc<Operator>,
     lhs_idx: usize,
@@ -82,6 +85,7 @@ impl<'a> IndexJoin<'a> {
                 &processed_func,
             ),
             lhs: lhs_peek,
+            lhs_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
             lhs_idx,
             op: Arc::from(op),
             node_search_desc,
@@ -91,137 +95,138 @@ impl<'a> IndexJoin<'a> {
         };
     }
 
-    fn next_candidates(&mut self) -> Option<Vec<Match>> {
-        if let Some(m_lhs) = self.lhs.peek().cloned() {
-            let it_nodes = self.op.retrieve_matches(&m_lhs[self.lhs_idx]).fuse();
-
-            let node_annos = self.node_annos.clone();
-            if let Some(name) = self.node_search_desc.qname.1 {
-                if let Some(ns) = self.node_search_desc.qname.0 {
-                    // return the only possible annotation for each node
-                    let mut matches: Vec<Match> = Vec::new();
-                    for match_node in it_nodes {
-                        let key = AnnoKey { ns: ns, name: name };
-                        if let Some(val) = node_annos.get(&match_node.node, &key) {
-                            matches.push(Match {
-                                node: match_node.node,
-                                anno: Annotation {
-                                    key,
-                                    val: val.clone(),
-                                },
-                            });
-                        }
-                    }
-                    return Some(matches);
-                } else {
-                    let keys = self.node_annos.get_qnames(name);
-                    // return all annotations with the correct name for each node
-                    let mut matches: Vec<Match> = Vec::new();
-                    for match_node in it_nodes {
-                        for k in keys.clone() {
-                            if let Some(val) = node_annos.get(&match_node.node, &k) {
-                                matches.push(Match {
-                                    node: match_node.node,
-                                    anno: Annotation {
-                                        key: k,
-                                        val: val.clone(),
-                                    },
-                                })
-                            }
-                        }
-                    }
-                    return Some(matches);
-                }
+    fn fill_lhs_buffer(&mut self, tx : Sender<Vec<Match>>) {
+        while self.lhs_buffer.len() < MAX_BUFFER_SIZE {
+            if let Some(lhs) = self.lhs.next() {
+                self.lhs_buffer.push((lhs, tx.clone()));
             } else {
-                // return all annotations for each node
-                let mut matches: Vec<Match> = Vec::new();
-                for match_node in it_nodes {
-                    let annos = node_annos.get_all(&match_node.node);
-                    for a in annos {
-                        matches.push(Match {
-                            node: match_node.node,
-                            anno: a,
-                        });
-                    }
-                }
-                return Some(matches);
+                break;
             }
         }
-
-        return None;
     }
 
+    
+
     fn next_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
-        if let Some(m_lhs) = self.lhs.peek().cloned() {
-            if let Some(rhs_candidate) = self.next_candidates() {
-                let (tx, rx) = channel();
+        
+        let (tx, rx) = channel();
+        self.fill_lhs_buffer(tx);
 
-                // extend the vector with a seperate sender for each element
-                let mut rhs_candidate_with_tx: Vec<(Match, Sender<Vec<Match>>)> =
-                    Vec::with_capacity(rhs_candidate.len());
-                for m_rhs in rhs_candidate.into_iter() {
-                    rhs_candidate_with_tx.push((m_rhs, tx.clone()));
-                }
+        let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
+        let strings: Arc<StringStorage> = self.strings.clone();
+        let op: Arc<Operator> = self.op.clone();
+        let lhs_idx = self.lhs_idx;
+        let node_annos = self.node_annos.clone();
 
-                let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
-                let strings: Arc<StringStorage> = self.strings.clone();
-                let op: Arc<Operator> = self.op.clone();
-                let lhs_idx = self.lhs_idx;
+        let op: &Operator = op.as_ref();
 
-                let op: &Operator = op.as_ref();
-                // check all RHS candidates in parallel
-                rhs_candidate_with_tx
-                    .par_iter_mut()
-                    .for_each(|(m_rhs, tx)| {
-                        // check if all filters are true
-                        let mut filter_result = true;
-                        for f in node_search_desc.cond.iter() {
-                            if !(f)(&m_rhs, strings.as_ref()) {
-                                filter_result = false;
-                                break;
-                            }
+        // find all RHS in parallel
+        self.lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
+            if let Some(rhs_candidate) = next_candidates(m_lhs, op, lhs_idx, node_annos.clone(), node_search_desc.clone()) {
+                let mut rhs_candidate = rhs_candidate.into_iter().peekable();
+                while let Some(mut m_rhs) = rhs_candidate.next() {
+                    // check if all filters are true
+                    let mut filter_result = true;
+                    for f in node_search_desc.cond.iter() {
+                        if !(f)(&m_rhs, &strings) {
+                            filter_result = false;
+                            break;
+                        }
+                    }
+
+                    if filter_result {
+
+                        // replace the annotation with a constant value if needed
+                        if let Some(ref const_anno) = node_search_desc.const_output {
+                            m_rhs.anno = const_anno.clone();
                         }
 
-                        if filter_result {
-                            // replace the annotation with a constant value if needed
-                            if let Some(ref const_anno) = node_search_desc.const_output {
-                                m_rhs.anno = const_anno.clone();
-                            }
-
-                            // check if lhs and rhs are equal and if this is allowed in this query
-                            if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
-                                || !util::check_annotation_key_equal(
-                                    &m_lhs[lhs_idx].anno,
-                                    &m_rhs.anno,
-                                ) {
-                                // filters have been checked, return the result
-                                let mut result = m_lhs.clone();
-                                let _matched_node = m_rhs.node;
-                                result.push(m_rhs.clone());
-                                if node_search_desc.const_output.is_some() {
-                                    // only return the one unique constAnno for this node and no duplicates
-                                    // TODO: skip all RHS candidates that have the same node ID
-                                    unimplemented!()
-                                    // loop {
-                                    //     if let Some(next_match) = rhs_candidate.last() {
-                                    //         if next_match.node != matched_node {
-                                    //             break;
-                                    //         }
-                                    //     } else {
-                                    //         break;
-                                    //     }
-                                    //     rhs_candidate.pop();
-                                    // }
+                        // check if lhs and rhs are equal and if this is allowed in this query
+                        if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
+                            || !util::check_annotation_key_equal(&m_lhs[lhs_idx].anno, &m_rhs.anno)
+                        {
+                            // filters have been checked, return the result
+                            let mut result = m_lhs.clone();
+                            let matched_node = m_rhs.node;
+                            result.push(m_rhs);
+                            if node_search_desc.const_output.is_some() {
+                                // only return the one unique constAnno for this node and no duplicates
+                                // skip all RHS candidates that have the same node ID
+                                loop {
+                                    if let Some(next_match) = rhs_candidate.peek() {
+                                        if next_match.node != matched_node {
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                    rhs_candidate.next();
                                 }
-                                tx.send(result);
                             }
+                            // TODO: handle error
+                            tx.send(result);
+                        
                         }
+                    }
+                }
+            }
+        });
+        return Some(rx);
+    }
+}
+
+fn next_candidates(m_lhs : &Vec<Match>, op : &Operator, lhs_idx : usize, node_annos: Arc<AnnoStorage<NodeID>>, node_search_desc: Arc<NodeSearchDesc>) -> Option<Vec<Match>> {
+    let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]).fuse();
+
+    if let Some(name) = node_search_desc.qname.1 {
+        if let Some(ns) = node_search_desc.qname.0 {
+            // return the only possible annotation for each node
+            let mut matches: Vec<Match> = Vec::new();
+            for match_node in it_nodes {
+                let key = AnnoKey { ns: ns, name: name };
+                if let Some(val) = node_annos.get(&match_node.node, &key) {
+                    matches.push(Match {
+                        node: match_node.node,
+                        anno: Annotation {
+                            key,
+                            val: val.clone(),
+                        },
                     });
-            
-                return Some(rx);
+                }
+            }
+            return Some(matches);
+        } else {
+            let keys = node_annos.get_qnames(name);
+            // return all annotations with the correct name for each node
+            let mut matches: Vec<Match> = Vec::new();
+            for match_node in it_nodes {
+                for k in keys.clone() {
+                    if let Some(val) = node_annos.get(&match_node.node, &k) {
+                        matches.push(Match {
+                            node: match_node.node,
+                            anno: Annotation {
+                                key: k,
+                                val: val.clone(),
+                            },
+                        })
+                    }
+                }
+            }
+            return Some(matches);
+        }
+    } else {
+        // return all annotations for each node
+        let mut matches: Vec<Match> = Vec::new();
+        for match_node in it_nodes {
+            let annos = node_annos.get_all(&match_node.node);
+            for a in annos {
+                matches.push(Match {
+                    node: match_node.node,
+                    anno: a,
+                });
             }
         }
-        return None;
+        return Some(matches);
     }
 }
 
