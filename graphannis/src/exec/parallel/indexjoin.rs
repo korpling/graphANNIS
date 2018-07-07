@@ -110,6 +110,10 @@ impl<'a> IndexJoin<'a> {
         let (tx, rx) = channel();
         let mut lhs_buffer = self.next_lhs_buffer(tx);
 
+        if lhs_buffer.is_empty() {
+            return None;
+        }
+
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
         let strings: Arc<StringStorage> = self.strings.clone();
         let op: Arc<Operator> = self.op.clone();
@@ -262,19 +266,15 @@ impl<'a> Iterator for IndexJoin<'a> {
                 if let Ok(result) = match_receiver.recv() {
                     return Some(result);
                 }
-
-                // consume next outer
-                if self.lhs.next().is_none() {
-                    return None;
-                }
             }
 
             // inner was completed once, get new candidates
-            self.match_receiver = if let Some(rhs) = self.next_receiver() {
-                Some(rhs)
+            if let Some(rhs) = self.next_receiver() {
+                self.match_receiver = Some(rhs);
             } else {
-                None
-            };
+                // no more results to fetch
+                return None;
+            }
         }
     }
 }
