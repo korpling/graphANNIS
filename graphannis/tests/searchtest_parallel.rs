@@ -61,26 +61,31 @@ fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
     });
 }
 
+#[ignore]
 #[test]
 fn count_gum() {
     search_test_base("GUM", "SearchTestGUM", true);
 }
 
+#[ignore]
 #[test]
 fn count_pcc2() {
     search_test_base("pcc2", "SearchTestPcc2", true);
 }
 
+#[ignore]
 #[test]
 fn count_parlament() {
     search_test_base("parlament", "SearchTestParlament", true);
 }
 
+#[ignore]
 #[test]
 fn count_tiger() {
     search_test_base("tiger2", "SearchTestTiger", true);
 }
 
+#[ignore]
 #[test]
 fn count_ridges() {
     search_test_base("ridges7", "SearchTestRidges", true);
