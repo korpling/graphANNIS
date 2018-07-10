@@ -1,15 +1,16 @@
-pub mod token_helper;
 pub mod memory_estimation;
+pub mod sort_matches;
+pub mod token_helper;
 
-use {Annotation, AnnoKey};
 use graphdb::GraphDB;
 use regex_syntax;
+use {AnnoKey, Annotation};
 
+use std;
 use std::ffi::{OsStr, OsString};
-use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Read;
-use std;
+use std::path::{Path, PathBuf};
 
 pub fn regex_full_match(pattern: &str) -> String {
     let mut full_match_pattern = String::new();
@@ -30,7 +31,7 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
 }
 
 pub fn check_annotation_key_equal(a: &Annotation, b: &Annotation) -> bool {
-     // compare by name (non lexical but just by the ID)
+    // compare by name (non lexical but just by the ID)
     if a.key.name != 0 && b.key.name != 0 && a.key.name != b.key.name {
         return false;
     }
@@ -62,6 +63,44 @@ pub fn check_annotation_equal(a: &Annotation, b: &Annotation) -> bool {
 
     // they are equal
     return true;
+}
+
+/// Takes a node name/ID and extracts both the document path as array and the node name itself.
+/// Complete node names/IDs have the form `toplevel-corpus/sub-corpus/.../document#node-name`,
+/// mimicking simple URIs (without a scheme) and a limited set of allowed characters as corpus/document names.
+/// The part before the fragment is returned as vector, the latter one as string.
+///
+/// # Examples
+/// ```
+/// extern crate graphannis;
+/// use graphannis::util;
+///
+/// let full_node_name = "toplevel/subcorpus1/subcorpus2/doc1#mynode";
+/// let (path, name) = util::extract_node_path(full_node_name);
+///
+/// assert_eq!(name, "mynode");
+/// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
+/// ```
+pub fn extract_node_path(full_node_name: &str) -> (Vec<String>, String) {
+    // separate path and name first
+    let node_path_split: Vec<&str> = full_node_name.rsplitn(2, "#").collect();
+
+    let path_str = if node_path_split.len() == 2 {
+        node_path_split[1]
+    } else {
+        node_path_split[0]
+    };
+    let path: Vec<String> = path_str
+        .split("/")
+        .filter(|s| !s.is_empty())
+        .map(|s| String::from(s))
+        .collect();
+
+    if node_path_split.len() == 2 {
+        return (path, String::from(node_path_split[0]));
+    } else {
+        return (path, String::new());
+    }
 }
 
 pub struct SearchDef {
@@ -99,7 +138,7 @@ impl SearchDef {
                 // try to parse the count value
                 if let Ok(count) = count.trim().parse::<u64>() {
                     let unknown_name = OsString::from("<unknown>");
-                    let name : &OsStr = p_aql.file_stem().unwrap_or(&unknown_name);
+                    let name: &OsStr = p_aql.file_stem().unwrap_or(&unknown_name);
                     return Some(SearchDef {
                         aql: String::from(aql.trim()),
                         json: String::from(json.trim()),
@@ -114,19 +153,23 @@ impl SearchDef {
     }
 }
 
-pub fn get_queries_from_folder(folder: &Path, panic_on_invalid : bool) -> Box<Iterator<Item = SearchDef>> {
+pub fn get_queries_from_folder(
+    folder: &Path,
+    panic_on_invalid: bool,
+) -> Box<Iterator<Item = SearchDef>> {
     // get an iterator over all files in the folder
     if let Ok(it_folder) = folder.read_dir() {
         // filter by file type and read both the ".aql", ".json" and ".count" files
         let it = it_folder.filter_map(move |e| -> Option<SearchDef> {
             if let Ok(e) = e {
                 let p = e.path();
-                if p.exists() && p.is_file()
-                    && p.extension() == Some(&OsString::from("aql"))
-                {
+                if p.exists() && p.is_file() && p.extension() == Some(&OsString::from("aql")) {
                     let r = SearchDef::from_file(&p);
                     if panic_on_invalid {
-                        let r = r.expect(&format!("Search definition for query {} is incomplete", p.to_string_lossy()));
+                        let r = r.expect(&format!(
+                            "Search definition for query {} is incomplete",
+                            p.to_string_lossy()
+                        ));
                         return Some(r);
                     } else {
                         return r;
@@ -143,9 +186,9 @@ pub fn get_queries_from_folder(folder: &Path, panic_on_invalid : bool) -> Box<It
     return Box::new(std::iter::empty());
 }
 
-pub fn qname_to_anno_key(qname : &str, db : &GraphDB) -> Option<AnnoKey> {
+pub fn qname_to_anno_key(qname: &str, db: &GraphDB) -> Option<AnnoKey> {
     // split qname
-    let qname : Vec<&str> = qname.splitn(2, "::").collect();
+    let qname: Vec<&str> = qname.splitn(2, "::").collect();
     if qname.len() == 1 {
         return Some(AnnoKey {
             ns: db.strings.find_id("")?.clone(),
@@ -159,5 +202,3 @@ pub fn qname_to_anno_key(qname : &str, db : &GraphDB) -> Option<AnnoKey> {
     }
     None
 }
-
-
