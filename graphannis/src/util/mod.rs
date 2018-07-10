@@ -66,6 +66,7 @@ pub fn check_annotation_equal(a: &Annotation, b: &Annotation) -> bool {
 }
 
 /// Takes a node name/ID and extracts both the document path as array and the node name itself.
+/// 
 /// Complete node names/IDs have the form `toplevel-corpus/sub-corpus/.../document#node-name`,
 /// mimicking simple URIs (without a scheme) and a limited set of allowed characters as corpus/document names.
 /// The part before the fragment is returned as vector, the latter one as string.
