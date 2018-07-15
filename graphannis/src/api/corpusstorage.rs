@@ -25,6 +25,8 @@ use std::iter::FromIterator;
 use linked_hash_map::LinkedHashMap;
 use api::update::GraphUpdate;
 
+use rayon::prelude::*;
+
 enum CacheEntry {
     Loaded(GraphDB),
     NotLoaded,
@@ -662,9 +664,16 @@ impl CorpusStorage {
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
         let mut results : Vec<Vec<Match>> = plan.collect();
-        results.sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
-            return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db);
-        });
+        // TODO: allow to select sorting method
+        if self.query_config.use_parallel_joins {
+            results.par_sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
+                return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db);
+            });
+        } else {
+            results.sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
+                return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db);
+            });
+        }
 
         let results: Vec<String> = results.into_iter().skip(offset)
             .take(limit)
