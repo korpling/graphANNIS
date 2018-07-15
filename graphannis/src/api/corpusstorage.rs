@@ -14,6 +14,7 @@ use graphdb::GraphDB;
 use std;
 use plan;
 use types;
+use util;
 use plan::ExecutionPlan;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
@@ -660,7 +661,12 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        let it: Vec<String> = plan.skip(offset)
+        let mut results : Vec<Vec<Match>> = plan.collect();
+        results.sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
+            return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db);
+        });
+
+        let results: Vec<String> = results.into_iter().skip(offset)
             .take(limit)
             .map(|m: Vec<Match>| {
                 let mut match_desc: Vec<String> = Vec::new();
@@ -698,7 +704,7 @@ impl CorpusStorage {
             })
             .collect();
 
-        return Ok(it);
+        return Ok(results);
     }
 
     pub fn subgraph(
