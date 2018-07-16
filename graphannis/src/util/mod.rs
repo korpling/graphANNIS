@@ -81,27 +81,30 @@ pub fn check_annotation_equal(a: &Annotation, b: &Annotation) -> bool {
 ///
 /// assert_eq!(name, "mynode");
 /// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
+/// 
+/// let full_doc_name = "toplevel/subcorpus1/subcorpus2/doc1";
+/// let (path, name) = util::extract_node_path(full_doc_name);
+/// 
+/// assert_eq!(name, "");
+/// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
 /// ```
-pub fn extract_node_path(full_node_name: &str) -> (Vec<String>, String) {
+pub fn extract_node_path(full_node_name: &str) -> (Vec<&str>, &str) {
     // separate path and name first
-    let node_path_split: Vec<&str> = full_node_name.rsplitn(2, "#").collect();
+    let hash_pos = full_node_name.rfind('#');
 
-    let path_str = if node_path_split.len() == 2 {
-        node_path_split[1]
-    } else {
-        node_path_split[0]
-    };
-    let path: Vec<String> = path_str
-        .split("/")
-        .filter(|s| !s.is_empty())
-        .map(|s| String::from(s))
-        .collect();
+    let path_str : &str = &full_node_name[0..hash_pos.unwrap_or(full_node_name.len())];
+    let mut path: Vec<&str> = Vec::with_capacity(4);
+    path.extend(path_str
+         .split('/')
+         .filter(|s| !s.is_empty())
+    );
 
-    if node_path_split.len() == 2 {
-        return (path, String::from(node_path_split[0]));
+    if let Some(hash_pos) = hash_pos {
+        return (path, &full_node_name[hash_pos+1..]);
     } else {
-        return (path, String::new());
+        return (path, "");
     }
+    
 }
 
 pub struct SearchDef {

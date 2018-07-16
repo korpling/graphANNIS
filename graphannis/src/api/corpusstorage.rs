@@ -674,19 +674,24 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        let mut results : Vec<Vec<Match>> = plan.collect();
+        let mut tmp_results : Vec<Vec<Match>> = Vec::with_capacity(1024);
+        tmp_results.extend(plan);
+
         // TODO: allow to select sorting method
         if self.query_config.use_parallel_joins {
-            results.par_sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
+            tmp_results.par_sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
                 return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db);
             });
         } else {
-            results.sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
+            tmp_results.sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
                 return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db);
             });
         }
+        
+        let expected_size = std::cmp::min(tmp_results.len(), limit);
 
-        let results: Vec<String> = results.into_iter().skip(offset)
+        let mut results : Vec<String> = Vec::with_capacity(expected_size);
+        results.extend(tmp_results.into_iter().skip(offset)
             .take(limit)
             .map(|m: Vec<Match>| {
                 let mut match_desc: Vec<String> = Vec::new();
@@ -721,8 +726,7 @@ impl CorpusStorage {
                 let mut result = String::new();
                 result.push_str(&match_desc.join(" "));
                 return result;
-            })
-            .collect();
+            }));
 
         return Ok(results);
     }
