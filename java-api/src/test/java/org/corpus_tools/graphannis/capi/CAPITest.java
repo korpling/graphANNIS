@@ -62,7 +62,7 @@ public class CAPITest
   {
       File tmpDir = Files.createTempDir();
 
-      CAPI.AnnisCorpusStorage cs = CAPI.annis_cs_new(tmpDir.getAbsolutePath());
+      CAPI.AnnisCorpusStorage cs = CAPI.annis_cs_new(tmpDir.getAbsolutePath(), false);
       
       CAPI.AnnisVec_AnnisCString list = CAPI.annis_cs_list(cs);
       

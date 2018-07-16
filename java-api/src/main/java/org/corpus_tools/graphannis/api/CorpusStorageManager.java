@@ -47,12 +47,12 @@ public class CorpusStorageManager {
     }
 
     public CorpusStorageManager(String dbDir) {
-        this(dbDir, null, LogLevel.Off);
+        this(dbDir, null, false, LogLevel.Off);
     }
 
-    public CorpusStorageManager(String dbDir, String logfile, LogLevel level) {
+    public CorpusStorageManager(String dbDir, String logfile, boolean useParallel, LogLevel level) {
         CAPI.annis_init_logging(logfile, level.getRaw());
-        this.instance = CAPI.annis_cs_new(dbDir);
+        this.instance = CAPI.annis_cs_new(dbDir, useParallel);
     }
 
     public String[] list() {

@@ -62,7 +62,7 @@ public class CorpusStorageManagerTest
     File logfile =  new File(tmpDir, "graphannis.log");
     System.out.println("logging to " + logfile.getAbsolutePath());
     storage = new CorpusStorageManager(tmpDir.getAbsolutePath(), 
-    logfile.getAbsolutePath(), LogLevel.Trace);
+    logfile.getAbsolutePath(), false, LogLevel.Trace);
   }
   
   @After

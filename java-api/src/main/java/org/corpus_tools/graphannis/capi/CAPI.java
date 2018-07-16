@@ -101,7 +101,7 @@ public class CAPI implements Library {
 
     // corpus storage class
 
-    public static native AnnisCorpusStorage annis_cs_new(String db_dir);
+    public static native AnnisCorpusStorage annis_cs_new(String db_dir, boolean use_parallel);
 
     public static native AnnisVec_AnnisCString annis_cs_list(AnnisCorpusStorage cs);
 

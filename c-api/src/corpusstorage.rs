@@ -12,12 +12,12 @@ use super::Matrix;
 
 /// Create a new corpus storage
 #[no_mangle]
-pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char) -> *mut cs::CorpusStorage {
+pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char, use_parallel: bool) -> *mut cs::CorpusStorage {
     let db_dir = cstr!(db_dir);
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
-    let s = cs::CorpusStorage::new_auto_cache_size(&db_dir_path, false);
+    let s = cs::CorpusStorage::new_auto_cache_size(&db_dir_path, use_parallel);
     if let Ok(s) = s {
         return Box::into_raw(Box::new(s));
     }

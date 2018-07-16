@@ -136,7 +136,7 @@ AnnisMatrix_AnnisCString *annis_cs_list_node_annotations(const AnnisCorpusStorag
 /*
  * Create a new corpus storage
  */
-AnnisCorpusStorage *annis_cs_new(const char *db_dir);
+AnnisCorpusStorage *annis_cs_new(const char *db_dir, bool use_parallel);
 
 AnnisGraphDB *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
                                        const char *corpus_name,
