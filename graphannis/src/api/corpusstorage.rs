@@ -520,6 +520,7 @@ impl CorpusStorage {
         &self,
         corpus_name: &str,
         query_as_json: &'a str,
+        additional_components : Vec<Component>,
     ) -> Result<PreparationResult<'a>, Error> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -530,8 +531,13 @@ impl CorpusStorage {
             let q = jsonqueryparser::parse(query_as_json, db).ok_or(Error::ParserError)?;
             let necessary_components = q.necessary_components();
 
+            
             let mut missing: HashSet<Component> =
                 HashSet::from_iter(necessary_components.iter().cloned());
+
+            // make sure the additional components are loaded
+            missing.extend(additional_components.into_iter());
+
 
             // remove all that are already loaded
             for c in necessary_components.iter() {
@@ -572,7 +578,7 @@ impl CorpusStorage {
     }
 
     pub fn plan(&self, corpus_name: &str, query_as_json: &str) -> Result<String, Error> {
-        let prep = self.prepare_query(corpus_name, query_as_json)?;
+        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
 
         // accuire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
@@ -606,7 +612,7 @@ impl CorpusStorage {
     }
 
     pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<u64, Error> {
-        let prep = self.prepare_query(corpus_name, query_as_json)?;
+        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -617,7 +623,7 @@ impl CorpusStorage {
     }
 
     pub fn count_extra(&self, corpus_name: &str, query_as_json: &str) -> Result<CountExtra, Error> {
-        let prep = self.prepare_query(corpus_name, query_as_json)?;
+        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -655,7 +661,12 @@ impl CorpusStorage {
         offset: usize,
         limit: usize,
     ) -> Result<Vec<String>, Error> {
-        let prep = self.prepare_query(corpus_name, query_as_json)?;
+        let order_component = Component {
+            ctype: ComponentType::Ordering,
+            layer: String::from("annis"),
+            name: String::from(""),
+        };
+        let prep = self.prepare_query(corpus_name, query_as_json, vec![order_component])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -870,7 +881,7 @@ impl CorpusStorage {
         corpus_name: &str,
         query_as_json: &str,
     ) -> Result<GraphDB, Error> {
-        let prep = self.prepare_query(corpus_name, query_as_json)?;
+        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
 
         let mut max_alt_size = 0;
         for alt in prep.query.alternatives.iter() {

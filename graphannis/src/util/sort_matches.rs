@@ -30,7 +30,7 @@ pub fn compare_match_by_text_pos(m1 : &Match, m2 : &Match, db : &GraphDB) -> Ord
         // get the node paths and names
         let node_name_key = db.get_node_name_key();
         let m1_name_strid = db.node_annos.get(&m1.node, &node_name_key);
-        let m2_name_strid = db.node_annos.get(&m1.node, &node_name_key);
+        let m2_name_strid = db.node_annos.get(&m2.node, &node_name_key);
 
         if let (Some(m1_name), Some(m2_name)) = (m1_name_strid, m2_name_strid) {
 
@@ -46,12 +46,8 @@ pub fn compare_match_by_text_pos(m1 : &Match, m2 : &Match, db : &GraphDB) -> Ord
                 if path_cmp != Ordering::Equal {
                     return path_cmp;
                 }
-                // 2. compare the name
-                let name_cmp = m1_name.cmp(&m2_name);
-                if name_cmp != Ordering::Equal {
-                    return name_cmp;
-                }
-                // 3. compare the token ordering
+
+                // 2. compare the token ordering
                 let component_order = Component {
                     ctype: ComponentType::Ordering,
                     layer: String::from("annis"),
@@ -63,6 +59,12 @@ pub fn compare_match_by_text_pos(m1 : &Match, m2 : &Match, db : &GraphDB) -> Ord
                     } else if gs_order.is_connected(&m2.node, &m1.node, 1, usize::max_value()) {
                         return Ordering::Greater;
                     }
+                }
+
+                // 3. compare the name
+                let name_cmp = m1_name.cmp(&m2_name);
+                if name_cmp != Ordering::Equal {
+                    return name_cmp;
                 }
             }
         }
