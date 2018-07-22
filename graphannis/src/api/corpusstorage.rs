@@ -25,6 +25,8 @@ use std::iter::FromIterator;
 use linked_hash_map::LinkedHashMap;
 use api::update::GraphUpdate;
 
+use fxhash::FxHashMap;
+
 use rayon::prelude::*;
 
 enum CacheEntry {
@@ -674,17 +676,35 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
+
+        
+        let node_name_key = db.get_node_name_key();
+        let mut node_to_path_cache = FxHashMap::default();
         let mut tmp_results : Vec<Vec<Match>> = Vec::with_capacity(1024);
-        tmp_results.extend(plan);
+
+        for mgroup in plan {
+            // cache all paths of the matches
+            for m  in mgroup.iter() {
+                if let Some(path_strid) = db.node_annos.get(&m.node, &node_name_key) {
+                    if let Some(path) = db.strings.str(*path_strid) {
+                        let path = util::extract_node_path(path);
+                        node_to_path_cache.insert(m.node.clone(), path);
+                    }
+                }
+            }
+
+            // add all matches to temporary vector
+            tmp_results.push(mgroup);
+        }
 
         // TODO: allow to select sorting method
         if self.query_config.use_parallel_joins {
             tmp_results.par_sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
-                return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db);
+                return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db, &node_to_path_cache);
             });
         } else {
             tmp_results.sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
-                return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db);
+                return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db, &node_to_path_cache);
             });
         }
         
