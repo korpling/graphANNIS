@@ -1,2 +1,4 @@
-class CorpusStorage:
+from cffi import FFI;
+
+class CorpusStorageManager:
     pass

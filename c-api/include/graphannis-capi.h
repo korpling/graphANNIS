@@ -12,14 +12,14 @@ See the License for the specific language governing permissions and
 limitations under the License.s 
 */
 
-#ifndef graphannis_capi_h
-#define graphannis_capi_h
+//#ifndef graphannis_capi_h
+//#define graphannis_capi_h
 
 /* Generated with cbindgen:0.5.2 */
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
+//#include <stdint.h>
+//#include <stdlib.h>
+//#include <stdbool.h>
 
 typedef enum {
   Coverage,
@@ -264,4 +264,4 @@ void annis_vec_str_push(AnnisVec_AnnisCString *ptr, const char *v);
 
 size_t annis_vec_str_size(const AnnisVec_AnnisCString *ptr);
 
-#endif /* graphannis_capi_h */
+//#endif /* graphannis_capi_h */
