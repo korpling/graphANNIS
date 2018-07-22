@@ -1,4 +1,4 @@
-from cffi import FFI;
+from _ffi import ffi;
 
 class CorpusStorageManager:
     pass
