@@ -22,6 +22,14 @@ class CorpusStorageManager:
             corpus_name = ffi.string(self.C.annis_vec_str_get(orig, idx))
             copy.append(corpus_name.decode('utf-8'))
         return copy
+    
+    def count(self, corpora, query_as_json):
+        result = int(0)
+        for c in corpora:
+            result = result + self.C.annis_cs_count(self.__cs, c.encode('utf-8'), query_as_json.encode('utf-8'))
+
+        
+        return result
 
 
     
