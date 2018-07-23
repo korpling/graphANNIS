@@ -1,4 +1,4 @@
-from _ffi import ffi
+from graphannis._ffi import ffi
 
 class CorpusStorageManager:
     def __init__(self, db_dir='data/', use_parallel=True):
