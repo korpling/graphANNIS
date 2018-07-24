@@ -29,5 +29,12 @@ class CorpusStorageManager:
         
         return result
 
-
-    
+    def find(self, corpora, query_as_json, offset=0, limit=10):
+        result = []
+        for c in corpora:
+            vec = CAPI.annis_cs_find(self.__cs, c.encode('utf-8'), query_as_json.encode('utf-8'), offset, limit)
+            vec_size = CAPI.annis_vec_str_size(vec)
+            for i in range(vec_size):
+                result_str = ffi.string(CAPI.annis_vec_str_get(vec, i)).decode('utf-8')
+                result.append(result_str)
+        return result
