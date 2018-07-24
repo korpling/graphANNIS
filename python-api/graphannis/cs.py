@@ -1,5 +1,6 @@
 from graphannis import CAPI
 from graphannis._ffi import ffi
+from graphannis.graph import map_graph
 
 class CorpusStorageManager:
     def __init__(self, db_dir='data/', use_parallel=True):
@@ -38,3 +39,17 @@ class CorpusStorageManager:
                 result_str = ffi.string(CAPI.annis_vec_str_get(vec, i)).decode('utf-8')
                 result.append(result_str)
         return result
+
+    def subgraph(self, corpus_name, node_ids, ctx_left=0, ctx_right=0):
+        c_node_ids = CAPI.annis_vec_str_new()
+        for nid in node_ids:
+            CAPI.annis_vec_str_push(c_node_ids, nid.encode('utf-8'))
+        
+        db = CAPI.annis_cs_subgraph(self.__cs, corpus_name.encode('utf-8'), c_node_ids, ctx_left, ctx_right)
+
+        G = map_graph(db)
+
+        CAPI.annis_free(db)
+        CAPI.annis_free(c_node_ids)
+
+        return G
