@@ -2,15 +2,25 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/python-api"
+        },
+        {
             "type": "lldb",
             "request": "launch",
             "name": "Console",
             "program": "${workspaceRoot}/target/debug/annis_runner",
-            "args": ["data"],
+            "args": [
+                "data"
+            ],
             "cwd": "${workspaceRoot}",
             "terminal": "integrated",
             "env": {
-                "RUST_BACKTRACE" : "1"
+                "RUST_BACKTRACE": "1"
             }
         },
         {
@@ -18,7 +28,9 @@
             "request": "launch",
             "name": "Debug Test",
             "program": "${workspaceRoot}/target/debug/loadtest-12a561c8a04ae7c6",
-            "args": ["index_join"],
+            "args": [
+                "index_join"
+            ],
             "cwd": "${workspaceRoot}/graphannis/"
         }
     ]
