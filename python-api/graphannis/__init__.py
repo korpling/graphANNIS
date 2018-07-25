@@ -1,4 +1,4 @@
-__all__ = ['cs', 'query']
+__all__ = ['cs', 'query', 'util']
 
 import os, os
 from graphannis._ffi import ffi
