@@ -31,7 +31,7 @@ class TestCorpusStorageManager(unittest.TestCase):
                 match_uris.append(util.salt_uri_from_match(m))
 
             G = cs.subgraph('GUM', match_uris, 5, 5)
-            print("\n".join(nx.generate_gml(G)))
+            nx.drawing.nx_pydot.write_dot(G, sys.stdout)
 
 
 

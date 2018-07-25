@@ -26,8 +26,11 @@ def _map_node(G, nID, db):
 
     if labels['annis::node_name'] != None:
         n = labels['annis::node_name']
-        
         G.add_node(n)
+
+        for key, value in labels.items():
+            if key != 'annis::node_name':
+                G.nodes[n][key] = value
 
 def map_graph(db):
     G = nx.DiGraph()
