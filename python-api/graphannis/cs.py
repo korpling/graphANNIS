@@ -89,3 +89,15 @@ class CorpusStorageManager:
         ...     cs.delete_corpus('test')
         """ 
         CAPI.annis_cs_delete(self.__cs, corpus_name.encode('utf-8'))
+
+    def import_relannis(self, corpus_name, path):
+        """ Import a legacy relANNIS file format into the database
+        """ 
+        
+        result = CAPI.annis_cs_import_relannis(self.__cs,
+        corpus_name.encode('utf-8'), path.encode('utf-8'))
+
+        if result != ffi.NULL:
+            msg = ffi.string(CAPI.annis_error_get_msg(result)).decode('utf-8')
+            CAPI.annis_free(result)
+            raise CSException(msg)
