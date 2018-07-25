@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(name='graphannis',
-      version='1.0',
+      version='0.7.0',
       description='graphANNIS Python API',
       author='Thomas Krause',
       author_email='thomaskrause@posteo.de',
