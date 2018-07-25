@@ -4,8 +4,9 @@ import sys
 import os
 
 
-from graphannis.cs import CorpusStorageManager
-from graphannis import util
+from .cs import CorpusStorageManager
+from .graph import GraphUpdate
+from .util import salt_uri_from_match
 import networkx as nx
 
 class TestCorpusStorageManager(unittest.TestCase):
@@ -28,12 +29,10 @@ class TestCorpusStorageManager(unittest.TestCase):
             # convert find results to salt URIs
             match_uris = []
             for m in find_result:
-                match_uris.append(util.salt_uri_from_match(m))
+                match_uris.append(salt_uri_from_match(m))
 
             G = cs.subgraph('GUM', match_uris, 5, 5)
             assert(len(G.nodes) > 0)
             assert(len(G.edges) > 0)
-
-
 
 if __name__ == '__main__': unittest.main()

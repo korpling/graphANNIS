@@ -1,7 +1,7 @@
 # Gives access to a (sub)-graph stored in graphANNIS and allows to map it to networkX
 
 import networkx as nx
-from graphannis import CAPI, ffi
+from .common import CAPI, ffi
 
 def _get_node_labels(nID, db):
     result = dict()
@@ -129,3 +129,130 @@ def map_graph(db):
     CAPI.annis_free(components)
 
     return G
+
+class GraphUpdate:
+
+    def __init__(self):
+        self.__instance = CAPI.annis_graphupdate_new()
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        CAPI.annis_free(self.__instance)
+
+    def add_node(self, node_name, node_type='node'):
+        """Add a named node to the graph
+
+        >>> from graphannis.graph import GraphUpdate
+        >>> with GraphUpdate() as g:
+        ...     g.add_node('n1')
+        ...
+        """
+        CAPI.annis_graphupdate_add_node(self.__instance,
+        node_name.encode('utf-8'), 
+        node_type.encode('utf-8'))
+    
+    def add_node_label(self, node_name, anno_ns, anno_name, anno_value):
+        """Add a label to an existing node to the graph
+        
+        >>> from graphannis.graph import GraphUpdate
+        >>> with GraphUpdate() as g:
+        ...     g.add_node('n1')
+        ...     g.add_node_label('n1', 'mynamespace', 'myname', 'myvalue')
+        ...
+        """
+        CAPI.annis_graphupdate_add_node_label(self.__instance, 
+        node_name.encode('utf-8'),
+        anno_ns.encode('utf-8'),
+        anno_name.encode('utf-8'), 
+        anno_value.encode('utf-8'))
+
+    def delete_node_label(self, node_name, anno_ns, anno_name):
+        """Delete an existing label from an existing node
+        
+        >>> from graphannis.graph import GraphUpdate
+        >>> with GraphUpdate() as g:
+        ...     g.add_node('n1')
+        ...     g.add_node_label('n1', 'mynamespace', 'myname', 'myvalue')
+        ...     g.delete_node_label('n1', 'mynamespace', 'myname')
+        ...
+        """
+        CAPI.annis_graphupdate_delete_node_label(self.__instance, 
+        node_name.encode('utf-8'),
+        anno_ns.encode('utf-8'), anno_name.encode('utf-8'))
+
+    def add_edge(self, source_node, target_node, layer, 
+    component_type, component_name):
+        """Add an edge between two existing nodes.
+        
+        >>> from graphannis.graph import GraphUpdate
+        >>> with GraphUpdate() as g:
+        ...     g.add_node('n1')
+        ...     g.add_node('n2')
+        ...     g.add_edge('n1', 'n2', 'mylayer', 'Pointing', 'dep')
+        ...
+        """
+        CAPI.annis_graphupdate_add_edge(self.__instance, 
+        source_node.encode('utf-8'), target_node.encode('utf-8'), 
+        layer.encode('utf-8'), 
+        component_type.encode('utf-8'), 
+        component_name.encode('utf-8'))
+
+    def delete_edge(self, source_node, target_node, layer, component_type,
+    component_name):
+        """Delete an existingedge between two nodes.
+        
+        >>> from graphannis.graph import GraphUpdate
+        >>> with GraphUpdate() as g:
+        ...     g.add_node('n1')
+        ...     g.add_node('n2')
+        ...     g.add_edge('n1', 'n2', 'mylayer', 'Pointing', 'dep')
+        ...     g.delete_edge('n1', 'n2', 'mylayer', 'Pointing', 'dep')
+        ...
+        """
+        CAPI.annis_graphupdate_add_edge(self.__instance, 
+        source_node.encode('utf-8'), target_node.encode('utf-8'), 
+        layer.encode('utf-8'), 
+        component_type.encode('utf-8'), 
+        component_name.encode('utf-8'))
+
+    def add_edge_label(self, source_node, target_node, 
+    layer, component_type, component_name,
+    anno_ns, anno_name, anno_value):
+        """Add a label to an existing edge 
+        >>> from graphannis.graph import GraphUpdate
+        >>> with GraphUpdate() as g:
+        ...     g.add_node('n1')
+        ...     g.add_node('n2')
+        ...     g.add_edge('n1', 'n2', 'mylayer', 'Pointing', 'dep')
+        ...     g.add_edge_label('n1', 'n2', 'mylayer', 'Pointing', 'dep',
+        ...     'myns', 'myanno', 'annoval')
+        ...
+        """
+        CAPI.annis_graphupdate_add_edge_label(self.__instance, 
+        source_node.encode('utf-8'), target_node.encode('utf-8'), 
+        layer.encode('utf-8'), component_type.encode('utf-8'), component_name.encode('utf-8'),
+        anno_ns.encode('utf-8'), anno_name.encode('utf-8'),
+        anno_value.encode('utf-8'))
+
+    def delete_edge_label(self, source_node, target_node, 
+    layer, component_type, component_name,
+    anno_ns, anno_name):
+        """Delete a label from an edge
+        
+        >>> from graphannis.graph import GraphUpdate
+        >>> with GraphUpdate() as g:
+        ...     g.add_node('n1')
+        ...     g.add_node('n2')
+        ...     g.add_edge('n1', 'n2', 'mylayer', 'Pointing', 'dep')
+        ...     g.add_edge_label('n1', 'n2', 'mylayer', 'Pointing', 'dep',
+        ...     'myns', 'myanno', 'annoval')
+        ...     g.delete_edge_label('n1', 'n2', 'mylayer', 'Pointing', 'dep',
+        ...     'myns', 'myanno')
+        ...
+        """
+        CAPI.annis_graphupdate_delete_edge_label(self.__instance, 
+        source_node.encode('utf-8'), target_node.encode('utf-8'), 
+        layer.encode('utf-8'), component_type.encode('utf-8'), component_name.encode('utf-8'),
+        anno_ns.encode('utf-8'), anno_name.encode('utf-8'))

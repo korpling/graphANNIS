@@ -1,6 +1,6 @@
-from graphannis import CAPI
-from graphannis._ffi import ffi
-from graphannis.graph import map_graph
+from .common import CAPI
+from ._ffi import ffi
+from .graph import map_graph
 
 class CorpusStorageManager:
     def __init__(self, db_dir='data/', use_parallel=True):
