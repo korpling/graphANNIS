@@ -2,6 +2,14 @@ from .common import CAPI
 from ._ffi import ffi
 from .graph import map_graph
 
+class CSException(Exception):
+    def __init__(self, m : str):
+        self.message = m
+
+    def __str__(self):
+        return self.message
+
+
 class CorpusStorageManager:
     def __init__(self, db_dir='data/', use_parallel=True):
         self.__cs = CAPI.annis_cs_new(db_dir.encode('utf-8'), use_parallel)
@@ -62,13 +70,22 @@ class CorpusStorageManager:
         >>> with CorpusStorageManager() as cs:
         ...     with GraphUpdate() as g:
         ...         g.add_node('n1')
-        ...         cs.apply_update('GUM', g)
+        ...         cs.apply_update('test', g)
         """ 
         
         result = CAPI.annis_cs_apply_update(self.__cs,
         corpus_name.encode('utf-8'), update.get_instance())
 
         if result != ffi.NULL:
-            msg = CAPI.annis_error_get_msg(result)
+            msg = ffi.string(CAPI.annis_error_get_msg(result)).decode('utf-8')
             CAPI.annis_free(result)
-            raise msg
+            raise CSException(msg)
+
+    def delete_corpus(self, corpus_name):
+        """ Delete a corpus from the database
+
+        >>> from graphannis.cs import CorpusStorageManager
+        >>> with CorpusStorageManager() as cs:
+        ...     cs.delete_corpus('test')
+        """ 
+        CAPI.annis_cs_delete(self.__cs, corpus_name.encode('utf-8'))
