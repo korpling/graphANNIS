@@ -141,6 +141,9 @@ class GraphUpdate:
     def __exit__(self, exc_type, exc_value, traceback):
         CAPI.annis_free(self.__instance)
 
+    def get_instance(self):
+        return self.__instance
+
     def add_node(self, node_name, node_type='node'):
         """Add a named node to the graph
 
@@ -221,6 +224,7 @@ class GraphUpdate:
     layer, component_type, component_name,
     anno_ns, anno_name, anno_value):
         """Add a label to an existing edge 
+
         >>> from graphannis.graph import GraphUpdate
         >>> with GraphUpdate() as g:
         ...     g.add_node('n1')

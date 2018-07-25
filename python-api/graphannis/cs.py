@@ -53,3 +53,22 @@ class CorpusStorageManager:
         CAPI.annis_free(c_node_ids)
 
         return G
+
+    def apply_update(self, corpus_name, update):
+        """ Atomically apply update (add/delete nodes, edges and labels) to the database
+
+        >>> from graphannis.cs import CorpusStorageManager
+        >>> from graphannis.graph import GraphUpdate 
+        >>> with CorpusStorageManager() as cs:
+        ...     with GraphUpdate() as g:
+        ...         g.add_node('n1')
+        ...         cs.apply_update('GUM', g)
+        """ 
+        
+        result = CAPI.annis_cs_apply_update(self.__cs,
+        corpus_name.encode('utf-8'), update.get_instance())
+
+        if result != ffi.NULL:
+            msg = CAPI.annis_error_get_msg(result)
+            CAPI.annis_free(result)
+            raise msg
