@@ -8,7 +8,7 @@ use graphannis::relannis;
 use graphannis::{ComponentType, Component, CountExtra};
 use std::path::PathBuf;
 use super::error::Error;
-use super::Matrix;
+use graphannis::Matrix;
 
 /// Create a new corpus storage
 #[no_mangle]

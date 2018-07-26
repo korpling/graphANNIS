@@ -2,7 +2,7 @@ use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
 
-use super::Matrix;
+use graphannis::Matrix;
 
 use graphannis::{Annotation, NodeID, Edge, Component};
 

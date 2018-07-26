@@ -40,9 +40,6 @@ macro_rules! cstr {
     }
 }
 
-pub type Matrix<T> = Vec<Vec<T>>;
-
-
 pub mod corpusstorage;
 pub mod update;
 pub mod data;
