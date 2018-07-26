@@ -128,6 +128,24 @@ class Conjunction:
 
         return obj
 
+    def part_of_subcorpus(self, n_left, n_right, min_distance=1, max_distance=1):
+        """Add a part of subcorpus (@) operator between to attributes.
+
+        >>> q = Conjunction().att('pos', 'NN').att('tok', '').part_of_subcorpus('1', '2')
+        """
+        obj = copy.copy(self)
+
+        op_def = {'op': 'Pointing',
+                  'left': n_left, 'right': n_right
+                  }
+        op_def.update(_range_def(min_distance, max_distance))
+
+        obj.q['joins'].append(
+            op_def
+        )
+
+        return obj
+
     def ident_cov(self, n_left, n_right):
         """Add a _=_ operator between to attributes.
 
@@ -136,6 +154,57 @@ class Conjunction:
         obj = copy.copy(self)
 
         op_def = {'op': 'IdenticalCoverage',
+                  'left': n_left, 'right': n_right
+                  }
+
+        obj.q['joins'].append(
+            op_def
+        )
+
+        return obj
+
+    def inclusion(self, n_left, n_right):
+        """Add a _i_ operator between to attributes.
+
+        >>> q = Conjunction().att('pos', 'NN').att('tok', '').inclusion('1', '2')
+        """
+        obj = copy.copy(self)
+
+        op_def = {'op': 'Inclusion',
+                  'left': n_left, 'right': n_right
+                  }
+
+        obj.q['joins'].append(
+            op_def
+        )
+
+        return obj
+
+    def overlap(self, n_left, n_right):
+        """Add a _o_ operator between to attributes.
+
+        >>> q = Conjunction().att('pos', 'NN').att('tok', '').overlap('1', '2')
+        """
+        obj = copy.copy(self)
+
+        op_def = {'op': 'Overlap',
+                  'left': n_left, 'right': n_right
+                  }
+
+        obj.q['joins'].append(
+            op_def
+        )
+
+        return obj
+
+    def ident_node(self, n_left, n_right):
+        """Add a _ident_ operator between to attributes.
+
+        >>> q = Conjunction().att('pos', 'NN').att('tok', '').ident_node('1', '2')
+        """
+        obj = copy.copy(self)
+
+        op_def = {'op': 'IdenticalNode',
                   'left': n_left, 'right': n_right
                   }
 
