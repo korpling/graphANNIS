@@ -103,22 +103,6 @@
                 "cwd": "${workspaceFolder}/c-api/"
             },
             "problemMatcher": []
-        },
-        {
-            "label": "mvn install",
-            "command": "mvn",
-            "args": [
-                "install"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "mvn clean",
-            "command": "mvn",
-            "args": [
-                "clean"
-            ],
-            "problemMatcher": []
         }
     ]
 }
