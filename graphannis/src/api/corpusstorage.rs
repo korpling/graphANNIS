@@ -114,12 +114,12 @@ pub struct FrequencyDefEntry {
 impl FromStr for FrequencyDefEntry {
     type Err = Error;
     fn from_str(s: &str) -> Result<FrequencyDefEntry, Self::Err> {
-        let seperator_pos = s.find(':').ok_or(Error::ParserError)?;
-        let node_ref = &s[..seperator_pos];
-        if seperator_pos >= s.len() {
+        let splitted : Vec<&str> = s.splitn(2, ':').collect();
+        if splitted.len() != 2 {
             return Err(Error::ParserError);
         }
-        let anno_key = util::split_qname(&s[seperator_pos+1..]);
+        let node_ref = splitted[0];
+        let anno_key = util::split_qname(splitted[1]);
 
         return Ok(FrequencyDefEntry {
             ns: anno_key.0.and_then(|ns| Some(String::from(ns))),
@@ -128,6 +128,7 @@ impl FromStr for FrequencyDefEntry {
         });
     }
 }
+
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a GraphDB, Error> {
     if let &CacheEntry::Loaded(ref db) = &**lock {
