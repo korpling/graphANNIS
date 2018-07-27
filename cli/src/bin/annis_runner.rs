@@ -350,6 +350,7 @@ impl AnnisRunner {
                 header_row.add_cell(Cell::from(&format!("{}#{}", def.node_ref, def.name)));
             }
             header_row.add_cell(Cell::from(&"count"));
+            out.add_row(header_row);
 
             let t_before = std::time::SystemTime::now();
             let frequency_table = self.storage.frequency(corpus, splitted_arg[0], table_def);
