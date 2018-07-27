@@ -1013,7 +1013,7 @@ impl CorpusStorage {
         let db : &GraphDB = get_read_or_error(&lock)?;
 
         // get the matching annotation keys for each definition entry
-        let mut pos2annokey : HashMap<usize, Vec<AnnoKey>> = HashMap::default();
+        let mut annokeys : Vec<(usize, Vec<AnnoKey>)> = Vec::default();
         for def in definition.into_iter() {
             let ns_id : Option<&StringID> = if let Some(ns) = def.ns {db.strings.find_id(&ns)} else {None};
             let name_id = db.strings.find_id(&def.name)
@@ -1024,22 +1024,35 @@ impl CorpusStorage {
 
             if let Some(ns_id) = ns_id {
                 // add the single fully qualified annotation key
-                pos2annokey.insert(def.node_ref, vec![AnnoKey {ns: *ns_id, name: *name_id}]);
+                annokeys.push((def.node_ref, vec![AnnoKey {ns: *ns_id, name: *name_id}]));
             } else {
                 // add all matching annotation keys
-                pos2annokey.insert(def.node_ref, db.node_annos.get_qnames(*name_id));
+                annokeys.push((def.node_ref, db.node_annos.get_qnames(*name_id)));
             }
-
         }
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
+        let mut tuple_frequency : HashMap<Vec<StringID>, usize> = HashMap::default();
 
         for mgroup in plan {
-            // TODO for each match, extract the defined annotation (by its key) from the result node
-            for m in mgroup.iter() {
-                
+            // for each match, extract the defined annotation (by its key) from the result node
+            let mut tuple : Vec<StringID> = Vec::with_capacity(annokeys.len());
+            for (node_ref, anno_keys) in annokeys.iter() {
+                let mut tuple_val : StringID = 0;
+                if *node_ref < mgroup.len() {
+                    let m : &Match = &mgroup[*node_ref];
+                    for k in anno_keys.iter() {
+                        if let Some(val) = db.node_annos.get(&m.node, k) {
+                            tuple_val = *val;
+                        }
+                    }
+                }
+                tuple.push(tuple_val);
             }
+            // add the tuple to the frequency count
+            let mut tuple_count : &mut usize = tuple_frequency.entry(tuple).or_insert(0);
+            *tuple_count = *tuple_count + 1;
         }
 
         unimplemented!()
