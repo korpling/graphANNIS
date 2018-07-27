@@ -1,7 +1,6 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use std::collections::HashMap;
 use annostorage::AnnoStorage;
 use api::update::GraphUpdate;
 use exec::nodesearch::NodeSearchSpec;
@@ -23,7 +22,7 @@ use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use types;
-use Matrix;
+use FrequencyTable;
 use util;
 use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID};
 
@@ -1005,7 +1004,7 @@ impl CorpusStorage {
         corpus_name: &str,
         query_as_json: &str,
         definition : Vec<FrequencyDefEntry>,
-    ) -> Result<Matrix<String>, Error> {
+    ) -> Result<FrequencyTable<String>, Error> {
         let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
 
         // accuire read-only lock and execute query
@@ -1033,7 +1032,7 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        let mut tuple_frequency : HashMap<Vec<StringID>, usize> = HashMap::default();
+        let mut tuple_frequency : FxHashMap<Vec<StringID>, usize> = FxHashMap::default();
 
         for mgroup in plan {
             // for each match, extract the defined annotation (by its key) from the result node
@@ -1055,7 +1054,17 @@ impl CorpusStorage {
             *tuple_count = *tuple_count + 1;
         }
 
-        unimplemented!()
+        // output the frequency (needs collecting the actual string values)
+        let mut result : FrequencyTable<String> = FrequencyTable::default();
+        for (tuple_strid, count) in tuple_frequency.into_iter() {
+            let mut tuple : Vec<String> = Vec::with_capacity(tuple_strid.len());
+            for v in tuple_strid.into_iter() {
+                tuple.push(db.strings.str(v).unwrap_or(&String::default()).clone());
+            }
+            result.push((tuple, count));
+        }
+
+        return Ok(result);
     }
 
     pub fn get_all_components(
