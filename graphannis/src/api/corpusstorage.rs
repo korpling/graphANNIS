@@ -1,6 +1,7 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
+use std::str::FromStr;
 use annostorage::AnnoStorage;
 use api::update::GraphUpdate;
 use exec::nodesearch::NodeSearchSpec;
@@ -107,7 +108,25 @@ struct PreparationResult<'a> {
 pub struct FrequencyDefEntry {
     pub ns : Option<String>,
     pub name : String,
-    pub node_ref : usize,
+    pub node_ref : String,
+}
+
+impl FromStr for FrequencyDefEntry {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<FrequencyDefEntry, Self::Err> {
+        let seperator_pos = s.find(':').ok_or(Error::ParserError)?;
+        let node_ref = &s[..seperator_pos];
+        if seperator_pos >= s.len() {
+            return Err(Error::ParserError);
+        }
+        let anno_key = util::split_qname(&s[seperator_pos+1..]);
+
+        return Ok(FrequencyDefEntry {
+            ns: anno_key.0.and_then(|ns| Some(String::from(ns))),
+            name: String::from(anno_key.1),
+            node_ref: String::from(node_ref),
+        });
+    }
 }
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a GraphDB, Error> {
@@ -800,16 +819,16 @@ impl CorpusStorage {
             {
                 let mut q_left: Conjunction = Conjunction::new();
 
-                let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode);
+                let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode, None);
 
                 let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
                     val: Some(source_node_id.to_string()),
                     is_meta: false,
-                });
-                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken);
-                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken);
+                }, None);
+                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
+                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
                 q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_left.add_operator(
@@ -834,15 +853,15 @@ impl CorpusStorage {
             {
                 let mut q_left: Conjunction = Conjunction::new();
 
-                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken);
+                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
                 let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
                     val: Some(source_node_id.to_string()),
                     is_meta: false,
-                });
-                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken);
+                }, None);
+                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
                 q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_left.add_operator(
@@ -862,16 +881,16 @@ impl CorpusStorage {
             {
                 let mut q_right: Conjunction = Conjunction::new();
 
-                let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode);
+                let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode, None);
 
                 let n_idx = q_right.add_node(NodeSearchSpec::ExactValue {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
                     val: Some(source_node_id.to_string()),
                     is_meta: false,
-                });
-                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken);
-                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken);
+                }, None);
+                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
+                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
                 q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_right.add_operator(
@@ -896,15 +915,15 @@ impl CorpusStorage {
             {
                 let mut q_right: Conjunction = Conjunction::new();
 
-                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken);
+                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
                 let n_idx = q_right.add_node(NodeSearchSpec::ExactValue {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
                     val: Some(source_node_id.to_string()),
                     is_meta: false,
-                });
-                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken);
+                }, None);
+                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
                 q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_right.add_operator(
@@ -966,8 +985,8 @@ impl CorpusStorage {
                 name: graphdb::NODE_NAME.to_string(),
                 val: Some(source_corpus_id.to_string()),
                 is_meta: false,
-            });
-            let any_node_idx = q.add_node(NodeSearchSpec::AnyNode);
+            }, None);
+            let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
             q.add_operator(
                 Box::new(operator::PartOfSubCorpusSpec::new(1, 1)),
                 any_node_idx,
@@ -989,7 +1008,7 @@ impl CorpusStorage {
             NODE_TYPE,
             Some("corpus"),
             false,
-        ));
+        ), None);
 
         return extract_subgraph_by_query(
             db_entry,
@@ -1021,12 +1040,15 @@ impl CorpusStorage {
                 &def.name
             )))?;
 
-            if let Some(ns_id) = ns_id {
-                // add the single fully qualified annotation key
-                annokeys.push((def.node_ref, vec![AnnoKey {ns: *ns_id, name: *name_id}]));
-            } else {
-                // add all matching annotation keys
-                annokeys.push((def.node_ref, db.node_annos.get_qnames(*name_id)));
+            if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
+
+                if let Some(ns_id) = ns_id {
+                    // add the single fully qualified annotation key
+                    annokeys.push((node_ref, vec![AnnoKey {ns: *ns_id, name: *name_id}]));
+                } else {
+                    // add all matching annotation keys
+                    annokeys.push((node_ref, db.node_annos.get_qnames(*name_id)));
+                }
             }
         }
 

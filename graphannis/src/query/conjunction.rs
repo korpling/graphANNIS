@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use types::Edge;
 use annostorage::AnnoStorage;
@@ -44,6 +45,7 @@ struct OperatorEntry<'a> {
 pub struct Conjunction<'a> {
     nodes: Vec<NodeSearchSpec>,
     operators: Vec<OperatorEntry<'a>>,
+    variables : HashMap<String, usize>,
 }
 
 fn update_components_for_nodes(
@@ -95,6 +97,7 @@ impl<'a> Conjunction<'a> {
         Conjunction {
             nodes: vec![],
             operators: vec![],
+            variables: HashMap::default(),
         }
     }
 
@@ -102,11 +105,14 @@ impl<'a> Conjunction<'a> {
         Disjunction::new(vec![self])
     }
 
-    pub fn add_node(&mut self, node: NodeSearchSpec) -> usize {
+    pub fn add_node(&mut self, node: NodeSearchSpec, variable : Option<&str>,) -> usize {
         let idx = self.nodes.len();
 
         // TODO allow wrapping with an "any node anno" search
         self.nodes.push(node);
+        if let Some(variable) = variable {
+            self.variables.insert(idx.to_string(), idx);
+        }
 
         idx
     }
@@ -123,6 +129,10 @@ impl<'a> Conjunction<'a> {
 
     pub fn num_of_nodes(&self) -> usize {
         self.nodes.len()
+    }
+
+    pub fn get_variable_pos(&self, variable : &str) -> Option<usize> {
+        self.variables.get(variable).cloned()
     }
 
     pub fn necessary_components(&self) -> Vec<Component> {

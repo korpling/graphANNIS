@@ -40,6 +40,7 @@ impl CommandCompleter {
         known_commands.insert("update_statistics".to_string());
         known_commands.insert("count".to_string());
         known_commands.insert("find".to_string());
+        known_commands.insert("frequency".to_string());
         known_commands.insert("plan".to_string());
         known_commands.insert("str".to_string());
         known_commands.insert("use_parallel".to_string());
@@ -159,6 +160,7 @@ impl AnnisRunner {
                 "plan" => self.plan(&args),
                 "count" => self.count(&args),
                 "find" => self.find(&args),
+                "frequency" => self.frequency(&args),
                 "str" => self.get_string(&args),
                 "use_parallel" => self.use_parallel(&args),
                 "quit" | "exit" => return false,
@@ -319,6 +321,29 @@ impl AnnisRunner {
             } else {
                 println!("Error when executing query: {:?}", matches);
             }
+        } else {
+            println!("You need to select a corpus first with the \"corpus\" command");
+        }
+    }
+
+    fn frequency(&self, args: &str) {
+        if let Some(ref corpus) = self.current_corpus {
+            let t_before = std::time::SystemTime::now();
+            unimplemented!();
+            //let frequency_table = self.storage.frequency(corpus, args);
+            // let load_time = t_before.elapsed();
+
+            // if let Ok(t) = load_time {
+            //     info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            // }
+
+            // if let Ok(matches) = matches {
+            //     for m in matches {
+            //         println!("{}", m);
+            //     }
+            // } else {
+            //     println!("Error when executing query: {:?}", matches);
+            // }
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }

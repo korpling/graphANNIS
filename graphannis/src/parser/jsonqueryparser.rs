@@ -62,7 +62,7 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
                         m.get("namespace").and_then(|n| n.as_str()),
                         m.get("name").and_then(|n| n.as_str()),
                         m.get("value").and_then(|n| n.as_str()),
-                        is_regex(m), true
+                        is_regex(m), true, None
                     ) {
                         if let Some(first_meta_idx) = first_meta_idx {
                             // avoid nested loops by joining additional meta nodes with a "identical node"
@@ -99,6 +99,7 @@ fn parse_node(
     node: &serde_json::Map<String, serde_json::Value>,
     q: &mut Conjunction,
 ) -> Option<usize> {
+    let variable = node.get("variable").and_then(|s| s.as_str());
     // annotation search?
     if node.contains_key("nodeAnnotations") {
         if let serde_json::Value::Array(ref a) = node["nodeAnnotations"] {
@@ -110,7 +111,7 @@ fn parse_node(
                     a.get("namespace").and_then(|n| n.as_str()),
                     a.get("name").and_then(|n| n.as_str()),
                     a.get("value").and_then(|n| n.as_str()),
-                    is_regex(a), false
+                    is_regex(a), false, variable,
                 );
             }
         }
@@ -138,19 +139,19 @@ fn parse_node(
                 return Some(q.add_node(NodeSearchSpec::RegexTokenValue {
                     val: String::from(tok_val),
                     leafs_only,
-                }));
+                }, variable));
             } else {
                 return Some(q.add_node(NodeSearchSpec::ExactTokenValue {
                     val: String::from(tok_val),
                     leafs_only,
-                }));
+                }, variable));
             }
         } else {
-            return Some(q.add_node(NodeSearchSpec::AnyToken));
+            return Some(q.add_node(NodeSearchSpec::AnyToken, variable));
         }
     } else {
         // just search for any node
-        return Some(q.add_node(NodeSearchSpec::AnyNode));
+        return Some(q.add_node(NodeSearchSpec::AnyNode, variable));
     }
 }
 
@@ -325,6 +326,7 @@ fn add_node_annotation(
     value: Option<&str>,
     regex: bool,
     is_meta: bool,
+    variable : Option<&str>,
 ) -> Option<usize> {
     if let Some(name_val) = name {
         // TODO: replace regex with normal text matching if this is not an actual regular expression
@@ -333,12 +335,12 @@ fn add_node_annotation(
         if regex {
             if let Some(val) = value {
                 let mut n: NodeSearchSpec = NodeSearchSpec::new_regex(ns, name_val, val, is_meta);
-                return Some(q.add_node(n));
+                return Some(q.add_node(n, variable));
             }
         } else {
             // has namespace?
             let mut n: NodeSearchSpec = NodeSearchSpec::new_exact(ns, name_val, value, is_meta);
-            return Some(q.add_node(n));
+            return Some(q.add_node(n, variable));
         }
     }
     return None;

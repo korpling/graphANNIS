@@ -107,6 +107,15 @@ pub fn extract_node_path(full_node_name: &str) -> (Vec<&str>, &str) {
     
 }
 
+pub fn split_qname(qname : &str) -> (Option<&str>, &str) {
+    let sep_pos = qname.find("::.+");
+    if let Some(sep_pos) = sep_pos {
+        return (Some(&qname[..sep_pos]), &qname[sep_pos+1..]);
+    } else {
+        return (None, qname);
+    }
+}
+
 pub struct SearchDef {
     pub aql: String,
     pub json: String,
