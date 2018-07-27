@@ -2,6 +2,8 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
+extern crate prettytable;
+
 use graphannis::api::corpusstorage::FrequencyDefEntry;
 use clap::{App, Arg};
 
@@ -23,7 +25,9 @@ use graphannis::api::corpusstorage::LoadStatus;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
-
+use prettytable::Table;
+use prettytable::row::Row;
+use prettytable::cell::Cell;
 
 struct CommandCompleter {
     known_commands: BTreeSet<String>,
@@ -347,13 +351,24 @@ impl AnnisRunner {
                  info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            // if let Ok(matches) = matches {
-            //     for m in matches {
-            //         println!("{}", m);
-            //     }
-            // } else {
-            //     println!("Error when executing query: {:?}", matches);
-            // }
+            if let Ok(frequency_table) = frequency_table {
+                // map the resulting frequency table to an output
+                let mut out = Table::new();
+                // TODO: map header
+                for row in frequency_table.into_iter() {
+                    let mut out_row = Row::empty();
+                    for att in row.0.iter() {
+                        out_row.add_cell(Cell::from(att));
+                    }
+                    // also add the count
+                    out_row.add_cell(Cell::from(&row.1));
+                    out.add_row(out_row);
+                }
+                out.printstd();
+            }
+            // TODO output error if needed
+
+            
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
