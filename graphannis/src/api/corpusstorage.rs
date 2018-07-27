@@ -105,6 +105,7 @@ struct PreparationResult<'a> {
 }
 
 
+#[derive(Debug)]
 pub struct FrequencyDefEntry {
     pub ns : Option<String>,
     pub name : String,

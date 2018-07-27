@@ -340,8 +340,16 @@ impl AnnisRunner {
                 let defs = splitted_arg[1].split(',');
                 defs.filter_map(|d| -> Option<FrequencyDefEntry> {d.parse().ok()}).collect()
             } else {
-                unimplemented!()
+                println!("You have to give the frequency definition as second argument");
+                return;
             };
+
+            let mut out = Table::new();
+            let mut header_row = Row::empty();
+            for def in table_def.iter() {
+                header_row.add_cell(Cell::from(&format!("{}#{}", def.node_ref, def.name)));
+            }
+            header_row.add_cell(Cell::from(&"count"));
 
             let t_before = std::time::SystemTime::now();
             let frequency_table = self.storage.frequency(corpus, splitted_arg[0], table_def);
@@ -353,7 +361,7 @@ impl AnnisRunner {
 
             if let Ok(frequency_table) = frequency_table {
                 // map the resulting frequency table to an output
-                let mut out = Table::new();
+                
                 // TODO: map header
                 for row in frequency_table.into_iter() {
                     let mut out_row = Row::empty();
