@@ -111,7 +111,9 @@ impl<'a> Conjunction<'a> {
         // TODO allow wrapping with an "any node anno" search
         self.nodes.push(node);
         if let Some(variable) = variable {
-            self.variables.insert(idx.to_string(), idx);
+            self.variables.insert(String::from(variable), idx);
+        } else {
+            self.variables.insert((idx+1).to_string(), idx);
         }
 
         idx
