@@ -2,6 +2,7 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
+use graphannis::api::corpusstorage::FrequencyDefEntry;
 use clap::{App, Arg};
 
 extern crate graphannis;
@@ -328,14 +329,23 @@ impl AnnisRunner {
 
     fn frequency(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
-            let t_before = std::time::SystemTime::now();
-            unimplemented!();
-            //let frequency_table = self.storage.frequency(corpus, args);
-            // let load_time = t_before.elapsed();
+            
+            let splitted_arg : Vec<&str> = args.splitn(2, ' ').collect();
+            let table_def : Vec<FrequencyDefEntry> = if splitted_arg.len() == 2 {
+                // split the second argument
+                let defs = splitted_arg[1].split(',');
+                defs.filter_map(|d| -> Option<FrequencyDefEntry> {d.parse().ok()}).collect()
+            } else {
+                unimplemented!()
+            };
 
-            // if let Ok(t) = load_time {
-            //     info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-            // }
+            let t_before = std::time::SystemTime::now();
+            let frequency_table = self.storage.frequency(corpus, splitted_arg[0], table_def);
+            let load_time = t_before.elapsed();
+
+            if let Ok(t) = load_time {
+                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            }
 
             // if let Ok(matches) = matches {
             //     for m in matches {
