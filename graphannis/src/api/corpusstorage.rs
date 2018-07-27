@@ -1087,6 +1087,9 @@ impl CorpusStorage {
             result.push((tuple, count));
         }
 
+        // sort the output (largest to smallest)
+        result.sort_by(|a,b| a.1.cmp(&b.1).reverse());
+
         return Ok(result);
     }
 
