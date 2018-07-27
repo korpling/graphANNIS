@@ -1,29 +1,31 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use graphdb::{ANNIS_NS, NODE_TYPE};
-use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID};
+use std::collections::HashMap;
 use annostorage::AnnoStorage;
-use parser::jsonqueryparser;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::path::{Path, PathBuf};
-use std::collections::{BTreeSet, HashSet};
+use api::update::GraphUpdate;
+use exec::nodesearch::NodeSearchSpec;
 use graphdb;
-use operator;
 use graphdb::GraphDB;
-use std;
+use graphdb::{ANNIS_NS, NODE_TYPE};
+use heapsize::HeapSizeOf;
+use linked_hash_map::LinkedHashMap;
+use operator;
+use parser::jsonqueryparser;
 use plan;
-use types;
-use util;
 use plan::ExecutionPlan;
+use query;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
-use query;
-use exec::nodesearch::NodeSearchSpec;
-use heapsize::HeapSizeOf;
+use std;
+use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
-use linked_hash_map::LinkedHashMap;
-use api::update::GraphUpdate;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use types;
+use Matrix;
+use util;
+use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID};
 
 use fxhash::FxHashMap;
 
@@ -94,12 +96,19 @@ pub struct CorpusStorage {
     db_dir: PathBuf,
     max_allowed_cache_size: Option<usize>,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
-    pub query_config : query::Config,
+    pub query_config: query::Config,
 }
 
 struct PreparationResult<'a> {
     query: Disjunction<'a>,
     db_entry: Arc<RwLock<CacheEntry>>,
+}
+
+
+pub struct FrequencyDefEntry {
+    pub ns : Option<String>,
+    pub name : String,
+    pub node_ref : usize,
 }
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a GraphDB, Error> {
@@ -281,12 +290,13 @@ impl CorpusStorage {
         Ok(cs)
     }
 
-    pub fn new_auto_cache_size(db_dir: &Path, use_parallel_joins : bool) -> Result<CorpusStorage, Error> {
-        let query_config = query::Config {
-            use_parallel_joins,
-        };
-        
-        let  cs = CorpusStorage {
+    pub fn new_auto_cache_size(
+        db_dir: &Path,
+        use_parallel_joins: bool,
+    ) -> Result<CorpusStorage, Error> {
+        let query_config = query::Config { use_parallel_joins };
+
+        let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             max_allowed_cache_size: Some(1024 * 1024 * 1024), // 1 GB
             corpus_cache: RwLock::new(LinkedHashMap::new()),
@@ -522,7 +532,7 @@ impl CorpusStorage {
         &self,
         corpus_name: &str,
         query_as_json: &'a str,
-        additional_components : Vec<Component>,
+        additional_components: Vec<Component>,
     ) -> Result<PreparationResult<'a>, Error> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
@@ -533,13 +543,11 @@ impl CorpusStorage {
             let q = jsonqueryparser::parse(query_as_json, db).ok_or(Error::ParserError)?;
             let necessary_components = q.necessary_components();
 
-            
             let mut missing: HashSet<Component> =
                 HashSet::from_iter(necessary_components.iter().cloned());
 
             // make sure the additional components are loaded
             missing.extend(additional_components.into_iter());
-
 
             // remove all that are already loaded
             for c in necessary_components.iter() {
@@ -676,15 +684,13 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-
-        
         let node_name_key = db.get_node_name_key();
         let mut node_to_path_cache = FxHashMap::default();
-        let mut tmp_results : Vec<Vec<Match>> = Vec::with_capacity(1024);
+        let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(1024);
 
         for mgroup in plan {
             // cache all paths of the matches
-            for m  in mgroup.iter() {
+            for m in mgroup.iter() {
                 if let Some(path_strid) = db.node_annos.get(&m.node, &node_name_key) {
                     if let Some(path) = db.strings.str(*path_strid) {
                         let path = util::extract_node_path(path);
@@ -699,54 +705,72 @@ impl CorpusStorage {
 
         // TODO: allow to select sorting method
         if self.query_config.use_parallel_joins {
-            tmp_results.par_sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
-                return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db, &node_to_path_cache);
-            });
+            tmp_results.par_sort_unstable_by(
+                |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                    return util::sort_matches::compare_matchgroup_by_text_pos(
+                        m1,
+                        m2,
+                        db,
+                        &node_to_path_cache,
+                    );
+                },
+            );
         } else {
-            tmp_results.sort_unstable_by(|m1 : &Vec<Match>, m2 : &Vec<Match>| -> std::cmp::Ordering {
-                return util::sort_matches::compare_matchgroup_by_text_pos(m1, m2, db, &node_to_path_cache);
-            });
+            tmp_results.sort_unstable_by(
+                |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                    return util::sort_matches::compare_matchgroup_by_text_pos(
+                        m1,
+                        m2,
+                        db,
+                        &node_to_path_cache,
+                    );
+                },
+            );
         }
-        
+
         let expected_size = std::cmp::min(tmp_results.len(), limit);
 
-        let mut results : Vec<String> = Vec::with_capacity(expected_size);
-        results.extend(tmp_results.into_iter().skip(offset)
-            .take(limit)
-            .map(|m: Vec<Match>| {
-                let mut match_desc: Vec<String> = Vec::new();
-                for singlematch in m.iter() {
-                    let mut node_desc = String::new();
+        let mut results: Vec<String> = Vec::with_capacity(expected_size);
+        results.extend(
+            tmp_results
+                .into_iter()
+                .skip(offset)
+                .take(limit)
+                .map(|m: Vec<Match>| {
+                    let mut match_desc: Vec<String> = Vec::new();
+                    for singlematch in m.iter() {
+                        let mut node_desc = String::new();
 
-                    let anno_key: &AnnoKey = &singlematch.anno.key;
-                    if let (Some(anno_ns), Some(anno_name)) =
-                        (db.strings.str(anno_key.ns), db.strings.str(anno_key.name))
-                    {
-                        if anno_ns != "annis" {
-                            if !anno_ns.is_empty() {
-                                node_desc.push_str(anno_ns);
+                        let anno_key: &AnnoKey = &singlematch.anno.key;
+                        if let (Some(anno_ns), Some(anno_name)) =
+                            (db.strings.str(anno_key.ns), db.strings.str(anno_key.name))
+                        {
+                            if anno_ns != "annis" {
+                                if !anno_ns.is_empty() {
+                                    node_desc.push_str(anno_ns);
+                                    node_desc.push_str("::");
+                                }
+                                node_desc.push_str(anno_name);
                                 node_desc.push_str("::");
                             }
-                            node_desc.push_str(anno_name);
-                            node_desc.push_str("::");
                         }
-                    }
 
-                    if let Some(name_id) = db.node_annos
-                        .get(&singlematch.node, &db.get_node_name_key())
-                    {
-                        if let Some(name) = db.strings.str(name_id.clone()) {
-                            node_desc.push_str("salt:/");
-                            node_desc.push_str(name);
+                        if let Some(name_id) = db.node_annos
+                            .get(&singlematch.node, &db.get_node_name_key())
+                        {
+                            if let Some(name) = db.strings.str(name_id.clone()) {
+                                node_desc.push_str("salt:/");
+                                node_desc.push_str(name);
+                            }
                         }
-                    }
 
-                    match_desc.push(node_desc);
-                }
-                let mut result = String::new();
-                result.push_str(&match_desc.join(" "));
-                return result;
-            }));
+                        match_desc.push(node_desc);
+                    }
+                    let mut result = String::new();
+                    result.push_str(&match_desc.join(" "));
+                    return result;
+                }),
+        );
 
         return Ok(results);
     }
@@ -776,7 +800,7 @@ impl CorpusStorage {
             // left context (non-token)
             {
                 let mut q_left: Conjunction = Conjunction::new();
-                
+
                 let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode);
 
                 let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
@@ -787,7 +811,7 @@ impl CorpusStorage {
                 });
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken);
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken);
-                
+
                 q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_left.add_operator(
                     Box::new(operator::PrecedenceSpec {
@@ -812,7 +836,7 @@ impl CorpusStorage {
                 let mut q_left: Conjunction = Conjunction::new();
 
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken);
-            
+
                 let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
                     ns: Some(graphdb::ANNIS_NS.to_string()),
                     name: graphdb::NODE_NAME.to_string(),
@@ -820,7 +844,7 @@ impl CorpusStorage {
                     is_meta: false,
                 });
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken);
-                
+
                 q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_left.add_operator(
                     Box::new(operator::PrecedenceSpec {
@@ -838,7 +862,7 @@ impl CorpusStorage {
             // right context (non-token)
             {
                 let mut q_right: Conjunction = Conjunction::new();
-                
+
                 let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode);
 
                 let n_idx = q_right.add_node(NodeSearchSpec::ExactValue {
@@ -849,7 +873,7 @@ impl CorpusStorage {
                 });
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken);
                 let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken);
-                
+
                 q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_right.add_operator(
                     Box::new(operator::PrecedenceSpec {
@@ -882,7 +906,7 @@ impl CorpusStorage {
                     is_meta: false,
                 });
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken);
-                
+
                 q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_right.add_operator(
                     Box::new(operator::PrecedenceSpec {
@@ -968,7 +992,57 @@ impl CorpusStorage {
             false,
         ));
 
-        return extract_subgraph_by_query(db_entry, query.into_disjunction(), vec![0], self.query_config.clone());
+        return extract_subgraph_by_query(
+            db_entry,
+            query.into_disjunction(),
+            vec![0],
+            self.query_config.clone(),
+        );
+    }
+
+    pub fn frequency(
+        &self,
+        corpus_name: &str,
+        query_as_json: &str,
+        definition : Vec<FrequencyDefEntry>,
+    ) -> Result<Matrix<String>, Error> {
+        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+
+        // accuire read-only lock and execute query
+        let lock = prep.db_entry.read().unwrap();
+        let db : &GraphDB = get_read_or_error(&lock)?;
+
+        // get the matching annotation keys for each definition entry
+        let mut pos2annokey : HashMap<usize, Vec<AnnoKey>> = HashMap::default();
+        for def in definition.into_iter() {
+            let ns_id : Option<&StringID> = if let Some(ns) = def.ns {db.strings.find_id(&ns)} else {None};
+            let name_id = db.strings.find_id(&def.name)
+                .ok_or(Error::ImpossibleSearch(format!(
+                "string {} does not exist",
+                &def.name
+            )))?;
+
+            if let Some(ns_id) = ns_id {
+                // add the single fully qualified annotation key
+                pos2annokey.insert(def.node_ref, vec![AnnoKey {ns: *ns_id, name: *name_id}]);
+            } else {
+                // add all matching annotation keys
+                pos2annokey.insert(def.node_ref, db.node_annos.get_qnames(*name_id));
+            }
+
+        }
+
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+
+
+        for mgroup in plan {
+            // TODO for each match, extract the defined annotation (by its key) from the result node
+            for m in mgroup.iter() {
+                
+            }
+        }
+
+        unimplemented!()
     }
 
     pub fn get_all_components(
@@ -1005,12 +1079,20 @@ impl CorpusStorage {
                             if only_most_frequent_values {
                                 // get the first value
                                 if let Some(val) = node_annos.get_all_values(key, true).next() {
-                                    result.push((ns.clone(), name.clone(), db.strings.str(val).cloned().unwrap_or_default()));
+                                    result.push((
+                                        ns.clone(),
+                                        name.clone(),
+                                        db.strings.str(val).cloned().unwrap_or_default(),
+                                    ));
                                 }
                             } else {
                                 // get all values
                                 for val in node_annos.get_all_values(key, false) {
-                                    result.push((ns.clone(), name.clone(), db.strings.str(val).cloned().unwrap_or_default()));
+                                    result.push((
+                                        ns.clone(),
+                                        name.clone(),
+                                        db.strings.str(val).cloned().unwrap_or_default(),
+                                    ));
                                 }
                             }
                         } else {
