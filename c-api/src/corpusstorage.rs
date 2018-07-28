@@ -1,18 +1,23 @@
-use libc;
-use std;
-use std::ffi::CString;
+use graphannis::api::corpusstorage::FrequencyDefEntry;
+use super::error::Error;
 use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
 use graphannis::graphdb::GraphDB;
 use graphannis::relannis;
-use graphannis::{ComponentType, Component, CountExtra};
-use std::path::PathBuf;
-use super::error::Error;
+use graphannis::FrequencyTable;
 use graphannis::Matrix;
+use graphannis::{Component, ComponentType, CountExtra};
+use libc;
+use std;
+use std::ffi::CString;
+use std::path::PathBuf;
 
 /// Create a new corpus storage
 #[no_mangle]
-pub extern "C" fn annis_cs_new(db_dir: *const libc::c_char, use_parallel: bool) -> *mut cs::CorpusStorage {
+pub extern "C" fn annis_cs_new(
+    db_dir: *const libc::c_char,
+    use_parallel: bool,
+) -> *mut cs::CorpusStorage {
     let db_dir = cstr!(db_dir);
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
@@ -176,6 +181,45 @@ pub extern "C" fn annis_cs_subgraph_for_query(
     return std::ptr::null_mut();
 }
 
+#[no_mangle]
+pub extern "C" fn annis_cs_cs_frequency(
+    ptr: *const cs::CorpusStorage,
+    corpus_name: *const libc::c_char,
+    query_as_json: *const libc::c_char,
+    frequency_query_definition: *const libc::c_char,
+) -> *mut FrequencyTable<CString> {
+
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+
+    let query = cstr!(query_as_json);
+    let corpus = cstr!(corpus_name);
+    let frequency_query_definition = cstr!(frequency_query_definition);
+    let table_def : Vec<FrequencyDefEntry> = frequency_query_definition.split(',')
+        .filter_map(|d| -> Option<FrequencyDefEntry> {d.parse().ok()}).collect();
+
+    let orig_ft = cs.frequency(&corpus, &query, table_def);
+
+    if let Ok(orig_ft) = orig_ft {
+        let mut result: FrequencyTable<CString> = FrequencyTable::new();
+
+        for (tuple, count) in orig_ft.into_iter() {
+            let mut new_tuple : Vec<CString> = Vec::with_capacity(tuple.len());
+            for att in tuple.into_iter() {
+                if let Ok(att) = CString::new(att) {
+                    new_tuple.push(att);
+                } else {
+                    new_tuple.push(CString::default())
+                }
+            }
+
+            result.push((new_tuple, count));
+        }
+        return Box::into_raw(Box::new(result));
+    } else {
+        return std::ptr::null_mut();
+    }
+}
+
 /// List all known corpora.
 #[no_mangle]
 pub extern "C" fn annis_cs_list(ptr: *const cs::CorpusStorage) -> *mut Vec<CString> {
@@ -194,26 +238,27 @@ pub extern "C" fn annis_cs_list(ptr: *const cs::CorpusStorage) -> *mut Vec<CStri
     return Box::into_raw(Box::new(corpora));
 }
 
- #[no_mangle]
+#[no_mangle]
 pub extern "C" fn annis_cs_list_node_annotations(
-        ptr: *const cs::CorpusStorage,
-        corpus_name: *const libc::c_char,
-        list_values: bool,
-        only_most_frequent_values: bool,
-    ) -> *mut Matrix<CString> {
+    ptr: *const cs::CorpusStorage,
+    corpus_name: *const libc::c_char,
+    list_values: bool,
+    only_most_frequent_values: bool,
+) -> *mut Matrix<CString> {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let corpus = cstr!(corpus_name);
 
-        let cs: &cs::CorpusStorage = cast_const!(ptr);
-        let corpus = cstr!(corpus_name);
-
-        let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
-        let mut result : Matrix<CString> = Matrix::new();
-        for (ns, name, val) in orig_vec.into_iter() {
-            if let (Ok(ns), Ok(name), Ok(val)) = (CString::new(ns), CString::new(name), CString::new(val)) {
-                result.push(vec![ns, name, val]);
-            }
+    let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
+    let mut result: Matrix<CString> = Matrix::new();
+    for (ns, name, val) in orig_vec.into_iter() {
+        if let (Ok(ns), Ok(name), Ok(val)) =
+            (CString::new(ns), CString::new(name), CString::new(val))
+        {
+            result.push(vec![ns, name, val]);
         }
-        return Box::into_raw(Box::new(result));
     }
+    return Box::into_raw(Box::new(result));
+}
 
 #[no_mangle]
 pub extern "C" fn annis_cs_import_relannis(
@@ -239,7 +284,7 @@ pub extern "C" fn annis_cs_import_relannis(
             } else {
                 corpus
             };
-            cs.import(&corpus, db); 
+            cs.import(&corpus, db);
         }
         Err(err) => {
             return Box::into_raw(Box::new(Error::from(err)));
@@ -255,13 +300,11 @@ pub extern "C" fn annis_cs_all_components_by_type(
     corpus_name: *const libc::c_char,
     ctype: ComponentType,
 ) -> *mut Vec<Component> {
-
     let cs: &cs::CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 
     Box::into_raw(Box::new(cs.get_all_components(&corpus, Some(ctype), None)))
 }
-
 
 #[no_mangle]
 pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char) {

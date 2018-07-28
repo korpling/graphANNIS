@@ -15,7 +15,7 @@ limitations under the License.s
 #ifndef graphannis_capi_h
 #define graphannis_capi_h
 
-/* Generated with cbindgen:0.5.2 */
+/* Generated with cbindgen:0.6.1 */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -47,6 +47,8 @@ typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
 typedef struct AnnisError AnnisError;
 
+typedef struct AnnisFrequencyTable_AnnisCString AnnisFrequencyTable_AnnisCString;
+
 typedef struct AnnisGraphDB AnnisGraphDB;
 
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
@@ -68,6 +70,10 @@ typedef struct {
   uint64_t document_count;
 } AnnisCountExtra;
 
+/*
+ * Very simple definition of a matrix from a single data type. Not optimized at all.
+ * TODO: Maybe a sparse matrix could be used.
+ */
 typedef AnnisVec_AnnisVec_AnnisT AnnisMatrix_AnnisCString;
 
 typedef uint32_t AnnisNodeID;
@@ -113,6 +119,11 @@ AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
                                      const char *corpus,
                                      const char *query_as_json);
 
+AnnisFrequencyTable_AnnisCString *annis_cs_cs_frequency(const AnnisCorpusStorage *ptr,
+                                                        const char *corpus_name,
+                                                        const char *query_as_json,
+                                                        const char *frequency_query_definition);
+
 void annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus);
 
 AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
@@ -155,6 +166,16 @@ AnnisGraphDB *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
 const char *annis_error_get_msg(const AnnisError *ptr);
 
 void annis_free(void *ptr);
+
+size_t annis_freqtable_str_count(const AnnisFrequencyTable_AnnisCString *ptr, size_t row);
+
+const char *annis_freqtable_str_get(const AnnisFrequencyTable_AnnisCString *ptr,
+                                    size_t row,
+                                    size_t col);
+
+size_t annis_freqtable_str_ncols(const AnnisFrequencyTable_AnnisCString *ptr);
+
+size_t annis_freqtable_str_nrows(const AnnisFrequencyTable_AnnisCString *ptr);
 
 AnnisVec_AnnisComponent *annis_graph_all_components(const AnnisGraphDB *g);
 

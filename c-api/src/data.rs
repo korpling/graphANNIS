@@ -1,3 +1,4 @@
+use graphannis::FrequencyTable;
 use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
@@ -111,7 +112,6 @@ pub extern "C" fn annis_matrix_str_ncols(ptr : * const Matrix<CString>) -> size_
     return 0;
 }
 
-
 #[no_mangle]
 pub extern "C" fn annis_matrix_str_get(ptr : * const Matrix<CString>, row : size_t, col : size_t) -> * const c_char {
     // custom implementation for string matrix, don't return a referance to CString but a char pointer
@@ -122,4 +122,37 @@ pub extern "C" fn annis_matrix_str_get(ptr : * const Matrix<CString>, row : size
         }
     }
     return std::ptr::null();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_freqtable_str_nrows(ptr : * const FrequencyTable<CString>) -> size_t {vec_size(ptr)}
+
+#[no_mangle]
+pub extern "C" fn annis_freqtable_str_ncols(ptr : * const FrequencyTable<CString>) -> size_t {
+    let v : &FrequencyTable<CString> = cast_const!(ptr);
+    if !v.is_empty() {
+        return v[0].0.len();
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn annis_freqtable_str_get(ptr : * const FrequencyTable<CString>, row : size_t, col : size_t) -> * const c_char {
+    // custom implementation for string matrix, don't return a referance to CString but a char pointer
+    let ft : &FrequencyTable<CString> = cast_const!(ptr);
+    if row < ft.len() {
+        if col < ft[row].0.len() {
+            return ft[row].0[col].as_ptr();
+        }
+    }
+    return std::ptr::null();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_freqtable_str_count(ptr : * const FrequencyTable<CString>, row : size_t) -> size_t {
+    let ft : &FrequencyTable<CString> = cast_const!(ptr);
+    if row < ft.len() {
+        return ft[row].1;
+    }
+    return 0;
 }
