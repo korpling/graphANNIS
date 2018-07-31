@@ -7,6 +7,7 @@ extern crate rand;
 use bencher::Bencher;
 use graphannis::annostorage::AnnoStorage;
 use graphannis::api::corpusstorage::CorpusStorage;
+use graphannis::api::corpusstorage::ResultOrder;
 use graphannis::{AnnoKey, Annotation, StringID};
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -75,7 +76,7 @@ fn find_all_nouns_gum(bench: &mut Bencher) {
                 // ignore of corpus does not exist
                 if corpora.contains("GUM") {
                     bench.iter(move || {
-                        let f = cs.find("GUM", "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"nodeAnnotations\":[{\"name\":\"pos\",\"value\":\"NN\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"pos\"}],\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}", usize::min_value(), usize::max_value());
+                        let f = cs.find("GUM", "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"nodeAnnotations\":[{\"name\":\"pos\",\"value\":\"NN\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"pos\"}],\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}", usize::min_value(), usize::max_value(), ResultOrder::Normal);
                         assert!(f.is_ok());
                     });
                 }

@@ -22,6 +22,7 @@ use graphannis::api::corpusstorage::CorpusStorage;
 use graphannis::api::corpusstorage::CorpusInfo;
 use graphannis::api::corpusstorage::Error;
 use graphannis::api::corpusstorage::LoadStatus;
+use graphannis::api::corpusstorage::ResultOrder;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
@@ -312,7 +313,7 @@ impl AnnisRunner {
     fn find(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let matches = self.storage.find(corpus, args, 0, usize::max_value());
+            let matches = self.storage.find(corpus, args, 0, usize::max_value(), ResultOrder::Normal);
             let load_time = t_before.elapsed();
 
             if let Ok(t) = load_time {

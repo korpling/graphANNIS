@@ -30,6 +30,8 @@ use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, Nod
 use fxhash::FxHashMap;
 
 use rayon::prelude::*;
+use rand;
+use rand::Rng;
 
 enum CacheEntry {
     Loaded(GraphDB),
@@ -90,6 +92,15 @@ pub struct CorpusInfo {
     pub name: String,
     pub load_status: LoadStatus,
     pub memory_size: usize,
+}
+
+
+#[derive(Debug,PartialEq)]
+#[repr(C)]
+pub enum ResultOrder {
+    Normal,
+    Inverted,
+    Random,
 }
 
 pub struct CorpusStorage {
@@ -690,6 +701,7 @@ impl CorpusStorage {
         query_as_json: &str,
         offset: usize,
         limit: usize,
+        order: ResultOrder,
     ) -> Result<Vec<String>, Error> {
         let order_component = Component {
             ctype: ComponentType::Ordering,
@@ -723,29 +735,34 @@ impl CorpusStorage {
             tmp_results.push(mgroup);
         }
 
-        // TODO: allow to select sorting method
-        if self.query_config.use_parallel_joins {
-            tmp_results.par_sort_unstable_by(
-                |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
-                    return util::sort_matches::compare_matchgroup_by_text_pos(
-                        m1,
-                        m2,
-                        db,
-                        &node_to_path_cache,
-                    );
-                },
-            );
+        // either sort or randomly shuffle results
+        if order == ResultOrder::Random {
+            let mut rng = rand::thread_rng();
+            rng.shuffle(&mut tmp_results[..])
         } else {
-            tmp_results.sort_unstable_by(
-                |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+            let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                if order == ResultOrder::Inverted {
+                    return util::sort_matches::compare_matchgroup_by_text_pos(
+                        m1,
+                        m2,
+                        db,
+                        &node_to_path_cache,
+                    ).reverse();
+                } else {
                     return util::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
                         db,
                         &node_to_path_cache,
                     );
-                },
-            );
+                }
+            };
+
+            if self.query_config.use_parallel_joins {
+                tmp_results.par_sort_unstable_by(order_func);
+            } else {
+                tmp_results.sort_unstable_by(order_func);
+            }
         }
 
         let expected_size = std::cmp::min(tmp_results.len(), limit);

@@ -41,6 +41,12 @@ typedef enum {
   Trace,
 } AnnisLogLevel;
 
+typedef enum {
+  Normal,
+  Inverted,
+  Random,
+} AnnisResultOrder;
+
 typedef struct AnnisComponent AnnisComponent;
 
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
@@ -130,7 +136,8 @@ AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      const char *corpus_name,
                                      const char *query_as_json,
                                      size_t offset,
-                                     size_t limit);
+                                     size_t limit,
+                                     AnnisResultOrder order);
 
 AnnisError *annis_cs_import_relannis(AnnisCorpusStorage *ptr, const char *corpus, const char *path);
 

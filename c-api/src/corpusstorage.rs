@@ -2,6 +2,7 @@ use graphannis::api::corpusstorage::FrequencyDefEntry;
 use super::error::Error;
 use graphannis::api::corpusstorage as cs;
 use graphannis::api::update::GraphUpdate;
+use graphannis::api::corpusstorage::ResultOrder;
 use graphannis::graphdb::GraphDB;
 use graphannis::relannis;
 use graphannis::FrequencyTable;
@@ -66,13 +67,14 @@ pub extern "C" fn annis_cs_find(
     query_as_json: *const libc::c_char,
     offset: libc::size_t,
     limit: libc::size_t,
+    order: ResultOrder,
 ) -> *mut Vec<CString> {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_json);
     let corpus = cstr!(corpus_name);
 
-    let result = cs.find(&corpus, &query, offset, limit);
+    let result = cs.find(&corpus, &query, offset, limit, order);
 
     let vec_result: Vec<CString> = if let Ok(result) = result {
         result
