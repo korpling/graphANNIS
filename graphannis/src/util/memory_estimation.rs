@@ -2,14 +2,28 @@
 pub mod platform {
     extern crate jemalloc_sys;
     extern crate libc;
-    use std::os::raw::{c_void};
+    use std::os::raw::c_void;
 
-    /// Get the size of a heap block.
+   
+
+    // The C prototype is `je_malloc_usable_size(JEMALLOC_USABLE_SIZE_CONST void *ptr)`. On some
+    // platforms `JEMALLOC_USABLE_SIZE_CONST` is `const` and on some it is empty. But in practice
+    // this function doesn't modify the contents of the block that `ptr` points to, so we use
+    // `*const c_void` here.
+    extern "C" {
+        #[cfg_attr(
+            any(prefixed_jemalloc, target_os = "macos", target_os = "ios", target_os = "android"),
+            link_name = "je_malloc_usable_size"
+        )]
+        fn malloc_usable_size(ptr: *const c_void) -> usize;
+    }
+
+     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
         if ptr.is_null() {
             return 0;
         } else {
-            libc::malloc_usable_size(ptr as *mut _)
+            return malloc_usable_size(ptr);
         }
     }
 }
@@ -31,4 +45,3 @@ pub mod platform {
         HeapSize(heap, 0, ptr) as usize
     }
 }
-
