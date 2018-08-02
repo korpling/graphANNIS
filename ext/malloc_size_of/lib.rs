@@ -43,36 +43,8 @@
 //!   measured as well as the thing it points to. E.g.
 //!   `<Box<_> as MallocSizeOf>::size_of(field, ops)`.
 
-extern crate app_units;
-extern crate cssparser;
-extern crate euclid;
-#[cfg(feature = "servo")]
-extern crate hyper;
-#[cfg(feature = "servo")]
-extern crate hyper_serde;
-#[cfg(feature = "servo")]
-extern crate mozjs as js;
-#[cfg(feature = "servo")]
-extern crate serde;
-#[cfg(feature = "servo")]
-extern crate serde_bytes;
-extern crate servo_arc;
-extern crate smallbitvec;
-extern crate smallvec;
-#[cfg(feature = "servo")]
-extern crate string_cache;
-#[cfg(feature = "servo")]
-extern crate time;
-#[cfg(feature = "url")]
-extern crate url;
 extern crate void;
-#[cfg(feature = "webrender_api")]
-extern crate webrender_api;
-#[cfg(feature = "servo")]
-extern crate xml5ever;
 
-#[cfg(feature = "servo")]
-use serde_bytes::ByteBuf;
 use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;
 use std::ops::{Deref, DerefMut};
@@ -372,29 +344,6 @@ impl<T: MallocSizeOf> MallocSizeOf for std::collections::VecDeque<T> {
     }
 }
 
-impl<A: smallvec::Array> MallocShallowSizeOf for smallvec::SmallVec<A> {
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        if self.spilled() {
-            unsafe { ops.malloc_size_of(self.as_ptr()) }
-        } else {
-            0
-        }
-    }
-}
-
-impl<A> MallocSizeOf for smallvec::SmallVec<A>
-    where A: smallvec::Array,
-          A::Item: MallocSizeOf
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut n = self.shallow_size_of(ops);
-        for elem in self.iter() {
-            n += elem.size_of(ops);
-        }
-        n
-    }
-}
-
 impl<T, S> MallocShallowSizeOf for std::collections::HashSet<T, S>
     where T: Eq + Hash,
           S: BuildHasher
@@ -498,37 +447,6 @@ impl<T> MallocSizeOf for std::marker::PhantomData<T> {
 //impl<T> !MallocSizeOf for Arc<T> { }
 //impl<T> !MallocShallowSizeOf for Arc<T> { }
 
-impl<T> MallocUnconditionalShallowSizeOf for servo_arc::Arc<T> {
-    fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        unsafe { ops.malloc_size_of(self.heap_ptr()) }
-    }
-}
-
-impl<T: MallocSizeOf> MallocUnconditionalSizeOf for servo_arc::Arc<T> {
-    fn unconditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.unconditional_shallow_size_of(ops) + (**self).size_of(ops)
-    }
-}
-
-impl<T> MallocConditionalShallowSizeOf for servo_arc::Arc<T> {
-    fn conditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        if ops.have_seen_ptr(self.heap_ptr()) {
-            0
-        } else {
-            self.unconditional_shallow_size_of(ops)
-        }
-    }
-}
-
-impl<T: MallocSizeOf> MallocConditionalSizeOf for servo_arc::Arc<T> {
-    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        if ops.have_seen_ptr(self.heap_ptr()) {
-            0
-        } else {
-            self.unconditional_size_of(ops)
-        }
-    }
-}
 
 /// If a mutex is stored directly as a member of a data type that is being measured,
 /// it is the unique owner of its contents and deserves to be measured.
@@ -542,92 +460,10 @@ impl<T: MallocSizeOf> MallocSizeOf for std::sync::Mutex<T> {
     }
 }
 
-impl MallocSizeOf for smallbitvec::SmallBitVec {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        if let Some(ptr) = self.heap_ptr() {
-            unsafe { ops.malloc_size_of(ptr) }
-        } else {
-            0
-        }
-    }
-}
-
-impl<T: MallocSizeOf, Unit> MallocSizeOf for euclid::Length<T, Unit> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.0.size_of(ops)
-    }
-}
-
-impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::TypedScale<T, Src, Dst> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.0.size_of(ops)
-    }
-}
-
-impl<T: MallocSizeOf, U> MallocSizeOf for euclid::TypedPoint2D<T, U> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.x.size_of(ops) + self.y.size_of(ops)
-    }
-}
-
-impl<T: MallocSizeOf, U> MallocSizeOf for euclid::TypedRect<T, U> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.origin.size_of(ops) + self.size.size_of(ops)
-    }
-}
-
-impl<T: MallocSizeOf, U> MallocSizeOf for euclid::TypedSideOffsets2D<T, U> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.top.size_of(ops) + self.right.size_of(ops) +
-        self.bottom.size_of(ops) + self.left.size_of(ops)
-    }
-}
-
-impl<T: MallocSizeOf, U> MallocSizeOf for euclid::TypedSize2D<T, U> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.width.size_of(ops) + self.height.size_of(ops)
-    }
-}
-
-impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::TypedTransform2D<T, Src, Dst> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.m11.size_of(ops) + self.m12.size_of(ops) +
-        self.m21.size_of(ops) + self.m22.size_of(ops) +
-        self.m31.size_of(ops) + self.m32.size_of(ops)
-    }
-}
-
-impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::TypedTransform3D<T, Src, Dst> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.m11.size_of(ops) + self.m12.size_of(ops) +
-        self.m13.size_of(ops) + self.m14.size_of(ops) +
-        self.m21.size_of(ops) + self.m22.size_of(ops) +
-        self.m23.size_of(ops) + self.m24.size_of(ops) +
-        self.m31.size_of(ops) + self.m32.size_of(ops) +
-        self.m33.size_of(ops) + self.m34.size_of(ops) +
-        self.m41.size_of(ops) + self.m42.size_of(ops) +
-        self.m43.size_of(ops) + self.m44.size_of(ops)
-    }
-}
-
-impl<T: MallocSizeOf, U> MallocSizeOf for euclid::TypedVector2D<T, U> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.x.size_of(ops) + self.y.size_of(ops)
-    }
-}
-
-
 impl MallocSizeOf for Void {
     #[inline]
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         void::unreachable(*self)
-    }
-}
-
-#[cfg(feature = "servo")]
-impl<Static: string_cache::StaticAtomSet> MallocSizeOf for string_cache::Atom<Static> {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0
     }
 }
 
@@ -677,149 +513,11 @@ malloc_size_of_is_0!(Range<u8>, Range<u16>, Range<u32>, Range<u64>, Range<usize>
 malloc_size_of_is_0!(Range<i8>, Range<i16>, Range<i32>, Range<i64>, Range<isize>);
 malloc_size_of_is_0!(Range<f32>, Range<f64>);
 
-malloc_size_of_is_0!(app_units::Au);
-
-malloc_size_of_is_0!(cssparser::RGBA, cssparser::TokenSerializationType);
-
-#[cfg(feature = "url")]
-impl MallocSizeOf for url::Host {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match *self {
-            url::Host::Domain(ref s) => s.size_of(ops),
-            _ => 0,
-        }
-    }
-}
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderRadius);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderStyle);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BorderWidths);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ClipAndScrollInfo);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ColorF);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ComplexClipRegion);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ExtendMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::FilterOp);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ExternalScrollId);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::FontInstanceKey);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::GradientStop);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::GlyphInstance);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::NinePatchBorder);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageKey);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ImageRendering);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::LineStyle);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::MixBlendMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::NormalBorder);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::RepeatMode);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ScrollSensitivity);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);
-#[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::TransformStyle);
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for xml5ever::QualName {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.prefix.size_of(ops) +
-        self.ns.size_of(ops) +
-        self.local.size_of(ops)
-    }
-}
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for hyper::header::Headers {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.iter().fold(0, |acc, x| {
-            let name = x.name();
-            let raw = self.get_raw(name);
-            acc + raw.size_of(ops)
-        })
-    }
-}
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for hyper::header::ContentType {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.0.size_of(ops)
-    }
-}
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for hyper::mime::Mime {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.0.size_of(ops) +
-        self.1.size_of(ops) +
-        self.2.size_of(ops)
-    }
-}
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for hyper::mime::Attr {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match *self {
-            hyper::mime::Attr::Ext(ref s) => s.size_of(ops),
-            _ => 0,
-        }
-    }
-}
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for hyper::mime::Value {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        self.len() // Length of string value in bytes (not the char length of a string)!
-    }
-}
-
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(time::Duration);
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(time::Tm);
-
-#[cfg(feature = "servo")]
-impl<T> MallocSizeOf for hyper_serde::Serde<T> where
-    for <'de> hyper_serde::De<T>: serde::Deserialize<'de>,
-    for <'a> hyper_serde::Ser<'a, T>: serde::Serialize,
-    T: MallocSizeOf {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.0.size_of(ops)
-    }
-}
-
 // Placeholder for unique case where internals of Sender cannot be measured.
 // malloc size of is 0 macro complains about type supplied!
 impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
-    }
-}
-
-#[cfg(feature = "servo")]
-impl MallocSizeOf for hyper::status::StatusCode {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match *self {
-            hyper::status::StatusCode::Unregistered(u) => u.size_of(ops),
-            _ => 0,
-        }
     }
 }
 
