@@ -334,8 +334,6 @@ impl CorpusStorage {
     ) -> Result<CorpusStorage, Error> {
         let query_config = query::Config { use_parallel_joins };
 
-        info!("MemoInfo: {:?}", sys_info::mem_info());
-
         // get the amount of available memory, use a quarter of it per default
         let cache_size : usize = if let Ok(mem) = sys_info::mem_info() {
             (((mem.avail as usize * 1024) as f64) / 4.0) as usize // mem.free is in KiB
