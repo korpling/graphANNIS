@@ -32,6 +32,7 @@ extern crate serde_json;
 extern crate num;
 extern crate itertools;
 extern crate rayon;
+extern crate sys_info;
 
 #[macro_use]
 pub mod util;

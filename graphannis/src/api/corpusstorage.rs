@@ -33,6 +33,7 @@ use fxhash::FxHashMap;
 use rayon::prelude::*;
 use rand;
 use rand::Rng;
+use sys_info;
 
 enum CacheEntry {
     Loaded(GraphDB),
@@ -333,9 +334,20 @@ impl CorpusStorage {
     ) -> Result<CorpusStorage, Error> {
         let query_config = query::Config { use_parallel_joins };
 
+        info!("MemoInfo: {:?}", sys_info::mem_info());
+
+        // get the amount of available memory, use a quarter of it per default
+        let cache_size : usize = if let Ok(mem) = sys_info::mem_info() {
+            (((mem.avail as usize * 1024) as f64) / 4.0) as usize // mem.free is in KiB
+        } else {
+            // default to 1 GB
+            1024 * 1024 * 1024
+        };
+        info!("Using cache with size {:.*} MiB", 2, cache_size as f64  / ((1024 * 1024) as f64));
+
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
-            max_allowed_cache_size: Some(1024 * 1024 * 1024), // 1 GB
+            max_allowed_cache_size: Some(cache_size), // 1 GB
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config: query_config,
         };
