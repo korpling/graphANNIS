@@ -4,8 +4,8 @@ pub mod platform {
 
     /// Defines which actual function is used.
     /// 
-    /// Since we always compile with dylib, the system malloc is used instead
-    /// of jemalloc. On MacOS X, the external function is not called "malloc_usable_size", but "malloc_size" 
+    /// We always use the system malloc instead of jemalloc. 
+    /// On MacOS X, the external function is not called "malloc_usable_size", but "malloc_size" 
     /// (it basically does the same).
     extern "C" {
         #[cfg_attr(

@@ -54,3 +54,7 @@ pub mod parser;
 
 pub mod api;
 
+// Make sure the allocator is always the one from the system, otherwise we can't make sure our memory estimations work
+use std::alloc::System;
+#[global_allocator]
+static GLOBAL: System = System;
