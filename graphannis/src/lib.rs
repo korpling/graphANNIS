@@ -1,6 +1,6 @@
-extern crate heapsize;
+extern crate malloc_size_of;
 #[macro_use]
-extern crate heapsize_derive;
+extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate log;
 

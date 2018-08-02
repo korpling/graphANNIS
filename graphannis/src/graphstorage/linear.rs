@@ -11,13 +11,13 @@ use annostorage::AnnoStorage;
 use graphdb::GraphDB;
 use dfs::{CycleSafeDFS, DFSStep};
 
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 struct RelativePosition<PosT> {
     pub root: NodeID,
     pub pos: PosT,
 }
 
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct LinearGraphStorage<PosT: NumValue> {
     node_to_pos: FxHashMap<NodeID, RelativePosition<PosT>>,
     node_chains: FxHashMap<NodeID, Vec<NodeID>>,

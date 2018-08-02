@@ -4,21 +4,21 @@ use std::fmt;
 use std::ops::AddAssign;
 use std;
 
-use heapsize::HeapSizeOf;
+use malloc_size_of::MallocSizeOf;
 
 pub type NodeID = u32;
 pub type StringID = u32;
 
 
 
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf, Hash)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, MallocSizeOf, Hash)]
 #[repr(C)]
 pub struct AnnoKey {
     pub name: StringID,
     pub ns: StringID,
 }
 
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, HeapSizeOf, Hash)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, MallocSizeOf, Hash)]
 #[repr(C)]
 pub struct Annotation {
     pub key: AnnoKey,
@@ -39,7 +39,7 @@ pub struct CountExtra {
     pub document_count: u64,
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, MallocSizeOf)]
 #[repr(C)]
 pub struct Edge {
     pub source: NodeID,
@@ -52,7 +52,7 @@ impl Edge {
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter, EnumString, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter, EnumString, MallocSizeOf)]
 #[repr(C)]
 pub enum ComponentType {
     Coverage,
@@ -71,7 +71,7 @@ impl fmt::Display for ComponentType {
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, MallocSizeOf)]
 pub struct Component {
     pub ctype : ComponentType,
     pub name : String,
@@ -84,7 +84,7 @@ impl std::fmt::Display for Component {
     }
 }
 
-pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive + HeapSizeOf {
+pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive + MallocSizeOf {
 
 }
 

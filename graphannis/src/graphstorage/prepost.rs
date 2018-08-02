@@ -10,14 +10,14 @@ use annostorage::AnnoStorage;
 use graphdb::GraphDB;
 use dfs::{CycleSafeDFS, DFSStep};
 
-#[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, HeapSizeOf)]
+#[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
 pub struct PrePost<OrderT, LevelT> {
     pub pre: OrderT,
     pub post: OrderT,
     pub level: LevelT,
 }
 
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf, Debug)]
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf, Debug)]
 enum OrderVecEntry<OrderT, LevelT> {
     None,
     Pre {
@@ -32,7 +32,7 @@ enum OrderVecEntry<OrderT, LevelT> {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct PrePostOrderStorage<OrderT: NumValue, LevelT: NumValue> {
     node_to_order: FxHashMap<NodeID, Vec<PrePost<OrderT, LevelT>>>,
     order_to_node: Vec<OrderVecEntry<OrderT, LevelT>>,

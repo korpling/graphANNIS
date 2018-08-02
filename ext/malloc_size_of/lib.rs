@@ -456,6 +456,19 @@ impl<K, V, S> MallocSizeOf for std::collections::HashMap<K, V, S>
     }
 }
 
+// FIXME: Overhead for the BTreeMap nodes is not accounted for.
+impl<K: MallocSizeOf, V: MallocSizeOf> MallocSizeOf for std::collections::BTreeMap<K, V> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut size = 0;
+        for (key, value) in self.iter() {
+            size += size_of::<(K, V)>() +
+                    key.size_of(ops) +
+                    value.size_of(ops);
+        }
+        size
+    }
+}
+
 // PhantomData is always 0.
 impl<T> MallocSizeOf for std::marker::PhantomData<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {

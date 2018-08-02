@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 use fxhash::FxHashSet;
 use std::collections::Bound::*;
 
-use heapsize::HeapSizeOf;
+use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
 use util::memory_estimation;
 
 use itertools::Itertools;
@@ -21,12 +21,12 @@ pub struct AdjacencyListStorage {
     stats : Option<GraphStatistic>,
 }
 
-impl HeapSizeOf for AdjacencyListStorage {
-    fn heap_size_of_children(&self) -> usize {
-        return memory_estimation::heap_size_of_children(&self.edges)
-            + memory_estimation::heap_size_of_children(&self.inverse_edges)
-            + self.annos.heap_size_of_children()
-            + self.stats.heap_size_of_children()
+impl MallocSizeOf for AdjacencyListStorage {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        return memory_estimation::size_of_btreeset(&self.edges, ops)
+            + memory_estimation::size_of_btreeset(&self.inverse_edges, ops)
+            + self.annos.size_of(ops)
+            + self.stats.size_of(ops)
             + std::mem::size_of::<AdjacencyListStorage>();
     }
 }

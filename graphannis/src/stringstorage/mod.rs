@@ -4,7 +4,7 @@ use regex::Regex;
 use std;
 use bincode;
 
-#[derive(Serialize, Deserialize, Clone, Debug, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Clone, Debug, MallocSizeOf)]
 pub struct StringStorage {
     by_id: FxHashMap<StringID, String>,
     by_value: FxHashMap<String, StringID>,

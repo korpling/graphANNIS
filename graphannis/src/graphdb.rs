@@ -16,7 +16,7 @@ use strum::IntoEnumIterator;
 use std::string::ToString;
 use bincode;
 use serde;
-use heapsize::HeapSizeOf;
+use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
 
 use tempdir::TempDir;
 
@@ -80,14 +80,15 @@ pub struct GraphDB {
     background_persistance : Arc<Mutex<()>>,
 }
 
-impl HeapSizeOf for GraphDB {
-    fn heap_size_of_children(&self) -> usize {
+impl MallocSizeOf for GraphDB {
+
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size =
-            self.strings.heap_size_of_children() + self.node_annos.heap_size_of_children();
+            self.strings.size_of(ops) + self.node_annos.size_of(ops);
 
         for (c, gs) in self.components.iter() {
             // TODO: overhead by map is not measured
-            size += c.heap_size_of_children() + gs.heap_size_of_children();
+            size += c.size_of(ops) + gs.size_of(ops);
         }
 
         return size;

@@ -8,7 +8,8 @@ use exec::nodesearch::NodeSearchSpec;
 use graphdb;
 use graphdb::GraphDB;
 use graphdb::{ANNIS_NS, NODE_TYPE};
-use heapsize::HeapSizeOf;
+use util::memory_estimation;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use linked_hash_map::LinkedHashMap;
 use operator;
 use parser::jsonqueryparser;
@@ -164,6 +165,8 @@ fn check_cache_size_and_remove(
     max_cache_size: Option<usize>,
     cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
 ) {
+    let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+
     // only prune corpora from the cache if max. size was set
     if let Some(max_cache_size) = max_cache_size {
         // check size of each corpus
@@ -172,7 +175,7 @@ fn check_cache_size_and_remove(
         for (corpus, db_entry) in cache.iter() {
             let lock = db_entry.read().unwrap();
             if let &CacheEntry::Loaded(ref db) = &*lock {
-                let s = db.heap_size_of_children();
+                let s = db.size_of(&mut mem_ops);
                 size_sum += s;
                 db_sizes.insert(corpus.clone(), s);
             }
@@ -354,13 +357,15 @@ impl CorpusStorage {
         let names: Vec<String> = self.list_from_disk().unwrap_or_default();
         let mut result: Vec<CorpusInfo> = vec![];
 
+        let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+
         for n in names {
             let cache_entry = self.get_entry(&n)?;
             let lock = cache_entry.read().unwrap();
             let corpus_info: CorpusInfo = match &*lock {
                 &CacheEntry::Loaded(ref db) => {
                     // check if all components are loaded
-                    let heap_size = db.heap_size_of_children();
+                    let heap_size = db.size_of(&mut mem_ops);
                     let mut load_status = LoadStatus::FullyLoaded(heap_size);
 
                     for c in db.get_all_components(None, None) {

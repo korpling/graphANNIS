@@ -12,9 +12,10 @@ use bincode;
 use serde;
 use serde::de::DeserializeOwned;
 use itertools::Itertools;
+use malloc_size_of::MallocSizeOf;
 
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
-pub struct AnnoStorage<T: Ord + Hash> {
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
+pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf> {
     by_container: FxHashMap<T, Vec<Annotation>>,
     by_anno: BTreeMap<Annotation, FxHashSet<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
@@ -25,7 +26,7 @@ pub struct AnnoStorage<T: Ord + Hash> {
     total_number_of_annos: usize,
 }
 
-impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned> AnnoStorage<T> {
+impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf> AnnoStorage<T> {
     pub fn new() -> AnnoStorage<T> {
         AnnoStorage {
             by_container: FxHashMap::default(),

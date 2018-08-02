@@ -4,10 +4,10 @@ use {AnnoKey, Annotation, Edge, NodeID};
 use annostorage::AnnoStorage;
 use stringstorage::StringStorage;
 use graphdb::GraphDB;
-use heapsize::HeapSizeOf;
+use malloc_size_of::MallocSizeOf;
 
 /// Some general statistical numbers specific to a graph component
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct GraphStatistic
 {
     pub cyclic : bool,
@@ -29,7 +29,7 @@ pub struct GraphStatistic
     pub dfs_visit_ratio : f64,
 }
 
-pub trait EdgeContainer : Sync + Send + HeapSizeOf {
+pub trait EdgeContainer : Sync + Send + MallocSizeOf {
 
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
