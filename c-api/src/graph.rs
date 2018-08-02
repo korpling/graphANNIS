@@ -1,6 +1,8 @@
+use graphannis::api::update::GraphUpdate;
 use libc;
 use std;
 use std::ffi::CString;
+use super::error::Error;
 use data::IterPtr;
 use graphannis::{NodeID, Match, Annotation, StringID, Edge, Component, ComponentType};
 use graphannis::graphdb::{GraphDB};
@@ -100,5 +102,16 @@ pub extern "C" fn annis_graph_str(g : * const GraphDB,  str_id : StringID) -> * 
         return result.into_raw();
     }
     return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_graph_apply_update(g : * mut GraphDB,  update: *mut GraphUpdate) -> * mut Error {
+    let db : &mut GraphDB = cast_mut!(g);
+    let update: &mut GraphUpdate = cast_mut!(update);
+    if let Err(e) = db.apply_update(update) {
+        return  Box::into_raw(Box::new(Error::from(e)));
+    }
+
+    std::ptr::null_mut()
 }
 

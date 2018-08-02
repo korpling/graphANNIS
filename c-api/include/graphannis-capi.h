@@ -189,6 +189,8 @@ AnnisVec_AnnisComponent *annis_graph_all_components(const AnnisGraphDB *g);
 AnnisVec_AnnisComponent *annis_graph_all_components_by_type(const AnnisGraphDB *g,
                                                             AnnisComponentType ctype);
 
+AnnisError *annis_graph_apply_update(AnnisGraphDB *g, AnnisGraphUpdate *update);
+
 AnnisVec_AnnisAnnotation *annis_graph_edge_labels(const AnnisGraphDB *g,
                                                   AnnisEdge edge,
                                                   const AnnisComponent *component);
