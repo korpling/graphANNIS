@@ -313,12 +313,15 @@ impl CorpusStorage {
     pub fn new(
         db_dir: &Path,
         max_allowed_cache_size: Option<usize>,
+        use_parallel_joins: bool,
     ) -> Result<CorpusStorage, Error> {
+        let query_config = query::Config { use_parallel_joins };
+
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             max_allowed_cache_size,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
-            query_config: query::Config::default(),
+            query_config,
         };
 
         Ok(cs)
