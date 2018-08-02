@@ -9,8 +9,6 @@ use fxhash::FxHashSet;
 use std::collections::Bound::*;
 
 use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
-use util::memory_estimation;
-
 use itertools::Itertools;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -23,8 +21,8 @@ pub struct AdjacencyListStorage {
 
 impl MallocSizeOf for AdjacencyListStorage {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        return memory_estimation::size_of_btreeset(&self.edges, ops)
-            + memory_estimation::size_of_btreeset(&self.inverse_edges, ops)
+        return self.edges.size_of(ops)
+            + self.inverse_edges.size_of(ops)
             + self.annos.size_of(ops)
             + self.stats.size_of(ops)
             + std::mem::size_of::<AdjacencyListStorage>();

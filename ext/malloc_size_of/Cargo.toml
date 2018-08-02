@@ -4,23 +4,10 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MIT/Apache-2.0"
 publish = false
+description = "This is a copy from Servo with some non-used data structures removed and some added."
 
 [lib]
 path = "lib.rs"
-
-[features]
-servo = [
-    "hyper",
-    "hyper_serde",
-    "mozjs",
-    "serde",
-    "serde_bytes",
-    "string_cache",
-    "time",
-    "url",
-    "webrender_api",
-    "xml5ever",
-]
 
 [dependencies]
 app_units = "0.6"
