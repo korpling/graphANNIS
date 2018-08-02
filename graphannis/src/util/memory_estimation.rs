@@ -1,19 +1,16 @@
 #[cfg(not(windows))]
 pub mod platform {
-    extern crate jemalloc_sys;
-    extern crate libc;
     use std::os::raw::c_void;
 
-   
-
-    // The C prototype is `je_malloc_usable_size(JEMALLOC_USABLE_SIZE_CONST void *ptr)`. On some
-    // platforms `JEMALLOC_USABLE_SIZE_CONST` is `const` and on some it is empty. But in practice
-    // this function doesn't modify the contents of the block that `ptr` points to, so we use
-    // `*const c_void` here.
+    /// Defines which actual function is used.
+    /// 
+    /// Since we always compile with dylib, the system malloc is used instead
+    /// of jemalloc. On MacOS X, the external function is not called "malloc_usable_size", but "malloc_size" 
+    /// (it basically does the same).
     extern "C" {
         #[cfg_attr(
-            any(prefixed_jemalloc, target_os = "macos", target_os = "ios", target_os = "android"),
-            link_name = "je_malloc_usable_size"
+            any(target_os = "macos", target_os = "ios"),
+            link_name = "malloc_size"
         )]
         fn malloc_usable_size(ptr: *const c_void) -> usize;
     }
