@@ -37,6 +37,7 @@ rayon = "1.0"
 malloc_size_of = { path = "../ext/malloc_size_of" }
 malloc_size_of_derive = { path = "../ext/malloc_size_of_derive" }
 jemalloc-sys = "0.1"
+libc = "0.2"
 
 [dev-dependencies]
 bencher = "0.1"

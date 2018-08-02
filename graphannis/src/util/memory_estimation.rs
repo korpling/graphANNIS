@@ -1,11 +1,16 @@
 #[cfg(not(windows))]
 pub mod platform {
-    extern crate jemalloc_sys as ffi;
+    extern crate jemalloc_sys;
+    extern crate libc;
     use std::os::raw::{c_void};
 
     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
-        ffi::malloc_usable_size(ptr as *const _)
+        if ptr.is_null() {
+            return 0;
+        } else {
+            libc::malloc_usable_size(ptr as *mut _)
+        }
     }
 }
 
