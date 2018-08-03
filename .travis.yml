@@ -3,6 +3,7 @@ rust:
   - stable
 os:
   - linux
+  - osx
 
 dist: trusty
 sudo: false
