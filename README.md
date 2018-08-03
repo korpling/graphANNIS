@@ -1,5 +1,5 @@
-[![Build Status Linux & MacOS X](https://travis-ci.org/thomaskrause/graphANNIS.svg?branch=rust/develop)](https://travis-ci.org/thomaskrause/graphANNIS) (Linux & MacOS X)
-[![Build status Windows](https://ci.appveyor.com/api/projects/status/flqrsli6jmc37sa5/branch/rust/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/rust/develop) (Windows)
+Linux & MacOS: [![Build Status Linux & MacOS X](https://travis-ci.org/thomaskrause/graphANNIS.svg?branch=rust/develop)](https://travis-ci.org/thomaskrause/graphANNIS)
+Windows: [![Build status Windows](https://ci.appveyor.com/api/projects/status/flqrsli6jmc37sa5/branch/rust/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/rust/develop)
 
 graphANNIS
 ==========
