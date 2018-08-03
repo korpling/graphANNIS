@@ -37,7 +37,7 @@ test_script:
       cargo test --target %TARGET% --release &&
       appveyor-retry appveyor DownloadFile https://github.com/amir-zeldes/gum/archive/f8ac9944fae39ae37c4db186304e3c1ab41f77f3.zip -FileName gum.zip && 
       7z e gum.zip -orelannis\GUM -aoa &&
-      target/release/annis data --cmd 'import relannis/GUM' &&
+      target\release\annis.exe data --cmd 'import relannis/GUM' &&
       cargo test --release --verbose  -- --ignored
     )
 
@@ -46,7 +46,7 @@ before_deploy:
   - cargo build --target %TARGET% --release
 
 deploy:
-  artifact: target/%TARGET%/release/graphannis_capi.dll
+  artifact: target\%TARGET%\release\graphannis_capi.dll
   # TODO update `auth_token.secure`
   # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
   # - Encrypt it. Go to https://ci.appveyor.com/tools/encrypt
