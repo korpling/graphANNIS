@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/thomaskrause/graphANNIS.svg?branch=develop)](https://travis-ci.org/thomaskrause/graphANNIS)
+[![Build Status Linux & MacOS X](https://travis-ci.org/thomaskrause/graphANNIS.svg?branch=rust/develop)](https://travis-ci.org/thomaskrause/graphANNIS)
+[![Build status Windows](https://ci.appveyor.com/api/projects/status/flqrsli6jmc37sa5/branch/rust/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/rust/develop)
 
 graphANNIS
 ==========
