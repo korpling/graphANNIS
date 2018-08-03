@@ -32,4 +32,4 @@ deploy:
     repo: thomaskrause/graphANNIS
     branch: staging
   skip_cleanup: true
-draft: true
+  draft: true
