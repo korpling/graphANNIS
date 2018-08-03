@@ -8,3 +8,10 @@ dist: trusty
 sudo: false
 
 cache: cargo
+
+script:
+  - cargo test --release --verbose
+  -  "./misc/download-gum-corpus.sh"
+  - cargo build --verbose --release 
+  - ./target/release/annis data --cmd 'import relannis/GUM'
+  - cargo test --release --verbose  -- --ignored
