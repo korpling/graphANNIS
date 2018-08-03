@@ -33,7 +33,7 @@ if len(j) > 0 and j[0]["milestone"] is not None:
 	print()
 
 for issue in j:
-	title = "- [#{0}](https://github.com/thomaskrause/graphANNIS/issues/{0}) {1}".format(issue["number"], issue["title"])
+	title = "- [#{0}](https://github.com/corpus-tools/graphANNIS/issues/{0}) {1}".format(issue["number"], issue["title"])
 	if len(issue["labels"]) > 0:
 		if issue["labels"][0]["name"] == "bug":
 			bugs.append(title)
