@@ -34,7 +34,11 @@ test_script:
   # we don't run the "test phase" when doing deploys
   - if [%APPVEYOR_REPO_TAG%]==[false] (
       cargo build --target %TARGET% --release &&
-      cargo test --target %TARGET% --release
+      cargo test --target %TARGET% --release &&
+      appveyor-retry appveyor DownloadFile //github.com/amir-zeldes/gum/archive/f8ac9944fae39ae37c4db186304e3c1ab41f77f3.zip -FileName gum.zip && 
+      7z e gum.zip -orelannis\GUM &&
+      target/release/annis data --cmd 'import relannis/GUM' &&
+      cargo test --release --verbose  -- --ignored
     )
 
 before_deploy:
@@ -50,11 +54,9 @@ deploy:
   auth_token:
     secure: zmvMxlwpu6ZdXYp4Q1h2sj1Vzcf2TUkkrf9sJAdezJ/wD2IRYvFsjRm7slLdati9
   description: ''
+  draft: true
   on:
     # TODO Here you can pick which targets will generate binary releases
-    # In this example, there are some targets that are tested using the stable
-    # and nightly channels. This condition makes sure there is only one release
-    # for such targets and that's generated using the stable channel
     RUST_VERSION: stable
     appveyor_repo_tag: true
   provider: GitHub
@@ -68,7 +70,10 @@ branches:
     # Release tags
     - /^v\d+\.\d+\.\d+.*$/
     - master
+    - develop
     - appveyor
+    - staging
+    - rust/develop
 
 notifications:
   - provider: Email
