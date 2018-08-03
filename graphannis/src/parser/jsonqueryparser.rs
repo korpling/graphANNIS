@@ -1,13 +1,15 @@
 use serde_json;
 
+use exec::nodesearch::NodeSearchSpec;
+use graphdb::GraphDB;
+use operator::edge_op::EdgeAnnoSearchSpec;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
-use exec::nodesearch::NodeSearchSpec;
-use operator::edge_op::EdgeAnnoSearchSpec;
-use graphdb::GraphDB;
 
-use operator::{DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec,
-               OperatorSpec, OverlapSpec, PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec};
+use operator::{
+    DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec, OperatorSpec,
+    OverlapSpec, PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec,
+};
 
 use std::collections::BTreeMap;
 
@@ -62,7 +64,9 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
                         m.get("namespace").and_then(|n| n.as_str()),
                         m.get("name").and_then(|n| n.as_str()),
                         m.get("value").and_then(|n| n.as_str()),
-                        is_regex(m), true, None
+                        is_regex(m),
+                        true,
+                        None,
                     ) {
                         if let Some(first_meta_idx) = first_meta_idx {
                             // avoid nested loops by joining additional meta nodes with a "identical node"
@@ -75,10 +79,27 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
                             first_meta_idx = Some(meta_node_idx);
                             // add a special join to the first node of the query
                             q.add_operator(
-                                Box::new(PartOfSubCorpusSpec::new(1,1)),
+                                Box::new(PartOfSubCorpusSpec::new(1, usize::max_value())),
                                 first_node_pos,
                                 meta_node_idx,
                             );
+                            // Also make sure the matched node is actually a document
+                            // (the @* could match anything in the hierarchy, including the toplevel corpus)
+                            if let Some(doc_anno_idx) = add_node_annotation(
+                                &mut q,
+                                Some("annis"),
+                                Some("doc"),
+                                None,
+                                false,
+                                true,
+                                None,
+                            ) {
+                                q.add_operator(
+                                    Box::new(IdenticalNodeSpec {}),
+                                    meta_node_idx,
+                                    doc_anno_idx,
+                                );
+                            }
                         }
                     }
                 }
@@ -111,7 +132,9 @@ fn parse_node(
                     a.get("namespace").and_then(|n| n.as_str()),
                     a.get("name").and_then(|n| n.as_str()),
                     a.get("value").and_then(|n| n.as_str()),
-                    is_regex(a), false, variable,
+                    is_regex(a),
+                    false,
+                    variable,
                 );
             }
         }
@@ -120,7 +143,8 @@ fn parse_node(
     // check for special non-annotation search constructs
     // token search?
     if (node.contains_key("spannedText") && node["spannedText"].is_string())
-        || (node.contains_key("token") && node["token"].is_boolean()
+        || (node.contains_key("token")
+            && node["token"].is_boolean()
             && node["token"].as_bool() == Some(true))
     {
         let spanned = node.get("spannedText").and_then(|s| s.as_str());
@@ -136,15 +160,21 @@ fn parse_node(
             if node.contains_key("spanTextMatching")
                 && node["spanTextMatching"].as_str() == Some("REGEXP_EQUAL")
             {
-                return Some(q.add_node(NodeSearchSpec::RegexTokenValue {
-                    val: String::from(tok_val),
-                    leafs_only,
-                }, variable));
+                return Some(q.add_node(
+                    NodeSearchSpec::RegexTokenValue {
+                        val: String::from(tok_val),
+                        leafs_only,
+                    },
+                    variable,
+                ));
             } else {
-                return Some(q.add_node(NodeSearchSpec::ExactTokenValue {
-                    val: String::from(tok_val),
-                    leafs_only,
-                }, variable));
+                return Some(q.add_node(
+                    NodeSearchSpec::ExactTokenValue {
+                        val: String::from(tok_val),
+                        leafs_only,
+                    },
+                    variable,
+                ));
             }
         } else {
             return Some(q.add_node(NodeSearchSpec::AnyToken, variable));
@@ -198,10 +228,12 @@ fn parse_join(
                     Some(Box::new(spec))
                 }
                 Some("Dominance") => {
-                    let min_dist = join.get("minDistance")
+                    let min_dist = join
+                        .get("minDistance")
                         .and_then(|n| n.as_u64())
                         .unwrap_or(1) as usize;
-                    let max_dist = join.get("maxDistance")
+                    let max_dist = join
+                        .get("maxDistance")
                         .and_then(|n| n.as_u64())
                         .unwrap_or(1) as usize;
 
@@ -209,75 +241,66 @@ fn parse_join(
                         // unlimited range
                         (1, usize::max_value())
                     } else {
-                        (min_dist,max_dist)
+                        (min_dist, max_dist)
                     };
 
                     let name = join.get("name").and_then(|n| n.as_str());
-                    let edge_anno = join.get("edgeAnnotations")
+                    let edge_anno = join
+                        .get("edgeAnnotations")
                         .and_then(|a| a.as_array())
                         .and_then(|a| get_edge_anno(&a[0]));
-                    let spec = DominanceSpec::new(
-                        db,
-                        name.unwrap_or(""),
-                        min_dist,
-                        max_dist,
-                        edge_anno,
-                    );
+                    let spec =
+                        DominanceSpec::new(db, name.unwrap_or(""), min_dist, max_dist, edge_anno);
                     Some(Box::new(spec))
                 }
                 Some("Pointing") => {
-                    let min_dist = join.get("minDistance")
+                    let min_dist = join
+                        .get("minDistance")
                         .and_then(|n| n.as_u64())
                         .unwrap_or(1) as usize;
-                    let max_dist = join.get("maxDistance")
+                    let max_dist = join
+                        .get("maxDistance")
                         .and_then(|n| n.as_u64())
                         .unwrap_or(1) as usize;
 
                     let name = join.get("name").and_then(|n| n.as_str());
-                    let edge_anno = join.get("edgeAnnotations")
+                    let edge_anno = join
+                        .get("edgeAnnotations")
                         .and_then(|a| a.as_array())
                         .and_then(|a| get_edge_anno(&a[0]));
-                    
+
                     let (min_dist, max_dist) = if min_dist == 0 && max_dist == 0 {
                         // unlimited range
                         (1, usize::max_value())
                     } else {
-                        (min_dist,max_dist)
+                        (min_dist, max_dist)
                     };
 
-                    let spec = PointingSpec::new(
-                        db,
-                        name.unwrap_or(""),
-                        min_dist,
-                        max_dist,
-                        edge_anno,
-                    );
+                    let spec =
+                        PointingSpec::new(db, name.unwrap_or(""), min_dist, max_dist, edge_anno);
                     Some(Box::new(spec))
                 }
                 Some("PartOfSubcorpus") => {
-                    let min_dist = join.get("minDistance")
+                    let min_dist = join
+                        .get("minDistance")
                         .and_then(|n| n.as_u64())
                         .unwrap_or(1) as usize;
-                    let max_dist = join.get("maxDistance")
+                    let max_dist = join
+                        .get("maxDistance")
                         .and_then(|n| n.as_u64())
                         .unwrap_or(1) as usize;
-                    
+
                     let (min_dist, max_dist) = if min_dist == 0 && max_dist == 0 {
                         // unlimited range
                         (1, usize::max_value())
                     } else {
-                        (min_dist,max_dist)
+                        (min_dist, max_dist)
                     };
 
-                    let spec = PartOfSubCorpusSpec::new(
-                        min_dist,
-                        max_dist,
-                    );
+                    let spec = PartOfSubCorpusSpec::new(min_dist, max_dist);
                     Some(Box::new(spec))
                 }
-                Some("IdenticalNode") => {
-                    Some(Box::new(IdenticalNodeSpec))
-                }
+                Some("IdenticalNode") => Some(Box::new(IdenticalNodeSpec)),
                 // TODO: add more operators
                 _ => None,
             };
@@ -326,7 +349,7 @@ fn add_node_annotation(
     value: Option<&str>,
     regex: bool,
     is_meta: bool,
-    variable : Option<&str>,
+    variable: Option<&str>,
 ) -> Option<usize> {
     if let Some(name_val) = name {
         // TODO: replace regex with normal text matching if this is not an actual regular expression
