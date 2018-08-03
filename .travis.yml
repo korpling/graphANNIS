@@ -10,6 +10,15 @@ sudo: false
 
 cache: cargo
 
+branches:
+  only:
+    # Release tags
+    - /^v\d+\.\d+\.\d+.*$/
+    - master
+    - develop
+    - travis
+    - staging
+
 script:
   - cargo test --release --verbose
   -  "./misc/download-gum-corpus.sh"
@@ -29,7 +38,7 @@ deploy:
   file_glob: true
   file: "${RELEASE_PKG_FILE}"
   on:
-    repo: thomaskrause/graphANNIS
-    branch: staging
+    repo: corpus-tools/graphANNIS
+    tags: true
   skip_cleanup: true
   draft: true

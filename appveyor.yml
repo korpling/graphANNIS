@@ -76,7 +76,6 @@ branches:
     - develop
     - appveyor
     - staging
-    - rust/develop
 
 notifications:
   - provider: Email
