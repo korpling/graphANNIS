@@ -6,7 +6,9 @@ graphANNIS
 
 This is a prototype for a new backend implementation of the ANNIS linguistic search and visualization system (http://github.com/korpling/ANNIS/). 
 
-It is part of my ongoing thesis and while there are test cases it is **highly experimental code and it is not ready to be used by end-users yet**!
+While there are test cases it is **highly experimental code and it is not ready to be used by end-users yet**!
+Integration with ANNIS is currently implemented in a special branch: https://github.com/thomaskrause/ANNIS/tree/feature/graphannis
+
 
 How to compile
 ---------------
@@ -23,6 +25,12 @@ cargo build --release
 ----------------------
 
 This software depends on several 3rd party libraries. These are documented in the BOM.txt file in this folder.
+
+Language bindings
+------------------
+
+- Java: https://github.com/corpus-tools/graphANNIS-java
+- Python 3: https://github.com/corpus-tools/graphANNIS-python
 
 Author(s)
 ---------
