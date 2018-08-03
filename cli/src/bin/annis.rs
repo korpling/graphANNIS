@@ -427,6 +427,13 @@ fn main() {
                 .takes_value(false),
         )
         .arg(
+            Arg::with_name("cmd")
+                .short("c")
+                .long("cmd")
+                .help("Executes command")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("DATA_DIR")
                 .help("directory containing the data")
                 .required(true)
@@ -455,7 +462,12 @@ fn main() {
 
     let runner_result = AnnisRunner::new(&dir);
     match runner_result {
-        Ok(mut runner) => runner.start_loop(),
+        Ok(mut runner) => if let Some(cmd) = matches.value_of("cmd") {
+            // execute command directly
+            runner.exec(cmd);
+        } else {
+            runner.start_loop();
+        },
         Err(e) => println!("Can't start console because of loading error: {:?}", e),
     };
 
