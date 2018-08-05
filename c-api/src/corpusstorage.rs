@@ -263,6 +263,36 @@ pub extern "C" fn annis_cs_list_node_annotations(
 }
 
 #[no_mangle]
+pub extern "C" fn annis_cs_list_edge_annotations(
+    ptr: *const cs::CorpusStorage,
+    corpus_name: *const libc::c_char,
+    component_type: ComponentType,
+    component_name: *const libc::c_char,
+    component_layer: *const libc::c_char,
+    list_values: bool,
+    only_most_frequent_values: bool,
+) -> *mut Matrix<CString> {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let corpus = cstr!(corpus_name);
+    let component = Component {
+        ctype: component_type,
+        name: String::from(cstr!(component_name)),
+        layer: String::from(cstr!(component_layer)),
+    };
+
+    let orig_vec = cs.list_edge_annotations(&corpus, component, list_values, only_most_frequent_values);
+    let mut result: Matrix<CString> = Matrix::new();
+    for (ns, name, val) in orig_vec.into_iter() {
+        if let (Ok(ns), Ok(name), Ok(val)) =
+            (CString::new(ns), CString::new(name), CString::new(val))
+        {
+            result.push(vec![ns, name, val]);
+        }
+    }
+    return Box::into_raw(Box::new(result));
+}
+
+#[no_mangle]
 pub extern "C" fn annis_cs_import_relannis(
     ptr: *mut cs::CorpusStorage,
     corpus: *const libc::c_char,
