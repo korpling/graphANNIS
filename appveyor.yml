@@ -72,6 +72,7 @@ branches:
   only:
     # Release tags
     - /^v\d+\.\d+\.\d+.*$/
+    - test-release-tag-please-ignore
     - master
     - develop
     - appveyor
