@@ -49,7 +49,7 @@ before_deploy:
   - cargo build --target %TARGET% --release
 
 deploy:
-  artifact: target\%TARGET%\release\graphannis_capi.dll
+  artifact: target\%(TARGET)\release\graphannis_capi.dll
   # TODO update `auth_token.secure`
   # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
   # - Encrypt it. Go to https://ci.appveyor.com/tools/encrypt
