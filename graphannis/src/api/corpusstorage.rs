@@ -1,16 +1,14 @@
 //! An API for managing corpora stored in a common location on the file system.
 //! It is transactional and thread-safe.
 
-use std::str::FromStr;
 use annostorage::AnnoStorage;
 use api::update::GraphUpdate;
 use exec::nodesearch::NodeSearchSpec;
 use graphdb;
 use graphdb::GraphDB;
 use graphdb::{ANNIS_NS, NODE_TYPE};
-use util::memory_estimation;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use linked_hash_map::LinkedHashMap;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use operator;
 use parser::jsonqueryparser;
 use plan;
@@ -22,17 +20,19 @@ use std;
 use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use types;
-use FrequencyTable;
 use util;
+use util::memory_estimation;
+use FrequencyTable;
 use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID};
 
 use fxhash::FxHashMap;
 
-use rayon::prelude::*;
 use rand;
 use rand::Rng;
+use rayon::prelude::*;
 use sys_info;
 
 enum CacheEntry {
@@ -96,8 +96,7 @@ pub struct CorpusInfo {
     pub memory_size: usize,
 }
 
-
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 #[repr(C)]
 pub enum ResultOrder {
     Normal,
@@ -117,18 +116,17 @@ struct PreparationResult<'a> {
     db_entry: Arc<RwLock<CacheEntry>>,
 }
 
-
 #[derive(Debug)]
 pub struct FrequencyDefEntry {
-    pub ns : Option<String>,
-    pub name : String,
-    pub node_ref : String,
+    pub ns: Option<String>,
+    pub name: String,
+    pub node_ref: String,
 }
 
 impl FromStr for FrequencyDefEntry {
     type Err = Error;
     fn from_str(s: &str) -> Result<FrequencyDefEntry, Self::Err> {
-        let splitted : Vec<&str> = s.splitn(2, ':').collect();
+        let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
             return Err(Error::ParserError);
         }
@@ -142,7 +140,6 @@ impl FromStr for FrequencyDefEntry {
         });
     }
 }
-
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a GraphDB, Error> {
     if let &CacheEntry::Loaded(ref db) = &**lock {
@@ -335,13 +332,17 @@ impl CorpusStorage {
         let query_config = query::Config { use_parallel_joins };
 
         // get the amount of available memory, use a quarter of it per default
-        let cache_size : usize = if let Ok(mem) = sys_info::mem_info() {
+        let cache_size: usize = if let Ok(mem) = sys_info::mem_info() {
             (((mem.avail as usize * 1024) as f64) / 4.0) as usize // mem.free is in KiB
         } else {
             // default to 1 GB
             1024 * 1024 * 1024
         };
-        info!("Using cache with size {:.*} MiB", 2, cache_size as f64  / ((1024 * 1024) as f64));
+        info!(
+            "Using cache with size {:.*} MiB",
+            2,
+            cache_size as f64 / ((1024 * 1024) as f64)
+        );
 
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
@@ -370,7 +371,8 @@ impl CorpusStorage {
         let names: Vec<String> = self.list_from_disk().unwrap_or_default();
         let mut result: Vec<CorpusInfo> = vec![];
 
-        let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+        let mut mem_ops =
+            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
         for n in names {
             let cache_entry = self.get_entry(&n)?;
@@ -482,6 +484,33 @@ impl CorpusStorage {
         check_cache_size_and_remove(self.max_allowed_cache_size, cache);
 
         return Ok(entry);
+    }
+
+    fn get_loaded_entry_with_components(&self, corpus_name : &str, 
+        components : Vec<Component>) -> Result<Arc<RwLock<CacheEntry>>, Error> {
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let missing_components = {
+            let lock = db_entry.read().unwrap();
+            let db = get_read_or_error(&lock)?;
+
+            let mut missing: HashSet<Component> = HashSet::new();
+            for c in components.into_iter() {
+                if !db.is_loaded(&c) {
+                    missing.insert(c);
+                }
+            }
+            missing
+        };
+        if !missing_components.is_empty() {
+            // load the needed components
+            let mut lock = db_entry.write().unwrap();
+            let db = get_write_or_error(&mut lock)?;
+            for c in missing_components {
+                db.ensure_loaded(&c)?;
+            }
+        };
+
+        Ok(db_entry)
     }
 
     fn get_fully_loaded_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>, Error> {
@@ -626,7 +655,8 @@ impl CorpusStorage {
         // accuire read-only lock and get string
         let lock = db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let result = db.strings
+        let result = db
+            .strings
             .str(str_id)
             .cloned()
             .ok_or(Error::ImpossibleSearch(format!(
@@ -810,7 +840,8 @@ impl CorpusStorage {
                             }
                         }
 
-                        if let Some(name_id) = db.node_annos
+                        if let Some(name_id) = db
+                            .node_annos
                             .get(&singlematch.node, &db.get_node_name_key())
                         {
                             if let Some(name) = db.strings.str(name_id.clone()) {
@@ -858,12 +889,15 @@ impl CorpusStorage {
 
                 let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode, None);
 
-                let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
-                    ns: Some(graphdb::ANNIS_NS.to_string()),
-                    name: graphdb::NODE_NAME.to_string(),
-                    val: Some(source_node_id.to_string()),
-                    is_meta: false,
-                }, None);
+                let n_idx = q_left.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(graphdb::ANNIS_NS.to_string()),
+                        name: graphdb::NODE_NAME.to_string(),
+                        val: Some(source_node_id.to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
@@ -892,12 +926,15 @@ impl CorpusStorage {
 
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
-                let n_idx = q_left.add_node(NodeSearchSpec::ExactValue {
-                    ns: Some(graphdb::ANNIS_NS.to_string()),
-                    name: graphdb::NODE_NAME.to_string(),
-                    val: Some(source_node_id.to_string()),
-                    is_meta: false,
-                }, None);
+                let n_idx = q_left.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(graphdb::ANNIS_NS.to_string()),
+                        name: graphdb::NODE_NAME.to_string(),
+                        val: Some(source_node_id.to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
                 q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
@@ -920,12 +957,15 @@ impl CorpusStorage {
 
                 let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode, None);
 
-                let n_idx = q_right.add_node(NodeSearchSpec::ExactValue {
-                    ns: Some(graphdb::ANNIS_NS.to_string()),
-                    name: graphdb::NODE_NAME.to_string(),
-                    val: Some(source_node_id.to_string()),
-                    is_meta: false,
-                }, None);
+                let n_idx = q_right.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(graphdb::ANNIS_NS.to_string()),
+                        name: graphdb::NODE_NAME.to_string(),
+                        val: Some(source_node_id.to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
                 let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
@@ -954,12 +994,15 @@ impl CorpusStorage {
 
                 let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
-                let n_idx = q_right.add_node(NodeSearchSpec::ExactValue {
-                    ns: Some(graphdb::ANNIS_NS.to_string()),
-                    name: graphdb::NODE_NAME.to_string(),
-                    val: Some(source_node_id.to_string()),
-                    is_meta: false,
-                }, None);
+                let n_idx = q_right.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some(graphdb::ANNIS_NS.to_string()),
+                        name: graphdb::NODE_NAME.to_string(),
+                        val: Some(source_node_id.to_string()),
+                        is_meta: false,
+                    },
+                    None,
+                );
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
                 q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
@@ -1017,12 +1060,15 @@ impl CorpusStorage {
                 &source_corpus_id
             };
             let mut q = Conjunction::new();
-            let corpus_idx = q.add_node(NodeSearchSpec::ExactValue {
-                ns: Some(graphdb::ANNIS_NS.to_string()),
-                name: graphdb::NODE_NAME.to_string(),
-                val: Some(source_corpus_id.to_string()),
-                is_meta: false,
-            }, None);
+            let corpus_idx = q.add_node(
+                NodeSearchSpec::ExactValue {
+                    ns: Some(graphdb::ANNIS_NS.to_string()),
+                    name: graphdb::NODE_NAME.to_string(),
+                    val: Some(source_corpus_id.to_string()),
+                    is_meta: false,
+                },
+                None,
+            );
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
             q.add_operator(
                 Box::new(operator::PartOfSubCorpusSpec::new(1, 1)),
@@ -1040,12 +1086,10 @@ impl CorpusStorage {
 
         let mut query = Conjunction::new();
 
-        query.add_node(NodeSearchSpec::new_exact(
-            Some(ANNIS_NS),
-            NODE_TYPE,
-            Some("corpus"),
-            false,
-        ), None);
+        query.add_node(
+            NodeSearchSpec::new_exact(Some(ANNIS_NS), NODE_TYPE, Some("corpus"), false),
+            None,
+        );
 
         return extract_subgraph_by_query(
             db_entry,
@@ -1059,29 +1103,40 @@ impl CorpusStorage {
         &self,
         corpus_name: &str,
         query_as_json: &str,
-        definition : Vec<FrequencyDefEntry>,
+        definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>, Error> {
         let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
-        let db : &GraphDB = get_read_or_error(&lock)?;
+        let db: &GraphDB = get_read_or_error(&lock)?;
 
         // get the matching annotation keys for each definition entry
-        let mut annokeys : Vec<(usize, Vec<AnnoKey>)> = Vec::default();
+        let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
         for def in definition.into_iter() {
-            let ns_id : Option<&StringID> = if let Some(ns) = def.ns {db.strings.find_id(&ns)} else {None};
-            let name_id = db.strings.find_id(&def.name)
+            let ns_id: Option<&StringID> = if let Some(ns) = def.ns {
+                db.strings.find_id(&ns)
+            } else {
+                None
+            };
+            let name_id = db
+                .strings
+                .find_id(&def.name)
                 .ok_or(Error::ImpossibleSearch(format!(
-                "string {} does not exist",
-                &def.name
-            )))?;
+                    "string {} does not exist",
+                    &def.name
+                )))?;
 
             if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
-
                 if let Some(ns_id) = ns_id {
                     // add the single fully qualified annotation key
-                    annokeys.push((node_ref, vec![AnnoKey {ns: *ns_id, name: *name_id}]));
+                    annokeys.push((
+                        node_ref,
+                        vec![AnnoKey {
+                            ns: *ns_id,
+                            name: *name_id,
+                        }],
+                    ));
                 } else {
                     // add all matching annotation keys
                     annokeys.push((node_ref, db.node_annos.get_qnames(*name_id)));
@@ -1091,15 +1146,15 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        let mut tuple_frequency : FxHashMap<Vec<StringID>, usize> = FxHashMap::default();
+        let mut tuple_frequency: FxHashMap<Vec<StringID>, usize> = FxHashMap::default();
 
         for mgroup in plan {
             // for each match, extract the defined annotation (by its key) from the result node
-            let mut tuple : Vec<StringID> = Vec::with_capacity(annokeys.len());
+            let mut tuple: Vec<StringID> = Vec::with_capacity(annokeys.len());
             for (node_ref, anno_keys) in annokeys.iter() {
-                let mut tuple_val : StringID = 0;
+                let mut tuple_val: StringID = 0;
                 if *node_ref < mgroup.len() {
-                    let m : &Match = &mgroup[*node_ref];
+                    let m: &Match = &mgroup[*node_ref];
                     for k in anno_keys.iter() {
                         if let Some(val) = db.node_annos.get(&m.node, k) {
                             tuple_val = *val;
@@ -1109,14 +1164,14 @@ impl CorpusStorage {
                 tuple.push(tuple_val);
             }
             // add the tuple to the frequency count
-            let mut tuple_count : &mut usize = tuple_frequency.entry(tuple).or_insert(0);
+            let mut tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
             *tuple_count = *tuple_count + 1;
         }
 
         // output the frequency (needs collecting the actual string values)
-        let mut result : FrequencyTable<String> = FrequencyTable::default();
+        let mut result: FrequencyTable<String> = FrequencyTable::default();
         for (tuple_strid, count) in tuple_frequency.into_iter() {
-            let mut tuple : Vec<String> = Vec::with_capacity(tuple_strid.len());
+            let mut tuple: Vec<String> = Vec::with_capacity(tuple_strid.len());
             for v in tuple_strid.into_iter() {
                 tuple.push(db.strings.str(v).unwrap_or(&String::default()).clone());
             }
@@ -1124,7 +1179,7 @@ impl CorpusStorage {
         }
 
         // sort the output (largest to smallest)
-        result.sort_by(|a,b| a.1.cmp(&b.1).reverse());
+        result.sort_by(|a, b| a.1.cmp(&b.1).reverse());
 
         return Ok(result);
     }
@@ -1181,6 +1236,58 @@ impl CorpusStorage {
                             }
                         } else {
                             result.push((ns.clone(), name.clone(), String::new()));
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+
+    pub fn list_edge_annotations(
+        &self,
+        corpus_name: &str,
+        component: Component,
+        list_values: bool,
+        only_most_frequent_values: bool,
+    ) -> Vec<(String, String, String)> {
+        let mut result = Vec::new();
+        if let Ok(db_entry) = self.get_loaded_entry_with_components(corpus_name, vec![component.clone()]) {
+
+            let lock = db_entry.read().unwrap();
+            if let Ok(db) = get_read_or_error(&lock) {
+                if let Some(gs) = db.get_graphstorage(&component) {
+
+                    let edge_annos: &AnnoStorage<Edge> = gs.as_edgecontainer().get_anno_storage();
+                    for key in edge_annos.get_all_keys() {
+                        if let (Some(ns), Some(name)) =
+                            (db.strings.str(key.ns), db.strings.str(key.name))
+                        {
+                            if list_values {
+                                if only_most_frequent_values {
+                                    // get the first value
+                                    if let Some(val) = edge_annos.get_all_values(key, true).next() {
+                                        result.push((
+                                            ns.clone(),
+                                            name.clone(),
+                                            db.strings.str(val).cloned().unwrap_or_default(),
+                                        ));
+                                    }
+                                } else {
+                                    // get all values
+                                    for val in edge_annos.get_all_values(key, false) {
+                                        result.push((
+                                            ns.clone(),
+                                            name.clone(),
+                                            db.strings.str(val).cloned().unwrap_or_default(),
+                                        ));
+                                    }
+                                }
+                            } else {
+                                result.push((ns.clone(), name.clone(), String::new()));
+                            }
                         }
                     }
                 }
