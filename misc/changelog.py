@@ -15,7 +15,7 @@ payload = ""
 
 headers = { 'User-Agent': 'python3', 'accept': "application/vnd.github.beta.full+json" }
 
-conn.request("GET", "/repos/thomaskrause/graphANNIS/issues?state=closed&milestone=" + milestone_id + "&sort=created", payload, headers)
+conn.request("GET", "/repos/corpus-tools/graphANNIS/issues?state=closed&milestone=" + milestone_id + "&sort=created", payload, headers)
 
 res = conn.getresponse()
 data = res.read()
@@ -29,7 +29,7 @@ other = []
 
 if len(j) > 0 and j[0]["milestone"] is not None:
 	print("release {0}".format(j[0]["milestone"]["title"]))
-	print("=============")
+	print("==============")
 	print()
 
 for issue in j:

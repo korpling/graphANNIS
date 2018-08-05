@@ -1,3 +1,11 @@
+release v0.7.1
+==============
+
+Fixed Bugs
+----------
+
+- [#3](https://github.com/corpus-tools/graphANNIS/issues/3) Fix automatic creation of binaries using CI for releases
+
 release 0.7.0
 =============
 
