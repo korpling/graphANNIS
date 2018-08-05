@@ -48,9 +48,12 @@ before_deploy:
   # TODO Update this to build the artifacts that matter to you
   - cargo build --target %TARGET% --release
 
+artifacts:
+  - path: target\$(TARGET)\release\graphannis_capi.dll
+    name: graphannis_capi.dll
+
 deploy:
-  artifacts: 
-    - path: target\$(TARGET)\release\graphannis_capi.dll
+  artifact: graphannis_capi.dll
   tag: $(APPVEYOR_REPO_TAG_NAME)
   # TODO update `auth_token.secure`
   # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
