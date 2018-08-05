@@ -146,6 +146,14 @@ AnnisError *annis_cs_import_relannis(AnnisCorpusStorage *ptr, const char *corpus
  */
 AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
 
+AnnisMatrix_AnnisCString *annis_cs_list_edge_annotations(const AnnisCorpusStorage *ptr,
+                                                         const char *corpus_name,
+                                                         AnnisComponentType component_type,
+                                                         const char *component_name,
+                                                         const char *component_layer,
+                                                         bool list_values,
+                                                         bool only_most_frequent_values);
+
 AnnisMatrix_AnnisCString *annis_cs_list_node_annotations(const AnnisCorpusStorage *ptr,
                                                          const char *corpus_name,
                                                          bool list_values,
