@@ -1,9 +1,9 @@
 [package]
-name = "malloc_size_of_derive"
+name = "graphannis-malloc_size_of_derive"
 version = "0.0.1"
-authors = ["The Servo Project Developers"]
+authors = ["The Servo Project Developers", "Thomas Krause"]
 license = "MIT/Apache-2.0"
-publish = false
+description = "This is a copy from Servo (https://github.com/servo/servo/tree/master/components/malloc_size_of_derive). Since the original is not published under crates.io yet, this fork is used to make it available as dependency to graphANNIS (https://crates.io/crates/graphannis)."
 
 [lib]
 path = "lib.rs"
