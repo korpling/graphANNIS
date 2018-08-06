@@ -40,6 +40,7 @@ deploy:
   file: "${RELEASE_PKG_FILE}"
   on:
     repo: corpus-tools/graphANNIS
+    branch: master
     tags: true
   skip_cleanup: true
   tag_name: $TRAVIS_TAG
