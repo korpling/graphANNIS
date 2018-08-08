@@ -17,7 +17,9 @@ use std::string::ToString;
 use bincode;
 use serde;
 use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
-
+use fs2::FileExt;
+use std::fs::File;
+use std::fs::OpenOptions;
 use tempdir::TempDir;
 
 
@@ -68,6 +70,7 @@ pub struct GraphDB {
     pub node_annos: Arc<AnnoStorage<NodeID>>,
 
     location: Option<PathBuf>,
+    lock_file: Option<File>,
 
     components: BTreeMap<Component, Option<Arc<GraphStorage>>>,
     id_annis_ns: StringID,
@@ -94,6 +97,7 @@ impl MallocSizeOf for GraphDB {
         return size;
     }
 }
+
 
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<GraphStorage>, Error> {
     let cpath = try!(component_path.ok_or(Error::LocationEmpty));
@@ -164,11 +168,29 @@ impl GraphDB {
             components: BTreeMap::new(),
 
             location: None,
+            lock_file: None,
 
             current_change_id: 0,
 
             background_persistance: Arc::new(Mutex::new(())),
         }
+    }
+
+
+    fn set_location(&mut self, location : &Path) -> Result<(), Error> {
+        let lock_file_path = location.join("db.lock");
+        // check if we can get the file lock
+        let lock_file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(lock_file_path.as_path())?;
+        lock_file.try_lock_exclusive()?;
+
+        self.lock_file = Some(lock_file);
+        self.location = Some(PathBuf::from(location));
+
+        Ok(())
     }
 
     pub fn clear(&mut self) {
@@ -181,8 +203,8 @@ impl GraphDB {
         self.clear();
 
         let location = PathBuf::from(location);
-        self.location = Some(location.clone());
 
+        self.set_location(location.as_path())?;
         let backup = location.join("backup");
         
         let mut backup_was_loaded = false;
@@ -324,6 +346,14 @@ impl GraphDB {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
 
+        let lock_file_path = location.join("db.lock");
+        // check if we can get the file lock
+        let lock_file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(lock_file_path.as_path())?;
+        lock_file.try_lock_exclusive()?;
         return self.internal_save(&location.join("current"));
     }
 
@@ -338,8 +368,8 @@ impl GraphDB {
 
     /// Save the current database at a new location and remember it
     pub fn persist_to(&mut self, location: &Path) -> Result<(), Error> {
-        let location = PathBuf::from(location);
-        self.location = Some(location.clone());
+        
+        self.set_location(location)?;
         return self.internal_save(&location.join("current"));
     }
 
