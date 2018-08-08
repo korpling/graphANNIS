@@ -33,6 +33,7 @@ extern crate num;
 extern crate itertools;
 extern crate rayon;
 extern crate sys_info;
+extern crate fs2;
 
 #[macro_use]
 pub mod util;
