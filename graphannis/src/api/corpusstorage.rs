@@ -431,6 +431,45 @@ impl CorpusStorage {
         return Ok(entry.clone());
     }
 
+    fn load_entry_with_lock(&self, 
+        cache_lock: &mut RwLockWriteGuard<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
+        corpus_name: &str, 
+        create_if_missing: bool,
+    ) ->  Result<Arc<RwLock<CacheEntry>>, Error> {
+        let cache = &mut *cache_lock;
+
+        // if not loaded yet, get write-lock and load entry
+        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
+            .iter()
+            .collect();
+
+        let create_corpus = if db_path.is_dir() {
+            false
+        } else {
+            if create_if_missing {
+                true
+            } else {
+                return Err(Error::NoSuchCorpus);
+            }
+        };
+
+        let mut db = GraphDB::new();
+        if create_corpus {
+            db.persist_to(&db_path)?;
+        } else {
+            db.load_from(&db_path, false)?;
+        }
+
+        let entry = Arc::new(RwLock::new(CacheEntry::Loaded(db)));
+        // first remove entry, than add it: this ensures it is at the end of the linked hash map
+        cache.remove(corpus_name);
+        cache.insert(String::from(corpus_name), entry.clone());
+
+        check_cache_size_and_remove(self.max_allowed_cache_size, cache);
+
+        return Ok(entry);
+    }
+
     fn get_loaded_entry(
         &self,
         corpus_name: &str,
@@ -449,41 +488,10 @@ impl CorpusStorage {
 
         if loaded {
             return Ok(cache_entry);
-        }
-
-        // if not loaded yet, get write-lock and load entry
-        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
-            .iter()
-            .collect();
-
-        let create_corpus = if db_path.is_dir() {
-            false
         } else {
-            if create_if_missing {
-                true
-            } else {
-                return Err(Error::NoSuchCorpus);
-            }
-        };
-
-        let mut cache_lock = self.corpus_cache.write().unwrap();
-        let cache = &mut *cache_lock;
-
-        let mut db = GraphDB::new();
-        if create_corpus {
-            db.persist_to(&db_path)?;
-        } else {
-            db.load_from(&db_path, false)?;
+            let mut cache_lock = self.corpus_cache.write().unwrap();
+            return self.load_entry_with_lock(&mut cache_lock, corpus_name, create_if_missing);
         }
-
-        let entry = Arc::new(RwLock::new(CacheEntry::Loaded(db)));
-        // first remove entry, than add it: this ensures it is at the end of the linked hash map
-        cache.remove(corpus_name);
-        cache.insert(String::from(corpus_name), entry.clone());
-
-        check_cache_size_and_remove(self.max_allowed_cache_size, cache);
-
-        return Ok(entry);
     }
 
     fn get_loaded_entry_with_components(&self, corpus_name : &str, 
@@ -595,6 +603,12 @@ impl CorpusStorage {
         db_path.push(corpus_name);
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
+        
+        // Make sure the entry is loaded: when loaded the file lock is checked and we can make sure no other process
+        // accesses this GraphDB. Later the whole directory is deleted, which should only be done if this process
+        // has the file lock.
+        self.load_entry_with_lock(&mut cache_lock, corpus_name, false)?;
+
         let cache = &mut *cache_lock;
 
         // remove any possible old corpus
