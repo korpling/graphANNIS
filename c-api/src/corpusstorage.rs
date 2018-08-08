@@ -339,11 +339,14 @@ pub extern "C" fn annis_cs_all_components_by_type(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char) {
+pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char) -> *mut Error {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let corpus = cstr!(corpus);
 
-    cs.delete(&corpus);
+    if let Err(e) = cs.delete(&corpus) {
+        return super::error::new(e);
+    }
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
