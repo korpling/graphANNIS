@@ -227,11 +227,10 @@ impl AnnisRunner {
         }
         let name = args;
 
-        let t_before = std::time::SystemTime::now();
-        self.storage.delete(name);
-        let delete_time = t_before.elapsed();
-        if let Ok(t) = delete_time {
-            info!{"Deleted corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+        if let Err(err) = self.storage.delete(name) {
+            error!("{:?}", err);
+        } else {
+            info!("Deleted corpus {}.", name);
         }
     }
 
