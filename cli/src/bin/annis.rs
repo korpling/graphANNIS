@@ -70,17 +70,21 @@ impl Completer for CommandCompleter {
         // check for more specialized completers
         if line.starts_with("import ") {
             return self.filename_completer.complete(line, pos);
-        } else if line.starts_with("corpus ") {
+        } else if line.starts_with("corpus ") || line.starts_with("delete ") {
             // auto-complete the corpus names
-            let prefix_len = "corpus ".len();
-            let mut matching_corpora = vec![];
-            let corpus_prefix = &line[prefix_len..];
-            for c in self.corpora.iter() {
-                if c.name.starts_with(corpus_prefix) {
-                    matching_corpora.push(c.name.clone());
+            if let Some(prefix_len) = line.find(' ') {
+                let prefix_len = prefix_len + 1;
+                let mut matching_corpora = vec![];
+                let corpus_prefix = &line[prefix_len..];
+                for c in self.corpora.iter() {
+                    if c.name.starts_with(corpus_prefix) {
+                        matching_corpora.push(c.name.clone());
+                    }
                 }
+                return Ok((pos-corpus_prefix.len(), matching_corpora));
+            } else {
+                return Ok((pos, vec![]));
             }
-            return Ok((pos-corpus_prefix.len(), matching_corpora));
         }
 
         let mut cmds = Vec::new();
