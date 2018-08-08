@@ -41,6 +41,7 @@ impl CommandCompleter {
         let mut known_commands = BTreeSet::new();
         known_commands.insert("import".to_string());
         known_commands.insert("list".to_string());
+        known_commands.insert("delete".to_string());
         known_commands.insert("corpus".to_string());
         known_commands.insert("preload".to_string());
         known_commands.insert("update_statistics".to_string());
@@ -160,6 +161,7 @@ impl AnnisRunner {
             match cmd {
                 "import" => self.import_relannis(&args),
                 "list" => self.list(),
+                "delete" => self.delete(&args),
                 "corpus" => self.corpus(&args),
                 "preload" => self.preload(),
                 "update_statistics" => self.update_statistics(),
@@ -215,6 +217,21 @@ impl AnnisRunner {
                 };
                 println!("{} ({})", c.name, desc);
             }
+        }
+    }
+
+    fn delete(&mut self, args: &str) {
+        if args.is_empty() {
+            println!("You need the name as an argument");
+            return;
+        }
+        let name = args;
+
+        let t_before = std::time::SystemTime::now();
+        self.storage.delete(name);
+        let delete_time = t_before.elapsed();
+        if let Ok(t) = delete_time {
+            info!{"Deleted corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
         }
     }
 
