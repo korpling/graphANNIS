@@ -1,6 +1,6 @@
 [package]
 name = "graphannis-cli"
-version = "0.7.1" #:version
+version = "0.8.0" #:version
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"
@@ -12,7 +12,7 @@ readme = "../README.md"
 workspace = ".."
 
 [dependencies]
-graphannis = {path = "../graphannis", version="0.7"}
+graphannis = {path = "../graphannis", version="0.8"}
 rustyline = "1.0"
 log = "0.4"
 simplelog = "0.5"
