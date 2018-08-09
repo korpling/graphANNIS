@@ -178,6 +178,7 @@ impl GraphDB {
 
 
     fn set_location(&mut self, location : &Path) -> Result<(), Error> {
+        std::fs::create_dir_all(&location)?;
         let lock_file_path = location.join("db.lock");
         // check if we can get the file lock
         let lock_file = OpenOptions::new()
