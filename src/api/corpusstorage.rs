@@ -109,7 +109,6 @@ pub enum ResultOrder {
 
 pub struct CorpusStorage {
     db_dir: PathBuf,
-    #[allow(dead_code)]
     lock_file: File,
     max_allowed_cache_size: Option<usize>,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
@@ -629,10 +628,16 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // remove any possible old corpus
-        if let Some(_) = cache.remove(corpus_name) {
-            if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
-                error!("Error when removing existing files {}", e);
-                return Err(Error::IOerror(e));
+        if let Some(db_entry) = cache.remove(corpus_name) {
+            // aquire exclusive lock for this cache entry because 
+            // other queries or background writer might still have access it and need to finish first
+            let mut _lock = db_entry.write().unwrap();
+            
+            if db_path.is_dir() && db_path.exists() {
+                if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
+                    error!("Error when removing existing files {}", e);
+                    return Err(Error::IOerror(e));
+                }
             }
         } else {
             return Err(Error::NoSuchCorpus);
@@ -1377,4 +1382,34 @@ mod tests {
             cs.delete("testcorpus").unwrap();
         }
     }
+
+    #[test]
+    fn load_cs_twice() {
+        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+            {
+                let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+                 let mut g = GraphUpdate::new();
+                    g.add_event(UpdateEvent::AddNode{node_name:"test".to_string(), node_type:"node".to_string()});
+
+                    cs.apply_update("testcorpus", &mut g).unwrap();
+            }
+
+            {
+                let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+                 let mut g = GraphUpdate::new();
+            g.add_event(UpdateEvent::AddNode{node_name:"test".to_string(), node_type:"node".to_string()});
+
+            cs.apply_update("testcorpus", &mut g).unwrap();
+            }
+        }
+    }
 }
+
+impl Drop for CorpusStorage {
+    fn drop(&mut self) {
+        if let Err(e) = self.lock_file.unlock() {
+            warn!("Could not unlock CorpusStorage lock file: {:?}", e);
+        }
+    }
+}
+

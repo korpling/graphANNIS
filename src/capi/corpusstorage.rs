@@ -24,11 +24,23 @@ pub extern "C" fn annis_cs_new(
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
     let s = cs::CorpusStorage::new_auto_cache_size(&db_dir_path, use_parallel);
-    if let Ok(s) = s {
-        return Box::into_raw(Box::new(s));
-    }
 
+     match s {
+        Ok(result) => {
+            return Box::into_raw(Box::new(result));
+        }
+        Err(err) => error!("Could create corpus storage, error message was:\n{:?}", err),
+    };
     return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_free(ptr: *mut cs::CorpusStorage) {
+    if ptr.is_null() {
+        return;
+    }
+    // take ownership and destroy the pointer
+    unsafe { Box::from_raw(ptr) };
 }
 
 #[no_mangle]

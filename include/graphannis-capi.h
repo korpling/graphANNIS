@@ -139,6 +139,8 @@ AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      size_t limit,
                                      AnnisResultOrder order);
 
+void annis_cs_free(AnnisCorpusStorage *ptr);
+
 AnnisError *annis_cs_import_relannis(AnnisCorpusStorage *ptr, const char *corpus, const char *path);
 
 /*
