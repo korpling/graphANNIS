@@ -1,0 +1,21 @@
+use std::*;
+use super::ast;
+
+grammar;
+
+pub Query : ast::Expr = {
+    <t:TextSearch> => ast::Expr::TokenSearch(t),
+    <a:QName> "=" <t:TextSearch> => ast::Expr::AnnoSearch(a, Some(t)),
+};
+
+TextSearch: ast::TextSearch = {
+    <v:r#""[^"]*""#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Exact),
+    <v:r"/[^/]*/"> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
+};
+
+QName: ast::QName = {
+    <ns:r"[a-zA-Z][a-zA-Z0-9]*"> ":" <name:r"[a-zA-Z][a-zA-Z0-9]*"> => ast::QName(Some(String::from(ns)), String::from(name)),
+    <name:r"[a-zA-Z][a-zA-Z0-9]*"> => ast::QName(None, String::from(name)),
+    
+};
+
