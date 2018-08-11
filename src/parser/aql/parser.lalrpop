@@ -9,8 +9,8 @@ pub Query : ast::Expr = {
 };
 
 TextSearch: ast::TextSearch = {
-    <v:r#""[^"]*""#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Exact),
-    <v:r"/[^/]*/"> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
+    <v:r#""([^"]|(\\"))*""#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Exact),
+    <v:r"/([^/]|(\\/))*/"> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
 };
 
 QName: ast::QName = {
