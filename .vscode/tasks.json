@@ -11,7 +11,8 @@
             "command": "cargo",
             "args": [
                 "build",
-                "--release"
+                "--release",
+                "--all-features"
             ],
             "group": {
                 "kind": "build",
@@ -24,7 +25,8 @@
             "type": "shell",
             "command": "cargo",
             "args": [
-                "build"
+                "build",
+                "--all-features"
             ],
             "group": "build",
             "problemMatcher": "$rustc"
@@ -36,7 +38,8 @@
             "args": [
                 "check",
                 "--tests",
-                "--benches"
+                "--benches",
+                "--all-features"
             ],
             "group": "build",
             "problemMatcher": "$rustc"
