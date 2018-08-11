@@ -1,9 +1,3 @@
-extern crate graphannis;
-extern crate libc;
-#[macro_use]
-extern crate log;
-extern crate simplelog;
-
 #[allow(unused_macros)]
 macro_rules! cast_mut {
     ($x:expr) => {
