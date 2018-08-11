@@ -21,9 +21,9 @@ branches:
     - staging
 
 script:
-  - cargo test --release --verbose
+  - cargo test --release --verbose --all-features
   -  "./misc/download-gum-corpus.sh"
-  - cargo build --verbose --release 
+  - cargo build --verbose --release --all-features
   - ./target/release/annis data --cmd 'import relannis/GUM'
   - cargo test --release --verbose  -- --ignored
 
