@@ -4,6 +4,7 @@
 use annostorage::AnnoStorage;
 use api::update::GraphUpdate;
 use exec::nodesearch::NodeSearchSpec;
+use fs2::FileExt;
 use graphdb;
 use graphdb::GraphDB;
 use graphdb::{ANNIS_NS, NODE_TYPE};
@@ -18,12 +19,11 @@ use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use std;
 use std::collections::{BTreeSet, HashSet};
+use std::fs::File;
+use std::fs::OpenOptions;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::fs::File;
-use fs2::FileExt;
-use std::fs::OpenOptions;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use types;
 use util;
@@ -311,7 +311,7 @@ fn create_subgraph_edge(
     }
 }
 
-fn create_lockfile_for_directory(db_dir : &Path) -> Result<File, Error> {
+fn create_lockfile_for_directory(db_dir: &Path) -> Result<File, Error> {
     std::fs::create_dir_all(&db_dir)?;
     let lock_file_path = db_dir.join("db.lock");
     // check if we can get the file lock
@@ -332,8 +332,7 @@ impl CorpusStorage {
         use_parallel_joins: bool,
     ) -> Result<CorpusStorage, Error> {
         let query_config = query::Config { use_parallel_joins };
-        
-        
+
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             lock_file: create_lockfile_for_directory(db_dir)?,
@@ -452,11 +451,12 @@ impl CorpusStorage {
         return Ok(entry.clone());
     }
 
-    fn load_entry_with_lock(&self, 
+    fn load_entry_with_lock(
+        &self,
         cache_lock: &mut RwLockWriteGuard<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
-        corpus_name: &str, 
+        corpus_name: &str,
         create_if_missing: bool,
-    ) ->  Result<Arc<RwLock<CacheEntry>>, Error> {
+    ) -> Result<Arc<RwLock<CacheEntry>>, Error> {
         let cache = &mut *cache_lock;
 
         // if not loaded yet, get write-lock and load entry
@@ -515,8 +515,11 @@ impl CorpusStorage {
         }
     }
 
-    fn get_loaded_entry_with_components(&self, corpus_name : &str, 
-        components : Vec<Component>) -> Result<Arc<RwLock<CacheEntry>>, Error> {
+    fn get_loaded_entry_with_components(
+        &self,
+        corpus_name: &str,
+        components: Vec<Component>,
+    ) -> Result<Arc<RwLock<CacheEntry>>, Error> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let missing_components = {
             let lock = db_entry.read().unwrap();
@@ -624,15 +627,15 @@ impl CorpusStorage {
         db_path.push(corpus_name);
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
- 
+
         let cache = &mut *cache_lock;
 
         // remove any possible old corpus
         if let Some(db_entry) = cache.remove(corpus_name) {
-            // aquire exclusive lock for this cache entry because 
+            // aquire exclusive lock for this cache entry because
             // other queries or background writer might still have access it and need to finish first
             let mut _lock = db_entry.write().unwrap();
-            
+
             if db_path.is_dir() && db_path.exists() {
                 if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
                     error!("Error when removing existing files {}", e);
@@ -1284,7 +1287,6 @@ impl CorpusStorage {
         return result;
     }
 
-
     pub fn list_edge_annotations(
         &self,
         corpus_name: &str,
@@ -1293,12 +1295,12 @@ impl CorpusStorage {
         only_most_frequent_values: bool,
     ) -> Vec<(String, String, String)> {
         let mut result = Vec::new();
-        if let Ok(db_entry) = self.get_loaded_entry_with_components(corpus_name, vec![component.clone()]) {
-
+        if let Ok(db_entry) =
+            self.get_loaded_entry_with_components(corpus_name, vec![component.clone()])
+        {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
-
                     let edge_annos: &AnnoStorage<Edge> = gs.as_edgecontainer().get_anno_storage();
                     for key in edge_annos.get_all_keys() {
                         if let (Some(ns), Some(name)) =
@@ -1375,7 +1377,10 @@ mod tests {
             let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
             // fully load a corpus
             let mut g = GraphUpdate::new();
-            g.add_event(UpdateEvent::AddNode{node_name:"test".to_string(), node_type:"node".to_string()});
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "test".to_string(),
+                node_type: "node".to_string(),
+            });
 
             cs.apply_update("testcorpus", &mut g).unwrap();
             cs.preload("testcorpus").unwrap();
@@ -1388,18 +1393,24 @@ mod tests {
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
             {
                 let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
-                 let mut g = GraphUpdate::new();
-                    g.add_event(UpdateEvent::AddNode{node_name:"test".to_string(), node_type:"node".to_string()});
+                let mut g = GraphUpdate::new();
+                g.add_event(UpdateEvent::AddNode {
+                    node_name: "test".to_string(),
+                    node_type: "node".to_string(),
+                });
 
-                    cs.apply_update("testcorpus", &mut g).unwrap();
+                cs.apply_update("testcorpus", &mut g).unwrap();
             }
 
             {
                 let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
-                 let mut g = GraphUpdate::new();
-            g.add_event(UpdateEvent::AddNode{node_name:"test".to_string(), node_type:"node".to_string()});
+                let mut g = GraphUpdate::new();
+                g.add_event(UpdateEvent::AddNode {
+                    node_name: "test".to_string(),
+                    node_type: "node".to_string(),
+                });
 
-            cs.apply_update("testcorpus", &mut g).unwrap();
+                cs.apply_update("testcorpus", &mut g).unwrap();
             }
         }
     }
@@ -1412,4 +1423,3 @@ impl Drop for CorpusStorage {
         }
     }
 }
-
