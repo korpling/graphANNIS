@@ -28,8 +28,8 @@ script:
   - cargo test --release --verbose  -- --ignored
 
 before_deploy:
-  - export RELEASE_PKG_FILE=target/release/libgraphannis_capi.so
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis_capi.dylib ; fi
+  - export RELEASE_PKG_FILE=target/release/libgraphannis.so
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
 
 
 deploy:
