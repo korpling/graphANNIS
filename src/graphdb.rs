@@ -17,9 +17,6 @@ use std::string::ToString;
 use bincode;
 use serde;
 use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
-use fs2::FileExt;
-use std::fs::File;
-use std::fs::OpenOptions;
 use tempdir::TempDir;
 
 
@@ -70,7 +67,6 @@ pub struct GraphDB {
     pub node_annos: Arc<AnnoStorage<NodeID>>,
 
     location: Option<PathBuf>,
-    lock_file: Option<File>,
 
     components: BTreeMap<Component, Option<Arc<GraphStorage>>>,
     id_annis_ns: StringID,
@@ -168,8 +164,7 @@ impl GraphDB {
             components: BTreeMap::new(),
 
             location: None,
-            lock_file: None,
-
+            
             current_change_id: 0,
 
             background_persistance: Arc::new(Mutex::new(())),
@@ -178,17 +173,7 @@ impl GraphDB {
 
 
     fn set_location(&mut self, location : &Path) -> Result<(), Error> {
-        std::fs::create_dir_all(&location)?;
-        let lock_file_path = location.join("db.lock");
-        // check if we can get the file lock
-        let lock_file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(lock_file_path.as_path())?;
-        lock_file.try_lock_exclusive()?;
-
-        self.lock_file = Some(lock_file);
+        
         self.location = Some(PathBuf::from(location));
 
         Ok(())
@@ -346,15 +331,6 @@ impl GraphDB {
     pub fn save_to(&mut self, location: &Path) -> Result<(), Error> {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
-
-        let lock_file_path = location.join("db.lock");
-        // check if we can get the file lock
-        let lock_file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(lock_file_path.as_path())?;
-        lock_file.try_lock_exclusive()?;
         return self.internal_save(&location.join("current"));
     }
 

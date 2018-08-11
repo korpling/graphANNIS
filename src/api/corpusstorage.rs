@@ -21,6 +21,9 @@ use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::fs::File;
+use fs2::FileExt;
+use std::fs::OpenOptions;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use types;
 use util;
@@ -106,6 +109,8 @@ pub enum ResultOrder {
 
 pub struct CorpusStorage {
     db_dir: PathBuf,
+    #[allow(dead_code)]
+    lock_file: File,
     max_allowed_cache_size: Option<usize>,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
     pub query_config: query::Config,
@@ -307,6 +312,20 @@ fn create_subgraph_edge(
     }
 }
 
+fn create_lockfile_for_directory(db_dir : &Path) -> Result<File, Error> {
+    std::fs::create_dir_all(&db_dir)?;
+    let lock_file_path = db_dir.join("db.lock");
+    // check if we can get the file lock
+    let lock_file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(lock_file_path.as_path())?;
+    lock_file.try_lock_exclusive()?;
+
+    return Ok(lock_file);
+}
+
 impl CorpusStorage {
     pub fn new(
         db_dir: &Path,
@@ -314,9 +333,11 @@ impl CorpusStorage {
         use_parallel_joins: bool,
     ) -> Result<CorpusStorage, Error> {
         let query_config = query::Config { use_parallel_joins };
-
+        
+        
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
+            lock_file: create_lockfile_for_directory(db_dir)?,
             max_allowed_cache_size,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config,
@@ -346,6 +367,7 @@ impl CorpusStorage {
 
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
+            lock_file: create_lockfile_for_directory(db_dir)?,
             max_allowed_cache_size: Some(cache_size), // 1 GB
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config: query_config,
@@ -603,17 +625,11 @@ impl CorpusStorage {
         db_path.push(corpus_name);
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
-        
-        // Make sure the entry is loaded: when loaded the file lock is checked and we can make sure no other process
-        // accesses this GraphDB. Later the whole directory is deleted, which should only be done if this process
-        // has the file lock.
-        self.load_entry_with_lock(&mut cache_lock, corpus_name, false)?;
-
+ 
         let cache = &mut *cache_lock;
 
         // remove any possible old corpus
-        let old_entry = cache.remove(corpus_name);
-        if let Some(_) = old_entry {
+        if let Some(_) = cache.remove(corpus_name) {
             if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
                 error!("Error when removing existing files {}", e);
                 return Err(Error::IOerror(e));
@@ -1338,5 +1354,27 @@ impl CorpusStorage {
         });
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    extern crate tempdir;
+
+    use api::corpusstorage::CorpusStorage;
+    use api::update::{GraphUpdate, UpdateEvent};
+
+    #[test]
+    fn delete() {
+        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+            let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+            // fully load a corpus
+            let mut g = GraphUpdate::new();
+            g.add_event(UpdateEvent::AddNode{node_name:"test".to_string(), node_type:"node".to_string()});
+
+            cs.apply_update("testcorpus", &mut g).unwrap();
+            cs.preload("testcorpus").unwrap();
+            cs.delete("testcorpus").unwrap();
+        }
     }
 }
