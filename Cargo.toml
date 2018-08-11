@@ -10,6 +10,7 @@ readme = "../README.md"
 autobins=true
 
 [lib]
+crate-type = ["rlib", "staticlib","cdylib"]
 
 [dependencies]
 regex = "1.0"
