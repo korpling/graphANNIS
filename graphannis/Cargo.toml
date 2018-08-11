@@ -45,6 +45,8 @@ clap = {version="2", optional=true}
 bencher = {version="0.1", optional=true}
 prettytable-rs = {version="^0.6", optional=true}
 
+libc = {version="0.2", optional=true}
+
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2.1" }
 
@@ -52,8 +54,8 @@ kernel32-sys = { version = "0.2.1" }
 bencher = "0.1"
 
 [features]
-build-cli = ["rustyline", "simplelog", "clap", "bencher", "prettytable-rs"]
-build-capi = []
+cli = ["rustyline", "simplelog", "clap", "bencher", "prettytable-rs"]
+c-api = ["libc", "simplelog"]
 
 [[bench]]
 name = "graphannis"
@@ -61,8 +63,8 @@ harness = false
 
 [[bin]]
 name="annis"
-required-features=["build-cli"]
+required-features=["cli"]
 
 [[bin]]
 name="bench_annisqueries"
-required-features=["build-cli"]
+required-features=["cli"]

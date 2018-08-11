@@ -35,6 +35,7 @@ extern crate rayon;
 extern crate sys_info;
 extern crate fs2;
 
+
 #[macro_use]
 pub mod util;
 
@@ -54,6 +55,13 @@ mod query;
 pub mod parser;
 
 pub mod api;
+
+#[cfg(feature = "c-api")]
+extern crate simplelog;
+#[cfg(feature = "c-api")]
+extern crate libc;
+#[cfg(feature = "c-api")]
+pub mod capi;
 
 // Make sure the allocator is always the one from the system, otherwise we can't make sure our memory estimations work
 use std::alloc::System;

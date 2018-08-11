@@ -2,16 +2,17 @@ use std::ffi::CString;
 use libc::c_char;
 use std;
 use log;
-
-use graphannis;
+use graphdb;
+use api;
+use relannis;
 
 pub struct Error {
     msg: CString,
 }
 
 
-impl From<graphannis::api::corpusstorage::Error> for Error {
-    fn from(e: graphannis::api::corpusstorage::Error) -> Error {
+impl From<api::corpusstorage::Error> for Error {
+    fn from(e: api::corpusstorage::Error) -> Error {
         let err = if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
             Error {
                 msg: error_msg,
@@ -26,8 +27,8 @@ impl From<graphannis::api::corpusstorage::Error> for Error {
     }
 }
 
-impl From<graphannis::relannis::Error> for Error {
-    fn from(e: graphannis::relannis::Error) -> Error {
+impl From<relannis::Error> for Error {
+    fn from(e: relannis::Error) -> Error {
         let err = if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
             Error {
                 msg: error_msg,
@@ -42,8 +43,8 @@ impl From<graphannis::relannis::Error> for Error {
     }
 }
 
-impl From<graphannis::graphdb::Error> for Error {
-    fn from(e: graphannis::graphdb::Error) -> Error {
+impl From<graphdb::Error> for Error {
+    fn from(e: graphdb::Error) -> Error {
         let err = if let Ok(error_msg) = CString::new(String::from(format!("{:?}", e))) {
             Error {
                 msg: error_msg,
@@ -90,7 +91,7 @@ impl From<log::SetLoggerError> for Error {
     }
 }
 
-pub fn new(err : graphannis::api::corpusstorage::Error) -> * mut Error {
+pub fn new(err : api::corpusstorage::Error) -> * mut Error {
     Box::into_raw(Box::new(Error::from(err)))
 }
 
