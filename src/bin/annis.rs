@@ -51,6 +51,7 @@ impl CommandCompleter {
         known_commands.insert("plan".to_string());
         known_commands.insert("str".to_string());
         known_commands.insert("use_parallel".to_string());
+        known_commands.insert("parse".to_string());
         
 
         known_commands.insert("quit".to_string());
@@ -175,6 +176,7 @@ impl AnnisRunner {
                 "frequency" => self.frequency(&args),
                 "str" => self.get_string(&args),
                 "use_parallel" => self.use_parallel(&args),
+                "parse" => self.parse(&args),
                 "quit" | "exit" => return false,
                 _ => println!("unknown command \"{}\"", cmd),
             };
@@ -431,6 +433,14 @@ impl AnnisRunner {
         } else {
             println!("Join parallization is disabled");
         }
+    }
+
+    fn parse(&mut self, args: &str) {
+        let p = graphannis::parser::aql::parser::QueryParser::new();
+        match p.parse(&args) {
+            Ok(result) => {println!("{:?}",result);}
+            Err(e) => {println!("ERROR: {:?}", e);}
+        };
     }
 }
 
