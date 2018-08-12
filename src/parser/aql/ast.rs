@@ -4,7 +4,7 @@
 pub enum Expr {
     TokenSearch(TextSearch),
     AnnoSearch(QName, Option<TextSearch>),
-    BinaryOp(String, BinaryOpType, String),
+    BinaryOp(String, BinaryOpSpec, String),
     Conjunction(Vec<Box<Expr>>),
     Disjunction(Vec<Box<Expr>>),
     Empty,
@@ -24,10 +24,16 @@ pub enum StringMatchType {
 }
 
 #[derive(Debug)]
-pub enum BinaryOpType {
+pub enum BinaryOpSpec {
     Dominance,
     Pointing,
     Precedence,
     Overlap,
     IdenticalCoverage,
+}
+
+#[derive(Debug)]
+pub enum NodeRef {
+    ID(u32),
+    Name(String),
 }

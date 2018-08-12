@@ -19,15 +19,23 @@ NodeSearch : ast::Expr = {
 }
 
 BinaryOp : ast::Expr = {
-    <lhs:r##"#[0-9]+"##> BinaryOpSpec <rhs:r##"#[0-9]+"##> => ast::Expr::Empty,
+    NodeRef <op:BinaryOpSpec> NodeRef => {
+        
+        ast::Expr::Empty
+    },
 }
 
-BinaryOpSpec : ast::BinaryOpType = {
-    ">" => ast::BinaryOpType::Dominance,
-    "->" => ast::BinaryOpType::Pointing,
-    "." => ast::BinaryOpType::Precedence,
-    "_o_" => ast::BinaryOpType::Overlap,
-    "_=_" => ast::BinaryOpType::IdenticalCoverage,
+NodeRef : ast::NodeRef = {
+    <v:r##"#[0-9]+"##> => ast::NodeRef::ID(v[1..].parse::<u32>().unwrap()),
+    <v:r##"[a-zA-Z][a-zA-Z0-9]*"##> => ast::NodeRef::Name(v[1..].to_string()),
+}
+
+BinaryOpSpec : ast::BinaryOpSpec = {
+    ">" => ast::BinaryOpSpec::Dominance,
+    "->" => ast::BinaryOpSpec::Pointing,
+    "." => ast::BinaryOpSpec::Precedence,
+    "_o_" => ast::BinaryOpSpec::Overlap,
+    "_=_" => ast::BinaryOpSpec::IdenticalCoverage,
 }
 
 TextSearch: ast::TextSearch = {
