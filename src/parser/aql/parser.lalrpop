@@ -5,34 +5,46 @@ use std::rc::Rc;
 
 grammar;
 
-pub Query : ast::Expr = {
-    <c:Conjunction> => ast::Expr::Conjunction(c),
+pub Query : ast::Disjunction = {
+    Disjunction => <>,
 }
 
-Conjunction : ast::Conjunction = {
-    <terms:Term> <c:( "&" Term)?> => {
-        let mut result = if let Some(c) = c {
-            c.1
-        } else {
-            // create a new conjunction
-            ast::Conjunction::default()
-        };
-        for t in terms {
-            result.push_front(t);
+Disjunction : ast::Disjunction  = {
+    <head:Conjunction> <tail:("|" Conjunction)*> => {
+        let mut result = ast::Disjunction::new();
+        result.push_front(head);
+        for t in tail.into_iter() {
+            result.push_front(t.1);
         }
         return result;
     },
 }
 
-Term : VecDeque<ast::Term> = {
+Conjunction : ast::Conjunction = {
+    <head:Factor> <tail:("&" Factor)*> => {
+        let mut r = ast::Conjunction::new();
+        r.push_front(head);
+        for t in tail.into_iter() {
+            r.push_front(t.1);
+        }
+        return r;
+    },
+}
+
+Factor : ast::Factor = {
+    AQLTerm => ast::Factor::AQLTerm(<>),
+    "(" <d:Disjunction> ")" => ast::Factor::Disjunction(d),
+}
+
+AQLTerm : VecDeque<ast::AQLTerm> = {
     NodeSearch => VecDeque::from(vec![<>]),
     <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> => {
-        let mut result : VecDeque<ast::Term> = VecDeque::new();
-        result.push_front(ast::Term::BinaryOp(lhs.clone(), op, rhs.clone()));
+        let mut result : VecDeque<ast::AQLTerm> = VecDeque::new();
+        result.push_front(ast::AQLTerm::BinaryOp(lhs.clone(), op, rhs.clone()));
         
         let mut last_operand = rhs.clone();
         for t in tail.into_iter() {
-            result.push_front(ast::Term::BinaryOp(last_operand.clone(), t.0, t.1.clone()));
+            result.push_front(ast::AQLTerm::BinaryOp(last_operand.clone(), t.0, t.1.clone()));
             last_operand = t.1;
         }
 
@@ -45,10 +57,10 @@ Operand : ast::Operand = {
     NodeSearch => ast::Operand::Term(Rc::from(<>)),
 }
 
-NodeSearch : ast::Term = {
-    TextSearch => ast::Term::TokenSearch(<>),
-    <name:QName> "=" <text:TextSearch> => ast::Term::AnnoSearch(name, Some(text)),
-    QName =>  ast::Term::AnnoSearch(<>, None),
+NodeSearch : ast::AQLTerm = {
+    TextSearch => ast::AQLTerm::TokenSearch(<>),
+    <name:QName> "=" <text:TextSearch> => ast::AQLTerm::AnnoSearch(name, Some(text)),
+    QName =>  ast::AQLTerm::AnnoSearch(<>, None),
 }
 
 

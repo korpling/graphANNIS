@@ -2,28 +2,26 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 #[derive(Debug)]
-pub enum Expr {
-    Conjunction(Conjunction),
+pub enum Factor {
+    AQLTerm(VecDeque<AQLTerm>),
     Disjunction(Disjunction),
 }
 
-pub type Conjunction = VecDeque<Term>;
+pub type Conjunction = VecDeque<Factor>;
 pub type Disjunction = VecDeque<Conjunction>;
 
 #[derive(Debug)]
-pub enum Term {
+pub enum AQLTerm {
     TokenSearch(TextSearch),
     AnnoSearch(QName, Option<TextSearch>),
     BinaryOp(Operand, BinaryOpSpec, Operand),
-    And(Rc<Term>, Rc<Term>),
-    Or(Rc<Term>, Rc<Term>),
     Empty,
 }
 
 #[derive(Debug, Clone)]
 pub enum Operand {
     NodeRef(NodeRef),
-    Term(Rc<Term>)
+    Term(Rc<AQLTerm>)
 }
 
 
