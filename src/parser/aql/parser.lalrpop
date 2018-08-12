@@ -4,26 +4,29 @@ use super::ast;
 grammar;
 
 pub Query : ast::Expr = {
-    <c:Conjunction> => c,
+    <c:Conjunction> => ast::Expr::Conjunction(c),
 }
 
-Conjunction : ast::Expr = {
-    NodeSearch ( "&" Conjunction) => ast::Expr::Empty,
-    BinaryOp ("&" Conjunction) => ast::Expr::Empty,
-}
-
-NodeSearch : ast::Expr = {
-    TextSearch => ast::Expr::Empty,
-    QName "=" TextSearch => ast::Expr::Empty,
-    QName =>  ast::Expr::Empty,
-}
-
-BinaryOp : ast::Expr = {
-    NodeRef <op:BinaryOpSpec> NodeRef => {
-        
-        ast::Expr::Empty
+Conjunction : ast::Conjunction = {
+    <t:Term> <c:( "&" Conjunction)?> => {
+        let mut result = if let Some(c) = c {
+            c.1
+        } else {
+            // create a new conjunction
+            ast::Conjunction::default()
+        };
+        result.push(t);
+        return result;
     },
 }
+
+Term : ast::Term = {
+    TextSearch => ast::Term::TokenSearch(<>),
+    <name:QName> "=" <text:TextSearch> => ast::Term::AnnoSearch(name, Some(text)),
+    QName =>  ast::Term::AnnoSearch(<>, None),
+    <lhs:NodeRef> <op:BinaryOpSpec> <rhs:NodeRef> => ast::Term::BinaryOp(lhs, op, rhs),
+}
+
 
 NodeRef : ast::NodeRef = {
     <v:r##"#[0-9]+"##> => ast::NodeRef::ID(v[1..].parse::<u32>().unwrap()),

@@ -2,13 +2,21 @@
 
 #[derive(Debug)]
 pub enum Expr {
-    TokenSearch(TextSearch),
-    AnnoSearch(QName, Option<TextSearch>),
-    BinaryOp(String, BinaryOpSpec, String),
-    Conjunction(Vec<Box<Expr>>),
-    Disjunction(Vec<Box<Expr>>),
+    Conjunction(Conjunction),
+    Disjunction(Disjunction),
     Empty,
 }
+
+pub type Conjunction = Vec<Term>;
+pub type Disjunction = Vec<Term>;
+
+#[derive(Debug)]
+pub enum Term {
+    TokenSearch(TextSearch),
+    AnnoSearch(QName, Option<TextSearch>),
+    BinaryOp(NodeRef, BinaryOpSpec, NodeRef),
+}
+
 
 #[derive(Debug)]
 pub struct TextSearch(pub String, pub StringMatchType);   
