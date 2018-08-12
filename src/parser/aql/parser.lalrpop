@@ -40,11 +40,11 @@ Statement : VecDeque<ast::Statement> = {
     NodeSearch => VecDeque::from(vec![<>]),
     <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> => {
         let mut result : VecDeque<ast::Statement> = VecDeque::new();
-        result.push_front(ast::Statement::BinaryOp(lhs.clone(), op, rhs.clone()));
+        result.push_front(ast::Statement::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: None});
         
         let mut last_operand = rhs.clone();
         for t in tail.into_iter() {
-            result.push_front(ast::Statement::BinaryOp(last_operand.clone(), t.0, t.1.clone()));
+            result.push_front(ast::Statement::BinaryOp{lhs: last_operand.clone(), op: t.0, rhs: t.1.clone(), pos: None});
             last_operand = t.1;
         }
 
@@ -58,9 +58,9 @@ Operand : ast::Operand = {
 }
 
 NodeSearch : ast::Statement = {
-    TextSearch => ast::Statement::TokenSearch(<>),
-    <name:QName> "=" <text:TextSearch> => ast::Statement::AnnoSearch(name, Some(text)),
-    QName =>  ast::Statement::AnnoSearch(<>, None),
+    TextSearch => ast::Statement::TokenSearch{val : <>, pos : None},
+    <name:QName> "=" <text:TextSearch> => ast::Statement::AnnoSearch{name, val: Some(text), pos : None},
+    QName =>  ast::Statement::AnnoSearch{name: <>, val : None, pos : None},
 }
 
 
