@@ -32,19 +32,19 @@ Conjunction : ast::Conjunction = {
 }
 
 Factor : ast::Factor = {
-    AQLTerm => ast::Factor::AQLTerm(<>),
+    Statement => ast::Factor::Statement(<>),
     "(" <d:Disjunction> ")" => ast::Factor::Disjunction(d),
 }
 
-AQLTerm : VecDeque<ast::AQLTerm> = {
+Statement : VecDeque<ast::Statement> = {
     NodeSearch => VecDeque::from(vec![<>]),
     <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> => {
-        let mut result : VecDeque<ast::AQLTerm> = VecDeque::new();
-        result.push_front(ast::AQLTerm::BinaryOp(lhs.clone(), op, rhs.clone()));
+        let mut result : VecDeque<ast::Statement> = VecDeque::new();
+        result.push_front(ast::Statement::BinaryOp(lhs.clone(), op, rhs.clone()));
         
         let mut last_operand = rhs.clone();
         for t in tail.into_iter() {
-            result.push_front(ast::AQLTerm::BinaryOp(last_operand.clone(), t.0, t.1.clone()));
+            result.push_front(ast::Statement::BinaryOp(last_operand.clone(), t.0, t.1.clone()));
             last_operand = t.1;
         }
 
@@ -54,13 +54,13 @@ AQLTerm : VecDeque<ast::AQLTerm> = {
 
 Operand : ast::Operand = {
     NodeRef => ast::Operand::NodeRef(<>),
-    NodeSearch => ast::Operand::Term(Rc::from(<>)),
+    NodeSearch => ast::Operand::Statement(Rc::from(<>)),
 }
 
-NodeSearch : ast::AQLTerm = {
-    TextSearch => ast::AQLTerm::TokenSearch(<>),
-    <name:QName> "=" <text:TextSearch> => ast::AQLTerm::AnnoSearch(name, Some(text)),
-    QName =>  ast::AQLTerm::AnnoSearch(<>, None),
+NodeSearch : ast::Statement = {
+    TextSearch => ast::Statement::TokenSearch(<>),
+    <name:QName> "=" <text:TextSearch> => ast::Statement::AnnoSearch(name, Some(text)),
+    QName =>  ast::Statement::AnnoSearch(<>, None),
 }
 
 

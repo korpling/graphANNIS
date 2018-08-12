@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum Factor {
-    AQLTerm(VecDeque<AQLTerm>),
+    Statement(VecDeque<Statement>),
     Disjunction(Disjunction),
 }
 
@@ -11,7 +11,7 @@ pub type Conjunction = VecDeque<Factor>;
 pub type Disjunction = VecDeque<Conjunction>;
 
 #[derive(Debug)]
-pub enum AQLTerm {
+pub enum Statement {
     TokenSearch(TextSearch),
     AnnoSearch(QName, Option<TextSearch>),
     BinaryOp(Operand, BinaryOpSpec, Operand),
@@ -21,7 +21,7 @@ pub enum AQLTerm {
 #[derive(Debug, Clone)]
 pub enum Operand {
     NodeRef(NodeRef),
-    Term(Rc<AQLTerm>)
+    Statement(Rc<Statement>)
 }
 
 
