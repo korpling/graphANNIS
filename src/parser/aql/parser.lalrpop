@@ -25,7 +25,7 @@ Conjunction : ast::Conjunction = {
 }
 
 Term : VecDeque<ast::Term> = {
-    NodeSearch => {let mut result = VecDeque::new(); result.push_front(<>); result},
+    NodeSearch => VecDeque::from(vec![<>]),
     <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> => {
         let mut result : VecDeque<ast::Term> = VecDeque::new();
         result.push_front(ast::Term::BinaryOp(lhs.clone(), op, rhs.clone()));
