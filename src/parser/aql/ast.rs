@@ -1,3 +1,5 @@
+//use std::collections::BTreeMap;
+
 #[derive(Debug)]
 pub enum Expr {
     TokenSearch(TextSearch),
@@ -13,6 +15,7 @@ pub struct TextSearch(pub String, pub StringMatchType);
 
 #[derive(Debug)]
 pub struct QName (pub Option<String>, pub String);
+
 
 #[derive(Debug)]
 pub enum StringMatchType {

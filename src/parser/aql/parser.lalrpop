@@ -9,14 +9,26 @@ pub Query : ast::Expr = {
 
 Conjunction : ast::Expr = {
     NodeSearch ( "&" Conjunction) => ast::Expr::Empty,
+    BinaryOp ("&" Conjunction) => ast::Expr::Empty,
 }
 
 NodeSearch : ast::Expr = {
     TextSearch => ast::Expr::Empty,
     QName "=" TextSearch => ast::Expr::Empty,
-    QName =>  ast::Expr::Empty
+    QName =>  ast::Expr::Empty,
 }
 
+BinaryOp : ast::Expr = {
+    <lhs:r##"#[0-9]+"##> BinaryOpSpec <rhs:r##"#[0-9]+"##> => ast::Expr::Empty,
+}
+
+BinaryOpSpec : ast::BinaryOpType = {
+    ">" => ast::BinaryOpType::Dominance,
+    "->" => ast::BinaryOpType::Pointing,
+    "." => ast::BinaryOpType::Precedence,
+    "_o_" => ast::BinaryOpType::Overlap,
+    "_=_" => ast::BinaryOpType::IdenticalCoverage,
+}
 
 TextSearch: ast::TextSearch = {
     <v:r#""[^"]*""#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Exact),
@@ -30,4 +42,5 @@ QName: ast::QName = {
     <name:r"[a-zA-Z][a-zA-Z0-9]*"> => ast::QName(None, String::from(name)),
     
 };
+
 
