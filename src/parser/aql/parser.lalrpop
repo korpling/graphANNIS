@@ -10,7 +10,7 @@ pub Query : ast::Expr = {
 }
 
 Conjunction : ast::Conjunction = {
-    <terms:Term> <c:( "&" Conjunction)?> => {
+    <terms:Term> <c:( "&" Term)?> => {
         let mut result = if let Some(c) = c {
             c.1
         } else {
@@ -40,9 +40,9 @@ Term : VecDeque<ast::Term> = {
     },
 }
 
-Operand : Rc<ast::Operand> = {
-    NodeRef => Rc::from(ast::Operand::NodeRef(<>)),
-    NodeSearch => Rc::from(ast::Operand::Term(<>)),
+Operand : ast::Operand = {
+    NodeRef => ast::Operand::NodeRef(<>),
+    NodeSearch => ast::Operand::Term(Rc::from(<>)),
 }
 
 NodeSearch : ast::Term = {

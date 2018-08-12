@@ -8,20 +8,22 @@ pub enum Expr {
 }
 
 pub type Conjunction = VecDeque<Term>;
-pub type Disjunction = VecDeque<Term>;
+pub type Disjunction = VecDeque<Conjunction>;
 
 #[derive(Debug)]
 pub enum Term {
     TokenSearch(TextSearch),
     AnnoSearch(QName, Option<TextSearch>),
-    BinaryOp(Rc<Operand>, BinaryOpSpec, Rc<Operand>),
+    BinaryOp(Operand, BinaryOpSpec, Operand),
+    And(Rc<Term>, Rc<Term>),
+    Or(Rc<Term>, Rc<Term>),
     Empty,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operand {
     NodeRef(NodeRef),
-    Term(Term)
+    Term(Rc<Term>)
 }
 
 
@@ -47,7 +49,7 @@ pub enum BinaryOpSpec {
     IdenticalCoverage,
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum NodeRef {
     ID(u32),
     Name(String),
