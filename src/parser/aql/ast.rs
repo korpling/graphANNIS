@@ -16,7 +16,7 @@ pub struct Pos {
     pub end: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Literal {
     TokenSearch{val : TextSearch, pos : Option<Pos>},
     AnnoSearch{name : QName, val : Option<TextSearch>, pos: Option<Pos>},
@@ -30,20 +30,20 @@ pub enum Operand {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TextSearch(pub String, pub StringMatchType);   
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QName (pub Option<String>, pub String);
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum StringMatchType {
     Exact,
     Regex,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BinaryOpSpec {
     Dominance,
     Pointing,
