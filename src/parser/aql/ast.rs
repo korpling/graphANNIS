@@ -5,6 +5,7 @@ pub enum Expr {
     BinaryOp(String, BinaryOpType, String),
     Conjunction(Vec<Box<Expr>>),
     Disjunction(Vec<Box<Expr>>),
+    Empty,
 }
 
 #[derive(Debug)]

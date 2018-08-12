@@ -4,9 +4,19 @@ use super::ast;
 grammar;
 
 pub Query : ast::Expr = {
-    <t:TextSearch> => ast::Expr::TokenSearch(t),
-    <a:QName> "=" <t:TextSearch> => ast::Expr::AnnoSearch(a, Some(t)),
-};
+    <c:Conjunction> => c,
+}
+
+Conjunction : ast::Expr = {
+    NodeSearch ( "&" Conjunction) => ast::Expr::Empty,
+}
+
+NodeSearch : ast::Expr = {
+    TextSearch => ast::Expr::Empty,
+    QName "=" TextSearch => ast::Expr::Empty,
+    QName =>  ast::Expr::Empty
+}
+
 
 TextSearch: ast::TextSearch = {
     <v:r#""[^"]*""#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Exact),
