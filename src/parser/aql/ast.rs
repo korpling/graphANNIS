@@ -3,30 +3,30 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum Factor {
-    Statement(VecDeque<Statement>),
+    Literal(VecDeque<Literal>),
     Disjunction(Disjunction),
 }
 
 pub type Conjunction = VecDeque<Factor>;
 pub type Disjunction = VecDeque<Conjunction>;
 
-#[derive(Debug)]
-pub struct InputPosition {
-    start : usize,
-    end: usize,
+#[derive(Debug, Clone)]
+pub struct Pos {
+    pub start : usize,
+    pub end: usize,
 }
 
 #[derive(Debug)]
-pub enum Statement {
-    TokenSearch{val : TextSearch, pos : Option<InputPosition>},
-    AnnoSearch{name : QName, val : Option<TextSearch>, pos: Option<InputPosition>},
-    BinaryOp {lhs : Operand, op: BinaryOpSpec, rhs : Operand, pos : Option<InputPosition>},
+pub enum Literal {
+    TokenSearch{val : TextSearch, pos : Option<Pos>},
+    AnnoSearch{name : QName, val : Option<TextSearch>, pos: Option<Pos>},
+    BinaryOp {lhs : Operand, op: BinaryOpSpec, rhs : Operand, pos : Option<Pos>},
 }
 
 #[derive(Debug, Clone)]
 pub enum Operand {
     NodeRef(NodeRef),
-    Statement(Rc<Statement>)
+    Literal(Rc<Literal>)
 }
 
 

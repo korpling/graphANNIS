@@ -32,19 +32,28 @@ Conjunction : ast::Conjunction = {
 }
 
 Factor : ast::Factor = {
-    Statement => ast::Factor::Statement(<>),
+    Literal => ast::Factor::Literal(<>),
     "(" <d:Disjunction> ")" => ast::Factor::Disjunction(d),
 }
 
-Statement : VecDeque<ast::Statement> = {
+Literal : VecDeque<ast::Literal> = {
     NodeSearch => VecDeque::from(vec![<>]),
-    <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> => {
-        let mut result : VecDeque<ast::Statement> = VecDeque::new();
-        result.push_front(ast::Statement::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: None});
+    <start: @L> <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> <end: @R> => {
+        let mut result : VecDeque<ast::Literal> = VecDeque::new();
+        // TODO: can we get the position for each individual binary operator?
+        let pos = ast::Pos {
+            start, end
+        };
+        result.push_front(ast::Literal::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: Some(pos.clone())});
         
         let mut last_operand = rhs.clone();
         for t in tail.into_iter() {
-            result.push_front(ast::Statement::BinaryOp{lhs: last_operand.clone(), op: t.0, rhs: t.1.clone(), pos: None});
+            result.push_front(ast::Literal::BinaryOp{
+                lhs: last_operand.clone(), 
+                op: t.0, 
+                rhs: t.1.clone(), 
+                pos: Some(pos.clone())
+            });
             last_operand = t.1;
         }
 
@@ -54,13 +63,13 @@ Statement : VecDeque<ast::Statement> = {
 
 Operand : ast::Operand = {
     NodeRef => ast::Operand::NodeRef(<>),
-    NodeSearch => ast::Operand::Statement(Rc::from(<>)),
+    NodeSearch => ast::Operand::Literal(Rc::from(<>)),
 }
 
-NodeSearch : ast::Statement = {
-    TextSearch => ast::Statement::TokenSearch{val : <>, pos : None},
-    <name:QName> "=" <text:TextSearch> => ast::Statement::AnnoSearch{name, val: Some(text), pos : None},
-    QName =>  ast::Statement::AnnoSearch{name: <>, val : None, pos : None},
+NodeSearch : ast::Literal = {
+    <l: @L> <val:TextSearch> <r:@R> => ast::Literal::TokenSearch{val, pos: Some(ast::Pos{start: l, end: r})},
+    <l: @L> <name:QName> <r:@R>"=" <text:TextSearch> => ast::Literal::AnnoSearch{name, val: Some(text), pos: Some(ast::Pos{start: l, end: r})},
+    <l: @L> <name:QName> <r:@R> =>  ast::Literal::AnnoSearch{name, val : None, pos: Some(ast::Pos{start: l, end: r})},
 }
 
 
