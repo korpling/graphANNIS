@@ -1,10 +1,10 @@
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum Expr {
     Conjunction(Conjunction),
     Disjunction(Disjunction),
-    Empty,
 }
 
 pub type Conjunction = VecDeque<Term>;
@@ -14,7 +14,14 @@ pub type Disjunction = VecDeque<Term>;
 pub enum Term {
     TokenSearch(TextSearch),
     AnnoSearch(QName, Option<TextSearch>),
-    BinaryOp(NodeRef, BinaryOpSpec, NodeRef),
+    BinaryOp(Rc<Operand>, BinaryOpSpec, Rc<Operand>),
+    Empty,
+}
+
+#[derive(Debug)]
+pub enum Operand {
+    NodeRef(NodeRef),
+    Term(Term)
 }
 
 

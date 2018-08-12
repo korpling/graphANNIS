@@ -1,5 +1,7 @@
 use std::*;
+use std::collections::VecDeque;
 use super::ast;
+use std::rc::Rc;
 
 grammar;
 
@@ -8,23 +10,45 @@ pub Query : ast::Expr = {
 }
 
 Conjunction : ast::Conjunction = {
-    <t:Term> <c:( "&" Conjunction)?> => {
+    <terms:Term> <c:( "&" Conjunction)?> => {
         let mut result = if let Some(c) = c {
             c.1
         } else {
             // create a new conjunction
             ast::Conjunction::default()
         };
-        result.push_front(t);
+        for t in terms {
+            result.push_front(t);
+        }
         return result;
     },
 }
 
-Term : ast::Term = {
+Term : VecDeque<ast::Term> = {
+    NodeSearch => {let mut result = VecDeque::new(); result.push_front(<>); result},
+    <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> => {
+        let mut result : VecDeque<ast::Term> = VecDeque::new();
+        result.push_front(ast::Term::BinaryOp(lhs.clone(), op, rhs.clone()));
+        
+        let mut last_operand = rhs.clone();
+        for t in tail.into_iter() {
+            result.push_front(ast::Term::BinaryOp(last_operand.clone(), t.0, t.1.clone()));
+            last_operand = t.1;
+        }
+
+        return result;
+    },
+}
+
+Operand : Rc<ast::Operand> = {
+    NodeRef => Rc::from(ast::Operand::NodeRef(<>)),
+    NodeSearch => Rc::from(ast::Operand::Term(<>)),
+}
+
+NodeSearch : ast::Term = {
     TextSearch => ast::Term::TokenSearch(<>),
     <name:QName> "=" <text:TextSearch> => ast::Term::AnnoSearch(name, Some(text)),
     QName =>  ast::Term::AnnoSearch(<>, None),
-    <lhs:NodeRef> <op:BinaryOpSpec> <rhs:NodeRef> => ast::Term::BinaryOp(lhs, op, rhs),
 }
 
 
