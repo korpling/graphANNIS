@@ -1,4 +1,4 @@
-//use std::collections::BTreeMap;
+use std::collections::VecDeque;
 
 #[derive(Debug)]
 pub enum Expr {
@@ -7,8 +7,8 @@ pub enum Expr {
     Empty,
 }
 
-pub type Conjunction = Vec<Term>;
-pub type Disjunction = Vec<Term>;
+pub type Conjunction = VecDeque<Term>;
+pub type Disjunction = VecDeque<Term>;
 
 #[derive(Debug)]
 pub enum Term {

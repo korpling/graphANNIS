@@ -15,7 +15,7 @@ Conjunction : ast::Conjunction = {
             // create a new conjunction
             ast::Conjunction::default()
         };
-        result.push(t);
+        result.push_front(t);
         return result;
     },
 }
@@ -30,7 +30,7 @@ Term : ast::Term = {
 
 NodeRef : ast::NodeRef = {
     <v:r##"#[0-9]+"##> => ast::NodeRef::ID(v[1..].parse::<u32>().unwrap()),
-    <v:r##"[a-zA-Z][a-zA-Z0-9]*"##> => ast::NodeRef::Name(v[1..].to_string()),
+    <v:r##"#[a-zA-Z][a-zA-Z0-9]*"##> => ast::NodeRef::Name(v[1..].to_string()),
 }
 
 BinaryOpSpec : ast::BinaryOpSpec = {
