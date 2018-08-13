@@ -1,8 +1,14 @@
+// `error_chain!` can recurse deeply
+#![recursion_limit = "1024"]
+
 extern crate graphannis_malloc_size_of as malloc_size_of;
 #[macro_use]
 extern crate graphannis_malloc_size_of_derive as malloc_size_of_derive;
 #[macro_use]
 extern crate log;
+
+#[macro_use]
+extern crate error_chain;
 
 extern crate regex;
 extern crate regex_syntax;
@@ -35,6 +41,7 @@ extern crate rayon;
 extern crate sys_info;
 extern crate fs2;
 
+pub mod errors;
 
 #[macro_use]
 pub mod util;
