@@ -22,7 +22,7 @@ use std::iter::FromIterator;
 use rand::XorShiftRng;
 use rand::SeedableRng;
 use rand::distributions::Range;
-use rand::distributions::Sample;
+use rand::distributions::Distribution;
 
 #[derive(Debug)]
 pub enum Error {
@@ -157,8 +157,8 @@ impl<'a> Conjunction<'a> {
         }
 
         // use a constant seed to make the result deterministic
-        let mut rng = XorShiftRng::from_seed([4711, 1, 2, 3]);
-        let mut dist = Range::new(0, self.operators.len());
+        let mut rng = XorShiftRng::from_seed(*b"Graphs are great");
+        let dist = Range::new(0, self.operators.len());
 
         let mut best_operator_order = Vec::from_iter(0..self.operators.len());
 

@@ -13,7 +13,9 @@ use std::cell::RefCell;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use rand::distributions::{IndependentSample, Range};
+use rand::distributions::Range;
+use rand::distributions::Distribution;
+
 use rand::seq;
 
 fn retrieve_annos_for_node(bench: &mut Bencher) {
@@ -29,10 +31,10 @@ fn retrieve_annos_for_node(bench: &mut Bencher) {
     for i in 0..10_000 {
         let a = Annotation {
             key: AnnoKey {
-                ns: ns_range.ind_sample(&mut rng),
-                name: name_range.ind_sample(&mut rng),
+                ns: ns_range.sample(&mut rng),
+                name: name_range.sample(&mut rng),
             },
-            val: val_range.ind_sample(&mut rng),
+            val: val_range.sample(&mut rng),
         };
         annos.insert(i, a);
     }
