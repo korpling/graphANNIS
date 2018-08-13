@@ -1,4 +1,3 @@
-use graphstorage::registry::RegistryError::Serialization;
 use graphstorage::{GraphStorage, GraphStatistic};
 use super::adjacencylist::AdjacencyListStorage;
 use super::prepost::PrePostOrderStorage;
@@ -8,31 +7,8 @@ use std::sync::Arc;
 use bincode;
 use std::any::Any;
 use std::str::FromStr;
-use strum;
-use std::fmt;
+use errors::*;
 
-#[derive(Debug)]
-pub enum RegistryError {
-    ImplementationNameNotFound,
-    TypeNotFound,
-    Serialization(Box<bincode::ErrorKind>),
-}
-
-
-impl fmt::Display for RegistryError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ImplementationNameNotFound => write!(f, "Implementation name not found"),
-            TypeNotFound => write!(f, "Type not found"),
-            Serialization(bincode_error) => write!(f, "Serialization error: {}", bincode_error),
-        }
-        
-    }
-}
-
-impl std::error::Error for RegistryError {
-
-}
 
 #[derive(ToString, Debug, Clone, EnumString,PartialEq)]
 pub enum ImplTypes {
@@ -46,19 +22,6 @@ pub enum ImplTypes {
     LinearO8V1,
 }
 
-impl From<Box<bincode::ErrorKind>> for RegistryError {
-    fn from(e: Box<bincode::ErrorKind>) -> RegistryError {
-        RegistryError::Serialization(e)
-    }
-}
-
-impl From<strum::ParseError> for RegistryError {
-    fn from(_: strum::ParseError) -> RegistryError {
-        RegistryError::ImplementationNameNotFound
-    }
-}
-
-type Result<T> = std::result::Result<T, RegistryError>;
 
 pub fn create_writeable() -> AdjacencyListStorage {
     // TODO: make this configurable when there are more writeable graph storage implementations
@@ -197,7 +160,7 @@ pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
     } else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u8>>() {
         return Ok(ImplTypes::LinearO8V1);
     }
-    return Err(RegistryError::TypeNotFound);
+    return Err("Type not found".into());
 }
 
 pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
@@ -227,7 +190,7 @@ pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Resu
         bincode::serialize_into(writer, gs)?;
         return Ok(ImplTypes::LinearO8V1.to_string());
     }
-    return Err(RegistryError::TypeNotFound);
+    return Err("Type not found".into());
 }
 
 

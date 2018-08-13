@@ -1,9 +1,5 @@
-// `error_chain!` can recurse deeply
-#![recursion_limit = "1024"]
-
 use Component;
 use query::conjunction;
-use graphstorage::registry;
 use StringID;
 
 error_chain! {
@@ -12,9 +8,9 @@ error_chain! {
         CSV(::csv::Error);
         IO(::std::io::Error);
         ParseIntError(::std::num::ParseIntError);
-        RegistryError(registry::RegistryError);
         Bincode(::bincode::Error);
         Fmt(::std::fmt::Error);
+        Strum(::strum::ParseError);
     }
 
     errors {

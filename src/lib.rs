@@ -1,3 +1,6 @@
+// `error_chain!` can recurse deeply
+#![recursion_limit = "1024"]
+
 extern crate graphannis_malloc_size_of as malloc_size_of;
 #[macro_use]
 extern crate graphannis_malloc_size_of_derive as malloc_size_of_derive;
