@@ -1304,7 +1304,7 @@ impl CorpusStorage {
     }
 
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self.get_loaded_entry(corpus_name, true)?;
+        let db_entry = self.get_loaded_entry(corpus_name, true).chain_err(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
         {
             let mut lock = db_entry.write().unwrap();
             let db: &mut GraphDB = get_write_or_error(&mut lock)?;
