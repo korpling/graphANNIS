@@ -1,3 +1,4 @@
+use graphstorage::registry::RegistryError::Serialization;
 use graphstorage::{GraphStorage, GraphStatistic};
 use super::adjacencylist::AdjacencyListStorage;
 use super::prepost::PrePostOrderStorage;
@@ -8,14 +9,29 @@ use bincode;
 use std::any::Any;
 use std::str::FromStr;
 use strum;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum RegistryError {
-    Empty,
     ImplementationNameNotFound,
     TypeNotFound,
     Serialization(Box<bincode::ErrorKind>),
-    Other,
+}
+
+
+impl fmt::Display for RegistryError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ImplementationNameNotFound => write!(f, "Implementation name not found"),
+            TypeNotFound => write!(f, "Type not found"),
+            Serialization(bincode_error) => write!(f, "Serialization error: {}", bincode_error),
+        }
+        
+    }
+}
+
+impl std::error::Error for RegistryError {
+
 }
 
 #[derive(ToString, Debug, Clone, EnumString,PartialEq)]

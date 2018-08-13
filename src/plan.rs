@@ -7,11 +7,8 @@ use exec::{Desc, ExecutionNode};
 use std;
 use std::fmt::Formatter;
 use std::collections::HashSet;
+use errors::*;
 
-#[derive(Debug)]
-pub enum Error {
-    ImpossibleSearch(Vec<conjunction::Error>),
-}
 
 pub struct ExecutionPlan<'a> {
     plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
@@ -26,7 +23,7 @@ impl<'a> ExecutionPlan<'a> {
         query: &'a Disjunction<'a>,
         db: &'a GraphDB,
         config : Config,
-    ) -> Result<ExecutionPlan<'a>, Error> {
+    ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();
         let mut errors: Vec<conjunction::Error> = Vec::new();
@@ -41,7 +38,7 @@ impl<'a> ExecutionPlan<'a> {
         }
 
         if plans.is_empty() {
-            return Err(Error::ImpossibleSearch(errors));
+            return Err(ErrorKind::ImpossibleSearch(errors).into());
         } else {
             return Ok(ExecutionPlan {
                 current_plan: 0,

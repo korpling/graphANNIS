@@ -38,9 +38,7 @@ extern crate rayon;
 extern crate sys_info;
 extern crate fs2;
 
-mod errors {
-    error_chain! {}
-}
+pub mod errors;
 
 #[macro_use]
 pub mod util;
