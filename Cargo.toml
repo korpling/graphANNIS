@@ -34,6 +34,7 @@ fxhash = "0.2"
 rayon = "1.0"
 sys-info = "0.5"
 fs2 = "0.4"
+error-chain = "0.12"
 
 graphannis-malloc_size_of = { path = "ext/malloc_size_of", version = "0.0.1"}
 graphannis-malloc_size_of_derive = { path = "ext/malloc_size_of_derive", version = "0.0.1" }

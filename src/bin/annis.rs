@@ -17,10 +17,10 @@ use rustyline::completion::{Completer, FilenameCompleter};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use graphannis::relannis;
 use std::path::{Path, PathBuf};
+use graphannis::errors::*;
 use graphannis::StringID;
 use graphannis::api::corpusstorage::CorpusStorage;
 use graphannis::api::corpusstorage::CorpusInfo;
-use graphannis::api::corpusstorage::Error;
 use graphannis::api::corpusstorage::LoadStatus;
 use graphannis::api::corpusstorage::ResultOrder;
 use std::collections::BTreeSet;
@@ -65,7 +65,7 @@ impl CommandCompleter {
 }
 
 impl Completer for CommandCompleter {
-    fn complete(&self, line: &str, pos: usize) -> Result<(usize, Vec<String>), ReadlineError> {
+    fn complete(&self, line: &str, pos: usize) -> std::result::Result<(usize, Vec<String>), ReadlineError> {
         
         // check for more specialized completers
         if line.starts_with("import ") {
@@ -107,7 +107,7 @@ struct AnnisRunner {
 }
 
 impl AnnisRunner {
-    pub fn new(data_dir: &Path) -> Result<AnnisRunner, Error> {
+    pub fn new(data_dir: &Path) -> Result<AnnisRunner> {
         Ok(AnnisRunner {
             storage: CorpusStorage::new_auto_cache_size(data_dir, false)?,
             current_corpus: None,
