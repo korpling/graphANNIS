@@ -14,7 +14,7 @@ use aql::operators::{
 
 use std::collections::BTreeMap;
 
-pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>> {
+pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
     let root: serde_json::Value = serde_json::from_str(query_as_string).ok()?;
 
     let mut conjunctions: Vec<Conjunction> = Vec::new();
@@ -48,7 +48,7 @@ pub fn parse<'a>(query_as_string: &str, db: &GraphDB) -> Option<Disjunction<'a>>
         if let &serde_json::Value::Array(ref joins) = alt.get("joins")? {
             for j in joins.iter() {
                 if let &serde_json::Value::Object(ref j_obj) = j {
-                    parse_join(j_obj, &mut q, &node_id_to_pos, db);
+                    parse_join(j_obj, &mut q, &node_id_to_pos);
                 }
             }
         }
@@ -190,7 +190,6 @@ fn parse_join(
     join: &serde_json::Map<String, serde_json::Value>,
     q: &mut Conjunction,
     node_id_to_pos: &BTreeMap<usize, usize>,
-    db: &GraphDB,
 ) {
     // get left and right index
     if let (Some(left_id), Some(right_id)) = (
