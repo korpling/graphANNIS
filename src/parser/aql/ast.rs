@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum Factor {
-    Literal(VecDeque<Literal>),
+    Literal(Literal),
     Disjunction(Disjunction),
 }
 

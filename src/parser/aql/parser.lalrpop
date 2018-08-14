@@ -12,10 +12,10 @@ pub Query : ast::Disjunction = {
 Disjunction : ast::Disjunction  = {
     <head:Conjunction> <tail:("|" Conjunction)*> => {
         let mut result = ast::Disjunction::new();
-        result.push_front(head);
         for t in tail.into_iter() {
             result.push_front(t.1);
         }
+        result.push_front(head);
         return result;
     },
 }
@@ -23,32 +23,42 @@ Disjunction : ast::Disjunction  = {
 Conjunction : ast::Conjunction = {
     <head:Factor> <tail:("&" Factor)*> => {
         let mut r = ast::Conjunction::new();
-        r.push_front(head);
         for t in tail.into_iter() {
-            r.push_front(t.1);
+            for f in t.1.into_iter() {
+                r.push_front(f);
+            }
+        }
+        for f in head.into_iter() {
+            r.push_front(f);
         }
         return r;
     },
 }
 
-Factor : ast::Factor = {
-    Literal => ast::Factor::Literal(<>),
-    "(" <d:Disjunction> ")" => ast::Factor::Disjunction(d),
+Factor : Vec<ast::Factor> = {
+    Literal => {
+        let mut result = Vec::new();
+        for l in <>.into_iter() {
+            result.push(ast::Factor::Literal(l));
+        }
+        result
+    },
+    "(" <d:Disjunction> ")" => vec![ast::Factor::Disjunction(d)],
 }
 
-Literal : VecDeque<ast::Literal> = {
-    NodeSearch => VecDeque::from(vec![<>]),
+Literal : Vec<ast::Literal> = {
+    NodeSearch => vec![<>],
     <start: @L> <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> <end: @R> => {
-        let mut result : VecDeque<ast::Literal> = VecDeque::new();
+        let mut result : Vec<ast::Literal> = Vec::new();
         // TODO: can we get the position for each individual binary operator?
         let pos = ast::Pos {
             start, end
         };
-        result.push_front(ast::Literal::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: Some(pos.clone())});
+        result.push(ast::Literal::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: Some(pos.clone())});
         
         let mut last_operand = rhs.clone();
         for t in tail.into_iter() {
-            result.push_front(ast::Literal::BinaryOp{
+            result.push(ast::Literal::BinaryOp{
                 lhs: last_operand.clone(), 
                 op: t.0, 
                 rhs: t.1.clone(), 
