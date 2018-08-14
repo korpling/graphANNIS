@@ -40,6 +40,7 @@ extern crate itertools;
 extern crate rayon;
 extern crate sys_info;
 extern crate fs2;
+extern crate lalrpop_util;
 
 pub mod errors;
 

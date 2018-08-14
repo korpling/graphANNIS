@@ -22,12 +22,7 @@ match {
     _
 }
 
-
-pub Query : ast::Disjunction = {
-    Disjunction => <>,
-}
-
-Disjunction : ast::Disjunction  = {
+pub Disjunction : ast::Disjunction  = {
     <head:Conjunction> <tail:("|" Conjunction)*> => {
         let mut result = ast::Disjunction::new();
         for t in tail.into_iter() {
@@ -65,7 +60,10 @@ Factor : Vec<ast::Factor> = {
 }
 
 Literal : Vec<ast::Literal> = {
-    NodeSearch => vec![<>],
+    <start: @L> <spec:NodeSearch> <end: @R> => {
+        let pos = Some(ast::Pos{start, end});
+        vec![ast::Literal::NodeSearch{pos, spec}]
+    },
     <start: @L> <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> <end: @R> => {
         let mut result : Vec<ast::Literal> = Vec::new();
         // TODO: can we get the position for each individual binary operator?
@@ -90,13 +88,12 @@ Literal : Vec<ast::Literal> = {
 }
 
 Operand : ast::Operand = {
-    NodeRef => ast::Operand::NodeRef(<>),
+    NodeRef =>  ast::Operand::NodeRef(<>),
     NodeSearch => ast::Operand::Literal(Rc::from(<>)),
 }
 
-NodeSearch : ast::Literal = {
-    <l: @L> <tok_def:(TOK "=")?> <val:TextSearch> <r:@R> => {
-        let pos = Some(ast::Pos{start: l, end: r});
+NodeSearch : NodeSearchSpec = {
+    <tok_def:(TOK "=")?> <val:TextSearch>=> {
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
                 NodeSearchSpec::ExactTokenValue {
@@ -111,10 +108,9 @@ NodeSearch : ast::Literal = {
                 }
             },
         };
-        ast::Literal::NodeSearch{spec, pos}
+        spec
     },
-    <l: @L> <name:QName> "=" <text:TextSearch> <r:@R> => {
-        let pos = Some(ast::Pos{start: l, end: r});
+    <name:QName> "=" <text:TextSearch> => {
         let spec = match text.1 { 
             ast::StringMatchType::Exact => {
                 NodeSearchSpec::ExactValue {
@@ -133,17 +129,16 @@ NodeSearch : ast::Literal = {
                 }
             },
         };
-        ast::Literal::NodeSearch{spec, pos}
+        spec
     },
-    <l: @L> <name:QName> <r:@R> => {
-        let pos = Some(ast::Pos{start: l, end: r});
+    <name:QName>=> {
         let spec = NodeSearchSpec::ExactValue {
             ns: name.0,
             name: name.1,
             val: None,
             is_meta: false,
         };
-        ast::Literal::NodeSearch{spec, pos}
+        spec
     },
 }
 

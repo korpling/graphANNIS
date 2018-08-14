@@ -34,7 +34,7 @@ pub enum Literal {
 #[derive(Debug, Clone)]
 pub enum Operand {
     NodeRef(NodeRef),
-    Literal(Rc<Literal>)
+    Literal(Rc<NodeSearchSpec>)
 }
 
 

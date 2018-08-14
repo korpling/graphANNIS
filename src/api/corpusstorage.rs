@@ -12,7 +12,7 @@ use graphdb::{ANNIS_NS, NODE_TYPE};
 use linked_hash_map::LinkedHashMap;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use aql::operators;
-use parser::jsonqueryparser;
+use aql;
 use plan::ExecutionPlan;
 use query;
 use query::conjunction::Conjunction;
@@ -630,7 +630,7 @@ impl CorpusStorage {
     fn prepare_query<'a>(
         &self,
         corpus_name: &str,
-        query_as_json: &'a str,
+        query_as_aql: &'a str,
         additional_components: Vec<Component>,
     ) -> Result<PreparationResult<'a>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
@@ -639,7 +639,7 @@ impl CorpusStorage {
         let (q, missing_components) = {
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            let q = jsonqueryparser::parse(query_as_json).ok_or("Could not parse JSON")?;
+            let q = aql::parse(query_as_aql).chain_err(|| "Could not parse AQL")?;
             let necessary_components = q.necessary_components(db);
 
             let mut missing: HashSet<Component> =

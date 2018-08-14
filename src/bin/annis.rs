@@ -436,7 +436,7 @@ impl AnnisRunner {
     }
 
     fn parse(&mut self, args: &str) {
-        let p = graphannis::aql::parser::QueryParser::new();
+        let p = graphannis::aql::parser::DisjunctionParser::new();
         match p.parse(&args) {
             Ok(mut result) => {
                 // also normalize the query to DNF
