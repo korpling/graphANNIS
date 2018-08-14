@@ -9,7 +9,7 @@ use std;
 pub struct IdenticalNodeSpec;
 
 impl OperatorSpec for IdenticalNodeSpec {
-    fn necessary_components(&self) -> Vec<Component> {vec![]}
+    fn necessary_components(&self, _db : &GraphDB) -> Vec<Component> {vec![]}
 
     fn create_operator(&self, _db: &GraphDB) -> Option<Box<Operator>> {
         Some(Box::new(IdenticalNode {}))

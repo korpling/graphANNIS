@@ -640,7 +640,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
             let q = jsonqueryparser::parse(query_as_json, db).ok_or("Could not parse JSON")?;
-            let necessary_components = q.necessary_components();
+            let necessary_components = q.necessary_components(db);
 
             let mut missing: HashSet<Component> =
                 HashSet::from_iter(necessary_components.iter().cloned());

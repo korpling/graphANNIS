@@ -32,7 +32,7 @@ pub trait Operator: std::fmt::Display + Send + Sync {
 }
 
 pub trait OperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self) -> Vec<Component>;
+    fn necessary_components(&self, db: &GraphDB) -> Vec<Component>;
 
     fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>>;
 

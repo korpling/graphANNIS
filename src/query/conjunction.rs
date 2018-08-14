@@ -137,11 +137,11 @@ impl<'a> Conjunction<'a> {
         self.variables.get(variable).cloned()
     }
 
-    pub fn necessary_components(&self) -> Vec<Component> {
+    pub fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
         let mut result = vec![];
 
         for op_entry in self.operators.iter() {
-            let mut c = op_entry.op.necessary_components();
+            let mut c = op_entry.op.necessary_components(db);
             result.append(&mut c);
         }
 
@@ -254,7 +254,7 @@ impl<'a> Conjunction<'a> {
             let op_spec = &e.op;
             if e.idx_left == desc.component_nr { 
                 // get the necessary components and count the number of nodes in these components
-                let components = op_spec.necessary_components();
+                let components = op_spec.necessary_components(db);
                 if components.len() > 0 {
                     let mut estimated_component_search = 0;
 

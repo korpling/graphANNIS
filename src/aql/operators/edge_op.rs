@@ -144,7 +144,7 @@ impl BaseEdgeOp {
 }
 
 impl OperatorSpec for BaseEdgeOpSpec {
-    fn necessary_components(&self) -> Vec<Component> {
+    fn necessary_components(&self, _db : &GraphDB) -> Vec<Component> {
         self.components.clone()
     }
 
@@ -494,8 +494,8 @@ impl DominanceSpec {
 }
 
 impl OperatorSpec for DominanceSpec {
-    fn necessary_components(&self) -> Vec<Component> {
-        self.base.necessary_components()
+    fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
+        self.base.necessary_components(db)
     }
 
     fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
@@ -537,8 +537,8 @@ impl PointingSpec {
 }
 
 impl OperatorSpec for PointingSpec {
-    fn necessary_components(&self) -> Vec<Component> {
-        self.base.necessary_components()
+    fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
+        self.base.necessary_components(db)
     }
 
     fn create_operator<'b>(&self, db: &GraphDB) -> Option<Box<Operator>> {
@@ -574,8 +574,8 @@ impl PartOfSubCorpusSpec {
 }
 
 impl OperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self) -> Vec<Component> {
-        self.base.necessary_components()
+    fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
+        self.base.necessary_components(db)
     }
 
     fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {

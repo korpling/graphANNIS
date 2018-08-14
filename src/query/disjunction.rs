@@ -1,5 +1,6 @@
 use super::conjunction::Conjunction;
 use {Component};
+use graphdb::GraphDB;
 
 pub struct Disjunction<'a> {
     pub alternatives : Vec<Conjunction<'a>>,
@@ -12,11 +13,11 @@ impl<'a> Disjunction<'a> {
         }
     }
 
-    pub fn necessary_components(&self) -> Vec<Component> {
+    pub fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
         let mut result = vec![];
         
         for alt in self.alternatives.iter() {
-            let mut c = alt.necessary_components();
+            let mut c = alt.necessary_components(db);
             result.append(&mut c);
         }
 

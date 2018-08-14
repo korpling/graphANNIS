@@ -133,7 +133,7 @@ fn nested_loop_join() {
         };
 
         // make sure to load all components
-        for c in op_spec.necessary_components() {
+        for c in op_spec.necessary_components(&db) {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
@@ -171,7 +171,7 @@ fn parallel_nested_loop_join() {
         };
 
         // make sure to load all components
-        for c in op_spec.necessary_components() {
+        for c in op_spec.necessary_components(&db) {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
@@ -213,7 +213,7 @@ fn index_join() {
         let anno_val = Arc::make_mut(&mut db.strings).add("ADJA");
 
         // make sure to load all components
-        for c in op_spec.necessary_components() {
+        for c in op_spec.necessary_components(&db) {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
         let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
@@ -256,7 +256,7 @@ fn parallel_index_join() {
         let anno_val = Arc::make_mut(&mut db.strings).add("ADJA");
 
         // make sure to load all components
-        for c in op_spec.necessary_components() {
+        for c in op_spec.necessary_components(&db) {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
         let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();

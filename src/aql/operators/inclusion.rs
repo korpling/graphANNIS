@@ -59,7 +59,7 @@ lazy_static! {
 }
 
 impl OperatorSpec for InclusionSpec {
-    fn necessary_components(&self) -> Vec<Component> {
+    fn necessary_components(&self, _db : &GraphDB) -> Vec<Component> {
         let mut v: Vec<Component> = vec![
             COMPONENT_ORDER.clone(),
             COMPONENT_LEFT.clone(),

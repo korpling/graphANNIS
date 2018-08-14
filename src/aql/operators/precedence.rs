@@ -44,7 +44,7 @@ lazy_static! {
 }
 
 impl OperatorSpec for PrecedenceSpec {
-    fn necessary_components(&self) -> Vec<Component> {
+    fn necessary_components(&self, _db : &GraphDB) -> Vec<Component> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
