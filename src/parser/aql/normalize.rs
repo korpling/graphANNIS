@@ -22,9 +22,6 @@ use std::collections::VecDeque;
 /// ```
 /// according to the distributivity rule of Boolean Algebra.
 /// 
-/// Only one transformation will be done in this function, repeat it
-/// in order to replace all illegal constructions.
-/// 
 /// * `top_disjunction` The disjunction to normalize
 /// 
 pub fn to_disjunctive_normal_form(top_disjunction : &mut Disjunction) {
@@ -40,7 +37,7 @@ pub fn to_disjunctive_normal_form(top_disjunction : &mut Disjunction) {
                 Factor::Disjunction(mut inner_disjunction) => {
                     // make sure the nested disjunction is in DNF
                     to_disjunctive_normal_form(&mut inner_disjunction);
-                    
+
                     // add the resulting disjunction to extra list
                     disjunction_factors.push(inner_disjunction);
                 },
