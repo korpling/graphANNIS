@@ -436,11 +436,11 @@ impl AnnisRunner {
     }
 
     fn parse(&mut self, args: &str) {
-        let p = graphannis::parser::aql::parser::QueryParser::new();
+        let p = graphannis::aql::parser::QueryParser::new();
         match p.parse(&args) {
             Ok(mut result) => {
                 // also normalize the query to DNF
-                graphannis::parser::aql::normalize::to_disjunctive_normal_form(&mut result);
+                graphannis::aql::normalize::to_disjunctive_normal_form(&mut result);
                 println!("{:?}",result);
             }
             Err(e) => {println!("ERROR: {:?}", e);}

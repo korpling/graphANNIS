@@ -60,6 +60,7 @@ mod plan;
 pub mod exec;
 mod query;
 pub mod parser;
+pub mod aql;
 
 pub mod api;
 
