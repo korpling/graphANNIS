@@ -3,6 +3,14 @@ use super::ast;
 use std::rc::Rc;
 
 use exec::nodesearch::NodeSearchSpec;
+use operator::OperatorSpec;
+use aql::operators::{
+    OverlapSpec, 
+    IdenticalCoverageSpec,
+    PrecedenceSpec,
+    DominanceSpec,
+    PointingSpec,
+};
 
 grammar;
 
@@ -11,7 +19,7 @@ match {
 } else {
     r"[a-zA-Z][a-zA-Z0-9]*" => ID,
     r##"#[0-9]+"## => NODE_REF,
-    r##"#[a-zA-Z][a-zA-Z0-9]*"## => NAMED_NODE_REF, 
+    r##"#[a-zA-Z][a-zA-Z0-9]*"## => NAMED_NODE_REF,
     _
 }
 
@@ -147,11 +155,17 @@ NodeRef : ast::NodeRef = {
 }
 
 BinaryOpSpec : ast::BinaryOpSpec = {
-    ">" => ast::BinaryOpSpec::Dominance,
-    "->" => ast::BinaryOpSpec::Pointing,
-    "." => ast::BinaryOpSpec::Precedence,
-    "_o_" => ast::BinaryOpSpec::Overlap,
-    "_=_" => ast::BinaryOpSpec::IdenticalCoverage,
+//    ">" => ast::BinaryOpSpec::Dominance,
+//    r"->[a-zA-Z][a-zA-Z0-9]*" => ast::BinaryOpSpec::Pointing {
+//
+//    },
+    "." => ast::BinaryOpSpec::Precedence(PrecedenceSpec {
+        segmentation: None,
+        min_dist: 1,
+        max_dist: 1,
+    }),
+    "_o_" => ast::BinaryOpSpec::Overlap(OverlapSpec {}),
+    "_=_" => ast::BinaryOpSpec::IdenticalCoverage(IdenticalCoverageSpec {}),
 }
 
 TextSearch: ast::TextSearch = {

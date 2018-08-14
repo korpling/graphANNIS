@@ -2,6 +2,13 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use exec::nodesearch::NodeSearchSpec;
+use aql::operators::{
+    OverlapSpec, 
+    IdenticalCoverageSpec,
+    PrecedenceSpec,
+    DominanceSpec,
+    PointingSpec,
+};
 
 #[derive(Debug)]
 pub enum Factor {
@@ -44,17 +51,17 @@ pub enum StringMatchType {
     Regex,
 }
 
-#[derive(Debug, Clone)]
-pub enum BinaryOpSpec {
-    Dominance,
-    Pointing,
-    Precedence,
-    Overlap,
-    IdenticalCoverage,
-}
-
 #[derive(Debug,Clone)]
 pub enum NodeRef {
     ID(u32),
     Name(String),
+}
+
+#[derive(Debug, Clone)]
+pub enum BinaryOpSpec {
+    Dominance(DominanceSpec),
+    Pointing(PointingSpec),
+    Precedence(PrecedenceSpec),
+    Overlap(OverlapSpec),
+    IdenticalCoverage(IdenticalCoverageSpec),
 }
