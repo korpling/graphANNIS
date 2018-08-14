@@ -515,7 +515,7 @@ impl PointingSpec {
         min_dist: usize,
         max_dist: usize,
         edge_anno: Option<EdgeAnnoSearchSpec>,
-    ) -> DominanceSpec {
+    ) -> PointingSpec {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(name));
         let op_str = if name.is_empty() {
             String::from("->")
@@ -523,7 +523,7 @@ impl PointingSpec {
             format!("->{} ", name)
         };
 
-        DominanceSpec {
+        PointingSpec {
             base: BaseEdgeOpSpec {
                 components,
                 min_dist,
