@@ -2,12 +2,13 @@ use serde_json;
 
 use exec::nodesearch::NodeSearchSpec;
 use graphdb::GraphDB;
-use operator::edge_op::EdgeAnnoSearchSpec;
+use aql::operators::edge_op::EdgeAnnoSearchSpec;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
+use operator::OperatorSpec;
 
-use operator::{
-    DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec, OperatorSpec,
+use aql::operators::{
+    DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec,
     OverlapSpec, PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec,
 };
 

@@ -1,6 +1,6 @@
 use types::Edge;
 use annostorage::AnnoStorage;
-use operator::edge_op::EdgeAnnoSearchSpec;
+use aql::operators::edge_op::EdgeAnnoSearchSpec;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use graphdb::{GraphDB, ANNIS_NS};
 use {Annotation, Component, ComponentType, Match, NodeID, StringID};

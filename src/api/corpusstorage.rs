@@ -11,7 +11,7 @@ use graphdb::GraphDB;
 use graphdb::{ANNIS_NS, NODE_TYPE};
 use linked_hash_map::LinkedHashMap;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use operator;
+use aql::operators;
 use parser::jsonqueryparser;
 use plan::ExecutionPlan;
 use query;
@@ -919,9 +919,9 @@ impl CorpusStorage {
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_left.add_operator(Box::new(operators::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_left.add_operator(
-                    Box::new(operator::PrecedenceSpec {
+                    Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_left,
@@ -930,7 +930,7 @@ impl CorpusStorage {
                     tok_covered_idx,
                 );
                 q_left.add_operator(
-                    Box::new(operator::OverlapSpec {}),
+                    Box::new(operators::OverlapSpec {}),
                     any_node_idx,
                     tok_precedence_idx,
                 );
@@ -955,9 +955,9 @@ impl CorpusStorage {
                 );
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_left.add_operator(Box::new(operators::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_left.add_operator(
-                    Box::new(operator::PrecedenceSpec {
+                    Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_left,
@@ -987,9 +987,9 @@ impl CorpusStorage {
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
                 let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_right.add_operator(Box::new(operators::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_right.add_operator(
-                    Box::new(operator::PrecedenceSpec {
+                    Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_right,
@@ -998,7 +998,7 @@ impl CorpusStorage {
                     tok_precedence_idx,
                 );
                 q_right.add_operator(
-                    Box::new(operator::OverlapSpec {}),
+                    Box::new(operators::OverlapSpec {}),
                     any_node_idx,
                     tok_precedence_idx,
                 );
@@ -1023,9 +1023,9 @@ impl CorpusStorage {
                 );
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_right.add_operator(Box::new(operators::OverlapSpec {}), n_idx, tok_covered_idx);
                 q_right.add_operator(
-                    Box::new(operator::PrecedenceSpec {
+                    Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_right,
@@ -1081,7 +1081,7 @@ impl CorpusStorage {
             );
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
             q.add_operator(
-                Box::new(operator::PartOfSubCorpusSpec::new(1, 1)),
+                Box::new(operators::PartOfSubCorpusSpec::new(1, 1)),
                 any_node_idx,
                 corpus_idx,
             );

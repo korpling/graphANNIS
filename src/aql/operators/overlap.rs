@@ -1,4 +1,4 @@
-use super::{Operator, OperatorSpec};
+use operator::{Operator, OperatorSpec};
 use {Annotation, Component, ComponentType, Match, NodeID};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;

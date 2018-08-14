@@ -1,4 +1,5 @@
-use super::*;
+use Match;
+use operator::*;
 
 use {Component, Annotation};
 use graphdb::GraphDB;

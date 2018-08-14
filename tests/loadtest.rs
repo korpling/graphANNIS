@@ -13,7 +13,7 @@ use graphannis::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use graphannis::exec::nestedloop::NestedLoop;
 use graphannis::exec::indexjoin::IndexJoin;
 use graphannis::exec::parallel;
-use graphannis::operator::precedence::{Precedence, PrecedenceSpec};
+use graphannis::aql::operators::precedence::{Precedence, PrecedenceSpec};
 use graphannis::stringstorage::StringStorage;
 
 fn load_corpus(name: &str) -> Option<GraphDB> {
