@@ -3,7 +3,6 @@ use super::ast;
 use std::rc::Rc;
 
 use exec::nodesearch::NodeSearchSpec;
-use operator::OperatorSpec;
 use aql::operators::{
     OverlapSpec, 
     IdenticalCoverageSpec,
@@ -155,10 +154,24 @@ NodeRef : ast::NodeRef = {
 }
 
 BinaryOpSpec : ast::BinaryOpSpec = {
-//    ">" => ast::BinaryOpSpec::Dominance,
-//    r"->[a-zA-Z][a-zA-Z0-9]*" => ast::BinaryOpSpec::Pointing {
-//
-//    },
+    <type_def:r">([a-zA-Z][a-zA-Z0-9]*)?"> => {
+        let name = type_def[">".len()..].to_string();
+        ast::BinaryOpSpec::Dominance(DominanceSpec {
+            name,
+            min_dist: 1,
+            max_dist: 1,
+            edge_anno: None,
+        })
+    },
+    <type_def:r"->[a-zA-Z][a-zA-Z0-9]*"> => {
+        let name = type_def["->".len()..].to_string();
+        ast::BinaryOpSpec::Pointing(PointingSpec {
+            name,
+            min_dist: 1,
+            max_dist: 1,
+            edge_anno: None,
+        })
+    },
     "." => ast::BinaryOpSpec::Precedence(PrecedenceSpec {
         segmentation: None,
         min_dist: 1,
