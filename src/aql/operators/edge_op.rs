@@ -537,7 +537,7 @@ pub struct PartOfSubCorpusSpec {
 
 
 impl OperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, _db : &GraphDB) -> Vec<Component> {
         let components = vec![
             Component {
                 ctype: ComponentType::PartOfSubcorpus,
