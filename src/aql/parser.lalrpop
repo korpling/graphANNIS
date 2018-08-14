@@ -2,7 +2,19 @@ use std::*;
 use super::ast;
 use std::rc::Rc;
 
+use exec::nodesearch::NodeSearchSpec;
+
 grammar;
+
+match {
+    "tok" => TOK,
+} else {
+    r"[a-zA-Z][a-zA-Z0-9]*" => ID,
+    r##"#[0-9]+"## => NODE_REF,
+    r##"#[a-zA-Z][a-zA-Z0-9]*"## => NAMED_NODE_REF, 
+    _
+}
+
 
 pub Query : ast::Disjunction = {
     Disjunction => <>,
@@ -76,15 +88,62 @@ Operand : ast::Operand = {
 }
 
 NodeSearch : ast::Literal = {
-    <l: @L> <val:TextSearch> <r:@R> => ast::Literal::TokenSearch{val, pos: Some(ast::Pos{start: l, end: r})},
-    <l: @L> <name:QName> <r:@R>"=" <text:TextSearch> => ast::Literal::AnnoSearch{name, val: Some(text), pos: Some(ast::Pos{start: l, end: r})},
-    <l: @L> <name:QName> <r:@R> =>  ast::Literal::AnnoSearch{name, val : None, pos: Some(ast::Pos{start: l, end: r})},
+    <l: @L> <tok_def:(TOK "=")?> <val:TextSearch> <r:@R> => {
+        let pos = Some(ast::Pos{start: l, end: r});
+        let spec = match val.1 { 
+            ast::StringMatchType::Exact => {
+                NodeSearchSpec::ExactTokenValue {
+                    val: val.0,
+                    leafs_only: tok_def.is_some(),
+                }
+            },
+            ast::StringMatchType::Regex => {
+                NodeSearchSpec::RegexTokenValue {
+                    val: val.0,
+                    leafs_only: tok_def.is_some(),
+                }
+            },
+        };
+        ast::Literal::NodeSearch{spec, pos}
+    },
+    <l: @L> <name:QName> "=" <text:TextSearch> <r:@R> => {
+        let pos = Some(ast::Pos{start: l, end: r});
+        let spec = match text.1 { 
+            ast::StringMatchType::Exact => {
+                NodeSearchSpec::ExactValue {
+                    ns: name.0,
+                    name: name.1,
+                    val: Some(text.0),
+                    is_meta: false,
+                }
+            },
+            ast::StringMatchType::Regex => {
+                NodeSearchSpec::RegexValue {
+                    ns: name.0,
+                    name: name.1,
+                    val: text.0,
+                    is_meta: false,
+                }
+            },
+        };
+        ast::Literal::NodeSearch{spec, pos}
+    },
+    <l: @L> <name:QName> <r:@R> => {
+        let pos = Some(ast::Pos{start: l, end: r});
+        let spec = NodeSearchSpec::ExactValue {
+            ns: name.0,
+            name: name.1,
+            val: None,
+            is_meta: false,
+        };
+        ast::Literal::NodeSearch{spec, pos}
+    },
 }
 
 
 NodeRef : ast::NodeRef = {
-    <v:r##"#[0-9]+"##> => ast::NodeRef::ID(v[1..].parse::<u32>().unwrap()),
-    <v:r##"#[a-zA-Z][a-zA-Z0-9]*"##> => ast::NodeRef::Name(v[1..].to_string()),
+    <v:NODE_REF> => ast::NodeRef::ID(v[1..].parse::<u32>().unwrap()),
+    <v:NAMED_NODE_REF> => ast::NodeRef::Name(v[1..].to_string()),
 }
 
 BinaryOpSpec : ast::BinaryOpSpec = {
@@ -103,8 +162,8 @@ TextSearch: ast::TextSearch = {
 };
 
 QName: ast::QName = {
-    <ns:r"[a-zA-Z][a-zA-Z0-9]*"> ":" <name:r"[a-zA-Z][a-zA-Z0-9]*"> => ast::QName(Some(String::from(ns)), String::from(name)),
-    <name:r"[a-zA-Z][a-zA-Z0-9]*"> => ast::QName(None, String::from(name)),
+    <ns:ID> ":" <name:ID> => ast::QName(Some(String::from(ns)), String::from(name)),
+    <name:ID> => ast::QName(None, String::from(name)),
     
 };
 

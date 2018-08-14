@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 use std::rc::Rc;
 
+use exec::nodesearch::NodeSearchSpec;
+
 #[derive(Debug)]
 pub enum Factor {
     Literal(Literal),
@@ -18,8 +20,7 @@ pub struct Pos {
 
 #[derive(Debug, Clone)]
 pub enum Literal {
-    TokenSearch{val : TextSearch, pos : Option<Pos>},
-    AnnoSearch{name : QName, val : Option<TextSearch>, pos: Option<Pos>},
+    NodeSearch{spec: NodeSearchSpec, pos : Option<Pos>},
     BinaryOp {lhs : Operand, op: BinaryOpSpec, rhs : Operand, pos : Option<Pos>},
 }
 
