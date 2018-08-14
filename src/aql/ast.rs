@@ -19,7 +19,7 @@ pub enum Factor {
 pub type Conjunction = VecDeque<Factor>;
 pub type Disjunction = VecDeque<Conjunction>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Pos {
     pub start : usize,
     pub end: usize,
@@ -34,7 +34,7 @@ pub enum Literal {
 #[derive(Debug, Clone)]
 pub enum Operand {
     NodeRef(NodeRef),
-    Literal(Rc<NodeSearchSpec>)
+    Literal{spec: Rc<NodeSearchSpec>, pos : Pos}
 }
 
 
@@ -53,7 +53,7 @@ pub enum StringMatchType {
 
 #[derive(Debug,Clone)]
 pub enum NodeRef {
-    ID(u32),
+    ID(usize),
     Name(String),
 }
 

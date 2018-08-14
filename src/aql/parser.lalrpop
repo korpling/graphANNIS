@@ -89,7 +89,11 @@ Literal : Vec<ast::Literal> = {
 
 Operand : ast::Operand = {
     NodeRef =>  ast::Operand::NodeRef(<>),
-    NodeSearch => ast::Operand::Literal(Rc::from(<>)),
+    <start:@L> <spec:NodeSearch> <end:@R> => {
+        let pos = ast::Pos {start, end};
+        let spec = Rc::from(spec);
+        ast::Operand::Literal{spec, pos}
+    },
 }
 
 NodeSearch : NodeSearchSpec = {
@@ -144,7 +148,7 @@ NodeSearch : NodeSearchSpec = {
 
 
 NodeRef : ast::NodeRef = {
-    <v:NODE_REF> => ast::NodeRef::ID(v[1..].parse::<u32>().unwrap()),
+    <v:NODE_REF> => ast::NodeRef::ID(v[1..].parse::<usize>().unwrap()),
     <v:NAMED_NODE_REF> => ast::NodeRef::Name(v[1..].to_string()),
 }
 
