@@ -10,7 +10,7 @@ pub fn to_disjunctive_normal_form(top_node : Disjunction) -> Disjunction {
 /// If the disjunctions is already in DNF, `None` is returned.
 /// 
 /// In DNF all OR relations must be toplevel. Thus constructions like
-/// ~~~
+/// ```plaintext
 ///  AND             AND
 ///  / \      or     / \
 /// X  OR          OR   X
@@ -18,7 +18,7 @@ pub fn to_disjunctive_normal_form(top_node : Disjunction) -> Disjunction {
 ///   Y   Z       Y  Z
 /// ```
 /// are illegal and will be replaced with
-/// ```
+/// ```plaintext
 ///       OR           
 ///     /    \   
 ///   AND    AND   
