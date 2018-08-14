@@ -277,8 +277,12 @@ fn parse_join(
                         (min_dist, max_dist)
                     };
 
-                    let spec =
-                        PointingSpec::new(db, name.unwrap_or(""), min_dist, max_dist, edge_anno);
+                    let spec = PointingSpec {
+                        name: name.unwrap_or("").to_string(),
+                        min_dist,
+                        max_dist,
+                        edge_anno,
+                    };
                     Some(Box::new(spec))
                 }
                 Some("PartOfSubcorpus") => {

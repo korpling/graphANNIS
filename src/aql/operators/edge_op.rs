@@ -505,44 +505,36 @@ impl OperatorSpec for DominanceSpec {
 
 #[derive(Debug, Clone)]
 pub struct PointingSpec {
-    base: BaseEdgeOpSpec,
+    pub name: String,
+    pub min_dist: usize,
+    pub max_dist: usize,
+    pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
-impl PointingSpec {
-    pub fn new(
-        db: &GraphDB,
-        name: &str,
-        min_dist: usize,
-        max_dist: usize,
-        edge_anno: Option<EdgeAnnoSearchSpec>,
-    ) -> PointingSpec {
-        let components = db.get_all_components(Some(ComponentType::Pointing), Some(name));
-        let op_str = if name.is_empty() {
-            String::from("->")
-        } else {
-            format!("->{} ", name)
-        };
-
-        PointingSpec {
-            base: BaseEdgeOpSpec {
-                components,
-                min_dist,
-                max_dist,
-                edge_anno,
-                is_reflexive: true,
-                op_str: Some(op_str),
-            },
-        }
-    }
-}
 
 impl OperatorSpec for PointingSpec {
     fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
-        self.base.necessary_components(db)
+        db.get_all_components(Some(ComponentType::Pointing), Some(&self.name))
     }
 
     fn create_operator<'b>(&self, db: &GraphDB) -> Option<Box<Operator>> {
-        self.base.create_operator(db)
+
+        let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
+        let op_str = if self.name.is_empty() {
+            String::from("->")
+        } else {
+            format!("->{} ", self.name)
+        };
+
+        let base = BaseEdgeOpSpec {
+                components,
+                min_dist: self.min_dist,
+                max_dist: self.max_dist,
+                edge_anno: self.edge_anno.clone(),
+                is_reflexive: true,
+                op_str: Some(op_str),
+        };
+        base.create_operator(db)
     }
 }
 
