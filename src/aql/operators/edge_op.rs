@@ -463,43 +463,34 @@ impl Operator for BaseEdgeOp {
 
 #[derive(Debug, Clone)]
 pub struct DominanceSpec {
-    base: BaseEdgeOpSpec,
+    pub name: String,
+    pub min_dist: usize,
+    pub max_dist: usize,
+    pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
-impl DominanceSpec {
-    pub fn new(
-        db: &GraphDB,
-        name: &str,
-        min_dist: usize,
-        max_dist: usize,
-        edge_anno: Option<EdgeAnnoSearchSpec>,
-    ) -> DominanceSpec {
-        let components = db.get_all_components(Some(ComponentType::Dominance), Some(name));
-        let op_str = if name.is_empty() {
-            String::from(">")
-        } else {
-            format!(">{} ", name)
-        };
-        DominanceSpec {
-            base: BaseEdgeOpSpec {
-                op_str: Some(op_str),
-                components,
-                min_dist,
-                max_dist,
-                edge_anno,
-                is_reflexive: true,
-            },
-        }
-    }
-}
 
 impl OperatorSpec for DominanceSpec {
     fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
-        self.base.necessary_components(db)
+        db.get_all_components(Some(ComponentType::Dominance), Some(&self.name))
     }
 
     fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
-        self.base.create_operator(db)
+        let components = db.get_all_components(Some(ComponentType::Dominance), Some(&self.name));
+        let op_str = if self.name.is_empty() {
+            String::from(">")
+        } else {
+            format!(">{} ", &self.name)
+        };
+        let base =  BaseEdgeOpSpec {
+                op_str: Some(op_str),
+                components,
+                min_dist: self.min_dist,
+                max_dist: self.max_dist,
+                edge_anno: self.edge_anno.clone(),
+                is_reflexive: true,
+        };
+        base.create_operator(db)
     }
 }
 

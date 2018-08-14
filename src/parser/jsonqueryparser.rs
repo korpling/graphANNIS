@@ -250,8 +250,13 @@ fn parse_join(
                         .get("edgeAnnotations")
                         .and_then(|a| a.as_array())
                         .and_then(|a| get_edge_anno(&a[0]));
-                    let spec =
-                        DominanceSpec::new(db, name.unwrap_or(""), min_dist, max_dist, edge_anno);
+
+                    let spec = DominanceSpec {
+                        name: name.unwrap_or("").to_string(),
+                        min_dist,
+                        max_dist,
+                        edge_anno,
+                    };
                     Some(Box::new(spec))
                 }
                 Some("Pointing") => {
