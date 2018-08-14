@@ -531,11 +531,13 @@ impl OperatorSpec for PointingSpec {
 
 #[derive(Debug, Clone)]
 pub struct PartOfSubCorpusSpec {
-    base: BaseEdgeOpSpec,
+    pub min_dist: usize, 
+    pub max_dist: usize,
 }
 
-impl PartOfSubCorpusSpec {
-    pub fn new(min_dist: usize, max_dist: usize) -> PartOfSubCorpusSpec {
+
+impl OperatorSpec for PartOfSubCorpusSpec {
+    fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
         let components = vec![
             Component {
                 ctype: ComponentType::PartOfSubcorpus,
@@ -543,25 +545,26 @@ impl PartOfSubCorpusSpec {
                 name: String::from(""),
             },
         ];
-        PartOfSubCorpusSpec {
-            base: BaseEdgeOpSpec {
-                op_str: Some(String::from("@")),
-                components,
-                min_dist,
-                max_dist,
-                edge_anno: None,
-                is_reflexive: false,
-            },
-        }
-    }
-}
-
-impl OperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
-        self.base.necessary_components(db)
+        components
     }
 
     fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
-        self.base.create_operator(db)
+        let components = vec![
+            Component {
+                ctype: ComponentType::PartOfSubcorpus,
+                layer: String::from(ANNIS_NS),
+                name: String::from(""),
+            },
+        ];
+        let base = BaseEdgeOpSpec {
+            op_str: Some(String::from("@")),
+            components,
+            min_dist: self.min_dist,
+            max_dist: self.max_dist,
+            edge_anno: None,
+            is_reflexive: false,
+        };
+    
+        base.create_operator(db)
     }
 }

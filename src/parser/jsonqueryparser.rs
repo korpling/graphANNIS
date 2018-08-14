@@ -1,7 +1,6 @@
 use serde_json;
 
 use exec::nodesearch::NodeSearchSpec;
-use graphdb::GraphDB;
 use aql::operators::edge_op::EdgeAnnoSearchSpec;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
@@ -80,7 +79,7 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
                             first_meta_idx = Some(meta_node_idx);
                             // add a special join to the first node of the query
                             q.add_operator(
-                                Box::new(PartOfSubCorpusSpec::new(1, usize::max_value())),
+                                Box::new(PartOfSubCorpusSpec{min_dist: 1, max_dist: usize::max_value()}),
                                 first_node_pos,
                                 meta_node_idx,
                             );
@@ -306,7 +305,7 @@ fn parse_join(
                         (min_dist, max_dist)
                     };
 
-                    let spec = PartOfSubCorpusSpec::new(min_dist, max_dist);
+                    let spec = PartOfSubCorpusSpec{min_dist, max_dist};
                     Some(Box::new(spec))
                 }
                 Some("IdenticalNode") => Some(Box::new(IdenticalNodeSpec)),
