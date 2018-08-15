@@ -1,6 +1,5 @@
 use {Match, AnnoKey, NodeID};
 use graphdb::GraphDB;
-use query::conjunction;
 use query::disjunction::Disjunction;
 use query::Config;
 use exec::{Desc, ExecutionNode};

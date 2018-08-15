@@ -94,7 +94,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                 }
                             };
 
-                            q.add_operator(make_operator_spec(op), &idx_left, &idx_right);
+                            q.add_operator(make_operator_spec(op), &idx_left, &idx_right)?;
                         }
                     }
                 }

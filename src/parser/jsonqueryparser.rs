@@ -13,12 +13,15 @@ use aql::operators::{
 
 use std::collections::BTreeMap;
 
-pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
-    let root: serde_json::Value = serde_json::from_str(query_as_string).ok()?;
+use errors::*;
+
+pub fn parse<'a>(query_as_string: &str) -> Result<Disjunction<'a>> {
+    let root: serde_json::Value = serde_json::from_str(query_as_string).chain_err(|| "Could not parse JSON")?;
 
     let mut conjunctions: Vec<Conjunction> = Vec::new();
     // iterate over all alternatives
-    let alternatives = root.get("alternatives")?.as_array()?;
+    let alternatives = root.get("alternatives").ok_or("Could not get the 'alternatives' field")?
+        .as_array().ok_or("'alternatives' field is not an array")?;
 
     for alt in alternatives.iter() {
         let mut q = Conjunction::new();
@@ -27,7 +30,7 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
 
         // add all nodes
         let mut node_id_to_pos: BTreeMap<usize, String> = BTreeMap::new();
-        if let &serde_json::Value::Object(ref nodes) = alt.get("nodes")? {
+        if let &serde_json::Value::Object(ref nodes) = alt.get("nodes").ok_or("Could not get the 'nodes' field.")? {
             for (node_name, node) in nodes.iter() {
                 if let Some(node_obj) = node.as_object() {
                     if let Ok(ref node_id) = node_name.parse::<u64>() {
@@ -44,10 +47,10 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
         }
 
         // add all joins
-        if let &serde_json::Value::Array(ref joins) = alt.get("joins")? {
+        if let &serde_json::Value::Array(ref joins) = alt.get("joins").ok_or("Could not get field 'joins'")? {
             for j in joins.iter() {
                 if let &serde_json::Value::Object(ref j_obj) = j {
-                    parse_join(j_obj, &mut q, &node_id_to_pos);
+                    parse_join(j_obj, &mut q, &node_id_to_pos)?;
                 }
             }
         }
@@ -74,7 +77,7 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
                                 Box::new(IdenticalNodeSpec {}),
                                 &first_meta_idx,
                                 &meta_node_idx,
-                            );
+                            )?;
                         } else if let Some(first_node_pos) = first_node_pos.clone() {
                             first_meta_idx = Some(meta_node_idx.clone());
                             // add a special join to the first node of the query
@@ -82,7 +85,7 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
                                 Box::new(PartOfSubCorpusSpec{min_dist: 1, max_dist: usize::max_value()}),
                                 &first_node_pos,
                                 &meta_node_idx,
-                            );
+                            )?;
                             // Also make sure the matched node is actually a document
                             // (the @* could match anything in the hierarchy, including the toplevel corpus)
                             if let Some(doc_anno_idx) = add_node_annotation(
@@ -98,7 +101,7 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
                                     Box::new(IdenticalNodeSpec {}),
                                     &meta_node_idx,
                                     &doc_anno_idx,
-                                );
+                                )?;
                             }
                         }
                     }
@@ -109,17 +112,17 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
         conjunctions.push(q);
     }
 
-    if !conjunctions.is_empty() {
-        return Some(Disjunction::new(conjunctions));
+    if conjunctions.is_empty() {
+        return Err("Disjunction contains no alternative".into());
+    } else {
+        return Ok(Disjunction::new(conjunctions));
     }
-
-    return None;
 }
 
 fn parse_node(
     node: &serde_json::Map<String, serde_json::Value>,
     q: &mut Conjunction,
-) -> Option<String> {
+) -> Result<String> {
     let variable = node.get("variable").and_then(|s| s.as_str());
     // annotation search?
     if node.contains_key("nodeAnnotations") {
@@ -135,7 +138,7 @@ fn parse_node(
                     is_regex(a),
                     false,
                     variable,
-                );
+                ).ok_or("Could not parse node annotation".into());
             }
         }
     }
@@ -160,7 +163,7 @@ fn parse_node(
             if node.contains_key("spanTextMatching")
                 && node["spanTextMatching"].as_str() == Some("REGEXP_EQUAL")
             {
-                return Some(q.add_node(
+                return Ok(q.add_node(
                     NodeSearchSpec::RegexTokenValue {
                         val: String::from(tok_val),
                         leafs_only,
@@ -168,7 +171,7 @@ fn parse_node(
                     variable,
                 ));
             } else {
-                return Some(q.add_node(
+                return Ok(q.add_node(
                     NodeSearchSpec::ExactTokenValue {
                         val: String::from(tok_val),
                         leafs_only,
@@ -177,11 +180,11 @@ fn parse_node(
                 ));
             }
         } else {
-            return Some(q.add_node(NodeSearchSpec::AnyToken, variable));
+            return Ok(q.add_node(NodeSearchSpec::AnyToken, variable));
         }
     } else {
         // just search for any node
-        return Some(q.add_node(NodeSearchSpec::AnyNode, variable));
+        return Ok(q.add_node(NodeSearchSpec::AnyNode, variable));
     }
 }
 
@@ -189,7 +192,7 @@ fn parse_join(
     join: &serde_json::Map<String, serde_json::Value>,
     q: &mut Conjunction,
     node_id_to_pos: &BTreeMap<usize, String>,
-) {
+) -> Result<()> {
     // get left and right index
     if let (Some(left_id), Some(right_id)) = (
         join.get("left").and_then(|n| n.as_u64()),
@@ -313,10 +316,11 @@ fn parse_join(
                 _ => None,
             };
             if let Some(spec) = spec_opt {
-                q.add_operator(spec, pos_left, pos_right);
+                q.add_operator(spec, pos_left, pos_right)?;
             }
         }
     }
+    Ok(())
 }
 
 fn get_edge_anno(json_node: &serde_json::Value) -> Option<EdgeAnnoSearchSpec> {

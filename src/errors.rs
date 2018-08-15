@@ -1,5 +1,4 @@
 use Component;
-use query::conjunction;
 use StringID;
 
 error_chain! {
