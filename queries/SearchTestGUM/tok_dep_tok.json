@@ -1,1 +1,0 @@
-{"alternatives":[{"nodes":{"1":{"id":1,"root":false,"token":true,"variable":"1"},"2":{"id":2,"root":false,"token":true,"variable":"2"}},"joins":[{"op":"Pointing","name":"dep","minDistance":1,"maxDistance":1,"edgeAnnotations":[{"name":"func","value":"dep","textMatching":"EXACT_EQUAL","qualifiedName":"func"}],"left":1,"right":2}]}]}

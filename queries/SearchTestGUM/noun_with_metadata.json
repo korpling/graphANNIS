@@ -1,1 +1,0 @@
-{"alternatives":[{"nodes":{"1":{"id":1,"nodeAnnotations":[{"name":"pos","value":"NN","textMatching":"EXACT_EQUAL","qualifiedName":"pos"}],"root":false,"token":false,"variable":"1"}},"joins":[],"meta":[{"name":"type","value":"interview","textMatching":"EXACT_EQUAL","qualifiedName":"type"},{"name":"doc","value":".*_ants","textMatching":"REGEXP_EQUAL","qualifiedName":"doc"}]}]}
