@@ -1,7 +1,7 @@
 use std::*;
 use super::ast;
 use std::rc::Rc;
-
+use operator::EdgeAnnoSearchSpec;
 use exec::nodesearch::NodeSearchSpec;
 use aql::operators::{
     OverlapSpec, 
@@ -194,11 +194,19 @@ NodeRef : ast::NodeRef = {
 
 /// Binary operators that take a LHS and RHS as argument, e.g. `#1 ->dep #2`
 BinaryOpSpec : ast::BinaryOpSpec = {
-    // Dominance
+    // Dominance (direct edge annotation)
+    <type_def:r">([a-zA-Z][a-zA-Z0-9]*)?"> <anno:EdgeAnno> => {
+        let name = type_def[">".len()..].to_string();
+        ast::BinaryOpSpec::Dominance(DominanceSpec {
+            name,
+            min_dist: 1,
+            max_dist: 1,
+            edge_anno: Some(anno),
+        })
+    },
+    // Dominance (without edge annotation)
     <type_def:r">([a-zA-Z][a-zA-Z0-9]*)?"> <range:(RangeSpec)?> => {
         let name = type_def[">".len()..].to_string();
-        // TODO: edge annotation
-
         if let Some(range) = range {
             ast::BinaryOpSpec::Dominance(DominanceSpec {
                 name,
@@ -215,11 +223,19 @@ BinaryOpSpec : ast::BinaryOpSpec = {
             })
         }
     },
-    // Pointing
+    // Pointing (direct with edge annotation)
+    <type_def:r"->[a-zA-Z][a-zA-Z0-9]*"> <anno:EdgeAnno> => {
+        let name = type_def["->".len()..].to_string();
+        ast::BinaryOpSpec::Pointing(PointingSpec {
+            name,
+            min_dist: 1,
+            max_dist: 1,
+            edge_anno: Some(anno),
+        })
+    },
+    // Pointing (without edge annotation)
     <type_def:r"->[a-zA-Z][a-zA-Z0-9]*"> <range:(RangeSpec)?> => {
         let name = type_def["->".len()..].to_string();
-        // TODO: edge annotation
-
         if let Some(range) = range {
             ast::BinaryOpSpec::Pointing(PointingSpec {
                 name,
@@ -266,11 +282,18 @@ TextSearch: ast::TextSearch = {
     <v:r#"/[^"\\]*(\\.[^"\\]*)*/"#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
 };
 
-//EdgeAnno = {
-//    "[" QName "=" TextSearch "]" => {},
-//    // TODO: negation
-//    // TODO: multiple edge annotations
-//}
+EdgeAnno: EdgeAnnoSearchSpec = {
+    "[" <name:QName> "=" <v:r#""[^"]*""#> "]"  => {
+        // TODO: negation
+        // TODO: multiple edge annotations
+        // TODO: regex
+        EdgeAnnoSearchSpec::ExactValue {
+            ns: name.0,
+            name: name.1,
+            val: Some(v[1..v.len()-1].to_string()),
+        }
+    },
+}
 
 RangeSpec: ast::RangeSpec = {
     (",")? <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec {
