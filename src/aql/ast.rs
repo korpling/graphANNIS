@@ -25,14 +25,14 @@ pub type Disjunction = VecDeque<Conjunction>;
 
 #[derive(Debug, Clone)]
 pub enum Literal {
-    NodeSearch{spec: NodeSearchSpec, pos : Option<Pos>},
+    NodeSearch{spec: NodeSearchSpec, pos : Option<Pos>, variable: Option<String>},
     BinaryOp {lhs : Operand, op: BinaryOpSpec, rhs : Operand, pos : Option<Pos>},
 }
 
 #[derive(Debug, Clone)]
 pub enum Operand {
     NodeRef(NodeRef),
-    Literal{spec: Rc<NodeSearchSpec>, pos : Pos}
+    Literal{spec: Rc<NodeSearchSpec>, pos : Pos, variable : Option<String> }
 }
 
 

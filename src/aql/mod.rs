@@ -38,17 +38,17 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 for f in c.iter() {
                     if let ast::Factor::Literal(literal) = f {
                         match literal {
-                            ast::Literal::NodeSearch { spec, pos } => {
+                            ast::Literal::NodeSearch { spec, pos, .. } => {
                                 if let Some(pos) = pos {
                                     pos_to_node.insert(pos.start, spec.clone());
                                 }
                             },
                             ast::Literal::BinaryOp { lhs, rhs, .. } => {
 
-                                if let ast::Operand::Literal{spec, pos} = lhs {
+                                if let ast::Operand::Literal{spec, pos, ..} = lhs {
                                     pos_to_node.entry(pos.start).or_insert_with(|| spec.as_ref().clone());
                                 }
-                                if let ast::Operand::Literal{spec, pos} = rhs {
+                                if let ast::Operand::Literal{spec, pos, ..} = rhs {
                                     pos_to_node.entry(pos.start).or_insert_with(|| spec.as_ref().clone());
                                 }                            
                             }
@@ -72,7 +72,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                         if let ast::Literal::BinaryOp { lhs, op, rhs, .. } = literal {
 
                             let idx_left = match lhs {
-                                ast::Operand::Literal { spec, pos } => {
+                                ast::Operand::Literal { spec, pos, .. } => {
                                     pos_to_node_idx.entry(pos.start).or_insert_with(|| q.add_node(spec.as_ref().clone(), None)).clone()
                                 },
                                 ast::Operand::NodeRef(node_ref) => {
@@ -84,7 +84,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                             };
 
                             let idx_right = match rhs {
-                                ast::Operand::Literal { spec, pos } => {
+                                ast::Operand::Literal { spec, pos, .. } => {
                                     pos_to_node_idx.entry(pos.start).or_insert_with(|| q.add_node(spec.as_ref().clone(), None)).clone()
                                 },
                                 ast::Operand::NodeRef(node_ref) => {
