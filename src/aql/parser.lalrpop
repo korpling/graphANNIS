@@ -90,9 +90,28 @@ Literal : Vec<ast::Literal> = {
         return result;
     },
     // legacy meta-data query `meta::doc="..."`
-    //<start: @L> <end: @R> => {
-    //    
-    //},
+    <start: @L> "meta::" <name:QName> "=" <text:TextSearch> <end: @R> => {
+        let pos = ast::Pos {start, end};
+        let spec = match text.1 { 
+            ast::StringMatchType::Exact => {
+                NodeSearchSpec::ExactValue {
+                    ns: name.0,
+                    name: name.1,
+                    val: Some(text.0),
+                    is_meta: true,
+                }
+            },
+            ast::StringMatchType::Regex => {
+                NodeSearchSpec::RegexValue {
+                    ns: name.0,
+                    name: name.1,
+                    val: text.0,
+                    is_meta: true,
+                }
+            },
+        };
+        vec![ast::Literal::LegacyMetaSearch{spec, pos}]
+    },
 }
 
 Operand : ast::Operand = {

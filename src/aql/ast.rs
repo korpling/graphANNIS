@@ -27,6 +27,7 @@ pub type Disjunction = VecDeque<Conjunction>;
 pub enum Literal {
     NodeSearch{spec: NodeSearchSpec, pos : Option<Pos>, variable: Option<String>},
     BinaryOp {lhs : Operand, op: BinaryOpSpec, rhs : Operand, pos : Option<Pos>},
+    LegacyMetaSearch{spec: NodeSearchSpec, pos : Pos}
 }
 
 #[derive(Debug, Clone)]
