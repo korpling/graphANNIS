@@ -133,6 +133,7 @@ NodeSearch : NodeSearchSpec = {
     TOK => NodeSearchSpec::AnyToken,
     // searching for a token value, e.g. tok="abc" or "abc"
     <tok_def:(TOK "=")?> <val:TextSearch>=> {
+        // TODO: negation
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
                 NodeSearchSpec::ExactTokenValue {
@@ -151,6 +152,7 @@ NodeSearch : NodeSearchSpec = {
     },
     // named annotation search with value, e.g. pos="NN"
     <name:QName> "=" <text:TextSearch> => {
+        // TODO: negation
         let spec = match text.1 { 
             ast::StringMatchType::Exact => {
                 NodeSearchSpec::ExactValue {
@@ -263,6 +265,12 @@ TextSearch: ast::TextSearch = {
     // for a example how to match escaped quotation characters
     <v:r#"/[^"\\]*(\\.[^"\\]*)*/"#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
 };
+
+EdgeAnno = {
+    "[" QName "=" TextSearch "]" => {},
+    // TODO: negation
+    // TODO: multiple edge annotations
+}
 
 RangeSpec: ast::RangeSpec = {
     (",")? <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec {
