@@ -253,17 +253,22 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         }
     },
     //Precedence
-    "." <range:(RangeSpec)?>  => { 
-        // TODO: segmentation
+    <prec_def:r"\.([a-zA-Z][a-zA-Z0-9]*)?"> <range:(RangeSpec)?>  => { 
+        let seg_name = prec_def[".".len()..].to_string();
+        let segmentation = if seg_name.is_empty() {
+            None
+        } else {
+            Some(seg_name)
+        };
         if let Some(range) = range {
             ast::BinaryOpSpec::Precedence(PrecedenceSpec {
-                segmentation: None,
+                segmentation,
                 min_dist: range.min_dist,
                 max_dist: range.max_dist,
             })
         } else {
             ast::BinaryOpSpec::Precedence(PrecedenceSpec {
-                segmentation: None,
+                segmentation,
                 min_dist: 1,
                 max_dist: 1,
             })
