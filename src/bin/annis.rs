@@ -17,10 +17,10 @@ use rustyline::completion::{Completer, FilenameCompleter};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
 use graphannis::relannis;
 use std::path::{Path, PathBuf};
+use graphannis::errors::*;
 use graphannis::StringID;
 use graphannis::api::corpusstorage::CorpusStorage;
 use graphannis::api::corpusstorage::CorpusInfo;
-use graphannis::api::corpusstorage::Error;
 use graphannis::api::corpusstorage::LoadStatus;
 use graphannis::api::corpusstorage::ResultOrder;
 use std::collections::BTreeSet;
@@ -41,6 +41,7 @@ impl CommandCompleter {
         let mut known_commands = BTreeSet::new();
         known_commands.insert("import".to_string());
         known_commands.insert("list".to_string());
+        known_commands.insert("delete".to_string());
         known_commands.insert("corpus".to_string());
         known_commands.insert("preload".to_string());
         known_commands.insert("update_statistics".to_string());
@@ -64,22 +65,26 @@ impl CommandCompleter {
 }
 
 impl Completer for CommandCompleter {
-    fn complete(&self, line: &str, pos: usize) -> Result<(usize, Vec<String>), ReadlineError> {
+    fn complete(&self, line: &str, pos: usize) -> std::result::Result<(usize, Vec<String>), ReadlineError> {
         
         // check for more specialized completers
         if line.starts_with("import ") {
             return self.filename_completer.complete(line, pos);
-        } else if line.starts_with("corpus ") {
+        } else if line.starts_with("corpus ") || line.starts_with("delete ") {
             // auto-complete the corpus names
-            let prefix_len = "corpus ".len();
-            let mut matching_corpora = vec![];
-            let corpus_prefix = &line[prefix_len..];
-            for c in self.corpora.iter() {
-                if c.name.starts_with(corpus_prefix) {
-                    matching_corpora.push(c.name.clone());
+            if let Some(prefix_len) = line.find(' ') {
+                let prefix_len = prefix_len + 1;
+                let mut matching_corpora = vec![];
+                let corpus_prefix = &line[prefix_len..];
+                for c in self.corpora.iter() {
+                    if c.name.starts_with(corpus_prefix) {
+                        matching_corpora.push(c.name.clone());
+                    }
                 }
+                return Ok((pos-corpus_prefix.len(), matching_corpora));
+            } else {
+                return Ok((pos, vec![]));
             }
-            return Ok((pos-corpus_prefix.len(), matching_corpora));
         }
 
         let mut cmds = Vec::new();
@@ -102,7 +107,7 @@ struct AnnisRunner {
 }
 
 impl AnnisRunner {
-    pub fn new(data_dir: &Path) -> Result<AnnisRunner, Error> {
+    pub fn new(data_dir: &Path) -> Result<AnnisRunner> {
         Ok(AnnisRunner {
             storage: CorpusStorage::new_auto_cache_size(data_dir, false)?,
             current_corpus: None,
@@ -160,6 +165,7 @@ impl AnnisRunner {
             match cmd {
                 "import" => self.import_relannis(&args),
                 "list" => self.list(),
+                "delete" => self.delete(&args),
                 "corpus" => self.corpus(&args),
                 "preload" => self.preload(),
                 "update_statistics" => self.update_statistics(),
@@ -215,6 +221,20 @@ impl AnnisRunner {
                 };
                 println!("{} ({})", c.name, desc);
             }
+        }
+    }
+
+    fn delete(&mut self, args: &str) {
+        if args.is_empty() {
+            println!("You need the name as an argument");
+            return;
+        }
+        let name = args;
+
+        if let Err(err) = self.storage.delete(name) {
+            error!("{:?}", err);
+        } else {
+            info!("Deleted corpus {}.", name);
         }
     }
 

@@ -1,11 +1,8 @@
-use graphannis::FrequencyTable;
 use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
 
-use graphannis::Matrix;
-
-use graphannis::{Annotation, NodeID, Edge, Component};
+use {Matrix,FrequencyTable,Annotation, NodeID, Edge, Component};
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {

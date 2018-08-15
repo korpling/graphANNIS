@@ -1,67 +1,29 @@
-use graphstorage::adjacencylist::AdjacencyListStorage;
-use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
-use graphstorage::{GraphStorage, WriteableGraphStorage};
 use api::update::{GraphUpdate, UpdateEvent};
-use {Annotation, Component, ComponentType, Edge, NodeID, StringID};
-use AnnoKey;
-use graphstorage::registry;
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-use std::io::prelude::*;
-use std::str::FromStr;
-use std::sync::{Arc,Mutex};
-use std;
-use strum::IntoEnumIterator;
-use std::string::ToString;
 use bincode;
+use errors::*;
+use graphstorage::adjacencylist::AdjacencyListStorage;
+use graphstorage::registry;
+use graphstorage::{GraphStorage, WriteableGraphStorage};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde;
-use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
-
+use std;
+use std::collections::BTreeMap;
+use std::io::prelude::*;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use std::string::ToString;
+use std::sync::{Arc, Mutex};
+use stringstorage::StringStorage;
+use strum::IntoEnumIterator;
 use tempdir::TempDir;
-
+use AnnoKey;
+use {Annotation, Component, ComponentType, Edge, NodeID, StringID};
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
-
-#[derive(Debug)]
-pub enum Error {
-    IOerror(std::io::Error),
-    StringError(std::ffi::OsString),
-    RegistryError(registry::RegistryError),
-    SerializationError(bincode::Error),
-    LocationEmpty,
-    InvalidType,
-    MissingComponent,
-    ComponentInUse,
-    Other,
-}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Error {
-        Error::IOerror(e)
-    }
-}
-
-impl From<registry::RegistryError> for Error {
-    fn from(e: registry::RegistryError) -> Error {
-        Error::RegistryError(e)
-    }
-}
-
-impl From<std::ffi::OsString> for Error {
-    fn from(e: std::ffi::OsString) -> Error {
-        Error::StringError(e)
-    }
-}
-
-impl From<bincode::Error> for Error {
-    fn from(e: bincode::Error) -> Error {
-        Error::SerializationError(e)
-    }
-}
 
 pub struct GraphDB {
     pub strings: Arc<StringStorage>,
@@ -75,16 +37,14 @@ pub struct GraphDB {
     id_tok: StringID,
     id_node_type: StringID,
 
-    current_change_id : u64,
+    current_change_id: u64,
 
-    background_persistance : Arc<Mutex<()>>,
+    background_persistance: Arc<Mutex<()>>,
 }
 
 impl MallocSizeOf for GraphDB {
-
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut size =
-            self.strings.size_of(ops) + self.node_annos.size_of(ops);
+        let mut size = self.strings.size_of(ops) + self.node_annos.size_of(ops);
 
         for (c, gs) in self.components.iter() {
             // TODO: overhead by map is not measured
@@ -95,8 +55,8 @@ impl MallocSizeOf for GraphDB {
     }
 }
 
-fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<GraphStorage>, Error> {
-    let cpath = try!(component_path.ok_or(Error::LocationEmpty));
+fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<GraphStorage>> {
+    let cpath = try!(component_path.ok_or("Can't load component with empty path"));
 
     // load component into memory
     let impl_path = PathBuf::from(&cpath).join("impl.cfg");
@@ -117,25 +77,34 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     let mut p = PathBuf::new();
     p.push("gs");
     p.push(c.ctype.to_string());
-    p.push(if c.layer.is_empty() {"default_layer"} else {&c.layer});
+    p.push(if c.layer.is_empty() {
+        "default_layer"
+    } else {
+        &c.layer
+    });
     p.push(&c.name);
     return p;
 }
 
-fn load_bincode<T>(location: &Path, path: &str) -> Result<T, Error>
+fn load_bincode<T>(location: &Path, path: &str) -> Result<T>
 where
     for<'de> T: serde::Deserialize<'de>,
 {
     let mut full_path = PathBuf::from(location);
     full_path.push(path);
 
-    let f = std::fs::File::open(full_path)?;
+    let f = std::fs::File::open(full_path.clone()).chain_err(|| {
+        format!(
+            "Could not load serialized file {}",
+            full_path.to_string_lossy()
+        )
+    })?;
     let mut reader = std::io::BufReader::new(f);
     let result: T = bincode::deserialize_from(&mut reader)?;
     return Ok(result);
 }
 
-fn save_bincode<T>(location: &Path, path: &str, object: &T) -> Result<(), Error>
+fn save_bincode<T>(location: &Path, path: &str, object: &T) -> Result<()>
 where
     T: serde::Serialize,
 {
@@ -171,20 +140,26 @@ impl GraphDB {
         }
     }
 
+    fn set_location(&mut self, location: &Path) -> Result<()> {
+        self.location = Some(PathBuf::from(location));
+
+        Ok(())
+    }
+
     pub fn clear(&mut self) {
         self.strings = Arc::new(StringStorage::new());
         self.node_annos = Arc::new(AnnoStorage::new());
         self.components.clear();
     }
 
-    pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<(), Error> {
+    pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
         self.clear();
 
         let location = PathBuf::from(location);
-        self.location = Some(location.clone());
 
+        self.set_location(location.as_path())?;
         let backup = location.join("backup");
-        
+
         let mut backup_was_loaded = false;
         let dir2load = if backup.exists() && backup.is_dir() {
             backup_was_loaded = true;
@@ -193,9 +168,9 @@ impl GraphDB {
             location.join("current")
         };
 
-        let strings_tmp : StringStorage = load_bincode(&dir2load, "strings.bin")?;
+        let strings_tmp: StringStorage = load_bincode(&dir2load, "strings.bin")?;
         self.strings = Arc::new(strings_tmp);
-        let node_annos_tmp : AnnoStorage<NodeID> = load_bincode(&dir2load, "nodes.bin")?; 
+        let node_annos_tmp: AnnoStorage<NodeID> = load_bincode(&dir2load, "nodes.bin")?;
         self.node_annos = Arc::from(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");
@@ -216,7 +191,7 @@ impl GraphDB {
             // apply any outstanding log file updates
             let f_log = std::fs::File::open(log_path)?;
             let mut buf_reader = std::io::BufReader::new(f_log);
-            let update : GraphUpdate = bincode::deserialize_from(&mut buf_reader)?;
+            let update: GraphUpdate = bincode::deserialize_from(&mut buf_reader)?;
             if update.get_last_consistent_change_id() > self.current_change_id {
                 self.apply_update_in_memory(&update)?;
             }
@@ -228,22 +203,22 @@ impl GraphDB {
             // save the current corpus under the actual location
             self.save_to(&location.join("current"))?;
             // rename backup folder (renaming is atomic and deleting could leave an incomplete backup folder on disk)
-            let tmp_dir = TempDir::new_in(location,"temporary-graphannis-backup")?;
+            let tmp_dir = TempDir::new_in(location, "temporary-graphannis-backup")?;
             std::fs::rename(&backup, tmp_dir.path())?;
             // remove it after renaming it
             tmp_dir.close()?;
-        } 
+        }
 
         Ok(())
     }
 
-    fn find_components_from_disk(&mut self, location: &Path) -> Result<(), Error> {
+    fn find_components_from_disk(&mut self, location: &Path) -> Result<()> {
         self.components.clear();
 
         // for all component types
         for c in ComponentType::iter() {
             let cpath = PathBuf::from(location).join("gs").join(c.to_string());
-          
+
             if cpath.is_dir() {
                 // get all the namespaces/layers
                 for layer in cpath.read_dir()? {
@@ -252,14 +227,14 @@ impl GraphDB {
                         // try to load the component with the empty name
                         let empty_name_component = Component {
                             ctype: c.clone(),
-                            layer: layer.file_name().into_string()?,
+                            layer: layer.file_name().to_string_lossy().to_string(),
                             name: String::from(""),
                         };
                         {
                             let input_file = PathBuf::from(location)
                                 .join(component_to_relative_path(&empty_name_component))
                                 .join("component.bin");
-                        
+
                             if input_file.is_file() {
                                 self.components.insert(empty_name_component.clone(), None);
                                 debug!("Registered component {}", empty_name_component);
@@ -270,8 +245,8 @@ impl GraphDB {
                             let name = name?;
                             let named_component = Component {
                                 ctype: c.clone(),
-                                layer: layer.file_name().into_string()?,
-                                name: name.file_name().into_string()?,
+                                layer: layer.file_name().to_string_lossy().to_string(),
+                                name: name.file_name().to_string_lossy().to_string(),
                             };
                             let data_file = PathBuf::from(location)
                                 .join(component_to_relative_path(&named_component))
@@ -280,7 +255,7 @@ impl GraphDB {
                             let cfg_file = PathBuf::from(location)
                                 .join(component_to_relative_path(&named_component))
                                 .join("impl.cfg");
-                                
+
                             if data_file.is_file() && cfg_file.is_file() {
                                 self.components.insert(named_component.clone(), None);
                                 debug!("Registered component {}", named_component);
@@ -293,7 +268,7 @@ impl GraphDB {
         Ok(())
     }
 
-    fn internal_save(&self, location: &Path) -> Result<(), Error> {
+    fn internal_save(&self, location: &Path) -> Result<()> {
         let location = PathBuf::from(location);
 
         std::fs::create_dir_all(&location)?;
@@ -320,30 +295,28 @@ impl GraphDB {
     }
 
     // Save the current database to a location, but do not remember this location
-    pub fn save_to(&mut self, location: &Path) -> Result<(), Error> {
+    pub fn save_to(&mut self, location: &Path) -> Result<()> {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
-
         return self.internal_save(&location.join("current"));
     }
 
     /// Save the current database at is original location
-    pub fn persist(&self) -> Result<(), Error> {
+    pub fn persist(&self) -> Result<()> {
         if let Some(ref loc) = self.location {
             return self.internal_save(&loc.join("current"));
         } else {
-            return Err(Error::LocationEmpty);
+            return Err("Attempting to persist DB with empty location".into());
         }
     }
 
     /// Save the current database at a new location and remember it
-    pub fn persist_to(&mut self, location: &Path) -> Result<(), Error> {
-        let location = PathBuf::from(location);
-        self.location = Some(location.clone());
+    pub fn persist_to(&mut self, location: &Path) -> Result<()> {
+        self.set_location(location)?;
         return self.internal_save(&location.join("current"));
     }
 
-    fn apply_update_in_memory(&mut self, u : &GraphUpdate) -> Result<(), Error> {
+    fn apply_update_in_memory(&mut self, u: &GraphUpdate) -> Result<()> {
         for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
             match change {
@@ -354,11 +327,12 @@ impl GraphDB {
                     let existing_node_id = self.get_node_id_from_name(&node_name);
                     // only add node if it does not exist yet
                     if existing_node_id.is_none() {
-                        let new_node_id: NodeID = if let Some(id) = self.node_annos.get_largest_item() {
-                            id + 1
-                        } else {
-                            0
-                        };
+                        let new_node_id: NodeID =
+                            if let Some(id) = self.node_annos.get_largest_item() {
+                                id + 1
+                            } else {
+                                0
+                            };
                         let new_anno_name = Annotation {
                             key: self.get_node_name_key(),
                             val: Arc::make_mut(&mut self.strings).add(&node_name),
@@ -509,7 +483,7 @@ impl GraphDB {
                     anno_ns,
                     anno_name,
                 } => {
-                     if let (Some(source), Some(target)) = (
+                    if let (Some(source), Some(target)) = (
                         self.get_node_id_from_name(&source_node),
                         self.get_node_id_from_name(&target_node),
                     ) {
@@ -537,7 +511,7 @@ impl GraphDB {
         Ok(())
     }
 
-    pub fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<(), Error> {
+    pub fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<()> {
         trace!("applying updates");
         // Always mark the update state as consistent, even if caller forgot this.
         if !u.is_consistent() {
@@ -554,21 +528,19 @@ impl GraphDB {
         if let Some(location) = self.location.clone() {
             trace!("output location for persisting updates is {:?}", location);
             if result.is_ok() {
-
                 let current_path = PathBuf::from(location).join("current");
                 // make sure the output path exits
                 std::fs::create_dir_all(&current_path)?;
 
                 // if successfull write log
                 let log_path = current_path.join("update_log.bin");
-                
+
                 trace!("writing WAL update log to {:?}", &log_path);
                 let f_log = std::fs::File::create(log_path)?;
                 let mut buf_writer = std::io::BufWriter::new(f_log);
                 bincode::serialize_into(&mut buf_writer, &mut u)?;
 
                 trace!("finished writing WAL update log");
-
             } else {
                 trace!("error occured while applying updates: {:?}", &result);
                 // load corpus from disk again
@@ -581,12 +553,10 @@ impl GraphDB {
     }
 
     /// A function to persist the changes of a write-ahead-log update on the disk. Should be run in a background thread.
-    pub fn background_sync_wal_updates(&self) -> Result<(), Error> {
-        
+    pub fn background_sync_wal_updates(&self) -> Result<()> {
         // TODO: friendly abort any currently running thread
 
         if let Some(ref location) = self.location {
-    
             // Accuire lock, so that only one thread can write background data at the same time
             let _lock = self.background_persistance.lock().unwrap();
 
@@ -597,7 +567,10 @@ impl GraphDB {
             // A sub-folder is used to ensure that all directories are on the same file system and moving (instead of copying)
             // is possible.
             if !location.join("backup").exists() {
-                std::fs::rename(location.join("current"), location.join(location.join("backup")))?;
+                std::fs::rename(
+                    location.join("current"),
+                    location.join(location.join("backup")),
+                )?;
             }
 
             // Save the complete corpus without the write log to the target location
@@ -605,10 +578,9 @@ impl GraphDB {
 
             // remove the backup folder (since the new folder was completly written)
             std::fs::remove_dir_all(location.join("backup"))?;
-        } 
+        }
 
-        Ok(())   
-
+        Ok(())
     }
 
     fn component_path(&self, c: &Component) -> Option<PathBuf> {
@@ -624,7 +596,7 @@ impl GraphDB {
         }
     }
 
-    fn insert_or_copy_writeable(&mut self, c: &Component) -> Result<(), Error> {
+    fn insert_or_copy_writeable(&mut self, c: &Component) -> Result<()> {
         // move the old entry into the ownership of this function
         let entry = self.components.remove(c);
         // component exists?
@@ -640,7 +612,7 @@ impl GraphDB {
             // copy to writable implementation if needed
             let is_writable = {
                 Arc::get_mut(&mut loaded_comp)
-                    .ok_or(Error::Other)?
+                    .ok_or("Could not get mutable reference")?
                     .as_writeable()
                     .is_some()
             };
@@ -648,7 +620,7 @@ impl GraphDB {
             let loaded_comp = if is_writable {
                 loaded_comp
             } else {
-                let mut gs_copy : AdjacencyListStorage = registry::create_writeable();
+                let mut gs_copy: AdjacencyListStorage = registry::create_writeable();
                 gs_copy.copy(&self, loaded_comp.as_edgecontainer());
                 Arc::from(gs_copy)
             };
@@ -659,14 +631,17 @@ impl GraphDB {
         return Ok(());
     }
 
-    pub fn calculate_component_statistics(&mut self, c: &Component) -> Result<(), Error> {
-        let mut result: Result<(), Error> = Ok(());
-        let mut entry = self.components.remove(c).ok_or(Error::MissingComponent)?;
+    pub fn calculate_component_statistics(&mut self, c: &Component) -> Result<()> {
+        let mut result: Result<()> = Ok(());
+        let mut entry = self
+            .components
+            .remove(c)
+            .ok_or(format!("Component {} is missing", c.clone()))?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 gs_mut.calculate_statistics(&self.strings);
             } else {
-                result = Err(Error::ComponentInUse);
+                result = Err(format!("Component {} is currently used", c.clone()).into());
             }
         }
         // re-insert component entry
@@ -674,10 +649,7 @@ impl GraphDB {
         return result;
     }
 
-    pub fn get_or_create_writable(
-        &mut self,
-        c: Component,
-    ) -> Result<&mut WriteableGraphStorage, Error> {
+    pub fn get_or_create_writable(&mut self, c: Component) -> Result<&mut WriteableGraphStorage> {
         if self.components.contains_key(&c) {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(&c)?;
@@ -688,13 +660,15 @@ impl GraphDB {
         }
 
         // get and return the reference to the entry
-        let entry: &mut Arc<GraphStorage> = self.components
+        let entry: &mut Arc<GraphStorage> = self
+            .components
             .get_mut(&c)
-            .ok_or(Error::Other)?
+            .ok_or("Could not get mutable reference")?
             .as_mut()
-            .ok_or(Error::Other)?;
-        let gs_mut_ref: &mut GraphStorage = Arc::get_mut(entry).ok_or(Error::Other)?;
-        return Ok(gs_mut_ref.as_writeable().ok_or(Error::InvalidType)?);
+            .ok_or("Could not get mutable reference to optional value")?;
+        let gs_mut_ref: &mut GraphStorage =
+            Arc::get_mut(entry).ok_or("Could not get mutable reference")?;
+        return Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?);
     }
 
     pub fn is_loaded(&self, c: &Component) -> bool {
@@ -707,7 +681,7 @@ impl GraphDB {
         return false;
     }
 
-    pub fn ensure_loaded_all(&mut self) -> Result<(), Error> {
+    pub fn ensure_loaded_all(&mut self) -> Result<()> {
         let all_components: Vec<Component> = self.components.keys().cloned().collect();
         for c in all_components {
             self.ensure_loaded(&c)?;
@@ -715,7 +689,7 @@ impl GraphDB {
         Ok(())
     }
 
-    pub fn ensure_loaded(&mut self, c: &Component) -> Result<(), Error> {
+    pub fn ensure_loaded(&mut self, c: &Component) -> Result<()> {
         // get and return the reference to the entry if loaded
         let entry: Option<Option<Arc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
@@ -839,7 +813,7 @@ impl GraphDB {
         }
     }
 
-    pub fn get_direct_connected(&mut self, edge: &Edge) -> Result<Vec<Component>, Error> {
+    pub fn get_direct_connected(&mut self, edge: &Edge) -> Result<Vec<Component>> {
         let mut result = Vec::new();
 
         let all_components: Vec<Component> = self.components.keys().map(|c| c.clone()).collect();
@@ -892,11 +866,12 @@ mod tests {
         };
         let anno_val = Arc::make_mut(&mut db.strings).add("testValue");
 
-        let gs: &mut WriteableGraphStorage = db.get_or_create_writable(Component {
-            ctype: ComponentType::Pointing,
-            layer: String::from("test"),
-            name: String::from("dep"),
-        }).unwrap();
+        let gs: &mut WriteableGraphStorage =
+            db.get_or_create_writable(Component {
+                ctype: ComponentType::Pointing,
+                layer: String::from("test"),
+                name: String::from("dep"),
+            }).unwrap();
 
         gs.add_edge(Edge {
             source: 0,

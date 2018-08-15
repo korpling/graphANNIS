@@ -21,15 +21,15 @@ branches:
     - staging
 
 script:
-  - cargo test --release --verbose
+  - RUST_BACKTRACE=1 cargo test --verbose --all-features
   -  "./misc/download-gum-corpus.sh"
-  - cargo build --verbose --release 
+  - cargo build --verbose --release --all-features
   - ./target/release/annis data --cmd 'import relannis/GUM'
   - cargo test --release --verbose  -- --ignored
 
 before_deploy:
-  - export RELEASE_PKG_FILE=target/release/libgraphannis_capi.so
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis_capi.dylib ; fi
+  - export RELEASE_PKG_FILE=target/release/libgraphannis.so
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
 
 
 deploy:
@@ -40,6 +40,7 @@ deploy:
   file: "${RELEASE_PKG_FILE}"
   on:
     repo: corpus-tools/graphANNIS
+    branch: master
     tags: true
   skip_cleanup: true
   tag_name: $TRAVIS_TAG

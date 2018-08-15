@@ -18,11 +18,10 @@ include_guard="graphannis_capi_h"
 include_version=true
 
 [parse]
-parse_deps = true
+parse_deps = false
 include = ["graphannis"]
-
 
 [export]
 prefix = "Annis"
-
+exclude = ["MAX_BUFFER_SIZE", "malloc_usable_size"]
 

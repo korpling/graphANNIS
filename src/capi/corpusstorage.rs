@@ -1,13 +1,13 @@
-use graphannis::api::corpusstorage::FrequencyDefEntry;
+use api::corpusstorage::FrequencyDefEntry;
 use super::error::Error;
-use graphannis::api::corpusstorage as cs;
-use graphannis::api::update::GraphUpdate;
-use graphannis::api::corpusstorage::ResultOrder;
-use graphannis::graphdb::GraphDB;
-use graphannis::relannis;
-use graphannis::FrequencyTable;
-use graphannis::Matrix;
-use graphannis::{Component, ComponentType, CountExtra};
+use api::corpusstorage as cs;
+use api::update::GraphUpdate;
+use api::corpusstorage::ResultOrder;
+use graphdb::GraphDB;
+use relannis;
+use FrequencyTable;
+use Matrix;
+use {Component, ComponentType, CountExtra};
 use libc;
 use std;
 use std::ffi::CString;
@@ -24,11 +24,23 @@ pub extern "C" fn annis_cs_new(
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
     let s = cs::CorpusStorage::new_auto_cache_size(&db_dir_path, use_parallel);
-    if let Ok(s) = s {
-        return Box::into_raw(Box::new(s));
-    }
 
+     match s {
+        Ok(result) => {
+            return Box::into_raw(Box::new(result));
+        }
+        Err(err) => error!("Could create corpus storage, error message was:\n{:?}", err),
+    };
     return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_free(ptr: *mut cs::CorpusStorage) {
+    if ptr.is_null() {
+        return;
+    }
+    // take ownership and destroy the pointer
+    unsafe { Box::from_raw(ptr) };
 }
 
 #[no_mangle]
@@ -339,11 +351,14 @@ pub extern "C" fn annis_cs_all_components_by_type(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char) {
+pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char) -> *mut Error {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let corpus = cstr!(corpus);
 
-    cs.delete(&corpus);
+    if let Err(e) = cs.delete(&corpus) {
+        return super::error::new(e);
+    }
+    std::ptr::null_mut()
 }
 
 #[no_mangle]

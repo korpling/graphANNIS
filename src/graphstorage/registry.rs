@@ -7,16 +7,8 @@ use std::sync::Arc;
 use bincode;
 use std::any::Any;
 use std::str::FromStr;
-use strum;
+use errors::*;
 
-#[derive(Debug)]
-pub enum RegistryError {
-    Empty,
-    ImplementationNameNotFound,
-    TypeNotFound,
-    Serialization(Box<bincode::ErrorKind>),
-    Other,
-}
 
 #[derive(ToString, Debug, Clone, EnumString,PartialEq)]
 pub enum ImplTypes {
@@ -30,19 +22,6 @@ pub enum ImplTypes {
     LinearO8V1,
 }
 
-impl From<Box<bincode::ErrorKind>> for RegistryError {
-    fn from(e: Box<bincode::ErrorKind>) -> RegistryError {
-        RegistryError::Serialization(e)
-    }
-}
-
-impl From<strum::ParseError> for RegistryError {
-    fn from(_: strum::ParseError) -> RegistryError {
-        RegistryError::ImplementationNameNotFound
-    }
-}
-
-type Result<T> = std::result::Result<T, RegistryError>;
 
 pub fn create_writeable() -> AdjacencyListStorage {
     // TODO: make this configurable when there are more writeable graph storage implementations
@@ -181,7 +160,7 @@ pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
     } else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u8>>() {
         return Ok(ImplTypes::LinearO8V1);
     }
-    return Err(RegistryError::TypeNotFound);
+    return Err("Type not found".into());
 }
 
 pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
@@ -211,7 +190,7 @@ pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Resu
         bincode::serialize_into(writer, gs)?;
         return Ok(ImplTypes::LinearO8V1.to_string());
     }
-    return Err(RegistryError::TypeNotFound);
+    return Err("Type not found".into());
 }
 
 

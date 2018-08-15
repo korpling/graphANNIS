@@ -19,11 +19,11 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug Test",
-            "program": "${workspaceRoot}/target/debug/loadtest-12a561c8a04ae7c6",
+            "program": "${workspaceRoot}/target/debug/deps/graphannis-ca6d9d9130379cab",
             "args": [
-                "index_join"
+                "api::corpusstorage::tests::delete"
             ],
-            "cwd": "${workspaceRoot}/graphannis/"
+            "cwd": "${workspaceRoot}"
         }
     ]
 }

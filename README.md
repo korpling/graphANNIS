@@ -18,7 +18,7 @@ You can install Rust from https://www.rust-lang.org/en-US/install.html.
 After you have installed Rust, you can can build the complete project with
 
 ```
-cargo build --release
+cargo build --release --all-features
 ```
 
 3rd party dependencies

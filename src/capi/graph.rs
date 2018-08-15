@@ -1,12 +1,12 @@
-use graphannis::api::update::GraphUpdate;
+use api::update::GraphUpdate;
 use libc;
 use std;
 use std::ffi::CString;
 use super::error::Error;
-use data::IterPtr;
-use graphannis::{NodeID, Match, Annotation, StringID, Edge, Component, ComponentType};
-use graphannis::graphdb::{GraphDB};
-use graphannis::graphstorage::GraphStorage;
+use capi::data::IterPtr;
+use {NodeID, Match, Annotation, StringID, Edge, Component, ComponentType};
+use graphdb::{GraphDB};
+use graphstorage::GraphStorage;
 use std::sync::Arc;
 
 #[no_mangle]
