@@ -1,7 +1,7 @@
 use serde_json;
 
 use exec::nodesearch::NodeSearchSpec;
-use aql::operators::edge_op::EdgeAnnoSearchSpec;
+use operator::EdgeAnnoSearchSpec;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use operator::OperatorSpec;

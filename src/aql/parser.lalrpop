@@ -266,11 +266,11 @@ TextSearch: ast::TextSearch = {
     <v:r#"/[^"\\]*(\\.[^"\\]*)*/"#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
 };
 
-EdgeAnno = {
-    "[" QName "=" TextSearch "]" => {},
-    // TODO: negation
-    // TODO: multiple edge annotations
-}
+//EdgeAnno = {
+//    "[" QName "=" TextSearch "]" => {},
+//    // TODO: negation
+//    // TODO: multiple edge annotations
+//}
 
 RangeSpec: ast::RangeSpec = {
     (",")? <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec {
