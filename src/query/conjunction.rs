@@ -31,6 +31,7 @@ pub enum Error {
     MissingCost,
     ComponentsNotConnected,
     OperatorIdxNotFound,
+    OperandNotFound,
 }
 
 #[derive(Debug)]
@@ -105,28 +106,31 @@ impl<'a> Conjunction<'a> {
         Disjunction::new(vec![self])
     }
 
-    pub fn add_node(&mut self, node: NodeSearchSpec, variable : Option<&str>,) -> usize {
+    pub fn add_node(&mut self, node: NodeSearchSpec, variable : Option<&str>,) -> String {
         let idx = self.nodes.len();
-
-        // TODO allow wrapping with an "any node anno" search
-        self.nodes.push(node);
-        if let Some(variable) = variable {
-            self.variables.insert(String::from(variable), idx);
+        let variable = if let Some(variable) = variable {
+            variable.to_string()
         } else {
-            self.variables.insert((idx+1).to_string(), idx);
-        }
-
-        idx
+            (idx+1).to_string()
+        };
+        self.nodes.push(node);
+        self.variables.insert(variable.clone(), idx);
+        return variable;
     }
 
-    pub fn add_operator(&mut self, op: Box<OperatorSpec>, idx_left: usize, idx_right: usize) {
+    pub fn add_operator(&mut self, op: Box<OperatorSpec>, var_left: &str, var_right: &str) -> Result<(), Error> {
         //let original_order = self.operators.len();
-        self.operators.push(OperatorEntry {
-            op,
-            idx_left,
-            idx_right,
-            /*            original_order, */
-        });
+        if let (Some(idx_left), Some(idx_right)) = (self.variables.get(var_left), self.variables.get(var_right)) {
+            self.operators.push(OperatorEntry {
+                op,
+                idx_left: idx_left.clone(),
+                idx_right: idx_right.clone(),
+            });
+            return Ok(());
+        } else {
+            return Err(Error::OperandNotFound);
+        }
+
     }
 
     pub fn num_of_nodes(&self) -> usize {

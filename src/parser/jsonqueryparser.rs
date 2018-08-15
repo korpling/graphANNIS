@@ -23,10 +23,10 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
     for alt in alternatives.iter() {
         let mut q = Conjunction::new();
 
-        let mut first_node_pos: Option<usize> = None;
+        let mut first_node_pos: Option<String> = None;
 
         // add all nodes
-        let mut node_id_to_pos: BTreeMap<usize, usize> = BTreeMap::new();
+        let mut node_id_to_pos: BTreeMap<usize, String> = BTreeMap::new();
         if let &serde_json::Value::Object(ref nodes) = alt.get("nodes")? {
             for (node_name, node) in nodes.iter() {
                 if let Some(node_obj) = node.as_object() {
@@ -54,7 +54,7 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
 
         // add all meta-data
         if let Some(meta_obj) = alt.get("meta") {
-            let mut first_meta_idx: Option<usize> = None;
+            let mut first_meta_idx: Option<String> = None;
 
             if let Some(meta_array) = meta_obj.as_array() {
                 for m in meta_array.iter() {
@@ -68,20 +68,20 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
                         true,
                         None,
                     ) {
-                        if let Some(first_meta_idx) = first_meta_idx {
+                        if let Some(first_meta_idx) = first_meta_idx.clone() {
                             // avoid nested loops by joining additional meta nodes with a "identical node"
                             q.add_operator(
                                 Box::new(IdenticalNodeSpec {}),
-                                first_meta_idx,
-                                meta_node_idx,
+                                &first_meta_idx,
+                                &meta_node_idx,
                             );
-                        } else if let Some(first_node_pos) = first_node_pos {
-                            first_meta_idx = Some(meta_node_idx);
+                        } else if let Some(first_node_pos) = first_node_pos.clone() {
+                            first_meta_idx = Some(meta_node_idx.clone());
                             // add a special join to the first node of the query
                             q.add_operator(
                                 Box::new(PartOfSubCorpusSpec{min_dist: 1, max_dist: usize::max_value()}),
-                                first_node_pos,
-                                meta_node_idx,
+                                &first_node_pos,
+                                &meta_node_idx,
                             );
                             // Also make sure the matched node is actually a document
                             // (the @* could match anything in the hierarchy, including the toplevel corpus)
@@ -96,8 +96,8 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
                             ) {
                                 q.add_operator(
                                     Box::new(IdenticalNodeSpec {}),
-                                    meta_node_idx,
-                                    doc_anno_idx,
+                                    &meta_node_idx,
+                                    &doc_anno_idx,
                                 );
                             }
                         }
@@ -119,7 +119,7 @@ pub fn parse<'a>(query_as_string: &str) -> Option<Disjunction<'a>> {
 fn parse_node(
     node: &serde_json::Map<String, serde_json::Value>,
     q: &mut Conjunction,
-) -> Option<usize> {
+) -> Option<String> {
     let variable = node.get("variable").and_then(|s| s.as_str());
     // annotation search?
     if node.contains_key("nodeAnnotations") {
@@ -188,7 +188,7 @@ fn parse_node(
 fn parse_join(
     join: &serde_json::Map<String, serde_json::Value>,
     q: &mut Conjunction,
-    node_id_to_pos: &BTreeMap<usize, usize>,
+    node_id_to_pos: &BTreeMap<usize, String>,
 ) {
     // get left and right index
     if let (Some(left_id), Some(right_id)) = (
@@ -313,7 +313,7 @@ fn parse_join(
                 _ => None,
             };
             if let Some(spec) = spec_opt {
-                q.add_operator(spec, pos_left.clone() as usize, pos_right.clone() as usize);
+                q.add_operator(spec, pos_left, pos_right);
             }
         }
     }
@@ -358,7 +358,7 @@ fn add_node_annotation(
     regex: bool,
     is_meta: bool,
     variable: Option<&str>,
-) -> Option<usize> {
+) -> Option<String> {
     if let Some(name_val) = name {
         // TODO: replace regex with normal text matching if this is not an actual regular expression
 

@@ -919,20 +919,20 @@ impl CorpusStorage {
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_left.add_operator(Box::new(operators::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_left.add_operator(Box::new(operators::OverlapSpec {}), &n_idx, &tok_covered_idx);
                 q_left.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_left,
                     }),
-                    tok_precedence_idx,
-                    tok_covered_idx,
+                    &tok_precedence_idx,
+                    &tok_covered_idx,
                 );
                 q_left.add_operator(
                     Box::new(operators::OverlapSpec {}),
-                    any_node_idx,
-                    tok_precedence_idx,
+                    &any_node_idx,
+                    &tok_precedence_idx,
                 );
 
                 query.alternatives.push(q_left);
@@ -955,15 +955,15 @@ impl CorpusStorage {
                 );
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_left.add_operator(Box::new(operators::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_left.add_operator(Box::new(operators::OverlapSpec {}), &n_idx, &tok_covered_idx);
                 q_left.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_left,
                     }),
-                    tok_precedence_idx,
-                    tok_covered_idx,
+                    &tok_precedence_idx,
+                    &tok_covered_idx,
                 );
 
                 query.alternatives.push(q_left);
@@ -987,20 +987,20 @@ impl CorpusStorage {
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
                 let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_right.add_operator(Box::new(operators::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_right.add_operator(Box::new(operators::OverlapSpec {}), &n_idx, &tok_covered_idx);
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_right,
                     }),
-                    tok_covered_idx,
-                    tok_precedence_idx,
+                    &tok_covered_idx,
+                    &tok_precedence_idx,
                 );
                 q_right.add_operator(
                     Box::new(operators::OverlapSpec {}),
-                    any_node_idx,
-                    tok_precedence_idx,
+                    &any_node_idx,
+                    &tok_precedence_idx,
                 );
 
                 query.alternatives.push(q_right);
@@ -1023,15 +1023,15 @@ impl CorpusStorage {
                 );
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_right.add_operator(Box::new(operators::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_right.add_operator(Box::new(operators::OverlapSpec {}), &n_idx, &tok_covered_idx);
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_right,
                     }),
-                    tok_covered_idx,
-                    tok_precedence_idx,
+                    &tok_covered_idx,
+                    &tok_precedence_idx,
                 );
 
                 query.alternatives.push(q_right);
@@ -1082,8 +1082,8 @@ impl CorpusStorage {
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
             q.add_operator(
                 Box::new(operators::PartOfSubCorpusSpec{min_dist: 1, max_dist:1}),
-                any_node_idx,
-                corpus_idx,
+                &any_node_idx,
+                &corpus_idx,
             );
             query.alternatives.push(q);
         }

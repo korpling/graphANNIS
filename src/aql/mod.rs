@@ -57,13 +57,11 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 }
 
                 // add all nodes specs in order of their start position
-                let mut pos_to_node_idx: HashMap<usize, usize> = HashMap::default();
-                let mut pos_to_variable : HashMap<usize, String> = HashMap::default();
+                let mut pos_to_node_id: HashMap<usize, String> = HashMap::default();
                 for (start_pos,(node_spec, variable)) in pos_to_node.into_iter() {
                     let variable = variable.as_ref().map(|s| &**s);
                     let idx = q.add_node(node_spec, variable);
-                    pos_to_node_idx.insert(start_pos, idx);
-                    pos_to_variable.insert(start_pos, (idx+1).to_string());
+                    pos_to_node_id.insert(start_pos, idx);
                 }
 
                 // finally add all operators
@@ -74,11 +72,11 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
 
                             let idx_left = match lhs {
                                 ast::Operand::Literal { spec, pos, .. } => {
-                                    pos_to_node_idx.entry(pos.start).or_insert_with(|| q.add_node(spec.as_ref().clone(), None)).clone()
+                                    pos_to_node_id.entry(pos.start).or_insert_with(|| q.add_node(spec.as_ref().clone(), None)).clone()
                                 },
                                 ast::Operand::NodeRef(node_ref) => {
                                     match node_ref {
-                                        ast::NodeRef::ID(id) => id-1,
+                                        ast::NodeRef::ID(id) => id.to_string(),
                                         ast::NodeRef::Name(name) => unimplemented!(), 
                                     }
                                 }
@@ -86,17 +84,17 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
 
                             let idx_right = match rhs {
                                 ast::Operand::Literal { spec, pos, .. } => {
-                                    pos_to_node_idx.entry(pos.start).or_insert_with(|| q.add_node(spec.as_ref().clone(), None)).clone()
+                                    pos_to_node_id.entry(pos.start).or_insert_with(|| q.add_node(spec.as_ref().clone(), None)).clone()
                                 },
                                 ast::Operand::NodeRef(node_ref) => {
                                     match node_ref {
-                                        ast::NodeRef::ID(id) => id-1,
+                                        ast::NodeRef::ID(id) => id.to_string(),
                                         ast::NodeRef::Name(name) => unimplemented!(), 
                                     }
                                 }
                             };
 
-                            q.add_operator(make_operator_spec(op), idx_left, idx_right);
+                            q.add_operator(make_operator_spec(op), &idx_left, &idx_right);
                         }
                     }
                 }
