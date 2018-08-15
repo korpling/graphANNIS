@@ -10,6 +10,8 @@ use aql::operators::{
     DominanceSpec,
     PointingSpec,
     PartOfSubCorpusSpec,
+    InclusionSpec,
+    IdenticalNodeSpec,
 };
 
 grammar;
@@ -293,6 +295,11 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     "_o_" => ast::BinaryOpSpec::Overlap(OverlapSpec {}),
     // Identical coverage
     "_=_" => ast::BinaryOpSpec::IdenticalCoverage(IdenticalCoverageSpec {}),
+    // Inclusion
+    "_i_" => ast::BinaryOpSpec::Inclusion(InclusionSpec {}),
+    // Identical node
+    "_ident_" => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
+    // TODO: add more operators
 }
 
 TextSearch: ast::TextSearch = {

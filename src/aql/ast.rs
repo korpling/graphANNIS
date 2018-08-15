@@ -10,6 +10,8 @@ use aql::operators::{
     DominanceSpec,
     PointingSpec,
     PartOfSubCorpusSpec,
+    InclusionSpec,
+    IdenticalNodeSpec,
 };
 
 pub type Pos = Range<usize>;
@@ -65,6 +67,8 @@ pub enum BinaryOpSpec {
     Overlap(OverlapSpec),
     IdenticalCoverage(IdenticalCoverageSpec),
     PartOfSubCorpus(PartOfSubCorpusSpec),
+    Inclusion(InclusionSpec),
+    IdenticalNode(IdenticalNodeSpec),
 }
 
 #[derive(Debug, Clone)]
