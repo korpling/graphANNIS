@@ -29,7 +29,6 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
             normalize::to_disjunctive_normal_form(&mut ast);
 
             // map all conjunctions and its literals
-            // TODO: handle manually named variables
             let mut alternatives: Vec<Conjunction> = Vec::new();
             for c in ast.into_iter() {
                 let mut q = Conjunction::new();
@@ -77,7 +76,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                 ast::Operand::NodeRef(node_ref) => {
                                     match node_ref {
                                         ast::NodeRef::ID(id) => id.to_string(),
-                                        ast::NodeRef::Name(name) => unimplemented!(), 
+                                        ast::NodeRef::Name(name) => name, 
                                     }
                                 }
                             };
@@ -89,7 +88,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                 ast::Operand::NodeRef(node_ref) => {
                                     match node_ref {
                                         ast::NodeRef::ID(id) => id.to_string(),
-                                        ast::NodeRef::Name(name) => unimplemented!(), 
+                                        ast::NodeRef::Name(name) => name, 
                                     }
                                 }
                             };
