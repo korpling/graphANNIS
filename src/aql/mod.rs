@@ -34,22 +34,22 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
             for c in ast.into_iter() {
                 let mut q = Conjunction::new();
                 // collect and sort all node searches according to their start position in the text
-                let mut pos_to_node : BTreeMap<usize, NodeSearchSpec> = BTreeMap::default();
+                let mut pos_to_node : BTreeMap<usize, (NodeSearchSpec, Option<String>)> = BTreeMap::default();
                 for f in c.iter() {
                     if let ast::Factor::Literal(literal) = f {
                         match literal {
-                            ast::Literal::NodeSearch { spec, pos, .. } => {
+                            ast::Literal::NodeSearch { spec, pos, variable } => {
                                 if let Some(pos) = pos {
-                                    pos_to_node.insert(pos.start, spec.clone());
+                                    pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
                                 }
                             },
                             ast::Literal::BinaryOp { lhs, rhs, .. } => {
 
-                                if let ast::Operand::Literal{spec, pos, ..} = lhs {
-                                    pos_to_node.entry(pos.start).or_insert_with(|| spec.as_ref().clone());
+                                if let ast::Operand::Literal{spec, pos, variable} = lhs {
+                                    pos_to_node.entry(pos.start).or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
                                 }
-                                if let ast::Operand::Literal{spec, pos, ..} = rhs {
-                                    pos_to_node.entry(pos.start).or_insert_with(|| spec.as_ref().clone());
+                                if let ast::Operand::Literal{spec, pos, variable} = rhs {
+                                    pos_to_node.entry(pos.start).or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
                                 }                            
                             }
                         };
@@ -59,8 +59,9 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 // add all nodes specs in order of their start position
                 let mut pos_to_node_idx: HashMap<usize, usize> = HashMap::default();
                 let mut pos_to_variable : HashMap<usize, String> = HashMap::default();
-                for (start_pos,node_spec) in pos_to_node.into_iter() {
-                    let idx = q.add_node(node_spec, None);
+                for (start_pos,(node_spec, variable)) in pos_to_node.into_iter() {
+                    let variable = variable.as_ref().map(|s| &**s);
+                    let idx = q.add_node(node_spec, variable);
                     pos_to_node_idx.insert(start_pos, idx);
                     pos_to_variable.insert(start_pos, (idx+1).to_string());
                 }
