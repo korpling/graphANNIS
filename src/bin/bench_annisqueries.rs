@@ -26,7 +26,7 @@ impl TDynBenchFn for CountBench {
         self.cs.preload(&self.corpus);
 
         bench.iter(|| {
-            if let Ok(count) = self.cs.count(&self.corpus, &self.def.json) {
+            if let Ok(count) = self.cs.count(&self.corpus, &self.def.aql) {
                 assert_eq!(self.def.count, count);
             } else {
                 assert_eq!(self.def.count, 0);
