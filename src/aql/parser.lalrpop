@@ -21,6 +21,7 @@ match {
     r##"#[0-9]+"## => NODE_REF,
     r##"#[a-zA-Z][a-zA-Z0-9]*"## => VARIABLE_NODE_REF,
     r##"[a-zA-Z][a-zA-Z0-9]*#"## => VARIABLE_DEF,
+    r"[0-9]+" => DIGITS,
     _
 }
 
@@ -230,10 +231,20 @@ TextSearch: ast::TextSearch = {
     <v:r#"/[^"\\]*(\\.[^"\\]*)*/"#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
 };
 
+RangeSpec: ast::RangeSpec = {
+    <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec {
+        min_dist: min.parse().unwrap_or_default(), 
+        max_dist: min.parse().unwrap_or_default()
+    },
+    <exact:DIGITS> => ast::RangeSpec {
+        min_dist: exact.parse().unwrap_or_default(), 
+        max_dist: exact.parse().unwrap_or_default()
+    },
+}
+
 QName: ast::QName = {
     <ns:ID> ":" <name:ID> => ast::QName(Some(String::from(ns)), String::from(name)),
     <name:ID> => ast::QName(None, String::from(name)),
-    
 };
 
 

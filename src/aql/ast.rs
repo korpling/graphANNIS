@@ -64,3 +64,9 @@ pub enum BinaryOpSpec {
     Overlap(OverlapSpec),
     IdenticalCoverage(IdenticalCoverageSpec),
 }
+
+#[derive(Debug, Clone)]
+pub struct RangeSpec { 
+    pub min_dist: usize, 
+    pub max_dist: usize,
+}
