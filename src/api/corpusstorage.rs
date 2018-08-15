@@ -684,8 +684,8 @@ impl CorpusStorage {
         return Ok(result);
     }
 
-    pub fn plan(&self, corpus_name: &str, query_as_json: &str) -> Result<String> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+    pub fn plan(&self, corpus_name: &str, query_as_aql: &str) -> Result<String> {
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         // accuire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
@@ -718,8 +718,8 @@ impl CorpusStorage {
         Ok(())
     }
 
-    pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<u64> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+    pub fn count(&self, corpus_name: &str, query_as_aql: &str) -> Result<u64> {
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -729,8 +729,8 @@ impl CorpusStorage {
         return Ok(plan.count() as u64);
     }
 
-    pub fn count_extra(&self, corpus_name: &str, query_as_json: &str) -> Result<CountExtra> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+    pub fn count_extra(&self, corpus_name: &str, query_as_aql: &str) -> Result<CountExtra> {
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -764,7 +764,7 @@ impl CorpusStorage {
     pub fn find(
         &self,
         corpus_name: &str,
-        query_as_json: &str,
+        query_as_aql: &str,
         offset: usize,
         limit: usize,
         order: ResultOrder,
@@ -774,7 +774,7 @@ impl CorpusStorage {
             layer: String::from("annis"),
             name: String::from(""),
         };
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![order_component])?;
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![order_component])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -1040,8 +1040,8 @@ impl CorpusStorage {
         return extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone());
     }
 
-    pub fn subgraph_for_query(&self, corpus_name: &str, query_as_json: &str) -> Result<GraphDB> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+    pub fn subgraph_for_query(&self, corpus_name: &str, query_as_aql: &str) -> Result<GraphDB> {
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         let mut max_alt_size = 0;
         for alt in prep.query.alternatives.iter() {
@@ -1112,10 +1112,10 @@ impl CorpusStorage {
     pub fn frequency(
         &self,
         corpus_name: &str,
-        query_as_json: &str,
+        query_as_aql: &str,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();

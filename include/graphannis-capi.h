@@ -119,22 +119,22 @@ AnnisGraphDB *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr, const char *c
 
 uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
                         const char *corpus,
-                        const char *query_as_json);
+                        const char *query_as_aql);
 
 AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
                                      const char *corpus,
-                                     const char *query_as_json);
+                                     const char *query_as_aql);
 
 AnnisFrequencyTable_AnnisCString *annis_cs_cs_frequency(const AnnisCorpusStorage *ptr,
                                                         const char *corpus_name,
-                                                        const char *query_as_json,
+                                                        const char *query_as_aql,
                                                         const char *frequency_query_definition);
 
 AnnisError *annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus);
 
 AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      const char *corpus_name,
-                                     const char *query_as_json,
+                                     const char *query_as_aql,
                                      size_t offset,
                                      size_t limit,
                                      AnnisResultOrder order);
@@ -178,7 +178,7 @@ AnnisGraphDB *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
 
 AnnisGraphDB *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
                                           const char *corpus_name,
-                                          const char *query_as_json);
+                                          const char *query_as_aql);
 
 const char *annis_error_get_msg(const AnnisError *ptr);
 

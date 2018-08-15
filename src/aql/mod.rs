@@ -1,7 +1,7 @@
-pub mod ast;
-pub mod normalize;
+mod ast;
+mod normalize;
 pub mod operators;
-pub mod parser;
+mod parser;
 
 use aql::operators::edge_op::PartOfSubCorpusSpec;
 use aql::operators::identical_node::IdenticalNodeSpec;

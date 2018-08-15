@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 use std::rc::Rc;
+use std;
 
 use exec::nodesearch::NodeSearchSpec;
-use std::ops::Range;
 use aql::operators::{
     OverlapSpec, 
     IdenticalCoverageSpec,
@@ -14,7 +14,27 @@ use aql::operators::{
     IdenticalNodeSpec,
 };
 
-pub type Pos = Range<usize>;
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+pub struct Pos {
+    pub start: usize,
+    pub end: usize,
+}
+
+impl From<Pos> for std::ops::Range<usize> {
+    fn from(p : Pos) -> Self {
+        p.start..p.end
+    }
+}
+
+impl From<std::ops::Range<usize>> for Pos {
+    fn from(p : std::ops::Range<usize>) -> Self {
+        Pos {
+            start: p.start,
+            end: p.end,
+        }
+    }
+}
+
 
 #[derive(Debug)]
 pub enum Factor {

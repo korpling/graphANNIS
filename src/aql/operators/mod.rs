@@ -1,4 +1,4 @@
-pub fn format_range(min_dist: usize, max_dist: usize) -> String {
+fn format_range(min_dist: usize, max_dist: usize) -> String {
     if min_dist == 1 && max_dist == usize::max_value() {
         String::from("*")
     } else if min_dist == 1 && max_dist == 1 {

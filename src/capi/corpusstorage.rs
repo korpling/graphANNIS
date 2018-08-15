@@ -47,11 +47,11 @@ pub extern "C" fn annis_cs_free(ptr: *mut cs::CorpusStorage) {
 pub extern "C" fn annis_cs_count(
     ptr: *const cs::CorpusStorage,
     corpus: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
 ) -> libc::uint64_t {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_json);
+    let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus);
 
     return cs.count(&corpus, &query).unwrap_or(0);
@@ -61,11 +61,11 @@ pub extern "C" fn annis_cs_count(
 pub extern "C" fn annis_cs_count_extra(
     ptr: *const cs::CorpusStorage,
     corpus: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
 ) -> CountExtra {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_json);
+    let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus);
 
     return cs.count_extra(&corpus, &query)
@@ -76,14 +76,14 @@ pub extern "C" fn annis_cs_count_extra(
 pub extern "C" fn annis_cs_find(
     ptr: *const cs::CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
     offset: libc::size_t,
     limit: libc::size_t,
     order: ResultOrder,
 ) -> *mut Vec<CString> {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_json);
+    let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus_name);
 
     let result = cs.find(&corpus, &query, offset, limit, order);
@@ -176,13 +176,13 @@ pub extern "C" fn annis_cs_corpus_graph(
 pub extern "C" fn annis_cs_subgraph_for_query(
     ptr: *const cs::CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
 ) -> *mut GraphDB {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
-    let query_as_json = cstr!(query_as_json);
+    let query_as_aql = cstr!(query_as_aql);
 
-    let res = cs.subgraph_for_query(&corpus, &query_as_json);
+    let res = cs.subgraph_for_query(&corpus, &query_as_aql);
     match res {
         Ok(result) => {
             return Box::into_raw(Box::new(result));
@@ -199,13 +199,13 @@ pub extern "C" fn annis_cs_subgraph_for_query(
 pub extern "C" fn annis_cs_cs_frequency(
     ptr: *const cs::CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
     frequency_query_definition: *const libc::c_char,
 ) -> *mut FrequencyTable<CString> {
 
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_json);
+    let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus_name);
     let frequency_query_definition = cstr!(frequency_query_definition);
     let table_def : Vec<FrequencyDefEntry> = frequency_query_definition.split(',')
