@@ -192,32 +192,65 @@ NodeRef : ast::NodeRef = {
 
 /// Binary operators that take a LHS and RHS as argument, e.g. `#1 ->dep #2`
 BinaryOpSpec : ast::BinaryOpSpec = {
-    // Dominace
-    <type_def:r">([a-zA-Z][a-zA-Z0-9]*)?"> => {
+    // Dominance
+    <type_def:r">([a-zA-Z][a-zA-Z0-9]*)?"> <range:(RangeSpec)?> => {
         let name = type_def[">".len()..].to_string();
-        ast::BinaryOpSpec::Dominance(DominanceSpec {
-            name,
-            min_dist: 1,
-            max_dist: 1,
-            edge_anno: None,
-        })
+        // TODO: edge annotation
+
+        if let Some(range) = range {
+            ast::BinaryOpSpec::Dominance(DominanceSpec {
+                name,
+                min_dist: range.min_dist,
+                max_dist: range.max_dist,
+                edge_anno: None,
+            })
+        } else {
+            ast::BinaryOpSpec::Dominance(DominanceSpec {
+                name,
+                min_dist: 1,
+                max_dist: 1,
+                edge_anno: None,
+            })
+        }
     },
     // Pointing
-    <type_def:r"->[a-zA-Z][a-zA-Z0-9]*"> => {
+    <type_def:r"->[a-zA-Z][a-zA-Z0-9]*"> <range:(RangeSpec)?> => {
         let name = type_def["->".len()..].to_string();
-        ast::BinaryOpSpec::Pointing(PointingSpec {
-            name,
-            min_dist: 1,
-            max_dist: 1,
-            edge_anno: None,
-        })
+        // TODO: edge annotation
+
+        if let Some(range) = range {
+            ast::BinaryOpSpec::Pointing(PointingSpec {
+                name,
+                min_dist: range.min_dist,
+                max_dist: range.max_dist,
+                edge_anno: None,
+            })
+        } else {
+            ast::BinaryOpSpec::Pointing(PointingSpec {
+                name,
+                min_dist: 1,
+                max_dist: 1,
+                edge_anno: None,
+            })
+        }
     },
     //Precedence
-    "." => ast::BinaryOpSpec::Precedence(PrecedenceSpec {
-        segmentation: None,
-        min_dist: 1,
-        max_dist: 1,
-    }),
+    "." <range:(RangeSpec)?>  => { 
+        // TODO: segmentation
+        if let Some(range) = range {
+            ast::BinaryOpSpec::Precedence(PrecedenceSpec {
+                segmentation: None,
+                min_dist: range.min_dist,
+                max_dist: range.max_dist,
+            })
+        } else {
+            ast::BinaryOpSpec::Precedence(PrecedenceSpec {
+                segmentation: None,
+                min_dist: 1,
+                max_dist: 1,
+            })
+        }
+    },
     // Overlap
     "_o_" => ast::BinaryOpSpec::Overlap(OverlapSpec {}),
     // Identical coverage
@@ -232,14 +265,19 @@ TextSearch: ast::TextSearch = {
 };
 
 RangeSpec: ast::RangeSpec = {
-    <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec {
+    (",")? <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec {
         min_dist: min.parse().unwrap_or_default(), 
-        max_dist: min.parse().unwrap_or_default()
+        max_dist: max.parse().unwrap_or_default(),
     },
-    <exact:DIGITS> => ast::RangeSpec {
+    (",")? <exact:DIGITS> => ast::RangeSpec {
         min_dist: exact.parse().unwrap_or_default(), 
-        max_dist: exact.parse().unwrap_or_default()
+        max_dist: exact.parse().unwrap_or_default(),
     },
+    "*" => ast::RangeSpec {
+        min_dist: 1, 
+        max_dist: usize::max_value(),
+    }  
+    
 }
 
 QName: ast::QName = {
