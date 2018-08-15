@@ -14,7 +14,7 @@ thread_local!{
          let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
             path
         } else {
-            String::from("../data")
+            String::from("data")
         });
 
         // only execute the test if the directory exists
@@ -31,7 +31,7 @@ fn get_query_dir() -> PathBuf {
     let query_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_QUERIES") {
         path
     } else {
-        String::from("../queries")
+        String::from("queries")
     });
     query_dir
 }
