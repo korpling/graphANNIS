@@ -62,10 +62,12 @@ Factor : Vec<ast::Factor> = {
 }
 
 Literal : Vec<ast::Literal> = {
+    // any node annotation search
     <start: @L> <var:(VARIABLE_DEF)?> <spec:NodeSearch> <end: @R> => {
         let pos = Some(ast::Pos{start, end});
         vec![ast::Literal::NodeSearch{pos, spec, variable: var.and_then(|s| Some(s[0..s.len()-1].to_string()))}]
     },
+    // binary operator
     <start: @L> <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> <end: @R> => {
         let mut result : Vec<ast::Literal> = Vec::new();
         // TODO: can we get the position for each individual binary operator?
@@ -87,6 +89,10 @@ Literal : Vec<ast::Literal> = {
 
         return result;
     },
+    // legacy meta-data query `meta::doc="..."`
+    //<start: @L> <end: @R> => {
+    //    
+    //},
 }
 
 Operand : ast::Operand = {
@@ -98,9 +104,14 @@ Operand : ast::Operand = {
         ast::Operand::Literal{spec, pos, variable, }
     },
 }
+
+/// General search for annotation nodes
 NodeSearch : NodeSearchSpec = {
+    // searching for nodes with `node`
     NODE => NodeSearchSpec::AnyNode,
+    // searching for tokens with `tok`
     TOK => NodeSearchSpec::AnyToken,
+    // searching for a token value, e.g. tok="abc" or "abc"
     <tok_def:(TOK "=")?> <val:TextSearch>=> {
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
@@ -118,6 +129,7 @@ NodeSearch : NodeSearchSpec = {
         };
         spec
     },
+    // named annotation search with value, e.g. pos="NN"
     <name:QName> "=" <text:TextSearch> => {
         let spec = match text.1 { 
             ast::StringMatchType::Exact => {
@@ -139,6 +151,7 @@ NodeSearch : NodeSearchSpec = {
         };
         spec
     },
+    // search for annotation name without value, e.g. pos
     <name:QName> => {
         let spec = NodeSearchSpec::ExactValue {
             ns: name.0,
@@ -150,13 +163,16 @@ NodeSearch : NodeSearchSpec = {
     },
 }
 
-
+/// Node references like `#1` (using the index of the node) or `#abc`
+/// (using explicit name for variable)
 NodeRef : ast::NodeRef = {
     <v:NODE_REF> => ast::NodeRef::ID(v[1..].parse::<usize>().unwrap()),
     <v:VARIABLE_NODE_REF> => ast::NodeRef::Name(v[1..].to_string()),
 }
 
+/// Binary operators that take a LHS and RHS as argument, e.g. `#1 ->dep #2`
 BinaryOpSpec : ast::BinaryOpSpec = {
+    // Dominace
     <type_def:r">([a-zA-Z][a-zA-Z0-9]*)?"> => {
         let name = type_def[">".len()..].to_string();
         ast::BinaryOpSpec::Dominance(DominanceSpec {
@@ -166,6 +182,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
             edge_anno: None,
         })
     },
+    // Pointing
     <type_def:r"->[a-zA-Z][a-zA-Z0-9]*"> => {
         let name = type_def["->".len()..].to_string();
         ast::BinaryOpSpec::Pointing(PointingSpec {
@@ -175,12 +192,15 @@ BinaryOpSpec : ast::BinaryOpSpec = {
             edge_anno: None,
         })
     },
+    //Precedence
     "." => ast::BinaryOpSpec::Precedence(PrecedenceSpec {
         segmentation: None,
         min_dist: 1,
         max_dist: 1,
     }),
+    // Overlap
     "_o_" => ast::BinaryOpSpec::Overlap(OverlapSpec {}),
+    // Identical coverage
     "_=_" => ast::BinaryOpSpec::IdenticalCoverage(IdenticalCoverageSpec {}),
 }
 
