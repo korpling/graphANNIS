@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use exec::nodesearch::NodeSearchSpec;
+use std::ops::Range;
 use aql::operators::{
     OverlapSpec, 
     IdenticalCoverageSpec,
@@ -9,6 +10,8 @@ use aql::operators::{
     DominanceSpec,
     PointingSpec,
 };
+
+pub type Pos = Range<usize>;
 
 #[derive(Debug)]
 pub enum Factor {
@@ -19,11 +22,6 @@ pub enum Factor {
 pub type Conjunction = VecDeque<Factor>;
 pub type Disjunction = VecDeque<Conjunction>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Pos {
-    pub start : usize,
-    pub end: usize,
-}
 
 #[derive(Debug, Clone)]
 pub enum Literal {
