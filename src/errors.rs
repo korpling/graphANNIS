@@ -24,9 +24,9 @@ error_chain! {
             display("Could not load GraphDB {} from disk", &db),
         }
 
-        ImpossibleSearch(reasons : Vec<conjunction::Error>) {
+        ImpossibleSearch(reason : String) {
             description("Impossible search expression detected"),
-            display("Impossible search expression detected, reasons: {:?}", reasons),
+            display("Impossible search expression detected: {}", reason),
         }
 
         NoSuchStringID(id : StringID) {
@@ -42,6 +42,11 @@ error_chain! {
         NoSuchCorpus(name : String) {
             description("No such corpus found"),
             display("Corpus {} not found", &name)
+        }
+
+        AQLSemanticError(desc : String) {
+            description("Semantic error in an AQL query"),
+            display("AQL semantic error: {}", desc),
         }
     }
 }

@@ -26,19 +26,19 @@ impl<'a> ExecutionPlan<'a> {
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();
-        let mut errors: Vec<conjunction::Error> = Vec::new();
+        let mut errors: Vec<String> = Vec::new();
         for alt in query.alternatives.iter() {
             let p = alt.make_exec_node(db, &config);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);
             } else if let Err(e) = p {
-                errors.push(e);
+                errors.push(format!("{}", e));
             }
         }
 
         if plans.is_empty() {
-            return Err(ErrorKind::ImpossibleSearch(errors).into());
+            return Err(ErrorKind::ImpossibleSearch(errors.join("\\n")).into());
         } else {
             return Ok(ExecutionPlan {
                 current_plan: 0,
