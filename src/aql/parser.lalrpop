@@ -310,7 +310,7 @@ TextSearch: ast::TextSearch = {
     <v:r#""[^"]*""#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Exact),
     // see https://stackoverflow.com/questions/37032620/regex-for-matching-a-string-literal-in-java 
     // for a example how to match escaped quotation characters
-    <v:r#"/[^"\\]*(\\.[^"\\]*)*/"#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
+    <v:r#"/[^/\\]*(\\.[^/\\]*)*/"#> => ast::TextSearch(String::from(&v[1..v.len()-1]), ast::StringMatchType::Regex),
 };
 
 EdgeAnno: EdgeAnnoSearchSpec = {
