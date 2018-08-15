@@ -15,6 +15,7 @@ grammar;
 
 match {
     "tok" => TOK,
+    "node" => NODE,
 } else {
     r"[a-zA-Z][a-zA-Z0-9]*" => ID,
     r##"#[0-9]+"## => NODE_REF,
@@ -97,6 +98,8 @@ Operand : ast::Operand = {
 }
 
 NodeSearch : NodeSearchSpec = {
+    NODE => NodeSearchSpec::AnyNode,
+    TOK => NodeSearchSpec::AnyToken,
     <tok_def:(TOK "=")?> <val:TextSearch>=> {
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
@@ -135,7 +138,7 @@ NodeSearch : NodeSearchSpec = {
         };
         spec
     },
-    <name:QName>=> {
+    <name:QName> => {
         let spec = NodeSearchSpec::ExactValue {
             ns: name.0,
             name: name.1,
