@@ -33,8 +33,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;
 
-extern crate serde_json;
-
 extern crate num;
 extern crate itertools;
 extern crate rayon;
