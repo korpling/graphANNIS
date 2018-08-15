@@ -20,6 +20,7 @@ fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
         ast::BinaryOpSpec::Precedence(spec) => Box::new(spec),
         ast::BinaryOpSpec::Overlap(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalCoverage(spec) => Box::new(spec),
+        ast::BinaryOpSpec::PartOfSubCorpus(spec) => Box::new(spec),
     }
 }
 

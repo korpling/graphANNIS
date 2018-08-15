@@ -9,6 +9,7 @@ use aql::operators::{
     PrecedenceSpec,
     DominanceSpec,
     PointingSpec,
+    PartOfSubCorpusSpec,
 };
 
 grammar;
@@ -269,6 +270,20 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         } else {
             ast::BinaryOpSpec::Precedence(PrecedenceSpec {
                 segmentation,
+                min_dist: 1,
+                max_dist: 1,
+            })
+        }
+    },
+    // Part of subcorpus
+    "@" <range:(RangeSpec)?> => {
+        if let Some(range) = range {
+            ast::BinaryOpSpec::PartOfSubCorpus(PartOfSubCorpusSpec {
+                min_dist: range.min_dist,
+                max_dist: range.max_dist,
+            })
+        } else {
+            ast::BinaryOpSpec::PartOfSubCorpus(PartOfSubCorpusSpec {
                 min_dist: 1,
                 max_dist: 1,
             })
