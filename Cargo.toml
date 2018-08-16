@@ -52,6 +52,7 @@ kernel32-sys = { version = "0.2.2" }
 
 [dev-dependencies]
 bencher = "0.1"
+simplelog = "0.5"
 
 [features]
 cli = ["rustyline", "simplelog", "clap", "bencher", "prettytable-rs"]

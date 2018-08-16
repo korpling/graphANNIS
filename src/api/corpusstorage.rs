@@ -1340,6 +1340,8 @@ impl CorpusStorage {
 #[cfg(test)]
 mod tests {
     extern crate tempdir;
+    extern crate simplelog;
+    extern crate log;
 
     use api::corpusstorage::CorpusStorage;
     use api::update::{GraphUpdate, UpdateEvent};
@@ -1363,6 +1365,9 @@ mod tests {
 
     #[test]
     fn load_cs_twice() {
+        // Init logger to get a trace of the actions that failed
+        simplelog::SimpleLogger::init(log::LevelFilter::Trace, simplelog::Config::default()).unwrap();
+
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
             {
                 let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
