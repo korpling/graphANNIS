@@ -34,6 +34,20 @@ macro_rules! cstr {
     }
 }
 
+macro_rules! throw_cerr {
+    ($err_ptr:ident , $err:ident) => {
+        unsafe {
+            if !$err_ptr.is_null() {
+                *$err_ptr = cerror::new($err);
+            }
+            return;
+        }
+    }
+}
+
+
+
+
 pub mod corpusstorage;
 pub mod update;
 pub mod data;
