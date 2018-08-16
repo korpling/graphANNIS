@@ -29,23 +29,26 @@ impl From<LogLevel> for simplelog::LevelFilter {
 }
 
 #[no_mangle]
-pub extern "C" fn annis_init_logging(logfile : * const libc::c_char, level : LogLevel) -> * mut ErrorList {
+pub extern "C" fn annis_init_logging(logfile : * const libc::c_char, level : LogLevel, 
+    err: *mut * mut ErrorList) {
     
     if !logfile.is_null() {
         let logfile : &str = &cstr!(logfile);
         
         match File::create(logfile) {
             Ok(f) => {
-                if let Err(err) = WriteLogger::init(LevelFilter::from(level), Config::default(), f) {
+                if let Err(e) = WriteLogger::init(LevelFilter::from(level), Config::default(), f) {
                     // File was created, but logger was not.
-                    
-                    return Box::into_raw(Box::new(vec![Error::from(err)]));
+                    if !err.is_null() {
+                        unsafe {*err =  Box::into_raw(Box::new(vec![Error::from(e)]));}
+                    }
                 }
             }
-            Err(err) => {
-                return Box::into_raw(Box::new(vec![Error::from(err)]));
+            Err(e) => {
+                if !err.is_null() {
+                    unsafe {*err =  Box::into_raw(Box::new(vec![Error::from(e)]));}
+                }
             }
         };
     }
-    return std::ptr::null_mut();
 }
