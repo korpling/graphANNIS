@@ -1,5 +1,6 @@
 use api::corpusstorage::FrequencyDefEntry;
 use super::cerror::ErrorList;
+use super::cerror;
 use api::corpusstorage as cs;
 use api::update::GraphUpdate;
 use api::corpusstorage::ResultOrder;
@@ -309,7 +310,8 @@ pub extern "C" fn annis_cs_import_relannis(
     ptr: *mut cs::CorpusStorage,
     corpus: *const libc::c_char,
     path: *const libc::c_char,
-) -> *mut ErrorList {
+    err: *mut *mut ErrorList
+) {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
 
     let override_corpus_name: Option<String> = if corpus.is_null() {
@@ -330,12 +332,10 @@ pub extern "C" fn annis_cs_import_relannis(
             };
             cs.import(&corpus, db);
         }
-        Err(err) => {
-            return Box::into_raw(Box::new(ErrorList::from(err)));
+        Err(e) => {
+            throw_cerr!(err, e);
         }
     };
-
-    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -351,14 +351,13 @@ pub extern "C" fn annis_cs_all_components_by_type(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char) -> *mut ErrorList {
+pub extern "C" fn annis_cs_delete(ptr: *mut cs::CorpusStorage, corpus: *const libc::c_char, err : *mut *mut ErrorList)  {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let corpus = cstr!(corpus);
 
     if let Err(e) = cs.delete(&corpus) {
-        return super::cerror::new(e);
+        throw_cerr!(err, e);
     }
-    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -366,13 +365,12 @@ pub extern "C" fn annis_cs_apply_update(
     ptr: *mut cs::CorpusStorage,
     corpus: *const libc::c_char,
     update: *mut GraphUpdate,
-) -> *mut ErrorList {
+    err: *mut *mut ErrorList,
+) {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let update: &mut GraphUpdate = cast_mut!(update);
     let corpus = cstr!(corpus);
     if let Err(e) = cs.apply_update(&corpus, update) {
-        return super::cerror::new(e);
+        throw_cerr!(err, e);
     }
-
-    std::ptr::null_mut()
 }

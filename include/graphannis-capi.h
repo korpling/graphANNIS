@@ -69,7 +69,11 @@ typedef struct AnnisVec_AnnisComponent AnnisVec_AnnisComponent;
 
 typedef struct AnnisVec_AnnisEdge AnnisVec_AnnisEdge;
 
+typedef struct AnnisVec_AnnisError AnnisVec_AnnisError;
+
 typedef struct AnnisVec_AnnisVec_AnnisT AnnisVec_AnnisVec_AnnisT;
+
+typedef AnnisVec_AnnisError AnnisErrorList;
 
 typedef struct {
   uint64_t match_count;
@@ -111,9 +115,10 @@ AnnisVec_AnnisComponent *annis_cs_all_components_by_type(AnnisCorpusStorage *ptr
                                                          const char *corpus_name,
                                                          AnnisComponentType ctype);
 
-AnnisError *annis_cs_apply_update(AnnisCorpusStorage *ptr,
-                                  const char *corpus,
-                                  AnnisGraphUpdate *update);
+void annis_cs_apply_update(AnnisCorpusStorage *ptr,
+                           const char *corpus,
+                           AnnisGraphUpdate *update,
+                           AnnisErrorList **err);
 
 AnnisGraphDB *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr, const char *corpus_name);
 
@@ -130,7 +135,7 @@ AnnisFrequencyTable_AnnisCString *annis_cs_cs_frequency(const AnnisCorpusStorage
                                                         const char *query_as_json,
                                                         const char *frequency_query_definition);
 
-AnnisError *annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus);
+void annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **err);
 
 AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      const char *corpus_name,
@@ -141,7 +146,10 @@ AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
 
 void annis_cs_free(AnnisCorpusStorage *ptr);
 
-AnnisError *annis_cs_import_relannis(AnnisCorpusStorage *ptr, const char *corpus, const char *path);
+void annis_cs_import_relannis(AnnisCorpusStorage *ptr,
+                              const char *corpus,
+                              const char *path,
+                              AnnisErrorList **err);
 
 /*
  * List all known corpora.
@@ -199,7 +207,7 @@ AnnisVec_AnnisComponent *annis_graph_all_components(const AnnisGraphDB *g);
 AnnisVec_AnnisComponent *annis_graph_all_components_by_type(const AnnisGraphDB *g,
                                                             AnnisComponentType ctype);
 
-AnnisError *annis_graph_apply_update(AnnisGraphDB *g, AnnisGraphUpdate *update);
+AnnisErrorList *annis_graph_apply_update(AnnisGraphDB *g, AnnisGraphUpdate *update);
 
 AnnisVec_AnnisAnnotation *annis_graph_edge_labels(const AnnisGraphDB *g,
                                                   AnnisEdge edge,
@@ -272,7 +280,7 @@ AnnisGraphUpdate *annis_graphupdate_new(void);
 
 size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
 
-AnnisError *annis_init_logging(const char *logfile, AnnisLogLevel level);
+AnnisErrorList *annis_init_logging(const char *logfile, AnnisLogLevel level);
 
 AnnisNodeID *annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID *ptr);
 
