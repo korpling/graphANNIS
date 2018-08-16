@@ -120,20 +120,25 @@ void annis_cs_apply_update(AnnisCorpusStorage *ptr,
                            AnnisGraphUpdate *update,
                            AnnisErrorList **err);
 
-AnnisGraphDB *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr, const char *corpus_name);
+AnnisGraphDB *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr,
+                                    const char *corpus_name,
+                                    AnnisErrorList **err);
 
 uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
                         const char *corpus,
-                        const char *query_as_json);
+                        const char *query_as_json,
+                        AnnisErrorList **err);
 
 AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
                                      const char *corpus,
-                                     const char *query_as_json);
+                                     const char *query_as_json,
+                                     AnnisErrorList **err);
 
 AnnisFrequencyTable_AnnisCString *annis_cs_cs_frequency(const AnnisCorpusStorage *ptr,
                                                         const char *corpus_name,
                                                         const char *query_as_json,
-                                                        const char *frequency_query_definition);
+                                                        const char *frequency_query_definition,
+                                                        AnnisErrorList **err);
 
 void annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **err);
 
@@ -142,7 +147,8 @@ AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      const char *query_as_json,
                                      size_t offset,
                                      size_t limit,
-                                     AnnisResultOrder order);
+                                     AnnisResultOrder order,
+                                     AnnisErrorList **err);
 
 void annis_cs_free(AnnisCorpusStorage *ptr);
 
@@ -154,7 +160,7 @@ void annis_cs_import_relannis(AnnisCorpusStorage *ptr,
 /*
  * List all known corpora.
  */
-AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr);
+AnnisVec_AnnisCString *annis_cs_list(const AnnisCorpusStorage *ptr, AnnisErrorList **err);
 
 AnnisMatrix_AnnisCString *annis_cs_list_edge_annotations(const AnnisCorpusStorage *ptr,
                                                          const char *corpus_name,
@@ -176,17 +182,20 @@ AnnisCorpusStorage *annis_cs_new(const char *db_dir, bool use_parallel);
 
 AnnisGraphDB *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
                                        const char *corpus_name,
-                                       const AnnisVec_AnnisCString *corpus_ids);
+                                       const AnnisVec_AnnisCString *corpus_ids,
+                                       AnnisErrorList **err);
 
 AnnisGraphDB *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
                                 const char *corpus_name,
                                 const AnnisVec_AnnisCString *node_ids,
                                 size_t ctx_left,
-                                size_t ctx_right);
+                                size_t ctx_right,
+                                AnnisErrorList **err);
 
 AnnisGraphDB *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
                                           const char *corpus_name,
-                                          const char *query_as_json);
+                                          const char *query_as_json,
+                                          AnnisErrorList **err);
 
 const char *annis_error_get_msg(const AnnisError *ptr);
 
