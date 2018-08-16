@@ -1,8 +1,9 @@
 use std::ffi::CString;
-use libc::c_char;
 use std;
 use log;
 use errors;
+use libc::{size_t, c_char};
+use super::data::{vec_get, vec_size};
 
 pub struct Error {
     pub msg: CString,
@@ -70,9 +71,26 @@ pub fn new(err : errors::Error) -> * mut ErrorList {
 }
 
 #[no_mangle]
-pub extern "C" fn annis_error_get_msg(ptr : * const Error) -> * const c_char {
-    let err: &Error = cast_const!(ptr);
-    return err.msg.as_ptr();
+pub extern "C" fn annis_error_size(ptr : * const ErrorList) -> size_t {vec_size(ptr)}
 
+
+#[no_mangle]
+pub extern "C" fn annis_error_get_msg(ptr : * const ErrorList, i : size_t) -> * const c_char {
+    let item = vec_get(ptr, i);
+    if item.is_null() {
+        return std::ptr::null();
+    }
+    let err: &Error = cast_const!(item);
+    return err.msg.as_ptr();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_error_get_kind(ptr : * const ErrorList, i : size_t) -> * const c_char {
+    let item = vec_get(ptr, i);
+    if item.is_null() {
+        return std::ptr::null();
+    }
+    let err: &Error = cast_const!(item);
+    return err.kind.as_ptr();
 }
 
