@@ -291,7 +291,7 @@ AnnisGraphUpdate *annis_graphupdate_new(void);
 
 size_t annis_graphupdate_size(const AnnisGraphUpdate *ptr);
 
-AnnisErrorList *annis_init_logging(const char *logfile, AnnisLogLevel level);
+void annis_init_logging(const char *logfile, AnnisLogLevel level, AnnisErrorList **err);
 
 AnnisNodeID *annis_iter_nodeid_next(AnnisIterPtr_AnnisNodeID *ptr);
 
