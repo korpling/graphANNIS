@@ -51,8 +51,6 @@ typedef struct AnnisComponent AnnisComponent;
 
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
-typedef struct AnnisError AnnisError;
-
 typedef struct AnnisFrequencyTable_AnnisCString AnnisFrequencyTable_AnnisCString;
 
 typedef struct AnnisGraphDB AnnisGraphDB;
@@ -197,7 +195,11 @@ AnnisGraphDB *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
                                           const char *query_as_json,
                                           AnnisErrorList **err);
 
-const char *annis_error_get_msg(const AnnisError *ptr);
+const char *annis_error_get_kind(const AnnisErrorList *ptr, size_t i);
+
+const char *annis_error_get_msg(const AnnisErrorList *ptr, size_t i);
+
+size_t annis_error_size(const AnnisErrorList *ptr);
 
 void annis_free(void *ptr);
 
