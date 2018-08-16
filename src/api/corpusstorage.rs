@@ -25,6 +25,7 @@ use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use rayon::{ThreadPoolBuilder,ThreadPool};
 use types;
 use util;
 use util::memory_estimation;
@@ -71,6 +72,7 @@ pub struct CorpusStorage {
     max_allowed_cache_size: Option<usize>,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
     pub query_config: query::Config,
+    thread_pool : ThreadPool,
 }
 
 struct PreparationResult<'a> {
@@ -303,12 +305,15 @@ impl CorpusStorage {
     ) -> Result<CorpusStorage> {
         let query_config = query::Config { use_parallel_joins };
 
+        let thread_pool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
+
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             lock_file: create_lockfile_for_directory(db_dir)?,
             max_allowed_cache_size,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config,
+            thread_pool,
         };
 
         Ok(cs)
@@ -316,6 +321,8 @@ impl CorpusStorage {
 
     pub fn new_auto_cache_size(db_dir: &Path, use_parallel_joins: bool) -> Result<CorpusStorage> {
         let query_config = query::Config { use_parallel_joins };
+
+        let thread_pool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
 
         // get the amount of available memory, use a quarter of it per default
         let cache_size: usize = if let Ok(mem) = sys_info::mem_info() {
@@ -336,6 +343,7 @@ impl CorpusStorage {
             max_allowed_cache_size: Some(cache_size), // 1 GB
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config: query_config,
+            thread_pool,
         };
 
         Ok(cs)
@@ -1312,7 +1320,7 @@ impl CorpusStorage {
             db.apply_update(update)?;
         }
         // start background thread to persists the results
-        std::thread::spawn(move || {
+        self.thread_pool.spawn(move || {
             trace!("Starting background thread to sync WAL updates");
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
