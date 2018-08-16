@@ -106,13 +106,9 @@ pub extern "C" fn annis_graph_str(g : * const GraphDB,  str_id : StringID) -> * 
 }
 
 #[no_mangle]
-pub extern "C" fn annis_graph_apply_update(g : * mut GraphDB,  update: *mut GraphUpdate) -> * mut ErrorList {
+pub extern "C" fn annis_graph_apply_update(g : * mut GraphDB,  update: *mut GraphUpdate, err: *mut * mut ErrorList) {
     let db : &mut GraphDB = cast_mut!(g);
     let update: &mut GraphUpdate = cast_mut!(update);
-    if let Err(e) = db.apply_update(update) {
-        return cerror::new(e);
-    }
-
-    std::ptr::null_mut()
+    try_cerr!(db.apply_update(update), err, ());
 }
 

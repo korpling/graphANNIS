@@ -34,16 +34,20 @@ macro_rules! cstr {
     }
 }
 
-macro_rules! throw_cerr {
-    ($err_ptr:ident , $err:ident) => {
-        unsafe {
-            if !$err_ptr.is_null() {
-                *$err_ptr = cerror::new($err);
+macro_rules! try_cerr {
+    ($x:expr , $err_ptr:ident, $default_return_val:expr) => {
+        match $x {
+            Ok(v) => v,
+            Err(err) => {
+                if !$err_ptr.is_null() {
+                    unsafe {*$err_ptr = cerror::new(err);}
+                }
+                return $default_return_val;
             }
-            return;
         }
     }
 }
+
 
 
 
