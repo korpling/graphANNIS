@@ -1,6 +1,6 @@
 use simplelog::{LevelFilter, WriteLogger, Config};
 use std::fs::File;
-use super::error::Error;
+use super::cerror::{ErrorList, Error};
 use libc;
 use std;
 use simplelog;
@@ -29,7 +29,7 @@ impl From<LogLevel> for simplelog::LevelFilter {
 }
 
 #[no_mangle]
-pub extern "C" fn annis_init_logging(logfile : * const libc::c_char, level : LogLevel) -> * mut Error {
+pub extern "C" fn annis_init_logging(logfile : * const libc::c_char, level : LogLevel) -> * mut ErrorList {
     
     if !logfile.is_null() {
         let logfile : &str = &cstr!(logfile);
@@ -38,11 +38,12 @@ pub extern "C" fn annis_init_logging(logfile : * const libc::c_char, level : Log
             Ok(f) => {
                 if let Err(err) = WriteLogger::init(LevelFilter::from(level), Config::default(), f) {
                     // File was created, but logger was not.
-                    return Box::into_raw(Box::new(Error::from(err)));
+                    
+                    return Box::into_raw(Box::new(vec![Error::from(err)]));
                 }
             }
             Err(err) => {
-                return Box::into_raw(Box::new(Error::from(err)));
+                return Box::into_raw(Box::new(vec![Error::from(err)]));
             }
         };
     }
