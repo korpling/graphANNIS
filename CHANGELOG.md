@@ -1,3 +1,11 @@
+release v0.8.1
+==============
+
+Fixed Bugs
+----------
+
+- [#9](https://github.com/corpus-tools/graphANNIS/issues/9) Wait for all background writers before dropping the CorpusStorage
+
 release v0.8.0
 ==============
 
