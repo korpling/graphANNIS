@@ -132,12 +132,6 @@ AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
                                      const char *query_as_json,
                                      AnnisErrorList **err);
 
-AnnisFrequencyTable_AnnisCString *annis_cs_cs_frequency(const AnnisCorpusStorage *ptr,
-                                                        const char *corpus_name,
-                                                        const char *query_as_json,
-                                                        const char *frequency_query_definition,
-                                                        AnnisErrorList **err);
-
 void annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **err);
 
 AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
@@ -149,6 +143,12 @@ AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      AnnisErrorList **err);
 
 void annis_cs_free(AnnisCorpusStorage *ptr);
+
+AnnisFrequencyTable_AnnisCString *annis_cs_frequency(const AnnisCorpusStorage *ptr,
+                                                     const char *corpus_name,
+                                                     const char *query_as_json,
+                                                     const char *frequency_query_definition,
+                                                     AnnisErrorList **err);
 
 void annis_cs_import_relannis(AnnisCorpusStorage *ptr,
                               const char *corpus,

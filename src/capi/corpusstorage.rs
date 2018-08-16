@@ -192,7 +192,7 @@ pub extern "C" fn annis_cs_subgraph_for_query(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_cs_frequency(
+pub extern "C" fn annis_cs_frequency(
     ptr: *const cs::CorpusStorage,
     corpus_name: *const libc::c_char,
     query_as_json: *const libc::c_char,
