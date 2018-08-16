@@ -37,6 +37,6 @@ macro_rules! cstr {
 pub mod corpusstorage;
 pub mod update;
 pub mod data;
-pub mod error;
+pub mod cerror;
 pub mod graph;
 pub mod logging;
