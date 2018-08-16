@@ -24,8 +24,8 @@ use std::fs::OpenOptions;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use rayon::{ThreadPoolBuilder,ThreadPool};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Condvar, Mutex};
+use std::thread;
 use types;
 use util;
 use util::memory_estimation;
@@ -72,7 +72,8 @@ pub struct CorpusStorage {
     max_allowed_cache_size: Option<usize>,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
     pub query_config: query::Config,
-    thread_pool : ThreadPool,
+    active_background_workers: Arc<(Mutex<usize>, Condvar)>,
+
 }
 
 struct PreparationResult<'a> {
@@ -305,15 +306,14 @@ impl CorpusStorage {
     ) -> Result<CorpusStorage> {
         let query_config = query::Config { use_parallel_joins };
 
-        let thread_pool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
-
+        let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             lock_file: create_lockfile_for_directory(db_dir)?,
             max_allowed_cache_size,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config,
-            thread_pool,
+            active_background_workers,
         };
 
         Ok(cs)
@@ -321,8 +321,6 @@ impl CorpusStorage {
 
     pub fn new_auto_cache_size(db_dir: &Path, use_parallel_joins: bool) -> Result<CorpusStorage> {
         let query_config = query::Config { use_parallel_joins };
-
-        let thread_pool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
 
         // get the amount of available memory, use a quarter of it per default
         let cache_size: usize = if let Ok(mem) = sys_info::mem_info() {
@@ -337,13 +335,15 @@ impl CorpusStorage {
             cache_size as f64 / ((1024 * 1024) as f64)
         );
 
+        let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
+
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             lock_file: create_lockfile_for_directory(db_dir)?,
             max_allowed_cache_size: Some(cache_size), // 1 GB
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config: query_config,
-            thread_pool,
+            active_background_workers,
         };
 
         Ok(cs)
@@ -1320,7 +1320,14 @@ impl CorpusStorage {
             db.apply_update(update)?;
         }
         // start background thread to persists the results
-        self.thread_pool.spawn(move || {
+
+        let active_background_workers = self.active_background_workers.clone();
+        {
+            let &(ref lock, ref _cvar) = &*active_background_workers;
+            let mut nr_active_background_workers = lock.lock().unwrap();
+            *nr_active_background_workers = *nr_active_background_workers + 1;
+        }
+        thread::spawn(move || {
             trace!("Starting background thread to sync WAL updates");
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
@@ -1331,11 +1338,37 @@ impl CorpusStorage {
                     trace!("Finished background thread to sync WAL updates");
                 }
             }
+            let &(ref lock, ref cvar) = &*active_background_workers;
+            let mut nr_active_background_workers = lock.lock().unwrap();
+            *nr_active_background_workers = *nr_active_background_workers - 1;
+            cvar.notify_all();
         });
 
         Ok(())
     }
 }
+
+
+impl Drop for CorpusStorage {
+    fn drop(&mut self) {
+
+        // wait until all background workers are finished
+        let &(ref lock, ref cvar) = &*self.active_background_workers;
+        let mut nr_active_background_workers = lock.lock().unwrap();
+        while *nr_active_background_workers > 0 {
+            trace!("Waiting for background thread to finish ({} worker(s) left)...", *nr_active_background_workers);
+            nr_active_background_workers = cvar.wait(nr_active_background_workers).unwrap();
+        }
+
+        // unlock lock file
+        if let Err(e) = self.lock_file.unlock() {
+            warn!("Could not unlock CorpusStorage lock file: {:?}", e);
+        } else {
+            trace!("Unlocked CorpusStorage lock file");
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -1349,7 +1382,7 @@ mod tests {
     #[test]
     fn delete() {
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
-            let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+            let mut cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
             // fully load a corpus
             let mut g = GraphUpdate::new();
             g.add_event(UpdateEvent::AddNode {
@@ -1370,7 +1403,7 @@ mod tests {
 
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
             {
-                let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+                let mut cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
                 g.add_event(UpdateEvent::AddNode {
                     node_name: "test".to_string(),
@@ -1381,7 +1414,7 @@ mod tests {
             }
 
             {
-                let cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+                let mut cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
                 g.add_event(UpdateEvent::AddNode {
                     node_name: "test".to_string(),
@@ -1390,14 +1423,6 @@ mod tests {
 
                 cs.apply_update("testcorpus", &mut g).unwrap();
             }
-        }
-    }
-}
-
-impl Drop for CorpusStorage {
-    fn drop(&mut self) {
-        if let Err(e) = self.lock_file.unlock() {
-            warn!("Could not unlock CorpusStorage lock file: {:?}", e);
         }
     }
 }
