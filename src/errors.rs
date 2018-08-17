@@ -39,12 +39,17 @@ error_chain! {
         }
 
         NoSuchCorpus(name : String) {
-            description("No such corpus found"),
+            description("NoSuchCorpus"),
             display("Corpus {} not found", &name)
         }
 
+        AQLSyntaxError(desc : String) {
+            description("AQLSyntaxError"),
+            display("AQL semantic error: {}", desc),
+        }
+
         AQLSemanticError(desc : String) {
-            description("Semantic error in an AQL query"),
+            description("AQLSemanticError"),
             display("AQL semantic error: {}", desc),
         }
     }
