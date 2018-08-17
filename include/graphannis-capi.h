@@ -59,8 +59,6 @@ typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
 typedef struct AnnisIterPtr_AnnisNodeID AnnisIterPtr_AnnisNodeID;
 
-typedef struct AnnisString AnnisString;
-
 typedef struct AnnisVec_AnnisAnnotation AnnisVec_AnnisAnnotation;
 
 typedef struct AnnisVec_AnnisCString AnnisVec_AnnisCString;
@@ -106,12 +104,6 @@ typedef struct {
   AnnisAnnoKey key;
   AnnisStringID val;
 } AnnisAnnotation;
-
-typedef struct {
-  uintptr_t component_nr;
-  AnnisString aql_fragment;
-  AnnisString variable;
-} AnnisNodeDesc;
 
 char *annis_component_layer(const AnnisComponent *c);
 
@@ -322,13 +314,6 @@ size_t annis_matrix_str_nrows(const AnnisMatrix_AnnisCString *ptr);
 
 void annis_str_free(char *s);
 
-/*
- * Allocates a new char* based on an existing internal string.
- *
- * Result must be manually freed with annis_str_free(char* )!
- */
-char *annis_string_copy(const AnnisString *ptr);
-
 const AnnisAnnotation *annis_vec_annotation_get(const AnnisVec_AnnisAnnotation *ptr, size_t i);
 
 size_t annis_vec_annotation_size(const AnnisVec_AnnisAnnotation *ptr);
@@ -341,7 +326,12 @@ const AnnisEdge *annis_vec_edge_get(const AnnisVec_AnnisEdge *ptr, size_t i);
 
 size_t annis_vec_edge_size(const AnnisVec_AnnisEdge *ptr);
 
-const AnnisNodeDesc *annis_vec_nodedesc_get(const AnnisVec_AnnisNodeDesc *ptr, size_t i);
+/*
+ * Result char* must be freeed with annis_str_free!
+ */
+char *annis_vec_nodedesc_get_aql_fragment(const AnnisVec_AnnisNodeDesc *ptr, size_t i);
+
+uintptr_t annis_vec_nodedesc_get_component_nr(const AnnisVec_AnnisNodeDesc *ptr, size_t i);
 
 size_t annis_vec_nodedesc_size(const AnnisVec_AnnisNodeDesc *ptr);
 

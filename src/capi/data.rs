@@ -24,15 +24,6 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
     };
 }
 
-/// Allocates a new char* based on an existing internal string. 
-/// 
-/// Result must be manually freed with annis_str_free(char* )! 
-#[no_mangle]
-pub extern "C" fn annis_string_copy(ptr : * const String) -> * mut c_char {
-    let strref : &String = cast_const!(ptr);
-    let cstr = CString::new(strref.as_str()).unwrap_or(CString::default());
-    return cstr.into_raw();
-}
 
 pub type IterPtr<T> = Box<Iterator<Item=T>>;
 
@@ -111,7 +102,29 @@ pub extern "C" fn annis_vec_component_get(ptr : * const Vec<Component>, i : size
 pub extern "C" fn annis_vec_nodedesc_size(ptr : * const Vec<NodeDesc>) -> size_t {vec_size(ptr)}
 
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get(ptr : * const Vec<NodeDesc>, i : size_t) -> * const NodeDesc { vec_get(ptr, i)}
+pub extern "C" fn annis_vec_nodedesc_get_component_nr(ptr : * const Vec<NodeDesc>, i : size_t) -> usize { 
+    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
+    let desc : &NodeDesc = cast_const!(desc_ptr);
+    return desc.component_nr;
+}
+
+/// Result char* must be freeed with annis_str_free!
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_get_aql_fragment(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
+    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
+    let desc : &NodeDesc = cast_const!(desc_ptr);
+    let cstr : CString = CString::new(desc.aql_fragment.as_str()).unwrap_or(CString::default());
+    return cstr.into_raw();
+}
+
+/// Result char* must be freeed with annis_str_free!
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_get_variable(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
+    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
+    let desc : &NodeDesc = cast_const!(desc_ptr);
+    let cstr : CString = CString::new(desc.variable.as_str()).unwrap_or(CString::default());
+    return cstr.into_raw();
+}
 
 #[no_mangle]
 pub extern "C" fn annis_matrix_str_nrows(ptr : * const Matrix<CString>) -> size_t {vec_size(ptr)}
