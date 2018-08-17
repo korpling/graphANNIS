@@ -12,7 +12,7 @@ use std::ffi::CString;
 use std::path::PathBuf;
 use FrequencyTable;
 use Matrix;
-use {Component, ComponentType, CountExtra};
+use {Component, ComponentType, CountExtra, NodeDesc};
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -304,6 +304,36 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     }
     return Box::into_raw(Box::new(result));
 }
+
+#[no_mangle]
+pub extern "C" fn annis_cs_validate_query(
+    ptr: *const cs::CorpusStorage,
+    corpus: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
+    err: *mut *mut ErrorList,
+) -> bool {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+
+    let query = cstr!(query_as_aql);
+    let corpus = cstr!(corpus);
+
+    return try_cerr!(cs.validate_query(&corpus, &query), err, false);
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_node_descriptions(
+    ptr: *const cs::CorpusStorage,
+    query_as_aql: *const libc::c_char,
+    err: *mut *mut ErrorList,
+) -> *mut Vec<NodeDesc> {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+
+    let query = cstr!(query_as_aql);
+
+    let result = try_cerr!(cs.node_descriptions(&query), err, std::ptr::null_mut());
+    return Box::into_raw(Box::new(result));
+}
+
 
 #[no_mangle]
 pub extern "C" fn annis_cs_import_relannis(

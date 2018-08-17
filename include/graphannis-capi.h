@@ -188,6 +188,10 @@ AnnisMatrix_AnnisCString *annis_cs_list_node_annotations(const AnnisCorpusStorag
  */
 AnnisCorpusStorage *annis_cs_new(const char *db_dir, bool use_parallel);
 
+AnnisVec_AnnisNodeDesc *annis_cs_node_descriptions(const AnnisCorpusStorage *ptr,
+                                                   const char *query_as_aql,
+                                                   AnnisErrorList **err);
+
 AnnisGraphDB *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
                                        const char *corpus_name,
                                        const AnnisVec_AnnisCString *corpus_ids,
