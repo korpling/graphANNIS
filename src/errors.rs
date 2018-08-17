@@ -45,7 +45,7 @@ error_chain! {
 
         AQLSyntaxError(desc : String) {
             description("AQLSyntaxError"),
-            display("AQL semantic error: {}", desc),
+            display("AQL syntax error: {}", desc),
         }
 
         AQLSemanticError(desc : String) {

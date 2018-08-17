@@ -182,7 +182,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
             return Ok(Disjunction::new(alternatives));
         }
         Err(e) => {
-            return Err(format!("{}", e).into());
+            return Err(ErrorKind::AQLSyntaxError(format!("{}", e)).into());
         }
     };
 }
