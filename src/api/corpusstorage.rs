@@ -736,14 +736,20 @@ impl CorpusStorage {
     }
 
     pub fn node_descriptions(&self, query_as_aql: &str) -> Result<Vec<NodeDesc>> {
+        let mut result = Vec::new();
         // parse query
         let q : Disjunction= aql::parse(query_as_aql).chain_err(|| "Could not parse AQL")?;
+        let mut component_nr = 0;
         for alt in q.alternatives.into_iter() {
             let alt : Conjunction = alt;
-            
+            for mut n in alt.get_node_descriptions().into_iter() {
+                n.component_nr = component_nr;
+                result.push(n);
+            }
+            component_nr += 1;
         }
 
-        unimplemented!()
+        return Ok(result);
     }
 
     pub fn count(&self, corpus_name: &str, query_as_aql: &str) -> Result<u64> {
