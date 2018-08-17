@@ -1,12 +1,12 @@
 [package]
 name = "graphannis"
-version = "0.8.0" #:version
+version = "0.8.1" #:version
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"
 description = "This is a prototype for a new backend implementation of the ANNIS linguistic search and visualization system."
 repository= "https://github.com/corpus-tools/graphANNIS"
-readme = "../README.md"
+readme = "README.md"
 autobins=true
 build = "build.rs"
 
@@ -56,6 +56,7 @@ kernel32-sys = { version = "0.2.2" }
 
 [dev-dependencies]
 bencher = "0.1"
+simplelog = "0.5"
 
 [features]
 cli = ["rustyline", "simplelog", "clap", "bencher", "prettytable-rs"]

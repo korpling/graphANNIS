@@ -34,9 +34,27 @@ macro_rules! cstr {
     }
 }
 
+macro_rules! try_cerr {
+    ($x:expr , $err_ptr:ident, $default_return_val:expr) => {
+        match $x {
+            Ok(v) => v,
+            Err(err) => {
+                if !$err_ptr.is_null() {
+                    unsafe {*$err_ptr = cerror::new(err);}
+                }
+                return $default_return_val;
+            }
+        }
+    }
+}
+
+
+
+
+
 pub mod corpusstorage;
 pub mod update;
 pub mod data;
-pub mod error;
+pub mod cerror;
 pub mod graph;
 pub mod logging;

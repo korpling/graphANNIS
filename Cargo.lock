@@ -336,7 +336,7 @@ dependencies = [
 
 [[package]]
 name = "graphannis"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "bencher 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",

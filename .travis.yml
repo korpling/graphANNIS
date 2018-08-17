@@ -15,10 +15,7 @@ branches:
     # Release tags
     - /^v\d+\.\d+\.\d+.*$/
     - test-release-tag-please-ignore
-    - master
     - develop
-    - travis
-    - staging
 
 script:
   - RUST_BACKTRACE=1 cargo test --verbose --all-features

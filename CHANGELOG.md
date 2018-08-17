@@ -1,3 +1,22 @@
+release v0.8.1
+==============
+
+Fixed Bugs
+----------
+
+- [#9](https://github.com/corpus-tools/graphANNIS/issues/9) Wait for all background writers before dropping the CorpusStorage
+
+release v0.8.0
+==============
+
+Enhancements
+------------
+
+- [#7](https://github.com/corpus-tools/graphANNIS/issues/7) Use error-chain crate for internal error management
+- [#6](https://github.com/corpus-tools/graphANNIS/issues/6) Use features of a single crate instead of multiple crates
+- [#5](https://github.com/corpus-tools/graphANNIS/issues/5) Allow to delete corpora from the command line
+- [#4](https://github.com/corpus-tools/graphANNIS/issues/4) Use file lock to prevent opening the same GraphDB in different processes
+
 release v0.7.1
 ==============
 
