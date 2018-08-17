@@ -110,6 +110,7 @@ typedef struct {
 typedef struct {
   uintptr_t component_nr;
   AnnisString aql_fragment;
+  AnnisString variable;
 } AnnisNodeDesc;
 
 char *annis_component_layer(const AnnisComponent *c);
@@ -203,6 +204,11 @@ AnnisGraphDB *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
                                           const char *corpus_name,
                                           const char *query_as_aql,
                                           AnnisErrorList **err);
+
+bool annis_cs_validate_query(const AnnisCorpusStorage *ptr,
+                             const char *corpus,
+                             const char *query_as_aql,
+                             AnnisErrorList **err);
 
 const char *annis_error_get_kind(const AnnisErrorList *ptr, size_t i);
 
