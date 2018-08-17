@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use types::Edge;
 use annostorage::AnnoStorage;
-use {Component, Match};
+use {Component, Match, NodeDesc};
 use graphdb::GraphDB;
 use graphstorage::GraphStatistic;
 use operator::{Operator, OperatorSpec};
@@ -36,7 +36,7 @@ struct OperatorEntry<'a> {
 
 #[derive(Debug)]
 pub struct Conjunction<'a> {
-    nodes: Vec<NodeSearchSpec>,
+    nodes: Vec<(String, NodeSearchSpec)>,
     operators: Vec<OperatorEntry<'a>>,
     variables : HashMap<String, usize>,
 }
@@ -98,6 +98,19 @@ impl<'a> Conjunction<'a> {
         Disjunction::new(vec![self])
     }
 
+    pub fn get_node_descriptions(&self) -> Vec<NodeDesc> {
+        let mut result = Vec::default();
+        for (var, spec) in self.nodes.iter() {
+            let desc = NodeDesc {
+                component_nr: 0,
+                aql_fragment: format!("{}", spec),
+                variable: var.clone(),
+            };
+            result.push(desc);
+        }
+        return result; 
+    }
+
     pub fn add_node(&mut self, node: NodeSearchSpec, variable : Option<&str>,) -> String {
         let idx = self.nodes.len();
         let variable = if let Some(variable) = variable {
@@ -105,7 +118,7 @@ impl<'a> Conjunction<'a> {
         } else {
             (idx+1).to_string()
         };
-        self.nodes.push(node);
+        self.nodes.push((variable.clone(), node));
         self.variables.insert(variable.clone(), idx);
         return variable;
     }
@@ -407,7 +420,7 @@ impl<'a> Conjunction<'a> {
 
         {
             for node_nr in 0..self.nodes.len() {
-                let n_spec = &self.nodes[node_nr];
+                let n_spec = &self.nodes[node_nr].1;
                 let mut node_search = NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(
                     ErrorKind::ImpossibleSearch(format!(
                         "could not create node search for node {} ({})",

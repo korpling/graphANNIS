@@ -30,7 +30,7 @@ use types;
 use util;
 use util::memory_estimation;
 use FrequencyTable;
-use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID};
+use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID, NodeDesc};
 
 use fxhash::FxHashMap;
 
@@ -724,6 +724,26 @@ impl CorpusStorage {
         // TODO: persist changes
 
         Ok(())
+    }
+
+    pub fn validate_query(&self, corpus_name: &str, query_as_aql: &str) -> Result<bool> {
+        let prep : PreparationResult = self.prepare_query(corpus_name, query_as_aql, vec![])?;
+        // also get the semantic errors by creating an execution plan on the actual GraphDB
+        let lock = prep.db_entry.read().unwrap();
+        let db = get_read_or_error(&lock)?;
+        ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        return Ok(true);
+    }
+
+    pub fn node_descriptions(&self, query_as_aql: &str) -> Result<Vec<NodeDesc>> {
+        // parse query
+        let q : Disjunction= aql::parse(query_as_aql).chain_err(|| "Could not parse AQL")?;
+        for alt in q.alternatives.into_iter() {
+            let alt : Conjunction = alt;
+            
+        }
+
+        unimplemented!()
     }
 
     pub fn count(&self, corpus_name: &str, query_as_aql: &str) -> Result<u64> {

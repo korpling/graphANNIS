@@ -2,7 +2,7 @@ use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
 
-use {Matrix,FrequencyTable,Annotation, NodeID, Edge, Component};
+use {Matrix,FrequencyTable,Annotation, NodeID, Edge, Component, NodeDesc};
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {
@@ -22,6 +22,16 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
         // take ownership and destruct
         CString::from_raw(s)
     };
+}
+
+/// Allocates a new char* based on an existing internal string. 
+/// 
+/// Result must be manually freed with annis_str_free(char* )! 
+#[no_mangle]
+pub extern "C" fn annis_string_copy(ptr : * const String) -> * mut c_char {
+    let strref : &String = cast_const!(ptr);
+    let cstr = CString::new(strref.as_str()).unwrap_or(CString::default());
+    return cstr.into_raw();
 }
 
 pub type IterPtr<T> = Box<Iterator<Item=T>>;
@@ -96,6 +106,12 @@ pub extern "C" fn annis_vec_component_size(ptr : * const Vec<Component>) -> size
 
 #[no_mangle]
 pub extern "C" fn annis_vec_component_get(ptr : * const Vec<Component>, i : size_t) -> * const Component { vec_get(ptr, i)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_size(ptr : * const Vec<NodeDesc>) -> size_t {vec_size(ptr)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_get(ptr : * const Vec<NodeDesc>, i : size_t) -> * const NodeDesc { vec_get(ptr, i)}
 
 #[no_mangle]
 pub extern "C" fn annis_matrix_str_nrows(ptr : * const Matrix<CString>) -> size_t {vec_size(ptr)}

@@ -98,3 +98,11 @@ impl NumValue for u8 {}
 pub type Matrix<T> = Vec<Vec<T>>;
 
 pub type FrequencyTable<T> = Vec<(Vec<T>, usize)>;
+
+
+#[repr(C)]
+pub struct NodeDesc {
+    pub component_nr: usize,
+    pub aql_fragment : String,
+    pub variable: String,
+}
