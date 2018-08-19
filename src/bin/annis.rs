@@ -299,11 +299,10 @@ impl AnnisRunner {
                 info!{"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(plan) = plan {
-                println!("{}", plan);
-            } else {
-                println!("Error when executing query: {:?}", plan);
-            }
+            match plan {
+                Ok(plan) => println!("{}", plan),
+                Err(e) => println!("{}", e),
+            };
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -319,11 +318,11 @@ impl AnnisRunner {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(c) = c {
-                println!("result: {} matches", c);
-            } else {
-                println!("Error when executing query: {:?}", c);
-            }
+            match c {
+                Ok(c) => println!("result: {} matches", c),
+                Err(e) => println!("{}", e),
+            };
+
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -339,13 +338,14 @@ impl AnnisRunner {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(matches) = matches {
-                for m in matches {
-                    println!("{}", m);
+            match matches {
+                Ok(matches) => {
+                    for m in matches {
+                        println!("{}", m);
+                    }
                 }
-            } else {
-                println!("Error when executing query: {:?}", matches);
-            }
+                Err(e) => println!("{}", e),
+            };
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }

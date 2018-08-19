@@ -12,6 +12,7 @@ use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use lalrpop_util::ParseError;
 
 fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
     match op {
@@ -182,7 +183,27 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
             return Ok(Disjunction::new(alternatives));
         }
         Err(e) => {
-            return Err(ErrorKind::AQLSyntaxError(format!("{}", e)).into());
+            let short_desc = match e {
+                ParseError::InvalidToken{..} => "Invalid token detected.",
+                ParseError::ExtraToken{..} => "Extra token at end of query.",
+                ParseError::UnrecognizedToken{..} => "Unexpected token in query.",
+                ParseError::User{error} => error,
+            };
+            let location = "[unknown location]";
+            let hint = match e {
+                ParseError::UnrecognizedToken{expected, ..} => {
+                    if expected.is_empty() {
+                        None
+                    } else {
+                        let mut hint = String::from("Expected one of: ");
+                        hint.push_str(&expected.join(","));
+                        //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
+                        Some(hint)
+                    }
+                },
+                _ => None,
+            };
+            return Err(ErrorKind::AQLSyntaxError(short_desc.to_string(), location.to_string(), hint).into());
         }
     };
 }

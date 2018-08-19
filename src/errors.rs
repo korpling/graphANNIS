@@ -43,9 +43,15 @@ error_chain! {
             display("Corpus {} not found", &name)
         }
 
-        AQLSyntaxError(desc : String) {
+        AQLSyntaxError(short_desc : String, location_desc : String, hint : Option<String>) {
             description("AQLSyntaxError"),
-            display("AQL syntax error: {}", desc),
+            display("{}", {
+                if let Some(hint) = hint {
+                    format!("{}\n{}\n{}", short_desc, location_desc, hint)
+                } else {
+                    format!("{}\n{}", short_desc, location_desc)
+                }
+            }),
         }
 
         AQLSemanticError(desc : String) {
