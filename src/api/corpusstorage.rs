@@ -647,7 +647,7 @@ impl CorpusStorage {
         let (q, missing_components) = {
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            let q = aql::parse(query_as_aql).chain_err(|| "Could not parse AQL")?;
+            let q = aql::parse(query_as_aql)?;
             let necessary_components = q.necessary_components(db);
 
             let mut missing: HashSet<Component> =
