@@ -14,19 +14,6 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use lalrpop_util::ParseError;
 
-fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
-    match op {
-        ast::BinaryOpSpec::Dominance(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Pointing(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Precedence(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Overlap(spec) => Box::new(spec),
-        ast::BinaryOpSpec::IdenticalCoverage(spec) => Box::new(spec),
-        ast::BinaryOpSpec::PartOfSubCorpus(spec) => Box::new(spec),
-        ast::BinaryOpSpec::Inclusion(spec) => Box::new(spec),
-        ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
-    }
-}
-
 pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
     let ast = parser::DisjunctionParser::new().parse(query_as_aql);
     match ast {
@@ -189,7 +176,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 ParseError::UnrecognizedToken{..} => "Unexpected token in query.",
                 ParseError::User{error} => error,
             };
-            let location = "[unknown location]";
+            let location = extract_location_description(&e, query_as_aql);
             let hint = match e {
                 ParseError::UnrecognizedToken{expected, ..} => {
                     if expected.is_empty() {
@@ -207,3 +194,81 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
         }
     };
 }
+
+fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
+    match op {
+        ast::BinaryOpSpec::Dominance(spec) => Box::new(spec),
+        ast::BinaryOpSpec::Pointing(spec) => Box::new(spec),
+        ast::BinaryOpSpec::Precedence(spec) => Box::new(spec),
+        ast::BinaryOpSpec::Overlap(spec) => Box::new(spec),
+        ast::BinaryOpSpec::IdenticalCoverage(spec) => Box::new(spec),
+        ast::BinaryOpSpec::PartOfSubCorpus(spec) => Box::new(spec),
+        ast::BinaryOpSpec::Inclusion(spec) => Box::new(spec),
+        ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
+    }
+}
+
+
+fn get_line_offsets(input : &str) -> BTreeMap<usize, usize> {
+    let mut offsets = BTreeMap::default();
+
+    let mut o = 0;
+    let mut l = 1;
+    for line in input.split("\n") {
+        offsets.insert(o,l );
+        o += line.len() + 1;
+        l +=1;
+    }
+
+    return offsets;
+}
+
+fn get_line_and_column_for_pos(pos : usize, offset_to_line : &BTreeMap<usize, usize>) -> (usize, usize) {
+    // get the offset for the position by searching for all offsets smaller than the position and taking the last one
+    for (offset, line) in offset_to_line.range(..pos+1).rev() {
+        // column starts with 1 at line offset
+        let column : usize = pos-offset+1;
+        return (*line, column);
+    }
+
+    return (0,0);
+}
+
+fn extract_location_description<'a>(e : &ParseError<usize, parser::Token<'a>, &'static str>, input : &'a str) -> String {
+    let offsets = get_line_offsets(input);
+
+    let from_to = match e {
+         ParseError::InvalidToken{location} => (Some(get_line_and_column_for_pos(*location, &offsets)), None),
+         ParseError::ExtraToken{token} => {
+             let start = get_line_and_column_for_pos(token.0, &offsets);
+             let end = get_line_and_column_for_pos(token.2-1, &offsets);
+             (Some(start), Some(end))
+         },
+         ParseError::UnrecognizedToken{token, ..} => {
+             if let Some(token) = token {
+                let start = get_line_and_column_for_pos(token.0, &offsets);
+                let end = get_line_and_column_for_pos(token.2-1, &offsets);
+                (Some(start), Some(end))
+             } else {
+                 // set to end of query
+                 let start = get_line_and_column_for_pos(input.len()-1, &offsets);
+                 (Some(start), None)
+             }
+         },
+         ParseError::User{..} => (None, None),
+     };
+
+     let prefix = if let (Some(start), Some(end)) = from_to {
+         if start == end {
+             format!("[{}:{}]", start.0, start.1)
+         } else {
+             format!("[{}:{}-{}:{}]", start.0, start.1, end.0, end.1)
+         }
+     } else if let Some(start) = from_to.0 {
+         format!("[{}:{}]", start.0, start.1)
+     } else {
+         "[unknown location]".to_string()
+     };
+
+     prefix
+ }
