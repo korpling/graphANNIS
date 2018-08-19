@@ -329,9 +329,19 @@ size_t annis_vec_edge_size(const AnnisVec_AnnisEdge *ptr);
 /*
  * Result char* must be freeed with annis_str_free!
  */
+char *annis_vec_nodedesc_get_anno_name(const AnnisVec_AnnisNodeDesc *ptr, size_t i);
+
+/*
+ * Result char* must be freeed with annis_str_free!
+ */
 char *annis_vec_nodedesc_get_aql_fragment(const AnnisVec_AnnisNodeDesc *ptr, size_t i);
 
 uintptr_t annis_vec_nodedesc_get_component_nr(const AnnisVec_AnnisNodeDesc *ptr, size_t i);
+
+/*
+ * Result char* must be freeed with annis_str_free!
+ */
+char *annis_vec_nodedesc_get_variable(const AnnisVec_AnnisNodeDesc *ptr, size_t i);
 
 size_t annis_vec_nodedesc_size(const AnnisVec_AnnisNodeDesc *ptr);
 

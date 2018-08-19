@@ -101,10 +101,16 @@ impl<'a> Conjunction<'a> {
     pub fn get_node_descriptions(&self) -> Vec<NodeDesc> {
         let mut result = Vec::default();
         for (var, spec) in self.nodes.iter() {
+            let anno_name = match spec {
+                NodeSearchSpec::ExactValue{name, ..} => Some(name.clone()),
+                NodeSearchSpec::RegexValue{name, ..} => Some(name.clone()),
+                _ => None,
+            };
             let desc = NodeDesc {
                 component_nr: 0,
                 aql_fragment: format!("{}", spec),
                 variable: var.clone(),
+                anno_name,
             };
             result.push(desc);
         }

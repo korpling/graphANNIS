@@ -108,6 +108,7 @@ pub extern "C" fn annis_vec_nodedesc_get_component_nr(ptr : * const Vec<NodeDesc
     return desc.component_nr;
 }
 
+
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
 pub extern "C" fn annis_vec_nodedesc_get_aql_fragment(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
@@ -124,6 +125,20 @@ pub extern "C" fn annis_vec_nodedesc_get_variable(ptr : * const Vec<NodeDesc>, i
     let desc : &NodeDesc = cast_const!(desc_ptr);
     let cstr : CString = CString::new(desc.variable.as_str()).unwrap_or(CString::default());
     return cstr.into_raw();
+}
+
+/// Result char* must be freeed with annis_str_free!
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_get_anno_name(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
+    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
+    let desc : &NodeDesc = cast_const!(desc_ptr);
+    if let Some(ref anno_name) = desc.anno_name {
+        let cstr : CString = CString::new(anno_name.as_str()).unwrap_or(CString::default());
+        return cstr.into_raw();
+    } else {
+        return std::ptr::null_mut();
+    }
+    
 }
 
 #[no_mangle]

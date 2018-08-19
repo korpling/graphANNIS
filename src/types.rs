@@ -103,4 +103,5 @@ pub struct NodeDesc {
     pub component_nr: usize,
     pub aql_fragment : String,
     pub variable: String,
+    pub anno_name : Option<String>,
 }
