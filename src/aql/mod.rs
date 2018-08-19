@@ -270,5 +270,7 @@ fn extract_location_description<'a>(e : &ParseError<usize, parser::Token<'a>, &'
          "[unknown location]".to_string()
      };
 
+     // TODO: extract context and add it to output
+
      prefix
  }
