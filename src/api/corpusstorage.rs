@@ -738,7 +738,7 @@ impl CorpusStorage {
     pub fn node_descriptions(&self, query_as_aql: &str) -> Result<Vec<NodeDesc>> {
         let mut result = Vec::new();
         // parse query
-        let q : Disjunction= aql::parse(query_as_aql).chain_err(|| "Could not parse AQL")?;
+        let q : Disjunction= aql::parse(query_as_aql)?;
         let mut component_nr = 0;
         for alt in q.alternatives.into_iter() {
             let alt : Conjunction = alt;
