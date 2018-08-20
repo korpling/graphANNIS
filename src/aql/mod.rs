@@ -160,7 +160,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
 
                 for f in c.into_iter() {
                     if let ast::Factor::Literal(literal) = f {
-                        if let ast::Literal::BinaryOp { lhs, op, rhs, .. } = literal {
+                        if let ast::Literal::BinaryOp { lhs, op, rhs, pos } = literal {
                             let idx_left = match lhs {
                                 ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
                                     .entry(pos.start)
@@ -183,7 +183,21 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                 },
                             };
 
-                            q.add_operator(make_operator_spec(op), &idx_left, &idx_right)?;
+                            let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
+                                Some(LineColumnRange {
+                                    start: get_line_and_column_for_pos(pos.start, &offsets),
+                                    end: Some(get_line_and_column_for_pos(pos.end, &offsets)),
+                                })
+                            } else {
+                                None
+                            };
+
+                            q.add_operator_from_query(
+                                make_operator_spec(op),
+                                &idx_left,
+                                &idx_right,
+                                op_pos,
+                            )?;
                         }
                     }
                 }
@@ -214,11 +228,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 }
                 _ => None,
             };
-            return Err(ErrorKind::AQLSyntaxError(
-                short_desc.to_string(),
-                location,
-                hint,
-            ).into());
+            return Err(ErrorKind::AQLSyntaxError(short_desc.to_string(), location, hint).into());
         }
     };
 }
@@ -258,10 +268,13 @@ pub fn get_line_and_column_for_pos(
     for (offset, line) in offset_to_line.range(..pos + 1).rev() {
         // column starts with 1 at line offset
         let column: usize = pos - offset + 1;
-        return LineColumn{line: *line, column};
+        return LineColumn {
+            line: *line,
+            column,
+        };
     }
 
-    return LineColumn{line:0, column:0};
+    return LineColumn { line: 0, column: 0 };
 }
 
 fn extract_location<'a>(
