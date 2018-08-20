@@ -1,5 +1,7 @@
 extern crate lalrpop;
 
+use lalrpop::Configuration;
+
 fn main() {
-    lalrpop::process_root().unwrap();
+    Configuration::new().use_cargo_dir_conventions().process().unwrap();
 }
