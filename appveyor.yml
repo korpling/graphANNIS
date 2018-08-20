@@ -78,11 +78,8 @@ branches:
     # Release tags
     - /^v\d+\.\d+\.\d+.*$/
     - test-release-tag-please-ignore
-    - master
     - develop
-    - appveyor
-    - staging
-
+    
 notifications:
   - provider: Email
     on_build_success: false

@@ -5,7 +5,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Console",
-            "program": "${workspaceRoot}/target/debug/annis_runner",
+            "program": "${workspaceRoot}/target/debug/annis",
             "args": [
                 "data"
             ],

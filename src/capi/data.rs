@@ -2,7 +2,7 @@ use std::ffi::CString;
 use libc::{size_t, c_char, c_void};
 use std;
 
-use {Matrix,FrequencyTable,Annotation, NodeID, Edge, Component};
+use {Matrix,FrequencyTable,Annotation, NodeID, Edge, Component, NodeDesc};
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {
@@ -23,6 +23,7 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
         CString::from_raw(s)
     };
 }
+
 
 pub type IterPtr<T> = Box<Iterator<Item=T>>;
 
@@ -96,6 +97,49 @@ pub extern "C" fn annis_vec_component_size(ptr : * const Vec<Component>) -> size
 
 #[no_mangle]
 pub extern "C" fn annis_vec_component_get(ptr : * const Vec<Component>, i : size_t) -> * const Component { vec_get(ptr, i)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_size(ptr : * const Vec<NodeDesc>) -> size_t {vec_size(ptr)}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_get_component_nr(ptr : * const Vec<NodeDesc>, i : size_t) -> usize { 
+    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
+    let desc : &NodeDesc = cast_const!(desc_ptr);
+    return desc.component_nr;
+}
+
+
+/// Result char* must be freeed with annis_str_free!
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_get_aql_fragment(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
+    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
+    let desc : &NodeDesc = cast_const!(desc_ptr);
+    let cstr : CString = CString::new(desc.aql_fragment.as_str()).unwrap_or(CString::default());
+    return cstr.into_raw();
+}
+
+/// Result char* must be freeed with annis_str_free!
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_get_variable(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
+    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
+    let desc : &NodeDesc = cast_const!(desc_ptr);
+    let cstr : CString = CString::new(desc.variable.as_str()).unwrap_or(CString::default());
+    return cstr.into_raw();
+}
+
+/// Result char* must be freeed with annis_str_free!
+#[no_mangle]
+pub extern "C" fn annis_vec_nodedesc_get_anno_name(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
+    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
+    let desc : &NodeDesc = cast_const!(desc_ptr);
+    if let Some(ref anno_name) = desc.anno_name {
+        let cstr : CString = CString::new(anno_name.as_str()).unwrap_or(CString::default());
+        return cstr.into_raw();
+    } else {
+        return std::ptr::null_mut();
+    }
+    
+}
 
 #[no_mangle]
 pub extern "C" fn annis_matrix_str_nrows(ptr : * const Matrix<CString>) -> size_t {vec_size(ptr)}

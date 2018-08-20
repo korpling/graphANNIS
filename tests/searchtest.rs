@@ -14,7 +14,7 @@ thread_local!{
          let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
             path
         } else {
-            String::from("../data")
+            String::from("data")
         });
 
         // only execute the test if the directory exists
@@ -31,7 +31,7 @@ fn get_query_dir() -> PathBuf {
     let query_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_QUERIES") {
         path
     } else {
-        String::from("../queries")
+        String::from("queries")
     });
     query_dir
 }
@@ -47,7 +47,7 @@ fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
                     let mut d = get_query_dir();
                     d.push(query_set);
                     for def in util::get_queries_from_folder(&d, panic_on_invalid) {
-                        let count = cs.count(corpus, &def.json).unwrap_or(0);
+                        let count = cs.count(corpus, &def.aql).unwrap_or(0);
                         assert_eq!(
                             def.count, count,
                             "Query '{}' ({}) on corpus {} should have had count {} but was {}.",

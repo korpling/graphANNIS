@@ -1,9 +1,8 @@
 use {Match, AnnoKey, NodeID};
 use graphdb::GraphDB;
-use query::conjunction;
 use query::disjunction::Disjunction;
 use query::Config;
-use exec::{Desc, ExecutionNode};
+use exec::{Desc, ExecutionNode, EmptyResultSet};
 use std;
 use std::fmt::Formatter;
 use std::collections::HashSet;
@@ -26,28 +25,33 @@ impl<'a> ExecutionPlan<'a> {
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();
-        let mut errors: Vec<conjunction::Error> = Vec::new();
         for alt in query.alternatives.iter() {
             let p = alt.make_exec_node(db, &config);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);
             } else if let Err(e) = p {
-                errors.push(e);
+                match e.kind() {
+                    ErrorKind::AQLSemanticError(_,_) => return Err(e),
+                    _ => {},
+                }
             }
         }
 
         if plans.is_empty() {
-            return Err(ErrorKind::ImpossibleSearch(errors).into());
-        } else {
-            return Ok(ExecutionPlan {
-                current_plan: 0,
-                descriptions,
-                proxy_mode: plans.len() == 1,
-                plans,
-                unique_result_set: HashSet::new(),
-            });
+            // add a dummy execution step that yields no results
+            let no_results_exec = EmptyResultSet{};
+            plans.push(Box::new(no_results_exec));
+            descriptions.push(None);
         }
+        return Ok(ExecutionPlan {
+            current_plan: 0,
+            descriptions,
+            proxy_mode: plans.len() == 1,
+            plans,
+            unique_result_set: HashSet::new(),
+        });
+    
     }
 }
 

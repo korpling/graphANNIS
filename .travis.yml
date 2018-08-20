@@ -15,17 +15,14 @@ branches:
     # Release tags
     - /^v\d+\.\d+\.\d+.*$/
     - test-release-tag-please-ignore
-    - master
     - develop
-    - travis
-    - staging
 
 script:
-  - RUST_BACKTRACE=1 cargo test --verbose --all-features
+  - RUST_BACKTRACE=1 cargo test --all-features --release
   -  "./misc/download-gum-corpus.sh"
-  - cargo build --verbose --release --all-features
+  - cargo build --release --all-features
   - ./target/release/annis data --cmd 'import relannis/GUM'
-  - cargo test --release --verbose  -- --ignored
+  - cargo test --release  -- --ignored
 
 before_deploy:
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
