@@ -369,7 +369,7 @@ impl<'a> NodeSearch<'a> {
                     }));
                 }
                 Err(e) => bail!(ErrorKind::AQLSemanticError(format!(
-                    "Invalid regular expression '{}': {}",
+                    "/{}/ -> {}",
                     val, e
                 ))),
             }
@@ -471,7 +471,7 @@ impl<'a> NodeSearch<'a> {
                         };
                     })),
                     Err(e) => bail!(ErrorKind::AQLSemanticError(format!(
-                        "Invalid regular expression '{}': {}",
+                        "/{}/ -> {}",
                         v, e
                     ))),
                 };
