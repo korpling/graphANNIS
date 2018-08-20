@@ -470,6 +470,7 @@ impl<'a> Conjunction<'a> {
             for node_nr in 0..self.nodes.len() {
                 let n_spec = &self.nodes[node_nr].1;
                 let n_var = &self.nodes[node_nr].0;
+
                 let mut node_search = NodeSearch::from_spec(
                     n_spec.clone(),
                     node_nr,
@@ -545,26 +546,25 @@ impl<'a> Conjunction<'a> {
 
             let component_left = node2component
                 .get(&spec_idx_left)
-                .ok_or(ErrorKind::ImpossibleSearch(format!(
-                    "no component for node #{}",
+                .ok_or(format!("no component for node #{}",
                     spec_idx_left + 1
-                )))?
+                ))?
                 .clone();
             let component_right = node2component
                 .get(&spec_idx_right)
-                .ok_or(ErrorKind::ImpossibleSearch(format!(
+                .ok_or(format!(
                     "no component for node #{}",
                     spec_idx_right + 1
-                )))?
+                ))?
                 .clone();
 
             // get the original execution node
             let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&component_left)
-                .ok_or(ErrorKind::ImpossibleSearch(format!(
+                .ok_or(format!(
                     "no execution node for component {}",
                     component_left
-                )))?;
+                ))?;
 
             let idx_left = exec_left
                 .get_desc()
@@ -596,11 +596,10 @@ impl<'a> Conjunction<'a> {
                     );
                     Box::new(filter)
                 } else {
-                    let exec_right = component2exec.remove(&component_right).ok_or(
-                        ErrorKind::ImpossibleSearch(format!(
+                    let exec_right = component2exec.remove(&component_right).ok_or(format!(
                             "no execution node for component {}",
                             component_right
-                        )),
+                        ),
                     )?;
                     let idx_right = exec_right
                         .get_desc()
@@ -625,9 +624,7 @@ impl<'a> Conjunction<'a> {
 
             let new_component_nr = new_exec
                 .get_desc()
-                .ok_or(ErrorKind::ImpossibleSearch(String::from(
-                    "missing description for execution node",
-                )))?
+                .ok_or("missing description for execution node")?
                 .component_nr;
             update_components_for_nodes(&mut node2component, component_left, new_component_nr);
             update_components_for_nodes(&mut node2component, component_right, new_component_nr);
