@@ -197,6 +197,29 @@ pub trait ExecutionNode: Iterator {
     }
 }
 
+pub struct EmptyResultSet;
+
+impl Iterator for EmptyResultSet {
+    type Item = Vec<Match>;
+
+    fn next(&mut self) -> Option<Vec<Match>> {
+        None
+    }
+}
+
+impl ExecutionNode for EmptyResultSet {
+    fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
+        self
+    }
+    fn as_nodesearch<'a>(&'a self) -> Option<&'a NodeSearch> {
+        None
+    }
+
+    fn get_desc(&self) -> Option<&Desc> {
+        None
+    }
+}
+
 pub mod parallel;
 pub mod nestedloop;
 pub mod indexjoin;
