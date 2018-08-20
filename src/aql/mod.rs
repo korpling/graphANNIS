@@ -208,27 +208,24 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
             return Ok(Disjunction::new(alternatives));
         }
         Err(e) => {
-            let short_desc = match e {
+            let mut desc = match e {
                 ParseError::InvalidToken { .. } => "Invalid token detected.",
                 ParseError::ExtraToken { .. } => "Extra token at end of query.",
                 ParseError::UnrecognizedToken { .. } => "Unexpected token in query.",
                 ParseError::User { error } => error,
-            };
+            }.to_string();
             let location = extract_location(&e, query_as_aql);
-            let hint = match e {
+            match e {
                 ParseError::UnrecognizedToken { expected, .. } => {
-                    if expected.is_empty() {
-                        None
-                    } else {
-                        let mut hint = String::from("Expected one of: ");
-                        hint.push_str(&expected.join(","));
-                        //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
-                        Some(hint)
+                    if !expected.is_empty() {
+                       //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
+                        desc.push_str("Expected one of: ");
+                        desc.push_str(&expected.join(","));
                     }
                 }
-                _ => None,
+                _ => {},
             };
-            return Err(ErrorKind::AQLSyntaxError(short_desc.to_string(), location, hint).into());
+            return Err(ErrorKind::AQLSyntaxError(desc, location).into());
         }
     };
 }

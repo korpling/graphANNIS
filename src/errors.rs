@@ -45,35 +45,27 @@ error_chain! {
             display("Corpus {} not found", &name)
         }
 
-        AQLSyntaxError(short_desc : String, location : Option<LineColumnRange>, hint : Option<String>) {
+        AQLSyntaxError(msg : String, location : Option<LineColumnRange>) {
             description("AQLSyntaxError"),
             display("{}", {
-                let mut result = String::new();
-                result.push_str(short_desc);
-                result.push('\n');
                 if let Some(location) = location {
-                    result.push_str(&format!("[{}]\n", location));
+                    format!("[{}] {}", &location, msg)
+                } else {
+                    msg.to_string()
                 }
-                if let Some(hint) = hint {
-                    result.push_str(&format!("{}\n", hint));
-                }
-                result
+
             }),
         }
 
-        AQLSemanticError(short_desc : String, location : Option<LineColumnRange>, hint : Option<String>) {
+        AQLSemanticError(msg : String, location : Option<LineColumnRange>) {
             description("AQLSemanticError"),
             display("{}", {
-                let mut result = String::new();
-                result.push_str(short_desc);
-                result.push('\n');
                 if let Some(location) = location {
-                    result.push_str(&format!("[{}]\n", location));
+                    format!("[{}] {}", &location, msg)
+                } else {
+                    msg.to_string()
                 }
-                if let Some(hint) = hint {
-                    result.push_str(&format!("{}\n", hint));
-                }
-                result
+
             }),
         }
     }

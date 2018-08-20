@@ -32,7 +32,7 @@ impl<'a> ExecutionPlan<'a> {
                 plans.push(p);
             } else if let Err(e) = p {
                 match e.kind() {
-                    ErrorKind::AQLSemanticError(_,_,_) => return Err(e),
+                    ErrorKind::AQLSemanticError(_,_) => return Err(e),
                     _ => {},
                 }
             }

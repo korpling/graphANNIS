@@ -151,7 +151,7 @@ impl<'a> Conjunction<'a> {
             });
             return Ok(());
         } else {
-            return Err(ErrorKind::AQLSemanticError("Operand not found".into(), location, None).into());
+            return Err(ErrorKind::AQLSemanticError("Operand not found".into(), location).into());
         }
 
     }
@@ -605,7 +605,7 @@ impl<'a> Conjunction<'a> {
             } else if let Some(first) = first_component_id {
                 if first != *cid {
                     // TODO: add location and description which nodes are not connected
-                    return Err(ErrorKind::AQLSemanticError("Components not connected".to_string(), None, None).into());
+                    return Err(ErrorKind::AQLSemanticError("Components not connected".to_string(), None).into());
                 }
             }
         }

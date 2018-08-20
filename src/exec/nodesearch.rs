@@ -264,7 +264,6 @@ impl<'a> NodeSearch<'a> {
             .ok_or(ErrorKind::AQLSemanticError(
                 format!("Annotation with name '{}' does not exist", &name),
                 location_in_query.clone(),
-                None,
             ))?
             .clone();
         // not finding the strings will result in an None result, not in an less specific search
@@ -272,7 +271,6 @@ impl<'a> NodeSearch<'a> {
             Some(db.strings.find_id(ns).ok_or(ErrorKind::AQLSemanticError(
                 format!("Namespace '{}' does not exist", ns),
                 location_in_query.clone(),
-                None,
             ))?).cloned()
         } else {
             None
@@ -372,7 +370,7 @@ impl<'a> NodeSearch<'a> {
                         };
                     }));
                 }
-                Err(e) => bail!(ErrorKind::AQLSemanticError(format!("/{}/ -> {}", val, e), location_in_query, None)),
+                Err(e) => bail!(ErrorKind::AQLSemanticError(format!("/{}/ -> {}", val, e), location_in_query)),
             }
         } else if val_id.is_some() {
             filters.push(Box::new(move |m, _| {
@@ -472,7 +470,7 @@ impl<'a> NodeSearch<'a> {
                             return false;
                         };
                     })),
-                    Err(e) => bail!(ErrorKind::AQLSemanticError(format!("/{}/ -> {}", v, e), location_in_query, None)),
+                    Err(e) => bail!(ErrorKind::AQLSemanticError(format!("/{}/ -> {}", v, e), location_in_query)),
                 };
             } else {
                 let val_id = db
