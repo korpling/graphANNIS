@@ -33,13 +33,12 @@ extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;
 
-extern crate serde_json;
-
 extern crate num;
 extern crate itertools;
 extern crate rayon;
 extern crate sys_info;
 extern crate fs2;
+extern crate lalrpop_util;
 
 pub mod errors;
 
@@ -59,7 +58,7 @@ pub mod relannis;
 mod plan;
 pub mod exec;
 mod query;
-pub mod parser;
+pub mod aql;
 
 pub mod api;
 

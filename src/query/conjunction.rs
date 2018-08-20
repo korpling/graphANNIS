@@ -1,17 +1,17 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use types::Edge;
 use annostorage::AnnoStorage;
-use {Component, Match};
+use exec::binary_filter::BinaryFilter;
+use exec::indexjoin::IndexJoin;
+use exec::nestedloop::NestedLoop;
+use exec::nodesearch::{NodeSearch, NodeSearchSpec};
+use exec::parallel;
+use exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
 use graphdb::GraphDB;
 use graphstorage::GraphStatistic;
 use operator::{Operator, OperatorSpec};
-use exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
-use exec::indexjoin::IndexJoin;
-use exec::parallel;
-use exec::nestedloop::NestedLoop;
-use exec::nodesearch::{NodeSearch, NodeSearchSpec};
-use exec::binary_filter::BinaryFilter;
+use std::collections::HashMap;
+use std::sync::Arc;
+use types::Edge;
+use {Component, LineColumnRange, Match, NodeDesc};
 
 use super::disjunction::Disjunction;
 use super::Config;
@@ -19,19 +19,12 @@ use super::Config;
 use std::collections::BTreeMap;
 use std::iter::FromIterator;
 
-use rand::XorShiftRng;
-use rand::SeedableRng;
-use rand::distributions::Range;
 use rand::distributions::Distribution;
+use rand::distributions::Range;
+use rand::SeedableRng;
+use rand::XorShiftRng;
 
-#[derive(Debug)]
-pub enum Error {
-    ImpossibleSearch(String),
-    MissingDescription,
-    MissingCost,
-    ComponentsNotConnected,
-    OperatorIdxNotFound,
-}
+use errors::*;
 
 #[derive(Debug)]
 struct OperatorEntry<'a> {
@@ -43,9 +36,10 @@ struct OperatorEntry<'a> {
 
 #[derive(Debug)]
 pub struct Conjunction<'a> {
-    nodes: Vec<NodeSearchSpec>,
+    nodes: Vec<(String, NodeSearchSpec)>,
     operators: Vec<OperatorEntry<'a>>,
-    variables : HashMap<String, usize>,
+    variables: HashMap<String, usize>,
+    location_in_query: HashMap<String, LineColumnRange>,
 }
 
 fn update_components_for_nodes(
@@ -75,7 +69,6 @@ fn should_switch_operand_order<'a>(
     op_entry: &OperatorEntry,
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
-
     if let (Some(cost_lhs), Some(cost_rhs)) = (
         node2cost.get(&op_entry.idx_left),
         node2cost.get(&op_entry.idx_right),
@@ -98,6 +91,7 @@ impl<'a> Conjunction<'a> {
             nodes: vec![],
             operators: vec![],
             variables: HashMap::default(),
+            location_in_query: HashMap::default(),
         }
     }
 
@@ -105,50 +99,103 @@ impl<'a> Conjunction<'a> {
         Disjunction::new(vec![self])
     }
 
-    pub fn add_node(&mut self, node: NodeSearchSpec, variable : Option<&str>,) -> usize {
-        let idx = self.nodes.len();
-
-        // TODO allow wrapping with an "any node anno" search
-        self.nodes.push(node);
-        if let Some(variable) = variable {
-            self.variables.insert(String::from(variable), idx);
-        } else {
-            self.variables.insert((idx+1).to_string(), idx);
+    pub fn get_node_descriptions(&self) -> Vec<NodeDesc> {
+        let mut result = Vec::default();
+        for (var, spec) in self.nodes.iter() {
+            let anno_name = match spec {
+                NodeSearchSpec::ExactValue { name, .. } => Some(name.clone()),
+                NodeSearchSpec::RegexValue { name, .. } => Some(name.clone()),
+                _ => None,
+            };
+            let desc = NodeDesc {
+                component_nr: 0,
+                aql_fragment: format!("{}", spec),
+                variable: var.clone(),
+                anno_name,
+            };
+            result.push(desc);
         }
-
-        idx
+        return result;
     }
 
-    pub fn add_operator(&mut self, op: Box<OperatorSpec>, idx_left: usize, idx_right: usize) {
+    pub fn add_node(&mut self, node: NodeSearchSpec, variable: Option<&str>) -> String {
+        self.add_node_from_query(node, variable, None)
+    }
+
+    pub fn add_node_from_query(
+        &mut self,
+        node: NodeSearchSpec,
+        variable: Option<&str>,
+        location: Option<LineColumnRange>,
+    ) -> String {
+        let idx = self.nodes.len();
+        let variable = if let Some(variable) = variable {
+            variable.to_string()
+        } else {
+            (idx + 1).to_string()
+        };
+        self.nodes.push((variable.clone(), node));
+        self.variables.insert(variable.clone(), idx);
+        if let Some(location) = location {
+            self.location_in_query.insert(variable.clone(), location);
+        }
+        return variable;
+    }
+    pub fn add_operator(
+        &mut self,
+        op: Box<OperatorSpec>,
+        var_left: &str,
+        var_right: &str,
+    ) -> Result<()> {
+        self.add_operator_from_query(op, var_left, var_right, None)
+    }
+
+    pub fn add_operator_from_query(
+        &mut self,
+        op: Box<OperatorSpec>,
+        var_left: &str,
+        var_right: &str,
+        location: Option<LineColumnRange>,
+    ) -> Result<()> {
         //let original_order = self.operators.len();
-        self.operators.push(OperatorEntry {
-            op,
-            idx_left,
-            idx_right,
-            /*            original_order, */
-        });
+        if let (Some(idx_left), Some(idx_right)) =
+            (self.variables.get(var_left), self.variables.get(var_right))
+        {
+            self.operators.push(OperatorEntry {
+                op,
+                idx_left: idx_left.clone(),
+                idx_right: idx_right.clone(),
+            });
+            return Ok(());
+        } else {
+            return Err(ErrorKind::AQLSemanticError("Operand not found".into(), location).into());
+        }
     }
 
     pub fn num_of_nodes(&self) -> usize {
         self.nodes.len()
     }
 
-    pub fn get_variable_pos(&self, variable : &str) -> Option<usize> {
+    pub fn get_variable_pos(&self, variable: &str) -> Option<usize> {
         self.variables.get(variable).cloned()
     }
 
-    pub fn necessary_components(&self) -> Vec<Component> {
+    pub fn necessary_components(&self, db: &GraphDB) -> Vec<Component> {
         let mut result = vec![];
 
         for op_entry in self.operators.iter() {
-            let mut c = op_entry.op.necessary_components();
+            let mut c = op_entry.op.necessary_components(db);
             result.append(&mut c);
         }
 
         return result;
     }
 
-    fn optimize_join_order_heuristics(&self, db: &'a GraphDB, config : &Config) -> Result<Vec<usize>, Error> {
+    fn optimize_join_order_heuristics(
+        &self,
+        db: &'a GraphDB,
+        config: &Config,
+    ) -> Result<Vec<usize>> {
         // check if there is something to optimize
         if self.operators.is_empty() {
             return Ok(vec![]);
@@ -166,17 +213,17 @@ impl<'a> Conjunction<'a> {
         let initial_plan = self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
         let mut best_cost = initial_plan
             .get_desc()
-            .ok_or(Error::MissingDescription)?
+            .ok_or("Plan description missing")?
             .cost
             .clone()
-            .ok_or(Error::MissingCost)?
+            .ok_or("Plan cost missing")?
             .intermediate_sum
             .clone();
         trace!(
             "initial plan:\n{}",
             initial_plan
                 .get_desc()
-                .ok_or(Error::MissingDescription)?
+                .ok_or("Plan description missing")?
                 .debug_string("  ")
         );
 
@@ -206,19 +253,20 @@ impl<'a> Conjunction<'a> {
 
             let mut found_better_plan = false;
             for i in 1..family_operators.len() {
-                let alt_plan = self.make_exec_plan_with_order(db, config, family_operators[i].clone())?;
+                let alt_plan =
+                    self.make_exec_plan_with_order(db, config, family_operators[i].clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
-                    .ok_or(Error::MissingDescription)?
+                    .ok_or("Plan description missing")?
                     .cost
                     .clone()
-                    .ok_or(Error::MissingCost)?
+                    .ok_or("Plan cost missing")?
                     .intermediate_sum;
                 trace!(
                     "alternatives plan: \n{}",
                     initial_plan
                         .get_desc()
-                        .ok_or(Error::MissingDescription)?
+                        .ok_or("Plan description missing")?
                         .debug_string("  ")
                 );
 
@@ -252,9 +300,9 @@ impl<'a> Conjunction<'a> {
 
         for e in op_entries {
             let op_spec = &e.op;
-            if e.idx_left == desc.component_nr { 
+            if e.idx_left == desc.component_nr {
                 // get the necessary components and count the number of nodes in these components
-                let components = op_spec.necessary_components();
+                let components = op_spec.necessary_components(db);
                 if components.len() > 0 {
                     let mut estimated_component_search = 0;
 
@@ -263,7 +311,9 @@ impl<'a> Conjunction<'a> {
                         if let Some(gs) = db.get_graphstorage(c) {
                             // check if we can apply an even more restrictive edge annotation search
                             if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                                let anno_storage: &AnnoStorage<Edge> = gs.get_anno_storage();
+                                let anno_storage: &AnnoStorage<
+                                    Edge,
+                                > = gs.get_anno_storage();
                                 if let Some(edge_anno_est) =
                                     edge_anno_spec.guess_max_count(&anno_storage, &db.strings)
                                 {
@@ -279,14 +329,19 @@ impl<'a> Conjunction<'a> {
                     }
 
                     if estimation_valid && node_search_cost.output > estimated_component_search {
-                        // TODO: check if there is another operator with even better estimates
-                        return Some(Box::new(NodeSearch::new_partofcomponentsearch(
+                        let poc_search = NodeSearch::new_partofcomponentsearch(
                             db,
                             node_search_desc,
                             Some(desc),
                             components,
                             op_spec.get_edge_anno_spec(),
-                        )));
+                        );
+                        if let Ok(poc_search) = poc_search {
+                            // TODO: check if there is another operator with even better estimates
+                            return Some(Box::new(poc_search));
+                        } else {
+                            return None;
+                        }
                     }
                 }
             }
@@ -295,15 +350,18 @@ impl<'a> Conjunction<'a> {
         return None;
     }
 
-    fn create_join<'b>(&self, 
+    fn create_join<'b>(
+        &self,
         db: &GraphDB,
         config: &Config,
         op: Box<Operator>,
-        exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b> , 
-        exec_right : Box<ExecutionNode<Item = Vec<Match>> + 'b>,
-        spec_idx_left: usize, spec_idx_right: usize,
-        idx_left: usize, idx_right: usize) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
-        
+        exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
+        exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
+        spec_idx_left: usize,
+        spec_idx_right: usize,
+        idx_left: usize,
+        idx_right: usize,
+    ) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
         if exec_right.as_nodesearch().is_some() {
             // use index join
             if config.use_parallel_joins {
@@ -334,7 +392,6 @@ impl<'a> Conjunction<'a> {
                 return Box::new(join);
             }
         } else if exec_left.as_nodesearch().is_some() {
-
             // avoid a nested loop join by switching the operand and using and index join
             if let Some(inverse_op) = op.get_inverse_operator() {
                 if config.use_parallel_joins {
@@ -367,7 +424,7 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-         // use nested loop as "fallback"
+        // use nested loop as "fallback"
         if config.use_parallel_joins {
             let join = parallel::nestedloop::NestedLoop::new(
                 exec_left,
@@ -398,8 +455,12 @@ impl<'a> Conjunction<'a> {
         db: &'a GraphDB,
         config: &Config,
         operator_order: Vec<usize>,
-    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
+    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
+
+        // Remember node search errors, but do not bail out of this function before the component
+        // semantics check has been performed.
+        let mut node_search_errors: Vec<Error> = Vec::default();
 
         // 1. add all nodes
 
@@ -409,59 +470,64 @@ impl<'a> Conjunction<'a> {
             BTreeMap::new();
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
-        {
-            for node_nr in 0..self.nodes.len() {
-                let n_spec = &self.nodes[node_nr];
-                let mut node_search = NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(
-                    Error::ImpossibleSearch(format!(
-                        "could not create node search for node {} ({})",
-                        node_nr, n_spec
-                    )),
-                )?;
-                node2component.insert(node_nr, node_nr);
+        for node_nr in 0..self.nodes.len() {
+            let n_spec = &self.nodes[node_nr].1;
+            let n_var = &self.nodes[node_nr].0;
 
-                let (orig_query_frag, orig_impl_desc, cost) =
-                    if let Some(d) = node_search.get_desc() {
-                        if let Some(ref c) = d.cost {
-                            node2cost.insert(node_nr, c.clone());
-                        }
+            let mut node_search = NodeSearch::from_spec(
+                n_spec.clone(),
+                node_nr,
+                db,
+                self.location_in_query.get(n_var).cloned(),
+            );
+            match node_search {
+                Ok(mut node_search) => {
+                    node2component.insert(node_nr, node_nr);
 
-                        (
-                            d.query_fragment.clone(),
-                            d.impl_description.clone(),
-                            d.cost.clone(),
-                        )
-                    } else {
-                        (String::from(""), String::from(""), None)
+                    let (orig_query_frag, orig_impl_desc, cost) =
+                        if let Some(d) = node_search.get_desc() {
+                            if let Some(ref c) = d.cost {
+                                node2cost.insert(node_nr, c.clone());
+                            }
+
+                            (
+                                d.query_fragment.clone(),
+                                d.impl_description.clone(),
+                                d.cost.clone(),
+                            )
+                        } else {
+                            (String::from(""), String::from(""), None)
+                        };
+                    // make sure the description is correct
+                    let mut node_pos = BTreeMap::new();
+                    node_pos.insert(node_nr.clone(), 0);
+                    let new_desc = Desc {
+                        component_nr: node_nr,
+                        lhs: None,
+                        rhs: None,
+                        node_pos,
+                        impl_description: orig_impl_desc,
+                        query_fragment: orig_query_frag,
+                        cost: cost,
                     };
-                // make sure the description is correct
-                let mut node_pos = BTreeMap::new();
-                node_pos.insert(node_nr.clone(), 0);
-                let new_desc = Desc {
-                    component_nr: node_nr,
-                    lhs: None,
-                    rhs: None,
-                    node_pos,
-                    impl_description: orig_impl_desc,
-                    query_fragment: orig_query_frag,
-                    cost: cost,
-                };
-                node_search.set_desc(Some(new_desc));
+                    node_search.set_desc(Some(new_desc));
 
-                let node_by_component_search =  self.optimize_node_search_by_operator(
+                    let node_by_component_search = self.optimize_node_search_by_operator(
                         node_search.get_node_search_desc(),
                         node_search.get_desc(),
                         Box::new(self.operators.iter()),
                         db,
-                );
+                    );
 
-                // move to map
-                if let Some(node_by_component_search) = node_by_component_search {
-                    component2exec.insert(node_nr, node_by_component_search);
-                } else {
-                    component2exec.insert(node_nr, Box::new(node_search));
+                    // move to map
+                    if let Some(node_by_component_search) = node_by_component_search {
+                        component2exec.insert(node_nr, node_by_component_search);
+                    } else {
+                        component2exec.insert(node_nr, Box::new(node_search));
+                    }
                 }
-            }
+                Err(e) => node_search_errors.push(e),
+            };
         }
 
         // 2. add the joins which produce the results in operand order
@@ -469,7 +535,7 @@ impl<'a> Conjunction<'a> {
             let op_entry: &OperatorEntry<'a> = &self.operators[i];
 
             let mut op: Box<Operator> = op_entry.op.create_operator(db).ok_or(
-                Error::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
+                ErrorKind::ImpossibleSearch(format!("could not create operator {:?}", op_entry)),
             )?;
 
             let mut spec_idx_left = op_entry.idx_left;
@@ -485,84 +551,80 @@ impl<'a> Conjunction<'a> {
                 }
             }
 
-
             let component_left = node2component
                 .get(&spec_idx_left)
-                .ok_or(Error::ImpossibleSearch(format!(
-                    "no component for node #{}",
-                    spec_idx_left + 1
-                )))?
+                .ok_or(format!("no component for node #{}", spec_idx_left + 1))?
                 .clone();
             let component_right = node2component
                 .get(&spec_idx_right)
-                .ok_or(Error::ImpossibleSearch(format!(
-                    "no component for node #{}",
-                    spec_idx_right + 1
-                )))?
+                .ok_or(format!("no component for node #{}", spec_idx_right + 1))?
                 .clone();
 
             // get the original execution node
-            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
-                .remove(&component_left)
-                .ok_or(Error::ImpossibleSearch(format!(
+            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> =
+                component2exec.remove(&component_left).ok_or(format!(
                     "no execution node for component {}",
                     component_left
-                )))?;
-
+                ))?;
 
             let idx_left = exec_left
                 .get_desc()
-                .ok_or(Error::MissingDescription)?
+                .ok_or("Plan description missing")?
                 .node_pos
                 .get(&spec_idx_left)
-                .ok_or(Error::OperatorIdxNotFound)?
+                .ok_or("LHS operand not found")?
                 .clone();
 
-            let new_exec: Box<ExecutionNode<Item = Vec<Match>>> = if component_left
-                == component_right
-            {
-                // don't create new tuples, only filter the existing ones
-                // TODO: check if LHS or RHS is better suited as filter input iterator
-                let idx_right = exec_left
-                    .get_desc()
-                    .ok_or(Error::MissingDescription)?
-                    .node_pos
-                    .get(&spec_idx_right)
-                    .ok_or(Error::OperatorIdxNotFound)?
-                    .clone();
+            let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
+                if component_left == component_right {
+                    // don't create new tuples, only filter the existing ones
+                    // TODO: check if LHS or RHS is better suited as filter input iterator
+                    let idx_right = exec_left
+                        .get_desc()
+                        .ok_or("Plan description missing")?
+                        .node_pos
+                        .get(&spec_idx_right)
+                        .ok_or("RHS operand not found")?
+                        .clone();
 
-                let filter = BinaryFilter::new(
-                    exec_left,
-                    idx_left,
-                    idx_right,
-                    spec_idx_left + 1,
-                    spec_idx_right + 1,
-                    op,
-                );
-                Box::new(filter)
-            } else {
-                let exec_right = component2exec.remove(&component_right).ok_or(
-                    Error::ImpossibleSearch(format!(
+                    let filter = BinaryFilter::new(
+                        exec_left,
+                        idx_left,
+                        idx_right,
+                        spec_idx_left + 1,
+                        spec_idx_right + 1,
+                        op,
+                    );
+                    Box::new(filter)
+                } else {
+                    let exec_right = component2exec.remove(&component_right).ok_or(format!(
                         "no execution node for component {}",
                         component_right
-                    )),
-                )?;
-                let idx_right = exec_right
-                    .get_desc()
-                    .ok_or(Error::MissingDescription)?
-                    .node_pos
-                    .get(&spec_idx_right)
-                    .ok_or(Error::OperatorIdxNotFound)?
-                    .clone();
+                    ))?;
+                    let idx_right = exec_right
+                        .get_desc()
+                        .ok_or("Plan description missing")?
+                        .node_pos
+                        .get(&spec_idx_right)
+                        .ok_or("RHS operand not found")?
+                        .clone();
 
-                self.create_join(db, config, op, exec_left, exec_right, spec_idx_left, spec_idx_right, idx_left, idx_right)
-            };
+                    self.create_join(
+                        db,
+                        config,
+                        op,
+                        exec_left,
+                        exec_right,
+                        spec_idx_left,
+                        spec_idx_right,
+                        idx_left,
+                        idx_right,
+                    )
+                };
 
             let new_component_nr = new_exec
                 .get_desc()
-                .ok_or(Error::ImpossibleSearch(String::from(
-                    "missing description for execution node",
-                )))?
+                .ok_or("missing description for execution node")?
                 .component_nr;
             update_components_for_nodes(&mut node2component, component_left, new_component_nr);
             update_components_for_nodes(&mut node2component, component_right, new_component_nr);
@@ -571,31 +633,46 @@ impl<'a> Conjunction<'a> {
 
         // 3. check if there is only one component left (all nodes are connected)
         let mut first_component_id: Option<usize> = None;
-        for (_, cid) in node2component.iter() {
+        for (node_nr, cid) in node2component.iter() {
             if first_component_id.is_none() {
                 first_component_id = Some(*cid);
             } else if let Some(first) = first_component_id {
                 if first != *cid {
-                    return Err(Error::ComponentsNotConnected);
+                    // add location and description which node is not connected
+                    let n_var = &self.nodes[*node_nr].0;
+                    let location = self.location_in_query.get(n_var);
+
+                    return Err(ErrorKind::AQLSemanticError(
+                        format!(
+                            "Variable \"{}\" not bound (use linguistic operators)",
+                            n_var
+                        ),
+                        location.cloned(),
+                    ).into());
                 }
             }
         }
 
-        let first_component_id = first_component_id.ok_or(Error::ImpossibleSearch(String::from(
-            "no component in query at all",
-        )))?;
-        return component2exec
-            .remove(&first_component_id)
-            .ok_or(Error::ImpossibleSearch(String::from(
+        // now apply the the node error check
+        if !node_search_errors.is_empty() {
+            return Err(node_search_errors.remove(0));
+        }
+
+        let first_component_id = first_component_id.ok_or(ErrorKind::ImpossibleSearch(
+            String::from("no component in query at all"),
+        ))?;
+        return component2exec.remove(&first_component_id).ok_or(
+            ErrorKind::ImpossibleSearch(String::from(
                 "could not find execution node for query component",
-            )));
+            )).into(),
+        );
     }
 
     pub fn make_exec_node(
         &'a self,
         db: &'a GraphDB,
         config: &Config,
-    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>, Error> {
+    ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let operator_order = self.optimize_join_order_heuristics(db, config)?;
         return self.make_exec_plan_with_order(db, config, operator_order);
     }

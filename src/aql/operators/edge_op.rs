@@ -2,103 +2,12 @@ use annostorage::AnnoStorage;
 use {AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
 use graphstorage::{GraphStatistic, GraphStorage};
 use graphdb::{GraphDB, ANNIS_NS};
-use operator::{EstimationType, Operator, OperatorSpec};
+use operator::{EstimationType, Operator, OperatorSpec, EdgeAnnoSearchSpec};
 use util;
 use std;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use stringstorage::StringStorage;
-
-#[derive(Clone, Debug)]
-pub enum EdgeAnnoSearchSpec {
-    ExactValue {
-        ns: Option<String>,
-        name: String,
-        val: Option<String>,
-    },
-}
-
-impl std::fmt::Display for EdgeAnnoSearchSpec {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &EdgeAnnoSearchSpec::ExactValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
-                let qname = if let &Some(ref ns) = ns {
-                    format!("{}:{}", ns, name)
-                } else {
-                    name.clone()
-                };
-
-                if let &Some(ref val) = val {
-                    write!(f, "{}={}", qname, val)
-                } else {
-                    write!(f, "{}", qname)
-                }
-            }
-        }
-    }
-}
-
-impl EdgeAnnoSearchSpec {
-    pub fn get_anno(&self, strings: &StringStorage) -> Option<Annotation> {
-        match self {
-            &EdgeAnnoSearchSpec::ExactValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
-                let ns = if let &Some(ref s) = ns {
-                    strings.find_id(s)?.clone()
-                } else {
-                    0
-                };
-                let val = if let &Some(ref s) = val {
-                    strings.find_id(s)?.clone()
-                } else {
-                    0
-                };
-                let name = strings.find_id(name)?.clone();
-                let mut anno = Annotation {
-                    key: AnnoKey { ns, name },
-                    val,
-                };
-
-                Some(anno)
-            }
-        }
-    }
-
-    pub fn guess_max_count(
-        &self,
-        anno_storage: &AnnoStorage<Edge>,
-        strings: &StringStorage,
-    ) -> Option<usize> {
-        match self {
-            &EdgeAnnoSearchSpec::ExactValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
-                let val = val.clone()?;
-                let name_id = strings.find_id(&name)?;
-                if let Some(ns) = ns.clone() {
-                    let ns_id = strings.find_id(&ns)?;
-                    return Some(anno_storage.guess_max_count(
-                        Some(ns_id.clone()),
-                        name_id.clone(),
-                        &val,
-                        &val,
-                    ));
-                } else {
-                    return Some(anno_storage.guess_max_count(None, name_id.clone(), &val, &val));
-                }
-            }
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 struct BaseEdgeOpSpec {
@@ -144,7 +53,7 @@ impl BaseEdgeOp {
 }
 
 impl OperatorSpec for BaseEdgeOpSpec {
-    fn necessary_components(&self) -> Vec<Component> {
+    fn necessary_components(&self, _db : &GraphDB) -> Vec<Component> {
         self.components.clone()
     }
 
@@ -463,96 +372,81 @@ impl Operator for BaseEdgeOp {
 
 #[derive(Debug, Clone)]
 pub struct DominanceSpec {
-    base: BaseEdgeOpSpec,
+    pub name: String,
+    pub min_dist: usize,
+    pub max_dist: usize,
+    pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
-impl DominanceSpec {
-    pub fn new(
-        db: &GraphDB,
-        name: &str,
-        min_dist: usize,
-        max_dist: usize,
-        edge_anno: Option<EdgeAnnoSearchSpec>,
-    ) -> DominanceSpec {
-        let components = db.get_all_components(Some(ComponentType::Dominance), Some(name));
-        let op_str = if name.is_empty() {
-            String::from(">")
-        } else {
-            format!(">{} ", name)
-        };
-        DominanceSpec {
-            base: BaseEdgeOpSpec {
-                op_str: Some(op_str),
-                components,
-                min_dist,
-                max_dist,
-                edge_anno,
-                is_reflexive: true,
-            },
-        }
-    }
-}
 
 impl OperatorSpec for DominanceSpec {
-    fn necessary_components(&self) -> Vec<Component> {
-        self.base.necessary_components()
+    fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
+        db.get_all_components(Some(ComponentType::Dominance), Some(&self.name))
     }
 
     fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
-        self.base.create_operator(db)
+        let components = db.get_all_components(Some(ComponentType::Dominance), Some(&self.name));
+        let op_str = if self.name.is_empty() {
+            String::from(">")
+        } else {
+            format!(">{} ", &self.name)
+        };
+        let base =  BaseEdgeOpSpec {
+                op_str: Some(op_str),
+                components,
+                min_dist: self.min_dist,
+                max_dist: self.max_dist,
+                edge_anno: self.edge_anno.clone(),
+                is_reflexive: true,
+        };
+        base.create_operator(db)
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct PointingSpec {
-    base: BaseEdgeOpSpec,
+    pub name: String,
+    pub min_dist: usize,
+    pub max_dist: usize,
+    pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
-impl PointingSpec {
-    pub fn new(
-        db: &GraphDB,
-        name: &str,
-        min_dist: usize,
-        max_dist: usize,
-        edge_anno: Option<EdgeAnnoSearchSpec>,
-    ) -> DominanceSpec {
-        let components = db.get_all_components(Some(ComponentType::Pointing), Some(name));
-        let op_str = if name.is_empty() {
-            String::from("->")
-        } else {
-            format!("->{} ", name)
-        };
-
-        DominanceSpec {
-            base: BaseEdgeOpSpec {
-                components,
-                min_dist,
-                max_dist,
-                edge_anno,
-                is_reflexive: true,
-                op_str: Some(op_str),
-            },
-        }
-    }
-}
 
 impl OperatorSpec for PointingSpec {
-    fn necessary_components(&self) -> Vec<Component> {
-        self.base.necessary_components()
+    fn necessary_components(&self, db : &GraphDB) -> Vec<Component> {
+        db.get_all_components(Some(ComponentType::Pointing), Some(&self.name))
     }
 
     fn create_operator<'b>(&self, db: &GraphDB) -> Option<Box<Operator>> {
-        self.base.create_operator(db)
+
+        let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
+        let op_str = if self.name.is_empty() {
+            String::from("->")
+        } else {
+            format!("->{} ", self.name)
+        };
+
+        let base = BaseEdgeOpSpec {
+                components,
+                min_dist: self.min_dist,
+                max_dist: self.max_dist,
+                edge_anno: self.edge_anno.clone(),
+                is_reflexive: true,
+                op_str: Some(op_str),
+        };
+        base.create_operator(db)
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct PartOfSubCorpusSpec {
-    base: BaseEdgeOpSpec,
+    pub min_dist: usize, 
+    pub max_dist: usize,
 }
 
-impl PartOfSubCorpusSpec {
-    pub fn new(min_dist: usize, max_dist: usize) -> PartOfSubCorpusSpec {
+
+impl OperatorSpec for PartOfSubCorpusSpec {
+    fn necessary_components(&self, _db : &GraphDB) -> Vec<Component> {
         let components = vec![
             Component {
                 ctype: ComponentType::PartOfSubcorpus,
@@ -560,25 +454,26 @@ impl PartOfSubCorpusSpec {
                 name: String::from(""),
             },
         ];
-        PartOfSubCorpusSpec {
-            base: BaseEdgeOpSpec {
-                op_str: Some(String::from("@")),
-                components,
-                min_dist,
-                max_dist,
-                edge_anno: None,
-                is_reflexive: false,
-            },
-        }
-    }
-}
-
-impl OperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self) -> Vec<Component> {
-        self.base.necessary_components()
+        components
     }
 
     fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
-        self.base.create_operator(db)
+        let components = vec![
+            Component {
+                ctype: ComponentType::PartOfSubcorpus,
+                layer: String::from(ANNIS_NS),
+                name: String::from(""),
+            },
+        ];
+        let base = BaseEdgeOpSpec {
+            op_str: Some(String::from("@")),
+            components,
+            min_dist: self.min_dist,
+            max_dist: self.max_dist,
+            edge_anno: None,
+            is_reflexive: false,
+        };
+    
+        base.create_operator(db)
     }
 }

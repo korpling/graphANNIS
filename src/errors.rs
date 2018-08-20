@@ -1,6 +1,6 @@
 use Component;
-use query::conjunction;
 use StringID;
+use LineColumnRange;
 
 error_chain! {
 
@@ -11,6 +11,7 @@ error_chain! {
         Bincode(::bincode::Error);
         Fmt(::std::fmt::Error);
         Strum(::strum::ParseError);
+        Regex(::regex::Error);
     }
 
     errors {
@@ -24,9 +25,9 @@ error_chain! {
             display("Could not load GraphDB {} from disk", &db),
         }
 
-        ImpossibleSearch(reasons : Vec<conjunction::Error>) {
+        ImpossibleSearch(reason : String) {
             description("Impossible search expression detected"),
-            display("Impossible search expression detected, reasons: {:?}", reasons),
+            display("Impossible search expression detected: {}", reason),
         }
 
         NoSuchStringID(id : StringID) {
@@ -40,8 +41,32 @@ error_chain! {
         }
 
         NoSuchCorpus(name : String) {
-            description("No such corpus found"),
+            description("NoSuchCorpus"),
             display("Corpus {} not found", &name)
+        }
+
+        AQLSyntaxError(msg : String, location : Option<LineColumnRange>) {
+            description("AQLSyntaxError"),
+            display("{}", {
+                if let Some(location) = location {
+                    format!("[{}] {}", &location, msg)
+                } else {
+                    msg.to_string()
+                }
+
+            }),
+        }
+
+        AQLSemanticError(msg : String, location : Option<LineColumnRange>) {
+            description("AQLSemanticError"),
+            display("{}", {
+                if let Some(location) = location {
+                    format!("[{}] {}", &location, msg)
+                } else {
+                    msg.to_string()
+                }
+
+            }),
         }
     }
 }

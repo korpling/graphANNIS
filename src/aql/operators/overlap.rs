@@ -1,4 +1,4 @@
-use super::{Operator, OperatorSpec};
+use operator::{Operator, OperatorSpec};
 use {Annotation, Component, ComponentType, Match, NodeID};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;
@@ -50,7 +50,7 @@ lazy_static! {
 }
 
 impl OperatorSpec for  OverlapSpec {
-    fn necessary_components(&self) -> Vec<Component> {
+    fn necessary_components(&self, _db : &GraphDB) -> Vec<Component> {
         let mut v: Vec<Component> = vec![COMPONENT_ORDER.clone(), 
             COMPONENT_COVERAGE.clone(), COMPONENT_INV_COVERAGE.clone()];
         v.append(&mut token_helper::necessary_components());

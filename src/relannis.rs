@@ -13,9 +13,6 @@ use std;
 use std::sync::Arc;
 use errors::*;
 
-pub struct RelANNISLoader;
-
-
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 struct TextProperty {

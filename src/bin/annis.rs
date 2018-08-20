@@ -51,7 +51,6 @@ impl CommandCompleter {
         known_commands.insert("plan".to_string());
         known_commands.insert("str".to_string());
         known_commands.insert("use_parallel".to_string());
-        
 
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
@@ -300,11 +299,10 @@ impl AnnisRunner {
                 info!{"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(plan) = plan {
-                println!("{}", plan);
-            } else {
-                println!("Error when executing query: {:?}", plan);
-            }
+            match plan {
+                Ok(plan) => println!("{}", plan),
+                Err(e) => println!("{}", e),
+            };
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -320,11 +318,11 @@ impl AnnisRunner {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(c) = c {
-                println!("result: {} matches", c);
-            } else {
-                println!("Error when executing query: {:?}", c);
-            }
+            match c {
+                Ok(c) => println!("result: {} matches", c),
+                Err(e) => println!("{}", e),
+            };
+
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -340,13 +338,14 @@ impl AnnisRunner {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(matches) = matches {
-                for m in matches {
-                    println!("{}", m);
+            match matches {
+                Ok(matches) => {
+                    for m in matches {
+                        println!("{}", m);
+                    }
                 }
-            } else {
-                println!("Error when executing query: {:?}", matches);
-            }
+                Err(e) => println!("{}", e),
+            };
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -358,10 +357,10 @@ impl AnnisRunner {
             let splitted_arg : Vec<&str> = args.splitn(2, ' ').collect();
             let table_def : Vec<FrequencyDefEntry> = if splitted_arg.len() == 2 {
                 // split the second argument
-                let defs = splitted_arg[1].split(',');
+                let defs = splitted_arg[0].split(',');
                 defs.filter_map(|d| -> Option<FrequencyDefEntry> {d.parse().ok()}).collect()
             } else {
-                println!("You have to give the frequency definition as second argument");
+                println!("You have to give the frequency definition as first argument and the AQL as second argument");
                 return;
             };
 
@@ -374,7 +373,7 @@ impl AnnisRunner {
             out.add_row(header_row);
 
             let t_before = std::time::SystemTime::now();
-            let frequency_table = self.storage.frequency(corpus, splitted_arg[0], table_def);
+            let frequency_table = self.storage.frequency(corpus, splitted_arg[1], table_def);
             let load_time = t_before.elapsed();
 
             if let Ok(t) = load_time {

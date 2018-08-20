@@ -118,7 +118,6 @@ pub fn split_qname(qname : &str) -> (Option<&str>, &str) {
 
 pub struct SearchDef {
     pub aql: String,
-    pub json: String,
     pub count: u64,
     pub name: String,
 }
@@ -128,24 +127,18 @@ impl SearchDef {
         let mut p_aql = PathBuf::from(base);
         p_aql.set_extension("aql");
 
-        let mut p_json = PathBuf::from(base);
-        p_json.set_extension("json");
-
         let mut p_count = PathBuf::from(base);
         p_count.set_extension("count");
 
         let f_aql = File::open(p_aql.clone());
-        let f_json = File::open(p_json);
         let f_count = File::open(p_count);
 
-        if let (Ok(mut f_aql), Ok(mut f_json), Ok(mut f_count)) = (f_aql, f_json, f_count) {
+        if let (Ok(mut f_aql), Ok(mut f_count)) = (f_aql, f_count) {
             let mut aql = String::new();
-            let mut json = String::new();
             let mut count = String::new();
 
-            if let (Ok(_), Ok(_), Ok(_)) = (
+            if let (Ok(_), Ok(_)) = (
                 f_aql.read_to_string(&mut aql),
-                f_json.read_to_string(&mut json),
                 f_count.read_to_string(&mut count),
             ) {
                 // try to parse the count value
@@ -154,7 +147,6 @@ impl SearchDef {
                     let name: &OsStr = p_aql.file_stem().unwrap_or(&unknown_name);
                     return Some(SearchDef {
                         aql: String::from(aql.trim()),
-                        json: String::from(json.trim()),
                         count,
                         name: String::from(name.to_string_lossy()),
                     });

@@ -12,7 +12,7 @@ use std::ffi::CString;
 use std::path::PathBuf;
 use FrequencyTable;
 use Matrix;
-use {Component, ComponentType, CountExtra};
+use {Component, ComponentType, CountExtra, NodeDesc};
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -48,12 +48,12 @@ pub extern "C" fn annis_cs_free(ptr: *mut cs::CorpusStorage) {
 pub extern "C" fn annis_cs_count(
     ptr: *const cs::CorpusStorage,
     corpus: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> libc::uint64_t {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_json);
+    let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus);
 
     return try_cerr!(cs.count(&corpus, &query), err, 0);
@@ -63,12 +63,12 @@ pub extern "C" fn annis_cs_count(
 pub extern "C" fn annis_cs_count_extra(
     ptr: *const cs::CorpusStorage,
     corpus: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> CountExtra {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_json);
+    let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus);
 
     return try_cerr!(cs.count_extra(&corpus, &query), err, CountExtra::default());
@@ -78,7 +78,7 @@ pub extern "C" fn annis_cs_count_extra(
 pub extern "C" fn annis_cs_find(
     ptr: *const cs::CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
     offset: libc::size_t,
     limit: libc::size_t,
     order: ResultOrder,
@@ -86,7 +86,7 @@ pub extern "C" fn annis_cs_find(
 ) -> *mut Vec<CString> {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_json);
+    let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus_name);
 
     let result = try_cerr!(
@@ -176,15 +176,15 @@ pub extern "C" fn annis_cs_corpus_graph(
 pub extern "C" fn annis_cs_subgraph_for_query(
     ptr: *const cs::CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut GraphDB {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
-    let query_as_json = cstr!(query_as_json);
+    let query_as_aql = cstr!(query_as_aql);
 
     let result = try_cerr!(
-        cs.subgraph_for_query(&corpus, &query_as_json),
+        cs.subgraph_for_query(&corpus, &query_as_aql),
         err,
         std::ptr::null_mut()
     );
@@ -195,13 +195,13 @@ pub extern "C" fn annis_cs_subgraph_for_query(
 pub extern "C" fn annis_cs_frequency(
     ptr: *const cs::CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_json: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
     frequency_query_definition: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut FrequencyTable<CString> {
     let cs: &cs::CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_json);
+    let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus_name);
     let frequency_query_definition = cstr!(frequency_query_definition);
     let table_def: Vec<FrequencyDefEntry> = frequency_query_definition
@@ -304,6 +304,36 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     }
     return Box::into_raw(Box::new(result));
 }
+
+#[no_mangle]
+pub extern "C" fn annis_cs_validate_query(
+    ptr: *const cs::CorpusStorage,
+    corpus: *const libc::c_char,
+    query_as_aql: *const libc::c_char,
+    err: *mut *mut ErrorList,
+) -> bool {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+
+    let query = cstr!(query_as_aql);
+    let corpus = cstr!(corpus);
+
+    return try_cerr!(cs.validate_query(&corpus, &query), err, false);
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_node_descriptions(
+    ptr: *const cs::CorpusStorage,
+    query_as_aql: *const libc::c_char,
+    err: *mut *mut ErrorList,
+) -> *mut Vec<NodeDesc> {
+    let cs: &cs::CorpusStorage = cast_const!(ptr);
+
+    let query = cstr!(query_as_aql);
+
+    let result = try_cerr!(cs.node_descriptions(&query), err, std::ptr::null_mut());
+    return Box::into_raw(Box::new(result));
+}
+
 
 #[no_mangle]
 pub extern "C" fn annis_cs_import_relannis(

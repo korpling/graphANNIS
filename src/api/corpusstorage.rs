@@ -11,8 +11,8 @@ use graphdb::GraphDB;
 use graphdb::{ANNIS_NS, NODE_TYPE};
 use linked_hash_map::LinkedHashMap;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use operator;
-use parser::jsonqueryparser;
+use aql::operators;
+use aql;
 use plan::ExecutionPlan;
 use query;
 use query::conjunction::Conjunction;
@@ -30,7 +30,7 @@ use types;
 use util;
 use util::memory_estimation;
 use FrequencyTable;
-use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID};
+use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID, NodeDesc};
 
 use fxhash::FxHashMap;
 
@@ -640,7 +640,7 @@ impl CorpusStorage {
     fn prepare_query<'a>(
         &self,
         corpus_name: &str,
-        query_as_json: &'a str,
+        query_as_aql: &'a str,
         additional_components: Vec<Component>,
     ) -> Result<PreparationResult<'a>> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
@@ -649,8 +649,8 @@ impl CorpusStorage {
         let (q, missing_components) = {
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            let q = jsonqueryparser::parse(query_as_json, db).ok_or("Could not parse JSON")?;
-            let necessary_components = q.necessary_components();
+            let q = aql::parse(query_as_aql)?;
+            let necessary_components = q.necessary_components(db);
 
             let mut missing: HashSet<Component> =
                 HashSet::from_iter(necessary_components.iter().cloned());
@@ -694,8 +694,8 @@ impl CorpusStorage {
         return Ok(result);
     }
 
-    pub fn plan(&self, corpus_name: &str, query_as_json: &str) -> Result<String> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+    pub fn plan(&self, corpus_name: &str, query_as_aql: &str) -> Result<String> {
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         // accuire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
@@ -728,8 +728,34 @@ impl CorpusStorage {
         Ok(())
     }
 
-    pub fn count(&self, corpus_name: &str, query_as_json: &str) -> Result<u64> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+    pub fn validate_query(&self, corpus_name: &str, query_as_aql: &str) -> Result<bool> {
+        let prep : PreparationResult = self.prepare_query(corpus_name, query_as_aql, vec![])?;
+        // also get the semantic errors by creating an execution plan on the actual GraphDB
+        let lock = prep.db_entry.read().unwrap();
+        let db = get_read_or_error(&lock)?;
+        ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        return Ok(true);
+    }
+
+    pub fn node_descriptions(&self, query_as_aql: &str) -> Result<Vec<NodeDesc>> {
+        let mut result = Vec::new();
+        // parse query
+        let q : Disjunction= aql::parse(query_as_aql)?;
+        let mut component_nr = 0;
+        for alt in q.alternatives.into_iter() {
+            let alt : Conjunction = alt;
+            for mut n in alt.get_node_descriptions().into_iter() {
+                n.component_nr = component_nr;
+                result.push(n);
+            }
+            component_nr += 1;
+        }
+
+        return Ok(result);
+    }
+
+    pub fn count(&self, corpus_name: &str, query_as_aql: &str) -> Result<u64> {
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -739,8 +765,8 @@ impl CorpusStorage {
         return Ok(plan.count() as u64);
     }
 
-    pub fn count_extra(&self, corpus_name: &str, query_as_json: &str) -> Result<CountExtra> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+    pub fn count_extra(&self, corpus_name: &str, query_as_aql: &str) -> Result<CountExtra> {
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -774,7 +800,7 @@ impl CorpusStorage {
     pub fn find(
         &self,
         corpus_name: &str,
-        query_as_json: &str,
+        query_as_aql: &str,
         offset: usize,
         limit: usize,
         order: ResultOrder,
@@ -784,7 +810,7 @@ impl CorpusStorage {
             layer: String::from("annis"),
             name: String::from(""),
         };
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![order_component])?;
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![order_component])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -929,21 +955,21 @@ impl CorpusStorage {
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
                 let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_left.add_operator(Box::new(operators::OverlapSpec {}), &n_idx, &tok_covered_idx)?;
                 q_left.add_operator(
-                    Box::new(operator::PrecedenceSpec {
+                    Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_left,
                     }),
-                    tok_precedence_idx,
-                    tok_covered_idx,
-                );
+                    &tok_precedence_idx,
+                    &tok_covered_idx,
+                )?;
                 q_left.add_operator(
-                    Box::new(operator::OverlapSpec {}),
-                    any_node_idx,
-                    tok_precedence_idx,
-                );
+                    Box::new(operators::OverlapSpec {}),
+                    &any_node_idx,
+                    &tok_precedence_idx,
+                )?;
 
                 query.alternatives.push(q_left);
             }
@@ -965,16 +991,16 @@ impl CorpusStorage {
                 );
                 let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_left.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_left.add_operator(Box::new(operators::OverlapSpec {}), &n_idx, &tok_covered_idx)?;
                 q_left.add_operator(
-                    Box::new(operator::PrecedenceSpec {
+                    Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_left,
                     }),
-                    tok_precedence_idx,
-                    tok_covered_idx,
-                );
+                    &tok_precedence_idx,
+                    &tok_covered_idx,
+                )?;
 
                 query.alternatives.push(q_left);
             }
@@ -997,21 +1023,21 @@ impl CorpusStorage {
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
                 let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_right.add_operator(Box::new(operators::OverlapSpec {}), &n_idx, &tok_covered_idx)?;
                 q_right.add_operator(
-                    Box::new(operator::PrecedenceSpec {
+                    Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_right,
                     }),
-                    tok_covered_idx,
-                    tok_precedence_idx,
-                );
+                    &tok_covered_idx,
+                    &tok_precedence_idx,
+                )?;
                 q_right.add_operator(
-                    Box::new(operator::OverlapSpec {}),
-                    any_node_idx,
-                    tok_precedence_idx,
-                );
+                    Box::new(operators::OverlapSpec {}),
+                    &any_node_idx,
+                    &tok_precedence_idx,
+                )?;
 
                 query.alternatives.push(q_right);
             }
@@ -1033,16 +1059,16 @@ impl CorpusStorage {
                 );
                 let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
 
-                q_right.add_operator(Box::new(operator::OverlapSpec {}), n_idx, tok_covered_idx);
+                q_right.add_operator(Box::new(operators::OverlapSpec {}), &n_idx, &tok_covered_idx)?;
                 q_right.add_operator(
-                    Box::new(operator::PrecedenceSpec {
+                    Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
                         max_dist: ctx_right,
                     }),
-                    tok_covered_idx,
-                    tok_precedence_idx,
-                );
+                    &tok_covered_idx,
+                    &tok_precedence_idx,
+                )?;
 
                 query.alternatives.push(q_right);
             }
@@ -1050,8 +1076,8 @@ impl CorpusStorage {
         return extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone());
     }
 
-    pub fn subgraph_for_query(&self, corpus_name: &str, query_as_json: &str) -> Result<GraphDB> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+    pub fn subgraph_for_query(&self, corpus_name: &str, query_as_aql: &str) -> Result<GraphDB> {
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         let mut max_alt_size = 0;
         for alt in prep.query.alternatives.iter() {
@@ -1091,10 +1117,10 @@ impl CorpusStorage {
             );
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
             q.add_operator(
-                Box::new(operator::PartOfSubCorpusSpec::new(1, 1)),
-                any_node_idx,
-                corpus_idx,
-            );
+                Box::new(operators::PartOfSubCorpusSpec{min_dist: 1, max_dist:1}),
+                &any_node_idx,
+                &corpus_idx,
+            )?;
             query.alternatives.push(q);
         }
 
@@ -1122,10 +1148,10 @@ impl CorpusStorage {
     pub fn frequency(
         &self,
         corpus_name: &str,
-        query_as_json: &str,
+        query_as_aql: &str,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
-        let prep = self.prepare_query(corpus_name, query_as_json, vec![])?;
+        let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
