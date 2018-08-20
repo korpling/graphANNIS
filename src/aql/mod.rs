@@ -7,17 +7,20 @@ use aql::operators::edge_op::PartOfSubCorpusSpec;
 use aql::operators::identical_node::IdenticalNodeSpec;
 use errors::*;
 use exec::nodesearch::NodeSearchSpec;
+use lalrpop_util::ParseError;
 use operator::OperatorSpec;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
-use lalrpop_util::ParseError;
+use {LineColumn, LineColumnRange};
 
 pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
     let ast = parser::DisjunctionParser::new().parse(query_as_aql);
     match ast {
         Ok(mut ast) => {
+            let offsets = get_line_offsets(query_as_aql);
+
             // make sure AST is in DNF
             normalize::to_disjunctive_normal_form(&mut ast);
 
@@ -31,6 +34,8 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                     (NodeSearchSpec, Option<String>),
                 > = BTreeMap::default();
 
+                let mut pos_to_endpos: BTreeMap<usize, usize> = BTreeMap::default();
+
                 let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();
 
                 for f in c.iter() {
@@ -43,6 +48,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                             } => {
                                 if let Some(pos) = pos {
                                     pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
+                                    pos_to_endpos.insert(pos.start, pos.end.clone());
                                 }
                             }
                             ast::Literal::BinaryOp { lhs, rhs, .. } => {
@@ -55,6 +61,9 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                     pos_to_node.entry(pos.start).or_insert_with(|| {
                                         (spec.as_ref().clone(), variable.clone())
                                     });
+                                    pos_to_endpos
+                                        .entry(pos.start)
+                                        .or_insert_with(|| pos.end.clone());
                                 }
                                 if let ast::Operand::Literal {
                                     spec,
@@ -65,6 +74,9 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                     pos_to_node.entry(pos.start).or_insert_with(|| {
                                         (spec.as_ref().clone(), variable.clone())
                                     });
+                                    pos_to_endpos
+                                        .entry(pos.start)
+                                        .or_insert_with(|| pos.end.clone());
                                 }
                             }
                             ast::Literal::LegacyMetaSearch { spec, pos } => {
@@ -80,7 +92,19 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 let mut pos_to_node_id: HashMap<usize, String> = HashMap::default();
                 for (start_pos, (node_spec, variable)) in pos_to_node.into_iter() {
                     let variable = variable.as_ref().map(|s| &**s);
-                    let idx = q.add_node(node_spec, variable);
+
+                    let start = get_line_and_column_for_pos(start_pos, &offsets);
+                    let end = if let Some(end_pos) = pos_to_endpos.get(&start_pos) {
+                        Some(get_line_and_column_for_pos(*end_pos, &offsets))
+                    } else {
+                        None
+                    };
+
+                    let idx = q.add_node_from_query(
+                        node_spec,
+                        variable,
+                        Some(LineColumnRange { start, end }),
+                    );
                     pos_to_node_id.insert(start_pos, idx.clone());
                     if first_node_pos.is_none() {
                         first_node_pos = Some(idx);
@@ -171,14 +195,14 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
         }
         Err(e) => {
             let short_desc = match e {
-                ParseError::InvalidToken{..} => "Invalid token detected.",
-                ParseError::ExtraToken{..} => "Extra token at end of query.",
-                ParseError::UnrecognizedToken{..} => "Unexpected token in query.",
-                ParseError::User{error} => error,
+                ParseError::InvalidToken { .. } => "Invalid token detected.",
+                ParseError::ExtraToken { .. } => "Extra token at end of query.",
+                ParseError::UnrecognizedToken { .. } => "Unexpected token in query.",
+                ParseError::User { error } => error,
             };
             let location = extract_location_description(&e, query_as_aql);
             let hint = match e {
-                ParseError::UnrecognizedToken{expected, ..} => {
+                ParseError::UnrecognizedToken { expected, .. } => {
                     if expected.is_empty() {
                         None
                     } else {
@@ -187,10 +211,14 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                         //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
                         Some(hint)
                     }
-                },
+                }
                 _ => None,
             };
-            return Err(ErrorKind::AQLSyntaxError(short_desc.to_string(), location.to_string(), hint).into());
+            return Err(ErrorKind::AQLSyntaxError(
+                short_desc.to_string(),
+                location.to_string(),
+                hint,
+            ).into());
         }
     };
 }
@@ -208,69 +236,77 @@ fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
     }
 }
 
-
-fn get_line_offsets(input : &str) -> BTreeMap<usize, usize> {
+fn get_line_offsets(input: &str) -> BTreeMap<usize, usize> {
     let mut offsets = BTreeMap::default();
 
     let mut o = 0;
     let mut l = 1;
     for line in input.split("\n") {
-        offsets.insert(o,l );
+        offsets.insert(o, l);
         o += line.len() + 1;
-        l +=1;
+        l += 1;
     }
 
     return offsets;
 }
 
-fn get_line_and_column_for_pos(pos : usize, offset_to_line : &BTreeMap<usize, usize>) -> (usize, usize) {
+pub fn get_line_and_column_for_pos(
+    pos: usize,
+    offset_to_line: &BTreeMap<usize, usize>,
+) -> LineColumn {
     // get the offset for the position by searching for all offsets smaller than the position and taking the last one
-    for (offset, line) in offset_to_line.range(..pos+1).rev() {
+    for (offset, line) in offset_to_line.range(..pos + 1).rev() {
         // column starts with 1 at line offset
-        let column : usize = pos-offset+1;
-        return (*line, column);
+        let column: usize = pos - offset + 1;
+        return LineColumn{line: *line, column};
     }
 
-    return (0,0);
+    return LineColumn{line:0, column:0};
 }
 
-fn extract_location_description<'a>(e : &ParseError<usize, parser::Token<'a>, &'static str>, input : &'a str) -> String {
+fn extract_location_description<'a>(
+    e: &ParseError<usize, parser::Token<'a>, &'static str>,
+    input: &'a str,
+) -> String {
     let offsets = get_line_offsets(input);
 
-    let from_to = match e {
-         ParseError::InvalidToken{location} => (Some(get_line_and_column_for_pos(*location, &offsets)), None),
-         ParseError::ExtraToken{token} => {
-             let start = get_line_and_column_for_pos(token.0, &offsets);
-             let end = get_line_and_column_for_pos(token.2-1, &offsets);
-             (Some(start), Some(end))
-         },
-         ParseError::UnrecognizedToken{token, ..} => {
-             if let Some(token) = token {
+    let from_to: Option<LineColumnRange> = match e {
+        ParseError::InvalidToken { location } => Some(LineColumnRange {
+            start: get_line_and_column_for_pos(*location, &offsets),
+            end: None,
+        }),
+        ParseError::ExtraToken { token } => {
+            let start = get_line_and_column_for_pos(token.0, &offsets);
+            let end = get_line_and_column_for_pos(token.2 - 1, &offsets);
+            Some(LineColumnRange {
+                start,
+                end: Some(end),
+            })
+        }
+        ParseError::UnrecognizedToken { token, .. } => {
+            if let Some(token) = token {
                 let start = get_line_and_column_for_pos(token.0, &offsets);
-                let end = get_line_and_column_for_pos(token.2-1, &offsets);
-                (Some(start), Some(end))
-             } else {
-                 // set to end of query
-                 let start = get_line_and_column_for_pos(input.len()-1, &offsets);
-                 (Some(start), None)
-             }
-         },
-         ParseError::User{..} => (None, None),
-     };
+                let end = get_line_and_column_for_pos(token.2 - 1, &offsets);
+                Some(LineColumnRange {
+                    start,
+                    end: Some(end),
+                })
+            } else {
+                // set to end of query
+                let start = get_line_and_column_for_pos(input.len() - 1, &offsets);
+                Some(LineColumnRange { start, end: None })
+            }
+        }
+        ParseError::User { .. } => None,
+    };
 
-     let prefix = if let (Some(start), Some(end)) = from_to {
-         if start == end {
-             format!("[{}:{}]", start.0, start.1)
-         } else {
-             format!("[{}:{}-{}:{}]", start.0, start.1, end.0, end.1)
-         }
-     } else if let Some(start) = from_to.0 {
-         format!("[{}:{}]", start.0, start.1)
-     } else {
-         "[unknown location]".to_string()
-     };
+    let prefix = if let Some(from_to) = from_to {
+        format!("[{}]", from_to)
+    } else {
+        "[unknown location]".to_string()
+    };
 
-     // TODO: extract context and add it to output
+    // TODO: extract context and add it to output
 
-     prefix
- }
+    prefix
+}

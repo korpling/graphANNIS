@@ -4,7 +4,7 @@ use graphdb::{GraphDB, ANNIS_NS};
 use operator::EdgeAnnoSearchSpec;
 use stringstorage::StringStorage;
 use types::Edge;
-use {Annotation, Component, ComponentType, Match, NodeID, StringID};
+use {Annotation, Component, ComponentType, Match, NodeID, StringID, LineColumnRange};
 
 use regex;
 use util;
@@ -136,6 +136,7 @@ impl<'a> NodeSearch<'a> {
         spec: NodeSearchSpec,
         node_nr: usize,
         db: &'a GraphDB,
+        location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
 
@@ -154,6 +155,7 @@ impl<'a> NodeSearch<'a> {
                 is_meta,
                 &query_fragment,
                 node_nr,
+                location_in_query,
             ),
             NodeSearchSpec::RegexValue {
                 ns,
@@ -172,6 +174,7 @@ impl<'a> NodeSearch<'a> {
                     is_meta,
                     &query_fragment,
                     node_nr,
+                    location_in_query,
                 )
             }
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
@@ -251,6 +254,7 @@ impl<'a> NodeSearch<'a> {
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
+        location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let name_id: StringID = db
             .strings

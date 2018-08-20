@@ -113,10 +113,10 @@ fn count_annos() {
     if let Some(db) = load_corpus("pcc2") {
 
 
-        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
+        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db, None).unwrap();
         assert_eq!(9, n.count());
 
-        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 0, &db).unwrap();
+        let n = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 0, &db, None).unwrap();
         assert_eq!(18, n.count());
     }
 }
@@ -137,9 +137,9 @@ fn nested_loop_join() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
-        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db, None).unwrap();
 
-        let n2 = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 1, &db).unwrap();
+        let n2 = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 1, &db, None).unwrap();
 
         let op = Precedence::new(
             &db,
@@ -175,9 +175,9 @@ fn parallel_nested_loop_join() {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
 
-        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db, None).unwrap();
 
-        let n2 = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 1, &db).unwrap();
+        let n2 = NodeSearch::from_spec(NodeSearchSpec::new_exact(None, "pos", Some("ADJA"), false), 1, &db, None).unwrap();
 
         let op = Precedence::new(
             &db,
@@ -216,7 +216,7 @@ fn index_join() {
         for c in op_spec.necessary_components(&db) {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
-        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db, None).unwrap();
 
 
         let op = Precedence::new(
@@ -259,7 +259,7 @@ fn parallel_index_join() {
         for c in op_spec.necessary_components(&db) {
             db.ensure_loaded(&c).expect("Loading component unsuccessful");
         }
-        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db).unwrap();
+        let n1 = NodeSearch::from_spec(NodeSearchSpec::new_exact(Some(ANNIS_NS), TOK, Some("der"), true), 0, &db, None).unwrap();
 
 
         let op = Precedence::new(

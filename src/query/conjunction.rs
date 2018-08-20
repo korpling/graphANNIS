@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use types::Edge;
 use annostorage::AnnoStorage;
-use {Component, Match, NodeDesc};
+use {Component, Match, NodeDesc, LineColumnRange};
 use graphdb::GraphDB;
 use graphstorage::GraphStatistic;
 use operator::{Operator, OperatorSpec};
@@ -39,6 +39,7 @@ pub struct Conjunction<'a> {
     nodes: Vec<(String, NodeSearchSpec)>,
     operators: Vec<OperatorEntry<'a>>,
     variables : HashMap<String, usize>,
+    location_in_query : HashMap<String, LineColumnRange>,
 }
 
 fn update_components_for_nodes(
@@ -91,6 +92,7 @@ impl<'a> Conjunction<'a> {
             nodes: vec![],
             operators: vec![],
             variables: HashMap::default(),
+            location_in_query: HashMap::default(),
         }
     }
 
@@ -117,7 +119,11 @@ impl<'a> Conjunction<'a> {
         return result; 
     }
 
-    pub fn add_node(&mut self, node: NodeSearchSpec, variable : Option<&str>,) -> String {
+    pub fn add_node(&mut self, node: NodeSearchSpec, variable : Option<&str>) -> String {
+        self.add_node_from_query(node, variable, None)
+    }
+
+    pub fn add_node_from_query(&mut self, node: NodeSearchSpec, variable : Option<&str>, location_desc : Option<LineColumnRange>) -> String {
         let idx = self.nodes.len();
         let variable = if let Some(variable) = variable {
             variable.to_string()
@@ -126,6 +132,9 @@ impl<'a> Conjunction<'a> {
         };
         self.nodes.push((variable.clone(), node));
         self.variables.insert(variable.clone(), idx);
+        if let Some(loc) = location_desc {
+            self.location_in_query.insert(variable.clone(), loc);
+        }
         return variable;
     }
 
@@ -432,7 +441,8 @@ impl<'a> Conjunction<'a> {
         {
             for node_nr in 0..self.nodes.len() {
                 let n_spec = &self.nodes[node_nr].1;
-                let mut node_search = NodeSearch::from_spec(n_spec.clone(), node_nr, db)?;
+                let n_var = &self.nodes[node_nr].0;
+                let mut node_search = NodeSearch::from_spec(n_spec.clone(), node_nr, db, self.location_in_query.get(n_var).cloned())?;
                 node2component.insert(node_nr, node_nr);
 
                 let (orig_query_frag, orig_impl_desc, cost) =

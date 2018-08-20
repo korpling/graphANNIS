@@ -105,3 +105,35 @@ pub struct NodeDesc {
     pub variable: String,
     pub anno_name : Option<String>,
 }
+
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+pub struct LineColumn {
+    pub line : usize,
+    pub column : usize,
+}
+
+impl std::fmt::Display for LineColumn {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+pub struct LineColumnRange {
+    pub start : LineColumn,
+    pub end : Option<LineColumn>,
+}
+
+impl std::fmt::Display for LineColumnRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if let Some(end) = self.end.clone() {
+            if self.start == end {
+                write!(f, "{}", self.start)
+            } else {
+                write!(f, "{}-{}", self.start, end)
+            }
+        } else {
+            write!(f, "{}", self.start)
+        }
+    }
+}
