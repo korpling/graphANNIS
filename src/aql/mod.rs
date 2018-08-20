@@ -1,7 +1,9 @@
 mod ast;
 mod normalize;
 pub mod operators;
-mod parser;
+mod parser {
+    include!(concat!(env!("OUT_DIR"), "/aql/parser.rs"));
+}
 
 use aql::operators::edge_op::PartOfSubCorpusSpec;
 use aql::operators::identical_node::IdenticalNodeSpec;

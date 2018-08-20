@@ -1,3 +1,12 @@
+release v0.9.0
+==============
+
+Enhancements
+------------
+
+- [#10](https://github.com/corpus-tools/graphANNIS/issues/10) Better error reporting for C-API
+- [#8](https://github.com/corpus-tools/graphANNIS/issues/8) Implement AQL parser and replace JSON query representations with AQL
+
 release v0.8.1
 ==============
 
