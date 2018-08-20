@@ -458,6 +458,10 @@ impl<'a> Conjunction<'a> {
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
+        // Remember node search errors, but do not bail out of this function before the component
+        // semantics check has been performed.
+        let mut node_search_errors: Vec<Error> = Vec::default();
+
         // 1. add all nodes
 
         // Create a map where the key is the component number
@@ -466,61 +470,64 @@ impl<'a> Conjunction<'a> {
             BTreeMap::new();
         let mut node2cost: BTreeMap<usize, CostEstimate> = BTreeMap::new();
 
-        {
-            for node_nr in 0..self.nodes.len() {
-                let n_spec = &self.nodes[node_nr].1;
-                let n_var = &self.nodes[node_nr].0;
+        for node_nr in 0..self.nodes.len() {
+            let n_spec = &self.nodes[node_nr].1;
+            let n_var = &self.nodes[node_nr].0;
 
-                let mut node_search = NodeSearch::from_spec(
-                    n_spec.clone(),
-                    node_nr,
-                    db,
-                    self.location_in_query.get(n_var).cloned(),
-                )?;
-                node2component.insert(node_nr, node_nr);
+            let mut node_search = NodeSearch::from_spec(
+                n_spec.clone(),
+                node_nr,
+                db,
+                self.location_in_query.get(n_var).cloned(),
+            );
+            match node_search {
+                Ok(mut node_search) => {
+                    node2component.insert(node_nr, node_nr);
 
-                let (orig_query_frag, orig_impl_desc, cost) =
-                    if let Some(d) = node_search.get_desc() {
-                        if let Some(ref c) = d.cost {
-                            node2cost.insert(node_nr, c.clone());
-                        }
+                    let (orig_query_frag, orig_impl_desc, cost) =
+                        if let Some(d) = node_search.get_desc() {
+                            if let Some(ref c) = d.cost {
+                                node2cost.insert(node_nr, c.clone());
+                            }
 
-                        (
-                            d.query_fragment.clone(),
-                            d.impl_description.clone(),
-                            d.cost.clone(),
-                        )
-                    } else {
-                        (String::from(""), String::from(""), None)
+                            (
+                                d.query_fragment.clone(),
+                                d.impl_description.clone(),
+                                d.cost.clone(),
+                            )
+                        } else {
+                            (String::from(""), String::from(""), None)
+                        };
+                    // make sure the description is correct
+                    let mut node_pos = BTreeMap::new();
+                    node_pos.insert(node_nr.clone(), 0);
+                    let new_desc = Desc {
+                        component_nr: node_nr,
+                        lhs: None,
+                        rhs: None,
+                        node_pos,
+                        impl_description: orig_impl_desc,
+                        query_fragment: orig_query_frag,
+                        cost: cost,
                     };
-                // make sure the description is correct
-                let mut node_pos = BTreeMap::new();
-                node_pos.insert(node_nr.clone(), 0);
-                let new_desc = Desc {
-                    component_nr: node_nr,
-                    lhs: None,
-                    rhs: None,
-                    node_pos,
-                    impl_description: orig_impl_desc,
-                    query_fragment: orig_query_frag,
-                    cost: cost,
-                };
-                node_search.set_desc(Some(new_desc));
+                    node_search.set_desc(Some(new_desc));
 
-                let node_by_component_search = self.optimize_node_search_by_operator(
-                    node_search.get_node_search_desc(),
-                    node_search.get_desc(),
-                    Box::new(self.operators.iter()),
-                    db,
-                );
+                    let node_by_component_search = self.optimize_node_search_by_operator(
+                        node_search.get_node_search_desc(),
+                        node_search.get_desc(),
+                        Box::new(self.operators.iter()),
+                        db,
+                    );
 
-                // move to map
-                if let Some(node_by_component_search) = node_by_component_search {
-                    component2exec.insert(node_nr, node_by_component_search);
-                } else {
-                    component2exec.insert(node_nr, Box::new(node_search));
+                    // move to map
+                    if let Some(node_by_component_search) = node_by_component_search {
+                        component2exec.insert(node_nr, node_by_component_search);
+                    } else {
+                        component2exec.insert(node_nr, Box::new(node_search));
+                    }
                 }
-            }
+                Err(e) => node_search_errors.push(e),
+            };
         }
 
         // 2. add the joins which produce the results in operand order
@@ -546,22 +553,16 @@ impl<'a> Conjunction<'a> {
 
             let component_left = node2component
                 .get(&spec_idx_left)
-                .ok_or(format!("no component for node #{}",
-                    spec_idx_left + 1
-                ))?
+                .ok_or(format!("no component for node #{}", spec_idx_left + 1))?
                 .clone();
             let component_right = node2component
                 .get(&spec_idx_right)
-                .ok_or(format!(
-                    "no component for node #{}",
-                    spec_idx_right + 1
-                ))?
+                .ok_or(format!("no component for node #{}", spec_idx_right + 1))?
                 .clone();
 
             // get the original execution node
-            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
-                .remove(&component_left)
-                .ok_or(format!(
+            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> =
+                component2exec.remove(&component_left).ok_or(format!(
                     "no execution node for component {}",
                     component_left
                 ))?;
@@ -597,10 +598,9 @@ impl<'a> Conjunction<'a> {
                     Box::new(filter)
                 } else {
                     let exec_right = component2exec.remove(&component_right).ok_or(format!(
-                            "no execution node for component {}",
-                            component_right
-                        ),
-                    )?;
+                        "no execution node for component {}",
+                        component_right
+                    ))?;
                     let idx_right = exec_right
                         .get_desc()
                         .ok_or("Plan description missing")?
@@ -643,11 +643,19 @@ impl<'a> Conjunction<'a> {
                     let location = self.location_in_query.get(n_var);
 
                     return Err(ErrorKind::AQLSemanticError(
-                        format!("Variable \"{}\" not bound (use linguistic operators)", n_var),
+                        format!(
+                            "Variable \"{}\" not bound (use linguistic operators)",
+                            n_var
+                        ),
                         location.cloned(),
                     ).into());
                 }
             }
+        }
+
+        // now apply the the node error check
+        if !node_search_errors.is_empty() {
+            return Err(node_search_errors.remove(0));
         }
 
         let first_component_id = first_component_id.ok_or(ErrorKind::ImpossibleSearch(
