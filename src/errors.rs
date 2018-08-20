@@ -52,7 +52,7 @@ error_chain! {
                 result.push_str(short_desc);
                 result.push('\n');
                 if let Some(location) = location {
-                    result.push_str(&format!("{}\n", location));
+                    result.push_str(&format!("[{}]\n", location));
                 }
                 if let Some(hint) = hint {
                     result.push_str(&format!("{}\n", hint));
@@ -68,7 +68,7 @@ error_chain! {
                 result.push_str(short_desc);
                 result.push('\n');
                 if let Some(location) = location {
-                    result.push_str(&format!("{}\n", location));
+                    result.push_str(&format!("[{}]\n", location));
                 }
                 if let Some(hint) = hint {
                     result.push_str(&format!("{}\n", hint));
