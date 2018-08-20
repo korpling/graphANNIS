@@ -4,7 +4,7 @@ use graphdb::{GraphDB, ANNIS_NS};
 use operator::EdgeAnnoSearchSpec;
 use stringstorage::StringStorage;
 use types::Edge;
-use {Annotation, Component, ComponentType, Match, NodeID, StringID, LineColumnRange};
+use {Annotation, Component, ComponentType, LineColumnRange, Match, NodeID, StringID};
 
 use regex;
 use util;
@@ -184,6 +184,7 @@ impl<'a> NodeSearch<'a> {
                 false,
                 &query_fragment,
                 node_nr,
+                location_in_query,
             ),
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
@@ -192,9 +193,10 @@ impl<'a> NodeSearch<'a> {
                 true,
                 &query_fragment,
                 node_nr,
+                location_in_query,
             ),
             NodeSearchSpec::AnyToken => {
-                NodeSearch::new_tokensearch(db, None, true, false, &query_fragment, node_nr)
+                NodeSearch::new_tokensearch(db, None, true, false, &query_fragment, node_nr, location_in_query)
             }
             NodeSearchSpec::AnyNode => {
                 let type_key = db.get_node_type_key();
@@ -259,21 +261,19 @@ impl<'a> NodeSearch<'a> {
         let name_id: StringID = db
             .strings
             .find_id(&name)
-            .ok_or(ErrorKind::AQLSemanticError(format!(
-                "Annotation with name '{}' does not exist",
-                &name
-            )))?
+            .ok_or(ErrorKind::AQLSemanticError(
+                format!("Annotation with name '{}' does not exist", &name),
+                location_in_query.clone(),
+                None,
+            ))?
             .clone();
         // not finding the strings will result in an None result, not in an less specific search
         let ns_id: Option<StringID> = if let Some(ns) = ns.as_ref() {
-            Some(
-                db.strings
-                    .find_id(ns)
-                    .ok_or(ErrorKind::AQLSemanticError(format!(
-                        "Namespace '{}' does not exist",
-                        ns
-                    )))?,
-            ).cloned()
+            Some(db.strings.find_id(ns).ok_or(ErrorKind::AQLSemanticError(
+                format!("Namespace '{}' does not exist", ns),
+                location_in_query.clone(),
+                None,
+            ))?).cloned()
         } else {
             None
         };
@@ -372,10 +372,7 @@ impl<'a> NodeSearch<'a> {
                         };
                     }));
                 }
-                Err(e) => bail!(ErrorKind::AQLSemanticError(format!(
-                    "/{}/ -> {}",
-                    val, e
-                ))),
+                Err(e) => bail!(ErrorKind::AQLSemanticError(format!("/{}/ -> {}", val, e), location_in_query, None)),
             }
         } else if val_id.is_some() {
             filters.push(Box::new(move |m, _| {
@@ -404,6 +401,7 @@ impl<'a> NodeSearch<'a> {
         match_regex: bool,
         query_fragment: &str,
         node_nr: usize,
+        location_in_query : Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
         let any_anno = Annotation {
@@ -474,10 +472,7 @@ impl<'a> NodeSearch<'a> {
                             return false;
                         };
                     })),
-                    Err(e) => bail!(ErrorKind::AQLSemanticError(format!(
-                        "/{}/ -> {}",
-                        v, e
-                    ))),
+                    Err(e) => bail!(ErrorKind::AQLSemanticError(format!("/{}/ -> {}", v, e), location_in_query, None)),
                 };
             } else {
                 let val_id = db

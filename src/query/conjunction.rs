@@ -123,7 +123,7 @@ impl<'a> Conjunction<'a> {
         self.add_node_from_query(node, variable, None)
     }
 
-    pub fn add_node_from_query(&mut self, node: NodeSearchSpec, variable : Option<&str>, location_desc : Option<LineColumnRange>) -> String {
+    pub fn add_node_from_query(&mut self, node: NodeSearchSpec, variable : Option<&str>, location : Option<LineColumnRange>) -> String {
         let idx = self.nodes.len();
         let variable = if let Some(variable) = variable {
             variable.to_string()
@@ -132,13 +132,16 @@ impl<'a> Conjunction<'a> {
         };
         self.nodes.push((variable.clone(), node));
         self.variables.insert(variable.clone(), idx);
-        if let Some(loc) = location_desc {
-            self.location_in_query.insert(variable.clone(), loc);
+        if let Some(location) = location {
+            self.location_in_query.insert(variable.clone(), location);
         }
         return variable;
     }
-
     pub fn add_operator(&mut self, op: Box<OperatorSpec>, var_left: &str, var_right: &str) -> Result<()> {
+        self.add_operator_from_query(op, var_left, var_right, None)
+    }
+
+    pub fn add_operator_from_query(&mut self, op: Box<OperatorSpec>, var_left: &str, var_right: &str, location: Option<LineColumnRange>) -> Result<()> {
         //let original_order = self.operators.len();
         if let (Some(idx_left), Some(idx_right)) = (self.variables.get(var_left), self.variables.get(var_right)) {
             self.operators.push(OperatorEntry {
@@ -148,7 +151,7 @@ impl<'a> Conjunction<'a> {
             });
             return Ok(());
         } else {
-            return Err(ErrorKind::AQLSemanticError("Operand not found".into()).into());
+            return Err(ErrorKind::AQLSemanticError("Operand not found".into(), location, None).into());
         }
 
     }
@@ -601,7 +604,8 @@ impl<'a> Conjunction<'a> {
                 first_component_id = Some(*cid);
             } else if let Some(first) = first_component_id {
                 if first != *cid {
-                    return Err(ErrorKind::AQLSemanticError("Components not connected".to_string()).into());
+                    // TODO: add location and description which nodes are not connected
+                    return Err(ErrorKind::AQLSemanticError("Components not connected".to_string(), None, None).into());
                 }
             }
         }

@@ -1,5 +1,6 @@
 use Component;
 use StringID;
+use LineColumnRange;
 
 error_chain! {
 
@@ -44,20 +45,36 @@ error_chain! {
             display("Corpus {} not found", &name)
         }
 
-        AQLSyntaxError(short_desc : String, location_desc : String, hint : Option<String>) {
+        AQLSyntaxError(short_desc : String, location : Option<LineColumnRange>, hint : Option<String>) {
             description("AQLSyntaxError"),
             display("{}", {
-                if let Some(hint) = hint {
-                    format!("{}\n{}\n{}", short_desc, location_desc, hint)
-                } else {
-                    format!("{}\n{}", short_desc, location_desc)
+                let mut result = String::new();
+                result.push_str(short_desc);
+                result.push('\n');
+                if let Some(location) = location {
+                    result.push_str(&format!("{}\n", location));
                 }
+                if let Some(hint) = hint {
+                    result.push_str(&format!("{}\n", hint));
+                }
+                result
             }),
         }
 
-        AQLSemanticError(desc : String) {
+        AQLSemanticError(short_desc : String, location : Option<LineColumnRange>, hint : Option<String>) {
             description("AQLSemanticError"),
-            display("AQL semantic error: {}", desc),
+            display("{}", {
+                let mut result = String::new();
+                result.push_str(short_desc);
+                result.push('\n');
+                if let Some(location) = location {
+                    result.push_str(&format!("{}\n", location));
+                }
+                if let Some(hint) = hint {
+                    result.push_str(&format!("{}\n", hint));
+                }
+                result
+            }),
         }
     }
 }

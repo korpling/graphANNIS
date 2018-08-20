@@ -200,7 +200,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 ParseError::UnrecognizedToken { .. } => "Unexpected token in query.",
                 ParseError::User { error } => error,
             };
-            let location = extract_location_description(&e, query_as_aql);
+            let location = extract_location(&e, query_as_aql);
             let hint = match e {
                 ParseError::UnrecognizedToken { expected, .. } => {
                     if expected.is_empty() {
@@ -216,7 +216,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
             };
             return Err(ErrorKind::AQLSyntaxError(
                 short_desc.to_string(),
-                location.to_string(),
+                location,
                 hint,
             ).into());
         }
@@ -264,10 +264,10 @@ pub fn get_line_and_column_for_pos(
     return LineColumn{line:0, column:0};
 }
 
-fn extract_location_description<'a>(
+fn extract_location<'a>(
     e: &ParseError<usize, parser::Token<'a>, &'static str>,
     input: &'a str,
-) -> String {
+) -> Option<LineColumnRange> {
     let offsets = get_line_offsets(input);
 
     let from_to: Option<LineColumnRange> = match e {
@@ -299,14 +299,5 @@ fn extract_location_description<'a>(
         }
         ParseError::User { .. } => None,
     };
-
-    let prefix = if let Some(from_to) = from_to {
-        format!("[{}]", from_to)
-    } else {
-        "[unknown location]".to_string()
-    };
-
-    // TODO: extract context and add it to output
-
-    prefix
+    from_to
 }
