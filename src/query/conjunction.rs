@@ -294,14 +294,19 @@ impl<'a> Conjunction<'a> {
                     }
 
                     if estimation_valid && node_search_cost.output > estimated_component_search {
-                        // TODO: check if there is another operator with even better estimates
-                        return Some(Box::new(NodeSearch::new_partofcomponentsearch(
+                        let poc_search = NodeSearch::new_partofcomponentsearch(
                             db,
                             node_search_desc,
                             Some(desc),
                             components,
                             op_spec.get_edge_anno_spec(),
-                        )));
+                        );
+                        if let Ok(poc_search) = poc_search{
+                            // TODO: check if there is another operator with even better estimates
+                            return Some(Box::new(poc_search));
+                        } else {
+                            return None;
+                        }
                     }
                 }
             }
@@ -427,12 +432,7 @@ impl<'a> Conjunction<'a> {
         {
             for node_nr in 0..self.nodes.len() {
                 let n_spec = &self.nodes[node_nr].1;
-                let mut node_search = NodeSearch::from_spec(n_spec.clone(), node_nr, db).ok_or(
-                    ErrorKind::ImpossibleSearch(format!(
-                        "could not create node search for node {} ({})",
-                        node_nr, n_spec
-                    ))
-                )?;
+                let mut node_search = NodeSearch::from_spec(n_spec.clone(), node_nr, db)?;
                 node2component.insert(node_nr, node_nr);
 
                 let (orig_query_frag, orig_impl_desc, cost) =

@@ -10,6 +10,7 @@ error_chain! {
         Bincode(::bincode::Error);
         Fmt(::std::fmt::Error);
         Strum(::strum::ParseError);
+        Regex(::regex::Error);
     }
 
     errors {
