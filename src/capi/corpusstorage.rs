@@ -347,11 +347,11 @@ pub extern "C" fn annis_cs_delete(
     ptr: *mut cs::CorpusStorage,
     corpus: *const libc::c_char,
     err: *mut *mut ErrorList,
-) {
+) -> bool {
     let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
     let corpus = cstr!(corpus);
 
-    try_cerr!(cs.delete(&corpus), err, ());
+    try_cerr!(cs.delete(&corpus), err, false)
 }
 
 #[no_mangle]

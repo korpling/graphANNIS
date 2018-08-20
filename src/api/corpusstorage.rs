@@ -612,7 +612,8 @@ impl CorpusStorage {
     }
 
     /// delete a corpus
-    pub fn delete(&self, corpus_name: &str) -> Result<()> {
+    /// Returns `true` if the corpus was sucessfully deleted and `false` if no such corpus existed.
+    pub fn delete(&self, corpus_name: &str) -> Result<bool> {
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(corpus_name);
 
@@ -629,10 +630,11 @@ impl CorpusStorage {
             if db_path.is_dir() && db_path.exists() {
                 std::fs::remove_dir_all(db_path.clone()).chain_err(|| "Error when removing existing files")?
             }
+
+            return Ok(true);
         } else {
-            return Err(ErrorKind::NoSuchCorpus(corpus_name.to_string()).into());
+            return Ok(false);
         }
-        return Ok(());
     }
 
     fn prepare_query<'a>(

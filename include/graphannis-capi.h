@@ -132,7 +132,7 @@ AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
                                      const char *query_as_json,
                                      AnnisErrorList **err);
 
-void annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **err);
+bool annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **err);
 
 AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      const char *corpus_name,
