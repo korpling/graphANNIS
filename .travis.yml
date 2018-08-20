@@ -18,7 +18,7 @@ branches:
     - develop
 
 script:
-  - RUST_BACKTRACE=1 cargo test --verbose --all-features
+  - RUST_BACKTRACE=1 cargo test --verbose --all-features --release
   -  "./misc/download-gum-corpus.sh"
   - cargo build --verbose --release --all-features
   - ./target/release/annis data --cmd 'import relannis/GUM'
