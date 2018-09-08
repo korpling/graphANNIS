@@ -87,9 +87,14 @@ fn main() {
                 .takes_value(false)
                 .required(false),
         )
+        .arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
     let mut crit : Criterion = Criterion::default().configure_from_args();
+
+    if let Some(filter) = matches.value_of("FILTER") {
+        crit = crit.with_filter(String::from(filter))
+    }
 
     let data_dir: PathBuf = if let Some(dir) = matches.value_of("data") {
         PathBuf::from(dir)
