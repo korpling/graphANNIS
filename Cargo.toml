@@ -26,7 +26,7 @@ rand = "0.5"
 csv = "1.0.0-beta.5"
 multimap = "0.4"
 log = "0.4"
-lazy_static = "1.0"
+lazy_static = "1.1"
 strum = "0.10"
 strum_macros = "0.10"
 num = "0.2"
@@ -55,7 +55,7 @@ libc = {version="0.2", optional=true}
 kernel32-sys = { version = "0.2.2" }
 
 [dev-dependencies]
-bencher = "0.1"
+criterion = "0.2"
 simplelog = "0.5"
 
 [features]
