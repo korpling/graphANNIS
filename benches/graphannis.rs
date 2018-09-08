@@ -111,6 +111,6 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
 
 criterion_group!(annostorage, retrieve_annos_for_node);
 
-criterion_group!(name=corpusstorage; config= Criterion::default().sample_size(10); targets = find_all_nouns_gum);
+criterion_group!(name=corpusstorage; config= Criterion::default().sample_size(25); targets = find_all_nouns_gum);
 
 criterion_main!(annostorage, corpusstorage);
