@@ -109,8 +109,23 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
 
 }
 
+fn deserialize_gum(bench: &mut Criterion) {
+    if CORPUS_STORAGE.is_none() {
+        return;
+    }
+
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+    
+    bench.bench_function("deserialize_gum", move |b| {
+        b.iter(|| {
+            cs.unload("GUM");
+            cs.preload("GUM").unwrap();
+        });
+    });
+}
+
 criterion_group!(annostorage, retrieve_annos_for_node);
-
 criterion_group!(name=corpusstorage; config= Criterion::default().sample_size(25); targets = find_all_nouns_gum);
+criterion_group!(name=serialization; config= Criterion::default().sample_size(25); targets = deserialize_gum);
 
-criterion_main!(annostorage, corpusstorage);
+criterion_main!(annostorage, corpusstorage, serialization);

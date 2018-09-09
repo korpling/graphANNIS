@@ -705,12 +705,20 @@ impl CorpusStorage {
         return Ok(format!("{}", plan));
     }
 
+    /// Preloads all annotation and graph storages from the disk into main memory
     pub fn preload(&self, corpus_name: &str) -> Result<()> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let mut lock = db_entry.write().unwrap();
         let db = get_write_or_error(&mut lock)?;
         db.ensure_loaded_all()?;
         return Ok(());
+    }
+
+    /// Unloads a corpus from the cache
+    pub fn unload(&self, corpus_name: &str){
+        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let cache = &mut *cache_lock;
+        cache.remove(corpus_name);
     }
 
     pub fn update_statistics(&self, corpus_name: &str) -> Result<()> {
