@@ -7,6 +7,7 @@ use clap::*;
 use criterion::Criterion;
 use criterion::Bencher;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use std::sync::Arc;
 
@@ -21,7 +22,7 @@ pub struct CountBench {
 
 impl std::fmt::Debug for CountBench {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}/{}", self.corpus, self.def.name)
+        write!(f, "{}: {}", self.corpus, self.def.aql)
     }
 }
 
@@ -65,7 +66,7 @@ pub fn create_query_input(
 
 fn main() {
     let matches = App::new("graphANNIS search benchmark")
-        .arg(Arg::with_name("logfile").long("logfile").takes_value(true))
+        .arg(Arg::with_name("output-dir").long("output-dir").takes_value(true))
         .arg(
             Arg::with_name("data")
                 .long("data")
@@ -87,10 +88,18 @@ fn main() {
                 .takes_value(false)
                 .required(false),
         )
+        .arg(Arg::with_name("save-baseline").long("save-baseline").takes_value(true).required(false))
+        .arg(Arg::with_name("baseline").long("baseline").takes_value(true).required(false))
         .arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
-    let mut crit : Criterion = Criterion::default();
+    criterion::init_logging();
+
+    let mut crit : Criterion = Criterion::default().sample_size(5).warm_up_time(Duration::from_millis(500));
+
+    if let Some(out) = matches.value_of("output-dir") {
+        crit = crit.output_directory(&PathBuf::from(out));
+    }
 
     if let Some(filter) = matches.value_of("FILTER") {
         crit = crit.with_filter(String::from(filter))
@@ -112,7 +121,7 @@ fn main() {
     let benches = create_query_input(&data_dir, &queries_dir, use_parallel_joins);
 
     crit.bench_function_over_inputs("count", |b : &mut Bencher, obj : &CountBench| {
-        // TODO: preload corpus
+        obj.cs.preload(&obj.corpus).unwrap();
         b.iter(|| {
             if let Ok(count) = obj.cs.count(&obj.corpus, &obj.def.aql) {
                 assert_eq!(obj.def.count, count);
