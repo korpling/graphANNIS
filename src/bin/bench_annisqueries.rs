@@ -21,7 +21,7 @@ pub struct CountBench {
 
 impl std::fmt::Debug for CountBench {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "CountBench {{ def: {:?} }}", self.def)
+        write!(f, "{}/{}", self.corpus, self.def.name)
     }
 }
 
@@ -90,7 +90,7 @@ fn main() {
         .arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
-    let mut crit : Criterion = Criterion::default().configure_from_args();
+    let mut crit : Criterion = Criterion::default();
 
     if let Some(filter) = matches.value_of("FILTER") {
         crit = crit.with_filter(String::from(filter))
