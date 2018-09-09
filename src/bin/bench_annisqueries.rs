@@ -90,15 +90,27 @@ fn main() {
         )
         .arg(Arg::with_name("save-baseline").long("save-baseline").takes_value(true).required(false))
         .arg(Arg::with_name("baseline").long("baseline").takes_value(true).required(false))
+        .arg(Arg::with_name("nsamples").long("nsamples").takes_value(true).required(false))
         .arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
     criterion::init_logging();
 
-    let mut crit : Criterion = Criterion::default().sample_size(5).warm_up_time(Duration::from_millis(500));
+    let mut crit : Criterion = Criterion::default().warm_up_time(Duration::from_millis(500));
+    if let Some(nsamples) = matches.value_of("nsamples") {
+        crit = crit.sample_size(nsamples.parse::<usize>().unwrap());
+    } else {
+        crit = crit.sample_size(5);
+    }
 
     if let Some(out) = matches.value_of("output-dir") {
         crit = crit.output_directory(&PathBuf::from(out));
+    }
+
+    if let Some(baseline) = matches.value_of("save-baseline") {
+        crit = crit.save_baseline(baseline.to_string());
+    } else if let Some(baseline) = matches.value_of("baseline") {
+        crit = crit.retain_baseline(baseline.to_string());
     }
 
     if let Some(filter) = matches.value_of("FILTER") {
