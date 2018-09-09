@@ -116,6 +116,7 @@ pub fn split_qname(qname : &str) -> (Option<&str>, &str) {
     }
 }
 
+#[derive(Debug)]
 pub struct SearchDef {
     pub aql: String,
     pub count: u64,

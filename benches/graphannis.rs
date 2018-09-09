@@ -1,24 +1,44 @@
 #[macro_use]
-extern crate bencher;
+extern crate criterion;
+#[macro_use]
+extern crate lazy_static;
 extern crate fxhash;
 extern crate graphannis;
 extern crate rand;
 
-use bencher::Bencher;
+use criterion::Criterion;
 use graphannis::annostorage::AnnoStorage;
 use graphannis::api::corpusstorage::CorpusStorage;
 use graphannis::api::corpusstorage::ResultOrder;
 use graphannis::{AnnoKey, Annotation, StringID};
-use std::cell::RefCell;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use rand::distributions::Range;
 use rand::distributions::Distribution;
+use rand::distributions::Range;
 
 use rand::seq;
 
-fn retrieve_annos_for_node(bench: &mut Bencher) {
+lazy_static! {
+
+static ref CORPUS_STORAGE : Option<CorpusStorage> = {
+    let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
+        path
+    } else {
+        String::from("data")
+    });
+
+    // only execute the test if the directory exists
+    let cs = if db_dir.exists() && db_dir.is_dir() {
+        CorpusStorage::new_auto_cache_size(&db_dir, false).ok()
+    } else {
+        None
+    };
+    return cs;
+    };
+}
+
+fn retrieve_annos_for_node(bench: &mut Criterion) {
     let mut annos: AnnoStorage<usize> = AnnoStorage::new();
 
     let mut rng = rand::thread_rng();
@@ -42,53 +62,55 @@ fn retrieve_annos_for_node(bench: &mut Bencher) {
     // sample 1000 items to get the annotation value from
     let samples: Vec<usize> = seq::sample_indices(&mut rng, 10_000, 1_000);
 
-    bench.iter(move || {
-        let mut sum = 0;
-        for i in samples.iter() {
-            let a = annos.get_all(i);
-            sum += a.len();
-        }
-        assert!(sum > 0);
-    })
-}
-
-thread_local!{
-   pub static CORPUS_STORAGE : RefCell<Option<CorpusStorage>> = {
-        let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
-            path
-        } else {
-            String::from("../data")
-        });
-
-        // only execute the test if the directory exists
-        let cs = if db_dir.exists() && db_dir.is_dir() {
-            CorpusStorage::new_auto_cache_size(&db_dir, false).ok()
-        } else {
-            None
-        };
-        return RefCell::new(cs);
-       };
-}
-
-fn find_all_nouns_gum(bench: &mut Bencher) {
-    CORPUS_STORAGE.with(|cs| {
-        if let Some(ref cs) = *cs.borrow() {
-            if let Ok(corpora) = cs.list() {
-                let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
-                // ignore of corpus does not exist
-                if corpora.contains("GUM") {
-                    bench.iter(move || {
-                        let f = cs.find("GUM", "{\"alternatives\":[{\"nodes\":{\"1\":{\"id\":1,\"nodeAnnotations\":[{\"name\":\"pos\",\"value\":\"NN\",\"textMatching\":\"EXACT_EQUAL\",\"qualifiedName\":\"pos\"}],\"root\":false,\"token\":false,\"variable\":\"1\"}},\"joins\":[]}]}", usize::min_value(), usize::max_value(), ResultOrder::Normal);
-                        assert!(f.is_ok());
-                    });
-                }
+    bench.bench_function("retrieve_annos_for_node", move |b| {
+        b.iter(|| {
+            let mut sum = 0;
+            for i in samples.iter() {
+                let a = annos.get_all(i);
+                sum += a.len();
             }
-        }
+            assert!(sum > 0);
+        })
     });
 }
 
-benchmark_group!(annostorage, retrieve_annos_for_node);
+fn find_all_nouns_gum(bench: &mut Criterion) {
+    if CORPUS_STORAGE.is_none() {
+        return;
+    }
 
-benchmark_group!(corpusstorage, find_all_nouns_gum);
+    let cs = CORPUS_STORAGE.as_ref().unwrap();
+    
+    let corpora = cs.list();
+    if let Ok(corpora) = corpora {
+        let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
+        // ignore of corpus does not exist
+        if corpora.contains("GUM") {
+            cs.preload("GUM").unwrap();
+        } else {
+            return;
+        }
+    }
 
-benchmark_main!(annostorage, corpusstorage);
+
+
+    bench.bench_function("find_all_nouns_gum", move |b| {
+        b.iter(|| {
+            let f = cs.find(
+                "GUM",
+                "pos=\"NN\"",
+                usize::min_value(),
+                usize::max_value(),
+                ResultOrder::Normal,
+            );
+            assert!(f.is_ok());
+        })
+    });
+
+}
+
+criterion_group!(annostorage, retrieve_annos_for_node);
+
+criterion_group!(name=corpusstorage; config= Criterion::default().sample_size(25); targets = find_all_nouns_gum);
+
+criterion_main!(annostorage, corpusstorage);
