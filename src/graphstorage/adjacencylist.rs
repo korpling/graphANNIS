@@ -6,15 +6,13 @@ use dfs::{CycleSafeDFS};
 
 use std::collections::BTreeSet;
 use fxhash::FxHashSet;
-use std::collections::Bound::*;
 
 use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
-use itertools::Itertools;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
-    edges: BTreeSet<Edge>,
-    inverse_edges: BTreeSet<Edge>,
+    edges: Vec<FxHashSet<NodeID>>,
+    inverse_edges: Vec<FxHashSet<NodeID>>,
     annos: AnnoStorage<Edge>,
     stats : Option<GraphStatistic>,
 }
@@ -32,8 +30,8 @@ impl MallocSizeOf for AdjacencyListStorage {
 impl AdjacencyListStorage {
     pub fn new() -> AdjacencyListStorage {
         AdjacencyListStorage {
-            edges: BTreeSet::new(),
-            inverse_edges: BTreeSet::new(),
+            edges: Vec::new(),
+            inverse_edges: Vec::new(),
             annos: AnnoStorage::new(),
             stats: None,
         }
@@ -51,28 +49,24 @@ impl AdjacencyListStorage {
 impl EdgeContainer for AdjacencyListStorage {
 
      fn get_outgoing_edges<'a>(&'a self, node : &NodeID) -> Box<Iterator<Item=NodeID> + 'a> {
-        let start_key = Edge{source: node.clone(), target: NodeID::min_value()};
-        let end_key = Edge {source: node.clone(), target: NodeID::max_value()};
-
-        let it = self.edges.range(start_key..end_key)
-            .map(|e| {
-                e.target
-            });
-
-        return Box::new(it);
+        let node = (*node) as usize;
+        if node < self.edges.len() {
+            let it = self.edges[node].iter().cloned();
+            return Box::new(it);
+        } else {
+            return Box::new(std::iter::empty());
+        }
 
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        let start_key = Edge{source: node.clone(), target: NodeID::min_value()};
-        let end_key = Edge {source: node.clone(), target: NodeID::max_value()};
-
-        let it = self.inverse_edges.range(start_key..end_key)
-            .map(|e| {
-                e.target
-            });
-
-        return Box::new(it);
+        let node = (*node) as usize;
+        if node < self.inverse_edges.len() {
+            let it = self.inverse_edges[node].iter().cloned();
+            return Box::new(it);
+        } else {
+            return Box::new(std::iter::empty());
+        }
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
@@ -84,7 +78,8 @@ impl EdgeContainer for AdjacencyListStorage {
     }
 
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        let it = self.edges.iter().map(|e| e.source).dedup();
+        let edges = &self.edges;
+        let it = (0..self.edges.len()).filter(move |idx| !edges[*idx].is_empty()).map(|idx| idx as NodeID);
         return Box::new(it);
     }
 
@@ -186,18 +181,21 @@ impl GraphStorage for AdjacencyListStorage {
         {
 
             let mut all_nodes : BTreeSet<NodeID> = BTreeSet::new();
-            for e in self.edges.iter() {
-                roots.insert(e.source);
-                all_nodes.insert(e.source);
-                all_nodes.insert(e.target);
-                
-                if stats.rooted_tree {
-                    if has_incoming_edge.contains(&e.target) {
-                        stats.rooted_tree = false;
-                    } else {
-                        has_incoming_edge.insert(e.target);
+            for (source, targets) in self.edges.iter().enumerate() {
+                roots.insert(source as NodeID);
+                all_nodes.insert(source as NodeID);
+                for t in targets {
+                    all_nodes.insert(*t);
+                    if stats.rooted_tree {
+                        if has_incoming_edge.contains(t) {
+                            stats.rooted_tree = false;
+                        } else {
+                            has_incoming_edge.insert(*t);
+                        }
                     }
                 }
+                
+                
             }
             stats.nodes = all_nodes.len();
         }
@@ -206,11 +204,14 @@ impl GraphStorage for AdjacencyListStorage {
         let mut last_source_id : Option<NodeID> = None;
         let mut current_fan_out = 0;
         if !self.edges.is_empty() {
-            for e in self.edges.iter() {
-                roots.remove(&e.target);
+            for (source, targets) in self.edges.iter().enumerate() {
+                let source = source as NodeID;
+                for t in targets {
+                    roots.remove(t);
+                }
 
                 if let Some(last) = last_source_id {
-                    if last != e.source {
+                    if last != source {
                         stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
                         sum_fan_out += current_fan_out;
                         fan_outs.push(current_fan_out);
@@ -218,7 +219,7 @@ impl GraphStorage for AdjacencyListStorage {
                         current_fan_out = 0;
                     }
                 }
-                last_source_id = Some(e.source);
+                last_source_id = Some(source);
                 current_fan_out += 1;
             }
             // add the statistics for the last node
@@ -284,21 +285,49 @@ impl GraphStorage for AdjacencyListStorage {
 impl WriteableGraphStorage for AdjacencyListStorage {
     fn add_edge(&mut self, edge: Edge) {
         if edge.source != edge.target {
-            self.inverse_edges.insert(edge.inverse());
-            self.edges.insert(edge);
+            let source = edge.source as usize;
+            let target = edge.target as usize;
+
+            if target >= self.inverse_edges.len() {
+                self.inverse_edges.resize(target+1, FxHashSet::default());
+            }
+            self.inverse_edges[target].insert(edge.source);
+
+            if source >= self.edges.len() {
+                self.edges.resize(source+1, FxHashSet::default());
+            }
+            self.edges[source].insert(edge.target);
             // TODO: invalid graph statistics
         }
     }
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) {
-        if self.edges.contains(&edge) {
-            self.annos.insert(edge, anno);
+        let source = edge.source as usize;
+        if source < self.edges.len() {
+            if self.edges[source].contains(&edge.target) {
+                self.annos.insert(edge, anno);
+            }
         }
     }
 
     fn delete_edge(&mut self, edge: &Edge) {
-        self.edges.remove(edge);
-        self.inverse_edges.remove(&edge.inverse());
+        let source = edge.source as usize;
+        let target = edge.target as usize;
 
+        if source < self.edges.len() {
+            self.edges[source].remove(&edge.target);
+            // if the last node is empty, make the vector smaller
+            if source == self.edges.len() -1 && self.edges[source].is_empty() {
+                self.edges.pop();
+            }
+        }
+
+        if target < self.inverse_edges.len() {
+            self.inverse_edges[target].remove(&edge.source);
+            // if the last node is empty, make the vector smaller
+            if target == self.inverse_edges.len() -1 && self.inverse_edges[target].is_empty() {
+                self.inverse_edges.pop();
+            }
+        }
         let annos = self.annos.get_all(edge);
         for a in annos {
             self.annos.remove(edge, &a.key);
@@ -311,25 +340,16 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         // find all both ingoing and outgoing edges
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
-        let range_start = Edge {
-            source: node.clone(),
-            target: NodeID::min_value(),
-        };
-        let range_end = Edge {
-            source: node.clone(),
-            target: NodeID::max_value(),
-        };
-
-        for e in self.edges
-            .range((Included(range_start.clone()), Included(range_end.clone())))
-        {
-            to_delete.push_back(e.clone());
+        let node_usize = (*node) as usize;
+        if node_usize < self.edges.len() {
+            for target in self.edges[node_usize].iter() {
+                to_delete.push_back(Edge {source: *node, target: *target})
+            }
         }
-
-        for e in self.inverse_edges
-            .range((Included(range_start), Included(range_end)))
-        {
-            to_delete.push_back(e.clone());
+        if node_usize < self.inverse_edges.len() {
+            for source in self.inverse_edges[node_usize].iter() {
+                to_delete.push_back(Edge {source: *source, target: *node})
+            }
         }
 
         for e in to_delete {
