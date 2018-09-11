@@ -51,6 +51,9 @@ prettytable-rs = {version="^0.7", optional=true}
 
 libc = {version="0.2", optional=true}
 
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docs_rs_workaround"]
+
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2.2" }
 

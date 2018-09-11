@@ -1,3 +1,5 @@
+// workaround for doc.rs bug that uses nightly compiler and complains that the global allocator is not stabilized yet
+#![cfg_attr(docs_rs_workaround, feature(global_allocator))]
 // `error_chain!` can recurse deeply
 #![recursion_limit = "1024"]
 
