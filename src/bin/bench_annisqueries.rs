@@ -22,7 +22,7 @@ pub struct CountBench {
 
 impl std::fmt::Debug for CountBench {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}: {}", self.corpus, self.def.aql)
+        write!(f, "{}/{}", self.corpus, self.def.name)
     }
 }
 
