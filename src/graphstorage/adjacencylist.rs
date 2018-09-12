@@ -5,7 +5,7 @@ use Edge;
 use dfs::{CycleSafeDFS};
 
 use std::collections::BTreeSet;
-use fxhash::FxHashSet;
+use rustc_hash::{FxHashSet, FxHashMap};
 
 use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
 

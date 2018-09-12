@@ -32,7 +32,7 @@ use util::memory_estimation;
 use FrequencyTable;
 use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID, NodeDesc};
 
-use fxhash::FxHashMap;
+use rustc_hash::FxHashMap;
 
 use rand;
 use rand::Rng;

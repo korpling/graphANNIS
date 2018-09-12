@@ -5,7 +5,7 @@ use graphstorage::GraphStorage;
 use operator::EstimationType;
 use util::token_helper;
 use util::token_helper::TokenHelper;
-use fxhash::FxHashSet;
+use rustc_hash::FxHashSet;
 
 use std::sync::Arc;
 use std;

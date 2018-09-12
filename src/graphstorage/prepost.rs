@@ -1,5 +1,5 @@
 use graphstorage::EdgeContainer;
-use fxhash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::any::Any;
 use std::clone::Clone;
 use std;

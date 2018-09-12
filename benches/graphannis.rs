@@ -2,7 +2,7 @@
 extern crate criterion;
 #[macro_use]
 extern crate lazy_static;
-extern crate fxhash;
+extern crate rustc_hash;
 extern crate graphannis;
 extern crate rand;
 

@@ -15,7 +15,7 @@ extern crate regex_syntax;
 extern crate rand;
 extern crate multimap;
 extern crate linked_hash_map;
-extern crate fxhash;
+extern crate rustc_hash;
 extern crate tempdir;
 
 extern crate serde;

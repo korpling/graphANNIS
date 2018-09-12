@@ -1,6 +1,6 @@
 use graphstorage::EdgeContainer;
-use fxhash::FxHashMap;
-use fxhash::FxHashSet;
+use rustc_hash::FxHashMap;
+use rustc_hash::FxHashSet;
 use std::any::Any;
 use std::clone::Clone;
 use std;

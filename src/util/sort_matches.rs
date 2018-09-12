@@ -1,4 +1,4 @@
-use fxhash::FxHashMap;
+use rustc_hash::FxHashMap;
 use graphdb::GraphDB;
 use std;
 use std::cmp::Ordering;
