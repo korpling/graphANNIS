@@ -344,6 +344,8 @@ mod tests {
 
     use super::*;
 
+    use itertools::Itertools;
+
     #[test]
     fn simple_dag_find_all() {
         /*
@@ -394,8 +396,8 @@ mod tests {
             target: 4,
         });
 
-        assert_eq!(vec![2, 3], gs.get_outgoing_edges(&1).collect::<Vec<NodeID>>());
-        assert_eq!(vec![4,5], gs.get_outgoing_edges(&3).collect::<Vec<NodeID>>());
+        assert_eq!(vec![2, 3], gs.get_outgoing_edges(&1).collect::<Vec<NodeID>>().into_iter().sorted());
+        assert_eq!(vec![4,5], gs.get_outgoing_edges(&3).collect::<Vec<NodeID>>().into_iter().sorted());
         assert_eq!(0, gs.get_outgoing_edges(&6).count());
         assert_eq!(vec![4], gs.get_outgoing_edges(&2).collect::<Vec<NodeID>>());
 
