@@ -48,9 +48,10 @@ impl AdjacencyListStorage {
 impl EdgeContainer for AdjacencyListStorage {
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(outgoing) = self.edges.get(node) {
-            if !outgoing.is_empty() {
-                let it = outgoing.iter().cloned();
-                return Box::new(it);
+            return match outgoing.len() {
+                0 => Box::new(std::iter::empty()),
+                1 => Box::new(std::iter::once(outgoing[0])),
+                _ =>  Box::new(outgoing.iter().cloned()),
             }
         }
         return Box::new(std::iter::empty());
@@ -58,9 +59,10 @@ impl EdgeContainer for AdjacencyListStorage {
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(ingoing) = self.inverse_edges.get(node) {
-            if !ingoing.is_empty() {
-                let it = ingoing.iter().cloned();
-                return Box::new(it);
+            return match ingoing.len() {
+                0 => Box::new(std::iter::empty()),
+                1 => Box::new(std::iter::once(ingoing[0])),
+                _ =>  Box::new(ingoing.iter().cloned()),
             }
         }
         return Box::new(std::iter::empty());
