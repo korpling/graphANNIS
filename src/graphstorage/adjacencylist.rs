@@ -1,20 +1,20 @@
 use super::*;
 use annostorage::AnnoStorage;
+use dfs::CycleSafeDFS;
 use stringstorage::StringStorage;
 use Edge;
-use dfs::{CycleSafeDFS};
 
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
-use rustc_hash::{FxHashSet, FxHashMap};
 
-use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
     edges: FxHashMap<NodeID, FxHashSet<NodeID>>,
     inverse_edges: FxHashMap<NodeID, FxHashSet<NodeID>>,
     annos: AnnoStorage<Edge>,
-    stats : Option<GraphStatistic>,
+    stats: Option<GraphStatistic>,
 }
 
 impl MallocSizeOf for AdjacencyListStorage {
@@ -37,7 +37,6 @@ impl AdjacencyListStorage {
         }
     }
 
-
     pub fn clear(&mut self) {
         self.edges.clear();
         self.inverse_edges.clear();
@@ -47,15 +46,13 @@ impl AdjacencyListStorage {
 }
 
 impl EdgeContainer for AdjacencyListStorage {
-
-     fn get_outgoing_edges<'a>(&'a self, node : &NodeID) -> Box<Iterator<Item=NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(outgoing) = self.edges.get(node) {
             let it = outgoing.iter().cloned();
             return Box::new(it);
         } else {
             return Box::new(std::iter::empty());
         }
-
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
@@ -67,7 +64,7 @@ impl EdgeContainer for AdjacencyListStorage {
         }
     }
 
-    fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
+    fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
         self.annos.get_all(edge)
     }
 
@@ -76,7 +73,11 @@ impl EdgeContainer for AdjacencyListStorage {
     }
 
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        let it = self.edges.iter().filter(move |(_, outgoing)| !outgoing.is_empty()).map(|(key, _)| key.clone());
+        let it = self
+            .edges
+            .iter()
+            .filter(move |(_, outgoing)| !outgoing.is_empty())
+            .map(|(key, _)| key.clone());
         return Box::new(it);
     }
 
@@ -86,9 +87,6 @@ impl EdgeContainer for AdjacencyListStorage {
 }
 
 impl GraphStorage for AdjacencyListStorage {
-
-     
-
     fn find_connected<'a>(
         &'a self,
         node: &NodeID,
@@ -97,7 +95,7 @@ impl GraphStorage for AdjacencyListStorage {
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
-            .map(|x| {x.node})
+            .map(|x| x.node)
             .filter(move |n| visited.insert(n.clone()));
         Box::new(it)
     }
@@ -110,34 +108,37 @@ impl GraphStorage for AdjacencyListStorage {
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
-            .map(|x| {x.node})
+            .map(|x| x.node)
             .filter(move |n| visited.insert(n.clone()));
         Box::new(it)
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
         let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
-        .filter(|x| *target == x.node )
-        .map(|x| x.distance);
+            .filter(|x| *target == x.node)
+            .map(|x| x.distance);
 
         return it.next();
-
     }
-    fn is_connected(&self, source: &NodeID, target: &NodeID, min_distance: usize, max_distance: usize) -> bool {
+    fn is_connected(
+        &self,
+        source: &NodeID,
+        target: &NodeID,
+        min_distance: usize,
+        max_distance: usize,
+    ) -> bool {
         let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
-        .filter(|x| *target == x.node );
-        
+            .filter(|x| *target == x.node);
+
         return it.next().is_some();
     }
 
-    
-
-    fn copy(&mut self, db : &GraphDB, orig : &EdgeContainer) {
+    fn copy(&mut self, db: &GraphDB, orig: &EdgeContainer) {
         self.clear();
 
         for source in orig.source_nodes() {
             for target in orig.get_outgoing_edges(&source) {
-                let e = Edge{source, target};
+                let e = Edge { source, target };
                 self.add_edge(e.clone());
                 for a in orig.get_edge_annos(&e) {
                     self.add_edge_annotation(e.clone(), a);
@@ -149,21 +150,29 @@ impl GraphStorage for AdjacencyListStorage {
         self.annos.calculate_statistics(&db.strings);
     }
 
-    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {Some(self)}
-    fn as_edgecontainer(&self) -> &EdgeContainer {self}
+    fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {
+        Some(self)
+    }
+    fn as_edgecontainer(&self) -> &EdgeContainer {
+        self
+    }
 
-    fn as_any(&self) -> &Any {self}
+    fn as_any(&self) -> &Any {
+        self
+    }
 
-    fn inverse_has_same_cost(&self) -> bool {true}
+    fn inverse_has_same_cost(&self) -> bool {
+        true
+    }
 
-    fn calculate_statistics(&mut self, string_storage : &StringStorage) {
+    fn calculate_statistics(&mut self, string_storage: &StringStorage) {
         let mut stats = GraphStatistic {
             max_depth: 1,
             max_fan_out: 0,
             avg_fan_out: 0.0,
             fan_out_99_percentile: 0,
             cyclic: false,
-            rooted_tree : true,
+            rooted_tree: true,
             nodes: 0,
             dfs_visit_ratio: 0.0,
         };
@@ -171,52 +180,50 @@ impl GraphStorage for AdjacencyListStorage {
         self.annos.calculate_statistics(string_storage);
 
         let mut sum_fan_out = 0;
-        let mut has_incoming_edge : BTreeSet<NodeID> = BTreeSet::new();
+        let mut has_incoming_edge: BTreeSet<NodeID> = BTreeSet::new();
 
-         // find all root nodes
-        let mut roots : BTreeSet<NodeID> = BTreeSet::new();
+        // find all root nodes
+        let mut roots: BTreeSet<NodeID> = BTreeSet::new();
         {
-
-            let mut all_nodes : BTreeSet<NodeID> = BTreeSet::new();
-            for (source, targets) in self.edges.iter() {
+            let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
+            for (source, outgoing) in self.edges.iter() {
                 roots.insert(*source);
                 all_nodes.insert(*source);
-                for t in targets.iter() {
-                    all_nodes.insert(*t);
+                for target in outgoing.iter() {
+                    all_nodes.insert(*target);
+
                     if stats.rooted_tree {
-                        if has_incoming_edge.contains(t) {
+                        if has_incoming_edge.contains(target) {
                             stats.rooted_tree = false;
                         } else {
-                            has_incoming_edge.insert(*t);
+                            has_incoming_edge.insert(*target);
                         }
                     }
                 }
-                
-                
             }
             stats.nodes = all_nodes.len();
         }
 
-        let mut fan_outs : Vec<usize> = Vec::new();
-        let mut last_source_id : Option<NodeID> = None;
+        let mut fan_outs: Vec<usize> = Vec::new();
+        let mut last_source_id: Option<NodeID> = None;
         let mut current_fan_out = 0;
         if !self.edges.is_empty() {
-            for (source, targets) in self.edges.iter() {
-                for t in targets.iter() {
-                    roots.remove(t);
-                }
+            for (source, outgoing) in self.edges.iter() {
+                for target in outgoing.iter() {
+                    roots.remove(&target);
 
-                if let Some(last) = last_source_id {
-                    if last != *source {
-                        stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
-                        sum_fan_out += current_fan_out;
-                        fan_outs.push(current_fan_out);
+                    if let Some(last) = last_source_id {
+                        if last != *source {
+                            stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
+                            sum_fan_out += current_fan_out;
+                            fan_outs.push(current_fan_out);
 
-                        current_fan_out = 0;
+                            current_fan_out = 0;
+                        }
                     }
+                    last_source_id = Some(*source);
+                    current_fan_out += 1;
                 }
-                last_source_id = Some(*source);
-                current_fan_out += 1;
             }
             // add the statistics for the last node
             stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
@@ -228,12 +235,12 @@ impl GraphStorage for AdjacencyListStorage {
 
         // get the percentile value(s)
         // set some default values in case there are not enough elements in the component
-        if ! fan_outs.is_empty() {
-            stats.fan_out_99_percentile = fan_outs[fan_outs.len()-1];
+        if !fan_outs.is_empty() {
+            stats.fan_out_99_percentile = fan_outs[fan_outs.len() - 1];
         }
         // calculate the more accurate values
         if fan_outs.len() >= 100 {
-            let idx : usize = fan_outs.len() / 100;
+            let idx: usize = fan_outs.len() / 100;
             if idx < fan_outs.len() {
                 stats.fan_out_99_percentile = fan_outs[idx];
             }
@@ -260,10 +267,8 @@ impl GraphStorage for AdjacencyListStorage {
             stats.rooted_tree = false;
             // it's infinite
             stats.max_depth = 0;
-            stats.dfs_visit_ratio = 0.0; 
-        }
-        else
-        {
+            stats.dfs_visit_ratio = 0.0;
+        } else {
             if stats.nodes > 0 {
                 stats.dfs_visit_ratio = (number_of_visits as f64) / (stats.nodes as f64);
             }
@@ -275,20 +280,23 @@ impl GraphStorage for AdjacencyListStorage {
 
         self.stats = Some(stats);
     }
-
 }
 
 impl WriteableGraphStorage for AdjacencyListStorage {
     fn add_edge(&mut self, edge: Edge) {
         if edge.source != edge.target {
-            
-            self.inverse_edges.entry(edge.target).or_insert(FxHashSet::default()).insert(edge.source);
-            self.edges.entry(edge.source).or_insert(FxHashSet::default()).insert(edge.target);
+            self.inverse_edges
+                .entry(edge.target)
+                .or_insert(FxHashSet::default())
+                .insert(edge.source);
+            self.edges
+                .entry(edge.source)
+                .or_insert(FxHashSet::default())
+                .insert(edge.target);
             // TODO: invalid graph statistics
         }
     }
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) {
-        
         if let Some(outgoing) = self.edges.get(&edge.source) {
             if outgoing.contains(&edge.target) {
                 self.annos.insert(edge, anno);
@@ -297,7 +305,6 @@ impl WriteableGraphStorage for AdjacencyListStorage {
     }
 
     fn delete_edge(&mut self, edge: &Edge) {
-
         if let Some(outgoing) = self.edges.get_mut(&edge.source) {
             outgoing.remove(&edge.target);
         }
@@ -319,12 +326,18 @@ impl WriteableGraphStorage for AdjacencyListStorage {
 
         if let Some(outgoing) = self.edges.get(node) {
             for target in outgoing.iter() {
-                to_delete.push_back(Edge {source: *node, target: *target})
+                to_delete.push_back(Edge {
+                    source: *node,
+                    target: *target,
+                })
             }
         }
         if let Some(ingoing) = self.inverse_edges.get(node) {
             for source in ingoing.iter() {
-                to_delete.push_back(Edge {source: *source, target: *node})
+                to_delete.push_back(Edge {
+                    source: *source,
+                    target: *node,
+                })
             }
         }
 
@@ -332,12 +345,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             self.delete_edge(&e);
         }
     }
-
-
-    
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -396,27 +404,37 @@ mod tests {
             target: 4,
         });
 
-        assert_eq!(vec![2, 3], gs.get_outgoing_edges(&1).collect::<Vec<NodeID>>().into_iter().sorted());
-        assert_eq!(vec![4,5], gs.get_outgoing_edges(&3).collect::<Vec<NodeID>>().into_iter().sorted());
+        assert_eq!(
+            vec![2, 3],
+            gs.get_outgoing_edges(&1)
+                .collect::<Vec<NodeID>>()
+                .into_iter()
+                .sorted()
+        );
+        assert_eq!(
+            vec![4, 5],
+            gs.get_outgoing_edges(&3)
+                .collect::<Vec<NodeID>>()
+                .into_iter()
+                .sorted()
+        );
         assert_eq!(0, gs.get_outgoing_edges(&6).count());
         assert_eq!(vec![4], gs.get_outgoing_edges(&2).collect::<Vec<NodeID>>());
 
-        let mut reachable : Vec<NodeID> = gs.find_connected(&1, 1, 100).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(&1, 1, 100).collect();
         reachable.sort();
-        assert_eq!(vec![2,3,4,5,6,7], reachable);
+        assert_eq!(vec![2, 3, 4, 5, 6, 7], reachable);
 
-        let mut reachable : Vec<NodeID> = gs.find_connected(&3, 2, 100).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(&3, 2, 100).collect();
         reachable.sort();
-        assert_eq!(vec![6,7], reachable);
+        assert_eq!(vec![6, 7], reachable);
 
-        let mut reachable : Vec<NodeID> = gs.find_connected(&1, 2, 4).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(&1, 2, 4).collect();
         reachable.sort();
-        assert_eq!(vec![4,5,6,7], reachable);
+        assert_eq!(vec![4, 5, 6, 7], reachable);
 
-        let reachable : Vec<NodeID> = gs.find_connected(&7, 1, 100).collect();
+        let reachable: Vec<NodeID> = gs.find_connected(&7, 1, 100).collect();
         assert_eq!(true, reachable.is_empty());
-
-        
     }
 
 }
