@@ -1,5 +1,5 @@
 use graphstorage::{EdgeContainer};
-use fxhash::{FxHashSet};
+use rustc_hash::{FxHashSet};
 use NodeID;
 
 pub struct CycleSafeDFS<'a> {

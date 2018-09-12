@@ -19,6 +19,7 @@ use strum::IntoEnumIterator;
 use tempdir::TempDir;
 use AnnoKey;
 use {Annotation, Component, ComponentType, Edge, NodeID, StringID};
+use rayon::prelude::*;
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
@@ -181,10 +182,7 @@ impl GraphDB {
 
         // If backup is active or a write log exists, always  a pre-load to get the complete corpus.
         if preload | logfile_exists | backup_was_loaded {
-            let all_components: Vec<Component> = self.components.keys().cloned().collect();
-            for c in all_components {
-                self.ensure_loaded(&c)?;
-            }
+            self.ensure_loaded_all()?;
         }
 
         if logfile_exists {
@@ -682,9 +680,28 @@ impl GraphDB {
     }
 
     pub fn ensure_loaded_all(&mut self) -> Result<()> {
-        let all_components: Vec<Component> = self.components.keys().cloned().collect();
-        for c in all_components {
-            self.ensure_loaded(&c)?;
+        let mut components_to_load : Vec<Component> = Vec::with_capacity(self.components.len());
+
+        // colllect all missing components
+        for (c, gs) in self.components.iter() {
+            if gs.is_none() {
+                components_to_load.push(c.clone());
+            }
+        }
+
+        // load missing components in parallel
+        let loaded_components : Vec<(Component, Result<Arc<GraphStorage>>)> = components_to_load.into_par_iter()
+            .map(|c| {
+                info!("Loading component {} from disk", c);
+                let cpath = self.component_path(&c);
+                let loaded_component = load_component_from_disk(cpath);
+                (c, loaded_component)
+            }).collect();
+
+        // insert all the loaded components
+        for (c, gs) in loaded_components.into_iter() {
+            let gs = gs?;
+            self.components.insert(c, Some(gs));
         }
         Ok(())
     }

@@ -1,6 +1,6 @@
 use super::*;
 use std::collections::{BTreeMap};
-use fxhash::{FxHashMap,FxHashSet};
+use rustc_hash::{FxHashMap,FxHashSet};
 use std::collections::Bound::*;
 use std::hash::Hash;
 use std;

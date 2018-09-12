@@ -1,5 +1,5 @@
 use {StringID};
-use fxhash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use regex::Regex;
 use std;
 use bincode;
