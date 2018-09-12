@@ -11,8 +11,8 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
-    edges: FxHashMap<NodeID, FxHashSet<NodeID>>,
-    inverse_edges: FxHashMap<NodeID, FxHashSet<NodeID>>,
+    edges: FxHashMap<NodeID, Vec<NodeID>>,
+    inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorage<Edge>,
     stats: Option<GraphStatistic>,
 }
@@ -48,20 +48,22 @@ impl AdjacencyListStorage {
 impl EdgeContainer for AdjacencyListStorage {
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(outgoing) = self.edges.get(node) {
-            let it = outgoing.iter().cloned();
-            return Box::new(it);
-        } else {
-            return Box::new(std::iter::empty());
+            if !outgoing.is_empty() {
+                let it = outgoing.iter().cloned();
+                return Box::new(it);
+            }
         }
+        return Box::new(std::iter::empty());
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(ingoing) = self.inverse_edges.get(node) {
-            let it = ingoing.iter().cloned();
-            return Box::new(it);
-        } else {
-            return Box::new(std::iter::empty());
+            if !ingoing.is_empty() {
+                let it = ingoing.iter().cloned();
+                return Box::new(it);
+            }
         }
+        return Box::new(std::iter::empty());
     }
 
     fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
@@ -76,7 +78,7 @@ impl EdgeContainer for AdjacencyListStorage {
         let it = self
             .edges
             .iter()
-            .filter(move |(_, outgoing)| !outgoing.is_empty())
+            .filter(|(_, outgoing)| !outgoing.is_empty())
             .map(|(key, _)| key.clone());
         return Box::new(it);
     }
@@ -285,14 +287,23 @@ impl GraphStorage for AdjacencyListStorage {
 impl WriteableGraphStorage for AdjacencyListStorage {
     fn add_edge(&mut self, edge: Edge) {
         if edge.source != edge.target {
-            self.inverse_edges
+
+            // insert to both regular and inverse maps
+
+            let inverse_entry = self.inverse_edges
                 .entry(edge.target)
-                .or_insert(FxHashSet::default())
-                .insert(edge.source);
-            self.edges
+                .or_insert(Vec::default());
+            // no need to insert it edge already exists
+            if let Err(insertion_idx) = inverse_entry.binary_search(&edge.source) {
+                inverse_entry.insert(insertion_idx, edge.source);
+            }
+
+            let regular_entry = self.edges
                 .entry(edge.source)
-                .or_insert(FxHashSet::default())
-                .insert(edge.target);
+                .or_insert(Vec::default());
+            if let Err(insertion_idx) = regular_entry.binary_search(&edge.target) {
+                regular_entry.insert(insertion_idx, edge.target);
+            }
             // TODO: invalid graph statistics
         }
     }
@@ -306,11 +317,15 @@ impl WriteableGraphStorage for AdjacencyListStorage {
 
     fn delete_edge(&mut self, edge: &Edge) {
         if let Some(outgoing) = self.edges.get_mut(&edge.source) {
-            outgoing.remove(&edge.target);
+            if let Ok(idx) = outgoing.binary_search(&edge.target) {
+                outgoing.remove(idx);
+            }
         }
 
         if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
-            ingoing.remove(&edge.source);
+             if let Ok(idx) = ingoing.binary_search(&edge.source) {
+                 ingoing.remove(idx);
+             }
         }
         let annos = self.annos.get_all(edge);
         for a in annos {
