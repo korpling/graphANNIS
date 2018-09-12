@@ -63,36 +63,6 @@ fn search_test_base(corpus : &str, panic_on_invalid : bool) {
 
 #[ignore]
 #[test]
-fn count_gum() {
-    search_test_base("GUM", true);
-}
-
-#[ignore]
-#[test]
-fn count_pcc2() {
-    search_test_base("pcc2", true);
-}
-
-#[ignore]
-#[test]
-fn count_parlament() {
-    search_test_base("parlament", true);
-}
-
-#[ignore]
-#[test]
-fn count_tiger() {
-    search_test_base("tiger2", true);
-}
-
-#[ignore]
-#[test]
-fn count_ridges() {
-    search_test_base("ridges7", true);
-}
-
-#[ignore]
-#[test]
 fn all_from_folder() {
     let queries_dir = get_query_dir();
     // each folder is one corpus
