@@ -11,8 +11,8 @@ use malloc_size_of::{MallocSizeOf,MallocSizeOfOps};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
-    edges: Vec<FxHashSet<NodeID>>,
-    inverse_edges: Vec<FxHashSet<NodeID>>,
+    edges: FxHashMap<NodeID, FxHashSet<NodeID>>,
+    inverse_edges: FxHashMap<NodeID, FxHashSet<NodeID>>,
     annos: AnnoStorage<Edge>,
     stats : Option<GraphStatistic>,
 }
@@ -30,8 +30,8 @@ impl MallocSizeOf for AdjacencyListStorage {
 impl AdjacencyListStorage {
     pub fn new() -> AdjacencyListStorage {
         AdjacencyListStorage {
-            edges: Vec::new(),
-            inverse_edges: Vec::new(),
+            edges: FxHashMap::default(),
+            inverse_edges: FxHashMap::default(),
             annos: AnnoStorage::new(),
             stats: None,
         }
@@ -49,9 +49,8 @@ impl AdjacencyListStorage {
 impl EdgeContainer for AdjacencyListStorage {
 
      fn get_outgoing_edges<'a>(&'a self, node : &NodeID) -> Box<Iterator<Item=NodeID> + 'a> {
-        let node = (*node) as usize;
-        if node < self.edges.len() {
-            let it = self.edges[node].iter().cloned();
+        if let Some(outgoing) = self.edges.get(node) {
+            let it = outgoing.iter().cloned();
             return Box::new(it);
         } else {
             return Box::new(std::iter::empty());
@@ -60,9 +59,8 @@ impl EdgeContainer for AdjacencyListStorage {
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        let node = (*node) as usize;
-        if node < self.inverse_edges.len() {
-            let it = self.inverse_edges[node].iter().cloned();
+        if let Some(ingoing) = self.inverse_edges.get(node) {
+            let it = ingoing.iter().cloned();
             return Box::new(it);
         } else {
             return Box::new(std::iter::empty());
@@ -78,8 +76,7 @@ impl EdgeContainer for AdjacencyListStorage {
     }
 
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
-        let edges = &self.edges;
-        let it = (0..self.edges.len()).filter(move |idx| !edges[*idx].is_empty()).map(|idx| idx as NodeID);
+        let it = self.edges.iter().filter(move |(_, outgoing)| !outgoing.is_empty()).map(|(key, _)| key.clone());
         return Box::new(it);
     }
 
@@ -181,10 +178,10 @@ impl GraphStorage for AdjacencyListStorage {
         {
 
             let mut all_nodes : BTreeSet<NodeID> = BTreeSet::new();
-            for (source, targets) in self.edges.iter().enumerate() {
-                roots.insert(source as NodeID);
-                all_nodes.insert(source as NodeID);
-                for t in targets {
+            for (source, targets) in self.edges.iter() {
+                roots.insert(*source);
+                all_nodes.insert(*source);
+                for t in targets.iter() {
                     all_nodes.insert(*t);
                     if stats.rooted_tree {
                         if has_incoming_edge.contains(t) {
@@ -204,14 +201,13 @@ impl GraphStorage for AdjacencyListStorage {
         let mut last_source_id : Option<NodeID> = None;
         let mut current_fan_out = 0;
         if !self.edges.is_empty() {
-            for (source, targets) in self.edges.iter().enumerate() {
-                let source = source as NodeID;
-                for t in targets {
+            for (source, targets) in self.edges.iter() {
+                for t in targets.iter() {
                     roots.remove(t);
                 }
 
                 if let Some(last) = last_source_id {
-                    if last != source {
+                    if last != *source {
                         stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
                         sum_fan_out += current_fan_out;
                         fan_outs.push(current_fan_out);
@@ -219,7 +215,7 @@ impl GraphStorage for AdjacencyListStorage {
                         current_fan_out = 0;
                     }
                 }
-                last_source_id = Some(source);
+                last_source_id = Some(*source);
                 current_fan_out += 1;
             }
             // add the statistics for the last node
@@ -285,48 +281,29 @@ impl GraphStorage for AdjacencyListStorage {
 impl WriteableGraphStorage for AdjacencyListStorage {
     fn add_edge(&mut self, edge: Edge) {
         if edge.source != edge.target {
-            let source = edge.source as usize;
-            let target = edge.target as usize;
-
-            if target >= self.inverse_edges.len() {
-                self.inverse_edges.resize(target+1, FxHashSet::default());
-            }
-            self.inverse_edges[target].insert(edge.source);
-
-            if source >= self.edges.len() {
-                self.edges.resize(source+1, FxHashSet::default());
-            }
-            self.edges[source].insert(edge.target);
+            
+            self.inverse_edges.entry(edge.target).or_insert(FxHashSet::default()).insert(edge.source);
+            self.edges.entry(edge.source).or_insert(FxHashSet::default()).insert(edge.target);
             // TODO: invalid graph statistics
         }
     }
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) {
-        let source = edge.source as usize;
-        if source < self.edges.len() {
-            if self.edges[source].contains(&edge.target) {
+        
+        if let Some(outgoing) = self.edges.get(&edge.source) {
+            if outgoing.contains(&edge.target) {
                 self.annos.insert(edge, anno);
             }
         }
     }
 
     fn delete_edge(&mut self, edge: &Edge) {
-        let source = edge.source as usize;
-        let target = edge.target as usize;
 
-        if source < self.edges.len() {
-            self.edges[source].remove(&edge.target);
-            // if the last node is empty, make the vector smaller
-            if source == self.edges.len() -1 && self.edges[source].is_empty() {
-                self.edges.pop();
-            }
+        if let Some(outgoing) = self.edges.get_mut(&edge.source) {
+            outgoing.remove(&edge.target);
         }
 
-        if target < self.inverse_edges.len() {
-            self.inverse_edges[target].remove(&edge.source);
-            // if the last node is empty, make the vector smaller
-            if target == self.inverse_edges.len() -1 && self.inverse_edges[target].is_empty() {
-                self.inverse_edges.pop();
-            }
+        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
+            ingoing.remove(&edge.source);
         }
         let annos = self.annos.get_all(edge);
         for a in annos {
@@ -340,14 +317,13 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         // find all both ingoing and outgoing edges
         let mut to_delete = std::collections::LinkedList::<Edge>::new();
 
-        let node_usize = (*node) as usize;
-        if node_usize < self.edges.len() {
-            for target in self.edges[node_usize].iter() {
+        if let Some(outgoing) = self.edges.get(node) {
+            for target in outgoing.iter() {
                 to_delete.push_back(Edge {source: *node, target: *target})
             }
         }
-        if node_usize < self.inverse_edges.len() {
-            for source in self.inverse_edges[node_usize].iter() {
+        if let Some(ingoing) = self.inverse_edges.get(node) {
+            for source in ingoing.iter() {
                 to_delete.push_back(Edge {source: *source, target: *node})
             }
         }
