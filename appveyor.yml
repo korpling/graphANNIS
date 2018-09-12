@@ -41,7 +41,7 @@ test_script:
       appveyor-retry appveyor DownloadFile https://github.com/amir-zeldes/gum/archive/f8ac9944fae39ae37c4db186304e3c1ab41f77f3.zip -FileName gum.zip && 
       7z e gum.zip -orelannis\GUM -aoa &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
-      cargo test --release --verbose  -- --ignored
+      cargo test --release --all-features --verbose  -- --ignored
     )
 
 before_deploy:
