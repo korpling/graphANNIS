@@ -41,10 +41,17 @@ where T: Ord + Hash + MallocSizeOf + Default {
             }
             // also add the vector size
             anno_size += annos.len() * std::mem::size_of::<usize>()
-        } 
+        }
+
+        // measure the size of the items of by_anno
+        let mut item_set_size : usize = 0;
+        for (_, item_set) in self.by_anno.iter() {
+            item_set_size += item_set.size_of(ops);
+        }
 
         // add the size of other fields
         anno_size
+        + item_set_size
         + self.by_container.shallow_size_of(ops)
         + self.by_anno.shallow_size_of(ops)
         + self.anno_keys.size_of(ops)
