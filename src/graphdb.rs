@@ -94,24 +94,6 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
     return p;
 }
 
-fn load_bincode<T>(location: &Path, path: &str) -> Result<T>
-where
-    for<'de> T: serde::Deserialize<'de>,
-{
-    let mut full_path = PathBuf::from(location);
-    full_path.push(path);
-
-    let f = std::fs::File::open(full_path.clone()).chain_err(|| {
-        format!(
-            "Could not load serialized file {}",
-            full_path.to_string_lossy()
-        )
-    })?;
-    let mut reader = std::io::BufReader::new(f);
-    let result: T = bincode::deserialize_from(&mut reader)?;
-    return Ok(result);
-}
-
 fn save_bincode<T>(location: &Path, path: &str, object: &T) -> Result<()>
 where
     T: serde::Serialize,
@@ -182,7 +164,8 @@ impl GraphDB {
         strings_tmp.load_from_file(&dir2load.join("strings.bin").to_string_lossy())?;
         self.strings = Arc::new(strings_tmp);
         
-        let node_annos_tmp: AnnoStorage<NodeID> = load_bincode(&dir2load, "nodes.bin")?;
+        let mut node_annos_tmp: AnnoStorage<NodeID>  = AnnoStorage::new(); 
+        node_annos_tmp.load_from_file(&dir2load.join("nodes.bin").to_string_lossy())?;
         self.node_annos = Arc::from(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");

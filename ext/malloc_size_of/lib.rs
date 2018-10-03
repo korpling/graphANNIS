@@ -406,6 +406,17 @@ impl<K, V, S> MallocSizeOf for std::collections::HashMap<K, V, S>
 }
 
 // FIXME: Overhead for the BTreeMap nodes is not accounted for.
+impl<K, V> MallocShallowSizeOf for std::collections::BTreeMap<K, V> {
+    fn shallow_size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        let mut size = 0;
+        for (_, _) in self.iter() {
+            size += size_of::<(K, V)>();
+        }
+        size
+    }
+}
+
+// FIXME: Overhead for the BTreeMap nodes is not accounted for.
 impl<K: MallocSizeOf, V: MallocSizeOf> MallocSizeOf for std::collections::BTreeMap<K, V> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size = 0;

@@ -39,7 +39,7 @@ pub struct CountExtra {
     pub document_count: u64,
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, MallocSizeOf, Default)]
 #[repr(C)]
 pub struct Edge {
     pub source: NodeID,

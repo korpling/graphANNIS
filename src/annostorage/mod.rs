@@ -4,6 +4,8 @@ use rustc_hash::{FxHashMap,FxHashSet};
 use std::collections::Bound::*;
 use std::hash::Hash;
 use std;
+use std::path::PathBuf;
+use std::sync::Arc;
 use rand;
 use regex_syntax;
 use regex;
@@ -12,12 +14,14 @@ use bincode;
 use serde;
 use serde::de::DeserializeOwned;
 use itertools::Itertools;
-use malloc_size_of::MallocSizeOf;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocShallowSizeOf};
+use errors::*;
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
-pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf> {
-    by_container: FxHashMap<T, Vec<Annotation>>,
-    by_anno: BTreeMap<Annotation, FxHashSet<T>>,
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
+    by_container: FxHashMap<T, Vec<Arc<Annotation>>>,
+    #[serde(skip)]
+    by_anno: BTreeMap<Arc<Annotation>, FxHashSet<T>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_keys: BTreeMap<AnnoKey, usize>,
     /// additional statistical information
@@ -26,7 +30,31 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf> {
     total_number_of_annos: usize,
 }
 
-impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf> AnnoStorage<T> {
+impl<T> MallocSizeOf for AnnoStorage<T>
+where T: Ord + Hash + MallocSizeOf + Default {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut anno_size : usize = 0;
+        // measure the size of all annotation and add the overhead of the Arc (two counter fields)
+        for (_, annos) in self.by_container.iter() {
+            for a in annos {
+                anno_size += (2*std::mem::size_of::<usize>()) + a.size_of(ops);
+            }
+            // also add the vector size
+            anno_size += annos.len() * std::mem::size_of::<usize>()
+        } 
+
+        // add the size of other fields
+        anno_size
+        + self.by_container.shallow_size_of(ops)
+        + self.by_anno.shallow_size_of(ops)
+        + self.anno_keys.size_of(ops)
+        + self.histogram_bounds.size_of(ops)
+        + self.largest_item.size_of(ops)
+        + self.total_number_of_annos.size_of(ops)
+    }
+}
+
+impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf + Default> AnnoStorage<T> {
     pub fn new() -> AnnoStorage<T> {
         AnnoStorage {
             by_container: FxHashMap::default(),
@@ -53,13 +81,15 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
 
     pub fn insert(&mut self, item: T, anno: Annotation) {
         
+        let anno = Arc::from(anno);
         let existing_anno = {
             let existing_item_entry = self.by_container.entry(item.clone()).or_insert(Vec::new());
 
             // check if there is already an item with the same annotation key
             let existing_entry_idx =
-                existing_item_entry.binary_search_by_key(&anno.key, |a: &Annotation| a.key.clone());
+                existing_item_entry.binary_search_by_key(&anno.key, |a| a.key.clone());
 
+            
             if let Ok(existing_entry_idx) = existing_entry_idx {
                 let orig_anno = existing_item_entry[existing_entry_idx].clone();
                 // insert annotation for item at existing position
@@ -96,7 +126,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
                 self.largest_item = Some(item.clone());
             }
 
-            let anno_key_entry = self.anno_keys.entry(anno.key).or_insert(0);
+            let anno_key_entry = self.anno_keys.entry(anno.key.clone()).or_insert(0);
             *anno_key_entry = *anno_key_entry + 1;
         }
     }
@@ -106,7 +136,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
 
         if let Some(mut all_annos) = self.by_container.remove(item) {
             // find the specific annotation key from the sorted vector of all annotations of this item
-            let anno_idx = all_annos.binary_search_by_key(key, |a: &Annotation| a.key.clone());
+            let anno_idx = all_annos.binary_search_by_key(key, |a| a.key.clone());
 
             if let Ok(anno_idx) = anno_idx {
                 // since value was found, also remove the item from the other containers
@@ -147,7 +177,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
     pub fn get(&self, item: &T, key: &AnnoKey) -> Option<&StringID> {
         if let Some(all_annos) = self.by_container.get(item) {
 
-            let idx = all_annos.binary_search_by_key(key, |a: &Annotation| a.key.clone());
+            let idx = all_annos.binary_search_by_key(key, |a| a.key.clone());
             if let Ok(idx) = idx {
                 return Some(&all_annos[idx].val);
             }
@@ -198,7 +228,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
     pub fn get_all(&self, item: &T) -> Vec<Annotation> {
        
         if let Some(all_annos) = self.by_container.get(item) {
-            return all_annos.clone();
+            let mut result : Vec<Annotation> = Vec::with_capacity(all_annos.len());
+            for a in all_annos.iter() {
+                result.push(a.as_ref().clone())
+            }
+            return result;
         }
         // return empty result if not found
         return Vec::new();
@@ -513,19 +547,29 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
         bincode::serialize_into(&mut buf_writer, self).is_ok()
     }
 
-    pub fn load_from_file(&mut self, path: &str) {
-        // always remove all entries first, so even if there is an error the string storage is empty
+    pub fn load_from_file(&mut self, path: &str) -> Result<()> {
+        // always remove all entries first, so even if there is an error the anno storage is empty
         self.clear();
 
-        let f = std::fs::File::open(path);
-        if f.is_ok() {
-            let mut buf_reader = std::io::BufReader::new(f.unwrap());
+        let path = PathBuf::from(path);
+        let f = std::fs::File::open(path.clone()).chain_err(|| {
+            format!(
+                "Could not load string storage from file {}",
+                path.to_string_lossy()
+            )
+        })?;
+        let mut reader = std::io::BufReader::new(f);
+        *self = bincode::deserialize_from(&mut reader)?;
 
-            let loaded: Result<AnnoStorage<T>, _> = bincode::deserialize_from(&mut buf_reader);
-            if loaded.is_ok() {
-                *self = loaded.unwrap();
+        // restore the by_anno map and make sure the smart pointers point to the same instance
+        for (item, annos) in self.by_container.iter() {
+            for a in annos.iter() {
+                self.by_anno.entry(a.clone()).or_insert_with(|| FxHashSet::default())
+                    .insert(item.clone());
             }
         }
+
+        Ok(())
     }
 }
 
@@ -544,7 +588,7 @@ impl AnnoStorage<NodeID> {
             .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
             .map(|m| Match {
                 node: m.0.clone(),
-                anno: m.1.clone(),
+                anno: m.1.as_ref().clone(),
             });
         Box::new(it)
     }
@@ -591,7 +635,7 @@ impl AnnoStorage<NodeID> {
                 .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
                 .map(|m| Match {
                     node: m.0.clone(),
-                    anno: m.1.clone(),
+                    anno: m.1.as_ref().clone(),
                 });
 
             return Box::new(it);
@@ -616,7 +660,7 @@ impl AnnoStorage<Edge> {
             .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
             .map(|m| Match {
                 node: m.0.source.clone(),
-                anno: m.1.clone(),
+                anno: m.1.as_ref().clone(),
             });
         Box::new(it)
     }
