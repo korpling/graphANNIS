@@ -49,7 +49,7 @@ fn serialization() {
 
         s.clear();
 
-        s.load_from_file(&file_path_str);
+        s.load_from_file(&file_path_str).unwrap();
         assert_eq!(2, s.len());
     }
 }

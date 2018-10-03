@@ -169,8 +169,12 @@ impl GraphDB {
             location.join("current")
         };
 
-        let strings_tmp: StringStorage = load_bincode(&dir2load, "strings.bin")?;
+        
+
+        let mut strings_tmp = StringStorage::new();
+        strings_tmp.load_from_file(&dir2load.join("strings.bin").to_string_lossy())?;
         self.strings = Arc::new(strings_tmp);
+        
         let node_annos_tmp: AnnoStorage<NodeID> = load_bincode(&dir2load, "nodes.bin")?;
         self.node_annos = Arc::from(node_annos_tmp);
 
