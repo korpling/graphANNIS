@@ -545,12 +545,24 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let mut reader = std::io::BufReader::new(f);
         *self = bincode::deserialize_from(&mut reader)?;
 
+        // optimize for read-only and shrink all containers to minimum
+        self.by_container.shrink_to_fit();
+        
         // restore the by_anno map
-        for (item, annos) in self.by_container.iter() {
+        for (item, annos) in self.by_container.iter_mut() {
+            annos.shrink_to_fit();
             for a in annos.iter() {
                 self.by_anno.entry(a.key.clone()).or_insert(FxHashMap::default())
                     .entry(a.val.clone()).or_insert(FxHashSet::default())
                     .insert(item.clone());
+            }
+        }
+
+        self.by_anno.shrink_to_fit();
+        for (_key, values_for_key) in self.by_anno.iter_mut() {
+            values_for_key.shrink_to_fit();
+            for (_, items) in values_for_key.iter_mut() {
+                items.shrink_to_fit();
             }
         }
 
