@@ -47,9 +47,16 @@ impl MallocSizeOf for GraphDB {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size = self.strings.size_of(ops) + self.node_annos.size_of(ops);
 
-        for (c, gs) in self.components.iter() {
+        for (c, _) in self.components.iter() {
             // TODO: overhead by map is not measured
-            size += c.size_of(ops) + gs.size_of(ops);
+            size += c.size_of(ops);
+            let gs_size = if let Some(gs) = self.get_graphstorage_as_ref(c) { 
+                gs.size_of(ops) + std::mem::size_of::<usize>()
+            } else {
+                // Option has the size of the nullable pointer/Arc
+                std::mem::size_of::<usize>()
+            };
+            size += gs_size;
         }
 
         return size;

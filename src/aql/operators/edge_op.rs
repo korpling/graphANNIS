@@ -1,5 +1,5 @@
 use annostorage::AnnoStorage;
-use {AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
+use {AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID, StringID};
 use graphstorage::{GraphStatistic, GraphStorage};
 use graphdb::{GraphDB, ANNIS_NS};
 use operator::{EstimationType, Operator, OperatorSpec, EdgeAnnoSearchSpec};
@@ -82,7 +82,7 @@ fn check_edge_annotation(
     }
 
     let anno_template: &Annotation = edge_anno.as_ref().unwrap();
-    if anno_template.val == 0 || anno_template.val == <NodeID>::max_value() {
+    if anno_template.val == 0 || anno_template.val == <StringID>::max_value() {
         // must be a valid value
         return false;
     } else {
