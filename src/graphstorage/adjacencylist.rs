@@ -1,7 +1,6 @@
 use super::*;
 use annostorage::AnnoStorage;
 use dfs::CycleSafeDFS;
-use stringstorage::StringStorage;
 use Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -169,7 +168,7 @@ impl GraphStorage for AdjacencyListStorage {
         true
     }
 
-    fn calculate_statistics(&mut self, _string_storage: &StringStorage) {
+    fn calculate_statistics(&mut self) {
         let mut stats = GraphStatistic {
             max_depth: 1,
             max_fan_out: 0,

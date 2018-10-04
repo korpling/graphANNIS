@@ -30,7 +30,7 @@ use types;
 use util;
 use util::memory_estimation;
 use FrequencyTable;
-use {AnnoKey, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID, NodeDesc};
+use {AnnoKey, Component, ComponentType, CountExtra, Edge, Match, NodeID, NodeDesc};
 
 use rustc_hash::FxHashMap;
 
@@ -653,20 +653,6 @@ impl CorpusStorage {
         };
 
         return Ok(PreparationResult { query: q, db_entry });
-    }
-
-    pub fn get_string(&self, corpus_name: &str, str_id: StringID) -> Result<String> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-
-        // accuire read-only lock and get string
-        let lock = db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        let result = db
-            .strings
-            .str(str_id)
-            .cloned()
-            .ok_or(ErrorKind::NoSuchStringID(str_id))?;
-        return Ok(result);
     }
 
     pub fn plan(&self, corpus_name: &str, query_as_aql: &str) -> Result<String> {

@@ -5,7 +5,7 @@ use std::ffi::CString;
 use super::cerror;
 use super::cerror::ErrorList;
 use capi::data::IterPtr;
-use {NodeID, Match, Annotation, StringID, Edge, Component, ComponentType};
+use {NodeID, Match, Annotation, Edge, Component, ComponentType};
 use graphdb::{GraphDB};
 use graphstorage::GraphStorage;
 use std::sync::Arc;
@@ -89,17 +89,6 @@ pub extern "C" fn annis_graph_edge_labels(g : * const GraphDB,  edge : Edge, com
     };
 
     Box::into_raw(Box::new(annos))
-}
-
-#[no_mangle]
-pub extern "C" fn annis_graph_str(g : * const GraphDB,  str_id : StringID) -> * mut libc::c_char {
-    let db : &GraphDB = cast_const!(g);
-
-    if let Some(v) = db.strings.str(str_id) {
-        let result = CString::new(v.clone()).unwrap_or_default();
-        return result.into_raw();
-    }
-    return std::ptr::null_mut();
 }
 
 #[no_mangle]

@@ -14,7 +14,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::string::ToString;
 use std::sync::{Arc, Mutex};
-use stringstorage::StringStorage;
 use strum::IntoEnumIterator;
 use tempdir::TempDir;
 use AnnoKey;
@@ -27,7 +26,6 @@ pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
 
 pub struct GraphDB {
-    pub strings: Arc<StringStorage>,
     pub node_annos: Arc<AnnoStorage<NodeID>>,
 
     location: Option<PathBuf>,
@@ -40,7 +38,7 @@ pub struct GraphDB {
 
 impl MallocSizeOf for GraphDB {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut size = self.strings.size_of(ops) + self.node_annos.size_of(ops);
+        let mut size = self.node_annos.size_of(ops);
 
         for (c, _) in self.components.iter() {
             // TODO: overhead by map is not measured
@@ -105,10 +103,8 @@ where
 impl GraphDB {
     /// Create a new and empty instance without any location on the disk
     pub fn new() -> GraphDB {
-        let strings = StringStorage::new();
 
         GraphDB {
-            strings: Arc::new(strings),
             node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
             components: BTreeMap::new(),
 
@@ -127,7 +123,6 @@ impl GraphDB {
     }
 
     pub fn clear(&mut self) {
-        self.strings = Arc::new(StringStorage::new());
         self.node_annos = Arc::new(AnnoStorage::new());
         self.components.clear();
     }
@@ -148,11 +143,6 @@ impl GraphDB {
             location.join("current")
         };
 
-        
-
-        let mut strings_tmp = StringStorage::new();
-        strings_tmp.load_from_file(&dir2load.join("strings.bin").to_string_lossy())?;
-        self.strings = Arc::new(strings_tmp);
         
         let mut node_annos_tmp: AnnoStorage<NodeID>  = AnnoStorage::new(); 
         node_annos_tmp.load_from_file(&dir2load.join("nodes.bin").to_string_lossy())?;
@@ -255,7 +245,6 @@ impl GraphDB {
 
         std::fs::create_dir_all(&location)?;
 
-        save_bincode(&location, "strings.bin", self.strings.as_ref())?;
         save_bincode(&location, "nodes.bin", self.node_annos.as_ref())?;
 
         for (c, e) in self.components.iter() {
@@ -616,7 +605,7 @@ impl GraphDB {
             .ok_or(format!("Component {} is missing", c.clone()))?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
-                gs_mut.calculate_statistics(&self.strings);
+                gs_mut.calculate_statistics();
             } else {
                 result = Err(format!("Component {} is currently used", c.clone()).into());
             }

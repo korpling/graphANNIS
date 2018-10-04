@@ -13,7 +13,7 @@ use bincode;
 use serde;
 use serde::de::DeserializeOwned;
 use itertools::Itertools;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf, MallocShallowSizeOf, MallocSizeOfOps};
 use errors::*;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -31,18 +31,24 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
 
 impl<T> MallocSizeOf for AnnoStorage<T> 
 where T: Ord + Hash + MallocSizeOf + Default {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        unimplemented!()
-        // let mut annos_size : usize = 0;
-        // // measure the size of all annotations and add the overhead of the Arc (two counter fields)
-        // for s in self.by_id.iter() {
-        //     string_size += (2*std::mem::size_of::<usize>()) + s.size_of(ops);
-        // } 
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut annos_size : usize = 0;
+        // measure the size of all annotations (key and value) and add the overhead of the Arc (two counter fields)
+        for (_, annos_for_item) in self.by_container.iter() {
+            for a in annos_for_item.iter() {
+                annos_size += (2*std::mem::size_of::<usize>()) + a.key.size_of(ops);
+                annos_size += (2*std::mem::size_of::<usize>()) + a.val.size_of(ops);
+                annos_size += std::mem::size_of::<Annotation>();
+            }
+        } 
 
-        // // add the size of the vector pointer, the hash map and the strings
-        // string_size 
-        // + (self.by_id.len() * std::mem::size_of::<usize>())
-        // + self.by_value.shallow_size_of(ops)
+        // add the size of the containers and the other fields
+        annos_size
+        + self.by_container.shallow_size_of(ops)
+        + self.by_anno.shallow_size_of(ops)
+        + self.histogram_bounds.shallow_size_of(ops)
+        + self.largest_item.size_of(ops)
+        + self.total_number_of_annos.size_of(ops)
     }
 }
 

@@ -2,7 +2,6 @@ use std;
 use std::any::Any;
 use {AnnoKey, Annotation, Edge, NodeID};
 use annostorage::AnnoStorage;
-use stringstorage::StringStorage;
 use graphdb::GraphDB;
 use malloc_size_of::MallocSizeOf;
 
@@ -78,7 +77,7 @@ pub trait GraphStorage : EdgeContainer {
     // TODO: use an actual cost model for graph storage access
     fn inverse_has_same_cost(&self) -> bool {false}    
 
-    fn calculate_statistics(&mut self, _string_storage : &StringStorage) {}
+    fn calculate_statistics(&mut self) {}
 
 }
 
