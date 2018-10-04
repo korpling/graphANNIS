@@ -1,9 +1,7 @@
 use annostorage::AnnoStorage;
-use stringstorage::StringStorage;
 use std::sync::Arc;
 use {AnnoKey, Annotation, Match, NodeID};
 use operator::{EstimationType, Operator};
-use util;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use std;
 use std::iter::Peekable;
@@ -19,7 +17,6 @@ pub struct IndexJoin<'a> {
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
-    strings: Arc<StringStorage>,
     desc: Desc,
 }
 
@@ -40,7 +37,6 @@ impl<'a> IndexJoin<'a> {
         op: Box<Operator>,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
-        strings: Arc<StringStorage>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
@@ -84,7 +80,6 @@ impl<'a> IndexJoin<'a> {
             op,
             node_search_desc,
             node_annos,
-            strings,
             rhs_candidate: None,
         };
     }
@@ -94,12 +89,12 @@ impl<'a> IndexJoin<'a> {
             let it_nodes = self.op.retrieve_matches(&m_lhs[self.lhs_idx]).fuse();
 
             let node_annos = self.node_annos.clone();
-            if let Some(name) = self.node_search_desc.qname.1 {
-                if let Some(ns) = self.node_search_desc.qname.0 {
+            if let Some(name) = self.node_search_desc.qname.1.clone() {
+                if let Some(ns) = self.node_search_desc.qname.0.clone() {
                     // return the only possible annotation for each node
                     return Some(Box::new(it_nodes
                         .filter_map(move |match_node| {
-                            let key = AnnoKey { ns: ns, name: name };
+                            let key = Arc::from(AnnoKey { ns: ns.clone(), name: name.clone() });
                             if let Some(val) = node_annos.get(&match_node.node, &key) {
                                 Some(Match {
                                     node: match_node.node,
@@ -115,7 +110,7 @@ impl<'a> IndexJoin<'a> {
                         }))
                     );
                 } else {
-                    let keys = self.node_annos.get_qnames(name);
+                    let keys = self.node_annos.get_qnames(&name);
                     // return all annotations with the correct name for each node
                     return Some(Box::new(it_nodes
                         .flat_map(move |match_node| {
@@ -189,7 +184,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                     // check if all filters are true
                     let mut filter_result = true;
                     for f in self.node_search_desc.cond.iter() {
-                        if !(f)(&m_rhs, &self.strings) {
+                        if !(f)(&m_rhs) {
                             filter_result = false;
                             break;
                         }
@@ -204,7 +199,7 @@ impl<'a> Iterator for IndexJoin<'a> {
 
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
-                            || !util::check_annotation_key_equal(&m_lhs[self.lhs_idx].anno, &m_rhs.anno)
+                            || m_lhs[self.lhs_idx].anno.key != m_rhs.anno.key
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();

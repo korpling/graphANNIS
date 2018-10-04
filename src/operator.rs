@@ -1,6 +1,5 @@
-use stringstorage::StringStorage;
 use annostorage::AnnoStorage;
-use {Component, Match, Annotation, AnnoKey, Edge};
+use {Component, Match, Edge};
 use graphdb::GraphDB;
 use std;
 
@@ -38,38 +37,10 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 }
 
 impl EdgeAnnoSearchSpec {
-    pub fn get_anno(&self, strings: &StringStorage) -> Option<Annotation> {
-        match self {
-            &EdgeAnnoSearchSpec::ExactValue {
-                ref ns,
-                ref name,
-                ref val,
-            } => {
-                let ns = if let &Some(ref s) = ns {
-                    strings.find_id(s)?.clone()
-                } else {
-                    0
-                };
-                let val = if let &Some(ref s) = val {
-                    strings.find_id(s)?.clone()
-                } else {
-                    0
-                };
-                let name = strings.find_id(name)?.clone();
-                let mut anno = Annotation {
-                    key: AnnoKey { ns, name },
-                    val,
-                };
-
-                Some(anno)
-            }
-        }
-    }
-
+   
     pub fn guess_max_count(
         &self,
         anno_storage: &AnnoStorage<Edge>,
-        strings: &StringStorage,
     ) -> Option<usize> {
         match self {
             &EdgeAnnoSearchSpec::ExactValue {
@@ -78,17 +49,15 @@ impl EdgeAnnoSearchSpec {
                 ref val,
             } => {
                 let val = val.clone()?;
-                let name_id = strings.find_id(&name)?;
                 if let Some(ns) = ns.clone() {
-                    let ns_id = strings.find_id(&ns)?;
                     return Some(anno_storage.guess_max_count(
-                        Some(ns_id.clone()),
-                        name_id.clone(),
+                        Some(ns.clone()),
+                        name.clone(),
                         &val,
                         &val,
                     ));
                 } else {
-                    return Some(anno_storage.guess_max_count(None, name_id.clone(), &val, &val));
+                    return Some(anno_storage.guess_max_count(None, name.clone(), &val, &val));
                 }
             }
         }

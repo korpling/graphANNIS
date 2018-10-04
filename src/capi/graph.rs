@@ -36,12 +36,9 @@ pub extern "C" fn annis_graph_nodes_by_type(g : * const GraphDB, node_type : * c
     let node_type = cstr!(node_type);
     
     let type_key = db.get_node_type_key();
-    if let Some(val_id) = db.strings.find_id(&node_type) {
-        let it = db.node_annos.exact_anno_search(Some(type_key.ns), type_key.name, Some(val_id.clone()))
-            .map(|m : Match| m.node);
-        return Box::into_raw(Box::new(Box::new(it)));
-    }
-    return std::ptr::null_mut();
+    let it = db.node_annos.exact_anno_search(Some(type_key.ns), type_key.name, Some(String::from(node_type)))
+        .map(|m : Match| m.node);
+    return Box::into_raw(Box::new(Box::new(it)));
 }
 
 #[no_mangle]

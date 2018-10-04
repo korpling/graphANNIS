@@ -6,6 +6,7 @@ use exec::{Desc, ExecutionNode, EmptyResultSet};
 use std;
 use std::fmt::Formatter;
 use std::collections::HashSet;
+use std::sync::Arc;
 use errors::*;
 
 
@@ -14,7 +15,7 @@ pub struct ExecutionPlan<'a> {
     current_plan: usize,
     descriptions: Vec<Option<Desc>>,
     proxy_mode: bool,
-    unique_result_set: HashSet<Vec<(NodeID, AnnoKey)>>,
+    unique_result_set: HashSet<Vec<(NodeID, Arc<AnnoKey>)>>,
 }
 
 impl<'a> ExecutionPlan<'a> {
@@ -84,7 +85,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                 n = self.plans[self.current_plan].next();
                 if let Some(ref res) = n {
                     // check if we already outputted this result
-                    let key : Vec<(NodeID, AnnoKey)> = res.iter().map(|m : &Match|(m.node, m.anno.key.clone())).collect();
+                    let key : Vec<(NodeID, Arc<AnnoKey>)> = res.iter().map(|m : &Match|(m.node, m.anno.key.clone())).collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
                         break;

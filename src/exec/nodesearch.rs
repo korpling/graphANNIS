@@ -2,9 +2,8 @@ use super::{Desc, ExecutionNode, NodeSearchDesc};
 use annostorage::AnnoStorage;
 use graphdb::{GraphDB, ANNIS_NS};
 use operator::EdgeAnnoSearchSpec;
-use stringstorage::StringStorage;
 use types::Edge;
-use {Annotation, Component, ComponentType, LineColumnRange, Match, NodeID, StringID};
+use {Annotation, Component, ComponentType, LineColumnRange, Match, NodeID};
 
 use regex;
 use util;
@@ -195,39 +194,40 @@ impl<'a> NodeSearch<'a> {
                 node_nr,
                 location_in_query,
             ),
-            NodeSearchSpec::AnyToken => {
-                NodeSearch::new_tokensearch(db, None, true, false, &query_fragment, node_nr, location_in_query)
-            }
+            NodeSearchSpec::AnyToken => NodeSearch::new_tokensearch(
+                db,
+                None,
+                true,
+                false,
+                &query_fragment,
+                node_nr,
+                location_in_query,
+            ),
             NodeSearchSpec::AnyNode => {
                 let type_key = db.get_node_type_key();
-                let node_str_id = db
-                    .strings
-                    .find_id("node")
-                    .ok_or(ErrorKind::ImpossibleSearch(
-                        "No 'node' annotation".to_string(),
-                    ))?
-                    .clone();
+
                 let it = db
                     .node_annos
-                    .exact_anno_search(Some(type_key.ns), type_key.name, Some(node_str_id))
+                    .exact_anno_search(Some(type_key.ns), type_key.name, Some("node".to_owned()))
                     .map(move |n| vec![n]);
 
-                let filter_func: Box<
-                    Fn(&Match, &StringStorage) -> bool + Send + Sync,
-                > = Box::new(move |m, _| {
-                    return m.anno.val == node_str_id;
+                let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
+                    return m.anno.val.as_ref() == "node";
                 });
 
                 let type_key = db.get_node_type_key();
 
-                let est_output =
-                    db.node_annos
-                        .guess_max_count(Some(type_key.ns), type_key.name, "node", "node");
+                let est_output = db.node_annos.guess_max_count(
+                    Some(type_key.ns.clone()),
+                    type_key.name.clone(),
+                    "node",
+                    "node",
+                );
                 let est_output = std::cmp::max(1, est_output);
 
                 let const_output = Some(Annotation {
-                    key: db.get_node_type_key(),
-                    val: db.strings.find_id("node").cloned().unwrap_or(0),
+                    key: Arc::from(db.get_node_type_key()),
+                    val: Arc::from("node".to_owned()),
                 });
 
                 Ok(NodeSearch {
@@ -258,49 +258,23 @@ impl<'a> NodeSearch<'a> {
         node_nr: usize,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
-        let name_id: StringID = db
-            .strings
-            .find_id(&name)
-            .ok_or(ErrorKind::AQLSemanticError(
-                format!("Annotation with name '{}' does not exist", &name),
-                location_in_query.clone(),
-            ))?
-            .clone();
-        // not finding the strings will result in an None result, not in an less specific search
-        let ns_id: Option<StringID> = if let Some(ns) = ns.as_ref() {
-            Some(db.strings.find_id(ns).ok_or(ErrorKind::AQLSemanticError(
-                format!("Namespace '{}' does not exist", ns),
-                location_in_query.clone(),
-            ))?).cloned()
-        } else {
-            None
-        };
-        let val_id: Option<StringID> = val.clone().and_then(|v| db.strings.find_id(&v).cloned());
-
-        if !match_regex && val.is_some() && val_id.is_none() {
-            // searched string not found, impossible search
-            bail!(ErrorKind::ImpossibleSearch(
-                format!("String '{}' does not exist", &val.unwrap_or_default()).into()
-            ))
-        }
-
         let base_it = if match_regex {
             // match_regex works only with values
             db.node_annos.regex_anno_search(
-                &db.strings,
-                ns_id,
-                name_id,
+                ns.clone(),
+                name.clone(),
                 &val.clone()
                     .ok_or("Regular expressions only work with values")?,
             )
         } else {
-            db.node_annos.exact_anno_search(ns_id, name_id, val_id)
+            db.node_annos
+                .exact_anno_search(ns.clone(), name.clone(), val.clone())
         };
 
         let const_output = if is_meta {
             Some(Annotation {
-                key: db.get_node_type_key(),
-                val: db.strings.find_id("corpus").cloned().unwrap_or(0),
+                key: Arc::from(db.get_node_type_key()),
+                val: Arc::from("corpus".to_owned()),
             })
         } else {
             None
@@ -308,7 +282,7 @@ impl<'a> NodeSearch<'a> {
 
         let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output.clone()
         {
-            let is_unique = db.node_annos.get_qnames(name_id).len() <= 1;
+            let is_unique = db.node_annos.get_qnames(&name).len() <= 1;
             // Replace the result annotation with a constant value.
             // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
             if is_unique {
@@ -322,8 +296,7 @@ impl<'a> NodeSearch<'a> {
                         .map(move |m| Match {
                             node: m.node,
                             anno: const_output.clone(),
-                        })
-                        .unique(),
+                        }).unique(),
                 )
             }
         } else {
@@ -332,16 +305,17 @@ impl<'a> NodeSearch<'a> {
 
         let est_output = if match_regex {
             db.node_annos.guess_max_count_regex(
-                ns_id,
-                name_id,
+                ns.clone(),
+                name.clone(),
                 &val.clone()
                     .ok_or("Regular expressions only work with values")?,
             )
         } else {
             if let Some(ref val) = val {
-                db.node_annos.guess_max_count(ns_id, name_id, val, val)
+                db.node_annos
+                    .guess_max_count(ns.clone(), name.clone(), &val, &val)
             } else {
-                db.node_annos.num_of_annotations(ns_id, name_id)
+                db.node_annos.num_of_annotations(ns.clone(), name.clone())
             }
         };
 
@@ -350,7 +324,7 @@ impl<'a> NodeSearch<'a> {
 
         let it = base_it.map(|n| vec![n]);
 
-        let mut filters: Vec<Box<Fn(&Match, &StringStorage) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
         if match_regex {
             // match_regex works only with values
@@ -361,20 +335,19 @@ impl<'a> NodeSearch<'a> {
             let re = regex::Regex::new(&full_match_pattern);
             match re {
                 Ok(re) => {
-                    filters.push(Box::new(move |m, strings| {
-                        let val_str_opt = strings.str(m.anno.val.clone());
-                        if let Some(val_str) = val_str_opt {
-                            return re.is_match(val_str);
-                        } else {
-                            return false;
-                        };
+                    filters.push(Box::new(move |m| {
+                        return re.is_match(&m.anno.val);
                     }));
                 }
-                Err(e) => bail!(ErrorKind::AQLSemanticError(format!("/{}/ -> {}", val, e), location_in_query)),
+                Err(e) => bail!(ErrorKind::AQLSemanticError(
+                    format!("/{}/ -> {}", val, e),
+                    location_in_query
+                )),
             }
-        } else if val_id.is_some() {
-            filters.push(Box::new(move |m, _| {
-                return m.anno.val == val_id.unwrap();
+        } else if val.is_some() {
+            let val = val.unwrap();
+            filters.push(Box::new(move |m| {
+                return m.anno.val.as_ref() == &val;
             }));
         };
         return Ok(NodeSearch {
@@ -385,7 +358,7 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (ns_id, Some(name_id)),
+                qname: (ns, Some(name)),
                 cond: filters,
                 const_output: const_output,
             }),
@@ -399,35 +372,32 @@ impl<'a> NodeSearch<'a> {
         match_regex: bool,
         query_fragment: &str,
         node_nr: usize,
-        location_in_query : Option<LineColumnRange>,
+        location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
         let any_anno = Annotation {
-            key: db.get_node_type_key(),
-            val: 0,
+            key: Arc::from(db.get_node_type_key()),
+            val: Arc::from("".to_owned()),
         };
 
         let it_base: Box<Iterator<Item = Match>> = if let Some(v) = val.clone() {
             let it = if match_regex {
                 db.node_annos
-                    .regex_anno_search(&db.strings, Some(tok_key.ns), tok_key.name, &v)
+                    .regex_anno_search(Some(tok_key.ns.clone()), tok_key.name.clone(), &v)
             } else {
-                let val_id = db
-                    .strings
-                    .find_id(&v)
-                    .ok_or(ErrorKind::ImpossibleSearch(format!(
-                        "String '{}' does not exist",
-                        &v
-                    )))?
-                    .clone();
-                db.node_annos
-                    .exact_anno_search(Some(tok_key.ns), tok_key.name, Some(val_id))
+                db.node_annos.exact_anno_search(
+                    Some(tok_key.ns.clone()),
+                    tok_key.name.clone(),
+                    Some(v),
+                )
             };
             Box::new(it)
         } else {
-            let it = db
-                .node_annos
-                .exact_anno_search(Some(tok_key.ns), tok_key.name, None);
+            let it = db.node_annos.exact_anno_search(
+                Some(tok_key.ns.clone()),
+                tok_key.name.clone(),
+                None,
+            );
             Box::new(it)
         };
         let it_base = if leafs_only {
@@ -455,34 +425,24 @@ impl<'a> NodeSearch<'a> {
             }]
         });
         // create filter functions
-        let mut filters: Vec<Box<Fn(&Match, &StringStorage) -> bool + Send + Sync>> = Vec::new();
+        let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
-        if let Some(ref v) = val {
+        if let Some(v) = val.clone() {
             if match_regex {
-                let full_match_pattern = util::regex_full_match(v);
+                let full_match_pattern = util::regex_full_match(&v);
                 let re = regex::Regex::new(&full_match_pattern);
                 match re {
-                    Ok(re) => filters.push(Box::new(move |m, strings| {
-                        let val_str_opt = strings.str(m.anno.val.clone());
-                        if let Some(val_str) = val_str_opt {
-                            return re.is_match(val_str);
-                        } else {
-                            return false;
-                        };
+                    Ok(re) => filters.push(Box::new(move |m| {
+                        return re.is_match(&m.anno.val);
                     })),
-                    Err(e) => bail!(ErrorKind::AQLSemanticError(format!("/{}/ -> {}", v, e), location_in_query)),
+                    Err(e) => bail!(ErrorKind::AQLSemanticError(
+                        format!("/{}/ -> {}", v, e),
+                        location_in_query
+                    )),
                 };
             } else {
-                let val_id = db
-                    .strings
-                    .find_id(v)
-                    .ok_or(ErrorKind::ImpossibleSearch(format!(
-                        "String '{}' not found",
-                        v
-                    )))?
-                    .clone();
-                filters.push(Box::new(move |m, _| {
-                    return m.anno.val == val_id;
+                filters.push(Box::new(move |m| {
+                    return m.anno.val.as_ref() == &v;
                 }));
             };
         };
@@ -493,36 +453,42 @@ impl<'a> NodeSearch<'a> {
                 layer: String::from(ANNIS_NS),
                 name: String::from(""),
             });
-            let filter_func: Box<Fn(&Match, &StringStorage) -> bool + Send + Sync> =
-                Box::new(move |m, _| {
-                    if let Some(ref cov) = cov_gs {
-                        cov.get_outgoing_edges(&m.node).next().is_none()
-                    } else {
-                        true
-                    }
-                });
+            let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
+                if let Some(ref cov) = cov_gs {
+                    cov.get_outgoing_edges(&m.node).next().is_none()
+                } else {
+                    true
+                }
+            });
             filters.push(filter_func);
         };
 
         // TODO: is_leaf should be part of the estimation
-        let est_output = if let Some(ref val) = val {
+        let est_output = if let Some(val) = val {
             if match_regex {
-                db.node_annos
-                    .guess_max_count_regex(Some(tok_key.ns), tok_key.name, &val)
+                db.node_annos.guess_max_count_regex(
+                    Some(tok_key.ns.clone()),
+                    tok_key.name.clone(),
+                    &val,
+                )
             } else {
-                db.node_annos
-                    .guess_max_count(Some(tok_key.ns), tok_key.name, &val, &val)
+                db.node_annos.guess_max_count(
+                    Some(tok_key.ns.clone()),
+                    tok_key.name.clone(),
+                    &val,
+                    &val,
+                )
             }
         } else {
             db.node_annos
-                .num_of_annotations(Some(tok_key.ns), tok_key.name)
+                .num_of_annotations(Some(tok_key.ns.clone()), tok_key.name.clone())
         };
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
         let const_output = Some(Annotation {
-            key: db.get_node_type_key(),
-            val: db.strings.find_id("node").cloned().unwrap_or(0),
+            key: Arc::from(db.get_node_type_key()),
+            val: Arc::from("node".to_owned()),
         });
 
         return Ok(NodeSearch {
@@ -550,27 +516,21 @@ impl<'a> NodeSearch<'a> {
         let node_search_desc_1 = node_search_desc.clone();
         let node_search_desc_2 = node_search_desc.clone();
 
-        let edge_anno_template: Option<Annotation> =
-            edge_anno_spec.and_then(|e| e.get_anno(&db.strings));
-
         let it = components
             .into_iter()
             .flat_map(move |c: Component| -> Box<Iterator<Item = NodeID>> {
                 if let Some(gs) = db.get_graphstorage_as_ref(&c) {
-                    if let Some(ref edge_anno_template) = edge_anno_template {
+                    if let Some(EdgeAnnoSearchSpec::ExactValue {
+                        ref ns,
+                        ref name,
+                        ref val,
+                    }) = edge_anno_spec
+                    {
                         // for each component get the source nodes with this edge annotation
                         let anno_storage: &AnnoStorage<Edge> = gs.get_anno_storage();
-                        let ns = if edge_anno_template.key.ns == 0 {
-                            None
-                        } else {
-                            Some(edge_anno_template.key.ns)
-                        };
+
                         let it = anno_storage
-                            .exact_anno_search(
-                                ns,
-                                edge_anno_template.key.name,
-                                Some(edge_anno_template.val),
-                            )
+                            .exact_anno_search(ns.clone(), name.clone(), val.clone())
                             .map(|m: Match| m.node);
                         return Box::new(it);
                     } else {
@@ -580,19 +540,20 @@ impl<'a> NodeSearch<'a> {
                 } else {
                     return Box::new(std::iter::empty());
                 }
-            })
-            .flat_map(move |node: NodeID| {
+            }).flat_map(move |node: NodeID| {
                 // fetch annotation candidates for the node based on the original description
                 let node_search_desc = node_search_desc_1.clone();
                 db.node_annos
-                    .find_by_name(&node, node_search_desc.qname.0, node_search_desc.qname.1)
-                    .into_iter()
+                    .find_by_name(
+                        &node,
+                        node_search_desc.qname.0.clone(),
+                        node_search_desc.qname.1.clone(),
+                    ).into_iter()
                     .map(move |anno| Match { node, anno })
-            })
-            .filter_map(move |m: Match| -> Option<Vec<Match>> {
+            }).filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates
                 for cond in node_search_desc_2.cond.iter() {
-                    if !cond(&m, &db.strings) {
+                    if !cond(&m) {
                         return None;
                     }
                 }

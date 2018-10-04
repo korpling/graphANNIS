@@ -1,5 +1,4 @@
 use Match;
-use util;
 use super::{Desc, ExecutionNode};
 use operator::Operator;
 use std::iter::Peekable;
@@ -126,10 +125,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                             // filter by reflexivity if necessary
                             if self.op.is_reflexive()
                                 || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
-                                || !util::check_annotation_key_equal(
-                                    &m_outer[self.outer_idx].anno,
-                                    &m_inner[self.inner_idx].anno,
-                                ) {
+                                || m_outer[self.outer_idx].anno.key != m_inner[self.inner_idx].anno.key {
                                 let mut result = m_outer.clone();
                                 result.append(&mut m_inner.clone());
                                 return Some(result);
@@ -150,10 +146,7 @@ impl<'a> Iterator for NestedLoop<'a> {
                             // filter by reflexivity if necessary
                             if self.op.is_reflexive()
                                 || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
-                                || !util::check_annotation_key_equal(
-                                    &m_outer[self.outer_idx].anno,
-                                    &m_inner[self.inner_idx].anno,
-                                ) {
+                                || m_outer[self.outer_idx].anno.key != m_inner[self.inner_idx].anno.key {
                                 let mut result = m_outer.clone();
                                 result.append(&mut m_inner.clone());
                                 return Some(result);

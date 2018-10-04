@@ -18,7 +18,7 @@ use stringstorage::StringStorage;
 use strum::IntoEnumIterator;
 use tempdir::TempDir;
 use AnnoKey;
-use {Annotation, Component, ComponentType, Edge, NodeID, StringID};
+use {Annotation, Component, ComponentType, Edge, NodeID};
 use rayon::prelude::*;
 
 pub const ANNIS_NS: &str = "annis";
@@ -33,11 +33,6 @@ pub struct GraphDB {
     location: Option<PathBuf>,
 
     components: BTreeMap<Component, Option<Arc<GraphStorage>>>,
-    id_annis_ns: StringID,
-    id_node_name: StringID,
-    id_tok: StringID,
-    id_node_type: StringID,
-
     current_change_id: u64,
 
     background_persistance: Arc<Mutex<()>>,
@@ -110,14 +105,9 @@ where
 impl GraphDB {
     /// Create a new and empty instance without any location on the disk
     pub fn new() -> GraphDB {
-        let mut strings = StringStorage::new();
+        let strings = StringStorage::new();
 
         GraphDB {
-            id_annis_ns: strings.add(ANNIS_NS),
-            id_node_name: strings.add(NODE_NAME),
-            id_tok: strings.add(TOK),
-            id_node_type: strings.add(NODE_TYPE),
-
             strings: Arc::new(strings),
             node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
             components: BTreeMap::new(),
@@ -326,12 +316,12 @@ impl GraphDB {
                                 0
                             };
                         let new_anno_name = Annotation {
-                            key: self.get_node_name_key(),
-                            val: Arc::make_mut(&mut self.strings).add(&node_name),
+                            key: Arc::from(self.get_node_name_key()),
+                            val: Arc::from(node_name),
                         };
                         let new_anno_type = Annotation {
-                            key: self.get_node_type_key(),
-                            val: Arc::make_mut(&mut self.strings).add(&node_type),
+                            key: Arc::from(self.get_node_type_key()),
+                            val: Arc::from(node_type),
                         };
 
                         // add the new node (with minimum labels)
@@ -363,11 +353,11 @@ impl GraphDB {
                 } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         let anno = Annotation {
-                            key: AnnoKey {
-                                ns: Arc::make_mut(&mut self.strings).add(&anno_ns),
-                                name: Arc::make_mut(&mut self.strings).add(&anno_name),
-                            },
-                            val: Arc::make_mut(&mut self.strings).add(&anno_value),
+                            key: Arc::from(AnnoKey {
+                                ns: anno_ns,
+                                name: anno_name,
+                            }),
+                            val: Arc::from(anno_value),
                         };
                         Arc::make_mut(&mut self.node_annos).insert(existing_node_id, anno);
                     }
@@ -379,8 +369,8 @@ impl GraphDB {
                 } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         let key = AnnoKey {
-                            ns: Arc::make_mut(&mut self.strings).add(&anno_ns),
-                            name: Arc::make_mut(&mut self.strings).add(&anno_name),
+                            ns: anno_ns,
+                            name: anno_name,
                         };
                         Arc::make_mut(&mut self.node_annos).remove(&existing_node_id, &key);
                     }
@@ -450,16 +440,13 @@ impl GraphDB {
                                 layer,
                                 name: component_name,
                             };
-                            let ns = Arc::make_mut(&mut self.strings).add(&anno_ns);
-                            let name = Arc::make_mut(&mut self.strings).add(&anno_name);
-                            let val = Arc::make_mut(&mut self.strings).add(&anno_value);
                             let gs = self.get_or_create_writable(c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(&source, &target, 1, 1) {
                                 let anno = Annotation {
-                                    key: AnnoKey { ns, name },
-                                    val,
+                                    key: Arc::from(AnnoKey { ns: anno_ns, name: anno_name }),
+                                    val: Arc::from(anno_value),
                                 };
                                 gs.add_edge_annotation(e, anno);
                             }
@@ -485,13 +472,11 @@ impl GraphDB {
                                 layer,
                                 name: component_name,
                             };
-                            let ns = Arc::make_mut(&mut self.strings).add(&anno_ns);
-                            let name = Arc::make_mut(&mut self.strings).add(&anno_name);
                             let gs = self.get_or_create_writable(c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(&source, &target, 1, 1) {
-                                let key = AnnoKey { ns, name };
+                                let key = AnnoKey { ns: anno_ns, name: anno_name };
                                 gs.delete_edge_annotation(&e, &key);
                             }
                         }
@@ -747,15 +732,13 @@ impl GraphDB {
     }
 
     pub fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
-        if let Some(node_name_id) = self.strings.find_id(node_name) {
-            let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
-                Some(self.id_annis_ns),
-                self.id_node_name,
-                Some(node_name_id.clone()),
-            );
-            if let Some(m) = all_nodes_with_anno.next() {
-                return Some(m.node);
-            }
+        let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
+            Some(ANNIS_NS.to_owned()),
+            NODE_NAME.to_owned(),
+            Some(node_name.to_owned()),
+        );
+        if let Some(m) = all_nodes_with_anno.next() {
+            return Some(m.node);
         }
         return None;
     }
@@ -842,22 +825,22 @@ impl GraphDB {
 
     pub fn get_token_key(&self) -> AnnoKey {
         AnnoKey {
-            ns: self.id_annis_ns,
-            name: self.id_tok,
+            ns: ANNIS_NS.to_owned(),
+            name: TOK.to_owned(),
         }
     }
 
     pub fn get_node_name_key(&self) -> AnnoKey {
         AnnoKey {
-            ns: self.id_annis_ns,
-            name: self.id_node_name,
+            ns: ANNIS_NS.to_owned(),
+            name: NODE_NAME.to_owned(),
         }
     }
 
     pub fn get_node_type_key(&self) -> AnnoKey {
         AnnoKey {
-            ns: self.id_annis_ns,
-            name: self.id_node_type,
+            ns: ANNIS_NS.to_owned(),
+            name: NODE_TYPE.to_owned(),
         }
     }
 }
@@ -872,10 +855,10 @@ mod tests {
         let mut db = GraphDB::new();
 
         let anno_key = AnnoKey {
-            ns: Arc::make_mut(&mut db.strings).add("test"),
-            name: Arc::make_mut(&mut db.strings).add("edge_anno"),
+            ns: "test".to_owned(),
+            name: "edge_anno".to_owned(),
         };
-        let anno_val = Arc::make_mut(&mut db.strings).add("testValue");
+        let anno_val = "testValue".to_owned();
 
         let gs: &mut WriteableGraphStorage =
             db.get_or_create_writable(Component {
@@ -895,8 +878,8 @@ mod tests {
                 target: 1,
             },
             Annotation {
-                key: anno_key,
-                val: anno_val,
+                key: Arc::from(anno_key),
+                val: Arc::from(anno_val),
             },
         );
     }

@@ -5,8 +5,6 @@ use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
-use stringstorage::StringStorage;
-use util;
 use {AnnoKey, Annotation, Match, NodeID};
 
 const MAX_BUFFER_SIZE : usize = 512;
@@ -21,7 +19,6 @@ pub struct IndexJoin<'a> {
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
-    strings: Arc<StringStorage>,
     desc: Desc,
 }
 
@@ -42,7 +39,6 @@ impl<'a> IndexJoin<'a> {
         op: Box<Operator>,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
-        strings: Arc<StringStorage>,
         rhs_desc: Option<&Desc>,
     ) -> IndexJoin<'a> {
         let lhs_desc = lhs.get_desc().cloned();
@@ -86,7 +82,6 @@ impl<'a> IndexJoin<'a> {
             op: Arc::from(op),
             node_search_desc,
             node_annos,
-            strings,
             match_receiver: None,
         };
     }
@@ -115,7 +110,6 @@ impl<'a> IndexJoin<'a> {
         }
 
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
-        let strings: Arc<StringStorage> = self.strings.clone();
         let op: Arc<Operator> = self.op.clone();
         let lhs_idx = self.lhs_idx;
         let node_annos = self.node_annos.clone();
@@ -130,7 +124,7 @@ impl<'a> IndexJoin<'a> {
                     // check if all filters are true
                     let mut filter_result = true;
                     for f in node_search_desc.cond.iter() {
-                        if !(f)(&m_rhs, &strings) {
+                        if !(f)(&m_rhs) {
                             filter_result = false;
                             break;
                         }
@@ -145,7 +139,7 @@ impl<'a> IndexJoin<'a> {
 
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
-                            || !util::check_annotation_key_equal(&m_lhs[lhs_idx].anno, &m_rhs.anno)
+                            || m_lhs[lhs_idx].anno.key !=  m_rhs.anno.key
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();
@@ -180,17 +174,18 @@ impl<'a> IndexJoin<'a> {
 fn next_candidates(m_lhs : &Vec<Match>, op : &Operator, lhs_idx : usize, node_annos: Arc<AnnoStorage<NodeID>>, node_search_desc: Arc<NodeSearchDesc>) -> Option<Vec<Match>> {
     let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]).fuse();
 
-    if let Some(name) = node_search_desc.qname.1 {
-        if let Some(ns) = node_search_desc.qname.0 {
+    if let Some(ref name) = node_search_desc.qname.1 {
+        if let Some(ref ns) = node_search_desc.qname.0 {
             // return the only possible annotation for each node
             let mut matches: Vec<Match> = Vec::new();
+            let key = Arc::from(AnnoKey { ns: ns.clone(), name: name.clone() });
+                
             for match_node in it_nodes {
-                let key = AnnoKey { ns: ns, name: name };
                 if let Some(val) = node_annos.get(&match_node.node, &key) {
                     matches.push(Match {
                         node: match_node.node,
                         anno: Annotation {
-                            key,
+                            key: key.clone(),
                             val: val.clone(),
                         },
                     });
@@ -198,7 +193,7 @@ fn next_candidates(m_lhs : &Vec<Match>, op : &Operator, lhs_idx : usize, node_an
             }
             return Some(matches);
         } else {
-            let keys = node_annos.get_qnames(name);
+            let keys = node_annos.get_qnames(&name);
             // return all annotations with the correct name for each node
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {

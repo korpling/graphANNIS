@@ -2,6 +2,7 @@ use num::{Num,FromPrimitive, Bounded, ToPrimitive};
 use std::string::String;
 use std::fmt;
 use std::ops::AddAssign;
+use std::sync::Arc;
 use std;
 
 use malloc_size_of::MallocSizeOf;
@@ -14,15 +15,15 @@ pub type StringID = u32;
 #[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, MallocSizeOf, Hash)]
 #[repr(C)]
 pub struct AnnoKey {
-    pub name: StringID,
-    pub ns: StringID,
+    pub name: String,
+    pub ns: String,
 }
 
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, MallocSizeOf, Hash)]
+#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
 #[repr(C)]
 pub struct Annotation {
-    pub key: AnnoKey,
-    pub val: StringID,
+    pub key: Arc<AnnoKey>,
+    pub val: Arc<String>,
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]

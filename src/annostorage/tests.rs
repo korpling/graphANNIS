@@ -4,8 +4,8 @@ use NodeID;
 #[test]
 fn insert_same_anno() {
     let test_anno = Annotation {
-        key: AnnoKey { name: 1, ns: 1 },
-        val: 123,
+        key: Arc::from(AnnoKey { name: "anno1".to_owned(), ns: "annis".to_owned()}),
+        val: Arc::from("test".to_owned()),
     };
     let mut a: AnnoStorage<NodeID> = AnnoStorage::new();
     a.insert(1, test_anno.clone());
@@ -18,22 +18,22 @@ fn insert_same_anno() {
     assert_eq!(1, a.by_anno.len());
     assert_eq!(1, a.anno_keys.len());
 
-    assert_eq!(123, a.get(&3, &AnnoKey { name: 1, ns: 1 }).unwrap().clone());
+    assert_eq!("test", a.get(&3, &AnnoKey { name: "anno1".to_owned(), ns: "annis".to_owned() }).unwrap().as_ref());
 }
 
 #[test]
 fn get_all_for_node() {
     let test_anno1 = Annotation {
-        key: AnnoKey { name: 1, ns: 1 },
-        val: 123,
+        key: Arc::from(AnnoKey { name: "anno1".to_owned(), ns: "annis1".to_owned() }),
+        val: Arc::from("test".to_owned()),
     };
     let test_anno2 = Annotation {
-        key: AnnoKey { name: 2, ns: 2 },
-        val: 123,
+        key: Arc::from(AnnoKey { name: "anno2".to_owned(), ns: "annis2".to_owned() }),
+        val: Arc::from("test".to_owned()),
     };
     let test_anno3 = Annotation {
-        key: AnnoKey { name: 3, ns: 1 },
-        val: 123,
+        key: Arc::from(AnnoKey { name: "anno3".to_owned(), ns: "annis1".to_owned() }),
+        val: Arc::from("test".to_owned()),
     };
 
     let mut a: AnnoStorage<NodeID> = AnnoStorage::new();
@@ -54,8 +54,8 @@ fn get_all_for_node() {
 #[test]
 fn remove() {
     let test_anno = Annotation {
-        key: AnnoKey { name: 1, ns: 1 },
-        val: 123,
+        key: Arc::from(AnnoKey { name: "anno1".to_owned(), ns: "annis1".to_owned() }),
+        val: Arc::from("test".to_owned()),
     };
     let mut a: AnnoStorage<NodeID> = AnnoStorage::new();
     a.insert(1, test_anno.clone());

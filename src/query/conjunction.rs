@@ -315,7 +315,7 @@ impl<'a> Conjunction<'a> {
                                     Edge,
                                 > = gs.get_anno_storage();
                                 if let Some(edge_anno_est) =
-                                    edge_anno_spec.guess_max_count(&anno_storage, &db.strings)
+                                    edge_anno_spec.guess_max_count(&anno_storage)
                                 {
                                     estimated_component_search += edge_anno_est;
                                     estimation_valid = true;
@@ -373,7 +373,6 @@ impl<'a> Conjunction<'a> {
                     op,
                     exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                     db.node_annos.clone(),
-                    db.strings.clone(),
                     exec_right.get_desc(),
                 );
                 return Box::new(join);
@@ -386,7 +385,6 @@ impl<'a> Conjunction<'a> {
                     op,
                     exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                     db.node_annos.clone(),
-                    db.strings.clone(),
                     exec_right.get_desc(),
                 );
                 return Box::new(join);
@@ -403,7 +401,6 @@ impl<'a> Conjunction<'a> {
                         inverse_op,
                         exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                         db.node_annos.clone(),
-                        db.strings.clone(),
                         exec_left.get_desc(),
                     );
                     return Box::new(join);
@@ -416,7 +413,6 @@ impl<'a> Conjunction<'a> {
                         inverse_op,
                         exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                         db.node_annos.clone(),
-                        db.strings.clone(),
                         exec_left.get_desc(),
                     );
                     return Box::new(join);

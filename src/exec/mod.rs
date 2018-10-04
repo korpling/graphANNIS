@@ -1,6 +1,5 @@
-use {Match, StringID, Annotation};
+use {Match, Annotation};
 use self::nodesearch::NodeSearch;
-use stringstorage::StringStorage;
 use operator::{EstimationType, Operator};
 
 use std::collections::{BTreeMap};
@@ -181,8 +180,8 @@ impl Desc {
 }
 
 pub struct NodeSearchDesc {
-    pub qname: (Option<StringID>, Option<StringID>),
-    pub cond: Vec<Box<Fn(&Match, &StringStorage) -> bool + Sync + Send>>,
+    pub qname: (Option<String>, Option<String>),
+    pub cond: Vec<Box<Fn(&Match) -> bool + Sync + Send>>,
     pub const_output: Option<Annotation>,
 }
 

@@ -1,4 +1,4 @@
-use graphdb::GraphDB;
+use graphdb::{GraphDB, ANNIS_NS};
 use graphstorage::WriteableGraphStorage;
 use multimap::MultiMap;
 use std::collections::BTreeMap;
@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-use {AnnoKey, Annotation, Component, ComponentType, Edge, NodeID, StringID};
+use {AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 
 use csv;
 use std;
@@ -68,7 +68,7 @@ pub fn load(path: &Path) -> Result<(String, GraphDB)> {
             load_rank_tab(&path, &mut db, &component_by_id, is_annis_33)?;
         load_edge_annotation(&path, &mut db, &pre_to_component, &pre_to_edge, is_annis_33)?;
 
-        let corpus_id_to_annos = load_corpus_annotation(&path, &mut db, is_annis_33)?;
+        let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33)?;
 
         add_subcorpora(
             &mut db,
@@ -82,7 +82,7 @@ pub fn load(path: &Path) -> Result<(String, GraphDB)> {
         )?;
 
         info!("calculating node statistics");
-        Arc::make_mut(&mut db.node_annos).calculate_statistics(&db.strings);
+        Arc::make_mut(&mut db.node_annos).calculate_statistics();
 
         for c in db.get_all_components(None, None) {
             info!("calculating statistics for component {}", c);
@@ -474,24 +474,24 @@ fn load_node_tab(
 
             let node_qname = format!("{}/{}#{}", toplevel_corpus_name, doc_name, node_name);
             let node_name_anno = Annotation {
-                key: db.get_node_name_key(),
-                val: Arc::make_mut(&mut db.strings).add(&node_qname),
+                key: Arc::from(db.get_node_name_key()),
+                val: Arc::from(node_qname),
             };
             Arc::make_mut(&mut db.node_annos).insert(node_nr, node_name_anno);
 
             let node_type_anno = Annotation {
-                key: db.get_node_type_key(),
-                val: Arc::make_mut(&mut db.strings).add("node"),
+                key: Arc::from(db.get_node_type_key()),
+                val: Arc::from("node".to_owned()),
             };
             Arc::make_mut(&mut db.node_annos).insert(node_nr, node_type_anno);
 
             if !layer.is_empty() && layer != "NULL" {
                 let layer_anno = Annotation {
-                    key: AnnoKey {
-                        ns: Arc::make_mut(&mut db.strings).add("annis"),
-                        name: Arc::make_mut(&mut db.strings).add("layer"),
-                    },
-                    val: Arc::make_mut(&mut db.strings).add(&layer),
+                    key: Arc::from(AnnoKey {
+                        ns: "annis".to_owned(),
+                        name: "layer".to_owned(),
+                    }),
+                    val: Arc::from(layer),
                 };
                 Arc::make_mut(&mut db.node_annos).insert(node_nr, layer_anno);
             }
@@ -523,8 +523,8 @@ fn load_node_tab(
                 };
 
                 let tok_anno = Annotation {
-                    key: db.get_token_key(),
-                    val: Arc::make_mut(&mut db.strings).add(&span),
+                    key: Arc::from(db.get_token_key()),
+                    val: Arc::from(span),
                 };
                 Arc::make_mut(&mut db.node_annos).insert(node_nr, tok_anno);
 
@@ -555,9 +555,8 @@ fn load_node_tab(
                     if is_annis_33 {
                         // directly add the span information
                         let tok_anno = Annotation {
-                            key: db.get_token_key(),
-                            val: Arc::make_mut(&mut db.strings)
-                                .add(&get_field_str(&line, 12).ok_or("Missing column")?),
+                            key: Arc::from(db.get_token_key()),
+                            val: Arc::from(get_field_str(&line, 12).ok_or("Missing column")?),
                         };
                         Arc::make_mut(&mut db.node_annos).insert(node_nr, tok_anno);
                     } else {
@@ -630,21 +629,21 @@ fn load_node_anno_tab(
         let col_val = get_field_str(&line, 3).ok_or("Missing column")?;
         // we have to make some sanity checks
         if col_ns != "annis" || col_name != "tok" {
-            let anno_val = if col_val == "NULL" {
+            let anno_val : String = if col_val == "NULL" {
                 // use an "invalid" string so it can't be found by its value, but only by its annotation name
-                <StringID>::max_value()
+                std::char::MAX.to_string()
             } else {
-                Arc::make_mut(&mut db.strings).add(&col_val)
+                col_val
             };
 
             Arc::make_mut(&mut db.node_annos).insert(
                 node_id.clone(),
                 Annotation {
-                    key: AnnoKey {
-                        ns: Arc::make_mut(&mut db.strings).add(&col_ns),
-                        name: Arc::make_mut(&mut db.strings).add(&col_name),
-                    },
-                    val: anno_val,
+                    key: Arc::from(AnnoKey {
+                        ns: col_ns,
+                        name: col_name,
+                    }),
+                    val: Arc::from(anno_val.clone()),
                 },
             );
 
@@ -657,8 +656,8 @@ fn load_node_anno_tab(
                     Arc::make_mut(&mut db.node_annos).insert(
                         node_id.clone(),
                         Annotation {
-                            key: tok_key,
-                            val: anno_val,
+                            key: Arc::from(tok_key),
+                            val: Arc::from(anno_val),
                         },
                     );
                 }
@@ -830,11 +829,11 @@ fn load_edge_annotation(
                 let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
                 let anno = Annotation {
-                    key: AnnoKey {
-                        ns: Arc::make_mut(&mut db.strings).add(&ns),
-                        name: Arc::make_mut(&mut db.strings).add(&name),
-                    },
-                    val: Arc::make_mut(&mut db.strings).add(&val),
+                    key: Arc::from(AnnoKey {
+                        ns: ns,
+                        name: name,
+                    }),
+                    val: Arc::from(val),
                 };
                 let gs: &mut WriteableGraphStorage = db.get_or_create_writable(c.clone())?;
                 gs.add_edge_annotation(e.clone(), anno);
@@ -847,7 +846,6 @@ fn load_edge_annotation(
 
 fn load_corpus_annotation(
     path: &PathBuf,
-    db: &mut GraphDB,
     is_annis_33: bool,
 ) -> Result<MultiMap<u32, Annotation>> {
     let mut corpus_id_to_anno = MultiMap::new();
@@ -871,16 +869,16 @@ fn load_corpus_annotation(
 
         let id = line.get(0).ok_or("Missing column")?.parse()?;
         let ns = get_field_str(&line, 1).ok_or("Missing column")?;
-        let ns = if ns == "NULL" { "" } else { &ns };
+        let ns = if ns == "NULL" { "".to_owned() } else { ns };
         let name = get_field_str(&line, 2).ok_or("Missing column")?;
         let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
         let anno = Annotation {
-            key: AnnoKey {
-                ns: Arc::make_mut(&mut db.strings).add(ns),
-                name: Arc::make_mut(&mut db.strings).add(&name),
-            },
-            val: Arc::make_mut(&mut db.strings).add(&val),
+            key: Arc::from(AnnoKey {
+                ns,
+                name: name,
+            }),
+            val: Arc::from(val),
         };
 
         corpus_id_to_anno.insert(id, anno);
@@ -914,13 +912,13 @@ fn add_subcorpora(
     // add the toplevel corpus as node
     {
         let top_anno = Annotation {
-            key: db.get_node_name_key(),
-            val: Arc::make_mut(&mut db.strings).add(toplevel_corpus_name),
+            key: Arc::from(db.get_node_name_key()),
+            val: Arc::from(toplevel_corpus_name.to_owned()),
         };
         Arc::make_mut(&mut db.node_annos).insert(next_node_id, top_anno);
         let anno_type = Annotation {
-            key: db.get_node_type_key(),
-            val: Arc::make_mut(&mut db.strings).add("corpus"),
+            key: Arc::from(db.get_node_type_key()),
+            val: Arc::from("corpus".to_owned()),
         };
         Arc::make_mut(&mut db.node_annos).insert(next_node_id, anno_type);
         // add all metadata for the top-level corpus node
@@ -955,23 +953,23 @@ fn add_subcorpora(
 
             // add a basic node labels for the new (sub-) corpus/document
             let anno_name = Annotation {
-                key: db.get_node_name_key(),
-                val: Arc::make_mut(&mut db.strings).add(&full_name),
+                key: Arc::from(db.get_node_name_key()),
+                val: Arc::from(full_name),
             };
             Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_name);
 
             let anno_doc = Annotation {
-                key: AnnoKey {
-                    ns: Arc::make_mut(&mut db.strings).add("annis"),
-                    name: Arc::make_mut(&mut db.strings).add("doc"),
-                },
-                val: Arc::make_mut(&mut db.strings).add(corpus_name),
+                key: Arc::from(AnnoKey {
+                    ns: ANNIS_NS.to_owned(),
+                    name: "doc".to_owned(),
+                }),
+                val: Arc::from(corpus_name.to_owned()),
             };
             Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_doc);
 
             let anno_type = Annotation {
-                key: db.get_node_type_key(),
-                val: Arc::make_mut(&mut db.strings).add("corpus"),
+                key: Arc::from(db.get_node_type_key()),
+                val: Arc::from("corpus".to_owned()),
             };
             Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_type);
 
@@ -1001,8 +999,8 @@ fn add_subcorpora(
 
         // add text node (including its namee)
         let anno_type = Annotation {
-            key: db.get_node_type_key(),
-            val: Arc::make_mut(&mut db.strings).add("datasource"),
+            key: Arc::from(db.get_node_type_key()),
+            val: Arc::from("datasource".to_owned()),
         };
         Arc::make_mut(&mut db.node_annos).insert(text_node_id.clone(), anno_type);
         let text_name : Option<String> = if is_annis_33 {
@@ -1022,8 +1020,8 @@ fn add_subcorpora(
                     ))?;
                 let full_name = format!("{}/{}#{}", toplevel_corpus_name, corpus_name, text_name);
                 let anno_name = Annotation {
-                key: db.get_node_name_key(),
-                val: Arc::make_mut(&mut db.strings).add(&full_name),
+                key: Arc::from(db.get_node_name_key()),
+                val: Arc::from(full_name),
             };
             Arc::make_mut(&mut db.node_annos).insert(text_node_id.clone(), anno_name);
         }

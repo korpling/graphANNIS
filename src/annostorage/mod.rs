@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use super::*;
 use std::collections::{BTreeMap};
 use rustc_hash::{FxHashMap,FxHashSet};
@@ -8,25 +9,41 @@ use std::path::PathBuf;
 use rand;
 use regex_syntax;
 use regex;
-use stringstorage::StringStorage;
 use bincode;
 use serde;
 use serde::de::DeserializeOwned;
 use itertools::Itertools;
-use malloc_size_of::{MallocSizeOf};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use errors::*;
 
-#[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     by_container: FxHashMap<T, Vec<Annotation>>,
     #[serde(skip)]
-    by_anno: FxHashMap<AnnoKey, FxHashMap<StringID, FxHashSet<T>>>,
+    by_anno: FxHashMap<Arc<AnnoKey>, FxHashMap<Arc<String>, FxHashSet<T>>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
-    anno_keys: BTreeMap<AnnoKey, usize>,
+    anno_keys: BTreeMap<Arc<AnnoKey>, usize>,
     /// additional statistical information
-    histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
+    histogram_bounds: BTreeMap<Arc<AnnoKey>, Vec<String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
+}
+
+impl<T> MallocSizeOf for AnnoStorage<T> 
+where T: Ord + Hash + MallocSizeOf + Default {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        unimplemented!()
+        // let mut annos_size : usize = 0;
+        // // measure the size of all annotations and add the overhead of the Arc (two counter fields)
+        // for s in self.by_id.iter() {
+        //     string_size += (2*std::mem::size_of::<usize>()) + s.size_of(ops);
+        // } 
+
+        // // add the size of the vector pointer, the hash map and the strings
+        // string_size 
+        // + (self.by_id.len() * std::mem::size_of::<usize>())
+        // + self.by_value.shallow_size_of(ops)
+    }
 }
 
 
@@ -43,6 +60,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 
     fn remove_element_from_by_anno(&mut self, anno: &Annotation, item: &T) {
+	
         let remove_anno_key = if let Some(mut annos_for_key) = self.by_anno.get_mut(&anno.key) {
             
             let remove_anno_val = if let Some(items_for_anno) = annos_for_key.get_mut(&anno.val) {
@@ -119,12 +137,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<StringID> {
+    pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<Arc<String>> {
         let mut result = None;
 
         if let Some(mut all_annos) = self.by_container.remove(item) {
             // find the specific annotation key from the sorted vector of all annotations of this item
-            let anno_idx = all_annos.binary_search_by_key(key, |a| a.key.clone());
+            let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key.as_ref());
 
             if let Ok(anno_idx) = anno_idx {
                 // since value was found, also remove the item from the other containers
@@ -133,7 +151,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     item,
                 );
 
-                let old_value = all_annos[anno_idx].val;
+                let old_value = all_annos[anno_idx].val.clone();
 
                 // remove the specific annotation key from the entry
                 all_annos.remove(anno_idx);
@@ -162,12 +180,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.total_number_of_annos
     }
 
-    pub fn get(&self, item: &T, key: &AnnoKey) -> Option<&StringID> {
+    pub fn get(&self, item: &T, key: &AnnoKey) -> Option<Arc<String>> {
         if let Some(all_annos) = self.by_container.get(item) {
 
-            let idx = all_annos.binary_search_by_key(key, |a| a.key.clone());
+            let idx = all_annos.binary_search_by_key(&key, |a| a.key.as_ref());
             if let Ok(idx) = idx {
-                return Some(&all_annos[idx].val);
+                return Some(all_annos[idx].val.clone());
             }
         }
         return None;
@@ -176,8 +194,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     pub fn find_by_name(
         &self,
         item: &T,
-        ns: Option<StringID>,
-        name: Option<StringID>,
+        ns: Option<String>,
+        name: Option<String>,
     ) -> Vec<Annotation> {
         if let Some(name) = name {
             if let Some(ns) = ns {
@@ -187,16 +205,16 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 if let Some(val) = res {
                     return vec![
                         Annotation {
-                            key,
+                            key: Arc::from(key),
                             val: val.clone(),
-                        },
+                        }
                     ];
                 } else {
                     return vec![];
                 }
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<Annotation> = self.get_qnames(name)
+                let res: Vec<Annotation> = self.get_qnames(&name)
                     .into_iter()
                     .filter_map(|key| {
                         self.get(item, &key).map(|val| Annotation {
@@ -235,34 +253,36 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
-    pub fn get_qnames(&self, name: StringID) -> Vec<AnnoKey> {
-        self.anno_keys
-            .range(
-                AnnoKey {
-                    name,
-                    ns: StringID::min_value(),
-                }..AnnoKey {
-                    name,
-                    ns: StringID::max_value(),
-                },
-            )
-            .map(|r| r.0)
-            .cloned()
-            .collect::<Vec<AnnoKey>>()
+    pub fn get_qnames(&self, name: &str) -> Vec<Arc<AnnoKey>> {
+        let it = self.anno_keys.range(
+            AnnoKey {
+                name: name.to_owned(),
+                ns: String::default(),
+            }..,
+        );
+        let mut result: Vec<Arc<AnnoKey>> = Vec::default();
+        for (k, _) in it {
+            if k.name == name {
+                result.push(k.clone());
+            } else {
+                break;
+            }
+        }
+        return result;
     }
 
     /// Get all the annotation keys which are part of this annotation storage
-    pub fn get_all_keys(&self) -> Vec<AnnoKey> {
+    pub fn get_all_keys(&self) -> Vec<Arc<AnnoKey>> {
         return self.anno_keys.keys().cloned().collect();
     }
 
     pub fn get_all_values<'a>(
         &'a self,
-        key: AnnoKey,
+        key: &AnnoKey,
         most_frequent_first: bool,
-    ) -> Box<Iterator<Item = StringID> + 'a> {
+    ) -> Box<Iterator<Item = Arc<String>> + 'a> {
         
-        if let Some(values_for_key) = self.by_anno.get(&key) {
+        if let Some(values_for_key) = self.by_anno.get(key) {
             if most_frequent_first {
                 let it = values_for_key
                     .iter()
@@ -286,17 +306,17 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
     fn matching_items<'a>(
         &'a self,
-        namespace: Option<StringID>,
-        name: StringID,
-        value: Option<StringID>,
+        namespace: Option<String>,
+        name: String,
+        value: Option<String>,
     ) -> Box<Iterator<Item = (&T, Annotation)> + 'a> {
-        let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
-            vec![AnnoKey { ns, name }]
+        let key_ranges: Vec<Arc<AnnoKey>> = if let Some(ns) = namespace {
+            vec![Arc::from(AnnoKey { ns, name })]
         } else {
-            self.get_qnames(name)
+            self.get_qnames(&name)
         };
 
-        let values: Vec<(AnnoKey, &FxHashMap<StringID, FxHashSet<T>>)> = key_ranges
+        let values: Vec<(Arc<AnnoKey>, &FxHashMap<Arc<String>, FxHashSet<T>>)> = key_ranges
             .into_iter()
             .filter_map(|k| {
                 if let Some(values_for_key) = self.by_anno.get(&k) {
@@ -313,7 +333,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             .filter_map(move |(key, values)| if let Some(items) = values.get(&value) {
                 Some((items, Annotation {
                     key,
-                    val: value.clone(),
+                    val: Arc::from(value.clone()),
                 }))
             } else {
                 None
@@ -334,20 +354,20 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    pub fn num_of_annotations(&self, ns: Option<StringID>, name: StringID) -> usize {
+    pub fn num_of_annotations(&self, ns: Option<String>, name: String) -> usize {
         let qualified_keys = match ns {
-            Some(ns_id) => self.anno_keys.range((
-                Included(AnnoKey { name, ns: ns_id }),
-                Included(AnnoKey { name, ns: ns_id }),
+            Some(ns) => self.anno_keys.range((
+                Included(Arc::from(AnnoKey { name: name.clone(), ns: ns.clone() })),
+                Included(Arc::from(AnnoKey { name, ns})),
             )),
             None => self.anno_keys.range(
-                AnnoKey {
+                Arc::from(AnnoKey {
+                    name: name.clone(),
+                    ns: std::char::MAX.to_string(),
+                })..Arc::from(AnnoKey {
                     name,
-                    ns: StringID::min_value(),
-                }..AnnoKey {
-                    name,
-                    ns: StringID::max_value(),
-                },
+                    ns: std::char::MAX.to_string(),
+                }),
             ),
         };
         let mut result = 0;
@@ -359,25 +379,25 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
     pub fn guess_max_count(
         &self,
-        ns: Option<StringID>,
-        name: StringID,
+        ns: Option<String>,
+        name: String,
         lower_val: &str,
         upper_val: &str,
     ) -> usize {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
-            Some(ns_id) => self.anno_keys.range((
-                Included(AnnoKey { name, ns: ns_id }),
-                Included(AnnoKey { name, ns: ns_id }),
+            Some(ns) => self.anno_keys.range((
+                Included(Arc::from(AnnoKey { name: name.clone(), ns: ns.clone() })),
+                Included(Arc::from(AnnoKey { name, ns })),
             )),
             None => self.anno_keys.range(
-                AnnoKey {
+                Arc::from(AnnoKey {
+                    name: name.clone(),
+                    ns: std::char::MAX.to_string(),
+                })..Arc::from(AnnoKey {
                     name,
-                    ns: StringID::min_value(),
-                }..AnnoKey {
-                    name,
-                    ns: StringID::max_value(),
-                },
+                    ns: std::char::MAX.to_string(),
+                }),
             ),
         };
 
@@ -422,8 +442,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
     pub fn guess_max_count_regex(
         &self,
-        ns: Option<StringID>,
-        name: StringID,
+        ns: Option<String>,
+        name: String,
         pattern: &str,
     ) -> usize {
         let full_match_pattern = util::regex_full_match(pattern);
@@ -450,7 +470,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.largest_item.clone()
     }
 
-    pub fn calculate_statistics(&mut self, string_storage: &stringstorage::StringStorage) {
+    pub fn calculate_statistics(&mut self) {
         let max_histogram_buckets = 250;
         let max_sampled_annotations = 2500;
 
@@ -465,16 +485,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             // sample a maximal number of annotation values
             let mut rng = rand::thread_rng();
             if let Some(values_for_key) = self.by_anno.get(anno_key) {
-                let sampled_anno_values: Vec<&String> = values_for_key
+                let sampled_anno_values: Vec<Arc<String>> = values_for_key
                     .iter()
                     .flat_map(|(val, items)| {
-                        let s = string_storage.str(*val);
-                        let v = if let Some(s) = s {
-                            // repeat value corresponding to the number of nodes with this annotation
-                            vec![s; items.len()]
-                        } else {
-                            vec![]
-                        };
+                        // repeat value corresponding to the number of nodes with this annotation
+                        let v = vec![val.clone(); items.len()];
                         v.into_iter()
                     })
                     .collect();
@@ -485,7 +500,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 ).into_iter()
                     .collect();
 
-                let mut sampled_anno_values: Vec<&String> = sampled_anno_values
+                let mut sampled_anno_values: Vec<Arc<String>> = sampled_anno_values
                     .into_iter()
                     .enumerate()
                     .filter(|x| sampled_anno_indexes.contains(&x.0))
@@ -509,7 +524,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     let mut pos = 0;
                     let mut pos_fraction = 0;
                     for i in 0..num_hist_bounds {
-                        hist[i] = sampled_anno_values[pos].clone();
+                        hist[i] = (*sampled_anno_values[pos]).clone();
                         pos += delta;
                         pos_fraction += delta_fraction;
 
@@ -574,9 +589,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 impl AnnoStorage<NodeID> {
     pub fn exact_anno_search<'a>(
         &'a self,
-        namespace: Option<StringID>,
-        name: StringID,
-        value: Option<StringID>,
+        namespace: Option<String>,
+        name: String,
+        value: Option<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
         let it = self
             .matching_items(namespace, name, value)
@@ -586,9 +601,8 @@ impl AnnoStorage<NodeID> {
 
     pub fn regex_anno_search<'a>(
         &'a self,
-        strings: &'a StringStorage,
-        namespace: Option<StringID>,
-        name: StringID,
+        namespace: Option<String>,
+        name: String,
         pattern: &str,
     ) -> Box<Iterator<Item = Match> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
@@ -596,10 +610,7 @@ impl AnnoStorage<NodeID> {
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .filter(move |(_node, anno)| match strings.str(anno.val) {
-                    Some(v) => re.is_match(v),
-                    None => false,
-                })
+                .filter(move |(_node, anno)| re.is_match(&anno.val))
                 .map(|(node, anno)| Match {
                     node: *node,
                     anno: anno,
@@ -615,9 +626,9 @@ impl AnnoStorage<NodeID> {
 impl AnnoStorage<Edge> {
     pub fn exact_anno_search<'a>(
         &'a self,
-        namespace: Option<StringID>,
-        name: StringID,
-        value: Option<StringID>,
+        namespace: Option<String>,
+        name: String,
+        value: Option<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
         let it = self
             .matching_items(namespace, name, value)
