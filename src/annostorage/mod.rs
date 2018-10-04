@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use super::*;
 use std::collections::{BTreeMap};
+use std::collections::btree_map::Entry;
 use rustc_hash::{FxHashMap,FxHashSet};
 use std::collections::Bound::*;
 use std::hash::Hash;
@@ -27,19 +28,23 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     histogram_bounds: BTreeMap<Arc<AnnoKey>, Vec<String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
+
+    #[serde(skip)]
+    anno_values: FxHashSet<Arc<String>>,
 }
 
 impl<T> MallocSizeOf for AnnoStorage<T> 
 where T: Ord + Hash + MallocSizeOf + Default {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut annos_size : usize = 0;
-        // measure the size of all annotations (key and value) and add the overhead of the Arc (two counter fields)
-        for (_, annos_for_item) in self.by_container.iter() {
-            for a in annos_for_item.iter() {
-                annos_size += (2*std::mem::size_of::<usize>()) + a.key.size_of(ops);
-                annos_size += (2*std::mem::size_of::<usize>()) + a.val.size_of(ops);
-                annos_size += std::mem::size_of::<Annotation>();
-            }
+        // measure the size of all annotations keys and add the overhead of the Arc (two counter fields)
+        for (key,_size) in self.anno_keys.iter() {
+            annos_size += (2*std::mem::size_of::<usize>()) + key.size_of(ops);
+            annos_size += std::mem::size_of::<AnnoKey>();
+        } 
+        // measure the size of all strings and add the overhead of the Arc (two counter fields)
+        for v in self.anno_values.iter() {
+            annos_size += (2*std::mem::size_of::<usize>()) + v.size_of(ops);
         } 
 
         // add the size of the containers and the other fields
@@ -49,6 +54,7 @@ where T: Ord + Hash + MallocSizeOf + Default {
         + self.histogram_bounds.shallow_size_of(ops)
         + self.largest_item.size_of(ops)
         + self.total_number_of_annos.size_of(ops)
+        + self.anno_values.shallow_size_of(ops)
     }
 }
 
@@ -62,6 +68,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             histogram_bounds: BTreeMap::new(),
             largest_item: None,
             total_number_of_annos: 0,
+            anno_values: FxHashSet::default(),
         }
     }
 
@@ -90,7 +97,18 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    pub fn insert(&mut self, item: T, anno: Annotation) {
+    pub fn insert(&mut self, item: T, mut anno: Annotation) {
+
+        // make sure the annotation does not add any new annotation key combination or string but re-uses the old one
+        match self.anno_keys.entry(anno.key.clone()) {
+            Entry::Occupied(existing) => {anno.key = existing.key().clone();}
+            Entry::Vacant(new) => {new.insert(0);}
+        }
+        if let Some(existing_val) = self.anno_values.get(&anno.val).cloned() {
+           anno.val = existing_val;
+        } else {
+            self.anno_values.insert(anno.val.clone());
+        }
         
         let existing_anno = {
             let existing_item_entry = self.by_container.entry(item.clone()).or_insert(Vec::new());
@@ -256,6 +274,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.anno_keys.clear();
         self.histogram_bounds.clear();
         self.largest_item = None;
+        self.anno_values.clear();
     }
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
@@ -568,6 +587,23 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
         // optimize for read-only and shrink all containers to minimum
         self.by_container.shrink_to_fit();
+
+        // de-duplicate the value and annotation key references
+        for (_, annos_for_item) in self.by_container.iter_mut() {
+            for anno in annos_for_item.iter_mut() {
+
+                match self.anno_keys.entry(anno.key.clone()) {
+                    Entry::Occupied(existing) => {anno.key = existing.key().clone();}
+                    Entry::Vacant(new) => {new.insert(0);}
+                }
+
+                if let Some(existing_val) = self.anno_values.get(&anno.val).cloned() {
+                    anno.val = existing_val;
+                } else {
+                    self.anno_values.insert(anno.val.clone());
+                }
+            }
+        }
         
         // restore the by_anno map
         for (item, annos) in self.by_container.iter_mut() {
@@ -645,8 +681,6 @@ impl AnnoStorage<Edge> {
         return Box::new(it);
     }
 }
-
-mod symboltable;
 
 #[cfg(test)]
 mod tests;
