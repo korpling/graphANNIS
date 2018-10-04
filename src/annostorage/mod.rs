@@ -646,5 +646,7 @@ impl AnnoStorage<Edge> {
     }
 }
 
+mod symboltable;
+
 #[cfg(test)]
 mod tests;

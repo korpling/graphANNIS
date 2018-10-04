@@ -1,22 +1,25 @@
-use {StringID};
-use rustc_hash::{FxHashMap, FxHashSet};
-use regex::Regex;
+use serde::{Serialize, Deserialize};
+use std::fmt::Debug;
+use rustc_hash::{FxHashMap};
 use std;
 use std::sync::{Arc};
 use bincode;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocShallowSizeOf};
 use num::ToPrimitive;
 use std::path::{PathBuf};
+use std::hash::Hash;
 use errors::*;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct StringStorage {
-    by_id: Vec<Arc<String>>,
+pub struct SymbolTable<T>
+where T: Eq + Hash + Clone + Debug {
+    by_id: Vec<Arc<T>>,
     #[serde(skip)]
-    by_value: FxHashMap<Arc<String>, StringID>,
+    by_value: FxHashMap<Arc<T>, usize>,
 }
 
-impl MallocSizeOf for StringStorage {
+impl<T> MallocSizeOf for SymbolTable<T> 
+where T: Eq + Hash + Clone + Debug + MallocSizeOf {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut string_size : usize = 0;
         // measure the size of all strings and add the overhead of the Arc (two counter fields)
@@ -31,18 +34,17 @@ impl MallocSizeOf for StringStorage {
     }
 }
 
-impl StringStorage {
-    pub fn new() -> StringStorage {
-        let mut by_id = Vec::default();
-        // since 0 is taken as ANY value begin with 1
-        by_id.push(Arc::from(String::default()));
-        StringStorage {
+impl<T> SymbolTable<T>
+where for<'de> T: Eq + Hash + Clone + Debug + Serialize + Deserialize<'de> + Default {
+    pub fn new() -> SymbolTable<T> {
+        let by_id = Vec::default();
+        SymbolTable {
             by_id: by_id,
             by_value: FxHashMap::default(),
         }
     }
 
-    pub fn str(&self, id: StringID) -> Option<&String> {
+    pub fn get_value(&self, id: usize) -> Option<&T> {
         let id = id.to_usize()?;
         if id < self.by_id.len() {
             return Some(self.by_id[id].as_ref());
@@ -50,8 +52,7 @@ impl StringStorage {
         return None;
     }
 
-    pub fn add(&mut self, val: &str) -> StringID {
-        let val = val.to_owned();
+    pub fn add(&mut self, val: T) -> usize {
         {
             if let Some(existing_idx) = self.by_value.get(&val) {
                 return *existing_idx;
@@ -59,10 +60,10 @@ impl StringStorage {
         }
         // non-existing: add a new value
 
-        let val : Arc<String> = Arc::from(val);
+        let val : Arc<T> = Arc::from(val);
 
         // if array is still small enough, just add the value to the end
-        let id = if self.by_id.len() < (StringID::max_value() as usize) {
+        let id = if self.by_id.len() < usize::max_value() {
             self.by_id.push(val.clone());
             self.by_id.len()-1
         } else {
@@ -73,44 +74,13 @@ impl StringStorage {
             // TODO if no empty place found, return an error, do not panic
             panic!("Too man unique strings added to database");
         };
-        let id = id as StringID;
         self.by_value.insert(val, id);
 
         return id;
     }
 
-    pub fn find_id(&self, val: &str) -> Option<&StringID> {
-        return self.by_value.get(&String::from(val));
-    }
-
-    pub fn find_regex(&self, val: &str) -> FxHashSet<&StringID> {
-        let mut result = FxHashSet::default();
-
-        // we always want to match the complete string
-        let full_match_pattern = ::util::regex_full_match(val);
-
-        let compiled_result = Regex::new(&full_match_pattern);
-        if compiled_result.is_ok() {
-            let re = compiled_result.unwrap();
-
-            // check all values
-            // TODO: get a valid prefix somehow and check only a range of strings, not all
-            for (s, id) in &self.by_value {
-                if re.is_match(s) {
-                    result.insert(id);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    pub fn avg_length(&self) -> f64 {
-        let mut sum: usize = 0;
-        for s in &self.by_id {
-            sum += s.len();
-        }
-        return (sum as f64) / (self.by_id.len() as f64);
+    pub fn get_id(&self, val: &T) -> Option<&usize> {
+        return self.by_value.get(val);
     }
 
     pub fn len(&self) -> usize {
@@ -149,7 +119,7 @@ impl StringStorage {
         // restore the by_value map and make sure the smart pointers point to the same instance
         self.by_value.reserve(self.by_id.len());
         for i in 0..self.by_id.len() {
-            self.by_value.insert(self.by_id[i].clone(), i as StringID);
+            self.by_value.insert(self.by_id[i].clone(), i);
         }
 
         Ok(())
@@ -158,5 +128,60 @@ impl StringStorage {
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    extern crate tempdir;
+    use super::*;
+
+    #[test]
+    fn insert_and_get() {
+        let mut s = SymbolTable::<String>::new();
+        let id1 = s.add("abc".to_owned());
+        let id2 = s.add("def".to_owned());
+        let id3 = s.add("def".to_owned());
+
+        assert_eq!(2, s.len());
+
+        assert_eq!(id2, id3);
+
+        {
+            let x = s.get_value(id1);
+            match x {
+                Some(v) => assert_eq!("abc", v),
+                None => panic!("Did not find string"),
+            }
+        }
+        s.clear();
+        assert_eq!(0, s.len());
+    }
+
+    #[test]
+    fn insert_clear_insert_get() {
+        let mut s = SymbolTable::<String>::new();
+
+        s.add("abc".to_owned());
+        assert_eq!(1, s.len());
+        s.clear();
+        assert_eq!(0, s.len());
+        s.add("abc".to_owned());
+        assert_eq!(1, s.len());    
+    }
+
+    #[test]
+    fn serialization() {
+        let mut s = SymbolTable::<String>::new();
+        s.add("abc".to_owned());
+        s.add("def".to_owned());
+
+        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+            let file_path = tmp.path().join("out.storage");
+            let file_path_str = file_path.to_str().unwrap();
+            s.save_to_file(&file_path_str);
+
+            s.clear();
+
+            s.load_from_file(&file_path_str).unwrap();
+            assert_eq!(2, s.len());
+        }
+    }
+}
 
