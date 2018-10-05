@@ -76,3 +76,7 @@ required-features=["cli"]
 [[bin]]
 name="bench_annisqueries"
 required-features=["cli"]
+
+[profile.release]
+lto=false
+debug=true

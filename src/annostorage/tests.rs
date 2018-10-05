@@ -63,14 +63,14 @@ fn remove() {
     assert_eq!(1, a.len());
     assert_eq!(1, a.by_container.len());
     assert_eq!(1, a.by_anno.len());
-    assert_eq!(1, a.anno_keys.len());
-    assert_eq!(&1, a.anno_keys.get(&test_anno.key).unwrap());
+    assert_eq!(1, a.anno_key_sizes.len());
+    assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
 
     a.remove(&1, &test_anno.key);
 
     assert_eq!(0, a.len());
     assert_eq!(0, a.by_container.len());
     assert_eq!(0, a.by_anno.len());
-    assert_eq!(&0, a.anno_keys.get(&test_anno.key).unwrap_or(&0));
+    assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));
 
 }

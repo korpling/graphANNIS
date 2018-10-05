@@ -121,7 +121,7 @@ impl<'a> IndexJoin<'a> {
                                     matches.push(Match {
                                         node: match_node.node,
                                         anno: Annotation {
-                                            key: k,
+                                            key: Arc::from(k),
                                             val: val.clone(),
                                         },
                                     })

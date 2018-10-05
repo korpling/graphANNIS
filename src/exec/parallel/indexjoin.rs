@@ -202,7 +202,7 @@ fn next_candidates(m_lhs : &Vec<Match>, op : &Operator, lhs_idx : usize, node_an
                         matches.push(Match {
                             node: match_node.node,
                             anno: Annotation {
-                                key: k,
+                                key: Arc::from(k),
                                 val: val.clone(),
                             },
                         })

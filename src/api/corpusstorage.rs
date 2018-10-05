@@ -1121,7 +1121,7 @@ impl CorpusStorage {
         let db: &GraphDB = get_read_or_error(&lock)?;
 
         // get the matching annotation keys for each definition entry
-        let mut annokeys: Vec<(usize, Vec<Arc<AnnoKey>>)> = Vec::default();
+        let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
         for def in definition.into_iter() {
             
             if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
@@ -1129,10 +1129,10 @@ impl CorpusStorage {
                     // add the single fully qualified annotation key
                     annokeys.push((
                         node_ref,
-                        vec![Arc::from(AnnoKey {
+                        vec![AnnoKey {
                             ns: ns.clone(),
                             name: def.name.clone(),
-                        })],
+                        }],
                     ));
                 } else {
                     // add all matching annotation keys
@@ -1207,7 +1207,7 @@ impl CorpusStorage {
                     if list_values {
                         if only_most_frequent_values {
                             // get the first value
-                            if let Some(val) = node_annos.get_all_values(&key, true).next() {
+                            if let Some(val) = node_annos.get_all_values(&key, true).into_iter().next() {
                                 result.push((
                                     key.ns.clone(),
                                     key.name.clone(),
@@ -1216,7 +1216,7 @@ impl CorpusStorage {
                             }
                         } else {
                             // get all values
-                            for val in node_annos.get_all_values(&key, false) {
+                            for val in node_annos.get_all_values(&key, false).into_iter() {
                                 result.push((
                                     key.ns.clone(),
                                     key.name.clone(),
@@ -1254,7 +1254,7 @@ impl CorpusStorage {
                         if list_values {
                             if only_most_frequent_values {
                                 // get the first value
-                                if let Some(val) = edge_annos.get_all_values(&key, true).next() {
+                                if let Some(val) = edge_annos.get_all_values(&key, true).into_iter().next() {
                                     result.push((
                                         key.ns.clone(),
                                         key.name.clone(),
@@ -1263,7 +1263,7 @@ impl CorpusStorage {
                                 }
                             } else {
                                 // get all values
-                                for val in edge_annos.get_all_values(&key, false) {
+                                for val in edge_annos.get_all_values(&key, false).into_iter() {
                                     result.push((
                                         key.ns.clone(),
                                         key.name.clone(),
