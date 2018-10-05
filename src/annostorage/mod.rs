@@ -21,7 +21,7 @@ use errors::*;
 pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     by_container: FxHashMap<T, Vec<Annotation>>,
     #[serde(skip)]
-    by_anno: FxHashMap<Arc<AnnoKey>, FxHashMap<Arc<String>, FxHashSet<T>>>,
+    by_anno: FxHashMap<Arc<AnnoKey>, FxHashMap<Arc<String>, Vec<T>>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_keys: BTreeMap<Arc<AnnoKey>, usize>,
     /// additional statistical information
@@ -95,7 +95,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let remove_anno_key = if let Some(mut annos_for_key) = self.by_anno.get_mut(&anno.key) {
             
             let remove_anno_val = if let Some(items_for_anno) = annos_for_key.get_mut(&anno.val) {
-                items_for_anno.remove(&item);
+                items_for_anno.retain(|i| i != item);
                 items_for_anno.is_empty()
             } else {
                 false
@@ -138,6 +138,10 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             
             if let Ok(existing_entry_idx) = existing_entry_idx {
                 let orig_anno = existing_item_entry[existing_entry_idx].clone();
+                // abort if the same annotation key with the same value already exist
+                if orig_anno.val == anno.val {
+                    return;
+                }
                 // insert annotation for item at existing position
                 existing_item_entry[existing_entry_idx] = anno.clone();
                 Some(orig_anno)
@@ -159,8 +163,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             .entry(anno.key.clone())
             .or_insert(FxHashMap::default())
             .entry(anno.val.clone())
-            .or_insert(FxHashSet::default())
-            .insert(item.clone());
+            .or_insert(Vec::default())
+            .push(item.clone());
 
         if existing_anno.is_none() {
             // a new annotation entry was inserted and did not replace an existing one
@@ -359,7 +363,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             self.get_qnames(&name)
         };
 
-        let values: Vec<(Arc<AnnoKey>, &FxHashMap<Arc<String>, FxHashSet<T>>)> = key_ranges
+        let values: Vec<(Arc<AnnoKey>, &FxHashMap<Arc<String>, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|k| {
                 if let Some(values_for_key) = self.by_anno.get(&k) {
@@ -628,8 +632,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             annos.shrink_to_fit();
             for a in annos.iter() {
                 self.by_anno.entry(a.key.clone()).or_insert(FxHashMap::default())
-                    .entry(a.val.clone()).or_insert(FxHashSet::default())
-                    .insert(item.clone());
+                    .entry(a.val.clone()).or_insert(Vec::default())
+                    .push(item.clone());
             }
         }
 
