@@ -23,14 +23,15 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     #[serde(skip)]
     by_anno: FxHashMap<Arc<AnnoKey>, FxHashMap<Arc<String>, Vec<T>>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
+    #[serde(skip)]
     anno_keys: BTreeMap<Arc<AnnoKey>, usize>,
+    #[serde(skip)]
+    anno_values: FxHashSet<Arc<String>>,
+
     /// additional statistical information
     histogram_bounds: BTreeMap<Arc<AnnoKey>, Vec<String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
-
-    #[serde(skip)]
-    anno_values: FxHashSet<Arc<String>>,
 }
 
 impl<T> MallocSizeOf for AnnoStorage<T> 
@@ -607,16 +608,17 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let mut reader = std::io::BufReader::new(f);
         *self = bincode::deserialize_from(&mut reader)?;
 
-        // optimize for read-only and shrink all containers to minimum
-        self.by_container.shrink_to_fit();
-
-        // de-duplicate the value and annotation key references
+        // de-duplicate the value and annotation key references and re-build up the anno_keys map
         for (_, annos_for_item) in self.by_container.iter_mut() {
             for anno in annos_for_item.iter_mut() {
 
                 match self.anno_keys.entry(anno.key.clone()) {
-                    Entry::Occupied(existing) => {anno.key = existing.key().clone();}
-                    Entry::Vacant(new) => {new.insert(0);}
+                    Entry::Occupied(mut existing) => {
+                        anno.key = existing.key().clone();
+                        let original_size = (*existing.get()) + 1;
+                        *existing.get_mut() = original_size + 1;
+                    }
+                    Entry::Vacant(new) => {new.insert(1);}
                 }
 
                 if let Some(existing_val) = self.anno_values.get(&anno.val).cloned() {
@@ -629,19 +631,10 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         
         // restore the by_anno map
         for (item, annos) in self.by_container.iter_mut() {
-            annos.shrink_to_fit();
             for a in annos.iter() {
                 self.by_anno.entry(a.key.clone()).or_insert(FxHashMap::default())
                     .entry(a.val.clone()).or_insert(Vec::default())
                     .push(item.clone());
-            }
-        }
-
-        self.by_anno.shrink_to_fit();
-        for (_key, values_for_key) in self.by_anno.iter_mut() {
-            values_for_key.shrink_to_fit();
-            for (_, items) in values_for_key.iter_mut() {
-                items.shrink_to_fit();
             }
         }
 
