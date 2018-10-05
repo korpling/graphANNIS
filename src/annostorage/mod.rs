@@ -36,25 +36,43 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
 impl<T> MallocSizeOf for AnnoStorage<T> 
 where T: Ord + Hash + MallocSizeOf + Default {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut annos_size : usize = 0;
+        let mut size : usize = 0;
         // measure the size of all annotations keys and add the overhead of the Arc (two counter fields)
         for (key,_size) in self.anno_keys.iter() {
-            annos_size += (2*std::mem::size_of::<usize>()) + key.size_of(ops);
-            annos_size += std::mem::size_of::<AnnoKey>();
+            size += (2*std::mem::size_of::<usize>()) + key.size_of(ops);
+            size += std::mem::size_of::<AnnoKey>();
         } 
+        size += self.anno_values.shallow_size_of(ops);
+
         // measure the size of all strings and add the overhead of the Arc (two counter fields)
         for v in self.anno_values.iter() {
-            annos_size += (2*std::mem::size_of::<usize>()) + v.size_of(ops);
+            size += (2*std::mem::size_of::<usize>()) + v.size_of(ops);
         } 
 
-        // add the size of the containers and the other fields
-        annos_size
-        + self.by_container.shallow_size_of(ops)
-        + self.by_anno.shallow_size_of(ops)
-        + self.histogram_bounds.shallow_size_of(ops)
-        + self.largest_item.size_of(ops)
+        // add the size of the by_container field
+        size += self.by_container.shallow_size_of(ops);
+        for (_,v) in self.by_container.iter() {
+            size += v.shallow_size_of(ops);
+        }
+
+        // add the size of the by_anno field
+        size += self.by_anno.shallow_size_of(ops);
+        for (_,values_for_key) in self.by_anno.iter() {
+            size += values_for_key.shallow_size_of(ops);
+            for (_, item_set) in values_for_key.iter() {
+                size += item_set.shallow_size_of(ops);
+            }
+        }
+
+        // add the size of the histogram_bounds field
+        size += self.histogram_bounds.shallow_size_of(ops);
+        for (_, v) in self.histogram_bounds.iter() {
+            size += v.size_of(ops);
+        }
+
+        // add the size of the other fields which can be calculated not just shallowly
+        size + self.largest_item.size_of(ops)
         + self.total_number_of_annos.size_of(ops)
-        + self.anno_values.shallow_size_of(ops)
     }
 }
 
