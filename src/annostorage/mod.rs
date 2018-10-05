@@ -400,7 +400,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             None => self.anno_key_sizes.range(
                 AnnoKey {
                     name: name.clone(),
-                    ns: std::char::MAX.to_string(),
+                    ns: String::default(),
                 }..AnnoKey {
                     name,
                     ns: std::char::MAX.to_string(),
@@ -433,7 +433,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             None => self.anno_key_sizes.range(
                 AnnoKey {
                     name: name.clone(),
-                    ns: std::char::MAX.to_string(),
+                    ns: String::default(),
                 }..AnnoKey {
                     name,
                     ns: std::char::MAX.to_string(),
