@@ -599,6 +599,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let mut reader = std::io::BufReader::new(f);
         *self = bincode::deserialize_from(&mut reader)?;
 
+        self.anno_keys.after_deserialization();
+        self.anno_values.after_deserialization();
+
         Ok(())
     }
 }

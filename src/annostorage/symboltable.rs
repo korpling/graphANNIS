@@ -16,14 +16,14 @@ where T: Eq + Hash + Clone + Default {
 impl<T> MallocSizeOf for SymbolTable<T> 
 where T: Eq + Hash + Clone + Default + MallocSizeOf {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut string_size : usize = 0;
+        let mut size : usize = 0;
         // measure the size of all items and add the overhead of the Arc (two counter fields)
         for s in self.by_id.iter() {
-            string_size += std::mem::size_of::<Arc<T>>() + s.size_of(ops);
+            size += std::mem::size_of::<Arc<T>>() + s.size_of(ops);
         } 
 
         // add the size of the vector pointer, the hash map and the strings
-        string_size 
+        size 
         + (self.by_id.len() * std::mem::size_of::<usize>())
         + self.by_value.shallow_size_of(ops)
     }
@@ -36,6 +36,14 @@ where for<'de> T: Eq + Hash + Clone + Serialize + Deserialize<'de> + Default {
         SymbolTable {
             by_id: by_id,
             by_value: FxHashMap::default(),
+        }
+    }
+
+    pub fn after_deserialization(&mut self) {
+        // restore the by_value map and make sure the smart pointers point to the same instance
+        self.by_value.reserve(self.by_id.len());
+        for i in 0..self.by_id.len() {
+            self.by_value.insert(self.by_id[i].clone(), i);
         }
     }
 
