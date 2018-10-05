@@ -608,8 +608,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let mut reader = std::io::BufReader::new(f);
         *self = bincode::deserialize_from(&mut reader)?;
 
-        // de-duplicate the value and annotation key references and re-build up the anno_keys map
-        for (_, annos_for_item) in self.by_container.iter_mut() {
+        // de-duplicate the value and annotation key references and re-build up the anno_keys and by_anno map
+        for (item, annos_for_item) in self.by_container.iter_mut() {
             for anno in annos_for_item.iter_mut() {
 
                 match self.anno_keys.entry(anno.key.clone()) {
@@ -626,18 +626,14 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 } else {
                     self.anno_values.insert(anno.val.clone());
                 }
+
+                self.by_anno.entry(anno.key.clone()).or_insert(FxHashMap::default())
+                    .entry(anno.val.clone()).or_insert(Vec::default())
+                    .push(item.clone());
+
             }
         }
         
-        // restore the by_anno map
-        for (item, annos) in self.by_container.iter_mut() {
-            for a in annos.iter() {
-                self.by_anno.entry(a.key.clone()).or_insert(FxHashMap::default())
-                    .entry(a.val.clone()).or_insert(Vec::default())
-                    .push(item.clone());
-            }
-        }
-
         Ok(())
     }
 
