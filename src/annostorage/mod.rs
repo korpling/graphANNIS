@@ -88,6 +88,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         };
         if remove_anno_key {
             self.by_anno.remove(&anno.key);
+            // TODO: remove from symbol table?
         }
     }
 
