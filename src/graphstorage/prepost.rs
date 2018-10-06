@@ -92,7 +92,7 @@ where
 
             self.node_to_order
                 .entry(entry.id)
-                .or_insert(vec![])
+                .or_insert(Vec::with_capacity(1))
                 .push(entry.order.clone());
         }
         node_stack.pop_front();

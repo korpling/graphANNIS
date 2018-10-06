@@ -1,5 +1,4 @@
 use Component;
-use StringID;
 use LineColumnRange;
 
 error_chain! {
@@ -28,11 +27,6 @@ error_chain! {
         ImpossibleSearch(reason : String) {
             description("Impossible search expression detected"),
             display("Impossible search expression detected: {}", reason),
-        }
-
-        NoSuchStringID(id : StringID) {
-            description("String ID does not exist"),
-            display("String with ID {} does not exist", id),
         }
 
         NoSuchString(val : String) {

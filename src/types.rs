@@ -8,9 +8,6 @@ use std;
 use malloc_size_of::MallocSizeOf;
 
 pub type NodeID = u32;
-pub type StringID = u32;
-
-
 
 #[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, MallocSizeOf, Hash)]
 #[repr(C)]
