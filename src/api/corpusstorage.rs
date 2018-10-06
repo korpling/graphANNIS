@@ -18,6 +18,7 @@ use query;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use std;
+use std::fmt;
 use std::collections::{BTreeSet, HashSet};
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -52,11 +53,59 @@ pub enum LoadStatus {
 }
 
 #[derive(Ord, Eq, PartialOrd, PartialEq)]
+pub struct GraphStorageInfo {
+    pub component: Component,
+    pub load_status: LoadStatus,
+}
+
+impl fmt::Display for GraphStorageInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "{}", self.component)?;
+        match self.load_status {
+            LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
+            LoadStatus::PartiallyLoaded(memory_size) => {
+                writeln!(f, "Status: {:?}", "partially loaded")?;
+                writeln!(f, "Memory: {:.2} MB", memory_size as f64 / (1024*1024) as f64)?;
+            },
+            LoadStatus::FullyLoaded(memory_size) => {
+                writeln!(f, "Status: {:?}", "fully loaded")?;
+                writeln!(f, "Memory: {:.2} MB", memory_size as f64 / (1024*1024) as f64)?;
+            },  
+        };
+        Ok(())
+    }
+} 
+
+#[derive(Ord, Eq, PartialOrd, PartialEq)]
 pub struct CorpusInfo {
     pub name: String,
     pub load_status: LoadStatus,
-    pub memory_size: usize,
+    pub graphstorages: Vec<GraphStorageInfo>,
 }
+
+impl fmt::Display for CorpusInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.load_status {
+            LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
+            LoadStatus::PartiallyLoaded(memory_size) => {
+                writeln!(f, "Status: {:?}", "partially loaded")?;
+                writeln!(f, "Total memory: {:.2} MB", memory_size as f64 / (1024*1024) as f64)?;
+            },
+            LoadStatus::FullyLoaded(memory_size) => {
+                writeln!(f, "Status: {:?}", "fully loaded")?;
+                writeln!(f, "Total memory: {:.2} MB", memory_size as f64 / (1024*1024) as f64)?;
+            },  
+        };
+        if !self.graphstorages.is_empty() {
+            writeln!(f,"------------")?;
+            for gs in self.graphstorages.iter() {
+                write!(f, "{}", gs)?;
+                writeln!(f, "------------")?;
+            }
+        }
+        Ok(())
+    }
+} 
 
 #[derive(Debug, PartialEq)]
 #[repr(C)]
@@ -361,23 +410,33 @@ impl CorpusStorage {
                 let heap_size = db.size_of(mem_ops);
                 let mut load_status = LoadStatus::FullyLoaded(heap_size);
 
+                let mut graphstorages = Vec::new();
                 for c in db.get_all_components(None, None) {
-                    if !db.is_loaded(&c) {
+
+                    if let Some(gs) = db.get_graphstorage_as_ref(&c) {
+                        graphstorages.push(GraphStorageInfo {
+                            component: c.clone(),
+                            load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops))
+                        });
+                    } else {
                         load_status = LoadStatus::PartiallyLoaded(heap_size);
-                        break;
+                        graphstorages.push(GraphStorageInfo {
+                            component: c.clone(),
+                            load_status: LoadStatus::NotLoaded,
+                        })
                     }
                 }
 
                 CorpusInfo {
                     name: corpus_name.to_owned(),
                     load_status,
-                    memory_size: 0,
+                    graphstorages,
                 }
             }
             &CacheEntry::NotLoaded => CorpusInfo {
                 name: corpus_name.to_owned(),
                 load_status: LoadStatus::NotLoaded,
-                memory_size: 0,
+                graphstorages: vec![],
             },
         };
         Ok(corpus_info)

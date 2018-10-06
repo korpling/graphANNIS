@@ -259,8 +259,7 @@ impl AnnisRunner {
 
             match cinfo {
                 Ok(cinfo) => {
-                    println!("Load status: {:?}", cinfo.load_status);
-                    println!("Total memory: {:.2} MB", cinfo.memory_size as f64 / (1024*1024) as f64);
+                    println!("{}", cinfo);
                 },
                 Err(e) => println!("{}", e),
             };
