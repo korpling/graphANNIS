@@ -56,8 +56,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
     fn create_sparse_anno(&mut self, orig: Annotation) -> SparseAnnotation {
         SparseAnnotation {
-            key: self.anno_keys.add(orig.key),
-            val: self.anno_values.add(orig.val),
+            key: self.anno_keys.insert(orig.key),
+            val: self.anno_values.insert(orig.val),
         }
     }
 

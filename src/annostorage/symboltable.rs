@@ -1,41 +1,48 @@
-use serde::{Serialize, Deserialize};
-use rustc_hash::{FxHashMap};
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 use std;
-use std::sync::{Arc};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocShallowSizeOf};
 use std::hash::Hash;
+use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct SymbolTable<T>
-where T: Eq + Hash + Clone + Default {
-    by_id: Vec<Arc<T>>,
+where
+    T: Eq + Hash + Clone + Default,
+{
+    by_id: Vec<Option<Arc<T>>>,
     #[serde(skip)]
     by_value: FxHashMap<Arc<T>, usize>,
+    empty_slots: Vec<usize>,
 }
 
-impl<T> MallocSizeOf for SymbolTable<T> 
-where T: Eq + Hash + Clone + Default + MallocSizeOf {
+impl<T> MallocSizeOf for SymbolTable<T>
+where
+    T: Eq + Hash + Clone + Default + MallocSizeOf,
+{
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let mut size : usize = 0;
+        let mut size: usize = 0;
         // measure the size of all items and add the overhead of the Arc (two counter fields)
         for s in self.by_id.iter() {
             size += std::mem::size_of::<Arc<T>>() + s.size_of(ops);
-        } 
+        }
 
         // add the size of the vector pointer, the hash map and the strings
-        size 
-        + (self.by_id.len() * std::mem::size_of::<usize>())
-        + self.by_value.shallow_size_of(ops)
+        size + (self.by_id.len() * std::mem::size_of::<usize>())
+            + self.by_value.shallow_size_of(ops)
     }
 }
 
 impl<T> SymbolTable<T>
-where for<'de> T: Eq + Hash + Clone + Serialize + Deserialize<'de> + Default {
+where
+    for<'de> T: Eq + Hash + Clone + Serialize + Deserialize<'de> + Default,
+{
     pub fn new() -> SymbolTable<T> {
         let by_id = Vec::default();
         SymbolTable {
             by_id: by_id,
             by_value: FxHashMap::default(),
+            empty_slots: Vec::default(),
         }
     }
 
@@ -43,13 +50,13 @@ where for<'de> T: Eq + Hash + Clone + Serialize + Deserialize<'de> + Default {
         // restore the by_value map and make sure the smart pointers point to the same instance
         self.by_value.reserve(self.by_id.len());
         for i in 0..self.by_id.len() {
-            self.by_value.insert(self.by_id[i].clone(), i);
+            if let Some(ref existing) = self.by_id[i] {
+                self.by_value.insert(existing.clone(), i);
+            }
         }
     }
 
-    
-
-    pub fn add(&mut self, val: Arc<T>) -> usize {
+    pub fn insert(&mut self, val: Arc<T>) -> usize {
         {
             if let Some(existing_idx) = self.by_value.get(&val) {
                 return *existing_idx;
@@ -58,14 +65,12 @@ where for<'de> T: Eq + Hash + Clone + Serialize + Deserialize<'de> + Default {
         // non-existing: add a new value
 
         // if array is still small enough, just add the value to the end
-        let id = if self.by_id.len() < usize::max_value() {
-            self.by_id.push(val.clone());
-            self.by_id.len()-1
+        let id = if let Some(slot) = self.empty_slots.pop() {
+            slot
+        } else if self.by_id.len() < usize::max_value() {
+            self.by_id.push(Some(val.clone()));
+            self.by_id.len() - 1
         } else {
-            // TODO use WeakRefs in the array and find an empty spot
-            // for i in 0..StringID::MAX {
-            // }
-
             // TODO if no empty place found, return an error, do not panic
             panic!("Too man unique items added to symbol table");
         };
@@ -74,9 +79,25 @@ where for<'de> T: Eq + Hash + Clone + Serialize + Deserialize<'de> + Default {
         return id;
     }
 
+    pub fn remove(&mut self, symbol: usize) -> Option<Arc<T>> {
+        if symbol < self.by_id.len() {
+            let existing = self.by_id[symbol].clone();
+            self.by_id[symbol] = None;
+
+            if let Some(existing) = existing {
+                self.by_value.remove(&existing);
+
+                self.empty_slots.push(symbol);
+
+                return Some(existing);
+            }
+        }
+        return None;
+    }
+
     pub fn get_value(&self, id: usize) -> Option<Arc<T>> {
         if id < self.by_id.len() {
-            return Some(self.by_id[id].clone());
+            return self.by_id[id].clone();
         }
         return None;
     }
@@ -93,6 +114,7 @@ where for<'de> T: Eq + Hash + Clone + Serialize + Deserialize<'de> + Default {
     pub fn clear(&mut self) {
         self.by_id.clear();
         self.by_value.clear();
+        self.empty_slots.clear();
     }
 }
 
@@ -104,9 +126,9 @@ mod tests {
     #[test]
     fn insert_and_get() {
         let mut s = SymbolTable::<String>::new();
-        let id1 = s.add(Arc::from("abc".to_owned()));
-        let id2 = s.add(Arc::from("def".to_owned()));
-        let id3 = s.add(Arc::from("def".to_owned()));
+        let id1 = s.insert(Arc::from("abc".to_owned()));
+        let id2 = s.insert(Arc::from("def".to_owned()));
+        let id3 = s.insert(Arc::from("def".to_owned()));
 
         assert_eq!(2, s.len());
 
@@ -127,12 +149,11 @@ mod tests {
     fn insert_clear_insert_get() {
         let mut s = SymbolTable::<String>::new();
 
-        s.add(Arc::from("abc".to_owned()));
+        s.insert(Arc::from("abc".to_owned()));
         assert_eq!(1, s.len());
         s.clear();
         assert_eq!(0, s.len());
-        s.add(Arc::from("abc".to_owned()));
-        assert_eq!(1, s.len());    
+        s.insert(Arc::from("abc".to_owned()));
+        assert_eq!(1, s.len());
     }
 }
-
