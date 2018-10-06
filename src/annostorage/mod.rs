@@ -155,6 +155,19 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
+    fn check_and_remove_value_symbol(&mut self, value_id: usize) {
+        let mut still_used = false;
+        for (_, values) in self.by_anno.iter() {
+            if values.contains_key(&value_id) {
+                still_used = true;
+                break;
+            }
+        }
+        if !still_used {
+            self.anno_values.remove(value_id);
+        }
+    }
+
     pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<Arc<String>> {
         let mut result = None;
 
@@ -175,13 +188,21 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 all_annos.remove(anno_idx);
 
                 // decrease the annotation count for this key
-                let num_of_keys = self.anno_key_sizes.get_mut(orig_key);
-                if num_of_keys.is_some() {
-                    let x = num_of_keys.unwrap();
-                    *x = *x - 1;
+                let new_key_count: usize =
+                    if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
+                        *num_of_keys -= 1;
+                        num_of_keys.clone()
+                    } else {
+                        0
+                    };
+                // if annotation count dropped to zero remove the key
+                if new_key_count == 0 {
+                    self.by_anno.remove(&key);
+                    self.anno_key_sizes.remove(&orig_key);
+                    self.anno_keys.remove(key);
                 }
-                // TODO: if annotation count drop to zero remove the key and check all strings if they can be removed
 
+                self.check_and_remove_value_symbol(old_value);
                 self.total_number_of_annos -= 1;
 
                 result = Some(old_value);
@@ -299,27 +320,21 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         return self.anno_key_sizes.keys().cloned().collect();
     }
 
-    pub fn get_all_values(
-        &self,
-        key: &AnnoKey,
-        most_frequent_first: bool,
-    ) -> Vec<Arc<String>> {
+    pub fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Arc<String>> {
         if let Some(key) = self.anno_keys.get_symbol(key) {
             if let Some(values_for_key) = self.by_anno.get(&key) {
                 if most_frequent_first {
                     let result = values_for_key
                         .iter()
                         .filter_map(|(val, items)| {
-                            let val =  self.anno_values.get_value(*val)?;
+                            let val = self.anno_values.get_value(*val)?;
                             Some((items.len(), val))
-                        })
-                        .sorted();
+                        }).sorted();
                     return result.into_iter().rev().map(|(_, val)| val).collect();
-
                 } else {
                     return values_for_key
                         .iter()
-                        .filter_map(|(val, _items)| {self.anno_values.get_value(*val)})
+                        .filter_map(|(val, _items)| self.anno_values.get_value(*val))
                         .collect();
                 }
             }
@@ -453,7 +468,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
                 if let Some(histo) = self.histogram_bounds.get(&anno_key) {
                     // find the range in which the value is contained
-                    
+
                     // we need to make sure the histogram is not empty -> should have at least two bounds
                     if histo.len() >= 2 {
                         sum_histogram_buckets += histo.len() - 1;
@@ -515,7 +530,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         // collect statistics for each annotation key separatly
         for (anno_key, _num_of_annos) in &self.anno_key_sizes {
             if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
-            
                 let hist = self
                     .histogram_bounds
                     .entry(anno_key.clone())
@@ -547,7 +561,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     // create uniformly distributed histogram bounds
                     sampled_anno_values.sort();
 
-                    let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets + 1) {
+                    let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets + 1)
+                    {
                         sampled_anno_values.len()
                     } else {
                         max_histogram_buckets + 1
@@ -563,7 +578,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                         let mut pos = 0;
                         let mut pos_fraction = 0;
                         for i in 0..num_hist_bounds {
-                            hist[i] = self.anno_values.get_value(sampled_anno_values[pos]).unwrap_or_default().as_ref().clone();
+                            hist[i] = self
+                                .anno_values
+                                .get_value(sampled_anno_values[pos])
+                                .unwrap_or_default()
+                                .as_ref()
+                                .clone();
                             pos += delta;
                             pos_fraction += delta_fraction;
 
