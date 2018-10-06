@@ -70,7 +70,7 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<Graph
     let mut buf_reader = std::io::BufReader::new(f_data);
 
     let gs = registry::deserialize(&impl_name, &mut buf_reader)?;
-
+    
     return Ok(gs);
 }
 

@@ -56,11 +56,12 @@ pub enum LoadStatus {
 pub struct GraphStorageInfo {
     pub component: Component,
     pub load_status: LoadStatus,
+    pub num_of_annotations: usize,
 }
 
 impl fmt::Display for GraphStorageInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "{}", self.component)?;
+        writeln!(f, "Component {}: {} annnotations", self.component, self.num_of_annotations)?;
         match self.load_status {
             LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
             LoadStatus::PartiallyLoaded(memory_size) => {
@@ -416,13 +417,15 @@ impl CorpusStorage {
                     if let Some(gs) = db.get_graphstorage_as_ref(&c) {
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
-                            load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops))
+                            load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
+                            num_of_annotations: gs.get_anno_storage().len(),
                         });
                     } else {
                         load_status = LoadStatus::PartiallyLoaded(heap_size);
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
                             load_status: LoadStatus::NotLoaded,
+                            num_of_annotations: 0,
                         })
                     }
                 }
