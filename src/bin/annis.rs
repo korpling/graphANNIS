@@ -49,6 +49,8 @@ impl CommandCompleter {
         known_commands.insert("frequency".to_string());
         known_commands.insert("plan".to_string());
         known_commands.insert("use_parallel".to_string());
+        known_commands.insert("info".to_string());
+        
 
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
@@ -171,6 +173,7 @@ impl AnnisRunner {
                 "find" => self.find(&args),
                 "frequency" => self.frequency(&args),
                 "use_parallel" => self.use_parallel(&args),
+                "info" => self.info(),
                 "quit" | "exit" => return false,
                 _ => println!("unknown command \"{}\"", cmd),
             };
@@ -247,6 +250,22 @@ impl AnnisRunner {
                     println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
                 }
             }
+        }
+    }
+
+    fn info(&self) {
+        if let Some(ref corpus) = self.current_corpus {
+            let cinfo : Result<CorpusInfo> = self.storage.info(corpus);
+
+            match cinfo {
+                Ok(cinfo) => {
+                    println!("Load status: {:?}", cinfo.load_status);
+                    println!("Total memory: {:.2} MB", cinfo.memory_size as f64 / (1024*1024) as f64);
+                },
+                Err(e) => println!("{}", e),
+            };
+        } else {
+            println!("You need to select a corpus for the \"info\" command");
         }
     }
 

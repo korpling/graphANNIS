@@ -352,6 +352,43 @@ impl CorpusStorage {
         Ok(corpora)
     }
 
+    fn create_corpus_info(&self, corpus_name: &str, mem_ops : &mut MallocSizeOfOps) -> Result<CorpusInfo> {
+        let cache_entry = self.get_entry(corpus_name)?;
+        let lock = cache_entry.read().unwrap();
+        let corpus_info: CorpusInfo = match &*lock {
+            &CacheEntry::Loaded(ref db) => {
+                // check if all components are loaded
+                let heap_size = db.size_of(mem_ops);
+                let mut load_status = LoadStatus::FullyLoaded(heap_size);
+
+                for c in db.get_all_components(None, None) {
+                    if !db.is_loaded(&c) {
+                        load_status = LoadStatus::PartiallyLoaded(heap_size);
+                        break;
+                    }
+                }
+
+                CorpusInfo {
+                    name: corpus_name.to_owned(),
+                    load_status,
+                    memory_size: 0,
+                }
+            }
+            &CacheEntry::NotLoaded => CorpusInfo {
+                name: corpus_name.to_owned(),
+                load_status: LoadStatus::NotLoaded,
+                memory_size: 0,
+            },
+        };
+        Ok(corpus_info)
+    }
+
+    pub fn info(&self, corpus_name: &str) -> Result<CorpusInfo> {
+         let mut mem_ops =
+            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+        self.create_corpus_info(corpus_name, &mut mem_ops)
+    }
+
     pub fn list(&self) -> Result<Vec<CorpusInfo>> {
         let names: Vec<String> = self.list_from_disk().unwrap_or_default();
         let mut result: Vec<CorpusInfo> = vec![];
@@ -360,34 +397,9 @@ impl CorpusStorage {
             MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
         for n in names {
-            let cache_entry = self.get_entry(&n)?;
-            let lock = cache_entry.read().unwrap();
-            let corpus_info: CorpusInfo = match &*lock {
-                &CacheEntry::Loaded(ref db) => {
-                    // check if all components are loaded
-                    let heap_size = db.size_of(&mut mem_ops);
-                    let mut load_status = LoadStatus::FullyLoaded(heap_size);
-
-                    for c in db.get_all_components(None, None) {
-                        if !db.is_loaded(&c) {
-                            load_status = LoadStatus::PartiallyLoaded(heap_size);
-                            break;
-                        }
-                    }
-
-                    CorpusInfo {
-                        name: n.clone(),
-                        load_status,
-                        memory_size: 0,
-                    }
-                }
-                &CacheEntry::NotLoaded => CorpusInfo {
-                    name: n.clone(),
-                    load_status: LoadStatus::NotLoaded,
-                    memory_size: 0,
-                },
-            };
-            result.push(corpus_info);
+            if let Ok(corpus_info) = self.create_corpus_info(&n, &mut mem_ops) {
+                result.push(corpus_info);
+            }
         }
 
         return Ok(result);

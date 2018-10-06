@@ -26,6 +26,7 @@ struct SparseAnnotation {
 #[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
 pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     by_container: FxHashMap<T, Vec<SparseAnnotation>>,
+    /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
     by_anno: FxHashMap<usize, FxHashMap<usize, Vec<T>>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
