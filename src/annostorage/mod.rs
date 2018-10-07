@@ -376,7 +376,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         namespace: Option<String>,
         name: String,
         value: Option<String>,
-    ) -> Box<Iterator<Item = (&T, usize)> + 'a> {
+    ) -> Box<Iterator<Item = (&T, (Arc<AnnoKey>, usize))> + 'a> {
         let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
             vec![AnnoKey { ns, name }]
         } else {
@@ -385,12 +385,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
         let value = value.and_then(|v| self.anno_values.get_symbol(&v));
 
-        let values: Vec<(usize, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        let values: Vec<(Arc<AnnoKey>, usize, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
                 if let Some(values_for_key) = self.by_anno.get(&key_id) {
-                    Some((key_id, values_for_key))
+                    Some((Arc::from(key), key_id, values_for_key))
                 } else {
                     None
                 }
@@ -400,22 +400,22 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             let it = values
             .into_iter()
             // find the items with the correct value
-            .filter_map(move |(key_id, values)| if let Some(items) = values.get(&value) {
-                Some((items, key_id))
+            .filter_map(move |(key, key_id, values)| if let Some(items) = values.get(&value) {
+                Some((items, (key, key_id)))
             } else {
                 None
             })
             // flatten the hash set of all items, returns all items for the condition
-            .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
+            .flat_map(|(items, (key, key_id))| items.iter().zip(std::iter::repeat((key, key_id))));
             return Box::new(it);
         } else {
             let it = values
             .into_iter()
             // flatten the hash set of all items, returns all items for the condition
-            .flat_map(|(key_id, values)| values.iter().zip(std::iter::repeat(key_id)))
+            .flat_map(|(key, key_id, values)| values.iter().zip(std::iter::repeat((key, key_id))))
             // create annotations from all flattened values
-            .flat_map(move | ((_, items), key_id) | {
-                items.iter().zip(std::iter::repeat(key_id))
+            .flat_map(move | ((_, items), (key, key_id)) | {
+                items.iter().zip(std::iter::repeat((key, key_id)))
             });
             return Box::new(it);
         }
@@ -636,9 +636,9 @@ impl AnnoStorage<NodeID> {
     ) -> Box<Iterator<Item = Match> + 'a> {
         let it = self
             .matching_items(namespace, name, value)
-            .filter_map(move |(node, anno_key_id)| Some(Match {
+            .filter_map(move |(node, (anno_key, _anno_key_id))| Some(Match {
                 node: *node,
-                anno_key: self.anno_keys.get_value(anno_key_id)?,
+                anno_key,
             }));
         return Box::new(it);
     }
@@ -654,15 +654,15 @@ impl AnnoStorage<NodeID> {
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .filter(move |(node, anno_key_id)| {
+                .filter(move |(node, (_anno_key, anno_key_id))| {
                     if let Some(val) = self.get_by_id(node, *anno_key_id) {
                         re.is_match(val.as_ref())
                     } else {
                         false
                     }
-                }).filter_map(move |(node, anno_key_id)| Some(Match {
+                }).filter_map(move |(node, (anno_key, _anno_key_id))| Some(Match {
                     node: *node,
-                    anno_key: self.anno_keys.get_value(anno_key_id)?,
+                    anno_key: anno_key,
                 }));
             return Box::new(it);
         } else {
@@ -681,9 +681,9 @@ impl AnnoStorage<Edge> {
     ) -> Box<Iterator<Item = Match> + 'a> {
         let it = self
             .matching_items(namespace, name, value)
-            .filter_map(move |(edge, anno_key_id)| Some(Match {
+            .filter_map(move |(edge, (anno_key, _anno_key_id))| Some(Match {
                 node: edge.source.clone(),
-                anno_key: self.anno_keys.get_value(anno_key_id)?,
+                anno_key: anno_key,
             }));
         return Box::new(it);
     }
