@@ -16,12 +16,6 @@ pub struct AnnoKey {
     pub ns: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
-pub struct AnnotationRef {
-    pub key: usize,
-    pub val: usize,
-}
-
 #[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
 #[repr(C)]
 pub struct Annotation {

@@ -17,9 +17,15 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
+struct SparseAnnotation {
+    key: usize,
+    val: usize,
+}
+
 #[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
 pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
-    by_container: FxHashMap<T, Vec<AnnotationRef>>,
+    by_container: FxHashMap<T, Vec<SparseAnnotation>>,
     /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
     by_anno: FxHashMap<usize, FxHashMap<usize, Vec<T>>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
@@ -49,21 +55,21 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    fn create_anno_ref(&mut self, orig: Annotation) -> AnnotationRef {
-        AnnotationRef {
+    fn create_sparse_anno(&mut self, orig: Annotation) -> SparseAnnotation {
+        SparseAnnotation {
             key: self.anno_keys.insert(orig.key),
             val: self.anno_values.insert(orig.val),
         }
     }
 
-    pub fn annotation_from_ref(&self, orig: &AnnotationRef) -> Option<Annotation> {
+    fn create_annotation_from_sparse(&self, orig: &SparseAnnotation) -> Option<Annotation> {
         let key = self.anno_keys.get_value(orig.key)?;
         let val = self.anno_values.get_value(orig.val)?;
 
         Some(Annotation { key, val })
     }
 
-    fn remove_element_from_by_anno(&mut self, anno: &AnnotationRef, item: &T) {
+    fn remove_element_from_by_anno(&mut self, anno: &SparseAnnotation, item: &T) {
         let remove_anno_key = if let Some(mut annos_for_key) = self.by_anno.get_mut(&anno.key) {
             let remove_anno_val = if let Some(items_for_anno) = annos_for_key.get_mut(&anno.val) {
                 items_for_anno.retain(|i| i != item);
@@ -89,7 +95,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
     pub fn insert(&mut self, item: T, anno: Annotation) {
         let orig_anno_key = anno.key.clone();
-        let anno = self.create_anno_ref(anno);
+        let anno = self.create_sparse_anno(anno);
 
         let existing_anno = {
             let existing_item_entry = self.by_container.entry(item.clone()).or_insert(Vec::new());
@@ -283,7 +289,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
             for a in all_annos.iter() {
-                if let Some(a) = self.annotation_from_ref(a) {
+                if let Some(a) = self.create_annotation_from_sparse(a) {
                     result.push(a);
                 }
             }
