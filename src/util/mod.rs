@@ -2,9 +2,8 @@ pub mod memory_estimation;
 pub mod sort_matches;
 pub mod token_helper;
 
-use graphdb::GraphDB;
 use regex_syntax;
-use {AnnoKey, Annotation};
+use {AnnoKey};
 
 use std;
 use std::ffi::{OsStr, OsString};
@@ -30,40 +29,6 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
     return false;
 }
 
-pub fn check_annotation_key_equal(a: &Annotation, b: &Annotation) -> bool {
-    // compare by name (non lexical but just by the ID)
-    if a.key.name != 0 && b.key.name != 0 && a.key.name != b.key.name {
-        return false;
-    }
-
-    // if equal, compare by namespace (non lexical but just by the ID)
-    if a.key.ns != 0 && b.key.ns != 0 && a.key.ns != b.key.ns {
-        return false;
-    }
-
-    // they are equal
-    return true;
-}
-
-pub fn check_annotation_equal(a: &Annotation, b: &Annotation) -> bool {
-    // compare by name (non lexical but just by the ID)
-    if a.key.name != 0 && b.key.name != 0 && a.key.name != b.key.name {
-        return false;
-    }
-
-    // if equal, compare by namespace (non lexical but just by the ID)
-    if a.key.ns != 0 && b.key.ns != 0 && a.key.ns != b.key.ns {
-        return false;
-    }
-
-    // if still equal compare by value (non lexical but just by the ID)
-    if a.val != 0 && b.val != 0 && a.val != b.val {
-        return false;
-    }
-
-    // they are equal
-    return true;
-}
 
 /// Takes a node name/ID and extracts both the document path as array and the node name itself.
 /// 
@@ -88,21 +53,22 @@ pub fn check_annotation_equal(a: &Annotation, b: &Annotation) -> bool {
 /// assert_eq!(name, "");
 /// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
 /// ```
-pub fn extract_node_path(full_node_name: &str) -> (Vec<&str>, &str) {
+pub fn extract_node_path(full_node_name: &str) -> (Vec<String>, String) {
     // separate path and name first
     let hash_pos = full_node_name.rfind('#');
 
     let path_str : &str = &full_node_name[0..hash_pos.unwrap_or(full_node_name.len())];
-    let mut path: Vec<&str> = Vec::with_capacity(4);
+    let mut path: Vec<String> = Vec::with_capacity(4);
     path.extend(path_str
          .split('/')
          .filter(|s| !s.is_empty())
+         .map(|s| s.to_owned())
     );
 
     if let Some(hash_pos) = hash_pos {
-        return (path, &full_node_name[hash_pos+1..]);
+        return (path, full_node_name[hash_pos+1..].to_owned());
     } else {
-        return (path, "");
+        return (path, "".to_owned());
     }
     
 }
@@ -192,18 +158,18 @@ pub fn get_queries_from_folder(
     return Box::new(std::iter::empty());
 }
 
-pub fn qname_to_anno_key(qname: &str, db: &GraphDB) -> Option<AnnoKey> {
+pub fn qname_to_anno_key(qname: &str) -> Option<AnnoKey> {
     // split qname
     let qname: Vec<&str> = qname.splitn(2, "::").collect();
     if qname.len() == 1 {
         return Some(AnnoKey {
-            ns: db.strings.find_id("")?.clone(),
-            name: db.strings.find_id(qname[0])?.clone(),
+            ns: "".to_owned(),
+            name: qname[0].to_owned(),
         });
     } else if qname.len() == 2 {
         return Some(AnnoKey {
-            ns: db.strings.find_id(qname[0])?.clone(),
-            name: db.strings.find_id(qname[1])?.clone(),
+            ns: qname[0].to_owned(),
+            name: qname[1].to_owned(),
         });
     }
     None

@@ -92,7 +92,7 @@ where
 
             self.node_to_order
                 .entry(entry.id)
-                .or_insert(vec![])
+                .or_insert(Vec::with_capacity(1))
                 .push(entry.order.clone());
         }
         node_stack.pop_front();
@@ -115,7 +115,7 @@ where
     }
 
     fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
-        return self.annos.get_all(edge);
+        return self.annos.get_annotations_for_item(edge);
     }
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
@@ -365,7 +365,7 @@ where
         let node_name_key: AnnoKey = db.get_node_name_key();
         let nodes: Box<Iterator<Item = Match>> =
             db.node_annos
-                .exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
+                .exact_anno_search(Some(node_name_key.ns.clone()), node_name_key.name.clone(), None);
 
         // first add all nodes that are a source of an edge as possible roots
         for m in nodes {
@@ -476,7 +476,7 @@ where
         }
 
         self.stats = orig.get_statistics().cloned();
-        self.annos.calculate_statistics(&db.strings);
+        self.annos.calculate_statistics();
 
         self.node_to_order.shrink_to_fit();
     }

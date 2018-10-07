@@ -18,6 +18,7 @@ use query;
 use query::conjunction::Conjunction;
 use query::disjunction::Disjunction;
 use std;
+use std::fmt;
 use std::collections::{BTreeSet, HashSet};
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -30,7 +31,7 @@ use types;
 use util;
 use util::memory_estimation;
 use FrequencyTable;
-use {AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, Match, NodeID, StringID, NodeDesc};
+use {AnnoKey, Component, ComponentType, CountExtra, Edge, Match, NodeID, NodeDesc};
 
 use rustc_hash::FxHashMap;
 
@@ -52,11 +53,60 @@ pub enum LoadStatus {
 }
 
 #[derive(Ord, Eq, PartialOrd, PartialEq)]
+pub struct GraphStorageInfo {
+    pub component: Component,
+    pub load_status: LoadStatus,
+    pub num_of_annotations: usize,
+}
+
+impl fmt::Display for GraphStorageInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Component {}: {} annnotations", self.component, self.num_of_annotations)?;
+        match self.load_status {
+            LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
+            LoadStatus::PartiallyLoaded(memory_size) => {
+                writeln!(f, "Status: {:?}", "partially loaded")?;
+                writeln!(f, "Memory: {:.2} MB", memory_size as f64 / (1024*1024) as f64)?;
+            },
+            LoadStatus::FullyLoaded(memory_size) => {
+                writeln!(f, "Status: {:?}", "fully loaded")?;
+                writeln!(f, "Memory: {:.2} MB", memory_size as f64 / (1024*1024) as f64)?;
+            },  
+        };
+        Ok(())
+    }
+} 
+
+#[derive(Ord, Eq, PartialOrd, PartialEq)]
 pub struct CorpusInfo {
     pub name: String,
     pub load_status: LoadStatus,
-    pub memory_size: usize,
+    pub graphstorages: Vec<GraphStorageInfo>,
 }
+
+impl fmt::Display for CorpusInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.load_status {
+            LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
+            LoadStatus::PartiallyLoaded(memory_size) => {
+                writeln!(f, "Status: {:?}", "partially loaded")?;
+                writeln!(f, "Total memory: {:.2} MB", memory_size as f64 / (1024*1024) as f64)?;
+            },
+            LoadStatus::FullyLoaded(memory_size) => {
+                writeln!(f, "Status: {:?}", "fully loaded")?;
+                writeln!(f, "Total memory: {:.2} MB", memory_size as f64 / (1024*1024) as f64)?;
+            },  
+        };
+        if !self.graphstorages.is_empty() {
+            writeln!(f,"------------")?;
+            for gs in self.graphstorages.iter() {
+                write!(f, "{}", gs)?;
+                writeln!(f, "------------")?;
+            }
+        }
+        Ok(())
+    }
+} 
 
 #[derive(Debug, PartialEq)]
 #[repr(C)]
@@ -208,21 +258,8 @@ fn extract_subgraph_by_query(
 fn create_subgraph_node(id: NodeID, db: &mut GraphDB, orig_db: &GraphDB) {
     // add all node labels with the same node ID
     let node_annos = Arc::make_mut(&mut db.node_annos);
-    for a in orig_db.node_annos.get_all(&id) {
-        if let (Some(ns), Some(name), Some(val)) = (
-            orig_db.strings.str(a.key.ns),
-            orig_db.strings.str(a.key.name),
-            orig_db.strings.str(a.val),
-        ) {
-            let new_anno = Annotation {
-                key: AnnoKey {
-                    ns: Arc::make_mut(&mut db.strings).add(ns),
-                    name: Arc::make_mut(&mut db.strings).add(name),
-                },
-                val: Arc::make_mut(&mut db.strings).add(val),
-            };
-            node_annos.insert(id, new_anno);
-        }
+    for a in orig_db.node_annos.get_annotations_for_item(&id).into_iter() {
+        node_annos.insert(id, a);
     }
 }
 fn create_subgraph_edge(
@@ -250,22 +287,10 @@ fn create_subgraph_edge(
                     })
                     .into_iter()
                 {
-                    if let (Some(ns), Some(name), Some(val)) = (
-                        orig_db.strings.str(a.key.ns),
-                        orig_db.strings.str(a.key.name),
-                        orig_db.strings.str(a.val),
-                    ) {
-                        let new_anno = Annotation {
-                            key: AnnoKey {
-                                ns: Arc::make_mut(&mut db.strings).add(ns),
-                                name: Arc::make_mut(&mut db.strings).add(name),
-                            },
-                            val: Arc::make_mut(&mut db.strings).add(val),
-                        };
-                        if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
-                            new_gs.add_edge_annotation(e.clone(), new_anno.clone());
-                        }
+                    if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
+                        new_gs.add_edge_annotation(e.clone(), a);
                     }
+                
                 }
             }
         }
@@ -377,6 +402,55 @@ impl CorpusStorage {
         Ok(corpora)
     }
 
+    fn create_corpus_info(&self, corpus_name: &str, mem_ops : &mut MallocSizeOfOps) -> Result<CorpusInfo> {
+        let cache_entry = self.get_entry(corpus_name)?;
+        let lock = cache_entry.read().unwrap();
+        let corpus_info: CorpusInfo = match &*lock {
+            &CacheEntry::Loaded(ref db) => {
+                // check if all components are loaded
+                let heap_size = db.size_of(mem_ops);
+                let mut load_status = LoadStatus::FullyLoaded(heap_size);
+
+                let mut graphstorages = Vec::new();
+                for c in db.get_all_components(None, None) {
+
+                    if let Some(gs) = db.get_graphstorage_as_ref(&c) {
+                        graphstorages.push(GraphStorageInfo {
+                            component: c.clone(),
+                            load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
+                            num_of_annotations: gs.get_anno_storage().len(),
+                        });
+                    } else {
+                        load_status = LoadStatus::PartiallyLoaded(heap_size);
+                        graphstorages.push(GraphStorageInfo {
+                            component: c.clone(),
+                            load_status: LoadStatus::NotLoaded,
+                            num_of_annotations: 0,
+                        })
+                    }
+                }
+
+                CorpusInfo {
+                    name: corpus_name.to_owned(),
+                    load_status,
+                    graphstorages,
+                }
+            }
+            &CacheEntry::NotLoaded => CorpusInfo {
+                name: corpus_name.to_owned(),
+                load_status: LoadStatus::NotLoaded,
+                graphstorages: vec![],
+            },
+        };
+        Ok(corpus_info)
+    }
+
+    pub fn info(&self, corpus_name: &str) -> Result<CorpusInfo> {
+         let mut mem_ops =
+            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+        self.create_corpus_info(corpus_name, &mut mem_ops)
+    }
+
     pub fn list(&self) -> Result<Vec<CorpusInfo>> {
         let names: Vec<String> = self.list_from_disk().unwrap_or_default();
         let mut result: Vec<CorpusInfo> = vec![];
@@ -385,34 +459,9 @@ impl CorpusStorage {
             MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
         for n in names {
-            let cache_entry = self.get_entry(&n)?;
-            let lock = cache_entry.read().unwrap();
-            let corpus_info: CorpusInfo = match &*lock {
-                &CacheEntry::Loaded(ref db) => {
-                    // check if all components are loaded
-                    let heap_size = db.size_of(&mut mem_ops);
-                    let mut load_status = LoadStatus::FullyLoaded(heap_size);
-
-                    for c in db.get_all_components(None, None) {
-                        if !db.is_loaded(&c) {
-                            load_status = LoadStatus::PartiallyLoaded(heap_size);
-                            break;
-                        }
-                    }
-
-                    CorpusInfo {
-                        name: n.clone(),
-                        load_status,
-                        memory_size: 0,
-                    }
-                }
-                &CacheEntry::NotLoaded => CorpusInfo {
-                    name: n.clone(),
-                    load_status: LoadStatus::NotLoaded,
-                    memory_size: 0,
-                },
-            };
-            result.push(corpus_info);
+            if let Ok(corpus_info) = self.create_corpus_info(&n, &mut mem_ops) {
+                result.push(corpus_info);
+            }
         }
 
         return Ok(result);
@@ -680,20 +729,6 @@ impl CorpusStorage {
         return Ok(PreparationResult { query: q, db_entry });
     }
 
-    pub fn get_string(&self, corpus_name: &str, str_id: StringID) -> Result<String> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-
-        // accuire read-only lock and get string
-        let lock = db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        let result = db
-            .strings
-            .str(str_id)
-            .cloned()
-            .ok_or(ErrorKind::NoSuchStringID(str_id))?;
-        return Ok(result);
-    }
-
     pub fn plan(&self, corpus_name: &str, query_as_aql: &str) -> Result<String> {
         let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
@@ -726,7 +761,7 @@ impl CorpusStorage {
         let mut lock = db_entry.write().unwrap();
         let db: &mut GraphDB = get_write_or_error(&mut lock)?;
 
-        Arc::make_mut(&mut db.node_annos).calculate_statistics(&db.strings);
+        Arc::make_mut(&mut db.node_annos).calculate_statistics();
         for c in db.get_all_components(None, None).into_iter() {
             db.calculate_component_statistics(&c)?;
         }
@@ -783,17 +818,18 @@ impl CorpusStorage {
 
         let mut known_documents = HashSet::new();
 
+        let node_name_key_id = db.node_annos.get_key_id(&db.get_node_name_key()).ok_or("No internal ID for node names found")?;
+
         let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
             if !m.is_empty() {
                 let m: &Match = &m[0];
-                if let Some(node_name_id) = db.node_annos.get(&m.node, &db.get_node_name_key()) {
-                    if let Some(node_name) = db.strings.str(node_name_id.clone()) {
-                        let node_name: &str = node_name;
-                        // extract the document path from the node name
-                        let doc_path =
-                            &node_name[0..node_name.rfind('#').unwrap_or(node_name.len())];
-                        known_documents.insert(doc_path);
-                    }
+                if let Some(node_name) = db.node_annos.get_value_for_item_by_id(&m.node, node_name_key_id) {
+                    let node_name: &str = node_name.as_ref();
+                    // extract the document path from the node name
+                    let doc_path =
+                        &node_name[0..node_name.rfind('#').unwrap_or(node_name.len())];
+                    known_documents.insert(doc_path.to_owned());
+                
                 }
             }
             (acc.0 + 1, known_documents.len())
@@ -826,18 +862,17 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        let node_name_key = db.get_node_name_key();
+        let node_name_key_id = db.node_annos.get_key_id(&db.get_node_name_key()).ok_or("No internal ID for node names found")?;
         let mut node_to_path_cache = FxHashMap::default();
         let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(1024);
 
         for mgroup in plan {
             // cache all paths of the matches
             for m in mgroup.iter() {
-                if let Some(path_strid) = db.node_annos.get(&m.node, &node_name_key) {
-                    if let Some(path) = db.strings.str(*path_strid) {
-                        let path = util::extract_node_path(path);
-                        node_to_path_cache.insert(m.node.clone(), path);
-                    }
+                if let Some(path) = db.node_annos.get_value_for_item_by_id(&m.node, node_name_key_id) {
+                    let path = util::extract_node_path(&path);
+                    node_to_path_cache.insert(m.node.clone(), path);
+                
                 }
             }
 
@@ -888,28 +923,25 @@ impl CorpusStorage {
                     for singlematch in m.iter() {
                         let mut node_desc = String::new();
 
-                        let anno_key: &AnnoKey = &singlematch.anno.key;
-                        if let (Some(anno_ns), Some(anno_name)) =
-                            (db.strings.str(anno_key.ns), db.strings.str(anno_key.name))
-                        {
-                            if anno_ns != "annis" {
-                                if !anno_ns.is_empty() {
-                                    node_desc.push_str(anno_ns);
+                        if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
+                            if &anno_key.ns != "annis" {
+                                if !anno_key.ns.is_empty() {
+                                    node_desc.push_str(&anno_key.ns);
                                     node_desc.push_str("::");
                                 }
-                                node_desc.push_str(anno_name);
+                                node_desc.push_str(&anno_key.name);
                                 node_desc.push_str("::");
                             }
                         }
+                    
 
-                        if let Some(name_id) = db
+                        if let Some(name) = db
                             .node_annos
-                            .get(&singlematch.node, &db.get_node_name_key())
+                            .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                         {
-                            if let Some(name) = db.strings.str(name_id.clone()) {
-                                node_desc.push_str("salt:/");
-                                node_desc.push_str(name);
-                            }
+                            node_desc.push_str("salt:/");
+                            node_desc.push_str(name.as_ref());
+                        
                         }
 
                         match_desc.push(node_desc);
@@ -1168,47 +1200,38 @@ impl CorpusStorage {
         // get the matching annotation keys for each definition entry
         let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
         for def in definition.into_iter() {
-            let ns_id: Option<&StringID> = if let Some(ns) = def.ns {
-                db.strings.find_id(&ns)
-            } else {
-                None
-            };
-            let name_id = db
-                .strings
-                .find_id(&def.name)
-                .ok_or(ErrorKind::NoSuchString(def.name.clone()))?;
-
+            
             if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
-                if let Some(ns_id) = ns_id {
+                if let Some(ns) = def.ns {
                     // add the single fully qualified annotation key
                     annokeys.push((
                         node_ref,
                         vec![AnnoKey {
-                            ns: *ns_id,
-                            name: *name_id,
+                            ns: ns.clone(),
+                            name: def.name.clone(),
                         }],
                     ));
                 } else {
                     // add all matching annotation keys
-                    annokeys.push((node_ref, db.node_annos.get_qnames(*name_id)));
+                    annokeys.push((node_ref, db.node_annos.get_qnames(&def.name)));
                 }
             }
         }
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        let mut tuple_frequency: FxHashMap<Vec<StringID>, usize> = FxHashMap::default();
+        let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
         for mgroup in plan {
             // for each match, extract the defined annotation (by its key) from the result node
-            let mut tuple: Vec<StringID> = Vec::with_capacity(annokeys.len());
+            let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
             for (node_ref, anno_keys) in annokeys.iter() {
-                let mut tuple_val: StringID = 0;
+                let mut tuple_val: String = String::default();
                 if *node_ref < mgroup.len() {
                     let m: &Match = &mgroup[*node_ref];
                     for k in anno_keys.iter() {
-                        if let Some(val) = db.node_annos.get(&m.node, k) {
-                            tuple_val = *val;
+                        if let Some(val) = db.node_annos.get_value_for_item(&m.node, k) {
+                            tuple_val = val.to_owned();
                         }
                     }
                 }
@@ -1219,13 +1242,9 @@ impl CorpusStorage {
             *tuple_count = *tuple_count + 1;
         }
 
-        // output the frequency (needs collecting the actual string values)
+        // output the frequency
         let mut result: FrequencyTable<String> = FrequencyTable::default();
-        for (tuple_strid, count) in tuple_frequency.into_iter() {
-            let mut tuple: Vec<String> = Vec::with_capacity(tuple_strid.len());
-            for v in tuple_strid.into_iter() {
-                tuple.push(db.strings.str(v).unwrap_or(&String::default()).clone());
-            }
+        for (tuple, count) in tuple_frequency.into_iter() {
             result.push((tuple, count));
         }
 
@@ -1256,39 +1275,36 @@ impl CorpusStorage {
         list_values: bool,
         only_most_frequent_values: bool,
     ) -> Vec<(String, String, String)> {
-        let mut result = Vec::new();
+        let mut result : Vec<(String, String, String)> = Vec::new();
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 let node_annos: &AnnoStorage<NodeID> = &db.node_annos;
-                for key in node_annos.get_all_keys() {
-                    if let (Some(ns), Some(name)) =
-                        (db.strings.str(key.ns), db.strings.str(key.name))
-                    {
-                        if list_values {
-                            if only_most_frequent_values {
-                                // get the first value
-                                if let Some(val) = node_annos.get_all_values(key, true).next() {
-                                    result.push((
-                                        ns.clone(),
-                                        name.clone(),
-                                        db.strings.str(val).cloned().unwrap_or_default(),
-                                    ));
-                                }
-                            } else {
-                                // get all values
-                                for val in node_annos.get_all_values(key, false) {
-                                    result.push((
-                                        ns.clone(),
-                                        name.clone(),
-                                        db.strings.str(val).cloned().unwrap_or_default(),
-                                    ));
-                                }
+                for key in node_annos.annotation_keys() {
+                    if list_values {
+                        if only_most_frequent_values {
+                            // get the first value
+                            if let Some(val) = node_annos.get_all_values(&key, true).into_iter().next() {
+                                result.push((
+                                    key.ns.clone(),
+                                    key.name.clone(),
+                                    val.to_owned(),
+                                ));
                             }
                         } else {
-                            result.push((ns.clone(), name.clone(), String::new()));
+                            // get all values
+                            for val in node_annos.get_all_values(&key, false).into_iter() {
+                                result.push((
+                                    key.ns.clone(),
+                                    key.name.clone(),
+                                    val.to_owned(),
+                                ));
+                            }
                         }
+                    } else {
+                        result.push((key.ns.clone(), key.name.clone(), String::new()));
                     }
+                
                 }
             }
         }
@@ -1303,7 +1319,7 @@ impl CorpusStorage {
         list_values: bool,
         only_most_frequent_values: bool,
     ) -> Vec<(String, String, String)> {
-        let mut result = Vec::new();
+        let mut result : Vec<(String, String, String)> = Vec::new();
         if let Ok(db_entry) =
             self.get_loaded_entry_with_components(corpus_name, vec![component.clone()])
         {
@@ -1311,34 +1327,31 @@ impl CorpusStorage {
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
                     let edge_annos: &AnnoStorage<Edge> = gs.as_edgecontainer().get_anno_storage();
-                    for key in edge_annos.get_all_keys() {
-                        if let (Some(ns), Some(name)) =
-                            (db.strings.str(key.ns), db.strings.str(key.name))
-                        {
-                            if list_values {
-                                if only_most_frequent_values {
-                                    // get the first value
-                                    if let Some(val) = edge_annos.get_all_values(key, true).next() {
-                                        result.push((
-                                            ns.clone(),
-                                            name.clone(),
-                                            db.strings.str(val).cloned().unwrap_or_default(),
-                                        ));
-                                    }
-                                } else {
-                                    // get all values
-                                    for val in edge_annos.get_all_values(key, false) {
-                                        result.push((
-                                            ns.clone(),
-                                            name.clone(),
-                                            db.strings.str(val).cloned().unwrap_or_default(),
-                                        ));
-                                    }
+                    for key in edge_annos.annotation_keys() {
+                        if list_values {
+                            if only_most_frequent_values {
+                                // get the first value
+                                if let Some(val) = edge_annos.get_all_values(&key, true).into_iter().next() {
+                                    result.push((
+                                        key.ns.clone(),
+                                        key.name.clone(),
+                                        val.to_owned(),
+                                    ));
                                 }
                             } else {
-                                result.push((ns.clone(), name.clone(), String::new()));
+                                // get all values
+                                for val in edge_annos.get_all_values(&key, false).into_iter() {
+                                    result.push((
+                                        key.ns.clone(),
+                                        key.name.clone(),
+                                        val.to_owned(),
+                                    ));
+                                }
                             }
+                        } else {
+                            result.push((key.ns.clone(), key.name.clone(), String::new()));
                         }
+                    
                     }
                 }
             }

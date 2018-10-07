@@ -1,67 +1,115 @@
+use self::symboltable::SymbolTable;
 use super::*;
-use std::collections::{BTreeMap};
-use rustc_hash::{FxHashMap,FxHashSet};
-use std::collections::Bound::*;
-use std::hash::Hash;
-use std;
-use rand;
-use regex_syntax;
-use regex;
-use stringstorage::StringStorage;
 use bincode;
-use serde;
-use serde::de::DeserializeOwned;
+use errors::*;
 use itertools::Itertools;
 use malloc_size_of::MallocSizeOf;
+use rand;
+use regex;
+use regex_syntax;
+use rustc_hash::{FxHashMap, FxHashSet};
+use serde;
+use serde::de::DeserializeOwned;
+use std;
+use std::collections::BTreeMap;
+use std::collections::Bound::*;
+use std::hash::Hash;
+use std::path::PathBuf;
+use std::sync::Arc;
 
-#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
-pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf> {
-    by_container: FxHashMap<T, Vec<Annotation>>,
-    by_anno: BTreeMap<Annotation, FxHashSet<T>>,
+#[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
+struct SparseAnnotation {
+    key: usize,
+    val: usize,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, MallocSizeOf)]
+pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
+    by_container: FxHashMap<T, Vec<SparseAnnotation>>,
+    /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
+    by_anno: FxHashMap<usize, FxHashMap<usize, Vec<T>>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
-    anno_keys: BTreeMap<AnnoKey, usize>,
+    anno_key_sizes: BTreeMap<AnnoKey, usize>,
+    anno_keys: SymbolTable<AnnoKey>,
+    anno_values: SymbolTable<String>,
+
     /// additional statistical information
-    histogram_bounds: BTreeMap<AnnoKey, Vec<String>>,
+    histogram_bounds: BTreeMap<usize, Vec<String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
 }
 
-impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf> AnnoStorage<T> {
+impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf + Default>
+    AnnoStorage<T>
+{
     pub fn new() -> AnnoStorage<T> {
         AnnoStorage {
             by_container: FxHashMap::default(),
-            by_anno: BTreeMap::new(),
-            anno_keys: BTreeMap::new(),
+            by_anno: FxHashMap::default(),
+            anno_keys: SymbolTable::new(),
+            anno_values: SymbolTable::new(),
+            anno_key_sizes: BTreeMap::new(),
             histogram_bounds: BTreeMap::new(),
             largest_item: None,
             total_number_of_annos: 0,
         }
     }
 
-    fn remove_element_from_by_anno(&mut self, anno: &Annotation, item: &T) {
-        let remove_item_for_anno = if let Some(mut item_for_anno) = self.by_anno.get_mut(anno) {
-            item_for_anno.remove(&item);
-            item_for_anno.is_empty()
+    fn create_sparse_anno(&mut self, orig: Annotation) -> SparseAnnotation {
+        SparseAnnotation {
+            key: self.anno_keys.insert(orig.key),
+            val: self.anno_values.insert(orig.val),
+        }
+    }
+
+    fn create_annotation_from_sparse(&self, orig: &SparseAnnotation) -> Option<Annotation> {
+        let key = self.anno_keys.get_value(orig.key)?;
+        let val = self.anno_values.get_value(orig.val)?;
+
+        Some(Annotation { key: Arc::from(key.clone()), val: Arc::from(val.clone()) })
+    }
+
+    fn remove_element_from_by_anno(&mut self, anno: &SparseAnnotation, item: &T) {
+        let remove_anno_key = if let Some(mut annos_for_key) = self.by_anno.get_mut(&anno.key) {
+            let remove_anno_val = if let Some(items_for_anno) = annos_for_key.get_mut(&anno.val) {
+                items_for_anno.retain(|i| i != item);
+                items_for_anno.is_empty()
+            } else {
+                false
+            };
+            // remove the hash set of items for the original annotation if it empty
+            if remove_anno_val {
+                annos_for_key.remove(&anno.val);
+                annos_for_key.is_empty()
+            } else {
+                false
+            }
         } else {
             false
         };
-        // remove the hash set of items for the original annotation if it empty
-        if remove_item_for_anno {
-            self.by_anno.remove(anno);
+        if remove_anno_key {
+            self.by_anno.remove(&anno.key);
+            // TODO: remove from symbol table?
         }
     }
 
     pub fn insert(&mut self, item: T, anno: Annotation) {
-        
+        let orig_anno_key = anno.key.clone();
+        let anno = self.create_sparse_anno(anno);
+
         let existing_anno = {
             let existing_item_entry = self.by_container.entry(item.clone()).or_insert(Vec::new());
 
             // check if there is already an item with the same annotation key
             let existing_entry_idx =
-                existing_item_entry.binary_search_by_key(&anno.key, |a: &Annotation| a.key.clone());
+                existing_item_entry.binary_search_by_key(&anno.key, |a| a.key.clone());
 
             if let Ok(existing_entry_idx) = existing_entry_idx {
                 let orig_anno = existing_item_entry[existing_entry_idx].clone();
+                // abort if the same annotation key with the same value already exist
+                if orig_anno.val == anno.val {
+                    return;
+                }
                 // insert annotation for item at existing position
                 existing_item_entry[existing_entry_idx] = anno.clone();
                 Some(orig_anno)
@@ -69,7 +117,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
                 // insert at sorted position -> the result will still be a sorted vector
                 existing_item_entry.insert(insertion_idx, anno.clone());
                 None
-            } else {None}
+            } else {
+                None
+            }
         };
 
         if let Some(ref existing_anno) = existing_anno {
@@ -80,9 +130,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
         // inserts a new relation between the annotation and the item
         // if set is not existing yet it is created
         self.by_anno
-            .entry(anno.clone())
-            .or_insert(FxHashSet::default())
-            .insert(item.clone());
+            .entry(anno.key.clone())
+            .or_insert(FxHashMap::default())
+            .entry(anno.val.clone())
+            .or_insert(Vec::default())
+            .push(item.clone());
 
         if existing_anno.is_none() {
             // a new annotation entry was inserted and did not replace an existing one
@@ -96,38 +148,62 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
                 self.largest_item = Some(item.clone());
             }
 
-            let anno_key_entry = self.anno_keys.entry(anno.key).or_insert(0);
+            let anno_key_entry = self
+                .anno_key_sizes
+                .entry(orig_anno_key.as_ref().clone())
+                .or_insert(0);
             *anno_key_entry = *anno_key_entry + 1;
         }
     }
 
-    pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<StringID> {
+    fn check_and_remove_value_symbol(&mut self, value_id: usize) {
+        let mut still_used = false;
+        for (_, values) in self.by_anno.iter() {
+            if values.contains_key(&value_id) {
+                still_used = true;
+                break;
+            }
+        }
+        if !still_used {
+            self.anno_values.remove(value_id);
+        }
+    }
+
+    pub fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String> {
         let mut result = None;
+
+        let orig_key = key;
+        let key = self.anno_keys.get_symbol(key)?;
 
         if let Some(mut all_annos) = self.by_container.remove(item) {
             // find the specific annotation key from the sorted vector of all annotations of this item
-            let anno_idx = all_annos.binary_search_by_key(key, |a: &Annotation| a.key.clone());
+            let anno_idx = all_annos.binary_search_by_key(&key, |a| a.key);
 
             if let Ok(anno_idx) = anno_idx {
                 // since value was found, also remove the item from the other containers
-                self.remove_element_from_by_anno(
-                    &all_annos[anno_idx],
-                    item,
-                );
+                self.remove_element_from_by_anno(&all_annos[anno_idx], item);
 
-                let old_value = all_annos[anno_idx].val;
+                let old_value = all_annos[anno_idx].val.clone();
 
                 // remove the specific annotation key from the entry
                 all_annos.remove(anno_idx);
 
-                
                 // decrease the annotation count for this key
-                let num_of_keys = self.anno_keys.get_mut(key);
-                if num_of_keys.is_some() {
-                    let x = num_of_keys.unwrap();
-                    *x = *x - 1;
+                let new_key_count: usize =
+                    if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
+                        *num_of_keys -= 1;
+                        num_of_keys.clone()
+                    } else {
+                        0
+                    };
+                // if annotation count dropped to zero remove the key
+                if new_key_count == 0 {
+                    self.by_anno.remove(&key);
+                    self.anno_key_sizes.remove(&orig_key);
+                    self.anno_keys.remove(key);
                 }
 
+                self.check_and_remove_value_symbol(old_value);
                 self.total_number_of_annos -= 1;
 
                 result = Some(old_value);
@@ -137,68 +213,106 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
                 self.by_container.insert(item.clone(), all_annos);
             }
         }
-        return result;
+
+        if let Some(result) = result {
+            return self.anno_values.get_value(result).cloned();
+        }
+        return None;
     }
 
     pub fn len(&self) -> usize {
         self.total_number_of_annos
     }
 
-    pub fn get(&self, item: &T, key: &AnnoKey) -> Option<&StringID> {
-        if let Some(all_annos) = self.by_container.get(item) {
+    pub fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
+        let key = self.anno_keys.get_symbol(key)?;
 
-            let idx = all_annos.binary_search_by_key(key, |a: &Annotation| a.key.clone());
+        if let Some(all_annos) = self.by_container.get(item) {
+            let idx = all_annos.binary_search_by_key(&key, |a| a.key);
             if let Ok(idx) = idx {
-                return Some(&all_annos[idx].val);
+                if let Some(val) =  self.anno_values.get_value(all_annos[idx].val) {
+                    return Some(&val[..]);
+                }
             }
         }
         return None;
     }
 
-    pub fn find_by_name(
+    pub fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str> {
+        if let Some(all_annos) = self.by_container.get(item) {
+            let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
+            if let Ok(idx) = idx {
+                if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
+                    return Some(&val[..]);
+                }
+            }
+        }
+        return None;
+    }
+
+    pub fn find_annotations_for_item(
         &self,
         item: &T,
-        ns: Option<StringID>,
-        name: Option<StringID>,
-    ) -> Vec<Annotation> {
+        ns: Option<String>,
+        name: Option<String>,
+    ) -> Vec<AnnoKeyID> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
                 let key = AnnoKey { ns, name };
-                let res = self.get(item, &key);
-                if let Some(val) = res {
-                    return vec![
-                        Annotation {
-                            key,
-                            val: val.clone(),
-                        },
-                    ];
-                } else {
-                    return vec![];
+                if let Some(key_id) = self.get_key_id(&key) {
+                    if self.get_value_for_item_by_id(item, key_id).is_some() {
+                        return vec![key_id];
+                    }
                 }
+                return vec![];
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<Annotation> = self.get_qnames(name)
+                let res: Vec<AnnoKeyID> = self
+                    .get_qnames(&name)
                     .into_iter()
-                    .filter_map(|key| {
-                        self.get(item, &key).map(|val| Annotation {
-                            key,
-                            val: val.clone(),
-                        })
-                    })
+                    .filter_map(|key| self.get_key_id(&key))
+                    .filter(|key_id| self.get_value_for_item_by_id(item, *key_id).is_some())
                     .collect();
                 return res;
             }
         } else {
             // no annotation name given, return all
-            return self.get_all(item);
+            if let Some(annos) = self.by_container.get(item) {
+                return annos
+                    .iter()
+                    .map(|sparse_anno| sparse_anno.key)
+                    .collect();
+            } else {
+                return vec![];
+            }
         }
     }
 
-    pub fn get_all(&self, item: &T) -> Vec<Annotation> {
-       
+    /// Get all the annotation keys of a node
+    pub fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey> {
         if let Some(all_annos) = self.by_container.get(item) {
-            return all_annos.clone();
+            let mut result: Vec<AnnoKey> = Vec::with_capacity(all_annos.len());
+            for a in all_annos.iter() {
+                if let Some(key) = self.anno_keys.get_value(a.key) {
+                    result.push(key.clone());
+                }
+            }
+            return result;
+        }
+        // return empty result if not found
+        return Vec::new();
+    }
+
+    pub fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+        if let Some(all_annos) = self.by_container.get(item) {
+            let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
+            for a in all_annos.iter() {
+                if let Some(a) = self.create_annotation_from_sparse(a) {
+                    result.push(a);
+                }
+            }
+            return result;
         }
         // return empty result if not found
         return Vec::new();
@@ -210,118 +324,133 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
         self.anno_keys.clear();
         self.histogram_bounds.clear();
         self.largest_item = None;
+        self.anno_values.clear();
     }
 
     /// Get all qualified annotation names (including namespace) for a given annotation name
-    pub fn get_qnames(&self, name: StringID) -> Vec<AnnoKey> {
-        self.anno_keys
-            .range(
-                AnnoKey {
-                    name,
-                    ns: StringID::min_value(),
-                }..AnnoKey {
-                    name,
-                    ns: StringID::max_value(),
-                },
-            )
-            .map(|r| r.0)
-            .cloned()
-            .collect::<Vec<AnnoKey>>()
+    pub fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
+        let it = self.anno_key_sizes.range(
+            AnnoKey {
+                name: name.to_owned(),
+                ns: String::default(),
+            }..,
+        );
+        let mut result: Vec<AnnoKey> = Vec::default();
+        for (k, _) in it {
+            if k.name == name {
+                result.push(k.clone());
+            } else {
+                break;
+            }
+        }
+        return result;
     }
 
     /// Get all the annotation keys which are part of this annotation storage
-    pub fn get_all_keys(&self) -> Vec<AnnoKey> {
-        return self.anno_keys.keys().cloned().collect();
+    pub fn annotation_keys(&self) -> Vec<AnnoKey> {
+        return self.anno_key_sizes.keys().cloned().collect();
     }
 
-    pub fn get_all_values<'a>(
-        &'a self,
-        key: AnnoKey,
-        most_frequent_first: bool,
-    ) -> Box<Iterator<Item = StringID> + 'a> {
-        let anno_min = Annotation {
-            key: key.clone(),
-            val: StringID::min_value(),
-        };
-        let anno_max = Annotation {
-            key,
-            val: StringID::max_value(),
-        };
-        if most_frequent_first {
-            let it = self.by_anno
-                .range((Included(anno_min), Included(anno_max)))
-                .map(|(ref anno, ref items)| (items.len(), anno.val.clone()))
-                .sorted()
-                .into_iter()
-                .rev()
-                .map(|(_, val)| val);
+    /// Returns an internal identifier for the annotation key that can be used for faster lookup of values.
+    pub fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID> {
+        self.anno_keys.get_symbol(key)
+    }
 
-            return Box::from(it);
-        } else {
-            let it = self.by_anno
-                .range((Included(anno_min), Included(anno_max)))
-                .map(|(anno, _items)| anno.val.clone());
-            return Box::from(it);
+    /// Returns the annotation key from the internal identifier.
+    pub fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
+        self.anno_keys.get_value(key_id).cloned()
+    }
+    
+
+    pub fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+        if let Some(key) = self.anno_keys.get_symbol(key) {
+            if let Some(values_for_key) = self.by_anno.get(&key) {
+                if most_frequent_first {
+                    let result = values_for_key
+                        .iter()
+                        .filter_map(|(val, items)| {
+                            let val = self.anno_values.get_value(*val)?;
+                            Some((items.len(), val))
+                        }).sorted();
+                    return result.into_iter().rev().map(|(_, val)| &val[..]).collect();
+                } else {
+                    return values_for_key
+                        .iter()
+                        .filter_map(|(val, _items)| self.anno_values.get_value(*val))
+                        .map(|val| &val[..])
+                        .collect();
+                }
+            }
         }
+        return vec![];
     }
 
-    fn anno_range_exact(
-        &self,
-        namespace: Option<StringID>,
-        name: StringID,
-        value: Option<StringID>,
-    ) -> Vec<
-        (
-            std::collections::Bound<types::Annotation>,
-            std::collections::Bound<types::Annotation>,
-        ),
-    > {
-        let mut search_ranges: Vec<
-            (
-                std::collections::Bound<types::Annotation>,
-                std::collections::Bound<types::Annotation>,
-            ),
-        > = vec![];
-
-        let key_range: Vec<AnnoKey> = if let Some(ns) = namespace {
+    fn matching_items<'a>(
+        &'a self,
+        namespace: Option<String>,
+        name: String,
+        value: Option<String>,
+    ) -> Box<Iterator<Item = (&T, AnnoKeyID)> + 'a> {
+        let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
             vec![AnnoKey { ns, name }]
         } else {
-            self.get_qnames(name)
+            self.get_qnames(&name)
         };
 
-        let val_pair = match value {
-            Some(v) => (v, v),
-            None => (StringID::min_value(), StringID::max_value()),
-        };
+        let value = value.and_then(|v| self.anno_values.get_symbol(&v));
 
-        // find all annotation keys with correct name
-        for key in key_range {
-            let anno_min = Annotation {
-                key: key.clone(),
-                val: val_pair.0,
-            };
-            let anno_max = Annotation {
-                key,
-                val: val_pair.1,
-            };
-            search_ranges.push((Included(anno_min), Included(anno_max)));
+        let values: Vec<(AnnoKeyID, &FxHashMap<usize, Vec<T>>)> = key_ranges
+            .into_iter()
+            .filter_map(|key| {
+                let key_id = self.anno_keys.get_symbol(&key)?;
+                if let Some(values_for_key) = self.by_anno.get(&key_id) {
+                    Some((key_id, values_for_key))
+                } else {
+                    None
+                }
+            }).collect();
+
+        if let Some(value) = value {
+            let it = values
+            .into_iter()
+            // find the items with the correct value
+            .filter_map(move |(key_id, values)| if let Some(items) = values.get(&value) {
+                Some((items, key_id))
+            } else {
+                None
+            })
+            // flatten the hash set of all items, returns all items for the condition
+            .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
+            return Box::new(it);
+        } else {
+            let it = values
+            .into_iter()
+            // flatten the hash set of all items, returns all items for the condition
+            .flat_map(|(key_id, values)| values.iter().zip(std::iter::repeat(key_id)))
+            // create annotations from all flattened values
+            .flat_map(move | ((_, items), key_id) | {
+                items.iter().zip(std::iter::repeat(key_id))
+            });
+            return Box::new(it);
         }
-        return search_ranges;
     }
 
-    pub fn num_of_annotations(&self, ns: Option<StringID>, name: StringID) -> usize {
+    pub fn num_of_annotations(&self, ns: Option<String>, name: String) -> usize {
         let qualified_keys = match ns {
-            Some(ns_id) => self.anno_keys.range((
-                Included(AnnoKey { name, ns: ns_id }),
-                Included(AnnoKey { name, ns: ns_id }),
+            Some(ns) => self.anno_key_sizes.range((
+                Included(AnnoKey {
+                    name: name.clone(),
+                    ns: ns.clone(),
+                }),
+                Included(AnnoKey { name, ns }),
             )),
-            None => self.anno_keys.range(
+            None => self.anno_key_sizes.range(
                 AnnoKey {
-                    name,
-                    ns: StringID::min_value(),
+                    name: name.clone(),
+                    ns: String::default(),
                 }..AnnoKey {
                     name,
-                    ns: StringID::max_value(),
+                    ns: std::char::MAX.to_string(),
                 },
             ),
         };
@@ -334,26 +463,15 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
 
     pub fn guess_max_count(
         &self,
-        ns: Option<StringID>,
-        name: StringID,
+        ns: Option<String>,
+        name: String,
         lower_val: &str,
         upper_val: &str,
     ) -> usize {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
-            Some(ns_id) => self.anno_keys.range((
-                Included(AnnoKey { name, ns: ns_id }),
-                Included(AnnoKey { name, ns: ns_id }),
-            )),
-            None => self.anno_keys.range(
-                AnnoKey {
-                    name,
-                    ns: StringID::min_value(),
-                }..AnnoKey {
-                    name,
-                    ns: StringID::max_value(),
-                },
-            ),
+            Some(ns) => vec![AnnoKey { name, ns }],
+            None => self.get_qnames(&name),
         };
 
         let mut universe_size: usize = 0;
@@ -361,26 +479,28 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
         let mut count_matches: usize = 0;
 
         // guess for each fully qualified annotation key and return the sum of all guesses
-        for (anno_key, anno_size) in qualified_keys {
-            universe_size += *anno_size;
+        for anno_key in qualified_keys.into_iter() {
+            if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
+                universe_size += *anno_size;
 
-            let opt_histo = self.histogram_bounds.get(anno_key);
-            if opt_histo.is_some() {
-                // find the range in which the value is contained
-                let histo = opt_histo.unwrap();
+                if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
+                    if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                        // find the range in which the value is contained
 
-                // we need to make sure the histogram is not empty -> should have at least two bounds
-                if histo.len() >= 2 {
-                    sum_histogram_buckets += histo.len() - 1;
+                        // we need to make sure the histogram is not empty -> should have at least two bounds
+                        if histo.len() >= 2 {
+                            sum_histogram_buckets += histo.len() - 1;
 
-                    for i in 0..histo.len() - 1 {
-                        let bucket_begin = &histo[i];
-                        let bucket_end = &histo[i + 1];
-                        // check if the range overlaps with the search range
-                        if bucket_begin <= &String::from(upper_val)
-                            && &String::from(lower_val) <= bucket_end
-                        {
-                            count_matches += 1;
+                            for i in 0..histo.len() - 1 {
+                                let bucket_begin = &histo[i];
+                                let bucket_end = &histo[i + 1];
+                                // check if the range overlaps with the search range
+                                if bucket_begin <= &String::from(upper_val)
+                                    && &String::from(lower_val) <= bucket_end
+                                {
+                                    count_matches += 1;
+                                }
+                            }
                         }
                     }
                 }
@@ -395,12 +515,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
         }
     }
 
-    pub fn guess_max_count_regex(
-        &self,
-        ns: Option<StringID>,
-        name: StringID,
-        pattern: &str,
-    ) -> usize {
+    pub fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
         let full_match_pattern = util::regex_full_match(pattern);
 
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
@@ -425,80 +540,72 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
         self.largest_item.clone()
     }
 
-    pub fn calculate_statistics(&mut self, string_storage: &stringstorage::StringStorage) {
+    pub fn calculate_statistics(&mut self) {
         let max_histogram_buckets = 250;
         let max_sampled_annotations = 2500;
 
         self.histogram_bounds.clear();
 
         // collect statistics for each annotation key separatly
-        for anno_key in &self.anno_keys {
-            let hist = self.histogram_bounds
-                .entry(anno_key.0.clone())
-                .or_insert(std::vec::Vec::new());
+        for (anno_key, _num_of_annos) in &self.anno_key_sizes {
+            if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
+                // sample a maximal number of annotation values
+                let mut rng = rand::thread_rng();
+                if let Some(values_for_key) = self.by_anno.get(&anno_key) {
+                    let sampled_anno_values: Vec<usize> = values_for_key
+                        .iter()
+                        .flat_map(|(val, items)| {
+                            // repeat value corresponding to the number of nodes with this annotation
+                            let v = vec![val.clone(); items.len()];
+                            v.into_iter()
+                        }).collect();
+                    let sampled_anno_indexes: FxHashSet<usize> = rand::seq::sample_indices(
+                        &mut rng,
+                        sampled_anno_values.len(),
+                        std::cmp::min(sampled_anno_values.len(), max_sampled_annotations),
+                    ).into_iter()
+                    .collect();
 
-            let min_anno = Annotation {
-                key: anno_key.0.clone(),
-                val: StringID::min_value(),
-            };
-            let max_anno = Annotation {
-                key: anno_key.0.clone(),
-                val: StringID::max_value(),
-            };
+                    let mut sampled_anno_values: Vec<String> = sampled_anno_values
+                        .into_iter()
+                        .enumerate()
+                        .filter(|x| sampled_anno_indexes.contains(&x.0))
+                        .filter_map(|x| self.anno_values.get_value(x.1).cloned())
+                        .collect();
+                    // create uniformly distributed histogram bounds
+                    sampled_anno_values.sort();
 
-            // sample a maximal number of annotation values
-            let mut rng = rand::thread_rng();
-            let sampled_anno_values: Vec<&String> = self.by_anno
-                .range(min_anno..max_anno)
-                .flat_map(|a| {
-                    let s = string_storage.str(a.0.val);
-                    let v = if let Some(s) = s {
-                        // repeat value corresponding to the number of nodes with this annotation
-                        vec![s; a.1.len()]
+                    let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets + 1)
+                    {
+                        sampled_anno_values.len()
                     } else {
-                        vec![]
+                        max_histogram_buckets + 1
                     };
-                    v.into_iter()
-                })
-                .collect();
-            let sampled_anno_indexes: FxHashSet<usize> = rand::seq::sample_indices(
-                &mut rng,
-                sampled_anno_values.len(),
-                std::cmp::min(sampled_anno_values.len(), max_sampled_annotations),
-            ).into_iter()
-                .collect();
 
-            let mut sampled_anno_values: Vec<&String> = sampled_anno_values
-                .into_iter()
-                .enumerate()
-                .filter(|x| sampled_anno_indexes.contains(&x.0))
-                .map(|x| x.1)
-                .collect();
-            // create uniformly distributed histogram bounds
-            sampled_anno_values.sort();
+                    let hist = self
+                        .histogram_bounds
+                        .entry(anno_key.clone())
+                        .or_insert(std::vec::Vec::new());
 
-            let num_hist_bounds = if sampled_anno_values.len() < (max_histogram_buckets + 1) {
-                sampled_anno_values.len()
-            } else {
-                max_histogram_buckets + 1
-            };
+                    if num_hist_bounds >= 2 {
+                        hist.resize(num_hist_bounds, String::from(""));
 
-            if num_hist_bounds >= 2 {
-                hist.resize(num_hist_bounds, String::from(""));
+                        let delta: usize = (sampled_anno_values.len() - 1) / (num_hist_bounds - 1);
+                        let delta_fraction: usize =
+                            (sampled_anno_values.len() - 1) % (num_hist_bounds - 1);
 
-                let delta: usize = (sampled_anno_values.len() - 1) / (num_hist_bounds - 1);
-                let delta_fraction: usize = (sampled_anno_values.len() - 1) % (num_hist_bounds - 1);
+                        let mut pos = 0;
+                        let mut pos_fraction = 0;
+                        for i in 0..num_hist_bounds {
+                            hist[i] = sampled_anno_values[pos].clone();
+                            pos += delta;
+                            pos_fraction += delta_fraction;
 
-                let mut pos = 0;
-                let mut pos_fraction = 0;
-                for i in 0..num_hist_bounds {
-                    hist[i] = sampled_anno_values[pos].clone();
-                    pos += delta;
-                    pos_fraction += delta_fraction;
-
-                    if pos_fraction >= (num_hist_bounds - 1) {
-                        pos += 1;
-                        pos_fraction -= num_hist_bounds - 1;
+                            if pos_fraction >= (num_hist_bounds - 1) {
+                                pos += 1;
+                                pos_fraction -= num_hist_bounds - 1;
+                            }
+                        }
                     }
                 }
             }
@@ -513,114 +620,95 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf>
         bincode::serialize_into(&mut buf_writer, self).is_ok()
     }
 
-    pub fn load_from_file(&mut self, path: &str) {
-        // always remove all entries first, so even if there is an error the string storage is empty
+    pub fn load_from_file(&mut self, path: &str) -> Result<()> {
+        // always remove all entries first, so even if there is an error the anno storage is empty
         self.clear();
 
-        let f = std::fs::File::open(path);
-        if f.is_ok() {
-            let mut buf_reader = std::io::BufReader::new(f.unwrap());
+        let path = PathBuf::from(path);
+        let f = std::fs::File::open(path.clone()).chain_err(|| {
+            format!(
+                "Could not load string storage from file {}",
+                path.to_string_lossy()
+            )
+        })?;
+        let mut reader = std::io::BufReader::new(f);
+        *self = bincode::deserialize_from(&mut reader)?;
 
-            let loaded: Result<AnnoStorage<T>, _> = bincode::deserialize_from(&mut buf_reader);
-            if loaded.is_ok() {
-                *self = loaded.unwrap();
-            }
-        }
+        self.anno_keys.after_deserialization();
+        self.anno_values.after_deserialization();
+
+        Ok(())
     }
 }
 
 impl AnnoStorage<NodeID> {
     pub fn exact_anno_search<'a>(
         &'a self,
-        namespace: Option<StringID>,
-        name: StringID,
-        value: Option<StringID>,
+        namespace: Option<String>,
+        name: String,
+        value: Option<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        let anno_ranges = self.anno_range_exact(namespace, name, value);
-
-        let it = anno_ranges
-            .into_iter()
-            .flat_map(move |r| self.by_anno.range(r))
-            .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
-            .map(|m| Match {
-                node: m.0.clone(),
-                anno: m.1.clone(),
-            });
-        Box::new(it)
+        let it =
+            self.matching_items(namespace, name, value)
+                .filter_map(move |(node, anno_key_id)| {
+                    Some(Match {
+                        node: *node,
+                        anno_key: anno_key_id,
+                    })
+                });
+        return Box::new(it);
     }
 
     pub fn regex_anno_search<'a>(
         &'a self,
-        strings: &'a StringStorage,
-        namespace: Option<StringID>,
-        name: StringID,
+        namespace: Option<String>,
+        name: String,
         pattern: &str,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        let ns_pair = match namespace {
-            Some(v) => (v, v),
-            None => (StringID::min_value(), StringID::max_value()),
-        };
-        let val_pair = (StringID::min_value(), StringID::max_value());
-
         let full_match_pattern = util::regex_full_match(pattern);
         let compiled_result = regex::Regex::new(&full_match_pattern);
-        if compiled_result.is_ok() {
-            let re = compiled_result.unwrap();
-
-            let anno_min = Annotation {
-                key: AnnoKey {
-                    name,
-                    ns: ns_pair.0,
-                },
-                val: val_pair.0,
-            };
-            let anno_max = Annotation {
-                key: AnnoKey {
-                    name,
-                    ns: ns_pair.1,
-                },
-                val: val_pair.1,
-            };
-
-            let it = self.by_anno
-                .range(anno_min..anno_max)
-                .filter(move |a| match strings.str(a.0.val) {
-                    Some(v) => re.is_match(v),
-                    None => false,
-                })
-                .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
-                .map(|m| Match {
-                    node: m.0.clone(),
-                    anno: m.1.clone(),
+        if let Ok(re) = compiled_result {
+            let it = self
+                .matching_items(namespace, name, None)
+                .filter(move |(node, anno_key_id)| {
+                    if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
+                        re.is_match(val.as_ref())
+                    } else {
+                        false
+                    }
+                }).filter_map(move |(node, anno_key_id)| {
+                    Some(Match {
+                        node: *node,
+                        anno_key: anno_key_id,
+                    })
                 });
-
             return Box::new(it);
+        } else {
+            // if regular expression pattern is invalid return empty iterator
+            return Box::new(std::iter::empty());
         }
-        // if pattern is invalid return empty iterator
-        let empty_it = std::iter::empty::<Match>();
-        Box::new(empty_it)
     }
 }
 
 impl AnnoStorage<Edge> {
     pub fn exact_anno_search<'a>(
         &'a self,
-        namespace: Option<StringID>,
-        name: StringID,
-        value: Option<StringID>,
+        namespace: Option<String>,
+        name: String,
+        value: Option<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        let anno_ranges = self.anno_range_exact(namespace, name, value);
-        let it = anno_ranges
-            .into_iter()
-            .flat_map(move |r| self.by_anno.range(r))
-            .flat_map(|nodes| nodes.1.iter().zip(std::iter::repeat(nodes.0)))
-            .map(|m| Match {
-                node: m.0.source.clone(),
-                anno: m.1.clone(),
-            });
-        Box::new(it)
+        let it =
+            self.matching_items(namespace, name, value)
+                .filter_map(move |(edge, anno_key_id)| {
+                    Some(Match {
+                        node: edge.source.clone(),
+                        anno_key: anno_key_id,
+                    })
+                });
+        return Box::new(it);
     }
 }
 
+mod symboltable;
 #[cfg(test)]
 mod tests;

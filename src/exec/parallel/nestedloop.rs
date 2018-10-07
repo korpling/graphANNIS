@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use Match;
-use util;
 use super::super::{Desc, ExecutionNode};
 use operator::Operator;
 use std::iter::Peekable;
@@ -170,10 +169,7 @@ impl<'a> NestedLoop<'a> {
                 // filter by reflexivity if necessary
                 if op.is_reflexive()
                     || m_outer[outer_idx].node != m_inner[inner_idx].node
-                    || !util::check_annotation_key_equal(
-                        &m_outer[outer_idx].anno,
-                        &m_inner[inner_idx].anno,
-                    ) {
+                    || m_outer[outer_idx].anno_key != m_inner[inner_idx].anno_key {
                     let mut result = m_outer.clone();
                     result.append(&mut m_inner.clone());
 

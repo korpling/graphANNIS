@@ -1,7 +1,6 @@
 use super::*;
 use annostorage::AnnoStorage;
 use dfs::CycleSafeDFS;
-use stringstorage::StringStorage;
 use Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -69,7 +68,7 @@ impl EdgeContainer for AdjacencyListStorage {
     }
 
     fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
-        self.annos.get_all(edge)
+        self.annos.get_annotations_for_item(edge)
     }
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
@@ -137,7 +136,7 @@ impl GraphStorage for AdjacencyListStorage {
         return it.next().is_some();
     }
 
-    fn copy(&mut self, db: &GraphDB, orig: &EdgeContainer) {
+    fn copy(&mut self, _db: &GraphDB, orig: &EdgeContainer) {
         self.clear();
 
         for source in orig.source_nodes() {
@@ -151,7 +150,7 @@ impl GraphStorage for AdjacencyListStorage {
         }
 
         self.stats = orig.get_statistics().cloned();
-        self.annos.calculate_statistics(&db.strings);
+        self.annos.calculate_statistics();
     }
 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {
@@ -169,7 +168,7 @@ impl GraphStorage for AdjacencyListStorage {
         true
     }
 
-    fn calculate_statistics(&mut self, string_storage: &StringStorage) {
+    fn calculate_statistics(&mut self) {
         let mut stats = GraphStatistic {
             max_depth: 1,
             max_fan_out: 0,
@@ -181,7 +180,7 @@ impl GraphStorage for AdjacencyListStorage {
             dfs_visit_ratio: 0.0,
         };
 
-        self.annos.calculate_statistics(string_storage);
+        self.annos.calculate_statistics();
 
         let mut sum_fan_out = 0;
         let mut has_incoming_edge: BTreeSet<NodeID> = BTreeSet::new();
@@ -329,13 +328,13 @@ impl WriteableGraphStorage for AdjacencyListStorage {
                  ingoing.remove(idx);
              }
         }
-        let annos = self.annos.get_all(edge);
-        for a in annos {
-            self.annos.remove(edge, &a.key);
+        let annos = self.annos.get_annotations_for_item(edge);
+        for a in annos.into_iter() {
+            self.annos.remove_annotation_for_item(edge, &a.key);
         }
     }
-    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) {
-        self.annos.remove(edge, anno_key);
+    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key:     &AnnoKey) {
+        self.annos.remove_annotation_for_item(edge, anno_key);
     }
     fn delete_node(&mut self, node: &NodeID) {
         // find all both ingoing and outgoing edges

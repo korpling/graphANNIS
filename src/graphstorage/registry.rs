@@ -105,40 +105,41 @@ pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<G
 
     let impl_type = ImplTypes::from_str(impl_name)?;
 
-    match impl_type {
+    let gs : Arc<GraphStorage> = match impl_type {
         ImplTypes::AdjacencyListV1 => {
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input)?;
-            Ok(Arc::new(gs))
+            Arc::new(gs)
         },
         ImplTypes::PrePostOrderO32L32V1 => {
             let gs : PrePostOrderStorage<u32,u32> = bincode::deserialize_from(input)?;
-            Ok(Arc::new(gs))
+            Arc::new(gs)
         },
         ImplTypes::PrePostOrderO32L8V1 => {
             let gs : PrePostOrderStorage<u32,u8> = bincode::deserialize_from(input)?;
-            Ok(Arc::new(gs))
+            Arc::new(gs)
         },
         ImplTypes::PrePostOrderO16L32V1 => {
             let gs : PrePostOrderStorage<u16,u32> = bincode::deserialize_from(input)?;
-            Ok(Arc::new(gs))
+            Arc::new(gs)
         },
         ImplTypes::PrePostOrderO16L8V1 => {
             let gs : PrePostOrderStorage<u16,u8> = bincode::deserialize_from(input)?;
-            Ok(Arc::new(gs))
+            Arc::new(gs)
         },
         ImplTypes::LinearO32V1 => {
             let gs : LinearGraphStorage<u32> = bincode::deserialize_from(input)?;
-            Ok(Arc::new(gs))
+            Arc::new(gs)
         },
         ImplTypes::LinearO16V1 => {
             let gs : LinearGraphStorage<u16> = bincode::deserialize_from(input)?;
-            Ok(Arc::new(gs))
+            Arc::new(gs)
         },
         ImplTypes::LinearO8V1 => {
             let gs : LinearGraphStorage<u8> = bincode::deserialize_from(input)?;
-            Ok(Arc::new(gs))
+            Arc::new(gs)
         },
-    }
+    };
+    Ok(gs)
 }
 
 pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {

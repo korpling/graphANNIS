@@ -1,7 +1,7 @@
 use Match;
 use operator::*;
 
-use {Component, Annotation};
+use {Component, AnnoKeyID};
 use graphdb::GraphDB;
 use std;
 
@@ -29,7 +29,7 @@ impl std::fmt::Display for IdenticalNode {
 impl Operator for IdenticalNode {
     fn retrieve_matches(&self, lhs : &Match) -> Box<Iterator<Item = Match>> {
         return Box::new(std::iter::once(
-            Match{node: lhs.node.clone(), anno: Annotation::default()}
+            Match{node: lhs.node.clone(), anno_key: AnnoKeyID::default()}
             )
         );
     }

@@ -1,5 +1,5 @@
 use operator::{Operator, OperatorSpec};
-use {Annotation, Component, ComponentType, Match, NodeID};
+use {AnnoKeyID, Component, ComponentType, Match, NodeID};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;
 use operator::EstimationType;
@@ -112,7 +112,7 @@ impl Operator for  Overlap {
             result.insert(t);
         }
 
-        return Box::new(result.into_iter().map(|n| Match{node: n, anno : Annotation::default()}));
+        return Box::new(result.into_iter().map(|n| Match{node: n, anno_key : AnnoKeyID::default()}));
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {

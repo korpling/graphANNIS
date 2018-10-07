@@ -14,7 +14,6 @@ use graphannis::exec::nestedloop::NestedLoop;
 use graphannis::exec::indexjoin::IndexJoin;
 use graphannis::exec::parallel;
 use graphannis::aql::operators::precedence::{Precedence, PrecedenceSpec};
-use graphannis::stringstorage::StringStorage;
 
 fn load_corpus(name: &str) -> Option<GraphDB> {
     let data_dir = PathBuf::from(if let Ok(path) = env::var("ANNIS4_TEST_DATA") {
@@ -34,38 +33,37 @@ fn load_corpus(name: &str) -> Option<GraphDB> {
 #[test]
 fn node_annos() {
     if let Some(db) = load_corpus("pcc2") {
-        let annos: Vec<Annotation> = db.node_annos.get_all(&0);
+        let annos: Vec<Annotation> = db.node_annos.get_annotations_for_item(&0);
 
         assert_eq!(7, annos.len());
 
-        assert_eq!("annis", db.strings.str(annos[0].key.ns).unwrap());
-        assert_eq!("node_name", db.strings.str(annos[0].key.name).unwrap());
-        assert_eq!("pcc2/4282#tok_13", db.strings.str(annos[0].val).unwrap());
+        assert_eq!("annis", &annos[0].key.ns);
+        assert_eq!("node_name", &annos[0].key.name);
+        assert_eq!("pcc2/4282#tok_13", annos[0].val.as_ref());
 
-        assert_eq!("annis", db.strings.str(annos[1].key.ns).unwrap());
-        assert_eq!("tok", db.strings
-        .str(annos[1].key.name).unwrap());
-        assert_eq!("so", db.strings.str(annos[1].val).unwrap());
+        assert_eq!("annis", &annos[1].key.ns);
+        assert_eq!("tok", &annos[1].key.name);
+        assert_eq!("so", annos[1].val.as_ref());
 
-        assert_eq!("annis", db.strings.str(annos[2].key.ns).unwrap());
-        assert_eq!("node_type", db.strings.str(annos[2].key.name).unwrap());
-        assert_eq!("node", db.strings.str(annos[2].val).unwrap());
+        assert_eq!("annis", &annos[2].key.ns);
+        assert_eq!("node_type", &annos[2].key.name);
+        assert_eq!("node", annos[2].val.as_ref());
 
-        assert_eq!("annis", db.strings.str(annos[3].key.ns).unwrap());
-        assert_eq!("layer", db.strings.str(annos[3].key.name).unwrap());
-        assert_eq!("token_merged", db.strings.str(annos[3].val).unwrap());
+        assert_eq!("annis", &annos[3].key.ns);
+        assert_eq!("layer", &annos[3].key.name);
+        assert_eq!("token_merged", annos[3].val.as_ref());
 
-        assert_eq!("tiger", db.strings.str(annos[4].key.ns).unwrap());
-        assert_eq!("lemma", db.strings.str(annos[4].key.name).unwrap());
-        assert_eq!("so", db.strings.str(annos[4].val).unwrap());
+        assert_eq!("tiger", &annos[4].key.ns);
+        assert_eq!("lemma", &annos[4].key.name);
+        assert_eq!("so", annos[4].val.as_ref());
 
-        assert_eq!("tiger", db.strings.str(annos[5].key.ns).unwrap());
-        assert_eq!("morph", db.strings.str(annos[5].key.name).unwrap());
-        assert_eq!("--", db.strings.str(annos[5].val).unwrap());
+        assert_eq!("tiger", &annos[5].key.ns);
+        assert_eq!("morph",&annos[5].key.name);
+        assert_eq!("--", annos[5].val.as_ref());
 
-        assert_eq!("tiger", db.strings.str(annos[6].key.ns).unwrap());
-        assert_eq!("pos", db.strings.str(annos[6].key.name).unwrap());
-        assert_eq!("ADV", db.strings.str(annos[6].val).unwrap());
+        assert_eq!("tiger", &annos[6].key.ns);
+        assert_eq!("pos", &annos[6].key.name);
+        assert_eq!("ADV", annos[6].val.as_ref());
     }
 }
 
@@ -85,17 +83,17 @@ fn edges() {
             .unwrap()
             .get_edge_annos(&edge);
         assert_eq!(1, edge_annos.len());
-        assert_eq!("tiger", db.strings.str(edge_annos[0].key.ns).unwrap());
-        assert_eq!("func", db.strings.str(edge_annos[0].key.name).unwrap());
-        assert_eq!("OA", db.strings.str(edge_annos[0].val).unwrap());
+        assert_eq!("tiger", &edge_annos[0].key.ns);
+        assert_eq!("func", &edge_annos[0].key.name);
+        assert_eq!("OA", edge_annos[0].val.as_ref());
 
         let edge_annos = db.get_graphstorage(&edge_components[2])
             .unwrap()
             .get_edge_annos(&edge);
         assert_eq!(1, edge_annos.len());
-        assert_eq!("tiger", db.strings.str(edge_annos[0].key.ns).unwrap());
-        assert_eq!("func", db.strings.str(edge_annos[0].key.name).unwrap());
-        assert_eq!("OA", db.strings.str(edge_annos[0].val).unwrap());
+        assert_eq!("tiger", &edge_annos[0].key.ns);
+        assert_eq!("func", &edge_annos[0].key.name);
+        assert_eq!("OA", edge_annos[0].val.as_ref());
 
         let edge_annos = db.get_graphstorage(&edge_components[0])
             .unwrap()
@@ -208,9 +206,7 @@ fn index_join() {
             max_dist: 1,
         };
 
-
-        let anno_name = Arc::make_mut(&mut db.strings).add("pos");
-        let anno_val = Arc::make_mut(&mut db.strings).add("ADJA");
+        let anno_val = "ADJA".to_owned();
 
         // make sure to load all components
         for c in op_spec.necessary_components(&db) {
@@ -228,13 +224,20 @@ fn index_join() {
 
         let n1 = Box::new(n1);
 
+        let node_annos = db.node_annos.clone();
         let node_search_desc  = NodeSearchDesc {
-            cond: vec![Box::new(move |m : &Match, _ : &StringStorage|  {return m.anno.key.name == anno_name && m.anno.val == anno_val })],
-            qname: (None, Some(anno_name)),
+            cond: vec![Box::new(move |m : &Match|  {
+                if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                    return val == &anno_val
+                } else {
+                    return false;
+                }
+            })],
+            qname: (None, Some("pos".to_owned())),
             const_output: None,
         };
 
-        let join = IndexJoin::new(n1, 0, 1, 2, op, Arc::new(node_search_desc), db.node_annos.clone(), db.strings.clone(), None);
+        let join = IndexJoin::new(n1, 0, 1, 2, op, Arc::new(node_search_desc), db.node_annos.clone(), None);
 
         assert_eq!(3, join.count());
     }
@@ -251,9 +254,7 @@ fn parallel_index_join() {
             max_dist: 1,
         };
 
-
-        let anno_name = Arc::make_mut(&mut db.strings).add("pos");
-        let anno_val = Arc::make_mut(&mut db.strings).add("ADJA");
+        let anno_val = "ADJA".to_owned();
 
         // make sure to load all components
         for c in op_spec.necessary_components(&db) {
@@ -271,13 +272,20 @@ fn parallel_index_join() {
 
         let n1 = Box::new(n1);
 
+        let node_annos = db.node_annos.clone();
         let node_search_desc  = NodeSearchDesc {
-            cond: vec![Box::new(move |m : &Match, _ : &StringStorage|  {return m.anno.key.name == anno_name && m.anno.val == anno_val })],
-            qname: (None, Some(anno_name)),
+            cond: vec![Box::new(move |m : &Match|  {
+                if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                    return val == &anno_val
+                } else {
+                    return false;
+                } 
+            })],
+            qname: (None, Some("pos".to_owned())),
             const_output: None,
         };
 
-        let join = parallel::indexjoin::IndexJoin::new(n1, 0, 1, 2, op, Arc::new(node_search_desc), db.node_annos.clone(), db.strings.clone(), None);
+        let join = parallel::indexjoin::IndexJoin::new(n1, 0, 1, 2, op, Arc::new(node_search_desc), db.node_annos.clone(), None);
 
         assert_eq!(3, join.count());
     }

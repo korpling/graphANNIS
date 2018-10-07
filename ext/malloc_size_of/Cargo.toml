@@ -1,6 +1,6 @@
 [package]
 name = "graphannis-malloc_size_of"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["The Servo Project Developers", "Thomas Krause"]
 license = "MIT/Apache-2.0"
 description = "This is a copy from Servo (https://github.com/servo/servo/tree/master/components/malloc_size_of) with some non-used data structures removed and some added. Since the original is not published under crates.io yet, this fork is used to make it available as dependency to graphANNIS (https://crates.io/crates/graphannis)."

@@ -1,6 +1,7 @@
 /target
 /annis_history.txt
 /data
+/data_*
 /relannis
 /queries_*
 /annis_history.txt

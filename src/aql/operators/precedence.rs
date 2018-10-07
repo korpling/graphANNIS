@@ -1,5 +1,5 @@
 use operator::{Operator, OperatorSpec};
-use {Annotation, Component, ComponentType, Match};
+use {AnnoKeyID, Component, ComponentType, Match};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;
 use operator::EstimationType;
@@ -134,7 +134,7 @@ impl Operator for Precedence {
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
-            .map(|n| Match {node: n, anno: Annotation::default()})
+            .map(|n| Match {node: n, anno_key: AnnoKeyID::default()})
             .collect();
 
         return Box::new(result.into_iter());
@@ -254,7 +254,7 @@ impl Operator for InversePrecedence {
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
-            .map(|n| Match {node: n, anno: Annotation::default()})
+            .map(|n| Match {node: n, anno_key: AnnoKeyID::default()})
             .collect();
 
         return Box::new(result.into_iter());
