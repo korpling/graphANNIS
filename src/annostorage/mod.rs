@@ -440,48 +440,36 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     ) -> usize {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
-            Some(ns) => self.anno_key_sizes.range((
-                Included(AnnoKey {
-                    name: name.clone(),
-                    ns: ns.clone(),
-                }),
-                Included(AnnoKey { name, ns }),
-            )),
-            None => self.anno_key_sizes.range(
-                AnnoKey {
-                    name: name.clone(),
-                    ns: String::default(),
-                }..AnnoKey {
-                    name,
-                    ns: std::char::MAX.to_string(),
-                },
-            ),
+            Some(ns) => vec![AnnoKey {name, ns}],
+            None => self.get_qnames(&name),
         };
-
+        
         let mut universe_size: usize = 0;
         let mut sum_histogram_buckets: usize = 0;
         let mut count_matches: usize = 0;
 
         // guess for each fully qualified annotation key and return the sum of all guesses
-        for (anno_key, anno_size) in qualified_keys {
-            universe_size += *anno_size;
+        for anno_key in qualified_keys.into_iter() {
+            if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
+                universe_size += *anno_size;
 
-            if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
-                if let Some(histo) = self.histogram_bounds.get(&anno_key) {
-                    // find the range in which the value is contained
+                if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
+                    if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                        // find the range in which the value is contained
 
-                    // we need to make sure the histogram is not empty -> should have at least two bounds
-                    if histo.len() >= 2 {
-                        sum_histogram_buckets += histo.len() - 1;
+                        // we need to make sure the histogram is not empty -> should have at least two bounds
+                        if histo.len() >= 2 {
+                            sum_histogram_buckets += histo.len() - 1;
 
-                        for i in 0..histo.len() - 1 {
-                            let bucket_begin = &histo[i];
-                            let bucket_end = &histo[i + 1];
-                            // check if the range overlaps with the search range
-                            if bucket_begin <= &String::from(upper_val)
-                                && &String::from(lower_val) <= bucket_end
-                            {
-                                count_matches += 1;
+                            for i in 0..histo.len() - 1 {
+                                let bucket_begin = &histo[i];
+                                let bucket_end = &histo[i + 1];
+                                // check if the range overlaps with the search range
+                                if bucket_begin <= &String::from(upper_val)
+                                    && &String::from(lower_val) <= bucket_end
+                                {
+                                    count_matches += 1;
+                                }
                             }
                         }
                     }
@@ -531,11 +519,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         // collect statistics for each annotation key separatly
         for (anno_key, _num_of_annos) in &self.anno_key_sizes {
             if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
-                let hist = self
-                    .histogram_bounds
-                    .entry(anno_key.clone())
-                    .or_insert(std::vec::Vec::new());
-
                 // sample a maximal number of annotation values
                 let mut rng = rand::thread_rng();
                 if let Some(values_for_key) = self.by_anno.get(&anno_key) {
@@ -553,11 +536,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     ).into_iter()
                     .collect();
 
-                    let mut sampled_anno_values: Vec<usize> = sampled_anno_values
+                    let mut sampled_anno_values: Vec<Arc<String>> = sampled_anno_values
                         .into_iter()
                         .enumerate()
                         .filter(|x| sampled_anno_indexes.contains(&x.0))
-                        .map(|x| x.1)
+                        .filter_map(|x| self.anno_values.get_value(x.1))
                         .collect();
                     // create uniformly distributed histogram bounds
                     sampled_anno_values.sort();
@@ -569,6 +552,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                         max_histogram_buckets + 1
                     };
 
+                    let hist = self
+                        .histogram_bounds
+                        .entry(anno_key.clone())
+                        .or_insert(std::vec::Vec::new());
+
                     if num_hist_bounds >= 2 {
                         hist.resize(num_hist_bounds, String::from(""));
 
@@ -579,12 +567,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                         let mut pos = 0;
                         let mut pos_fraction = 0;
                         for i in 0..num_hist_bounds {
-                            hist[i] = self
-                                .anno_values
-                                .get_value(sampled_anno_values[pos])
-                                .unwrap_or_default()
-                                .as_ref()
-                                .clone();
+                            hist[i] = sampled_anno_values[pos].as_ref().clone();
                             pos += delta;
                             pos_fraction += delta_fraction;
 
