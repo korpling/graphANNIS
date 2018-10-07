@@ -15,7 +15,6 @@ use std::collections::BTreeMap;
 use std::collections::Bound::*;
 use std::hash::Hash;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
 struct SparseAnnotation {
@@ -66,7 +65,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let key = self.anno_keys.get_value(orig.key)?;
         let val = self.anno_values.get_value(orig.val)?;
 
-        Some(Annotation { key: Arc::from(key.clone()), val: Arc::from(val.clone()) })
+        Some(Annotation { key: key.clone(), val: val.clone()})
     }
 
     fn remove_element_from_by_anno(&mut self, anno: &SparseAnnotation, item: &T) {
@@ -150,7 +149,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
             let anno_key_entry = self
                 .anno_key_sizes
-                .entry(orig_anno_key.as_ref().clone())
+                .entry(orig_anno_key.clone())
                 .or_insert(0);
             *anno_key_entry = *anno_key_entry + 1;
         }

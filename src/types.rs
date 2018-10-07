@@ -2,7 +2,6 @@ use num::{Num,FromPrimitive, Bounded, ToPrimitive};
 use std::string::String;
 use std::fmt;
 use std::ops::AddAssign;
-use std::sync::Arc;
 use std;
 
 use malloc_size_of::MallocSizeOf;
@@ -19,8 +18,8 @@ pub struct AnnoKey {
 #[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
 #[repr(C)]
 pub struct Annotation {
-    pub key: Arc<AnnoKey>,
-    pub val: Arc<String>,
+    pub key: AnnoKey,
+    pub val: String,
 }
 
 pub type AnnoKeyID = usize;

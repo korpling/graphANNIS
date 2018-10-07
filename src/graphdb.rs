@@ -305,12 +305,12 @@ impl GraphDB {
                                 0
                             };
                         let new_anno_name = Annotation {
-                            key: Arc::from(self.get_node_name_key()),
-                            val: Arc::from(node_name),
+                            key: self.get_node_name_key(),
+                            val: node_name,
                         };
                         let new_anno_type = Annotation {
-                            key: Arc::from(self.get_node_type_key()),
-                            val: Arc::from(node_type),
+                            key: self.get_node_type_key(),
+                            val: node_type,
                         };
 
                         // add the new node (with minimum labels)
@@ -342,11 +342,11 @@ impl GraphDB {
                 } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         let anno = Annotation {
-                            key: Arc::from(AnnoKey {
+                            key: AnnoKey {
                                 ns: anno_ns,
                                 name: anno_name,
-                            }),
-                            val: Arc::from(anno_value),
+                            },
+                            val: anno_value,
                         };
                         Arc::make_mut(&mut self.node_annos).insert(existing_node_id, anno);
                     }
@@ -434,8 +434,8 @@ impl GraphDB {
                             let e = Edge { source, target };
                             if gs.is_connected(&source, &target, 1, 1) {
                                 let anno = Annotation {
-                                    key: Arc::from(AnnoKey { ns: anno_ns, name: anno_name }),
-                                    val: Arc::from(anno_value),
+                                    key: AnnoKey { ns: anno_ns, name: anno_name },
+                                    val: anno_value,
                                 };
                                 gs.add_edge_annotation(e, anno);
                             }
@@ -867,8 +867,8 @@ mod tests {
                 target: 1,
             },
             Annotation {
-                key: Arc::from(anno_key),
-                val: Arc::from(anno_val),
+                key: anno_key,
+                val: anno_val,
             },
         );
     }

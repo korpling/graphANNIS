@@ -56,7 +56,8 @@ where
         }
     }
 
-    pub fn insert(&mut self, val: Arc<T>) -> usize {
+    pub fn insert(&mut self, val: T) -> usize {
+        let val = Arc::from(val);
         {
             if let Some(existing_idx) = self.by_value.get(&val) {
                 return *existing_idx;
@@ -128,9 +129,9 @@ mod tests {
     #[test]
     fn insert_and_get() {
         let mut s = SymbolTable::<String>::new();
-        let id1 = s.insert(Arc::from("abc".to_owned()));
-        let id2 = s.insert(Arc::from("def".to_owned()));
-        let id3 = s.insert(Arc::from("def".to_owned()));
+        let id1 = s.insert("abc".to_owned());
+        let id2 = s.insert("def".to_owned());
+        let id3 = s.insert("def".to_owned());
 
         assert_eq!(2, s.len());
 
@@ -151,11 +152,11 @@ mod tests {
     fn insert_clear_insert_get() {
         let mut s = SymbolTable::<String>::new();
 
-        s.insert(Arc::from("abc".to_owned()));
+        s.insert("abc".to_owned());
         assert_eq!(1, s.len());
         s.clear();
         assert_eq!(0, s.len());
-        s.insert(Arc::from("abc".to_owned()));
+        s.insert("abc".to_owned());
         assert_eq!(1, s.len());
     }
 }

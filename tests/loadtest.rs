@@ -39,31 +39,31 @@ fn node_annos() {
 
         assert_eq!("annis", &annos[0].key.ns);
         assert_eq!("node_name", &annos[0].key.name);
-        assert_eq!("pcc2/4282#tok_13", annos[0].val.as_ref());
+        assert_eq!("pcc2/4282#tok_13", annos[0].val);
 
         assert_eq!("annis", &annos[1].key.ns);
         assert_eq!("tok", &annos[1].key.name);
-        assert_eq!("so", annos[1].val.as_ref());
+        assert_eq!("so", annos[1].val);
 
         assert_eq!("annis", &annos[2].key.ns);
         assert_eq!("node_type", &annos[2].key.name);
-        assert_eq!("node", annos[2].val.as_ref());
+        assert_eq!("node", annos[2].val);
 
         assert_eq!("annis", &annos[3].key.ns);
         assert_eq!("layer", &annos[3].key.name);
-        assert_eq!("token_merged", annos[3].val.as_ref());
+        assert_eq!("token_merged", annos[3].val);
 
         assert_eq!("tiger", &annos[4].key.ns);
         assert_eq!("lemma", &annos[4].key.name);
-        assert_eq!("so", annos[4].val.as_ref());
+        assert_eq!("so", annos[4].val);
 
         assert_eq!("tiger", &annos[5].key.ns);
         assert_eq!("morph",&annos[5].key.name);
-        assert_eq!("--", annos[5].val.as_ref());
+        assert_eq!("--", annos[5].val);
 
         assert_eq!("tiger", &annos[6].key.ns);
         assert_eq!("pos", &annos[6].key.name);
-        assert_eq!("ADV", annos[6].val.as_ref());
+        assert_eq!("ADV", annos[6].val);
     }
 }
 
@@ -85,7 +85,7 @@ fn edges() {
         assert_eq!(1, edge_annos.len());
         assert_eq!("tiger", &edge_annos[0].key.ns);
         assert_eq!("func", &edge_annos[0].key.name);
-        assert_eq!("OA", edge_annos[0].val.as_ref());
+        assert_eq!("OA", edge_annos[0].val);
 
         let edge_annos = db.get_graphstorage(&edge_components[2])
             .unwrap()
@@ -93,7 +93,7 @@ fn edges() {
         assert_eq!(1, edge_annos.len());
         assert_eq!("tiger", &edge_annos[0].key.ns);
         assert_eq!("func", &edge_annos[0].key.name);
-        assert_eq!("OA", edge_annos[0].val.as_ref());
+        assert_eq!("OA", edge_annos[0].val);
 
         let edge_annos = db.get_graphstorage(&edge_components[0])
             .unwrap()
