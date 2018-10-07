@@ -373,12 +373,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
         let value = value.and_then(|v| self.anno_values.get_symbol(&v));
 
-        let values: Vec<(usize, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        let values: Vec<(Arc<AnnoKey>, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
-            .filter_map(|k| {
-                let k = self.anno_keys.get_symbol(&k)?;
-                if let Some(values_for_key) = self.by_anno.get(&k) {
-                    Some((k.clone(), values_for_key))
+            .filter_map(|key| {
+                let key_id = self.anno_keys.get_symbol(&key)?;
+                if let Some(values_for_key) = self.by_anno.get(&key_id) {
+                    Some((Arc::from(key), values_for_key))
                 } else {
                     None
                 }
@@ -389,10 +389,10 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             .into_iter()
             // find the items with the correct value
             .filter_map(move |(key, values)| if let Some(items) = values.get(&value) {
-                let sparse_anno = SparseAnnotation {
-                    key, val: value.clone(),
+                let anno = Annotation {
+                    key: key,
+                    val: self.anno_values.get_value(value)?,
                 };
-                let anno = self.create_annotation_from_sparse(&sparse_anno)?;
                 Some((items, anno))
             } else {
                 None
@@ -407,13 +407,15 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             .flat_map(|(key, values)| values.iter().zip(std::iter::repeat(key.clone())))
             // create annotations from all flattened values
             .flat_map(move | ((val, items), key) | {
-                let sparse_anno = SparseAnnotation {
-                    key, val: val.clone(),
-                };
-                let anno = if let Some(anno) = self.create_annotation_from_sparse(&sparse_anno) {
-                    anno
+                let val = if let Some(val) = self.anno_values.get_value(*val) {
+                    val
                 } else {
-                    panic!("Could not create annotation from sparse annotation {:?}", sparse_anno);
+                    panic!("Could not get value for internal symbold with ID {}", val);
+                };
+
+                let anno = Annotation {
+                    key,
+                    val,
                 };
                 items.iter().zip(std::iter::repeat(anno))
             });
