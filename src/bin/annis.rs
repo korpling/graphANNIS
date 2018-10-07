@@ -26,8 +26,8 @@ use std::collections::BTreeSet;
 use std::iter::FromIterator;
 
 use prettytable::Table;
-use prettytable::row::Row;
-use prettytable::cell::Cell;
+use prettytable::Row;
+use prettytable::Cell;
 
 struct CommandCompleter {
     known_commands: BTreeSet<String>,
