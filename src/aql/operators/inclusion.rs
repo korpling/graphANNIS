@@ -1,5 +1,5 @@
 use operator::{Operator, OperatorSpec};
-use {Annotation, Component, ComponentType, Match};
+use {AnnoKey, Component, ComponentType, Match};
 use graphdb::GraphDB;
 use graphstorage::GraphStorage;
 use operator::EstimationType;
@@ -132,7 +132,7 @@ impl Operator for Inclusion {
                     })
                     .map(|n| Match {
                         node: n,
-                        anno: Annotation::default(),
+                        anno_key: Arc::from(AnnoKey::default()),
                     })
                     .collect();
                 return Box::new(result.into_iter());

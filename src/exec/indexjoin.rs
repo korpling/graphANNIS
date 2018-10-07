@@ -1,6 +1,6 @@
 use annostorage::AnnoStorage;
 use std::sync::Arc;
-use {AnnoKey, Annotation, Match, NodeID};
+use {AnnoKey, Match, NodeID};
 use operator::{EstimationType, Operator};
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use std;
@@ -97,13 +97,10 @@ impl<'a> IndexJoin<'a> {
                     return Some(Box::new(it_nodes
                         .filter_map(move |match_node| {
                             if let Some(key_id) = key_id {
-                                if let Some(val) = node_annos.get_by_id(&match_node.node, key_id) {
+                                if node_annos.get_by_id(&match_node.node, key_id).is_some() {
                                     Some(Match {
                                         node: match_node.node,
-                                        anno: Annotation {
-                                            key: key.clone(),
-                                            val: val.clone(),
-                                        },
+                                        anno_key: key.clone(),
                                     })
                                 } else {
                                     // this annotation was not found for this node, remove it from iterator
@@ -126,13 +123,10 @@ impl<'a> IndexJoin<'a> {
                             let mut matches: Vec<Match> = Vec::new();
                             matches.reserve(keys.len());
                             for (key, key_id) in keys.clone().into_iter() {
-                                if let Some(val) = node_annos.get_by_id(&match_node.node, key_id) {
+                                if node_annos.get_by_id(&match_node.node, key_id).is_some() {
                                     matches.push(Match {
                                         node: match_node.node,
-                                        anno: Annotation {
-                                            key: Arc::from(key),
-                                            val: val.clone(),
-                                        },
+                                        anno_key: Arc::from(key),
                                     })
                                 }
                             }
@@ -144,13 +138,13 @@ impl<'a> IndexJoin<'a> {
                 // return all annotations for each node
                 return Some(Box::new(it_nodes
                     .flat_map(move |match_node| {
-                        let annos = node_annos.get_all(&match_node.node);
+                        let anno_keys = node_annos.get_all_keys(&match_node.node);
                         let mut matches: Vec<Match> = Vec::new();
-                        matches.reserve(annos.len());
-                        for a in annos {
+                        matches.reserve(anno_keys.len());
+                        for anno_key in anno_keys.into_iter() {
                             matches.push(Match {
                                 node: match_node.node,
-                                anno: a,
+                                anno_key,
                             });
                         }
                         matches.into_iter()
@@ -203,12 +197,12 @@ impl<'a> Iterator for IndexJoin<'a> {
 
                         // replace the annotation with a constant value if needed
                         if let Some(ref const_anno) = self.node_search_desc.const_output {
-                            m_rhs.anno = const_anno.clone();
+                            m_rhs.anno_key = const_anno.clone();
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if self.op.is_reflexive() || m_lhs[self.lhs_idx].node != m_rhs.node
-                            || m_lhs[self.lhs_idx].anno.key != m_rhs.anno.key
+                            || m_lhs[self.lhs_idx].anno_key != m_rhs.anno_key
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();

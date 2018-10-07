@@ -923,7 +923,7 @@ impl CorpusStorage {
                     for singlematch in m.iter() {
                         let mut node_desc = String::new();
 
-                        let anno_key: &AnnoKey = &singlematch.anno.key;
+                        let anno_key: &AnnoKey = &singlematch.anno_key;
                         if &anno_key.ns != "annis" {
                             if !anno_key.ns.is_empty() {
                                 node_desc.push_str(&anno_key.ns);
@@ -1279,7 +1279,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 let node_annos: &AnnoStorage<NodeID> = &db.node_annos;
-                for key in node_annos.get_all_keys() {
+                for key in node_annos.annotation_keys() {
                     if list_values {
                         if only_most_frequent_values {
                             // get the first value
@@ -1326,7 +1326,7 @@ impl CorpusStorage {
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
                     let edge_annos: &AnnoStorage<Edge> = gs.as_edgecontainer().get_anno_storage();
-                    for key in edge_annos.get_all_keys() {
+                    for key in edge_annos.annotation_keys() {
                         if list_values {
                             if only_most_frequent_values {
                                 // get the first value

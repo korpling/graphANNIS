@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
-use {AnnoKey, Annotation, Match, NodeID};
+use {AnnoKey, Match, NodeID};
 
 const MAX_BUFFER_SIZE: usize = 512;
 
@@ -132,12 +132,12 @@ impl<'a> IndexJoin<'a> {
 
                         // replace the annotation with a constant value if needed
                         if let Some(ref const_anno) = node_search_desc.const_output {
-                            m_rhs.anno = const_anno.clone();
+                            m_rhs.anno_key = const_anno.clone();
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
-                            || m_lhs[lhs_idx].anno.key !=  m_rhs.anno.key
+                            || m_lhs[lhs_idx].anno_key !=  m_rhs.anno_key
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();
@@ -190,13 +190,10 @@ fn next_candidates(
 
             for match_node in it_nodes {
                 if let Some(key_id) = key_id {
-                    if let Some(val) = node_annos.get_by_id(&match_node.node, key_id) {
+                    if let Some(_) = node_annos.get_by_id(&match_node.node, key_id) {
                         matches.push(Match {
                             node: match_node.node,
-                            anno: Annotation {
-                                key: key.clone(),
-                                val: val.clone(),
-                            },
+                            anno_key: key.clone(),
                         });
                     }
                 }
@@ -212,13 +209,10 @@ fn next_candidates(
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
                 for (key, key_id) in keys.clone().into_iter() {
-                    if let Some(val) = node_annos.get_by_id(&match_node.node, key_id) {
+                    if let Some(_) = node_annos.get_by_id(&match_node.node, key_id) {
                         matches.push(Match {
                             node: match_node.node,
-                            anno: Annotation {
-                                key: Arc::from(key),
-                                val: val.clone(),
-                            },
+                            anno_key: Arc::from(key),
                         })
                     }
                 }
@@ -229,11 +223,11 @@ fn next_candidates(
         // return all annotations for each node
         let mut matches: Vec<Match> = Vec::new();
         for match_node in it_nodes {
-            let annos = node_annos.get_all(&match_node.node);
-            for a in annos {
+            let all_keys = node_annos.get_all_keys(&match_node.node);
+            for anno_key in all_keys.into_iter() {
                 matches.push(Match {
                     node: match_node.node,
-                    anno: a,
+                    anno_key: Arc::from(anno_key),
                 });
             }
         }

@@ -3,7 +3,7 @@ use annostorage::AnnoStorage;
 use graphdb::{GraphDB, ANNIS_NS};
 use operator::EdgeAnnoSearchSpec;
 use types::Edge;
-use {Annotation, Component, ComponentType, LineColumnRange, Match, NodeID};
+use {Component, ComponentType, LineColumnRange, Match, NodeID};
 
 use regex;
 use util;
@@ -211,8 +211,13 @@ impl<'a> NodeSearch<'a> {
                     .exact_anno_search(Some(type_key.ns), type_key.name, Some("node".to_owned()))
                     .map(move |n| vec![n]);
 
+                let node_annos = db.node_annos.clone();
                 let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
-                    return m.anno.val.as_ref() == "node";
+                    if let Some(val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                        return val.as_ref() == "node";
+                    } else {
+                        return false;
+                    }
                 });
 
                 let type_key = db.get_node_type_key();
@@ -225,10 +230,7 @@ impl<'a> NodeSearch<'a> {
                 );
                 let est_output = std::cmp::max(1, est_output);
 
-                let const_output = Some(Annotation {
-                    key: Arc::from(db.get_node_type_key()),
-                    val: Arc::from("node".to_owned()),
-                });
+                let const_output = Some(Arc::from(db.get_node_type_key()));
 
                 Ok(NodeSearch {
                     it: Box::new(it),
@@ -272,10 +274,7 @@ impl<'a> NodeSearch<'a> {
         };
 
         let const_output = if is_meta {
-            Some(Annotation {
-                key: Arc::from(db.get_node_type_key()),
-                val: Arc::from("corpus".to_owned()),
-            })
+            Some(Arc::from(db.get_node_type_key()))
         } else {
             None
         };
@@ -288,14 +287,14 @@ impl<'a> NodeSearch<'a> {
             if is_unique {
                 Box::new(base_it.map(move |m| Match {
                     node: m.node,
-                    anno: const_output.clone(),
+                    anno_key: const_output.clone(),
                 }))
             } else {
                 Box::new(
                     base_it
                         .map(move |m| Match {
                             node: m.node,
-                            anno: const_output.clone(),
+                            anno_key: const_output.clone(),
                         }).unique(),
                 )
             }
@@ -335,8 +334,13 @@ impl<'a> NodeSearch<'a> {
             let re = regex::Regex::new(&full_match_pattern);
             match re {
                 Ok(re) => {
+                    let node_annos = db.node_annos.clone();
                     filters.push(Box::new(move |m| {
-                        return re.is_match(&m.anno.val);
+                        if let Some(val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                            return re.is_match(val.as_ref());
+                        } else {
+                            return false;
+                        }
                     }));
                 }
                 Err(e) => bail!(ErrorKind::AQLSemanticError(
@@ -346,8 +350,13 @@ impl<'a> NodeSearch<'a> {
             }
         } else if val.is_some() {
             let val = val.unwrap();
+            let node_annos = db.node_annos.clone();
             filters.push(Box::new(move |m| {
-                return m.anno.val.as_ref() == &val;
+                if let Some(anno_val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                    return anno_val.as_ref() == &val;
+                } else {
+                    return false;
+                }
             }));
         };
         return Ok(NodeSearch {
@@ -375,10 +384,7 @@ impl<'a> NodeSearch<'a> {
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
-        let any_anno = Annotation {
-            key: Arc::from(db.get_node_type_key()),
-            val: Arc::from("".to_owned()),
-        };
+        let any_anno_key = Arc::from(db.get_node_type_key());
 
         let it_base: Box<Iterator<Item = Match>> = if let Some(v) = val.clone() {
             let it = if match_regex {
@@ -421,7 +427,7 @@ impl<'a> NodeSearch<'a> {
         let it = it_base.map(move |n| {
             vec![Match {
                 node: n.node,
-                anno: any_anno.clone(),
+                anno_key: any_anno_key.clone(),
             }]
         });
         // create filter functions
@@ -431,9 +437,14 @@ impl<'a> NodeSearch<'a> {
             if match_regex {
                 let full_match_pattern = util::regex_full_match(&v);
                 let re = regex::Regex::new(&full_match_pattern);
+                let node_annos = db.node_annos.clone();
                 match re {
                     Ok(re) => filters.push(Box::new(move |m| {
-                        return re.is_match(&m.anno.val);
+                        if let Some(val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                            return re.is_match(val.as_ref());
+                        } else {
+                            return false;
+                        }                        
                     })),
                     Err(e) => bail!(ErrorKind::AQLSemanticError(
                         format!("/{}/ -> {}", v, e),
@@ -441,8 +452,14 @@ impl<'a> NodeSearch<'a> {
                     )),
                 };
             } else {
+                let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
-                    return m.anno.val.as_ref() == &v;
+                    if let Some(anno_val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                        return anno_val.as_ref() == &v;
+                    } else {
+                        return false;
+                    }
+                    
                 }));
             };
         };
@@ -486,10 +503,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let const_output = Some(Annotation {
-            key: Arc::from(db.get_node_type_key()),
-            val: Arc::from("node".to_owned()),
-        });
+        let const_output = Arc::from(db.get_node_type_key());
 
         return Ok(NodeSearch {
             it: Box::new(it),
@@ -501,7 +515,7 @@ impl<'a> NodeSearch<'a> {
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (Some(tok_key.ns), Some(tok_key.name)),
                 cond: filters,
-                const_output: const_output,
+                const_output: Some(const_output),
             }),
         });
     }
@@ -549,7 +563,7 @@ impl<'a> NodeSearch<'a> {
                         node_search_desc.qname.0.clone(),
                         node_search_desc.qname.1.clone(),
                     ).into_iter()
-                    .map(move |anno| Match { node, anno })
+                    .map(move |anno_key| Match { node, anno_key })
             }).filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates
                 for cond in node_search_desc_2.cond.iter() {

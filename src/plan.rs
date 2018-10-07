@@ -85,7 +85,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                 n = self.plans[self.current_plan].next();
                 if let Some(ref res) = n {
                     // check if we already outputted this result
-                    let key : Vec<(NodeID, Arc<AnnoKey>)> = res.iter().map(|m : &Match|(m.node, m.anno.key.clone())).collect();
+                    let key : Vec<(NodeID, Arc<AnnoKey>)> = res.iter().map(|m : &Match|(m.node, m.anno_key.clone())).collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
                         break;

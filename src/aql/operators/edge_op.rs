@@ -5,7 +5,7 @@ use operator::{EdgeAnnoSearchSpec, EstimationType, Operator, OperatorSpec};
 use std;
 use std::collections::VecDeque;
 use std::sync::Arc;
-use {AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
+use {AnnoKey, Component, ComponentType, Edge, Match, NodeID};
 
 #[derive(Clone, Debug)]
 struct BaseEdgeOpSpec {
@@ -143,7 +143,7 @@ impl Operator for BaseEdgeOp {
                         )
                     }).map(|n| Match {
                         node: n,
-                        anno: Annotation::default(),
+                        anno_key: Arc::from(AnnoKey::default()),
                     }).collect()
             } else {
                 self.gs[0]
@@ -158,7 +158,7 @@ impl Operator for BaseEdgeOp {
                         )
                     }).map(|n| Match {
                         node: n,
-                        anno: Annotation::default(),
+                        anno_key: Arc::from(AnnoKey::default()),
                     }).collect()
             };
             return Box::new(result.into_iter());
@@ -181,7 +181,7 @@ impl Operator for BaseEdgeOp {
                                 )
                             }).map(|n| Match {
                                 node: n,
-                                anno: Annotation::default(),
+                                anno_key: Arc::from(AnnoKey::default()),
                             })
                     }).collect()
             } else {
@@ -202,7 +202,7 @@ impl Operator for BaseEdgeOp {
                                 )
                             }).map(|n| Match {
                                 node: n,
-                                anno: Annotation::default(),
+                                anno_key: Arc::from(AnnoKey::default()),
                             })
                     }).collect()
             };

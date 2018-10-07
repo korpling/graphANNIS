@@ -237,7 +237,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 
     pub fn get_by_id(&self, item: &T, key_id: usize) -> Option<Arc<String>> {
-        
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
             if let Ok(idx) = idx {
@@ -252,38 +251,51 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         item: &T,
         ns: Option<String>,
         name: Option<String>,
-    ) -> Vec<Annotation> {
+    ) -> Vec<Arc<AnnoKey>> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
                 let key = AnnoKey { ns, name };
-                let res = self.get_by_key(item, &key);
-                if let Some(val) = res {
-                    return vec![Annotation {
-                        key: Arc::from(key),
-                        val: val.clone(),
-                    }];
+                if self.get_by_key(item, &key).is_some() {
+                    return vec![Arc::from(key)];
                 } else {
                     return vec![];
                 }
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<Annotation> = self
+                let res: Vec<Arc<AnnoKey>> = self
                     .get_qnames(&name)
                     .into_iter()
                     .filter_map(|key| {
-                        self.get_by_key(item, &key).map(|val| Annotation {
-                            key: Arc::from(key),
-                            val: val.clone(),
-                        })
+                        self.get_by_key(item, &key).and_then(|_| Some(Arc::from(key)))
                     }).collect();
                 return res;
             }
         } else {
             // no annotation name given, return all
-            return self.get_all(item);
+            if let Some(annos) = self.by_container.get(item) {
+                return annos.iter().filter_map(|sparse_anno| self.anno_keys.get_value(sparse_anno.key)).collect();
+            } else {
+                return vec![];
+            }
         }
     }
+
+    /// Get all the annotation keys of a node
+    pub fn get_all_keys(&self, item: &T) -> Vec<Arc<AnnoKey>> {
+        if let Some(all_annos) = self.by_container.get(item) {
+            let mut result: Vec<Arc<AnnoKey>> = Vec::with_capacity(all_annos.len());
+            for a in all_annos.iter() {
+                if let Some(key) = self.anno_keys.get_value(a.key) {
+                    result.push(key);
+                }
+            }
+            return result;
+        }
+        // return empty result if not found
+        return Vec::new();
+    }
+
 
     pub fn get_all(&self, item: &T) -> Vec<Annotation> {
         if let Some(all_annos) = self.by_container.get(item) {
@@ -328,7 +340,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 
     /// Get all the annotation keys which are part of this annotation storage
-    pub fn get_all_keys(&self) -> Vec<AnnoKey> {
+    pub fn annotation_keys(&self) -> Vec<AnnoKey> {
         return self.anno_key_sizes.keys().cloned().collect();
     }
 
@@ -364,7 +376,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         namespace: Option<String>,
         name: String,
         value: Option<String>,
-    ) -> Box<Iterator<Item = (&T, Annotation)> + 'a> {
+    ) -> Box<Iterator<Item = (&T, usize)> + 'a> {
         let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
             vec![AnnoKey { ns, name }]
         } else {
@@ -373,12 +385,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
         let value = value.and_then(|v| self.anno_values.get_symbol(&v));
 
-        let values: Vec<(Arc<AnnoKey>, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        let values: Vec<(usize, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
                 if let Some(values_for_key) = self.by_anno.get(&key_id) {
-                    Some((Arc::from(key), values_for_key))
+                    Some((key_id, values_for_key))
                 } else {
                     None
                 }
@@ -388,36 +400,22 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             let it = values
             .into_iter()
             // find the items with the correct value
-            .filter_map(move |(key, values)| if let Some(items) = values.get(&value) {
-                let anno = Annotation {
-                    key: key,
-                    val: self.anno_values.get_value(value)?,
-                };
-                Some((items, anno))
+            .filter_map(move |(key_id, values)| if let Some(items) = values.get(&value) {
+                Some((items, key_id))
             } else {
                 None
             })
             // flatten the hash set of all items, returns all items for the condition
-            .flat_map(|(items, anno)| items.iter().zip(std::iter::repeat(anno.clone())));
+            .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
             return Box::new(it);
         } else {
             let it = values
             .into_iter()
             // flatten the hash set of all items, returns all items for the condition
-            .flat_map(|(key, values)| values.iter().zip(std::iter::repeat(key.clone())))
+            .flat_map(|(key_id, values)| values.iter().zip(std::iter::repeat(key_id)))
             // create annotations from all flattened values
-            .flat_map(move | ((val, items), key) | {
-                let val = if let Some(val) = self.anno_values.get_value(*val) {
-                    val
-                } else {
-                    panic!("Could not get value for internal symbold with ID {}", val);
-                };
-
-                let anno = Annotation {
-                    key,
-                    val,
-                };
-                items.iter().zip(std::iter::repeat(anno))
+            .flat_map(move | ((_, items), key_id) | {
+                items.iter().zip(std::iter::repeat(key_id))
             });
             return Box::new(it);
         }
@@ -458,10 +456,10 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     ) -> usize {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
-            Some(ns) => vec![AnnoKey {name, ns}],
+            Some(ns) => vec![AnnoKey { name, ns }],
             None => self.get_qnames(&name),
         };
-        
+
         let mut universe_size: usize = 0;
         let mut sum_histogram_buckets: usize = 0;
         let mut count_matches: usize = 0;
@@ -638,7 +636,10 @@ impl AnnoStorage<NodeID> {
     ) -> Box<Iterator<Item = Match> + 'a> {
         let it = self
             .matching_items(namespace, name, value)
-            .map(|(node, anno)| Match { node: *node, anno });
+            .filter_map(move |(node, anno_key_id)| Some(Match {
+                node: *node,
+                anno_key: self.anno_keys.get_value(anno_key_id)?,
+            }));
         return Box::new(it);
     }
 
@@ -653,11 +654,16 @@ impl AnnoStorage<NodeID> {
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .filter(move |(_node, anno)| re.is_match(&anno.val))
-                .map(|(node, anno)| Match {
+                .filter(move |(node, anno_key_id)| {
+                    if let Some(val) = self.get_by_id(node, *anno_key_id) {
+                        re.is_match(val.as_ref())
+                    } else {
+                        false
+                    }
+                }).filter_map(move |(node, anno_key_id)| Some(Match {
                     node: *node,
-                    anno: anno,
-                });
+                    anno_key: self.anno_keys.get_value(anno_key_id)?,
+                }));
             return Box::new(it);
         } else {
             // if regular expression pattern is invalid return empty iterator
@@ -675,10 +681,10 @@ impl AnnoStorage<Edge> {
     ) -> Box<Iterator<Item = Match> + 'a> {
         let it = self
             .matching_items(namespace, name, value)
-            .map(|(edge, anno)| Match {
+            .filter_map(move |(edge, anno_key_id)| Some(Match {
                 node: edge.source.clone(),
-                anno,
-            });
+                anno_key: self.anno_keys.get_value(anno_key_id)?,
+            }));
         return Box::new(it);
     }
 }

@@ -226,8 +226,15 @@ fn index_join() {
 
         let n1 = Box::new(n1);
 
+        let node_annos = db.node_annos.clone();
         let node_search_desc  = NodeSearchDesc {
-            cond: vec![Box::new(move |m : &Match|  {return &m.anno.key.name == &anno_name && m.anno.val.as_ref() == &anno_val })],
+            cond: vec![Box::new(move |m : &Match|  {
+                if let Some(val) = node_annos.get_by_key(&m.node, &m.anno_key) {
+                    return &m.anno_key.name == &anno_name && val.as_ref() == &anno_val
+                } else {
+                    return false;
+                }
+            })],
             qname: (None, Some("pos".to_owned())),
             const_output: None,
         };
@@ -269,8 +276,15 @@ fn parallel_index_join() {
 
         let n1 = Box::new(n1);
 
+        let node_annos = db.node_annos.clone();
         let node_search_desc  = NodeSearchDesc {
-            cond: vec![Box::new(move |m : &Match|  {return &m.anno.key.name == &anno_name && m.anno.val.as_ref() == &anno_val })],
+            cond: vec![Box::new(move |m : &Match|  {
+                if let Some(val) = node_annos.get_by_key(&m.node, &m.anno_key) {
+                    return &m.anno_key.name == &anno_name && val.as_ref() == &anno_val
+                } else {
+                    return false;
+                } 
+            })],
             qname: (None, Some("pos".to_owned())),
             const_output: None,
         };

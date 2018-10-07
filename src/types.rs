@@ -27,7 +27,7 @@ pub struct Annotation {
 #[repr(C)]
 pub struct Match {
     pub node: NodeID,
-    pub anno: Annotation,
+    pub anno_key: Arc<AnnoKey>,
 }
 
 #[derive(Debug, Default, Clone)]

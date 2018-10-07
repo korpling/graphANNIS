@@ -1,9 +1,10 @@
 use Match;
 use operator::*;
 
-use {Component, Annotation};
+use {Component, AnnoKey};
 use graphdb::GraphDB;
 use std;
+use std::sync::Arc;
 
 #[derive(Debug,Clone)]
 pub struct IdenticalNodeSpec;
@@ -29,7 +30,7 @@ impl std::fmt::Display for IdenticalNode {
 impl Operator for IdenticalNode {
     fn retrieve_matches(&self, lhs : &Match) -> Box<Iterator<Item = Match>> {
         return Box::new(std::iter::once(
-            Match{node: lhs.node.clone(), anno: Annotation::default()}
+            Match{node: lhs.node.clone(), anno_key: Arc::from(AnnoKey::default())}
             )
         );
     }

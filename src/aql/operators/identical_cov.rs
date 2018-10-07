@@ -1,5 +1,5 @@
 use operator::{Operator, OperatorSpec};
-use {Annotation, Component, ComponentType, Match};
+use {AnnoKey, Component, ComponentType, Match};
 use graphdb::GraphDB;
 use graphstorage::{GraphStorage};
 use operator::EstimationType;
@@ -89,7 +89,7 @@ impl Operator for IdenticalCoverage {
 
             if n_left == n_right {
                 // covered range is exactly one token, add token itself
-                result.push(Match { node: n_left.clone(), anno: Annotation::default() });
+                result.push(Match { node: n_left.clone(), anno_key: Arc::from(AnnoKey::default()) });
             }
 
             // find left-aligned non-token
@@ -98,7 +98,7 @@ impl Operator for IdenticalCoverage {
                 // check if also right-aligned
                 if let Some(c_right) = self.tok_helper.right_token_for(&c) {
                     if n_right == c_right {
-                        result.push(Match {node : c, anno: Annotation::default()});
+                        result.push(Match {node : c, anno_key: Arc::from(AnnoKey::default())});
                     }
                 } 
             }

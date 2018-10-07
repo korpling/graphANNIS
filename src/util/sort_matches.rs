@@ -32,7 +32,7 @@ pub fn compare_match_by_text_pos(
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
-        return m1.anno.key.cmp(&m2.anno.key);
+        return m1.anno_key.cmp(&m2.anno_key);
     } else {
         // get the node paths and names
         let m1_entry = node_to_path.get(&m1.node);
