@@ -92,36 +92,45 @@ impl<'a> IndexJoin<'a> {
             if let Some(name) = self.node_search_desc.qname.1.clone() {
                 if let Some(ns) = self.node_search_desc.qname.0.clone() {
                     // return the only possible annotation for each node
+                    let key = Arc::from(AnnoKey { ns: ns.clone(), name: name.clone() });
+                    let key_id = self.node_annos.get_key_id(key.as_ref());
                     return Some(Box::new(it_nodes
                         .filter_map(move |match_node| {
-                            let key = Arc::from(AnnoKey { ns: ns.clone(), name: name.clone() });
-                            if let Some(val) = node_annos.get(&match_node.node, &key) {
-                                Some(Match {
-                                    node: match_node.node,
-                                    anno: Annotation {
-                                        key,
-                                        val: val.clone(),
-                                    },
-                                })
+                            if let Some(key_id) = key_id {
+                                if let Some(val) = node_annos.get_by_id(&match_node.node, key_id) {
+                                    Some(Match {
+                                        node: match_node.node,
+                                        anno: Annotation {
+                                            key: key.clone(),
+                                            val: val.clone(),
+                                        },
+                                    })
+                                } else {
+                                    // this annotation was not found for this node, remove it from iterator
+                                    None
+                                }
                             } else {
-                                // this annotation was not found for this node, remove it from iterator
                                 None
                             }
                         }))
                     );
                 } else {
-                    let keys = self.node_annos.get_qnames(&name);
+                    let keys: Vec<(AnnoKey, usize)> = self.node_annos
+                    .get_qnames(&name)
+                    .into_iter()
+                    .filter_map(|k| self.node_annos.get_key_id(&k).and_then(|id| Some((k,id))))
+                    .collect();
                     // return all annotations with the correct name for each node
                     return Some(Box::new(it_nodes
                         .flat_map(move |match_node| {
                             let mut matches: Vec<Match> = Vec::new();
                             matches.reserve(keys.len());
-                            for k in keys.clone() {
-                                if let Some(val) = node_annos.get(&match_node.node, &k) {
+                            for (key, key_id) in keys.clone().into_iter() {
+                                if let Some(val) = node_annos.get_by_id(&match_node.node, key_id) {
                                     matches.push(Match {
                                         node: match_node.node,
                                         anno: Annotation {
-                                            key: Arc::from(k),
+                                            key: Arc::from(key),
                                             val: val.clone(),
                                         },
                                     })

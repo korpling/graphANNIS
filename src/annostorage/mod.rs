@@ -224,11 +224,22 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.total_number_of_annos
     }
 
-    pub fn get(&self, item: &T, key: &AnnoKey) -> Option<Arc<String>> {
+    pub fn get_by_key(&self, item: &T, key: &AnnoKey) -> Option<Arc<String>> {
         let key = self.anno_keys.get_symbol(key)?;
 
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key, |a| a.key);
+            if let Ok(idx) = idx {
+                return self.anno_values.get_value(all_annos[idx].val);
+            }
+        }
+        return None;
+    }
+
+    pub fn get_by_id(&self, item: &T, key_id: usize) -> Option<Arc<String>> {
+        
+        if let Some(all_annos) = self.by_container.get(item) {
+            let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
             if let Ok(idx) = idx {
                 return self.anno_values.get_value(all_annos[idx].val);
             }
@@ -246,7 +257,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             if let Some(ns) = ns {
                 // fully qualified search
                 let key = AnnoKey { ns, name };
-                let res = self.get(item, &key);
+                let res = self.get_by_key(item, &key);
                 if let Some(val) = res {
                     return vec![Annotation {
                         key: Arc::from(key),
@@ -261,7 +272,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     .get_qnames(&name)
                     .into_iter()
                     .filter_map(|key| {
-                        self.get(item, &key).map(|val| Annotation {
+                        self.get_by_key(item, &key).map(|val| Annotation {
                             key: Arc::from(key),
                             val: val.clone(),
                         })
@@ -319,6 +330,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     /// Get all the annotation keys which are part of this annotation storage
     pub fn get_all_keys(&self) -> Vec<AnnoKey> {
         return self.anno_key_sizes.keys().cloned().collect();
+    }
+
+    /// Returns an internal identifier for the annotation key that can be used for faster lookup of values.
+    pub fn get_key_id(&self, key: &AnnoKey) -> Option<usize> {
+        self.anno_keys.get_symbol(key)
     }
 
     pub fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Arc<String>> {

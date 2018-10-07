@@ -1,7 +1,7 @@
 use graphstorage::GraphStorage;
 use graphdb::GraphDB;
 use annostorage::AnnoStorage;
-use {Component, ComponentType, NodeID, AnnoKey};
+use {Component, ComponentType, NodeID};
 
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ pub struct TokenHelper {
     left_edges: Arc<GraphStorage>,
     right_edges: Arc<GraphStorage>,
     cov_edges: Option<Arc<GraphStorage>>,
-    tok_key: AnnoKey,
+    tok_key: usize,
 }
 
 lazy_static! {
@@ -56,13 +56,13 @@ impl TokenHelper {
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
             right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
             cov_edges: db.get_graphstorage(&COMPONENT_COV),
-            tok_key: db.get_token_key(),
+            tok_key: db.node_annos.get_key_id(&db.get_token_key())?,
         })
     }
 
     pub fn is_token(&self, id: &NodeID) -> bool {
       
-      return self.node_annos.get(id, &self.tok_key).is_some() 
+      return self.node_annos.get_by_id(id, self.tok_key).is_some() 
         && self.cov_edges.is_some() && self.cov_edges.as_ref().unwrap().get_outgoing_edges(id).next().is_none();
     }
 

@@ -7,7 +7,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use {AnnoKey, Annotation, Match, NodeID};
 
-const MAX_BUFFER_SIZE : usize = 512;
+const MAX_BUFFER_SIZE: usize = 512;
 
 /// A join that takes any iterator as left-hand-side (LHS) and an annotation condition as right-hand-side (RHS).
 /// It then retrieves all matches as defined by the operator for each LHS element and checks
@@ -86,8 +86,9 @@ impl<'a> IndexJoin<'a> {
         };
     }
 
-    fn next_lhs_buffer(&mut self, tx : Sender<Vec<Match>>) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
-        let mut lhs_buffer : Vec<(Vec<Match>, Sender<Vec<Match>>)> = Vec::with_capacity(MAX_BUFFER_SIZE);
+    fn next_lhs_buffer(&mut self, tx: Sender<Vec<Match>>) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
+        let mut lhs_buffer: Vec<(Vec<Match>, Sender<Vec<Match>>)> =
+            Vec::with_capacity(MAX_BUFFER_SIZE);
         while lhs_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(lhs) = self.lhs.next() {
                 lhs_buffer.push((lhs, tx.clone()));
@@ -98,10 +99,7 @@ impl<'a> IndexJoin<'a> {
         return lhs_buffer;
     }
 
-    
-
     fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
-        
         let (tx, rx) = channel();
         let mut lhs_buffer = self.next_lhs_buffer(tx);
 
@@ -171,38 +169,54 @@ impl<'a> IndexJoin<'a> {
     }
 }
 
-fn next_candidates(m_lhs : &Vec<Match>, op : &Operator, lhs_idx : usize, node_annos: Arc<AnnoStorage<NodeID>>, node_search_desc: Arc<NodeSearchDesc>) -> Option<Vec<Match>> {
+fn next_candidates(
+    m_lhs: &Vec<Match>,
+    op: &Operator,
+    lhs_idx: usize,
+    node_annos: Arc<AnnoStorage<NodeID>>,
+    node_search_desc: Arc<NodeSearchDesc>,
+) -> Option<Vec<Match>> {
     let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]).fuse();
 
     if let Some(ref name) = node_search_desc.qname.1 {
         if let Some(ref ns) = node_search_desc.qname.0 {
             // return the only possible annotation for each node
             let mut matches: Vec<Match> = Vec::new();
-            let key = Arc::from(AnnoKey { ns: ns.clone(), name: name.clone() });
-                
+            let key = Arc::from(AnnoKey {
+                ns: ns.clone(),
+                name: name.clone(),
+            });
+            let key_id = node_annos.get_key_id(&key);
+
             for match_node in it_nodes {
-                if let Some(val) = node_annos.get(&match_node.node, &key) {
-                    matches.push(Match {
-                        node: match_node.node,
-                        anno: Annotation {
-                            key: key.clone(),
-                            val: val.clone(),
-                        },
-                    });
+                if let Some(key_id) = key_id {
+                    if let Some(val) = node_annos.get_by_id(&match_node.node, key_id) {
+                        matches.push(Match {
+                            node: match_node.node,
+                            anno: Annotation {
+                                key: key.clone(),
+                                val: val.clone(),
+                            },
+                        });
+                    }
                 }
             }
             return Some(matches);
         } else {
-            let keys = node_annos.get_qnames(&name);
+            let keys: Vec<(AnnoKey, usize)> = node_annos
+                .get_qnames(&name)
+                .into_iter()
+                .filter_map(|k| node_annos.get_key_id(&k).and_then(|id| Some((k,id))))
+                .collect();
             // return all annotations with the correct name for each node
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
-                for k in keys.clone() {
-                    if let Some(val) = node_annos.get(&match_node.node, &k) {
+                for (key, key_id) in keys.clone().into_iter() {
+                    if let Some(val) = node_annos.get_by_id(&match_node.node, key_id) {
                         matches.push(Match {
                             node: match_node.node,
                             anno: Annotation {
-                                key: Arc::from(k),
+                                key: Arc::from(key),
                                 val: val.clone(),
                             },
                         })

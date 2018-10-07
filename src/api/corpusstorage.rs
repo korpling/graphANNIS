@@ -818,10 +818,12 @@ impl CorpusStorage {
 
         let mut known_documents = HashSet::new();
 
+        let node_name_key_id = db.node_annos.get_key_id(&db.get_node_name_key()).ok_or("No internal ID for node names found")?;
+
         let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
             if !m.is_empty() {
                 let m: &Match = &m[0];
-                if let Some(node_name) = db.node_annos.get(&m.node, &db.get_node_name_key()) {
+                if let Some(node_name) = db.node_annos.get_by_id(&m.node, node_name_key_id) {
                     let node_name: &str = node_name.as_ref();
                     // extract the document path from the node name
                     let doc_path =
@@ -860,14 +862,14 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        let node_name_key = db.get_node_name_key();
+        let node_name_key_id = db.node_annos.get_key_id(&db.get_node_name_key()).ok_or("No internal ID for node names found")?;
         let mut node_to_path_cache = FxHashMap::default();
         let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(1024);
 
         for mgroup in plan {
             // cache all paths of the matches
             for m in mgroup.iter() {
-                if let Some(path) = db.node_annos.get(&m.node, &node_name_key) {
+                if let Some(path) = db.node_annos.get_by_id(&m.node, node_name_key_id) {
                     let path = util::extract_node_path(&path);
                     node_to_path_cache.insert(m.node.clone(), path);
                 
@@ -934,7 +936,7 @@ impl CorpusStorage {
 
                         if let Some(name) = db
                             .node_annos
-                            .get(&singlematch.node, &db.get_node_name_key())
+                            .get_by_id(&singlematch.node, node_name_key_id)
                         {
                             node_desc.push_str("salt:/");
                             node_desc.push_str(name.as_ref());
@@ -1227,7 +1229,7 @@ impl CorpusStorage {
                 if *node_ref < mgroup.len() {
                     let m: &Match = &mgroup[*node_ref];
                     for k in anno_keys.iter() {
-                        if let Some(val) = db.node_annos.get(&m.node, k) {
+                        if let Some(val) = db.node_annos.get_by_key(&m.node, k) {
                             tuple_val = val.as_ref().clone();
                         }
                     }

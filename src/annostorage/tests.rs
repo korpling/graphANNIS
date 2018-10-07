@@ -18,7 +18,7 @@ fn insert_same_anno() {
     assert_eq!(1, a.by_anno.len());
     assert_eq!(1, a.anno_keys.len());
 
-    assert_eq!("test", a.get(&3, &AnnoKey { name: "anno1".to_owned(), ns: "annis".to_owned() }).unwrap().as_ref());
+    assert_eq!("test", a.get_by_key(&3, &AnnoKey { name: "anno1".to_owned(), ns: "annis".to_owned() }).unwrap().as_ref());
 }
 
 #[test]
