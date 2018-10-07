@@ -1231,7 +1231,7 @@ impl CorpusStorage {
                     let m: &Match = &mgroup[*node_ref];
                     for k in anno_keys.iter() {
                         if let Some(val) = db.node_annos.get_by_key(&m.node, k) {
-                            tuple_val = val.as_ref().clone();
+                            tuple_val = val.to_owned();
                         }
                     }
                 }
@@ -1288,7 +1288,7 @@ impl CorpusStorage {
                                 result.push((
                                     key.ns.clone(),
                                     key.name.clone(),
-                                    val.as_ref().clone(),
+                                    val.to_owned(),
                                 ));
                             }
                         } else {
@@ -1297,7 +1297,7 @@ impl CorpusStorage {
                                 result.push((
                                     key.ns.clone(),
                                     key.name.clone(),
-                                    val.as_ref().clone(),
+                                    val.to_owned(),
                                 ));
                             }
                         }
@@ -1335,7 +1335,7 @@ impl CorpusStorage {
                                     result.push((
                                         key.ns.clone(),
                                         key.name.clone(),
-                                        val.as_ref().clone(),
+                                        val.to_owned(),
                                     ));
                                 }
                             } else {
@@ -1344,7 +1344,7 @@ impl CorpusStorage {
                                     result.push((
                                         key.ns.clone(),
                                         key.name.clone(),
-                                        val.as_ref().clone(),
+                                        val.to_owned(),
                                     ));
                                 }
                             }

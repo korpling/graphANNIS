@@ -228,7 +228,7 @@ fn index_join() {
         let node_search_desc  = NodeSearchDesc {
             cond: vec![Box::new(move |m : &Match|  {
                 if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
-                    return val.as_ref() == &anno_val
+                    return val == &anno_val
                 } else {
                     return false;
                 }
@@ -276,7 +276,7 @@ fn parallel_index_join() {
         let node_search_desc  = NodeSearchDesc {
             cond: vec![Box::new(move |m : &Match|  {
                 if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
-                    return val.as_ref() == &anno_val
+                    return val == &anno_val
                 } else {
                     return false;
                 } 

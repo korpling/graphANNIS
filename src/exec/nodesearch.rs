@@ -214,7 +214,7 @@ impl<'a> NodeSearch<'a> {
                 let node_annos = db.node_annos.clone();
                 let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
                     if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
-                        return val.as_ref() == "node";
+                        return val == "node";
                     } else {
                         return false;
                     }
@@ -353,7 +353,7 @@ impl<'a> NodeSearch<'a> {
             let node_annos = db.node_annos.clone();
             filters.push(Box::new(move |m| {
                 if let Some(anno_val) = node_annos.get_by_id(&m.node, m.anno_key) {
-                    return anno_val.as_ref() == &val;
+                    return anno_val == &val;
                 } else {
                     return false;
                 }
@@ -455,7 +455,7 @@ impl<'a> NodeSearch<'a> {
                 let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
                     if let Some(anno_val) = node_annos.get_by_id(&m.node, m.anno_key) {
-                        return anno_val.as_ref() == &v;
+                        return anno_val == &v;
                     } else {
                         return false;
                     }

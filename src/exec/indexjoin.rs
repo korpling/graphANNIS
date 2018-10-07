@@ -142,7 +142,7 @@ impl<'a> IndexJoin<'a> {
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(anno_keys.len());
                         for anno_key in anno_keys.into_iter() {
-                            if let Some(key_id) = node_annos.get_key_id(anno_key.as_ref()) {
+                            if let Some(key_id) = node_annos.get_key_id(&anno_key) {
                                 matches.push(Match {
                                     node: match_node.node,
                                     anno_key: key_id,

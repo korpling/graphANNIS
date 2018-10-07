@@ -66,7 +66,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let key = self.anno_keys.get_value(orig.key)?;
         let val = self.anno_values.get_value(orig.val)?;
 
-        Some(Annotation { key, val })
+        Some(Annotation { key: Arc::from(key.clone()), val: Arc::from(val.clone()) })
     }
 
     fn remove_element_from_by_anno(&mut self, anno: &SparseAnnotation, item: &T) {
@@ -169,7 +169,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<Arc<String>> {
+    pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<String> {
         let mut result = None;
 
         let orig_key = key;
@@ -215,7 +215,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
 
         if let Some(result) = result {
-            return self.anno_values.get_value(result);
+            return self.anno_values.get_value(result).cloned();
         }
         return None;
     }
@@ -224,23 +224,27 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.total_number_of_annos
     }
 
-    pub fn get_by_key(&self, item: &T, key: &AnnoKey) -> Option<Arc<String>> {
+    pub fn get_by_key(&self, item: &T, key: &AnnoKey) -> Option<&str> {
         let key = self.anno_keys.get_symbol(key)?;
 
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key, |a| a.key);
             if let Ok(idx) = idx {
-                return self.anno_values.get_value(all_annos[idx].val);
+                if let Some(val) =  self.anno_values.get_value(all_annos[idx].val) {
+                    return Some(&val[..]);
+                }
             }
         }
         return None;
     }
 
-    pub fn get_by_id(&self, item: &T, key_id: usize) -> Option<Arc<String>> {
+    pub fn get_by_id(&self, item: &T, key_id: usize) -> Option<&str> {
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
             if let Ok(idx) = idx {
-                return self.anno_values.get_value(all_annos[idx].val);
+                if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
+                    return Some(&val[..]);
+                }
             }
         }
         return None;
@@ -286,12 +290,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 
     /// Get all the annotation keys of a node
-    pub fn get_all_keys(&self, item: &T) -> Vec<Arc<AnnoKey>> {
+    pub fn get_all_keys(&self, item: &T) -> Vec<AnnoKey> {
         if let Some(all_annos) = self.by_container.get(item) {
-            let mut result: Vec<Arc<AnnoKey>> = Vec::with_capacity(all_annos.len());
+            let mut result: Vec<AnnoKey> = Vec::with_capacity(all_annos.len());
             for a in all_annos.iter() {
                 if let Some(key) = self.anno_keys.get_value(a.key) {
-                    result.push(key);
+                    result.push(key.clone());
                 }
             }
             return result;
@@ -352,12 +356,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.anno_keys.get_symbol(key)
     }
 
-    pub fn get_key_value(&self, key_id: AnnoKeyID) -> Option<Arc<AnnoKey>> {
-        self.anno_keys.get_value(key_id)
+    pub fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
+        self.anno_keys.get_value(key_id).cloned()
     }
     
 
-    pub fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Arc<String>> {
+    pub fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
         if let Some(key) = self.anno_keys.get_symbol(key) {
             if let Some(values_for_key) = self.by_anno.get(&key) {
                 if most_frequent_first {
@@ -367,11 +371,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                             let val = self.anno_values.get_value(*val)?;
                             Some((items.len(), val))
                         }).sorted();
-                    return result.into_iter().rev().map(|(_, val)| val).collect();
+                    return result.into_iter().rev().map(|(_, val)| &val[..]).collect();
                 } else {
                     return values_for_key
                         .iter()
                         .filter_map(|(val, _items)| self.anno_values.get_value(*val))
+                        .map(|val| &val[..])
                         .collect();
                 }
             }
@@ -560,11 +565,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     ).into_iter()
                     .collect();
 
-                    let mut sampled_anno_values: Vec<Arc<String>> = sampled_anno_values
+                    let mut sampled_anno_values: Vec<String> = sampled_anno_values
                         .into_iter()
                         .enumerate()
                         .filter(|x| sampled_anno_indexes.contains(&x.0))
-                        .filter_map(|x| self.anno_values.get_value(x.1))
+                        .filter_map(|x| self.anno_values.get_value(x.1).cloned())
                         .collect();
                     // create uniformly distributed histogram bounds
                     sampled_anno_values.sort();
@@ -591,7 +596,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                         let mut pos = 0;
                         let mut pos_fraction = 0;
                         for i in 0..num_hist_bounds {
-                            hist[i] = sampled_anno_values[pos].as_ref().clone();
+                            hist[i] = sampled_anno_values[pos].clone();
                             pos += delta;
                             pos_fraction += delta_fraction;
 

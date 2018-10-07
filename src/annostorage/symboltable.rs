@@ -95,9 +95,11 @@ where
         return None;
     }
 
-    pub fn get_value(&self, id: usize) -> Option<Arc<T>> {
+    pub fn get_value(&self, id: usize) -> Option<&T> {
         if id < self.by_id.len() {
-            return self.by_id[id].clone();
+            if let Some(ref val) =  self.by_id[id] {
+                return Some(val.as_ref());
+            }
         }
         return None;
     }
@@ -137,7 +139,7 @@ mod tests {
         {
             let x = s.get_value(id1);
             match x {
-                Some(v) => assert_eq!("abc", v.as_ref()),
+                Some(v) => assert_eq!("abc", v),
                 None => panic!("Did not find string"),
             }
         }

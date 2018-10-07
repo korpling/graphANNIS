@@ -225,7 +225,7 @@ fn next_candidates(
         for match_node in it_nodes {
             let all_keys = node_annos.get_all_keys(&match_node.node);
             for anno_key in all_keys.into_iter() {
-                if let Some(key_id) = node_annos.get_key_id(anno_key.as_ref()) {
+                if let Some(key_id) = node_annos.get_key_id(&anno_key) {
                     matches.push(Match {
                         node: match_node.node,
                         anno_key: key_id,
