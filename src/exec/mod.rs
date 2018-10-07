@@ -1,10 +1,9 @@
-use {Match, AnnoKey};
+use {Match, AnnoKeyID};
 use self::nodesearch::NodeSearch;
 use operator::{EstimationType, Operator};
 
 use std::collections::{BTreeMap};
 use std;
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct CostEstimate {
@@ -183,7 +182,7 @@ impl Desc {
 pub struct NodeSearchDesc {
     pub qname: (Option<String>, Option<String>),
     pub cond: Vec<Box<Fn(&Match) -> bool + Sync + Send>>,
-    pub const_output: Option<Arc<AnnoKey>>,
+    pub const_output: Option<AnnoKeyID>,
 }
 
 pub trait ExecutionNode: Iterator {

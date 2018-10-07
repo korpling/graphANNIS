@@ -206,8 +206,6 @@ fn index_join() {
             max_dist: 1,
         };
 
-
-        let anno_name = "pos".to_owned();
         let anno_val = "ADJA".to_owned();
 
         // make sure to load all components
@@ -229,8 +227,8 @@ fn index_join() {
         let node_annos = db.node_annos.clone();
         let node_search_desc  = NodeSearchDesc {
             cond: vec![Box::new(move |m : &Match|  {
-                if let Some(val) = node_annos.get_by_key(&m.node, &m.anno_key) {
-                    return &m.anno_key.name == &anno_name && val.as_ref() == &anno_val
+                if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                    return val.as_ref() == &anno_val
                 } else {
                     return false;
                 }
@@ -256,8 +254,6 @@ fn parallel_index_join() {
             max_dist: 1,
         };
 
-
-        let anno_name = "pos".to_owned();
         let anno_val = "ADJA".to_owned();
 
         // make sure to load all components
@@ -279,8 +275,8 @@ fn parallel_index_join() {
         let node_annos = db.node_annos.clone();
         let node_search_desc  = NodeSearchDesc {
             cond: vec![Box::new(move |m : &Match|  {
-                if let Some(val) = node_annos.get_by_key(&m.node, &m.anno_key) {
-                    return &m.anno_key.name == &anno_name && val.as_ref() == &anno_val
+                if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                    return val.as_ref() == &anno_val
                 } else {
                     return false;
                 } 

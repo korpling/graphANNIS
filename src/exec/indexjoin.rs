@@ -100,7 +100,7 @@ impl<'a> IndexJoin<'a> {
                                 if node_annos.get_by_id(&match_node.node, key_id).is_some() {
                                     Some(Match {
                                         node: match_node.node,
-                                        anno_key: key.clone(),
+                                        anno_key: key_id,
                                     })
                                 } else {
                                     // this annotation was not found for this node, remove it from iterator
@@ -112,21 +112,21 @@ impl<'a> IndexJoin<'a> {
                         }))
                     );
                 } else {
-                    let keys: Vec<(AnnoKey, usize)> = self.node_annos
+                    let keys: Vec<usize> = self.node_annos
                     .get_qnames(&name)
                     .into_iter()
-                    .filter_map(|k| self.node_annos.get_key_id(&k).and_then(|id| Some((k,id))))
+                    .filter_map(|k| self.node_annos.get_key_id(&k))
                     .collect();
                     // return all annotations with the correct name for each node
                     return Some(Box::new(it_nodes
                         .flat_map(move |match_node| {
                             let mut matches: Vec<Match> = Vec::new();
                             matches.reserve(keys.len());
-                            for (key, key_id) in keys.clone().into_iter() {
+                            for key_id in keys.clone().into_iter() {
                                 if node_annos.get_by_id(&match_node.node, key_id).is_some() {
                                     matches.push(Match {
                                         node: match_node.node,
-                                        anno_key: Arc::from(key),
+                                        anno_key: key_id,
                                     })
                                 }
                             }
@@ -142,10 +142,12 @@ impl<'a> IndexJoin<'a> {
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(anno_keys.len());
                         for anno_key in anno_keys.into_iter() {
-                            matches.push(Match {
-                                node: match_node.node,
-                                anno_key,
-                            });
+                            if let Some(key_id) = node_annos.get_key_id(anno_key.as_ref()) {
+                                matches.push(Match {
+                                    node: match_node.node,
+                                    anno_key: key_id,
+                                });
+                            }
                         }
                         matches.into_iter()
                     }))

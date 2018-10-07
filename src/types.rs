@@ -23,11 +23,13 @@ pub struct Annotation {
     pub val: Arc<String>,
 }
 
+pub type AnnoKeyID = usize;
+
 #[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub struct Match {
     pub node: NodeID,
-    pub anno_key: Arc<AnnoKey>,
+    pub anno_key: AnnoKeyID,
 }
 
 #[derive(Debug, Default, Clone)]

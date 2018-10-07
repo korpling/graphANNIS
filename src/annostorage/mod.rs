@@ -251,30 +251,34 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         item: &T,
         ns: Option<String>,
         name: Option<String>,
-    ) -> Vec<Arc<AnnoKey>> {
+    ) -> Vec<AnnoKeyID> {
         if let Some(name) = name {
             if let Some(ns) = ns {
                 // fully qualified search
                 let key = AnnoKey { ns, name };
-                if self.get_by_key(item, &key).is_some() {
-                    return vec![Arc::from(key)];
-                } else {
-                    return vec![];
+                if let Some(key_id) = self.get_key_id(&key) {
+                    if self.get_by_id(item, key_id).is_some() {
+                        return vec![key_id];
+                    }
                 }
+                return vec![];
             } else {
                 // get all qualified names for the given annotation name
-                let res: Vec<Arc<AnnoKey>> = self
+                let res: Vec<AnnoKeyID> = self
                     .get_qnames(&name)
                     .into_iter()
-                    .filter_map(|key| {
-                        self.get_by_key(item, &key).and_then(|_| Some(Arc::from(key)))
-                    }).collect();
+                    .filter_map(|key| self.get_key_id(&key))
+                    .filter(|key_id| self.get_by_id(item, *key_id).is_some())
+                    .collect();
                 return res;
             }
         } else {
             // no annotation name given, return all
             if let Some(annos) = self.by_container.get(item) {
-                return annos.iter().filter_map(|sparse_anno| self.anno_keys.get_value(sparse_anno.key)).collect();
+                return annos
+                    .iter()
+                    .map(|sparse_anno| sparse_anno.key)
+                    .collect();
             } else {
                 return vec![];
             }
@@ -295,7 +299,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         // return empty result if not found
         return Vec::new();
     }
-
 
     pub fn get_all(&self, item: &T) -> Vec<Annotation> {
         if let Some(all_annos) = self.by_container.get(item) {
@@ -345,9 +348,14 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 
     /// Returns an internal identifier for the annotation key that can be used for faster lookup of values.
-    pub fn get_key_id(&self, key: &AnnoKey) -> Option<usize> {
+    pub fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID> {
         self.anno_keys.get_symbol(key)
     }
+
+    pub fn get_key_value(&self, key_id: AnnoKeyID) -> Option<Arc<AnnoKey>> {
+        self.anno_keys.get_value(key_id)
+    }
+    
 
     pub fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<Arc<String>> {
         if let Some(key) = self.anno_keys.get_symbol(key) {
@@ -376,7 +384,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         namespace: Option<String>,
         name: String,
         value: Option<String>,
-    ) -> Box<Iterator<Item = (&T, (Arc<AnnoKey>, usize))> + 'a> {
+    ) -> Box<Iterator<Item = (&T, AnnoKeyID)> + 'a> {
         let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
             vec![AnnoKey { ns, name }]
         } else {
@@ -385,12 +393,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
         let value = value.and_then(|v| self.anno_values.get_symbol(&v));
 
-        let values: Vec<(Arc<AnnoKey>, usize, &FxHashMap<usize, Vec<T>>)> = key_ranges
+        let values: Vec<(AnnoKeyID, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
                 let key_id = self.anno_keys.get_symbol(&key)?;
                 if let Some(values_for_key) = self.by_anno.get(&key_id) {
-                    Some((Arc::from(key), key_id, values_for_key))
+                    Some((key_id, values_for_key))
                 } else {
                     None
                 }
@@ -400,22 +408,22 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             let it = values
             .into_iter()
             // find the items with the correct value
-            .filter_map(move |(key, key_id, values)| if let Some(items) = values.get(&value) {
-                Some((items, (key, key_id)))
+            .filter_map(move |(key_id, values)| if let Some(items) = values.get(&value) {
+                Some((items, key_id))
             } else {
                 None
             })
             // flatten the hash set of all items, returns all items for the condition
-            .flat_map(|(items, (key, key_id))| items.iter().zip(std::iter::repeat((key, key_id))));
+            .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
             return Box::new(it);
         } else {
             let it = values
             .into_iter()
             // flatten the hash set of all items, returns all items for the condition
-            .flat_map(|(key, key_id, values)| values.iter().zip(std::iter::repeat((key, key_id))))
+            .flat_map(|(key_id, values)| values.iter().zip(std::iter::repeat(key_id)))
             // create annotations from all flattened values
-            .flat_map(move | ((_, items), (key, key_id)) | {
-                items.iter().zip(std::iter::repeat((key, key_id)))
+            .flat_map(move | ((_, items), key_id) | {
+                items.iter().zip(std::iter::repeat(key_id))
             });
             return Box::new(it);
         }
@@ -634,12 +642,14 @@ impl AnnoStorage<NodeID> {
         name: String,
         value: Option<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        let it = self
-            .matching_items(namespace, name, value)
-            .filter_map(move |(node, (anno_key, _anno_key_id))| Some(Match {
-                node: *node,
-                anno_key,
-            }));
+        let it =
+            self.matching_items(namespace, name, value)
+                .filter_map(move |(node, anno_key_id)| {
+                    Some(Match {
+                        node: *node,
+                        anno_key: anno_key_id,
+                    })
+                });
         return Box::new(it);
     }
 
@@ -654,16 +664,18 @@ impl AnnoStorage<NodeID> {
         if let Ok(re) = compiled_result {
             let it = self
                 .matching_items(namespace, name, None)
-                .filter(move |(node, (_anno_key, anno_key_id))| {
+                .filter(move |(node, anno_key_id)| {
                     if let Some(val) = self.get_by_id(node, *anno_key_id) {
                         re.is_match(val.as_ref())
                     } else {
                         false
                     }
-                }).filter_map(move |(node, (anno_key, _anno_key_id))| Some(Match {
-                    node: *node,
-                    anno_key: anno_key,
-                }));
+                }).filter_map(move |(node, anno_key_id)| {
+                    Some(Match {
+                        node: *node,
+                        anno_key: anno_key_id,
+                    })
+                });
             return Box::new(it);
         } else {
             // if regular expression pattern is invalid return empty iterator
@@ -679,12 +691,14 @@ impl AnnoStorage<Edge> {
         name: String,
         value: Option<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        let it = self
-            .matching_items(namespace, name, value)
-            .filter_map(move |(edge, (anno_key, _anno_key_id))| Some(Match {
-                node: edge.source.clone(),
-                anno_key: anno_key,
-            }));
+        let it =
+            self.matching_items(namespace, name, value)
+                .filter_map(move |(edge, anno_key_id)| {
+                    Some(Match {
+                        node: edge.source.clone(),
+                        anno_key: anno_key_id,
+                    })
+                });
         return Box::new(it);
     }
 }

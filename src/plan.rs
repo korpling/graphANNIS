@@ -1,28 +1,26 @@
-use {Match, AnnoKey, NodeID};
+use errors::*;
+use exec::{Desc, EmptyResultSet, ExecutionNode};
 use graphdb::GraphDB;
 use query::disjunction::Disjunction;
 use query::Config;
-use exec::{Desc, ExecutionNode, EmptyResultSet};
 use std;
-use std::fmt::Formatter;
 use std::collections::HashSet;
-use std::sync::Arc;
-use errors::*;
-
+use std::fmt::Formatter;
+use {AnnoKeyID, Match, NodeID};
 
 pub struct ExecutionPlan<'a> {
     plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     current_plan: usize,
     descriptions: Vec<Option<Desc>>,
     proxy_mode: bool,
-    unique_result_set: HashSet<Vec<(NodeID, Arc<AnnoKey>)>>,
+    unique_result_set: HashSet<Vec<(NodeID, AnnoKeyID)>>,
 }
 
 impl<'a> ExecutionPlan<'a> {
     pub fn from_disjunction(
         query: &'a Disjunction<'a>,
         db: &'a GraphDB,
-        config : Config,
+        config: Config,
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();
@@ -33,15 +31,15 @@ impl<'a> ExecutionPlan<'a> {
                 plans.push(p);
             } else if let Err(e) = p {
                 match e.kind() {
-                    ErrorKind::AQLSemanticError(_,_) => return Err(e),
-                    _ => {},
+                    ErrorKind::AQLSemanticError(_, _) => return Err(e),
+                    _ => {}
                 }
             }
         }
 
         if plans.is_empty() {
             // add a dummy execution step that yields no results
-            let no_results_exec = EmptyResultSet{};
+            let no_results_exec = EmptyResultSet {};
             plans.push(Box::new(no_results_exec));
             descriptions.push(None);
         }
@@ -52,13 +50,12 @@ impl<'a> ExecutionPlan<'a> {
             plans,
             unique_result_set: HashSet::new(),
         });
-    
     }
 }
 
 impl<'a> std::fmt::Display for ExecutionPlan<'a> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        for (i,d) in self.descriptions.iter().enumerate() {
+        for (i, d) in self.descriptions.iter().enumerate() {
             if i > 0 {
                 write!(f, "---[OR]---\n")?;
             }
@@ -85,12 +82,14 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                 n = self.plans[self.current_plan].next();
                 if let Some(ref res) = n {
                     // check if we already outputted this result
-                    let key : Vec<(NodeID, Arc<AnnoKey>)> = res.iter().map(|m : &Match|(m.node, m.anno_key.clone())).collect();
+                    let key: Vec<(NodeID, AnnoKeyID)> = res
+                        .iter()
+                        .map(|m: &Match| (m.node, m.anno_key.clone()))
+                        .collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
                         break;
                     }
-
                 } else {
                     // proceed to next plan
                     self.current_plan += 1;

@@ -213,7 +213,7 @@ impl<'a> NodeSearch<'a> {
 
                 let node_annos = db.node_annos.clone();
                 let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
-                    if let Some(val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                    if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
                         return val.as_ref() == "node";
                     } else {
                         return false;
@@ -230,7 +230,7 @@ impl<'a> NodeSearch<'a> {
                 );
                 let est_output = std::cmp::max(1, est_output);
 
-                let const_output = Some(Arc::from(db.get_node_type_key()));
+                let const_output = db.node_annos.get_key_id(&db.get_node_type_key());
 
                 Ok(NodeSearch {
                     it: Box::new(it),
@@ -274,12 +274,12 @@ impl<'a> NodeSearch<'a> {
         };
 
         let const_output = if is_meta {
-            Some(Arc::from(db.get_node_type_key()))
+            Some(db.node_annos.get_key_id(&db.get_node_type_key()).ok_or("Node type annotation does not exist in database")?)
         } else {
             None
         };
 
-        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output.clone()
+        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output
         {
             let is_unique = db.node_annos.get_qnames(&name).len() <= 1;
             // Replace the result annotation with a constant value.
@@ -287,14 +287,14 @@ impl<'a> NodeSearch<'a> {
             if is_unique {
                 Box::new(base_it.map(move |m| Match {
                     node: m.node,
-                    anno_key: const_output.clone(),
+                    anno_key: const_output,
                 }))
             } else {
                 Box::new(
                     base_it
                         .map(move |m| Match {
                             node: m.node,
-                            anno_key: const_output.clone(),
+                            anno_key: const_output,
                         }).unique(),
                 )
             }
@@ -336,7 +336,7 @@ impl<'a> NodeSearch<'a> {
                 Ok(re) => {
                     let node_annos = db.node_annos.clone();
                     filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                        if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
                             return re.is_match(val.as_ref());
                         } else {
                             return false;
@@ -352,7 +352,7 @@ impl<'a> NodeSearch<'a> {
             let val = val.unwrap();
             let node_annos = db.node_annos.clone();
             filters.push(Box::new(move |m| {
-                if let Some(anno_val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                if let Some(anno_val) = node_annos.get_by_id(&m.node, m.anno_key) {
                     return anno_val.as_ref() == &val;
                 } else {
                     return false;
@@ -384,7 +384,7 @@ impl<'a> NodeSearch<'a> {
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
-        let any_anno_key = Arc::from(db.get_node_type_key());
+        let any_anno_key = db.node_annos.get_key_id(&db.get_node_type_key()).ok_or("Node type annotation does not exist in database")?;
 
         let it_base: Box<Iterator<Item = Match>> = if let Some(v) = val.clone() {
             let it = if match_regex {
@@ -427,7 +427,7 @@ impl<'a> NodeSearch<'a> {
         let it = it_base.map(move |n| {
             vec![Match {
                 node: n.node,
-                anno_key: any_anno_key.clone(),
+                anno_key: any_anno_key,
             }]
         });
         // create filter functions
@@ -440,7 +440,7 @@ impl<'a> NodeSearch<'a> {
                 let node_annos = db.node_annos.clone();
                 match re {
                     Ok(re) => filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                        if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
                             return re.is_match(val.as_ref());
                         } else {
                             return false;
@@ -454,7 +454,7 @@ impl<'a> NodeSearch<'a> {
             } else {
                 let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
-                    if let Some(anno_val) = node_annos.get_by_key(&m.node, m.anno_key.as_ref()) {
+                    if let Some(anno_val) = node_annos.get_by_id(&m.node, m.anno_key) {
                         return anno_val.as_ref() == &v;
                     } else {
                         return false;
@@ -503,7 +503,7 @@ impl<'a> NodeSearch<'a> {
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 
-        let const_output = Arc::from(db.get_node_type_key());
+        let const_output = db.node_annos.get_key_id(&db.get_node_type_key()).ok_or("Node type annotation does not exist in database")?;
 
         return Ok(NodeSearch {
             it: Box::new(it),
