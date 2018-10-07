@@ -169,7 +169,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    pub fn remove(&mut self, item: &T, key: &AnnoKey) -> Option<String> {
+    pub fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String> {
         let mut result = None;
 
         let orig_key = key;
@@ -224,7 +224,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.total_number_of_annos
     }
 
-    pub fn get_by_key(&self, item: &T, key: &AnnoKey) -> Option<&str> {
+    pub fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
         let key = self.anno_keys.get_symbol(key)?;
 
         if let Some(all_annos) = self.by_container.get(item) {
@@ -238,7 +238,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         return None;
     }
 
-    pub fn get_by_id(&self, item: &T, key_id: usize) -> Option<&str> {
+    pub fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str> {
         if let Some(all_annos) = self.by_container.get(item) {
             let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
             if let Ok(idx) = idx {
@@ -250,7 +250,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         return None;
     }
 
-    pub fn find_by_name(
+    pub fn find_annotations_for_item(
         &self,
         item: &T,
         ns: Option<String>,
@@ -261,7 +261,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 // fully qualified search
                 let key = AnnoKey { ns, name };
                 if let Some(key_id) = self.get_key_id(&key) {
-                    if self.get_by_id(item, key_id).is_some() {
+                    if self.get_value_for_item_by_id(item, key_id).is_some() {
                         return vec![key_id];
                     }
                 }
@@ -272,7 +272,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     .get_qnames(&name)
                     .into_iter()
                     .filter_map(|key| self.get_key_id(&key))
-                    .filter(|key_id| self.get_by_id(item, *key_id).is_some())
+                    .filter(|key_id| self.get_value_for_item_by_id(item, *key_id).is_some())
                     .collect();
                 return res;
             }
@@ -290,7 +290,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 
     /// Get all the annotation keys of a node
-    pub fn get_all_keys(&self, item: &T) -> Vec<AnnoKey> {
+    pub fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey> {
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<AnnoKey> = Vec::with_capacity(all_annos.len());
             for a in all_annos.iter() {
@@ -304,7 +304,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         return Vec::new();
     }
 
-    pub fn get_all(&self, item: &T) -> Vec<Annotation> {
+    pub fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
             for a in all_annos.iter() {
@@ -356,6 +356,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.anno_keys.get_symbol(key)
     }
 
+    /// Returns the annotation key from the internal identifier.
     pub fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
         self.anno_keys.get_value(key_id).cloned()
     }
@@ -670,7 +671,7 @@ impl AnnoStorage<NodeID> {
             let it = self
                 .matching_items(namespace, name, None)
                 .filter(move |(node, anno_key_id)| {
-                    if let Some(val) = self.get_by_id(node, *anno_key_id) {
+                    if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
                         re.is_match(val.as_ref())
                     } else {
                         false

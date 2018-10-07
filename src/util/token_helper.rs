@@ -62,7 +62,7 @@ impl TokenHelper {
 
     pub fn is_token(&self, id: &NodeID) -> bool {
       
-      return self.node_annos.get_by_id(id, self.tok_key).is_some() 
+      return self.node_annos.get_value_for_item_by_id(id, self.tok_key).is_some() 
         && self.cov_edges.is_some() && self.cov_edges.as_ref().unwrap().get_outgoing_edges(id).next().is_none();
     }
 

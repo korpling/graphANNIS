@@ -213,7 +213,7 @@ impl<'a> NodeSearch<'a> {
 
                 let node_annos = db.node_annos.clone();
                 let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
-                    if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                    if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
                         return val == "node";
                     } else {
                         return false;
@@ -336,7 +336,7 @@ impl<'a> NodeSearch<'a> {
                 Ok(re) => {
                     let node_annos = db.node_annos.clone();
                     filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
                             return re.is_match(val.as_ref());
                         } else {
                             return false;
@@ -352,7 +352,7 @@ impl<'a> NodeSearch<'a> {
             let val = val.unwrap();
             let node_annos = db.node_annos.clone();
             filters.push(Box::new(move |m| {
-                if let Some(anno_val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
                     return anno_val == &val;
                 } else {
                     return false;
@@ -440,7 +440,7 @@ impl<'a> NodeSearch<'a> {
                 let node_annos = db.node_annos.clone();
                 match re {
                     Ok(re) => filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
                             return re.is_match(val.as_ref());
                         } else {
                             return false;
@@ -454,7 +454,7 @@ impl<'a> NodeSearch<'a> {
             } else {
                 let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
-                    if let Some(anno_val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                    if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
                         return anno_val == &v;
                     } else {
                         return false;
@@ -558,7 +558,7 @@ impl<'a> NodeSearch<'a> {
                 // fetch annotation candidates for the node based on the original description
                 let node_search_desc = node_search_desc_1.clone();
                 db.node_annos
-                    .find_by_name(
+                    .find_annotations_for_item(
                         &node,
                         node_search_desc.qname.0.clone(),
                         node_search_desc.qname.1.clone(),

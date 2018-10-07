@@ -190,7 +190,7 @@ fn next_candidates(
 
             for match_node in it_nodes {
                 if let Some(key_id) = key_id {
-                    if let Some(_) = node_annos.get_by_id(&match_node.node, key_id) {
+                    if let Some(_) = node_annos.get_value_for_item_by_id(&match_node.node, key_id) {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: key_id,
@@ -209,7 +209,7 @@ fn next_candidates(
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
                 for key_id in keys.clone().into_iter() {
-                    if let Some(_) = node_annos.get_by_id(&match_node.node, key_id) {
+                    if let Some(_) = node_annos.get_value_for_item_by_id(&match_node.node, key_id) {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: key_id,
@@ -223,7 +223,7 @@ fn next_candidates(
         // return all annotations for each node
         let mut matches: Vec<Match> = Vec::new();
         for match_node in it_nodes {
-            let all_keys = node_annos.get_all_keys(&match_node.node);
+            let all_keys = node_annos.get_all_keys_for_item(&match_node.node);
             for anno_key in all_keys.into_iter() {
                 if let Some(key_id) = node_annos.get_key_id(&anno_key) {
                     matches.push(Match {

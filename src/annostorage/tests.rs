@@ -18,7 +18,7 @@ fn insert_same_anno() {
     assert_eq!(1, a.by_anno.len());
     assert_eq!(1, a.anno_keys.len());
 
-    assert_eq!("test", a.get_by_key(&3, &AnnoKey { name: "anno1".to_owned(), ns: "annis".to_owned() }).unwrap());
+    assert_eq!("test", a.get_value_for_item(&3, &AnnoKey { name: "anno1".to_owned(), ns: "annis".to_owned() }).unwrap());
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn get_all_for_node() {
 
     assert_eq!(3, a.len());
 
-    let all = a.get_all(&1);
+    let all = a.get_annotations_for_item(&1);
     assert_eq!(3, all.len());
 
     assert_eq!(test_anno1, all[0]);
@@ -66,7 +66,7 @@ fn remove() {
     assert_eq!(1, a.anno_key_sizes.len());
     assert_eq!(&1, a.anno_key_sizes.get(&test_anno.key).unwrap());
 
-    a.remove(&1, &test_anno.key);
+    a.remove_annotation_for_item(&1, &test_anno.key);
 
     assert_eq!(0, a.len());
     assert_eq!(0, a.by_container.len());

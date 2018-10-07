@@ -258,7 +258,7 @@ fn extract_subgraph_by_query(
 fn create_subgraph_node(id: NodeID, db: &mut GraphDB, orig_db: &GraphDB) {
     // add all node labels with the same node ID
     let node_annos = Arc::make_mut(&mut db.node_annos);
-    for a in orig_db.node_annos.get_all(&id).into_iter() {
+    for a in orig_db.node_annos.get_annotations_for_item(&id).into_iter() {
         node_annos.insert(id, a);
     }
 }
@@ -823,7 +823,7 @@ impl CorpusStorage {
         let result = plan.fold((0, 0), move |acc: (u64, usize), m: Vec<Match>| {
             if !m.is_empty() {
                 let m: &Match = &m[0];
-                if let Some(node_name) = db.node_annos.get_by_id(&m.node, node_name_key_id) {
+                if let Some(node_name) = db.node_annos.get_value_for_item_by_id(&m.node, node_name_key_id) {
                     let node_name: &str = node_name.as_ref();
                     // extract the document path from the node name
                     let doc_path =
@@ -869,7 +869,7 @@ impl CorpusStorage {
         for mgroup in plan {
             // cache all paths of the matches
             for m in mgroup.iter() {
-                if let Some(path) = db.node_annos.get_by_id(&m.node, node_name_key_id) {
+                if let Some(path) = db.node_annos.get_value_for_item_by_id(&m.node, node_name_key_id) {
                     let path = util::extract_node_path(&path);
                     node_to_path_cache.insert(m.node.clone(), path);
                 
@@ -937,7 +937,7 @@ impl CorpusStorage {
 
                         if let Some(name) = db
                             .node_annos
-                            .get_by_id(&singlematch.node, node_name_key_id)
+                            .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                         {
                             node_desc.push_str("salt:/");
                             node_desc.push_str(name.as_ref());
@@ -1230,7 +1230,7 @@ impl CorpusStorage {
                 if *node_ref < mgroup.len() {
                     let m: &Match = &mgroup[*node_ref];
                     for k in anno_keys.iter() {
-                        if let Some(val) = db.node_annos.get_by_key(&m.node, k) {
+                        if let Some(val) = db.node_annos.get_value_for_item(&m.node, k) {
                             tuple_val = val.to_owned();
                         }
                     }

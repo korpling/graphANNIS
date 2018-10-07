@@ -324,8 +324,8 @@ impl GraphDB {
                         // delete all annotations
                         {
                             let node_annos = Arc::make_mut(&mut self.node_annos);
-                            for a in node_annos.get_all(&existing_node_id) {
-                                node_annos.remove(&existing_node_id, &a.key);
+                            for a in node_annos.get_annotations_for_item(&existing_node_id) {
+                                node_annos.remove_annotation_for_item(&existing_node_id, &a.key);
                             }
                         }
                         // delete all edges pointing to this node either as source or target
@@ -361,7 +361,7 @@ impl GraphDB {
                             ns: anno_ns,
                             name: anno_name,
                         };
-                        Arc::make_mut(&mut self.node_annos).remove(&existing_node_id, &key);
+                        Arc::make_mut(&mut self.node_annos).remove_annotation_for_item(&existing_node_id, &key);
                     }
                 }
                 UpdateEvent::AddEdge {

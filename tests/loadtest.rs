@@ -33,7 +33,7 @@ fn load_corpus(name: &str) -> Option<GraphDB> {
 #[test]
 fn node_annos() {
     if let Some(db) = load_corpus("pcc2") {
-        let annos: Vec<Annotation> = db.node_annos.get_all(&0);
+        let annos: Vec<Annotation> = db.node_annos.get_annotations_for_item(&0);
 
         assert_eq!(7, annos.len());
 
@@ -227,7 +227,7 @@ fn index_join() {
         let node_annos = db.node_annos.clone();
         let node_search_desc  = NodeSearchDesc {
             cond: vec![Box::new(move |m : &Match|  {
-                if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
                     return val == &anno_val
                 } else {
                     return false;
@@ -275,7 +275,7 @@ fn parallel_index_join() {
         let node_annos = db.node_annos.clone();
         let node_search_desc  = NodeSearchDesc {
             cond: vec![Box::new(move |m : &Match|  {
-                if let Some(val) = node_annos.get_by_id(&m.node, m.anno_key) {
+                if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
                     return val == &anno_val
                 } else {
                     return false;

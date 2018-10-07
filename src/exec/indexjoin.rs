@@ -97,7 +97,7 @@ impl<'a> IndexJoin<'a> {
                     return Some(Box::new(it_nodes
                         .filter_map(move |match_node| {
                             if let Some(key_id) = key_id {
-                                if node_annos.get_by_id(&match_node.node, key_id).is_some() {
+                                if node_annos.get_value_for_item_by_id(&match_node.node, key_id).is_some() {
                                     Some(Match {
                                         node: match_node.node,
                                         anno_key: key_id,
@@ -123,7 +123,7 @@ impl<'a> IndexJoin<'a> {
                             let mut matches: Vec<Match> = Vec::new();
                             matches.reserve(keys.len());
                             for key_id in keys.clone().into_iter() {
-                                if node_annos.get_by_id(&match_node.node, key_id).is_some() {
+                                if node_annos.get_value_for_item_by_id(&match_node.node, key_id).is_some() {
                                     matches.push(Match {
                                         node: match_node.node,
                                         anno_key: key_id,
@@ -138,7 +138,7 @@ impl<'a> IndexJoin<'a> {
                 // return all annotations for each node
                 return Some(Box::new(it_nodes
                     .flat_map(move |match_node| {
-                        let anno_keys = node_annos.get_all_keys(&match_node.node);
+                        let anno_keys = node_annos.get_all_keys_for_item(&match_node.node);
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(anno_keys.len());
                         for anno_key in anno_keys.into_iter() {

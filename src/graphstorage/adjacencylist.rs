@@ -68,7 +68,7 @@ impl EdgeContainer for AdjacencyListStorage {
     }
 
     fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
-        self.annos.get_all(edge)
+        self.annos.get_annotations_for_item(edge)
     }
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
@@ -328,13 +328,13 @@ impl WriteableGraphStorage for AdjacencyListStorage {
                  ingoing.remove(idx);
              }
         }
-        let annos = self.annos.get_all(edge);
+        let annos = self.annos.get_annotations_for_item(edge);
         for a in annos.into_iter() {
-            self.annos.remove(edge, &a.key);
+            self.annos.remove_annotation_for_item(edge, &a.key);
         }
     }
     fn delete_edge_annotation(&mut self, edge: &Edge, anno_key:     &AnnoKey) {
-        self.annos.remove(edge, anno_key);
+        self.annos.remove_annotation_for_item(edge, anno_key);
     }
     fn delete_node(&mut self, node: &NodeID) {
         // find all both ingoing and outgoing edges

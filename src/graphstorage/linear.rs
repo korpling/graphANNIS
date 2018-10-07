@@ -82,7 +82,7 @@ where PosT : NumValue {
     }
 
     fn get_edge_annos(&self, edge : &Edge) -> Vec<Annotation> {
-        return self.annos.get_all(edge);
+        return self.annos.get_annotations_for_item(edge);
     }
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
