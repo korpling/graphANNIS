@@ -9,7 +9,6 @@ use std::any::Any;
 use std::str::FromStr;
 use errors::*;
 
-
 #[derive(ToString, Debug, Clone, EnumString,PartialEq)]
 pub enum ImplTypes {
     AdjacencyListV1,
@@ -178,6 +177,12 @@ pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
     let data :&Any = data.as_any();
     if let Some(_) = data.downcast_ref::<AdjacencyListStorage>() {
         return Ok(ImplTypes::AdjacencyListV1);
+    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u64,u64>>() {
+        return Ok(ImplTypes::PrePostOrderO64L64V1);
+    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u64,u32>>() {
+        return Ok(ImplTypes::PrePostOrderO64L32V1);
+    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u64,u8>>() {
+        return Ok(ImplTypes::PrePostOrderO64L8V1);
     } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u32,u32>>() {
         return Ok(ImplTypes::PrePostOrderO32L32V1);
     } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u32,u8>>() {
@@ -186,7 +191,9 @@ pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
         return Ok(ImplTypes::PrePostOrderO16L32V1);
     } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u16,u8>>() {
         return Ok(ImplTypes::PrePostOrderO16L8V1);
-    } else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u32>>() {
+    } else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u64>>() {
+        return Ok(ImplTypes::LinearO32V1);
+    }  else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u32>>() {
         return Ok(ImplTypes::LinearO32V1);
     } else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u16>>() {
         return Ok(ImplTypes::LinearO16V1);
@@ -201,6 +208,15 @@ pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Resu
     if let Some(gs) = data.downcast_ref::<AdjacencyListStorage>() {
         bincode::serialize_into(writer, gs)?;
         return Ok(ImplTypes::AdjacencyListV1.to_string());
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u64,u64>>() {
+        bincode::serialize_into(writer, gs)?;
+        return Ok(ImplTypes::PrePostOrderO64L64V1.to_string());
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u64,u32>>() {
+        bincode::serialize_into(writer, gs)?;
+        return Ok(ImplTypes::PrePostOrderO64L32V1.to_string());
+    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u64,u8>>() {
+        bincode::serialize_into(writer, gs)?;
+        return Ok(ImplTypes::PrePostOrderO64L8V1.to_string());
     } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u32>>() {
         bincode::serialize_into(writer, gs)?;
         return Ok(ImplTypes::PrePostOrderO32L32V1.to_string());
@@ -213,6 +229,9 @@ pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Resu
     } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u8>>() {
         bincode::serialize_into(writer, gs)?;
         return Ok(ImplTypes::PrePostOrderO16L8V1.to_string());
+    } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u64>>() {
+        bincode::serialize_into(writer, gs)?;
+        return Ok(ImplTypes::LinearO64V1.to_string());
     } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u32>>() {
         bincode::serialize_into(writer, gs)?;
         return Ok(ImplTypes::LinearO32V1.to_string());
