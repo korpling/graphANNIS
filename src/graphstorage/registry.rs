@@ -9,6 +9,13 @@ use errors::*;
 use serde::Deserialize;
 
 
+
+pub struct GSInfo {
+    pub id: String,
+    constructor: fn() -> Arc<GraphStorage>,
+    deserialize_func: fn(&mut std::io::Read) -> Result<Arc<GraphStorage>>,
+}
+
 lazy_static! {
     static ref REGISTRY: HashMap<String, GSInfo> = {
         let mut m = HashMap::new();
@@ -31,48 +38,36 @@ lazy_static! {
     };
 }
 
-
-pub struct GSInfo {
-    pub id: String,
-    constructor: fn() -> Arc<GraphStorage>,
-    deserialize_func: fn(&mut std::io::Read) -> Result<Arc<GraphStorage>>,
-}
-
-
-fn insert_info<GS: 'static>(registry : &mut HashMap<String, GSInfo>) 
-where for<'de> GS: GraphStorage + Default +  Deserialize<'de> {
-    // create an instance to get the name
-    let instance = GS::default();
-    let id = instance.serialization_id();
-    let info = GSInfo {
-        id: id.clone(),
-        constructor: || Arc::new(GS::default()),
-        deserialize_func: |input| Ok(Arc::new(GS::deserialize_gs(input)?)),
-    };
-    registry.insert(id, info);
-}
-
-fn create_info<GS: 'static>() -> GSInfo 
-where for<'de> GS: GraphStorage + Default +  Deserialize<'de> {
-    // create an instance to get the name
-    let instance = GS::default();
-
-    GSInfo {
-        id: instance.serialization_id(),
-        constructor: || Arc::new(GS::default()),
-        deserialize_func: |input| Ok(Arc::new(GS::deserialize_gs(input)?)),
-    }
-}
-
-
-
 pub fn create_writeable() -> AdjacencyListStorage {
     // TODO: make this configurable when there are more writeable graph storage implementations
     AdjacencyListStorage::new()
 }
 
-pub fn create_from_info(info: &GSInfo) -> Arc<GraphStorage> {
-    (info.constructor)()
+
+
+pub fn get_optimal_impl_heuristic(stats : &GraphStatistic) -> GSInfo {
+
+    if stats.max_depth <= 1 {
+        // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
+        return create_info::<AdjacencyListStorage>();
+    } else if stats.rooted_tree {
+        if stats.max_fan_out <= 1 {
+            return get_linear_by_size(stats);
+        } else {
+            return get_prepostorder_by_size(stats);
+        }
+    } else if !stats.cyclic {
+        // it might be still wise to use pre/post order if the graph is "almost" a tree, thus
+        // does not have many exceptions
+        if stats.dfs_visit_ratio <= 1.03 {
+            // there is no more than 3% overhead
+            // TODO: how to determine the border?
+            return get_prepostorder_by_size(stats);
+        }
+    }
+
+    // fallback
+    return create_info::<AdjacencyListStorage>();;
 }
 
 fn get_prepostorder_by_size(stats : &GraphStatistic) -> GSInfo {
@@ -118,31 +113,29 @@ fn get_linear_by_size(stats : &GraphStatistic) -> GSInfo {
     }
 }
 
-pub fn get_optimal_impl_heuristic(stats : &GraphStatistic) -> GSInfo {
 
-    if stats.max_depth <= 1 {
-        // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
-        return create_info::<AdjacencyListStorage>();
-    } else if stats.rooted_tree {
-        if stats.max_fan_out <= 1 {
-            return get_linear_by_size(stats);
-        } else {
-            return get_prepostorder_by_size(stats);
-        }
-    } else if !stats.cyclic {
-        // it might be still wise to use pre/post order if the graph is "almost" a tree, thus
-        // does not have many exceptions
-        if stats.dfs_visit_ratio <= 1.03 {
-            // there is no more than 3% overhead
-            // TODO: how to determine the border?
-            return get_prepostorder_by_size(stats);
-        }
-    }
-
-    // fallback
-    return create_info::<AdjacencyListStorage>();;
+fn insert_info<GS: 'static>(registry : &mut HashMap<String, GSInfo>) 
+where for<'de> GS: GraphStorage + Default +  Deserialize<'de> {
+    let info = create_info::<GS>();
+    registry.insert(info.id.clone(), info);
 }
 
+fn create_info<GS: 'static>() -> GSInfo 
+where for<'de> GS: GraphStorage + Default +  Deserialize<'de> {
+    // create an instance to get the name
+    let instance = GS::default();
+
+    GSInfo {
+        id: instance.serialization_id(),
+        constructor: || Arc::new(GS::default()),
+        deserialize_func: |input| Ok(Arc::new(GS::deserialize_gs(input)?)),
+    }
+}
+
+
+pub fn create_from_info(info: &GSInfo) -> Arc<GraphStorage> {
+    (info.constructor)()
+}
 
 
 pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<GraphStorage>> {
