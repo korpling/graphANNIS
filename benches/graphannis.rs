@@ -7,8 +7,8 @@ extern crate rand;
 extern crate rustc_hash;
 
 use criterion::Criterion;
+use graphannis::corpusstorage::ResultOrder;
 use graphannis::CorpusStorage;
-use graphannis::ResultOrder;
 use std::collections::HashSet;
 use std::path::PathBuf;
 

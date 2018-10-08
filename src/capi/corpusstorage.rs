@@ -1,15 +1,14 @@
 use super::cerror;
 use super::cerror::ErrorList;
-use {CorpusStorage, FrequencyDefEntry, ResultOrder, GraphDB};
-use update::GraphUpdate;
+use corpusstorage::{FrequencyDefEntry, ResultOrder};
 use libc;
 use relannis;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
-use FrequencyTable;
-use Matrix;
-use {Component, ComponentType, CountExtra, NodeDesc};
+use types::{Component, ComponentType, CountExtra, FrequencyTable, Matrix, NodeDesc};
+use update::GraphUpdate;
+use {CorpusStorage, GraphDB};
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -330,7 +329,6 @@ pub extern "C" fn annis_cs_node_descriptions(
     let result = try_cerr!(cs.node_descriptions(&query), err, std::ptr::null_mut());
     return Box::into_raw(Box::new(result));
 }
-
 
 #[no_mangle]
 pub extern "C" fn annis_cs_import_relannis(

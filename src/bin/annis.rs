@@ -9,13 +9,13 @@ extern crate rustyline;
 extern crate simplelog;
 
 use clap::{App, Arg};
+use graphannis::corpusstorage::CorpusInfo;
+use graphannis::corpusstorage::FrequencyDefEntry;
+use graphannis::corpusstorage::LoadStatus;
+use graphannis::corpusstorage::ResultOrder;
 use graphannis::errors::*;
 use graphannis::relannis;
-use graphannis::CorpusInfo;
 use graphannis::CorpusStorage;
-use graphannis::FrequencyDefEntry;
-use graphannis::LoadStatus;
-use graphannis::ResultOrder;
 use prettytable::Cell;
 use prettytable::Row;
 use prettytable::Table;
