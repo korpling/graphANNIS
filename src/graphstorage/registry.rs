@@ -4,26 +4,66 @@ use super::prepost::PrePostOrderStorage;
 use super::linear::LinearGraphStorage;
 use std;
 use std::sync::Arc;
-use std::any::Any;
 use std::collections::HashMap;
 use errors::*;
 use serde::Deserialize;
 
-#[derive(ToString, Debug, Clone, EnumString,PartialEq)]
-pub enum ImplTypes {
-    AdjacencyListV1,
-    PrePostOrderO64L64V1,
-    PrePostOrderO64L32V1,
-    PrePostOrderO64L8V1,
-    PrePostOrderO32L32V1,
-    PrePostOrderO32L8V1,
-    PrePostOrderO16L32V1,
-    PrePostOrderO16L8V1,
-    LinearO64V1,
-    LinearO32V1,
-    LinearO16V1,
-    LinearO8V1,
+
+lazy_static! {
+    static ref REGISTRY: HashMap<String, GSInfo> = {
+        let mut m = HashMap::new();
+
+        insert_info::<AdjacencyListStorage>(&mut m);
+        
+        insert_info::<PrePostOrderStorage<u64,u64>>(&mut m);
+        insert_info::<PrePostOrderStorage<u64,u32>>(&mut m);
+        insert_info::<PrePostOrderStorage<u64,u8>>(&mut m);
+        insert_info::<PrePostOrderStorage<u32,u32>>(&mut m);
+        insert_info::<PrePostOrderStorage<u32,u8>>(&mut m);
+        insert_info::<PrePostOrderStorage<u16,u32>>(&mut m);
+        insert_info::<PrePostOrderStorage<u16,u8>>(&mut m);
+
+        insert_info::<LinearGraphStorage<u64>>(&mut m);
+        insert_info::<LinearGraphStorage<u32>>(&mut m);
+        insert_info::<LinearGraphStorage<u16>>(&mut m);
+        insert_info::<LinearGraphStorage<u8>>(&mut m);
+        m
+    };
 }
+
+
+pub struct GSInfo {
+    pub id: String,
+    constructor: fn() -> Arc<GraphStorage>,
+    deserialize_func: fn(&mut std::io::Read) -> Result<Arc<GraphStorage>>,
+}
+
+
+fn insert_info<GS: 'static>(registry : &mut HashMap<String, GSInfo>) 
+where for<'de> GS: GraphStorage + Default +  Deserialize<'de> {
+    // create an instance to get the name
+    let instance = GS::default();
+    let id = instance.serialization_id();
+    let info = GSInfo {
+        id: id.clone(),
+        constructor: || Arc::new(GS::default()),
+        deserialize_func: |input| Ok(Arc::new(GS::deserialize_gs(input)?)),
+    };
+    registry.insert(id, info);
+}
+
+fn create_info<GS: 'static>() -> GSInfo 
+where for<'de> GS: GraphStorage + Default +  Deserialize<'de> {
+    // create an instance to get the name
+    let instance = GS::default();
+
+    GSInfo {
+        id: instance.serialization_id(),
+        constructor: || Arc::new(GS::default()),
+        deserialize_func: |input| Ok(Arc::new(GS::deserialize_gs(input)?)),
+    }
+}
+
 
 
 pub fn create_writeable() -> AdjacencyListStorage {
@@ -31,71 +71,58 @@ pub fn create_writeable() -> AdjacencyListStorage {
     AdjacencyListStorage::new()
 }
 
-pub fn create_from_type(impl_type : ImplTypes) -> Arc<GraphStorage> {
-    match impl_type {
-        ImplTypes::AdjacencyListV1 => Arc::new(AdjacencyListStorage::new()),
-        ImplTypes::PrePostOrderO64L64V1 => Arc::new(PrePostOrderStorage::<u64,u64>::new()),
-        ImplTypes::PrePostOrderO64L32V1 => Arc::new(PrePostOrderStorage::<u64,u32>::new()),
-        ImplTypes::PrePostOrderO64L8V1 => Arc::new(PrePostOrderStorage::<u64,u8>::new()),
-        ImplTypes::PrePostOrderO32L32V1 => Arc::new(PrePostOrderStorage::<u32,u32>::new()),
-        ImplTypes::PrePostOrderO32L8V1 => Arc::new(PrePostOrderStorage::<u32,u8>::new()),
-        ImplTypes::PrePostOrderO16L32V1 => Arc::new(PrePostOrderStorage::<u16,u32>::new()),
-        ImplTypes::PrePostOrderO16L8V1 => Arc::new(PrePostOrderStorage::<u16,u8>::new()),
-        ImplTypes::LinearO64V1 => Arc::new(LinearGraphStorage::<u64>::new()),
-        ImplTypes::LinearO32V1 => Arc::new(LinearGraphStorage::<u32>::new()),
-        ImplTypes::LinearO16V1 => Arc::new(LinearGraphStorage::<u16>::new()),
-        ImplTypes::LinearO8V1 => Arc::new(LinearGraphStorage::<u8>::new()),
-    }
+pub fn create_from_info(info: &GSInfo) -> Arc<GraphStorage> {
+    (info.constructor)()
 }
 
-fn get_prepostorder_by_size(stats : &GraphStatistic) -> ImplTypes {
+fn get_prepostorder_by_size(stats : &GraphStatistic) -> GSInfo {
     if stats.rooted_tree {
         // There are exactly two order values per node and there can be only one order value per node
         // in a tree.
         if stats.nodes < (u16::max_value() / 2) as usize {
             if stats.max_depth < u8::max_value() as usize {
-                return ImplTypes::PrePostOrderO16L8V1;
+                return create_info::<PrePostOrderStorage<u16,u8>>();
             } else if stats.max_depth < u32::max_value() as usize {
-                return ImplTypes::PrePostOrderO16L32V1;
+                return create_info::<PrePostOrderStorage<u16,u32>>();
             }
         } else if stats.nodes < (u32::max_value() / 2) as usize {
             if stats.max_depth < u8::max_value() as usize {
-                return ImplTypes::PrePostOrderO32L8V1;
+                return create_info::<PrePostOrderStorage<u32,u8>>();
             } else if stats.max_depth < u32::max_value() as usize {
-                return ImplTypes::PrePostOrderO32L32V1;
+                return create_info::<PrePostOrderStorage<u32,u32>>();
             }
         } else {
             if stats.max_depth < u8::max_value() as usize {
-                return ImplTypes::PrePostOrderO64L8V1;
+                return create_info::<PrePostOrderStorage<u64,u8>>();
             } else if stats.max_depth < u32::max_value() as usize {
-                return ImplTypes::PrePostOrderO64L32V1;
+                return create_info::<PrePostOrderStorage<u64,u32>>();
             }
         }
     } else {
         if stats.max_depth < u8::max_value() as usize {
-            return ImplTypes::PrePostOrderO64L8V1;
+            return create_info::<PrePostOrderStorage<u64,u8>>();
         }
     }
-    return ImplTypes::PrePostOrderO64L64V1;
+    return create_info::<PrePostOrderStorage<u64,u64>>();;
 }
 
-fn get_linear_by_size(stats : &GraphStatistic) -> ImplTypes {
+fn get_linear_by_size(stats : &GraphStatistic) -> GSInfo {
     if stats.max_depth < u8::max_value() as usize {
-        return ImplTypes::LinearO8V1;
+        return create_info::<LinearGraphStorage<u8>>();
     } else if stats.max_depth < u16::max_value() as usize {
-        return ImplTypes::LinearO16V1;
+        return create_info::<LinearGraphStorage<u16>>();
     } else if stats.max_depth < u32::max_value() as usize {
-        return ImplTypes::LinearO32V1;
+        return create_info::<LinearGraphStorage<u32>>();
     } else {
-        return ImplTypes::LinearO64V1;
+        return create_info::<LinearGraphStorage<u64>>();
     }
 }
 
-pub fn get_optimal_impl_heuristic(stats : &GraphStatistic) -> ImplTypes {
+pub fn get_optimal_impl_heuristic(stats : &GraphStatistic) -> GSInfo {
 
     if stats.max_depth <= 1 {
         // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
-        return ImplTypes::AdjacencyListV1;
+        return create_info::<AdjacencyListStorage>();
     } else if stats.rooted_tree {
         if stats.max_fan_out <= 1 {
             return get_linear_by_size(stats);
@@ -113,45 +140,9 @@ pub fn get_optimal_impl_heuristic(stats : &GraphStatistic) -> ImplTypes {
     }
 
     // fallback
-    return ImplTypes::AdjacencyListV1;
+    return create_info::<AdjacencyListStorage>();;
 }
 
-struct GSInfo {
-    deserialize_func: fn(&mut std::io::Read) -> Result<Arc<GraphStorage>>,
-}
-
-fn create_info<GS: 'static>(registry : &mut HashMap<String, GSInfo>) 
-where for<'de> GS: GraphStorage + Default +  Deserialize<'de> {
-    // create an instance to get the name
-    let instance = GS::default();
-
-    let info = GSInfo {
-        deserialize_func: |input| Ok(Arc::new(GS::deserialize_gs(input)?)),
-    };
-    registry.insert(instance.serialization_id(), info);
-}
-
-lazy_static! {
-    static ref REGISTRY: HashMap<String, GSInfo> = {
-        let mut m = HashMap::new();
-        
-        create_info::<AdjacencyListStorage>(&mut m);
-        
-        create_info::<PrePostOrderStorage<u64,u64>>(&mut m);
-        create_info::<PrePostOrderStorage<u64,u32>>(&mut m);
-        create_info::<PrePostOrderStorage<u64,u8>>(&mut m);
-        create_info::<PrePostOrderStorage<u32,u32>>(&mut m);
-        create_info::<PrePostOrderStorage<u32,u8>>(&mut m);
-        create_info::<PrePostOrderStorage<u16,u32>>(&mut m);
-        create_info::<PrePostOrderStorage<u16,u8>>(&mut m);
-
-        create_info::<LinearGraphStorage<u64>>(&mut m);
-        create_info::<LinearGraphStorage<u32>>(&mut m);
-        create_info::<LinearGraphStorage<u16>>(&mut m);
-        create_info::<LinearGraphStorage<u8>>(&mut m);
-        m
-    };
-}
 
 
 pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<GraphStorage>> {
@@ -160,35 +151,6 @@ pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<G
     return (info.deserialize_func)(input);
 }
 
-pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
-    let data :&Any = data.as_any();
-    if let Some(_) = data.downcast_ref::<AdjacencyListStorage>() {
-        return Ok(ImplTypes::AdjacencyListV1);
-    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u64,u64>>() {
-        return Ok(ImplTypes::PrePostOrderO64L64V1);
-    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u64,u32>>() {
-        return Ok(ImplTypes::PrePostOrderO64L32V1);
-    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u64,u8>>() {
-        return Ok(ImplTypes::PrePostOrderO64L8V1);
-    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u32,u32>>() {
-        return Ok(ImplTypes::PrePostOrderO32L32V1);
-    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u32,u8>>() {
-        return Ok(ImplTypes::PrePostOrderO32L8V1);
-    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u16,u32>>() {
-        return Ok(ImplTypes::PrePostOrderO16L32V1);
-    } else if let Some(_) = data.downcast_ref::<PrePostOrderStorage<u16,u8>>() {
-        return Ok(ImplTypes::PrePostOrderO16L8V1);
-    } else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u64>>() {
-        return Ok(ImplTypes::LinearO32V1);
-    }  else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u32>>() {
-        return Ok(ImplTypes::LinearO32V1);
-    } else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u16>>() {
-        return Ok(ImplTypes::LinearO16V1);
-    } else if let Some(_) = data.downcast_ref::<LinearGraphStorage<u8>>() {
-        return Ok(ImplTypes::LinearO8V1);
-    }
-    return Err("Type not found".into());
-}
 
 pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
     data.serialize_gs(writer)?;

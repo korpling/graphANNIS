@@ -692,14 +692,13 @@ impl GraphDB {
 
     pub fn optimize_impl(&mut self, c: &Component) {
         if let Some(gs) = self.get_graphstorage(c) {
-            let existing_type = registry::get_type(gs.clone());
 
             if let Some(stats) = gs.get_statistics() {
-                let opt_type = registry::get_optimal_impl_heuristic(stats);
+                let opt_info = registry::get_optimal_impl_heuristic(stats);
 
                 // convert if necessary
-                if existing_type.is_err() || opt_type != existing_type.unwrap() {
-                    let mut new_gs = registry::create_from_type(opt_type.clone());
+                if opt_info.id != gs.serialization_id() {
+                    let mut new_gs = registry::create_from_info(&opt_info);
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
                         new_gs_mut.copy(self, gs.as_edgecontainer());
                         true
@@ -711,7 +710,7 @@ impl GraphDB {
                         info!(
                             "Converted component {} to implementation {}",
                             c,
-                            opt_type.to_string()
+                            opt_info.id,
                         );
                         self.components.insert(c.clone(), Some(new_gs.clone()));
                     }
