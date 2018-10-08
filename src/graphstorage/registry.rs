@@ -13,10 +13,14 @@ use errors::*;
 #[derive(ToString, Debug, Clone, EnumString,PartialEq)]
 pub enum ImplTypes {
     AdjacencyListV1,
+    PrePostOrderO64L64V1,
+    PrePostOrderO64L32V1,
+    PrePostOrderO64L8V1,
     PrePostOrderO32L32V1,
     PrePostOrderO32L8V1,
     PrePostOrderO16L32V1,
     PrePostOrderO16L8V1,
+    LinearO64V1,
     LinearO32V1,
     LinearO16V1,
     LinearO8V1,
@@ -31,10 +35,14 @@ pub fn create_writeable() -> AdjacencyListStorage {
 pub fn create_from_type(impl_type : ImplTypes) -> Arc<GraphStorage> {
     match impl_type {
         ImplTypes::AdjacencyListV1 => Arc::new(AdjacencyListStorage::new()),
+        ImplTypes::PrePostOrderO64L64V1 => Arc::new(PrePostOrderStorage::<u64,u64>::new()),
+        ImplTypes::PrePostOrderO64L32V1 => Arc::new(PrePostOrderStorage::<u64,u32>::new()),
+        ImplTypes::PrePostOrderO64L8V1 => Arc::new(PrePostOrderStorage::<u64,u8>::new()),
         ImplTypes::PrePostOrderO32L32V1 => Arc::new(PrePostOrderStorage::<u32,u32>::new()),
         ImplTypes::PrePostOrderO32L8V1 => Arc::new(PrePostOrderStorage::<u32,u8>::new()),
         ImplTypes::PrePostOrderO16L32V1 => Arc::new(PrePostOrderStorage::<u16,u32>::new()),
         ImplTypes::PrePostOrderO16L8V1 => Arc::new(PrePostOrderStorage::<u16,u8>::new()),
+        ImplTypes::LinearO64V1 => Arc::new(LinearGraphStorage::<u64>::new()),
         ImplTypes::LinearO32V1 => Arc::new(LinearGraphStorage::<u32>::new()),
         ImplTypes::LinearO16V1 => Arc::new(LinearGraphStorage::<u16>::new()),
         ImplTypes::LinearO8V1 => Arc::new(LinearGraphStorage::<u8>::new()),
@@ -48,22 +56,28 @@ fn get_prepostorder_by_size(stats : &GraphStatistic) -> ImplTypes {
         if stats.nodes < (u16::max_value() / 2) as usize {
             if stats.max_depth < u8::max_value() as usize {
                 return ImplTypes::PrePostOrderO16L8V1;
-            } else {
+            } else if stats.max_depth < u32::max_value() as usize {
                 return ImplTypes::PrePostOrderO16L32V1;
             }
         } else if stats.nodes < (u32::max_value() / 2) as usize {
             if stats.max_depth < u8::max_value() as usize {
                 return ImplTypes::PrePostOrderO32L8V1;
-            } else {
+            } else if stats.max_depth < u32::max_value() as usize {
                 return ImplTypes::PrePostOrderO32L32V1;
+            }
+        } else {
+            if stats.max_depth < u8::max_value() as usize {
+                return ImplTypes::PrePostOrderO64L8V1;
+            } else if stats.max_depth < u32::max_value() as usize {
+                return ImplTypes::PrePostOrderO64L32V1;
             }
         }
     } else {
         if stats.max_depth < u8::max_value() as usize {
-            return ImplTypes::PrePostOrderO32L8V1;
+            return ImplTypes::PrePostOrderO64L8V1;
         }
     }
-    return ImplTypes::PrePostOrderO32L32V1;
+    return ImplTypes::PrePostOrderO64L64V1;
 }
 
 fn get_linear_by_size(stats : &GraphStatistic) -> ImplTypes {
@@ -71,8 +85,10 @@ fn get_linear_by_size(stats : &GraphStatistic) -> ImplTypes {
         return ImplTypes::LinearO8V1;
     } else if stats.max_depth < u16::max_value() as usize {
         return ImplTypes::LinearO16V1;
-    }else {
+    } else if stats.max_depth < u32::max_value() as usize {
         return ImplTypes::LinearO32V1;
+    } else {
+        return ImplTypes::LinearO64V1;
     }
 }
 
@@ -110,6 +126,18 @@ pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<G
             let gs : AdjacencyListStorage =  bincode::deserialize_from(input)?;
             Arc::new(gs)
         },
+        ImplTypes::PrePostOrderO64L64V1 => {
+            let gs : PrePostOrderStorage<u64,u64> = bincode::deserialize_from(input)?;
+            Arc::new(gs)
+        },
+        ImplTypes::PrePostOrderO64L32V1 => {
+            let gs : PrePostOrderStorage<u64,u32> = bincode::deserialize_from(input)?;
+            Arc::new(gs)
+        },
+        ImplTypes::PrePostOrderO64L8V1 => {
+            let gs : PrePostOrderStorage<u64,u8> = bincode::deserialize_from(input)?;
+            Arc::new(gs)
+        },
         ImplTypes::PrePostOrderO32L32V1 => {
             let gs : PrePostOrderStorage<u32,u32> = bincode::deserialize_from(input)?;
             Arc::new(gs)
@@ -124,6 +152,10 @@ pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<G
         },
         ImplTypes::PrePostOrderO16L8V1 => {
             let gs : PrePostOrderStorage<u16,u8> = bincode::deserialize_from(input)?;
+            Arc::new(gs)
+        },
+        ImplTypes::LinearO64V1 => {
+            let gs : LinearGraphStorage<u64> = bincode::deserialize_from(input)?;
             Arc::new(gs)
         },
         ImplTypes::LinearO32V1 => {
