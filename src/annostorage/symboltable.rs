@@ -1,24 +1,24 @@
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
-use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std;
+use std::collections::BTreeMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct SymbolTable<T>
 where
-    T: Eq + Hash + Clone + Default,
+    T: Eq + Hash + Ord + Clone + Default,
 {
     by_id: Vec<Option<Arc<T>>>,
     #[serde(skip)]
-    by_value: FxHashMap<Arc<T>, usize>,
+    by_value: BTreeMap<Arc<T>, usize>,
     empty_slots: Vec<usize>,
 }
 
 impl<T> MallocSizeOf for SymbolTable<T>
 where
-    T: Eq + Hash + Clone + Default + MallocSizeOf,
+    T: Eq + Hash + Ord + Clone + Default + MallocSizeOf,
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size: usize = 0;
@@ -35,20 +35,20 @@ where
 
 impl<T> SymbolTable<T>
 where
-    for<'de> T: Eq + Hash + Clone + Serialize + Deserialize<'de> + Default,
+    for<'de> T: Eq + Hash + Ord + Clone + Serialize + Deserialize<'de> + Default,
 {
     pub fn new() -> SymbolTable<T> {
         let by_id = Vec::default();
         SymbolTable {
             by_id: by_id,
-            by_value: FxHashMap::default(),
+            by_value: BTreeMap::default(),
             empty_slots: Vec::default(),
         }
     }
 
     pub fn after_deserialization(&mut self) {
         // restore the by_value map and make sure the smart pointers point to the same instance
-        self.by_value.reserve(self.by_id.len());
+        //self.by_value.reserve(self.by_id.len());
         for i in 0..self.by_id.len() {
             if let Some(ref existing) = self.by_id[i] {
                 self.by_value.insert(existing.clone(), i);
