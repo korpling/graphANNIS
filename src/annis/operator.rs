@@ -1,7 +1,7 @@
 use annis::annostorage::AnnoStorage;
 use annis::graphdb::GraphDB;
+use annis::types::{Component, Edge, Match};
 use std;
-use {Component, Edge, Match};
 
 #[derive(Clone, Debug)]
 pub enum EdgeAnnoSearchSpec {

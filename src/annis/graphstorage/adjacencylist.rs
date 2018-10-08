@@ -1,7 +1,7 @@
 use super::*;
 use annis::annostorage::AnnoStorage;
 use annis::dfs::CycleSafeDFS;
-use Edge;
+use annis::types::Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;

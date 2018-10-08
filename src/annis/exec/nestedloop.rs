@@ -1,7 +1,8 @@
 use super::{Desc, ExecutionNode};
 use annis::operator::Operator;
+use annis::types::Match;
 use std::iter::Peekable;
-use Match;
+
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,

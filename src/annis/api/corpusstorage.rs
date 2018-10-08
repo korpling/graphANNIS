@@ -8,12 +8,16 @@ use annis::errors::ErrorKind;
 use annis::errors::*;
 use annis::exec::nodesearch::NodeSearchSpec;
 use annis::graphdb;
+use annis::graphdb::GraphDB;
 use annis::graphdb::{ANNIS_NS, NODE_TYPE};
 use annis::plan::ExecutionPlan;
 use annis::query;
 use annis::query::conjunction::Conjunction;
 use annis::query::disjunction::Disjunction;
 use annis::types::AnnoKey;
+use annis::types::{
+    Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, NodeDesc, NodeID,
+};
 use annis::util;
 use annis::util::memory_estimation;
 use fs2::FileExt;
@@ -30,9 +34,6 @@ use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread;
 use update::GraphUpdate;
-use {
-    Component, ComponentType, CountExtra, Edge, FrequencyTable, GraphDB, Match, NodeDesc, NodeID,
-};
 
 use rustc_hash::FxHashMap;
 

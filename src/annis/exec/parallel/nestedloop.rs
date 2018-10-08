@@ -1,10 +1,10 @@
 use super::super::{Desc, ExecutionNode};
 use annis::operator::Operator;
+use annis::types::Match;
 use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
-use Match;
 
 const MAX_BUFFER_SIZE: usize = 512;
 

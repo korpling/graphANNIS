@@ -57,16 +57,22 @@ static GLOBAL: System = System;
 
 mod annis;
 
-pub use annis::api::corpusstorage::{
-    CorpusInfo, CorpusStorage, FrequencyDefEntry, LoadStatus, ResultOrder,
-};
+pub use annis::api::corpusstorage::CorpusStorage;
+
+pub mod corpusstorage {
+    pub use annis::api::corpusstorage::{CorpusInfo, FrequencyDefEntry, LoadStatus, ResultOrder};
+}
+
 pub use annis::api::update;
 pub use annis::graphdb::GraphDB;
 pub use annis::graphstorage::GraphStorage;
-pub use annis::types::{
-    Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, Matrix,
-    NodeDesc, NodeID,
-};
+
+pub mod types {
+    pub use annis::types::{
+        Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, Matrix,
+        NodeDesc, NodeID,
+    };
+}
 
 pub mod relannis {
     pub use annis::relannis::load;

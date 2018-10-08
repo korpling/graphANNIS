@@ -1,5 +1,5 @@
+use annis::types::Component;
 use annis::types::LineColumnRange;
-use Component;
 
 error_chain! {
 

@@ -18,7 +18,7 @@ use std::string::ToString;
 use std::sync::{Arc, Mutex};
 use strum::IntoEnumIterator;
 use tempdir::TempDir;
-use {Annotation, Component, ComponentType, Edge, NodeID};
+use annis::types::{Annotation, Component, ComponentType, Edge, NodeID};
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";

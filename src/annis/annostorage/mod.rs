@@ -1,6 +1,7 @@
 use self::symboltable::SymbolTable;
 use annis::errors::*;
 use annis::types::{AnnoKey, AnnoKeyID, Annotation};
+use annis::types::{Edge, Match, NodeID};
 use annis::util;
 use bincode;
 use itertools::Itertools;
@@ -16,7 +17,6 @@ use std::collections::BTreeMap;
 use std::collections::Bound::*;
 use std::hash::Hash;
 use std::path::PathBuf;
-use {Edge, Match, NodeID};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, MallocSizeOf)]
 struct SparseAnnotation {

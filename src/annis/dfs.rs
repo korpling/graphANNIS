@@ -1,6 +1,6 @@
 use annis::graphstorage::EdgeContainer;
+use annis::types::NodeID;
 use rustc_hash::FxHashSet;
-use NodeID;
 
 pub struct CycleSafeDFS<'a> {
     min_distance: usize,

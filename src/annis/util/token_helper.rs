@@ -1,7 +1,7 @@
 use annis::annostorage::AnnoStorage;
 use annis::graphdb::GraphDB;
 use annis::graphstorage::GraphStorage;
-use {Component, ComponentType, NodeID};
+use annis::types::{Component, ComponentType, NodeID};
 
 use std::sync::Arc;
 

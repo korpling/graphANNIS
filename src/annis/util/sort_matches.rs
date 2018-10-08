@@ -2,11 +2,11 @@ use annis::graphdb::GraphDB;
 use annis::types::Component;
 use annis::types::ComponentType;
 use annis::types::Match;
+use annis::types::NodeID;
 use annis::util::token_helper::TokenHelper;
 use rustc_hash::FxHashMap;
 use std;
 use std::cmp::Ordering;
-use NodeID;
 
 pub fn compare_matchgroup_by_text_pos(
     m1: &Vec<Match>,

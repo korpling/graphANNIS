@@ -1,7 +1,7 @@
 use super::{CostEstimate, Desc, ExecutionNode};
 use annis::operator::{EstimationType, Operator};
+use annis::types::Match;
 use std;
-use Match;
 
 pub struct BinaryFilter<'a> {
     it: Box<Iterator<Item = Vec<Match>> + 'a>,

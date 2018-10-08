@@ -1,7 +1,6 @@
-use annis::operator::*;
-use Match;
-
 use annis::graphdb::GraphDB;
+use annis::operator::*;
+use annis::types::Match;
 use annis::types::{AnnoKeyID, Component};
 use std;
 

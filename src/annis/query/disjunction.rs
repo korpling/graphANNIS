@@ -1,6 +1,6 @@
 use super::conjunction::Conjunction;
 use annis::graphdb::GraphDB;
-use Component;
+use annis::types::Component;
 
 pub struct Disjunction<'a> {
     pub alternatives: Vec<Conjunction<'a>>,
