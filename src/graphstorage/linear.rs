@@ -4,6 +4,7 @@ use rustc_hash::FxHashSet;
 use std::any::Any;
 use std::clone::Clone;
 use std;
+use serde::{Serialize, Deserialize};
 use bincode;
 
 use {AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
@@ -109,7 +110,7 @@ where PosT : NumValue {
 
 impl<PosT: 'static> GraphStorage for LinearGraphStorage<PosT>
 where
-    PosT: NumValue,
+    for <'de> PosT: NumValue + Deserialize<'de> + Serialize,
 {
     fn serialization_id(&self) -> String {
         format!("LinearO{}V1", std::mem::size_of::<PosT>()*8)

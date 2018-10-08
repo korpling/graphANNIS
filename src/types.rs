@@ -1,5 +1,4 @@
 use num::{Bounded, FromPrimitive, Num, ToPrimitive};
-use serde::{Serialize};
 use std;
 use std::fmt;
 use std::ops::AddAssign;
@@ -136,7 +135,6 @@ pub trait NumValue:
     + Bounded
     + FromPrimitive
     + ToPrimitive
-    + Serialize
     + MallocSizeOf
 {
 }
