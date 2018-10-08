@@ -77,6 +77,7 @@ pub mod errors {
 }
 
 pub mod util {
+    pub use annis::util::extract_node_path;
     pub use annis::util::get_queries_from_folder;
     pub use annis::util::SearchDef;
 }
