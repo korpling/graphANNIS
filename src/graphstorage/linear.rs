@@ -49,6 +49,15 @@ where
     }
 }
 
+impl<PosT> Default for LinearGraphStorage<PosT> 
+where
+    PosT: NumValue,
+{
+    fn default() -> Self {
+        LinearGraphStorage::new()
+    }
+}
+
 
 impl<PosT: 'static> EdgeContainer for  LinearGraphStorage<PosT> 
 where PosT : NumValue {
@@ -116,7 +125,7 @@ where
         format!("LinearO{}V1", std::mem::size_of::<PosT>()*8)
     }
 
-    fn serialize(&self, writer: &mut std::io::Write) -> Result<()> {
+    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()> {
         bincode::serialize_into(writer, self)?;
         Ok(())
     }

@@ -27,6 +27,12 @@ impl MallocSizeOf for AdjacencyListStorage {
     }
 }
 
+impl Default for AdjacencyListStorage {
+    fn default() -> Self {
+        AdjacencyListStorage::new()
+    }
+}
+
 impl AdjacencyListStorage {
     pub fn new() -> AdjacencyListStorage {
         AdjacencyListStorage {
@@ -96,7 +102,7 @@ impl GraphStorage for AdjacencyListStorage {
         "AdjacencyListV1".to_owned()
     }
 
-    fn serialize(&self, writer: &mut std::io::Write) -> Result<()> {
+    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()> {
         bincode::serialize_into(writer, self)?;
         Ok(())
     }

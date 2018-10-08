@@ -4,10 +4,10 @@ use super::prepost::PrePostOrderStorage;
 use super::linear::LinearGraphStorage;
 use std;
 use std::sync::Arc;
-use bincode;
 use std::any::Any;
-use std::str::FromStr;
+use std::collections::HashMap;
 use errors::*;
+use serde::Deserialize;
 
 #[derive(ToString, Debug, Clone, EnumString,PartialEq)]
 pub enum ImplTypes {
@@ -116,61 +116,48 @@ pub fn get_optimal_impl_heuristic(stats : &GraphStatistic) -> ImplTypes {
     return ImplTypes::AdjacencyListV1;
 }
 
+struct GSInfo {
+    deserialize_func: fn(&mut std::io::Read) -> Result<Arc<GraphStorage>>,
+}
+
+fn create_info<GS: 'static>(registry : &mut HashMap<String, GSInfo>) 
+where for<'de> GS: GraphStorage + Default +  Deserialize<'de> {
+    // create an instance to get the name
+    let instance = GS::default();
+
+    let info = GSInfo {
+        deserialize_func: |input| Ok(Arc::new(GS::deserialize_gs(input)?)),
+    };
+    registry.insert(instance.serialization_id(), info);
+}
+
+lazy_static! {
+    static ref REGISTRY: HashMap<String, GSInfo> = {
+        let mut m = HashMap::new();
+        
+        create_info::<AdjacencyListStorage>(&mut m);
+        
+        create_info::<PrePostOrderStorage<u64,u64>>(&mut m);
+        create_info::<PrePostOrderStorage<u64,u32>>(&mut m);
+        create_info::<PrePostOrderStorage<u64,u8>>(&mut m);
+        create_info::<PrePostOrderStorage<u32,u32>>(&mut m);
+        create_info::<PrePostOrderStorage<u32,u8>>(&mut m);
+        create_info::<PrePostOrderStorage<u16,u32>>(&mut m);
+        create_info::<PrePostOrderStorage<u16,u8>>(&mut m);
+
+        create_info::<LinearGraphStorage<u64>>(&mut m);
+        create_info::<LinearGraphStorage<u32>>(&mut m);
+        create_info::<LinearGraphStorage<u16>>(&mut m);
+        create_info::<LinearGraphStorage<u8>>(&mut m);
+        m
+    };
+}
+
+
 pub fn deserialize(impl_name : &str, input : &mut std::io::Read) -> Result<Arc<GraphStorage>> {
 
-    let impl_type = ImplTypes::from_str(impl_name)?;
-
-    let gs : Arc<GraphStorage> = match impl_type {
-        ImplTypes::AdjacencyListV1 => {
-            let gs : AdjacencyListStorage =  bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::PrePostOrderO64L64V1 => {
-            let gs : PrePostOrderStorage<u64,u64> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::PrePostOrderO64L32V1 => {
-            let gs : PrePostOrderStorage<u64,u32> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::PrePostOrderO64L8V1 => {
-            let gs : PrePostOrderStorage<u64,u8> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::PrePostOrderO32L32V1 => {
-            let gs : PrePostOrderStorage<u32,u32> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::PrePostOrderO32L8V1 => {
-            let gs : PrePostOrderStorage<u32,u8> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::PrePostOrderO16L32V1 => {
-            let gs : PrePostOrderStorage<u16,u32> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::PrePostOrderO16L8V1 => {
-            let gs : PrePostOrderStorage<u16,u8> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::LinearO64V1 => {
-            let gs : LinearGraphStorage<u64> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::LinearO32V1 => {
-            let gs : LinearGraphStorage<u32> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::LinearO16V1 => {
-            let gs : LinearGraphStorage<u16> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-        ImplTypes::LinearO8V1 => {
-            let gs : LinearGraphStorage<u8> = bincode::deserialize_from(input)?;
-            Arc::new(gs)
-        },
-    };
-    Ok(gs)
+    let info =  REGISTRY.get(impl_name).ok_or(format!("Could not find implementation for graph storage with name '{}'", impl_name))?;
+    return (info.deserialize_func)(input);
 }
 
 pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
@@ -204,7 +191,7 @@ pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
 }
 
 pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
-    data.serialize(writer)?;
+    data.serialize_gs(writer)?;
     Ok(data.serialization_id())
 }
 

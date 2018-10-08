@@ -48,6 +48,16 @@ struct NodeStackEntry<OrderT, LevelT> {
     pub order: PrePost<OrderT, LevelT>,
 }
 
+impl<OrderT, LevelT> Default for PrePostOrderStorage<OrderT, LevelT> 
+where
+    OrderT: NumValue,
+    LevelT: NumValue,
+{
+    fn default() -> Self {
+        PrePostOrderStorage::new()
+    }
+}
+
 impl<OrderT, LevelT> PrePostOrderStorage<OrderT, LevelT>
 where
     OrderT: NumValue,
@@ -151,7 +161,7 @@ where
         format!("PrePostOrderO{}L{}V1", std::mem::size_of::<OrderT>()*8, std::mem::size_of::<LevelT>()*8)
     }
 
-    fn serialize(&self, writer: &mut std::io::Write) -> Result<()> {
+    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()> {
         bincode::serialize_into(writer, self)?;
         Ok(())
     }

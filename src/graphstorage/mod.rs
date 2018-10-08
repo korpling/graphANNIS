@@ -1,6 +1,5 @@
 use std;
 use std::any::Any;
-use std::sync::Arc;
 use serde::Deserialize;
 use {AnnoKey, Annotation, Edge, NodeID};
 use annostorage::AnnoStorage;
@@ -85,12 +84,12 @@ pub trait GraphStorage : EdgeContainer {
 
     fn serialization_id(&self) -> String;
 
-    fn serialize(&self, writer: &mut std::io::Write) -> Result<()>;
+    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()>;
 
-    fn deserialize(input : &mut std::io::Read) -> Result<Arc<Self>> 
+    fn deserialize_gs(input : &mut std::io::Read) -> Result<Self> 
     where for<'de> Self: std::marker::Sized +  Deserialize<'de> {
         let result = bincode::deserialize_from(input)?;
-        Ok(Arc::new(result))
+        Ok(result)
     }
 }
 
