@@ -12,16 +12,16 @@ extern crate log;
 #[macro_use]
 extern crate error_chain;
 
+extern crate linked_hash_map;
+extern crate multimap;
+extern crate rand;
 extern crate regex;
 extern crate regex_syntax;
-extern crate rand;
-extern crate multimap;
-extern crate linked_hash_map;
 extern crate rustc_hash;
 extern crate tempdir;
 
-extern crate serde;
 extern crate bincode;
+extern crate serde;
 
 extern crate csv;
 
@@ -35,38 +35,18 @@ extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;
 
-extern crate num;
+extern crate fs2;
 extern crate itertools;
+#[macro_use]
+extern crate lalrpop_util;
+extern crate num;
 extern crate rayon;
 extern crate sys_info;
-extern crate fs2;
-extern crate lalrpop_util;
 
-pub mod errors;
-
-#[macro_use]
-pub mod util;
-
-mod types;
-pub use types::*;
-
-mod dfs;
-pub mod annostorage;
-pub mod graphstorage;
-pub mod graphdb;
-pub mod operator;
-pub mod relannis;
-mod plan;
-pub mod exec;
-mod query;
-pub mod aql;
-
-pub mod api;
-
-#[cfg(feature = "c-api")]
-extern crate simplelog;
 #[cfg(feature = "c-api")]
 extern crate libc;
+#[cfg(feature = "c-api")]
+extern crate simplelog;
 #[cfg(feature = "c-api")]
 pub mod capi;
 
@@ -74,3 +54,36 @@ pub mod capi;
 use std::alloc::System;
 #[global_allocator]
 static GLOBAL: System = System;
+
+mod annis;
+
+pub use annis::api::corpusstorage::CorpusStorage;
+
+pub mod corpusstorage {
+    pub use annis::api::corpusstorage::{CorpusInfo, FrequencyDefEntry, LoadStatus, ResultOrder};
+}
+
+pub use annis::api::update;
+pub use annis::graphdb::GraphDB;
+pub use annis::graphstorage::GraphStorage;
+
+pub mod types {
+    pub use annis::types::{
+        Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, Matrix,
+        NodeDesc, NodeID,
+    };
+}
+
+pub mod relannis {
+    pub use annis::relannis::load;
+}
+
+pub mod errors {
+    pub use annis::errors::*;
+}
+
+pub mod util {
+    pub use annis::util::extract_node_path;
+    pub use annis::util::get_queries_from_folder;
+    pub use annis::util::SearchDef;
+}

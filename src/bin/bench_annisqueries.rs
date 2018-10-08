@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use std::sync::Arc;
 
-use graphannis::api::corpusstorage::CorpusStorage;
+use graphannis::CorpusStorage;
 use graphannis::util;
 
 pub struct CountBench {

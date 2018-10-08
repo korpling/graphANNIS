@@ -2,16 +2,15 @@
 extern crate criterion;
 #[macro_use]
 extern crate lazy_static;
-extern crate rustc_hash;
 extern crate graphannis;
 extern crate rand;
+extern crate rustc_hash;
 
 use criterion::Criterion;
-use graphannis::api::corpusstorage::CorpusStorage;
-use graphannis::api::corpusstorage::ResultOrder;
+use graphannis::corpusstorage::ResultOrder;
+use graphannis::CorpusStorage;
 use std::collections::HashSet;
 use std::path::PathBuf;
-
 
 lazy_static! {
 
@@ -32,14 +31,13 @@ static ref CORPUS_STORAGE : Option<CorpusStorage> = {
     };
 }
 
-
 fn find_all_nouns_gum(bench: &mut Criterion) {
     if CORPUS_STORAGE.is_none() {
         return;
     }
 
     let cs = CORPUS_STORAGE.as_ref().unwrap();
-    
+
     let corpora = cs.list();
     if let Ok(corpora) = corpora {
         let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
@@ -50,8 +48,6 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
             return;
         }
     }
-
-
 
     bench.bench_function("find_all_nouns_gum", move |b| {
         b.iter(|| {
@@ -65,7 +61,6 @@ fn find_all_nouns_gum(bench: &mut Criterion) {
             assert!(f.is_ok());
         })
     });
-
 }
 
 fn deserialize_gum(bench: &mut Criterion) {
@@ -74,7 +69,7 @@ fn deserialize_gum(bench: &mut Criterion) {
     }
 
     let cs = CORPUS_STORAGE.as_ref().unwrap();
-    
+
     bench.bench_function("deserialize_gum", move |b| {
         b.iter(|| {
             cs.unload("GUM");
