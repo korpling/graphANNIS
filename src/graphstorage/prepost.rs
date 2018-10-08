@@ -3,12 +3,15 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::any::Any;
 use std::clone::Clone;
 use std;
+use serde::{Serialize, Deserialize};
+use bincode;
 
 use {AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
 use super::{GraphStatistic, GraphStorage};
 use annostorage::AnnoStorage;
 use graphdb::GraphDB;
 use dfs::{CycleSafeDFS, DFSStep};
+use errors::*;
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
 pub struct PrePost<OrderT, LevelT> {
@@ -43,6 +46,16 @@ pub struct PrePostOrderStorage<OrderT: NumValue, LevelT: NumValue> {
 struct NodeStackEntry<OrderT, LevelT> {
     pub id: NodeID,
     pub order: PrePost<OrderT, LevelT>,
+}
+
+impl<OrderT, LevelT> Default for PrePostOrderStorage<OrderT, LevelT> 
+where
+    OrderT: NumValue,
+    LevelT: NumValue,
+{
+    fn default() -> Self {
+        PrePostOrderStorage::new()
+    }
 }
 
 impl<OrderT, LevelT> PrePostOrderStorage<OrderT, LevelT>
@@ -103,8 +116,8 @@ type NStack<OrderT, LevelT> = std::collections::LinkedList<NodeStackEntry<OrderT
 
 impl<OrderT: 'static, LevelT: 'static> EdgeContainer for PrePostOrderStorage<OrderT, LevelT>
 where
-    OrderT: NumValue,
-    LevelT: NumValue,
+    for<'de> OrderT: NumValue +  Deserialize<'de> + Serialize,
+    for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         return self.find_connected(node, 1, 1);
@@ -141,9 +154,19 @@ where
 
 impl<OrderT: 'static, LevelT: 'static> GraphStorage for PrePostOrderStorage<OrderT, LevelT>
 where
-    OrderT: NumValue,
-    LevelT: NumValue,
+    for<'de> OrderT: NumValue +  Deserialize<'de> + Serialize,
+    for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
+    fn serialization_id(&self) -> String {
+        format!("PrePostOrderO{}L{}V1", std::mem::size_of::<OrderT>()*8, std::mem::size_of::<LevelT>()*8)
+    }
+
+    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()> {
+        bincode::serialize_into(writer, self)?;
+        Ok(())
+    }
+
+
     fn find_connected<'a>(
         &'a self,
         node: &NodeID,

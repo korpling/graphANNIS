@@ -1,9 +1,12 @@
 use std;
 use std::any::Any;
+use serde::Deserialize;
 use {AnnoKey, Annotation, Edge, NodeID};
 use annostorage::AnnoStorage;
 use graphdb::GraphDB;
 use malloc_size_of::MallocSizeOf;
+use bincode;
+use errors::*;
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
@@ -79,6 +82,15 @@ pub trait GraphStorage : EdgeContainer {
 
     fn calculate_statistics(&mut self) {}
 
+    fn serialization_id(&self) -> String;
+
+    fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()>;
+
+    fn deserialize_gs(input : &mut std::io::Read) -> Result<Self> 
+    where for<'de> Self: std::marker::Sized +  Deserialize<'de> {
+        let result = bincode::deserialize_from(input)?;
+        Ok(result)
+    }
 }
 
 pub trait WriteableGraphStorage :  GraphStorage {

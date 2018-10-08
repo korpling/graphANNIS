@@ -1,14 +1,26 @@
-use num::{Num,FromPrimitive, Bounded, ToPrimitive};
-use std::string::String;
+use num::{Bounded, FromPrimitive, Num, ToPrimitive};
+use std;
 use std::fmt;
 use std::ops::AddAssign;
-use std;
+use std::string::String;
 
 use malloc_size_of::MallocSizeOf;
 
 pub type NodeID = u64;
 
-#[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, MallocSizeOf, Hash)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Default,
+    Eq,
+    PartialEq,
+    PartialOrd,
+    Ord,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    Hash,
+)]
 #[repr(C)]
 pub struct AnnoKey {
     pub name: String,
@@ -38,7 +50,19 @@ pub struct CountExtra {
     pub document_count: u64,
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash, MallocSizeOf, Default)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Eq,
+    PartialEq,
+    PartialOrd,
+    Ord,
+    Clone,
+    Debug,
+    Hash,
+    MallocSizeOf,
+    Default,
+)]
 #[repr(C)]
 pub struct Edge {
     pub source: NodeID,
@@ -47,11 +71,27 @@ pub struct Edge {
 
 impl Edge {
     pub fn inverse(&self) -> Edge {
-        Edge {source: self.target, target: self.source}
+        Edge {
+            source: self.target,
+            target: self.source,
+        }
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, EnumIter, EnumString, MallocSizeOf)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Eq,
+    PartialEq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    EnumIter,
+    EnumString,
+    MallocSizeOf,
+)]
 #[repr(C)]
 pub enum ComponentType {
     Coverage,
@@ -70,11 +110,13 @@ impl fmt::Display for ComponentType {
     }
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, MallocSizeOf)]
+#[derive(
+    Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, MallocSizeOf,
+)]
 pub struct Component {
-    pub ctype : ComponentType,
-    pub name : String,
-    pub layer : String,
+    pub ctype: ComponentType,
+    pub name: String,
+    pub layer: String,
 }
 
 impl std::fmt::Display for Component {
@@ -83,8 +125,18 @@ impl std::fmt::Display for Component {
     }
 }
 
-pub trait NumValue : Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive + MallocSizeOf {
-
+pub trait NumValue:
+    Send
+    + Sync
+    + Ord
+    + Num
+    + AddAssign
+    + Clone
+    + Bounded
+    + FromPrimitive
+    + ToPrimitive
+    + MallocSizeOf
+{
 }
 
 impl NumValue for u64 {}
@@ -100,15 +152,15 @@ pub type FrequencyTable<T> = Vec<(Vec<T>, usize)>;
 
 pub struct NodeDesc {
     pub component_nr: usize,
-    pub aql_fragment : String,
+    pub aql_fragment: String,
     pub variable: String,
-    pub anno_name : Option<String>,
+    pub anno_name: Option<String>,
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct LineColumn {
-    pub line : usize,
-    pub column : usize,
+    pub line: usize,
+    pub column: usize,
 }
 
 impl std::fmt::Display for LineColumn {
@@ -117,10 +169,10 @@ impl std::fmt::Display for LineColumn {
     }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct LineColumnRange {
-    pub start : LineColumn,
-    pub end : Option<LineColumn>,
+    pub start: LineColumn,
+    pub end: Option<LineColumn>,
 }
 
 impl std::fmt::Display for LineColumnRange {
