@@ -4,6 +4,7 @@ use {AnnoKey, Annotation, Edge, NodeID};
 use annostorage::AnnoStorage;
 use graphdb::GraphDB;
 use malloc_size_of::MallocSizeOf;
+use errors::*;
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
@@ -78,6 +79,9 @@ pub trait GraphStorage : EdgeContainer {
     fn inverse_has_same_cost(&self) -> bool {false}    
 
     fn calculate_statistics(&mut self) {}
+
+    fn serialization_id(&self) -> String;
+    fn serialize(&self, writer : &mut std::io::Write) -> Result<()>;
 
 }
 

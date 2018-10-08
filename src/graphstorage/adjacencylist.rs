@@ -7,6 +7,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
 
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use bincode;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AdjacencyListStorage {
@@ -90,6 +91,16 @@ impl EdgeContainer for AdjacencyListStorage {
 }
 
 impl GraphStorage for AdjacencyListStorage {
+
+    fn serialization_id(&self) -> String {
+        "AdjacencyListV1".to_owned()
+    }
+
+    fn serialize(&self, writer: &mut std::io::Write) -> Result<()> {
+        bincode::serialize_into(writer, self)?;
+        Ok(())
+    }
+
     fn find_connected<'a>(
         &'a self,
         node: &NodeID,

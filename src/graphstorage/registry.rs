@@ -204,45 +204,8 @@ pub fn get_type(data : Arc<GraphStorage>) -> Result<ImplTypes> {
 }
 
 pub fn serialize(data : Arc<GraphStorage>, writer : &mut std::io::Write) -> Result<String> {
-    let data :&Any = data.as_any();
-    if let Some(gs) = data.downcast_ref::<AdjacencyListStorage>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::AdjacencyListV1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u64,u64>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::PrePostOrderO64L64V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u64,u32>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::PrePostOrderO64L32V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u64,u8>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::PrePostOrderO64L8V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u32>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::PrePostOrderO32L32V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u32,u8>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::PrePostOrderO32L8V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u32>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::PrePostOrderO16L32V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<PrePostOrderStorage<u16,u8>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::PrePostOrderO16L8V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u64>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::LinearO64V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u32>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::LinearO32V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u16>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::LinearO16V1.to_string());
-    } else if let Some(gs) = data.downcast_ref::<LinearGraphStorage<u8>>() {
-        bincode::serialize_into(writer, gs)?;
-        return Ok(ImplTypes::LinearO8V1.to_string());
-    }
-    return Err("Type not found".into());
+    data.serialize(writer)?;
+    Ok(data.serialization_id())
 }
 
 

@@ -4,12 +4,14 @@ use rustc_hash::FxHashSet;
 use std::any::Any;
 use std::clone::Clone;
 use std;
+use bincode;
 
 use {AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
 use super::{GraphStatistic, GraphStorage};
 use annostorage::AnnoStorage;
 use graphdb::GraphDB;
 use dfs::{CycleSafeDFS, DFSStep};
+use errors::*;
 
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 struct RelativePosition<PosT> {
@@ -109,6 +111,15 @@ impl<PosT: 'static> GraphStorage for LinearGraphStorage<PosT>
 where
     PosT: NumValue,
 {
+    fn serialization_id(&self) -> String {
+        format!("LinearO{}V1", std::mem::size_of::<PosT>()*8)
+    }
+
+    fn serialize(&self, writer: &mut std::io::Write) -> Result<()> {
+        bincode::serialize_into(writer, self)?;
+        Ok(())
+    }
+
     fn find_connected<'a>(
         &'a self,
         source: &NodeID,
