@@ -4,35 +4,33 @@ extern crate log;
 
 extern crate prettytable;
 
-use graphannis::api::corpusstorage::FrequencyDefEntry;
-use clap::{App, Arg};
-
 extern crate graphannis;
 extern crate rustyline;
 extern crate simplelog;
 
+use clap::{App, Arg};
+use graphannis::errors::*;
+use graphannis::relannis;
+use graphannis::CorpusInfo;
+use graphannis::CorpusStorage;
+use graphannis::FrequencyDefEntry;
+use graphannis::LoadStatus;
+use graphannis::ResultOrder;
+use prettytable::Cell;
+use prettytable::Row;
+use prettytable::Table;
+use rustyline::completion::{Completer, FilenameCompleter};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use rustyline::completion::{Completer, FilenameCompleter};
 use simplelog::{LevelFilter, SimpleLogger, TermLogger};
-use graphannis::relannis;
-use std::path::{Path, PathBuf};
-use graphannis::errors::*;
-use graphannis::api::corpusstorage::CorpusStorage;
-use graphannis::api::corpusstorage::CorpusInfo;
-use graphannis::api::corpusstorage::LoadStatus;
-use graphannis::api::corpusstorage::ResultOrder;
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
-
-use prettytable::Table;
-use prettytable::Row;
-use prettytable::Cell;
+use std::path::{Path, PathBuf};
 
 struct CommandCompleter {
     known_commands: BTreeSet<String>,
     filename_completer: FilenameCompleter,
-    pub corpora : Vec<CorpusInfo>,
+    pub corpora: Vec<CorpusInfo>,
 }
 
 impl CommandCompleter {
@@ -50,7 +48,6 @@ impl CommandCompleter {
         known_commands.insert("plan".to_string());
         known_commands.insert("use_parallel".to_string());
         known_commands.insert("info".to_string());
-        
 
         known_commands.insert("quit".to_string());
         known_commands.insert("exit".to_string());
@@ -64,8 +61,11 @@ impl CommandCompleter {
 }
 
 impl Completer for CommandCompleter {
-    fn complete(&self, line: &str, pos: usize) -> std::result::Result<(usize, Vec<String>), ReadlineError> {
-        
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+    ) -> std::result::Result<(usize, Vec<String>), ReadlineError> {
         // check for more specialized completers
         if line.starts_with("import ") {
             return self.filename_completer.complete(line, pos);
@@ -80,7 +80,7 @@ impl Completer for CommandCompleter {
                         matching_corpora.push(c.name.clone());
                     }
                 }
-                return Ok((pos-corpus_prefix.len(), matching_corpora));
+                return Ok((pos - corpus_prefix.len(), matching_corpora));
             } else {
                 return Ok((pos, vec![]));
             }
@@ -118,8 +118,10 @@ impl AnnisRunner {
         if let Err(_) = rl.load_history("annis_history.txt") {
             println!("No previous history.");
         }
-        
-        rl.set_completer(Some(CommandCompleter::new(self.storage.list().unwrap_or_default())));
+
+        rl.set_completer(Some(CommandCompleter::new(
+            self.storage.list().unwrap_or_default(),
+        )));
 
         loop {
             let prompt = if let Some(ref c) = self.current_corpus {
@@ -185,7 +187,9 @@ impl AnnisRunner {
     fn import_relannis(&mut self, args: &str) {
         let args: Vec<&str> = args.split(' ').collect();
         if args.is_empty() {
-            println!("You need to location of the relANNIS files and optionally a name as argument");
+            println!(
+                "You need to location of the relANNIS files and optionally a name as argument"
+            );
             return;
         }
 
@@ -195,10 +199,10 @@ impl AnnisRunner {
         let res = relannis::load(&PathBuf::from(path));
         let load_time = t_before.elapsed();
         match res {
-            Ok((name,db)) => if let Ok(t) = load_time {
+            Ok((name, db)) => if let Ok(t) = load_time {
                 info!{"Loaded corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
                 info!("Saving imported corpus to disk");
-                let name = if args.len() > 1 {args[1]} else {&name};
+                let name = if args.len() > 1 { args[1] } else { &name };
                 self.storage.import(name, db);
                 info!("Finished saving corpus {} to disk", name);
             },
@@ -212,11 +216,16 @@ impl AnnisRunner {
         if let Ok(mut corpora) = self.storage.list() {
             corpora.sort();
             for c in corpora {
-
                 let desc = match c.load_status {
                     LoadStatus::NotLoaded => String::from("not loaded"),
-                    LoadStatus::PartiallyLoaded(size) => format!("partially loaded, {:.2} MB", size as f64 / (1024*1024) as f64),
-                    LoadStatus::FullyLoaded(size) => format!("fully loaded, {:.2} MB ", size as f64 / (1024*1024) as f64),
+                    LoadStatus::PartiallyLoaded(size) => format!(
+                        "partially loaded, {:.2} MB",
+                        size as f64 / (1024 * 1024) as f64
+                    ),
+                    LoadStatus::FullyLoaded(size) => format!(
+                        "fully loaded, {:.2} MB ",
+                        size as f64 / (1024 * 1024) as f64
+                    ),
                 };
                 println!("{} ({})", c.name, desc);
             }
@@ -255,12 +264,12 @@ impl AnnisRunner {
 
     fn info(&self) {
         if let Some(ref corpus) = self.current_corpus {
-            let cinfo : Result<CorpusInfo> = self.storage.info(corpus);
+            let cinfo: Result<CorpusInfo> = self.storage.info(corpus);
 
             match cinfo {
                 Ok(cinfo) => {
                     println!("{}", cinfo);
-                },
+                }
                 Err(e) => println!("{}", e),
             };
         } else {
@@ -337,7 +346,6 @@ impl AnnisRunner {
                 Ok(c) => println!("result: {} matches", c),
                 Err(e) => println!("{}", e),
             };
-
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -346,7 +354,9 @@ impl AnnisRunner {
     fn find(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let matches = self.storage.find(corpus, args, 0, usize::max_value(), ResultOrder::Normal);
+            let matches =
+                self.storage
+                    .find(corpus, args, 0, usize::max_value(), ResultOrder::Normal);
             let load_time = t_before.elapsed();
 
             if let Ok(t) = load_time {
@@ -368,12 +378,12 @@ impl AnnisRunner {
 
     fn frequency(&self, args: &str) {
         if let Some(ref corpus) = self.current_corpus {
-            
-            let splitted_arg : Vec<&str> = args.splitn(2, ' ').collect();
-            let table_def : Vec<FrequencyDefEntry> = if splitted_arg.len() == 2 {
+            let splitted_arg: Vec<&str> = args.splitn(2, ' ').collect();
+            let table_def: Vec<FrequencyDefEntry> = if splitted_arg.len() == 2 {
                 // split the second argument
                 let defs = splitted_arg[0].split(',');
-                defs.filter_map(|d| -> Option<FrequencyDefEntry> {d.parse().ok()}).collect()
+                defs.filter_map(|d| -> Option<FrequencyDefEntry> { d.parse().ok() })
+                    .collect()
             } else {
                 println!("You have to give the frequency definition as first argument and the AQL as second argument");
                 return;
@@ -392,12 +402,12 @@ impl AnnisRunner {
             let load_time = t_before.elapsed();
 
             if let Ok(t) = load_time {
-                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+                info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
             if let Ok(frequency_table) = frequency_table {
                 // map the resulting frequency table to an output
-                
+
                 // TODO: map header
                 for row in frequency_table.into_iter() {
                     let mut out_row = Row::empty();
@@ -410,9 +420,7 @@ impl AnnisRunner {
                 }
                 out.printstd();
             }
-            // TODO output error if needed
-
-            
+        // TODO output error if needed
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -444,21 +452,18 @@ fn main() {
                 .long("debug")
                 .help("Enables debug output")
                 .takes_value(false),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("cmd")
                 .short("c")
                 .long("cmd")
                 .help("Executes command")
                 .takes_value(true),
-        )
-        .arg(
+        ).arg(
             Arg::with_name("DATA_DIR")
                 .help("directory containing the data")
                 .required(true)
                 .index(1),
-        )
-        .get_matches();
+        ).get_matches();
 
     let log_filter = if matches.is_present("debug") {
         LevelFilter::Trace

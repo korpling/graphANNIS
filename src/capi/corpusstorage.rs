@@ -1,10 +1,7 @@
 use super::cerror;
 use super::cerror::ErrorList;
-use api::corpusstorage as cs;
-use api::corpusstorage::FrequencyDefEntry;
-use api::corpusstorage::ResultOrder;
-use api::update::GraphUpdate;
-use graphdb::GraphDB;
+use {CorpusStorage, FrequencyDefEntry, ResultOrder, GraphDB};
+use update::GraphUpdate;
 use libc;
 use relannis;
 use std;
@@ -19,12 +16,12 @@ use {Component, ComponentType, CountExtra, NodeDesc};
 pub extern "C" fn annis_cs_new(
     db_dir: *const libc::c_char,
     use_parallel: bool,
-) -> *mut cs::CorpusStorage {
+) -> *mut CorpusStorage {
     let db_dir = cstr!(db_dir);
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
-    let s = cs::CorpusStorage::new_auto_cache_size(&db_dir_path, use_parallel);
+    let s = CorpusStorage::new_auto_cache_size(&db_dir_path, use_parallel);
 
     match s {
         Ok(result) => {
@@ -36,7 +33,7 @@ pub extern "C" fn annis_cs_new(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_free(ptr: *mut cs::CorpusStorage) {
+pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
     if ptr.is_null() {
         return;
     }
@@ -46,12 +43,12 @@ pub extern "C" fn annis_cs_free(ptr: *mut cs::CorpusStorage) {
 
 #[no_mangle]
 pub extern "C" fn annis_cs_count(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus: *const libc::c_char,
     query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> libc::uint64_t {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus);
@@ -61,12 +58,12 @@ pub extern "C" fn annis_cs_count(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_count_extra(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus: *const libc::c_char,
     query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> CountExtra {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus);
@@ -76,7 +73,7 @@ pub extern "C" fn annis_cs_count_extra(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_find(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     query_as_aql: *const libc::c_char,
     offset: libc::size_t,
@@ -84,7 +81,7 @@ pub extern "C" fn annis_cs_find(
     order: ResultOrder,
     err: *mut *mut ErrorList,
 ) -> *mut Vec<CString> {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus_name);
@@ -105,14 +102,14 @@ pub extern "C" fn annis_cs_find(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_subgraph(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     node_ids: *const Vec<CString>,
     ctx_left: libc::size_t,
     ctx_right: libc::size_t,
     err: *mut *mut ErrorList,
 ) -> *mut GraphDB {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
     let node_ids: Vec<String> = cast_const!(node_ids)
         .iter()
         .map(|id| String::from(id.to_string_lossy()))
@@ -129,12 +126,12 @@ pub extern "C" fn annis_cs_subgraph(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_subcorpus_graph(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     corpus_ids: *const Vec<CString>,
     err: *mut *mut ErrorList,
 ) -> *mut GraphDB {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
     let corpus_ids: Vec<String> = cast_const!(corpus_ids)
         .iter()
         .map(|id| String::from(id.to_string_lossy()))
@@ -161,11 +158,11 @@ pub extern "C" fn annis_cs_subcorpus_graph(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_corpus_graph(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut GraphDB {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 
     let result = try_cerr!(cs.corpus_graph(&corpus), err, std::ptr::null_mut());
@@ -174,12 +171,12 @@ pub extern "C" fn annis_cs_corpus_graph(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_subgraph_for_query(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut GraphDB {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
     let query_as_aql = cstr!(query_as_aql);
 
@@ -193,13 +190,13 @@ pub extern "C" fn annis_cs_subgraph_for_query(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_frequency(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     query_as_aql: *const libc::c_char,
     frequency_query_definition: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut FrequencyTable<CString> {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus_name);
@@ -235,10 +232,10 @@ pub extern "C" fn annis_cs_frequency(
 /// List all known corpora.
 #[no_mangle]
 pub extern "C" fn annis_cs_list(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     err: *mut *mut ErrorList,
 ) -> *mut Vec<CString> {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
 
     let mut corpora: Vec<CString> = vec![];
 
@@ -254,12 +251,12 @@ pub extern "C" fn annis_cs_list(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_list_node_annotations(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     list_values: bool,
     only_most_frequent_values: bool,
 ) -> *mut Matrix<CString> {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 
     let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
@@ -276,7 +273,7 @@ pub extern "C" fn annis_cs_list_node_annotations(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_list_edge_annotations(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     component_type: ComponentType,
     component_name: *const libc::c_char,
@@ -284,7 +281,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     list_values: bool,
     only_most_frequent_values: bool,
 ) -> *mut Matrix<CString> {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
     let component = Component {
         ctype: component_type,
@@ -307,12 +304,12 @@ pub extern "C" fn annis_cs_list_edge_annotations(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_validate_query(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     corpus: *const libc::c_char,
     query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> bool {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_aql);
     let corpus = cstr!(corpus);
@@ -322,11 +319,11 @@ pub extern "C" fn annis_cs_validate_query(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_node_descriptions(
-    ptr: *const cs::CorpusStorage,
+    ptr: *const CorpusStorage,
     query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut Vec<NodeDesc> {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query_as_aql);
 
@@ -337,12 +334,12 @@ pub extern "C" fn annis_cs_node_descriptions(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_import_relannis(
-    ptr: *mut cs::CorpusStorage,
+    ptr: *mut CorpusStorage,
     corpus: *const libc::c_char,
     path: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
+    let cs: &mut CorpusStorage = cast_mut!(ptr);
 
     let override_corpus_name: Option<String> = if corpus.is_null() {
         None
@@ -362,11 +359,11 @@ pub extern "C" fn annis_cs_import_relannis(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_all_components_by_type(
-    ptr: *mut cs::CorpusStorage,
+    ptr: *mut CorpusStorage,
     corpus_name: *const libc::c_char,
     ctype: ComponentType,
 ) -> *mut Vec<Component> {
-    let cs: &cs::CorpusStorage = cast_const!(ptr);
+    let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 
     Box::into_raw(Box::new(cs.get_all_components(&corpus, Some(ctype), None)))
@@ -374,11 +371,11 @@ pub extern "C" fn annis_cs_all_components_by_type(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_delete(
-    ptr: *mut cs::CorpusStorage,
+    ptr: *mut CorpusStorage,
     corpus: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> bool {
-    let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
+    let cs: &mut CorpusStorage = cast_mut!(ptr);
     let corpus = cstr!(corpus);
 
     try_cerr!(cs.delete(&corpus), err, false)
@@ -386,12 +383,12 @@ pub extern "C" fn annis_cs_delete(
 
 #[no_mangle]
 pub extern "C" fn annis_cs_apply_update(
-    ptr: *mut cs::CorpusStorage,
+    ptr: *mut CorpusStorage,
     corpus: *const libc::c_char,
     update: *mut GraphUpdate,
     err: *mut *mut ErrorList,
 ) {
-    let cs: &mut cs::CorpusStorage = cast_mut!(ptr);
+    let cs: &mut CorpusStorage = cast_mut!(ptr);
     let update: &mut GraphUpdate = cast_mut!(update);
     let corpus = cstr!(corpus);
     try_cerr!(cs.apply_update(&corpus, update), err, ());

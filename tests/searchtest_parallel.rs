@@ -1,6 +1,6 @@
 extern crate graphannis;
 
-use graphannis::api::corpusstorage::CorpusStorage;
+use graphannis::CorpusStorage;
 use graphannis::util;
 
 use std::path::{PathBuf};

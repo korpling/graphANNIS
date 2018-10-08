@@ -1,13 +1,11 @@
-use api::update::GraphUpdate;
+use update::GraphUpdate;
 use libc;
 use std;
 use std::ffi::CString;
 use super::cerror;
 use super::cerror::ErrorList;
 use capi::data::IterPtr;
-use {NodeID, Match, Annotation, Edge, Component, ComponentType};
-use graphdb::{GraphDB};
-use graphstorage::GraphStorage;
+use {NodeID, Match, Annotation, Edge, Component, ComponentType, GraphDB, GraphStorage};
 use std::sync::Arc;
 
 #[no_mangle]
