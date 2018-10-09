@@ -60,12 +60,14 @@ pub trait AnnotationStorage<T> {
     ) -> Box<Iterator<Item = Match> + 'a>;
 }
 
-/// A representation of a graph including node annotations and edges (which are partioned into components).
+/// A representation of a graph including node annotations and edges.
+/// Edges are partioned into [components](types/struct.Component.html) 
+/// and each component is implemented by specialized [graph storage](trait.GraphStorage.html) implementation.
 /// 
 /// Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
 /// 
 /// Graphs can have an optional location on the disk.
-/// In this case, changes to the graph are automatically persisted to this location.
+/// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
 /// 
 pub struct Graph {
     node_annos: Arc<AnnoStorage<NodeID>>,
@@ -542,6 +544,7 @@ impl Graph {
     }
 
     /// Apply a sequence of updates (`u` parameter) to this graph. 
+    /// If the graph has a location on the disk, the changes are persisted.
     pub fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<()> {
         trace!("applying updates");
         // Always mark the update state as consistent, even if caller forgot this.
