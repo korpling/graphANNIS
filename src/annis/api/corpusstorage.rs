@@ -8,6 +8,7 @@ use annis::errors::ErrorKind;
 use annis::errors::*;
 use annis::exec::nodesearch::NodeSearchSpec;
 use annis::graphdb;
+use annis::graphdb::AnnotationStorage;
 use annis::graphdb::GraphDB;
 use annis::graphdb::{ANNIS_NS, NODE_TYPE};
 use annis::plan::ExecutionPlan;

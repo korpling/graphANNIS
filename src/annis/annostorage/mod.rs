@@ -1,5 +1,6 @@
 use self::symboltable::SymbolTable;
 use annis::errors::*;
+use annis::graphdb::AnnotationStorage;
 use annis::types::{AnnoKey, AnnoKeyID, Annotation};
 use annis::types::{Edge, Match, NodeID};
 use annis::util;
@@ -39,6 +40,7 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     largest_item: Option<T>,
     total_number_of_annos: usize,
 }
+
 
 impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf + Default>
     AnnoStorage<T>
@@ -305,7 +307,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         return Vec::new();
     }
 
-    pub fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
+    fn get_annotations_for_item_impl(&self, item: &T) -> Vec<Annotation> {
         if let Some(all_annos) = self.by_container.get(item) {
             let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
             for a in all_annos.iter() {
@@ -641,8 +643,13 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 }
 
-impl AnnoStorage<NodeID> {
-    pub fn exact_anno_search<'a>(
+impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
+    
+    fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
+        self.get_annotations_for_item_impl(item)
+    }
+
+    fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
         name: String,
@@ -658,7 +665,10 @@ impl AnnoStorage<NodeID> {
                 });
         return Box::new(it);
     }
+}
 
+impl AnnoStorage<NodeID> {
+    
     pub fn regex_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
@@ -690,8 +700,13 @@ impl AnnoStorage<NodeID> {
     }
 }
 
-impl AnnoStorage<Edge> {
-    pub fn exact_anno_search<'a>(
+impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
+
+    fn get_annotations_for_item(&self, item: &Edge) -> Vec<Annotation> {
+        self.get_annotations_for_item_impl(item)
+    }
+
+    fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
         name: String,

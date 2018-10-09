@@ -18,12 +18,23 @@ use std::string::ToString;
 use std::sync::{Arc, Mutex};
 use strum::IntoEnumIterator;
 use tempdir::TempDir;
-use annis::types::{Annotation, Component, ComponentType, Edge, NodeID};
+use annis::types::{Annotation, Match, Component, ComponentType, Edge, NodeID};
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
+
+
+pub trait AnnotationStorage<T> {
+    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;   
+    fn exact_anno_search<'a>(
+        &'a self,
+        namespace: Option<String>,
+        name: String,
+        value: Option<String>,
+    ) -> Box<Iterator<Item = Match> + 'a>;
+}
 
 pub struct GraphDB {
     pub node_annos: Arc<AnnoStorage<NodeID>>,
@@ -98,6 +109,20 @@ where
     let mut writer = std::io::BufWriter::new(f);
     bincode::serialize_into(&mut writer, object)?;
     return Ok(());
+}
+
+impl AnnotationStorage<NodeID> for GraphDB {
+    fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
+        self.node_annos.get_annotations_for_item(item)
+    }
+    fn exact_anno_search<'a>(
+        &'a self,
+        namespace: Option<String>,
+        name: String,
+        value: Option<String>,
+    ) -> Box<Iterator<Item = Match> + 'a> {
+        self.node_annos.exact_anno_search(namespace, name, value)
+    }
 }
 
 impl GraphDB {

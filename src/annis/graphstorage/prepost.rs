@@ -10,6 +10,7 @@ use super::{GraphStatistic, GraphStorage};
 use annis::annostorage::AnnoStorage;
 use annis::dfs::{CycleSafeDFS, DFSStep};
 use annis::errors::*;
+use annis::graphdb::AnnotationStorage;
 use annis::graphdb::GraphDB;
 use annis::types::{AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
 

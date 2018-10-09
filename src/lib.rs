@@ -64,6 +64,7 @@ pub mod corpusstorage {
 }
 
 pub use annis::api::update;
+pub use annis::graphdb::AnnotationStorage;
 pub use annis::graphdb::GraphDB;
 pub use annis::graphstorage::GraphStorage;
 

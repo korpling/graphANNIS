@@ -6,6 +6,7 @@ use std;
 use std::ffi::CString;
 use std::sync::Arc;
 use types::{Annotation, Component, ComponentType, Edge, Match, NodeID};
+use AnnotationStorage;
 use update::GraphUpdate;
 use {GraphDB, GraphStorage};
 

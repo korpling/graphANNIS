@@ -1,6 +1,7 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use annis::annostorage::AnnoStorage;
 use annis::errors::*;
+use annis::graphdb::AnnotationStorage;
 use annis::graphdb::{GraphDB, ANNIS_NS};
 use annis::operator::EdgeAnnoSearchSpec;
 use annis::types::{Component, ComponentType, Edge, LineColumnRange, Match, NodeID};
