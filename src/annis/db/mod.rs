@@ -34,10 +34,24 @@ pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
 
+/// Access annotations for nodes or edges.
 pub trait AnnotationStorage<T> {
+    /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
+
+    /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;
 
+    /// Returns an iterator for all items that match the given annotation constraints.
+    /// The annotation `name` must be given as argument, the other arguments are optional.
+    /// 
+    /// - `namespace`- If given, only annotations having this namespace are returned.
+    /// - `name`  - Only annotations with this name are returned.
+    /// - `value` - If given, only annotation having the given value are returned.
+    /// 
+    /// The result is an iterator over [matches](types/struct.Match.html). 
+    /// A match contains both the node ID and the matched annotation key 
+    /// (e.g. there can be multiple annotations with the same name if the namespace is different).
     fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
