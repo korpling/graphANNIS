@@ -75,10 +75,6 @@ impl EdgeContainer for AdjacencyListStorage {
         return Box::new(std::iter::empty());
     }
 
-    fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
-        self.annos.get_annotations_for_item(edge)
-    }
-
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
         return &self.annos;
     }
@@ -160,7 +156,7 @@ impl GraphStorage for AdjacencyListStorage {
             for target in orig.get_outgoing_edges(&source) {
                 let e = Edge { source, target };
                 self.add_edge(e.clone());
-                for a in orig.get_edge_annos(&e) {
+                for a in orig.get_anno_storage().get_annotations_for_item(&e) {
                     self.add_edge_annotation(e.clone(), a);
                 }
             }

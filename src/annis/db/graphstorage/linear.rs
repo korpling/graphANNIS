@@ -5,7 +5,7 @@ use annis::errors::*;
 use annis::db::AnnotationStorage;
 use annis::db::Graph;
 use annis::db::graphstorage::EdgeContainer;
-use annis::types::{AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
+use annis::types::{AnnoKey, Edge, Match, NodeID, NumValue};
 use bincode;
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
@@ -89,10 +89,6 @@ where
             }
         }
         return Box::from(std::iter::empty());
-    }
-
-    fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
-        return self.annos.get_annotations_for_item(edge);
     }
 
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
@@ -259,7 +255,7 @@ where
 
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
-                let edge_annos = orig.get_edge_annos(&e);
+                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
                 for a in edge_annos.into_iter() {
                     self.annos.insert(e.clone(), a);
                 }

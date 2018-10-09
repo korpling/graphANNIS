@@ -302,8 +302,8 @@ fn create_subgraph_edge(
                     new_gs.add_edge(e.clone());
                 }
 
-                for a in orig_gs
-                    .get_edge_annos(&Edge {
+                for a in orig_gs.get_anno_storage()
+                    .get_annotations_for_item(&Edge {
                         source: source_id,
                         target,
                     }).into_iter()

@@ -104,7 +104,7 @@ pub extern "C" fn annis_graph_edge_labels(
     let component: &Component = cast_const!(component);
 
     let annos: Vec<Annotation> = if let Some(gs) = db.get_graphstorage(component) {
-        gs.get_edge_annos(&edge)
+        gs.get_anno_storage().get_annotations_for_item(&edge)
     } else {
         vec![]
     };

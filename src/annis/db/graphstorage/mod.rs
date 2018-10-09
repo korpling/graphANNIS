@@ -38,9 +38,7 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all incoming edges for a given `node`.
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
-    /// Get a list of annotations for an `edge` between two nodes.
-    fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation>;
-
+    /// Get the annotation storage for the edges of this container.
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {

@@ -69,8 +69,8 @@ fn check_edge_annotation(
 ) -> bool {
     match edge_anno {
         Some(EdgeAnnoSearchSpec::ExactValue { ns, name, val }) => {
-            for a in gs
-                .get_edge_annos(&Edge {
+            for a in gs.get_anno_storage()
+                .get_annotations_for_item(&Edge {
                     source: source.clone(),
                     target: target.clone(),
                 }).into_iter()

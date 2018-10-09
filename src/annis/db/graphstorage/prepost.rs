@@ -12,7 +12,7 @@ use annis::dfs::{CycleSafeDFS, DFSStep};
 use annis::errors::*;
 use annis::db::AnnotationStorage;
 use annis::db::Graph;
-use annis::types::{AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
+use annis::types::{AnnoKey, Edge, Match, NodeID, NumValue};
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
 pub struct PrePost<OrderT, LevelT> {
@@ -126,10 +126,6 @@ where
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         return self.find_connected_inverse(node, 1, 1);
-    }
-
-    fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation> {
-        return self.annos.get_annotations_for_item(edge);
     }
 
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
@@ -420,7 +416,7 @@ where
 
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
-                let edge_annos = orig.get_edge_annos(&e);
+                let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
                 for a in edge_annos.into_iter() {
                     self.annos.insert(e.clone(), a);
                 }
