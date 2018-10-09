@@ -46,6 +46,21 @@ pub trait AnnotationStorage<T> {
     ) -> Box<Iterator<Item = Match> + 'a>;
 }
 
+/// A representation of a graph including node annotations and edges (which are partioned into components).
+/// 
+/// Graphs can have an optional location on the disk.
+/// In this case, changes to the graph are automatically persisted to this location.
+/// 
+/// # Example
+/// ```
+/// extern graphannis;
+/// use graphannis::Graph;
+/// 
+/// let mut g = Graph::new();
+/// 
+///  // TODO add update and query code
+/// 
+/// ```
 pub struct Graph {
     node_annos: Arc<AnnoStorage<NodeID>>,
 
@@ -141,7 +156,7 @@ impl AnnotationStorage<NodeID> for Graph {
 }
 
 impl Graph {
-    /// Create a new and empty instance without any location on the disk
+    /// Create a new and empty instance without any location on the disk.
     pub fn new() -> Graph {
         Graph {
             node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
@@ -161,11 +176,20 @@ impl Graph {
         Ok(())
     }
 
+    /// Clear the graph content.
+    /// 
+    /// This removes all node annotations, edges and knowledge about components.
     pub fn clear(&mut self) {
         self.node_annos = Arc::new(AnnoStorage::new());
         self.components.clear();
     }
 
+    /// Load the graph from an external location.
+    /// 
+    /// This sets the location of this instance to the given location.
+    /// 
+    /// * `location` - The path on the disk
+    /// * `preload` - If `true`, all components are loaded from disk into main memory.
     pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
         self.clear();
 
