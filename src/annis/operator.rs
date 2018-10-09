@@ -1,4 +1,4 @@
-use annis::annostorage::AnnoStorage;
+use annis::db::AnnotationStorage;
 use annis::db::Graph;
 use annis::types::{Component, Edge, Match};
 use std;
@@ -37,7 +37,7 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 }
 
 impl EdgeAnnoSearchSpec {
-    pub fn guess_max_count(&self, anno_storage: &AnnoStorage<Edge>) -> Option<usize> {
+    pub fn guess_max_count(&self, anno_storage: &AnnotationStorage<Edge>) -> Option<usize> {
         match self {
             &EdgeAnnoSearchSpec::ExactValue {
                 ref ns,

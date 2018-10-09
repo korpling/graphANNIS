@@ -333,7 +333,7 @@ impl Operator for BaseEdgeOp {
                     let guessed_count = if let Some(val) = val {
                         anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
                     } else {
-                        anno_storage.num_of_annotations(ns.clone(), name.clone())
+                        anno_storage.number_of_annotations_by_name(ns.clone(), name.clone())
                     };
 
                     let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);

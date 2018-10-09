@@ -1,15 +1,15 @@
 use super::disjunction::Disjunction;
 use super::Config;
-use annis::annostorage::AnnoStorage;
-use annis::errors::*;
 use annis::db::exec::binary_filter::BinaryFilter;
 use annis::db::exec::indexjoin::IndexJoin;
 use annis::db::exec::nestedloop::NestedLoop;
 use annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use annis::db::exec::parallel;
 use annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
-use annis::db::Graph;
 use annis::db::graphstorage::GraphStatistic;
+use annis::db::AnnotationStorage;
+use annis::db::Graph;
+use annis::errors::*;
 use annis::operator::{Operator, OperatorSpec};
 use annis::types::{Component, Edge, LineColumnRange, Match, NodeDesc};
 use rand::distributions::Distribution;
@@ -186,11 +186,7 @@ impl<'a> Conjunction<'a> {
         return result;
     }
 
-    fn optimize_join_order_heuristics(
-        &self,
-        db: &'a Graph,
-        config: &Config,
-    ) -> Result<Vec<usize>> {
+    fn optimize_join_order_heuristics(&self, db: &'a Graph, config: &Config) -> Result<Vec<usize>> {
         // check if there is something to optimize
         if self.operators.is_empty() {
             return Ok(vec![]);
@@ -307,11 +303,11 @@ impl<'a> Conjunction<'a> {
                         if let Some(gs) = db.get_graphstorage(c) {
                             // check if we can apply an even more restrictive edge annotation search
                             if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                                let anno_storage: &AnnoStorage<
+                                let anno_storage: &AnnotationStorage<
                                     Edge,
                                 > = gs.get_anno_storage();
                                 if let Some(edge_anno_est) =
-                                    edge_anno_spec.guess_max_count(&anno_storage)
+                                    edge_anno_spec.guess_max_count(anno_storage)
                                 {
                                     estimated_component_search += edge_anno_est;
                                     estimation_valid = true;

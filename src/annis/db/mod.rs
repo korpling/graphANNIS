@@ -42,6 +42,9 @@ pub trait AnnotationStorage<T> {
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;
 
+    /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
+    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize; 
+
     /// Returns an iterator for all items that match the given annotation constraints.
     /// The annotation `name` must be given as argument, the other arguments are optional.
     /// 
@@ -58,6 +61,27 @@ pub trait AnnotationStorage<T> {
         name: String,
         value: Option<String>,
     ) -> Box<Iterator<Item = Match> + 'a>;
+
+    /// Estimate the number of results for an (annotation exact search)[#exact_anno_search] for a given an inclusive value range.
+    /// 
+    /// - `ns` - If given, only annotations having this namespace are considered.
+    /// - `name`  - Only annotations with this name are considered.
+    /// - `lower_val`- Inclusive lower bound for the annotation value.
+    /// - `upper_val`- Inclusive upper bound for the annotation value.
+    fn guess_max_count(
+        &self,
+        ns: Option<String>,
+        name: String,
+        lower_val: &str,
+        upper_val: &str,
+    ) -> usize;
+
+    /// Return a list of all existing values for a given annotation `key`.
+    /// If the `most_frequent_first`parameter is true, the results are sorted by their frequency.
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str>;
+
+    /// Get all the annotation keys which are part of this annotation storage
+    fn annotation_keys(&self) -> Vec<AnnoKey>;
 }
 
 /// A representation of a graph including node annotations and edges.
@@ -153,6 +177,10 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.number_of_annotations()
     }
 
+    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
+        self.node_annos.number_of_annotations_by_name(ns, name)
+    }
+
     fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
@@ -160,6 +188,25 @@ impl AnnotationStorage<NodeID> for Graph {
         value: Option<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
         self.node_annos.exact_anno_search(namespace, name, value)
+    }
+
+    fn guess_max_count(
+        &self,
+        ns: Option<String>,
+        name: String,
+        lower_val: &str,
+        upper_val: &str,
+    ) -> usize {
+        self.node_annos.guess_max_count(ns, name, lower_val, upper_val)
+    }
+
+
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+        self.node_annos.get_all_values(key, most_frequent_first)
+    }
+
+    fn annotation_keys(&self) -> Vec<AnnoKey> {
+        self.node_annos.annotation_keys()
     }
 }
 

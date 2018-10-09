@@ -1,8 +1,8 @@
-use annis::annostorage::AnnoStorage;
+use annis::db::AnnotationStorage;
 use annis::db::Graph;
+use annis::errors::*;
 use annis::types::{AnnoKey, Annotation, Edge, NodeID};
 use bincode;
-use annis::errors::*;
 use malloc_size_of::MallocSizeOf;
 use serde::Deserialize;
 use std;
@@ -32,17 +32,16 @@ pub struct GraphStatistic {
 
 /// Basic trait for accessing edges of a graph for a specific [component](types/struct.Component.html).
 pub trait EdgeContainer: Sync + Send + MallocSizeOf {
-
     /// Get all outgoing edges for a given `node`.
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
     /// Get all incoming edges for a given `node`.
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
-    /// Get a list of annotations for an `edge` between two nodes. 
+    /// Get a list of annotations for an `edge` between two nodes.
     fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation>;
 
-    fn get_anno_storage(&self) -> &AnnoStorage<Edge>;
+    fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
         None

@@ -79,7 +79,7 @@ impl EdgeContainer for AdjacencyListStorage {
         self.annos.get_annotations_for_item(edge)
     }
 
-    fn get_anno_storage(&self) -> &AnnoStorage<Edge> {
+    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
         return &self.annos;
     }
 

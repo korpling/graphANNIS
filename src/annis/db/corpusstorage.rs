@@ -1369,7 +1369,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
-                    let edge_annos: &AnnoStorage<Edge> = gs.as_edgecontainer().get_anno_storage();
+                    let edge_annos: &AnnotationStorage<Edge> = gs.as_edgecontainer().get_anno_storage();
                     for key in edge_annos.annotation_keys() {
                         if list_values {
                             if only_most_frequent_values {

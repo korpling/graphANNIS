@@ -345,11 +345,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         return result;
     }
 
-    /// Get all the annotation keys which are part of this annotation storage
-    pub fn annotation_keys(&self) -> Vec<AnnoKey> {
-        return self.anno_key_sizes.keys().cloned().collect();
-    }
-
     /// Returns an internal identifier for the annotation key that can be used for faster lookup of values.
     pub fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID> {
         self.anno_keys.get_symbol(key)
@@ -360,7 +355,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.anno_keys.get_value(key_id).cloned()
     }
 
-    pub fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+    fn get_all_values_impl(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
         if let Some(key) = self.anno_keys.get_symbol(key) {
             if let Some(values_for_key) = self.by_anno.get(&key) {
                 if most_frequent_first {
@@ -433,7 +428,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    pub fn num_of_annotations(&self, ns: Option<String>, name: String) -> usize {
+    fn number_of_annotations_by_name_impl(&self, ns: Option<String>, name: String) -> usize {
         let qualified_keys = match ns {
             Some(ns) => self.anno_key_sizes.range((
                 Included(AnnoKey {
@@ -459,7 +454,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         return result;
     }
 
-    pub fn guess_max_count(
+    fn guess_max_count_impl(
         &self,
         ns: Option<String>,
         name: String,
@@ -527,7 +522,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 let lower_val = val_prefix.unwrap();
                 let mut upper_val = String::from(lower_val);
                 upper_val.push(std::char::MAX);
-                return self.guess_max_count(ns, name, &lower_val, &upper_val);
+                return self.guess_max_count_impl(ns, name, &lower_val, &upper_val);
             }
         }
 
@@ -610,14 +605,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    pub fn save_to_file(&self, path: &str) -> bool {
-        let f = std::fs::File::create(path).unwrap();
-
-        let mut buf_writer = std::io::BufWriter::new(f);
-
-        bincode::serialize_into(&mut buf_writer, self).is_ok()
-    }
-
     pub fn load_from_file(&mut self, path: &str) -> Result<()> {
         // always remove all entries first, so even if there is an error the anno storage is empty
         self.clear();
@@ -649,6 +636,10 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
         self.total_number_of_annos
     }
 
+    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
+        self.number_of_annotations_by_name_impl(ns, name)
+    }
+
     fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
@@ -664,6 +655,24 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
                     })
                 });
         return Box::new(it);
+    }
+
+    fn guess_max_count(
+        &self,
+        ns: Option<String>,
+        name: String,
+        lower_val: &str,
+        upper_val: &str,
+    ) -> usize {
+        self.guess_max_count_impl(ns, name, lower_val, upper_val)
+    }
+
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+        self.get_all_values_impl(key, most_frequent_first)
+    }
+
+    fn annotation_keys(&self) -> Vec<AnnoKey> {
+        return self.anno_key_sizes.keys().cloned().collect();
     }
 }
 
@@ -710,6 +719,10 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
         self.total_number_of_annos
     }
 
+    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
+        self.number_of_annotations_by_name_impl(ns, name)
+    }
+
     fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
@@ -725,6 +738,24 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
                     })
                 });
         return Box::new(it);
+    }
+
+     fn guess_max_count(
+        &self,
+        ns: Option<String>,
+        name: String,
+        lower_val: &str,
+        upper_val: &str,
+    ) -> usize {
+        self.guess_max_count_impl(ns, name, lower_val, upper_val)
+    }
+
+    fn annotation_keys(&self) -> Vec<AnnoKey> {
+        return self.anno_key_sizes.keys().cloned().collect();
+    }
+
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+        self.get_all_values_impl(key, most_frequent_first)
     }
 }
 
