@@ -177,7 +177,6 @@ impl Graph {
     }
 
     /// Clear the graph content.
-    /// 
     /// This removes all node annotations, edges and knowledge about components.
     pub fn clear(&mut self) {
         self.node_annos = Arc::new(AnnoStorage::new());
@@ -185,7 +184,6 @@ impl Graph {
     }
 
     /// Load the graph from an external location.
-    /// 
     /// This sets the location of this instance to the given location.
     /// 
     /// * `location` - The path on the disk
@@ -327,14 +325,15 @@ impl Graph {
         Ok(())
     }
 
-    // Save the current database to a location, but do not remember this location
-    pub fn save_to(&mut self, location: &Path) -> Result<()> {
+    /// Save the current database to a `location` on the disk, but do not remember this location.
+   pub fn save_to(&mut self, location: &Path) -> Result<()> {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
         return self.internal_save(&location.join("current"));
     }
 
-    /// Save the current database at is original location
+    /// Save the current database at is original location.
+    /// Returns an error if the graph has no location.
     pub fn persist(&self) -> Result<()> {
         if let Some(ref loc) = self.location {
             return self.internal_save(&loc.join("current"));
@@ -343,7 +342,7 @@ impl Graph {
         }
     }
 
-    /// Save the current database at a new location and remember it
+    /// Save the current database at a new `location` and remember it as new internal location.
     pub fn persist_to(&mut self, location: &Path) -> Result<()> {
         self.set_location(location)?;
         return self.internal_save(&location.join("current"));
@@ -546,6 +545,7 @@ impl Graph {
         Ok(())
     }
 
+    /// Apply a sequence of updates (`u` parameter) to this graph. 
     pub fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<()> {
         trace!("applying updates");
         // Always mark the update state as consistent, even if caller forgot this.
@@ -588,7 +588,7 @@ impl Graph {
     }
 
     /// A function to persist the changes of a write-ahead-log update on the disk. Should be run in a background thread.
-    pub fn background_sync_wal_updates(&self) -> Result<()> {
+    fn background_sync_wal_updates(&self) -> Result<()> {
         // TODO: friendly abort any currently running thread
 
         if let Some(ref location) = self.location {
@@ -666,7 +666,7 @@ impl Graph {
         return Ok(());
     }
 
-    pub fn calculate_component_statistics(&mut self, c: &Component) -> Result<()> {
+    fn calculate_component_statistics(&mut self, c: &Component) -> Result<()> {
         let mut result: Result<()> = Ok(());
         let mut entry = self
             .components
@@ -684,7 +684,7 @@ impl Graph {
         return result;
     }
 
-    pub fn get_or_create_writable(&mut self, c: Component) -> Result<&mut WriteableGraphStorage> {
+    fn get_or_create_writable(&mut self, c: Component) -> Result<&mut WriteableGraphStorage> {
         if self.components.contains_key(&c) {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(&c)?;
@@ -706,7 +706,7 @@ impl Graph {
         return Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?);
     }
 
-    pub fn is_loaded(&self, c: &Component) -> bool {
+    fn is_loaded(&self, c: &Component) -> bool {
         let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
             if gs_opt.is_some() {
@@ -716,7 +716,7 @@ impl Graph {
         return false;
     }
 
-    pub fn ensure_loaded_all(&mut self) -> Result<()> {
+    fn ensure_loaded_all(&mut self) -> Result<()> {
         let mut components_to_load: Vec<Component> = Vec::with_capacity(self.components.len());
 
         // colllect all missing components
@@ -744,7 +744,7 @@ impl Graph {
         Ok(())
     }
 
-    pub fn ensure_loaded(&mut self, c: &Component) -> Result<()> {
+    fn ensure_loaded(&mut self, c: &Component) -> Result<()> {
         // get and return the reference to the entry if loaded
         let entry: Option<Option<Arc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
@@ -760,7 +760,7 @@ impl Graph {
         return Ok(());
     }
 
-    pub fn optimize_impl(&mut self, c: &Component) {
+    fn optimize_impl(&mut self, c: &Component) {
         if let Some(gs) = self.get_graphstorage(c) {
             if let Some(stats) = gs.get_statistics() {
                 let opt_info = registry::get_optimal_impl_heuristic(stats);
@@ -787,7 +787,7 @@ impl Graph {
         }
     }
 
-    pub fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
+    fn get_node_id_from_name(&self, node_name: &str) -> Option<NodeID> {
         let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
             Some(ANNIS_NS.to_owned()),
             NODE_NAME.to_owned(),
@@ -799,6 +799,7 @@ impl Graph {
         return None;
     }
 
+    /// Get a read-only graph storage reference for the given component `c`.
     pub fn get_graphstorage(&self, c: &Component) -> Option<Arc<GraphStorage>> {
         // get and return the reference to the entry if loaded
         let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
@@ -810,7 +811,7 @@ impl Graph {
         return None;
     }
 
-    pub fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a GraphStorage> {
+    fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a GraphStorage> {
         // get and return the reference to the entry if loaded
         let entry: Option<&Option<Arc<GraphStorage>>> = self.components.get(c);
         if let Some(gs_opt) = entry {
@@ -821,6 +822,9 @@ impl Graph {
         return None;
     }
 
+    /// Returns all components of the graph given an optional type (`ctype`) and `name`.
+    /// This allows to filter which components to recieve.
+    /// If you want to retrieve all components, use `None` as value for both arguments.
     pub fn get_all_components(
         &self,
         ctype: Option<ComponentType>,
@@ -865,36 +869,21 @@ impl Graph {
         }
     }
 
-    pub fn get_direct_connected(&mut self, edge: &Edge) -> Result<Vec<Component>> {
-        let mut result = Vec::new();
-
-        let all_components: Vec<Component> = self.components.keys().map(|c| c.clone()).collect();
-
-        for c in all_components {
-            self.ensure_loaded(&c)?;
-            if let Some(gs) = self.get_graphstorage(&c) {
-                if gs.is_connected(&edge.source, &edge.target, 1, 1) {
-                    result.push(c.clone());
-                }
-            }
-        }
-        return Ok(result);
-    }
-
-    pub fn get_token_key(&self) -> AnnoKey {
+    fn get_token_key(&self) -> AnnoKey {
         AnnoKey {
             ns: ANNIS_NS.to_owned(),
             name: TOK.to_owned(),
         }
     }
 
-    pub fn get_node_name_key(&self) -> AnnoKey {
+    fn get_node_name_key(&self) -> AnnoKey {
         AnnoKey {
             ns: ANNIS_NS.to_owned(),
             name: NODE_NAME.to_owned(),
         }
     }
 
+    /// Return the annotation key which is used for the special `annis::node_type` annotation which every node must have to mark its existance.
     pub fn get_node_type_key(&self) -> AnnoKey {
         AnnoKey {
             ns: ANNIS_NS.to_owned(),
