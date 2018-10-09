@@ -1,4 +1,4 @@
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::db::graphstorage::GraphStorage;
 use annis::operator::EstimationType;
 use annis::operator::{Operator, OperatorSpec};
@@ -55,7 +55,7 @@ lazy_static! {
 }
 
 impl OperatorSpec for InclusionSpec {
-    fn necessary_components(&self, _db: &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![
             COMPONENT_ORDER.clone(),
             COMPONENT_LEFT.clone(),
@@ -66,7 +66,7 @@ impl OperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -77,7 +77,7 @@ impl OperatorSpec for InclusionSpec {
 }
 
 impl Inclusion {
-    pub fn new(db: &GraphDB) -> Option<Inclusion> {
+    pub fn new(db: &Graph) -> Option<Inclusion> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;

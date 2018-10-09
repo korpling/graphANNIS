@@ -1,4 +1,4 @@
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::types::Component;
 use annis::types::ComponentType;
 use annis::types::Match;
@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 pub fn compare_matchgroup_by_text_pos(
     m1: &Vec<Match>,
     m2: &Vec<Match>,
-    db: &GraphDB,
+    db: &Graph,
     node_to_path: &FxHashMap<NodeID, (Vec<String>, String)>,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
@@ -27,7 +27,7 @@ pub fn compare_matchgroup_by_text_pos(
 pub fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
-    db: &GraphDB,
+    db: &Graph,
     node_to_path: &FxHashMap<NodeID, (Vec<String>, String)>,
 ) -> Ordering {
     if m1.node == m2.node {

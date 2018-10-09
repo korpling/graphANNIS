@@ -1,5 +1,5 @@
 use annis::annostorage::AnnoStorage;
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::types::{Component, Edge, Match};
 use std;
 
@@ -88,9 +88,9 @@ pub trait Operator: std::fmt::Display + Send + Sync {
 }
 
 pub trait OperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self, db: &GraphDB) -> Vec<Component>;
+    fn necessary_components(&self, db: &Graph) -> Vec<Component>;
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>>;
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None

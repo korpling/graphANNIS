@@ -1,4 +1,4 @@
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::db::graphstorage::GraphStorage;
 use annis::operator::EstimationType;
 use annis::operator::{Operator, OperatorSpec};
@@ -46,7 +46,7 @@ lazy_static! {
 }
 
 impl OperatorSpec for OverlapSpec {
-    fn necessary_components(&self, _db: &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![
             COMPONENT_ORDER.clone(),
             COMPONENT_COVERAGE.clone(),
@@ -56,7 +56,7 @@ impl OperatorSpec for OverlapSpec {
         v
     }
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let optional_op = Overlap::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -67,7 +67,7 @@ impl OperatorSpec for OverlapSpec {
 }
 
 impl Overlap {
-    pub fn new(db: &GraphDB) -> Option<Overlap> {
+    pub fn new(db: &Graph) -> Option<Overlap> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_cov = db.get_graphstorage(&COMPONENT_COVERAGE)?;
         let gs_invcov = db.get_graphstorage(&COMPONENT_INV_COVERAGE)?;

@@ -1,5 +1,5 @@
 use super::conjunction::Conjunction;
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::types::Component;
 
 pub struct Disjunction<'a> {
@@ -13,7 +13,7 @@ impl<'a> Disjunction<'a> {
         }
     }
 
-    pub fn necessary_components(&self, db: &GraphDB) -> Vec<Component> {
+    pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = vec![];
 
         for alt in self.alternatives.iter() {

@@ -153,7 +153,7 @@ impl GraphStorage for AdjacencyListStorage {
         return it.next().is_some();
     }
 
-    fn copy(&mut self, _db: &GraphDB, orig: &EdgeContainer) {
+    fn copy(&mut self, _db: &Graph, orig: &EdgeContainer) {
         self.clear();
 
         for source in orig.source_nodes() {

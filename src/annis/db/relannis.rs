@@ -1,5 +1,5 @@
 use annis::errors::*;
-use annis::db::{GraphDB, ANNIS_NS};
+use annis::db::{Graph, ANNIS_NS};
 use annis::db::graphstorage::WriteableGraphStorage;
 use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use csv;
@@ -30,7 +30,7 @@ struct Text {
     name: String,
 }
 
-pub fn load(path: &Path) -> Result<(String, GraphDB)> {
+pub fn load(path: &Path) -> Result<(String, Graph)> {
     // convert to path
     let path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
@@ -45,7 +45,7 @@ pub fn load(path: &Path) -> Result<(String, GraphDB)> {
             is_annis_33 = version_str == "3.3";
         }
 
-        let mut db = GraphDB::new();
+        let mut db = Graph::new();
 
         let (corpus_name, corpus_by_preorder, corpus_id_to_name) =
             parse_corpus_tab(&path, is_annis_33)?;
@@ -189,7 +189,7 @@ fn parse_text_tab(path: &PathBuf, is_annis_33: bool) -> Result<HashMap<TextKey, 
 }
 
 fn calculate_automatic_token_info(
-    db: &mut GraphDB,
+    db: &mut Graph,
     token_by_index: &BTreeMap<TextProperty, NodeID>,
     node_to_left: &BTreeMap<NodeID, u32>,
     node_to_right: &BTreeMap<NodeID, u32>,
@@ -301,7 +301,7 @@ fn calculate_automatic_token_info(
 }
 
 fn calculate_automatic_coverage_edges(
-    db: &mut GraphDB,
+    db: &mut Graph,
     token_by_index: &BTreeMap<TextProperty, NodeID>,
     token_to_index: &BTreeMap<NodeID, TextProperty>,
     node_to_right: &BTreeMap<NodeID, u32>,
@@ -400,7 +400,7 @@ fn calculate_automatic_coverage_edges(
 
 fn load_node_tab(
     path: &PathBuf,
-    db: &mut GraphDB,
+    db: &mut Graph,
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
@@ -593,7 +593,7 @@ fn load_node_tab(
 
 fn load_node_anno_tab(
     path: &PathBuf,
-    db: &mut GraphDB,
+    db: &mut Graph,
     missing_seg_span: &BTreeMap<NodeID, String>,
     is_annis_33: bool,
 ) -> Result<()> {
@@ -662,7 +662,7 @@ fn load_node_anno_tab(
 
 fn load_component_tab(
     path: &PathBuf,
-    db: &mut GraphDB,
+    db: &mut Graph,
     is_annis_33: bool,
 ) -> Result<BTreeMap<u32, Component>> {
     let mut component_tab_path = PathBuf::from(path);
@@ -704,7 +704,7 @@ fn load_component_tab(
 
 fn load_nodes(
     path: &PathBuf,
-    db: &mut GraphDB,
+    db: &mut Graph,
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
@@ -723,7 +723,7 @@ fn load_nodes(
 
 fn load_rank_tab(
     path: &PathBuf,
-    db: &mut GraphDB,
+    db: &mut Graph,
     component_by_id: &BTreeMap<u32, Component>,
     is_annis_33: bool,
 ) -> Result<(BTreeMap<u32, Component>, BTreeMap<u32, Edge>)> {
@@ -790,7 +790,7 @@ fn load_rank_tab(
 
 fn load_edge_annotation(
     path: &PathBuf,
-    db: &mut GraphDB,
+    db: &mut Graph,
     pre_to_component: &BTreeMap<u32, Component>,
     pre_to_edge: &BTreeMap<u32, Edge>,
     is_annis_33: bool,
@@ -870,7 +870,7 @@ fn load_corpus_annotation(path: &PathBuf, is_annis_33: bool) -> Result<MultiMap<
 }
 
 fn add_subcorpora(
-    db: &mut GraphDB,
+    db: &mut Graph,
     toplevel_corpus_name: &str,
     corpus_by_preorder: &BTreeMap<u32, u32>,
     corpus_id_to_name: &BTreeMap<u32, String>,

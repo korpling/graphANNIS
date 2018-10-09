@@ -8,7 +8,7 @@ use std::ffi::CString;
 use std::path::PathBuf;
 use types::{Component, ComponentType, CountExtra, FrequencyTable, Matrix, NodeDesc};
 use update::GraphUpdate;
-use {CorpusStorage, GraphDB, AnnotationStorage};
+use {CorpusStorage, Graph, AnnotationStorage};
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -107,7 +107,7 @@ pub extern "C" fn annis_cs_subgraph(
     ctx_left: libc::size_t,
     ctx_right: libc::size_t,
     err: *mut *mut ErrorList,
-) -> *mut GraphDB {
+) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
     let node_ids: Vec<String> = cast_const!(node_ids)
         .iter()
@@ -129,7 +129,7 @@ pub extern "C" fn annis_cs_subcorpus_graph(
     corpus_name: *const libc::c_char,
     corpus_ids: *const Vec<CString>,
     err: *mut *mut ErrorList,
-) -> *mut GraphDB {
+) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus_ids: Vec<String> = cast_const!(corpus_ids)
         .iter()
@@ -160,7 +160,7 @@ pub extern "C" fn annis_cs_corpus_graph(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     err: *mut *mut ErrorList,
-) -> *mut GraphDB {
+) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 
@@ -174,7 +174,7 @@ pub extern "C" fn annis_cs_subgraph_for_query(
     corpus_name: *const libc::c_char,
     query_as_aql: *const libc::c_char,
     err: *mut *mut ErrorList,
-) -> *mut GraphDB {
+) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
     let query_as_aql = cstr!(query_as_aql);

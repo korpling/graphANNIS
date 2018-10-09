@@ -66,12 +66,12 @@ pub mod corpusstorage {
 pub use annis::db::graphstorage::GraphStorage;
 pub use annis::db::update;
 pub use annis::db::AnnotationStorage;
-pub use annis::db::GraphDB;
+pub use annis::db::Graph;
 
 pub mod types {
     pub use annis::types::{
-        Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, Matrix,
-        NodeDesc, NodeID,
+        AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match,
+        Matrix, NodeDesc, NodeID,
     };
 }
 

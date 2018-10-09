@@ -2,7 +2,7 @@ use super::{Desc, ExecutionNode, NodeSearchDesc};
 use annis::annostorage::AnnoStorage;
 use annis::errors::*;
 use annis::db::AnnotationStorage;
-use annis::db::{GraphDB, ANNIS_NS};
+use annis::db::{Graph, ANNIS_NS};
 use annis::operator::EdgeAnnoSearchSpec;
 use annis::types::{Component, ComponentType, Edge, LineColumnRange, Match, NodeID};
 use annis::util;
@@ -121,7 +121,7 @@ impl<'a> NodeSearch<'a> {
     pub fn from_spec(
         spec: NodeSearchSpec,
         node_nr: usize,
-        db: &'a GraphDB,
+        db: &'a Graph,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         let query_fragment = format!("{}", spec);
@@ -237,7 +237,7 @@ impl<'a> NodeSearch<'a> {
     }
 
     fn new_annosearch(
-        db: &'a GraphDB,
+        db: &'a Graph,
         ns: Option<String>,
         name: String,
         val: Option<String>,
@@ -366,7 +366,7 @@ impl<'a> NodeSearch<'a> {
     }
 
     fn new_tokensearch(
-        db: &'a GraphDB,
+        db: &'a Graph,
         val: Option<String>,
         leafs_only: bool,
         match_regex: bool,
@@ -519,7 +519,7 @@ impl<'a> NodeSearch<'a> {
     }
 
     pub fn new_partofcomponentsearch(
-        db: &'a GraphDB,
+        db: &'a Graph,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
         components: Vec<Component>,

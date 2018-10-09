@@ -46,7 +46,7 @@ pub trait AnnotationStorage<T> {
     ) -> Box<Iterator<Item = Match> + 'a>;
 }
 
-pub struct GraphDB {
+pub struct Graph {
     node_annos: Arc<AnnoStorage<NodeID>>,
 
     location: Option<PathBuf>,
@@ -57,7 +57,7 @@ pub struct GraphDB {
     background_persistance: Arc<Mutex<()>>,
 }
 
-impl MallocSizeOf for GraphDB {
+impl MallocSizeOf for Graph {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size = self.node_annos.size_of(ops);
 
@@ -121,7 +121,7 @@ where
     return Ok(());
 }
 
-impl AnnotationStorage<NodeID> for GraphDB {
+impl AnnotationStorage<NodeID> for Graph {
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         self.node_annos.get_annotations_for_item(item)
     }
@@ -140,10 +140,10 @@ impl AnnotationStorage<NodeID> for GraphDB {
     }
 }
 
-impl GraphDB {
+impl Graph {
     /// Create a new and empty instance without any location on the disk
-    pub fn new() -> GraphDB {
-        GraphDB {
+    pub fn new() -> Graph {
+        Graph {
             node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
             components: BTreeMap::new(),
 
@@ -886,7 +886,7 @@ mod tests {
 
     #[test]
     fn create_writeable_gs() {
-        let mut db = GraphDB::new();
+        let mut db = Graph::new();
 
         let anno_key = AnnoKey {
             ns: "test".to_owned(),

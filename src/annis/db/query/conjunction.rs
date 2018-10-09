@@ -8,7 +8,7 @@ use annis::db::exec::nestedloop::NestedLoop;
 use annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
 use annis::db::exec::parallel;
 use annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::db::graphstorage::GraphStatistic;
 use annis::operator::{Operator, OperatorSpec};
 use annis::types::{Component, Edge, LineColumnRange, Match, NodeDesc};
@@ -175,7 +175,7 @@ impl<'a> Conjunction<'a> {
         self.variables.get(variable).cloned()
     }
 
-    pub fn necessary_components(&self, db: &GraphDB) -> Vec<Component> {
+    pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = vec![];
 
         for op_entry in self.operators.iter() {
@@ -188,7 +188,7 @@ impl<'a> Conjunction<'a> {
 
     fn optimize_join_order_heuristics(
         &self,
-        db: &'a GraphDB,
+        db: &'a Graph,
         config: &Config,
     ) -> Result<Vec<usize>> {
         // check if there is something to optimize
@@ -288,7 +288,7 @@ impl<'a> Conjunction<'a> {
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
         op_entries: Box<Iterator<Item = &'a OperatorEntry> + 'a>,
-        db: &'a GraphDB,
+        db: &'a Graph,
     ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let desc = desc?;
         // check if we can replace this node search with a generic "all nodes from either of these components" search
@@ -348,7 +348,7 @@ impl<'a> Conjunction<'a> {
 
     fn create_join<'b>(
         &self,
-        db: &GraphDB,
+        db: &Graph,
         config: &Config,
         op: Box<Operator>,
         exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
@@ -444,7 +444,7 @@ impl<'a> Conjunction<'a> {
 
     fn make_exec_plan_with_order(
         &'a self,
-        db: &'a GraphDB,
+        db: &'a Graph,
         config: &Config,
         operator_order: Vec<usize>,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
@@ -667,7 +667,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn make_exec_node(
         &'a self,
-        db: &'a GraphDB,
+        db: &'a Graph,
         config: &Config,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let operator_order = self.optimize_join_order_heuristics(db, config)?;

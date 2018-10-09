@@ -8,7 +8,7 @@ use std::sync::Arc;
 use types::{Annotation, Component, ComponentType, Edge, Match, NodeID};
 use AnnotationStorage;
 use update::GraphUpdate;
-use {GraphDB, GraphStorage};
+use {Graph, GraphStorage};
 
 #[no_mangle]
 pub extern "C" fn annis_component_type(c: *const Component) -> ComponentType {
@@ -32,10 +32,10 @@ pub extern "C" fn annis_component_name(c: *const Component) -> *mut libc::c_char
 
 #[no_mangle]
 pub extern "C" fn annis_graph_nodes_by_type(
-    g: *const GraphDB,
+    g: *const Graph,
     node_type: *const libc::c_char,
 ) -> *mut IterPtr<NodeID> {
-    let db: &GraphDB = cast_const!(g);
+    let db: &Graph = cast_const!(g);
     let node_type = cstr!(node_type);
 
     let type_key = db.get_node_type_key();
@@ -49,36 +49,36 @@ pub extern "C" fn annis_graph_nodes_by_type(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_graph_node_labels(g: *const GraphDB, node: NodeID) -> *mut Vec<Annotation> {
-    let db: &GraphDB = cast_const!(g);
+pub extern "C" fn annis_graph_node_labels(g: *const Graph, node: NodeID) -> *mut Vec<Annotation> {
+    let db: &Graph = cast_const!(g);
 
     Box::into_raw(Box::new(db.get_annotations_for_item(&node)))
 }
 
 #[no_mangle]
-pub extern "C" fn annis_graph_all_components(g: *const GraphDB) -> *mut Vec<Component> {
-    let db: &GraphDB = cast_const!(g);
+pub extern "C" fn annis_graph_all_components(g: *const Graph) -> *mut Vec<Component> {
+    let db: &Graph = cast_const!(g);
 
     Box::into_raw(Box::new(db.get_all_components(None, None)))
 }
 
 #[no_mangle]
 pub extern "C" fn annis_graph_all_components_by_type(
-    g: *const GraphDB,
+    g: *const Graph,
     ctype: ComponentType,
 ) -> *mut Vec<Component> {
-    let db: &GraphDB = cast_const!(g);
+    let db: &Graph = cast_const!(g);
 
     Box::into_raw(Box::new(db.get_all_components(Some(ctype), None)))
 }
 
 #[no_mangle]
 pub extern "C" fn annis_graph_outgoing_edges(
-    g: *const GraphDB,
+    g: *const Graph,
     source: NodeID,
     component: *const Component,
 ) -> *mut Vec<Edge> {
-    let db: &GraphDB = cast_const!(g);
+    let db: &Graph = cast_const!(g);
     let component: &Component = cast_const!(component);
 
     let mut result: Vec<Edge> = Vec::new();
@@ -96,11 +96,11 @@ pub extern "C" fn annis_graph_outgoing_edges(
 
 #[no_mangle]
 pub extern "C" fn annis_graph_edge_labels(
-    g: *const GraphDB,
+    g: *const Graph,
     edge: Edge,
     component: *const Component,
 ) -> *mut Vec<Annotation> {
-    let db: &GraphDB = cast_const!(g);
+    let db: &Graph = cast_const!(g);
     let component: &Component = cast_const!(component);
 
     let annos: Vec<Annotation> = if let Some(gs) = db.get_graphstorage(component) {
@@ -114,11 +114,11 @@ pub extern "C" fn annis_graph_edge_labels(
 
 #[no_mangle]
 pub extern "C" fn annis_graph_apply_update(
-    g: *mut GraphDB,
+    g: *mut Graph,
     update: *mut GraphUpdate,
     err: *mut *mut ErrorList,
 ) {
-    let db: &mut GraphDB = cast_mut!(g);
+    let db: &mut Graph = cast_mut!(g);
     let update: &mut GraphUpdate = cast_mut!(update);
     try_cerr!(db.apply_update(update), err, ());
 }

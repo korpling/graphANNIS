@@ -1,5 +1,5 @@
 use annis::annostorage::AnnoStorage;
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::types::{AnnoKey, Annotation, Edge, NodeID};
 use bincode;
 use annis::errors::*;
@@ -69,7 +69,7 @@ pub trait GraphStorage: EdgeContainer {
         max_distance: usize,
     ) -> bool;
 
-    fn copy(&mut self, db: &GraphDB, orig: &EdgeContainer);
+    fn copy(&mut self, db: &Graph, orig: &EdgeContainer);
 
     fn as_any(&self) -> &Any;
 

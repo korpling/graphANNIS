@@ -1,7 +1,7 @@
 use annis::db::graphstorage::GraphStorage;
 use annis::db::token_helper;
 use annis::db::token_helper::TokenHelper;
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::operator::EstimationType;
 use annis::operator::{Operator, OperatorSpec};
 use annis::types::{AnnoKeyID, Component, ComponentType, Match};
@@ -43,7 +43,7 @@ lazy_static! {
 }
 
 impl OperatorSpec for PrecedenceSpec {
-    fn necessary_components(&self, _db: &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
@@ -59,7 +59,7 @@ impl OperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -82,7 +82,7 @@ impl std::fmt::Display for PrecedenceSpec {
 }
 
 impl Precedence {
-    pub fn new(db: &GraphDB, spec: PrecedenceSpec) -> Option<Precedence> {
+    pub fn new(db: &Graph, spec: PrecedenceSpec) -> Option<Precedence> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),

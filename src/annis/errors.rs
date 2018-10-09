@@ -20,8 +20,8 @@ error_chain! {
         }
 
         LoadingDBFailed(db : String) {
-            description("Could not load GraphDB from disk"),
-            display("Could not load GraphDB {} from disk", &db),
+            description("Could not load graph from disk"),
+            display("Could not load graph {} from disk", &db),
         }
 
         ImpossibleSearch(reason : String) {

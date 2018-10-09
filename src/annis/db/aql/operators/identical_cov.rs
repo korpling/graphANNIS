@@ -1,4 +1,4 @@
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::db::graphstorage::GraphStorage;
 use annis::operator::EstimationType;
 use annis::operator::{Operator, OperatorSpec};
@@ -37,13 +37,13 @@ lazy_static! {
 }
 
 impl OperatorSpec for IdenticalCoverageSpec {
-    fn necessary_components(&self, _db: &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![COMPONENT_LEFT.clone(), COMPONENT_ORDER.clone()];
         v.append(&mut token_helper::necessary_components());
         v
     }
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -54,7 +54,7 @@ impl OperatorSpec for IdenticalCoverageSpec {
 }
 
 impl IdenticalCoverage {
-    pub fn new(db: &GraphDB) -> Option<IdenticalCoverage> {
+    pub fn new(db: &Graph) -> Option<IdenticalCoverage> {
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let tok_helper = TokenHelper::new(db)?;

@@ -1,5 +1,5 @@
 use annis::annostorage::AnnoStorage;
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::db::graphstorage::GraphStorage;
 use annis::types::{Component, ComponentType, NodeID};
 
@@ -50,7 +50,7 @@ pub fn necessary_components() -> Vec<Component> {
 }
 
 impl TokenHelper {
-    pub fn new(db: &GraphDB) -> Option<TokenHelper> {
+    pub fn new(db: &Graph) -> Option<TokenHelper> {
         Some(TokenHelper {
             node_annos: db.node_annos.clone(),
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,

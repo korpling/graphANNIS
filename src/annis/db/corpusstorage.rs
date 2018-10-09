@@ -9,7 +9,7 @@ use annis::errors::*;
 use annis::db::exec::nodesearch::NodeSearchSpec;
 use annis::db;
 use annis::db::AnnotationStorage;
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::db::{ANNIS_NS, NODE_TYPE};
 use annis::plan::ExecutionPlan;
 use annis::db::query;
@@ -44,7 +44,7 @@ use rayon::prelude::*;
 use sys_info;
 
 enum CacheEntry {
-    Loaded(GraphDB),
+    Loaded(Graph),
     NotLoaded,
 }
 
@@ -180,7 +180,7 @@ impl FromStr for FrequencyDefEntry {
     }
 }
 
-fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a GraphDB> {
+fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
     if let &CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
@@ -188,7 +188,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     }
 }
 
-fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut GraphDB> {
+fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut Graph> {
     if let &mut CacheEntry::Loaded(ref mut db) = &mut **lock {
         return Ok(db);
     } else {
@@ -238,7 +238,7 @@ fn extract_subgraph_by_query(
     query: Disjunction,
     match_idx: Vec<usize>,
     query_config: query::Config,
-) -> Result<GraphDB> {
+) -> Result<Graph> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
@@ -253,7 +253,7 @@ fn extract_subgraph_by_query(
     // match vector differ.
     let mut match_result: BTreeSet<Match> = BTreeSet::new();
 
-    let mut result = GraphDB::new();
+    let mut result = Graph::new();
 
     // create the subgraph description
     for r in plan {
@@ -277,7 +277,7 @@ fn extract_subgraph_by_query(
     return Ok(result);
 }
 
-fn create_subgraph_node(id: NodeID, db: &mut GraphDB, orig_db: &GraphDB) {
+fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
     // add all node labels with the same node ID
     let node_annos = Arc::make_mut(&mut db.node_annos);
     for a in orig_db.node_annos.get_annotations_for_item(&id).into_iter() {
@@ -286,8 +286,8 @@ fn create_subgraph_node(id: NodeID, db: &mut GraphDB, orig_db: &GraphDB) {
 }
 fn create_subgraph_edge(
     source_id: NodeID,
-    db: &mut GraphDB,
-    orig_db: &GraphDB,
+    db: &mut Graph,
+    orig_db: &Graph,
     all_components: &Vec<Component>,
 ) {
     // find outgoing edges
@@ -536,7 +536,7 @@ impl CorpusStorage {
             }
         };
 
-        let mut db = GraphDB::new();
+        let mut db = Graph::new();
         if create_corpus {
             db.persist_to(&db_path)
                 .chain_err(|| format!("Could not create corpus with name {}", corpus_name))?;
@@ -635,7 +635,7 @@ impl CorpusStorage {
     }
 
     /// Import a corpusfrom an external location into this corpus storage
-    pub fn import(&self, corpus_name: &str, mut db: GraphDB) {
+    pub fn import(&self, corpus_name: &str, mut db: Graph) {
         let r = db.ensure_loaded_all();
         if let Err(e) = r {
             error!(
@@ -784,7 +784,7 @@ impl CorpusStorage {
     pub fn update_statistics(&self, corpus_name: &str) -> Result<()> {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
         let mut lock = db_entry.write().unwrap();
-        let db: &mut GraphDB = get_write_or_error(&mut lock)?;
+        let db: &mut Graph = get_write_or_error(&mut lock)?;
 
         Arc::make_mut(&mut db.node_annos).calculate_statistics();
         for c in db.get_all_components(None, None).into_iter() {
@@ -798,7 +798,7 @@ impl CorpusStorage {
 
     pub fn validate_query(&self, corpus_name: &str, query_as_aql: &str) -> Result<bool> {
         let prep: PreparationResult = self.prepare_query(corpus_name, query_as_aql, vec![])?;
-        // also get the semantic errors by creating an execution plan on the actual GraphDB
+        // also get the semantic errors by creating an execution plan on the actual Graph
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
         ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
@@ -838,7 +838,7 @@ impl CorpusStorage {
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
-        let db: &GraphDB = get_read_or_error(&lock)?;
+        let db: &Graph = get_read_or_error(&lock)?;
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
         let mut known_documents = HashSet::new();
@@ -993,7 +993,7 @@ impl CorpusStorage {
         node_ids: Vec<String>,
         ctx_left: usize,
         ctx_right: usize,
-    ) -> Result<GraphDB> {
+    ) -> Result<Graph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
         let mut query = Disjunction {
@@ -1164,7 +1164,7 @@ impl CorpusStorage {
         return extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone());
     }
 
-    pub fn subgraph_for_query(&self, corpus_name: &str, query_as_aql: &str) -> Result<GraphDB> {
+    pub fn subgraph_for_query(&self, corpus_name: &str, query_as_aql: &str) -> Result<Graph> {
         let prep = self.prepare_query(corpus_name, query_as_aql, vec![])?;
 
         let mut max_alt_size = 0;
@@ -1179,7 +1179,7 @@ impl CorpusStorage {
             self.query_config.clone(),
         );
     }
-    pub fn subcorpus_graph(&self, corpus_name: &str, corpus_ids: Vec<String>) -> Result<GraphDB> {
+    pub fn subcorpus_graph(&self, corpus_name: &str, corpus_ids: Vec<String>) -> Result<Graph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
         let mut query = Disjunction {
@@ -1218,7 +1218,7 @@ impl CorpusStorage {
         return extract_subgraph_by_query(db_entry, query, vec![1], self.query_config.clone());
     }
 
-    pub fn corpus_graph(&self, corpus_name: &str) -> Result<GraphDB> {
+    pub fn corpus_graph(&self, corpus_name: &str) -> Result<Graph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
         let mut query = Conjunction::new();
@@ -1246,7 +1246,7 @@ impl CorpusStorage {
 
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
-        let db: &GraphDB = get_read_or_error(&lock)?;
+        let db: &Graph = get_read_or_error(&lock)?;
 
         // get the matching annotation keys for each definition entry
         let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
@@ -1402,7 +1402,7 @@ impl CorpusStorage {
             .chain_err(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
         {
             let mut lock = db_entry.write().unwrap();
-            let db: &mut GraphDB = get_write_or_error(&mut lock)?;
+            let db: &mut Graph = get_write_or_error(&mut lock)?;
 
             db.apply_update(update)?;
         }
@@ -1418,7 +1418,7 @@ impl CorpusStorage {
             trace!("Starting background thread to sync WAL updates");
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
-                let db: &GraphDB = db;
+                let db: &Graph = db;
                 if let Err(e) = db.background_sync_wal_updates() {
                     error!("Can't sync changes in background thread: {:?}", e);
                 } else {

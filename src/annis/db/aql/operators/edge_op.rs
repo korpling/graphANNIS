@@ -1,7 +1,7 @@
 use annis::annostorage::AnnoStorage;
 use annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use annis::db::AnnotationStorage;
-use annis::db::{GraphDB, ANNIS_NS};
+use annis::db::{Graph, ANNIS_NS};
 use annis::operator::{EdgeAnnoSearchSpec, EstimationType, Operator, OperatorSpec};
 use annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, Match, NodeID};
 use std;
@@ -27,7 +27,7 @@ struct BaseEdgeOp {
 }
 
 impl BaseEdgeOp {
-    pub fn new(db: &GraphDB, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
+    pub fn new(db: &Graph, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
         let mut gs: Vec<Arc<GraphStorage>> = Vec::new();
         for c in spec.components.iter() {
             gs.push(db.get_graphstorage(c)?);
@@ -43,11 +43,11 @@ impl BaseEdgeOp {
 }
 
 impl OperatorSpec for BaseEdgeOpSpec {
-    fn necessary_components(&self, _db: &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         self.components.clone()
     }
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -358,11 +358,11 @@ pub struct DominanceSpec {
 }
 
 impl OperatorSpec for DominanceSpec {
-    fn necessary_components(&self, db: &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         db.get_all_components(Some(ComponentType::Dominance), Some(&self.name))
     }
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let components = db.get_all_components(Some(ComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from(">")
@@ -390,11 +390,11 @@ pub struct PointingSpec {
 }
 
 impl OperatorSpec for PointingSpec {
-    fn necessary_components(&self, db: &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         db.get_all_components(Some(ComponentType::Pointing), Some(&self.name))
     }
 
-    fn create_operator<'b>(&self, db: &GraphDB) -> Option<Box<Operator>> {
+    fn create_operator<'b>(&self, db: &Graph) -> Option<Box<Operator>> {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")
@@ -421,7 +421,7 @@ pub struct PartOfSubCorpusSpec {
 }
 
 impl OperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self, _db: &GraphDB) -> Vec<Component> {
+    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let components = vec![Component {
             ctype: ComponentType::PartOfSubcorpus,
             layer: String::from(ANNIS_NS),
@@ -430,7 +430,7 @@ impl OperatorSpec for PartOfSubCorpusSpec {
         components
     }
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let components = vec![Component {
             ctype: ComponentType::PartOfSubcorpus,
             layer: String::from(ANNIS_NS),

@@ -1,6 +1,6 @@
 use annis::errors::*;
 use annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::db::query::disjunction::Disjunction;
 use annis::db::query::Config;
 use annis::types::{AnnoKeyID, Match, NodeID};
@@ -19,7 +19,7 @@ pub struct ExecutionPlan<'a> {
 impl<'a> ExecutionPlan<'a> {
     pub fn from_disjunction(
         query: &'a Disjunction<'a>,
-        db: &'a GraphDB,
+        db: &'a Graph,
         config: Config,
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();

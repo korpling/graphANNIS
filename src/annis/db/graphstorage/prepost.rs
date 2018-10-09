@@ -11,7 +11,7 @@ use annis::annostorage::AnnoStorage;
 use annis::dfs::{CycleSafeDFS, DFSStep};
 use annis::errors::*;
 use annis::db::AnnotationStorage;
-use annis::db::GraphDB;
+use annis::db::Graph;
 use annis::types::{AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
@@ -383,7 +383,7 @@ where
         return false;
     }
 
-    fn copy(&mut self, db: &GraphDB, orig: &EdgeContainer) {
+    fn copy(&mut self, db: &Graph, orig: &EdgeContainer) {
         self.clear();
 
         // find all roots of the component
