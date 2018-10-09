@@ -30,10 +30,16 @@ pub struct GraphStatistic {
     pub dfs_visit_ratio: f64,
 }
 
+/// Basic trait for accessing edges of a graph for a specific [component](types/struct.Component.html).
 pub trait EdgeContainer: Sync + Send + MallocSizeOf {
+
+    /// Get all outgoing edges for a given `node`.
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
+
+    /// Get all incoming edges for a given `node`.
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
+    /// Get a list of annotations for an `edge` between two nodes. 
     fn get_edge_annos(&self, edge: &Edge) -> Vec<Annotation>;
 
     fn get_anno_storage(&self) -> &AnnoStorage<Edge>;

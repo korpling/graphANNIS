@@ -63,7 +63,7 @@ pub mod corpusstorage {
     pub use annis::db::corpusstorage::{CorpusInfo, FrequencyDefEntry, LoadStatus, ResultOrder};
 }
 
-pub use annis::db::graphstorage::GraphStorage;
+pub use annis::db::graphstorage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
 pub use annis::db::update;
 pub use annis::db::AnnotationStorage;
 pub use annis::db::Graph;
