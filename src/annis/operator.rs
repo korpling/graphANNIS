@@ -1,5 +1,5 @@
 use annis::annostorage::AnnoStorage;
-use annis::graphdb::GraphDB;
+use annis::db::GraphDB;
 use annis::types::{Component, Edge, Match};
 use std;
 

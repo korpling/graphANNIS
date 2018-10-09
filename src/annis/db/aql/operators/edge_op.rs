@@ -1,6 +1,7 @@
 use annis::annostorage::AnnoStorage;
-use annis::graphdb::{GraphDB, ANNIS_NS};
-use annis::graphstorage::{GraphStatistic, GraphStorage};
+use annis::db::graphstorage::{GraphStatistic, GraphStorage};
+use annis::db::AnnotationStorage;
+use annis::db::{GraphDB, ANNIS_NS};
 use annis::operator::{EdgeAnnoSearchSpec, EstimationType, Operator, OperatorSpec};
 use annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, Match, NodeID};
 use std;
@@ -322,7 +323,7 @@ impl Operator for BaseEdgeOp {
             for g in self.gs.iter() {
                 let g: &Arc<GraphStorage> = g;
                 let anno_storage = g.get_anno_storage();
-                let num_of_annos = anno_storage.len();
+                let num_of_annos = anno_storage.number_of_annotations();
                 if num_of_annos == 0 {
                     // we won't be able to find anything if there are no annotations
                     return Some(0.0);

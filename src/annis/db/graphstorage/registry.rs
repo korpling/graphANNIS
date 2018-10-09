@@ -2,7 +2,7 @@ use super::adjacencylist::AdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
 use annis::errors::*;
-use annis::graphstorage::{GraphStatistic, GraphStorage};
+use annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;

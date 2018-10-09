@@ -16,7 +16,7 @@ fn insert_same_anno() {
     a.insert(2, test_anno.clone());
     a.insert(3, test_anno);
 
-    assert_eq!(3, a.len());
+    assert_eq!(3, a.number_of_annotations());
     assert_eq!(3, a.by_container.len());
     assert_eq!(1, a.by_anno.len());
     assert_eq!(1, a.anno_keys.len());
@@ -62,7 +62,7 @@ fn get_all_for_node() {
     a.insert(1, test_anno2.clone());
     a.insert(1, test_anno3.clone());
 
-    assert_eq!(3, a.len());
+    assert_eq!(3, a.number_of_annotations());
 
     let all = a.get_annotations_for_item(&1);
     assert_eq!(3, all.len());
@@ -84,7 +84,7 @@ fn remove() {
     let mut a: AnnoStorage<NodeID> = AnnoStorage::new();
     a.insert(1, test_anno.clone());
 
-    assert_eq!(1, a.len());
+    assert_eq!(1, a.number_of_annotations());
     assert_eq!(1, a.by_container.len());
     assert_eq!(1, a.by_anno.len());
     assert_eq!(1, a.anno_key_sizes.len());
@@ -92,7 +92,7 @@ fn remove() {
 
     a.remove_annotation_for_item(&1, &test_anno.key);
 
-    assert_eq!(0, a.len());
+    assert_eq!(0, a.number_of_annotations());
     assert_eq!(0, a.by_container.len());
     assert_eq!(0, a.by_anno.len());
     assert_eq!(&0, a.anno_key_sizes.get(&test_anno.key).unwrap_or(&0));

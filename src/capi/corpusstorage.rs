@@ -8,7 +8,7 @@ use std::ffi::CString;
 use std::path::PathBuf;
 use types::{Component, ComponentType, CountExtra, FrequencyTable, Matrix, NodeDesc};
 use update::GraphUpdate;
-use {CorpusStorage, GraphDB};
+use {CorpusStorage, GraphDB, AnnotationStorage};
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -150,7 +150,7 @@ pub extern "C" fn annis_cs_subcorpus_graph(
     );
     trace!(
         "annis_cs_subcorpus_graph(...) returns subgraph with {} labels",
-        result.node_annos.len()
+        result.number_of_annotations()
     );
     return Box::into_raw(Box::new(result));
 }

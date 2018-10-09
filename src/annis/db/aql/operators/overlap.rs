@@ -1,10 +1,10 @@
-use annis::graphdb::GraphDB;
-use annis::graphstorage::GraphStorage;
+use annis::db::GraphDB;
+use annis::db::graphstorage::GraphStorage;
 use annis::operator::EstimationType;
 use annis::operator::{Operator, OperatorSpec};
 use annis::types::{AnnoKeyID, Component, ComponentType, Match, NodeID};
-use annis::util::token_helper;
-use annis::util::token_helper::TokenHelper;
+use annis::db::token_helper;
+use annis::db::token_helper::TokenHelper;
 use rustc_hash::FxHashSet;
 
 use std;

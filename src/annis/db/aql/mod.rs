@@ -1,15 +1,15 @@
 mod ast;
 mod normalize;
 pub mod operators;
-lalrpop_mod!(parser, "/annis/aql/parser.rs");
+lalrpop_mod!(parser, "/annis/db/aql/parser.rs");
 
-use annis::aql::operators::edge_op::PartOfSubCorpusSpec;
-use annis::aql::operators::identical_node::IdenticalNodeSpec;
+use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
+use annis::db::aql::operators::identical_node::IdenticalNodeSpec;
 use annis::errors::*;
-use annis::exec::nodesearch::NodeSearchSpec;
+use annis::db::exec::nodesearch::NodeSearchSpec;
 use annis::operator::OperatorSpec;
-use annis::query::conjunction::Conjunction;
-use annis::query::disjunction::Disjunction;
+use annis::db::query::conjunction::Conjunction;
+use annis::db::query::disjunction::Disjunction;
 use annis::types::{LineColumn, LineColumnRange};
 use lalrpop_util::ParseError;
 use std::collections::BTreeMap;

@@ -1,4 +1,4 @@
-use annis::graphstorage::EdgeContainer;
+use annis::db::graphstorage::EdgeContainer;
 use annis::types::NodeID;
 use rustc_hash::FxHashSet;
 

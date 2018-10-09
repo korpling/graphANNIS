@@ -1,10 +1,11 @@
 use annis::annostorage::AnnoStorage;
-use annis::api::update::{GraphUpdate, UpdateEvent};
+use annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
+use annis::db::graphstorage::registry;
+use annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
+use annis::db::update::{GraphUpdate, UpdateEvent};
 use annis::errors::*;
-use annis::graphstorage::adjacencylist::AdjacencyListStorage;
-use annis::graphstorage::registry;
-use annis::graphstorage::{GraphStorage, WriteableGraphStorage};
 use annis::types::AnnoKey;
+use annis::types::{Annotation, Component, ComponentType, Edge, Match, NodeID};
 use bincode;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
@@ -18,16 +19,25 @@ use std::string::ToString;
 use std::sync::{Arc, Mutex};
 use strum::IntoEnumIterator;
 use tempdir::TempDir;
-use annis::types::{Annotation, Match, Component, ComponentType, Edge, NodeID};
+
+pub mod aql;
+pub mod corpusstorage;
+pub mod exec;
+pub mod graphstorage;
+pub mod query;
+pub mod relannis;
+pub mod token_helper;
+pub mod update;
 
 pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
 
-
 pub trait AnnotationStorage<T> {
-    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;   
+    fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
+    fn number_of_annotations(&self) -> usize;
+
     fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
@@ -37,7 +47,7 @@ pub trait AnnotationStorage<T> {
 }
 
 pub struct GraphDB {
-    pub node_annos: Arc<AnnoStorage<NodeID>>,
+    node_annos: Arc<AnnoStorage<NodeID>>,
 
     location: Option<PathBuf>,
 
@@ -115,6 +125,11 @@ impl AnnotationStorage<NodeID> for GraphDB {
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         self.node_annos.get_annotations_for_item(item)
     }
+
+    fn number_of_annotations(&self) -> usize {
+        self.node_annos.number_of_annotations()
+    }
+
     fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,

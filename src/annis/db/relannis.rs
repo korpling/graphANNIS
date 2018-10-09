@@ -1,6 +1,6 @@
 use annis::errors::*;
-use annis::graphdb::{GraphDB, ANNIS_NS};
-use annis::graphstorage::WriteableGraphStorage;
+use annis::db::{GraphDB, ANNIS_NS};
+use annis::db::graphstorage::WriteableGraphStorage;
 use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use csv;
 use multimap::MultiMap;

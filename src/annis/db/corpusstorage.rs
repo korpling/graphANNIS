@@ -2,19 +2,19 @@
 //! It is transactional and thread-safe.
 
 use annis::annostorage::AnnoStorage;
-use annis::aql;
-use annis::aql::operators;
+use annis::db::aql;
+use annis::db::aql::operators;
 use annis::errors::ErrorKind;
 use annis::errors::*;
-use annis::exec::nodesearch::NodeSearchSpec;
-use annis::graphdb;
-use annis::graphdb::AnnotationStorage;
-use annis::graphdb::GraphDB;
-use annis::graphdb::{ANNIS_NS, NODE_TYPE};
+use annis::db::exec::nodesearch::NodeSearchSpec;
+use annis::db;
+use annis::db::AnnotationStorage;
+use annis::db::GraphDB;
+use annis::db::{ANNIS_NS, NODE_TYPE};
 use annis::plan::ExecutionPlan;
-use annis::query;
-use annis::query::conjunction::Conjunction;
-use annis::query::disjunction::Disjunction;
+use annis::db::query;
+use annis::db::query::conjunction::Conjunction;
+use annis::db::query::disjunction::Disjunction;
 use annis::types::AnnoKey;
 use annis::types::{
     Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, NodeDesc, NodeID,
@@ -441,7 +441,7 @@ impl CorpusStorage {
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
                             load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
-                            num_of_annotations: gs.get_anno_storage().len(),
+                            num_of_annotations: gs.get_anno_storage().number_of_annotations(),
                         });
                     } else {
                         load_status = LoadStatus::PartiallyLoaded(heap_size);
@@ -1017,8 +1017,8 @@ impl CorpusStorage {
 
                 let n_idx = q_left.add_node(
                     NodeSearchSpec::ExactValue {
-                        ns: Some(graphdb::ANNIS_NS.to_string()),
-                        name: graphdb::NODE_NAME.to_string(),
+                        ns: Some(db::ANNIS_NS.to_string()),
+                        name: db::NODE_NAME.to_string(),
                         val: Some(source_node_id.to_string()),
                         is_meta: false,
                     },
@@ -1058,8 +1058,8 @@ impl CorpusStorage {
 
                 let n_idx = q_left.add_node(
                     NodeSearchSpec::ExactValue {
-                        ns: Some(graphdb::ANNIS_NS.to_string()),
-                        name: graphdb::NODE_NAME.to_string(),
+                        ns: Some(db::ANNIS_NS.to_string()),
+                        name: db::NODE_NAME.to_string(),
                         val: Some(source_node_id.to_string()),
                         is_meta: false,
                     },
@@ -1093,8 +1093,8 @@ impl CorpusStorage {
 
                 let n_idx = q_right.add_node(
                     NodeSearchSpec::ExactValue {
-                        ns: Some(graphdb::ANNIS_NS.to_string()),
-                        name: graphdb::NODE_NAME.to_string(),
+                        ns: Some(db::ANNIS_NS.to_string()),
+                        name: db::NODE_NAME.to_string(),
                         val: Some(source_node_id.to_string()),
                         is_meta: false,
                     },
@@ -1134,8 +1134,8 @@ impl CorpusStorage {
 
                 let n_idx = q_right.add_node(
                     NodeSearchSpec::ExactValue {
-                        ns: Some(graphdb::ANNIS_NS.to_string()),
-                        name: graphdb::NODE_NAME.to_string(),
+                        ns: Some(db::ANNIS_NS.to_string()),
+                        name: db::NODE_NAME.to_string(),
                         val: Some(source_node_id.to_string()),
                         is_meta: false,
                     },
@@ -1196,8 +1196,8 @@ impl CorpusStorage {
             let mut q = Conjunction::new();
             let corpus_idx = q.add_node(
                 NodeSearchSpec::ExactValue {
-                    ns: Some(graphdb::ANNIS_NS.to_string()),
-                    name: graphdb::NODE_NAME.to_string(),
+                    ns: Some(db::ANNIS_NS.to_string()),
+                    name: db::NODE_NAME.to_string(),
                     val: Some(source_corpus_id.to_string()),
                     is_meta: false,
                 },

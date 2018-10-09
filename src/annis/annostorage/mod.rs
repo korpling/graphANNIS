@@ -1,6 +1,6 @@
 use self::symboltable::SymbolTable;
 use annis::errors::*;
-use annis::graphdb::AnnotationStorage;
+use annis::db::AnnotationStorage;
 use annis::types::{AnnoKey, AnnoKeyID, Annotation};
 use annis::types::{Edge, Match, NodeID};
 use annis::util;
@@ -224,10 +224,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             return self.anno_values.get_value(result).cloned();
         }
         return None;
-    }
-
-    pub fn len(&self) -> usize {
-        self.total_number_of_annos
     }
 
     pub fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
@@ -649,6 +645,10 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
         self.get_annotations_for_item_impl(item)
     }
 
+    fn number_of_annotations(&self) -> usize {
+        self.total_number_of_annos
+    }
+
     fn exact_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
@@ -704,6 +704,10 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
 
     fn get_annotations_for_item(&self, item: &Edge) -> Vec<Annotation> {
         self.get_annotations_for_item_impl(item)
+    }
+
+    fn number_of_annotations(&self) -> usize {
+        self.total_number_of_annos
     }
 
     fn exact_anno_search<'a>(

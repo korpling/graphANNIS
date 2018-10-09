@@ -1,4 +1,4 @@
-use annis::graphstorage::EdgeContainer;
+use annis::db::graphstorage::EdgeContainer;
 use bincode;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
@@ -10,8 +10,8 @@ use super::{GraphStatistic, GraphStorage};
 use annis::annostorage::AnnoStorage;
 use annis::dfs::{CycleSafeDFS, DFSStep};
 use annis::errors::*;
-use annis::graphdb::AnnotationStorage;
-use annis::graphdb::GraphDB;
+use annis::db::AnnotationStorage;
+use annis::db::GraphDB;
 use annis::types::{AnnoKey, Annotation, Edge, Match, NodeID, NumValue};
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]

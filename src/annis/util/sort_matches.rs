@@ -1,9 +1,9 @@
-use annis::graphdb::GraphDB;
+use annis::db::GraphDB;
 use annis::types::Component;
 use annis::types::ComponentType;
 use annis::types::Match;
 use annis::types::NodeID;
-use annis::util::token_helper::TokenHelper;
+use annis::db::token_helper::TokenHelper;
 use rustc_hash::FxHashMap;
 use std;
 use std::cmp::Ordering;

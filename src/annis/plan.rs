@@ -1,8 +1,8 @@
 use annis::errors::*;
-use annis::exec::{Desc, EmptyResultSet, ExecutionNode};
-use annis::graphdb::GraphDB;
-use annis::query::disjunction::Disjunction;
-use annis::query::Config;
+use annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
+use annis::db::GraphDB;
+use annis::db::query::disjunction::Disjunction;
+use annis::db::query::Config;
 use annis::types::{AnnoKeyID, Match, NodeID};
 use std;
 use std::collections::HashSet;

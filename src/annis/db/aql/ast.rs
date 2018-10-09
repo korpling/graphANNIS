@@ -2,11 +2,11 @@ use std;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use annis::aql::operators::{
+use annis::db::aql::operators::{
     DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec, OverlapSpec,
     PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec,
 };
-use annis::exec::nodesearch::NodeSearchSpec;
+use annis::db::exec::nodesearch::NodeSearchSpec;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Pos {

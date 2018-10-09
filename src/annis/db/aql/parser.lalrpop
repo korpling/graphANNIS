@@ -2,8 +2,8 @@ use std::*;
 use super::ast;
 use std::rc::Rc;
 use annis::operator::EdgeAnnoSearchSpec;
-use annis::exec::nodesearch::NodeSearchSpec;
-use annis::aql::operators::{
+use annis::db::exec::nodesearch::NodeSearchSpec;
+use annis::db::aql::operators::{
     OverlapSpec, 
     IdenticalCoverageSpec,
     PrecedenceSpec,

@@ -40,7 +40,6 @@ pub extern "C" fn annis_graph_nodes_by_type(
 
     let type_key = db.get_node_type_key();
     let it = db
-        .node_annos
         .exact_anno_search(
             Some(type_key.ns),
             type_key.name,
@@ -53,7 +52,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
 pub extern "C" fn annis_graph_node_labels(g: *const GraphDB, node: NodeID) -> *mut Vec<Annotation> {
     let db: &GraphDB = cast_const!(g);
 
-    Box::into_raw(Box::new(db.node_annos.get_annotations_for_item(&node)))
+    Box::into_raw(Box::new(db.get_annotations_for_item(&node)))
 }
 
 #[no_mangle]

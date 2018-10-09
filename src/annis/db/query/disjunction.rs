@@ -1,5 +1,5 @@
 use super::conjunction::Conjunction;
-use annis::graphdb::GraphDB;
+use annis::db::GraphDB;
 use annis::types::Component;
 
 pub struct Disjunction<'a> {

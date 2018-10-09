@@ -1,4 +1,4 @@
-use annis::graphdb::GraphDB;
+use annis::db::GraphDB;
 use annis::operator::*;
 use annis::types::Match;
 use annis::types::{AnnoKeyID, Component};

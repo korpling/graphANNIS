@@ -57,16 +57,16 @@ static GLOBAL: System = System;
 
 mod annis;
 
-pub use annis::api::corpusstorage::CorpusStorage;
+pub use annis::db::corpusstorage::CorpusStorage;
 
 pub mod corpusstorage {
-    pub use annis::api::corpusstorage::{CorpusInfo, FrequencyDefEntry, LoadStatus, ResultOrder};
+    pub use annis::db::corpusstorage::{CorpusInfo, FrequencyDefEntry, LoadStatus, ResultOrder};
 }
 
-pub use annis::api::update;
-pub use annis::graphdb::AnnotationStorage;
-pub use annis::graphdb::GraphDB;
-pub use annis::graphstorage::GraphStorage;
+pub use annis::db::graphstorage::GraphStorage;
+pub use annis::db::update;
+pub use annis::db::AnnotationStorage;
+pub use annis::db::GraphDB;
 
 pub mod types {
     pub use annis::types::{
@@ -76,7 +76,7 @@ pub mod types {
 }
 
 pub mod relannis {
-    pub use annis::relannis::load;
+    pub use annis::db::relannis::load;
 }
 
 pub mod errors {

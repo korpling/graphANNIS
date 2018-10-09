@@ -1,6 +1,5 @@
 pub mod memory_estimation;
 pub mod sort_matches;
-pub mod token_helper;
 
 use regex_syntax;
 use std;
