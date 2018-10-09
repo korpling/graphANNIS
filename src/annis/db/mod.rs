@@ -48,19 +48,11 @@ pub trait AnnotationStorage<T> {
 
 /// A representation of a graph including node annotations and edges (which are partioned into components).
 /// 
+/// Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
+/// 
 /// Graphs can have an optional location on the disk.
 /// In this case, changes to the graph are automatically persisted to this location.
 /// 
-/// # Example
-/// ```
-/// extern graphannis;
-/// use graphannis::Graph;
-/// 
-/// let mut g = Graph::new();
-/// 
-///  // TODO add update and query code
-/// 
-/// ```
 pub struct Graph {
     node_annos: Arc<AnnoStorage<NodeID>>,
 
@@ -157,7 +149,7 @@ impl AnnotationStorage<NodeID> for Graph {
 
 impl Graph {
     /// Create a new and empty instance without any location on the disk.
-    pub fn new() -> Graph {
+    fn new() -> Graph {
         Graph {
             node_annos: Arc::new(AnnoStorage::<NodeID>::new()),
             components: BTreeMap::new(),
@@ -178,7 +170,7 @@ impl Graph {
 
     /// Clear the graph content.
     /// This removes all node annotations, edges and knowledge about components.
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.node_annos = Arc::new(AnnoStorage::new());
         self.components.clear();
     }
@@ -188,7 +180,7 @@ impl Graph {
     /// 
     /// * `location` - The path on the disk
     /// * `preload` - If `true`, all components are loaded from disk into main memory.
-    pub fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
+    fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
         self.clear();
 
         let location = PathBuf::from(location);
@@ -326,24 +318,14 @@ impl Graph {
     }
 
     /// Save the current database to a `location` on the disk, but do not remember this location.
-   pub fn save_to(&mut self, location: &Path) -> Result<()> {
+   fn save_to(&mut self, location: &Path) -> Result<()> {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
         return self.internal_save(&location.join("current"));
     }
 
-    /// Save the current database at is original location.
-    /// Returns an error if the graph has no location.
-    pub fn persist(&self) -> Result<()> {
-        if let Some(ref loc) = self.location {
-            return self.internal_save(&loc.join("current"));
-        } else {
-            return Err("Attempting to persist DB with empty location".into());
-        }
-    }
-
     /// Save the current database at a new `location` and remember it as new internal location.
-    pub fn persist_to(&mut self, location: &Path) -> Result<()> {
+    fn persist_to(&mut self, location: &Path) -> Result<()> {
         self.set_location(location)?;
         return self.internal_save(&location.join("current"));
     }
