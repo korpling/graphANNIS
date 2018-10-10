@@ -1,8 +1,9 @@
 use self::symboltable::SymbolTable;
 use annis::errors::*;
 use annis::db::AnnotationStorage;
+use annis::db::Match;
 use annis::types::{AnnoKey, AnnoKeyID, Annotation};
-use annis::types::{Edge, Match, NodeID};
+use annis::types::{Edge, NodeID};
 use annis::util;
 use bincode;
 use itertools::Itertools;

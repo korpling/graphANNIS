@@ -1,4 +1,4 @@
-use annis::annostorage::AnnoStorage;
+use annis::db::annostorage::AnnoStorage;
 use annis::db::Graph;
 use annis::db::graphstorage::GraphStorage;
 use annis::types::{Component, ComponentType, NodeID};

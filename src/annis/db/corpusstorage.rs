@@ -1,20 +1,19 @@
-use annis::annostorage::AnnoStorage;
+use annis::db::annostorage::AnnoStorage;
 use annis::db;
 use annis::db::aql;
 use annis::db::aql::operators;
 use annis::db::exec::nodesearch::NodeSearchSpec;
+use annis::db::plan::ExecutionPlan;
 use annis::db::query;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
-use annis::db::AnnotationStorage;
-use annis::db::Graph;
-use annis::db::{ANNIS_NS, NODE_TYPE};
+use annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
 use annis::errors::ErrorKind;
 use annis::errors::*;
-use annis::plan::ExecutionPlan;
 use annis::types::AnnoKey;
 use annis::types::{
-    Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, QueryAttributeDescription, NodeID,
+    Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, NodeID,
+    QueryAttributeDescription,
 };
 use annis::util;
 use annis::util::memory_estimation;
@@ -190,7 +189,7 @@ impl FromStr for FrequencyDefEntry {
 }
 
 /// An enum over all supported query languages of graphANNIS.
-/// 
+///
 /// Currently, only the ANNIS Query Language (AQL) is supported, but this enum allows us to add e.g. a quirks mode for older query language versions
 /// or completly new query languages.
 #[repr(C)]
@@ -895,14 +894,14 @@ impl CorpusStorage {
         } else {
             let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                 if order == ResultOrder::Inverted {
-                    return util::sort_matches::compare_matchgroup_by_text_pos(
+                    return db::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
                         db,
                         &node_to_path_cache,
                     ).reverse();
                 } else {
-                    return util::sort_matches::compare_matchgroup_by_text_pos(
+                    return db::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
                         db,

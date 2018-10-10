@@ -1,6 +1,6 @@
 use super::super::{Desc, ExecutionNode};
 use annis::operator::Operator;
-use annis::types::Match;
+use annis::db::Match;
 use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};

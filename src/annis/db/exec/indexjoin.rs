@@ -1,7 +1,8 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
-use annis::annostorage::AnnoStorage;
+use annis::db::annostorage::AnnoStorage;
+use annis::db::Match;
 use annis::operator::{EstimationType, Operator};
-use annis::types::{AnnoKey, Match, NodeID};
+use annis::types::{AnnoKey, NodeID};
 use std;
 use std::iter::Peekable;
 use std::sync::Arc;

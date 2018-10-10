@@ -1,6 +1,6 @@
 use annis::db::AnnotationStorage;
-use annis::db::Graph;
-use annis::types::{Component, Edge, Match};
+use annis::db::{Graph, Match};
+use annis::types::{Component, Edge};
 use std;
 
 #[derive(Clone, Debug)]

@@ -1,11 +1,12 @@
 use super::{GraphStatistic, GraphStorage};
-use annis::annostorage::AnnoStorage;
-use annis::dfs::{CycleSafeDFS, DFSStep};
-use annis::errors::*;
+use annis::db::annostorage::AnnoStorage;
+use annis::db::graphstorage::EdgeContainer;
 use annis::db::AnnotationStorage;
 use annis::db::Graph;
-use annis::db::graphstorage::EdgeContainer;
-use annis::types::{AnnoKey, Edge, Match, NodeID, NumValue};
+use annis::db::Match;
+use annis::dfs::{CycleSafeDFS, DFSStep};
+use annis::errors::*;
+use annis::types::{AnnoKey, Edge, NodeID, NumValue};
 use bincode;
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;

@@ -1,6 +1,6 @@
 use super::{Desc, ExecutionNode};
+use annis::db::Match;
 use annis::operator::Operator;
-use annis::types::Match;
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {

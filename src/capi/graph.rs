@@ -1,8 +1,8 @@
 use super::cerror;
 use super::cerror::ErrorList;
 use capi::data::IterPtr;
-use graph::GraphStorage;
-use graph::{Annotation, AnnotationStorage, Component, ComponentType, Edge, Match, NodeID};
+use graph::{Annotation, AnnotationStorage, Component, ComponentType, Edge, NodeID};
+use graph::{GraphStorage, Match};
 use libc;
 use std;
 use std::ffi::CString;

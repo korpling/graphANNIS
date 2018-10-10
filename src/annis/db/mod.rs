@@ -1,11 +1,11 @@
-use annis::annostorage::AnnoStorage;
+use annis::db::annostorage::AnnoStorage;
 use annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
 use annis::db::graphstorage::registry;
 use annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
 use annis::db::update::{GraphUpdate, UpdateEvent};
 use annis::errors::*;
 use annis::types::AnnoKey;
-use annis::types::{Annotation, Component, ComponentType, Edge, Match, NodeID};
+use annis::types::{AnnoKeyID, Annotation, Component, ComponentType, Edge, NodeID};
 use bincode;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
@@ -20,12 +20,15 @@ use std::sync::{Arc, Mutex};
 use strum::IntoEnumIterator;
 use tempdir::TempDir;
 
+pub mod annostorage;
 pub mod aql;
 pub mod corpusstorage;
 pub mod exec;
 pub mod graphstorage;
+mod plan;
 pub mod query;
 pub mod relannis;
+pub mod sort_matches;
 pub mod token_helper;
 pub mod update;
 
@@ -33,6 +36,16 @@ pub const ANNIS_NS: &str = "annis";
 pub const NODE_NAME: &str = "node_name";
 pub const TOK: &str = "tok";
 pub const NODE_TYPE: &str = "node_type";
+
+/// A match is the result of a query on an annotation storage.
+#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[repr(C)]
+pub struct Match {
+    /// The node identifier this match refers to.
+    pub node: NodeID,
+    /// A unique internal identifier for the qualified annotation name.
+    anno_key: AnnoKeyID,
+}
 
 /// Access annotations for nodes or edges.
 pub trait AnnotationStorage<T> {
@@ -43,17 +56,17 @@ pub trait AnnotationStorage<T> {
     fn number_of_annotations(&self) -> usize;
 
     /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
-    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize; 
+    fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize;
 
     /// Returns an iterator for all items that match the given annotation constraints.
     /// The annotation `name` must be given as argument, the other arguments are optional.
-    /// 
+    ///
     /// - `namespace`- If given, only annotations having this namespace are returned.
     /// - `name`  - Only annotations with this name are returned.
     /// - `value` - If given, only annotation having the given value are returned.
-    /// 
-    /// The result is an iterator over [matches](struct.Match.html). 
-    /// A match contains both the node ID and the matched annotation key 
+    ///
+    /// The result is an iterator over [matches](struct.Match.html).
+    /// A match contains both the node ID and the matched annotation key
     /// (e.g. there can be multiple annotations with the same name if the namespace is different).
     fn exact_anno_search<'a>(
         &'a self,
@@ -63,7 +76,7 @@ pub trait AnnotationStorage<T> {
     ) -> Box<Iterator<Item = Match> + 'a>;
 
     /// Estimate the number of results for an (annotation exact search)[#exact_anno_search] for a given an inclusive value range.
-    /// 
+    ///
     /// - `ns` - If given, only annotations having this namespace are considered.
     /// - `name`  - Only annotations with this name are considered.
     /// - `lower_val`- Inclusive lower bound for the annotation value.
@@ -86,12 +99,12 @@ pub trait AnnotationStorage<T> {
 
 /// A representation of a graph including node annotations and edges.
 /// Edges are partioned into components and each component is implemented by specialized graph storage implementation.
-/// 
+///
 /// Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
-/// 
+///
 /// Graphs can have an optional location on the disk.
 /// In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
-/// 
+///
 pub struct Graph {
     node_annos: Arc<AnnoStorage<NodeID>>,
 
@@ -196,9 +209,9 @@ impl AnnotationStorage<NodeID> for Graph {
         lower_val: &str,
         upper_val: &str,
     ) -> usize {
-        self.node_annos.guess_max_count(ns, name, lower_val, upper_val)
+        self.node_annos
+            .guess_max_count(ns, name, lower_val, upper_val)
     }
-
 
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
         self.node_annos.get_all_values(key, most_frequent_first)
@@ -239,7 +252,7 @@ impl Graph {
 
     /// Load the graph from an external location.
     /// This sets the location of this instance to the given location.
-    /// 
+    ///
     /// * `location` - The path on the disk
     /// * `preload` - If `true`, all components are loaded from disk into main memory.
     fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
@@ -380,7 +393,7 @@ impl Graph {
     }
 
     /// Save the current database to a `location` on the disk, but do not remember this location.
-   fn save_to(&mut self, location: &Path) -> Result<()> {
+    fn save_to(&mut self, location: &Path) -> Result<()> {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
         return self.internal_save(&location.join("current"));
@@ -589,7 +602,7 @@ impl Graph {
         Ok(())
     }
 
-    /// Apply a sequence of updates (`u` parameter) to this graph. 
+    /// Apply a sequence of updates (`u` parameter) to this graph.
     /// If the graph has a location on the disk, the changes are persisted.
     pub fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<()> {
         trace!("applying updates");

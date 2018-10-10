@@ -1,6 +1,6 @@
 use super::{CostEstimate, Desc, ExecutionNode};
+use annis::db::Match;
 use annis::operator::{EstimationType, Operator};
-use annis::types::Match;
 use std;
 
 pub struct BinaryFilter<'a> {

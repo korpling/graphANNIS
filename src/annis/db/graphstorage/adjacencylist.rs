@@ -1,5 +1,5 @@
 use super::*;
-use annis::annostorage::AnnoStorage;
+use annis::db::annostorage::AnnoStorage;
 use annis::db::AnnotationStorage;
 use annis::dfs::CycleSafeDFS;
 use annis::types::Edge;

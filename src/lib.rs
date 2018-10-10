@@ -76,7 +76,8 @@ pub mod graph {
     pub use annis::db::graphstorage::GraphStatistic;
     pub use annis::db::graphstorage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
     pub use annis::db::AnnotationStorage;
-    pub use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
+    pub use annis::db::Match;
+    pub use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 
 }
 

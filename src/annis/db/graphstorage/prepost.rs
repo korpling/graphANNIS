@@ -6,12 +6,13 @@ use std;
 use std::clone::Clone;
 
 use super::{GraphStatistic, GraphStorage};
-use annis::annostorage::AnnoStorage;
-use annis::dfs::{CycleSafeDFS, DFSStep};
-use annis::errors::*;
+use annis::db::annostorage::AnnoStorage;
 use annis::db::AnnotationStorage;
 use annis::db::Graph;
-use annis::types::{AnnoKey, Edge, Match, NodeID, NumValue};
+use annis::db::Match;
+use annis::dfs::{CycleSafeDFS, DFSStep};
+use annis::errors::*;
+use annis::types::{AnnoKey, Edge, NodeID, NumValue};
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
 pub struct PrePost<OrderT, LevelT> {

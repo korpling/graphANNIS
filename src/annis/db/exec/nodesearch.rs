@@ -1,9 +1,9 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
-use annis::errors::*;
 use annis::db::AnnotationStorage;
-use annis::db::{Graph, ANNIS_NS};
+use annis::db::{Graph, Match, ANNIS_NS};
+use annis::errors::*;
 use annis::operator::EdgeAnnoSearchSpec;
-use annis::types::{Component, ComponentType, Edge, LineColumnRange, Match, NodeID};
+use annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
 use annis::util;
 use itertools::Itertools;
 use regex;
@@ -303,7 +303,8 @@ impl<'a> NodeSearch<'a> {
                 db.node_annos
                     .guess_max_count(ns.clone(), name.clone(), &val, &val)
             } else {
-                db.node_annos.number_of_annotations_by_name(ns.clone(), name.clone())
+                db.node_annos
+                    .number_of_annotations_by_name(ns.clone(), name.clone())
             }
         };
 

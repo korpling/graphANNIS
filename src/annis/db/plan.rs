@@ -1,9 +1,9 @@
-use annis::errors::*;
 use annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
-use annis::db::Graph;
 use annis::db::query::disjunction::Disjunction;
 use annis::db::query::Config;
-use annis::types::{AnnoKeyID, Match, NodeID};
+use annis::db::{Graph, Match};
+use annis::errors::*;
+use annis::types::{AnnoKeyID, NodeID};
 use std;
 use std::collections::HashSet;
 use std::fmt::Formatter;

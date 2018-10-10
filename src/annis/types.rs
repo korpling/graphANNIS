@@ -43,18 +43,6 @@ pub struct Annotation {
 
 pub type AnnoKeyID = usize;
 
-/// A match is the result of a query on an annotation storage.
-/// 
-/// It is uniquely defined by the node identifier and the quallified annotation name.
-#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
-#[repr(C)]
-pub struct Match {
-    /// The node identifier this match refers to.
-    pub node: NodeID,
-    /// A unique identifier for the qualified annotation name.
-    pub anno_key: AnnoKeyID,
-}
-
 /// A struct that contains the extended results of the count query.
 #[derive(Debug, Default, Clone)]
 #[repr(C)]

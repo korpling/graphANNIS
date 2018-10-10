@@ -1,9 +1,9 @@
-use annis::annostorage::AnnoStorage;
+use annis::db::annostorage::AnnoStorage;
 use annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use annis::db::AnnotationStorage;
-use annis::db::{Graph, ANNIS_NS};
+use annis::db::{Graph, Match, ANNIS_NS};
 use annis::operator::{EdgeAnnoSearchSpec, EstimationType, Operator, OperatorSpec};
-use annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, Match, NodeID};
+use annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, NodeID};
 use std;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -69,7 +69,8 @@ fn check_edge_annotation(
 ) -> bool {
     match edge_anno {
         Some(EdgeAnnoSearchSpec::ExactValue { ns, name, val }) => {
-            for a in gs.get_anno_storage()
+            for a in gs
+                .get_anno_storage()
                 .get_annotations_for_item(&Edge {
                     source: source.clone(),
                     target: target.clone(),

@@ -1,5 +1,5 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
-use annis::annostorage::AnnoStorage;
+use annis::db::annostorage::AnnoStorage;
 use annis::errors::*;
 use annis::db::AnnotationStorage;
 use annis::db::{Graph, ANNIS_NS};

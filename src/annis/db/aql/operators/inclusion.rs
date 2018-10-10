@@ -1,10 +1,10 @@
-use annis::db::Graph;
 use annis::db::graphstorage::GraphStorage;
-use annis::operator::EstimationType;
-use annis::operator::{Operator, OperatorSpec};
-use annis::types::{AnnoKeyID, Component, ComponentType, Match};
 use annis::db::token_helper;
 use annis::db::token_helper::TokenHelper;
+use annis::db::{Graph, Match};
+use annis::operator::EstimationType;
+use annis::operator::{Operator, OperatorSpec};
+use annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
 use std::collections::VecDeque;
