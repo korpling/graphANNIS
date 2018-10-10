@@ -14,7 +14,7 @@ use annis::errors::*;
 use annis::plan::ExecutionPlan;
 use annis::types::AnnoKey;
 use annis::types::{
-    Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, NodeDesc, NodeID,
+    Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, NodeDesc, NodeID,
 };
 use annis::util;
 use annis::util::memory_estimation;
@@ -636,7 +636,49 @@ impl CorpusStorage {
         cache.remove(corpus_name);
     }
 
+    /// Update the graph and annotation statistics for a corpus given by `corpus_name`.
+    pub fn update_statistics(&self, corpus_name: &str) -> Result<()> {
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+        let mut lock = db_entry.write().unwrap();
+        let db: &mut Graph = get_write_or_error(&mut lock)?;
+
+        Arc::make_mut(&mut db.node_annos).calculate_statistics();
+        for c in db.get_all_components(None, None).into_iter() {
+            db.calculate_component_statistics(&c)?;
+        }
+
+        // TODO: persist changes
+
+        Ok(())
+    }
+
+    /// Parses a `query` and checks if it is valid.
+    ///
+    /// - `corpus_name` - The name of the corpus the query would be executed on (needed because missing annotation names can be a semantic parser error).
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
+    ///
+    /// Returns `true` if valid and an error with the parser message if invalid.
+    pub fn validate_query(
+        &self,
+        corpus_name: &str,
+        query: &str,
+        query_language: QueryLanguage,
+    ) -> Result<bool> {
+        let prep: PreparationResult =
+            self.prepare_query(corpus_name, query, query_language, vec![])?;
+        // also get the semantic errors by creating an execution plan on the actual Graph
+        let lock = prep.db_entry.read().unwrap();
+        let db = get_read_or_error(&lock)?;
+        ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        return Ok(true);
+    }
+
     /// Returns a string representation of the execution plan for a `query`.
+    ///
+    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
     pub fn plan(
         &self,
         corpus_name: &str,
@@ -653,60 +695,18 @@ impl CorpusStorage {
         return Ok(format!("{}", plan));
     }
 
-    pub fn update_statistics(&self, corpus_name: &str) -> Result<()> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-        let mut lock = db_entry.write().unwrap();
-        let db: &mut Graph = get_write_or_error(&mut lock)?;
-
-        Arc::make_mut(&mut db.node_annos).calculate_statistics();
-        for c in db.get_all_components(None, None).into_iter() {
-            db.calculate_component_statistics(&c)?;
-        }
-
-        // TODO: persist changes
-
-        Ok(())
-    }
-
-    pub fn validate_query(
+    /// Count the number of results for a `query`.
+    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
+    ///
+    /// Returns the count as number.
+    pub fn count(
         &self,
         corpus_name: &str,
         query: &str,
         query_language: QueryLanguage,
-    ) -> Result<bool> {
-        let prep: PreparationResult =
-            self.prepare_query(corpus_name, query, query_language, vec![])?;
-        // also get the semantic errors by creating an execution plan on the actual Graph
-        let lock = prep.db_entry.read().unwrap();
-        let db = get_read_or_error(&lock)?;
-        ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
-        return Ok(true);
-    }
-
-    pub fn node_descriptions(
-        &self,
-        query: &str,
-        query_language: QueryLanguage,
-    ) -> Result<Vec<NodeDesc>> {
-        let mut result = Vec::new();
-        // parse query
-        let q: Disjunction = match query_language {
-            QueryLanguage::AQL => aql::parse(query)?,
-        };
-        let mut component_nr = 0;
-        for alt in q.alternatives.into_iter() {
-            let alt: Conjunction = alt;
-            for mut n in alt.get_node_descriptions().into_iter() {
-                n.component_nr = component_nr;
-                result.push(n);
-            }
-            component_nr += 1;
-        }
-
-        return Ok(result);
-    }
-
-    pub fn count(&self, corpus_name: &str, query: &str, query_language : QueryLanguage) -> Result<u64> {
+    ) -> Result<u64> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
         // accuire read-only lock and execute query
@@ -717,7 +717,17 @@ impl CorpusStorage {
         return Ok(plan.count() as u64);
     }
 
-    pub fn count_extra(&self, corpus_name: &str, query: &str, query_language : QueryLanguage) -> Result<CountExtra> {
+    /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
+    ///
+    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
+    pub fn count_extra(
+        &self,
+        corpus_name: &str,
+        query: &str,
+        query_language: QueryLanguage,
+    ) -> Result<CountExtra> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
         // accuire read-only lock and execute query
@@ -754,11 +764,24 @@ impl CorpusStorage {
         });
     }
 
+    /// Find all results for a `query` and return the match ID for each result.
+    ///
+    /// The query is paginated and an offset and limit can be specified.
+    ///
+    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `offset` - Skip the `n` first results, where `n` is the offset.
+    /// - `limit` - Return at most `n` matches, where `n` is the limit.
+    /// - `order` - Specify the order of the matches.
+    ///
+    /// Returns a vector of match IDs, where each match ID consists of the matched node annotation identifiers separated by spaces.
+    /// You can use the [subgraph(...)](#method.subgraph) method to get the subgraph for a single match described by the node annnotation identifiers.
     pub fn find(
         &self,
         corpus_name: &str,
         query: &str,
-        query_language : QueryLanguage,
+        query_language: QueryLanguage,
         offset: usize,
         limit: usize,
         order: ResultOrder,
@@ -872,6 +895,13 @@ impl CorpusStorage {
         return Ok(results);
     }
 
+    /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
+    /// the nodes that cover the same token as the given nodes and
+    /// all nodes that cover the token which are part of the defined context.
+    ///
+    /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
+    /// - `node_ids` - A set of node annotation identifiers describing the subgraph.
+    /// - `ctx_left` and `ctx_right` - Left and right context in token distance to be included in the subgraph.
     pub fn subgraph(
         &self,
         corpus_name: &str,
@@ -1049,7 +1079,17 @@ impl CorpusStorage {
         return extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone());
     }
 
-    pub fn subgraph_for_query(&self, corpus_name: &str, query: &str, query_language : QueryLanguage) -> Result<Graph> {
+    /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
+    ///
+    /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
+    /// - `query` - The query which defines included nodes.
+    /// - `query_language` - The query language of the query (e.g. AQL).
+    pub fn subgraph_for_query(
+        &self,
+        corpus_name: &str,
+        query: &str,
+        query_language: QueryLanguage,
+    ) -> Result<Graph> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
         let mut max_alt_size = 0;
@@ -1064,6 +1104,11 @@ impl CorpusStorage {
             self.query_config.clone(),
         );
     }
+
+    /// Return the copy of a subgraph which includes all nodes that belong to any of the given list of sub-corpus/document identifiers.
+    ///
+    /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
+    /// - `corpus_ids` - A set of sub-corpus/document identifiers describing the subgraph.
     pub fn subcorpus_graph(&self, corpus_name: &str, corpus_ids: Vec<String>) -> Result<Graph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
@@ -1103,6 +1148,7 @@ impl CorpusStorage {
         return extract_subgraph_by_query(db_entry, query, vec![1], self.query_config.clone());
     }
 
+    /// Return the copy of the graph of the corpus given by `corpus_name`.
     pub fn corpus_graph(&self, corpus_name: &str) -> Result<Graph> {
         let db_entry = self.get_fully_loaded_entry(corpus_name)?;
 
@@ -1121,11 +1167,19 @@ impl CorpusStorage {
         );
     }
 
+    /// Execute a frequency query.
+    ///
+    /// - `corpus_name` - The name of the corpus to execute the query on.
+    /// - `query` - The query as string.
+    /// - `query_language` The query language of the query (e.g. AQL).
+    /// - `definition` - A list of frequency query definitions.
+    ///
+    /// Returns a frequency table of strings.
     pub fn frequency(
         &self,
         corpus_name: &str,
         query: &str,
-        query_language : QueryLanguage,
+        query_language: QueryLanguage,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
@@ -1190,7 +1244,38 @@ impl CorpusStorage {
         return Ok(result);
     }
 
-    pub fn get_all_components(
+    /// Parses a `query`and return a list of descriptions for its nodes.
+    ///
+    /// - `query` - The query to be analyzed.
+    /// - `query_language` - The query language of the query (e.g. AQL).
+    pub fn node_descriptions(
+        &self,
+        query: &str,
+        query_language: QueryLanguage,
+    ) -> Result<Vec<NodeDesc>> {
+        let mut result = Vec::new();
+        // parse query
+        let q: Disjunction = match query_language {
+            QueryLanguage::AQL => aql::parse(query)?,
+        };
+        let mut component_nr = 0;
+        for alt in q.alternatives.into_iter() {
+            let alt: Conjunction = alt;
+            for mut n in alt.get_node_descriptions().into_iter() {
+                n.component_nr = component_nr;
+                result.push(n);
+            }
+            component_nr += 1;
+        }
+
+        return Ok(result);
+    }
+
+    /// Returns a list of all components of a corpus given by `corpus_name`.
+    ///
+    /// - `ctype` - Optionally filter by the component type.
+    /// - `name` - Optionally filter by the component name.
+    pub fn list_components(
         &self,
         corpus_name: &str,
         ctype: Option<ComponentType>,
@@ -1205,13 +1290,17 @@ impl CorpusStorage {
         return vec![];
     }
 
+    /// Returns a list of all node annotations of a corpus given by `corpus_name`.
+    ///
+    /// - `list_values` - If true include the possible values in the result.
+    /// - `only_most_frequent_values` - If both this argument and `list_values` are true, only return the most frequent value for each annotation name.
     pub fn list_node_annotations(
         &self,
         corpus_name: &str,
         list_values: bool,
         only_most_frequent_values: bool,
-    ) -> Vec<(String, String, String)> {
-        let mut result: Vec<(String, String, String)> = Vec::new();
+    ) -> Vec<Annotation> {
+        let mut result: Vec<Annotation> = Vec::new();
         if let Ok(db_entry) = self.get_loaded_entry(corpus_name, false) {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
@@ -1223,16 +1312,16 @@ impl CorpusStorage {
                             if let Some(val) =
                                 node_annos.get_all_values(&key, true).into_iter().next()
                             {
-                                result.push((key.ns.clone(), key.name.clone(), val.to_owned()));
+                                result.push(Annotation{key: key.clone(), val: val.to_owned()});
                             }
                         } else {
                             // get all values
                             for val in node_annos.get_all_values(&key, false).into_iter() {
-                                result.push((key.ns.clone(), key.name.clone(), val.to_owned()));
+                                result.push(Annotation{key: key.clone(), val: val.to_owned()});
                             }
                         }
                     } else {
-                        result.push((key.ns.clone(), key.name.clone(), String::new()));
+                        result.push(Annotation{key: key.clone(), val: String::default()});
                     }
                 }
             }

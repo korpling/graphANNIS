@@ -265,9 +265,9 @@ pub extern "C" fn annis_cs_list_node_annotations(
 
     let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
     let mut result: Matrix<CString> = Matrix::new();
-    for (ns, name, val) in orig_vec.into_iter() {
+    for anno in orig_vec.into_iter() {
         if let (Ok(ns), Ok(name), Ok(val)) =
-            (CString::new(ns), CString::new(name), CString::new(val))
+            (CString::new(anno.key.ns), CString::new(anno.key.name), CString::new(anno.val))
         {
             result.push(vec![ns, name, val]);
         }
@@ -371,7 +371,7 @@ pub extern "C" fn annis_cs_all_components_by_type(
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 
-    Box::into_raw(Box::new(cs.get_all_components(&corpus, Some(ctype), None)))
+    Box::into_raw(Box::new(cs.list_components(&corpus, Some(ctype), None)))
 }
 
 #[no_mangle]
