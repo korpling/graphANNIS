@@ -14,7 +14,7 @@ use annis::errors::*;
 use annis::plan::ExecutionPlan;
 use annis::types::AnnoKey;
 use annis::types::{
-    Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, NodeDesc, NodeID,
+    Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match, QueryAttributeDescription, NodeID,
 };
 use annis::util;
 use annis::util::memory_estimation;
@@ -57,11 +57,15 @@ pub enum LoadStatus {
     FullyLoaded(usize),
 }
 
+/// Information about a single graph storage of the corpus.
 #[derive(Ord, Eq, PartialOrd, PartialEq)]
 pub struct GraphStorageInfo {
+    /// The component this graph storage belongs to.
     pub component: Component,
+    /// Indicates if the graph storage is loaded or not.
     pub load_status: LoadStatus,
-    pub num_of_annotations: usize,
+    /// Number of edge annotations in this graph storage.
+    pub number_of_annotations: usize,
 }
 
 impl fmt::Display for GraphStorageInfo {
@@ -69,7 +73,7 @@ impl fmt::Display for GraphStorageInfo {
         writeln!(
             f,
             "Component {}: {} annnotations",
-            self.component, self.num_of_annotations
+            self.component, self.number_of_annotations
         )?;
         match self.load_status {
             LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
@@ -137,11 +141,15 @@ impl fmt::Display for CorpusInfo {
     }
 }
 
+/// Defines the order of results of a `find` query.
 #[derive(Debug, PartialEq)]
 #[repr(C)]
 pub enum ResultOrder {
+    /// Order results by their document name and the the text position of the match.
     Normal,
+    /// Inverted the order of `Normal`.
     Inverted,
+    /// A random ordering which is **not stable**. Each new query will result in a different order.
     Random,
 }
 
@@ -150,10 +158,14 @@ struct PreparationResult<'a> {
     db_entry: Arc<RwLock<CacheEntry>>,
 }
 
+/// Definition of a single attribute of a frequency query.
 #[derive(Debug)]
 pub struct FrequencyDefEntry {
+    /// The namespace of the annotation from which the attribute value is generated.
     pub ns: Option<String>,
+    /// The name of the annotation from which the attribute value is generated.
     pub name: String,
+    /// The name of the query node from which the attribute value is generated.
     pub node_ref: String,
 }
 
@@ -177,6 +189,10 @@ impl FromStr for FrequencyDefEntry {
     }
 }
 
+/// An enum over all supported query languages of graphANNIS.
+/// 
+/// Currently, only the ANNIS Query Language (AQL) is supported, but this enum allows us to add e.g. a quirks mode for older query language versions
+/// or completly new query languages.
 #[repr(C)]
 pub enum QueryLanguage {
     AQL,
@@ -323,14 +339,14 @@ impl CorpusStorage {
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
                             load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
-                            num_of_annotations: gs.get_anno_storage().number_of_annotations(),
+                            number_of_annotations: gs.get_anno_storage().number_of_annotations(),
                         });
                     } else {
                         load_status = LoadStatus::PartiallyLoaded(heap_size);
                         graphstorages.push(GraphStorageInfo {
                             component: c.clone(),
                             load_status: LoadStatus::NotLoaded,
-                            num_of_annotations: 0,
+                            number_of_annotations: 0,
                         })
                     }
                 }
@@ -1302,7 +1318,7 @@ impl CorpusStorage {
         &self,
         query: &str,
         query_language: QueryLanguage,
-    ) -> Result<Vec<NodeDesc>> {
+    ) -> Result<Vec<QueryAttributeDescription>> {
         let mut result = Vec::new();
         // parse query
         let q: Disjunction = match query_language {
@@ -1312,7 +1328,7 @@ impl CorpusStorage {
         for alt in q.alternatives.into_iter() {
             let alt: Conjunction = alt;
             for mut n in alt.get_node_descriptions().into_iter() {
-                n.component_nr = component_nr;
+                n.alternative = component_nr;
                 result.push(n);
             }
             component_nr += 1;

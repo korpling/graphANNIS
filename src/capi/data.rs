@@ -2,7 +2,7 @@ use libc::{c_char, c_void, size_t};
 use std;
 use std::ffi::CString;
 use graph::{Annotation, Component, Edge, NodeID};
-use corpusstorage::{FrequencyTable, NodeDesc};
+use corpusstorage::{FrequencyTable, QueryAttributeDescription};
 use super::Matrix;
 
 #[no_mangle]
@@ -121,40 +121,40 @@ pub extern "C" fn annis_vec_component_get(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_size(ptr: *const Vec<NodeDesc>) -> size_t {
+pub extern "C" fn annis_vec_nodedesc_size(ptr: *const Vec<QueryAttributeDescription>) -> size_t {
     vec_size(ptr)
 }
 
 #[no_mangle]
 pub extern "C" fn annis_vec_nodedesc_get_component_nr(
-    ptr: *const Vec<NodeDesc>,
+    ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> usize {
-    let desc_ptr: *const NodeDesc = vec_get(ptr, i);
-    let desc: &NodeDesc = cast_const!(desc_ptr);
-    return desc.component_nr;
+    let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
+    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    return desc.alternative;
 }
 
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
 pub extern "C" fn annis_vec_nodedesc_get_aql_fragment(
-    ptr: *const Vec<NodeDesc>,
+    ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> *mut c_char {
-    let desc_ptr: *const NodeDesc = vec_get(ptr, i);
-    let desc: &NodeDesc = cast_const!(desc_ptr);
-    let cstr: CString = CString::new(desc.aql_fragment.as_str()).unwrap_or(CString::default());
+    let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
+    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    let cstr: CString = CString::new(desc.query_fragment.as_str()).unwrap_or(CString::default());
     return cstr.into_raw();
 }
 
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
 pub extern "C" fn annis_vec_nodedesc_get_variable(
-    ptr: *const Vec<NodeDesc>,
+    ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> *mut c_char {
-    let desc_ptr: *const NodeDesc = vec_get(ptr, i);
-    let desc: &NodeDesc = cast_const!(desc_ptr);
+    let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
+    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
     let cstr: CString = CString::new(desc.variable.as_str()).unwrap_or(CString::default());
     return cstr.into_raw();
 }
@@ -162,11 +162,11 @@ pub extern "C" fn annis_vec_nodedesc_get_variable(
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
 pub extern "C" fn annis_vec_nodedesc_get_anno_name(
-    ptr: *const Vec<NodeDesc>,
+    ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> *mut c_char {
-    let desc_ptr: *const NodeDesc = vec_get(ptr, i);
-    let desc: &NodeDesc = cast_const!(desc_ptr);
+    let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
+    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
     if let Some(ref anno_name) = desc.anno_name {
         let cstr: CString = CString::new(anno_name.as_str()).unwrap_or(CString::default());
         return cstr.into_raw();

@@ -1,7 +1,7 @@
 use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
-use corpusstorage::{CountExtra, FrequencyTable, NodeDesc};
+use corpusstorage::{CountExtra, FrequencyTable, QueryAttributeDescription};
 use corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder};
 use graph::{AnnotationStorage, Component, ComponentType};
 use libc;
@@ -342,7 +342,7 @@ pub extern "C" fn annis_cs_node_descriptions(
     query: *const libc::c_char,
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
-) -> *mut Vec<NodeDesc> {
+) -> *mut Vec<QueryAttributeDescription> {
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);

@@ -11,7 +11,7 @@ use annis::db::AnnotationStorage;
 use annis::db::Graph;
 use annis::errors::*;
 use annis::operator::{Operator, OperatorSpec};
-use annis::types::{Component, Edge, LineColumnRange, Match, NodeDesc};
+use annis::types::{Component, Edge, LineColumnRange, Match, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Range;
 use rand::SeedableRng;
@@ -94,7 +94,7 @@ impl<'a> Conjunction<'a> {
         Disjunction::new(vec![self])
     }
 
-    pub fn get_node_descriptions(&self) -> Vec<NodeDesc> {
+    pub fn get_node_descriptions(&self) -> Vec<QueryAttributeDescription> {
         let mut result = Vec::default();
         for (var, spec) in self.nodes.iter() {
             let anno_name = match spec {
@@ -102,9 +102,9 @@ impl<'a> Conjunction<'a> {
                 NodeSearchSpec::RegexValue { name, .. } => Some(name.clone()),
                 _ => None,
             };
-            let desc = NodeDesc {
-                component_nr: 0,
-                aql_fragment: format!("{}", spec),
+            let desc = QueryAttributeDescription {
+                alternative: 0,
+                query_fragment: format!("{}", spec),
                 variable: var.clone(),
                 anno_name,
             };

@@ -64,7 +64,7 @@ pub mod corpusstorage {
     pub use annis::db::corpusstorage::{
         CorpusInfo, FrequencyDefEntry, GraphStorageInfo, LoadStatus, QueryLanguage, ResultOrder,
     };
-    pub use annis::types::{CountExtra, FrequencyTable, NodeDesc};
+    pub use annis::types::{CountExtra, FrequencyTable, QueryAttributeDescription};
 }
 
 pub use annis::db::update;
