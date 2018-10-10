@@ -6,8 +6,10 @@ use std::string::String;
 
 use malloc_size_of::MallocSizeOf;
 
+/// Unique internal identifier for a single node.
 pub type NodeID = u64;
 
+/// The fully qualified name of an annotation.
 #[derive(
     Serialize,
     Deserialize,
@@ -23,33 +25,35 @@ pub type NodeID = u64;
 )]
 #[repr(C)]
 pub struct AnnoKey {
+    /// Name of the annotation.
     pub name: String,
+    /// Namespace of the annotation.
     pub ns: String,
 }
 
+/// An annotation with a qualified name and a value.
 #[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
 #[repr(C)]
 pub struct Annotation {
+    /// Qualified name or unique "key" for the annotation
     pub key: AnnoKey,
+    /// Value of the annotation
     pub val: String,
 }
 
 pub type AnnoKeyID = usize;
 
-#[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
-#[repr(C)]
-pub struct Match {
-    pub node: NodeID,
-    pub anno_key: AnnoKeyID,
-}
-
+/// A struct that contains the extended results of the count query.
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
 pub struct CountExtra {
+    /// Total number of matches.
     pub match_count: u64,
+    /// Number of documents with at least one match.
     pub document_count: u64,
 }
 
+/// Directed edge between a source and target node which are identified by their ID.
 #[derive(
     Serialize,
     Deserialize,
@@ -78,6 +82,7 @@ impl Edge {
     }
 }
 
+/// Specifies the type of component. Types determine certain semantics about the edges of this graph components.
 #[derive(
     Serialize,
     Deserialize,
@@ -94,13 +99,21 @@ impl Edge {
 )]
 #[repr(C)]
 pub enum ComponentType {
+    /// Edges between a span node and its tokens. Implies text coverage.
     Coverage,
+    /// Edges between a token and a span node.
     InverseCoverage,
+    /// Edges between a structural node and any other structural node, span or token. Implies text coverage.
     Dominance,
+    /// Edge between any node.
     Pointing,
+    /// Edge between two tokens implying that the source node comes before the target node in the textflow.
     Ordering,
+    /// Explicit edge between any non-token node and the left-most token it covers.
     LeftToken,
+    /// Explicit edge between any non-token node and the right-most token it covers.
     RightToken,
+    /// Implies that the source node belongs to the parent corpus/subcorpus/document node.
     PartOfSubcorpus,
 }
 
@@ -110,12 +123,16 @@ impl fmt::Display for ComponentType {
     }
 }
 
+/// Identifies an edge component of the graph.
 #[derive(
     Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, MallocSizeOf,
 )]
 pub struct Component {
+    /// Type of the component
     pub ctype: ComponentType,
+    /// Name of the component
     pub name: String,
+    /// A layer name which allows to group different components into the same layer. Can be empty.
     pub layer: String,
 }
 
@@ -144,16 +161,21 @@ impl NumValue for u32 {}
 impl NumValue for u16 {}
 impl NumValue for u8 {}
 
-/// Very simple definition of a matrix from a single data type. Not optimized at all.
-/// TODO: Maybe a sparse matrix could be used.
-pub type Matrix<T> = Vec<Vec<T>>;
-
+/// Definition of the result of a `frequency` query.
+/// 
+/// This is a vector of rows, and each row is a vector of columns with the different
+/// attribute values and a number of matches having this combination of attribute values.
 pub type FrequencyTable<T> = Vec<(Vec<T>, usize)>;
 
-pub struct NodeDesc {
-    pub component_nr: usize,
-    pub aql_fragment: String,
+/// Description of an attribute of a query.
+pub struct QueryAttributeDescription {
+    /// ID of the alternative this attribute is part of.
+    pub alternative: usize,
+    /// Textual representation of the query fragment for this attribute.
+    pub query_fragment: String,
+    // Variable name of this attribute.
     pub variable: String,
+    // Optional annotation name represented by this attribute.
     pub anno_name: Option<String>,
 }
 

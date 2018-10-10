@@ -12,6 +12,7 @@ use std::time::Duration;
 use std::sync::Arc;
 
 use graphannis::CorpusStorage;
+use graphannis::corpusstorage::QueryLanguage;
 use graphannis::util;
 
 pub struct CountBench {
@@ -33,7 +34,7 @@ pub fn create_query_input(
 ) -> std::vec::Vec<CountBench> {
     let mut benches = std::vec::Vec::new();
 
-    let cs = Arc::new(CorpusStorage::new_auto_cache_size(data_dir, use_parallel_joins).unwrap());
+    let cs = Arc::new(CorpusStorage::with_auto_cache_size(data_dir, use_parallel_joins).unwrap());
 
     // each folder is one corpus
     if let Ok(paths) = std::fs::read_dir(queries_dir) {
@@ -135,7 +136,7 @@ fn main() {
     crit.bench_function_over_inputs("count", |b : &mut Bencher, obj : &CountBench| {
         obj.cs.preload(&obj.corpus).unwrap();
         b.iter(|| {
-            if let Ok(count) = obj.cs.count(&obj.corpus, &obj.def.aql) {
+            if let Ok(count) = obj.cs.count(&obj.corpus, &obj.def.aql, QueryLanguage::AQL, ) {
                 assert_eq!(obj.def.count, count);
             } else {
                 assert_eq!(obj.def.count, 0);

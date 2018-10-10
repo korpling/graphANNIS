@@ -1,10 +1,9 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
-use annis::db::annostorage::AnnoStorage;
-use annis::errors::*;
 use annis::db::AnnotationStorage;
-use annis::db::{Graph, ANNIS_NS};
+use annis::db::{Graph, Match, ANNIS_NS};
+use annis::errors::*;
 use annis::operator::EdgeAnnoSearchSpec;
-use annis::types::{Component, ComponentType, Edge, LineColumnRange, Match, NodeID};
+use annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
 use annis::util;
 use itertools::Itertools;
 use regex;
@@ -304,7 +303,8 @@ impl<'a> NodeSearch<'a> {
                 db.node_annos
                     .guess_max_count(ns.clone(), name.clone(), &val, &val)
             } else {
-                db.node_annos.num_of_annotations(ns.clone(), name.clone())
+                db.node_annos
+                    .number_of_annotations_by_name(ns.clone(), name.clone())
             }
         };
 
@@ -493,7 +493,7 @@ impl<'a> NodeSearch<'a> {
             }
         } else {
             db.node_annos
-                .num_of_annotations(Some(tok_key.ns.clone()), tok_key.name.clone())
+                .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone())
         };
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
@@ -539,7 +539,7 @@ impl<'a> NodeSearch<'a> {
                     }) = edge_anno_spec
                     {
                         // for each component get the source nodes with this edge annotation
-                        let anno_storage: &AnnoStorage<Edge> = gs.get_anno_storage();
+                        let anno_storage: &AnnotationStorage<Edge> = gs.get_anno_storage();
 
                         let it = anno_storage
                             .exact_anno_search(ns.clone(), name.clone(), val.clone())

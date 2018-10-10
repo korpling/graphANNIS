@@ -1,6 +1,6 @@
-use annis::annostorage::AnnoStorage;
-use annis::graphdb::GraphDB;
-use annis::types::{Component, Edge, Match};
+use annis::db::AnnotationStorage;
+use annis::db::{Graph, Match};
+use annis::types::{Component, Edge};
 use std;
 
 #[derive(Clone, Debug)]
@@ -37,7 +37,7 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 }
 
 impl EdgeAnnoSearchSpec {
-    pub fn guess_max_count(&self, anno_storage: &AnnoStorage<Edge>) -> Option<usize> {
+    pub fn guess_max_count(&self, anno_storage: &AnnotationStorage<Edge>) -> Option<usize> {
         match self {
             &EdgeAnnoSearchSpec::ExactValue {
                 ref ns,
@@ -88,9 +88,9 @@ pub trait Operator: std::fmt::Display + Send + Sync {
 }
 
 pub trait OperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self, db: &GraphDB) -> Vec<Component>;
+    fn necessary_components(&self, db: &Graph) -> Vec<Component>;
 
-    fn create_operator(&self, db: &GraphDB) -> Option<Box<Operator>>;
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None

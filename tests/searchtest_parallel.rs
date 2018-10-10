@@ -1,6 +1,7 @@
 extern crate graphannis;
 
 use graphannis::CorpusStorage;
+use graphannis::corpusstorage::QueryLanguage;
 use graphannis::util;
 
 use std::path::{PathBuf};
@@ -19,7 +20,7 @@ thread_local!{
 
         // only execute the test if the directory exists
         let cs = if db_dir.exists() && db_dir.is_dir() {
-            CorpusStorage::new_auto_cache_size(&db_dir, true).ok()
+            CorpusStorage::with_auto_cache_size(&db_dir, true).ok()
         } else {
             None
         };
@@ -47,7 +48,7 @@ fn search_test_base(corpus : &str, panic_on_invalid : bool) {
                     let mut d = get_query_dir();
                     d.push(corpus);
                     for def in util::get_queries_from_folder(&d, panic_on_invalid) {
-                        let count = cs.count(corpus, &def.aql).unwrap_or(0);
+                        let count = cs.count(corpus, &def.aql, QueryLanguage::AQL).unwrap_or(0);
                         assert_eq!(
                             def.count, count,
                             "Query '{}' ({}) on corpus {} should have had count {} but was {}.",

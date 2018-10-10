@@ -1,14 +1,16 @@
 use super::cerror;
 use super::cerror::ErrorList;
-use corpusstorage::{FrequencyDefEntry, ResultOrder};
+use super::Matrix;
+use corpusstorage::{CountExtra, FrequencyTable, QueryAttributeDescription};
+use corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder};
+use graph::{AnnotationStorage, Component, ComponentType};
 use libc;
 use relannis;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
-use types::{Component, ComponentType, CountExtra, FrequencyTable, Matrix, NodeDesc};
 use update::GraphUpdate;
-use {CorpusStorage, GraphDB};
+use {CorpusStorage, Graph};
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -20,7 +22,7 @@ pub extern "C" fn annis_cs_new(
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
-    let s = CorpusStorage::new_auto_cache_size(&db_dir_path, use_parallel);
+    let s = CorpusStorage::with_auto_cache_size(&db_dir_path, use_parallel);
 
     match s {
         Ok(result) => {
@@ -44,37 +46,44 @@ pub extern "C" fn annis_cs_free(ptr: *mut CorpusStorage) {
 pub extern "C" fn annis_cs_count(
     ptr: *const CorpusStorage,
     corpus: *const libc::c_char,
-    query_as_aql: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
     err: *mut *mut ErrorList,
 ) -> libc::uint64_t {
     let cs: &CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_aql);
+    let query = cstr!(query);
     let corpus = cstr!(corpus);
 
-    return try_cerr!(cs.count(&corpus, &query), err, 0);
+    return try_cerr!(cs.count(&corpus, &query, query_language), err, 0);
 }
 
 #[no_mangle]
 pub extern "C" fn annis_cs_count_extra(
     ptr: *const CorpusStorage,
     corpus: *const libc::c_char,
-    query_as_aql: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
     err: *mut *mut ErrorList,
 ) -> CountExtra {
     let cs: &CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_aql);
+    let query = cstr!(query);
     let corpus = cstr!(corpus);
 
-    return try_cerr!(cs.count_extra(&corpus, &query), err, CountExtra::default());
+    return try_cerr!(
+        cs.count_extra(&corpus, &query, query_language),
+        err,
+        CountExtra::default()
+    );
 }
 
 #[no_mangle]
 pub extern "C" fn annis_cs_find(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_aql: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
     offset: libc::size_t,
     limit: libc::size_t,
     order: ResultOrder,
@@ -82,11 +91,11 @@ pub extern "C" fn annis_cs_find(
 ) -> *mut Vec<CString> {
     let cs: &CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_aql);
+    let query = cstr!(query);
     let corpus = cstr!(corpus_name);
 
     let result = try_cerr!(
-        cs.find(&corpus, &query, offset, limit, order),
+        cs.find(&corpus, &query, query_language, offset, limit, order),
         err,
         std::ptr::null_mut()
     );
@@ -107,7 +116,7 @@ pub extern "C" fn annis_cs_subgraph(
     ctx_left: libc::size_t,
     ctx_right: libc::size_t,
     err: *mut *mut ErrorList,
-) -> *mut GraphDB {
+) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
     let node_ids: Vec<String> = cast_const!(node_ids)
         .iter()
@@ -129,7 +138,7 @@ pub extern "C" fn annis_cs_subcorpus_graph(
     corpus_name: *const libc::c_char,
     corpus_ids: *const Vec<CString>,
     err: *mut *mut ErrorList,
-) -> *mut GraphDB {
+) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus_ids: Vec<String> = cast_const!(corpus_ids)
         .iter()
@@ -150,7 +159,7 @@ pub extern "C" fn annis_cs_subcorpus_graph(
     );
     trace!(
         "annis_cs_subcorpus_graph(...) returns subgraph with {} labels",
-        result.node_annos.len()
+        result.number_of_annotations()
     );
     return Box::into_raw(Box::new(result));
 }
@@ -160,7 +169,7 @@ pub extern "C" fn annis_cs_corpus_graph(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
     err: *mut *mut ErrorList,
-) -> *mut GraphDB {
+) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 
@@ -172,15 +181,16 @@ pub extern "C" fn annis_cs_corpus_graph(
 pub extern "C" fn annis_cs_subgraph_for_query(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_aql: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
     err: *mut *mut ErrorList,
-) -> *mut GraphDB {
+) -> *mut Graph {
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
-    let query_as_aql = cstr!(query_as_aql);
+    let query = cstr!(query);
 
     let result = try_cerr!(
-        cs.subgraph_for_query(&corpus, &query_as_aql),
+        cs.subgraph_for_query(&corpus, &query, query_language),
         err,
         std::ptr::null_mut()
     );
@@ -191,13 +201,14 @@ pub extern "C" fn annis_cs_subgraph_for_query(
 pub extern "C" fn annis_cs_frequency(
     ptr: *const CorpusStorage,
     corpus_name: *const libc::c_char,
-    query_as_aql: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
     frequency_query_definition: *const libc::c_char,
     err: *mut *mut ErrorList,
 ) -> *mut FrequencyTable<CString> {
     let cs: &CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_aql);
+    let query = cstr!(query);
     let corpus = cstr!(corpus_name);
     let frequency_query_definition = cstr!(frequency_query_definition);
     let table_def: Vec<FrequencyDefEntry> = frequency_query_definition
@@ -206,7 +217,7 @@ pub extern "C" fn annis_cs_frequency(
         .collect();
 
     let orig_ft = try_cerr!(
-        cs.frequency(&corpus, &query, table_def),
+        cs.frequency(&corpus, &query, query_language, table_def),
         err,
         std::ptr::null_mut()
     );
@@ -260,10 +271,12 @@ pub extern "C" fn annis_cs_list_node_annotations(
 
     let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
     let mut result: Matrix<CString> = Matrix::new();
-    for (ns, name, val) in orig_vec.into_iter() {
-        if let (Ok(ns), Ok(name), Ok(val)) =
-            (CString::new(ns), CString::new(name), CString::new(val))
-        {
+    for anno in orig_vec.into_iter() {
+        if let (Ok(ns), Ok(name), Ok(val)) = (
+            CString::new(anno.key.ns),
+            CString::new(anno.key.name),
+            CString::new(anno.val),
+        ) {
             result.push(vec![ns, name, val]);
         }
     }
@@ -291,10 +304,12 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     let orig_vec =
         cs.list_edge_annotations(&corpus, component, list_values, only_most_frequent_values);
     let mut result: Matrix<CString> = Matrix::new();
-    for (ns, name, val) in orig_vec.into_iter() {
-        if let (Ok(ns), Ok(name), Ok(val)) =
-            (CString::new(ns), CString::new(name), CString::new(val))
-        {
+    for anno in orig_vec.into_iter() {
+        if let (Ok(ns), Ok(name), Ok(val)) = (
+            CString::new(anno.key.ns),
+            CString::new(anno.key.name),
+            CString::new(anno.val),
+        ) {
             result.push(vec![ns, name, val]);
         }
     }
@@ -305,28 +320,38 @@ pub extern "C" fn annis_cs_list_edge_annotations(
 pub extern "C" fn annis_cs_validate_query(
     ptr: *const CorpusStorage,
     corpus: *const libc::c_char,
-    query_as_aql: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
     err: *mut *mut ErrorList,
 ) -> bool {
     let cs: &CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_aql);
+    let query = cstr!(query);
     let corpus = cstr!(corpus);
 
-    return try_cerr!(cs.validate_query(&corpus, &query), err, false);
+    return try_cerr!(
+        cs.validate_query(&corpus, &query, query_language),
+        err,
+        false
+    );
 }
 
 #[no_mangle]
 pub extern "C" fn annis_cs_node_descriptions(
     ptr: *const CorpusStorage,
-    query_as_aql: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
     err: *mut *mut ErrorList,
-) -> *mut Vec<NodeDesc> {
+) -> *mut Vec<QueryAttributeDescription> {
     let cs: &CorpusStorage = cast_const!(ptr);
 
-    let query = cstr!(query_as_aql);
+    let query = cstr!(query);
 
-    let result = try_cerr!(cs.node_descriptions(&query), err, std::ptr::null_mut());
+    let result = try_cerr!(
+        cs.node_descriptions(&query, query_language),
+        err,
+        std::ptr::null_mut()
+    );
     return Box::into_raw(Box::new(result));
 }
 
@@ -364,7 +389,7 @@ pub extern "C" fn annis_cs_all_components_by_type(
     let cs: &CorpusStorage = cast_const!(ptr);
     let corpus = cstr!(corpus_name);
 
-    Box::into_raw(Box::new(cs.get_all_components(&corpus, Some(ctype), None)))
+    Box::into_raw(Box::new(cs.list_components(&corpus, Some(ctype), None)))
 }
 
 #[no_mangle]
