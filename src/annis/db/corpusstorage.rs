@@ -572,6 +572,47 @@ impl CorpusStorage {
         }
     }
 
+    /// Apply a sequence of updates (`update` parameter) to this graph for a corpus given by the `corpus_name` parameter.
+    ///
+    /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
+    pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
+        let db_entry = self
+            .get_loaded_entry(corpus_name, true)
+            .chain_err(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
+        {
+            let mut lock = db_entry.write().unwrap();
+            let db: &mut Graph = get_write_or_error(&mut lock)?;
+
+            db.apply_update(update)?;
+        }
+        // start background thread to persists the results
+
+        let active_background_workers = self.active_background_workers.clone();
+        {
+            let &(ref lock, ref _cvar) = &*active_background_workers;
+            let mut nr_active_background_workers = lock.lock().unwrap();
+            *nr_active_background_workers = *nr_active_background_workers + 1;
+        }
+        thread::spawn(move || {
+            trace!("Starting background thread to sync WAL updates");
+            let lock = db_entry.read().unwrap();
+            if let Ok(db) = get_read_or_error(&lock) {
+                let db: &Graph = db;
+                if let Err(e) = db.background_sync_wal_updates() {
+                    error!("Can't sync changes in background thread: {:?}", e);
+                } else {
+                    trace!("Finished background thread to sync WAL updates");
+                }
+            }
+            let &(ref lock, ref cvar) = &*active_background_workers;
+            let mut nr_active_background_workers = lock.lock().unwrap();
+            *nr_active_background_workers = *nr_active_background_workers - 1;
+            cvar.notify_all();
+        });
+
+        Ok(())
+    }
+
     fn prepare_query<'a>(
         &self,
         corpus_name: &str,
@@ -1312,16 +1353,25 @@ impl CorpusStorage {
                             if let Some(val) =
                                 node_annos.get_all_values(&key, true).into_iter().next()
                             {
-                                result.push(Annotation{key: key.clone(), val: val.to_owned()});
+                                result.push(Annotation {
+                                    key: key.clone(),
+                                    val: val.to_owned(),
+                                });
                             }
                         } else {
                             // get all values
                             for val in node_annos.get_all_values(&key, false).into_iter() {
-                                result.push(Annotation{key: key.clone(), val: val.to_owned()});
+                                result.push(Annotation {
+                                    key: key.clone(),
+                                    val: val.to_owned(),
+                                });
                             }
                         }
                     } else {
-                        result.push(Annotation{key: key.clone(), val: String::default()});
+                        result.push(Annotation {
+                            key: key.clone(),
+                            val: String::default(),
+                        });
                     }
                 }
             }
@@ -1357,16 +1407,25 @@ impl CorpusStorage {
                                 if let Some(val) =
                                     edge_annos.get_all_values(&key, true).into_iter().next()
                                 {
-                                    result.push(Annotation{key: key.clone(), val: val.to_owned()});
+                                    result.push(Annotation {
+                                        key: key.clone(),
+                                        val: val.to_owned(),
+                                    });
                                 }
                             } else {
                                 // get all values
                                 for val in edge_annos.get_all_values(&key, false).into_iter() {
-                                    result.push(Annotation{key: key.clone(), val: val.to_owned()});
+                                    result.push(Annotation {
+                                        key: key.clone(),
+                                        val: val.to_owned(),
+                                    });
                                 }
                             }
                         } else {
-                            result.push(Annotation{key: key.clone(), val: String::new()});
+                            result.push(Annotation {
+                                key: key.clone(),
+                                val: String::new(),
+                            });
                         }
                     }
                 }
@@ -1374,44 +1433,6 @@ impl CorpusStorage {
         }
 
         return result;
-    }
-
-    pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self
-            .get_loaded_entry(corpus_name, true)
-            .chain_err(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
-        {
-            let mut lock = db_entry.write().unwrap();
-            let db: &mut Graph = get_write_or_error(&mut lock)?;
-
-            db.apply_update(update)?;
-        }
-        // start background thread to persists the results
-
-        let active_background_workers = self.active_background_workers.clone();
-        {
-            let &(ref lock, ref _cvar) = &*active_background_workers;
-            let mut nr_active_background_workers = lock.lock().unwrap();
-            *nr_active_background_workers = *nr_active_background_workers + 1;
-        }
-        thread::spawn(move || {
-            trace!("Starting background thread to sync WAL updates");
-            let lock = db_entry.read().unwrap();
-            if let Ok(db) = get_read_or_error(&lock) {
-                let db: &Graph = db;
-                if let Err(e) = db.background_sync_wal_updates() {
-                    error!("Can't sync changes in background thread: {:?}", e);
-                } else {
-                    trace!("Finished background thread to sync WAL updates");
-                }
-            }
-            let &(ref lock, ref cvar) = &*active_background_workers;
-            let mut nr_active_background_workers = lock.lock().unwrap();
-            *nr_active_background_workers = *nr_active_background_workers - 1;
-            cvar.notify_all();
-        });
-
-        Ok(())
     }
 }
 
