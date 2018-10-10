@@ -42,6 +42,10 @@ typedef enum {
 } AnnisLogLevel;
 
 typedef enum {
+  AQL,
+} AnnisQueryLanguage;
+
+typedef enum {
   Normal,
   Inverted,
   Random,
@@ -49,15 +53,35 @@ typedef enum {
 
 typedef struct AnnisComponent AnnisComponent;
 
+/*
+ * A thread-safe API for managing corpora stored in a common location on the file system.
+ *
+ * Multiple corpora can be part of a corpus storage and they are identified by their unique name.
+ * Corpora are loaded from disk into main memory on demand:
+ * An internal main memory cache is used to avoid re-loading a recently queried corpus from disk again.
+ */
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
 typedef struct AnnisFrequencyTable_AnnisCString AnnisFrequencyTable_AnnisCString;
 
-typedef struct AnnisGraphDB AnnisGraphDB;
+/*
+ * A representation of a graph including node annotations and edges.
+ * Edges are partioned into [components](types/struct.Component.html)
+ * and each component is implemented by specialized [graph storage](trait.GraphStorage.html) implementation.
+ *
+ * Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
+ *
+ * Graphs can have an optional location on the disk.
+ * In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
+ *
+ */
+typedef struct AnnisGraph AnnisGraph;
 
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
 typedef struct AnnisIterPtr_AnnisNodeID AnnisIterPtr_AnnisNodeID;
+
+typedef struct AnnisString AnnisString;
 
 typedef struct AnnisVec_AnnisAnnotation AnnisVec_AnnisAnnotation;
 
@@ -86,23 +110,21 @@ typedef struct {
  */
 typedef AnnisVec_AnnisVec_AnnisT AnnisMatrix_AnnisCString;
 
-typedef uint32_t AnnisNodeID;
+typedef uint64_t AnnisNodeID;
 
 typedef struct {
   AnnisNodeID source;
   AnnisNodeID target;
 } AnnisEdge;
 
-typedef uint32_t AnnisStringID;
-
 typedef struct {
-  AnnisStringID name;
-  AnnisStringID ns;
+  AnnisString name;
+  AnnisString ns;
 } AnnisAnnoKey;
 
 typedef struct {
   AnnisAnnoKey key;
-  AnnisStringID val;
+  AnnisString val;
 } AnnisAnnotation;
 
 char *annis_component_layer(const AnnisComponent *c);
@@ -120,25 +142,28 @@ void annis_cs_apply_update(AnnisCorpusStorage *ptr,
                            AnnisGraphUpdate *update,
                            AnnisErrorList **err);
 
-AnnisGraphDB *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr,
-                                    const char *corpus_name,
-                                    AnnisErrorList **err);
+AnnisGraph *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr,
+                                  const char *corpus_name,
+                                  AnnisErrorList **err);
 
 uint64_t annis_cs_count(const AnnisCorpusStorage *ptr,
                         const char *corpus,
-                        const char *query_as_aql,
+                        const char *query,
+                        AnnisQueryLanguage query_language,
                         AnnisErrorList **err);
 
 AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
                                      const char *corpus,
-                                     const char *query_as_aql,
+                                     const char *query,
+                                     AnnisQueryLanguage query_language,
                                      AnnisErrorList **err);
 
 bool annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **err);
 
 AnnisVec_AnnisCString *annis_cs_find(const AnnisCorpusStorage *ptr,
                                      const char *corpus_name,
-                                     const char *query_as_aql,
+                                     const char *query,
+                                     AnnisQueryLanguage query_language,
                                      size_t offset,
                                      size_t limit,
                                      AnnisResultOrder order,
@@ -148,7 +173,8 @@ void annis_cs_free(AnnisCorpusStorage *ptr);
 
 AnnisFrequencyTable_AnnisCString *annis_cs_frequency(const AnnisCorpusStorage *ptr,
                                                      const char *corpus_name,
-                                                     const char *query_as_aql,
+                                                     const char *query,
+                                                     AnnisQueryLanguage query_language,
                                                      const char *frequency_query_definition,
                                                      AnnisErrorList **err);
 
@@ -181,29 +207,32 @@ AnnisMatrix_AnnisCString *annis_cs_list_node_annotations(const AnnisCorpusStorag
 AnnisCorpusStorage *annis_cs_new(const char *db_dir, bool use_parallel);
 
 AnnisVec_AnnisNodeDesc *annis_cs_node_descriptions(const AnnisCorpusStorage *ptr,
-                                                   const char *query_as_aql,
+                                                   const char *query,
+                                                   AnnisQueryLanguage query_language,
                                                    AnnisErrorList **err);
 
-AnnisGraphDB *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
-                                       const char *corpus_name,
-                                       const AnnisVec_AnnisCString *corpus_ids,
-                                       AnnisErrorList **err);
+AnnisGraph *annis_cs_subcorpus_graph(const AnnisCorpusStorage *ptr,
+                                     const char *corpus_name,
+                                     const AnnisVec_AnnisCString *corpus_ids,
+                                     AnnisErrorList **err);
 
-AnnisGraphDB *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
-                                const char *corpus_name,
-                                const AnnisVec_AnnisCString *node_ids,
-                                size_t ctx_left,
-                                size_t ctx_right,
-                                AnnisErrorList **err);
+AnnisGraph *annis_cs_subgraph(const AnnisCorpusStorage *ptr,
+                              const char *corpus_name,
+                              const AnnisVec_AnnisCString *node_ids,
+                              size_t ctx_left,
+                              size_t ctx_right,
+                              AnnisErrorList **err);
 
-AnnisGraphDB *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
-                                          const char *corpus_name,
-                                          const char *query_as_aql,
-                                          AnnisErrorList **err);
+AnnisGraph *annis_cs_subgraph_for_query(const AnnisCorpusStorage *ptr,
+                                        const char *corpus_name,
+                                        const char *query,
+                                        AnnisQueryLanguage query_language,
+                                        AnnisErrorList **err);
 
 bool annis_cs_validate_query(const AnnisCorpusStorage *ptr,
                              const char *corpus,
-                             const char *query_as_aql,
+                             const char *query,
+                             AnnisQueryLanguage query_language,
                              AnnisErrorList **err);
 
 const char *annis_error_get_kind(const AnnisErrorList *ptr, size_t i);
@@ -224,26 +253,24 @@ size_t annis_freqtable_str_ncols(const AnnisFrequencyTable_AnnisCString *ptr);
 
 size_t annis_freqtable_str_nrows(const AnnisFrequencyTable_AnnisCString *ptr);
 
-AnnisVec_AnnisComponent *annis_graph_all_components(const AnnisGraphDB *g);
+AnnisVec_AnnisComponent *annis_graph_all_components(const AnnisGraph *g);
 
-AnnisVec_AnnisComponent *annis_graph_all_components_by_type(const AnnisGraphDB *g,
+AnnisVec_AnnisComponent *annis_graph_all_components_by_type(const AnnisGraph *g,
                                                             AnnisComponentType ctype);
 
-void annis_graph_apply_update(AnnisGraphDB *g, AnnisGraphUpdate *update, AnnisErrorList **err);
+void annis_graph_apply_update(AnnisGraph *g, AnnisGraphUpdate *update, AnnisErrorList **err);
 
-AnnisVec_AnnisAnnotation *annis_graph_edge_labels(const AnnisGraphDB *g,
+AnnisVec_AnnisAnnotation *annis_graph_edge_labels(const AnnisGraph *g,
                                                   AnnisEdge edge,
                                                   const AnnisComponent *component);
 
-AnnisVec_AnnisAnnotation *annis_graph_node_labels(const AnnisGraphDB *g, AnnisNodeID node);
+AnnisVec_AnnisAnnotation *annis_graph_node_labels(const AnnisGraph *g, AnnisNodeID node);
 
-AnnisIterPtr_AnnisNodeID *annis_graph_nodes_by_type(const AnnisGraphDB *g, const char *node_type);
+AnnisIterPtr_AnnisNodeID *annis_graph_nodes_by_type(const AnnisGraph *g, const char *node_type);
 
-AnnisVec_AnnisEdge *annis_graph_outgoing_edges(const AnnisGraphDB *g,
+AnnisVec_AnnisEdge *annis_graph_outgoing_edges(const AnnisGraph *g,
                                                AnnisNodeID source,
                                                const AnnisComponent *component);
-
-char *annis_graph_str(const AnnisGraphDB *g, AnnisStringID str_id);
 
 void annis_graphupdate_add_edge(AnnisGraphUpdate *ptr,
                                 const char *source_node,

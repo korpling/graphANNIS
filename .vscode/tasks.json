@@ -103,7 +103,7 @@
                 "-o", "include/graphannis-capi.h"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/c-api/"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": []
         }

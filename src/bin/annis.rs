@@ -13,6 +13,7 @@ use graphannis::corpusstorage::CorpusInfo;
 use graphannis::corpusstorage::FrequencyDefEntry;
 use graphannis::corpusstorage::LoadStatus;
 use graphannis::corpusstorage::ResultOrder;
+use graphannis::corpusstorage::QueryLanguage;
 use graphannis::errors::*;
 use graphannis::relannis;
 use graphannis::CorpusStorage;
@@ -311,7 +312,7 @@ impl AnnisRunner {
     fn plan(&self, args: &str) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let plan = self.storage.as_ref().ok_or("No corpus storage location set")?.plan(corpus, args)?;
+            let plan = self.storage.as_ref().ok_or("No corpus storage location set")?.plan(corpus, args, QueryLanguage::AQL)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -327,7 +328,7 @@ impl AnnisRunner {
     fn count(&self, args: &str) -> Result<()>  {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let c = self.storage.as_ref().ok_or("No corpus storage location set")?.count(corpus, args)?;
+            let c = self.storage.as_ref().ok_or("No corpus storage location set")?.count(corpus, args, QueryLanguage::AQL)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -346,7 +347,7 @@ impl AnnisRunner {
             let t_before = std::time::SystemTime::now();
             let matches =
                 self.storage.as_ref().ok_or("No corpus storage location set")?
-                    .find(corpus, args, 0, usize::max_value(), ResultOrder::Normal)?;
+                    .find(corpus, args, QueryLanguage::AQL, 0, usize::max_value(), ResultOrder::Normal)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -384,7 +385,7 @@ impl AnnisRunner {
             out.add_row(header_row);
 
             let t_before = std::time::SystemTime::now();
-            let frequency_table = self.storage.as_ref().ok_or("No corpus storage location set")?.frequency(corpus, splitted_arg[1], table_def)?;
+            let frequency_table = self.storage.as_ref().ok_or("No corpus storage location set")?.frequency(corpus, splitted_arg[1], QueryLanguage::AQL, table_def)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
