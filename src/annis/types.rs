@@ -144,10 +144,6 @@ impl NumValue for u32 {}
 impl NumValue for u16 {}
 impl NumValue for u8 {}
 
-/// Very simple definition of a matrix from a single data type. Not optimized at all.
-/// TODO: Maybe a sparse matrix could be used.
-pub type Matrix<T> = Vec<Vec<T>>;
-
 pub type FrequencyTable<T> = Vec<(Vec<T>, usize)>;
 
 pub struct NodeDesc {

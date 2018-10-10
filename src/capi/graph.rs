@@ -5,7 +5,7 @@ use libc;
 use std;
 use std::ffi::CString;
 use std::sync::Arc;
-use types::{Annotation, Component, ComponentType, Edge, Match, NodeID};
+use types::{Annotation, Component, ComponentType, Edge, NodeID, Match};
 use AnnotationStorage;
 use update::GraphUpdate;
 use {Graph, GraphStorage};

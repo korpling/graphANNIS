@@ -1,7 +1,9 @@
 use libc::{c_char, c_void, size_t};
 use std;
 use std::ffi::CString;
-use types::{Annotation, Component, Edge, FrequencyTable, Matrix, NodeDesc, NodeID};
+use types::{Annotation, Component, Edge, NodeID};
+use corpusstorage::{FrequencyTable, NodeDesc};
+use super::Matrix;
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {

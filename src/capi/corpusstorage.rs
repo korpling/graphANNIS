@@ -1,14 +1,16 @@
 use super::cerror;
 use super::cerror::ErrorList;
-use corpusstorage::{FrequencyDefEntry, ResultOrder, QueryLanguage};
+use super::Matrix;
+use corpusstorage::{CountExtra, FrequencyTable, NodeDesc};
+use corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder};
 use libc;
 use relannis;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
-use types::{Component, ComponentType, CountExtra, FrequencyTable, Matrix, NodeDesc};
+use types::{Component, ComponentType};
 use update::GraphUpdate;
-use {CorpusStorage, Graph, AnnotationStorage};
+use {AnnotationStorage, CorpusStorage, Graph};
 
 /// Create a new corpus storage
 #[no_mangle]
@@ -69,7 +71,11 @@ pub extern "C" fn annis_cs_count_extra(
     let query = cstr!(query);
     let corpus = cstr!(corpus);
 
-    return try_cerr!(cs.count_extra(&corpus, &query, query_language), err, CountExtra::default());
+    return try_cerr!(
+        cs.count_extra(&corpus, &query, query_language),
+        err,
+        CountExtra::default()
+    );
 }
 
 #[no_mangle]
@@ -266,9 +272,11 @@ pub extern "C" fn annis_cs_list_node_annotations(
     let orig_vec = cs.list_node_annotations(&corpus, list_values, only_most_frequent_values);
     let mut result: Matrix<CString> = Matrix::new();
     for anno in orig_vec.into_iter() {
-        if let (Ok(ns), Ok(name), Ok(val)) =
-            (CString::new(anno.key.ns), CString::new(anno.key.name), CString::new(anno.val))
-        {
+        if let (Ok(ns), Ok(name), Ok(val)) = (
+            CString::new(anno.key.ns),
+            CString::new(anno.key.name),
+            CString::new(anno.val),
+        ) {
             result.push(vec![ns, name, val]);
         }
     }
@@ -297,9 +305,11 @@ pub extern "C" fn annis_cs_list_edge_annotations(
         cs.list_edge_annotations(&corpus, component, list_values, only_most_frequent_values);
     let mut result: Matrix<CString> = Matrix::new();
     for anno in orig_vec.into_iter() {
-        if let (Ok(ns), Ok(name), Ok(val)) =
-            (CString::new(anno.key.ns), CString::new(anno.key.name), CString::new(anno.val))
-        {
+        if let (Ok(ns), Ok(name), Ok(val)) = (
+            CString::new(anno.key.ns),
+            CString::new(anno.key.name),
+            CString::new(anno.val),
+        ) {
             result.push(vec![ns, name, val]);
         }
     }
@@ -319,7 +329,11 @@ pub extern "C" fn annis_cs_validate_query(
     let query = cstr!(query);
     let corpus = cstr!(corpus);
 
-    return try_cerr!(cs.validate_query(&corpus, &query, query_language), err, false);
+    return try_cerr!(
+        cs.validate_query(&corpus, &query, query_language),
+        err,
+        false
+    );
 }
 
 #[no_mangle]
@@ -333,7 +347,11 @@ pub extern "C" fn annis_cs_node_descriptions(
 
     let query = cstr!(query);
 
-    let result = try_cerr!(cs.node_descriptions(&query, query_language), err, std::ptr::null_mut());
+    let result = try_cerr!(
+        cs.node_descriptions(&query, query_language),
+        err,
+        std::ptr::null_mut()
+    );
     return Box::into_raw(Box::new(result));
 }
 
