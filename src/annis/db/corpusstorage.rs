@@ -1330,14 +1330,18 @@ impl CorpusStorage {
         return result;
     }
 
+    /// Returns a list of all node annotations of a corpus given by `corpus_name`.
+    ///
+    /// - `list_values` - If true include the possible values in the result.
+    /// - `only_most_frequent_values` - If both this argument and `list_values` are true, only return the most frequent value for each annotation name.
     pub fn list_edge_annotations(
         &self,
         corpus_name: &str,
         component: Component,
         list_values: bool,
         only_most_frequent_values: bool,
-    ) -> Vec<(String, String, String)> {
-        let mut result: Vec<(String, String, String)> = Vec::new();
+    ) -> Vec<Annotation> {
+        let mut result: Vec<Annotation> = Vec::new();
         if let Ok(db_entry) =
             self.get_loaded_entry_with_components(corpus_name, vec![component.clone()])
         {
@@ -1353,16 +1357,16 @@ impl CorpusStorage {
                                 if let Some(val) =
                                     edge_annos.get_all_values(&key, true).into_iter().next()
                                 {
-                                    result.push((key.ns.clone(), key.name.clone(), val.to_owned()));
+                                    result.push(Annotation{key: key.clone(), val: val.to_owned()});
                                 }
                             } else {
                                 // get all values
                                 for val in edge_annos.get_all_values(&key, false).into_iter() {
-                                    result.push((key.ns.clone(), key.name.clone(), val.to_owned()));
+                                    result.push(Annotation{key: key.clone(), val: val.to_owned()});
                                 }
                             }
                         } else {
-                            result.push((key.ns.clone(), key.name.clone(), String::new()));
+                            result.push(Annotation{key: key.clone(), val: String::new()});
                         }
                     }
                 }
