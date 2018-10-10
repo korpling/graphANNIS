@@ -11,22 +11,25 @@ use std::any::Any;
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct GraphStatistic {
+    /// True if the component contains any cycle.
     pub cyclic: bool,
+
+    /// True if the component consists of a [rooted trees](https://en.wikipedia.org/wiki/Tree_(graph_theory)).
     pub rooted_tree: bool,
 
-    /// number of nodes
+    /// Number of nodes in this graph storage (both source and target nodes).
     pub nodes: usize,
 
-    /// Average fan out
+    /// Average fan out.format_args!
     pub avg_fan_out: f64,
-    /// Max fan-out of 99% of the data
+    /// Max fan-out of 99% of the data.
     pub fan_out_99_percentile: usize,
-    /// maximal number of children of a node
+    /// Maximal number of children of a node.
     pub max_fan_out: usize,
-    /// maximum length from a root node to a terminal node
+    /// Maximum length from a root node to a terminal node.
     pub max_depth: usize,
 
-    /// only for acyclic graphs: the average number of times a DFS will visit each node
+    /// Only valid for acyclic graphs: the average number of times a DFS will visit each node.
     pub dfs_visit_ratio: f64,
 }
 

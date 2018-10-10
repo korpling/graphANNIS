@@ -73,6 +73,7 @@ pub mod types {
         AnnoKey, Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, Match,
         Matrix, NodeDesc, NodeID,
     };
+    pub use annis::db::graphstorage::GraphStatistic;
 }
 
 pub mod relannis {
