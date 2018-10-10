@@ -1,14 +1,14 @@
 use super::cerror;
 use super::cerror::ErrorList;
 use capi::data::IterPtr;
+use graph::GraphStorage;
+use graph::{Annotation, AnnotationStorage, Component, ComponentType, Edge, Match, NodeID};
 use libc;
 use std;
 use std::ffi::CString;
 use std::sync::Arc;
-use graph::{Annotation, Component, ComponentType, Edge, NodeID, Match};
-use AnnotationStorage;
 use update::GraphUpdate;
-use {Graph, GraphStorage};
+use Graph;
 
 #[no_mangle]
 pub extern "C" fn annis_component_type(c: *const Component) -> ComponentType {

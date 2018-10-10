@@ -3,14 +3,14 @@ use super::cerror::ErrorList;
 use super::Matrix;
 use corpusstorage::{CountExtra, FrequencyTable, NodeDesc};
 use corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder};
+use graph::{AnnotationStorage, Component, ComponentType};
 use libc;
 use relannis;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
-use graph::{Component, ComponentType};
 use update::GraphUpdate;
-use {AnnotationStorage, CorpusStorage, Graph};
+use {CorpusStorage, Graph};
 
 /// Create a new corpus storage
 #[no_mangle]
