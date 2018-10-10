@@ -62,7 +62,7 @@ pub use annis::db::corpusstorage::CorpusStorage;
 /// Types that are used by the `CorpusStorage` API.
 pub mod corpusstorage {
     pub use annis::db::corpusstorage::{
-        CorpusInfo, FrequencyDefEntry, LoadStatus, QueryLanguage, ResultOrder,
+        CorpusInfo, FrequencyDefEntry, GraphStorageInfo, LoadStatus, QueryLanguage, ResultOrder,
     };
     pub use annis::types::{CountExtra, FrequencyTable, NodeDesc};
 }
@@ -74,9 +74,9 @@ pub use annis::db::Graph;
 /// Types that are used by the `Graph` API.
 pub mod graph {
     pub use annis::db::graphstorage::GraphStatistic;
-    pub use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
-    pub use annis::db::AnnotationStorage;
     pub use annis::db::graphstorage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
+    pub use annis::db::AnnotationStorage;
+    pub use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
 
 }
 

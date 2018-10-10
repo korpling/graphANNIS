@@ -45,10 +45,15 @@ enum CacheEntry {
     NotLoaded,
 }
 
+/// Indicates if the corpus is partially or fully loaded into the main memory cache.
 #[derive(Debug, Ord, Eq, PartialOrd, PartialEq)]
 pub enum LoadStatus {
+    /// Corpus is not loaded into main memory at all.
     NotLoaded,
+    /// Corpus is partially loaded and is estimated to use the given amount of main memory in bytes.
+    /// Partially means that the node annotations are and optionally some graph storages are loaded.
     PartiallyLoaded(usize),
+    /// Corpus is fully loaded (node annotation information and all graph storages) and is estimated to use the given amount of main memory in bytes.
     FullyLoaded(usize),
 }
 
@@ -89,10 +94,14 @@ impl fmt::Display for GraphStorageInfo {
     }
 }
 
+/// Information about a corpus that is part of the corpus storage.
 #[derive(Ord, Eq, PartialOrd, PartialEq)]
 pub struct CorpusInfo {
+    /// Name of the corpus.
     pub name: String,
+    /// Indicates if the corpus is partially or fully loaded.
     pub load_status: LoadStatus,
+    /// A list of descriptions for the graph storages of this corpus.
     pub graphstorages: Vec<GraphStorageInfo>,
 }
 
