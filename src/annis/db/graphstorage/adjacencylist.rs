@@ -1,7 +1,7 @@
 use super::*;
 use annis::annostorage::AnnoStorage;
-use annis::dfs::CycleSafeDFS;
 use annis::db::AnnotationStorage;
+use annis::dfs::CycleSafeDFS;
 use annis::types::Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -176,6 +176,82 @@ impl GraphStorage for AdjacencyListStorage {
     fn inverse_has_same_cost(&self) -> bool {
         true
     }
+}
+
+impl WriteableGraphStorage for AdjacencyListStorage {
+    fn add_edge(&mut self, edge: Edge) {
+        if edge.source != edge.target {
+            // insert to both regular and inverse maps
+
+            let inverse_entry = self
+                .inverse_edges
+                .entry(edge.target)
+                .or_insert(Vec::default());
+            // no need to insert it edge already exists
+            if let Err(insertion_idx) = inverse_entry.binary_search(&edge.source) {
+                inverse_entry.insert(insertion_idx, edge.source);
+            }
+
+            let regular_entry = self.edges.entry(edge.source).or_insert(Vec::default());
+            if let Err(insertion_idx) = regular_entry.binary_search(&edge.target) {
+                regular_entry.insert(insertion_idx, edge.target);
+            }
+            // TODO: invalid graph statistics
+        }
+    }
+    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) {
+        if let Some(outgoing) = self.edges.get(&edge.source) {
+            if outgoing.contains(&edge.target) {
+                self.annos.insert(edge, anno);
+            }
+        }
+    }
+
+    fn delete_edge(&mut self, edge: &Edge) {
+        if let Some(outgoing) = self.edges.get_mut(&edge.source) {
+            if let Ok(idx) = outgoing.binary_search(&edge.target) {
+                outgoing.remove(idx);
+            }
+        }
+
+        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
+            if let Ok(idx) = ingoing.binary_search(&edge.source) {
+                ingoing.remove(idx);
+            }
+        }
+        let annos = self.annos.get_annotations_for_item(edge);
+        for a in annos.into_iter() {
+            self.annos.remove_annotation_for_item(edge, &a.key);
+        }
+    }
+    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) {
+        self.annos.remove_annotation_for_item(edge, anno_key);
+    }
+    fn delete_node(&mut self, node: &NodeID) {
+        // find all both ingoing and outgoing edges
+        let mut to_delete = std::collections::LinkedList::<Edge>::new();
+
+        if let Some(outgoing) = self.edges.get(node) {
+            for target in outgoing.iter() {
+                to_delete.push_back(Edge {
+                    source: *node,
+                    target: *target,
+                })
+            }
+        }
+        if let Some(ingoing) = self.inverse_edges.get(node) {
+            for source in ingoing.iter() {
+                to_delete.push_back(Edge {
+                    source: *source,
+                    target: *node,
+                })
+            }
+        }
+
+        for e in to_delete {
+            self.delete_edge(&e);
+        }
+    }
 
     fn calculate_statistics(&mut self) {
         let mut stats = GraphStatistic {
@@ -291,82 +367,6 @@ impl GraphStorage for AdjacencyListStorage {
         }
 
         self.stats = Some(stats);
-    }
-}
-
-impl WriteableGraphStorage for AdjacencyListStorage {
-    fn add_edge(&mut self, edge: Edge) {
-        if edge.source != edge.target {
-            // insert to both regular and inverse maps
-
-            let inverse_entry = self
-                .inverse_edges
-                .entry(edge.target)
-                .or_insert(Vec::default());
-            // no need to insert it edge already exists
-            if let Err(insertion_idx) = inverse_entry.binary_search(&edge.source) {
-                inverse_entry.insert(insertion_idx, edge.source);
-            }
-
-            let regular_entry = self.edges.entry(edge.source).or_insert(Vec::default());
-            if let Err(insertion_idx) = regular_entry.binary_search(&edge.target) {
-                regular_entry.insert(insertion_idx, edge.target);
-            }
-            // TODO: invalid graph statistics
-        }
-    }
-    fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation) {
-        if let Some(outgoing) = self.edges.get(&edge.source) {
-            if outgoing.contains(&edge.target) {
-                self.annos.insert(edge, anno);
-            }
-        }
-    }
-
-    fn delete_edge(&mut self, edge: &Edge) {
-        if let Some(outgoing) = self.edges.get_mut(&edge.source) {
-            if let Ok(idx) = outgoing.binary_search(&edge.target) {
-                outgoing.remove(idx);
-            }
-        }
-
-        if let Some(ingoing) = self.inverse_edges.get_mut(&edge.target) {
-            if let Ok(idx) = ingoing.binary_search(&edge.source) {
-                ingoing.remove(idx);
-            }
-        }
-        let annos = self.annos.get_annotations_for_item(edge);
-        for a in annos.into_iter() {
-            self.annos.remove_annotation_for_item(edge, &a.key);
-        }
-    }
-    fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey) {
-        self.annos.remove_annotation_for_item(edge, anno_key);
-    }
-    fn delete_node(&mut self, node: &NodeID) {
-        // find all both ingoing and outgoing edges
-        let mut to_delete = std::collections::LinkedList::<Edge>::new();
-
-        if let Some(outgoing) = self.edges.get(node) {
-            for target in outgoing.iter() {
-                to_delete.push_back(Edge {
-                    source: *node,
-                    target: *target,
-                })
-            }
-        }
-        if let Some(ingoing) = self.inverse_edges.get(node) {
-            for source in ingoing.iter() {
-                to_delete.push_back(Edge {
-                    source: *source,
-                    target: *node,
-                })
-            }
-        }
-
-        for e in to_delete {
-            self.delete_edge(&e);
-        }
     }
 }
 

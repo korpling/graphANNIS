@@ -720,7 +720,10 @@ impl Graph {
             .ok_or(format!("Component {} is missing", c.clone()))?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
-                gs_mut.calculate_statistics();
+                // Since immutable graph storages can't change, only writable graph storage statistics need to be re-calculated
+                if let Some(writeable_gs) = gs_mut.as_writeable() {
+                    writeable_gs.calculate_statistics();
+                }
             } else {
                 result = Err(format!("Component {} is currently used", c.clone()).into());
             }

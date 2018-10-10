@@ -87,23 +87,27 @@ pub trait GraphStorage: EdgeContainer {
     /// This removes the existing content of this graph storage.
     fn copy(&mut self, db: &Graph, orig: &EdgeContainer);
 
+    /// Upcast this graph storage to the [EdgeContainer](trait.EdgeContainer.html) trait.
     fn as_edgecontainer(&self) -> &EdgeContainer;
 
+    /// Try to downcast this graph storage to a [WriteableGraphStorage](trait.WriteableGraphStorage.html) trait.
+    /// Returns `None` if this graph storage is not writable. 
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {
         None
     }
 
-    // TODO: use an actual cost model for graph storage access
+    /// If true, finding the inverse connected nodes via [find_connected_inverse(...)](#tymethod.find_connected_inverse) has the same cost as the non-inverse case.
     fn inverse_has_same_cost(&self) -> bool {
         false
     }
 
-    fn calculate_statistics(&mut self) {}
-
+    /// Return an identifier for this graph storage which is used to distinguish the different graph storages when (de-) serialized.
     fn serialization_id(&self) -> String;
 
+    /// Serialize this graph storage.
     fn serialize_gs(&self, writer: &mut std::io::Write) -> Result<()>;
 
+    /// De-serialize this graph storage.
     fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
@@ -120,6 +124,8 @@ pub trait WriteableGraphStorage: GraphStorage {
     fn delete_edge(&mut self, edge: &Edge);
     fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey);
     fn delete_node(&mut self, node: &NodeID);
+
+    fn calculate_statistics(&mut self);
 }
 
 pub mod adjacencylist;
