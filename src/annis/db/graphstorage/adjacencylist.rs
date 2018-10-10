@@ -173,10 +173,6 @@ impl GraphStorage for AdjacencyListStorage {
         self
     }
 
-    fn as_any(&self) -> &Any {
-        self
-    }
-
     fn inverse_has_same_cost(&self) -> bool {
         true
     }

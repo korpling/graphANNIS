@@ -6,7 +6,6 @@ use bincode;
 use malloc_size_of::MallocSizeOf;
 use serde::Deserialize;
 use std;
-use std::any::Any;
 
 /// Some general statistical numbers specific to a graph component
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
@@ -52,13 +51,19 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a>;
 }
 
+/// A graph storage is the representation of an edge component of a graph with specific structures.
+/// These specific structures are exploited to efficiently implement reachability queries.
 pub trait GraphStorage: EdgeContainer {
+
+    /// Find all nodes reachable from a given start node inside the component.
     fn find_connected<'a>(
         &'a self,
         node: &NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a>;
+
+    /// Find all nodes reachable from a given start node inside the component, when the directed edges are inversed.
     fn find_connected_inverse<'a>(
         &'a self,
         node: &NodeID,
@@ -66,7 +71,10 @@ pub trait GraphStorage: EdgeContainer {
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a>;
 
+    /// Compute the distance (shortest path length) of two nodes inside this component.
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize>;
+
+    /// Check if two nodes are connected with any path in this component given a minimum (`min_distance`) and maximum (`max_distance`) path length.
     fn is_connected(
         &self,
         source: &NodeID,
@@ -75,9 +83,9 @@ pub trait GraphStorage: EdgeContainer {
         max_distance: usize,
     ) -> bool;
 
+    /// Copy the content of another component.
+    /// This removes the existing content of this graph storage.
     fn copy(&mut self, db: &Graph, orig: &EdgeContainer);
-
-    fn as_any(&self) -> &Any;
 
     fn as_edgecontainer(&self) -> &EdgeContainer;
 

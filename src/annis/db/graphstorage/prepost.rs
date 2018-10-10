@@ -3,7 +3,6 @@ use bincode;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std;
-use std::any::Any;
 use std::clone::Clone;
 
 use super::{GraphStatistic, GraphStorage};
@@ -503,10 +502,6 @@ where
         self.annos.calculate_statistics();
 
         self.node_to_order.shrink_to_fit();
-    }
-
-    fn as_any(&self) -> &Any {
-        self
     }
 
     fn as_edgecontainer(&self) -> &EdgeContainer {

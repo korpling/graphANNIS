@@ -11,7 +11,6 @@ use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use std;
-use std::any::Any;
 use std::clone::Clone;
 
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
@@ -297,10 +296,6 @@ where
 
     fn inverse_has_same_cost(&self) -> bool {
         true
-    }
-
-    fn as_any(&self) -> &Any {
-        self
     }
 
     fn as_edgecontainer(&self) -> &EdgeContainer {
