@@ -101,15 +101,19 @@ impl Completer for CommandCompleter {
     }
 }
 struct AnnisRunner {
-    storage: CorpusStorage,
+    storage: Option<CorpusStorage>,
     current_corpus: Option<String>,
+    data_dir: PathBuf,
+    use_parallel_joins: bool,
 }
 
 impl AnnisRunner {
     pub fn new(data_dir: &Path) -> Result<AnnisRunner> {
         Ok(AnnisRunner {
-            storage: CorpusStorage::new_auto_cache_size(data_dir, false)?,
+            storage: Some(CorpusStorage::new_auto_cache_size(data_dir, false)?),
             current_corpus: None,
+            data_dir: PathBuf::from(data_dir),
+            use_parallel_joins: true,
         })
     }
 
@@ -118,10 +122,12 @@ impl AnnisRunner {
         if let Err(_) = rl.load_history("annis_history.txt") {
             println!("No previous history.");
         }
-
-        rl.set_completer(Some(CommandCompleter::new(
-            self.storage.list().unwrap_or_default(),
-        )));
+        
+        if let Some(ref storage) = self.storage {
+            rl.set_completer(Some(CommandCompleter::new(
+                storage.list().unwrap_or_default(),
+            )));
+        }
 
         loop {
             let prompt = if let Some(ref c) = self.current_corpus {
@@ -163,7 +169,7 @@ impl AnnisRunner {
             } else {
                 String::from("")
             };
-            match cmd {
+            let result = match cmd {
                 "import" => self.import_relannis(&args),
                 "list" => self.list(),
                 "delete" => self.delete(&args),
@@ -177,206 +183,186 @@ impl AnnisRunner {
                 "use_parallel" => self.use_parallel(&args),
                 "info" => self.info(),
                 "quit" | "exit" => return false,
-                _ => println!("unknown command \"{}\"", cmd),
+                _ => Err(format!("unknown command \"{}\"", cmd).into()),
             };
+            if let Err(err) = result {
+                println!("{}", err.to_string());
+            }
         }
         // stay in loop
         return true;
     }
 
-    fn import_relannis(&mut self, args: &str) {
+    fn import_relannis(&mut self, args: &str) -> Result<()> {
         let args: Vec<&str> = args.split(' ').collect();
         if args.is_empty() {
-            println!(
-                "You need to location of the relANNIS files and optionally a name as argument"
-            );
-            return;
+            return Err("You need to location of the relANNIS files and optionally a name as argument".into());
         }
 
         let path = args[0];
 
         let t_before = std::time::SystemTime::now();
-        let res = relannis::load(&PathBuf::from(path));
+        let (name, db) = relannis::load(&PathBuf::from(path))?;
         let load_time = t_before.elapsed();
-        match res {
-            Ok((name, db)) => if let Ok(t) = load_time {
-                info!{"Loaded corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
-                info!("Saving imported corpus to disk");
-                let name = if args.len() > 1 { args[1] } else { &name };
-                self.storage.import(name, db);
+        if let Ok(t) = load_time {
+            info!{"Loaded corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+        }
+
+        info!("Saving imported corpus to disk");
+        let name = if args.len() > 1 { args[1] } else { &name };
+        self.storage.as_ref().ok_or("No corpus storage location set")?.import(name, db);
+        info!("Finished saving corpus {} to disk", name);    
                 info!("Finished saving corpus {} to disk", name);
-            },
-            Err(err) => {
-                println!("Can't import relANNIS from {}, error:\n{:?}", path, err);
-            }
-        }
+        info!("Finished saving corpus {} to disk", name);    
+
+        Ok(())
     }
 
-    fn list(&self) {
-        if let Ok(mut corpora) = self.storage.list() {
-            corpora.sort();
-            for c in corpora {
-                let desc = match c.load_status {
-                    LoadStatus::NotLoaded => String::from("not loaded"),
-                    LoadStatus::PartiallyLoaded(size) => format!(
-                        "partially loaded, {:.2} MB",
-                        size as f64 / (1024 * 1024) as f64
-                    ),
-                    LoadStatus::FullyLoaded(size) => format!(
-                        "fully loaded, {:.2} MB ",
-                        size as f64 / (1024 * 1024) as f64
-                    ),
-                };
-                println!("{} ({})", c.name, desc);
-            }
+    fn list(&self) -> Result<()> {
+        let mut corpora = self.storage.as_ref().ok_or("No corpus storage location set")?.list()?;
+        corpora.sort();
+        for c in corpora {
+            let desc = match c.load_status {
+                LoadStatus::NotLoaded => String::from("not loaded"),
+                LoadStatus::PartiallyLoaded(size) => format!(
+                    "partially loaded, {:.2} MB",
+                    size as f64 / (1024 * 1024) as f64
+                ),
+                LoadStatus::FullyLoaded(size) => format!(
+                    "fully loaded, {:.2} MB ",
+                    size as f64 / (1024 * 1024) as f64
+                ),
+            };
+            println!("{} ({})", c.name, desc);
         }
+        Ok(())
     }
 
-    fn delete(&mut self, args: &str) {
+    fn delete(&mut self, args: &str) -> Result<()> {
         if args.is_empty() {
-            println!("You need the name as an argument");
-            return;
+            return Err("You need the name as an argument".into());
         }
         let name = args;
 
-        if let Err(err) = self.storage.delete(name) {
-            error!("{:?}", err);
-        } else {
-            info!("Deleted corpus {}.", name);
-        }
+        self.storage.as_ref().ok_or("No corpus storage location set")?.delete(name)?;
+        info!("Deleted corpus {}.", name);
+
+        Ok(())
     }
 
-    fn corpus(&mut self, args: &str) {
+    fn corpus(&mut self, args: &str) -> Result<()> {
         if args.is_empty() {
             self.current_corpus = None;
         } else {
-            if let Ok(corpora) = self.storage.list() {
-                let corpora = BTreeSet::from_iter(corpora.into_iter().map(|c| c.name));
-                let selected = String::from(args);
-                if corpora.contains(&selected) {
-                    self.current_corpus = Some(String::from(args));
-                } else {
-                    println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
-                }
+            let corpora = self.storage.as_ref().ok_or("No corpus storage location set")?.list()?;
+            let corpora = BTreeSet::from_iter(corpora.into_iter().map(|c| c.name));
+            let selected = String::from(args);
+            if corpora.contains(&selected) {
+                self.current_corpus = Some(String::from(args));
+            } else {
+                println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
             }
+        
         }
+        Ok(())
     }
 
-    fn info(&self) {
+    fn info(&self) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
-            let cinfo: Result<CorpusInfo> = self.storage.info(corpus);
-
-            match cinfo {
-                Ok(cinfo) => {
-                    println!("{}", cinfo);
-                }
-                Err(e) => println!("{}", e),
-            };
+            let cinfo = self.storage.as_ref().ok_or("No corpus storage location set")?.info(corpus)?;
+            println!("{}", cinfo);
         } else {
             println!("You need to select a corpus for the \"info\" command");
         }
+        Ok(())
     }
 
-    fn preload(&mut self) {
+    fn preload(&mut self) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let c = self.storage.preload(corpus);
+            self.storage.as_ref().ok_or("No corpus storage location set")?.preload(corpus)?;
             let load_time = t_before.elapsed();
-
             if let Ok(t) = load_time {
                 info!{"Preloaded corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if c.is_err() {
-                println!("Error when preloading: {:?}", c);
-            }
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
+        Ok(())
     }
 
-    fn update_statistics(&mut self) {
+    fn update_statistics(&mut self) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let c = self.storage.update_statistics(corpus);
+            self.storage.as_ref().ok_or("No corpus storage location set")?.update_statistics(corpus)?;
             let load_time = t_before.elapsed();
-
             if let Ok(t) = load_time {
                 info!{"Updated statistics for corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if c.is_err() {
-                println!("Error when preloading: {:?}", c);
-            }
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
+
+        Ok(())
     }
 
-    fn plan(&self, args: &str) {
+    fn plan(&self, args: &str) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let plan = self.storage.plan(corpus, args);
+            let plan = self.storage.as_ref().ok_or("No corpus storage location set")?.plan(corpus, args)?;
             let load_time = t_before.elapsed();
-
             if let Ok(t) = load_time {
                 info!{"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
-
-            match plan {
-                Ok(plan) => println!("{}", plan),
-                Err(e) => println!("{}", e),
-            };
+            
+            println!("{}", plan);
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
+        Ok(())
     }
 
-    fn count(&self, args: &str) {
+    fn count(&self, args: &str) -> Result<()>  {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let c = self.storage.count(corpus, args);
+            let c = self.storage.as_ref().ok_or("No corpus storage location set")?.count(corpus, args)?;
             let load_time = t_before.elapsed();
-
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
+        
+            println!("result: {} matches", c);
 
-            match c {
-                Ok(c) => println!("result: {} matches", c),
-                Err(e) => println!("{}", e),
-            };
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
+        Ok(())
     }
 
-    fn find(&self, args: &str) {
+    fn find(&self, args: &str) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
             let matches =
-                self.storage
-                    .find(corpus, args, 0, usize::max_value(), ResultOrder::Normal);
+                self.storage.as_ref().ok_or("No corpus storage location set")?
+                    .find(corpus, args, 0, usize::max_value(), ResultOrder::Normal)?;
             let load_time = t_before.elapsed();
-
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            match matches {
-                Ok(matches) => {
-                    for m in matches {
-                        println!("{}", m);
-                    }
-                }
-                Err(e) => println!("{}", e),
-            };
+            for m in matches {
+                println!("{}", m);
+            }
+            
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
+        Ok(())
     }
 
-    fn frequency(&self, args: &str) {
+    fn frequency(&self, args: &str) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let splitted_arg: Vec<&str> = args.splitn(2, ' ').collect();
             let table_def: Vec<FrequencyDefEntry> = if splitted_arg.len() == 2 {
@@ -386,7 +372,7 @@ impl AnnisRunner {
                     .collect()
             } else {
                 println!("You have to give the frequency definition as first argument and the AQL as second argument");
-                return;
+                return Ok(());
             };
 
             let mut out = Table::new();
@@ -398,46 +384,58 @@ impl AnnisRunner {
             out.add_row(header_row);
 
             let t_before = std::time::SystemTime::now();
-            let frequency_table = self.storage.frequency(corpus, splitted_arg[1], table_def);
+            let frequency_table = self.storage.as_ref().ok_or("No corpus storage location set")?.frequency(corpus, splitted_arg[1], table_def)?;
             let load_time = t_before.elapsed();
-
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
 
-            if let Ok(frequency_table) = frequency_table {
-                // map the resulting frequency table to an output
+            // map the resulting frequency table to an output
 
-                // TODO: map header
-                for row in frequency_table.into_iter() {
-                    let mut out_row = Row::empty();
-                    for att in row.0.iter() {
-                        out_row.add_cell(Cell::from(att));
-                    }
-                    // also add the count
-                    out_row.add_cell(Cell::from(&row.1));
-                    out.add_row(out_row);
+            // TODO: map header
+            for row in frequency_table.into_iter() {
+                let mut out_row = Row::empty();
+                for att in row.0.iter() {
+                    out_row.add_cell(Cell::from(att));
                 }
-                out.printstd();
+                // also add the count
+                out_row.add_cell(Cell::from(&row.1));
+                out.add_row(out_row);
             }
+            out.printstd();
+        
         // TODO output error if needed
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
+
+        Ok(())
     }
 
-    fn use_parallel(&mut self, args: &str) {
-        match args.trim().to_lowercase().as_str() {
-            "on" | "true" => self.storage.query_config.use_parallel_joins = true,
-            "off" | "false" => self.storage.query_config.use_parallel_joins = false,
-            "" => (),
-            _ => println!("unknown argument \"{}\"", args),
+    fn use_parallel(&mut self, args: &str) -> Result<()> {
+        let new_val = match args.trim().to_lowercase().as_str() {
+            "on" | "true" => true,
+            "off" | "false" => false,
+            _ => return Err(format!("unknown argument \"{}\"", args).into()),
+        };
+
+        if self.use_parallel_joins != new_val {
+            
+            // the old corpus storage instance should release the disk lock
+            self.storage = None;
+            
+            // re-init the corpus storage
+            self.storage = Some(CorpusStorage::new_auto_cache_size(&self.data_dir, new_val)?);
+            self.use_parallel_joins = new_val;
         }
-        if self.storage.query_config.use_parallel_joins {
+
+        if self.use_parallel_joins {
             println!("Join parallization is enabled");
         } else {
             println!("Join parallization is disabled");
         }
+
+        Ok(())
     }
 }
 

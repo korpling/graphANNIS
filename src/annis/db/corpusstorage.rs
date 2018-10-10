@@ -1,6 +1,3 @@
-//! An API for managing corpora stored in a common location on the file system.
-//! It is transactional and thread-safe.
-
 use annis::annostorage::AnnoStorage;
 use annis::db::aql;
 use annis::db::aql::operators;
@@ -139,12 +136,13 @@ pub enum ResultOrder {
     Random,
 }
 
+/// A thread-safe API for managing corpora stored in a common location on the file system.
 pub struct CorpusStorage {
     db_dir: PathBuf,
     lock_file: File,
     max_allowed_cache_size: Option<usize>,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
-    pub query_config: query::Config,
+    query_config: query::Config,
     active_background_workers: Arc<(Mutex<usize>, Condvar)>,
 }
 
