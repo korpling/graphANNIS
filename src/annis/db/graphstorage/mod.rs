@@ -117,14 +117,27 @@ pub trait GraphStorage: EdgeContainer {
     }
 }
 
+/// Trait for accessing graph storages which can be written to.
 pub trait WriteableGraphStorage: GraphStorage {
+
+    /// Add an edge to this graph storage.
     fn add_edge(&mut self, edge: Edge);
+
+    /// Add an annotation to an edge in this graph storage.
+    /// The edge has to exist.
     fn add_edge_annotation(&mut self, edge: Edge, anno: Annotation);
 
+    /// Delete an existing edge.
     fn delete_edge(&mut self, edge: &Edge);
+
+    /// Delete the annotation (defined by the qualified annotation name in `anno_key`) for an `edge`.
     fn delete_edge_annotation(&mut self, edge: &Edge, anno_key: &AnnoKey);
+
+    /// Delete a node from this graph storage.
+    /// This deletes both edges edges where the node is the source or the target node.
     fn delete_node(&mut self, node: &NodeID);
 
+    /// Re-calculate the [statistics](types/struct.GraphStatistic.html) of this graph storage.
     fn calculate_statistics(&mut self);
 }
 
