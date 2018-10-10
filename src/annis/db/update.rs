@@ -1,3 +1,5 @@
+//! Types used to describe updates on graphs.
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum UpdateEvent {
     AddNode {

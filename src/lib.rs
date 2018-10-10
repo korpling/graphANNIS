@@ -69,6 +69,7 @@ pub mod corpusstorage {
 
 pub use annis::db::graphstorage::{EdgeContainer, GraphStorage, WriteableGraphStorage};
 pub use annis::db::update;
+
 pub use annis::db::AnnotationStorage;
 pub use annis::db::Graph;
 
@@ -88,6 +89,7 @@ pub mod errors {
     pub use annis::errors::*;
 }
 
+/// Utility functions.
 pub mod util {
     pub use annis::util::extract_node_path;
     pub use annis::util::get_queries_from_folder;
