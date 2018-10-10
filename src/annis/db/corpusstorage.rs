@@ -136,16 +136,6 @@ pub enum ResultOrder {
     Random,
 }
 
-/// A thread-safe API for managing corpora stored in a common location on the file system.
-pub struct CorpusStorage {
-    db_dir: PathBuf,
-    lock_file: File,
-    max_allowed_cache_size: Option<usize>,
-    corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
-    query_config: query::Config,
-    active_background_workers: Arc<(Mutex<usize>, Condvar)>,
-}
-
 struct PreparationResult<'a> {
     query: Disjunction<'a>,
     db_entry: Arc<RwLock<CacheEntry>>,
@@ -341,10 +331,30 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
     return Ok(lock_file);
 }
 
+/// A thread-safe API for managing corpora stored in a common location on the file system.
+/// 
+/// Multiple corpora can be part of a corpus storage and they are identified by their unique name.
+/// Corpora are loaded from disk into main memory on demand: 
+/// An internal main memory cache is used to avoid re-loading a recently queried corpus from disk again.
+pub struct CorpusStorage {
+    db_dir: PathBuf,
+    lock_file: File,
+    max_allowed_cache_size: Option<usize>,
+    corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
+    query_config: query::Config,
+    active_background_workers: Arc<(Mutex<usize>, Condvar)>,
+}
+
 impl CorpusStorage {
-    pub fn new(
+
+    /// Create a new instance with a maximum size for the internal corpus cache.
+    /// 
+    /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
+    /// - `max_cache_size`: The maximum size of the internal corpus cache in bytes.
+    /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
+    pub fn with_max_cache_size(
         db_dir: &Path,
-        max_allowed_cache_size: Option<usize>,
+        max_cache_size: Option<usize>,
         use_parallel_joins: bool,
     ) -> Result<CorpusStorage> {
         let query_config = query::Config { use_parallel_joins };
@@ -353,7 +363,7 @@ impl CorpusStorage {
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             lock_file: create_lockfile_for_directory(db_dir)?,
-            max_allowed_cache_size,
+            max_allowed_cache_size: max_cache_size,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config,
             active_background_workers,
@@ -362,7 +372,14 @@ impl CorpusStorage {
         Ok(cs)
     }
 
-    pub fn new_auto_cache_size(db_dir: &Path, use_parallel_joins: bool) -> Result<CorpusStorage> {
+    /// Create a new instance with a an automatic determined size of the internal corpus cache.
+    /// 
+    /// Currently, set the maximum cache size to 25% of the available/free memory at construction time.
+    /// This behavior chan change in the future.
+    /// 
+    /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
+    /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
+    pub fn with_auto_cache_size(db_dir: &Path, use_parallel_joins: bool) -> Result<CorpusStorage> {
         let query_config = query::Config { use_parallel_joins };
 
         // get the amount of available memory, use a quarter of it per default
@@ -390,6 +407,23 @@ impl CorpusStorage {
         };
 
         Ok(cs)
+    }
+
+    /// List  all available corpora in the corpus storage.
+    pub fn list(&self) -> Result<Vec<CorpusInfo>> {
+        let names: Vec<String> = self.list_from_disk().unwrap_or_default();
+        let mut result: Vec<CorpusInfo> = vec![];
+
+        let mut mem_ops =
+            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+
+        for n in names {
+            if let Ok(corpus_info) = self.create_corpus_info(&n, &mut mem_ops) {
+                result.push(corpus_info);
+            }
+        }
+
+        return Ok(result);
     }
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
@@ -466,27 +500,14 @@ impl CorpusStorage {
         Ok(corpus_info)
     }
 
+    /// Return detailled information about a specific corpus with a given name (`corpus_name`).
     pub fn info(&self, corpus_name: &str) -> Result<CorpusInfo> {
         let mut mem_ops =
             MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
         self.create_corpus_info(corpus_name, &mut mem_ops)
     }
 
-    pub fn list(&self) -> Result<Vec<CorpusInfo>> {
-        let names: Vec<String> = self.list_from_disk().unwrap_or_default();
-        let mut result: Vec<CorpusInfo> = vec![];
 
-        let mut mem_ops =
-            MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
-
-        for n in names {
-            if let Ok(corpus_info) = self.create_corpus_info(&n, &mut mem_ops) {
-                result.push(corpus_info);
-            }
-        }
-
-        return Ok(result);
-    }
 
     fn get_entry(&self, corpus_name: &str) -> Result<Arc<RwLock<CacheEntry>>> {
         let corpus_name = corpus_name.to_string();
@@ -632,9 +653,12 @@ impl CorpusStorage {
         Ok(db_entry)
     }
 
-    /// Import a corpusfrom an external location into this corpus storage
-    pub fn import(&self, corpus_name: &str, mut db: Graph) {
-        let r = db.ensure_loaded_all();
+    /// Import a corpus from an external location into this corpus storage.
+    /// 
+    /// - `corpus_name` - The name of the new corpus
+    /// - `graph` - The corpus data
+    pub fn import(&self, corpus_name: &str, mut graph: Graph) {
+        let r = graph.ensure_loaded_all();
         if let Err(e) = r {
             error!(
                 "Some error occured when attempting to load components from disk: {:?}",
@@ -665,7 +689,7 @@ impl CorpusStorage {
         }
 
         // save to its location
-        let save_result = db.save_to(&db_path);
+        let save_result = graph.save_to(&db_path);
         if let Err(e) = save_result {
             error!(
                 "Can't save corpus to {}: {:?}",
@@ -677,7 +701,7 @@ impl CorpusStorage {
         // make it known to the cache
         cache.insert(
             String::from(corpus_name),
-            Arc::new(RwLock::new(CacheEntry::Loaded(db))),
+            Arc::new(RwLock::new(CacheEntry::Loaded(graph))),
         );
         check_cache_size_and_remove(self.max_allowed_cache_size, cache);
     }
@@ -1467,7 +1491,7 @@ mod tests {
     #[test]
     fn delete() {
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
-            let mut cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+            let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
             // fully load a corpus
             let mut g = GraphUpdate::new();
             g.add_event(UpdateEvent::AddNode {
@@ -1489,7 +1513,7 @@ mod tests {
 
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
             {
-                let mut cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+                let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
                 g.add_event(UpdateEvent::AddNode {
                     node_name: "test".to_string(),
@@ -1500,7 +1524,7 @@ mod tests {
             }
 
             {
-                let mut cs = CorpusStorage::new_auto_cache_size(tmp.path(), false).unwrap();
+                let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
                 g.add_event(UpdateEvent::AddNode {
                     node_name: "test".to_string(),

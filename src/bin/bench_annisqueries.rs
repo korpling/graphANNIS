@@ -33,7 +33,7 @@ pub fn create_query_input(
 ) -> std::vec::Vec<CountBench> {
     let mut benches = std::vec::Vec::new();
 
-    let cs = Arc::new(CorpusStorage::new_auto_cache_size(data_dir, use_parallel_joins).unwrap());
+    let cs = Arc::new(CorpusStorage::with_auto_cache_size(data_dir, use_parallel_joins).unwrap());
 
     // each folder is one corpus
     if let Ok(paths) = std::fs::read_dir(queries_dir) {

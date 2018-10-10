@@ -23,7 +23,7 @@ static ref CORPUS_STORAGE : Option<CorpusStorage> = {
 
     // only execute the test if the directory exists
     let cs = if db_dir.exists() && db_dir.is_dir() {
-        CorpusStorage::new_auto_cache_size(&db_dir, false).ok()
+        CorpusStorage::with_auto_cache_size(&db_dir, false).ok()
     } else {
         None
     };

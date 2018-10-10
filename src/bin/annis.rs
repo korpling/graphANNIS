@@ -110,7 +110,7 @@ struct AnnisRunner {
 impl AnnisRunner {
     pub fn new(data_dir: &Path) -> Result<AnnisRunner> {
         Ok(AnnisRunner {
-            storage: Some(CorpusStorage::new_auto_cache_size(data_dir, false)?),
+            storage: Some(CorpusStorage::with_auto_cache_size(data_dir, false)?),
             current_corpus: None,
             data_dir: PathBuf::from(data_dir),
             use_parallel_joins: true,
@@ -425,7 +425,7 @@ impl AnnisRunner {
             self.storage = None;
             
             // re-init the corpus storage
-            self.storage = Some(CorpusStorage::new_auto_cache_size(&self.data_dir, new_val)?);
+            self.storage = Some(CorpusStorage::with_auto_cache_size(&self.data_dir, new_val)?);
             self.use_parallel_joins = new_val;
         }
 

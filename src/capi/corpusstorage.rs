@@ -20,7 +20,7 @@ pub extern "C" fn annis_cs_new(
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
-    let s = CorpusStorage::new_auto_cache_size(&db_dir_path, use_parallel);
+    let s = CorpusStorage::with_auto_cache_size(&db_dir_path, use_parallel);
 
     match s {
         Ok(result) => {
