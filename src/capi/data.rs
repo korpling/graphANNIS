@@ -1,7 +1,7 @@
 use libc::{c_char, c_void, size_t};
 use std;
 use std::ffi::CString;
-use types::{Annotation, Component, Edge, NodeID};
+use graph::{Annotation, Component, Edge, NodeID};
 use corpusstorage::{FrequencyTable, NodeDesc};
 use super::Matrix;
 

@@ -8,7 +8,7 @@ use relannis;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
-use types::{Component, ComponentType};
+use graph::{Component, ComponentType};
 use update::GraphUpdate;
 use {AnnotationStorage, CorpusStorage, Graph};
 

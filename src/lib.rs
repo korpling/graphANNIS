@@ -72,7 +72,8 @@ pub use annis::db::update;
 pub use annis::db::AnnotationStorage;
 pub use annis::db::Graph;
 
-pub mod types {
+/// Types that are used by the [Graph](struct.Graph.html) API.
+pub mod graph {
     pub use annis::db::graphstorage::GraphStatistic;
     pub use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, Match, NodeID};
 }
