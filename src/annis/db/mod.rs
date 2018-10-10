@@ -52,7 +52,7 @@ pub trait AnnotationStorage<T> {
     /// - `name`  - Only annotations with this name are returned.
     /// - `value` - If given, only annotation having the given value are returned.
     /// 
-    /// The result is an iterator over [matches](types/struct.Match.html). 
+    /// The result is an iterator over [matches](struct.Match.html). 
     /// A match contains both the node ID and the matched annotation key 
     /// (e.g. there can be multiple annotations with the same name if the namespace is different).
     fn exact_anno_search<'a>(
@@ -85,8 +85,7 @@ pub trait AnnotationStorage<T> {
 }
 
 /// A representation of a graph including node annotations and edges.
-/// Edges are partioned into [components](types/struct.Component.html) 
-/// and each component is implemented by specialized [graph storage](trait.GraphStorage.html) implementation.
+/// Edges are partioned into components and each component is implemented by specialized graph storage implementation.
 /// 
 /// Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
 /// 

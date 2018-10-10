@@ -19,7 +19,7 @@ pub struct GraphStatistic {
     /// Number of nodes in this graph storage (both source and target nodes).
     pub nodes: usize,
 
-    /// Average fan out.format_args!
+    /// Average fan out.
     pub avg_fan_out: f64,
     /// Max fan-out of 99% of the data.
     pub fan_out_99_percentile: usize,
@@ -32,7 +32,7 @@ pub struct GraphStatistic {
     pub dfs_visit_ratio: f64,
 }
 
-/// Basic trait for accessing edges of a graph for a specific [component](types/struct.Component.html).
+/// Basic trait for accessing edges of a graph for a specific component.
 pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all outgoing edges for a given `node`.
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
@@ -137,7 +137,7 @@ pub trait WriteableGraphStorage: GraphStorage {
     /// This deletes both edges edges where the node is the source or the target node.
     fn delete_node(&mut self, node: &NodeID);
 
-    /// Re-calculate the [statistics](types/struct.GraphStatistic.html) of this graph storage.
+    /// Re-calculate the [statistics](struct.GraphStatistic.html) of this graph storage.
     fn calculate_statistics(&mut self);
 }
 

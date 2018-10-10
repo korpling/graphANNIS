@@ -6,8 +6,10 @@ use std::string::String;
 
 use malloc_size_of::MallocSizeOf;
 
+/// Unique internal identifier for a single node.
 pub type NodeID = u64;
 
+/// The fully qualified name of an annotation.
 #[derive(
     Serialize,
     Deserialize,
@@ -23,23 +25,33 @@ pub type NodeID = u64;
 )]
 #[repr(C)]
 pub struct AnnoKey {
+    /// Name of the annotation.
     pub name: String,
+    /// Namespace of the annotation.
     pub ns: String,
 }
 
+/// An annotation with a qualified name and a value.
 #[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
 #[repr(C)]
 pub struct Annotation {
+    /// Qualified name or unique "key" for the annotation
     pub key: AnnoKey,
+    /// Value of the annotation
     pub val: String,
 }
 
 pub type AnnoKeyID = usize;
 
+/// A match is the result of a query on an annotation storage.
+/// 
+/// It is uniquely defined by the node identifier and the quallified annotation name.
 #[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub struct Match {
+    /// The node identifier this match refers to.
     pub node: NodeID,
+    /// A unique identifier for the qualified annotation name.
     pub anno_key: AnnoKeyID,
 }
 
@@ -53,6 +65,7 @@ pub struct CountExtra {
     pub document_count: u64,
 }
 
+/// Directed edge between a source and target node which are identified by their ID.
 #[derive(
     Serialize,
     Deserialize,
@@ -81,6 +94,7 @@ impl Edge {
     }
 }
 
+/// Specifies the type of component. Types determine certain semantics about the edges of this graph components.
 #[derive(
     Serialize,
     Deserialize,
@@ -97,13 +111,21 @@ impl Edge {
 )]
 #[repr(C)]
 pub enum ComponentType {
+    /// Edges between a span node and its tokens. Implies text coverage.
     Coverage,
+    /// Edges between a token and a span node.
     InverseCoverage,
+    /// Edges between a structural node and any other structural node, span or token. Implies text coverage.
     Dominance,
+    /// Edge between any node.
     Pointing,
+    /// Edge between two tokens implying that the source node comes before the target node in the textflow.
     Ordering,
+    /// Explicit edge between any non-token node and the left-most token it covers.
     LeftToken,
+    /// Explicit edge between any non-token node and the right-most token it covers.
     RightToken,
+    /// Implies that the source node belongs to the parent corpus/subcorpus/document node.
     PartOfSubcorpus,
 }
 
@@ -113,12 +135,16 @@ impl fmt::Display for ComponentType {
     }
 }
 
+/// Identifies an edge component of the graph.
 #[derive(
     Serialize, Deserialize, Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug, MallocSizeOf,
 )]
 pub struct Component {
+    /// Type of the component
     pub ctype: ComponentType,
+    /// Name of the component
     pub name: String,
+    /// A layer name which allows to group different components into the same layer. Can be empty.
     pub layer: String,
 }
 
