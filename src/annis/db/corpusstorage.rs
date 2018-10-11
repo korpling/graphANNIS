@@ -1490,6 +1490,7 @@ mod tests {
 
     use update::{GraphUpdate, UpdateEvent};
     use CorpusStorage;
+    use corpusstorage::QueryLanguage;
 
     #[test]
     fn delete() {
@@ -1538,6 +1539,42 @@ mod tests {
             }
         }
     }
+
+     #[test]
+    fn apply_update_add_nodes() {
+        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+            let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+
+            let mut g = GraphUpdate::new();
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root".to_string(),
+                node_type: "corpus".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1".to_string(),
+                node_type: "corpus".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1#MyToken".to_string(),
+                node_type: "node".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc2".to_string(),
+                node_type: "corpus".to_string(),
+            });
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc2#MyToken".to_string(),
+                node_type: "node".to_string(),
+            });
+
+            cs.apply_update("root", &mut g).unwrap();
+
+            let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
+            assert_eq!(2, node_count);
+            
+        }
+    }
+
 }
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {

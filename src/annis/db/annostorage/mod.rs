@@ -393,9 +393,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         } else {
             self.get_qnames(&name)
         };
-
-        let value = value.and_then(|v| self.anno_values.get_symbol(&v));
-
         let values: Vec<(AnnoKeyID, &FxHashMap<usize, Vec<T>>)> = key_ranges
             .into_iter()
             .filter_map(|key| {
@@ -408,17 +405,24 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             }).collect();
 
         if let Some(value) = value {
-            let it = values
-            .into_iter()
-            // find the items with the correct value
-            .filter_map(move |(key_id, values)| if let Some(items) = values.get(&value) {
-                Some((items, key_id))
+            let target_value_symbol = self.anno_values.get_symbol(&value);
+
+            if let Some(target_value_symbol) = target_value_symbol {
+                let it = values
+                .into_iter()
+                // find the items with the correct value
+                .filter_map(move |(key_id, values)| if let Some(items) = values.get(&target_value_symbol) {
+                    Some((items, key_id))
+                } else {
+                    None
+                })
+                // flatten the hash set of all items, returns all items for the condition
+                .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
+                return Box::new(it);
             } else {
-                None
-            })
-            // flatten the hash set of all items, returns all items for the condition
-            .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
-            return Box::new(it);
+                // value is not known, return empty result
+                return Box::new(std::iter::empty());
+            }
         } else {
             let it = values
             .into_iter()
