@@ -359,8 +359,6 @@ AnnisVec_AnnisAnnotation *annis_graph_annotations_for_edge(const AnnisGraph *g,
 
 AnnisVec_AnnisAnnotation *annis_graph_annotations_for_node(const AnnisGraph *g, AnnisNodeID node);
 
-void annis_graph_apply_update(AnnisGraph *g, AnnisGraphUpdate *update, AnnisErrorList **err);
-
 AnnisIterPtr_AnnisNodeID *annis_graph_nodes_by_type(const AnnisGraph *g, const char *node_type);
 
 AnnisVec_AnnisEdge *annis_graph_outgoing_edges(const AnnisGraph *g,
