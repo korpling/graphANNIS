@@ -30,6 +30,9 @@ struct Text {
     name: String,
 }
 
+/// Load a c corpus in the legacy relANNIS format from the specified `path`.
+/// 
+/// Returns a tuple consisting of the corpus name and the extracted annotation graph.
 pub fn load(path: &Path) -> Result<(String, Graph)> {
     // convert to path
     let path = PathBuf::from(path);
