@@ -5,6 +5,7 @@ use annis::db::Match;
 use annis::types::{AnnoKey, AnnoKeyID, Annotation};
 use annis::types::{Edge, NodeID};
 use annis::util;
+use annis::util::memory_estimation;
 use bincode;
 use itertools::Itertools;
 use malloc_size_of::MallocSizeOf;
@@ -32,11 +33,13 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     /// A map from an annotation key symbol to a map of all its values to the items having this value for the annotation key
     by_anno: FxHashMap<usize, FxHashMap<usize, Vec<T>>>,
     /// Maps a distinct annotation key to the number of elements having this annotation key.
+    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     anno_key_sizes: BTreeMap<AnnoKey, usize>,
     anno_keys: SymbolTable<AnnoKey>,
     anno_values: SymbolTable<String>,
 
     /// additional statistical information
+    #[with_malloc_size_of_func = "memory_estimation::size_of_btreemap"]
     histogram_bounds: BTreeMap<usize, Vec<String>>,
     largest_item: Option<T>,
     total_number_of_annos: usize,
