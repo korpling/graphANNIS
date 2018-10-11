@@ -289,7 +289,7 @@ impl Graph {
         };
 
         let mut node_annos_tmp: AnnoStorage<NodeID> = AnnoStorage::new();
-        node_annos_tmp.load_from_file(&dir2load.join("nodes.bin").to_string_lossy())?;
+        node_annos_tmp.load_from_file(&dir2load.join("nodes_v1.bin").to_string_lossy())?;
         self.node_annos = Arc::from(node_annos_tmp);
 
         let log_path = dir2load.join("update_log.bin");
@@ -389,7 +389,7 @@ impl Graph {
 
         std::fs::create_dir_all(&location)?;
 
-        save_bincode(&location, "nodes.bin", self.node_annos.as_ref())?;
+        save_bincode(&location, "nodes_v1.bin", self.node_annos.as_ref())?;
 
         for (c, e) in self.components.iter() {
             if let Some(ref data) = *e {
