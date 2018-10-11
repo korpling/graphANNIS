@@ -1,4 +1,5 @@
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+use annis::util::memory_estimation::shallow_size_of_btreemap;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use std;
 use std::collections::BTreeMap;
@@ -29,7 +30,7 @@ where
 
         // add the size of the vector pointer, the hash map and the strings
         size + (self.by_id.len() * std::mem::size_of::<usize>())
-            + self.by_value.shallow_size_of(ops)
+            + shallow_size_of_btreemap(&self.by_value, ops)
     }
 }
 
@@ -98,7 +99,7 @@ where
 
     pub fn get_value(&self, id: usize) -> Option<&T> {
         if id < self.by_id.len() {
-            if let Some(ref val) =  self.by_id[id] {
+            if let Some(ref val) = self.by_id[id] {
                 return Some(val.as_ref());
             }
         }
