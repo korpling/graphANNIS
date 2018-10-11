@@ -49,8 +49,7 @@ macro_rules! try_cerr {
 }
 
 
-/// Very simple definition of a matrix from a single data type. Not optimized at all.
-/// TODO: Maybe a sparse matrix could be used.
+/// Simple definition of a matrix from a single data type.
 pub type Matrix<T> = Vec<Vec<T>>;
 
 

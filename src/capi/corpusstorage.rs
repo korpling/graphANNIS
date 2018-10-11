@@ -12,9 +12,9 @@ use std::path::PathBuf;
 use update::GraphUpdate;
 use {CorpusStorage, Graph};
 
-/// Create a new corpus storage
+/// Create a new corpus storage with an automatically determined maximum cache size.
 #[no_mangle]
-pub extern "C" fn annis_cs_new(
+pub extern "C" fn annis_cs_with_auto_cache_size(
     db_dir: *const libc::c_char,
     use_parallel: bool,
 ) -> *mut CorpusStorage {
@@ -23,6 +23,28 @@ pub extern "C" fn annis_cs_new(
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
     let s = CorpusStorage::with_auto_cache_size(&db_dir_path, use_parallel);
+
+    match s {
+        Ok(result) => {
+            return Box::into_raw(Box::new(result));
+        }
+        Err(err) => error!("Could create corpus storage, error message was:\n{:?}", err),
+    };
+    return std::ptr::null_mut();
+}
+
+/// Create a new corpus storage with an manually defined maximum cache size.
+#[no_mangle]
+pub extern "C" fn annis_cs_with_max_cache_size(
+    db_dir: *const libc::c_char,
+    max_cache_size: usize,
+    use_parallel: bool,
+) -> *mut CorpusStorage {
+    let db_dir = cstr!(db_dir);
+
+    let db_dir_path = PathBuf::from(String::from(db_dir));
+
+    let s = CorpusStorage::with_max_cache_size(&db_dir_path, Some(max_cache_size), use_parallel);
 
     match s {
         Ok(result) => {
@@ -381,7 +403,7 @@ pub extern "C" fn annis_cs_import_relannis(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_all_components_by_type(
+pub extern "C" fn annis_cs_list_components_by_type(
     ptr: *mut CorpusStorage,
     corpus_name: *const libc::c_char,
     ctype: ComponentType,
@@ -392,6 +414,7 @@ pub extern "C" fn annis_cs_all_components_by_type(
     Box::into_raw(Box::new(cs.list_components(&corpus, Some(ctype), None)))
 }
 
+/// Deletes a corpus from the corpus storage.
 #[no_mangle]
 pub extern "C" fn annis_cs_delete(
     ptr: *mut CorpusStorage,
