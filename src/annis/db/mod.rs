@@ -52,10 +52,11 @@ impl Match {
         self.node
     }   
 
-    /// Extract the annotation for this match
-    pub fn get_annotation(&self, g: &Graph) -> Option<Annotation> {
-        let val = g.node_annos.get_value_for_item_by_id(&self.node, self.anno_key)?.to_owned();
-        let key = g.node_annos.get_key_value(self.anno_key)?;
+    /// Extract the annotation for this match . The annotation value
+    /// is retrieved from the `graph` given as argument.
+    pub fn extract_annotation(&self, graph: &Graph) -> Option<Annotation> {
+        let val = graph.node_annos.get_value_for_item_by_id(&self.node, self.anno_key)?.to_owned();
+        let key = graph.node_annos.get_key_value(self.anno_key)?;
         Some(Annotation {
             key,
             val,
