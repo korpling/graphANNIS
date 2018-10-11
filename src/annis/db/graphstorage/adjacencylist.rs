@@ -8,24 +8,13 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
 
 use bincode;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct AdjacencyListStorage {
     edges: FxHashMap<NodeID, Vec<NodeID>>,
     inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorage<Edge>,
     stats: Option<GraphStatistic>,
-}
-
-impl MallocSizeOf for AdjacencyListStorage {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        return self.edges.size_of(ops)
-            + self.inverse_edges.size_of(ops)
-            + self.annos.size_of(ops)
-            + self.stats.size_of(ops)
-            + std::mem::size_of::<AdjacencyListStorage>();
-    }
 }
 
 impl Default for AdjacencyListStorage {
