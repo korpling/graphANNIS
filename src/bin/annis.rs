@@ -213,8 +213,6 @@ impl AnnisRunner {
         let name = if args.len() > 1 { args[1] } else { &name };
         self.storage.as_ref().ok_or("No corpus storage location set")?.import(name, db);
         info!("Finished saving corpus {} to disk", name);    
-                info!("Finished saving corpus {} to disk", name);
-        info!("Finished saving corpus {} to disk", name);    
 
         Ok(())
     }
