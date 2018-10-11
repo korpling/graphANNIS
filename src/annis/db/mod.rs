@@ -41,10 +41,26 @@ pub const NODE_TYPE: &str = "node_type";
 #[derive(Debug, Default, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub struct Match {
-    /// The node identifier this match refers to.
-    pub node: NodeID,
+    node: NodeID,
     /// A unique internal identifier for the qualified annotation name.
     anno_key: AnnoKeyID,
+}
+
+impl Match {
+    /// Get the node identifier this match refers to.
+    pub fn get_node(&self) -> NodeID {
+        self.node
+    }   
+
+    /// Extract the annotation for this match
+    pub fn get_annotation(&self, g: &Graph) -> Option<Annotation> {
+        let val = g.node_annos.get_value_for_item_by_id(&self.node, self.anno_key)?.to_owned();
+        let key = g.node_annos.get_key_value(self.anno_key)?;
+        Some(Annotation {
+            key,
+            val,
+        })        
+    }
 }
 
 /// Access annotations for nodes or edges.
@@ -65,8 +81,8 @@ pub trait AnnotationStorage<T> {
     /// - `name`  - Only annotations with this name are returned.
     /// - `value` - If given, only annotation having the given value are returned.
     ///
-    /// The result is an iterator over [matches](struct.Match.html).
-    /// A match contains both the node ID and the matched annotation key
+    /// The result is an iterator over matches.
+    /// A match contains the node ID and the qualifed name of the matched annotation
     /// (e.g. there can be multiple annotations with the same name if the namespace is different).
     fn exact_anno_search<'a>(
         &'a self,

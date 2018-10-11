@@ -44,7 +44,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
             Some(type_key.ns),
             type_key.name,
             Some(String::from(node_type)),
-        ).map(|m: Match| m.node);
+        ).map(|m: Match| m.get_node());
     return Box::into_raw(Box::new(Box::new(it)));
 }
 
