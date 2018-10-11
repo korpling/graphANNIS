@@ -384,8 +384,8 @@ dependencies = [
  "csv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fs2 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "graphannis-malloc_size_of 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "graphannis-malloc_size_of_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphannis-malloc_size_of 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphannis-malloc_size_of_derive 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lalrpop 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -414,12 +414,12 @@ dependencies = [
 
 [[package]]
 name = "graphannis-malloc_size_of"
-version = "0.1.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "graphannis-malloc_size_of_derive"
-version = "0.1.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "quote 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1342,8 +1342,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum fuchsia-zircon 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2e9763c69ebaae630ba35f74888db465e49e259ba1bc0eda7d06f4a067615d82"
 "checksum fuchsia-zircon-sys 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3dcaa9ae7725d12cdb85b3ad99a434db70b468c09ded17e012d86b5c1010f7a7"
 "checksum generic-array 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ef25c5683767570c2bbd7deba372926a55eaae9982d7726ee2a1050239d45b9d"
-"checksum graphannis-malloc_size_of 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4999db8f9541b8376f110af61a1dfb351d298a3bca29b2bb92417228f64db468"
-"checksum graphannis-malloc_size_of_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d5e66e5c94c5c9eb179eb59261866b4d09cfab6a7b889cfb182cea9322d60657"
+"checksum graphannis-malloc_size_of 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a039c4e98300e73acc76ffee280516fcad92755539c1dddde08eb96b261562e2"
+"checksum graphannis-malloc_size_of_derive 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0386455d417201d5f696a5393abfd18b6c324fc01a8bfc66b442fd42df448861"
 "checksum handlebars 0.32.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d89ec99d1594f285d4590fc32bac5f75cdab383f1123d504d27862c644a807dd"
 "checksum heck 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ea04fa3ead4e05e51a7c806fc07271fdbde4e246a6c6d1efd52e72230b771b82"
 "checksum itertools 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)" = "f58856976b776fedd95533137617a02fb25719f40e7d9b01c7043cd65474f450"
