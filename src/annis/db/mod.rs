@@ -50,17 +50,17 @@ impl Match {
     /// Get the node identifier this match refers to.
     pub fn get_node(&self) -> NodeID {
         self.node
-    }   
+    }
 
     /// Extract the annotation for this match . The annotation value
     /// is retrieved from the `graph` given as argument.
     pub fn extract_annotation(&self, graph: &Graph) -> Option<Annotation> {
-        let val = graph.node_annos.get_value_for_item_by_id(&self.node, self.anno_key)?.to_owned();
+        let val = graph
+            .node_annos
+            .get_value_for_item_by_id(&self.node, self.anno_key)?
+            .to_owned();
         let key = graph.node_annos.get_key_value(self.anno_key)?;
-        Some(Annotation {
-            key,
-            val,
-        })        
+        Some(Annotation { key, val })
     }
 }
 
@@ -75,12 +75,12 @@ pub trait AnnotationStorage<T> {
     /// Return the number of annotations contained in this `AnnotationStorage` filtered by `name` and optional namespace (`ns`).
     fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize;
 
-    /// Returns an iterator for all items that match the given annotation constraints.
+    /// Returns an iterator for all items that exactly match the given annotation constraints.
     /// The annotation `name` must be given as argument, the other arguments are optional.
     ///
     /// - `namespace`- If given, only annotations having this namespace are returned.
     /// - `name`  - Only annotations with this name are returned.
-    /// - `value` - If given, only annotation having the given value are returned.
+    /// - `value` - If given, only annotation having exactly the given value are returned.
     ///
     /// The result is an iterator over matches.
     /// A match contains the node ID and the qualifed name of the matched annotation
@@ -90,6 +90,24 @@ pub trait AnnotationStorage<T> {
         namespace: Option<String>,
         name: String,
         value: Option<String>,
+    ) -> Box<Iterator<Item = Match> + 'a>;
+
+    /// Returns an iterator for all items where the value matches the regular expression.
+    /// The annotation `name` and the `pattern` for the value must be given as argument, the  
+    /// `namespace` argument is optional and can be used as additional constraint.
+    ///
+    /// - `namespace`- If given, only annotations having this namespace are returned.
+    /// - `name`  - Only annotations with this name are returned.
+    /// - `pattern` - If given, only annotation having a value that mattches this pattern are returned.
+    ///
+    /// The result is an iterator over matches.
+    /// A match contains the node ID and the qualifed name of the matched annotation
+    /// (e.g. there can be multiple annotations with the same name if the namespace is different).
+    fn regex_anno_search<'a>(
+        &'a self,
+        namespace: Option<String>,
+        name: String,
+        pattern: &str,
     ) -> Box<Iterator<Item = Match> + 'a>;
 
     /// Estimate the number of results for an (annotation exact search)[#exact_anno_search] for a given an inclusive value range.
@@ -105,6 +123,14 @@ pub trait AnnotationStorage<T> {
         lower_val: &str,
         upper_val: &str,
     ) -> usize;
+
+    /// Estimate the number of results for an (annotation regular expression search)[#regex_anno_search]
+    /// for a given pattern.
+    ///
+    /// - `ns` - If given, only annotations having this namespace are considered.
+    /// - `name`  - Only annotations with this name are considered.
+    /// - `pattern`- The regular expression pattern.
+    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize;
 
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first`parameter is true, the results are sorted by their frequency.
@@ -219,6 +245,15 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.exact_anno_search(namespace, name, value)
     }
 
+    fn regex_anno_search<'a>(
+        &'a self,
+        namespace: Option<String>,
+        name: String,
+        pattern: &str,
+    ) -> Box<Iterator<Item = Match> + 'a> {
+        self.node_annos.regex_anno_search(namespace, name, pattern)
+    }
+
     fn guess_max_count(
         &self,
         ns: Option<String>,
@@ -228,6 +263,10 @@ impl AnnotationStorage<NodeID> for Graph {
     ) -> usize {
         self.node_annos
             .guess_max_count(ns, name, lower_val, upper_val)
+    }
+
+    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
+        self.node_annos.guess_max_count_regex(ns, name, pattern)
     }
 
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {

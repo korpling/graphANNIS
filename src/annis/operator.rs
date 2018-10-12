@@ -10,6 +10,11 @@ pub enum EdgeAnnoSearchSpec {
         name: String,
         val: Option<String>,
     },
+    RegexValue {
+        ns: Option<String>,
+        name: String,
+        val: String,
+    }
 }
 
 impl std::fmt::Display for EdgeAnnoSearchSpec {
@@ -27,10 +32,24 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
                 };
 
                 if let &Some(ref val) = val {
-                    write!(f, "{}={}", qname, val)
+                    write!(f, "{}=\"{}\"", qname, val)
                 } else {
                     write!(f, "{}", qname)
                 }
+            }
+            &EdgeAnnoSearchSpec::RegexValue {
+                ref ns,
+                ref name,
+                ref val,
+            } => {
+                 let qname = if let &Some(ref ns) = ns {
+                    format!("{}:{}", ns, name)
+                } else {
+                    name.clone()
+                };
+
+                write!(f, "{}=/{}/", qname, val)
+
             }
         }
     }
@@ -54,6 +73,21 @@ impl EdgeAnnoSearchSpec {
                     ));
                 } else {
                     return Some(anno_storage.guess_max_count(None, name.clone(), &val, &val));
+                }
+            }
+            &EdgeAnnoSearchSpec::RegexValue {
+                ref ns,
+                ref name,
+                ref val,
+            } => {
+                if let Some(ns) = ns.clone() {
+                    return Some(anno_storage.guess_max_count_regex(
+                        Some(ns.clone()),
+                        name.clone(),
+                        &val,
+                    ));
+                } else {
+                    return Some(anno_storage.guess_max_count_regex(None, name.clone(), &val));
                 }
             }
         }

@@ -4,6 +4,8 @@ use annis::db::AnnotationStorage;
 use annis::db::{Graph, Match, ANNIS_NS};
 use annis::operator::{EdgeAnnoSearchSpec, EstimationType, Operator, OperatorSpec};
 use annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, NodeID};
+use annis::util;
+use regex;
 use std;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -91,6 +93,36 @@ fn check_edge_annotation(
                 }
                 // all checks passed, this edge has the correct annotation
                 return true;
+            }
+            return false;
+        }
+        Some(EdgeAnnoSearchSpec::RegexValue { ns, name, val }) => {
+            let full_match_pattern = util::regex_full_match(&val);
+            let re = regex::Regex::new(&full_match_pattern);
+            if let Ok(re) = re {
+                for a in gs
+                    .get_anno_storage()
+                    .get_annotations_for_item(&Edge {
+                        source: source.clone(),
+                        target: target.clone(),
+                    }).into_iter()
+                {
+                    if name != &a.key.name {
+                        continue;
+                    }
+                    if let Some(template_ns) = ns {
+                        if template_ns != &a.key.ns {
+                            continue;
+                        }
+                    }
+
+                    if !re.is_match(&*a.val) {
+                        continue;
+                    }
+
+                    // all checks passed, this edge has the correct annotation
+                    return true;
+                }
             }
             return false;
         }
@@ -329,14 +361,18 @@ impl Operator for BaseEdgeOp {
                     // we won't be able to find anything if there are no annotations
                     return Some(0.0);
                 } else {
-                    let EdgeAnnoSearchSpec::ExactValue { val, ns, name } = edge_anno;
-
-                    let guessed_count = if let Some(val) = val {
-                        anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
-                    } else {
-                        anno_storage.number_of_annotations_by_name(ns.clone(), name.clone())
+                    let guessed_count = match edge_anno {
+                        EdgeAnnoSearchSpec::ExactValue { val, ns, name } => {
+                            if let Some(val) = val {
+                                anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
+                            } else {
+                                anno_storage.number_of_annotations_by_name(ns.clone(), name.clone())
+                            }
+                        }
+                        EdgeAnnoSearchSpec::RegexValue { val, ns, name} => {
+                            anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
+                        }
                     };
-
                     let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);
                     if g_sel > worst_sel {
                         worst_sel = g_sel;
