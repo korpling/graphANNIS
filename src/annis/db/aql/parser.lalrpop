@@ -314,15 +314,27 @@ TextSearch: ast::TextSearch = {
 };
 
 EdgeAnno: EdgeAnnoSearchSpec = {
-    "[" <name:QName> "=" <v:r#""[^"]*""#> "]"  => {
+    "[" <name:QName> "=" <val:TextSearch> "]"  => {
         // TODO: negation
         // TODO: multiple edge annotations
-        // TODO: regex
-        EdgeAnnoSearchSpec::ExactValue {
-            ns: name.0,
-            name: name.1,
-            val: Some(v[1..v.len()-1].to_string()),
-        }
+        
+        let spec = match val.1 { 
+            ast::StringMatchType::Exact => {
+                EdgeAnnoSearchSpec::ExactValue {
+                    ns: name.0,
+                    name: name.1,
+                    val: Some(val.0),
+                }
+            },
+            ast::StringMatchType::Regex => {
+                EdgeAnnoSearchSpec::RegexValue {
+                    ns: name.0,
+                    name: name.1,
+                    val: val.0,
+                }
+            },
+        };
+        spec
     },
 }
 
