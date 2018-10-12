@@ -1,3 +1,12 @@
+release v0.10.1
+===============
+
+Fixed Bugs
+----------
+
+- [#26](https://github.com/corpus-tools/graphANNIS/issues/26) Docs.rs does not build because "allocator_api" is not enabled on their rustc
+
+
 release v0.10.0
 ===============
 
