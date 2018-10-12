@@ -1,7 +1,7 @@
 use self::symboltable::SymbolTable;
-use annis::errors::*;
 use annis::db::AnnotationStorage;
 use annis::db::Match;
+use annis::errors::*;
 use annis::types::{AnnoKey, AnnoKeyID, Annotation};
 use annis::types::{Edge, NodeID};
 use annis::util;
@@ -44,7 +44,6 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     largest_item: Option<T>,
     total_number_of_annos: usize,
 }
-
 
 impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf + Default>
     AnnoStorage<T>
@@ -516,7 +515,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         }
     }
 
-    pub fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
+    fn guess_max_count_regex_impl(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
         let full_match_pattern = util::regex_full_match(pattern);
 
         let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
@@ -635,7 +634,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 }
 
 impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
-    
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         self.get_annotations_for_item_impl(item)
     }
@@ -665,28 +663,7 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
         return Box::new(it);
     }
 
-    fn guess_max_count(
-        &self,
-        ns: Option<String>,
-        name: String,
-        lower_val: &str,
-        upper_val: &str,
-    ) -> usize {
-        self.guess_max_count_impl(ns, name, lower_val, upper_val)
-    }
-
-    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
-        self.get_all_values_impl(key, most_frequent_first)
-    }
-
-    fn annotation_keys(&self) -> Vec<AnnoKey> {
-        return self.anno_key_sizes.keys().cloned().collect();
-    }
-}
-
-impl AnnoStorage<NodeID> {
-    
-    pub fn regex_anno_search<'a>(
+    fn regex_anno_search<'a>(
         &'a self,
         namespace: Option<String>,
         name: String,
@@ -715,10 +692,31 @@ impl AnnoStorage<NodeID> {
             return Box::new(std::iter::empty());
         }
     }
+
+    fn guess_max_count(
+        &self,
+        ns: Option<String>,
+        name: String,
+        lower_val: &str,
+        upper_val: &str,
+    ) -> usize {
+        self.guess_max_count_impl(ns, name, lower_val, upper_val)
+    }
+
+    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
+        self.guess_max_count_regex_impl(ns, name, pattern)
+    }
+
+    fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
+        self.get_all_values_impl(key, most_frequent_first)
+    }
+
+    fn annotation_keys(&self) -> Vec<AnnoKey> {
+        return self.anno_key_sizes.keys().cloned().collect();
+    }
 }
 
 impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
-
     fn get_annotations_for_item(&self, item: &Edge) -> Vec<Annotation> {
         self.get_annotations_for_item_impl(item)
     }
@@ -748,7 +746,37 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
         return Box::new(it);
     }
 
-     fn guess_max_count(
+    fn regex_anno_search<'a>(
+        &'a self,
+        namespace: Option<String>,
+        name: String,
+        pattern: &str,
+    ) -> Box<Iterator<Item = Match> + 'a> {
+        let full_match_pattern = util::regex_full_match(pattern);
+        let compiled_result = regex::Regex::new(&full_match_pattern);
+        if let Ok(re) = compiled_result {
+            let it = self
+                .matching_items(namespace, name, None)
+                .filter(move |(node, anno_key_id)| {
+                    if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
+                        re.is_match(val.as_ref())
+                    } else {
+                        false
+                    }
+                }).filter_map(move |(edge, anno_key_id)| {
+                    Some(Match {
+                        node: edge.source.clone(),
+                        anno_key: anno_key_id,
+                    })
+                });
+            return Box::new(it);
+        } else {
+            // if regular expression pattern is invalid return empty iterator
+            return Box::new(std::iter::empty());
+        }
+    }
+
+    fn guess_max_count(
         &self,
         ns: Option<String>,
         name: String,
@@ -756,6 +784,10 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
         upper_val: &str,
     ) -> usize {
         self.guess_max_count_impl(ns, name, lower_val, upper_val)
+    }
+
+    fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
+        self.guess_max_count_regex_impl(ns, name, pattern)
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {

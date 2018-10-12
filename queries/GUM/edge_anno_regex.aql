@@ -1,0 +1,1 @@
+pos=/V.*/ ->dep[func=/(d|c).*/] tok
