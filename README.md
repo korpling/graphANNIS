@@ -1,6 +1,3 @@
-Linux & MacOS: [![Build Status Linux & MacOS X](https://travis-ci.org/corpus-tools/graphANNIS.svg?branch=develop)](https://travis-ci.org/corpus-tools/graphANNIS)
-Windows: [![Build status Windows](https://ci.appveyor.com/api/projects/status/27axqoanq6rj3xps/branch/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/develop)
-
 graphANNIS
 ==========
 
