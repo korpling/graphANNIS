@@ -85,6 +85,24 @@ pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
 }
 
 #[no_mangle]
+pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation = cast_const!(ptr);
+    return CString::new(anno.key.ns.as_str()).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation= cast_const!(ptr);
+    return CString::new(anno.key.name.as_str()).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation = cast_const!(ptr);
+    return CString::new(anno.val.as_str()).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
 pub extern "C" fn annis_vec_annotation_size(ptr: *const Vec<Annotation>) -> size_t {
     vec_size(ptr)
 }
@@ -121,12 +139,12 @@ pub extern "C" fn annis_vec_component_get(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_size(ptr: *const Vec<QueryAttributeDescription>) -> size_t {
+pub extern "C" fn annis_vec_qattdesc_size(ptr: *const Vec<QueryAttributeDescription>) -> size_t {
     vec_size(ptr)
 }
 
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get_component_nr(
+pub extern "C" fn annis_vec_qattdesc_get_component_nr(
     ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> usize {
@@ -137,7 +155,7 @@ pub extern "C" fn annis_vec_nodedesc_get_component_nr(
 
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get_aql_fragment(
+pub extern "C" fn annis_vec_qattdesc_get_aql_fragment(
     ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> *mut c_char {
@@ -149,7 +167,7 @@ pub extern "C" fn annis_vec_nodedesc_get_aql_fragment(
 
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get_variable(
+pub extern "C" fn annis_vec_qattdesc_get_variable(
     ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> *mut c_char {
@@ -161,7 +179,7 @@ pub extern "C" fn annis_vec_nodedesc_get_variable(
 
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get_anno_name(
+pub extern "C" fn annis_vec_qattdesc_get_anno_name(
     ptr: *const Vec<QueryAttributeDescription>,
     i: size_t,
 ) -> *mut c_char {

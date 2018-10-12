@@ -1,5 +1,3 @@
-use super::cerror;
-use super::cerror::ErrorList;
 use capi::data::IterPtr;
 use graph::{Annotation, AnnotationStorage, Component, ComponentType, Edge, NodeID};
 use graph::{GraphStorage, Match};
@@ -7,7 +5,6 @@ use libc;
 use std;
 use std::ffi::CString;
 use std::sync::Arc;
-use update::GraphUpdate;
 use Graph;
 
 #[no_mangle]
@@ -49,7 +46,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_graph_node_labels(g: *const Graph, node: NodeID) -> *mut Vec<Annotation> {
+pub extern "C" fn annis_graph_annotations_for_node(g: *const Graph, node: NodeID) -> *mut Vec<Annotation> {
     let db: &Graph = cast_const!(g);
 
     Box::into_raw(Box::new(db.get_annotations_for_item(&node)))
@@ -95,7 +92,7 @@ pub extern "C" fn annis_graph_outgoing_edges(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_graph_edge_labels(
+pub extern "C" fn annis_graph_annotations_for_edge(
     g: *const Graph,
     edge: Edge,
     component: *const Component,
@@ -110,15 +107,4 @@ pub extern "C" fn annis_graph_edge_labels(
     };
 
     Box::into_raw(Box::new(annos))
-}
-
-#[no_mangle]
-pub extern "C" fn annis_graph_apply_update(
-    g: *mut Graph,
-    update: *mut GraphUpdate,
-    err: *mut *mut ErrorList,
-) {
-    let db: &mut Graph = cast_mut!(g);
-    let update: &mut GraphUpdate = cast_mut!(update);
-    try_cerr!(db.apply_update(update), err, ());
 }

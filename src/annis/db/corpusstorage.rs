@@ -215,7 +215,7 @@ impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
     ///
     /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
-    /// - `max_cache_size`: The maximum size of the internal corpus cache in bytes.
+    /// - `max_cache_size`: The maximum size of the internal corpus cache in bytes. If `None`the cache is never cleared.
     /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
     pub fn with_max_cache_size(
         db_dir: &Path,
