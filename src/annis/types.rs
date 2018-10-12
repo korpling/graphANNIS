@@ -23,7 +23,6 @@ pub type NodeID = u64;
     MallocSizeOf,
     Hash,
 )]
-#[repr(C)]
 pub struct AnnoKey {
     /// Name of the annotation.
     pub name: String,
@@ -33,7 +32,6 @@ pub struct AnnoKey {
 
 /// An annotation with a qualified name and a value.
 #[derive(Serialize, Deserialize, Default, Eq, PartialEq, PartialOrd, Ord, Clone, Debug, Hash)]
-#[repr(C)]
 pub struct Annotation {
     /// Qualified name or unique "key" for the annotation
     pub key: AnnoKey,

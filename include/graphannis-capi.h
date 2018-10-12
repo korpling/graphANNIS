@@ -97,6 +97,11 @@ typedef enum {
 } AnnisResultOrder;
 
 /*
+ * An annotation with a qualified name and a value.
+ */
+typedef struct AnnisAnnotation AnnisAnnotation;
+
+/*
  * Identifies an edge component of the graph.
  */
 typedef struct AnnisComponent AnnisComponent;
@@ -133,8 +138,6 @@ typedef struct AnnisGraph AnnisGraph;
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
 typedef struct AnnisIterPtr_AnnisNodeID AnnisIterPtr_AnnisNodeID;
-
-typedef struct AnnisString AnnisString;
 
 typedef struct AnnisVec_AnnisAnnotation AnnisVec_AnnisAnnotation;
 
@@ -184,33 +187,11 @@ typedef struct {
   AnnisNodeID target;
 } AnnisEdge;
 
-/*
- * The fully qualified name of an annotation.
- */
-typedef struct {
-  /*
-   * Name of the annotation.
-   */
-  AnnisString name;
-  /*
-   * Namespace of the annotation.
-   */
-  AnnisString ns;
-} AnnisAnnoKey;
+char *annis_annotation_name(const AnnisAnnotation *ptr);
 
-/*
- * An annotation with a qualified name and a value.
- */
-typedef struct {
-  /*
-   * Qualified name or unique "key" for the annotation
-   */
-  AnnisAnnoKey key;
-  /*
-   * Value of the annotation
-   */
-  AnnisString val;
-} AnnisAnnotation;
+char *annis_annotation_ns(const AnnisAnnotation *ptr);
+
+char *annis_annotation_val(const AnnisAnnotation *ptr);
 
 char *annis_component_layer(const AnnisComponent *c);
 

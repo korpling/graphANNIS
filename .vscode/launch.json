@@ -19,9 +19,9 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug Test",
-            "program": "${workspaceRoot}/target/debug/deps/graphannis-ca6d9d9130379cab",
+            "program": "${workspaceRoot}/target/debug/deps/graphannis-c36481a0eafee093",
             "args": [
-                "api::corpusstorage::tests::delete"
+                "apply_update_add_nodes"
             ],
             "cwd": "${workspaceRoot}"
         }

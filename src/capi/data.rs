@@ -85,6 +85,24 @@ pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
 }
 
 #[no_mangle]
+pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation = cast_const!(ptr);
+    return CString::new(anno.key.ns.as_str()).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation= cast_const!(ptr);
+    return CString::new(anno.key.name.as_str()).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation = cast_const!(ptr);
+    return CString::new(anno.val.as_str()).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
 pub extern "C" fn annis_vec_annotation_size(ptr: *const Vec<Annotation>) -> size_t {
     vec_size(ptr)
 }
