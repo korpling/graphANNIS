@@ -1,3 +1,20 @@
+release v0.10.0
+===============
+
+Enhancements
+------------
+
+- [#24](https://github.com/corpus-tools/graphANNIS/issues/24) Implement regular expression search for edge annotations.
+- [#23](https://github.com/corpus-tools/graphANNIS/issues/23) Update the C-API to reflect the changes in the Rust API
+- [#22](https://github.com/corpus-tools/graphANNIS/issues/22) Use the published graphannis-malloc_size_of crate
+- [#21](https://github.com/corpus-tools/graphANNIS/issues/21) Restructure and document the public API
+- [#15](https://github.com/corpus-tools/graphANNIS/issues/15) Move all modules into a private "annis" sub-module
+- [#14](https://github.com/corpus-tools/graphANNIS/issues/14) Simplify the code for the graph storage registry
+- [#13](https://github.com/corpus-tools/graphANNIS/issues/13) Save memory in the annotation storage
+- [#12](https://github.com/corpus-tools/graphANNIS/issues/12) Improve speed of loading adjacency list graph storages
+- [#11](https://github.com/corpus-tools/graphANNIS/issues/11) Use criterion.rs library for benchmarks
+
+
 release v0.9.0
 ==============
 
