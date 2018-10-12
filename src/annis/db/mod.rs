@@ -110,7 +110,7 @@ pub trait AnnotationStorage<T> {
         pattern: &str,
     ) -> Box<Iterator<Item = Match> + 'a>;
 
-    /// Estimate the number of results for an (annotation exact search)[#exact_anno_search] for a given an inclusive value range.
+    /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
     ///
     /// - `ns` - If given, only annotations having this namespace are considered.
     /// - `name`  - Only annotations with this name are considered.
@@ -124,7 +124,7 @@ pub trait AnnotationStorage<T> {
         upper_val: &str,
     ) -> usize;
 
-    /// Estimate the number of results for an (annotation regular expression search)[#regex_anno_search]
+    /// Estimate the number of results for an [annotation regular expression search](#tymethod.regex_anno_search)
     /// for a given pattern.
     ///
     /// - `ns` - If given, only annotations having this namespace are considered.
