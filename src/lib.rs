@@ -1,4 +1,4 @@
-//! This is an graph-based linguistic corpus query system which implements the ANNIS Query Language (AQL).
+//! This is a graph-based linguistic corpus query system which implements the ANNIS Query Language (AQL).
 //! The main entry point to the API is the [CorpusStorage](struct.CorpusStorage.html) struct which allows to manage and query a database of corpora.
 
 // workaround for doc.rs bug that uses nightly compiler and complains that the global allocator is not stabilized yet
