@@ -339,8 +339,17 @@ impl<'a> NodeSearch<'a> {
                     location_in_query
                 )),
             }
+        } else if val.is_some() {
+            let val = val.unwrap();
+            let node_annos = db.node_annos.clone();
+            filters.push(Box::new(move |m| {
+                if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                    return anno_val == &val;
+                } else {
+                    return false;
+                }
+            }));
         };
-        
         return Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
