@@ -7,5 +7,7 @@ for d in os.listdir('relannis/'):
     print("Checking " + d)
     if(os.path.isdir('relannis/' + d)):
         print("Converting " + d)
-        call(["build/annis_runner", "import", 'relannis/' + d, 'data/' + d])
+        call("target/release/annis data/ --cmd 'import relannis/" + d + " " + d + "'", shell=True)
+
+
 

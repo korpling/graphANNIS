@@ -1,44 +1,40 @@
-extern crate bencher;
+extern crate criterion;
 extern crate clap;
 
 extern crate graphannis;
 
-use bencher::Bencher;
-use std::path::{Path, PathBuf};
 use clap::*;
+use criterion::Criterion;
+use criterion::Bencher;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
 
-use bencher::{TDynBenchFn, TestDesc, TestDescAndFn, TestFn, TestOpts};
-use std::borrow::Cow;
 use std::sync::Arc;
 
+use graphannis::CorpusStorage;
+use graphannis::corpusstorage::QueryLanguage;
 use graphannis::util;
-use graphannis::api::corpusstorage::CorpusStorage;
 
-struct CountBench {
+pub struct CountBench {
     pub def: util::SearchDef,
     pub corpus: String,
     pub cs: Arc<CorpusStorage>,
 }
 
-impl TDynBenchFn for CountBench {
-    #[allow(unused_must_use)]
-    fn run(&self, bench: &mut Bencher) {
-        self.cs.preload(&self.corpus);
-
-        bench.iter(|| {
-            if let Ok(count) = self.cs.count(&self.corpus, &self.def.aql) {
-                assert_eq!(self.def.count, count);
-            } else {
-                assert_eq!(self.def.count, 0);
-            }
-        });
+impl std::fmt::Debug for CountBench {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}/{}", self.corpus, self.def.name)
     }
 }
 
-pub fn count_bench(data_dir: &Path, queries_dir: &Path, use_parallel_joins : bool) -> std::vec::Vec<bencher::TestDescAndFn> {
+pub fn create_query_input(
+    data_dir: &Path,
+    queries_dir: &Path,
+    use_parallel_joins: bool,
+) -> std::vec::Vec<CountBench> {
     let mut benches = std::vec::Vec::new();
 
-    let cs = Arc::new(CorpusStorage::new_auto_cache_size(data_dir, use_parallel_joins).unwrap());
+    let cs = Arc::new(CorpusStorage::with_auto_cache_size(data_dir, use_parallel_joins).unwrap());
 
     // each folder is one corpus
     if let Ok(paths) = std::fs::read_dir(queries_dir) {
@@ -53,16 +49,10 @@ pub fn count_bench(data_dir: &Path, queries_dir: &Path, use_parallel_joins : boo
                                 bench_name.push_str("/");
                                 bench_name.push_str(&def.name);
 
-                                benches.push(TestDescAndFn {
-                                    desc: TestDesc {
-                                        name: Cow::from(bench_name),
-                                        ignore: false,
-                                    },
-                                    testfn: TestFn::DynBenchFn(Box::new(CountBench {
-                                        def,
-                                        corpus: corpus_name.clone(),
-                                        cs: cs.clone(),
-                                    })),
+                                benches.push(CountBench {
+                                    def,
+                                    corpus: corpus_name.clone(),
+                                    cs: cs.clone(),
                                 });
                             }
                         }
@@ -76,25 +66,56 @@ pub fn count_bench(data_dir: &Path, queries_dir: &Path, use_parallel_joins : boo
 }
 
 fn main() {
-    use bencher::run_tests_console;
-
     let matches = App::new("graphANNIS search benchmark")
-        .arg(Arg::with_name("logfile").long("logfile").takes_value(true))
-        .arg(Arg::with_name("data").long("data").short("d").takes_value(true).required(true))
-        .arg(Arg::with_name("queries").long("queries").short("q").takes_value(true).required(true))
-        .arg(Arg::with_name("parallel").long("parallel").short("p").takes_value(false).required(false))
+        .arg(Arg::with_name("output-dir").long("output-dir").takes_value(true))
+        .arg(
+            Arg::with_name("data")
+                .long("data")
+                .short("d")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("queries")
+                .long("queries")
+                .short("q")
+                .takes_value(true)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("parallel")
+                .long("parallel")
+                .short("p")
+                .takes_value(false)
+                .required(false),
+        )
+        .arg(Arg::with_name("save-baseline").long("save-baseline").takes_value(true).required(false))
+        .arg(Arg::with_name("baseline").long("baseline").takes_value(true).required(false))
+        .arg(Arg::with_name("nsamples").long("nsamples").takes_value(true).required(false))
         .arg(Arg::with_name("FILTER").required(false))
-        
         .get_matches();
 
-    let mut test_opts = TestOpts::default();
+    criterion::init_logging();
 
-    if let Some(filter) = matches.value_of("FILTER") {
-        test_opts.filter = Some(String::from(filter));
+    let mut crit : Criterion = Criterion::default().warm_up_time(Duration::from_millis(500));
+    if let Some(nsamples) = matches.value_of("nsamples") {
+        crit = crit.sample_size(nsamples.parse::<usize>().unwrap());
+    } else {
+        crit = crit.sample_size(5);
     }
 
-    if let Some(log) = matches.value_of("logfile") {
-        test_opts.logfile = Some(PathBuf::from(log));
+    if let Some(out) = matches.value_of("output-dir") {
+        crit = crit.output_directory(&PathBuf::from(out));
+    }
+
+    if let Some(baseline) = matches.value_of("save-baseline") {
+        crit = crit.save_baseline(baseline.to_string());
+    } else if let Some(baseline) = matches.value_of("baseline") {
+        crit = crit.retain_baseline(baseline.to_string());
+    }
+
+    if let Some(filter) = matches.value_of("FILTER") {
+        crit = crit.with_filter(String::from(filter))
     }
 
     let data_dir: PathBuf = if let Some(dir) = matches.value_of("data") {
@@ -108,8 +129,20 @@ fn main() {
         PathBuf::from("queries")
     };
 
-    let use_parallel_joins =  matches.is_present("parallel");
+    let use_parallel_joins = matches.is_present("parallel");
 
-    let benches = count_bench(&data_dir, &queries_dir, use_parallel_joins);
-    run_tests_console(&test_opts, benches).unwrap();
+    let benches = create_query_input(&data_dir, &queries_dir, use_parallel_joins);
+
+    crit.bench_function_over_inputs("count", |b : &mut Bencher, obj : &CountBench| {
+        obj.cs.preload(&obj.corpus).unwrap();
+        b.iter(|| {
+            if let Ok(count) = obj.cs.count(&obj.corpus, &obj.def.aql, QueryLanguage::AQL, ) {
+                assert_eq!(obj.def.count, count);
+            } else {
+                assert_eq!(obj.def.count, 0);
+            }
+        });
+    }, benches).final_summary();
+
+
 }

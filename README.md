@@ -1,12 +1,13 @@
-Linux & MacOS: [![Build Status Linux & MacOS X](https://travis-ci.org/corpus-tools/graphANNIS.svg?branch=develop)](https://travis-ci.org/corpus-tools/graphANNIS)
-Windows: [![Build status Windows](https://ci.appveyor.com/api/projects/status/27axqoanq6rj3xps/branch/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/develop)
+Build status: [![Build Status Linux & MacOS X](https://travis-ci.org/corpus-tools/graphANNIS.svg?branch=develop)](https://travis-ci.org/corpus-tools/graphANNIS) (Linux & MacOS)
+[![Build status Windows](https://ci.appveyor.com/api/projects/status/27axqoanq6rj3xps/branch/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/develop) (Windows)
 
 graphANNIS
 ==========
 
-This is a prototype for a new backend implementation of the ANNIS linguistic search and visualization system (http://github.com/korpling/ANNIS/). 
+This is a new backend implementation of the ANNIS linguistic search and visualization system (http://corpus-tools.org/annis/). 
 
-While there are test cases it is **highly experimental code and it is not ready to be used by end-users yet**!
+While there are test cases, this project is still in a pre-release beta phase. 
+**Only a sub-set of the ANNIS Query Langugage (AQL) is supported yet (full support is planned).**
 Integration with ANNIS is currently implemented in a special branch: https://github.com/thomaskrause/ANNIS/tree/feature/graphannis
 
 

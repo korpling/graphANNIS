@@ -49,7 +49,8 @@ macro_rules! try_cerr {
 }
 
 
-
+/// Simple definition of a matrix from a single data type.
+pub type Matrix<T> = Vec<Vec<T>>;
 
 
 pub mod corpusstorage;

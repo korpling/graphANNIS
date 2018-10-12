@@ -1,8 +1,9 @@
-use std::ffi::CString;
-use libc::{size_t, c_char, c_void};
+use libc::{c_char, c_void, size_t};
 use std;
-
-use {Matrix,FrequencyTable,Annotation, NodeID, Edge, Component, NodeDesc};
+use std::ffi::CString;
+use graph::{Annotation, Component, Edge, NodeID};
+use corpusstorage::{FrequencyTable, QueryAttributeDescription};
+use super::Matrix;
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {
@@ -24,11 +25,10 @@ pub extern "C" fn annis_str_free(s: *mut c_char) {
     };
 }
 
+pub type IterPtr<T> = Box<Iterator<Item = T>>;
 
-pub type IterPtr<T> = Box<Iterator<Item=T>>;
-
-pub fn iter_next<T>(ptr : * mut Box<Iterator<Item=T>>) -> * mut T {
-    let it : &mut Box<Iterator<Item=T>> = cast_mut!(ptr);
+pub fn iter_next<T>(ptr: *mut Box<Iterator<Item = T>>) -> *mut T {
+    let it: &mut Box<Iterator<Item = T>> = cast_mut!(ptr);
     if let Some(v) = it.next() {
         return Box::into_raw(Box::new(v));
     }
@@ -36,28 +36,32 @@ pub fn iter_next<T>(ptr : * mut Box<Iterator<Item=T>>) -> * mut T {
 }
 
 #[no_mangle]
-pub extern "C" fn annis_iter_nodeid_next(ptr : * mut IterPtr<NodeID>) -> * mut NodeID {return iter_next(ptr);}
+pub extern "C" fn annis_iter_nodeid_next(ptr: *mut IterPtr<NodeID>) -> *mut NodeID {
+    return iter_next(ptr);
+}
 
-pub fn vec_size<T>(ptr : * const Vec<T>) -> size_t {
-    let v : &Vec<T> = cast_const!(ptr);
+pub fn vec_size<T>(ptr: *const Vec<T>) -> size_t {
+    let v: &Vec<T> = cast_const!(ptr);
     return v.len();
 }
 
-pub fn vec_get<T>(ptr : * const Vec<T>, i : size_t) -> * const T {
-    let v : &Vec<T> = cast_const!(ptr);
+pub fn vec_get<T>(ptr: *const Vec<T>, i: size_t) -> *const T {
+    let v: &Vec<T> = cast_const!(ptr);
     if i < v.len() {
-        return &v[i] as * const T;
+        return &v[i] as *const T;
     }
     return std::ptr::null();
 }
 
 #[no_mangle]
-pub extern "C" fn annis_vec_str_size(ptr : * const Vec<CString>) -> size_t {vec_size(ptr)}
+pub extern "C" fn annis_vec_str_size(ptr: *const Vec<CString>) -> size_t {
+    vec_size(ptr)
+}
 
 #[no_mangle]
-pub extern "C" fn annis_vec_str_get(ptr : * const Vec<CString>, i : size_t) -> * const c_char {
+pub extern "C" fn annis_vec_str_get(ptr: *const Vec<CString>, i: size_t) -> *const c_char {
     // custom implementation for string vectors, don't return a referance to CString but a char pointer
-    let strvec : &Vec<CString> = cast_const!(ptr);
+    let strvec: &Vec<CString> = cast_const!(ptr);
     if i < strvec.len() {
         return strvec[i].as_ptr();
     } else {
@@ -66,87 +70,137 @@ pub extern "C" fn annis_vec_str_get(ptr : * const Vec<CString>, i : size_t) -> *
 }
 
 #[no_mangle]
-pub extern "C" fn annis_vec_str_new() -> * mut Vec<CString> {
-    let result : Vec<CString> = Vec::new();
+pub extern "C" fn annis_vec_str_new() -> *mut Vec<CString> {
+    let result: Vec<CString> = Vec::new();
     return Box::into_raw(Box::new(result));
 }
 
 #[no_mangle]
-pub extern "C" fn annis_vec_str_push(ptr : * mut Vec<CString>, v : * const c_char) {
-    let strvec : &mut Vec<CString> = cast_mut!(ptr);
-    let v : &str = &cstr!(v);
+pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
+    let strvec: &mut Vec<CString> = cast_mut!(ptr);
+    let v: &str = &cstr!(v);
     if let Ok(cval) = CString::new(v) {
         strvec.push(cval);
     }
 }
 
 #[no_mangle]
-pub extern "C" fn annis_vec_annotation_size(ptr : * const Vec<Annotation>) -> size_t {vec_size(ptr)}
-
-#[no_mangle]
-pub extern "C" fn annis_vec_annotation_get(ptr : * const Vec<Annotation>, i : size_t) -> * const Annotation {vec_get(ptr, i)}
-
-#[no_mangle]
-pub extern "C" fn annis_vec_edge_size(ptr : * const Vec<Edge>) -> size_t {vec_size(ptr)}
-
-#[no_mangle]
-pub extern "C" fn annis_vec_edge_get(ptr : * const Vec<Edge>, i : size_t) -> * const Edge { vec_get(ptr, i)}
-
-#[no_mangle]
-pub extern "C" fn annis_vec_component_size(ptr : * const Vec<Component>) -> size_t {vec_size(ptr)}
-
-#[no_mangle]
-pub extern "C" fn annis_vec_component_get(ptr : * const Vec<Component>, i : size_t) -> * const Component { vec_get(ptr, i)}
-
-#[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_size(ptr : * const Vec<NodeDesc>) -> size_t {vec_size(ptr)}
-
-#[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get_component_nr(ptr : * const Vec<NodeDesc>, i : size_t) -> usize { 
-    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
-    let desc : &NodeDesc = cast_const!(desc_ptr);
-    return desc.component_nr;
+pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation = cast_const!(ptr);
+    return CString::new(anno.key.ns.as_str()).unwrap_or_default().into_raw();
 }
 
+#[no_mangle]
+pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation= cast_const!(ptr);
+    return CString::new(anno.key.name.as_str()).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
+    let anno : &Annotation = cast_const!(ptr);
+    return CString::new(anno.val.as_str()).unwrap_or_default().into_raw();
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_annotation_size(ptr: *const Vec<Annotation>) -> size_t {
+    vec_size(ptr)
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_annotation_get(
+    ptr: *const Vec<Annotation>,
+    i: size_t,
+) -> *const Annotation {
+    vec_get(ptr, i)
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_edge_size(ptr: *const Vec<Edge>) -> size_t {
+    vec_size(ptr)
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_edge_get(ptr: *const Vec<Edge>, i: size_t) -> *const Edge {
+    vec_get(ptr, i)
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_component_size(ptr: *const Vec<Component>) -> size_t {
+    vec_size(ptr)
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_component_get(
+    ptr: *const Vec<Component>,
+    i: size_t,
+) -> *const Component {
+    vec_get(ptr, i)
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_qattdesc_size(ptr: *const Vec<QueryAttributeDescription>) -> size_t {
+    vec_size(ptr)
+}
+
+#[no_mangle]
+pub extern "C" fn annis_vec_qattdesc_get_component_nr(
+    ptr: *const Vec<QueryAttributeDescription>,
+    i: size_t,
+) -> usize {
+    let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
+    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    return desc.alternative;
+}
 
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get_aql_fragment(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
-    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
-    let desc : &NodeDesc = cast_const!(desc_ptr);
-    let cstr : CString = CString::new(desc.aql_fragment.as_str()).unwrap_or(CString::default());
+pub extern "C" fn annis_vec_qattdesc_get_aql_fragment(
+    ptr: *const Vec<QueryAttributeDescription>,
+    i: size_t,
+) -> *mut c_char {
+    let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
+    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    let cstr: CString = CString::new(desc.query_fragment.as_str()).unwrap_or(CString::default());
     return cstr.into_raw();
 }
 
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get_variable(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
-    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
-    let desc : &NodeDesc = cast_const!(desc_ptr);
-    let cstr : CString = CString::new(desc.variable.as_str()).unwrap_or(CString::default());
+pub extern "C" fn annis_vec_qattdesc_get_variable(
+    ptr: *const Vec<QueryAttributeDescription>,
+    i: size_t,
+) -> *mut c_char {
+    let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
+    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
+    let cstr: CString = CString::new(desc.variable.as_str()).unwrap_or(CString::default());
     return cstr.into_raw();
 }
 
 /// Result char* must be freeed with annis_str_free!
 #[no_mangle]
-pub extern "C" fn annis_vec_nodedesc_get_anno_name(ptr : * const Vec<NodeDesc>, i : size_t) -> *mut c_char { 
-    let desc_ptr : *const NodeDesc = vec_get(ptr, i);
-    let desc : &NodeDesc = cast_const!(desc_ptr);
+pub extern "C" fn annis_vec_qattdesc_get_anno_name(
+    ptr: *const Vec<QueryAttributeDescription>,
+    i: size_t,
+) -> *mut c_char {
+    let desc_ptr: *const QueryAttributeDescription = vec_get(ptr, i);
+    let desc: &QueryAttributeDescription = cast_const!(desc_ptr);
     if let Some(ref anno_name) = desc.anno_name {
-        let cstr : CString = CString::new(anno_name.as_str()).unwrap_or(CString::default());
+        let cstr: CString = CString::new(anno_name.as_str()).unwrap_or(CString::default());
         return cstr.into_raw();
     } else {
         return std::ptr::null_mut();
     }
-    
 }
 
 #[no_mangle]
-pub extern "C" fn annis_matrix_str_nrows(ptr : * const Matrix<CString>) -> size_t {vec_size(ptr)}
+pub extern "C" fn annis_matrix_str_nrows(ptr: *const Matrix<CString>) -> size_t {
+    vec_size(ptr)
+}
 
 #[no_mangle]
-pub extern "C" fn annis_matrix_str_ncols(ptr : * const Matrix<CString>) -> size_t {
-    let v : &Vec<Vec<CString>> = cast_const!(ptr);
+pub extern "C" fn annis_matrix_str_ncols(ptr: *const Matrix<CString>) -> size_t {
+    let v: &Vec<Vec<CString>> = cast_const!(ptr);
     if !v.is_empty() {
         return v[0].len();
     }
@@ -154,9 +208,13 @@ pub extern "C" fn annis_matrix_str_ncols(ptr : * const Matrix<CString>) -> size_
 }
 
 #[no_mangle]
-pub extern "C" fn annis_matrix_str_get(ptr : * const Matrix<CString>, row : size_t, col : size_t) -> * const c_char {
+pub extern "C" fn annis_matrix_str_get(
+    ptr: *const Matrix<CString>,
+    row: size_t,
+    col: size_t,
+) -> *const c_char {
     // custom implementation for string matrix, don't return a referance to CString but a char pointer
-    let strmatrix : &Vec<Vec<CString>> = cast_const!(ptr);
+    let strmatrix: &Vec<Vec<CString>> = cast_const!(ptr);
     if row < strmatrix.len() {
         if col < strmatrix[row].len() {
             return strmatrix[row][col].as_ptr();
@@ -166,11 +224,13 @@ pub extern "C" fn annis_matrix_str_get(ptr : * const Matrix<CString>, row : size
 }
 
 #[no_mangle]
-pub extern "C" fn annis_freqtable_str_nrows(ptr : * const FrequencyTable<CString>) -> size_t {vec_size(ptr)}
+pub extern "C" fn annis_freqtable_str_nrows(ptr: *const FrequencyTable<CString>) -> size_t {
+    vec_size(ptr)
+}
 
 #[no_mangle]
-pub extern "C" fn annis_freqtable_str_ncols(ptr : * const FrequencyTable<CString>) -> size_t {
-    let v : &FrequencyTable<CString> = cast_const!(ptr);
+pub extern "C" fn annis_freqtable_str_ncols(ptr: *const FrequencyTable<CString>) -> size_t {
+    let v: &FrequencyTable<CString> = cast_const!(ptr);
     if !v.is_empty() {
         return v[0].0.len();
     }
@@ -178,9 +238,13 @@ pub extern "C" fn annis_freqtable_str_ncols(ptr : * const FrequencyTable<CString
 }
 
 #[no_mangle]
-pub extern "C" fn annis_freqtable_str_get(ptr : * const FrequencyTable<CString>, row : size_t, col : size_t) -> * const c_char {
+pub extern "C" fn annis_freqtable_str_get(
+    ptr: *const FrequencyTable<CString>,
+    row: size_t,
+    col: size_t,
+) -> *const c_char {
     // custom implementation for string matrix, don't return a referance to CString but a char pointer
-    let ft : &FrequencyTable<CString> = cast_const!(ptr);
+    let ft: &FrequencyTable<CString> = cast_const!(ptr);
     if row < ft.len() {
         if col < ft[row].0.len() {
             return ft[row].0[col].as_ptr();
@@ -190,8 +254,11 @@ pub extern "C" fn annis_freqtable_str_get(ptr : * const FrequencyTable<CString>,
 }
 
 #[no_mangle]
-pub extern "C" fn annis_freqtable_str_count(ptr : * const FrequencyTable<CString>, row : size_t) -> size_t {
-    let ft : &FrequencyTable<CString> = cast_const!(ptr);
+pub extern "C" fn annis_freqtable_str_count(
+    ptr: *const FrequencyTable<CString>,
+    row: size_t,
+) -> size_t {
+    let ft: &FrequencyTable<CString> = cast_const!(ptr);
     if row < ft.len() {
         return ft[row].1;
     }

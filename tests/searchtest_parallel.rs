@@ -1,6 +1,7 @@
 extern crate graphannis;
 
-use graphannis::api::corpusstorage::CorpusStorage;
+use graphannis::CorpusStorage;
+use graphannis::corpusstorage::QueryLanguage;
 use graphannis::util;
 
 use std::path::{PathBuf};
@@ -14,12 +15,12 @@ thread_local!{
          let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
             path
         } else {
-            String::from("../data")
+            String::from("data")
         });
 
         // only execute the test if the directory exists
         let cs = if db_dir.exists() && db_dir.is_dir() {
-            CorpusStorage::new_auto_cache_size(&db_dir, true).ok()
+            CorpusStorage::with_auto_cache_size(&db_dir, true).ok()
         } else {
             None
         };
@@ -31,13 +32,13 @@ fn get_query_dir() -> PathBuf {
     let query_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_QUERIES") {
         path
     } else {
-        String::from("../queries")
+        String::from("queries")
     });
     query_dir
 }
 
 
-fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
+fn search_test_base(corpus : &str, panic_on_invalid : bool) {
     CORPUS_STORAGE.with(|cs| {
         if let Some(ref cs) = *cs.borrow() {
             if let Ok(corpora) = cs.list() {
@@ -45,9 +46,9 @@ fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
                 // ignore of corpus does not exist
                 if corpora.contains(corpus) {
                     let mut d = get_query_dir();
-                    d.push(query_set);
+                    d.push(corpus);
                     for def in util::get_queries_from_folder(&d, panic_on_invalid) {
-                        let count = cs.count(corpus, &def.aql).unwrap_or(0);
+                        let count = cs.count(corpus, &def.aql, QueryLanguage::AQL).unwrap_or(0);
                         assert_eq!(
                             def.count, count,
                             "Query '{}' ({}) on corpus {} should have had count {} but was {}.",
@@ -61,35 +62,6 @@ fn search_test_base(corpus : &str, query_set : &str, panic_on_invalid : bool) {
     });
 }
 
-#[ignore]
-#[test]
-fn count_gum() {
-    search_test_base("GUM", "SearchTestGUM", true);
-}
-
-#[ignore]
-#[test]
-fn count_pcc2() {
-    search_test_base("pcc2", "SearchTestPcc2", true);
-}
-
-#[ignore]
-#[test]
-fn count_parlament() {
-    search_test_base("parlament", "SearchTestParlament", true);
-}
-
-#[ignore]
-#[test]
-fn count_tiger() {
-    search_test_base("tiger2", "SearchTestTiger", true);
-}
-
-#[ignore]
-#[test]
-fn count_ridges() {
-    search_test_base("ridges7", "SearchTestRidges", true);
-}
 
 #[ignore]
 #[test]
@@ -102,7 +74,7 @@ fn all_from_folder() {
                 if let Ok(ftype) = p.file_type() {
                     if ftype.is_dir() {
                         if let Ok(corpus_name) = p.file_name().into_string() {
-                           search_test_base(&corpus_name, &corpus_name, true);
+                           search_test_base(&corpus_name, true);
                         }
                     }
                 }
