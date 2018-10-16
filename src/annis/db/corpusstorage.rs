@@ -544,7 +544,7 @@ impl CorpusStorage {
         corpus_name: Option<String>,
     ) -> Result<String> {
         let (orig_name, mut graph) = match format {
-            ImportFormat::RelANNIS => relannis::load(path)?,
+            ImportFormat::RelANNIS => relannis::load(path, |status| info!("{}", status))?,
         };
 
         let r = graph.ensure_loaded_all();
