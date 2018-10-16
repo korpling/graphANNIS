@@ -2,7 +2,7 @@
 //! The main entry point to the API is the [CorpusStorage](struct.CorpusStorage.html) struct which allows to manage and query a database of corpora.
 
 // workaround for doc.rs bug that uses nightly compiler and complains that the global allocator is not stabilized yet
-#![cfg_attr(docs_rs_workaround, feature(global_allocator,allocator_api))]
+#![cfg_attr(docs_rs_workaround, feature(global_allocator, allocator_api))]
 // `error_chain!` can recurse deeply
 #![recursion_limit = "1024"]
 
@@ -65,7 +65,8 @@ pub use annis::db::corpusstorage::CorpusStorage;
 /// Types that are used by the `CorpusStorage` API.
 pub mod corpusstorage {
     pub use annis::db::corpusstorage::{
-        CorpusInfo, FrequencyDefEntry, GraphStorageInfo, LoadStatus, QueryLanguage, ResultOrder,
+        CacheStrategy, CorpusInfo, FrequencyDefEntry, GraphStorageInfo, LoadStatus, QueryLanguage,
+        ResultOrder,
     };
     pub use annis::types::{CountExtra, FrequencyTable, QueryAttributeDescription};
 }

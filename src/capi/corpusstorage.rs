@@ -1,8 +1,10 @@
 use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
-use corpusstorage::{CountExtra, FrequencyTable, QueryAttributeDescription};
-use corpusstorage::{FrequencyDefEntry, QueryLanguage, ResultOrder};
+use corpusstorage::{
+    CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, QueryAttributeDescription,
+    QueryLanguage, ResultOrder,
+};
 use graph::{AnnotationStorage, Component, ComponentType};
 use libc;
 use relannis;
@@ -44,7 +46,8 @@ pub extern "C" fn annis_cs_with_max_cache_size(
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
-    let s = CorpusStorage::with_max_cache_size(&db_dir_path, Some(max_cache_size), use_parallel);
+    let s =
+        CorpusStorage::with_cache_strategy(&db_dir_path, CacheStrategy::FixedMaxSize(max_cache_size), use_parallel);
 
     match s {
         Ok(result) => {
