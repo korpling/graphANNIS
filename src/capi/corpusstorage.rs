@@ -2,12 +2,11 @@ use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
 use corpusstorage::{
-    CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, QueryAttributeDescription,
-    QueryLanguage, ResultOrder,
+    CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
+    QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
 use graph::{AnnotationStorage, Component, ComponentType};
 use libc;
-use relannis;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
@@ -46,8 +45,11 @@ pub extern "C" fn annis_cs_with_max_cache_size(
 
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
-    let s =
-        CorpusStorage::with_cache_strategy(&db_dir_path, CacheStrategy::FixedMaxMemory(max_cache_size), use_parallel);
+    let s = CorpusStorage::with_cache_strategy(
+        &db_dir_path,
+        CacheStrategy::FixedMaxMemory(max_cache_size),
+        use_parallel,
+    );
 
     match s {
         Ok(result) => {
@@ -381,12 +383,13 @@ pub extern "C" fn annis_cs_node_descriptions(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_cs_import_relannis(
+pub extern "C" fn annis_cs_import_from_fs(
     ptr: *mut CorpusStorage,
-    corpus: *const libc::c_char,
     path: *const libc::c_char,
+    format: ImportFormat,
+    corpus: *const libc::c_char,
     err: *mut *mut ErrorList,
-) {
+) -> *mut libc::c_char {
     let cs: &mut CorpusStorage = cast_mut!(ptr);
 
     let override_corpus_name: Option<String> = if corpus.is_null() {
@@ -396,13 +399,9 @@ pub extern "C" fn annis_cs_import_relannis(
     };
     let path: &str = &cstr!(path);
 
-    let (corpus, db) = try_cerr!(relannis::load(&PathBuf::from(path)), err, ());
-    let corpus: String = if let Some(o) = override_corpus_name {
-        o
-    } else {
-        corpus
-    };
-    cs.import(&corpus, db);
+    let corpus_name : String =  try_cerr!(cs.import_from_fs(&PathBuf::from(path), format, override_corpus_name), err, std::ptr::null_mut());
+
+    return CString::new(corpus_name.as_str()).unwrap_or_default().into_raw();
 }
 
 #[no_mangle]

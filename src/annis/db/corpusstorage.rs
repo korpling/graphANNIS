@@ -7,6 +7,7 @@ use annis::db::plan::ExecutionPlan;
 use annis::db::query;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
+use annis::db::relannis;
 use annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
 use annis::errors::ErrorKind;
 use annis::errors::*;
@@ -195,6 +196,13 @@ impl FromStr for FrequencyDefEntry {
 #[repr(C)]
 pub enum QueryLanguage {
     AQL,
+}
+
+/// An enum of all supported input formats of graphANNIS.
+#[repr(C)]
+pub enum ImportFormat {
+    /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
+    RelANNIS,
 }
 
 /// Different strategies how it is decided when corpora need to be removed from the cache.
@@ -524,11 +532,21 @@ impl CorpusStorage {
         Ok(db_entry)
     }
 
-    /// Import a corpus from an external location into this corpus storage.
+    /// Import a corpus from an external location on the file system into this corpus storage.
     ///
-    /// - `corpus_name` - The name of the new corpus
-    /// - `graph` - The corpus data
-    pub fn import(&self, corpus_name: &str, mut graph: Graph) {
+    /// - `path` - The location on the file system where the corpus data is located.
+    /// - `format` - The format in which this corpus data is stored.
+    /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name.
+    pub fn import_from_fs(
+        &self,
+        path: &Path,
+        format: ImportFormat,
+        corpus_name: Option<String>,
+    ) -> Result<String> {
+        let (orig_name, mut graph) = match format {
+            ImportFormat::RelANNIS => relannis::load(path)?,
+        };
+
         let r = graph.ensure_loaded_all();
         if let Err(e) = r {
             error!(
@@ -537,8 +555,10 @@ impl CorpusStorage {
             );
         }
 
+        let corpus_name = corpus_name.unwrap_or(orig_name);
+
         let mut db_path = PathBuf::from(&self.db_dir);
-        db_path.push(corpus_name);
+        db_path.push(corpus_name.clone());
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
@@ -547,7 +567,7 @@ impl CorpusStorage {
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
 
         // remove any possible old corpus
-        let old_entry = cache.remove(corpus_name);
+        let old_entry = cache.remove(&corpus_name);
         if let Some(_) = old_entry {
             if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
                 error!("Error when removing existing files {}", e);
@@ -574,10 +594,12 @@ impl CorpusStorage {
 
         // make it known to the cache
         cache.insert(
-            String::from(corpus_name),
+            corpus_name.clone(),
             Arc::new(RwLock::new(CacheEntry::Loaded(graph))),
         );
-        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![&corpus_name]);
+
+        Ok(corpus_name)
     }
 
     /// Delete a corpus from this corpus storage.

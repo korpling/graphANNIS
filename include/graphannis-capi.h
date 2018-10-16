@@ -59,6 +59,16 @@ typedef enum {
   PartOfSubcorpus,
 } AnnisComponentType;
 
+/*
+ * An enum of all supported input formats of graphANNIS.
+ */
+typedef enum {
+  /*
+   * Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
+   */
+  RelANNIS,
+} AnnisImportFormat;
+
 typedef enum {
   Off,
   Error,
@@ -243,9 +253,10 @@ AnnisFrequencyTable_AnnisCString *annis_cs_frequency(const AnnisCorpusStorage *p
                                                      const char *frequency_query_definition,
                                                      AnnisErrorList **err);
 
-void annis_cs_import_relannis(AnnisCorpusStorage *ptr,
-                              const char *corpus,
+char *annis_cs_import_from_fs(AnnisCorpusStorage *ptr,
                               const char *path,
+                              AnnisImportFormat format,
+                              const char *corpus,
                               AnnisErrorList **err);
 
 /*
