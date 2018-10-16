@@ -1,5 +1,5 @@
-use annis::db::annostorage::AnnoStorage;
 use annis::db;
+use annis::db::annostorage::AnnoStorage;
 use annis::db::aql;
 use annis::db::aql::operators;
 use annis::db::exec::nodesearch::NodeSearchSpec;
@@ -7,6 +7,7 @@ use annis::db::plan::ExecutionPlan;
 use annis::db::query;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
+use annis::db::relannis;
 use annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
 use annis::errors::ErrorKind;
 use annis::errors::*;
@@ -197,6 +198,26 @@ pub enum QueryLanguage {
     AQL,
 }
 
+/// An enum of all supported input formats of graphANNIS.
+#[repr(C)]
+pub enum ImportFormat {
+    /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
+    RelANNIS,
+}
+
+/// Different strategies how it is decided when corpora need to be removed from the cache.
+pub enum CacheStrategy {
+    /// Fixed maximum size of the cache in bytes.
+    /// Before and after a new entry is loaded, the cache is cleared to have at maximum this given size.
+    /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
+    FixedMaxMemory(usize),
+    /// Maximum percent of the current free space/memory available.
+    /// E.g. if the percent is 25 and there is 4,5 GB of free memory not used by the cache itself, the cache will use at most 1,125 GB memory.
+    /// Cache size is checked before and after a corpus is loaded.
+    /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
+    PercentOfFreeMemory(f64),
+}
+
 /// A thread-safe API for managing corpora stored in a common location on the file system.
 ///
 /// Multiple corpora can be part of a corpus storage and they are identified by their unique name.
@@ -205,7 +226,7 @@ pub enum QueryLanguage {
 pub struct CorpusStorage {
     db_dir: PathBuf,
     lock_file: File,
-    max_allowed_cache_size: Option<usize>,
+    cache_strategy: CacheStrategy,
     corpus_cache: RwLock<LinkedHashMap<String, Arc<RwLock<CacheEntry>>>>,
     query_config: query::Config,
     active_background_workers: Arc<(Mutex<usize>, Condvar)>,
@@ -215,11 +236,11 @@ impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
     ///
     /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
-    /// - `max_cache_size`: The maximum size of the internal corpus cache in bytes. If `None`the cache is never cleared.
+    /// - `cache_strategy`: A strategy for clearing the cache.
     /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
-    pub fn with_max_cache_size(
+    pub fn with_cache_strategy(
         db_dir: &Path,
-        max_cache_size: Option<usize>,
+        cache_strategy: CacheStrategy,
         use_parallel_joins: bool,
     ) -> Result<CorpusStorage> {
         let query_config = query::Config { use_parallel_joins };
@@ -228,7 +249,7 @@ impl CorpusStorage {
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             lock_file: create_lockfile_for_directory(db_dir)?,
-            max_allowed_cache_size: max_cache_size,
+            cache_strategy,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config,
             active_background_workers,
@@ -248,24 +269,14 @@ impl CorpusStorage {
         let query_config = query::Config { use_parallel_joins };
 
         // get the amount of available memory, use a quarter of it per default
-        let cache_size: usize = if let Ok(mem) = sys_info::mem_info() {
-            (((mem.avail as usize * 1024) as f64) / 4.0) as usize // mem.free is in KiB
-        } else {
-            // default to 1 GB
-            1024 * 1024 * 1024
-        };
-        info!(
-            "Using cache with size {:.*} MiB",
-            2,
-            cache_size as f64 / ((1024 * 1024) as f64)
-        );
+        let cache_strategy: CacheStrategy = CacheStrategy::PercentOfFreeMemory(25.0);
 
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
 
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
             lock_file: create_lockfile_for_directory(db_dir)?,
-            max_allowed_cache_size: Some(cache_size), // 1 GB
+            cache_strategy,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
             query_config: query_config,
             active_background_workers,
@@ -418,6 +429,9 @@ impl CorpusStorage {
             }
         };
 
+        // make sure the cache is not too large before adding the new corpus
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
+
         let mut db = Graph::new();
         if create_corpus {
             db.persist_to(&db_path)
@@ -431,7 +445,7 @@ impl CorpusStorage {
         cache.remove(corpus_name);
         cache.insert(String::from(corpus_name), entry.clone());
 
-        check_cache_size_and_remove(self.max_allowed_cache_size, cache);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
 
         return Ok(entry);
     }
@@ -516,11 +530,25 @@ impl CorpusStorage {
         Ok(db_entry)
     }
 
-    /// Import a corpus from an external location into this corpus storage.
+    /// Import a corpus from an external location on the file system into this corpus storage.
     ///
-    /// - `corpus_name` - The name of the new corpus
-    /// - `graph` - The corpus data
-    pub fn import(&self, corpus_name: &str, mut graph: Graph) {
+    /// - `path` - The location on the file system where the corpus data is located.
+    /// - `format` - The format in which this corpus data is stored.
+    /// - `corpus_name` - Optionally override the name of the new corpus for file formats that already provide a corpus name.
+    pub fn import_from_fs(
+        &self,
+        path: &Path,
+        format: ImportFormat,
+        corpus_name: Option<String>,
+    ) -> Result<String> {
+        let (orig_name, mut graph) = match format {
+            ImportFormat::RelANNIS => relannis::load(path, |status| {
+                info!("{}", status);
+                // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
+                self.check_cache_size_and_remove(vec![]);
+            })?,
+        };
+
         let r = graph.ensure_loaded_all();
         if let Err(e) = r {
             error!(
@@ -529,14 +557,19 @@ impl CorpusStorage {
             );
         }
 
+        let corpus_name = corpus_name.unwrap_or(orig_name);
+
         let mut db_path = PathBuf::from(&self.db_dir);
-        db_path.push(corpus_name);
+        db_path.push(corpus_name.clone());
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
 
+        // make sure the cache is not too large before adding the new corpus
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
+
         // remove any possible old corpus
-        let old_entry = cache.remove(corpus_name);
+        let old_entry = cache.remove(&corpus_name);
         if let Some(_) = old_entry {
             if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
                 error!("Error when removing existing files {}", e);
@@ -563,10 +596,12 @@ impl CorpusStorage {
 
         // make it known to the cache
         cache.insert(
-            String::from(corpus_name),
+            corpus_name.clone(),
             Arc::new(RwLock::new(CacheEntry::Loaded(graph))),
         );
-        check_cache_size_and_remove(self.max_allowed_cache_size, cache);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![&corpus_name]);
+
+        Ok(corpus_name)
     }
 
     /// Delete a corpus from this corpus storage.
@@ -675,11 +710,14 @@ impl CorpusStorage {
 
         if !missing_components.is_empty() {
             // load the needed components
-            let mut lock = db_entry.write().unwrap();
-            let db = get_write_or_error(&mut lock)?;
-            for c in missing_components {
-                db.ensure_loaded(&c)?;
+            {
+                let mut lock = db_entry.write().unwrap();
+                let db = get_write_or_error(&mut lock)?;
+                for c in missing_components {
+                    db.ensure_loaded(&c)?;
+                }
             }
+            self.check_cache_size_and_remove(vec![corpus_name]);
         };
 
         return Ok(PreparationResult { query: q, db_entry });
@@ -687,10 +725,13 @@ impl CorpusStorage {
 
     /// Preloads all annotation and graph storages from the disk into a main memory cache.
     pub fn preload(&self, corpus_name: &str) -> Result<()> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-        let mut lock = db_entry.write().unwrap();
-        let db = get_write_or_error(&mut lock)?;
-        db.ensure_loaded_all()?;
+        {
+            let db_entry = self.get_loaded_entry(corpus_name, false)?;
+            let mut lock = db_entry.write().unwrap();
+            let db = get_write_or_error(&mut lock)?;
+            db.ensure_loaded_all()?;
+        }
+        self.check_cache_size_and_remove(vec![corpus_name]);
         return Ok(());
     }
 
@@ -1458,6 +1499,12 @@ impl CorpusStorage {
 
         return result;
     }
+
+    fn check_cache_size_and_remove(&self, keep: Vec<&str>) {
+        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let cache = &mut *cache_lock;
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, keep);
+    }
 }
 
 impl Drop for CorpusStorage {
@@ -1488,9 +1535,9 @@ mod tests {
     extern crate simplelog;
     extern crate tempdir;
 
+    use corpusstorage::QueryLanguage;
     use update::{GraphUpdate, UpdateEvent};
     use CorpusStorage;
-    use corpusstorage::QueryLanguage;
 
     #[test]
     fn delete() {
@@ -1540,7 +1587,7 @@ mod tests {
         }
     }
 
-     #[test]
+    #[test]
     fn apply_update_add_nodes() {
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
             let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
@@ -1571,7 +1618,6 @@ mod tests {
 
             let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
             assert_eq!(2, node_count);
-            
         }
     }
 
@@ -1593,39 +1639,68 @@ fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<
     }
 }
 
-fn check_cache_size_and_remove(
-    max_cache_size: Option<usize>,
+fn check_cache_size_and_remove_with_cache(
     cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+    cache_strategy: &CacheStrategy,
+    keep: Vec<&str>,
 ) {
     let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
-    // only prune corpora from the cache if max. size was set
-    if let Some(max_cache_size) = max_cache_size {
-        // check size of each corpus
-        let mut size_sum: usize = 0;
-        let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
-        for (corpus, db_entry) in cache.iter() {
-            let lock = db_entry.read().unwrap();
-            if let &CacheEntry::Loaded(ref db) = &*lock {
-                let s = db.size_of(&mut mem_ops);
-                size_sum += s;
-                db_sizes.insert(corpus.clone(), s);
+    let keep: HashSet<&str> = keep.into_iter().collect();
+
+    // check size of each corpus and calculate the sum of used memory
+    let mut size_sum: usize = 0;
+    let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
+    for (corpus, db_entry) in cache.iter() {
+        let lock = db_entry.read().unwrap();
+        if let &CacheEntry::Loaded(ref db) = &*lock {
+            let s = db.size_of_cached(&mut mem_ops);
+            size_sum += s;
+            db_sizes.insert(corpus.clone(), s);
+        }
+    }
+
+    let max_cache_size: usize = match cache_strategy {
+        CacheStrategy::FixedMaxMemory(max_size) => *max_size,
+        CacheStrategy::PercentOfFreeMemory(max_percent) => {
+            // get the current free space in main memory
+            if let Ok(mem) = sys_info::mem_info() {
+                // the free memory
+                let free_system_mem: usize = mem.avail as usize * 1024; // mem.free is in KiB
+                                                                        // A part of the system memory is already used by the cache.
+                                                                        // We want x percent of the overall available memory (thus not used by us), so add the cache size
+                let available_memory: usize = free_system_mem + size_sum;
+                ((available_memory as f64) * (max_percent / 100.0)) as usize
+            } else {
+                // fallback to include only the last loaded corpus if free memory size is unknown
+                0
             }
         }
-        let mut num_of_loaded_corpora = db_sizes.len();
+    };
 
-        // remove older entries (at the beginning) until cache size requirements are met,
-        // but never remove the last loaded entry
-        for (corpus_name, corpus_size) in db_sizes.iter() {
-            if num_of_loaded_corpora > 1 && size_sum > max_cache_size {
+    debug!(
+        "Current cache size is {:.2} MB / max  {:.2} MB",
+        (size_sum as f64) / (1024.0 * 1024.0),
+        (max_cache_size as f64) / (1024.0 * 1024.0)
+    );
+
+    // remove older entries (at the beginning) until cache size requirements are met,
+    // but never remove the last loaded entry
+    for (corpus_name, corpus_size) in db_sizes.iter() {
+        if size_sum > max_cache_size {
+            if !keep.contains(corpus_name.as_str()) {
                 info!("Removing corpus {} from cache", corpus_name);
                 cache.remove(corpus_name);
                 size_sum -= corpus_size;
-                num_of_loaded_corpora -= 1;
-            } else {
-                // nothing to do
-                break;
+                debug!(
+                    "Current cache size is {:.2} MB / max  {:.2} MB",
+                    (size_sum as f64) / (1024.0 * 1024.0),
+                    (max_cache_size as f64) / (1024.0 * 1024.0)
+                );
             }
+        } else {
+            // cache size is smaller, nothing to do
+            break;
         }
     }
 }

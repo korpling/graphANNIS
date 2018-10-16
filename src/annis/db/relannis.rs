@@ -1,6 +1,6 @@
-use annis::errors::*;
-use annis::db::{Graph, ANNIS_NS};
 use annis::db::graphstorage::WriteableGraphStorage;
+use annis::db::{Graph, ANNIS_NS};
+use annis::errors::*;
 use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use csv;
 use multimap::MultiMap;
@@ -31,9 +31,12 @@ struct Text {
 }
 
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
-/// 
+///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
-pub fn load(path: &Path) -> Result<(String, Graph)> {
+pub fn load<F>(path: &Path, progress_callback: F) -> Result<(String, Graph)>
+where
+    F: Fn(&str) -> (),
+{
     // convert to path
     let path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
@@ -51,9 +54,9 @@ pub fn load(path: &Path) -> Result<(String, Graph)> {
         let mut db = Graph::new();
 
         let (corpus_name, corpus_by_preorder, corpus_id_to_name) =
-            parse_corpus_tab(&path, is_annis_33)?;
+            parse_corpus_tab(&path, is_annis_33, &progress_callback)?;
 
-        let texts = parse_text_tab(&path, is_annis_33)?;
+        let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
 
         let nodes_by_text = load_nodes(
             &path,
@@ -61,15 +64,28 @@ pub fn load(path: &Path) -> Result<(String, Graph)> {
             &corpus_id_to_name,
             &corpus_name,
             is_annis_33,
+            &progress_callback,
         )?;
 
-        let component_by_id = load_component_tab(&path, &mut db, is_annis_33)?;
+        let component_by_id = load_component_tab(&path, &mut db, is_annis_33, &progress_callback)?;
 
-        let (pre_to_component, pre_to_edge) =
-            load_rank_tab(&path, &mut db, &component_by_id, is_annis_33)?;
-        load_edge_annotation(&path, &mut db, &pre_to_component, &pre_to_edge, is_annis_33)?;
+        let (pre_to_component, pre_to_edge) = load_rank_tab(
+            &path,
+            &mut db,
+            &component_by_id,
+            is_annis_33,
+            &progress_callback,
+        )?;
+        load_edge_annotation(
+            &path,
+            &mut db,
+            &pre_to_component,
+            &pre_to_edge,
+            is_annis_33,
+            &progress_callback,
+        )?;
 
-        let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33)?;
+        let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
 
         add_subcorpora(
             &mut db,
@@ -82,16 +98,16 @@ pub fn load(path: &Path) -> Result<(String, Graph)> {
             is_annis_33,
         )?;
 
-        info!("calculating node statistics");
+        progress_callback("calculating node statistics");
         Arc::make_mut(&mut db.node_annos).calculate_statistics();
 
         for c in db.get_all_components(None, None) {
-            info!("calculating statistics for component {}", c);
+            progress_callback(&format!("calculating statistics for component {}", c));
             db.calculate_component_statistics(&c)?;
             db.optimize_impl(&c);
         }
 
-        info!("finished loading relANNIS from {}", path.to_string_lossy());
+        progress_callback(&format!("finished loading relANNIS from {}", path.to_string_lossy()));
 
         return Ok((corpus_name, db));
     }
@@ -119,16 +135,23 @@ fn get_field_str(record: &csv::StringRecord, i: usize) -> Option<String> {
     return None;
 }
 
-fn parse_corpus_tab(
+fn parse_corpus_tab<F>(
     path: &PathBuf,
     is_annis_33: bool,
-) -> Result<(String, BTreeMap<u32, u32>, BTreeMap<u32, String>)> {
+    progress_callback: &F,
+) -> Result<(String, BTreeMap<u32, u32>, BTreeMap<u32, String>)>
+where
+    F: Fn(&str) -> (),
+{
     let mut corpus_tab_path = PathBuf::from(path);
     corpus_tab_path.push(if is_annis_33 {
         "corpus.annis"
     } else {
         "corpus.tab"
     });
+
+    progress_callback(&format!("loading {}", corpus_tab_path.to_str().unwrap_or_default()));
+
 
     let mut toplevel_corpus_name: Option<String> = None;
     let mut corpus_by_preorder = BTreeMap::new();
@@ -158,13 +181,22 @@ fn parse_corpus_tab(
     Ok((toplevel_corpus_name, corpus_by_preorder, corpus_id_to_name))
 }
 
-fn parse_text_tab(path: &PathBuf, is_annis_33: bool) -> Result<HashMap<TextKey, Text>> {
+fn parse_text_tab<F>(
+    path: &PathBuf,
+    is_annis_33: bool,
+    progress_callback: &F,
+) -> Result<HashMap<TextKey, Text>>
+where
+    F: Fn(&str) -> (),
+{
     let mut text_tab_path = PathBuf::from(path);
     text_tab_path.push(if is_annis_33 {
         "text.annis"
     } else {
         "text.tab"
     });
+
+    progress_callback(&format!("loading {}", text_tab_path.to_str().unwrap_or_default()));
 
     let mut texts: HashMap<TextKey, Text> = HashMap::default();
 
@@ -191,19 +223,25 @@ fn parse_text_tab(path: &PathBuf, is_annis_33: bool) -> Result<HashMap<TextKey, 
     Ok(texts)
 }
 
-fn calculate_automatic_token_info(
+fn calculate_automatic_token_info<F>(
     db: &mut Graph,
     token_by_index: &BTreeMap<TextProperty, NodeID>,
     node_to_left: &BTreeMap<NodeID, u32>,
     node_to_right: &BTreeMap<NodeID, u32>,
     left_to_node: &MultiMap<TextProperty, NodeID>,
     right_to_node: &MultiMap<TextProperty, NodeID>,
-) -> Result<()> {
+    progress_callback: F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
     // TODO: cleanup, better variable naming
     // iterate over all token by their order, find the nodes with the same
     // text coverage (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
 
-    info!("calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges");
+    progress_callback(
+        "calculating the automatically generated ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges",
+    );
 
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
@@ -303,7 +341,7 @@ fn calculate_automatic_token_info(
     Ok(())
 }
 
-fn calculate_automatic_coverage_edges(
+fn calculate_automatic_coverage_edges<F>(
     db: &mut Graph,
     token_by_index: &BTreeMap<TextProperty, NodeID>,
     token_to_index: &BTreeMap<NodeID, TextProperty>,
@@ -311,7 +349,11 @@ fn calculate_automatic_coverage_edges(
     left_to_node: &MultiMap<TextProperty, NodeID>,
     token_by_left_textpos: &BTreeMap<TextProperty, NodeID>,
     token_by_right_textpos: &BTreeMap<TextProperty, NodeID>,
-) -> Result<()> {
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
     // add explicit coverage edges for each node in the special annis namespace coverage component
     let component_coverage = Component {
         ctype: ComponentType::Coverage,
@@ -329,7 +371,7 @@ fn calculate_automatic_coverage_edges(
     db.get_or_create_writable(component_inv_cov.clone())?;
 
     {
-        info!("calculating the automatically generated COVERAGE edges");
+        progress_callback("calculating the automatically generated COVERAGE edges");
         for (textprop, n_vec) in left_to_node {
             for n in n_vec {
                 if !token_to_index.contains_key(&n) {
@@ -401,13 +443,17 @@ fn calculate_automatic_coverage_edges(
     Ok(())
 }
 
-fn load_node_tab(
+fn load_node_tab<F>(
     path: &PathBuf,
     db: &mut Graph,
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
-) -> Result<(MultiMap<TextKey, NodeID>, BTreeMap<NodeID, String>)> {
+    progress_callback: &F,
+) -> Result<(MultiMap<TextKey, NodeID>, BTreeMap<NodeID, String>)>
+where
+    F: Fn(&str) -> (),
+{
     let mut nodes_by_text: MultiMap<TextKey, NodeID> = MultiMap::new();
     let mut missing_seg_span: BTreeMap<NodeID, String> = BTreeMap::new();
 
@@ -418,7 +464,10 @@ fn load_node_tab(
         "node.tab"
     });
 
-    info!("loading {}", node_tab_path.to_str().unwrap_or_default());
+    progress_callback(&format!(
+        "loading {}",
+        node_tab_path.to_str().unwrap_or_default()
+    ));
 
     // maps a token index to an node ID
     let mut token_by_index: BTreeMap<TextProperty, NodeID> = BTreeMap::new();
@@ -579,6 +628,7 @@ fn load_node_tab(
             &node_to_right,
             &left_to_node,
             &right_to_node,
+            progress_callback,
         )?;
     } // end if token_by_index not empty
 
@@ -590,16 +640,21 @@ fn load_node_tab(
         &left_to_node,
         &token_by_left_textpos,
         &token_by_right_textpos,
+        progress_callback,
     )?;
     Ok((nodes_by_text, missing_seg_span))
 }
 
-fn load_node_anno_tab(
+fn load_node_anno_tab<F>(
     path: &PathBuf,
     db: &mut Graph,
     missing_seg_span: &BTreeMap<NodeID, String>,
     is_annis_33: bool,
-) -> Result<()> {
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
     let mut node_anno_tab_path = PathBuf::from(path);
     node_anno_tab_path.push(if is_annis_33 {
         "node_annotation.annis"
@@ -607,10 +662,10 @@ fn load_node_anno_tab(
         "node_annotation.tab"
     });
 
-    info!(
+    progress_callback(&format!(
         "loading {}",
         node_anno_tab_path.to_str().unwrap_or_default()
-    );
+    ));
 
     let mut node_anno_tab_csv = postgresql_import_reader(node_anno_tab_path.as_path())?;
 
@@ -663,11 +718,15 @@ fn load_node_anno_tab(
     Ok(())
 }
 
-fn load_component_tab(
+fn load_component_tab<F>(
     path: &PathBuf,
     db: &mut Graph,
     is_annis_33: bool,
-) -> Result<BTreeMap<u32, Component>> {
+    progress_callback: &F,
+) -> Result<BTreeMap<u32, Component>>
+where
+    F: Fn(&str) -> (),
+{
     let mut component_tab_path = PathBuf::from(path);
     component_tab_path.push(if is_annis_33 {
         "component.annis"
@@ -675,10 +734,10 @@ fn load_component_tab(
         "component.tab"
     });
 
-    info!(
+    progress_callback(&format!(
         "loading {}",
         component_tab_path.to_str().unwrap_or_default()
-    );
+    ));
 
     let mut component_by_id: BTreeMap<u32, Component> = BTreeMap::new();
 
@@ -705,31 +764,40 @@ fn load_component_tab(
     Ok(component_by_id)
 }
 
-fn load_nodes(
+fn load_nodes<F>(
     path: &PathBuf,
     db: &mut Graph,
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
-) -> Result<MultiMap<TextKey, NodeID>> {
+    progress_callback: &F,
+) -> Result<MultiMap<TextKey, NodeID>>
+where
+    F: Fn(&str) -> (),
+{
     let (nodes_by_text, missing_seg_span) = load_node_tab(
         path,
         db,
         corpus_id_to_name,
         toplevel_corpus_name,
         is_annis_33,
+        progress_callback,
     )?;
-    load_node_anno_tab(path, db, &missing_seg_span, is_annis_33)?;
+    load_node_anno_tab(path, db, &missing_seg_span, is_annis_33, progress_callback)?;
 
     return Ok(nodes_by_text);
 }
 
-fn load_rank_tab(
+fn load_rank_tab<F>(
     path: &PathBuf,
     db: &mut Graph,
     component_by_id: &BTreeMap<u32, Component>,
     is_annis_33: bool,
-) -> Result<(BTreeMap<u32, Component>, BTreeMap<u32, Edge>)> {
+    progress_callback: &F,
+) -> Result<(BTreeMap<u32, Component>, BTreeMap<u32, Edge>)>
+where
+    F: Fn(&str) -> (),
+{
     let mut rank_tab_path = PathBuf::from(path);
     rank_tab_path.push(if is_annis_33 {
         "rank.annis"
@@ -737,7 +805,10 @@ fn load_rank_tab(
         "rank.tab"
     });
 
-    info!("loading {}", rank_tab_path.to_str().unwrap_or_default());
+    progress_callback(&format!(
+        "loading {}",
+        rank_tab_path.to_str().unwrap_or_default()
+    ));
 
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
 
@@ -791,13 +862,17 @@ fn load_rank_tab(
     Ok((pre_to_component, pre_to_edge))
 }
 
-fn load_edge_annotation(
+fn load_edge_annotation<F>(
     path: &PathBuf,
     db: &mut Graph,
     pre_to_component: &BTreeMap<u32, Component>,
     pre_to_edge: &BTreeMap<u32, Edge>,
     is_annis_33: bool,
-) -> Result<()> {
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
     let mut edge_anno_tab_path = PathBuf::from(path);
     edge_anno_tab_path.push(if is_annis_33 {
         "edge_annotation.annis"
@@ -805,10 +880,10 @@ fn load_edge_annotation(
         "edge_annotation.tab"
     });
 
-    info!(
+    progress_callback(&format!(
         "loading {}",
         edge_anno_tab_path.to_str().unwrap_or_default()
-    );
+    ));
 
     let mut edge_anno_tab_csv = postgresql_import_reader(edge_anno_tab_path.as_path())?;
 
@@ -835,7 +910,14 @@ fn load_edge_annotation(
     Ok(())
 }
 
-fn load_corpus_annotation(path: &PathBuf, is_annis_33: bool) -> Result<MultiMap<u32, Annotation>> {
+fn load_corpus_annotation<F>(
+    path: &PathBuf,
+    is_annis_33: bool,
+    progress_callback: &F,
+) -> Result<MultiMap<u32, Annotation>>
+where
+    F: Fn(&str) -> (),
+{
     let mut corpus_id_to_anno = MultiMap::new();
 
     let mut corpus_anno_tab_path = PathBuf::from(path);
@@ -845,10 +927,10 @@ fn load_corpus_annotation(path: &PathBuf, is_annis_33: bool) -> Result<MultiMap<
         "corpus_annotation.tab"
     });
 
-    info!(
+    progress_callback(&format!(
         "loading {}",
         corpus_anno_tab_path.to_str().unwrap_or_default()
-    );
+    ));
 
     let mut corpus_anno_tab_csv = postgresql_import_reader(corpus_anno_tab_path.as_path())?;
 
