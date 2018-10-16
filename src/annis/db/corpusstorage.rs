@@ -1604,21 +1604,7 @@ fn check_cache_size_and_remove(
 ) {
     let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
-    let max_cache_size : usize = match cache_strategy {
-        CacheStrategy::OnlyOneCorpus => 0,
-        CacheStrategy::FixedMaxSize(max_size) => *max_size,
-        CacheStrategy::PercentOfFreeSpace(max_percent) => {
-            // get the current free space in main memory
-            if let Ok(mem) = sys_info::mem_info() {
-                (((mem.avail as usize * 1024) as f64) * (max_percent / 100.0)) as usize // mem.free is in KiB
-            } else {
-                // fallback to include only the last loaded corpus if free memory size is unknown
-                0
-            }
-        }
-    };
-
-    // check size of each corpus
+    // check size of each corpus and calculate the sum of used memory
     let mut size_sum: usize = 0;
     let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
     for (corpus, db_entry) in cache.iter() {
@@ -1629,6 +1615,29 @@ fn check_cache_size_and_remove(
             db_sizes.insert(corpus.clone(), s);
         }
     }
+
+    let max_cache_size : usize = match cache_strategy {
+        CacheStrategy::OnlyOneCorpus => 0,
+        CacheStrategy::FixedMaxSize(max_size) => *max_size,
+        CacheStrategy::PercentOfFreeSpace(max_percent) => {
+            // get the current free space in main memory
+            if let Ok(mem) = sys_info::mem_info() {
+                // the free memory 
+                let free_system_mem : usize = mem.avail as usize * 1024; // mem.free is in KiB
+                // A part of the system memory is already used by the cache.
+                // We want x percent of the overall available memory (thus not used by us), so add the cache size
+                let available_memory : usize = free_system_mem + size_sum;
+                ((available_memory as f64) * (max_percent / 100.0)) as usize 
+            } else {
+                // fallback to include only the last loaded corpus if free memory size is unknown
+                0
+            }
+        }
+    };
+
+    debug!("Current maximum cache size is {:.2} MB", (max_cache_size as f64) / (1024.0*1024.0));
+
+    
     let mut num_of_loaded_corpora = db_sizes.len();
 
     // remove older entries (at the beginning) until cache size requirements are met,

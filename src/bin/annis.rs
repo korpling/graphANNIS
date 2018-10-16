@@ -463,7 +463,7 @@ fn main() {
         ).get_matches();
 
     let log_filter = if matches.is_present("debug") {
-        LevelFilter::Trace
+        LevelFilter::Debug
     } else {
         LevelFilter::Info
     };
