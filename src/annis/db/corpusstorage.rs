@@ -1476,7 +1476,7 @@ impl CorpusStorage {
         return result;
     }
 
-    pub fn check_cache_size_and_remove(&self, keep: Vec<&str>) {
+    fn check_cache_size_and_remove(&self, keep: Vec<&str>) {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, keep);
