@@ -143,14 +143,15 @@ fn parse_corpus_tab<F>(
 where
     F: Fn(&str) -> (),
 {
-    progress_callback("Loading corpus table file");
-
     let mut corpus_tab_path = PathBuf::from(path);
     corpus_tab_path.push(if is_annis_33 {
         "corpus.annis"
     } else {
         "corpus.tab"
     });
+
+    progress_callback(&format!("loading {}", corpus_tab_path.to_str().unwrap_or_default()));
+
 
     let mut toplevel_corpus_name: Option<String> = None;
     let mut corpus_by_preorder = BTreeMap::new();
@@ -188,14 +189,14 @@ fn parse_text_tab<F>(
 where
     F: Fn(&str) -> (),
 {
-    progress_callback("Loading text table file");
-    
     let mut text_tab_path = PathBuf::from(path);
     text_tab_path.push(if is_annis_33 {
         "text.annis"
     } else {
         "text.tab"
     });
+
+    progress_callback(&format!("loading {}", text_tab_path.to_str().unwrap_or_default()));
 
     let mut texts: HashMap<TextKey, Text> = HashMap::default();
 

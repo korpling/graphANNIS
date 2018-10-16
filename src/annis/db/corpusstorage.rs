@@ -216,8 +216,6 @@ pub enum CacheStrategy {
     /// Cache size is checked before and after a corpus is loaded.
     /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
     PercentOfFreeMemory(f64),
-    /// Stores at most one corpus in the cache.
-    OnlyOneCorpus,
 }
 
 /// A thread-safe API for managing corpora stored in a common location on the file system.
@@ -544,7 +542,11 @@ impl CorpusStorage {
         corpus_name: Option<String>,
     ) -> Result<String> {
         let (orig_name, mut graph) = match format {
-            ImportFormat::RelANNIS => relannis::load(path, |status| info!("{}", status))?,
+            ImportFormat::RelANNIS => relannis::load(path, |status| {
+                info!("{}", status);
+                // loading the file from relANNIS consumes memory, update the corpus cache regulary to allow it to adapat
+                self.check_cache_size_and_remove(vec![]);
+            })?,
         };
 
         let r = graph.ensure_loaded_all();
@@ -1659,7 +1661,6 @@ fn check_cache_size_and_remove_with_cache(
     }
 
     let max_cache_size: usize = match cache_strategy {
-        CacheStrategy::OnlyOneCorpus => 0,
         CacheStrategy::FixedMaxMemory(max_size) => *max_size,
         CacheStrategy::PercentOfFreeMemory(max_percent) => {
             // get the current free space in main memory
