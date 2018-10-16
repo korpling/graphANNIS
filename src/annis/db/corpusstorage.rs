@@ -686,10 +686,12 @@ impl CorpusStorage {
 
         if !missing_components.is_empty() {
             // load the needed components
-            let mut lock = db_entry.write().unwrap();
-            let db = get_write_or_error(&mut lock)?;
-            for c in missing_components {
-                db.ensure_loaded(&c)?;
+            {
+                let mut lock = db_entry.write().unwrap();
+                let db = get_write_or_error(&mut lock)?;
+                for c in missing_components {
+                    db.ensure_loaded(&c)?;
+                }
             }
             self.check_cache_size_and_remove(vec![corpus_name]);
         };
@@ -699,10 +701,12 @@ impl CorpusStorage {
 
     /// Preloads all annotation and graph storages from the disk into a main memory cache.
     pub fn preload(&self, corpus_name: &str) -> Result<()> {
-        let db_entry = self.get_loaded_entry(corpus_name, false)?;
-        let mut lock = db_entry.write().unwrap();
-        let db = get_write_or_error(&mut lock)?;
-        db.ensure_loaded_all()?;
+        {
+            let db_entry = self.get_loaded_entry(corpus_name, false)?;
+            let mut lock = db_entry.write().unwrap();
+            let db = get_write_or_error(&mut lock)?;
+            db.ensure_loaded_all()?;
+        }
         self.check_cache_size_and_remove(vec![corpus_name]);
         return Ok(());
     }
