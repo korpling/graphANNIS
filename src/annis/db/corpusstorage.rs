@@ -1476,6 +1476,15 @@ impl CorpusStorage {
         return result;
     }
 
+
+    /// Removes all corpora from main memory cache.
+    pub fn clear_cache(&self) {
+        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let cache = &mut *cache_lock;
+        cache.clear();
+    }
+
+
     fn check_cache_size_and_remove(&self, keep: Vec<&str>) {
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
