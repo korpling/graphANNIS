@@ -58,11 +58,10 @@ rustdoc-args = ["--cfg", "docs_rs_workaround"]
 kernel32-sys = { version = "0.2.2" }
 
 [dev-dependencies]
-criterion = "0.2"
 simplelog = "0.5"
 
 [features]
-cli = ["rustyline", "simplelog", "clap", "criterion", "prettytable-rs"]
+cli = ["rustyline", "simplelog", "clap", "prettytable-rs"]
 c-api = ["libc", "simplelog"]
 
 [[bench]]
@@ -75,4 +74,4 @@ required-features=["cli"]
 
 [[bin]]
 name="bench_annisqueries"
-required-features=["cli"]
+required-features=["criterion", "simplelog", "clap"]

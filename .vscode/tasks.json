@@ -12,7 +12,8 @@
             "args": [
                 "build",
                 "--release",
-                "--all-features"
+                "--features",
+                "\"c-api cli\""
             ],
             "group": {
                 "kind": "build",
@@ -26,7 +27,8 @@
             "command": "cargo",
             "args": [
                 "build",
-                "--all-features"
+                "---features",
+                "\"c-api cli\""
             ],
             "group": "build",
             "problemMatcher": "$rustc"
