@@ -42,7 +42,6 @@ impl CommandCompleter {
         known_commands.insert("delete".to_string());
         known_commands.insert("corpus".to_string());
         known_commands.insert("preload".to_string());
-        known_commands.insert("clear_cache".to_string());
         known_commands.insert("update_statistics".to_string());
         known_commands.insert("count".to_string());
         known_commands.insert("find".to_string());
@@ -177,7 +176,6 @@ impl AnnisRunner {
                 "delete" => self.delete(&args),
                 "corpus" => self.corpus(&args),
                 "preload" => self.preload(),
-                "clear_cache" => self.clear_cache(),
                 "update_statistics" => self.update_statistics(),
                 "plan" => self.plan(&args),
                 "count" => self.count(&args),
@@ -290,12 +288,6 @@ impl AnnisRunner {
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
-        Ok(())
-    }
-
-    fn clear_cache(&mut self) -> Result<()> {
-        self.storage.as_ref().ok_or("No corpus storage location set")?.clear_cache();
-        println!("Cache cleared.");
         Ok(())
     }
 

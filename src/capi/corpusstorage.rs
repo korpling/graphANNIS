@@ -442,11 +442,3 @@ pub extern "C" fn annis_cs_apply_update(
     let corpus = cstr!(corpus);
     try_cerr!(cs.apply_update(&corpus, update), err, ());
 }
-
-#[no_mangle]
-pub extern "C" fn annis_cs_clear_cache(
-    ptr: *const CorpusStorage,
-) {
-    let cs: &CorpusStorage = cast_const!(ptr);
-    cs.clear_cache();
-}

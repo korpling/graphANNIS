@@ -15,7 +15,7 @@ limitations under the License.s
 #ifndef graphannis_capi_h
 #define graphannis_capi_h
 
-/* Generated with cbindgen:0.6.4 */
+/* Generated with cbindgen:0.6.1 */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -203,8 +203,6 @@ void annis_cs_apply_update(AnnisCorpusStorage *ptr,
                            const char *corpus,
                            AnnisGraphUpdate *update,
                            AnnisErrorList **err);
-
-void annis_cs_clear_cache(const AnnisCorpusStorage *ptr);
 
 AnnisGraph *annis_cs_corpus_graph(const AnnisCorpusStorage *ptr,
                                   const char *corpus_name,
