@@ -424,7 +424,7 @@ impl CorpusStorage {
         };
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove(&self.cache_strategy, cache, false);
+        check_cache_size_and_remove(&self.cache_strategy, cache, vec![]);
 
         let mut db = Graph::new();
         if create_corpus {
@@ -439,7 +439,7 @@ impl CorpusStorage {
         cache.remove(corpus_name);
         cache.insert(String::from(corpus_name), entry.clone());
 
-        check_cache_size_and_remove(&self.cache_strategy, cache, true);
+        check_cache_size_and_remove(&self.cache_strategy, cache, vec![corpus_name]);
 
         return Ok(entry);
     }
@@ -544,7 +544,7 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove(&self.cache_strategy, cache, false);
+        check_cache_size_and_remove(&self.cache_strategy, cache, vec![]);
 
         // remove any possible old corpus
         let old_entry = cache.remove(corpus_name);
@@ -577,7 +577,7 @@ impl CorpusStorage {
             String::from(corpus_name),
             Arc::new(RwLock::new(CacheEntry::Loaded(graph))),
         );
-        check_cache_size_and_remove(&self.cache_strategy, cache, true);
+        check_cache_size_and_remove(&self.cache_strategy, cache, vec![corpus_name]);
     }
 
     /// Delete a corpus from this corpus storage.
@@ -1607,9 +1607,11 @@ fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<
 fn check_cache_size_and_remove(
     cache_strategy: &CacheStrategy,
     cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
-    keep_last_added: bool,
+    keep: Vec<&str>,
 ) {
     let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
+
+    let keep : HashSet<&str> = keep.into_iter().collect();
 
     // check size of each corpus and calculate the sum of used memory
     let mut size_sum: usize = 0;
@@ -1644,19 +1646,16 @@ fn check_cache_size_and_remove(
 
     debug!("Current cache size is {:.2} MB / max  {:.2} MB", (size_sum as f64) / (1024.0*1024.0), (max_cache_size as f64) / (1024.0*1024.0));
     
-    let last_corpus_idx = db_sizes.len()-1;
-
     // remove older entries (at the beginning) until cache size requirements are met,
     // but never remove the last loaded entry
-    for (idx, (corpus_name, corpus_size)) in db_sizes.iter().enumerate() {
-        if keep_last_added && idx == last_corpus_idx {
-            // ignore last added (and also iterated) corpus if requested
-            break;
-        } else if size_sum > max_cache_size {
-            info!("Removing corpus {} from cache", corpus_name);
-            cache.remove(corpus_name);
-            size_sum -= corpus_size;
-            debug!("Current cache size is {:.2} MB / max  {:.2} MB", (size_sum as f64) / (1024.0*1024.0), (max_cache_size as f64) / (1024.0*1024.0));
+    for (corpus_name, corpus_size) in db_sizes.iter() {
+        if size_sum > max_cache_size {
+            if !keep.contains(corpus_name.as_str()) {
+                info!("Removing corpus {} from cache", corpus_name);
+                cache.remove(corpus_name);
+                size_sum -= corpus_size;
+                debug!("Current cache size is {:.2} MB / max  {:.2} MB", (size_sum as f64) / (1024.0*1024.0), (max_cache_size as f64) / (1024.0*1024.0));
+            }
         } else {
             // cache size is smaller, nothing to do
             break;
