@@ -47,7 +47,7 @@ pub extern "C" fn annis_cs_with_max_cache_size(
     let db_dir_path = PathBuf::from(String::from(db_dir));
 
     let s =
-        CorpusStorage::with_cache_strategy(&db_dir_path, CacheStrategy::FixedMaxSize(max_cache_size), use_parallel);
+        CorpusStorage::with_cache_strategy(&db_dir_path, CacheStrategy::FixedMaxMemory(max_cache_size), use_parallel);
 
     match s {
         Ok(result) => {
