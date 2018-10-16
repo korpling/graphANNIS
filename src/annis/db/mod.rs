@@ -157,6 +157,8 @@ pub struct Graph {
     current_change_id: u64,
 
     background_persistance: Arc<Mutex<()>>,
+
+    cached_size: Mutex<Option<usize>>,
 }
 
 impl MallocSizeOf for Graph {
@@ -290,6 +292,7 @@ impl Graph {
             current_change_id: 0,
 
             background_persistance: Arc::new(Mutex::new(())),
+            cached_size: Mutex::new(None),
         }
     }
 
@@ -302,6 +305,7 @@ impl Graph {
     /// Clear the graph content.
     /// This removes all node annotations, edges and knowledge about components.
     fn clear(&mut self) {
+        self.reset_cached_size();
         self.node_annos = Arc::new(AnnoStorage::new());
         self.components.clear();
     }
@@ -462,6 +466,8 @@ impl Graph {
     }
 
     fn apply_update_in_memory(&mut self, u: &GraphUpdate) -> Result<()> {
+        self.reset_cached_size();
+
         for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
             match change {
@@ -746,6 +752,8 @@ impl Graph {
     }
 
     fn insert_or_copy_writeable(&mut self, c: &Component) -> Result<()> {
+        self.reset_cached_size();
+
         // move the old entry into the ownership of this function
         let entry = self.components.remove(c);
         // component exists?
@@ -781,6 +789,8 @@ impl Graph {
     }
 
     fn calculate_component_statistics(&mut self, c: &Component) -> Result<()> {
+        self.reset_cached_size();
+        
         let mut result: Result<()> = Ok(());
         let mut entry = self
             .components
@@ -802,6 +812,9 @@ impl Graph {
     }
 
     fn get_or_create_writable(&mut self, c: Component) -> Result<&mut WriteableGraphStorage> {
+
+        self.reset_cached_size();
+
         if self.components.contains_key(&c) {
             // make sure the component is actually writable and loaded
             self.insert_or_copy_writeable(&c)?;
@@ -843,6 +856,8 @@ impl Graph {
             }
         }
 
+        self.reset_cached_size();
+
         // load missing components in parallel
         let loaded_components: Vec<(Component, Result<Arc<GraphStorage>>)> = components_to_load
             .into_par_iter()
@@ -866,6 +881,7 @@ impl Graph {
         let entry: Option<Option<Arc<GraphStorage>>> = self.components.remove(c);
         if let Some(gs_opt) = entry {
             let loaded: Arc<GraphStorage> = if gs_opt.is_none() {
+                self.reset_cached_size();
                 info!("Loading component {} from disk", c);
                 load_component_from_disk(self.component_path(c))?
             } else {
@@ -892,6 +908,7 @@ impl Graph {
                         false
                     };
                     if converted {
+                        self.reset_cached_size();
                         // insert into components map
                         info!(
                             "Converted component {} to implementation {}",
@@ -1006,6 +1023,23 @@ impl Graph {
             ns: ANNIS_NS.to_owned(),
             name: NODE_TYPE.to_owned(),
         }
+    }
+
+    pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut lock = self.cached_size.lock().unwrap();
+        let cached_size : &mut Option<usize> = &mut * lock;
+        if let Some(cached) = cached_size {
+            return *cached;
+        }
+        let calculated_size = self.size_of(ops);
+        *cached_size = Some(calculated_size);
+        return calculated_size;
+    }
+
+    fn reset_cached_size(&self) {
+        let mut lock = self.cached_size.lock().unwrap();
+        let cached_size : &mut Option<usize> = &mut * lock;
+        *cached_size = None;
     }
 }
 

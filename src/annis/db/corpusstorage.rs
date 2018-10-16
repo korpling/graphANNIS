@@ -1654,7 +1654,7 @@ fn check_cache_size_and_remove_with_cache(
     for (corpus, db_entry) in cache.iter() {
         let lock = db_entry.read().unwrap();
         if let &CacheEntry::Loaded(ref db) = &*lock {
-            let s = db.size_of(&mut mem_ops);
+            let s = db.size_of_cached(&mut mem_ops);
             size_sum += s;
             db_sizes.insert(corpus.clone(), s);
         }
