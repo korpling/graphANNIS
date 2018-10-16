@@ -1,5 +1,5 @@
-use annis::db::annostorage::AnnoStorage;
 use annis::db;
+use annis::db::annostorage::AnnoStorage;
 use annis::db::aql;
 use annis::db::aql::operators;
 use annis::db::exec::nodesearch::NodeSearchSpec;
@@ -199,13 +199,13 @@ pub enum QueryLanguage {
 
 /// Different strategies how it is decided when corpora need to be removed from the cache.
 pub enum CacheStrategy {
-    /// Fixed maximum size of the cache in bytes. 
-    /// Before and after a new entry is loaded, the cache is cleared to have at maximum this given size. 
+    /// Fixed maximum size of the cache in bytes.
+    /// Before and after a new entry is loaded, the cache is cleared to have at maximum this given size.
     /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
     FixedMaxMemory(usize),
-    /// Maximum percent of the current free space/memory available. 
+    /// Maximum percent of the current free space/memory available.
     /// E.g. if the percent is 25 and there is 4,5 GB of free memory not used by the cache itself, the cache will use at most 1,125 GB memory.
-    /// Cache size is checked before and after a corpus is loaded. 
+    /// Cache size is checked before and after a corpus is loaded.
     /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
     PercentOfFreeMemory(f64),
     /// Stores at most one corpus in the cache.
@@ -424,7 +424,7 @@ impl CorpusStorage {
         };
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove(&self.cache_strategy, cache, vec![]);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
 
         let mut db = Graph::new();
         if create_corpus {
@@ -439,7 +439,7 @@ impl CorpusStorage {
         cache.remove(corpus_name);
         cache.insert(String::from(corpus_name), entry.clone());
 
-        check_cache_size_and_remove(&self.cache_strategy, cache, vec![corpus_name]);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
 
         return Ok(entry);
     }
@@ -544,7 +544,7 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // make sure the cache is not too large before adding the new corpus
-        check_cache_size_and_remove(&self.cache_strategy, cache, vec![]);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
 
         // remove any possible old corpus
         let old_entry = cache.remove(corpus_name);
@@ -577,7 +577,7 @@ impl CorpusStorage {
             String::from(corpus_name),
             Arc::new(RwLock::new(CacheEntry::Loaded(graph))),
         );
-        check_cache_size_and_remove(&self.cache_strategy, cache, vec![corpus_name]);
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
     }
 
     /// Delete a corpus from this corpus storage.
@@ -691,6 +691,7 @@ impl CorpusStorage {
             for c in missing_components {
                 db.ensure_loaded(&c)?;
             }
+            self.check_cache_size_and_remove(vec![corpus_name]);
         };
 
         return Ok(PreparationResult { query: q, db_entry });
@@ -702,6 +703,7 @@ impl CorpusStorage {
         let mut lock = db_entry.write().unwrap();
         let db = get_write_or_error(&mut lock)?;
         db.ensure_loaded_all()?;
+        self.check_cache_size_and_remove(vec![corpus_name]);
         return Ok(());
     }
 
@@ -1469,6 +1471,12 @@ impl CorpusStorage {
 
         return result;
     }
+
+    pub fn check_cache_size_and_remove(&self, keep: Vec<&str>) {
+        let mut cache_lock = self.corpus_cache.write().unwrap();
+        let cache = &mut *cache_lock;
+        check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, keep);
+    }
 }
 
 impl Drop for CorpusStorage {
@@ -1499,9 +1507,9 @@ mod tests {
     extern crate simplelog;
     extern crate tempdir;
 
+    use corpusstorage::QueryLanguage;
     use update::{GraphUpdate, UpdateEvent};
     use CorpusStorage;
-    use corpusstorage::QueryLanguage;
 
     #[test]
     fn delete() {
@@ -1551,7 +1559,7 @@ mod tests {
         }
     }
 
-     #[test]
+    #[test]
     fn apply_update_add_nodes() {
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
             let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
@@ -1582,7 +1590,6 @@ mod tests {
 
             let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
             assert_eq!(2, node_count);
-            
         }
     }
 
@@ -1604,14 +1611,14 @@ fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<
     }
 }
 
-fn check_cache_size_and_remove(
-    cache_strategy: &CacheStrategy,
+fn check_cache_size_and_remove_with_cache(
     cache: &mut LinkedHashMap<String, Arc<RwLock<CacheEntry>>>,
+    cache_strategy: &CacheStrategy,
     keep: Vec<&str>,
 ) {
     let mut mem_ops = MallocSizeOfOps::new(memory_estimation::platform::usable_size, None, None);
 
-    let keep : HashSet<&str> = keep.into_iter().collect();
+    let keep: HashSet<&str> = keep.into_iter().collect();
 
     // check size of each corpus and calculate the sum of used memory
     let mut size_sum: usize = 0;
@@ -1625,18 +1632,18 @@ fn check_cache_size_and_remove(
         }
     }
 
-    let max_cache_size : usize = match cache_strategy {
+    let max_cache_size: usize = match cache_strategy {
         CacheStrategy::OnlyOneCorpus => 0,
         CacheStrategy::FixedMaxMemory(max_size) => *max_size,
         CacheStrategy::PercentOfFreeMemory(max_percent) => {
             // get the current free space in main memory
             if let Ok(mem) = sys_info::mem_info() {
-                // the free memory 
-                let free_system_mem : usize = mem.avail as usize * 1024; // mem.free is in KiB
-                // A part of the system memory is already used by the cache.
-                // We want x percent of the overall available memory (thus not used by us), so add the cache size
-                let available_memory : usize = free_system_mem + size_sum;
-                ((available_memory as f64) * (max_percent / 100.0)) as usize 
+                // the free memory
+                let free_system_mem: usize = mem.avail as usize * 1024; // mem.free is in KiB
+                                                                        // A part of the system memory is already used by the cache.
+                                                                        // We want x percent of the overall available memory (thus not used by us), so add the cache size
+                let available_memory: usize = free_system_mem + size_sum;
+                ((available_memory as f64) * (max_percent / 100.0)) as usize
             } else {
                 // fallback to include only the last loaded corpus if free memory size is unknown
                 0
@@ -1644,8 +1651,12 @@ fn check_cache_size_and_remove(
         }
     };
 
-    debug!("Current cache size is {:.2} MB / max  {:.2} MB", (size_sum as f64) / (1024.0*1024.0), (max_cache_size as f64) / (1024.0*1024.0));
-    
+    debug!(
+        "Current cache size is {:.2} MB / max  {:.2} MB",
+        (size_sum as f64) / (1024.0 * 1024.0),
+        (max_cache_size as f64) / (1024.0 * 1024.0)
+    );
+
     // remove older entries (at the beginning) until cache size requirements are met,
     // but never remove the last loaded entry
     for (corpus_name, corpus_size) in db_sizes.iter() {
@@ -1654,14 +1665,17 @@ fn check_cache_size_and_remove(
                 info!("Removing corpus {} from cache", corpus_name);
                 cache.remove(corpus_name);
                 size_sum -= corpus_size;
-                debug!("Current cache size is {:.2} MB / max  {:.2} MB", (size_sum as f64) / (1024.0*1024.0), (max_cache_size as f64) / (1024.0*1024.0));
+                debug!(
+                    "Current cache size is {:.2} MB / max  {:.2} MB",
+                    (size_sum as f64) / (1024.0 * 1024.0),
+                    (max_cache_size as f64) / (1024.0 * 1024.0)
+                );
             }
         } else {
             // cache size is smaller, nothing to do
             break;
         }
     }
-
 }
 
 fn extract_subgraph_by_query(
