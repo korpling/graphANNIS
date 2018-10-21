@@ -23,6 +23,9 @@ pub struct NestedLoop<'a> {
     desc: Desc,
 }
 
+
+type MatchCandidate = (Vec<Match>, Vec<Match>, Sender<Vec<Match>>);
+
 impl<'a> NestedLoop<'a> {
     pub fn new(
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
@@ -100,8 +103,8 @@ impl<'a> NestedLoop<'a> {
     fn next_match_buffer(
         &mut self,
         tx: &Sender<Vec<Match>>,
-    ) -> Vec<(Vec<Match>, Vec<Match>, Sender<Vec<Match>>)> {
-        let mut match_candidate_buffer: Vec<(Vec<Match>, Vec<Match>, Sender<Vec<Match>>)> =
+    ) -> Vec<MatchCandidate> {
+        let mut match_candidate_buffer: Vec<MatchCandidate> =
             Vec::with_capacity(MAX_BUFFER_SIZE);
         while match_candidate_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(m_outer) = self.outer.peek() {

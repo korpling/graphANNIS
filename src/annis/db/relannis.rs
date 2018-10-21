@@ -30,6 +30,12 @@ struct Text {
     name: String,
 }
 
+struct ParsedCorpusTable {
+    toplevel_corpus_name: String,
+    corpus_by_preorder: BTreeMap<u32, u32>,
+    corpus_id_to_name: BTreeMap<u32, String>,
+}
+
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
 ///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
@@ -54,7 +60,7 @@ where
 
         let mut db = Graph::new();
 
-        let (corpus_name, corpus_by_preorder, corpus_id_to_name) =
+        let corpus_table =
             parse_corpus_tab(&path, is_annis_33, &progress_callback)?;
 
         let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
@@ -62,8 +68,8 @@ where
         let nodes_by_text = load_nodes(
             &path,
             &mut db,
-            &corpus_id_to_name,
-            &corpus_name,
+            &corpus_table.corpus_id_to_name,
+            &corpus_table.toplevel_corpus_name,
             is_annis_33,
             &progress_callback,
         )?;
@@ -90,9 +96,9 @@ where
 
         add_subcorpora(
             &mut db,
-            &corpus_name,
-            &corpus_by_preorder,
-            &corpus_id_to_name,
+            &corpus_table.toplevel_corpus_name,
+            &corpus_table.corpus_by_preorder,
+            &corpus_table.corpus_id_to_name,
             &nodes_by_text,
             &texts,
             &corpus_id_to_annos,
@@ -113,7 +119,7 @@ where
             path.to_string_lossy()
         ));
 
-        return Ok((corpus_name, db));
+        return Ok((corpus_table.toplevel_corpus_name, db));
     }
 
     Err(format!("Directory {} not found", path.to_string_lossy()).into())
@@ -143,7 +149,7 @@ fn parse_corpus_tab<F>(
     path: &PathBuf,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(String, BTreeMap<u32, u32>, BTreeMap<u32, String>)>
+) -> Result<ParsedCorpusTable>
 where
     F: Fn(&str) -> (),
 {
@@ -184,7 +190,11 @@ where
     }
 
     let toplevel_corpus_name = toplevel_corpus_name.ok_or("Toplevel corpus name not found")?;
-    Ok((toplevel_corpus_name, corpus_by_preorder, corpus_id_to_name))
+    Ok(ParsedCorpusTable {
+        toplevel_corpus_name,
+        corpus_by_preorder,
+        corpus_id_to_name
+    })
 }
 
 fn parse_text_tab<F>(
