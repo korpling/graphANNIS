@@ -99,7 +99,7 @@ impl Desc {
             0
         };
         if let Some(ref rhs) = rhs {
-            for e in rhs.node_pos.iter() {
+            for e in &rhs.node_pos {
                 // the RHS has an offset after the join
                 node_pos.insert(e.0.clone(), e.1 + offset);
             }

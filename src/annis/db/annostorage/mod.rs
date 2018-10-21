@@ -167,7 +167,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
     fn check_and_remove_value_symbol(&mut self, value_id: usize) {
         let mut still_used = false;
-        for (_, values) in self.by_anno.iter() {
+        for (_, values) in &self.by_anno {
             if values.contains_key(&value_id) {
                 still_used = true;
                 break;
@@ -478,7 +478,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let mut count_matches: usize = 0;
 
         // guess for each fully qualified annotation key and return the sum of all guesses
-        for anno_key in qualified_keys.into_iter() {
+        for anno_key in qualified_keys {
             if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
                 universe_size += *anno_size;
 

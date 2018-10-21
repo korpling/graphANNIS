@@ -24,7 +24,7 @@ impl<'a> ExecutionPlan<'a> {
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();
-        for alt in query.alternatives.iter() {
+        for alt in &query.alternatives {
             let p = alt.make_exec_node(db, &config);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());

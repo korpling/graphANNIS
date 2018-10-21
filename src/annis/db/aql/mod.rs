@@ -26,7 +26,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
 
             // map all conjunctions and its literals
             let mut alternatives: Vec<Conjunction> = Vec::new();
-            for c in ast.into_iter() {
+            for c in ast {
                 let mut q = Conjunction::new();
                 // collect and sort all node searches according to their start position in the text
                 let mut pos_to_node: BTreeMap<
@@ -38,7 +38,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
 
                 let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();
 
-                for f in c.iter() {
+                for f in &c {
                     if let ast::Factor::Literal(literal) = f {
                         match literal {
                             ast::Literal::NodeSearch {
@@ -90,7 +90,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 let mut first_node_pos: Option<String> = None;
 
                 let mut pos_to_node_id: HashMap<usize, String> = HashMap::default();
-                for (start_pos, (node_spec, variable)) in pos_to_node.into_iter() {
+                for (start_pos, (node_spec, variable)) in pos_to_node {
                     let variable = variable.as_ref().map(|s| &**s);
 
                     let start = get_line_and_column_for_pos(start_pos, &offsets);
@@ -115,7 +115,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 {
                     let mut first_meta_idx: Option<String> = None;
                     // TODO: add warning to the user not to use this construct anymore
-                    for (spec, _pos) in legacy_meta_search.into_iter() {
+                    for (spec, _pos) in legacy_meta_search {
                         // add an artificial node that describes the document/corpus node
                         let meta_node_idx = q.add_node(spec, None);
                         if let Some(first_meta_idx) = first_meta_idx.clone() {
@@ -158,7 +158,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
 
                 // finally add all operators
 
-                for f in c.into_iter() {
+                for f in c {
                     if let ast::Factor::Literal(literal) = f {
                         if let ast::Literal::BinaryOp { lhs, op, rhs, pos } = literal {
                             let idx_left = match lhs {

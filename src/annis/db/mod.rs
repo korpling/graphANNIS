@@ -165,7 +165,7 @@ impl MallocSizeOf for Graph {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size = self.node_annos.size_of(ops);
 
-        for (c, _) in self.components.iter() {
+        for (c, _) in &self.components {
             // TODO: overhead by map is not measured
             size += c.size_of(ops);
             let gs_size = if let Some(gs) = self.get_graphstorage_as_ref(c) {
@@ -434,7 +434,7 @@ impl Graph {
 
         save_bincode(&location, "nodes_v1.bin", self.node_annos.as_ref())?;
 
-        for (c, e) in self.components.iter() {
+        for (c, e) in &self.components {
             if let Some(ref data) = *e {
                 let dir = PathBuf::from(&location).join(component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
@@ -850,7 +850,7 @@ impl Graph {
         let mut components_to_load: Vec<Component> = Vec::with_capacity(self.components.len());
 
         // colllect all missing components
-        for (c, gs) in self.components.iter() {
+        for (c, gs) in &self.components {
             if gs.is_none() {
                 components_to_load.push(c.clone());
             }
@@ -869,7 +869,7 @@ impl Graph {
             }).collect();
 
         // insert all the loaded components
-        for (c, gs) in loaded_components.into_iter() {
+        for (c, gs) in loaded_components {
             let gs = gs?;
             self.components.insert(c, Some(gs));
         }

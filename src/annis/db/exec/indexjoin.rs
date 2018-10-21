@@ -125,7 +125,7 @@ impl<'a> IndexJoin<'a> {
                     return Some(Box::new(it_nodes.flat_map(move |match_node| {
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(keys.len());
-                        for key_id in keys.clone().into_iter() {
+                        for key_id in keys.clone() {
                             if node_annos
                                 .get_value_for_item_by_id(&match_node.node, key_id)
                                 .is_some()
@@ -145,7 +145,7 @@ impl<'a> IndexJoin<'a> {
                     let anno_keys = node_annos.get_all_keys_for_item(&match_node.node);
                     let mut matches: Vec<Match> = Vec::new();
                     matches.reserve(anno_keys.len());
-                    for anno_key in anno_keys.into_iter() {
+                    for anno_key in anno_keys {
                         if let Some(key_id) = node_annos.get_key_id(&anno_key) {
                             matches.push(Match {
                                 node: match_node.node,
@@ -195,7 +195,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                 while let Some(mut m_rhs) = rhs_candidate.next() {
                     // check if all filters are true
                     let mut filter_result = true;
-                    for f in self.node_search_desc.cond.iter() {
+                    for f in &self.node_search_desc.cond {
                         if !(f)(&m_rhs) {
                             filter_result = false;
                             break;

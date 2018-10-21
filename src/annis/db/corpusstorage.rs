@@ -132,7 +132,7 @@ impl fmt::Display for CorpusInfo {
         };
         if !self.graphstorages.is_empty() {
             writeln!(f, "------------")?;
-            for gs in self.graphstorages.iter() {
+            for gs in &self.graphstorages {
                 write!(f, "{}", gs)?;
                 writeln!(f, "------------")?;
             }
@@ -483,7 +483,7 @@ impl CorpusStorage {
             let db = get_read_or_error(&lock)?;
 
             let mut missing: HashSet<Component> = HashSet::new();
-            for c in components.into_iter() {
+            for c in components {
                 if !db.is_loaded(&c) {
                     missing.insert(c);
                 }
@@ -509,7 +509,7 @@ impl CorpusStorage {
             let db = get_read_or_error(&lock)?;
 
             let mut missing: HashSet<Component> = HashSet::new();
-            for c in db.get_all_components(None, None).into_iter() {
+            for c in db.get_all_components(None, None) {
                 if !db.is_loaded(&c) {
                     missing.insert(c);
                 }
@@ -697,7 +697,7 @@ impl CorpusStorage {
             missing.extend(additional_components.into_iter());
 
             // remove all that are already loaded
-            for c in necessary_components.iter() {
+            for c in &necessary_components {
                 if db.get_graphstorage(c).is_some() {
                     missing.remove(c);
                 }
@@ -747,7 +747,7 @@ impl CorpusStorage {
         let db: &mut Graph = get_write_or_error(&mut lock)?;
 
         Arc::make_mut(&mut db.node_annos).calculate_statistics();
-        for c in db.get_all_components(None, None).into_iter() {
+        for c in db.get_all_components(None, None) {
             db.calculate_component_statistics(&c)?;
         }
 
@@ -912,7 +912,7 @@ impl CorpusStorage {
 
         for mgroup in plan {
             // cache all paths of the matches
-            for m in mgroup.iter() {
+            for m in &mgroup {
                 if let Some(path) = db
                     .node_annos
                     .get_value_for_item_by_id(&m.node, node_name_key_id)
@@ -966,7 +966,7 @@ impl CorpusStorage {
                 .take(limit)
                 .map(|m: Vec<Match>| {
                     let mut match_desc: Vec<String> = Vec::new();
-                    for singlematch in m.iter() {
+                    for singlematch in &m {
                         let mut node_desc = String::new();
 
                         if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
@@ -1197,7 +1197,7 @@ impl CorpusStorage {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
         let mut max_alt_size = 0;
-        for alt in prep.query.alternatives.iter() {
+        for alt in &prep.query.alternatives {
             max_alt_size = std::cmp::max(max_alt_size, alt.num_of_nodes());
         }
 
@@ -1294,7 +1294,7 @@ impl CorpusStorage {
 
         // get the matching annotation keys for each definition entry
         let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
-        for def in definition.into_iter() {
+        for def in definition {
             if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
                 if let Some(ns) = def.ns {
                     // add the single fully qualified annotation key
@@ -1319,7 +1319,7 @@ impl CorpusStorage {
         for mgroup in plan {
             // for each match, extract the defined annotation (by its key) from the result node
             let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
-            for (node_ref, anno_keys) in annokeys.iter() {
+            for (node_ref, anno_keys) in &annokeys {
                 let mut tuple_val: String = String::default();
                 if *node_ref < mgroup.len() {
                     let m: &Match = &mgroup[*node_ref];
@@ -1338,7 +1338,7 @@ impl CorpusStorage {
 
         // output the frequency
         let mut result: FrequencyTable<String> = FrequencyTable::default();
-        for (tuple, count) in tuple_frequency.into_iter() {
+        for (tuple, count) in tuple_frequency {
             result.push((tuple, count));
         }
 
@@ -1363,9 +1363,9 @@ impl CorpusStorage {
             QueryLanguage::AQL => aql::parse(query)?,
         };
         let mut component_nr = 0;
-        for alt in q.alternatives.into_iter() {
+        for alt in q.alternatives {
             let alt: Conjunction = alt;
-            for mut n in alt.get_node_descriptions().into_iter() {
+            for mut n in alt.get_node_descriptions() {
                 n.alternative = component_nr;
                 result.push(n);
             }
@@ -1423,7 +1423,7 @@ impl CorpusStorage {
                             }
                         } else {
                             // get all values
-                            for val in node_annos.get_all_values(&key, false).into_iter() {
+                            for val in node_annos.get_all_values(&key, false) {
                                 result.push(Annotation {
                                     key: key.clone(),
                                     val: val.to_owned(),
@@ -1477,7 +1477,7 @@ impl CorpusStorage {
                                 }
                             } else {
                                 // get all values
-                                for val in edge_annos.get_all_values(&key, false).into_iter() {
+                                for val in edge_annos.get_all_values(&key, false) {
                                     result.push(Annotation {
                                         key: key.clone(),
                                         val: val.to_owned(),
@@ -1740,7 +1740,7 @@ fn extract_subgraph_by_query(
         }
     }
 
-    for m in match_result.iter() {
+    for m in &match_result {
         create_subgraph_edge(m.node, &mut result, orig_db, &all_components);
     }
 
@@ -1750,7 +1750,7 @@ fn extract_subgraph_by_query(
 fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
     // add all node labels with the same node ID
     let node_annos = Arc::make_mut(&mut db.node_annos);
-    for a in orig_db.node_annos.get_annotations_for_item(&id).into_iter() {
+    for a in orig_db.node_annos.get_annotations_for_item(&id) {
         node_annos.insert(id, a);
     }
 }
@@ -1777,7 +1777,7 @@ fn create_subgraph_edge(
                     .get_annotations_for_item(&Edge {
                         source: source_id,
                         target,
-                    }).into_iter()
+                    })
                 {
                     if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
                         new_gs.add_edge_annotation(e.clone(), a);

@@ -56,7 +56,7 @@ fn update_components_for_nodes(
     }
 
     // set the component id for each node of the other component
-    for nid in node_ids_to_update.iter() {
+    for nid in &node_ids_to_update {
         node2component.insert(*nid, to);
     }
 }
@@ -97,7 +97,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn get_node_descriptions(&self) -> Vec<QueryAttributeDescription> {
         let mut result = Vec::default();
-        for (var, spec) in self.nodes.iter() {
+        for (var, spec) in &self.nodes {
             let anno_name = match spec {
                 NodeSearchSpec::ExactValue { name, .. } => Some(name.clone()),
                 NodeSearchSpec::RegexValue { name, .. } => Some(name.clone()),
@@ -179,7 +179,7 @@ impl<'a> Conjunction<'a> {
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = vec![];
 
-        for op_entry in self.operators.iter() {
+        for op_entry in &self.operators {
             let mut c = op_entry.op.necessary_components(db);
             result.append(&mut c);
         }
@@ -299,7 +299,7 @@ impl<'a> Conjunction<'a> {
                     let mut estimated_component_search = 0;
 
                     let mut estimation_valid = false;
-                    for c in components.iter() {
+                    for c in &components {
                         if let Some(gs) = db.get_graphstorage(c) {
                             // check if we can apply an even more restrictive edge annotation search
                             if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
@@ -519,7 +519,7 @@ impl<'a> Conjunction<'a> {
         }
 
         // 2. add the joins which produce the results in operand order
-        for i in operator_order.into_iter() {
+        for i in operator_order {
             let op_entry: &OperatorEntry<'a> = &self.operators[i];
 
             let mut op: Box<Operator> = op_entry.op.create_operator(db).ok_or_else(|| {
@@ -613,7 +613,7 @@ impl<'a> Conjunction<'a> {
 
         // 3. check if there is only one component left (all nodes are connected)
         let mut first_component_id: Option<usize> = None;
-        for (node_nr, cid) in node2component.iter() {
+        for (node_nr, cid) in &node2component {
             if first_component_id.is_none() {
                 first_component_id = Some(*cid);
             } else if let Some(first) = first_component_id {

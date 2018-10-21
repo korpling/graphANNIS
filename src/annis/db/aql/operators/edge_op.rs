@@ -31,7 +31,7 @@ struct BaseEdgeOp {
 impl BaseEdgeOp {
     pub fn new(db: &Graph, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
         let mut gs: Vec<Arc<GraphStorage>> = Vec::new();
-        for c in spec.components.iter() {
+        for c in &spec.components {
             gs.push(db.get_graphstorage(c)?);
         }
         Some(BaseEdgeOp {
@@ -76,7 +76,7 @@ fn check_edge_annotation(
                 .get_annotations_for_item(&Edge {
                     source: source,
                     target: target,
-                }).into_iter()
+                })
             {
                 if name != &a.key.name {
                     continue;
@@ -105,7 +105,7 @@ fn check_edge_annotation(
                     .get_annotations_for_item(&Edge {
                         source: source,
                         target: target,
-                    }).into_iter()
+                    })
                 {
                     if name != &a.key.name {
                         continue;
@@ -245,7 +245,7 @@ impl Operator for BaseEdgeOp {
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        for e in self.gs.iter() {
+        for e in &self.gs {
             if self.inverse {
                 if e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist)
                     && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
@@ -268,7 +268,7 @@ impl Operator for BaseEdgeOp {
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
-        for g in self.gs.iter() {
+        for g in &self.gs {
             if !g.inverse_has_same_cost() {
                 return None;
             }
@@ -298,7 +298,7 @@ impl Operator for BaseEdgeOp {
 
         let mut worst_sel: f64 = 0.0;
 
-        for g in self.gs.iter() {
+        for g in &self.gs {
             let g: &Arc<GraphStorage> = g;
 
             let mut gs_selectivity = 0.01;
@@ -347,7 +347,7 @@ impl Operator for BaseEdgeOp {
     fn edge_anno_selectivity(&self) -> Option<f64> {
         if let Some(ref edge_anno) = self.spec.edge_anno {
             let mut worst_sel = 0.0;
-            for g in self.gs.iter() {
+            for g in &self.gs {
                 let g: &Arc<GraphStorage> = g;
                 let anno_storage = g.get_anno_storage();
                 let num_of_annos = anno_storage.number_of_annotations();

@@ -209,7 +209,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             }
         }
         let annos = self.annos.get_annotations_for_item(edge);
-        for a in annos.into_iter() {
+        for a in annos {
             self.annos.remove_annotation_for_item(edge, &a.key);
         }
     }
@@ -263,10 +263,10 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         let mut roots: BTreeSet<NodeID> = BTreeSet::new();
         {
             let mut all_nodes: BTreeSet<NodeID> = BTreeSet::new();
-            for (source, outgoing) in self.edges.iter() {
+            for (source, outgoing) in &self.edges {
                 roots.insert(*source);
                 all_nodes.insert(*source);
-                for target in outgoing.iter() {
+                for target in outgoing {
                     all_nodes.insert(*target);
 
                     if stats.rooted_tree {
@@ -285,8 +285,8 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         let mut last_source_id: Option<NodeID> = None;
         let mut current_fan_out = 0;
         if !self.edges.is_empty() {
-            for (source, outgoing) in self.edges.iter() {
-                for target in outgoing.iter() {
+            for (source, outgoing) in &self.edges {
+                for target in outgoing {
                     roots.remove(&target);
 
                     if let Some(last) = last_source_id {
@@ -328,7 +328,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             // if we have edges but no roots at all there must be a cycle
             stats.cyclic = true;
         } else {
-            for root_node in roots.iter() {
+            for root_node in &roots {
                 let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::max_value());
                 while let Some(step) = dfs.next() {
                     number_of_visits += 1;

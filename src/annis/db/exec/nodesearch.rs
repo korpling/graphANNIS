@@ -562,7 +562,7 @@ impl<'a> NodeSearch<'a> {
                     .map(move |anno_key| Match { node, anno_key })
             }).filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates
-                for cond in node_search_desc_2.cond.iter() {
+                for cond in &node_search_desc_2.cond {
                     if !cond(&m) {
                         return None;
                     }

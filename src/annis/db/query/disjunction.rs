@@ -16,7 +16,7 @@ impl<'a> Disjunction<'a> {
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = vec![];
 
-        for alt in self.alternatives.iter() {
+        for alt in &self.alternatives {
             let mut c = alt.necessary_components(db);
             result.append(&mut c);
         }
@@ -25,7 +25,7 @@ impl<'a> Disjunction<'a> {
     }
 
     pub fn get_variable_pos(&self, variable: &str) -> Option<usize> {
-        for alt in self.alternatives.iter() {
+        for alt in &self.alternatives {
             if let Some(var_pos) = alt.get_variable_pos(variable) {
                 return Some(var_pos);
             }

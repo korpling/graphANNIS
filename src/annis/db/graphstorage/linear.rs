@@ -256,13 +256,13 @@ where
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
                 let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
-                for a in edge_annos.into_iter() {
+                for a in edge_annos {
                     self.annos.insert(e.clone(), a);
                 }
             }
         }
 
-        for root_node in roots.iter() {
+        for root_node in &roots {
             // iterate over all edges beginning from the root
             let mut chain: Vec<NodeID> = vec![*root_node];
             let pos: RelativePosition<PosT> = RelativePosition {

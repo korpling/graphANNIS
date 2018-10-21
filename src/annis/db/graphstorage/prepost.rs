@@ -417,7 +417,7 @@ where
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
                 let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
-                for a in edge_annos.into_iter() {
+                for a in edge_annos {
                     self.annos.insert(e.clone(), a);
                 }
             }
@@ -425,7 +425,7 @@ where
 
         let mut current_order = OrderT::zero();
         // traverse the graph for each sub-component
-        for start_node in roots.iter() {
+        for start_node in &roots {
             let mut last_distance: usize = 0;
 
             let mut node_stack: NStack<OrderT, LevelT> = NStack::new();
@@ -480,8 +480,8 @@ where
         // there must be an entry in the vector for all possible order values
         self.order_to_node
             .resize(current_order.to_usize().unwrap_or(0), OrderVecEntry::None);
-        for (node, orders_for_node) in self.node_to_order.iter() {
-            for order in orders_for_node.iter() {
+        for (node, orders_for_node) in &self.node_to_order {
+            for order in orders_for_node {
                 if let Some(pre) = order.pre.to_usize() {
                     self.order_to_node[pre] = OrderVecEntry::Pre {
                         post: order.post.clone(),

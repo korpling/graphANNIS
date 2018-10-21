@@ -122,7 +122,7 @@ impl<'a> IndexJoin<'a> {
                 while let Some(mut m_rhs) = rhs_candidate.next() {
                     // check if all filters are true
                     let mut filter_result = true;
-                    for f in node_search_desc.cond.iter() {
+                    for f in &node_search_desc.cond {
                         if !(f)(&m_rhs) {
                             filter_result = false;
                             break;
@@ -209,7 +209,7 @@ fn next_candidates(
             // return all annotations with the correct name for each node
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
-                for key_id in keys.clone().into_iter() {
+                for key_id in keys.clone() {
                     if let Some(_) = node_annos.get_value_for_item_by_id(&match_node.node, key_id) {
                         matches.push(Match {
                             node: match_node.node,
@@ -225,7 +225,7 @@ fn next_candidates(
         let mut matches: Vec<Match> = Vec::new();
         for match_node in it_nodes {
             let all_keys = node_annos.get_all_keys_for_item(&match_node.node);
-            for anno_key in all_keys.into_iter() {
+            for anno_key in all_keys {
                 if let Some(key_id) = node_annos.get_key_id(&anno_key) {
                     matches.push(Match {
                         node: match_node.node,

@@ -24,7 +24,7 @@ where
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size: usize = 0;
         // measure the size of all items and add the overhead of the Arc (two counter fields)
-        for s in self.by_id.iter() {
+        for s in &self.by_id {
             size += std::mem::size_of::<Arc<T>>() + s.size_of(ops);
         }
 

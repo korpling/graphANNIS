@@ -94,7 +94,7 @@ impl Operator for IdenticalCoverage {
 
             // find left-aligned non-token
             let v = self.gs_left.get_outgoing_edges(n_left);
-            for c in v.into_iter() {
+            for c in v {
                 // check if also right-aligned
                 if let Some(c_right) = self.tok_helper.right_token_for(c) {
                     if n_right == c_right {
