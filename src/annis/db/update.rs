@@ -55,7 +55,7 @@ pub enum UpdateEvent {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[repr(C)]
 pub struct GraphUpdate {
     diffs : Vec<(u64, UpdateEvent)>,
@@ -108,5 +108,9 @@ impl GraphUpdate {
 
     pub fn len(&self) -> usize {
         self.diffs.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.diffs.is_empty()
     }
 }

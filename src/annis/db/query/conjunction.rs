@@ -295,7 +295,7 @@ impl<'a> Conjunction<'a> {
             if e.idx_left == desc.component_nr {
                 // get the necessary components and count the number of nodes in these components
                 let components = op_spec.necessary_components(db);
-                if components.len() > 0 {
+                if !components.is_empty() {
                     let mut estimated_component_search = 0;
 
                     let mut estimation_valid = false;
