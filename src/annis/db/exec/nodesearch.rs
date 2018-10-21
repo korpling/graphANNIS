@@ -133,8 +133,7 @@ impl<'a> NodeSearch<'a> {
                 is_meta,
             } => NodeSearch::new_annosearch(
                 db,
-                ns,
-                name,
+                (ns, name),
                 val,
                 false,
                 is_meta,
@@ -152,8 +151,7 @@ impl<'a> NodeSearch<'a> {
                 let is_regex = util::contains_regex_metacharacters(&val);
                 NodeSearch::new_annosearch(
                     db,
-                    ns,
-                    name,
+                    (ns,name),
                     Some(val),
                     is_regex,
                     is_meta,
@@ -237,8 +235,7 @@ impl<'a> NodeSearch<'a> {
 
     fn new_annosearch(
         db: &'a Graph,
-        ns: Option<String>,
-        name: String,
+        qname:(Option<String>, String),
         val: Option<String>,
         match_regex: bool,
         is_meta: bool,
@@ -249,14 +246,14 @@ impl<'a> NodeSearch<'a> {
         let base_it = if match_regex {
             // match_regex works only with values
             db.node_annos.regex_anno_search(
-                ns.clone(),
-                name.clone(),
+                qname.0.clone(),
+                qname.1.clone(),
                 &val.clone()
                     .ok_or("Regular expressions only work with values")?,
             )
         } else {
             db.node_annos
-                .exact_anno_search(ns.clone(), name.clone(), val.clone())
+                .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone())
         };
 
         let const_output = if is_meta {
@@ -270,7 +267,7 @@ impl<'a> NodeSearch<'a> {
         };
 
         let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output {
-            let is_unique = db.node_annos.get_qnames(&name).len() <= 1;
+            let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
             // Replace the result annotation with a constant value.
             // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
             if is_unique {
@@ -293,17 +290,17 @@ impl<'a> NodeSearch<'a> {
 
         let est_output = if match_regex {
             db.node_annos.guess_max_count_regex(
-                ns.clone(),
-                name.clone(),
+                qname.0.clone(),
+                qname.1.clone(),
                 &val.clone()
                     .ok_or("Regular expressions only work with values")?,
             )
         } else if let Some(ref val) = val {
             db.node_annos
-                .guess_max_count(ns.clone(), name.clone(), &val, &val)
+                .guess_max_count(qname.0.clone(), qname.1.clone(), &val, &val)
         } else {
             db.node_annos
-                .number_of_annotations_by_name(ns.clone(), name.clone())
+                .number_of_annotations_by_name(qname.0.clone(), qname.1.clone())
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -356,7 +353,7 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (ns, Some(name)),
+                qname: (qname.0, Some(qname.1)),
                 cond: filters,
                 const_output,
             }),
