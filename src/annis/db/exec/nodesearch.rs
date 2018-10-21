@@ -342,7 +342,7 @@ impl<'a> NodeSearch<'a> {
             let node_annos = db.node_annos.clone();
             filters.push(Box::new(move |m| {
                 if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
-                    return anno_val == &val;
+                    return anno_val == val.as_str();
                 } else {
                     return false;
                 }
@@ -449,7 +449,7 @@ impl<'a> NodeSearch<'a> {
                 filters.push(Box::new(move |m| {
                     if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
                     {
-                        return anno_val == &v;
+                        return anno_val == v.as_str();
                     } else {
                         return false;
                     }

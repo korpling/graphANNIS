@@ -494,8 +494,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                                 let bucket_begin = &histo[i];
                                 let bucket_end = &histo[i + 1];
                                 // check if the range overlaps with the search range
-                                if bucket_begin <= &String::from(upper_val)
-                                    && &String::from(lower_val) <= bucket_end
+                                if bucket_begin.as_str() <= upper_val
+                                    && lower_val <= bucket_end.as_str()
                                 {
                                     count_matches += 1;
                                 }
