@@ -3,8 +3,7 @@ mod normalize;
 pub mod operators;
 lalrpop_mod!(
     #[allow(clippy)]
-    parser,
-    "/annis/db/aql/parser.rs"
+    parser
 );
 
 use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
@@ -19,7 +18,10 @@ use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
-fn map_conjunction<'a>(c: ast::Conjunction, offsets : &BTreeMap<usize, usize>) -> Result<Conjunction<'a>> {
+fn map_conjunction<'a>(
+    c: ast::Conjunction,
+    offsets: &BTreeMap<usize, usize>,
+) -> Result<Conjunction<'a>> {
     let mut q = Conjunction::new();
     // collect and sort all node searches according to their start position in the text
     let mut pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)> = BTreeMap::default();
