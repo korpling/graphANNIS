@@ -21,7 +21,7 @@ impl<'a> Disjunction<'a> {
             result.append(&mut c);
         }
 
-        return result;
+        result
     }
 
     pub fn get_variable_pos(&self, variable: &str) -> Option<usize> {
@@ -30,6 +30,6 @@ impl<'a> Disjunction<'a> {
                 return Some(var_pos);
             }
         }
-        return None;
+        None
     }
 }

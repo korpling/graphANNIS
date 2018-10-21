@@ -45,12 +45,11 @@ lazy_static! {
         }
     };
     static ref COMPONENT_COV: Component = {
-        let c = Component {
+        Component {
             ctype: ComponentType::Coverage,
             layer: String::from("annis"),
             name: String::from(""),
-        };
-        c
+        }
     };
 }
 
@@ -118,13 +117,14 @@ impl Operator for Inclusion {
                                 if let Some(end_n) = end_n.next() {
                                     // path between right-most tokens exists in ORDERING component
                                     // and has maximum length l
-                                    return self.gs_order.is_connected(&end_n, &end_lhs, 0, l);
+                                    self.gs_order.is_connected(&end_n, &end_lhs, 0, l)
+                                } else {
+                                    false
                                 }
-                                return false;
                             },
                         );
                         // return the token itself and all aligned nodes
-                        return std::iter::once(t).chain(it_aligned);
+                        std::iter::once(t).chain(it_aligned)
                     }).map(|n| Match {
                         node: n,
                         anno_key: AnnoKeyID::default(),
@@ -133,7 +133,7 @@ impl Operator for Inclusion {
             }
         }
 
-        return Box::new(std::iter::empty());
+        Box::new(std::iter::empty())
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
@@ -157,7 +157,7 @@ impl Operator for Inclusion {
             }
         }
 
-        return false;
+        false
     }
 
     fn is_reflexive(&self) -> bool {
@@ -184,6 +184,6 @@ impl Operator for Inclusion {
             }
         }
 
-        return EstimationType::SELECTIVITY(0.1);
+        EstimationType::SELECTIVITY(0.1)
     }
 }

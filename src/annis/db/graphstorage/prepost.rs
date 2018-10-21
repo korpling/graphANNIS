@@ -121,11 +121,11 @@ where
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
     fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        return self.find_connected(node, 1, 1);
+        self.find_connected(node, 1, 1)
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        return self.find_connected_inverse(node, 1, 1);
+        self.find_connected_inverse(node, 1, 1)
     }
 
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
@@ -341,9 +341,9 @@ where
         }
 
         if was_found {
-            return Some(min_level);
+            Some(min_level)
         } else {
-            return None;
+            None
         }
     }
     fn is_connected(
@@ -376,7 +376,7 @@ where
             }
         }
 
-        return false;
+        false
     }
 
     fn copy(&mut self, db: &Graph, orig: &EdgeContainer) {

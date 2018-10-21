@@ -1,7 +1,7 @@
 mod ast;
 mod normalize;
 pub mod operators;
-lalrpop_mod!(parser, "/annis/db/aql/parser.rs");
+lalrpop_mod!(#[allow(clippy)] parser, "/annis/db/aql/parser.rs");
 
 use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
 use annis::db::aql::operators::identical_node::IdenticalNodeSpec;
@@ -205,7 +205,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 // add the conjunction to the disjunction
                 alternatives.push(q);
             }
-            return Ok(Disjunction::new(alternatives));
+            Ok(Disjunction::new(alternatives))
         }
         Err(e) => {
             let mut desc = match e {
@@ -225,9 +225,9 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 }
                 _ => {}
             };
-            return Err(ErrorKind::AQLSyntaxError(desc, location).into());
+            Err(ErrorKind::AQLSyntaxError(desc, location).into())
         }
-    };
+    }
 }
 
 fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
@@ -254,7 +254,7 @@ fn get_line_offsets(input: &str) -> BTreeMap<usize, usize> {
         l += 1;
     }
 
-    return offsets;
+    offsets
 }
 
 pub fn get_line_and_column_for_pos(

@@ -21,7 +21,7 @@ pub fn compare_matchgroup_by_text_pos(
         }
     }
     // sort shorter vectors before larger ones
-    return m1.len().cmp(&m2.len());
+    m1.len().cmp(&m2.len())
 }
 
 pub fn compare_match_by_text_pos(
@@ -32,7 +32,7 @@ pub fn compare_match_by_text_pos(
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
-        return m1.anno_key.cmp(&m2.anno_key);
+        m1.anno_key.cmp(&m2.anno_key)
     } else {
         // get the node paths and names
         let m1_entry = node_to_path.get(&m1.node);
@@ -75,6 +75,6 @@ pub fn compare_match_by_text_pos(
         }
 
         // compare node IDs directly as last resort
-        return m1.node.cmp(&m2.node);
+        m1.node.cmp(&m2.node)
     }
 }

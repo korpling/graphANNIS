@@ -93,18 +93,18 @@ fn get_prepostorder_by_size(stats: &GraphStatistic) -> GSInfo {
             return create_info::<PrePostOrderStorage<u64, u8>>();
         }
     }
-    return create_info::<PrePostOrderStorage<u64, u64>>();;
+    create_info::<PrePostOrderStorage<u64, u64>>()
 }
 
 fn get_linear_by_size(stats: &GraphStatistic) -> GSInfo {
     if stats.max_depth < u8::max_value() as usize {
-        return create_info::<LinearGraphStorage<u8>>();
+        create_info::<LinearGraphStorage<u8>>()
     } else if stats.max_depth < u16::max_value() as usize {
-        return create_info::<LinearGraphStorage<u16>>();
+        create_info::<LinearGraphStorage<u16>>()
     } else if stats.max_depth < u32::max_value() as usize {
-        return create_info::<LinearGraphStorage<u32>>();
+        create_info::<LinearGraphStorage<u32>>()
     } else {
-        return create_info::<LinearGraphStorage<u64>>();
+        create_info::<LinearGraphStorage<u64>>()
     }
 }
 
@@ -139,7 +139,7 @@ pub fn deserialize(impl_name: &str, input: &mut std::io::Read) -> Result<Arc<Gra
         "Could not find implementation for graph storage with name '{}'",
         impl_name
     ))?;
-    return (info.deserialize_func)(input);
+    (info.deserialize_func)(input)
 }
 
 pub fn serialize(data: Arc<GraphStorage>, writer: &mut std::io::Write) -> Result<String> {

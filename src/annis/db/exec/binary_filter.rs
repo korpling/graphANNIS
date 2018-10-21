@@ -21,7 +21,7 @@ fn calculate_outputsize<'a>(op: &Box<Operator + 'a>, num_tuples: usize) -> usize
         EstimationType::MIN => num_tuples,
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
-    return std::cmp::max(output, 1);
+    std::cmp::max(output, 1)
 }
 
 impl<'a> BinaryFilter<'a> {
@@ -61,7 +61,7 @@ impl<'a> BinaryFilter<'a> {
             desc,
             it: Box::new(it),
         };
-        return filter;
+        filter
     }
 }
 

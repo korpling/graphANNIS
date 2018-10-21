@@ -77,9 +77,9 @@ impl GraphUpdate {
 
     pub fn is_consistent(&self) -> bool {
         if self.diffs.is_empty() {
-            return true;
+            true
         } else {
-            return self.last_consistent_change_id == self.diffs[self.diffs.len()-1].0;
+            self.last_consistent_change_id == self.diffs[self.diffs.len()-1].0
         }
     }
 
@@ -103,7 +103,7 @@ impl GraphUpdate {
             }
         });
 
-        return Box::new(it);
+        Box::new(it)
     }
 
     pub fn len(&self) -> usize {

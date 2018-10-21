@@ -133,7 +133,7 @@ fn get_field_str(record: &csv::StringRecord, i: usize) -> Option<String> {
                 .replace("\\\\", "\\"),
         );
     }
-    return None;
+    None
 }
 
 fn parse_corpus_tab<F>(
@@ -786,7 +786,7 @@ where
     )?;
     load_node_anno_tab(path, db, &missing_seg_span, is_annis_33, progress_callback)?;
 
-    return Ok(nodes_by_text);
+    Ok(nodes_by_text)
 }
 
 fn load_rank_tab<F>(

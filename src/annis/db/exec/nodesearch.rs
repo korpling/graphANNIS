@@ -350,7 +350,7 @@ impl<'a> NodeSearch<'a> {
                 }
             }));
         };
-        return Ok(NodeSearch {
+        Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
                 &query_fragment,
@@ -362,7 +362,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output: const_output,
             }),
-        });
+        })
     }
 
     fn new_tokensearch(
@@ -503,7 +503,7 @@ impl<'a> NodeSearch<'a> {
             .get_key_id(&db.get_node_type_key())
             .ok_or("Node type annotation does not exist in database")?;
 
-        return Ok(NodeSearch {
+        Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
                 &query_fragment,
@@ -515,7 +515,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output: Some(const_output),
             }),
-        });
+        })
     }
 
     pub fn new_partofcomponentsearch(
@@ -569,7 +569,7 @@ impl<'a> NodeSearch<'a> {
                         return None;
                     }
                 }
-                return Some(vec![m]);
+                Some(vec![m])
             });
         let mut new_desc = desc.cloned();
         if let Some(ref mut new_desc) = new_desc {

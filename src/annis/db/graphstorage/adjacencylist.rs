@@ -123,7 +123,7 @@ impl GraphStorage for AdjacencyListStorage {
             .filter(|x| *target == x.node)
             .map(|x| x.distance);
 
-        return it.next();
+        it.next()
     }
     fn is_connected(
         &self,
@@ -135,7 +135,7 @@ impl GraphStorage for AdjacencyListStorage {
         let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
             .filter(|x| *target == x.node);
 
-        return it.next().is_some();
+        it.next().is_some()
     }
 
     fn copy(&mut self, _db: &Graph, orig: &EdgeContainer) {

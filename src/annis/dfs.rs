@@ -125,7 +125,7 @@ impl<'a> CycleSafeDFS<'a> {
                 found,
                 node
             );
-            return found;
+            found
         }
     }
 }

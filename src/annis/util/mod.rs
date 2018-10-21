@@ -52,7 +52,7 @@ pub fn extract_node_path(full_node_name: &str) -> (Vec<String>, String) {
     // separate path and name first
     let hash_pos = full_node_name.rfind('#');
 
-    let path_str: &str = &full_node_name[0..hash_pos.unwrap_or(full_node_name.len())];
+    let path_str: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
     let mut path: Vec<String> = Vec::with_capacity(4);
     path.extend(
         path_str
@@ -144,7 +144,7 @@ pub fn get_queries_from_folder(
                 }
             }
 
-            return None;
+            None
         });
 
         Box::from(it)

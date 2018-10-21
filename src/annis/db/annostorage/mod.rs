@@ -107,11 +107,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let anno = self.create_sparse_anno(anno);
 
         let existing_anno = {
-            let existing_item_entry = self.by_container.entry(item.clone()).or_insert(Vec::new());
+            let existing_item_entry = self.by_container.entry(item.clone()).or_insert_with(|| Vec::new());
 
             // check if there is already an item with the same annotation key
             let existing_entry_idx =
-                existing_item_entry.binary_search_by_key(&anno.key, |a| a.key.clone());
+                existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
 
             if let Ok(existing_entry_idx) = existing_entry_idx {
                 let orig_anno = existing_item_entry[existing_entry_idx].clone();
@@ -151,10 +151,10 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
             if let Some(largest_item) = self.largest_item.clone() {
                 if largest_item < item {
-                    self.largest_item = Some(item.clone());
+                    self.largest_item = Some(item);
                 }
             } else {
-                self.largest_item = Some(item.clone());
+                self.largest_item = Some(item);
             }
 
             let anno_key_entry = self
@@ -240,7 +240,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 }
             }
         }
-        return None;
+        None
     }
 
     pub fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str> {
@@ -303,7 +303,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             return result;
         }
         // return empty result if not found
-        return Vec::new();
+        Vec::new()
     }
 
     fn get_annotations_for_item_impl(&self, item: &T) -> Vec<Annotation> {
@@ -317,7 +317,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             return result;
         }
         // return empty result if not found
-        return Vec::new();
+        Vec::new()
     }
 
     pub fn clear(&mut self) {
@@ -345,7 +345,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 break;
             }
         }
-        return result;
+        result
     }
 
     /// Returns an internal identifier for the annotation key that can be used for faster lookup of values.
@@ -458,7 +458,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         for (_anno_key, anno_size) in qualified_keys {
             result += anno_size;
         }
-        return result;
+        result
     }
 
     fn guess_max_count_impl(
@@ -509,9 +509,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
         if sum_histogram_buckets > 0 {
             let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
-            return (selectivity * (universe_size as f64)).round() as usize;
+            (selectivity * (universe_size as f64)).round() as usize
         } else {
-            return 0;
+            0
         }
     }
 
@@ -533,7 +533,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             }
         }
 
-        return 0;
+        0
     }
 
     pub fn get_largest_item(&self) -> Option<T> {
@@ -660,7 +660,7 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
                         anno_key: anno_key_id,
                     })
                 });
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn regex_anno_search<'a>(
@@ -712,7 +712,7 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
-        return self.anno_key_sizes.keys().cloned().collect();
+        self.anno_key_sizes.keys().cloned().collect()
     }
 }
 
@@ -743,7 +743,7 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
                         anno_key: anno_key_id,
                     })
                 });
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn regex_anno_search<'a>(
@@ -791,7 +791,7 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
-        return self.anno_key_sizes.keys().cloned().collect();
+        self.anno_key_sizes.keys().cloned().collect()
     }
 
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {

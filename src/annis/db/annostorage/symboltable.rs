@@ -78,7 +78,7 @@ where
         };
         self.by_value.insert(val, id);
 
-        return id;
+        id
     }
 
     pub fn remove(&mut self, symbol: usize) -> Option<Arc<T>> {
@@ -94,7 +94,7 @@ where
                 return Some(existing);
             }
         }
-        return None;
+        None
     }
 
     pub fn get_value(&self, id: usize) -> Option<&T> {
@@ -103,16 +103,16 @@ where
                 return Some(val.as_ref());
             }
         }
-        return None;
+        None
     }
 
     pub fn get_symbol(&self, val: &T) -> Option<usize> {
-        return self.by_value.get(val).cloned();
+        self.by_value.get(val).cloned()
     }
 
     #[cfg(test)]
     pub fn len(&self) -> usize {
-        return self.by_id.len();
+        self.by_id.len()
     }
 
     pub fn clear(&mut self) {

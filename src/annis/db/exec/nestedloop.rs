@@ -38,10 +38,10 @@ impl<'a> NestedLoop<'a> {
         let processed_func = |_, out_lhs: usize, out_rhs: usize| {
             if out_lhs <= out_rhs {
                 // we use LHS as outer
-                return out_lhs + (out_lhs * out_rhs);
+                out_lhs + (out_lhs * out_rhs)
             } else {
                 // we use RHS as outer
-                return out_rhs + (out_rhs * out_lhs);
+                out_rhs + (out_rhs * out_lhs)
             }
         };
 
@@ -87,7 +87,7 @@ impl<'a> NestedLoop<'a> {
             }
         };
 
-        return it;
+        it
     }
 }
 

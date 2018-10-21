@@ -177,7 +177,7 @@ impl MallocSizeOf for Graph {
             size += gs_size;
         }
 
-        return size;
+        size
     }
 }
 
@@ -196,7 +196,7 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<Graph
 
     let gs = registry::deserialize(&impl_name, &mut buf_reader)?;
 
-    return Ok(gs);
+    Ok(gs)
 }
 
 fn component_to_relative_path(c: &Component) -> PathBuf {
@@ -209,7 +209,7 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
         &c.layer
     });
     p.push(&c.name);
-    return p;
+    p
 }
 
 fn save_bincode<T>(location: &Path, path: &str, object: &T) -> Result<()>
@@ -222,7 +222,7 @@ where
     let f = std::fs::File::create(full_path)?;
     let mut writer = std::io::BufWriter::new(f);
     bincode::serialize_into(&mut writer, object)?;
-    return Ok(());
+    Ok(())
 }
 
 impl AnnotationStorage<NodeID> for Graph {
@@ -456,13 +456,13 @@ impl Graph {
     fn save_to(&mut self, location: &Path) -> Result<()> {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
-        return self.internal_save(&location.join("current"));
+        self.internal_save(&location.join("current"))
     }
 
     /// Save the current database at a new `location` and remember it as new internal location.
     fn persist_to(&mut self, location: &Path) -> Result<()> {
         self.set_location(location)?;
-        return self.internal_save(&location.join("current"));
+        self.internal_save(&location.join("current"))
     }
 
     fn apply_update_in_memory(&mut self, u: &GraphUpdate) -> Result<()> {
@@ -785,7 +785,7 @@ impl Graph {
             // (re-)insert the component into map again
             self.components.insert(c.clone(), Some(loaded_comp));
         }
-        return Ok(());
+        Ok(())
     }
 
     fn calculate_component_statistics(&mut self, c: &Component) -> Result<()> {
@@ -833,7 +833,7 @@ impl Graph {
             .ok_or("Could not get mutable reference to optional value")?;
         let gs_mut_ref: &mut GraphStorage =
             Arc::get_mut(entry).ok_or("Could not get mutable reference")?;
-        return Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?);
+        Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?)
     }
 
     fn is_loaded(&self, c: &Component) -> bool {
@@ -843,7 +843,7 @@ impl Graph {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn ensure_loaded_all(&mut self) -> Result<()> {
@@ -890,7 +890,7 @@ impl Graph {
 
             self.components.insert(c.clone(), Some(loaded));
         }
-        return Ok(());
+        Ok(())
     }
 
     fn optimize_impl(&mut self, c: &Component) {
@@ -930,7 +930,7 @@ impl Graph {
         if let Some(m) = all_nodes_with_anno.next() {
             return Some(m.node);
         }
-        return None;
+        None
     }
 
     /// Get a read-only graph storage reference for the given component `c`.
@@ -942,7 +942,7 @@ impl Graph {
                 return Some(impl_type.clone());
             }
         }
-        return None;
+        None
     }
 
     fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a GraphStorage> {
@@ -953,7 +953,7 @@ impl Graph {
                 return Some(impl_type.as_ref());
             }
         }
-        return None;
+        None
     }
 
     /// Returns all components of the graph given an optional type (`ctype`) and `name`.
@@ -997,7 +997,7 @@ impl Graph {
                                 return false;
                             }
                         }
-                        return true;
+                        true
                     });
             return filtered_components.collect();
         }
@@ -1033,7 +1033,7 @@ impl Graph {
         }
         let calculated_size = self.size_of(ops);
         *cached_size = Some(calculated_size);
-        return calculated_size;
+        calculated_size
     }
 
     fn reset_cached_size(&self) {

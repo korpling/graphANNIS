@@ -74,7 +74,7 @@ where
                 }
             }
         }
-        return Box::from(std::iter::empty());
+        Box::from(std::iter::empty())
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
@@ -88,7 +88,7 @@ where
                 }
             }
         }
-        return Box::from(std::iter::empty());
+        Box::from(std::iter::empty())
     }
 
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
@@ -104,7 +104,7 @@ where
             .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
             .cloned();
 
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
@@ -146,7 +146,7 @@ where
                 }
             }
         }
-        return Box::new(std::iter::empty());
+        Box::new(std::iter::empty())
     }
 
     fn find_connected_inverse<'a>(
@@ -174,7 +174,7 @@ where
                 }
             }
         }
-        return Box::new(std::iter::empty());
+        Box::new(std::iter::empty())
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
@@ -192,7 +192,7 @@ where
                 }
             }
         }
-        return None;
+        None
     }
 
     fn is_connected(
@@ -215,7 +215,7 @@ where
             }
         }
 
-        return false;
+        false
     }
 
     fn copy(&mut self, db: &Graph, orig: &EdgeContainer) {

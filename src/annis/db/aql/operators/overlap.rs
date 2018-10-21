@@ -110,10 +110,10 @@ impl Operator for Overlap {
             result.insert(t);
         }
 
-        return Box::new(result.into_iter().map(|n| Match {
+        Box::new(result.into_iter().map(|n| Match {
             node: n,
             anno_key: AnnoKeyID::default(),
-        }));
+        }))
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
@@ -132,7 +132,7 @@ impl Operator for Overlap {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn is_reflexive(&self) -> bool {
@@ -140,7 +140,7 @@ impl Operator for Overlap {
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
-        return Some(Box::new(self.clone()));
+        Some(Box::new(self.clone()))
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -164,6 +164,6 @@ impl Operator for Overlap {
             }
         }
 
-        return EstimationType::SELECTIVITY(0.1);
+        EstimationType::SELECTIVITY(0.1)
     }
 }

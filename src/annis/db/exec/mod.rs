@@ -41,7 +41,7 @@ fn calculate_outputsize<'a>(
         EstimationType::MIN => std::cmp::min(cost_lhs.output, cost_rhs.output),
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
-    return std::cmp::max(output, 1);
+    std::cmp::max(output, 1)
 }
 
 impl Desc {
@@ -175,7 +175,7 @@ impl Desc {
                 result.push_str(&rhs.debug_string(&new_indention));
             }
         }
-        return result;
+        result
     }
 }
 

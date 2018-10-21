@@ -107,7 +107,7 @@ impl Operator for IdenticalCoverage {
             }
         }
 
-        return Box::new(result.into_iter());
+        Box::new(result.into_iter())
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
@@ -121,7 +121,7 @@ impl Operator for IdenticalCoverage {
             return false;
         }
 
-        return start_lhs.unwrap() == start_rhs.unwrap() && end_lhs.unwrap() == end_rhs.unwrap();
+        start_lhs.unwrap() == start_rhs.unwrap() && end_lhs.unwrap() == end_rhs.unwrap()
     }
 
     fn is_reflexive(&self) -> bool {
@@ -129,7 +129,7 @@ impl Operator for IdenticalCoverage {
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
-        return Some(Box::new(self.clone()));
+        Some(Box::new(self.clone()))
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -142,8 +142,9 @@ impl Operator for IdenticalCoverage {
             // The probability for the same length is taken is assumed to be 1.0, histograms
             // of the distribution would help here.
 
-            return EstimationType::SELECTIVITY(1.0 / num_of_token);
+            EstimationType::SELECTIVITY(1.0 / num_of_token)
+        } else {
+            EstimationType::SELECTIVITY(0.1)
         }
-        return EstimationType::SELECTIVITY(0.1);
     }
 }

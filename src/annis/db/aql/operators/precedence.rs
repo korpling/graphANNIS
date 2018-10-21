@@ -138,7 +138,7 @@ impl Operator for Precedence {
             .map(|n| Match {node: n, anno_key: AnnoKeyID::default()})
             .collect();
 
-        return Box::new(result.into_iter());
+        Box::new(result.into_iter())
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
@@ -153,12 +153,12 @@ impl Operator for Precedence {
             (start.unwrap(), end.unwrap())
         };
 
-        return self.gs_order.is_connected(
+        self.gs_order.is_connected(
             &start_end.0,
             &start_end.1,
             self.spec.min_dist,
             self.spec.max_dist,
-        );
+        )
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -171,7 +171,7 @@ impl Operator for Precedence {
             );
         }
 
-        return EstimationType::SELECTIVITY(0.1);
+        EstimationType::SELECTIVITY(0.1)
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
@@ -233,7 +233,7 @@ impl Operator for InversePrecedence {
             .map(|n| Match {node: n, anno_key: AnnoKeyID::default()})
             .collect();
 
-        return Box::new(result.into_iter());
+        Box::new(result.into_iter())
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
@@ -248,12 +248,12 @@ impl Operator for InversePrecedence {
             (start.unwrap(), end.unwrap())
         };
 
-        return self.gs_order.is_connected(
+        self.gs_order.is_connected(
             &start_end.1,
             &start_end.0,
             self.spec.min_dist,
             self.spec.max_dist,
-        );
+        )
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
@@ -277,6 +277,6 @@ impl Operator for InversePrecedence {
             );
         }
 
-        return EstimationType::SELECTIVITY(0.1);
+        EstimationType::SELECTIVITY(0.1)
     }
 }

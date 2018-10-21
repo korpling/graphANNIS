@@ -94,7 +94,7 @@ fn check_edge_annotation(
                 // all checks passed, this edge has the correct annotation
                 return true;
             }
-            return false;
+            false
         }
         Some(EdgeAnnoSearchSpec::RegexValue { ns, name, val }) => {
             let full_match_pattern = util::regex_full_match(&val);
@@ -124,12 +124,12 @@ fn check_edge_annotation(
                     return true;
                 }
             }
-            return false;
+            false
         }
         None => {
-            return true;
+            true
         }
-    };
+    }
 }
 
 impl BaseEdgeOp {}
@@ -195,7 +195,7 @@ impl Operator for BaseEdgeOp {
                         anno_key: AnnoKeyID::default(),
                     }).collect()
             };
-            return Box::new(result.into_iter());
+            Box::new(result.into_iter())
         } else {
             let mut all: Vec<Match> = if self.inverse {
                 self.gs
@@ -242,7 +242,7 @@ impl Operator for BaseEdgeOp {
             };
             all.sort_unstable();
             all.dedup();
-            return Box::new(all.into_iter());
+            Box::new(all.into_iter())
         }
     }
 
@@ -264,7 +264,7 @@ impl Operator for BaseEdgeOp {
                 }
             }
         }
-        return false;
+        false
     }
 
     fn is_reflexive(&self) -> bool {
@@ -347,7 +347,7 @@ impl Operator for BaseEdgeOp {
             }
         } // end for
 
-        return EstimationType::SELECTIVITY(worst_sel);
+        EstimationType::SELECTIVITY(worst_sel)
     }
 
     fn edge_anno_selectivity(&self) -> Option<f64> {

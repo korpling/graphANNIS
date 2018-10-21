@@ -181,11 +181,11 @@ impl FromStr for FrequencyDefEntry {
         let node_ref = splitted[0];
         let anno_key = util::split_qname(splitted[1]);
 
-        return Ok(FrequencyDefEntry {
+        Ok(FrequencyDefEntry {
             ns: anno_key.0.and_then(|ns| Some(String::from(ns))),
             name: String::from(anno_key.1),
             node_ref: String::from(node_ref),
-        });
+        })
     }
 }
 
@@ -299,7 +299,7 @@ impl CorpusStorage {
             }
         }
 
-        return Ok(result);
+        Ok(result)
     }
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
@@ -403,7 +403,7 @@ impl CorpusStorage {
             .entry(corpus_name.clone())
             .or_insert_with(|| Arc::new(RwLock::new(CacheEntry::NotLoaded)));
 
-        return Ok(entry.clone());
+        Ok(entry.clone())
     }
 
     fn load_entry_with_lock(
@@ -447,7 +447,7 @@ impl CorpusStorage {
 
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
 
-        return Ok(entry);
+        Ok(entry)
     }
 
     fn get_loaded_entry(
@@ -467,10 +467,10 @@ impl CorpusStorage {
         };
 
         if loaded {
-            return Ok(cache_entry);
+            Ok(cache_entry)
         } else {
             let mut cache_lock = self.corpus_cache.write().unwrap();
-            return self.load_entry_with_lock(&mut cache_lock, corpus_name, create_if_missing);
+            self.load_entry_with_lock(&mut cache_lock, corpus_name, create_if_missing)
         }
     }
 
@@ -720,7 +720,7 @@ impl CorpusStorage {
             self.check_cache_size_and_remove(vec![corpus_name]);
         };
 
-        return Ok(PreparationResult { query: q, db_entry });
+        Ok(PreparationResult { query: q, db_entry })
     }
 
     /// Preloads all annotation and graph storages from the disk into a main memory cache.
@@ -732,7 +732,7 @@ impl CorpusStorage {
             db.ensure_loaded_all()?;
         }
         self.check_cache_size_and_remove(vec![corpus_name]);
-        return Ok(());
+        Ok(())
     }
 
     /// Unloads a corpus from the cache.
@@ -777,7 +777,7 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
         ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
-        return Ok(true);
+        Ok(true)
     }
 
     /// Returns a string representation of the execution plan for a `query`.
@@ -798,7 +798,7 @@ impl CorpusStorage {
         let db = get_read_or_error(&lock)?;
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        return Ok(format!("{}", plan));
+        Ok(format!("{}", plan))
     }
 
     /// Count the number of results for a `query`.
@@ -820,7 +820,7 @@ impl CorpusStorage {
         let db = get_read_or_error(&lock)?;
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
 
-        return Ok(plan.count() as u64);
+        Ok(plan.count() as u64)
     }
 
     /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
@@ -935,19 +935,19 @@ impl CorpusStorage {
         } else {
             let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                 if order == ResultOrder::Inverted {
-                    return db::sort_matches::compare_matchgroup_by_text_pos(
+                    db::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
                         db,
                         &node_to_path_cache,
-                    ).reverse();
+                    ).reverse()
                 } else {
-                    return db::sort_matches::compare_matchgroup_by_text_pos(
+                    db::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
                         db,
                         &node_to_path_cache,
-                    );
+                    )
                 }
             };
 
@@ -1203,12 +1203,12 @@ impl CorpusStorage {
             max_alt_size = std::cmp::max(max_alt_size, alt.num_of_nodes());
         }
 
-        return extract_subgraph_by_query(
+        extract_subgraph_by_query(
             prep.db_entry.clone(),
             prep.query,
             (0..max_alt_size).collect(),
             self.query_config.clone(),
-        );
+        )
     }
 
     /// Return the copy of a subgraph which includes all nodes that belong to any of the given list of sub-corpus/document identifiers.
@@ -1251,7 +1251,7 @@ impl CorpusStorage {
             query.alternatives.push(q);
         }
 
-        return extract_subgraph_by_query(db_entry, query, vec![1], self.query_config.clone());
+        extract_subgraph_by_query(db_entry, query, vec![1], self.query_config.clone())
     }
 
     /// Return the copy of the graph of the corpus given by `corpus_name`.
@@ -1265,12 +1265,12 @@ impl CorpusStorage {
             None,
         );
 
-        return extract_subgraph_by_query(
+        extract_subgraph_by_query(
             db_entry,
             query.into_disjunction(),
             vec![0],
             self.query_config.clone(),
-        );
+        )
     }
 
     /// Execute a frequency query.
@@ -1347,7 +1347,7 @@ impl CorpusStorage {
         // sort the output (largest to smallest)
         result.sort_by(|a, b| a.1.cmp(&b.1).reverse());
 
-        return Ok(result);
+        Ok(result)
     }
 
     /// Parses a `query`and return a list of descriptions for its nodes.
@@ -1374,7 +1374,7 @@ impl CorpusStorage {
             component_nr += 1;
         }
 
-        return Ok(result);
+        Ok(result)
     }
 
     /// Returns a list of all components of a corpus given by `corpus_name`.
@@ -1442,7 +1442,7 @@ impl CorpusStorage {
             }
         }
 
-        return result;
+        result
     }
 
     /// Returns a list of all node annotations of a corpus given by `corpus_name`.
@@ -1497,7 +1497,7 @@ impl CorpusStorage {
             }
         }
 
-        return result;
+        result
     }
 
     fn check_cache_size_and_remove(&self, keep: Vec<&str>) {
@@ -1746,7 +1746,7 @@ fn extract_subgraph_by_query(
         create_subgraph_edge(m.node, &mut result, orig_db, &all_components);
     }
 
-    return Ok(result);
+    Ok(result)
 }
 
 fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
@@ -1813,5 +1813,5 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         )
     })?;
 
-    return Ok(lock_file);
+    Ok(lock_file)
 }

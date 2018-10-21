@@ -61,15 +61,15 @@ impl<'a> IndexJoin<'a> {
 
                     let result = (out_lhs as f64) + (op_sel * (out_rhs as f64) * (out_lhs as f64));
 
-                    return result.round() as usize;
+                    result.round() as usize
                 }
                 EstimationType::MIN => {
-                    return out_lhs;
+                    out_lhs
                 }
             }
         };
 
-        return IndexJoin {
+        IndexJoin {
             desc: Desc::join(
                 &op,
                 lhs_desc.as_ref(),
@@ -84,7 +84,7 @@ impl<'a> IndexJoin<'a> {
             node_search_desc,
             node_annos,
             match_receiver: None,
-        };
+        }
     }
 
     fn next_lhs_buffer(&mut self, tx: Sender<Vec<Match>>) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
@@ -166,7 +166,7 @@ impl<'a> IndexJoin<'a> {
                 }
             }
         });
-        return Some(rx);
+        Some(rx)
     }
 }
 

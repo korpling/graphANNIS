@@ -1,6 +1,6 @@
 use annis::db::annostorage::AnnoStorage;
-use annis::db::Graph;
 use annis::db::graphstorage::GraphStorage;
+use annis::db::Graph;
 use annis::types::{Component, ComponentType, NodeID};
 
 use std::sync::Arc;
@@ -61,8 +61,7 @@ impl TokenHelper {
     }
 
     pub fn is_token(&self, id: &NodeID) -> bool {
-        return self
-            .node_annos
+        self.node_annos
             .get_value_for_item_by_id(id, self.tok_key)
             .is_some()
             && self.cov_edges.is_some()
@@ -72,35 +71,35 @@ impl TokenHelper {
                 .unwrap()
                 .get_outgoing_edges(id)
                 .next()
-                .is_none();
+                .is_none()
     }
 
     pub fn right_token_for(&self, n: &NodeID) -> Option<NodeID> {
         if self.is_token(n) {
-            return Some(n.clone());
+            Some(n.clone())
         } else {
             let mut out = self.right_edges.get_outgoing_edges(n);
-            return out.next();
+            out.next()
         }
     }
 
     pub fn left_token_for(&self, n: &NodeID) -> Option<NodeID> {
         if self.is_token(n) {
-            return Some(n.clone());
+            Some(n.clone())
         } else {
             let mut out = self.left_edges.get_outgoing_edges(n);
-            return out.next();
+            out.next()
         }
     }
 
     pub fn left_right_token_for(&self, n: &NodeID) -> (Option<NodeID>, Option<NodeID>) {
         if self.is_token(n) {
-            return (Some(n.clone()), Some(n.clone()));
+            (Some(n.clone()), Some(n.clone()))
         } else {
             let mut out_left = self.left_edges.get_outgoing_edges(n);
             let mut out_right = self.right_edges.get_outgoing_edges(n);
 
-            return (out_left.next(), out_right.next());
+            (out_left.next(), out_right.next())
         }
     }
 }

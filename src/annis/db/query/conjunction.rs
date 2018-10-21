@@ -78,7 +78,7 @@ fn should_switch_operand_order<'a>(
         }
     }
 
-    return false;
+    false
 }
 
 impl<'a> Conjunction<'a> {
@@ -111,7 +111,7 @@ impl<'a> Conjunction<'a> {
             };
             result.push(desc);
         }
-        return result;
+        result
     }
 
     pub fn add_node(&mut self, node: NodeSearchSpec, variable: Option<&str>) -> String {
@@ -135,7 +135,7 @@ impl<'a> Conjunction<'a> {
         if let Some(location) = location {
             self.location_in_query.insert(variable.clone(), location);
         }
-        return variable;
+        variable
     }
     pub fn add_operator(
         &mut self,
@@ -184,7 +184,7 @@ impl<'a> Conjunction<'a> {
             result.append(&mut c);
         }
 
-        return result;
+        result
     }
 
     fn optimize_join_order_heuristics(&self, db: &'a Graph, config: &Config) -> Result<Vec<usize>> {
@@ -424,7 +424,7 @@ impl<'a> Conjunction<'a> {
                 spec_idx_right + 1,
                 op,
             );
-            return Box::new(join);
+            Box::new(join)
         } else {
             let join = NestedLoop::new(
                 exec_left,
@@ -435,7 +435,7 @@ impl<'a> Conjunction<'a> {
                 spec_idx_right + 1,
                 op,
             );
-            return Box::new(join);
+            Box::new(join)
         }
     }
 
@@ -655,11 +655,11 @@ impl<'a> Conjunction<'a> {
         let first_component_id = first_component_id.ok_or(ErrorKind::ImpossibleSearch(
             String::from("no component in query at all"),
         ))?;
-        return component2exec.remove(&first_component_id).ok_or(
+        component2exec.remove(&first_component_id).ok_or(
             ErrorKind::ImpossibleSearch(String::from(
                 "could not find execution node for query component",
             )).into(),
-        );
+        )
     }
 
     pub fn make_exec_node(
@@ -668,6 +668,6 @@ impl<'a> Conjunction<'a> {
         config: &Config,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let operator_order = self.optimize_join_order_heuristics(db, config)?;
-        return self.make_exec_plan_with_order(db, config, operator_order);
+        self.make_exec_plan_with_order(db, config, operator_order)
     }
 }
