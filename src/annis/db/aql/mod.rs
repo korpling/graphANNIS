@@ -1,7 +1,11 @@
 mod ast;
 mod normalize;
 pub mod operators;
-lalrpop_mod!(#[allow(clippy)] parser, "/annis/db/aql/parser.rs");
+lalrpop_mod!(
+    #[allow(clippy)]
+    parser,
+    "/annis/db/aql/parser.rs"
+);
 
 use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
 use annis::db::aql::operators::identical_node::IdenticalNodeSpec;
@@ -61,9 +65,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                     pos_to_node.entry(pos.start).or_insert_with(|| {
                                         (spec.as_ref().clone(), variable.clone())
                                     });
-                                    pos_to_endpos
-                                        .entry(pos.start)
-                                        .or_insert_with(|| pos.end);
+                                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
                                 }
                                 if let ast::Operand::Literal {
                                     spec,
@@ -74,9 +76,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                     pos_to_node.entry(pos.start).or_insert_with(|| {
                                         (spec.as_ref().clone(), variable.clone())
                                     });
-                                    pos_to_endpos
-                                        .entry(pos.start)
-                                        .or_insert_with(|| pos.end);
+                                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
                                 }
                             }
                             ast::Literal::LegacyMetaSearch { spec, pos } => {
@@ -215,16 +215,13 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                 ParseError::User { error } => error,
             }.to_string();
             let location = extract_location(&e, query_as_aql);
-            match e {
-                ParseError::UnrecognizedToken { expected, .. } => {
-                    if !expected.is_empty() {
-                        //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
-                        desc.push_str("Expected one of: ");
-                        desc.push_str(&expected.join(","));
-                    }
+            if let ParseError::UnrecognizedToken { expected, .. } = e {
+                if !expected.is_empty() {
+                    //TODO: map token regular expressions and IDs (like IDENT_NODE) to human readable descriptions
+                    desc.push_str("Expected one of: ");
+                    desc.push_str(&expected.join(","));
                 }
-                _ => {}
-            };
+            }
             Err(ErrorKind::AQLSyntaxError(desc, location).into())
         }
     }

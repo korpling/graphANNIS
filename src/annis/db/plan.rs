@@ -30,9 +30,8 @@ impl<'a> ExecutionPlan<'a> {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);
             } else if let Err(e) = p {
-                match e.kind() {
-                    ErrorKind::AQLSemanticError(_, _) => return Err(e),
-                    _ => {}
+                if let ErrorKind::AQLSemanticError(_, _) = e.kind() {
+                    return Err(e);
                 }
             }
         }
