@@ -87,7 +87,7 @@ impl<'a> IndexJoin<'a> {
         }
     }
 
-    fn next_lhs_buffer(&mut self, tx: Sender<Vec<Match>>) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
+    fn next_lhs_buffer(&mut self, tx: &Sender<Vec<Match>>) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
         let mut lhs_buffer: Vec<(Vec<Match>, Sender<Vec<Match>>)> =
             Vec::with_capacity(MAX_BUFFER_SIZE);
         while lhs_buffer.len() < MAX_BUFFER_SIZE {
@@ -102,7 +102,7 @@ impl<'a> IndexJoin<'a> {
 
     fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
-        let mut lhs_buffer = self.next_lhs_buffer(tx);
+        let mut lhs_buffer = self.next_lhs_buffer(&tx);
 
         if lhs_buffer.is_empty() {
             return None;
@@ -117,7 +117,7 @@ impl<'a> IndexJoin<'a> {
 
         // find all RHS in parallel
         lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
-            if let Some(rhs_candidate) = next_candidates(m_lhs, op, lhs_idx, node_annos.clone(), node_search_desc.clone()) {
+            if let Some(rhs_candidate) = next_candidates(m_lhs, op, lhs_idx, &node_annos, &node_search_desc) {
                 let mut rhs_candidate = rhs_candidate.into_iter().peekable();
                 while let Some(mut m_rhs) = rhs_candidate.next() {
                     // check if all filters are true
@@ -174,8 +174,8 @@ fn next_candidates(
     m_lhs: &Vec<Match>,
     op: &Operator,
     lhs_idx: usize,
-    node_annos: Arc<AnnoStorage<NodeID>>,
-    node_search_desc: Arc<NodeSearchDesc>,
+    node_annos: &Arc<AnnoStorage<NodeID>>,
+    node_search_desc: &Arc<NodeSearchDesc>,
 ) -> Option<Vec<Match>> {
     let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]).fuse();
 

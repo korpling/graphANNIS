@@ -20,7 +20,7 @@ impl<'a> ExecutionPlan<'a> {
     pub fn from_disjunction(
         query: &'a Disjunction<'a>,
         db: &'a Graph,
-        config: Config,
+        config: &Config,
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();

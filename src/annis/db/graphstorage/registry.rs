@@ -136,7 +136,7 @@ pub fn deserialize(impl_name: &str, input: &mut std::io::Read) -> Result<Arc<Gra
     (info.deserialize_func)(input)
 }
 
-pub fn serialize(data: Arc<GraphStorage>, writer: &mut std::io::Write) -> Result<String> {
+pub fn serialize(data: &Arc<GraphStorage>, writer: &mut std::io::Write) -> Result<String> {
     data.serialize_gs(writer)?;
     Ok(data.serialization_id())
 }

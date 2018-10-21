@@ -142,7 +142,7 @@ impl fmt::Display for CorpusInfo {
 }
 
 /// Defines the order of results of a `find` query.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(C)]
 pub enum ResultOrder {
     /// Order results by their document name and the the text position of the match.
@@ -194,12 +194,14 @@ impl FromStr for FrequencyDefEntry {
 /// Currently, only the ANNIS Query Language (AQL) is supported, but this enum allows us to add e.g. a quirks mode for older query language versions
 /// or completly new query languages.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum QueryLanguage {
     AQL,
 }
 
 /// An enum of all supported input formats of graphANNIS.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum ImportFormat {
     /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
     RelANNIS,
@@ -774,7 +776,7 @@ impl CorpusStorage {
         // also get the semantic errors by creating an execution plan on the actual Graph
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
         Ok(true)
     }
 
@@ -794,7 +796,7 @@ impl CorpusStorage {
         // accuire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         Ok(format!("{}", plan))
     }
@@ -816,7 +818,7 @@ impl CorpusStorage {
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         Ok(plan.count() as u64)
     }
@@ -837,7 +839,7 @@ impl CorpusStorage {
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db: &Graph = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         let mut known_documents = HashSet::new();
 
@@ -901,7 +903,7 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         let node_name_key_id = db
             .node_annos
@@ -1180,7 +1182,7 @@ impl CorpusStorage {
                 query.alternatives.push(q_right);
             }
         }
-        extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone())
+        extract_subgraph_by_query(&db_entry, &query, &vec![0], &self.query_config)
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -1202,10 +1204,10 @@ impl CorpusStorage {
         }
 
         extract_subgraph_by_query(
-            prep.db_entry.clone(),
-            prep.query,
-            (0..max_alt_size).collect(),
-            self.query_config.clone(),
+            &prep.db_entry.clone(),
+            &prep.query,
+            &(0..max_alt_size).collect(),
+            &self.query_config,
         )
     }
 
@@ -1249,7 +1251,7 @@ impl CorpusStorage {
             query.alternatives.push(q);
         }
 
-        extract_subgraph_by_query(db_entry, query, vec![1], self.query_config.clone())
+        extract_subgraph_by_query(&db_entry, &query, &vec![1], &self.query_config)
     }
 
     /// Return the copy of the graph of the corpus given by `corpus_name`.
@@ -1264,10 +1266,10 @@ impl CorpusStorage {
         );
 
         extract_subgraph_by_query(
-            db_entry,
-            query.into_disjunction(),
-            vec![0],
-            self.query_config.clone(),
+            &db_entry,
+            &query.into_disjunction(),
+            &vec![0],
+            &self.query_config,
         )
     }
 
@@ -1312,7 +1314,7 @@ impl CorpusStorage {
             }
         }
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
@@ -1450,7 +1452,7 @@ impl CorpusStorage {
     pub fn list_edge_annotations(
         &self,
         corpus_name: &str,
-        component: Component,
+        component: &Component,
         list_values: bool,
         only_most_frequent_values: bool,
     ) -> Vec<Annotation> {
@@ -1704,16 +1706,16 @@ fn check_cache_size_and_remove_with_cache(
 }
 
 fn extract_subgraph_by_query(
-    db_entry: Arc<RwLock<CacheEntry>>,
-    query: Disjunction,
-    match_idx: Vec<usize>,
-    query_config: query::Config,
+    db_entry: &Arc<RwLock<CacheEntry>>,
+    query: &Disjunction,
+    match_idx: &Vec<usize>,
+    query_config: &query::Config,
 ) -> Result<Graph> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, query_config).chain_err(|| "")?;
+    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).chain_err(|| "")?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -1768,7 +1770,7 @@ fn create_subgraph_edge(
                     source: source_id,
                     target,
                 };
-                if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
+                if let Ok(new_gs) = db.get_or_create_writable(&c) {
                     new_gs.add_edge(e.clone());
                 }
 
@@ -1779,7 +1781,7 @@ fn create_subgraph_edge(
                         target,
                     })
                 {
-                    if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
+                    if let Ok(new_gs) = db.get_or_create_writable(&c) {
                         new_gs.add_edge_annotation(e.clone(), a);
                     }
                 }

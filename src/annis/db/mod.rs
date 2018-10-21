@@ -442,7 +442,7 @@ impl Graph {
                 let data_path = PathBuf::from(&dir).join("component.bin");
                 let f_data = std::fs::File::create(&data_path)?;
                 let mut writer = std::io::BufWriter::new(f_data);
-                let impl_name = registry::serialize(data.clone(), &mut writer)?;
+                let impl_name = registry::serialize(&data, &mut writer)?;
 
                 let cfg_path = PathBuf::from(&dir).join("impl.cfg");
                 let mut f_cfg = std::fs::File::create(cfg_path)?;
@@ -563,7 +563,7 @@ impl Graph {
                                 layer,
                                 name: component_name,
                             };
-                            let gs = self.get_or_create_writable(c)?;
+                            let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target });
                         }
                     }
@@ -585,7 +585,7 @@ impl Graph {
                                 layer,
                                 name: component_name,
                             };
-                            let gs = self.get_or_create_writable(c)?;
+                            let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
                         }
                     }
@@ -610,7 +610,7 @@ impl Graph {
                                 layer,
                                 name: component_name,
                             };
-                            let gs = self.get_or_create_writable(c)?;
+                            let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(&source, &target, 1, 1) {
@@ -645,7 +645,7 @@ impl Graph {
                                 layer,
                                 name: component_name,
                             };
-                            let gs = self.get_or_create_writable(c)?;
+                            let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(&source, &target, 1, 1) {
@@ -811,13 +811,13 @@ impl Graph {
         result
     }
 
-    fn get_or_create_writable(&mut self, c: Component) -> Result<&mut WriteableGraphStorage> {
+    fn get_or_create_writable(&mut self, c: &Component) -> Result<&mut WriteableGraphStorage> {
 
         self.reset_cached_size();
 
-        if self.components.contains_key(&c) {
+        if self.components.contains_key(c) {
             // make sure the component is actually writable and loaded
-            self.insert_or_copy_writeable(&c)?;
+            self.insert_or_copy_writeable(c)?;
         } else {
             let w = registry::create_writeable();
 
@@ -827,7 +827,7 @@ impl Graph {
         // get and return the reference to the entry
         let entry: &mut Arc<GraphStorage> = self
             .components
-            .get_mut(&c)
+            .get_mut(c)
             .ok_or("Could not get mutable reference")?
             .as_mut()
             .ok_or("Could not get mutable reference to optional value")?;
@@ -1059,7 +1059,7 @@ mod tests {
         let anno_val = "testValue".to_owned();
 
         let gs: &mut WriteableGraphStorage = db
-            .get_or_create_writable(Component {
+            .get_or_create_writable(&Component {
                 ctype: ComponentType::Pointing,
                 layer: String::from("test"),
                 name: String::from("dep"),

@@ -280,7 +280,7 @@ where
             };
             let left_aligned = left_to_node.get_vec(&current_token_left);
             if left_aligned.is_some() {
-                let gs_left = db.get_or_create_writable(component_left.clone())?;
+                let gs_left = db.get_or_create_writable(&component_left)?;
 
                 for n in left_aligned.unwrap() {
                     gs_left.add_edge(Edge {
@@ -305,7 +305,7 @@ where
             };
             let right_aligned = right_to_node.get_vec(&current_token_right);
             if right_aligned.is_some() {
-                let gs_right = db.get_or_create_writable(component_right.clone())?;
+                let gs_right = db.get_or_create_writable(&component_right)?;
                 for n in right_aligned.unwrap() {
                     gs_right.add_edge(Edge {
                         source: *n,
@@ -325,7 +325,7 @@ where
             name: current_textprop.segmentation.clone(),
         };
 
-        let gs_order = db.get_or_create_writable(component_order.clone())?;
+        let gs_order = db.get_or_create_writable(&component_order)?;
 
         // if the last token/text value is valid and we are still in the same text
         if last_token.is_some() && last_textprop.is_some() {
@@ -376,8 +376,8 @@ where
     };
 
     // make sure the components exists, even if they are empty
-    db.get_or_create_writable(component_coverage.clone())?;
-    db.get_or_create_writable(component_inv_cov.clone())?;
+    db.get_or_create_writable(&component_coverage)?;
+    db.get_or_create_writable(&component_inv_cov)?;
 
     {
         progress_callback("calculating the automatically generated COVERAGE edges");
@@ -435,14 +435,14 @@ where
                         })?;
                         if *n != *tok_id {
                             {
-                                let gs = db.get_or_create_writable(component_coverage.clone())?;
+                                let gs = db.get_or_create_writable(&component_coverage)?;
                                 gs.add_edge(Edge {
                                     source: *n,
                                     target: *tok_id,
                                 });
                             }
                             {
-                                let gs = db.get_or_create_writable(component_inv_cov.clone())?;
+                                let gs = db.get_or_create_writable(&component_inv_cov)?;
                                 gs.add_edge(Edge {
                                     source: *tok_id,
                                     target: *n,
@@ -772,7 +772,7 @@ where
             };
             let ctype = component_type_from_short_name(&col_type)?;
             let c = Component { ctype, layer, name };
-            db.get_or_create_writable(c.clone())?;
+            db.get_or_create_writable(&c)?;
             component_by_id.insert(cid, c);
         }
     }
@@ -859,7 +859,7 @@ where
                 if let Some(c) = component_by_id.get(&component_ref) {
                     let target: NodeID = line.get(pos_node_ref).ok_or("Missing column")?.parse()?;
 
-                    let gs = db.get_or_create_writable(c.clone())?;
+                    let gs = db.get_or_create_writable(&c)?;
                     let e = Edge {
                         source: *source,
                         target,
@@ -916,7 +916,7 @@ where
                     key: AnnoKey { ns, name },
                     val,
                 };
-                let gs: &mut WriteableGraphStorage = db.get_or_create_writable(c.clone())?;
+                let gs: &mut WriteableGraphStorage = db.get_or_create_writable(&c)?;
                 gs.add_edge_annotation(e.clone(), anno);
             }
         }
@@ -1060,7 +1060,7 @@ fn add_subcorpora(
             }
             // add an edge from the document (or sub-corpus) to the top-level corpus
             {
-                let gs = db.get_or_create_writable(component_subcorpus.clone())?;
+                let gs = db.get_or_create_writable(&component_subcorpus)?;
                 gs.add_edge(Edge {
                     source: corpus_node_id,
                     target: toplevel_node_id,
@@ -1105,7 +1105,7 @@ fn add_subcorpora(
 
         // add an edge from the text to the document
         if let Some(corpus_ref) = text_key.corpus_ref {
-            let gs = db.get_or_create_writable(component_subcorpus.clone())?;
+            let gs = db.get_or_create_writable(&component_subcorpus)?;
 
             if let Some(corpus_node_id) = corpus_id_2_nid.get(&corpus_ref) {
                 gs.add_edge(Edge {
@@ -1117,7 +1117,7 @@ fn add_subcorpora(
 
         // find all nodes belonging to this text and add a relation
         if let Some(n_vec) = nodes_by_text.get_vec(text_key) {
-            let gs = db.get_or_create_writable(component_subcorpus.clone())?;
+            let gs = db.get_or_create_writable(&component_subcorpus)?;
 
             for n in n_vec {
                 gs.add_edge(Edge {

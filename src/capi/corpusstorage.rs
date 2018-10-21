@@ -329,7 +329,7 @@ pub extern "C" fn annis_cs_list_edge_annotations(
     };
 
     let orig_vec =
-        cs.list_edge_annotations(&corpus, component, list_values, only_most_frequent_values);
+        cs.list_edge_annotations(&corpus, &component, list_values, only_most_frequent_values);
     let mut result: Matrix<CString> = Matrix::new();
     for anno in orig_vec.into_iter() {
         if let (Ok(ns), Ok(name), Ok(val)) = (

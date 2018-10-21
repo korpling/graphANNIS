@@ -99,7 +99,7 @@ impl<'a> NestedLoop<'a> {
 
     fn next_match_buffer(
         &mut self,
-        tx: Sender<Vec<Match>>,
+        tx: &Sender<Vec<Match>>,
     ) -> Vec<(Vec<Match>, Vec<Match>, Sender<Vec<Match>>)> {
         let mut match_candidate_buffer: Vec<(Vec<Match>, Vec<Match>, Sender<Vec<Match>>)> =
             Vec::with_capacity(MAX_BUFFER_SIZE);
@@ -144,7 +144,7 @@ impl<'a> NestedLoop<'a> {
 
     fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
-        let mut match_candidate_buffer = self.next_match_buffer(tx);
+        let mut match_candidate_buffer = self.next_match_buffer(&tx);
 
         if match_candidate_buffer.is_empty() {
             return None;
