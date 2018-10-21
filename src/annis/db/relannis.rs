@@ -96,9 +96,7 @@ where
 
         add_subcorpora(
             &mut db,
-            &corpus_table.toplevel_corpus_name,
-            &corpus_table.corpus_by_preorder,
-            &corpus_table.corpus_id_to_name,
+            &corpus_table,
             &nodes_by_text,
             &texts,
             &corpus_id_to_annos,
@@ -981,9 +979,7 @@ where
 
 fn add_subcorpora(
     db: &mut Graph,
-    toplevel_corpus_name: &str,
-    corpus_by_preorder: &BTreeMap<u32, u32>,
-    corpus_id_to_name: &BTreeMap<u32, String>,
+    corpus_table: &ParsedCorpusTable,
     nodes_by_text: &MultiMap<TextKey, NodeID>,
     texts: &HashMap<TextKey, Text>,
     corpus_id_to_annos: &MultiMap<u32, Annotation>,
@@ -1005,7 +1001,7 @@ fn add_subcorpora(
     {
         let top_anno = Annotation {
             key: db.get_node_name_key(),
-            val: toplevel_corpus_name.to_owned(),
+            val: corpus_table.toplevel_corpus_name.to_owned(),
         };
         Arc::make_mut(&mut db.node_annos).insert(next_node_id, top_anno);
         let anno_type = Annotation {
@@ -1014,7 +1010,7 @@ fn add_subcorpora(
         };
         Arc::make_mut(&mut db.node_annos).insert(next_node_id, anno_type);
         // add all metadata for the top-level corpus node
-        if let Some(cid) = corpus_by_preorder.get(&0) {
+        if let Some(cid) = corpus_table.corpus_by_preorder.get(&0) {
             if let Some(anno_vec) = corpus_id_to_annos.get_vec(cid) {
                 for anno in anno_vec {
                     Arc::make_mut(&mut db.node_annos).insert(next_node_id, anno.clone());
@@ -1028,17 +1024,17 @@ fn add_subcorpora(
     let mut corpus_id_2_nid: HashMap<u32, NodeID> = HashMap::default();
 
     // add all subcorpora/documents (start with the largest pre-order)
-    for (pre, corpus_id) in corpus_by_preorder.iter().rev() {
+    for (pre, corpus_id) in corpus_table.corpus_by_preorder.iter().rev() {
         let corpus_node_id = next_node_id;
         next_node_id += 1;
 
         corpus_id_2_nid.insert(*corpus_id, corpus_node_id);
 
         if *pre != 0 {
-            let corpus_name = corpus_id_to_name
+            let corpus_name = corpus_table.corpus_id_to_name
                 .get(corpus_id)
                 .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?;
-            let full_name = format!("{}/{}", toplevel_corpus_name, corpus_name);
+            let full_name = format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
 
             // add a basic node labels for the new (sub-) corpus/document
             let anno_name = Annotation {
@@ -1102,10 +1098,10 @@ fn add_subcorpora(
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let corpus_name = corpus_id_to_name
+            let corpus_name = corpus_table.corpus_id_to_name
                 .get(&corpus_ref)
                 .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?;
-            let full_name = format!("{}/{}#{}", toplevel_corpus_name, corpus_name, text_name);
+            let full_name = format!("{}/{}#{}", corpus_table.toplevel_corpus_name, corpus_name, text_name);
             let anno_name = Annotation {
                 key: db.get_node_name_key(),
                 val: full_name,
