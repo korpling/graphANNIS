@@ -245,7 +245,7 @@ fn get_line_offsets(input: &str) -> BTreeMap<usize, usize> {
 
     let mut o = 0;
     let mut l = 1;
-    for line in input.split("\n") {
+    for line in input.split('\n') {
         offsets.insert(o, l);
         o += line.len() + 1;
         l += 1;
