@@ -918,7 +918,7 @@ impl CorpusStorage {
                     .get_value_for_item_by_id(&m.node, node_name_key_id)
                 {
                     let path = util::extract_node_path(&path);
-                    node_to_path_cache.insert(m.node.clone(), path);
+                    node_to_path_cache.insert(m.node, path);
                 }
             }
 

@@ -136,7 +136,7 @@ where
         let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
             // check if this is actual a source node (and not only a target node)
             if self.get_outgoing_edges(*n).next().is_some() {
-                Some(n.clone())
+                Some(*n)
             } else {
                 None
             }
@@ -202,7 +202,7 @@ where
                                 && min_distance <= diff_level
                                 && diff_level <= max_distance
                             {
-                                Some(node.clone())
+                                Some(*node)
                             } else {
                                 None
                             }
@@ -295,7 +295,7 @@ where
                             && min_distance <= diff_level
                             && diff_level <= max_distance
                         {
-                            Some(current_node.clone())
+                            Some(*current_node)
                         } else {
                             None
                         }
@@ -486,14 +486,14 @@ where
                     self.order_to_node[pre] = OrderVecEntry::Pre {
                         post: order.post.clone(),
                         level: order.level.clone(),
-                        node: node.clone(),
+                        node: *node,
                     };
                 }
                 if let Some(post) = order.post.to_usize() {
                     self.order_to_node[post] = OrderVecEntry::Post {
                         pre: order.pre.clone(),
                         level: order.level.clone(),
-                        node: node.clone(),
+                        node: *node,
                     };
                 }
             }

@@ -84,7 +84,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                     // check if we already outputted this result
                     let key: Vec<(NodeID, AnnoKeyID)> = res
                         .iter()
-                        .map(|m: &Match| (m.node, m.anno_key.clone()))
+                        .map(|m: &Match| (m.node, m.anno_key))
                         .collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
@@ -106,7 +106,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                 result.reserve(tmp.len());
                 for i in 0..tmp.len() {
                     if let Some(mapped_pos) = desc.node_pos.get(&i) {
-                        result.push(tmp[mapped_pos.clone()].clone());
+                        result.push(tmp[*mapped_pos].clone());
                     } else {
                         result.push(tmp[i].clone());
                     }

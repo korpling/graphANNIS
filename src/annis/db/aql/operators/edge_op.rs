@@ -103,8 +103,8 @@ fn check_edge_annotation(
                 for a in gs
                     .get_anno_storage()
                     .get_annotations_for_item(&Edge {
-                        source: source.clone(),
-                        target: target.clone(),
+                        source: source,
+                        target: target,
                     }).into_iter()
                 {
                     if name != &a.key.name {

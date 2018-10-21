@@ -73,7 +73,7 @@ impl EdgeContainer for AdjacencyListStorage {
             .edges
             .iter()
             .filter(|(_, outgoing)| !outgoing.is_empty())
-            .map(|(key, _)| key.clone());
+            .map(|(key, _)| *key);
         Box::new(it)
     }
 

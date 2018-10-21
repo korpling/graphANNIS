@@ -48,7 +48,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                             } => {
                                 if let Some(pos) = pos {
                                     pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
-                                    pos_to_endpos.insert(pos.start, pos.end.clone());
+                                    pos_to_endpos.insert(pos.start, pos.end);
                                 }
                             }
                             ast::Literal::BinaryOp { lhs, rhs, .. } => {
@@ -63,7 +63,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                     });
                                     pos_to_endpos
                                         .entry(pos.start)
-                                        .or_insert_with(|| pos.end.clone());
+                                        .or_insert_with(|| pos.end);
                                 }
                                 if let ast::Operand::Literal {
                                     spec,
@@ -76,7 +76,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
                                     });
                                     pos_to_endpos
                                         .entry(pos.start)
-                                        .or_insert_with(|| pos.end.clone());
+                                        .or_insert_with(|| pos.end);
                                 }
                             }
                             ast::Literal::LegacyMetaSearch { spec, pos } => {

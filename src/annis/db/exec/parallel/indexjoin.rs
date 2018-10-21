@@ -133,7 +133,7 @@ impl<'a> IndexJoin<'a> {
 
                         // replace the annotation with a constant value if needed
                         if let Some(ref const_anno) = node_search_desc.const_output {
-                            m_rhs.anno_key = const_anno.clone();
+                            m_rhs.anno_key = *const_anno;
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query

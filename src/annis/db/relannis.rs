@@ -273,10 +273,10 @@ where
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: try!(node_to_left.get(&current_token).ok_or_else(|| format!(
+                val: *(try!(node_to_left.get(&current_token).ok_or_else(|| format!(
                     "Can't find node that starts together with token {}",
                     current_token
-                ))).clone(),
+                )))),
             };
             let left_aligned = left_to_node.get_vec(&current_token_left);
             if left_aligned.is_some() {
@@ -284,12 +284,12 @@ where
 
                 for n in left_aligned.unwrap() {
                     gs_left.add_edge(Edge {
-                        source: n.clone(),
-                        target: current_token.clone(),
+                        source: *n,
+                        target: *current_token,
                     });
                     gs_left.add_edge(Edge {
-                        source: current_token.clone(),
-                        target: n.clone(),
+                        source: *current_token,
+                        target: *n,
                     });
                 }
             }
@@ -298,22 +298,22 @@ where
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: try!(node_to_right.get(current_token).ok_or_else(|| format!(
+                val: *(try!(node_to_right.get(current_token).ok_or_else(|| format!(
                     "Can't find node that has the same end as token {}",
                     current_token
-                ))).clone(),
+                )))),
             };
             let right_aligned = right_to_node.get_vec(&current_token_right);
             if right_aligned.is_some() {
                 let gs_right = db.get_or_create_writable(component_right.clone())?;
                 for n in right_aligned.unwrap() {
                     gs_right.add_edge(Edge {
-                        source: n.clone(),
-                        target: current_token.clone(),
+                        source: *n,
+                        target: *current_token,
                     });
                     gs_right.add_edge(Edge {
-                        source: current_token.clone(),
-                        target: n.clone(),
+                        source: *current_token,
+                        target: *n,
                     });
                 }
             }
@@ -337,14 +337,14 @@ where
                 // we are still in the same text, add ordering between token
                 gs_order.add_edge(Edge {
                     source: last_token.unwrap(),
-                    target: current_token.clone(),
+                    target: *current_token,
                 });
             }
         } // end if same text
 
         // update the iterator and other variables
         last_textprop = Some(current_textprop.clone());
-        last_token = Some(current_token.clone());
+        last_token = Some(*current_token);
     } // end for each token
 
     Ok(())
@@ -397,7 +397,7 @@ where
                         segmentation: String::from(""),
                         corpus_id: textprop.corpus_id,
                         text_id: textprop.text_id,
-                        val: right_pos.clone(),
+                        val: *right_pos,
                     };
 
                     // find left/right aligned basic token
@@ -433,19 +433,19 @@ where
                         let tok_id = token_by_index.get(&tok_idx).ok_or_else(|| {
                             format!("Can't get token ID for position {:?}", tok_idx)
                         })?;
-                        if n.clone() != tok_id.clone() {
+                        if *n != *tok_id {
                             {
                                 let gs = db.get_or_create_writable(component_coverage.clone())?;
                                 gs.add_edge(Edge {
-                                    source: n.clone(),
-                                    target: tok_id.clone(),
+                                    source: *n,
+                                    target: *tok_id,
                                 });
                             }
                             {
                                 let gs = db.get_or_create_writable(component_inv_cov.clone())?;
                                 gs.add_edge(Edge {
-                                    source: tok_id.clone(),
-                                    target: n.clone(),
+                                    source: *tok_id,
+                                    target: *n,
                                 });
                             }
                         }
@@ -521,10 +521,10 @@ where
 
             nodes_by_text.insert(
                 TextKey {
-                    corpus_ref: Some(corpus_id.clone()),
-                    id: text_id.clone(),
+                    corpus_ref: Some(corpus_id),
+                    id: text_id,
                 },
-                node_nr.clone(),
+                node_nr,
             );
 
             let doc_name = corpus_id_to_name
@@ -702,7 +702,7 @@ where
             };
 
             Arc::make_mut(&mut db.node_annos).insert(
-                node_id.clone(),
+                node_id,
                 Annotation {
                     key: AnnoKey {
                         ns: col_ns,
@@ -719,7 +719,7 @@ where
                 {
                     let tok_key = db.get_token_key();
                     Arc::make_mut(&mut db.node_annos).insert(
-                        node_id.clone(),
+                        node_id,
                         Annotation {
                             key: tok_key,
                             val: anno_val,
@@ -861,13 +861,13 @@ where
 
                     let gs = db.get_or_create_writable(c.clone())?;
                     let e = Edge {
-                        source: source.clone(),
+                        source: *source,
                         target,
                     };
                     gs.add_edge(e.clone());
 
                     let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
-                    pre_to_edge.insert(pre.clone(), e);
+                    pre_to_edge.insert(pre, e);
                     pre_to_component.insert(pre, c.clone());
                 }
             }
@@ -1022,9 +1022,9 @@ fn add_subcorpora(
         let corpus_node_id = next_node_id;
         next_node_id += 1;
 
-        corpus_id_2_nid.insert(corpus_id.clone(), corpus_node_id.clone());
+        corpus_id_2_nid.insert(*corpus_id, corpus_node_id);
 
-        if pre.clone() != 0 {
+        if *pre != 0 {
             let corpus_name = corpus_id_to_name
                 .get(corpus_id)
                 .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?;
@@ -1035,7 +1035,7 @@ fn add_subcorpora(
                 key: db.get_node_name_key(),
                 val: full_name,
             };
-            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_name);
+            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id, anno_name);
 
             let anno_doc = Annotation {
                 key: AnnoKey {
@@ -1044,18 +1044,18 @@ fn add_subcorpora(
                 },
                 val: corpus_name.to_owned(),
             };
-            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_doc);
+            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id, anno_doc);
 
             let anno_type = Annotation {
                 key: db.get_node_type_key(),
                 val: "corpus".to_owned(),
             };
-            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_type);
+            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id, anno_type);
 
             // add all metadata for the document node
             if let Some(anno_vec) = corpus_id_to_annos.get_vec(&corpus_id) {
                 for anno in anno_vec {
-                    Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno.clone());
+                    Arc::make_mut(&mut db.node_annos).insert(corpus_node_id, anno.clone());
                 }
             }
             // add an edge from the document (or sub-corpus) to the top-level corpus
@@ -1079,7 +1079,7 @@ fn add_subcorpora(
             key: db.get_node_type_key(),
             val: "datasource".to_owned(),
         };
-        Arc::make_mut(&mut db.node_annos).insert(text_node_id.clone(), anno_type);
+        Arc::make_mut(&mut db.node_annos).insert(text_node_id, anno_type);
         let text_name: Option<String> = if is_annis_33 {
             // corpus_ref is included in the text.annis
             texts.get(text_key).map(|k| k.name.clone())
@@ -1100,7 +1100,7 @@ fn add_subcorpora(
                 key: db.get_node_name_key(),
                 val: full_name,
             };
-            Arc::make_mut(&mut db.node_annos).insert(text_node_id.clone(), anno_name);
+            Arc::make_mut(&mut db.node_annos).insert(text_node_id, anno_name);
         }
 
         // add an edge from the text to the document
@@ -1110,7 +1110,7 @@ fn add_subcorpora(
             if let Some(corpus_node_id) = corpus_id_2_nid.get(&corpus_ref) {
                 gs.add_edge(Edge {
                     source: text_node_id,
-                    target: corpus_node_id.clone(),
+                    target: *corpus_node_id,
                 });
             }
         }
@@ -1121,8 +1121,8 @@ fn add_subcorpora(
 
             for n in n_vec {
                 gs.add_edge(Edge {
-                    source: n.clone(),
-                    target: text_node_id.clone(),
+                    source: *n,
+                    target: text_node_id,
                 });
             }
         }

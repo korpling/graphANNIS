@@ -87,7 +87,7 @@ impl Operator for IdenticalCoverage {
             if n_left == n_right {
                 // covered range is exactly one token, add token itself
                 result.push(Match {
-                    node: n_left.clone(),
+                    node: n_left,
                     anno_key: AnnoKeyID::default(),
                 });
             }

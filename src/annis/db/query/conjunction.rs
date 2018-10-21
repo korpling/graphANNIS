@@ -159,8 +159,8 @@ impl<'a> Conjunction<'a> {
         {
             self.operators.push(OperatorEntry {
                 op,
-                idx_left: idx_left.clone(),
-                idx_right: idx_right.clone(),
+                idx_left: *idx_left,
+                idx_right: *idx_right,
             });
             return Ok(());
         } else {
@@ -204,14 +204,13 @@ impl<'a> Conjunction<'a> {
         // TODO: cache the base estimates
         let initial_plan =
             self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
-        let mut best_cost = initial_plan
+        let mut best_cost: usize = initial_plan
             .get_desc()
             .ok_or("Plan description missing")?
             .cost
             .clone()
             .ok_or("Plan cost missing")?
-            .intermediate_sum
-            .clone();
+            .intermediate_sum;
         trace!(
             "initial plan:\n{}",
             initial_plan
@@ -489,7 +488,7 @@ impl<'a> Conjunction<'a> {
                         };
                     // make sure the description is correct
                     let mut node_pos = BTreeMap::new();
-                    node_pos.insert(node_nr.clone(), 0);
+                    node_pos.insert(node_nr, 0);
                     let new_desc = Desc {
                         component_nr: node_nr,
                         lhs: None,
@@ -540,39 +539,35 @@ impl<'a> Conjunction<'a> {
                 }
             }
 
-            let component_left = node2component
+            let component_left: usize = *(node2component
                 .get(&spec_idx_left)
-                .ok_or_else(|| format!("no component for node #{}", spec_idx_left + 1))?
-                .clone();
-            let component_right = node2component
+                .ok_or_else(|| format!("no component for node #{}", spec_idx_left + 1))?);
+            let component_right: usize = *(node2component
                 .get(&spec_idx_right)
-                .ok_or_else(|| format!("no component for node #{}", spec_idx_right + 1))?
-                .clone();
+                .ok_or_else(|| format!("no component for node #{}", spec_idx_right + 1))?);
 
             // get the original execution node
             let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&component_left)
                 .ok_or_else(|| format!("no execution node for component {}", component_left))?;
 
-            let idx_left = exec_left
+            let idx_left: usize = *(exec_left
                 .get_desc()
                 .ok_or("Plan description missing")?
                 .node_pos
                 .get(&spec_idx_left)
-                .ok_or("LHS operand not found")?
-                .clone();
+                .ok_or("LHS operand not found")?);
 
             let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
                     // don't create new tuples, only filter the existing ones
                     // TODO: check if LHS or RHS is better suited as filter input iterator
-                    let idx_right = exec_left
+                    let idx_right: usize = *(exec_left
                         .get_desc()
                         .ok_or("Plan description missing")?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or("RHS operand not found")?
-                        .clone();
+                        .ok_or("RHS operand not found")?);
 
                     let filter = BinaryFilter::new(
                         exec_left,
@@ -587,13 +582,12 @@ impl<'a> Conjunction<'a> {
                     let exec_right = component2exec.remove(&component_right).ok_or_else(|| {
                         format!("no execution node for component {}", component_right)
                     })?;
-                    let idx_right = exec_right
+                    let idx_right: usize = *(exec_right
                         .get_desc()
                         .ok_or("Plan description missing")?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or("RHS operand not found")?
-                        .clone();
+                        .ok_or("RHS operand not found")?);
 
                     self.create_join(
                         db,

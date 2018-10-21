@@ -96,7 +96,7 @@ impl<'a> CycleSafeDFS<'a> {
             self.cycle_detected = true;
             false
         } else {
-            self.path.push(node.clone());
+            self.path.push(node);
             self.nodes_in_path.insert(node);
             self.last_distance = dist;
             trace!("removing from stack");
@@ -136,7 +136,7 @@ impl<'a> Iterator for CycleSafeDFS<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let mut result: Option<DFSStep> = None;
         while result.is_none() && !self.stack.is_empty() {
-            let top = self.stack.last().unwrap().clone();
+            let top = *self.stack.last().unwrap();
             if self.enter_node(top) {
                 result = Some(DFSStep {
                     node: top.0,

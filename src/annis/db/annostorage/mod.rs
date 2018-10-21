@@ -139,9 +139,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         // inserts a new relation between the annotation and the item
         // if set is not existing yet it is created
         self.by_anno
-            .entry(anno.key.clone())
+            .entry(anno.key)
             .or_insert_with(|| FxHashMap::default())
-            .entry(anno.val.clone())
+            .entry(anno.val)
             .or_insert_with(|| Vec::default())
             .push(item.clone());
 
@@ -192,7 +192,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 // since value was found, also remove the item from the other containers
                 self.remove_element_from_by_anno(&all_annos[anno_idx], item);
 
-                let old_value = all_annos[anno_idx].val.clone();
+                let old_value = all_annos[anno_idx].val;
 
                 // remove the specific annotation key from the entry
                 all_annos.remove(anno_idx);
@@ -201,7 +201,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 let new_key_count: usize =
                     if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
                         *num_of_keys -= 1;
-                        num_of_keys.clone()
+                        *num_of_keys
                     } else {
                         0
                     };
@@ -555,7 +555,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                         .iter()
                         .flat_map(|(val, items)| {
                             // repeat value corresponding to the number of nodes with this annotation
-                            let v = vec![val.clone(); items.len()];
+                            let v = vec![*val; items.len()];
                             v.into_iter()
                         }).collect();
                     let sampled_anno_indexes: FxHashSet<usize> = rand::seq::sample_indices(
@@ -583,7 +583,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
                     let hist = self
                         .histogram_bounds
-                        .entry(anno_key.clone())
+                        .entry(anno_key)
                         .or_insert_with(|| std::vec::Vec::new());
 
                     if num_hist_bounds >= 2 {
@@ -738,7 +738,7 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
             self.matching_items(namespace, name, value)
                 .filter_map(move |(edge, anno_key_id)| {
                     Some(Match {
-                        node: edge.source.clone(),
+                        node: edge.source,
                         anno_key: anno_key_id,
                     })
                 });
@@ -764,7 +764,7 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
                     }
                 }).filter_map(move |(edge, anno_key_id)| {
                     Some(Match {
-                        node: edge.source.clone(),
+                        node: edge.source,
                         anno_key: anno_key_id,
                     })
                 });

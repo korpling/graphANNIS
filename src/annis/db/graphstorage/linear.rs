@@ -264,12 +264,12 @@ where
 
         for root_node in roots.iter() {
             // iterate over all edges beginning from the root
-            let mut chain: Vec<NodeID> = vec![root_node.clone()];
+            let mut chain: Vec<NodeID> = vec![*root_node];
             let pos: RelativePosition<PosT> = RelativePosition {
-                root: root_node.clone(),
+                root: *root_node,
                 pos: PosT::zero(),
             };
-            self.node_to_pos.insert(root_node.clone(), pos);
+            self.node_to_pos.insert(*root_node, pos);
 
             let dfs = CycleSafeDFS::new(orig, *root_node, 1, usize::max_value());
             for step in dfs {
@@ -277,15 +277,15 @@ where
 
                 if let Some(pos) = PosT::from_usize(chain.len()) {
                     let pos: RelativePosition<PosT> = RelativePosition {
-                        root: root_node.clone(),
+                        root: *root_node,
                         pos: pos,
                     };
-                    self.node_to_pos.insert(step.node.clone(), pos);
+                    self.node_to_pos.insert(step.node, pos);
                 }
                 chain.push(step.node);
             }
             chain.shrink_to_fit();
-            self.node_chains.insert(root_node.clone(), chain);
+            self.node_chains.insert(*root_node, chain);
         }
 
         self.node_chains.shrink_to_fit();
