@@ -29,6 +29,7 @@ impl From<std::ops::Range<usize>> for Pos {
     }
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(clippy))]
 #[derive(Debug)]
 pub enum Factor {
     Literal(Literal),
