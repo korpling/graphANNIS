@@ -1182,7 +1182,7 @@ impl CorpusStorage {
                 query.alternatives.push(q_right);
             }
         }
-        extract_subgraph_by_query(&db_entry, &query, &vec![0], &self.query_config)
+        extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config)
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -1203,10 +1203,12 @@ impl CorpusStorage {
             max_alt_size = std::cmp::max(max_alt_size, alt.num_of_nodes());
         }
 
+        let match_idx : Vec<usize> = (0..max_alt_size).collect();
+
         extract_subgraph_by_query(
             &prep.db_entry.clone(),
             &prep.query,
-            &(0..max_alt_size).collect(),
+            &match_idx,
             &self.query_config,
         )
     }
@@ -1251,7 +1253,7 @@ impl CorpusStorage {
             query.alternatives.push(q);
         }
 
-        extract_subgraph_by_query(&db_entry, &query, &vec![1], &self.query_config)
+        extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config)
     }
 
     /// Return the copy of the graph of the corpus given by `corpus_name`.
@@ -1268,7 +1270,7 @@ impl CorpusStorage {
         extract_subgraph_by_query(
             &db_entry,
             &query.into_disjunction(),
-            &vec![0],
+            &[0],
             &self.query_config,
         )
     }
@@ -1708,7 +1710,7 @@ fn check_cache_size_and_remove_with_cache(
 fn extract_subgraph_by_query(
     db_entry: &Arc<RwLock<CacheEntry>>,
     query: &Disjunction,
-    match_idx: &Vec<usize>,
+    match_idx: &[usize],
     query_config: &query::Config,
 ) -> Result<Graph> {
     // accuire read-only lock and create query that finds the context nodes
@@ -1760,7 +1762,7 @@ fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut Graph,
     orig_db: &Graph,
-    all_components: &Vec<Component>,
+    all_components: &[Component],
 ) {
     // find outgoing edges
     for c in all_components {

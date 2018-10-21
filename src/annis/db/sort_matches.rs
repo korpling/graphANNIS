@@ -9,8 +9,8 @@ use std;
 use std::cmp::Ordering;
 
 pub fn compare_matchgroup_by_text_pos(
-    m1: &Vec<Match>,
-    m2: &Vec<Match>,
+    m1: &[Match],
+    m2: &[Match],
     db: &Graph,
     node_to_path: &FxHashMap<NodeID, (Vec<String>, String)>,
 ) -> Ordering {

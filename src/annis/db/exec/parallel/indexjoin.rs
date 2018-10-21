@@ -171,7 +171,7 @@ impl<'a> IndexJoin<'a> {
 }
 
 fn next_candidates(
-    m_lhs: &Vec<Match>,
+    m_lhs: &[Match],
     op: &Operator,
     lhs_idx: usize,
     node_annos: &Arc<AnnoStorage<NodeID>>,
