@@ -136,12 +136,12 @@ where
         let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
             // check if this is actual a source node (and not only a target node)
             if self.get_outgoing_edges(n).next().is_some() {
-                return Some(n.clone());
+                Some(n.clone())
             } else {
-                return None;
+                None
             }
         });
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {

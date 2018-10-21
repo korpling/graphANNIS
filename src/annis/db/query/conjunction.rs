@@ -340,7 +340,7 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        return None;
+        None
     }
 
     fn create_join<'b>(

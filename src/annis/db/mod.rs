@@ -808,7 +808,7 @@ impl Graph {
         }
         // re-insert component entry
         self.components.insert(c.clone(), entry);
-        return result;
+        result
     }
 
     fn get_or_create_writable(&mut self, c: Component) -> Result<&mut WriteableGraphStorage> {

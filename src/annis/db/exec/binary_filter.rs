@@ -57,11 +57,10 @@ impl<'a> BinaryFilter<'a> {
             None
         };
         let it = exec.filter(move |tuple| op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
-        let filter = BinaryFilter {
+        BinaryFilter {
             desc,
             it: Box::new(it),
-        };
-        filter
+        }
     }
 }
 

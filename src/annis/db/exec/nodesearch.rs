@@ -298,14 +298,12 @@ impl<'a> NodeSearch<'a> {
                 &val.clone()
                     .ok_or("Regular expressions only work with values")?,
             )
+        } else if let Some(ref val) = val {
+            db.node_annos
+                .guess_max_count(ns.clone(), name.clone(), &val, &val)
         } else {
-            if let Some(ref val) = val {
-                db.node_annos
-                    .guess_max_count(ns.clone(), name.clone(), &val, &val)
-            } else {
-                db.node_annos
-                    .number_of_annotations_by_name(ns.clone(), name.clone())
-            }
+            db.node_annos
+                .number_of_annotations_by_name(ns.clone(), name.clone())
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner

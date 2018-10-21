@@ -97,7 +97,7 @@ impl<'a> IndexJoin<'a> {
                 break;
             }
         }
-        return lhs_buffer;
+        lhs_buffer
     }
 
     fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {

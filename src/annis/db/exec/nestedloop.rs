@@ -45,7 +45,7 @@ impl<'a> NestedLoop<'a> {
             }
         };
 
-        let it = if left_is_outer {
+        if left_is_outer {
             NestedLoop {
                 desc: Desc::join(
                     &op,
@@ -85,9 +85,7 @@ impl<'a> NestedLoop<'a> {
                 pos_inner_cache: None,
                 left_is_outer,
             }
-        };
-
-        it
+        }
     }
 }
 
@@ -121,17 +119,16 @@ impl<'a> Iterator for NestedLoop<'a> {
                             self.op
                                 .filter_match(&m_inner[self.inner_idx], &m_outer[self.outer_idx])
                         };
-                        if filter_true {
-                            // filter by reflexivity if necessary
-                            if self.op.is_reflexive()
+                        // filter by reflexivity if necessary
+                        if filter_true
+                            && (self.op.is_reflexive()
                                 || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
                                 || m_outer[self.outer_idx].anno_key
-                                    != m_inner[self.inner_idx].anno_key
-                            {
-                                let mut result = m_outer.clone();
-                                result.append(&mut m_inner.clone());
-                                return Some(result);
-                            }
+                                    != m_inner[self.inner_idx].anno_key)
+                        {
+                            let mut result = m_outer.clone();
+                            result.append(&mut m_inner.clone());
+                            return Some(result);
                         }
                     }
                 } else {
@@ -145,17 +142,16 @@ impl<'a> Iterator for NestedLoop<'a> {
                             self.op
                                 .filter_match(&m_inner[self.inner_idx], &m_outer[self.outer_idx])
                         };
-                        if filter_true {
-                            // filter by reflexivity if necessary
-                            if self.op.is_reflexive()
+                        // filter by reflexivity if necessary
+                        if filter_true
+                            && (self.op.is_reflexive()
                                 || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
                                 || m_outer[self.outer_idx].anno_key
-                                    != m_inner[self.inner_idx].anno_key
-                            {
-                                let mut result = m_outer.clone();
-                                result.append(&mut m_inner.clone());
-                                return Some(result);
-                            }
+                                    != m_inner[self.inner_idx].anno_key)
+                        {
+                            let mut result = m_outer.clone();
+                            result.append(&mut m_inner.clone());
+                            return Some(result);
                         }
                     }
                 }

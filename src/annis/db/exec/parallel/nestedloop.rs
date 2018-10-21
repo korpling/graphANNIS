@@ -1,6 +1,6 @@
 use super::super::{Desc, ExecutionNode};
-use annis::operator::Operator;
 use annis::db::Match;
+use annis::operator::Operator;
 use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -52,7 +52,7 @@ impl<'a> NestedLoop<'a> {
             }
         };
 
-        let it = if left_is_outer {
+        if left_is_outer {
             NestedLoop {
                 desc: Desc::join(
                     &op,
@@ -94,9 +94,7 @@ impl<'a> NestedLoop<'a> {
                 pos_inner_cache: None,
                 left_is_outer,
             }
-        };
-
-        it
+        }
     }
 
     fn next_match_buffer(
@@ -167,18 +165,18 @@ impl<'a> NestedLoop<'a> {
                 } else {
                     op.filter_match(&m_inner[inner_idx], &m_outer[outer_idx])
                 };
-                if filter_true {
-                    // filter by reflexivity if necessary
-                    if op.is_reflexive()
+                // filter by reflexivity if necessary
+                
+                if filter_true
+                    && (op.is_reflexive()
                         || m_outer[outer_idx].node != m_inner[inner_idx].node
-                        || m_outer[outer_idx].anno_key != m_inner[inner_idx].anno_key
-                    {
-                        let mut result = m_outer.clone();
-                        result.append(&mut m_inner.clone());
+                        || m_outer[outer_idx].anno_key != m_inner[inner_idx].anno_key)
+                {
+                    let mut result = m_outer.clone();
+                    result.append(&mut m_inner.clone());
 
-                        if let Err(_) = tx.send(result) {
-                            return;
-                        }
+                    if let Err(_) = tx.send(result) {
+                        return;
                     }
                 }
             });

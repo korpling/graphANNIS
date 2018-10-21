@@ -345,10 +345,8 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             // it's infinite
             stats.max_depth = 0;
             stats.dfs_visit_ratio = 0.0;
-        } else {
-            if stats.nodes > 0 {
-                stats.dfs_visit_ratio = (number_of_visits as f64) / (stats.nodes as f64);
-            }
+        } else if stats.nodes > 0 {
+            stats.dfs_visit_ratio = (number_of_visits as f64) / (stats.nodes as f64);
         }
 
         if sum_fan_out > 0 && stats.nodes > 0 {

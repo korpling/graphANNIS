@@ -421,12 +421,10 @@ impl CorpusStorage {
 
         let create_corpus = if db_path.is_dir() {
             false
+        } else if create_if_missing {
+            true
         } else {
-            if create_if_missing {
-                true
-            } else {
-                return Err(ErrorKind::NoSuchCorpus(corpus_name.to_string()).into());
-            }
+            return Err(ErrorKind::NoSuchCorpus(corpus_name.to_string()).into());
         };
 
         // make sure the cache is not too large before adding the new corpus
@@ -864,10 +862,10 @@ impl CorpusStorage {
             (acc.0 + 1, known_documents.len())
         });
 
-        return Ok(CountExtra {
+        Ok(CountExtra {
             match_count: result.0,
             document_count: result.1 as u64,
-        });
+        })
     }
 
     /// Find all results for a `query` and return the match ID for each result.
@@ -994,11 +992,11 @@ impl CorpusStorage {
                     }
                     let mut result = String::new();
                     result.push_str(&match_desc.join(" "));
-                    return result;
+                    result
                 }),
         );
 
-        return Ok(results);
+        Ok(results)
     }
 
     /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
@@ -1182,7 +1180,7 @@ impl CorpusStorage {
                 query.alternatives.push(q_right);
             }
         }
-        return extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone());
+        extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone())
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.

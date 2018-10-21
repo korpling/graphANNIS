@@ -43,13 +43,13 @@ impl<'a> ExecutionPlan<'a> {
             plans.push(Box::new(no_results_exec));
             descriptions.push(None);
         }
-        return Ok(ExecutionPlan {
+        Ok(ExecutionPlan {
             current_plan: 0,
             descriptions,
             proxy_mode: plans.len() == 1,
             plans,
             unique_result_set: HashSet::new(),
-        });
+        })
     }
 }
 

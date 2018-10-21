@@ -281,13 +281,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     .collect();
                 return res;
             }
-        } else {
+        } else if let Some(annos) = self.by_container.get(item)  {
             // no annotation name given, return all
-            if let Some(annos) = self.by_container.get(item) {
-                return annos.iter().map(|sparse_anno| sparse_anno.key).collect();
-            } else {
-                return vec![];
-            }
+            return annos.iter().map(|sparse_anno| sparse_anno.key).collect();
+             
+        } else {
+            return vec![];
         }
     }
 

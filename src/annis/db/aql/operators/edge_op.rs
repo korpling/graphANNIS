@@ -126,9 +126,7 @@ fn check_edge_annotation(
             }
             false
         }
-        None => {
-            true
-        }
+        None => true,
     }
 }
 
@@ -249,19 +247,15 @@ impl Operator for BaseEdgeOp {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         for e in self.gs.iter() {
             if self.inverse {
-                if e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist) {
-                    if check_edge_annotation(&self.spec.edge_anno, e.as_ref(), &rhs.node, &lhs.node)
-                    {
-                        return true;
-                    }
+                if e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist)
+                    && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), &rhs.node, &lhs.node)
+                {
+                    return true;
                 }
-            } else {
-                if e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist) {
-                    if check_edge_annotation(&self.spec.edge_anno, e.as_ref(), &lhs.node, &rhs.node)
-                    {
-                        return true;
-                    }
-                }
+            } else if e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist)
+                && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), &lhs.node, &rhs.node)
+            {
+                return true;
             }
         }
         false
@@ -369,7 +363,7 @@ impl Operator for BaseEdgeOp {
                                 anno_storage.number_of_annotations_by_name(ns.clone(), name.clone())
                             }
                         }
-                        EdgeAnnoSearchSpec::RegexValue { val, ns, name} => {
+                        EdgeAnnoSearchSpec::RegexValue { val, ns, name } => {
                             anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
                         }
                     };

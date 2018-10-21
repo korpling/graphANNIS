@@ -16,28 +16,25 @@ pub struct TokenHelper {
 
 lazy_static! {
     static ref COMPONENT_LEFT: Component = {
-        let c = Component {
+        Component {
             ctype: ComponentType::LeftToken,
             layer: String::from("annis"),
             name: String::from(""),
-        };
-        c
+        }
     };
     static ref COMPONENT_RIGHT: Component = {
-        let c = Component {
+        Component {
             ctype: ComponentType::RightToken,
             layer: String::from("annis"),
             name: String::from(""),
-        };
-        c
+        }
     };
     static ref COMPONENT_COV: Component = {
-        let c = Component {
+        Component {
             ctype: ComponentType::Coverage,
             layer: String::from("annis"),
             name: String::from(""),
-        };
-        c
+        }
     };
 }
 
