@@ -51,10 +51,7 @@
             "type": "shell",
             "command": "cargo",
             "args": [
-                "clippy",         
-                "--",
-                "--allow",
-                "mutex_atomic"   
+                "clippy" 
             ],
             "group": "build",
             "problemMatcher": "$rustc"
