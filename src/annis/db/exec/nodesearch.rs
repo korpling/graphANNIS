@@ -64,7 +64,7 @@ impl NodeSearchSpec {
 impl fmt::Display for NodeSearchSpec {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &NodeSearchSpec::ExactValue {
+            NodeSearchSpec::ExactValue {
                 ref ns,
                 ref name,
                 ref val,
@@ -84,7 +84,7 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "{}", name)
             },
-            &NodeSearchSpec::RegexValue {
+            NodeSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
@@ -94,7 +94,7 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "{}=/{}/", name, &val)
             },
-            &NodeSearchSpec::ExactTokenValue {
+            NodeSearchSpec::ExactTokenValue {
                 ref val,
                 ref leafs_only,
             } => if *leafs_only {
@@ -102,7 +102,7 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "\"{}\"", val)
             },
-            &NodeSearchSpec::RegexTokenValue {
+            NodeSearchSpec::RegexTokenValue {
                 ref val,
                 ref leafs_only,
             } => if *leafs_only {
@@ -110,8 +110,8 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "/{}/", val)
             },
-            &NodeSearchSpec::AnyToken => write!(f, "tok"),
-            &NodeSearchSpec::AnyNode => write!(f, "node"),
+            NodeSearchSpec::AnyToken => write!(f, "tok"),
+            NodeSearchSpec::AnyNode => write!(f, "node"),
         }
     }
 }

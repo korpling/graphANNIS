@@ -189,7 +189,7 @@ where
                         .iter()
                         .map(move |order| (root_order.clone(), order))
                 }).filter_map(move |(root, order)| match order {
-                    &OrderVecEntry::Pre {
+                    OrderVecEntry::Pre {
                         ref post,
                         ref level,
                         ref node,
@@ -254,7 +254,7 @@ where
                 }).filter_map(move |(use_post, root, idx, order)| {
                     let (current_pre, current_post, current_level, current_node) = if use_post {
                         match order {
-                            &OrderVecEntry::Post {
+                            OrderVecEntry::Post {
                                 ref pre,
                                 ref level,
                                 ref node,
@@ -263,7 +263,7 @@ where
                         }
                     } else {
                         match order {
-                            &OrderVecEntry::Pre {
+                            OrderVecEntry::Pre {
                                 ref post,
                                 ref level,
                                 ref node,

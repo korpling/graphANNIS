@@ -58,7 +58,7 @@ impl<'a> std::fmt::Display for ExecutionPlan<'a> {
             if i > 0 {
                 writeln!(f, "---[OR]---")?;
             }
-            if let &Some(ref d) = d {
+            if let Some(ref d) = d {
                 write!(f, "{}", d.debug_string(""))?;
             } else {
                 write!(f, "<no description>")?;

@@ -1632,7 +1632,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
 }
 
 fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut Graph> {
-    if let &mut CacheEntry::Loaded(ref mut db) = &mut **lock {
+    if let CacheEntry::Loaded(ref mut db) = &mut **lock {
         return Ok(db);
     } else {
         return Err("Could get loaded graph storage entry".into());
