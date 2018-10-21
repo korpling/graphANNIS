@@ -175,7 +175,7 @@ impl<'a> NestedLoop<'a> {
                     let mut result = m_outer.clone();
                     result.append(&mut m_inner.clone());
 
-                    if let Err(_) = tx.send(result) {
+                    if tx.send(result).is_err() {
                         return;
                     }
                 }
