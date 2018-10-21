@@ -683,7 +683,7 @@ impl Graph {
         if let Some(location) = self.location.clone() {
             trace!("output location for persisting updates is {:?}", location);
             if result.is_ok() {
-                let current_path = PathBuf::from(location).join("current");
+                let current_path = location.join("current");
                 // make sure the output path exits
                 std::fs::create_dir_all(&current_path)?;
 
