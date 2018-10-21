@@ -191,7 +191,7 @@ fn next_candidates(
 
             for match_node in it_nodes {
                 if let Some(key_id) = key_id {
-                    if let Some(_) = node_annos.get_value_for_item_by_id(&match_node.node, key_id) {
+                    if node_annos.get_value_for_item_by_id(&match_node.node, key_id).is_some() {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: key_id,
@@ -210,7 +210,7 @@ fn next_candidates(
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
                 for key_id in keys.clone() {
-                    if let Some(_) = node_annos.get_value_for_item_by_id(&match_node.node, key_id) {
+                    if node_annos.get_value_for_item_by_id(&match_node.node, key_id).is_some() {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: key_id,

@@ -570,7 +570,7 @@ impl CorpusStorage {
 
         // remove any possible old corpus
         let old_entry = cache.remove(&corpus_name);
-        if let Some(_) = old_entry {
+        if old_entry.is_some() {
             if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
                 error!("Error when removing existing files {}", e);
             }
