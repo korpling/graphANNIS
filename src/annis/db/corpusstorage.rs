@@ -82,7 +82,7 @@ impl fmt::Display for GraphStorageInfo {
                 writeln!(
                     f,
                     "Memory: {:.2} MB",
-                    memory_size as f64 / (1024 * 1024) as f64
+                    memory_size as f64 / f64::from(1024 * 1024)
                 )?;
             }
             LoadStatus::FullyLoaded(memory_size) => {
@@ -90,7 +90,7 @@ impl fmt::Display for GraphStorageInfo {
                 writeln!(
                     f,
                     "Memory: {:.2} MB",
-                    memory_size as f64 / (1024 * 1024) as f64
+                    memory_size as f64 / f64::from(1024 * 1024)
                 )?;
             }
         };
@@ -118,7 +118,7 @@ impl fmt::Display for CorpusInfo {
                 writeln!(
                     f,
                     "Total memory: {:.2} MB",
-                    memory_size as f64 / (1024 * 1024) as f64
+                    memory_size as f64 / f64::from(1024 * 1024)
                 )?;
             }
             LoadStatus::FullyLoaded(memory_size) => {
@@ -126,7 +126,7 @@ impl fmt::Display for CorpusInfo {
                 writeln!(
                     f,
                     "Total memory: {:.2} MB",
-                    memory_size as f64 / (1024 * 1024) as f64
+                    memory_size as f64 / f64::from(1024 * 1024)
                 )?;
             }
         };

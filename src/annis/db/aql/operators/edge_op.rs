@@ -329,8 +329,8 @@ impl Operator for BaseEdgeOp {
                 } else {
                     // We can't use the formula for complete k-ary trees because we can't divide by zero and don't want negative
                     // numbers. Use the simplified estimation with multiplication instead.
-                    let reachable_max: f64 = (stats.avg_fan_out * (max_path_length as f64)).ceil();
-                    let reachable_min: f64 = (stats.avg_fan_out * (min_path_length as f64)).ceil();
+                    let reachable_max: f64 = (stats.avg_fan_out * f64::from(max_path_length)).ceil();
+                    let reachable_min: f64 = (stats.avg_fan_out * f64::from(min_path_length)).ceil();
 
                     gs_selectivity = (reachable_max - reachable_min) / max_nodes;
                 }
