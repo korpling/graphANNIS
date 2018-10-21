@@ -217,6 +217,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                             if self.node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // skip all RHS candidates that have the same node ID
+                                #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
                                 loop {
                                     if let Some(next_match) = rhs_candidate.peek() {
                                         if next_match.node != matched_node {
