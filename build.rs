@@ -1,5 +1,7 @@
 extern crate lalrpop;
 
 fn main() {
-    lalrpop::process_root().unwrap();
+    lalrpop::Configuration::new()
+        .process_file("src/annis/db/aql/parser.lalrpop")
+        .unwrap();
 }
