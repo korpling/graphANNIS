@@ -278,7 +278,7 @@ impl CorpusStorage {
             lock_file: create_lockfile_for_directory(db_dir)?,
             cache_strategy,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
-            query_config: query_config,
+            query_config,
             active_background_workers,
         };
 

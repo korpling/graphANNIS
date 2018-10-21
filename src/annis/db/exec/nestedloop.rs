@@ -58,7 +58,7 @@ impl<'a> NestedLoop<'a> {
 
                 outer: lhs.peekable(),
                 inner: rhs,
-                op: op,
+                op,
                 outer_idx: lhs_idx,
                 inner_idx: rhs_idx,
                 inner_cache: Vec::new(),
@@ -78,7 +78,7 @@ impl<'a> NestedLoop<'a> {
 
                 outer: rhs.peekable(),
                 inner: lhs,
-                op: op,
+                op,
                 outer_idx: rhs_idx,
                 inner_idx: lhs_idx,
                 inner_cache: Vec::new(),

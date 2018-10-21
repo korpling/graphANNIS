@@ -90,7 +90,7 @@ where
             id: node_id,
             order: PrePost {
                 pre: current_order.clone(),
-                level: level,
+                level,
                 post: OrderT::zero(),
             },
         };

@@ -62,7 +62,7 @@ impl IdenticalCoverage {
         Some(IdenticalCoverage {
             gs_left,
             gs_order,
-            tok_helper: tok_helper,
+            tok_helper,
         })
     }
 }

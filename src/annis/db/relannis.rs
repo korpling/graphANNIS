@@ -913,8 +913,8 @@ where
                 let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
                 let anno = Annotation {
-                    key: AnnoKey { ns: ns, name: name },
-                    val: val,
+                    key: AnnoKey { ns, name },
+                    val,
                 };
                 let gs: &mut WriteableGraphStorage = db.get_or_create_writable(c.clone())?;
                 gs.add_edge_annotation(e.clone(), anno);
@@ -959,8 +959,8 @@ where
         let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
         let anno = Annotation {
-            key: AnnoKey { ns, name: name },
-            val: val,
+            key: AnnoKey { ns, name },
+            val,
         };
 
         corpus_id_to_anno.insert(id, anno);

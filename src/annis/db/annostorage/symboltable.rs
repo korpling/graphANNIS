@@ -41,7 +41,7 @@ where
     pub fn new() -> SymbolTable<T> {
         let by_id = Vec::default();
         SymbolTable {
-            by_id: by_id,
+            by_id,
             by_value: BTreeMap::default(),
             empty_slots: Vec::default(),
         }

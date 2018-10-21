@@ -228,7 +228,7 @@ impl<'a> NodeSearch<'a> {
                     node_search_desc: Arc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
-                        const_output: const_output,
+                        const_output,
                     }),
                 })
             }
@@ -358,7 +358,7 @@ impl<'a> NodeSearch<'a> {
             node_search_desc: Arc::new(NodeSearchDesc {
                 qname: (ns, Some(name)),
                 cond: filters,
-                const_output: const_output,
+                const_output,
             }),
         })
     }
@@ -576,7 +576,7 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: new_desc,
-            node_search_desc: node_search_desc,
+            node_search_desc,
         })
     }
 

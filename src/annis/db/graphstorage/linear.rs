@@ -278,7 +278,7 @@ where
                 if let Some(pos) = PosT::from_usize(chain.len()) {
                     let pos: RelativePosition<PosT> = RelativePosition {
                         root: *root_node,
-                        pos: pos,
+                        pos,
                     };
                     self.node_to_pos.insert(step.node, pos);
                 }
