@@ -542,7 +542,7 @@ impl<'a> Conjunction<'a> {
             }
 
             let op_entry = OperatorEntry {
-                op: op,
+                op,
                 node_nr_left: spec_idx_left + 1,
                 node_nr_right: spec_idx_right + 1,
             };
