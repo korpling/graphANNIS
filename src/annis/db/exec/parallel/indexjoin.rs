@@ -257,18 +257,14 @@ impl<'a> Iterator for IndexJoin<'a> {
             self.match_receiver = if let Some(rhs) = self.next_match_receiver() {
                 Some(rhs)
             } else {
-                None
+                return None;
             };
         }
 
-        if self.match_receiver.is_none() {
-            return None;
-        }
-
+        
         loop {
             {
-                let match_receiver: &mut Receiver<Vec<Match>> =
-                    self.match_receiver.as_mut().unwrap();
+                let match_receiver = self.match_receiver.as_mut()?;
                 if let Ok(result) = match_receiver.recv() {
                     return Some(result);
                 }

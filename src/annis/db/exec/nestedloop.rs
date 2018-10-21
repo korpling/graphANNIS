@@ -160,9 +160,7 @@ impl<'a> Iterator for NestedLoop<'a> {
             }
 
             // consume next outer
-            if self.outer.next().is_none() {
-                return None;
-            }
+            self.outer.next()?;
         }
     }
 }

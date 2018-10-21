@@ -181,17 +181,14 @@ impl<'a> Iterator for IndexJoin<'a> {
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
                 Some(rhs.into_iter().peekable())
             } else {
-                None
+                return None;
             };
         }
 
-        if self.rhs_candidate.is_none() {
-            return None;
-        }
 
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
-                let rhs_candidate = self.rhs_candidate.as_mut().unwrap();
+                let rhs_candidate = self.rhs_candidate.as_mut()?;
                 while let Some(mut m_rhs) = rhs_candidate.next() {
                     // check if all filters are true
                     let mut filter_result = true;
@@ -238,9 +235,7 @@ impl<'a> Iterator for IndexJoin<'a> {
             }
 
             // consume next outer
-            if self.lhs.next().is_none() {
-                return None;
-            }
+            self.lhs.next()?;
 
             // inner was completed once, get new candidates
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
