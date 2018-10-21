@@ -666,7 +666,7 @@ impl Graph {
 
     /// Apply a sequence of updates (`u` parameter) to this graph.
     /// If the graph has a location on the disk, the changes are persisted.
-    fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<()> {
+    fn apply_update(&mut self, u: &mut GraphUpdate) -> Result<()> {
         trace!("applying updates");
         // Always mark the update state as consistent, even if caller forgot this.
         if !u.is_consistent() {
@@ -693,7 +693,7 @@ impl Graph {
                 trace!("writing WAL update log to {:?}", &log_path);
                 let f_log = std::fs::File::create(log_path)?;
                 let mut buf_writer = std::io::BufWriter::new(f_log);
-                bincode::serialize_into(&mut buf_writer, &mut u)?;
+                bincode::serialize_into(&mut buf_writer, &u)?;
 
                 trace!("finished writing WAL update log");
             } else {
