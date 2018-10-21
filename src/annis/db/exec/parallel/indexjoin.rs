@@ -159,7 +159,7 @@ impl<'a> IndexJoin<'a> {
                                     rhs_candidate.next();
                                 }
                             }
-                            if let Err(_) = tx.send(result) {
+                            if tx.send(result).is_err() {
                                 return;
                             }
                         }
