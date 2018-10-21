@@ -1763,7 +1763,7 @@ fn create_subgraph_edge(
     // find outgoing edges
     for c in all_components {
         if let Some(orig_gs) = orig_db.get_graphstorage(c) {
-            for target in orig_gs.get_outgoing_edges(&source_id) {
+            for target in orig_gs.get_outgoing_edges(source_id) {
                 let e = Edge {
                     source: source_id,
                     target,

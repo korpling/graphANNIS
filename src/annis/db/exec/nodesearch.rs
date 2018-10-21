@@ -406,7 +406,7 @@ impl<'a> NodeSearch<'a> {
             });
             let it = it_base.filter(move |n| {
                 if let Some(ref cov) = cov_gs {
-                    cov.get_outgoing_edges(&n.node).next().is_none()
+                    cov.get_outgoing_edges(n.node).next().is_none()
                 } else {
                     true
                 }
@@ -465,7 +465,7 @@ impl<'a> NodeSearch<'a> {
             });
             let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
                 if let Some(ref cov) = cov_gs {
-                    cov.get_outgoing_edges(&m.node).next().is_none()
+                    cov.get_outgoing_edges(m.node).next().is_none()
                 } else {
                     true
                 }

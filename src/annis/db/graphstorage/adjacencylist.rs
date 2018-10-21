@@ -42,8 +42,8 @@ impl AdjacencyListStorage {
 }
 
 impl EdgeContainer for AdjacencyListStorage {
-    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(outgoing) = self.edges.get(node) {
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        if let Some(outgoing) = self.edges.get(&node) {
             return match outgoing.len() {
                 0 => Box::new(std::iter::empty()),
                 1 => Box::new(std::iter::once(outgoing[0])),
@@ -53,8 +53,8 @@ impl EdgeContainer for AdjacencyListStorage {
         Box::new(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(ingoing) = self.inverse_edges.get(node) {
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        if let Some(ingoing) = self.inverse_edges.get(&node) {
             return match ingoing.len() {
                 0 => Box::new(std::iter::empty()),
                 1 => Box::new(std::iter::once(ingoing[0])),
@@ -94,7 +94,7 @@ impl GraphStorage for AdjacencyListStorage {
 
     fn find_connected<'a>(
         &'a self,
-        node: &NodeID,
+        node: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
@@ -107,7 +107,7 @@ impl GraphStorage for AdjacencyListStorage {
 
     fn find_connected_inverse<'a>(
         &'a self,
-        node: &NodeID,
+        node: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
@@ -119,7 +119,7 @@ impl GraphStorage for AdjacencyListStorage {
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
-        let mut it = CycleSafeDFS::new(self, source, usize::min_value(), usize::max_value())
+        let mut it = CycleSafeDFS::new(self, *source, usize::min_value(), usize::max_value())
             .filter(|x| *target == x.node)
             .map(|x| x.distance);
 
@@ -132,7 +132,7 @@ impl GraphStorage for AdjacencyListStorage {
         min_distance: usize,
         max_distance: usize,
     ) -> bool {
-        let mut it = CycleSafeDFS::new(self, source, min_distance, max_distance)
+        let mut it = CycleSafeDFS::new(self, *source, min_distance, max_distance)
             .filter(|x| *target == x.node);
 
         it.next().is_some()
@@ -142,7 +142,7 @@ impl GraphStorage for AdjacencyListStorage {
         self.clear();
 
         for source in orig.source_nodes() {
-            for target in orig.get_outgoing_edges(&source) {
+            for target in orig.get_outgoing_edges(source) {
                 let e = Edge { source, target };
                 self.add_edge(e.clone());
                 for a in orig.get_anno_storage().get_annotations_for_item(&e) {
@@ -329,7 +329,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             stats.cyclic = true;
         } else {
             for root_node in roots.iter() {
-                let mut dfs = CycleSafeDFS::new(self, &root_node, 0, usize::max_value());
+                let mut dfs = CycleSafeDFS::new(self, *root_node, 0, usize::max_value());
                 while let Some(step) = dfs.next() {
                     number_of_visits += 1;
                     stats.max_depth = std::cmp::max(stats.max_depth, step.distance);
@@ -416,34 +416,34 @@ mod tests {
 
         assert_eq!(
             vec![2, 3],
-            gs.get_outgoing_edges(&1)
+            gs.get_outgoing_edges(1)
                 .collect::<Vec<NodeID>>()
                 .into_iter()
                 .sorted()
         );
         assert_eq!(
             vec![4, 5],
-            gs.get_outgoing_edges(&3)
+            gs.get_outgoing_edges(3)
                 .collect::<Vec<NodeID>>()
                 .into_iter()
                 .sorted()
         );
-        assert_eq!(0, gs.get_outgoing_edges(&6).count());
-        assert_eq!(vec![4], gs.get_outgoing_edges(&2).collect::<Vec<NodeID>>());
+        assert_eq!(0, gs.get_outgoing_edges(6).count());
+        assert_eq!(vec![4], gs.get_outgoing_edges(2).collect::<Vec<NodeID>>());
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(&1, 1, 100).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(1, 1, 100).collect();
         reachable.sort();
         assert_eq!(vec![2, 3, 4, 5, 6, 7], reachable);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(&3, 2, 100).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(3, 2, 100).collect();
         reachable.sort();
         assert_eq!(vec![6, 7], reachable);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(&1, 2, 4).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(1, 2, 4).collect();
         reachable.sort();
         assert_eq!(vec![4, 5, 6, 7], reachable);
 
-        let reachable: Vec<NodeID> = gs.find_connected(&7, 1, 100).collect();
+        let reachable: Vec<NodeID> = gs.find_connected(7, 1, 100).collect();
         assert_eq!(true, reachable.is_empty());
     }
 

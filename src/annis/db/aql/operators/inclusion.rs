@@ -102,18 +102,18 @@ impl std::fmt::Display for Inclusion {
 
 impl Operator for Inclusion {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
-        if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(&lhs.node) {
+        if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
             // span length of LHS
             if let Some(l) = self.gs_order.distance(&start_lhs, &end_lhs) {
                 // find each token which is between the left and right border
                 let result: VecDeque<Match> = self
                     .gs_order
-                    .find_connected(&start_lhs, 0, l)
+                    .find_connected(start_lhs, 0, l)
                     .flat_map(move |t| {
-                        let it_aligned = self.gs_left.get_outgoing_edges(&t).into_iter().filter(
+                        let it_aligned = self.gs_left.get_outgoing_edges(t).into_iter().filter(
                             move |n| {
                                 // right-aligned token of candidate
-                                let mut end_n = self.gs_right.get_outgoing_edges(&n);
+                                let mut end_n = self.gs_right.get_outgoing_edges(*n);
                                 if let Some(end_n) = end_n.next() {
                                     // path between right-most tokens exists in ORDERING component
                                     // and has maximum length l
@@ -137,8 +137,8 @@ impl Operator for Inclusion {
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        let left_right_lhs = self.tok_helper.left_right_token_for(&lhs.node);
-        let left_right_rhs = self.tok_helper.left_right_token_for(&rhs.node);
+        let left_right_lhs = self.tok_helper.left_right_token_for(lhs.node);
+        let left_right_rhs = self.tok_helper.left_right_token_for(rhs.node);
         if let (Some(start_lhs), Some(end_lhs), Some(start_rhs), Some(end_rhs)) = (
             left_right_lhs.0,
             left_right_lhs.1,

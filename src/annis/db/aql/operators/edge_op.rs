@@ -66,16 +66,16 @@ impl OperatorSpec for BaseEdgeOpSpec {
 fn check_edge_annotation(
     edge_anno: &Option<EdgeAnnoSearchSpec>,
     gs: &GraphStorage,
-    source: &NodeID,
-    target: &NodeID,
+    source: NodeID,
+    target: NodeID,
 ) -> bool {
     match edge_anno {
         Some(EdgeAnnoSearchSpec::ExactValue { ns, name, val }) => {
             for a in gs
                 .get_anno_storage()
                 .get_annotations_for_item(&Edge {
-                    source: source.clone(),
-                    target: target.clone(),
+                    source: source,
+                    target: target,
                 }).into_iter()
             {
                 if name != &a.key.name {
@@ -164,14 +164,14 @@ impl Operator for BaseEdgeOp {
             // no duplicates are possible
             let result: VecDeque<Match> = if self.inverse {
                 self.gs[0]
-                    .find_connected_inverse(&lhs.node, spec.min_dist, spec.max_dist)
+                    .find_connected_inverse(lhs.node, spec.min_dist, spec.max_dist)
                     .fuse()
                     .filter(move |candidate| {
                         check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
-                            candidate,
-                            &lhs.clone().node,
+                            *candidate,
+                            lhs.clone().node,
                         )
                     }).map(|n| Match {
                         node: n,
@@ -179,14 +179,14 @@ impl Operator for BaseEdgeOp {
                     }).collect()
             } else {
                 self.gs[0]
-                    .find_connected(&lhs.node, spec.min_dist, spec.max_dist)
+                    .find_connected(lhs.node, spec.min_dist, spec.max_dist)
                     .fuse()
                     .filter(move |candidate| {
                         check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
-                            &lhs.clone().node,
-                            candidate,
+                            lhs.clone().node,
+                            *candidate,
                         )
                     }).map(|n| Match {
                         node: n,
@@ -202,14 +202,14 @@ impl Operator for BaseEdgeOp {
                         let lhs = lhs.clone();
 
                         e.as_ref()
-                            .find_connected_inverse(&lhs.node, spec.min_dist, spec.max_dist)
+                            .find_connected_inverse(lhs.node, spec.min_dist, spec.max_dist)
                             .fuse()
                             .filter(move |candidate| {
                                 check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
-                                    candidate,
-                                    &lhs.clone().node,
+                                    *candidate,
+                                    lhs.clone().node,
                                 )
                             }).map(|n| Match {
                                 node: n,
@@ -223,14 +223,14 @@ impl Operator for BaseEdgeOp {
                         let lhs = lhs.clone();
 
                         e.as_ref()
-                            .find_connected(&lhs.node, spec.min_dist, spec.max_dist)
+                            .find_connected(lhs.node, spec.min_dist, spec.max_dist)
                             .fuse()
                             .filter(move |candidate| {
                                 check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
-                                    &lhs.clone().node,
-                                    candidate,
+                                    lhs.clone().node,
+                                    *candidate,
                                 )
                             }).map(|n| Match {
                                 node: n,
@@ -248,12 +248,12 @@ impl Operator for BaseEdgeOp {
         for e in self.gs.iter() {
             if self.inverse {
                 if e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist)
-                    && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), &rhs.node, &lhs.node)
+                    && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
                 {
                     return true;
                 }
             } else if e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist)
-                && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), &lhs.node, &rhs.node)
+                && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), lhs.node, rhs.node)
             {
                 return true;
             }

@@ -23,12 +23,12 @@ pub struct DFSStep {
 impl<'a> CycleSafeDFS<'a> {
     pub fn new(
         container: &'a EdgeContainer,
-        node: &NodeID,
+        node: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> CycleSafeDFS<'a> {
         let mut stack = vec![];
-        stack.push((node.clone(), 0));
+        stack.push((node, 0));
 
         let path = vec![];
         let nodes_in_path = FxHashSet::default();
@@ -48,12 +48,12 @@ impl<'a> CycleSafeDFS<'a> {
 
     pub fn new_inverse(
         container: &'a EdgeContainer,
-        node: &NodeID,
+        node: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> CycleSafeDFS<'a> {
         let mut stack = vec![];
-        stack.push((node.clone(), 0));
+        stack.push((node, 0));
 
         let path = vec![];
         let nodes_in_path = FxHashSet::default();
@@ -108,13 +108,13 @@ impl<'a> CycleSafeDFS<'a> {
             if dist < self.max_distance {
                 if self.inverse {
                     // add all parent nodes to the stack
-                    for o in self.container.get_ingoing_edges(&node) {
+                    for o in self.container.get_ingoing_edges(node) {
                         self.stack.push((o, dist + 1));
                         trace!("adding {} to stack with new size {}", o, self.stack.len());
                     }
                 } else {
                     // add all child nodes to the stack
-                    for o in self.container.get_outgoing_edges(&node) {
+                    for o in self.container.get_outgoing_edges(node) {
                         self.stack.push((o, dist + 1));
                         trace!("adding {} to stack with new size {}", o, self.stack.len());
                     }

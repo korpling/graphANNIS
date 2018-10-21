@@ -62,8 +62,8 @@ impl<PosT: 'static> EdgeContainer for LinearGraphStorage<PosT>
 where
     PosT: NumValue,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(pos) = self.node_to_pos.get(node) {
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        if let Some(pos) = self.node_to_pos.get(&node) {
             // find the next node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 let next_pos = pos.pos.clone() + PosT::one();
@@ -77,8 +77,8 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(pos) = self.node_to_pos.get(node) {
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        if let Some(pos) = self.node_to_pos.get(&node) {
             // find the previous node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 if let Some(pos) = pos.pos.to_usize() {
@@ -127,11 +127,11 @@ where
 
     fn find_connected<'a>(
         &'a self,
-        source: &NodeID,
+        source: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_pos) = self.node_to_pos.get(source) {
+        if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
                     let max_distance = offset + max_distance;
@@ -151,11 +151,11 @@ where
 
     fn find_connected_inverse<'a>(
         &'a self,
-        source: &NodeID,
+        source: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_pos) = self.node_to_pos.get(source) {
+        if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
                     let max_distance = offset.checked_sub(max_distance).unwrap_or(0);
@@ -235,7 +235,7 @@ where
             let m: Match = m;
             let n = m.node;
             // insert all nodes to the root candidate list which are part of this component
-            if orig.get_outgoing_edges(&n).next().is_some() {
+            if orig.get_outgoing_edges(n).next().is_some() {
                 roots.insert(n);
             }
         }
@@ -248,7 +248,7 @@ where
 
             let source = m.node;
 
-            let out_edges = orig.get_outgoing_edges(&source);
+            let out_edges = orig.get_outgoing_edges(source);
             for target in out_edges {
                 // remove the nodes that have an incoming edge from the root list
                 roots.remove(&target);
@@ -271,7 +271,7 @@ where
             };
             self.node_to_pos.insert(root_node.clone(), pos);
 
-            let dfs = CycleSafeDFS::new(orig, &root_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig, *root_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
 

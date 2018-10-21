@@ -55,8 +55,8 @@ pub fn compare_match_by_text_pos(
                 (TokenHelper::new(db), db.get_graphstorage(&component_order))
             {
                 if let (Some(m1_lefttok), Some(m2_lefttok)) = (
-                    token_helper.left_token_for(&m1.node),
-                    token_helper.left_token_for(&m2.node),
+                    token_helper.left_token_for(m1.node),
+                    token_helper.left_token_for(m2.node),
                 ) {
                     if gs_order.is_connected(&m1_lefttok, &m2_lefttok, 1, usize::max_value()) {
                         return Ordering::Less;

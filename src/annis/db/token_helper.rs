@@ -57,9 +57,9 @@ impl TokenHelper {
         })
     }
 
-    pub fn is_token(&self, id: &NodeID) -> bool {
+    pub fn is_token(&self, id: NodeID) -> bool {
         self.node_annos
-            .get_value_for_item_by_id(id, self.tok_key)
+            .get_value_for_item_by_id(&id, self.tok_key)
             .is_some()
             && self.cov_edges.is_some()
             && self
@@ -71,27 +71,27 @@ impl TokenHelper {
                 .is_none()
     }
 
-    pub fn right_token_for(&self, n: &NodeID) -> Option<NodeID> {
+    pub fn right_token_for(&self, n: NodeID) -> Option<NodeID> {
         if self.is_token(n) {
-            Some(n.clone())
+            Some(n)
         } else {
             let mut out = self.right_edges.get_outgoing_edges(n);
             out.next()
         }
     }
 
-    pub fn left_token_for(&self, n: &NodeID) -> Option<NodeID> {
+    pub fn left_token_for(&self, n: NodeID) -> Option<NodeID> {
         if self.is_token(n) {
-            Some(n.clone())
+            Some(n)
         } else {
             let mut out = self.left_edges.get_outgoing_edges(n);
             out.next()
         }
     }
 
-    pub fn left_right_token_for(&self, n: &NodeID) -> (Option<NodeID>, Option<NodeID>) {
+    pub fn left_right_token_for(&self, n: NodeID) -> (Option<NodeID>, Option<NodeID>) {
         if self.is_token(n) {
-            (Some(n.clone()), Some(n.clone()))
+            (Some(n), Some(n))
         } else {
             let mut out_left = self.left_edges.get_outgoing_edges(n);
             let mut out_right = self.right_edges.get_outgoing_edges(n);

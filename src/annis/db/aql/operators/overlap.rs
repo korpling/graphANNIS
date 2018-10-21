@@ -94,16 +94,16 @@ impl Operator for Overlap {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
 
-        let covered: Box<Iterator<Item = NodeID>> = if self.tok_helper.is_token(&lhs.node) {
+        let covered: Box<Iterator<Item = NodeID>> = if self.tok_helper.is_token(lhs.node) {
             Box::new(std::iter::once(lhs.node))
         } else {
             // all covered token
-            Box::new(self.gs_cov.find_connected(&lhs.node, 1, 1).fuse())
+            Box::new(self.gs_cov.find_connected(lhs.node, 1, 1).fuse())
         };
 
         for t in covered {
             // get all nodes that are covering the token
-            for n in self.gs_invcov.find_connected(&t, 1, 1).fuse() {
+            for n in self.gs_invcov.find_connected(t, 1, 1).fuse() {
                 result.insert(n);
             }
             // also add the token itself
@@ -118,10 +118,10 @@ impl Operator for Overlap {
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         if let (Some(start_lhs), Some(end_lhs), Some(start_rhs), Some(end_rhs)) = (
-            self.tok_helper.left_token_for(&lhs.node),
-            self.tok_helper.right_token_for(&lhs.node),
-            self.tok_helper.left_token_for(&rhs.node),
-            self.tok_helper.right_token_for(&rhs.node),
+            self.tok_helper.left_token_for(lhs.node),
+            self.tok_helper.right_token_for(lhs.node),
+            self.tok_helper.left_token_for(rhs.node),
+            self.tok_helper.right_token_for(rhs.node),
         ) {
             // TODO: why not isConnected()? (instead of distance)
             // path between LHS left-most token and RHS right-most token exists in ORDERING component

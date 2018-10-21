@@ -82,12 +82,12 @@ where
 
     fn enter_node(
         current_order: &mut OrderT,
-        node_id: &NodeID,
+        node_id: NodeID,
         level: LevelT,
         node_stack: &mut NStack<OrderT, LevelT>,
     ) {
         let new_entry = NodeStackEntry {
-            id: node_id.clone(),
+            id: node_id,
             order: PrePost {
                 pre: current_order.clone(),
                 level: level,
@@ -120,11 +120,11 @@ where
     for<'de> OrderT: NumValue + Deserialize<'de> + Serialize,
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         self.find_connected(node, 1, 1)
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         self.find_connected_inverse(node, 1, 1)
     }
 
@@ -135,7 +135,7 @@ where
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
         let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
             // check if this is actual a source node (and not only a target node)
-            if self.get_outgoing_edges(n).next().is_some() {
+            if self.get_outgoing_edges(*n).next().is_some() {
                 Some(n.clone())
             } else {
                 None
@@ -169,11 +169,11 @@ where
 
     fn find_connected<'a>(
         &'a self,
-        node: &NodeID,
+        node: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_orders) = self.node_to_order.get(node) {
+        if let Some(start_orders) = self.node_to_order.get(&node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
             let it = start_orders
@@ -220,11 +220,11 @@ where
 
     fn find_connected_inverse<'a>(
         &'a self,
-        start_node: &NodeID,
+        start_node: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_orders) = self.node_to_order.get(start_node) {
+        if let Some(start_orders) = self.node_to_order.get(&start_node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
             let it = start_orders
@@ -396,7 +396,7 @@ where
             let m: Match = m;
             let n = m.node;
             // insert all nodes to the root candidate list which are part of this component
-            if orig.get_outgoing_edges(&n).next().is_some() {
+            if orig.get_outgoing_edges(n).next().is_some() {
                 roots.insert(n);
             }
         }
@@ -409,7 +409,7 @@ where
 
             let source = m.node;
 
-            let out_edges = orig.get_outgoing_edges(&source);
+            let out_edges = orig.get_outgoing_edges(source);
             for target in out_edges {
                 // remove the nodes that have an incoming edge from the root list
                 roots.remove(&target);
@@ -432,12 +432,12 @@ where
 
             PrePostOrderStorage::enter_node(
                 &mut current_order,
-                start_node,
+                *start_node,
                 LevelT::zero(),
                 &mut node_stack,
             );
 
-            let dfs = CycleSafeDFS::new(orig, start_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig, *start_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
                 if step.distance > last_distance {
@@ -445,7 +445,7 @@ where
                     if let Some(dist) = LevelT::from_usize(step.distance) {
                         PrePostOrderStorage::enter_node(
                             &mut current_order,
-                            &step.node,
+                            step.node,
                             dist,
                             &mut node_stack,
                         );
@@ -463,7 +463,7 @@ where
                     if let Some(dist) = LevelT::from_usize(step.distance) {
                         PrePostOrderStorage::enter_node(
                             &mut current_order,
-                            &step.node,
+                            step.node,
                             dist,
                             &mut node_stack,
                         );

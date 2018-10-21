@@ -116,7 +116,7 @@ impl Operator for Precedence {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
-            self.tok_helper.right_token_for(&lhs.node)
+            self.tok_helper.right_token_for(lhs.node)
         };
 
         if start.is_none() {
@@ -128,10 +128,10 @@ impl Operator for Precedence {
         // materialize a list of all matches
         let result: VecDeque<Match> = self.gs_order
             // get all token in the range
-            .find_connected(&start, self.spec.min_dist, self.spec.max_dist).fuse()
+            .find_connected(start, self.spec.min_dist, self.spec.max_dist).fuse()
             // find all left aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_left.get_outgoing_edges(&t);
+                let it_aligned = self.gs_left.get_outgoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
@@ -145,8 +145,8 @@ impl Operator for Precedence {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
-            let start = self.tok_helper.right_token_for(&lhs.node);
-            let end = self.tok_helper.left_token_for(&rhs.node);
+            let start = self.tok_helper.right_token_for(lhs.node);
+            let end = self.tok_helper.left_token_for(rhs.node);
             if start.is_none() || end.is_none() {
                 return false;
             }
@@ -211,7 +211,7 @@ impl Operator for InversePrecedence {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
-            self.tok_helper.left_token_for(&lhs.node)
+            self.tok_helper.left_token_for(lhs.node)
         };
 
         if start.is_none() {
@@ -223,10 +223,10 @@ impl Operator for InversePrecedence {
         // materialize a list of all matches
         let result: VecDeque<Match> = self.gs_order
             // get all token in the range
-            .find_connected_inverse(&start, self.spec.min_dist, self.spec.max_dist).fuse()
+            .find_connected_inverse(start, self.spec.min_dist, self.spec.max_dist).fuse()
             // find all right aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_right.get_outgoing_edges(&t);
+                let it_aligned = self.gs_right.get_outgoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
@@ -240,8 +240,8 @@ impl Operator for InversePrecedence {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
-            let start = self.tok_helper.left_token_for(&lhs.node);
-            let end = self.tok_helper.right_token_for(&rhs.node);
+            let start = self.tok_helper.left_token_for(lhs.node);
+            let end = self.tok_helper.right_token_for(rhs.node);
             if start.is_none() || end.is_none() {
                 return false;
             }

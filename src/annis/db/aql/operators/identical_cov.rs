@@ -75,8 +75,8 @@ impl std::fmt::Display for IdenticalCoverage {
 
 impl Operator for IdenticalCoverage {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
-        let n_left = self.tok_helper.left_token_for(&lhs.node);
-        let n_right = self.tok_helper.right_token_for(&lhs.node);
+        let n_left = self.tok_helper.left_token_for(lhs.node);
+        let n_right = self.tok_helper.right_token_for(lhs.node);
 
         let mut result: Vec<Match> = Vec::new();
 
@@ -93,10 +93,10 @@ impl Operator for IdenticalCoverage {
             }
 
             // find left-aligned non-token
-            let v = self.gs_left.get_outgoing_edges(&n_left);
+            let v = self.gs_left.get_outgoing_edges(n_left);
             for c in v.into_iter() {
                 // check if also right-aligned
-                if let Some(c_right) = self.tok_helper.right_token_for(&c) {
+                if let Some(c_right) = self.tok_helper.right_token_for(c) {
                     if n_right == c_right {
                         result.push(Match {
                             node: c,
@@ -111,11 +111,11 @@ impl Operator for IdenticalCoverage {
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        let start_lhs = self.tok_helper.left_token_for(&lhs.node);
-        let end_lhs = self.tok_helper.right_token_for(&lhs.node);
+        let start_lhs = self.tok_helper.left_token_for(lhs.node);
+        let end_lhs = self.tok_helper.right_token_for(lhs.node);
 
-        let start_rhs = self.tok_helper.left_token_for(&rhs.node);
-        let end_rhs = self.tok_helper.right_token_for(&rhs.node);
+        let start_rhs = self.tok_helper.left_token_for(rhs.node);
+        let end_rhs = self.tok_helper.right_token_for(rhs.node);
 
         if start_lhs.is_none() || end_lhs.is_none() || start_rhs.is_none() || end_rhs.is_none() {
             return false;
