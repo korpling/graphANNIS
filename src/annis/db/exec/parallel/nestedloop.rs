@@ -55,7 +55,7 @@ impl<'a> NestedLoop<'a> {
         if left_is_outer {
             NestedLoop {
                 desc: Desc::join(
-                    &op,
+                    op.as_ref(),
                     lhs.get_desc(),
                     rhs.get_desc(),
                     "nestedloop L-R",
@@ -76,7 +76,7 @@ impl<'a> NestedLoop<'a> {
         } else {
             NestedLoop {
                 desc: Desc::join(
-                    &op,
+                    op.as_ref(),
                     rhs.get_desc(),
                     lhs.get_desc(),
                     "nestedloop R-L",

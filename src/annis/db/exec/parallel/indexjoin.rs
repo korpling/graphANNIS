@@ -71,7 +71,7 @@ impl<'a> IndexJoin<'a> {
 
         IndexJoin {
             desc: Desc::join(
-                &op,
+                op.as_ref(),
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",
