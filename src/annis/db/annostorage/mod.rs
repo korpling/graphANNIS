@@ -675,7 +675,7 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
                 .matching_items(namespace, name, None)
                 .filter(move |(node, anno_key_id)| {
                     if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
-                        re.is_match(val.as_ref())
+                        re.is_match(val)
                     } else {
                         false
                     }
@@ -758,7 +758,7 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
                 .matching_items(namespace, name, None)
                 .filter(move |(node, anno_key_id)| {
                     if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
-                        re.is_match(val.as_ref())
+                        re.is_match(val)
                     } else {
                         false
                     }

@@ -326,7 +326,7 @@ impl<'a> NodeSearch<'a> {
                     filters.push(Box::new(move |m| {
                         if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
                         {
-                            return re.is_match(val.as_ref());
+                            return re.is_match(val);
                         } else {
                             return false;
                         }
@@ -434,7 +434,7 @@ impl<'a> NodeSearch<'a> {
                     Ok(re) => filters.push(Box::new(move |m| {
                         if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
                         {
-                            return re.is_match(val.as_ref());
+                            return re.is_match(val);
                         } else {
                             return false;
                         }

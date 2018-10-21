@@ -853,7 +853,7 @@ impl CorpusStorage {
                     .node_annos
                     .get_value_for_item_by_id(&m.node, node_name_key_id)
                 {
-                    let node_name: &str = node_name.as_ref();
+                    let node_name: &str = node_name;
                     // extract the document path from the node name
                     let doc_path = &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
                     known_documents.insert(doc_path.to_owned());
@@ -985,7 +985,7 @@ impl CorpusStorage {
                             .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                         {
                             node_desc.push_str("salt:/");
-                            node_desc.push_str(name.as_ref());
+                            node_desc.push_str(name);
                         }
 
                         match_desc.push(node_desc);
