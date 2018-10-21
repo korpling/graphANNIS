@@ -1,5 +1,6 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use annis::db::annostorage::AnnoStorage;
+use annis::db::query::conjunction::OperatorEntry;
 use annis::db::Match;
 use annis::operator::{EstimationType, Operator};
 use annis::types::{AnnoKey, NodeID};
@@ -26,15 +27,13 @@ impl<'a> IndexJoin<'a> {
     ///
     /// * `lhs` - An iterator for a left-hand-side
     /// * `lhs_idx` - The index of the element in the LHS that should be used as a source
-    /// * `op` - The operator that connects the LHS and RHS
+    /// * `op_entry` - The operator that connects the LHS and RHS (with description)
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        node_nr_lhs: usize,
-        node_nr_rhs: usize,
-        op: Box<Operator>,
+        op_entry: OperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         rhs_desc: Option<&Desc>,
@@ -60,24 +59,25 @@ impl<'a> IndexJoin<'a> {
 
                     result.round() as usize
                 }
-                EstimationType::MIN => {
-                    out_lhs
-                }
+                EstimationType::MIN => out_lhs,
             }
         };
 
         IndexJoin {
             desc: Desc::join(
-                op.as_ref(),
+                op_entry.op.as_ref(),
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",
-                &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                &format!(
+                    "#{} {} #{}",
+                    op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                ),
                 &processed_func,
             ),
             lhs: lhs_peek,
             lhs_idx,
-            op,
+            op: op_entry.op,
             node_search_desc,
             node_annos,
             rhs_candidate: None,
@@ -184,7 +184,6 @@ impl<'a> Iterator for IndexJoin<'a> {
                 return None;
             };
         }
-
 
         loop {
             if let Some(m_lhs) = self.lhs.peek() {

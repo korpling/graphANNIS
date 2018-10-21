@@ -1,5 +1,6 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use annis::db::annostorage::AnnoStorage;
+use annis::db::query::conjunction::OperatorEntry;
 use annis::db::Match;
 use annis::operator::{EstimationType, Operator};
 use annis::types::{AnnoKey, NodeID};
@@ -29,15 +30,13 @@ impl<'a> IndexJoin<'a> {
     ///
     /// * `lhs` - An iterator for a left-hand-side
     /// * `lhs_idx` - The index of the element in the LHS that should be used as a source
-    /// * `op` - The operator that connects the LHS and RHS
+    /// * `op_entry` - The operator that connects the LHS and RHS (with description)
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        node_nr_lhs: usize,
-        node_nr_rhs: usize,
-        op: Box<Operator>,
+        op_entry: OperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         rhs_desc: Option<&Desc>,
@@ -63,31 +62,32 @@ impl<'a> IndexJoin<'a> {
 
                     result.round() as usize
                 }
-                EstimationType::MIN => {
-                    out_lhs
-                }
+                EstimationType::MIN => out_lhs,
             }
         };
 
         IndexJoin {
             desc: Desc::join(
-                op.as_ref(),
+                op_entry.op.as_ref(),
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",
-                &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                &format!("#{} {} #{}", op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right),
                 &processed_func,
             ),
             lhs: lhs_peek,
             lhs_idx,
-            op: Arc::from(op),
+            op: Arc::from(op_entry.op),
             node_search_desc,
             node_annos,
             match_receiver: None,
         }
     }
 
-    fn next_lhs_buffer(&mut self, tx: &Sender<Vec<Match>>) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
+    fn next_lhs_buffer(
+        &mut self,
+        tx: &Sender<Vec<Match>>,
+    ) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
         let mut lhs_buffer: Vec<(Vec<Match>, Sender<Vec<Match>>)> =
             Vec::with_capacity(MAX_BUFFER_SIZE);
         while lhs_buffer.len() < MAX_BUFFER_SIZE {
@@ -192,7 +192,10 @@ fn next_candidates(
 
             for match_node in it_nodes {
                 if let Some(key_id) = key_id {
-                    if node_annos.get_value_for_item_by_id(&match_node.node, key_id).is_some() {
+                    if node_annos
+                        .get_value_for_item_by_id(&match_node.node, key_id)
+                        .is_some()
+                    {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: key_id,
@@ -211,7 +214,10 @@ fn next_candidates(
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
                 for key_id in keys.clone() {
-                    if node_annos.get_value_for_item_by_id(&match_node.node, key_id).is_some() {
+                    if node_annos
+                        .get_value_for_item_by_id(&match_node.node, key_id)
+                        .is_some()
+                    {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: key_id,
@@ -262,7 +268,6 @@ impl<'a> Iterator for IndexJoin<'a> {
             };
         }
 
-        
         loop {
             {
                 let match_receiver = self.match_receiver.as_mut()?;

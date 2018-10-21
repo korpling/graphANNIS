@@ -23,17 +23,25 @@ use std::iter::FromIterator;
 use std::sync::Arc;
 
 #[derive(Debug)]
-struct OperatorEntry<'a> {
+struct OperatorSpecEntry<'a> {
     op: Box<OperatorSpec + 'a>,
     idx_left: usize,
     idx_right: usize,
     /*    original_order: usize, */
 }
 
+
+pub struct OperatorEntry {
+    pub op: Box<Operator>,
+    pub node_nr_left: usize,
+    pub node_nr_right: usize,
+}
+
+
 #[derive(Debug)]
 pub struct Conjunction<'a> {
     nodes: Vec<(String, NodeSearchSpec)>,
-    operators: Vec<OperatorEntry<'a>>,
+    operators: Vec<OperatorSpecEntry<'a>>,
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
 }
@@ -62,12 +70,12 @@ fn update_components_for_nodes(
 }
 
 fn should_switch_operand_order(
-    op_entry: &OperatorEntry,
+    op_spec: &OperatorSpecEntry,
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
     if let (Some(cost_lhs), Some(cost_rhs)) = (
-        node2cost.get(&op_entry.idx_left),
-        node2cost.get(&op_entry.idx_right),
+        node2cost.get(&op_spec.idx_left),
+        node2cost.get(&op_spec.idx_right),
     ) {
         let cost_lhs: &CostEstimate = cost_lhs;
         let cost_rhs: &CostEstimate = cost_rhs;
@@ -157,7 +165,7 @@ impl<'a> Conjunction<'a> {
         if let (Some(idx_left), Some(idx_right)) =
             (self.variables.get(var_left), self.variables.get(var_right))
         {
-            self.operators.push(OperatorEntry {
+            self.operators.push(OperatorSpecEntry {
                 op,
                 idx_left: *idx_left,
                 idx_right: *idx_right,
@@ -283,14 +291,14 @@ impl<'a> Conjunction<'a> {
         &'a self,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        op_entries: Box<Iterator<Item = &'a OperatorEntry> + 'a>,
+        op_spec_entries: Box<Iterator<Item = &'a OperatorSpecEntry> + 'a>,
         db: &'a Graph,
     ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let desc = desc?;
         // check if we can replace this node search with a generic "all nodes from either of these components" search
         let node_search_cost: &CostEstimate = desc.cost.as_ref()?;
 
-        for e in op_entries {
+        for e in op_spec_entries {
             let op_spec = &e.op;
             if e.idx_left == desc.component_nr {
                 // get the necessary components and count the number of nodes in these components
@@ -346,11 +354,9 @@ impl<'a> Conjunction<'a> {
         &self,
         db: &Graph,
         config: &Config,
-        op: Box<Operator>,
+        op_entry: OperatorEntry,
         exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
         exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
-        spec_idx_left: usize,
-        spec_idx_right: usize,
         idx_left: usize,
         idx_right: usize,
     ) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
@@ -360,9 +366,7 @@ impl<'a> Conjunction<'a> {
                 let join = parallel::indexjoin::IndexJoin::new(
                     exec_left,
                     idx_left,
-                    spec_idx_left + 1,
-                    spec_idx_right + 1,
-                    op,
+                    op_entry,
                     exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                     db.node_annos.clone(),
                     exec_right.get_desc(),
@@ -372,9 +376,7 @@ impl<'a> Conjunction<'a> {
                 let join = IndexJoin::new(
                     exec_left,
                     idx_left,
-                    spec_idx_left + 1,
-                    spec_idx_right + 1,
-                    op,
+                    op_entry,
                     exec_right.as_nodesearch().unwrap().get_node_search_desc(),
                     db.node_annos.clone(),
                     exec_right.get_desc(),
@@ -383,14 +385,16 @@ impl<'a> Conjunction<'a> {
             }
         } else if exec_left.as_nodesearch().is_some() {
             // avoid a nested loop join by switching the operand and using and index join
-            if let Some(inverse_op) = op.get_inverse_operator() {
+            if let Some(inverse_op) = op_entry.op.get_inverse_operator() {
                 if config.use_parallel_joins {
                     let join = parallel::indexjoin::IndexJoin::new(
                         exec_right,
                         idx_right,
-                        spec_idx_right + 1,
-                        spec_idx_left + 1,
-                        inverse_op,
+                        OperatorEntry {
+                            node_nr_left: op_entry.node_nr_right,
+                            node_nr_right: op_entry.node_nr_left,
+                            op: inverse_op,
+                        },
                         exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                         db.node_annos.clone(),
                         exec_left.get_desc(),
@@ -400,9 +404,7 @@ impl<'a> Conjunction<'a> {
                     let join = IndexJoin::new(
                         exec_right,
                         idx_right,
-                        spec_idx_right + 1,
-                        spec_idx_left + 1,
-                        inverse_op,
+                        op_entry,
                         exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                         db.node_annos.clone(),
                         exec_left.get_desc(),
@@ -419,9 +421,9 @@ impl<'a> Conjunction<'a> {
                 exec_right,
                 idx_left,
                 idx_right,
-                spec_idx_left + 1,
-                spec_idx_right + 1,
-                op,
+                op_entry.node_nr_left,
+                op_entry.node_nr_right,
+                op_entry.op,
             );
             Box::new(join)
         } else {
@@ -430,9 +432,9 @@ impl<'a> Conjunction<'a> {
                 exec_right,
                 idx_left,
                 idx_right,
-                spec_idx_left + 1,
-                spec_idx_right + 1,
-                op,
+                op_entry.node_nr_left,
+                op_entry.node_nr_right,
+                op_entry.op,
             );
             Box::new(join)
         }
@@ -520,24 +522,30 @@ impl<'a> Conjunction<'a> {
 
         // 2. add the joins which produce the results in operand order
         for i in operator_order {
-            let op_entry: &OperatorEntry<'a> = &self.operators[i];
+            let op_spec_entry: &OperatorSpecEntry<'a> = &self.operators[i];
 
-            let mut op: Box<Operator> = op_entry.op.create_operator(db).ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(format!("could not create operator {:?}", op_entry))
+            let mut op: Box<Operator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
+                ErrorKind::ImpossibleSearch(format!("could not create operator {:?}", op_spec_entry))
             })?;
 
-            let mut spec_idx_left = op_entry.idx_left;
-            let mut spec_idx_right = op_entry.idx_right;
+            let mut spec_idx_left = op_spec_entry.idx_left;
+            let mut spec_idx_right = op_spec_entry.idx_right;
 
             let inverse_op = op.get_inverse_operator();
             if let Some(inverse_op) = inverse_op {
-                if should_switch_operand_order(op_entry, &node2cost) {
-                    spec_idx_left = op_entry.idx_right;
-                    spec_idx_right = op_entry.idx_left;
+                if should_switch_operand_order(op_spec_entry, &node2cost) {
+                    spec_idx_left = op_spec_entry.idx_right;
+                    spec_idx_right = op_spec_entry.idx_left;
 
                     op = inverse_op;
                 }
             }
+
+            let op_entry = OperatorEntry {
+                op: op,
+                node_nr_left: spec_idx_left + 1,
+                node_nr_right: spec_idx_right + 1,
+            };
 
             let component_left: usize = *(node2component
                 .get(&spec_idx_left)
@@ -573,9 +581,7 @@ impl<'a> Conjunction<'a> {
                         exec_left,
                         idx_left,
                         idx_right,
-                        spec_idx_left + 1,
-                        spec_idx_right + 1,
-                        op,
+                        op_entry,
                     );
                     Box::new(filter)
                 } else {
@@ -592,11 +598,9 @@ impl<'a> Conjunction<'a> {
                     self.create_join(
                         db,
                         config,
-                        op,
+                        op_entry,
                         exec_left,
                         exec_right,
-                        spec_idx_left,
-                        spec_idx_right,
                         idx_left,
                         idx_right,
                     )
