@@ -36,6 +36,11 @@ struct ParsedCorpusTable {
     corpus_id_to_name: BTreeMap<u32, String>,
 }
 
+struct TextPosTable {
+    token_by_left_textpos: BTreeMap<TextProperty, NodeID>,
+    token_by_right_textpos: BTreeMap<TextProperty, NodeID>,
+}
+
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
 ///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
@@ -364,8 +369,7 @@ fn calculate_automatic_coverage_edges<F>(
     token_to_index: &BTreeMap<NodeID, TextProperty>,
     node_to_right: &BTreeMap<NodeID, u32>,
     left_to_node: &MultiMap<TextProperty, NodeID>,
-    token_by_left_textpos: &BTreeMap<TextProperty, NodeID>,
-    token_by_right_textpos: &BTreeMap<TextProperty, NodeID>,
+    textpos_table: &TextPosTable,
     progress_callback: &F,
 ) -> Result<()>
 where
@@ -410,11 +414,11 @@ where
 
                     // find left/right aligned basic token
                     let left_aligned_tok =
-                        token_by_left_textpos.get(&left_pos).ok_or_else(|| {
+                        textpos_table.token_by_left_textpos.get(&left_pos).ok_or_else(|| {
                             format!("Can't get left-aligned token for node {:?}", left_pos)
                         })?;
                     let right_aligned_tok =
-                        token_by_right_textpos.get(&right_pos).ok_or_else(|| {
+                        textpos_table.token_by_right_textpos.get(&right_pos).ok_or_else(|| {
                             format!("Can't get right-aligned token for node {:?}", right_pos)
                         })?;
 
@@ -506,8 +510,10 @@ where
     let mut node_to_right: BTreeMap<NodeID, u32> = BTreeMap::new();
 
     // maps a character position to it's token
-    let mut token_by_left_textpos: BTreeMap<TextProperty, NodeID> = BTreeMap::new();
-    let mut token_by_right_textpos: BTreeMap<TextProperty, NodeID> = BTreeMap::new();
+    let mut textpos_table = TextPosTable {
+        token_by_left_textpos: BTreeMap::new(),
+        token_by_right_textpos: BTreeMap::new(),
+    };
 
     // maps a token node id to the token index
     let mut token_to_index: BTreeMap<NodeID, TextProperty> = BTreeMap::new();
@@ -603,8 +609,8 @@ where
                 };
                 token_by_index.insert(index.clone(), node_nr);
                 token_to_index.insert(node_nr, index);
-                token_by_left_textpos.insert(left, node_nr);
-                token_by_right_textpos.insert(right, node_nr);
+                textpos_table.token_by_left_textpos.insert(left, node_nr);
+                textpos_table.token_by_right_textpos.insert(right, node_nr);
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
                     get_field_str(&line, 11).ok_or("Missing column")?
@@ -661,8 +667,7 @@ where
         &token_to_index,
         &node_to_right,
         &left_to_node,
-        &token_by_left_textpos,
-        &token_by_right_textpos,
+        &textpos_table,
         progress_callback,
     )?;
     Ok((nodes_by_text, missing_seg_span))
