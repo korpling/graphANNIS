@@ -30,13 +30,11 @@ struct OperatorSpecEntry<'a> {
     /*    original_order: usize, */
 }
 
-
 pub struct OperatorEntry {
     pub op: Box<Operator>,
     pub node_nr_left: usize,
     pub node_nr_right: usize,
 }
-
 
 #[derive(Debug)]
 pub struct Conjunction<'a> {
@@ -87,6 +85,95 @@ fn should_switch_operand_order(
     }
 
     false
+}
+
+fn create_join<'b>(
+    db: &Graph,
+    config: &Config,
+    op_entry: OperatorEntry,
+    exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
+    exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
+    idx_left: usize,
+    idx_right: usize,
+) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
+    if exec_right.as_nodesearch().is_some() {
+        // use index join
+        if config.use_parallel_joins {
+            let join = parallel::indexjoin::IndexJoin::new(
+                exec_left,
+                idx_left,
+                op_entry,
+                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+                db.node_annos.clone(),
+                exec_right.get_desc(),
+            );
+            return Box::new(join);
+        } else {
+            let join = IndexJoin::new(
+                exec_left,
+                idx_left,
+                op_entry,
+                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+                db.node_annos.clone(),
+                exec_right.get_desc(),
+            );
+            return Box::new(join);
+        }
+    } else if exec_left.as_nodesearch().is_some() {
+        // avoid a nested loop join by switching the operand and using and index join
+        if let Some(inverse_op) = op_entry.op.get_inverse_operator() {
+            if config.use_parallel_joins {
+                let join = parallel::indexjoin::IndexJoin::new(
+                    exec_right,
+                    idx_right,
+                    OperatorEntry {
+                        node_nr_left: op_entry.node_nr_right,
+                        node_nr_right: op_entry.node_nr_left,
+                        op: inverse_op,
+                    },
+                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                    db.node_annos.clone(),
+                    exec_left.get_desc(),
+                );
+                return Box::new(join);
+            } else {
+                let join = IndexJoin::new(
+                    exec_right,
+                    idx_right,
+                    op_entry,
+                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                    db.node_annos.clone(),
+                    exec_left.get_desc(),
+                );
+                return Box::new(join);
+            }
+        }
+    }
+
+    // use nested loop as "fallback"
+    if config.use_parallel_joins {
+        let join = parallel::nestedloop::NestedLoop::new(
+            exec_left,
+            exec_right,
+            idx_left,
+            idx_right,
+            op_entry.node_nr_left,
+            op_entry.node_nr_right,
+            op_entry.op,
+        );
+        Box::new(join)
+    } else {
+        let join = NestedLoop::new(
+            exec_left,
+            exec_right,
+            idx_left,
+            idx_right,
+            op_entry.node_nr_left,
+            op_entry.node_nr_right,
+            op_entry.op,
+        );
+        Box::new(join)
+    }
 }
 
 impl<'a> Conjunction<'a> {
@@ -253,8 +340,7 @@ impl<'a> Conjunction<'a> {
 
             let mut found_better_plan = false;
             for op_order in family_operators.iter().skip(1) {
-                let alt_plan =
-                    self.make_exec_plan_with_order(db, config, op_order.clone())?;
+                let alt_plan = self.make_exec_plan_with_order(db, config, op_order.clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
                     .ok_or("Plan description missing")?
@@ -350,96 +436,6 @@ impl<'a> Conjunction<'a> {
         None
     }
 
-    fn create_join<'b>(
-        &self,
-        db: &Graph,
-        config: &Config,
-        op_entry: OperatorEntry,
-        exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
-        exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
-        idx_left: usize,
-        idx_right: usize,
-    ) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
-        if exec_right.as_nodesearch().is_some() {
-            // use index join
-            if config.use_parallel_joins {
-                let join = parallel::indexjoin::IndexJoin::new(
-                    exec_left,
-                    idx_left,
-                    op_entry,
-                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.clone(),
-                    exec_right.get_desc(),
-                );
-                return Box::new(join);
-            } else {
-                let join = IndexJoin::new(
-                    exec_left,
-                    idx_left,
-                    op_entry,
-                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.clone(),
-                    exec_right.get_desc(),
-                );
-                return Box::new(join);
-            }
-        } else if exec_left.as_nodesearch().is_some() {
-            // avoid a nested loop join by switching the operand and using and index join
-            if let Some(inverse_op) = op_entry.op.get_inverse_operator() {
-                if config.use_parallel_joins {
-                    let join = parallel::indexjoin::IndexJoin::new(
-                        exec_right,
-                        idx_right,
-                        OperatorEntry {
-                            node_nr_left: op_entry.node_nr_right,
-                            node_nr_right: op_entry.node_nr_left,
-                            op: inverse_op,
-                        },
-                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                        db.node_annos.clone(),
-                        exec_left.get_desc(),
-                    );
-                    return Box::new(join);
-                } else {
-                    let join = IndexJoin::new(
-                        exec_right,
-                        idx_right,
-                        op_entry,
-                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                        db.node_annos.clone(),
-                        exec_left.get_desc(),
-                    );
-                    return Box::new(join);
-                }
-            }
-        }
-
-        // use nested loop as "fallback"
-        if config.use_parallel_joins {
-            let join = parallel::nestedloop::NestedLoop::new(
-                exec_left,
-                exec_right,
-                idx_left,
-                idx_right,
-                op_entry.node_nr_left,
-                op_entry.node_nr_right,
-                op_entry.op,
-            );
-            Box::new(join)
-        } else {
-            let join = NestedLoop::new(
-                exec_left,
-                exec_right,
-                idx_left,
-                idx_right,
-                op_entry.node_nr_left,
-                op_entry.node_nr_right,
-                op_entry.op,
-            );
-            Box::new(join)
-        }
-    }
-
     fn make_exec_plan_with_order(
         &'a self,
         db: &'a Graph,
@@ -525,7 +521,10 @@ impl<'a> Conjunction<'a> {
             let op_spec_entry: &OperatorSpecEntry<'a> = &self.operators[i];
 
             let mut op: Box<Operator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(format!("could not create operator {:?}", op_spec_entry))
+                ErrorKind::ImpossibleSearch(format!(
+                    "could not create operator {:?}",
+                    op_spec_entry
+                ))
             })?;
 
             let mut spec_idx_left = op_spec_entry.idx_left;
@@ -577,12 +576,7 @@ impl<'a> Conjunction<'a> {
                         .get(&spec_idx_right)
                         .ok_or("RHS operand not found")?);
 
-                    let filter = BinaryFilter::new(
-                        exec_left,
-                        idx_left,
-                        idx_right,
-                        op_entry,
-                    );
+                    let filter = BinaryFilter::new(exec_left, idx_left, idx_right, op_entry);
                     Box::new(filter)
                 } else {
                     let exec_right = component2exec.remove(&component_right).ok_or_else(|| {
@@ -595,14 +589,8 @@ impl<'a> Conjunction<'a> {
                         .get(&spec_idx_right)
                         .ok_or("RHS operand not found")?);
 
-                    self.create_join(
-                        db,
-                        config,
-                        op_entry,
-                        exec_left,
-                        exec_right,
-                        idx_left,
-                        idx_right,
+                    create_join(
+                        db, config, op_entry, exec_left, exec_right, idx_left, idx_right,
                     )
                 };
 
