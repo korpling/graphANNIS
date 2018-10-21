@@ -5,11 +5,11 @@ lalrpop_mod!(parser, "/annis/db/aql/parser.rs");
 
 use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
 use annis::db::aql::operators::identical_node::IdenticalNodeSpec;
-use annis::errors::*;
 use annis::db::exec::nodesearch::NodeSearchSpec;
-use annis::operator::OperatorSpec;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
+use annis::errors::*;
+use annis::operator::OperatorSpec;
 use annis::types::{LineColumn, LineColumnRange};
 use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
@@ -262,16 +262,18 @@ pub fn get_line_and_column_for_pos(
     offset_to_line: &BTreeMap<usize, usize>,
 ) -> LineColumn {
     // get the offset for the position by searching for all offsets smaller than the position and taking the last one
-    for (offset, line) in offset_to_line.range(..pos + 1).rev() {
-        // column starts with 1 at line offset
-        let column: usize = pos - offset + 1;
-        return LineColumn {
-            line: *line,
-            column,
-        };
-    }
-
-    return LineColumn { line: 0, column: 0 };
+    offset_to_line
+        .range(..pos + 1)
+        .rev()
+        .map(|(offset, line)| {
+            // column starts with 1 at line offset
+            let column: usize = pos - offset + 1;
+            LineColumn {
+                line: *line,
+                column,
+            }
+        }).next()
+        .unwrap_or(LineColumn { line: 0, column: 0 })
 }
 
 fn extract_location<'a>(
