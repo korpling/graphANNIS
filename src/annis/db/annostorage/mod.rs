@@ -595,8 +595,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
                         let mut pos = 0;
                         let mut pos_fraction = 0;
-                        for i in 0..num_hist_bounds {
-                            hist[i] = sampled_anno_values[pos].clone();
+                        for hist_item in hist.iter_mut() {
+                            *hist_item = sampled_anno_values[pos].clone();
                             pos += delta;
                             pos_fraction += delta_fraction;
 

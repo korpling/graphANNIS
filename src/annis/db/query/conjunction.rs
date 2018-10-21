@@ -244,9 +244,9 @@ impl<'a> Conjunction<'a> {
             }
 
             let mut found_better_plan = false;
-            for i in 1..family_operators.len() {
+            for op_order in family_operators.iter().skip(1) {
                 let alt_plan =
-                    self.make_exec_plan_with_order(db, config, family_operators[i].clone())?;
+                    self.make_exec_plan_with_order(db, config, op_order.clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
                     .ok_or("Plan description missing")?
@@ -263,7 +263,7 @@ impl<'a> Conjunction<'a> {
                 );
 
                 if alt_cost < best_cost {
-                    best_operator_order = family_operators[i].clone();
+                    best_operator_order = op_order.clone();
                     found_better_plan = true;
                     trace!("Found better plan");
                     best_cost = alt_cost;
