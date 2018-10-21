@@ -338,7 +338,7 @@ impl CorpusStorage {
         let cache_entry = self.get_entry(corpus_name)?;
         let lock = cache_entry.read().unwrap();
         let corpus_info: CorpusInfo = match &*lock {
-            &CacheEntry::Loaded(ref db) => {
+            CacheEntry::Loaded(ref db) => {
                 // check if all components are loaded
                 let heap_size = db.size_of(mem_ops);
                 let mut load_status = LoadStatus::FullyLoaded(heap_size);
@@ -459,7 +459,7 @@ impl CorpusStorage {
         let loaded = {
             let lock = cache_entry.read().unwrap();
             match &*lock {
-                &CacheEntry::Loaded(_) => true,
+                CacheEntry::Loaded(_) => true,
                 _ => false,
             }
         };
@@ -1622,7 +1622,7 @@ mod tests {
 }
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
-    if let &CacheEntry::Loaded(ref db) = &**lock {
+    if let CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
         return Err(ErrorKind::LoadingDBFailed("".to_string()).into());
@@ -1651,7 +1651,7 @@ fn check_cache_size_and_remove_with_cache(
     let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
     for (corpus, db_entry) in cache.iter() {
         let lock = db_entry.read().unwrap();
-        if let &CacheEntry::Loaded(ref db) = &*lock {
+        if let CacheEntry::Loaded(ref db) = &*lock {
             let s = db.size_of_cached(&mut mem_ops);
             size_sum += s;
             db_sizes.insert(corpus.clone(), s);
