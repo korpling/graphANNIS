@@ -161,7 +161,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 .anno_key_sizes
                 .entry(orig_anno_key.clone())
                 .or_insert(0);
-            *anno_key_entry = *anno_key_entry + 1;
+            *anno_key_entry += 1;
         }
     }
 

@@ -648,7 +648,7 @@ impl CorpusStorage {
         {
             let &(ref lock, ref _cvar) = &*active_background_workers;
             let mut nr_active_background_workers = lock.lock().unwrap();
-            *nr_active_background_workers = *nr_active_background_workers + 1;
+            *nr_active_background_workers += 1;
         }
         thread::spawn(move || {
             trace!("Starting background thread to sync WAL updates");
@@ -663,7 +663,7 @@ impl CorpusStorage {
             }
             let &(ref lock, ref cvar) = &*active_background_workers;
             let mut nr_active_background_workers = lock.lock().unwrap();
-            *nr_active_background_workers = *nr_active_background_workers - 1;
+            *nr_active_background_workers -= 1;
             cvar.notify_all();
         });
 
@@ -1333,7 +1333,7 @@ impl CorpusStorage {
             }
             // add the tuple to the frequency count
             let mut tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
-            *tuple_count = *tuple_count + 1;
+            *tuple_count += 1;
         }
 
         // output the frequency
