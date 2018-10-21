@@ -167,7 +167,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
     fn check_and_remove_value_symbol(&mut self, value_id: usize) {
         let mut still_used = false;
-        for (_, values) in &self.by_anno {
+        for values in self.by_anno.values() {
             if values.contains_key(&value_id) {
                 still_used = true;
                 break;
@@ -546,7 +546,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.histogram_bounds.clear();
 
         // collect statistics for each annotation key separatly
-        for (anno_key, _num_of_annos) in &self.anno_key_sizes {
+        for anno_key in self.anno_key_sizes.keys() {
             if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
                 // sample a maximal number of annotation values
                 let mut rng = rand::thread_rng();
