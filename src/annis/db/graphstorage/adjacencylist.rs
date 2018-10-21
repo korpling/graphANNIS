@@ -50,7 +50,7 @@ impl EdgeContainer for AdjacencyListStorage {
                 _ => Box::new(outgoing.iter().cloned()),
             };
         }
-        return Box::new(std::iter::empty());
+        Box::new(std::iter::empty())
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
@@ -61,11 +61,11 @@ impl EdgeContainer for AdjacencyListStorage {
                 _ => Box::new(ingoing.iter().cloned()),
             };
         }
-        return Box::new(std::iter::empty());
+        Box::new(std::iter::empty())
     }
 
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
-        return &self.annos;
+        &self.annos
     }
 
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
@@ -74,11 +74,11 @@ impl EdgeContainer for AdjacencyListStorage {
             .iter()
             .filter(|(_, outgoing)| !outgoing.is_empty())
             .map(|(key, _)| key.clone());
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
-        return self.stats.as_ref();
+        self.stats.as_ref()
     }
 }
 

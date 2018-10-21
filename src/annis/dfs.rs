@@ -94,7 +94,7 @@ impl<'a> CycleSafeDFS<'a> {
             trace!("cycle detected for node {} with distance {}", &node, dist);
             self.last_distance = dist;
             self.cycle_detected = true;
-            return false;
+            false
         } else {
             self.path.push(node.clone());
             self.nodes_in_path.insert(node);
@@ -145,6 +145,6 @@ impl<'a> Iterator for CycleSafeDFS<'a> {
             }
         }
 
-        return result;
+        result
     }
 }

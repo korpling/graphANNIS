@@ -41,15 +41,16 @@ where
     let path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
         // check if this is the ANNIS 3.3 import format
-        let annis_version_path = PathBuf::from(path.clone()).join("annis.version");
-        let mut is_annis_33 = false;
-        if annis_version_path.exists() {
+        let annis_version_path = path.clone().join("annis.version");
+        let is_annis_33 = if annis_version_path.exists() {
             let mut file = File::open(&annis_version_path)?;
             let mut version_str = String::new();
             file.read_to_string(&mut version_str)?;
 
-            is_annis_33 = version_str == "3.3";
-        }
+            version_str == "3.3"
+        } else {
+            false
+        };
 
         let mut db = Graph::new();
 
@@ -112,7 +113,7 @@ where
         return Ok((corpus_name, db));
     }
 
-    return Err(format!("Directory {} not found", path.to_string_lossy()).into());
+    Err(format!("Directory {} not found", path.to_string_lossy()).into())
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {

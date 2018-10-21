@@ -51,9 +51,9 @@ pub mod platform {
     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
         if ptr.is_null() {
-            return 0;
+            0
         } else {
-            return malloc_usable_size(ptr);
+            malloc_usable_size(ptr)
         }
     }
 }

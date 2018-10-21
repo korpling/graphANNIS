@@ -226,7 +226,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         if let Some(result) = result {
             return self.anno_values.get_value(result).cloned();
         }
-        return None;
+        None
     }
 
     pub fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
@@ -252,7 +252,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 }
             }
         }
-        return None;
+        None
     }
 
     pub fn find_annotations_for_item(

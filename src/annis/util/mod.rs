@@ -22,7 +22,7 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 /// Takes a node name/ID and extracts both the document path as array and the node name itself.
@@ -116,7 +116,7 @@ impl SearchDef {
             }
         }
 
-        return None;
+        None
     }
 }
 
@@ -147,8 +147,8 @@ pub fn get_queries_from_folder(
             return None;
         });
 
-        return Box::from(it);
+        Box::from(it)
+    } else {
+        Box::new(std::iter::empty())
     }
-
-    return Box::new(std::iter::empty());
 }
