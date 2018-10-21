@@ -855,7 +855,7 @@ impl CorpusStorage {
                 {
                     let node_name: &str = node_name.as_ref();
                     // extract the document path from the node name
-                    let doc_path = &node_name[0..node_name.rfind('#').unwrap_or(node_name.len())];
+                    let doc_path = &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
                     known_documents.insert(doc_path.to_owned());
                 }
             }

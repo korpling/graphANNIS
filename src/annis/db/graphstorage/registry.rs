@@ -129,7 +129,7 @@ pub fn create_from_info(info: &GSInfo) -> Arc<GraphStorage> {
 }
 
 pub fn deserialize(impl_name: &str, input: &mut std::io::Read) -> Result<Arc<GraphStorage>> {
-    let info = REGISTRY.get(impl_name).ok_or(format!(
+    let info = REGISTRY.get(impl_name).ok_or_else(|| format!(
         "Could not find implementation for graph storage with name '{}'",
         impl_name
     ))?;

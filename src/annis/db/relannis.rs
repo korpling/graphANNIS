@@ -108,7 +108,10 @@ where
             db.optimize_impl(&c);
         }
 
-        progress_callback(&format!("finished loading relANNIS from {}", path.to_string_lossy()));
+        progress_callback(&format!(
+            "finished loading relANNIS from {}",
+            path.to_string_lossy()
+        ));
 
         return Ok((corpus_name, db));
     }
@@ -151,8 +154,10 @@ where
         "corpus.tab"
     });
 
-    progress_callback(&format!("loading {}", corpus_tab_path.to_str().unwrap_or_default()));
-
+    progress_callback(&format!(
+        "loading {}",
+        corpus_tab_path.to_str().unwrap_or_default()
+    ));
 
     let mut toplevel_corpus_name: Option<String> = None;
     let mut corpus_by_preorder = BTreeMap::new();
@@ -197,7 +202,10 @@ where
         "text.tab"
     });
 
-    progress_callback(&format!("loading {}", text_tab_path.to_str().unwrap_or_default()));
+    progress_callback(&format!(
+        "loading {}",
+        text_tab_path.to_str().unwrap_or_default()
+    ));
 
     let mut texts: HashMap<TextKey, Text> = HashMap::default();
 
@@ -265,7 +273,7 @@ where
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: try!(node_to_left.get(&current_token).ok_or(format!(
+                val: try!(node_to_left.get(&current_token).ok_or_else(|| format!(
                     "Can't find node that starts together with token {}",
                     current_token
                 ))).clone(),
@@ -290,7 +298,7 @@ where
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: try!(node_to_right.get(current_token).ok_or(format!(
+                val: try!(node_to_right.get(current_token).ok_or_else(|| format!(
                     "Can't find node that has the same end as token {}",
                     current_token
                 ))).clone(),
@@ -384,7 +392,7 @@ where
                     };
                     let right_pos = node_to_right
                         .get(&n)
-                        .ok_or(format!("Can't get right position of node {}", n))?;
+                        .ok_or_else(|| format!("Can't get right position of node {}", n))?;
                     let right_pos = TextProperty {
                         segmentation: String::from(""),
                         corpus_id: textprop.corpus_id,
@@ -393,22 +401,28 @@ where
                     };
 
                     // find left/right aligned basic token
-                    let left_aligned_tok = token_by_left_textpos.get(&left_pos).ok_or(format!(
-                        "Can't get left-aligned token for node {:?}",
-                        left_pos
-                    ))?;
-                    let right_aligned_tok = token_by_right_textpos.get(&right_pos).ok_or(
-                        format!("Can't get right-aligned token for node {:?}", right_pos),
-                    )?;
+                    let left_aligned_tok =
+                        token_by_left_textpos.get(&left_pos).ok_or_else(|| {
+                            format!("Can't get left-aligned token for node {:?}", left_pos)
+                        })?;
+                    let right_aligned_tok =
+                        token_by_right_textpos.get(&right_pos).ok_or_else(|| {
+                            format!("Can't get right-aligned token for node {:?}", right_pos)
+                        })?;
 
-                    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or(format!(
-                        "Can't get position of left-aligned token {}",
-                        left_aligned_tok
-                    ))?;
-                    let right_tok_pos = token_to_index.get(&right_aligned_tok).ok_or(format!(
-                        "Can't get position of right-aligned token {}",
-                        right_aligned_tok
-                    ))?;
+                    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or_else(|| {
+                        format!(
+                            "Can't get position of left-aligned token {}",
+                            left_aligned_tok
+                        )
+                    })?;
+                    let right_tok_pos =
+                        token_to_index.get(&right_aligned_tok).ok_or_else(|| {
+                            format!(
+                                "Can't get position of right-aligned token {}",
+                                right_aligned_tok
+                            )
+                        })?;
                     for i in left_tok_pos.val..(right_tok_pos.val + 1) {
                         let tok_idx = TextProperty {
                             segmentation: String::from(""),
@@ -416,9 +430,9 @@ where
                             text_id: textprop.text_id,
                             val: i,
                         };
-                        let tok_id = token_by_index
-                            .get(&tok_idx)
-                            .ok_or(format!("Can't get token ID for position {:?}", tok_idx))?;
+                        let tok_id = token_by_index.get(&tok_idx).ok_or_else(|| {
+                            format!("Can't get token ID for position {:?}", tok_idx)
+                        })?;
                         if n.clone() != tok_id.clone() {
                             {
                                 let gs = db.get_or_create_writable(component_coverage.clone())?;
@@ -515,7 +529,7 @@ where
 
             let doc_name = corpus_id_to_name
                 .get(&corpus_id)
-                .ok_or(format!("Document with ID {} missing", corpus_id))?;
+                .ok_or_else(|| format!("Document with ID {} missing", corpus_id))?;
 
             let node_qname = format!("{}/{}#{}", toplevel_corpus_name, doc_name, node_name);
             let node_name_anno = Annotation {
@@ -1013,7 +1027,7 @@ fn add_subcorpora(
         if pre.clone() != 0 {
             let corpus_name = corpus_id_to_name
                 .get(corpus_id)
-                .ok_or(format!("Can't get name for corpus with ID {}", corpus_id))?;
+                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?;
             let full_name = format!("{}/{}", toplevel_corpus_name, corpus_name);
 
             // add a basic node labels for the new (sub-) corpus/document
@@ -1080,7 +1094,7 @@ fn add_subcorpora(
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
             let corpus_name = corpus_id_to_name
                 .get(&corpus_ref)
-                .ok_or(format!("Can't get name for corpus with ID {}", corpus_ref))?;
+                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?;
             let full_name = format!("{}/{}#{}", toplevel_corpus_name, corpus_name, text_name);
             let anno_name = Annotation {
                 key: db.get_node_name_key(),

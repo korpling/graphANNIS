@@ -140,9 +140,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         // if set is not existing yet it is created
         self.by_anno
             .entry(anno.key.clone())
-            .or_insert(FxHashMap::default())
+            .or_insert_with(|| FxHashMap::default())
             .entry(anno.val.clone())
-            .or_insert(Vec::default())
+            .or_insert_with(|| Vec::default())
             .push(item.clone());
 
         if existing_anno.is_none() {
@@ -584,7 +584,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     let hist = self
                         .histogram_bounds
                         .entry(anno_key.clone())
-                        .or_insert(std::vec::Vec::new());
+                        .or_insert_with(|| std::vec::Vec::new());
 
                     if num_hist_bounds >= 2 {
                         hist.resize(num_hist_bounds, String::from(""));

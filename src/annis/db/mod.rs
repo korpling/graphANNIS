@@ -795,7 +795,7 @@ impl Graph {
         let mut entry = self
             .components
             .remove(c)
-            .ok_or(format!("Component {} is missing", c.clone()))?;
+            .ok_or_else(|| format!("Component {} is missing", c.clone()))?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 // Since immutable graph storages can't change, only writable graph storage statistics need to be re-calculated

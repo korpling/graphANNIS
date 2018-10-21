@@ -133,10 +133,12 @@ pub fn get_queries_from_folder(
                 if p.exists() && p.is_file() && p.extension() == Some(&OsString::from("aql")) {
                     let r = SearchDef::from_file(&p);
                     if panic_on_invalid {
-                        let r = r.expect(&format!(
-                            "Search definition for query {} is incomplete",
-                            p.to_string_lossy()
-                        ));
+                        let r = r.unwrap_or_else(|| {
+                            panic!(
+                                "Search definition for query {} is incomplete",
+                                p.to_string_lossy()
+                            )
+                        });
                         return Some(r);
                     } else {
                         return r;

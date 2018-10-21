@@ -523,14 +523,9 @@ impl<'a> Conjunction<'a> {
         for i in operator_order.into_iter() {
             let op_entry: &OperatorEntry<'a> = &self.operators[i];
 
-            let mut op: Box<Operator> =
-                op_entry
-                    .op
-                    .create_operator(db)
-                    .ok_or(ErrorKind::ImpossibleSearch(format!(
-                        "could not create operator {:?}",
-                        op_entry
-                    )))?;
+            let mut op: Box<Operator> = op_entry.op.create_operator(db).ok_or_else(|| {
+                ErrorKind::ImpossibleSearch(format!("could not create operator {:?}", op_entry))
+            })?;
 
             let mut spec_idx_left = op_entry.idx_left;
             let mut spec_idx_right = op_entry.idx_right;
@@ -547,19 +542,17 @@ impl<'a> Conjunction<'a> {
 
             let component_left = node2component
                 .get(&spec_idx_left)
-                .ok_or(format!("no component for node #{}", spec_idx_left + 1))?
+                .ok_or_else(|| format!("no component for node #{}", spec_idx_left + 1))?
                 .clone();
             let component_right = node2component
                 .get(&spec_idx_right)
-                .ok_or(format!("no component for node #{}", spec_idx_right + 1))?
+                .ok_or_else(|| format!("no component for node #{}", spec_idx_right + 1))?
                 .clone();
 
             // get the original execution node
-            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> =
-                component2exec.remove(&component_left).ok_or(format!(
-                    "no execution node for component {}",
-                    component_left
-                ))?;
+            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+                .remove(&component_left)
+                .ok_or_else(|| format!("no execution node for component {}", component_left))?;
 
             let idx_left = exec_left
                 .get_desc()
@@ -591,10 +584,9 @@ impl<'a> Conjunction<'a> {
                     );
                     Box::new(filter)
                 } else {
-                    let exec_right = component2exec.remove(&component_right).ok_or(format!(
-                        "no execution node for component {}",
-                        component_right
-                    ))?;
+                    let exec_right = component2exec.remove(&component_right).ok_or_else(|| {
+                        format!("no execution node for component {}", component_right)
+                    })?;
                     let idx_right = exec_right
                         .get_desc()
                         .ok_or("Plan description missing")?
@@ -652,14 +644,14 @@ impl<'a> Conjunction<'a> {
             return Err(node_search_errors.remove(0));
         }
 
-        let first_component_id = first_component_id.ok_or(ErrorKind::ImpossibleSearch(
-            String::from("no component in query at all"),
-        ))?;
-        component2exec.remove(&first_component_id).ok_or(
+        let first_component_id = first_component_id.ok_or_else(|| {
+            ErrorKind::ImpossibleSearch(String::from("no component in query at all"))
+        })?;
+        component2exec.remove(&first_component_id).ok_or_else(|| {
             ErrorKind::ImpossibleSearch(String::from(
                 "could not find execution node for query component",
-            )).into(),
-        )
+            )).into()
+        })
     }
 
     pub fn make_exec_node(

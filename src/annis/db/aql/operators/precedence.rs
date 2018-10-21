@@ -47,7 +47,7 @@ impl OperatorSpec for PrecedenceSpec {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
-            name: self.segmentation.clone().unwrap_or(String::from("")),
+            name: self.segmentation.clone().unwrap_or_else(|| String::from("")),
         };
 
         let mut v: Vec<Component> = vec![
@@ -86,7 +86,7 @@ impl Precedence {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
-            name: spec.segmentation.clone().unwrap_or(String::from("")),
+            name: spec.segmentation.clone().unwrap_or_else(|| String::from("")),
         };
 
         let gs_order = db.get_graphstorage(&component_order)?;
