@@ -49,19 +49,19 @@ pub fn to_disjunctive_normal_form(top_disjunction : &mut Disjunction) {
 
         if disjunction_factors.is_empty() {
             // Disjunction is in DNF, re-add all literals
-            for f in literal_factors.into_iter() {
+            for f in literal_factors {
                 top_conjunction.push_back(Factor::Literal(f));
             }
         } else {
             // For each disjunction create a new conjunction containing the union of the existing terms with the ones
             // from the disjunction
-            for child_disjunct in disjunction_factors.into_iter() {
-                for child_conjunct in child_disjunct.into_iter() {
+            for child_disjunct in disjunction_factors {
+                for child_conjunct in child_disjunct {
                     let mut new_conjunction : Conjunction = Conjunction::new();
-                    for existing_literal in literal_factors.iter() {
+                    for existing_literal in &literal_factors {
                         new_conjunction.push_back(Factor::Literal(existing_literal.clone()));
                     }
-                    for new_literal in child_conjunct.into_iter() {
+                    for new_literal in child_conjunct {
                         new_conjunction.push_back(new_literal);
                     }
                     // add the new conjunction to the disjunction

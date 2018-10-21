@@ -55,7 +55,7 @@ pub enum UpdateEvent {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[repr(C)]
 pub struct GraphUpdate {
     diffs : Vec<(u64, UpdateEvent)>,
@@ -77,9 +77,9 @@ impl GraphUpdate {
 
     pub fn is_consistent(&self) -> bool {
         if self.diffs.is_empty() {
-            return true;
+            true
         } else {
-            return self.last_consistent_change_id == self.diffs[self.diffs.len()-1].0;
+            self.last_consistent_change_id == self.diffs[self.diffs.len()-1].0
         }
     }
 
@@ -94,7 +94,7 @@ impl GraphUpdate {
     }
 
     pub fn consistent_changes<'a>(&'a self) -> Box<Iterator<Item=(u64, UpdateEvent)> + 'a> {
-        let last_consistent_change_id = self.last_consistent_change_id.clone();
+        let last_consistent_change_id = self.last_consistent_change_id;
         let it = self.diffs.iter().filter_map(move |d| {
             if d.0 <= last_consistent_change_id {
                 Some((d.0, d.1.clone()))
@@ -103,10 +103,14 @@ impl GraphUpdate {
             }
         });
 
-        return Box::new(it);
+        Box::new(it)
     }
 
     pub fn len(&self) -> usize {
         self.diffs.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.diffs.is_empty()
     }
 }

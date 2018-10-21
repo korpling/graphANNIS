@@ -9,8 +9,8 @@ use std;
 use std::cmp::Ordering;
 
 pub fn compare_matchgroup_by_text_pos(
-    m1: &Vec<Match>,
-    m2: &Vec<Match>,
+    m1: &[Match],
+    m2: &[Match],
     db: &Graph,
     node_to_path: &FxHashMap<NodeID, (Vec<String>, String)>,
 ) -> Ordering {
@@ -21,7 +21,7 @@ pub fn compare_matchgroup_by_text_pos(
         }
     }
     // sort shorter vectors before larger ones
-    return m1.len().cmp(&m2.len());
+    m1.len().cmp(&m2.len())
 }
 
 pub fn compare_match_by_text_pos(
@@ -32,7 +32,7 @@ pub fn compare_match_by_text_pos(
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
-        return m1.anno_key.cmp(&m2.anno_key);
+        m1.anno_key.cmp(&m2.anno_key)
     } else {
         // get the node paths and names
         let m1_entry = node_to_path.get(&m1.node);
@@ -55,8 +55,8 @@ pub fn compare_match_by_text_pos(
                 (TokenHelper::new(db), db.get_graphstorage(&component_order))
             {
                 if let (Some(m1_lefttok), Some(m2_lefttok)) = (
-                    token_helper.left_token_for(&m1.node),
-                    token_helper.left_token_for(&m2.node),
+                    token_helper.left_token_for(m1.node),
+                    token_helper.left_token_for(m2.node),
                 ) {
                     if gs_order.is_connected(&m1_lefttok, &m2_lefttok, 1, usize::max_value()) {
                         return Ordering::Less;
@@ -75,6 +75,6 @@ pub fn compare_match_by_text_pos(
         }
 
         // compare node IDs directly as last resort
-        return m1.node.cmp(&m2.node);
+        m1.node.cmp(&m2.node)
     }
 }

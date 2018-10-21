@@ -1,6 +1,6 @@
 use super::super::{Desc, ExecutionNode};
-use annis::operator::Operator;
 use annis::db::Match;
+use annis::operator::Operator;
 use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -22,6 +22,9 @@ pub struct NestedLoop<'a> {
     left_is_outer: bool,
     desc: Desc,
 }
+
+
+type MatchCandidate = (Vec<Match>, Vec<Match>, Sender<Vec<Match>>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
@@ -45,17 +48,17 @@ impl<'a> NestedLoop<'a> {
         let processed_func = |_, out_lhs: usize, out_rhs: usize| {
             if out_lhs <= out_rhs {
                 // we use LHS as outer
-                return out_lhs + (out_lhs * out_rhs);
+                out_lhs + (out_lhs * out_rhs)
             } else {
                 // we use RHS as outer
-                return out_rhs + (out_rhs * out_lhs);
+                out_rhs + (out_rhs * out_lhs)
             }
         };
 
-        let it = if left_is_outer {
+        if left_is_outer {
             NestedLoop {
                 desc: Desc::join(
-                    &op,
+                    op.as_ref(),
                     lhs.get_desc(),
                     rhs.get_desc(),
                     "nestedloop L-R",
@@ -76,7 +79,7 @@ impl<'a> NestedLoop<'a> {
         } else {
             NestedLoop {
                 desc: Desc::join(
-                    &op,
+                    op.as_ref(),
                     rhs.get_desc(),
                     lhs.get_desc(),
                     "nestedloop R-L",
@@ -94,16 +97,14 @@ impl<'a> NestedLoop<'a> {
                 pos_inner_cache: None,
                 left_is_outer,
             }
-        };
-
-        return it;
+        }
     }
 
     fn next_match_buffer(
         &mut self,
-        tx: Sender<Vec<Match>>,
-    ) -> Vec<(Vec<Match>, Vec<Match>, Sender<Vec<Match>>)> {
-        let mut match_candidate_buffer: Vec<(Vec<Match>, Vec<Match>, Sender<Vec<Match>>)> =
+        tx: &Sender<Vec<Match>>,
+    ) -> Vec<MatchCandidate> {
+        let mut match_candidate_buffer: Vec<MatchCandidate> =
             Vec::with_capacity(MAX_BUFFER_SIZE);
         while match_candidate_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(m_outer) = self.outer.peek() {
@@ -141,12 +142,12 @@ impl<'a> NestedLoop<'a> {
                 return match_candidate_buffer;
             }
         }
-        return match_candidate_buffer;
+        match_candidate_buffer
     }
 
     fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
-        let mut match_candidate_buffer = self.next_match_buffer(tx);
+        let mut match_candidate_buffer = self.next_match_buffer(&tx);
 
         if match_candidate_buffer.is_empty() {
             return None;
@@ -167,22 +168,22 @@ impl<'a> NestedLoop<'a> {
                 } else {
                     op.filter_match(&m_inner[inner_idx], &m_outer[outer_idx])
                 };
-                if filter_true {
-                    // filter by reflexivity if necessary
-                    if op.is_reflexive()
+                // filter by reflexivity if necessary
+                
+                if filter_true
+                    && (op.is_reflexive()
                         || m_outer[outer_idx].node != m_inner[inner_idx].node
-                        || m_outer[outer_idx].anno_key != m_inner[inner_idx].anno_key
-                    {
-                        let mut result = m_outer.clone();
-                        result.append(&mut m_inner.clone());
+                        || m_outer[outer_idx].anno_key != m_inner[inner_idx].anno_key)
+                {
+                    let mut result = m_outer.clone();
+                    result.append(&mut m_inner.clone());
 
-                        if let Err(_) = tx.send(result) {
-                            return;
-                        }
+                    if tx.send(result).is_err() {
+                        return;
                     }
                 }
             });
-        return Some(rx);
+        Some(rx)
     }
 }
 
@@ -205,18 +206,14 @@ impl<'a> Iterator for NestedLoop<'a> {
             self.match_receiver = if let Some(rhs) = self.next_match_receiver() {
                 Some(rhs)
             } else {
-                None
+                return None;
             };
-        }
-
-        if self.match_receiver.is_none() {
-            return None;
         }
 
         loop {
             {
-                let match_receiver: &mut Receiver<Vec<Match>> =
-                    self.match_receiver.as_mut().unwrap();
+                let match_receiver =
+                    self.match_receiver.as_mut()?;
                 if let Ok(result) = match_receiver.recv() {
                     return Some(result);
                 }

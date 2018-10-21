@@ -30,6 +30,17 @@ struct Text {
     name: String,
 }
 
+struct ParsedCorpusTable {
+    toplevel_corpus_name: String,
+    corpus_by_preorder: BTreeMap<u32, u32>,
+    corpus_id_to_name: BTreeMap<u32, String>,
+}
+
+struct TextPosTable {
+    token_by_left_textpos: BTreeMap<TextProperty, NodeID>,
+    token_by_right_textpos: BTreeMap<TextProperty, NodeID>,
+}
+
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
 ///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
@@ -41,19 +52,20 @@ where
     let path = PathBuf::from(path);
     if path.is_dir() && path.exists() {
         // check if this is the ANNIS 3.3 import format
-        let annis_version_path = PathBuf::from(path.clone()).join("annis.version");
-        let mut is_annis_33 = false;
-        if annis_version_path.exists() {
+        let annis_version_path = path.clone().join("annis.version");
+        let is_annis_33 = if annis_version_path.exists() {
             let mut file = File::open(&annis_version_path)?;
             let mut version_str = String::new();
             file.read_to_string(&mut version_str)?;
 
-            is_annis_33 = version_str == "3.3";
-        }
+            version_str == "3.3"
+        } else {
+            false
+        };
 
         let mut db = Graph::new();
 
-        let (corpus_name, corpus_by_preorder, corpus_id_to_name) =
+        let corpus_table =
             parse_corpus_tab(&path, is_annis_33, &progress_callback)?;
 
         let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
@@ -61,8 +73,8 @@ where
         let nodes_by_text = load_nodes(
             &path,
             &mut db,
-            &corpus_id_to_name,
-            &corpus_name,
+            &corpus_table.corpus_id_to_name,
+            &corpus_table.toplevel_corpus_name,
             is_annis_33,
             &progress_callback,
         )?;
@@ -89,9 +101,7 @@ where
 
         add_subcorpora(
             &mut db,
-            &corpus_name,
-            &corpus_by_preorder,
-            &corpus_id_to_name,
+            &corpus_table,
             &nodes_by_text,
             &texts,
             &corpus_id_to_annos,
@@ -107,12 +117,15 @@ where
             db.optimize_impl(&c);
         }
 
-        progress_callback(&format!("finished loading relANNIS from {}", path.to_string_lossy()));
+        progress_callback(&format!(
+            "finished loading relANNIS from {}",
+            path.to_string_lossy()
+        ));
 
-        return Ok((corpus_name, db));
+        return Ok((corpus_table.toplevel_corpus_name, db));
     }
 
-    return Err(format!("Directory {} not found", path.to_string_lossy()).into());
+    Err(format!("Directory {} not found", path.to_string_lossy()).into())
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -132,14 +145,14 @@ fn get_field_str(record: &csv::StringRecord, i: usize) -> Option<String> {
                 .replace("\\\\", "\\"),
         );
     }
-    return None;
+    None
 }
 
 fn parse_corpus_tab<F>(
     path: &PathBuf,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(String, BTreeMap<u32, u32>, BTreeMap<u32, String>)>
+) -> Result<ParsedCorpusTable>
 where
     F: Fn(&str) -> (),
 {
@@ -150,8 +163,10 @@ where
         "corpus.tab"
     });
 
-    progress_callback(&format!("loading {}", corpus_tab_path.to_str().unwrap_or_default()));
-
+    progress_callback(&format!(
+        "loading {}",
+        corpus_tab_path.to_str().unwrap_or_default()
+    ));
 
     let mut toplevel_corpus_name: Option<String> = None;
     let mut corpus_by_preorder = BTreeMap::new();
@@ -178,7 +193,11 @@ where
     }
 
     let toplevel_corpus_name = toplevel_corpus_name.ok_or("Toplevel corpus name not found")?;
-    Ok((toplevel_corpus_name, corpus_by_preorder, corpus_id_to_name))
+    Ok(ParsedCorpusTable {
+        toplevel_corpus_name,
+        corpus_by_preorder,
+        corpus_id_to_name
+    })
 }
 
 fn parse_text_tab<F>(
@@ -196,7 +215,10 @@ where
         "text.tab"
     });
 
-    progress_callback(&format!("loading {}", text_tab_path.to_str().unwrap_or_default()));
+    progress_callback(&format!(
+        "loading {}",
+        text_tab_path.to_str().unwrap_or_default()
+    ));
 
     let mut texts: HashMap<TextKey, Text> = HashMap::default();
 
@@ -264,23 +286,23 @@ where
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: try!(node_to_left.get(&current_token).ok_or(format!(
+                val: *(try!(node_to_left.get(&current_token).ok_or_else(|| format!(
                     "Can't find node that starts together with token {}",
                     current_token
-                ))).clone(),
+                )))),
             };
             let left_aligned = left_to_node.get_vec(&current_token_left);
             if left_aligned.is_some() {
-                let gs_left = db.get_or_create_writable(component_left.clone())?;
+                let gs_left = db.get_or_create_writable(&component_left)?;
 
                 for n in left_aligned.unwrap() {
                     gs_left.add_edge(Edge {
-                        source: n.clone(),
-                        target: current_token.clone(),
+                        source: *n,
+                        target: *current_token,
                     });
                     gs_left.add_edge(Edge {
-                        source: current_token.clone(),
-                        target: n.clone(),
+                        source: *current_token,
+                        target: *n,
                     });
                 }
             }
@@ -289,22 +311,22 @@ where
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: try!(node_to_right.get(current_token).ok_or(format!(
+                val: *(try!(node_to_right.get(current_token).ok_or_else(|| format!(
                     "Can't find node that has the same end as token {}",
                     current_token
-                ))).clone(),
+                )))),
             };
             let right_aligned = right_to_node.get_vec(&current_token_right);
             if right_aligned.is_some() {
-                let gs_right = db.get_or_create_writable(component_right.clone())?;
+                let gs_right = db.get_or_create_writable(&component_right)?;
                 for n in right_aligned.unwrap() {
                     gs_right.add_edge(Edge {
-                        source: n.clone(),
-                        target: current_token.clone(),
+                        source: *n,
+                        target: *current_token,
                     });
                     gs_right.add_edge(Edge {
-                        source: current_token.clone(),
-                        target: n.clone(),
+                        source: *current_token,
+                        target: *n,
                     });
                 }
             }
@@ -316,7 +338,7 @@ where
             name: current_textprop.segmentation.clone(),
         };
 
-        let gs_order = db.get_or_create_writable(component_order.clone())?;
+        let gs_order = db.get_or_create_writable(&component_order)?;
 
         // if the last token/text value is valid and we are still in the same text
         if last_token.is_some() && last_textprop.is_some() {
@@ -328,14 +350,14 @@ where
                 // we are still in the same text, add ordering between token
                 gs_order.add_edge(Edge {
                     source: last_token.unwrap(),
-                    target: current_token.clone(),
+                    target: *current_token,
                 });
             }
         } // end if same text
 
         // update the iterator and other variables
         last_textprop = Some(current_textprop.clone());
-        last_token = Some(current_token.clone());
+        last_token = Some(*current_token);
     } // end for each token
 
     Ok(())
@@ -347,8 +369,7 @@ fn calculate_automatic_coverage_edges<F>(
     token_to_index: &BTreeMap<NodeID, TextProperty>,
     node_to_right: &BTreeMap<NodeID, u32>,
     left_to_node: &MultiMap<TextProperty, NodeID>,
-    token_by_left_textpos: &BTreeMap<TextProperty, NodeID>,
-    token_by_right_textpos: &BTreeMap<TextProperty, NodeID>,
+    textpos_table: &TextPosTable,
     progress_callback: &F,
 ) -> Result<()>
 where
@@ -367,8 +388,8 @@ where
     };
 
     // make sure the components exists, even if they are empty
-    db.get_or_create_writable(component_coverage.clone())?;
-    db.get_or_create_writable(component_inv_cov.clone())?;
+    db.get_or_create_writable(&component_coverage)?;
+    db.get_or_create_writable(&component_inv_cov)?;
 
     {
         progress_callback("calculating the automatically generated COVERAGE edges");
@@ -383,31 +404,37 @@ where
                     };
                     let right_pos = node_to_right
                         .get(&n)
-                        .ok_or(format!("Can't get right position of node {}", n))?;
+                        .ok_or_else(|| format!("Can't get right position of node {}", n))?;
                     let right_pos = TextProperty {
                         segmentation: String::from(""),
                         corpus_id: textprop.corpus_id,
                         text_id: textprop.text_id,
-                        val: right_pos.clone(),
+                        val: *right_pos,
                     };
 
                     // find left/right aligned basic token
-                    let left_aligned_tok = token_by_left_textpos.get(&left_pos).ok_or(format!(
-                        "Can't get left-aligned token for node {:?}",
-                        left_pos
-                    ))?;
-                    let right_aligned_tok = token_by_right_textpos.get(&right_pos).ok_or(
-                        format!("Can't get right-aligned token for node {:?}", right_pos),
-                    )?;
+                    let left_aligned_tok =
+                        textpos_table.token_by_left_textpos.get(&left_pos).ok_or_else(|| {
+                            format!("Can't get left-aligned token for node {:?}", left_pos)
+                        })?;
+                    let right_aligned_tok =
+                        textpos_table.token_by_right_textpos.get(&right_pos).ok_or_else(|| {
+                            format!("Can't get right-aligned token for node {:?}", right_pos)
+                        })?;
 
-                    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or(format!(
-                        "Can't get position of left-aligned token {}",
-                        left_aligned_tok
-                    ))?;
-                    let right_tok_pos = token_to_index.get(&right_aligned_tok).ok_or(format!(
-                        "Can't get position of right-aligned token {}",
-                        right_aligned_tok
-                    ))?;
+                    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or_else(|| {
+                        format!(
+                            "Can't get position of left-aligned token {}",
+                            left_aligned_tok
+                        )
+                    })?;
+                    let right_tok_pos =
+                        token_to_index.get(&right_aligned_tok).ok_or_else(|| {
+                            format!(
+                                "Can't get position of right-aligned token {}",
+                                right_aligned_tok
+                            )
+                        })?;
                     for i in left_tok_pos.val..(right_tok_pos.val + 1) {
                         let tok_idx = TextProperty {
                             segmentation: String::from(""),
@@ -415,22 +442,22 @@ where
                             text_id: textprop.text_id,
                             val: i,
                         };
-                        let tok_id = token_by_index
-                            .get(&tok_idx)
-                            .ok_or(format!("Can't get token ID for position {:?}", tok_idx))?;
-                        if n.clone() != tok_id.clone() {
+                        let tok_id = token_by_index.get(&tok_idx).ok_or_else(|| {
+                            format!("Can't get token ID for position {:?}", tok_idx)
+                        })?;
+                        if *n != *tok_id {
                             {
-                                let gs = db.get_or_create_writable(component_coverage.clone())?;
+                                let gs = db.get_or_create_writable(&component_coverage)?;
                                 gs.add_edge(Edge {
-                                    source: n.clone(),
-                                    target: tok_id.clone(),
+                                    source: *n,
+                                    target: *tok_id,
                                 });
                             }
                             {
-                                let gs = db.get_or_create_writable(component_inv_cov.clone())?;
+                                let gs = db.get_or_create_writable(&component_inv_cov)?;
                                 gs.add_edge(Edge {
-                                    source: tok_id.clone(),
-                                    target: n.clone(),
+                                    source: *tok_id,
+                                    target: *n,
                                 });
                             }
                         }
@@ -483,8 +510,10 @@ where
     let mut node_to_right: BTreeMap<NodeID, u32> = BTreeMap::new();
 
     // maps a character position to it's token
-    let mut token_by_left_textpos: BTreeMap<TextProperty, NodeID> = BTreeMap::new();
-    let mut token_by_right_textpos: BTreeMap<TextProperty, NodeID> = BTreeMap::new();
+    let mut textpos_table = TextPosTable {
+        token_by_left_textpos: BTreeMap::new(),
+        token_by_right_textpos: BTreeMap::new(),
+    };
 
     // maps a token node id to the token index
     let mut token_to_index: BTreeMap<NodeID, TextProperty> = BTreeMap::new();
@@ -506,15 +535,15 @@ where
 
             nodes_by_text.insert(
                 TextKey {
-                    corpus_ref: Some(corpus_id.clone()),
-                    id: text_id.clone(),
+                    corpus_ref: Some(corpus_id),
+                    id: text_id,
                 },
-                node_nr.clone(),
+                node_nr,
             );
 
             let doc_name = corpus_id_to_name
                 .get(&corpus_id)
-                .ok_or(format!("Document with ID {} missing", corpus_id))?;
+                .ok_or_else(|| format!("Document with ID {} missing", corpus_id))?;
 
             let node_qname = format!("{}/{}#{}", toplevel_corpus_name, doc_name, node_name);
             let node_name_anno = Annotation {
@@ -580,8 +609,8 @@ where
                 };
                 token_by_index.insert(index.clone(), node_nr);
                 token_to_index.insert(node_nr, index);
-                token_by_left_textpos.insert(left, node_nr);
-                token_by_right_textpos.insert(right, node_nr);
+                textpos_table.token_by_left_textpos.insert(left, node_nr);
+                textpos_table.token_by_right_textpos.insert(right, node_nr);
             } else if has_segmentations {
                 let segmentation_name = if is_annis_33 {
                     get_field_str(&line, 11).ok_or("Missing column")?
@@ -638,8 +667,7 @@ where
         &token_to_index,
         &node_to_right,
         &left_to_node,
-        &token_by_left_textpos,
-        &token_by_right_textpos,
+        &textpos_table,
         progress_callback,
     )?;
     Ok((nodes_by_text, missing_seg_span))
@@ -687,7 +715,7 @@ where
             };
 
             Arc::make_mut(&mut db.node_annos).insert(
-                node_id.clone(),
+                node_id,
                 Annotation {
                     key: AnnoKey {
                         ns: col_ns,
@@ -704,7 +732,7 @@ where
                 {
                     let tok_key = db.get_token_key();
                     Arc::make_mut(&mut db.node_annos).insert(
-                        node_id.clone(),
+                        node_id,
                         Annotation {
                             key: tok_key,
                             val: anno_val,
@@ -757,7 +785,7 @@ where
             };
             let ctype = component_type_from_short_name(&col_type)?;
             let c = Component { ctype, layer, name };
-            db.get_or_create_writable(c.clone())?;
+            db.get_or_create_writable(&c)?;
             component_by_id.insert(cid, c);
         }
     }
@@ -785,7 +813,7 @@ where
     )?;
     load_node_anno_tab(path, db, &missing_seg_span, is_annis_33, progress_callback)?;
 
-    return Ok(nodes_by_text);
+    Ok(nodes_by_text)
 }
 
 fn load_rank_tab<F>(
@@ -844,15 +872,15 @@ where
                 if let Some(c) = component_by_id.get(&component_ref) {
                     let target: NodeID = line.get(pos_node_ref).ok_or("Missing column")?.parse()?;
 
-                    let gs = db.get_or_create_writable(c.clone())?;
+                    let gs = db.get_or_create_writable(&c)?;
                     let e = Edge {
-                        source: source.clone(),
+                        source: *source,
                         target,
                     };
                     gs.add_edge(e.clone());
 
                     let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
-                    pre_to_edge.insert(pre.clone(), e);
+                    pre_to_edge.insert(pre, e);
                     pre_to_component.insert(pre, c.clone());
                 }
             }
@@ -898,10 +926,10 @@ where
                 let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
                 let anno = Annotation {
-                    key: AnnoKey { ns: ns, name: name },
-                    val: val,
+                    key: AnnoKey { ns, name },
+                    val,
                 };
-                let gs: &mut WriteableGraphStorage = db.get_or_create_writable(c.clone())?;
+                let gs: &mut WriteableGraphStorage = db.get_or_create_writable(&c)?;
                 gs.add_edge_annotation(e.clone(), anno);
             }
         }
@@ -944,8 +972,8 @@ where
         let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
         let anno = Annotation {
-            key: AnnoKey { ns, name: name },
-            val: val,
+            key: AnnoKey { ns, name },
+            val,
         };
 
         corpus_id_to_anno.insert(id, anno);
@@ -956,9 +984,7 @@ where
 
 fn add_subcorpora(
     db: &mut Graph,
-    toplevel_corpus_name: &str,
-    corpus_by_preorder: &BTreeMap<u32, u32>,
-    corpus_id_to_name: &BTreeMap<u32, String>,
+    corpus_table: &ParsedCorpusTable,
     nodes_by_text: &MultiMap<TextKey, NodeID>,
     texts: &HashMap<TextKey, Text>,
     corpus_id_to_annos: &MultiMap<u32, Annotation>,
@@ -980,7 +1006,7 @@ fn add_subcorpora(
     {
         let top_anno = Annotation {
             key: db.get_node_name_key(),
-            val: toplevel_corpus_name.to_owned(),
+            val: corpus_table.toplevel_corpus_name.to_owned(),
         };
         Arc::make_mut(&mut db.node_annos).insert(next_node_id, top_anno);
         let anno_type = Annotation {
@@ -989,7 +1015,7 @@ fn add_subcorpora(
         };
         Arc::make_mut(&mut db.node_annos).insert(next_node_id, anno_type);
         // add all metadata for the top-level corpus node
-        if let Some(cid) = corpus_by_preorder.get(&0) {
+        if let Some(cid) = corpus_table.corpus_by_preorder.get(&0) {
             if let Some(anno_vec) = corpus_id_to_annos.get_vec(cid) {
                 for anno in anno_vec {
                     Arc::make_mut(&mut db.node_annos).insert(next_node_id, anno.clone());
@@ -1003,24 +1029,24 @@ fn add_subcorpora(
     let mut corpus_id_2_nid: HashMap<u32, NodeID> = HashMap::default();
 
     // add all subcorpora/documents (start with the largest pre-order)
-    for (pre, corpus_id) in corpus_by_preorder.iter().rev() {
+    for (pre, corpus_id) in corpus_table.corpus_by_preorder.iter().rev() {
         let corpus_node_id = next_node_id;
         next_node_id += 1;
 
-        corpus_id_2_nid.insert(corpus_id.clone(), corpus_node_id.clone());
+        corpus_id_2_nid.insert(*corpus_id, corpus_node_id);
 
-        if pre.clone() != 0 {
-            let corpus_name = corpus_id_to_name
+        if *pre != 0 {
+            let corpus_name = corpus_table.corpus_id_to_name
                 .get(corpus_id)
-                .ok_or(format!("Can't get name for corpus with ID {}", corpus_id))?;
-            let full_name = format!("{}/{}", toplevel_corpus_name, corpus_name);
+                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?;
+            let full_name = format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
 
             // add a basic node labels for the new (sub-) corpus/document
             let anno_name = Annotation {
                 key: db.get_node_name_key(),
                 val: full_name,
             };
-            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_name);
+            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id, anno_name);
 
             let anno_doc = Annotation {
                 key: AnnoKey {
@@ -1029,23 +1055,23 @@ fn add_subcorpora(
                 },
                 val: corpus_name.to_owned(),
             };
-            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_doc);
+            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id, anno_doc);
 
             let anno_type = Annotation {
                 key: db.get_node_type_key(),
                 val: "corpus".to_owned(),
             };
-            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno_type);
+            Arc::make_mut(&mut db.node_annos).insert(corpus_node_id, anno_type);
 
             // add all metadata for the document node
             if let Some(anno_vec) = corpus_id_to_annos.get_vec(&corpus_id) {
                 for anno in anno_vec {
-                    Arc::make_mut(&mut db.node_annos).insert(corpus_node_id.clone(), anno.clone());
+                    Arc::make_mut(&mut db.node_annos).insert(corpus_node_id, anno.clone());
                 }
             }
             // add an edge from the document (or sub-corpus) to the top-level corpus
             {
-                let gs = db.get_or_create_writable(component_subcorpus.clone())?;
+                let gs = db.get_or_create_writable(&component_subcorpus)?;
                 gs.add_edge(Edge {
                     source: corpus_node_id,
                     target: toplevel_node_id,
@@ -1064,7 +1090,7 @@ fn add_subcorpora(
             key: db.get_node_type_key(),
             val: "datasource".to_owned(),
         };
-        Arc::make_mut(&mut db.node_annos).insert(text_node_id.clone(), anno_type);
+        Arc::make_mut(&mut db.node_annos).insert(text_node_id, anno_type);
         let text_name: Option<String> = if is_annis_33 {
             // corpus_ref is included in the text.annis
             texts.get(text_key).map(|k| k.name.clone())
@@ -1077,37 +1103,37 @@ fn add_subcorpora(
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let corpus_name = corpus_id_to_name
+            let corpus_name = corpus_table.corpus_id_to_name
                 .get(&corpus_ref)
-                .ok_or(format!("Can't get name for corpus with ID {}", corpus_ref))?;
-            let full_name = format!("{}/{}#{}", toplevel_corpus_name, corpus_name, text_name);
+                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?;
+            let full_name = format!("{}/{}#{}", corpus_table.toplevel_corpus_name, corpus_name, text_name);
             let anno_name = Annotation {
                 key: db.get_node_name_key(),
                 val: full_name,
             };
-            Arc::make_mut(&mut db.node_annos).insert(text_node_id.clone(), anno_name);
+            Arc::make_mut(&mut db.node_annos).insert(text_node_id, anno_name);
         }
 
         // add an edge from the text to the document
         if let Some(corpus_ref) = text_key.corpus_ref {
-            let gs = db.get_or_create_writable(component_subcorpus.clone())?;
+            let gs = db.get_or_create_writable(&component_subcorpus)?;
 
             if let Some(corpus_node_id) = corpus_id_2_nid.get(&corpus_ref) {
                 gs.add_edge(Edge {
                     source: text_node_id,
-                    target: corpus_node_id.clone(),
+                    target: *corpus_node_id,
                 });
             }
         }
 
         // find all nodes belonging to this text and add a relation
         if let Some(n_vec) = nodes_by_text.get_vec(text_key) {
-            let gs = db.get_or_create_writable(component_subcorpus.clone())?;
+            let gs = db.get_or_create_writable(&component_subcorpus)?;
 
             for n in n_vec {
                 gs.add_edge(Edge {
-                    source: n.clone(),
-                    target: text_node_id.clone(),
+                    source: *n,
+                    target: text_node_id,
                 });
             }
         }

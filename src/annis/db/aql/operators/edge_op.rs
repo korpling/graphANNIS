@@ -31,7 +31,7 @@ struct BaseEdgeOp {
 impl BaseEdgeOp {
     pub fn new(db: &Graph, spec: BaseEdgeOpSpec) -> Option<BaseEdgeOp> {
         let mut gs: Vec<Arc<GraphStorage>> = Vec::new();
-        for c in spec.components.iter() {
+        for c in &spec.components {
             gs.push(db.get_graphstorage(c)?);
         }
         Some(BaseEdgeOp {
@@ -66,17 +66,17 @@ impl OperatorSpec for BaseEdgeOpSpec {
 fn check_edge_annotation(
     edge_anno: &Option<EdgeAnnoSearchSpec>,
     gs: &GraphStorage,
-    source: &NodeID,
-    target: &NodeID,
+    source: NodeID,
+    target: NodeID,
 ) -> bool {
     match edge_anno {
         Some(EdgeAnnoSearchSpec::ExactValue { ns, name, val }) => {
             for a in gs
                 .get_anno_storage()
                 .get_annotations_for_item(&Edge {
-                    source: source.clone(),
-                    target: target.clone(),
-                }).into_iter()
+                    source,
+                    target,
+                })
             {
                 if name != &a.key.name {
                     continue;
@@ -94,7 +94,7 @@ fn check_edge_annotation(
                 // all checks passed, this edge has the correct annotation
                 return true;
             }
-            return false;
+            false
         }
         Some(EdgeAnnoSearchSpec::RegexValue { ns, name, val }) => {
             let full_match_pattern = util::regex_full_match(&val);
@@ -103,9 +103,9 @@ fn check_edge_annotation(
                 for a in gs
                     .get_anno_storage()
                     .get_annotations_for_item(&Edge {
-                        source: source.clone(),
-                        target: target.clone(),
-                    }).into_iter()
+                        source,
+                        target,
+                    })
                 {
                     if name != &a.key.name {
                         continue;
@@ -124,12 +124,10 @@ fn check_edge_annotation(
                     return true;
                 }
             }
-            return false;
+            false
         }
-        None => {
-            return true;
-        }
-    };
+        None => true,
+    }
 }
 
 impl BaseEdgeOp {}
@@ -166,14 +164,14 @@ impl Operator for BaseEdgeOp {
             // no duplicates are possible
             let result: VecDeque<Match> = if self.inverse {
                 self.gs[0]
-                    .find_connected_inverse(&lhs.node, spec.min_dist, spec.max_dist)
+                    .find_connected_inverse(lhs.node, spec.min_dist, spec.max_dist)
                     .fuse()
                     .filter(move |candidate| {
                         check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
-                            candidate,
-                            &lhs.clone().node,
+                            *candidate,
+                            lhs.clone().node,
                         )
                     }).map(|n| Match {
                         node: n,
@@ -181,21 +179,21 @@ impl Operator for BaseEdgeOp {
                     }).collect()
             } else {
                 self.gs[0]
-                    .find_connected(&lhs.node, spec.min_dist, spec.max_dist)
+                    .find_connected(lhs.node, spec.min_dist, spec.max_dist)
                     .fuse()
                     .filter(move |candidate| {
                         check_edge_annotation(
                             &self.spec.edge_anno,
                             self.gs[0].as_ref(),
-                            &lhs.clone().node,
-                            candidate,
+                            lhs.clone().node,
+                            *candidate,
                         )
                     }).map(|n| Match {
                         node: n,
                         anno_key: AnnoKeyID::default(),
                     }).collect()
             };
-            return Box::new(result.into_iter());
+            Box::new(result.into_iter())
         } else {
             let mut all: Vec<Match> = if self.inverse {
                 self.gs
@@ -204,14 +202,14 @@ impl Operator for BaseEdgeOp {
                         let lhs = lhs.clone();
 
                         e.as_ref()
-                            .find_connected_inverse(&lhs.node, spec.min_dist, spec.max_dist)
+                            .find_connected_inverse(lhs.node, spec.min_dist, spec.max_dist)
                             .fuse()
                             .filter(move |candidate| {
                                 check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
-                                    candidate,
-                                    &lhs.clone().node,
+                                    *candidate,
+                                    lhs.clone().node,
                                 )
                             }).map(|n| Match {
                                 node: n,
@@ -225,14 +223,14 @@ impl Operator for BaseEdgeOp {
                         let lhs = lhs.clone();
 
                         e.as_ref()
-                            .find_connected(&lhs.node, spec.min_dist, spec.max_dist)
+                            .find_connected(lhs.node, spec.min_dist, spec.max_dist)
                             .fuse()
                             .filter(move |candidate| {
                                 check_edge_annotation(
                                     &self.spec.edge_anno,
                                     e.as_ref(),
-                                    &lhs.clone().node,
-                                    candidate,
+                                    lhs.clone().node,
+                                    *candidate,
                                 )
                             }).map(|n| Match {
                                 node: n,
@@ -242,29 +240,25 @@ impl Operator for BaseEdgeOp {
             };
             all.sort_unstable();
             all.dedup();
-            return Box::new(all.into_iter());
+            Box::new(all.into_iter())
         }
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        for e in self.gs.iter() {
+        for e in &self.gs {
             if self.inverse {
-                if e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist) {
-                    if check_edge_annotation(&self.spec.edge_anno, e.as_ref(), &rhs.node, &lhs.node)
-                    {
-                        return true;
-                    }
+                if e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist)
+                    && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
+                {
+                    return true;
                 }
-            } else {
-                if e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist) {
-                    if check_edge_annotation(&self.spec.edge_anno, e.as_ref(), &lhs.node, &rhs.node)
-                    {
-                        return true;
-                    }
-                }
+            } else if e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist)
+                && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), lhs.node, rhs.node)
+            {
+                return true;
             }
         }
-        return false;
+        false
     }
 
     fn is_reflexive(&self) -> bool {
@@ -274,7 +268,7 @@ impl Operator for BaseEdgeOp {
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
-        for g in self.gs.iter() {
+        for g in &self.gs {
             if !g.inverse_has_same_cost() {
                 return None;
             }
@@ -304,7 +298,7 @@ impl Operator for BaseEdgeOp {
 
         let mut worst_sel: f64 = 0.0;
 
-        for g in self.gs.iter() {
+        for g in &self.gs {
             let g: &Arc<GraphStorage> = g;
 
             let mut gs_selectivity = 0.01;
@@ -335,8 +329,8 @@ impl Operator for BaseEdgeOp {
                 } else {
                     // We can't use the formula for complete k-ary trees because we can't divide by zero and don't want negative
                     // numbers. Use the simplified estimation with multiplication instead.
-                    let reachable_max: f64 = (stats.avg_fan_out * (max_path_length as f64)).ceil();
-                    let reachable_min: f64 = (stats.avg_fan_out * (min_path_length as f64)).ceil();
+                    let reachable_max: f64 = (stats.avg_fan_out * f64::from(max_path_length)).ceil();
+                    let reachable_min: f64 = (stats.avg_fan_out * f64::from(min_path_length)).ceil();
 
                     gs_selectivity = (reachable_max - reachable_min) / max_nodes;
                 }
@@ -347,13 +341,13 @@ impl Operator for BaseEdgeOp {
             }
         } // end for
 
-        return EstimationType::SELECTIVITY(worst_sel);
+        EstimationType::SELECTIVITY(worst_sel)
     }
 
     fn edge_anno_selectivity(&self) -> Option<f64> {
         if let Some(ref edge_anno) = self.spec.edge_anno {
             let mut worst_sel = 0.0;
-            for g in self.gs.iter() {
+            for g in &self.gs {
                 let g: &Arc<GraphStorage> = g;
                 let anno_storage = g.get_anno_storage();
                 let num_of_annos = anno_storage.number_of_annotations();
@@ -369,7 +363,7 @@ impl Operator for BaseEdgeOp {
                                 anno_storage.number_of_annotations_by_name(ns.clone(), name.clone())
                             }
                         }
-                        EdgeAnnoSearchSpec::RegexValue { val, ns, name} => {
+                        EdgeAnnoSearchSpec::RegexValue { val, ns, name } => {
                             anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
                         }
                     };
@@ -431,7 +425,7 @@ impl OperatorSpec for PointingSpec {
         db.get_all_components(Some(ComponentType::Pointing), Some(&self.name))
     }
 
-    fn create_operator<'b>(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")

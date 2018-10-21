@@ -165,7 +165,7 @@ impl MallocSizeOf for Graph {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size = self.node_annos.size_of(ops);
 
-        for (c, _) in self.components.iter() {
+        for c in self.components.keys() {
             // TODO: overhead by map is not measured
             size += c.size_of(ops);
             let gs_size = if let Some(gs) = self.get_graphstorage_as_ref(c) {
@@ -177,7 +177,7 @@ impl MallocSizeOf for Graph {
             size += gs_size;
         }
 
-        return size;
+        size
     }
 }
 
@@ -196,7 +196,7 @@ fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<Graph
 
     let gs = registry::deserialize(&impl_name, &mut buf_reader)?;
 
-    return Ok(gs);
+    Ok(gs)
 }
 
 fn component_to_relative_path(c: &Component) -> PathBuf {
@@ -209,7 +209,7 @@ fn component_to_relative_path(c: &Component) -> PathBuf {
         &c.layer
     });
     p.push(&c.name);
-    return p;
+    p
 }
 
 fn save_bincode<T>(location: &Path, path: &str, object: &T) -> Result<()>
@@ -222,7 +222,7 @@ where
     let f = std::fs::File::create(full_path)?;
     let mut writer = std::io::BufWriter::new(f);
     bincode::serialize_into(&mut writer, object)?;
-    return Ok(());
+    Ok(())
 }
 
 impl AnnotationStorage<NodeID> for Graph {
@@ -434,7 +434,7 @@ impl Graph {
 
         save_bincode(&location, "nodes_v1.bin", self.node_annos.as_ref())?;
 
-        for (c, e) in self.components.iter() {
+        for (c, e) in &self.components {
             if let Some(ref data) = *e {
                 let dir = PathBuf::from(&location).join(component_to_relative_path(c));
                 std::fs::create_dir_all(&dir)?;
@@ -442,7 +442,7 @@ impl Graph {
                 let data_path = PathBuf::from(&dir).join("component.bin");
                 let f_data = std::fs::File::create(&data_path)?;
                 let mut writer = std::io::BufWriter::new(f_data);
-                let impl_name = registry::serialize(data.clone(), &mut writer)?;
+                let impl_name = registry::serialize(&data, &mut writer)?;
 
                 let cfg_path = PathBuf::from(&dir).join("impl.cfg");
                 let mut f_cfg = std::fs::File::create(cfg_path)?;
@@ -456,13 +456,13 @@ impl Graph {
     fn save_to(&mut self, location: &Path) -> Result<()> {
         // make sure all components are loaded, otherwise saving them does not make any sense
         self.ensure_loaded_all()?;
-        return self.internal_save(&location.join("current"));
+        self.internal_save(&location.join("current"))
     }
 
     /// Save the current database at a new `location` and remember it as new internal location.
     fn persist_to(&mut self, location: &Path) -> Result<()> {
         self.set_location(location)?;
-        return self.internal_save(&location.join("current"));
+        self.internal_save(&location.join("current"))
     }
 
     fn apply_update_in_memory(&mut self, u: &GraphUpdate) -> Result<()> {
@@ -563,7 +563,7 @@ impl Graph {
                                 layer,
                                 name: component_name,
                             };
-                            let gs = self.get_or_create_writable(c)?;
+                            let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target });
                         }
                     }
@@ -585,7 +585,7 @@ impl Graph {
                                 layer,
                                 name: component_name,
                             };
-                            let gs = self.get_or_create_writable(c)?;
+                            let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
                         }
                     }
@@ -610,7 +610,7 @@ impl Graph {
                                 layer,
                                 name: component_name,
                             };
-                            let gs = self.get_or_create_writable(c)?;
+                            let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(&source, &target, 1, 1) {
@@ -645,7 +645,7 @@ impl Graph {
                                 layer,
                                 name: component_name,
                             };
-                            let gs = self.get_or_create_writable(c)?;
+                            let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
                             if gs.is_connected(&source, &target, 1, 1) {
@@ -666,7 +666,7 @@ impl Graph {
 
     /// Apply a sequence of updates (`u` parameter) to this graph.
     /// If the graph has a location on the disk, the changes are persisted.
-    fn apply_update(&mut self, mut u: &mut GraphUpdate) -> Result<()> {
+    fn apply_update(&mut self, u: &mut GraphUpdate) -> Result<()> {
         trace!("applying updates");
         // Always mark the update state as consistent, even if caller forgot this.
         if !u.is_consistent() {
@@ -683,7 +683,7 @@ impl Graph {
         if let Some(location) = self.location.clone() {
             trace!("output location for persisting updates is {:?}", location);
             if result.is_ok() {
-                let current_path = PathBuf::from(location).join("current");
+                let current_path = location.join("current");
                 // make sure the output path exits
                 std::fs::create_dir_all(&current_path)?;
 
@@ -693,7 +693,7 @@ impl Graph {
                 trace!("writing WAL update log to {:?}", &log_path);
                 let f_log = std::fs::File::create(log_path)?;
                 let mut buf_writer = std::io::BufWriter::new(f_log);
-                bincode::serialize_into(&mut buf_writer, &mut u)?;
+                bincode::serialize_into(&mut buf_writer, &u)?;
 
                 trace!("finished writing WAL update log");
             } else {
@@ -785,7 +785,7 @@ impl Graph {
             // (re-)insert the component into map again
             self.components.insert(c.clone(), Some(loaded_comp));
         }
-        return Ok(());
+        Ok(())
     }
 
     fn calculate_component_statistics(&mut self, c: &Component) -> Result<()> {
@@ -795,7 +795,7 @@ impl Graph {
         let mut entry = self
             .components
             .remove(c)
-            .ok_or(format!("Component {} is missing", c.clone()))?;
+            .ok_or_else(|| format!("Component {} is missing", c.clone()))?;
         if let Some(ref mut gs) = entry {
             if let Some(gs_mut) = Arc::get_mut(gs) {
                 // Since immutable graph storages can't change, only writable graph storage statistics need to be re-calculated
@@ -808,16 +808,16 @@ impl Graph {
         }
         // re-insert component entry
         self.components.insert(c.clone(), entry);
-        return result;
+        result
     }
 
-    fn get_or_create_writable(&mut self, c: Component) -> Result<&mut WriteableGraphStorage> {
+    fn get_or_create_writable(&mut self, c: &Component) -> Result<&mut WriteableGraphStorage> {
 
         self.reset_cached_size();
 
-        if self.components.contains_key(&c) {
+        if self.components.contains_key(c) {
             // make sure the component is actually writable and loaded
-            self.insert_or_copy_writeable(&c)?;
+            self.insert_or_copy_writeable(c)?;
         } else {
             let w = registry::create_writeable();
 
@@ -827,13 +827,13 @@ impl Graph {
         // get and return the reference to the entry
         let entry: &mut Arc<GraphStorage> = self
             .components
-            .get_mut(&c)
+            .get_mut(c)
             .ok_or("Could not get mutable reference")?
             .as_mut()
             .ok_or("Could not get mutable reference to optional value")?;
         let gs_mut_ref: &mut GraphStorage =
             Arc::get_mut(entry).ok_or("Could not get mutable reference")?;
-        return Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?);
+        Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?)
     }
 
     fn is_loaded(&self, c: &Component) -> bool {
@@ -843,14 +843,14 @@ impl Graph {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn ensure_loaded_all(&mut self) -> Result<()> {
         let mut components_to_load: Vec<Component> = Vec::with_capacity(self.components.len());
 
         // colllect all missing components
-        for (c, gs) in self.components.iter() {
+        for (c, gs) in &self.components {
             if gs.is_none() {
                 components_to_load.push(c.clone());
             }
@@ -869,7 +869,7 @@ impl Graph {
             }).collect();
 
         // insert all the loaded components
-        for (c, gs) in loaded_components.into_iter() {
+        for (c, gs) in loaded_components {
             let gs = gs?;
             self.components.insert(c, Some(gs));
         }
@@ -890,7 +890,7 @@ impl Graph {
 
             self.components.insert(c.clone(), Some(loaded));
         }
-        return Ok(());
+        Ok(())
     }
 
     fn optimize_impl(&mut self, c: &Component) {
@@ -930,7 +930,7 @@ impl Graph {
         if let Some(m) = all_nodes_with_anno.next() {
             return Some(m.node);
         }
-        return None;
+        None
     }
 
     /// Get a read-only graph storage reference for the given component `c`.
@@ -942,7 +942,7 @@ impl Graph {
                 return Some(impl_type.clone());
             }
         }
-        return None;
+        None
     }
 
     fn get_graphstorage_as_ref<'a>(&'a self, c: &Component) -> Option<&'a GraphStorage> {
@@ -953,7 +953,7 @@ impl Graph {
                 return Some(impl_type.as_ref());
             }
         }
-        return None;
+        None
     }
 
     /// Returns all components of the graph given an optional type (`ctype`) and `name`.
@@ -997,7 +997,7 @@ impl Graph {
                                 return false;
                             }
                         }
-                        return true;
+                        true
                     });
             return filtered_components.collect();
         }
@@ -1033,7 +1033,7 @@ impl Graph {
         }
         let calculated_size = self.size_of(ops);
         *cached_size = Some(calculated_size);
-        return calculated_size;
+        calculated_size
     }
 
     fn reset_cached_size(&self) {
@@ -1059,7 +1059,7 @@ mod tests {
         let anno_val = "testValue".to_owned();
 
         let gs: &mut WriteableGraphStorage = db
-            .get_or_create_writable(Component {
+            .get_or_create_writable(&Component {
                 ctype: ComponentType::Pointing,
                 layer: String::from("test"),
                 name: String::from("dep"),

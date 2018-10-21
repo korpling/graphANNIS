@@ -38,17 +38,17 @@ impl<'a> NestedLoop<'a> {
         let processed_func = |_, out_lhs: usize, out_rhs: usize| {
             if out_lhs <= out_rhs {
                 // we use LHS as outer
-                return out_lhs + (out_lhs * out_rhs);
+                out_lhs + (out_lhs * out_rhs)
             } else {
                 // we use RHS as outer
-                return out_rhs + (out_rhs * out_lhs);
+                out_rhs + (out_rhs * out_lhs)
             }
         };
 
-        let it = if left_is_outer {
+        if left_is_outer {
             NestedLoop {
                 desc: Desc::join(
-                    &op,
+                    op.as_ref(),
                     lhs.get_desc(),
                     rhs.get_desc(),
                     "nestedloop L-R",
@@ -58,7 +58,7 @@ impl<'a> NestedLoop<'a> {
 
                 outer: lhs.peekable(),
                 inner: rhs,
-                op: op,
+                op,
                 outer_idx: lhs_idx,
                 inner_idx: rhs_idx,
                 inner_cache: Vec::new(),
@@ -68,7 +68,7 @@ impl<'a> NestedLoop<'a> {
         } else {
             NestedLoop {
                 desc: Desc::join(
-                    &op,
+                    op.as_ref(),
                     rhs.get_desc(),
                     lhs.get_desc(),
                     "nestedloop R-L",
@@ -78,16 +78,14 @@ impl<'a> NestedLoop<'a> {
 
                 outer: rhs.peekable(),
                 inner: lhs,
-                op: op,
+                op,
                 outer_idx: rhs_idx,
                 inner_idx: lhs_idx,
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
             }
-        };
-
-        return it;
+        }
     }
 }
 
@@ -121,17 +119,16 @@ impl<'a> Iterator for NestedLoop<'a> {
                             self.op
                                 .filter_match(&m_inner[self.inner_idx], &m_outer[self.outer_idx])
                         };
-                        if filter_true {
-                            // filter by reflexivity if necessary
-                            if self.op.is_reflexive()
+                        // filter by reflexivity if necessary
+                        if filter_true
+                            && (self.op.is_reflexive()
                                 || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
                                 || m_outer[self.outer_idx].anno_key
-                                    != m_inner[self.inner_idx].anno_key
-                            {
-                                let mut result = m_outer.clone();
-                                result.append(&mut m_inner.clone());
-                                return Some(result);
-                            }
+                                    != m_inner[self.inner_idx].anno_key)
+                        {
+                            let mut result = m_outer.clone();
+                            result.append(&mut m_inner.clone());
+                            return Some(result);
                         }
                     }
                 } else {
@@ -145,17 +142,16 @@ impl<'a> Iterator for NestedLoop<'a> {
                             self.op
                                 .filter_match(&m_inner[self.inner_idx], &m_outer[self.outer_idx])
                         };
-                        if filter_true {
-                            // filter by reflexivity if necessary
-                            if self.op.is_reflexive()
+                        // filter by reflexivity if necessary
+                        if filter_true
+                            && (self.op.is_reflexive()
                                 || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
                                 || m_outer[self.outer_idx].anno_key
-                                    != m_inner[self.inner_idx].anno_key
-                            {
-                                let mut result = m_outer.clone();
-                                result.append(&mut m_inner.clone());
-                                return Some(result);
-                            }
+                                    != m_inner[self.inner_idx].anno_key)
+                        {
+                            let mut result = m_outer.clone();
+                            result.append(&mut m_inner.clone());
+                            return Some(result);
                         }
                     }
                 }
@@ -164,9 +160,7 @@ impl<'a> Iterator for NestedLoop<'a> {
             }
 
             // consume next outer
-            if self.outer.next().is_none() {
-                return None;
-            }
+            self.outer.next()?;
         }
     }
 }

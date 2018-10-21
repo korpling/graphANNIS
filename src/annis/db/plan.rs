@@ -20,19 +20,18 @@ impl<'a> ExecutionPlan<'a> {
     pub fn from_disjunction(
         query: &'a Disjunction<'a>,
         db: &'a Graph,
-        config: Config,
+        config: &Config,
     ) -> Result<ExecutionPlan<'a>> {
         let mut plans: Vec<Box<ExecutionNode<Item = Vec<Match>> + 'a>> = Vec::new();
         let mut descriptions: Vec<Option<Desc>> = Vec::new();
-        for alt in query.alternatives.iter() {
+        for alt in &query.alternatives {
             let p = alt.make_exec_node(db, &config);
             if let Ok(p) = p {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);
             } else if let Err(e) = p {
-                match e.kind() {
-                    ErrorKind::AQLSemanticError(_, _) => return Err(e),
-                    _ => {}
+                if let ErrorKind::AQLSemanticError(_, _) = e.kind() {
+                    return Err(e);
                 }
             }
         }
@@ -43,13 +42,13 @@ impl<'a> ExecutionPlan<'a> {
             plans.push(Box::new(no_results_exec));
             descriptions.push(None);
         }
-        return Ok(ExecutionPlan {
+        Ok(ExecutionPlan {
             current_plan: 0,
             descriptions,
             proxy_mode: plans.len() == 1,
             plans,
             unique_result_set: HashSet::new(),
-        });
+        })
     }
 }
 
@@ -57,9 +56,9 @@ impl<'a> std::fmt::Display for ExecutionPlan<'a> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         for (i, d) in self.descriptions.iter().enumerate() {
             if i > 0 {
-                write!(f, "---[OR]---\n")?;
+                writeln!(f, "---[OR]---")?;
             }
-            if let &Some(ref d) = d {
+            if let Some(ref d) = d {
                 write!(f, "{}", d.debug_string(""))?;
             } else {
                 write!(f, "<no description>")?;
@@ -84,7 +83,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                     // check if we already outputted this result
                     let key: Vec<(NodeID, AnnoKeyID)> = res
                         .iter()
-                        .map(|m: &Match| (m.node, m.anno_key.clone()))
+                        .map(|m: &Match| (m.node, m.anno_key))
                         .collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
@@ -106,7 +105,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                 result.reserve(tmp.len());
                 for i in 0..tmp.len() {
                     if let Some(mapped_pos) = desc.node_pos.get(&i) {
-                        result.push(tmp[mapped_pos.clone()].clone());
+                        result.push(tmp[*mapped_pos].clone());
                     } else {
                         result.push(tmp[i].clone());
                     }

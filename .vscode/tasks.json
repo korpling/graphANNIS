@@ -47,6 +47,16 @@
             "problemMatcher": "$rustc"
         },
         {
+            "label": "cargo clippy",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "clippy" 
+            ],
+            "group": "build",
+            "problemMatcher": "$rustc"
+        },
+        {
             "label": "cargo run",
             "type": "shell",
             "command": "cargo",

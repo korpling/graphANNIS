@@ -62,8 +62,8 @@ impl<PosT: 'static> EdgeContainer for LinearGraphStorage<PosT>
 where
     PosT: NumValue,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(pos) = self.node_to_pos.get(node) {
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        if let Some(pos) = self.node_to_pos.get(&node) {
             // find the next node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 let next_pos = pos.pos.clone() + PosT::one();
@@ -74,11 +74,11 @@ where
                 }
             }
         }
-        return Box::from(std::iter::empty());
+        Box::from(std::iter::empty())
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(pos) = self.node_to_pos.get(node) {
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        if let Some(pos) = self.node_to_pos.get(&node) {
             // find the previous node in the chain
             if let Some(chain) = self.node_chains.get(&pos.root) {
                 if let Some(pos) = pos.pos.to_usize() {
@@ -88,7 +88,7 @@ where
                 }
             }
         }
-        return Box::from(std::iter::empty());
+        Box::from(std::iter::empty())
     }
 
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
@@ -104,7 +104,7 @@ where
             .flat_map(|(_root, chain)| chain.iter().rev().skip(1))
             .cloned();
 
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
@@ -127,11 +127,11 @@ where
 
     fn find_connected<'a>(
         &'a self,
-        source: &NodeID,
+        source: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_pos) = self.node_to_pos.get(source) {
+        if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
                     let max_distance = offset + max_distance;
@@ -146,16 +146,16 @@ where
                 }
             }
         }
-        return Box::new(std::iter::empty());
+        Box::new(std::iter::empty())
     }
 
     fn find_connected_inverse<'a>(
         &'a self,
-        source: &NodeID,
+        source: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_pos) = self.node_to_pos.get(source) {
+        if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
                     let max_distance = offset.checked_sub(max_distance).unwrap_or(0);
@@ -174,7 +174,7 @@ where
                 }
             }
         }
-        return Box::new(std::iter::empty());
+        Box::new(std::iter::empty())
     }
 
     fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
@@ -192,7 +192,7 @@ where
                 }
             }
         }
-        return None;
+        None
     }
 
     fn is_connected(
@@ -215,7 +215,7 @@ where
             }
         }
 
-        return false;
+        false
     }
 
     fn copy(&mut self, db: &Graph, orig: &EdgeContainer) {
@@ -235,7 +235,7 @@ where
             let m: Match = m;
             let n = m.node;
             // insert all nodes to the root candidate list which are part of this component
-            if orig.get_outgoing_edges(&n).next().is_some() {
+            if orig.get_outgoing_edges(n).next().is_some() {
                 roots.insert(n);
             }
         }
@@ -248,7 +248,7 @@ where
 
             let source = m.node;
 
-            let out_edges = orig.get_outgoing_edges(&source);
+            let out_edges = orig.get_outgoing_edges(source);
             for target in out_edges {
                 // remove the nodes that have an incoming edge from the root list
                 roots.remove(&target);
@@ -256,36 +256,36 @@ where
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
                 let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
-                for a in edge_annos.into_iter() {
+                for a in edge_annos {
                     self.annos.insert(e.clone(), a);
                 }
             }
         }
 
-        for root_node in roots.iter() {
+        for root_node in &roots {
             // iterate over all edges beginning from the root
-            let mut chain: Vec<NodeID> = vec![root_node.clone()];
+            let mut chain: Vec<NodeID> = vec![*root_node];
             let pos: RelativePosition<PosT> = RelativePosition {
-                root: root_node.clone(),
+                root: *root_node,
                 pos: PosT::zero(),
             };
-            self.node_to_pos.insert(root_node.clone(), pos);
+            self.node_to_pos.insert(*root_node, pos);
 
-            let dfs = CycleSafeDFS::new(orig, &root_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig, *root_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
 
                 if let Some(pos) = PosT::from_usize(chain.len()) {
                     let pos: RelativePosition<PosT> = RelativePosition {
-                        root: root_node.clone(),
-                        pos: pos,
+                        root: *root_node,
+                        pos,
                     };
-                    self.node_to_pos.insert(step.node.clone(), pos);
+                    self.node_to_pos.insert(step.node, pos);
                 }
                 chain.push(step.node);
             }
             chain.shrink_to_fit();
-            self.node_chains.insert(root_node.clone(), chain);
+            self.node_chains.insert(*root_node, chain);
         }
 
         self.node_chains.shrink_to_fit();

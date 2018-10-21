@@ -47,7 +47,7 @@ impl OperatorSpec for PrecedenceSpec {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
-            name: self.segmentation.clone().unwrap_or(String::from("")),
+            name: self.segmentation.clone().unwrap_or_else(|| String::from("")),
         };
 
         let mut v: Vec<Component> = vec![
@@ -86,7 +86,7 @@ impl Precedence {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
-            name: spec.segmentation.clone().unwrap_or(String::from("")),
+            name: spec.segmentation.clone().unwrap_or_else(|| String::from("")),
         };
 
         let gs_order = db.get_graphstorage(&component_order)?;
@@ -116,7 +116,7 @@ impl Operator for Precedence {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
-            self.tok_helper.right_token_for(&lhs.node)
+            self.tok_helper.right_token_for(lhs.node)
         };
 
         if start.is_none() {
@@ -128,37 +128,37 @@ impl Operator for Precedence {
         // materialize a list of all matches
         let result: VecDeque<Match> = self.gs_order
             // get all token in the range
-            .find_connected(&start, self.spec.min_dist, self.spec.max_dist).fuse()
+            .find_connected(start, self.spec.min_dist, self.spec.max_dist).fuse()
             // find all left aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_left.get_outgoing_edges(&t);
+                let it_aligned = self.gs_left.get_outgoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
             .map(|n| Match {node: n, anno_key: AnnoKeyID::default()})
             .collect();
 
-        return Box::new(result.into_iter());
+        Box::new(result.into_iter())
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
-            let start = self.tok_helper.right_token_for(&lhs.node);
-            let end = self.tok_helper.left_token_for(&rhs.node);
+            let start = self.tok_helper.right_token_for(lhs.node);
+            let end = self.tok_helper.left_token_for(rhs.node);
             if start.is_none() || end.is_none() {
                 return false;
             }
             (start.unwrap(), end.unwrap())
         };
 
-        return self.gs_order.is_connected(
+        self.gs_order.is_connected(
             &start_end.0,
             &start_end.1,
             self.spec.min_dist,
             self.spec.max_dist,
-        );
+        )
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -171,7 +171,7 @@ impl Operator for Precedence {
             );
         }
 
-        return EstimationType::SELECTIVITY(0.1);
+        EstimationType::SELECTIVITY(0.1)
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
@@ -211,7 +211,7 @@ impl Operator for InversePrecedence {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
-            self.tok_helper.left_token_for(&lhs.node)
+            self.tok_helper.left_token_for(lhs.node)
         };
 
         if start.is_none() {
@@ -223,37 +223,37 @@ impl Operator for InversePrecedence {
         // materialize a list of all matches
         let result: VecDeque<Match> = self.gs_order
             // get all token in the range
-            .find_connected_inverse(&start, self.spec.min_dist, self.spec.max_dist).fuse()
+            .find_connected_inverse(start, self.spec.min_dist, self.spec.max_dist).fuse()
             // find all right aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_right.get_outgoing_edges(&t);
+                let it_aligned = self.gs_right.get_outgoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
             .map(|n| Match {node: n, anno_key: AnnoKeyID::default()})
             .collect();
 
-        return Box::new(result.into_iter());
+        Box::new(result.into_iter())
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         let start_end = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
-            let start = self.tok_helper.left_token_for(&lhs.node);
-            let end = self.tok_helper.right_token_for(&rhs.node);
+            let start = self.tok_helper.left_token_for(lhs.node);
+            let end = self.tok_helper.right_token_for(rhs.node);
             if start.is_none() || end.is_none() {
                 return false;
             }
             (start.unwrap(), end.unwrap())
         };
 
-        return self.gs_order.is_connected(
+        self.gs_order.is_connected(
             &start_end.1,
             &start_end.0,
             self.spec.min_dist,
             self.spec.max_dist,
-        );
+        )
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
@@ -277,6 +277,6 @@ impl Operator for InversePrecedence {
             );
         }
 
-        return EstimationType::SELECTIVITY(0.1);
+        EstimationType::SELECTIVITY(0.1)
     }
 }

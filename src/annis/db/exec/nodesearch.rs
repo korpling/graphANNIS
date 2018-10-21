@@ -53,9 +53,9 @@ impl NodeSearchSpec {
         is_meta: bool,
     ) -> NodeSearchSpec {
         NodeSearchSpec::ExactValue {
-            ns: ns.map(|v| String::from(v)),
+            ns: ns.map(String::from),
             name: String::from(name),
-            val: val.map(|v| String::from(v)),
+            val: val.map(String::from),
             is_meta,
         }
     }
@@ -64,7 +64,7 @@ impl NodeSearchSpec {
 impl fmt::Display for NodeSearchSpec {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &NodeSearchSpec::ExactValue {
+            NodeSearchSpec::ExactValue {
                 ref ns,
                 ref name,
                 ref val,
@@ -84,7 +84,7 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "{}", name)
             },
-            &NodeSearchSpec::RegexValue {
+            NodeSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
@@ -94,7 +94,7 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "{}=/{}/", name, &val)
             },
-            &NodeSearchSpec::ExactTokenValue {
+            NodeSearchSpec::ExactTokenValue {
                 ref val,
                 ref leafs_only,
             } => if *leafs_only {
@@ -102,7 +102,7 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "\"{}\"", val)
             },
-            &NodeSearchSpec::RegexTokenValue {
+            NodeSearchSpec::RegexTokenValue {
                 ref val,
                 ref leafs_only,
             } => if *leafs_only {
@@ -110,8 +110,8 @@ impl fmt::Display for NodeSearchSpec {
             } else {
                 write!(f, "/{}/", val)
             },
-            &NodeSearchSpec::AnyToken => write!(f, "tok"),
-            &NodeSearchSpec::AnyNode => write!(f, "node"),
+            NodeSearchSpec::AnyToken => write!(f, "tok"),
+            NodeSearchSpec::AnyNode => write!(f, "node"),
         }
     }
 }
@@ -131,16 +131,13 @@ impl<'a> NodeSearch<'a> {
                 name,
                 val,
                 is_meta,
-            } => NodeSearch::new_annosearch(
+            } => NodeSearch::new_annosearch_exact(
                 db,
-                ns,
-                name,
+                (ns, name),
                 val,
-                false,
                 is_meta,
                 &query_fragment,
                 node_nr,
-                location_in_query,
             ),
             NodeSearchSpec::RegexValue {
                 ns,
@@ -150,17 +147,26 @@ impl<'a> NodeSearch<'a> {
             } => {
                 // check if the regex can be replaced with an exact value search
                 let is_regex = util::contains_regex_metacharacters(&val);
-                NodeSearch::new_annosearch(
-                    db,
-                    ns,
-                    name,
-                    Some(val),
-                    is_regex,
-                    is_meta,
-                    &query_fragment,
-                    node_nr,
-                    location_in_query,
-                )
+                if is_regex {
+                    NodeSearch::new_annosearch_regex(
+                        db,
+                        (ns,name),
+                        &val,
+                        is_meta,
+                        &query_fragment,
+                        node_nr,
+                        location_in_query,
+                    )
+                } else {
+                    NodeSearch::new_annosearch_exact(
+                        db,
+                        (ns,name),
+                        Some(val),
+                        is_meta,
+                        &query_fragment,
+                        node_nr,
+                    )
+                }
             }
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
@@ -228,36 +234,23 @@ impl<'a> NodeSearch<'a> {
                     node_search_desc: Arc::new(NodeSearchDesc {
                         qname: (Some(type_key.ns), Some(type_key.name)),
                         cond: vec![filter_func],
-                        const_output: const_output,
+                        const_output,
                     }),
                 })
             }
         }
     }
 
-    fn new_annosearch(
+    fn new_annosearch_exact(
         db: &'a Graph,
-        ns: Option<String>,
-        name: String,
+        qname:(Option<String>, String),
         val: Option<String>,
-        match_regex: bool,
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
-        location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
-        let base_it = if match_regex {
-            // match_regex works only with values
-            db.node_annos.regex_anno_search(
-                ns.clone(),
-                name.clone(),
-                &val.clone()
-                    .ok_or("Regular expressions only work with values")?,
-            )
-        } else {
-            db.node_annos
-                .exact_anno_search(ns.clone(), name.clone(), val.clone())
-        };
+        let base_it = db.node_annos
+                .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone());
 
         let const_output = if is_meta {
             Some(
@@ -270,7 +263,7 @@ impl<'a> NodeSearch<'a> {
         };
 
         let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output {
-            let is_unique = db.node_annos.get_qnames(&name).len() <= 1;
+            let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
             // Replace the result annotation with a constant value.
             // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
             if is_unique {
@@ -291,21 +284,12 @@ impl<'a> NodeSearch<'a> {
             base_it
         };
 
-        let est_output = if match_regex {
-            db.node_annos.guess_max_count_regex(
-                ns.clone(),
-                name.clone(),
-                &val.clone()
-                    .ok_or("Regular expressions only work with values")?,
-            )
+        let est_output = if let Some(ref val) = val {
+            db.node_annos
+                .guess_max_count(qname.0.clone(), qname.1.clone(), &val, &val)
         } else {
-            if let Some(ref val) = val {
-                db.node_annos
-                    .guess_max_count(ns.clone(), name.clone(), &val, &val)
-            } else {
-                db.node_annos
-                    .number_of_annotations_by_name(ns.clone(), name.clone())
-            }
+            db.node_annos
+                .number_of_annotations_by_name(qname.0.clone(), qname.1.clone())
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -315,42 +299,18 @@ impl<'a> NodeSearch<'a> {
 
         let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
-        if match_regex {
-            // match_regex works only with values
-            let val = val
-                .ok_or("Regular expressions only work with values")?
-                .clone();
-            let full_match_pattern = util::regex_full_match(&val);
-            let re = regex::Regex::new(&full_match_pattern);
-            match re {
-                Ok(re) => {
-                    let node_annos = db.node_annos.clone();
-                    filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
-                        {
-                            return re.is_match(val.as_ref());
-                        } else {
-                            return false;
-                        }
-                    }));
-                }
-                Err(e) => bail!(ErrorKind::AQLSemanticError(
-                    format!("/{}/ -> {}", val, e),
-                    location_in_query
-                )),
-            }
-        } else if val.is_some() {
+        if val.is_some() {
             let val = val.unwrap();
             let node_annos = db.node_annos.clone();
             filters.push(Box::new(move |m| {
                 if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
-                    return anno_val == &val;
+                    return anno_val == val.as_str();
                 } else {
                     return false;
                 }
             }));
         };
-        return Ok(NodeSearch {
+        Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
                 &query_fragment,
@@ -358,11 +318,110 @@ impl<'a> NodeSearch<'a> {
                 Some(est_output),
             )),
             node_search_desc: Arc::new(NodeSearchDesc {
-                qname: (ns, Some(name)),
+                qname: (qname.0, Some(qname.1)),
                 cond: filters,
-                const_output: const_output,
+                const_output,
             }),
-        });
+        })
+    }
+
+    fn new_annosearch_regex(
+        db: &'a Graph,
+        qname:(Option<String>, String),
+        pattern: &str,
+        is_meta: bool,
+        query_fragment: &str,
+        node_nr: usize,
+        location_in_query: Option<LineColumnRange>,
+    ) -> Result<NodeSearch<'a>> {
+        let base_it = 
+            // match_regex works only with values
+            db.node_annos.regex_anno_search(
+                qname.0.clone(),
+                qname.1.clone(),
+                pattern,
+            );
+        
+
+        let const_output = if is_meta {
+            Some(
+                db.node_annos
+                    .get_key_id(&db.get_node_type_key())
+                    .ok_or("Node type annotation does not exist in database")?,
+            )
+        } else {
+            None
+        };
+
+        let base_it: Box<Iterator<Item = Match>> = if let Some(const_output) = const_output {
+            let is_unique = db.node_annos.get_qnames(&qname.1).len() <= 1;
+            // Replace the result annotation with a constant value.
+            // If a node matches two different annotations (because there is no namespace), this can result in duplicates which needs to be filtered out.
+            if is_unique {
+                Box::new(base_it.map(move |m| Match {
+                    node: m.node,
+                    anno_key: const_output,
+                }))
+            } else {
+                Box::new(
+                    base_it
+                        .map(move |m| Match {
+                            node: m.node,
+                            anno_key: const_output,
+                        }).unique(),
+                )
+            }
+        } else {
+            base_it
+        };
+
+        let est_output = 
+            db.node_annos.guess_max_count_regex(
+                qname.0.clone(),
+                qname.1.clone(),
+                pattern,
+            );
+
+        // always assume at least one output item otherwise very small selectivity can fool the planner
+        let est_output = std::cmp::max(1, est_output);
+
+        let it = base_it.map(|n| vec![n]);
+
+        let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+
+        let full_match_pattern = util::regex_full_match(&pattern);
+        let re = regex::Regex::new(&full_match_pattern);
+        match re {
+            Ok(re) => {
+                let node_annos = db.node_annos.clone();
+                filters.push(Box::new(move |m| {
+                    if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                    {
+                        return re.is_match(val);
+                    } else {
+                        return false;
+                    }
+                }));
+            }
+            Err(e) => bail!(ErrorKind::AQLSemanticError(
+                format!("/{}/ -> {}", pattern, e),
+                location_in_query
+            )),
+        }
+    
+        Ok(NodeSearch {
+            it: Box::new(it),
+            desc: Some(Desc::empty_with_fragment(
+                &query_fragment,
+                node_nr,
+                Some(est_output),
+            )),
+            node_search_desc: Arc::new(NodeSearchDesc {
+                qname: (qname.0, Some(qname.1)),
+                cond: filters,
+                const_output,
+            }),
+        })
     }
 
     fn new_tokensearch(
@@ -408,7 +467,7 @@ impl<'a> NodeSearch<'a> {
             });
             let it = it_base.filter(move |n| {
                 if let Some(ref cov) = cov_gs {
-                    cov.get_outgoing_edges(&n.node).next().is_none()
+                    cov.get_outgoing_edges(n.node).next().is_none()
                 } else {
                     true
                 }
@@ -436,7 +495,7 @@ impl<'a> NodeSearch<'a> {
                     Ok(re) => filters.push(Box::new(move |m| {
                         if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
                         {
-                            return re.is_match(val.as_ref());
+                            return re.is_match(val);
                         } else {
                             return false;
                         }
@@ -451,7 +510,7 @@ impl<'a> NodeSearch<'a> {
                 filters.push(Box::new(move |m| {
                     if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
                     {
-                        return anno_val == &v;
+                        return anno_val == v.as_str();
                     } else {
                         return false;
                     }
@@ -467,7 +526,7 @@ impl<'a> NodeSearch<'a> {
             });
             let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
                 if let Some(ref cov) = cov_gs {
-                    cov.get_outgoing_edges(&m.node).next().is_none()
+                    cov.get_outgoing_edges(m.node).next().is_none()
                 } else {
                     true
                 }
@@ -503,7 +562,7 @@ impl<'a> NodeSearch<'a> {
             .get_key_id(&db.get_node_type_key())
             .ok_or("Node type annotation does not exist in database")?;
 
-        return Ok(NodeSearch {
+        Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
                 &query_fragment,
@@ -515,7 +574,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output: Some(const_output),
             }),
-        });
+        })
     }
 
     pub fn new_partofcomponentsearch(
@@ -564,12 +623,12 @@ impl<'a> NodeSearch<'a> {
                     .map(move |anno_key| Match { node, anno_key })
             }).filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates
-                for cond in node_search_desc_2.cond.iter() {
+                for cond in &node_search_desc_2.cond {
                     if !cond(&m) {
                         return None;
                     }
                 }
-                return Some(vec![m]);
+                Some(vec![m])
             });
         let mut new_desc = desc.cloned();
         if let Some(ref mut new_desc) = new_desc {
@@ -578,7 +637,7 @@ impl<'a> NodeSearch<'a> {
         Ok(NodeSearch {
             it: Box::new(it),
             desc: new_desc,
-            node_search_desc: node_search_desc,
+            node_search_desc,
         })
     }
 

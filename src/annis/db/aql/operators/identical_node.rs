@@ -27,14 +27,14 @@ impl std::fmt::Display for IdenticalNode {
 
 impl Operator for IdenticalNode {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
-        return Box::new(std::iter::once(Match {
-            node: lhs.node.clone(),
+        Box::new(std::iter::once(Match {
+            node: lhs.node,
             anno_key: AnnoKeyID::default(),
-        }));
+        }))
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        return lhs.node == rhs.node;
+        lhs.node == rhs.node
     }
 
     fn estimation_type(&self) -> EstimationType {
@@ -42,6 +42,6 @@ impl Operator for IdenticalNode {
     }
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
-        return Some(Box::new(self.clone()));
+        Some(Box::new(self.clone()))
     }
 }

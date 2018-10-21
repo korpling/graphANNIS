@@ -1,5 +1,6 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use annis::db::annostorage::AnnoStorage;
+use annis::db::query::conjunction::OperatorEntry;
 use annis::db::Match;
 use annis::operator::{EstimationType, Operator};
 use annis::types::{AnnoKey, NodeID};
@@ -29,15 +30,13 @@ impl<'a> IndexJoin<'a> {
     ///
     /// * `lhs` - An iterator for a left-hand-side
     /// * `lhs_idx` - The index of the element in the LHS that should be used as a source
-    /// * `op` - The operator that connects the LHS and RHS
+    /// * `op_entry` - The operator that connects the LHS and RHS (with description)
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        node_nr_lhs: usize,
-        node_nr_rhs: usize,
-        op: Box<Operator>,
+        op_entry: OperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         rhs_desc: Option<&Desc>,
@@ -61,33 +60,34 @@ impl<'a> IndexJoin<'a> {
 
                     let result = (out_lhs as f64) + (op_sel * (out_rhs as f64) * (out_lhs as f64));
 
-                    return result.round() as usize;
+                    result.round() as usize
                 }
-                EstimationType::MIN => {
-                    return out_lhs;
-                }
+                EstimationType::MIN => out_lhs,
             }
         };
 
-        return IndexJoin {
+        IndexJoin {
             desc: Desc::join(
-                &op,
+                op_entry.op.as_ref(),
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",
-                &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                &format!("#{} {} #{}", op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right),
                 &processed_func,
             ),
             lhs: lhs_peek,
             lhs_idx,
-            op: Arc::from(op),
+            op: Arc::from(op_entry.op),
             node_search_desc,
             node_annos,
             match_receiver: None,
-        };
+        }
     }
 
-    fn next_lhs_buffer(&mut self, tx: Sender<Vec<Match>>) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
+    fn next_lhs_buffer(
+        &mut self,
+        tx: &Sender<Vec<Match>>,
+    ) -> Vec<(Vec<Match>, Sender<Vec<Match>>)> {
         let mut lhs_buffer: Vec<(Vec<Match>, Sender<Vec<Match>>)> =
             Vec::with_capacity(MAX_BUFFER_SIZE);
         while lhs_buffer.len() < MAX_BUFFER_SIZE {
@@ -97,12 +97,12 @@ impl<'a> IndexJoin<'a> {
                 break;
             }
         }
-        return lhs_buffer;
+        lhs_buffer
     }
 
     fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
-        let mut lhs_buffer = self.next_lhs_buffer(tx);
+        let mut lhs_buffer = self.next_lhs_buffer(&tx);
 
         if lhs_buffer.is_empty() {
             return None;
@@ -117,12 +117,12 @@ impl<'a> IndexJoin<'a> {
 
         // find all RHS in parallel
         lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
-            if let Some(rhs_candidate) = next_candidates(m_lhs, op, lhs_idx, node_annos.clone(), node_search_desc.clone()) {
+            if let Some(rhs_candidate) = next_candidates(m_lhs, op, lhs_idx, &node_annos, &node_search_desc) {
                 let mut rhs_candidate = rhs_candidate.into_iter().peekable();
                 while let Some(mut m_rhs) = rhs_candidate.next() {
                     // check if all filters are true
                     let mut filter_result = true;
-                    for f in node_search_desc.cond.iter() {
+                    for f in &node_search_desc.cond {
                         if !(f)(&m_rhs) {
                             filter_result = false;
                             break;
@@ -133,7 +133,7 @@ impl<'a> IndexJoin<'a> {
 
                         // replace the annotation with a constant value if needed
                         if let Some(ref const_anno) = node_search_desc.const_output {
-                            m_rhs.anno_key = const_anno.clone();
+                            m_rhs.anno_key = *const_anno;
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
@@ -147,6 +147,7 @@ impl<'a> IndexJoin<'a> {
                             if node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // skip all RHS candidates that have the same node ID
+                                #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
                                 loop {
                                     if let Some(next_match) = rhs_candidate.peek() {
                                         if next_match.node != matched_node {
@@ -158,7 +159,7 @@ impl<'a> IndexJoin<'a> {
                                     rhs_candidate.next();
                                 }
                             }
-                            if let Err(_) = tx.send(result) {
+                            if tx.send(result).is_err() {
                                 return;
                             }
                         }
@@ -166,16 +167,16 @@ impl<'a> IndexJoin<'a> {
                 }
             }
         });
-        return Some(rx);
+        Some(rx)
     }
 }
 
 fn next_candidates(
-    m_lhs: &Vec<Match>,
+    m_lhs: &[Match],
     op: &Operator,
     lhs_idx: usize,
-    node_annos: Arc<AnnoStorage<NodeID>>,
-    node_search_desc: Arc<NodeSearchDesc>,
+    node_annos: &Arc<AnnoStorage<NodeID>>,
+    node_search_desc: &Arc<NodeSearchDesc>,
 ) -> Option<Vec<Match>> {
     let it_nodes = op.retrieve_matches(&m_lhs[lhs_idx]).fuse();
 
@@ -191,7 +192,10 @@ fn next_candidates(
 
             for match_node in it_nodes {
                 if let Some(key_id) = key_id {
-                    if let Some(_) = node_annos.get_value_for_item_by_id(&match_node.node, key_id) {
+                    if node_annos
+                        .get_value_for_item_by_id(&match_node.node, key_id)
+                        .is_some()
+                    {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: key_id,
@@ -209,8 +213,11 @@ fn next_candidates(
             // return all annotations with the correct name for each node
             let mut matches: Vec<Match> = Vec::new();
             for match_node in it_nodes {
-                for key_id in keys.clone().into_iter() {
-                    if let Some(_) = node_annos.get_value_for_item_by_id(&match_node.node, key_id) {
+                for key_id in keys.clone() {
+                    if node_annos
+                        .get_value_for_item_by_id(&match_node.node, key_id)
+                        .is_some()
+                    {
                         matches.push(Match {
                             node: match_node.node,
                             anno_key: key_id,
@@ -225,7 +232,7 @@ fn next_candidates(
         let mut matches: Vec<Match> = Vec::new();
         for match_node in it_nodes {
             let all_keys = node_annos.get_all_keys_for_item(&match_node.node);
-            for anno_key in all_keys.into_iter() {
+            for anno_key in all_keys {
                 if let Some(key_id) = node_annos.get_key_id(&anno_key) {
                     matches.push(Match {
                         node: match_node.node,
@@ -257,18 +264,13 @@ impl<'a> Iterator for IndexJoin<'a> {
             self.match_receiver = if let Some(rhs) = self.next_match_receiver() {
                 Some(rhs)
             } else {
-                None
+                return None;
             };
-        }
-
-        if self.match_receiver.is_none() {
-            return None;
         }
 
         loop {
             {
-                let match_receiver: &mut Receiver<Vec<Match>> =
-                    self.match_receiver.as_mut().unwrap();
+                let match_receiver = self.match_receiver.as_mut()?;
                 if let Ok(result) = match_receiver.recv() {
                     return Some(result);
                 }

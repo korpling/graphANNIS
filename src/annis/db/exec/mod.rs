@@ -24,8 +24,8 @@ pub struct Desc {
     pub cost: Option<CostEstimate>,
 }
 
-fn calculate_outputsize<'a>(
-    op: &Box<Operator + 'a>,
+fn calculate_outputsize(
+    op: &Operator,
     cost_lhs: &CostEstimate,
     cost_rhs: &CostEstimate,
 ) -> usize {
@@ -41,7 +41,7 @@ fn calculate_outputsize<'a>(
         EstimationType::MIN => std::cmp::min(cost_lhs.output, cost_rhs.output),
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
-    return std::cmp::max(output, 1);
+    std::cmp::max(output, 1)
 }
 
 impl Desc {
@@ -74,8 +74,8 @@ impl Desc {
         }
     }
 
-    pub fn join<'a>(
-        op: &Box<Operator + 'a>,
+    pub fn join(
+        op: &Operator,
         lhs: Option<&Desc>,
         rhs: Option<&Desc>,
         impl_description: &str,
@@ -99,7 +99,7 @@ impl Desc {
             0
         };
         if let Some(ref rhs) = rhs {
-            for e in rhs.node_pos.iter() {
+            for e in &rhs.node_pos {
                 // the RHS has an offset after the join
                 node_pos.insert(e.0.clone(), e.1 + offset);
             }
@@ -175,7 +175,7 @@ impl Desc {
                 result.push_str(&rhs.debug_string(&new_indention));
             }
         }
-        return result;
+        result
     }
 }
 

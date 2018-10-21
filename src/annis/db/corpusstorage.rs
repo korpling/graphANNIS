@@ -82,7 +82,7 @@ impl fmt::Display for GraphStorageInfo {
                 writeln!(
                     f,
                     "Memory: {:.2} MB",
-                    memory_size as f64 / (1024 * 1024) as f64
+                    memory_size as f64 / f64::from(1024 * 1024)
                 )?;
             }
             LoadStatus::FullyLoaded(memory_size) => {
@@ -90,7 +90,7 @@ impl fmt::Display for GraphStorageInfo {
                 writeln!(
                     f,
                     "Memory: {:.2} MB",
-                    memory_size as f64 / (1024 * 1024) as f64
+                    memory_size as f64 / f64::from(1024 * 1024)
                 )?;
             }
         };
@@ -118,7 +118,7 @@ impl fmt::Display for CorpusInfo {
                 writeln!(
                     f,
                     "Total memory: {:.2} MB",
-                    memory_size as f64 / (1024 * 1024) as f64
+                    memory_size as f64 / f64::from(1024 * 1024)
                 )?;
             }
             LoadStatus::FullyLoaded(memory_size) => {
@@ -126,13 +126,13 @@ impl fmt::Display for CorpusInfo {
                 writeln!(
                     f,
                     "Total memory: {:.2} MB",
-                    memory_size as f64 / (1024 * 1024) as f64
+                    memory_size as f64 / f64::from(1024 * 1024)
                 )?;
             }
         };
         if !self.graphstorages.is_empty() {
             writeln!(f, "------------")?;
-            for gs in self.graphstorages.iter() {
+            for gs in &self.graphstorages {
                 write!(f, "{}", gs)?;
                 writeln!(f, "------------")?;
             }
@@ -142,7 +142,7 @@ impl fmt::Display for CorpusInfo {
 }
 
 /// Defines the order of results of a `find` query.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(C)]
 pub enum ResultOrder {
     /// Order results by their document name and the the text position of the match.
@@ -181,11 +181,11 @@ impl FromStr for FrequencyDefEntry {
         let node_ref = splitted[0];
         let anno_key = util::split_qname(splitted[1]);
 
-        return Ok(FrequencyDefEntry {
+        Ok(FrequencyDefEntry {
             ns: anno_key.0.and_then(|ns| Some(String::from(ns))),
             name: String::from(anno_key.1),
             node_ref: String::from(node_ref),
-        });
+        })
     }
 }
 
@@ -194,12 +194,14 @@ impl FromStr for FrequencyDefEntry {
 /// Currently, only the ANNIS Query Language (AQL) is supported, but this enum allows us to add e.g. a quirks mode for older query language versions
 /// or completly new query languages.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum QueryLanguage {
     AQL,
 }
 
 /// An enum of all supported input formats of graphANNIS.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum ImportFormat {
     /// Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
     RelANNIS,
@@ -245,6 +247,7 @@ impl CorpusStorage {
     ) -> Result<CorpusStorage> {
         let query_config = query::Config { use_parallel_joins };
 
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
         let cs = CorpusStorage {
             db_dir: PathBuf::from(db_dir),
@@ -271,6 +274,7 @@ impl CorpusStorage {
         // get the amount of available memory, use a quarter of it per default
         let cache_strategy: CacheStrategy = CacheStrategy::PercentOfFreeMemory(25.0);
 
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
         let active_background_workers = Arc::new((Mutex::new(0), Condvar::new()));
 
         let cs = CorpusStorage {
@@ -278,7 +282,7 @@ impl CorpusStorage {
             lock_file: create_lockfile_for_directory(db_dir)?,
             cache_strategy,
             corpus_cache: RwLock::new(LinkedHashMap::new()),
-            query_config: query_config,
+            query_config,
             active_background_workers,
         };
 
@@ -299,7 +303,7 @@ impl CorpusStorage {
             }
         }
 
-        return Ok(result);
+        Ok(result)
     }
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
@@ -338,7 +342,7 @@ impl CorpusStorage {
         let cache_entry = self.get_entry(corpus_name)?;
         let lock = cache_entry.read().unwrap();
         let corpus_info: CorpusInfo = match &*lock {
-            &CacheEntry::Loaded(ref db) => {
+            CacheEntry::Loaded(ref db) => {
                 // check if all components are loaded
                 let heap_size = db.size_of(mem_ops);
                 let mut load_status = LoadStatus::FullyLoaded(heap_size);
@@ -403,7 +407,7 @@ impl CorpusStorage {
             .entry(corpus_name.clone())
             .or_insert_with(|| Arc::new(RwLock::new(CacheEntry::NotLoaded)));
 
-        return Ok(entry.clone());
+        Ok(entry.clone())
     }
 
     fn load_entry_with_lock(
@@ -421,12 +425,10 @@ impl CorpusStorage {
 
         let create_corpus = if db_path.is_dir() {
             false
+        } else if create_if_missing {
+            true
         } else {
-            if create_if_missing {
-                true
-            } else {
-                return Err(ErrorKind::NoSuchCorpus(corpus_name.to_string()).into());
-            }
+            return Err(ErrorKind::NoSuchCorpus(corpus_name.to_string()).into());
         };
 
         // make sure the cache is not too large before adding the new corpus
@@ -447,7 +449,7 @@ impl CorpusStorage {
 
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![corpus_name]);
 
-        return Ok(entry);
+        Ok(entry)
     }
 
     fn get_loaded_entry(
@@ -461,16 +463,16 @@ impl CorpusStorage {
         let loaded = {
             let lock = cache_entry.read().unwrap();
             match &*lock {
-                &CacheEntry::Loaded(_) => true,
+                CacheEntry::Loaded(_) => true,
                 _ => false,
             }
         };
 
         if loaded {
-            return Ok(cache_entry);
+            Ok(cache_entry)
         } else {
             let mut cache_lock = self.corpus_cache.write().unwrap();
-            return self.load_entry_with_lock(&mut cache_lock, corpus_name, create_if_missing);
+            self.load_entry_with_lock(&mut cache_lock, corpus_name, create_if_missing)
         }
     }
 
@@ -485,7 +487,7 @@ impl CorpusStorage {
             let db = get_read_or_error(&lock)?;
 
             let mut missing: HashSet<Component> = HashSet::new();
-            for c in components.into_iter() {
+            for c in components {
                 if !db.is_loaded(&c) {
                     missing.insert(c);
                 }
@@ -511,7 +513,7 @@ impl CorpusStorage {
             let db = get_read_or_error(&lock)?;
 
             let mut missing: HashSet<Component> = HashSet::new();
-            for c in db.get_all_components(None, None).into_iter() {
+            for c in db.get_all_components(None, None) {
                 if !db.is_loaded(&c) {
                     missing.insert(c);
                 }
@@ -570,7 +572,7 @@ impl CorpusStorage {
 
         // remove any possible old corpus
         let old_entry = cache.remove(&corpus_name);
-        if let Some(_) = old_entry {
+        if old_entry.is_some() {
             if let Err(e) = std::fs::remove_dir_all(db_path.clone()) {
                 error!("Error when removing existing files {}", e);
             }
@@ -650,7 +652,7 @@ impl CorpusStorage {
         {
             let &(ref lock, ref _cvar) = &*active_background_workers;
             let mut nr_active_background_workers = lock.lock().unwrap();
-            *nr_active_background_workers = *nr_active_background_workers + 1;
+            *nr_active_background_workers += 1;
         }
         thread::spawn(move || {
             trace!("Starting background thread to sync WAL updates");
@@ -665,7 +667,7 @@ impl CorpusStorage {
             }
             let &(ref lock, ref cvar) = &*active_background_workers;
             let mut nr_active_background_workers = lock.lock().unwrap();
-            *nr_active_background_workers = *nr_active_background_workers - 1;
+            *nr_active_background_workers -= 1;
             cvar.notify_all();
         });
 
@@ -699,7 +701,7 @@ impl CorpusStorage {
             missing.extend(additional_components.into_iter());
 
             // remove all that are already loaded
-            for c in necessary_components.iter() {
+            for c in &necessary_components {
                 if db.get_graphstorage(c).is_some() {
                     missing.remove(c);
                 }
@@ -720,7 +722,7 @@ impl CorpusStorage {
             self.check_cache_size_and_remove(vec![corpus_name]);
         };
 
-        return Ok(PreparationResult { query: q, db_entry });
+        Ok(PreparationResult { query: q, db_entry })
     }
 
     /// Preloads all annotation and graph storages from the disk into a main memory cache.
@@ -732,7 +734,7 @@ impl CorpusStorage {
             db.ensure_loaded_all()?;
         }
         self.check_cache_size_and_remove(vec![corpus_name]);
-        return Ok(());
+        Ok(())
     }
 
     /// Unloads a corpus from the cache.
@@ -749,7 +751,7 @@ impl CorpusStorage {
         let db: &mut Graph = get_write_or_error(&mut lock)?;
 
         Arc::make_mut(&mut db.node_annos).calculate_statistics();
-        for c in db.get_all_components(None, None).into_iter() {
+        for c in db.get_all_components(None, None) {
             db.calculate_component_statistics(&c)?;
         }
 
@@ -776,8 +778,8 @@ impl CorpusStorage {
         // also get the semantic errors by creating an execution plan on the actual Graph
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
-        return Ok(true);
+        ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        Ok(true)
     }
 
     /// Returns a string representation of the execution plan for a `query`.
@@ -796,9 +798,9 @@ impl CorpusStorage {
         // accuire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-        return Ok(format!("{}", plan));
+        Ok(format!("{}", plan))
     }
 
     /// Count the number of results for a `query`.
@@ -818,9 +820,9 @@ impl CorpusStorage {
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
-        return Ok(plan.count() as u64);
+        Ok(plan.count() as u64)
     }
 
     /// Count the number of results for a `query` and return both the total number of matches and also the number of documents in the result set.
@@ -839,7 +841,7 @@ impl CorpusStorage {
         // accuire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db: &Graph = get_read_or_error(&lock)?;
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         let mut known_documents = HashSet::new();
 
@@ -855,19 +857,19 @@ impl CorpusStorage {
                     .node_annos
                     .get_value_for_item_by_id(&m.node, node_name_key_id)
                 {
-                    let node_name: &str = node_name.as_ref();
+                    let node_name: &str = node_name;
                     // extract the document path from the node name
-                    let doc_path = &node_name[0..node_name.rfind('#').unwrap_or(node_name.len())];
+                    let doc_path = &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
                     known_documents.insert(doc_path.to_owned());
                 }
             }
             (acc.0 + 1, known_documents.len())
         });
 
-        return Ok(CountExtra {
+        Ok(CountExtra {
             match_count: result.0,
             document_count: result.1 as u64,
-        });
+        })
     }
 
     /// Find all results for a `query` and return the match ID for each result.
@@ -903,7 +905,7 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         let node_name_key_id = db
             .node_annos
@@ -914,13 +916,13 @@ impl CorpusStorage {
 
         for mgroup in plan {
             // cache all paths of the matches
-            for m in mgroup.iter() {
+            for m in &mgroup {
                 if let Some(path) = db
                     .node_annos
                     .get_value_for_item_by_id(&m.node, node_name_key_id)
                 {
                     let path = util::extract_node_path(&path);
-                    node_to_path_cache.insert(m.node.clone(), path);
+                    node_to_path_cache.insert(m.node, path);
                 }
             }
 
@@ -935,19 +937,19 @@ impl CorpusStorage {
         } else {
             let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                 if order == ResultOrder::Inverted {
-                    return db::sort_matches::compare_matchgroup_by_text_pos(
+                    db::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
                         db,
                         &node_to_path_cache,
-                    ).reverse();
+                    ).reverse()
                 } else {
-                    return db::sort_matches::compare_matchgroup_by_text_pos(
+                    db::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
                         db,
                         &node_to_path_cache,
-                    );
+                    )
                 }
             };
 
@@ -968,7 +970,7 @@ impl CorpusStorage {
                 .take(limit)
                 .map(|m: Vec<Match>| {
                     let mut match_desc: Vec<String> = Vec::new();
-                    for singlematch in m.iter() {
+                    for singlematch in &m {
                         let mut node_desc = String::new();
 
                         if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
@@ -987,18 +989,18 @@ impl CorpusStorage {
                             .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                         {
                             node_desc.push_str("salt:/");
-                            node_desc.push_str(name.as_ref());
+                            node_desc.push_str(name);
                         }
 
                         match_desc.push(node_desc);
                     }
                     let mut result = String::new();
                     result.push_str(&match_desc.join(" "));
-                    return result;
+                    result
                 }),
         );
 
-        return Ok(results);
+        Ok(results)
     }
 
     /// Return the copy of a subgraph which includes the given list of node annotation identifiers,
@@ -1182,7 +1184,7 @@ impl CorpusStorage {
                 query.alternatives.push(q_right);
             }
         }
-        return extract_subgraph_by_query(db_entry, query, vec![0], self.query_config.clone());
+        extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config)
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -1199,16 +1201,18 @@ impl CorpusStorage {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
         let mut max_alt_size = 0;
-        for alt in prep.query.alternatives.iter() {
+        for alt in &prep.query.alternatives {
             max_alt_size = std::cmp::max(max_alt_size, alt.num_of_nodes());
         }
 
-        return extract_subgraph_by_query(
-            prep.db_entry.clone(),
-            prep.query,
-            (0..max_alt_size).collect(),
-            self.query_config.clone(),
-        );
+        let match_idx : Vec<usize> = (0..max_alt_size).collect();
+
+        extract_subgraph_by_query(
+            &prep.db_entry.clone(),
+            &prep.query,
+            &match_idx,
+            &self.query_config,
+        )
     }
 
     /// Return the copy of a subgraph which includes all nodes that belong to any of the given list of sub-corpus/document identifiers.
@@ -1251,7 +1255,7 @@ impl CorpusStorage {
             query.alternatives.push(q);
         }
 
-        return extract_subgraph_by_query(db_entry, query, vec![1], self.query_config.clone());
+        extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config)
     }
 
     /// Return the copy of the graph of the corpus given by `corpus_name`.
@@ -1265,12 +1269,12 @@ impl CorpusStorage {
             None,
         );
 
-        return extract_subgraph_by_query(
-            db_entry,
-            query.into_disjunction(),
-            vec![0],
-            self.query_config.clone(),
-        );
+        extract_subgraph_by_query(
+            &db_entry,
+            &query.into_disjunction(),
+            &[0],
+            &self.query_config,
+        )
     }
 
     /// Execute a frequency query.
@@ -1296,7 +1300,7 @@ impl CorpusStorage {
 
         // get the matching annotation keys for each definition entry
         let mut annokeys: Vec<(usize, Vec<AnnoKey>)> = Vec::default();
-        for def in definition.into_iter() {
+        for def in definition {
             if let Some(node_ref) = prep.query.get_variable_pos(&def.node_ref) {
                 if let Some(ns) = def.ns {
                     // add the single fully qualified annotation key
@@ -1314,14 +1318,14 @@ impl CorpusStorage {
             }
         }
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, self.query_config.clone())?;
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
         let mut tuple_frequency: FxHashMap<Vec<String>, usize> = FxHashMap::default();
 
         for mgroup in plan {
             // for each match, extract the defined annotation (by its key) from the result node
             let mut tuple: Vec<String> = Vec::with_capacity(annokeys.len());
-            for (node_ref, anno_keys) in annokeys.iter() {
+            for (node_ref, anno_keys) in &annokeys {
                 let mut tuple_val: String = String::default();
                 if *node_ref < mgroup.len() {
                     let m: &Match = &mgroup[*node_ref];
@@ -1335,19 +1339,19 @@ impl CorpusStorage {
             }
             // add the tuple to the frequency count
             let mut tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
-            *tuple_count = *tuple_count + 1;
+            *tuple_count += 1;
         }
 
         // output the frequency
         let mut result: FrequencyTable<String> = FrequencyTable::default();
-        for (tuple, count) in tuple_frequency.into_iter() {
+        for (tuple, count) in tuple_frequency {
             result.push((tuple, count));
         }
 
         // sort the output (largest to smallest)
         result.sort_by(|a, b| a.1.cmp(&b.1).reverse());
 
-        return Ok(result);
+        Ok(result)
     }
 
     /// Parses a `query`and return a list of descriptions for its nodes.
@@ -1365,16 +1369,16 @@ impl CorpusStorage {
             QueryLanguage::AQL => aql::parse(query)?,
         };
         let mut component_nr = 0;
-        for alt in q.alternatives.into_iter() {
+        for alt in q.alternatives {
             let alt: Conjunction = alt;
-            for mut n in alt.get_node_descriptions().into_iter() {
+            for mut n in alt.get_node_descriptions() {
                 n.alternative = component_nr;
                 result.push(n);
             }
             component_nr += 1;
         }
 
-        return Ok(result);
+        Ok(result)
     }
 
     /// Returns a list of all components of a corpus given by `corpus_name`.
@@ -1425,7 +1429,7 @@ impl CorpusStorage {
                             }
                         } else {
                             // get all values
-                            for val in node_annos.get_all_values(&key, false).into_iter() {
+                            for val in node_annos.get_all_values(&key, false) {
                                 result.push(Annotation {
                                     key: key.clone(),
                                     val: val.to_owned(),
@@ -1442,7 +1446,7 @@ impl CorpusStorage {
             }
         }
 
-        return result;
+        result
     }
 
     /// Returns a list of all node annotations of a corpus given by `corpus_name`.
@@ -1452,7 +1456,7 @@ impl CorpusStorage {
     pub fn list_edge_annotations(
         &self,
         corpus_name: &str,
-        component: Component,
+        component: &Component,
         list_values: bool,
         only_most_frequent_values: bool,
     ) -> Vec<Annotation> {
@@ -1479,7 +1483,7 @@ impl CorpusStorage {
                                 }
                             } else {
                                 // get all values
-                                for val in edge_annos.get_all_values(&key, false).into_iter() {
+                                for val in edge_annos.get_all_values(&key, false) {
                                     result.push(Annotation {
                                         key: key.clone(),
                                         val: val.to_owned(),
@@ -1497,7 +1501,7 @@ impl CorpusStorage {
             }
         }
 
-        return result;
+        result
     }
 
     fn check_cache_size_and_remove(&self, keep: Vec<&str>) {
@@ -1624,7 +1628,7 @@ mod tests {
 }
 
 fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Graph> {
-    if let &CacheEntry::Loaded(ref db) = &**lock {
+    if let CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
         return Err(ErrorKind::LoadingDBFailed("".to_string()).into());
@@ -1632,7 +1636,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
 }
 
 fn get_write_or_error<'a>(lock: &'a mut RwLockWriteGuard<CacheEntry>) -> Result<&'a mut Graph> {
-    if let &mut CacheEntry::Loaded(ref mut db) = &mut **lock {
+    if let CacheEntry::Loaded(ref mut db) = &mut **lock {
         return Ok(db);
     } else {
         return Err("Could get loaded graph storage entry".into());
@@ -1653,7 +1657,7 @@ fn check_cache_size_and_remove_with_cache(
     let mut db_sizes: LinkedHashMap<String, usize> = LinkedHashMap::new();
     for (corpus, db_entry) in cache.iter() {
         let lock = db_entry.read().unwrap();
-        if let &CacheEntry::Loaded(ref db) = &*lock {
+        if let CacheEntry::Loaded(ref db) = &*lock {
             let s = db.size_of_cached(&mut mem_ops);
             size_sum += s;
             db_sizes.insert(corpus.clone(), s);
@@ -1706,16 +1710,16 @@ fn check_cache_size_and_remove_with_cache(
 }
 
 fn extract_subgraph_by_query(
-    db_entry: Arc<RwLock<CacheEntry>>,
-    query: Disjunction,
-    match_idx: Vec<usize>,
-    query_config: query::Config,
+    db_entry: &Arc<RwLock<CacheEntry>>,
+    query: &Disjunction,
+    match_idx: &[usize],
+    query_config: &query::Config,
 ) -> Result<Graph> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, query_config).chain_err(|| "")?;
+    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).chain_err(|| "")?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -1742,17 +1746,17 @@ fn extract_subgraph_by_query(
         }
     }
 
-    for m in match_result.iter() {
+    for m in &match_result {
         create_subgraph_edge(m.node, &mut result, orig_db, &all_components);
     }
 
-    return Ok(result);
+    Ok(result)
 }
 
 fn create_subgraph_node(id: NodeID, db: &mut Graph, orig_db: &Graph) {
     // add all node labels with the same node ID
     let node_annos = Arc::make_mut(&mut db.node_annos);
-    for a in orig_db.node_annos.get_annotations_for_item(&id).into_iter() {
+    for a in orig_db.node_annos.get_annotations_for_item(&id) {
         node_annos.insert(id, a);
     }
 }
@@ -1760,17 +1764,17 @@ fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut Graph,
     orig_db: &Graph,
-    all_components: &Vec<Component>,
+    all_components: &[Component],
 ) {
     // find outgoing edges
     for c in all_components {
         if let Some(orig_gs) = orig_db.get_graphstorage(c) {
-            for target in orig_gs.get_outgoing_edges(&source_id) {
+            for target in orig_gs.get_outgoing_edges(source_id) {
                 let e = Edge {
                     source: source_id,
                     target,
                 };
-                if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
+                if let Ok(new_gs) = db.get_or_create_writable(&c) {
                     new_gs.add_edge(e.clone());
                 }
 
@@ -1779,9 +1783,9 @@ fn create_subgraph_edge(
                     .get_annotations_for_item(&Edge {
                         source: source_id,
                         target,
-                    }).into_iter()
+                    })
                 {
-                    if let Ok(new_gs) = db.get_or_create_writable(c.clone()) {
+                    if let Ok(new_gs) = db.get_or_create_writable(&c) {
                         new_gs.add_edge_annotation(e.clone(), a);
                     }
                 }
@@ -1813,5 +1817,5 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         )
     })?;
 
-    return Ok(lock_file);
+    Ok(lock_file)
 }

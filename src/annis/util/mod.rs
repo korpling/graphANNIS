@@ -22,7 +22,7 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 /// Takes a node name/ID and extracts both the document path as array and the node name itself.
@@ -52,7 +52,7 @@ pub fn extract_node_path(full_node_name: &str) -> (Vec<String>, String) {
     // separate path and name first
     let hash_pos = full_node_name.rfind('#');
 
-    let path_str: &str = &full_node_name[0..hash_pos.unwrap_or(full_node_name.len())];
+    let path_str: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
     let mut path: Vec<String> = Vec::with_capacity(4);
     path.extend(
         path_str
@@ -116,7 +116,7 @@ impl SearchDef {
             }
         }
 
-        return None;
+        None
     }
 }
 
@@ -133,10 +133,12 @@ pub fn get_queries_from_folder(
                 if p.exists() && p.is_file() && p.extension() == Some(&OsString::from("aql")) {
                     let r = SearchDef::from_file(&p);
                     if panic_on_invalid {
-                        let r = r.expect(&format!(
-                            "Search definition for query {} is incomplete",
-                            p.to_string_lossy()
-                        ));
+                        let r = r.unwrap_or_else(|| {
+                            panic!(
+                                "Search definition for query {} is incomplete",
+                                p.to_string_lossy()
+                            )
+                        });
                         return Some(r);
                     } else {
                         return r;
@@ -144,11 +146,11 @@ pub fn get_queries_from_folder(
                 }
             }
 
-            return None;
+            None
         });
 
-        return Box::from(it);
+        Box::from(it)
+    } else {
+        Box::new(std::iter::empty())
     }
-
-    return Box::new(std::iter::empty());
 }

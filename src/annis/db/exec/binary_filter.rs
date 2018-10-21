@@ -1,4 +1,5 @@
 use super::{CostEstimate, Desc, ExecutionNode};
+use annis::db::query::conjunction::OperatorEntry;
 use annis::db::Match;
 use annis::operator::{EstimationType, Operator};
 use std;
@@ -8,7 +9,7 @@ pub struct BinaryFilter<'a> {
     desc: Option<Desc>,
 }
 
-fn calculate_outputsize<'a>(op: &Box<Operator + 'a>, num_tuples: usize) -> usize {
+fn calculate_outputsize(op: &Operator, num_tuples: usize) -> usize {
     let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = num_tuples as f64;
@@ -21,7 +22,7 @@ fn calculate_outputsize<'a>(op: &Box<Operator + 'a>, num_tuples: usize) -> usize
         EstimationType::MIN => num_tuples,
     };
     // always assume at least one output item otherwise very small selectivity can fool the planner
-    return std::cmp::max(output, 1);
+    std::cmp::max(output, 1)
 }
 
 impl<'a> BinaryFilter<'a> {
@@ -29,14 +30,12 @@ impl<'a> BinaryFilter<'a> {
         exec: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
-        node_nr_lhs: usize,
-        node_nr_rhs: usize,
-        op: Box<Operator + 'a>,
+        op_entry: OperatorEntry,
     ) -> BinaryFilter<'a> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {
                 Some(CostEstimate {
-                    output: calculate_outputsize(&op, orig_cost.output),
+                    output: calculate_outputsize(op_entry.op.as_ref(), orig_cost.output),
                     processed_in_step: orig_cost.processed_in_step,
                     intermediate_sum: orig_cost.intermediate_sum + orig_cost.processed_in_step,
                 })
@@ -48,7 +47,7 @@ impl<'a> BinaryFilter<'a> {
                 component_nr: orig_desc.component_nr,
                 node_pos: orig_desc.node_pos.clone(),
                 impl_description: String::from("filter"),
-                query_fragment: format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                query_fragment: format!("#{} {} #{}", op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right),
                 cost: cost_est,
                 lhs: Some(Box::new(orig_desc.clone())),
                 rhs: None,
@@ -56,12 +55,11 @@ impl<'a> BinaryFilter<'a> {
         } else {
             None
         };
-        let it = exec.filter(move |tuple| op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
-        let filter = BinaryFilter {
+        let it = exec.filter(move |tuple| op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
+        BinaryFilter {
             desc,
             it: Box::new(it),
-        };
-        return filter;
+        }
     }
 }
 

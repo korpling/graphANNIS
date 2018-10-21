@@ -23,17 +23,23 @@ use std::iter::FromIterator;
 use std::sync::Arc;
 
 #[derive(Debug)]
-struct OperatorEntry<'a> {
+struct OperatorSpecEntry<'a> {
     op: Box<OperatorSpec + 'a>,
     idx_left: usize,
     idx_right: usize,
     /*    original_order: usize, */
 }
 
+pub struct OperatorEntry {
+    pub op: Box<Operator>,
+    pub node_nr_left: usize,
+    pub node_nr_right: usize,
+}
+
 #[derive(Debug)]
 pub struct Conjunction<'a> {
     nodes: Vec<(String, NodeSearchSpec)>,
-    operators: Vec<OperatorEntry<'a>>,
+    operators: Vec<OperatorSpecEntry<'a>>,
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
 }
@@ -56,18 +62,18 @@ fn update_components_for_nodes(
     }
 
     // set the component id for each node of the other component
-    for nid in node_ids_to_update.iter() {
+    for nid in &node_ids_to_update {
         node2component.insert(*nid, to);
     }
 }
 
-fn should_switch_operand_order<'a>(
-    op_entry: &OperatorEntry,
+fn should_switch_operand_order(
+    op_spec: &OperatorSpecEntry,
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
     if let (Some(cost_lhs), Some(cost_rhs)) = (
-        node2cost.get(&op_entry.idx_left),
-        node2cost.get(&op_entry.idx_right),
+        node2cost.get(&op_spec.idx_left),
+        node2cost.get(&op_spec.idx_right),
     ) {
         let cost_lhs: &CostEstimate = cost_lhs;
         let cost_rhs: &CostEstimate = cost_rhs;
@@ -78,7 +84,96 @@ fn should_switch_operand_order<'a>(
         }
     }
 
-    return false;
+    false
+}
+
+fn create_join<'b>(
+    db: &Graph,
+    config: &Config,
+    op_entry: OperatorEntry,
+    exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
+    exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
+    idx_left: usize,
+    idx_right: usize,
+) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
+    if exec_right.as_nodesearch().is_some() {
+        // use index join
+        if config.use_parallel_joins {
+            let join = parallel::indexjoin::IndexJoin::new(
+                exec_left,
+                idx_left,
+                op_entry,
+                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+                db.node_annos.clone(),
+                exec_right.get_desc(),
+            );
+            return Box::new(join);
+        } else {
+            let join = IndexJoin::new(
+                exec_left,
+                idx_left,
+                op_entry,
+                exec_right.as_nodesearch().unwrap().get_node_search_desc(),
+                db.node_annos.clone(),
+                exec_right.get_desc(),
+            );
+            return Box::new(join);
+        }
+    } else if exec_left.as_nodesearch().is_some() {
+        // avoid a nested loop join by switching the operand and using and index join
+        if let Some(inverse_op) = op_entry.op.get_inverse_operator() {
+            if config.use_parallel_joins {
+                let join = parallel::indexjoin::IndexJoin::new(
+                    exec_right,
+                    idx_right,
+                    OperatorEntry {
+                        node_nr_left: op_entry.node_nr_right,
+                        node_nr_right: op_entry.node_nr_left,
+                        op: inverse_op,
+                    },
+                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                    db.node_annos.clone(),
+                    exec_left.get_desc(),
+                );
+                return Box::new(join);
+            } else {
+                let join = IndexJoin::new(
+                    exec_right,
+                    idx_right,
+                    op_entry,
+                    exec_left.as_nodesearch().unwrap().get_node_search_desc(),
+                    db.node_annos.clone(),
+                    exec_left.get_desc(),
+                );
+                return Box::new(join);
+            }
+        }
+    }
+
+    // use nested loop as "fallback"
+    if config.use_parallel_joins {
+        let join = parallel::nestedloop::NestedLoop::new(
+            exec_left,
+            exec_right,
+            idx_left,
+            idx_right,
+            op_entry.node_nr_left,
+            op_entry.node_nr_right,
+            op_entry.op,
+        );
+        Box::new(join)
+    } else {
+        let join = NestedLoop::new(
+            exec_left,
+            exec_right,
+            idx_left,
+            idx_right,
+            op_entry.node_nr_left,
+            op_entry.node_nr_right,
+            op_entry.op,
+        );
+        Box::new(join)
+    }
 }
 
 impl<'a> Conjunction<'a> {
@@ -97,7 +192,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn get_node_descriptions(&self) -> Vec<QueryAttributeDescription> {
         let mut result = Vec::default();
-        for (var, spec) in self.nodes.iter() {
+        for (var, spec) in &self.nodes {
             let anno_name = match spec {
                 NodeSearchSpec::ExactValue { name, .. } => Some(name.clone()),
                 NodeSearchSpec::RegexValue { name, .. } => Some(name.clone()),
@@ -111,7 +206,7 @@ impl<'a> Conjunction<'a> {
             };
             result.push(desc);
         }
-        return result;
+        result
     }
 
     pub fn add_node(&mut self, node: NodeSearchSpec, variable: Option<&str>) -> String {
@@ -135,7 +230,7 @@ impl<'a> Conjunction<'a> {
         if let Some(location) = location {
             self.location_in_query.insert(variable.clone(), location);
         }
-        return variable;
+        variable
     }
     pub fn add_operator(
         &mut self,
@@ -157,10 +252,10 @@ impl<'a> Conjunction<'a> {
         if let (Some(idx_left), Some(idx_right)) =
             (self.variables.get(var_left), self.variables.get(var_right))
         {
-            self.operators.push(OperatorEntry {
+            self.operators.push(OperatorSpecEntry {
                 op,
-                idx_left: idx_left.clone(),
-                idx_right: idx_right.clone(),
+                idx_left: *idx_left,
+                idx_right: *idx_right,
             });
             return Ok(());
         } else {
@@ -179,12 +274,12 @@ impl<'a> Conjunction<'a> {
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = vec![];
 
-        for op_entry in self.operators.iter() {
+        for op_entry in &self.operators {
             let mut c = op_entry.op.necessary_components(db);
             result.append(&mut c);
         }
 
-        return result;
+        result
     }
 
     fn optimize_join_order_heuristics(&self, db: &'a Graph, config: &Config) -> Result<Vec<usize>> {
@@ -204,14 +299,13 @@ impl<'a> Conjunction<'a> {
         // TODO: cache the base estimates
         let initial_plan =
             self.make_exec_plan_with_order(db, config, best_operator_order.clone())?;
-        let mut best_cost = initial_plan
+        let mut best_cost: usize = initial_plan
             .get_desc()
             .ok_or("Plan description missing")?
             .cost
             .clone()
             .ok_or("Plan cost missing")?
-            .intermediate_sum
-            .clone();
+            .intermediate_sum;
         trace!(
             "initial plan:\n{}",
             initial_plan
@@ -245,9 +339,8 @@ impl<'a> Conjunction<'a> {
             }
 
             let mut found_better_plan = false;
-            for i in 1..family_operators.len() {
-                let alt_plan =
-                    self.make_exec_plan_with_order(db, config, family_operators[i].clone())?;
+            for op_order in family_operators.iter().skip(1) {
+                let alt_plan = self.make_exec_plan_with_order(db, config, op_order.clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
                     .ok_or("Plan description missing")?
@@ -264,7 +357,7 @@ impl<'a> Conjunction<'a> {
                 );
 
                 if alt_cost < best_cost {
-                    best_operator_order = family_operators[i].clone();
+                    best_operator_order = op_order.clone();
                     found_better_plan = true;
                     trace!("Found better plan");
                     best_cost = alt_cost;
@@ -284,23 +377,23 @@ impl<'a> Conjunction<'a> {
         &'a self,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        op_entries: Box<Iterator<Item = &'a OperatorEntry> + 'a>,
+        op_spec_entries: Box<Iterator<Item = &'a OperatorSpecEntry> + 'a>,
         db: &'a Graph,
     ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let desc = desc?;
         // check if we can replace this node search with a generic "all nodes from either of these components" search
         let node_search_cost: &CostEstimate = desc.cost.as_ref()?;
 
-        for e in op_entries {
+        for e in op_spec_entries {
             let op_spec = &e.op;
             if e.idx_left == desc.component_nr {
                 // get the necessary components and count the number of nodes in these components
                 let components = op_spec.necessary_components(db);
-                if components.len() > 0 {
+                if !components.is_empty() {
                     let mut estimated_component_search = 0;
 
                     let mut estimation_valid = false;
-                    for c in components.iter() {
+                    for c in &components {
                         if let Some(gs) = db.get_graphstorage(c) {
                             // check if we can apply an even more restrictive edge annotation search
                             if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
@@ -340,103 +433,7 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        return None;
-    }
-
-    fn create_join<'b>(
-        &self,
-        db: &Graph,
-        config: &Config,
-        op: Box<Operator>,
-        exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
-        exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
-        spec_idx_left: usize,
-        spec_idx_right: usize,
-        idx_left: usize,
-        idx_right: usize,
-    ) -> Box<ExecutionNode<Item = Vec<Match>> + 'b> {
-        if exec_right.as_nodesearch().is_some() {
-            // use index join
-            if config.use_parallel_joins {
-                let join = parallel::indexjoin::IndexJoin::new(
-                    exec_left,
-                    idx_left,
-                    spec_idx_left + 1,
-                    spec_idx_right + 1,
-                    op,
-                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.clone(),
-                    exec_right.get_desc(),
-                );
-                return Box::new(join);
-            } else {
-                let join = IndexJoin::new(
-                    exec_left,
-                    idx_left,
-                    spec_idx_left + 1,
-                    spec_idx_right + 1,
-                    op,
-                    exec_right.as_nodesearch().unwrap().get_node_search_desc(),
-                    db.node_annos.clone(),
-                    exec_right.get_desc(),
-                );
-                return Box::new(join);
-            }
-        } else if exec_left.as_nodesearch().is_some() {
-            // avoid a nested loop join by switching the operand and using and index join
-            if let Some(inverse_op) = op.get_inverse_operator() {
-                if config.use_parallel_joins {
-                    let join = parallel::indexjoin::IndexJoin::new(
-                        exec_right,
-                        idx_right,
-                        spec_idx_right + 1,
-                        spec_idx_left + 1,
-                        inverse_op,
-                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                        db.node_annos.clone(),
-                        exec_left.get_desc(),
-                    );
-                    return Box::new(join);
-                } else {
-                    let join = IndexJoin::new(
-                        exec_right,
-                        idx_right,
-                        spec_idx_right + 1,
-                        spec_idx_left + 1,
-                        inverse_op,
-                        exec_left.as_nodesearch().unwrap().get_node_search_desc(),
-                        db.node_annos.clone(),
-                        exec_left.get_desc(),
-                    );
-                    return Box::new(join);
-                }
-            }
-        }
-
-        // use nested loop as "fallback"
-        if config.use_parallel_joins {
-            let join = parallel::nestedloop::NestedLoop::new(
-                exec_left,
-                exec_right,
-                idx_left,
-                idx_right,
-                spec_idx_left + 1,
-                spec_idx_right + 1,
-                op,
-            );
-            return Box::new(join);
-        } else {
-            let join = NestedLoop::new(
-                exec_left,
-                exec_right,
-                idx_left,
-                idx_right,
-                spec_idx_left + 1,
-                spec_idx_right + 1,
-                op,
-            );
-            return Box::new(join);
-        }
+        None
     }
 
     fn make_exec_plan_with_order(
@@ -489,7 +486,7 @@ impl<'a> Conjunction<'a> {
                         };
                     // make sure the description is correct
                     let mut node_pos = BTreeMap::new();
-                    node_pos.insert(node_nr.clone(), 0);
+                    node_pos.insert(node_nr, 0);
                     let new_desc = Desc {
                         component_nr: node_nr,
                         lhs: None,
@@ -497,7 +494,7 @@ impl<'a> Conjunction<'a> {
                         node_pos,
                         impl_description: orig_impl_desc,
                         query_fragment: orig_query_frag,
-                        cost: cost,
+                        cost,
                     };
                     node_search.set_desc(Some(new_desc));
 
@@ -520,99 +517,80 @@ impl<'a> Conjunction<'a> {
         }
 
         // 2. add the joins which produce the results in operand order
-        for i in operator_order.into_iter() {
-            let op_entry: &OperatorEntry<'a> = &self.operators[i];
+        for i in operator_order {
+            let op_spec_entry: &OperatorSpecEntry<'a> = &self.operators[i];
 
-            let mut op: Box<Operator> =
-                op_entry
-                    .op
-                    .create_operator(db)
-                    .ok_or(ErrorKind::ImpossibleSearch(format!(
-                        "could not create operator {:?}",
-                        op_entry
-                    )))?;
+            let mut op: Box<Operator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
+                ErrorKind::ImpossibleSearch(format!(
+                    "could not create operator {:?}",
+                    op_spec_entry
+                ))
+            })?;
 
-            let mut spec_idx_left = op_entry.idx_left;
-            let mut spec_idx_right = op_entry.idx_right;
+            let mut spec_idx_left = op_spec_entry.idx_left;
+            let mut spec_idx_right = op_spec_entry.idx_right;
 
             let inverse_op = op.get_inverse_operator();
             if let Some(inverse_op) = inverse_op {
-                if should_switch_operand_order(op_entry, &node2cost) {
-                    spec_idx_left = op_entry.idx_right;
-                    spec_idx_right = op_entry.idx_left;
+                if should_switch_operand_order(op_spec_entry, &node2cost) {
+                    spec_idx_left = op_spec_entry.idx_right;
+                    spec_idx_right = op_spec_entry.idx_left;
 
                     op = inverse_op;
                 }
             }
 
-            let component_left = node2component
+            let op_entry = OperatorEntry {
+                op,
+                node_nr_left: spec_idx_left + 1,
+                node_nr_right: spec_idx_right + 1,
+            };
+
+            let component_left: usize = *(node2component
                 .get(&spec_idx_left)
-                .ok_or(format!("no component for node #{}", spec_idx_left + 1))?
-                .clone();
-            let component_right = node2component
+                .ok_or_else(|| format!("no component for node #{}", spec_idx_left + 1))?);
+            let component_right: usize = *(node2component
                 .get(&spec_idx_right)
-                .ok_or(format!("no component for node #{}", spec_idx_right + 1))?
-                .clone();
+                .ok_or_else(|| format!("no component for node #{}", spec_idx_right + 1))?);
 
             // get the original execution node
-            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> =
-                component2exec.remove(&component_left).ok_or(format!(
-                    "no execution node for component {}",
-                    component_left
-                ))?;
+            let exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+                .remove(&component_left)
+                .ok_or_else(|| format!("no execution node for component {}", component_left))?;
 
-            let idx_left = exec_left
+            let idx_left: usize = *(exec_left
                 .get_desc()
                 .ok_or("Plan description missing")?
                 .node_pos
                 .get(&spec_idx_left)
-                .ok_or("LHS operand not found")?
-                .clone();
+                .ok_or("LHS operand not found")?);
 
             let new_exec: Box<ExecutionNode<Item = Vec<Match>>> =
                 if component_left == component_right {
                     // don't create new tuples, only filter the existing ones
                     // TODO: check if LHS or RHS is better suited as filter input iterator
-                    let idx_right = exec_left
+                    let idx_right: usize = *(exec_left
                         .get_desc()
                         .ok_or("Plan description missing")?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or("RHS operand not found")?
-                        .clone();
+                        .ok_or("RHS operand not found")?);
 
-                    let filter = BinaryFilter::new(
-                        exec_left,
-                        idx_left,
-                        idx_right,
-                        spec_idx_left + 1,
-                        spec_idx_right + 1,
-                        op,
-                    );
+                    let filter = BinaryFilter::new(exec_left, idx_left, idx_right, op_entry);
                     Box::new(filter)
                 } else {
-                    let exec_right = component2exec.remove(&component_right).ok_or(format!(
-                        "no execution node for component {}",
-                        component_right
-                    ))?;
-                    let idx_right = exec_right
+                    let exec_right = component2exec.remove(&component_right).ok_or_else(|| {
+                        format!("no execution node for component {}", component_right)
+                    })?;
+                    let idx_right: usize = *(exec_right
                         .get_desc()
                         .ok_or("Plan description missing")?
                         .node_pos
                         .get(&spec_idx_right)
-                        .ok_or("RHS operand not found")?
-                        .clone();
+                        .ok_or("RHS operand not found")?);
 
-                    self.create_join(
-                        db,
-                        config,
-                        op,
-                        exec_left,
-                        exec_right,
-                        spec_idx_left,
-                        spec_idx_right,
-                        idx_left,
-                        idx_right,
+                    create_join(
+                        db, config, op_entry, exec_left, exec_right, idx_left, idx_right,
                     )
                 };
 
@@ -627,7 +605,7 @@ impl<'a> Conjunction<'a> {
 
         // 3. check if there is only one component left (all nodes are connected)
         let mut first_component_id: Option<usize> = None;
-        for (node_nr, cid) in node2component.iter() {
+        for (node_nr, cid) in &node2component {
             if first_component_id.is_none() {
                 first_component_id = Some(*cid);
             } else if let Some(first) = first_component_id {
@@ -652,14 +630,14 @@ impl<'a> Conjunction<'a> {
             return Err(node_search_errors.remove(0));
         }
 
-        let first_component_id = first_component_id.ok_or(ErrorKind::ImpossibleSearch(
-            String::from("no component in query at all"),
-        ))?;
-        return component2exec.remove(&first_component_id).ok_or(
+        let first_component_id = first_component_id.ok_or_else(|| {
+            ErrorKind::ImpossibleSearch(String::from("no component in query at all"))
+        })?;
+        component2exec.remove(&first_component_id).ok_or_else(|| {
             ErrorKind::ImpossibleSearch(String::from(
                 "could not find execution node for query component",
-            )).into(),
-        );
+            )).into()
+        })
     }
 
     pub fn make_exec_node(
@@ -668,6 +646,6 @@ impl<'a> Conjunction<'a> {
         config: &Config,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let operator_order = self.optimize_join_order_heuristics(db, config)?;
-        return self.make_exec_plan_with_order(db, config, operator_order);
+        self.make_exec_plan_with_order(db, config, operator_order)
     }
 }

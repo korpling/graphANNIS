@@ -82,15 +82,15 @@ where
 
     fn enter_node(
         current_order: &mut OrderT,
-        node_id: &NodeID,
+        node_id: NodeID,
         level: LevelT,
         node_stack: &mut NStack<OrderT, LevelT>,
     ) {
         let new_entry = NodeStackEntry {
-            id: node_id.clone(),
+            id: node_id,
             order: PrePost {
                 pre: current_order.clone(),
-                level: level,
+                level,
                 post: OrderT::zero(),
             },
         };
@@ -106,7 +106,7 @@ where
 
             self.node_to_order
                 .entry(entry.id)
-                .or_insert(Vec::with_capacity(1))
+                .or_insert_with(|| Vec::with_capacity(1))
                 .push(entry.order.clone());
         }
         node_stack.pop_front();
@@ -120,12 +120,12 @@ where
     for<'de> OrderT: NumValue + Deserialize<'de> + Serialize,
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
-    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        return self.find_connected(node, 1, 1);
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        self.find_connected(node, 1, 1)
     }
 
-    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        return self.find_connected_inverse(node, 1, 1);
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
+        self.find_connected_inverse(node, 1, 1)
     }
 
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
@@ -135,13 +135,13 @@ where
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
         let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
             // check if this is actual a source node (and not only a target node)
-            if self.get_outgoing_edges(n).next().is_some() {
-                return Some(n.clone());
+            if self.get_outgoing_edges(*n).next().is_some() {
+                Some(*n)
             } else {
-                return None;
+                None
             }
         });
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
@@ -169,11 +169,11 @@ where
 
     fn find_connected<'a>(
         &'a self,
-        node: &NodeID,
+        node: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_orders) = self.node_to_order.get(node) {
+        if let Some(start_orders) = self.node_to_order.get(&node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
             let it = start_orders
@@ -189,7 +189,7 @@ where
                         .iter()
                         .map(move |order| (root_order.clone(), order))
                 }).filter_map(move |(root, order)| match order {
-                    &OrderVecEntry::Pre {
+                    OrderVecEntry::Pre {
                         ref post,
                         ref level,
                         ref node,
@@ -202,7 +202,7 @@ where
                                 && min_distance <= diff_level
                                 && diff_level <= max_distance
                             {
-                                Some(node.clone())
+                                Some(*node)
                             } else {
                                 None
                             }
@@ -220,11 +220,11 @@ where
 
     fn find_connected_inverse<'a>(
         &'a self,
-        start_node: &NodeID,
+        start_node: NodeID,
         min_distance: usize,
         max_distance: usize,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
-        if let Some(start_orders) = self.node_to_order.get(start_node) {
+        if let Some(start_orders) = self.node_to_order.get(&start_node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
             let it = start_orders
@@ -254,7 +254,7 @@ where
                 }).filter_map(move |(use_post, root, idx, order)| {
                     let (current_pre, current_post, current_level, current_node) = if use_post {
                         match order {
-                            &OrderVecEntry::Post {
+                            OrderVecEntry::Post {
                                 ref pre,
                                 ref level,
                                 ref node,
@@ -263,7 +263,7 @@ where
                         }
                     } else {
                         match order {
-                            &OrderVecEntry::Pre {
+                            OrderVecEntry::Pre {
                                 ref post,
                                 ref level,
                                 ref node,
@@ -295,7 +295,7 @@ where
                             && min_distance <= diff_level
                             && diff_level <= max_distance
                         {
-                            Some(current_node.clone())
+                            Some(*current_node)
                         } else {
                             None
                         }
@@ -341,9 +341,9 @@ where
         }
 
         if was_found {
-            return Some(min_level);
+            Some(min_level)
         } else {
-            return None;
+            None
         }
     }
     fn is_connected(
@@ -376,7 +376,7 @@ where
             }
         }
 
-        return false;
+        false
     }
 
     fn copy(&mut self, db: &Graph, orig: &EdgeContainer) {
@@ -396,7 +396,7 @@ where
             let m: Match = m;
             let n = m.node;
             // insert all nodes to the root candidate list which are part of this component
-            if orig.get_outgoing_edges(&n).next().is_some() {
+            if orig.get_outgoing_edges(n).next().is_some() {
                 roots.insert(n);
             }
         }
@@ -409,7 +409,7 @@ where
 
             let source = m.node;
 
-            let out_edges = orig.get_outgoing_edges(&source);
+            let out_edges = orig.get_outgoing_edges(source);
             for target in out_edges {
                 // remove the nodes that have an incoming edge from the root list
                 roots.remove(&target);
@@ -417,7 +417,7 @@ where
                 // add the edge annotations for this edge
                 let e = Edge { source, target };
                 let edge_annos = orig.get_anno_storage().get_annotations_for_item(&e);
-                for a in edge_annos.into_iter() {
+                for a in edge_annos {
                     self.annos.insert(e.clone(), a);
                 }
             }
@@ -425,19 +425,19 @@ where
 
         let mut current_order = OrderT::zero();
         // traverse the graph for each sub-component
-        for start_node in roots.iter() {
+        for start_node in &roots {
             let mut last_distance: usize = 0;
 
             let mut node_stack: NStack<OrderT, LevelT> = NStack::new();
 
             PrePostOrderStorage::enter_node(
                 &mut current_order,
-                start_node,
+                *start_node,
                 LevelT::zero(),
                 &mut node_stack,
             );
 
-            let dfs = CycleSafeDFS::new(orig, start_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig, *start_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
                 if step.distance > last_distance {
@@ -445,7 +445,7 @@ where
                     if let Some(dist) = LevelT::from_usize(step.distance) {
                         PrePostOrderStorage::enter_node(
                             &mut current_order,
-                            &step.node,
+                            step.node,
                             dist,
                             &mut node_stack,
                         );
@@ -463,7 +463,7 @@ where
                     if let Some(dist) = LevelT::from_usize(step.distance) {
                         PrePostOrderStorage::enter_node(
                             &mut current_order,
-                            &step.node,
+                            step.node,
                             dist,
                             &mut node_stack,
                         );
@@ -480,20 +480,20 @@ where
         // there must be an entry in the vector for all possible order values
         self.order_to_node
             .resize(current_order.to_usize().unwrap_or(0), OrderVecEntry::None);
-        for (node, orders_for_node) in self.node_to_order.iter() {
-            for order in orders_for_node.iter() {
+        for (node, orders_for_node) in &self.node_to_order {
+            for order in orders_for_node {
                 if let Some(pre) = order.pre.to_usize() {
                     self.order_to_node[pre] = OrderVecEntry::Pre {
                         post: order.post.clone(),
                         level: order.level.clone(),
-                        node: node.clone(),
+                        node: *node,
                     };
                 }
                 if let Some(post) = order.post.to_usize() {
                     self.order_to_node[post] = OrderVecEntry::Post {
                         pre: order.pre.clone(),
                         level: order.level.clone(),
-                        node: node.clone(),
+                        node: *node,
                     };
                 }
             }
