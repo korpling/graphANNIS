@@ -107,7 +107,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let anno = self.create_sparse_anno(anno);
 
         let existing_anno = {
-            let existing_item_entry = self.by_container.entry(item.clone()).or_insert_with(|| Vec::new());
+            let existing_item_entry = self.by_container.entry(item.clone()).or_insert_with(Vec::new);
 
             // check if there is already an item with the same annotation key
             let existing_entry_idx =
@@ -140,9 +140,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         // if set is not existing yet it is created
         self.by_anno
             .entry(anno.key)
-            .or_insert_with(|| FxHashMap::default())
+            .or_insert_with(FxHashMap::default)
             .entry(anno.val)
-            .or_insert_with(|| Vec::default())
+            .or_insert_with(Vec::default)
             .push(item.clone());
 
         if existing_anno.is_none() {
@@ -584,7 +584,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     let hist = self
                         .histogram_bounds
                         .entry(anno_key)
-                        .or_insert_with(|| std::vec::Vec::new());
+                        .or_insert_with(std::vec::Vec::new);
 
                     if num_hist_bounds >= 2 {
                         hist.resize(num_hist_bounds, String::from(""));

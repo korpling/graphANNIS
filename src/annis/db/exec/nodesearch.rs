@@ -53,9 +53,9 @@ impl NodeSearchSpec {
         is_meta: bool,
     ) -> NodeSearchSpec {
         NodeSearchSpec::ExactValue {
-            ns: ns.map(|v| String::from(v)),
+            ns: ns.map(String::from),
             name: String::from(name),
-            val: val.map(|v| String::from(v)),
+            val: val.map(String::from),
             is_meta,
         }
     }
