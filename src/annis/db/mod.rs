@@ -165,7 +165,7 @@ impl MallocSizeOf for Graph {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size = self.node_annos.size_of(ops);
 
-        for c in &self.components.keys() {
+        for c in self.components.keys() {
             // TODO: overhead by map is not measured
             size += c.size_of(ops);
             let gs_size = if let Some(gs) = self.get_graphstorage_as_ref(c) {
