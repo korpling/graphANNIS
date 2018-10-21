@@ -425,7 +425,7 @@ impl OperatorSpec for PointingSpec {
         db.get_all_components(Some(ComponentType::Pointing), Some(&self.name))
     }
 
-    fn create_operator<'b>(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")

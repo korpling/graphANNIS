@@ -61,7 +61,7 @@ fn update_components_for_nodes(
     }
 }
 
-fn should_switch_operand_order<'a>(
+fn should_switch_operand_order(
     op_entry: &OperatorEntry,
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
