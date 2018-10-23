@@ -111,7 +111,7 @@ struct AnnisRunner {
 impl AnnisRunner {
     pub fn new(data_dir: &Path) -> Result<AnnisRunner> {
         Ok(AnnisRunner {
-            storage: Some(CorpusStorage::with_auto_cache_size(data_dir, false)?),
+            storage: Some(CorpusStorage::with_auto_cache_size(data_dir, true)?),
             current_corpus: None,
             data_dir: PathBuf::from(data_dir),
             use_parallel_joins: true,
