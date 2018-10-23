@@ -13,6 +13,7 @@ use serde;
 use std;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
+use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::string::ToString;
@@ -613,7 +614,7 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(&source, &target, 1, 1) {
+                            if gs.is_connected(&source, &target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
                                         ns: anno_ns,
@@ -648,7 +649,7 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(&source, &target, 1, 1) {
+                            if gs.is_connected(&source, &target, 1, Included(1)) {
                                 let key = AnnoKey {
                                     ns: anno_ns,
                                     name: anno_name,
@@ -790,7 +791,7 @@ impl Graph {
 
     fn calculate_component_statistics(&mut self, c: &Component) -> Result<()> {
         self.reset_cached_size();
-        
+
         let mut result: Result<()> = Ok(());
         let mut entry = self
             .components
@@ -812,7 +813,6 @@ impl Graph {
     }
 
     fn get_or_create_writable(&mut self, c: &Component) -> Result<&mut WriteableGraphStorage> {
-
         self.reset_cached_size();
 
         if self.components.contains_key(c) {
@@ -1027,7 +1027,7 @@ impl Graph {
 
     pub fn size_of_cached(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut lock = self.cached_size.lock().unwrap();
-        let cached_size : &mut Option<usize> = &mut * lock;
+        let cached_size: &mut Option<usize> = &mut *lock;
         if let Some(cached) = cached_size {
             return *cached;
         }
@@ -1038,7 +1038,7 @@ impl Graph {
 
     fn reset_cached_size(&self) {
         let mut lock = self.cached_size.lock().unwrap();
-        let cached_size : &mut Option<usize> = &mut * lock;
+        let cached_size: &mut Option<usize> = &mut *lock;
         *cached_size = None;
     }
 }

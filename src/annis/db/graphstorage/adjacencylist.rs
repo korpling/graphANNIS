@@ -6,6 +6,7 @@ use annis::types::Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;
+use std::ops::Bound;
 
 use bincode;
 
@@ -96,9 +97,14 @@ impl GraphStorage for AdjacencyListStorage {
         &'a self,
         node: NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: Bound<usize>,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
+        let max_distance = match max_distance {
+            Bound::Unbounded => usize::max_value(),
+            Bound::Included(max_distance) => max_distance,
+            Bound::Excluded(max_distance) => max_distance + 1,
+        };
         let it = CycleSafeDFS::<'a>::new(self, node, min_distance, max_distance)
             .map(|x| x.node)
             .filter(move |n| visited.insert(n.clone()));
@@ -109,9 +115,15 @@ impl GraphStorage for AdjacencyListStorage {
         &'a self,
         node: NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: Bound<usize>,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         let mut visited = FxHashSet::<NodeID>::default();
+        let max_distance = match max_distance {
+            Bound::Unbounded => usize::max_value(),
+            Bound::Included(max_distance) => max_distance,
+            Bound::Excluded(max_distance) => max_distance + 1,
+        };
+
         let it = CycleSafeDFS::<'a>::new_inverse(self, node, min_distance, max_distance)
             .map(|x| x.node)
             .filter(move |n| visited.insert(n.clone()));
@@ -130,8 +142,13 @@ impl GraphStorage for AdjacencyListStorage {
         source: &NodeID,
         target: &NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> bool {
+        let max_distance = match max_distance {
+            Bound::Unbounded => usize::max_value(),
+            Bound::Included(max_distance) => max_distance,
+            Bound::Excluded(max_distance) => max_distance + 1,
+        };
         let mut it = CycleSafeDFS::new(self, *source, min_distance, max_distance)
             .filter(|x| *target == x.node);
 
@@ -431,19 +448,19 @@ mod tests {
         assert_eq!(0, gs.get_outgoing_edges(6).count());
         assert_eq!(vec![4], gs.get_outgoing_edges(2).collect::<Vec<NodeID>>());
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(1, 1, 100).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(1, 1, Bound::Included(100)).collect();
         reachable.sort();
         assert_eq!(vec![2, 3, 4, 5, 6, 7], reachable);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(3, 2, 100).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(3, 2, Bound::Included(100)).collect();
         reachable.sort();
         assert_eq!(vec![6, 7], reachable);
 
-        let mut reachable: Vec<NodeID> = gs.find_connected(1, 2, 4).collect();
+        let mut reachable: Vec<NodeID> = gs.find_connected(1, 2, Bound::Included(4)).collect();
         reachable.sort();
         assert_eq!(vec![4, 5, 6, 7], reachable);
 
-        let reachable: Vec<NodeID> = gs.find_connected(7, 1, 100).collect();
+        let reachable: Vec<NodeID> = gs.find_connected(7, 1, Bound::Included(100)).collect();
         assert_eq!(true, reachable.is_empty());
     }
 

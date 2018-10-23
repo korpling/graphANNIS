@@ -1,7 +1,14 @@
-fn format_range(min_dist: usize, max_dist: usize) -> String {
-    if min_dist == 1 && max_dist == usize::max_value() {
-        String::from("*")
-    } else if min_dist == 1 && max_dist == 1 {
+use std;
+
+
+fn format_range(min_dist: usize, max_dist: std::ops::Bound<usize>) -> String {
+    let max_dist = match max_dist {
+        std::ops::Bound::Unbounded => {return String::from("*");},
+        std::ops::Bound::Included(max_dist) => max_dist,
+        std::ops::Bound::Excluded(max_dist) => max_dist - 1,
+    };
+
+    if min_dist == 1 && max_dist == 1 {
         String::from("")
     } else {
         format!("{},{}", min_dist, max_dist)

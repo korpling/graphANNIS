@@ -14,7 +14,7 @@ use std::sync::Arc;
 pub struct PrecedenceSpec {
     pub segmentation: Option<String>,
     pub min_dist: usize,
-    pub max_dist: usize,
+    pub max_dist: std::ops::Bound<usize>,
 }
 
 pub struct Precedence {
@@ -163,7 +163,12 @@ impl Operator for Precedence {
 
     fn estimation_type(&self) -> EstimationType {
         if let Some(stats_order) = self.gs_order.get_statistics() {
-            let max_possible_dist = std::cmp::min(self.spec.max_dist, stats_order.max_depth);
+            let max_dist = match self.spec.max_dist {
+                std::ops::Bound::Unbounded => usize::max_value(),
+                std::ops::Bound::Included(max_dist) => max_dist,
+                std::ops::Bound::Excluded(max_dist) => max_dist - 1,
+            };
+            let max_possible_dist = std::cmp::min(max_dist, stats_order.max_depth);
             let num_of_descendants = max_possible_dist - self.spec.min_dist + 1;
 
             return EstimationType::SELECTIVITY(
@@ -269,7 +274,12 @@ impl Operator for InversePrecedence {
 
     fn estimation_type(&self) -> EstimationType {
         if let Some(stats_order) = self.gs_order.get_statistics() {
-            let max_possible_dist = std::cmp::min(self.spec.max_dist, stats_order.max_depth);
+            let max_dist = match self.spec.max_dist {
+                std::ops::Bound::Unbounded => usize::max_value(),
+                std::ops::Bound::Included(max_dist) => max_dist,
+                std::ops::Bound::Excluded(max_dist) => max_dist - 1,
+            };
+            let max_possible_dist = std::cmp::min(max_dist, stats_order.max_depth);
             let num_of_descendants = max_possible_dist - self.spec.min_dist + 1;
 
             return EstimationType::SELECTIVITY(

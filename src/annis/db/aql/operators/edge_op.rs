@@ -14,7 +14,7 @@ use std::sync::Arc;
 struct BaseEdgeOpSpec {
     pub components: Vec<Component>,
     pub min_dist: usize,
-    pub max_dist: usize,
+    pub max_dist: std::ops::Bound<usize>,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
     pub is_reflexive: bool,
     pub op_str: Option<String>,
@@ -310,7 +310,12 @@ impl Operator for BaseEdgeOp {
                     return EstimationType::SELECTIVITY(1.0);
                 }
                 // get number of nodes reachable from min to max distance
-                let max_path_length = std::cmp::min(self.spec.max_dist, stats.max_depth) as i32;
+                let max_dist = match self.spec.max_dist {
+                    std::ops::Bound::Unbounded => usize::max_value(),
+                    std::ops::Bound::Included(max_dist) => max_dist,
+                    std::ops::Bound::Excluded(max_dist) => max_dist - 1,
+                };
+                let max_path_length = std::cmp::min(max_dist, stats.max_depth) as i32;
                 let min_path_length = std::cmp::max(0, self.spec.min_dist - 1) as i32;
 
                 if stats.avg_fan_out > 1.0 {
@@ -384,7 +389,7 @@ impl Operator for BaseEdgeOp {
 pub struct DominanceSpec {
     pub name: String,
     pub min_dist: usize,
-    pub max_dist: usize,
+    pub max_dist: std::ops::Bound<usize>,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
@@ -416,7 +421,7 @@ impl OperatorSpec for DominanceSpec {
 pub struct PointingSpec {
     pub name: String,
     pub min_dist: usize,
-    pub max_dist: usize,
+    pub max_dist: std::ops::Bound<usize>,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
@@ -448,7 +453,7 @@ impl OperatorSpec for PointingSpec {
 #[derive(Debug, Clone)]
 pub struct PartOfSubCorpusSpec {
     pub min_dist: usize,
-    pub max_dist: usize,
+    pub max_dist: std::ops::Bound<usize>,
 }
 
 impl OperatorSpec for PartOfSubCorpusSpec {

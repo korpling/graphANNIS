@@ -1,4 +1,5 @@
 use std::*;
+use std::ops::Bound::*;
 use super::ast;
 use std::rc::Rc;
 use annis::operator::EdgeAnnoSearchSpec;
@@ -207,7 +208,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         ast::BinaryOpSpec::Dominance(DominanceSpec {
             name,
             min_dist: 1,
-            max_dist: 1,
+            max_dist: Included(1),
             edge_anno: Some(anno),
         })
     },
@@ -225,7 +226,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
             ast::BinaryOpSpec::Dominance(DominanceSpec {
                 name,
                 min_dist: 1,
-                max_dist: 1,
+                max_dist: Included(1),
                 edge_anno: None,
             })
         }
@@ -236,7 +237,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         ast::BinaryOpSpec::Pointing(PointingSpec {
             name,
             min_dist: 1,
-            max_dist: 1,
+            max_dist: Included(1),
             edge_anno: Some(anno),
         })
     },
@@ -254,7 +255,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
             ast::BinaryOpSpec::Pointing(PointingSpec {
                 name,
                 min_dist: 1,
-                max_dist: 1,
+                max_dist: Included(1),
                 edge_anno: None,
             })
         }
@@ -277,7 +278,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
             ast::BinaryOpSpec::Precedence(PrecedenceSpec {
                 segmentation,
                 min_dist: 1,
-                max_dist: 1,
+                max_dist: Included(1),
             })
         }
     },
@@ -291,7 +292,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         } else {
             ast::BinaryOpSpec::PartOfSubCorpus(PartOfSubCorpusSpec {
                 min_dist: 1,
-                max_dist: 1,
+                max_dist: Included(1),
             })
         }
     },
@@ -341,15 +342,15 @@ EdgeAnno: EdgeAnnoSearchSpec = {
 RangeSpec: ast::RangeSpec = {
     (",")? <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec {
         min_dist: min.parse().unwrap_or_default(), 
-        max_dist: max.parse().unwrap_or_default(),
+        max_dist: Included(max.parse().unwrap_or_default()),
     },
     (",")? <exact:DIGITS> => ast::RangeSpec {
         min_dist: exact.parse().unwrap_or_default(), 
-        max_dist: exact.parse().unwrap_or_default(),
+        max_dist: Included(exact.parse().unwrap_or_default()),
     },
     "*" => ast::RangeSpec {
         min_dist: 1, 
-        max_dist: usize::max_value(),
+        max_dist: Unbounded,
     }  
     
 }

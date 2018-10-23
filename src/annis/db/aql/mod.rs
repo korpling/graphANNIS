@@ -1,6 +1,8 @@
 mod ast;
 mod normalize;
 pub mod operators;
+use std;
+
 lalrpop_mod!(
     #[allow(clippy)]
     parser
@@ -115,7 +117,7 @@ fn map_conjunction<'a>(
                 q.add_operator(
                     Box::new(PartOfSubCorpusSpec {
                         min_dist: 1,
-                        max_dist: usize::max_value(),
+                        max_dist: std::ops::Bound::Unbounded,
                     }),
                     &first_node_pos,
                     &meta_node_idx,

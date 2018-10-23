@@ -101,5 +101,5 @@ pub enum BinaryOpSpec {
 #[derive(Debug, Clone)]
 pub struct RangeSpec {
     pub min_dist: usize,
-    pub max_dist: usize,
+    pub max_dist: std::ops::Bound<usize>,
 }
