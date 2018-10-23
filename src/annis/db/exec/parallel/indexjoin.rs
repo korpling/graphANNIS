@@ -71,7 +71,7 @@ impl<'a> IndexJoin<'a> {
                 op_entry.op.as_ref(),
                 lhs_desc.as_ref(),
                 rhs_desc,
-                "indexjoin",
+                "indexjoin (parallel)",
                 &format!("#{} {} #{}", op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right),
                 &processed_func,
             ),
