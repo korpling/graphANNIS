@@ -139,7 +139,7 @@ where
 
                     // clip to chain length
                     let max_distance = std::cmp::min(chain.len(), max_distance + 1);
-                    if min_distance < chain.len() {
+                    if min_distance < chain.len() && min_distance < max_distance {
                         // return all entries in the chain between min_distance..max_distance
                         return Box::new(chain[min_distance..max_distance].iter().cloned());
                     }
