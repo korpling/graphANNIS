@@ -4,6 +4,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std;
 use std::clone::Clone;
+use std::ops::Bound::*;
 
 use super::{GraphStatistic, GraphStorage};
 use annis::db::annostorage::AnnoStorage;
@@ -121,11 +122,11 @@ where
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
     fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        self.find_connected(node, 1, 1)
+        self.find_connected(node, 1, Included(1))
     }
 
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        self.find_connected_inverse(node, 1, 1)
+        self.find_connected_inverse(node, 1, Included(1))
     }
 
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
@@ -171,10 +172,16 @@ where
         &'a self,
         node: NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(&node) {
             let mut visited = FxHashSet::<NodeID>::default();
+
+            let max_distance = match max_distance {
+                Unbounded => usize::max_value(),
+                Included(max_distance) => max_distance,
+                Excluded(max_distance) => max_distance - 1,
+            };
 
             let it = start_orders
                 .into_iter()
@@ -222,10 +229,16 @@ where
         &'a self,
         start_node: NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(start_orders) = self.node_to_order.get(&start_node) {
             let mut visited = FxHashSet::<NodeID>::default();
+
+             let max_distance = match max_distance {
+                Unbounded => usize::max_value(),
+                Included(max_distance) => max_distance,
+                Excluded(max_distance) => max_distance - 1,
+            };
 
             let it = start_orders
                 .into_iter()
@@ -351,12 +364,19 @@ where
         source: &NodeID,
         target: &NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> bool {
         if let (Some(order_source), Some(order_target)) = (
             self.node_to_order.get(source),
             self.node_to_order.get(target),
         ) {
+
+             let max_distance = match max_distance {
+                Unbounded => usize::max_value(),
+                Included(max_distance) => max_distance,
+                Excluded(max_distance) => max_distance - 1,
+            };
+
             for order_source in order_source.iter() {
                 for order_target in order_target.iter() {
                     if order_source.pre <= order_target.pre

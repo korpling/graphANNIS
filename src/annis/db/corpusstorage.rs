@@ -27,6 +27,8 @@ use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::iter::FromIterator;
+use std::ops::Bound::Included;
+use std::ops::Bound::Unbounded;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -859,7 +861,8 @@ impl CorpusStorage {
                 {
                     let node_name: &str = node_name;
                     // extract the document path from the node name
-                    let doc_path = &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
+                    let doc_path =
+                        &node_name[0..node_name.rfind('#').unwrap_or_else(|| node_name.len())];
                     known_documents.insert(doc_path.to_owned());
                 }
             }
@@ -1059,7 +1062,7 @@ impl CorpusStorage {
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
-                        max_dist: ctx_left,
+                        max_dist: Included(ctx_left),
                     }),
                     &tok_precedence_idx,
                     &tok_covered_idx,
@@ -1099,7 +1102,7 @@ impl CorpusStorage {
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
-                        max_dist: ctx_left,
+                        max_dist: Included(ctx_left),
                     }),
                     &tok_precedence_idx,
                     &tok_covered_idx,
@@ -1135,7 +1138,7 @@ impl CorpusStorage {
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
-                        max_dist: ctx_right,
+                        max_dist: Included(ctx_right),
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
@@ -1175,7 +1178,7 @@ impl CorpusStorage {
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         min_dist: 0,
-                        max_dist: ctx_right,
+                        max_dist: Included(ctx_right),
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
@@ -1205,7 +1208,7 @@ impl CorpusStorage {
             max_alt_size = std::cmp::max(max_alt_size, alt.num_of_nodes());
         }
 
-        let match_idx : Vec<usize> = (0..max_alt_size).collect();
+        let match_idx: Vec<usize> = (0..max_alt_size).collect();
 
         extract_subgraph_by_query(
             &prep.db_entry.clone(),
@@ -1247,7 +1250,7 @@ impl CorpusStorage {
             q.add_operator(
                 Box::new(operators::PartOfSubCorpusSpec {
                     min_dist: 1,
-                    max_dist: usize::max_value(),
+                    max_dist: Unbounded,
                 }),
                 &any_node_idx,
                 &corpus_idx,
@@ -1778,13 +1781,10 @@ fn create_subgraph_edge(
                     new_gs.add_edge(e.clone());
                 }
 
-                for a in orig_gs
-                    .get_anno_storage()
-                    .get_annotations_for_item(&Edge {
-                        source: source_id,
-                        target,
-                    })
-                {
+                for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
+                    source: source_id,
+                    target,
+                }) {
                     if let Ok(new_gs) = db.get_or_create_writable(&c) {
                         new_gs.add_edge_annotation(e.clone(), a);
                     }

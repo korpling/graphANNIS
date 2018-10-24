@@ -108,7 +108,7 @@ impl Operator for Inclusion {
                 // find each token which is between the left and right border
                 let result: VecDeque<Match> = self
                     .gs_order
-                    .find_connected(start_lhs, 0, l)
+                    .find_connected(start_lhs, 0, std::ops::Bound::Included(l))
                     .flat_map(move |t| {
                         let it_aligned = self.gs_left.get_outgoing_edges(t).into_iter().filter(
                             move |n| {
@@ -117,7 +117,7 @@ impl Operator for Inclusion {
                                 if let Some(end_n) = end_n.next() {
                                     // path between right-most tokens exists in ORDERING component
                                     // and has maximum length l
-                                    self.gs_order.is_connected(&end_n, &end_lhs, 0, l)
+                                    self.gs_order.is_connected(&end_n, &end_lhs, 0, std::ops::Bound::Included(l))
                                 } else {
                                     false
                                 }
@@ -148,9 +148,9 @@ impl Operator for Inclusion {
             // span length of LHS
             if let Some(l) = self.gs_order.distance(&start_lhs, &end_lhs) {
                 // path between left-most tokens exists in ORDERING component and has maximum length l
-                if self.gs_order.is_connected(&start_lhs, &start_rhs, 0, l)
+                if self.gs_order.is_connected(&start_lhs, &start_rhs, 0, std::ops::Bound::Included(l))
                 // path between right-most tokens exists in ORDERING component and has maximum length l
-                && self.gs_order.is_connected(&end_rhs, &end_lhs, 0, l)
+                && self.gs_order.is_connected(&end_rhs, &end_lhs, 0, std::ops::Bound::Included(l))
                 {
                     return true;
                 }

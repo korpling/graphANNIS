@@ -140,7 +140,11 @@ fn create_join<'b>(
                 let join = IndexJoin::new(
                     exec_right,
                     idx_right,
-                    op_entry,
+                    OperatorEntry {
+                        node_nr_left: op_entry.node_nr_right,
+                        node_nr_right: op_entry.node_nr_left,
+                        op: inverse_op,
+                    },
                     exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                     db.node_annos.clone(),
                     exec_left.get_desc(),

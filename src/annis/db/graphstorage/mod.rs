@@ -60,7 +60,7 @@ pub trait GraphStorage: EdgeContainer {
         &'a self,
         node: NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> Box<Iterator<Item = NodeID> + 'a>;
 
     /// Find all nodes reachable from a given start node inside the component, when the directed edges are inversed.
@@ -68,7 +68,7 @@ pub trait GraphStorage: EdgeContainer {
         &'a self,
         node: NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> Box<Iterator<Item = NodeID> + 'a>;
 
     /// Compute the distance (shortest path length) of two nodes inside this component.
@@ -80,7 +80,7 @@ pub trait GraphStorage: EdgeContainer {
         source: &NodeID,
         target: &NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> bool;
 
     /// Copy the content of another component.
