@@ -253,17 +253,20 @@ impl<'a> Conjunction<'a> {
         location: Option<LineColumnRange>,
     ) -> Result<()> {
         //let original_order = self.operators.len();
-        if let (Some(idx_left), Some(idx_right)) =
-            (self.variables.get(var_left), self.variables.get(var_right))
-        {
-            self.operators.push(OperatorSpecEntry {
-                op,
-                idx_left: *idx_left,
-                idx_right: *idx_right,
-            });
-            return Ok(());
+        if let Some(idx_left) = self.variables.get(var_left) {
+            if let Some(idx_right) = self.variables.get(var_right)
+            {
+                self.operators.push(OperatorSpecEntry {
+                    op,
+                    idx_left: *idx_left,
+                    idx_right: *idx_right,
+                });
+                return Ok(());
+            } else {
+                return Err(ErrorKind::AQLSemanticError(format!("Operand '#{}' not found", var_right).into(), location).into());
+            }
         } else {
-            return Err(ErrorKind::AQLSemanticError("Operand not found".into(), location).into());
+            return Err(ErrorKind::AQLSemanticError(format!("Operand '#{}' not found", var_left).into(), location).into());
         }
     }
 
