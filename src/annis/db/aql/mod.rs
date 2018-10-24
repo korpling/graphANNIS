@@ -2,6 +2,7 @@ mod ast;
 mod normalize;
 pub mod operators;
 use std;
+use std::ops::Bound::Included;
 
 lalrpop_mod!(
     #[allow(clippy)]
@@ -24,6 +25,7 @@ fn map_conjunction<'a>(
     c: ast::Conjunction,
     offsets: &BTreeMap<usize, usize>,
     var_idx_offset: usize,
+    quirks_mode: bool,
 ) -> Result<Conjunction<'a>> {
     let mut q = Conjunction::with_offset(var_idx_offset);
     // collect and sort all node searches according to their start position in the text
@@ -147,7 +149,7 @@ fn map_conjunction<'a>(
 
     for f in c {
         if let ast::Factor::Literal(literal) = f {
-            if let ast::Literal::BinaryOp { lhs, op, rhs, pos } = literal {
+            if let ast::Literal::BinaryOp { lhs, mut op, rhs, pos } = literal {
                 let idx_left = match lhs {
                     ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
                         .entry(pos.start)
@@ -179,6 +181,16 @@ fn map_conjunction<'a>(
                     None
                 };
 
+                if quirks_mode {
+                    if let ast::BinaryOpSpec::Precedence(ref mut spec) = op {
+                        // limit unspecified .* precedence to 50
+                        spec.max_dist = if let std::ops::Bound::Unbounded = spec.max_dist {
+                            Included(50)
+                        } else {
+                            spec.max_dist
+                        }
+                    }
+                }
                 q.add_operator_from_query(make_operator_spec(op), &idx_left, &idx_right, op_pos)?;
             }
         }
@@ -187,7 +199,7 @@ fn map_conjunction<'a>(
     Ok(q)
 }
 
-pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
+pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a>> {
     let ast = parser::DisjunctionParser::new().parse(query_as_aql);
     match ast {
         Ok(mut ast) => {
@@ -201,7 +213,7 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
             let mut var_idx_offset = 0;
             for c in ast {
                 // add the conjunction to the disjunction
-                let mapped = map_conjunction(c, &offsets, var_idx_offset)?;
+                let mapped = map_conjunction(c, &offsets, var_idx_offset, quirks_mode)?;
                 var_idx_offset += mapped.num_of_nodes();
                 alternatives.push(mapped);
             }

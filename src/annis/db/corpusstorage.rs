@@ -199,6 +199,8 @@ impl FromStr for FrequencyDefEntry {
 #[derive(Clone, Copy)]
 pub enum QueryLanguage {
     AQL,
+    /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3 
+    AQLQuirksV3,
 }
 
 /// An enum of all supported input formats of graphANNIS.
@@ -691,7 +693,8 @@ impl CorpusStorage {
             let db = get_read_or_error(&lock)?;
 
             let q = match query_language {
-                QueryLanguage::AQL => aql::parse(query)?,
+                QueryLanguage::AQL => aql::parse(query, false)?,
+                QueryLanguage::AQLQuirksV3 => aql::parse(query, true)?,
             };
 
             let necessary_components = q.necessary_components(db);
@@ -1369,8 +1372,10 @@ impl CorpusStorage {
         let mut result = Vec::new();
         // parse query
         let q: Disjunction = match query_language {
-            QueryLanguage::AQL => aql::parse(query)?,
+            QueryLanguage::AQL => aql::parse(query, false)?,
+            QueryLanguage::AQLQuirksV3 => aql::parse(query, true)?,
         };
+
         let mut component_nr = 0;
         for alt in q.alternatives {
             let alt: Conjunction = alt;

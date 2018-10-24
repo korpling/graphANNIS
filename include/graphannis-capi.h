@@ -15,7 +15,7 @@ limitations under the License.s
 #ifndef graphannis_capi_h
 #define graphannis_capi_h
 
-/* Generated with cbindgen:0.6.1 */
+/* Generated with cbindgen:0.6.4 */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -86,6 +86,10 @@ typedef enum {
  */
 typedef enum {
   AQL,
+  /*
+   * Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
+   */
+  AQLQuirksV3,
 } AnnisQueryLanguage;
 
 /*
