@@ -42,6 +42,7 @@ pub struct Conjunction<'a> {
     operators: Vec<OperatorSpecEntry<'a>>,
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
+    var_idx_offset: usize,
 }
 
 fn update_components_for_nodes(
@@ -187,6 +188,17 @@ impl<'a> Conjunction<'a> {
             operators: vec![],
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
+            var_idx_offset: 0,
+        }
+    }
+
+    pub fn with_offset(var_idx_offset: usize) -> Conjunction<'a> {
+        Conjunction {
+            nodes: vec![],
+            operators: vec![],
+            variables: HashMap::default(),
+            location_in_query: HashMap::default(),
+            var_idx_offset: var_idx_offset,
         }
     }
 
@@ -223,7 +235,7 @@ impl<'a> Conjunction<'a> {
         variable: Option<&str>,
         location: Option<LineColumnRange>,
     ) -> String {
-        let idx = self.nodes.len();
+        let idx = self.var_idx_offset + self.nodes.len();
         let variable = if let Some(variable) = variable {
             variable.to_string()
         } else {
@@ -254,8 +266,7 @@ impl<'a> Conjunction<'a> {
     ) -> Result<()> {
         //let original_order = self.operators.len();
         if let Some(idx_left) = self.variables.get(var_left) {
-            if let Some(idx_right) = self.variables.get(var_right)
-            {
+            if let Some(idx_right) = self.variables.get(var_right) {
                 self.operators.push(OperatorSpecEntry {
                     op,
                     idx_left: *idx_left,
@@ -263,10 +274,16 @@ impl<'a> Conjunction<'a> {
                 });
                 return Ok(());
             } else {
-                return Err(ErrorKind::AQLSemanticError(format!("Operand '#{}' not found", var_right).into(), location).into());
+                return Err(ErrorKind::AQLSemanticError(
+                    format!("Operand '#{}' not found", var_right).into(),
+                    location,
+                ).into());
             }
         } else {
-            return Err(ErrorKind::AQLSemanticError(format!("Operand '#{}' not found", var_left).into(), location).into());
+            return Err(ErrorKind::AQLSemanticError(
+                format!("Operand '#{}' not found", var_left).into(),
+                location,
+            ).into());
         }
     }
 
@@ -546,6 +563,10 @@ impl<'a> Conjunction<'a> {
                     op = inverse_op;
                 }
             }
+
+            // substract the offset from the specificated numbers to get the internal node number for this conjunction
+            spec_idx_left -= self.var_idx_offset;
+            spec_idx_right -= self.var_idx_offset;
 
             let op_entry = OperatorEntry {
                 op,

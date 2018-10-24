@@ -23,8 +23,9 @@ use std::collections::HashMap;
 fn map_conjunction<'a>(
     c: ast::Conjunction,
     offsets: &BTreeMap<usize, usize>,
+    var_idx_offset: usize,
 ) -> Result<Conjunction<'a>> {
-    let mut q = Conjunction::new();
+    let mut q = Conjunction::with_offset(var_idx_offset);
     // collect and sort all node searches according to their start position in the text
     let mut pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)> = BTreeMap::default();
 
@@ -197,9 +198,12 @@ pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
 
             // map all conjunctions and its literals
             let mut alternatives: Vec<Conjunction> = Vec::new();
+            let mut var_idx_offset = 0;
             for c in ast {
                 // add the conjunction to the disjunction
-                alternatives.push(map_conjunction(c, &offsets)?);
+                let mapped = map_conjunction(c, &offsets, var_idx_offset)?;
+                var_idx_offset += mapped.num_of_nodes();
+                alternatives.push(mapped);
             }
             Ok(Disjunction::new(alternatives))
         }
