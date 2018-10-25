@@ -48,7 +48,7 @@ fn search_test_base(corpus : &str, panic_on_invalid : bool) {
                     let mut d = get_query_dir();
                     d.push(corpus);
                     for def in util::get_queries_from_folder(&d, panic_on_invalid) {
-                        let count = cs.count(corpus, &def.aql, QueryLanguage::AQL).unwrap_or(0);
+                        let count = cs.count(corpus, &def.aql, QueryLanguage::AQLQuirksV3).unwrap_or(0);
                         assert_eq!(
                             def.count, count,
                             "Query '{}' ({}) on corpus {} should have had count {} but was {}.",

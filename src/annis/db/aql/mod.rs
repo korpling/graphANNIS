@@ -101,55 +101,19 @@ fn map_conjunction<'a>(
     }
 
     // add all legacy meta searches
-    {
-        let mut first_meta_idx: Option<String> = None;
-        // TODO: add warning to the user not to use this construct anymore
-        for (spec, _pos) in legacy_meta_search {
-            // add an artificial node that describes the document/corpus node
-            let meta_node_idx = q.add_node(spec, None);
-            if let Some(first_meta_idx) = first_meta_idx.clone() {
-                // avoid nested loops by joining additional meta nodes with a "identical node"
-                q.add_operator(
-                    Box::new(IdenticalNodeSpec {}),
-                    &first_meta_idx,
-                    &meta_node_idx,
-                )?;
-            } else if let Some(first_node_pos) = first_node_pos.clone() {
-                first_meta_idx = Some(meta_node_idx.clone());
-                // add a special join to the first node of the query
-                q.add_operator(
-                    Box::new(PartOfSubCorpusSpec {
-                        min_dist: 1,
-                        max_dist: std::ops::Bound::Unbounded,
-                    }),
-                    &first_node_pos,
-                    &meta_node_idx,
-                )?;
-                // Also make sure the matched node is actually a document
-                // (the @* could match anything in the hierarchy, including the toplevel corpus)
-                let doc_anno_idx = q.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some("annis".to_string()),
-                        name: "doc".to_string(),
-                        val: None,
-                        is_meta: true,
-                    },
-                    None,
-                );
-                q.add_operator(
-                    Box::new(IdenticalNodeSpec {}),
-                    &meta_node_idx,
-                    &doc_anno_idx,
-                )?;
-            }
-        }
-    }
+    add_legacy_metadata_constraints(&mut q, legacy_meta_search, &mut first_node_pos)?;
 
     // finally add all operators
 
     for f in c {
         if let ast::Factor::Literal(literal) = f {
-            if let ast::Literal::BinaryOp { lhs, mut op, rhs, pos } = literal {
+            if let ast::Literal::BinaryOp {
+                lhs,
+                mut op,
+                rhs,
+                pos,
+            } = literal
+            {
                 let idx_left = match lhs {
                     ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
                         .entry(pos.start)
@@ -197,6 +161,57 @@ fn map_conjunction<'a>(
     }
 
     Ok(q)
+}
+
+fn add_legacy_metadata_constraints(
+    q: &mut Conjunction,
+    legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)>,
+    first_node_pos: &mut Option<String>,
+) -> Result<()> {
+    {
+        let mut first_meta_idx: Option<String> = None;
+        // TODO: add warning to the user not to use this construct anymore
+        for (spec, _pos) in legacy_meta_search {
+            // add an artificial node that describes the document/corpus node
+            let meta_node_idx = q.add_node(spec, None);
+            if let Some(first_meta_idx) = first_meta_idx.clone() {
+                // avoid nested loops by joining additional meta nodes with a "identical node"
+                q.add_operator(
+                    Box::new(IdenticalNodeSpec {}),
+                    &first_meta_idx,
+                    &meta_node_idx,
+                )?;
+            } else if let Some(first_node_pos) = first_node_pos.clone() {
+                first_meta_idx = Some(meta_node_idx.clone());
+                // add a special join to the first node of the query
+                q.add_operator(
+                    Box::new(PartOfSubCorpusSpec {
+                        min_dist: 1,
+                        max_dist: std::ops::Bound::Unbounded,
+                    }),
+                    &first_node_pos,
+                    &meta_node_idx,
+                )?;
+                // Also make sure the matched node is actually a document
+                // (the @* could match anything in the hierarchy, including the toplevel corpus)
+                let doc_anno_idx = q.add_node(
+                    NodeSearchSpec::ExactValue {
+                        ns: Some("annis".to_string()),
+                        name: "doc".to_string(),
+                        val: None,
+                        is_meta: true,
+                    },
+                    None,
+                );
+                q.add_operator(
+                    Box::new(IdenticalNodeSpec {}),
+                    &meta_node_idx,
+                    &doc_anno_idx,
+                )?;
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a>> {
