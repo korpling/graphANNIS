@@ -64,6 +64,9 @@ simplelog = "0.5"
 cli = ["rustyline", "simplelog", "clap", "prettytable-rs"]
 c-api = ["libc", "simplelog"]
 
+[profile.release]
+incremental = true
+
 [[bench]]
 name = "graphannis"
 harness = false
