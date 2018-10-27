@@ -295,6 +295,13 @@ impl<'a> Conjunction<'a> {
         self.variables.get(variable).cloned()
     }
 
+    pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
+        if pos < self.nodes.len() {
+            return Some(self.nodes[pos].0.clone());
+        }
+        None
+    }
+
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = vec![];
 

@@ -100,8 +100,12 @@ fn map_conjunction<'a>(
         }
     }
 
-    // add all legacy meta searches
-    add_legacy_metadata_constraints(&mut q, legacy_meta_search, &mut first_node_pos)?;
+
+    // in quirks mode, all legacy metadata constraints are applied to all conjunctions
+    if !quirks_mode {
+        // add all legacy meta searches
+        add_legacy_metadata_constraints(&mut q, legacy_meta_search, first_node_pos)?;
+    }
 
     // finally add all operators
 
@@ -166,7 +170,7 @@ fn map_conjunction<'a>(
 fn add_legacy_metadata_constraints(
     q: &mut Conjunction,
     legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)>,
-    first_node_pos: &mut Option<String>,
+    first_node_pos: Option<String>,
 ) -> Result<()> {
     {
         let mut first_meta_idx: Option<String> = None;
@@ -223,15 +227,40 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
             // make sure AST is in DNF
             normalize::to_disjunctive_normal_form(&mut ast);
 
+            let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();
+            if quirks_mode {
+                for c in &ast {
+                    for f in c {
+                        if let ast::Factor::Literal(literal) = f {
+                            if let ast::Literal::LegacyMetaSearch { spec, pos } = literal {
+                                legacy_meta_search.push((spec.clone(), pos.clone()));
+                            }
+                        };
+                    }
+                }
+            }
+
             // map all conjunctions and its literals
             let mut alternatives: Vec<Conjunction> = Vec::new();
             let mut var_idx_offset = 0;
             for c in ast {
                 // add the conjunction to the disjunction
-                let mapped = map_conjunction(c, &offsets, var_idx_offset, quirks_mode)?;
+                let mut mapped = map_conjunction(c, &offsets, var_idx_offset, quirks_mode)?;
+
+                if quirks_mode {
+                    // apply the meta constraints from all conjunctions to conjunctions
+                    let first_node_pos = mapped.get_variable_by_pos(0);
+                    add_legacy_metadata_constraints(
+                        &mut mapped,
+                        legacy_meta_search.clone(),
+                        first_node_pos,
+                    )?;
+                }
                 var_idx_offset += mapped.num_of_nodes();
+
                 alternatives.push(mapped);
             }
+
             Ok(Disjunction::new(alternatives))
         }
         Err(e) => {
