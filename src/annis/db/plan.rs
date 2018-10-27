@@ -50,6 +50,25 @@ impl<'a> ExecutionPlan<'a> {
             unique_result_set: HashSet::new(),
         })
     }
+
+    fn reorder_match(&self, tmp: Vec<Match>) -> Vec<Match> {
+        if let Some(ref desc) = self.descriptions[self.current_plan] {
+            let desc: &Desc = desc;
+            // re-order the matched nodes by the original node position of the query
+            let mut result: Vec<Match> = Vec::new();
+            result.reserve(tmp.len());
+            for i in 0..tmp.len() {
+                if let Some(mapped_pos) = desc.node_pos.get(&i) {
+                    result.push(tmp[*mapped_pos].clone());
+                } else {
+                    result.push(tmp[i].clone());
+                }
+            }
+            result
+        } else {
+            tmp
+        }
+    }
 }
 
 impl<'a> std::fmt::Display for ExecutionPlan<'a> {
@@ -72,50 +91,27 @@ impl<'a> Iterator for ExecutionPlan<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
-        let n = if self.proxy_mode {
+        if self.proxy_mode {
             // just act as an proxy
             self.plans[0].next()
         } else {
-            let mut n = None;
             while self.current_plan < self.plans.len() {
-                n = self.plans[self.current_plan].next();
-                if let Some(ref res) = n {
+                if let Some(n) = self.plans[self.current_plan].next() {
+                    let n = self.reorder_match(n);
+
                     // check if we already outputted this result
-                    let key: Vec<(NodeID, AnnoKeyID)> = res
-                        .iter()
-                        .map(|m: &Match| (m.node, m.anno_key))
-                        .collect();
+                    let key: Vec<(NodeID, AnnoKeyID)> =
+                        n.iter().map(|m: &Match| (m.node, m.anno_key)).collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
-                        break;
+                        return Some(n)
                     }
                 } else {
                     // proceed to next plan
                     self.current_plan += 1;
                 }
             }
-            n
-        };
-
-        if let Some(tmp) = n {
-            if let Some(ref desc) = self.descriptions[self.current_plan] {
-                let desc: &Desc = desc;
-                // re-order the matched nodes by the original node position of the query
-                let mut result: Vec<Match> = Vec::new();
-                result.reserve(tmp.len());
-                for i in 0..tmp.len() {
-                    if let Some(mapped_pos) = desc.node_pos.get(&i) {
-                        result.push(tmp[*mapped_pos].clone());
-                    } else {
-                        result.push(tmp[i].clone());
-                    }
-                }
-                return Some(result);
-            } else {
-                return Some(tmp);
-            }
-        } else {
-            return None;
+            None
         }
     }
 }
