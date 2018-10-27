@@ -198,7 +198,7 @@ impl<'a> Conjunction<'a> {
             operators: vec![],
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
-            var_idx_offset: var_idx_offset,
+            var_idx_offset,
         }
     }
 
