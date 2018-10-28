@@ -379,7 +379,7 @@ impl Operator for BaseEdgeOp {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DominanceSpec {
     pub name: String,
     pub dist: RangeSpec,
@@ -409,7 +409,7 @@ impl OperatorSpec for DominanceSpec {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PointingSpec {
     pub name: String,
     pub dist: RangeSpec,
@@ -440,7 +440,7 @@ impl OperatorSpec for PointingSpec {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartOfSubCorpusSpec {
     pub dist: RangeSpec,
 }

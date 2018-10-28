@@ -3,7 +3,7 @@ use annis::operator::*;
 use annis::types::{AnnoKeyID, Component};
 use std;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalNodeSpec;
 
 impl OperatorSpec for IdenticalNodeSpec {

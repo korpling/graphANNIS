@@ -10,7 +10,7 @@ use std;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct InclusionSpec;
 
 pub struct Inclusion {

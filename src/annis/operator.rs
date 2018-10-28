@@ -3,7 +3,7 @@ use annis::db::{Graph, Match};
 use annis::types::{Component, Edge};
 use std;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum EdgeAnnoSearchSpec {
     ExactValue {
         ns: Option<String>,

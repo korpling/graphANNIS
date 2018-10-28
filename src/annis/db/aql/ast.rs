@@ -1,6 +1,6 @@
 use std;
-use std::collections::VecDeque;
 use std::rc::Rc;
+use boolean_expression;
 
 use annis::db::aql::operators::{
     DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec, OverlapSpec,
@@ -8,7 +8,7 @@ use annis::db::aql::operators::{
 };
 use annis::db::exec::nodesearch::NodeSearchSpec;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct Pos {
     pub start: usize,
     pub end: usize,
@@ -29,17 +29,9 @@ impl From<std::ops::Range<usize>> for Pos {
     }
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy))]
-#[derive(Debug)]
-pub enum Factor {
-    Literal(Literal),
-    Disjunction(Disjunction),
-}
+pub type Expr = boolean_expression::Expr<Literal>;
 
-pub type Conjunction = VecDeque<Factor>;
-pub type Disjunction = VecDeque<Conjunction>;
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum Literal {
     NodeSearch {
         spec: NodeSearchSpec,
@@ -58,7 +50,7 @@ pub enum Literal {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum Operand {
     NodeRef(NodeRef),
     Literal {
@@ -80,13 +72,13 @@ pub enum StringMatchType {
     Regex,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum NodeRef {
     ID(usize),
     Name(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum BinaryOpSpec {
     Dominance(DominanceSpec),
     Pointing(PointingSpec),

@@ -11,7 +11,7 @@ use std;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PrecedenceSpec {
     pub segmentation: Option<String>,
     pub dist: RangeSpec,
