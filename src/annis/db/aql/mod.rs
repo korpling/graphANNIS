@@ -1,8 +1,6 @@
 mod ast;
 mod normalize;
 pub mod operators;
-use std;
-use std::ops::Bound::Included;
 
 lalrpop_mod!(
     #[allow(clippy)]
@@ -11,6 +9,7 @@ lalrpop_mod!(
 
 use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
 use annis::db::aql::operators::identical_node::IdenticalNodeSpec;
+use annis::db::aql::operators::RangeSpec;
 use annis::db::exec::nodesearch::NodeSearchSpec;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
@@ -152,10 +151,10 @@ fn map_conjunction<'a>(
                 if quirks_mode {
                     if let ast::BinaryOpSpec::Precedence(ref mut spec) = op {
                         // limit unspecified .* precedence to 50
-                        spec.max_dist = if let std::ops::Bound::Unbounded = spec.max_dist {
-                            Included(50)
+                        spec.dist = if let RangeSpec::Unbound = spec.dist {
+                            RangeSpec::Bound {min_dist: 1, max_dist: 50}
                         } else {
-                            spec.max_dist
+                            spec.dist.clone()
                         }
                     }
                 }
@@ -190,8 +189,7 @@ fn add_legacy_metadata_constraints(
                 // add a special join to the first node of the query
                 q.add_operator(
                     Box::new(PartOfSubCorpusSpec {
-                        min_dist: 1,
-                        max_dist: std::ops::Bound::Unbounded,
+                        dist: RangeSpec::Unbound,
                     }),
                     &first_node_pos,
                     &meta_node_idx,

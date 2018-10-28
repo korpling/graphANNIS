@@ -2,6 +2,7 @@ use annis::db;
 use annis::db::annostorage::AnnoStorage;
 use annis::db::aql;
 use annis::db::aql::operators;
+use annis::db::aql::operators::RangeSpec;
 use annis::db::exec::nodesearch::NodeSearchSpec;
 use annis::db::plan::ExecutionPlan;
 use annis::db::query;
@@ -27,8 +28,6 @@ use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::iter::FromIterator;
-use std::ops::Bound::Included;
-use std::ops::Bound::Unbounded;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -1064,8 +1063,10 @@ impl CorpusStorage {
                 q_left.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
-                        min_dist: 0,
-                        max_dist: Included(ctx_left),
+                        dist: RangeSpec::Bound {
+                            min_dist: 0,
+                            max_dist: ctx_left,
+                        },
                     }),
                     &tok_precedence_idx,
                     &tok_covered_idx,
@@ -1104,8 +1105,10 @@ impl CorpusStorage {
                 q_left.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
-                        min_dist: 0,
-                        max_dist: Included(ctx_left),
+                        dist: RangeSpec::Bound {
+                            min_dist: 0,
+                            max_dist: ctx_left,
+                        },
                     }),
                     &tok_precedence_idx,
                     &tok_covered_idx,
@@ -1140,8 +1143,7 @@ impl CorpusStorage {
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
-                        min_dist: 0,
-                        max_dist: Included(ctx_right),
+                        dist: RangeSpec::Bound {min_dist: 0, max_dist: ctx_right},
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
@@ -1180,8 +1182,7 @@ impl CorpusStorage {
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
-                        min_dist: 0,
-                        max_dist: Included(ctx_right),
+                        dist: RangeSpec::Bound{min_dist: 0, max_dist: ctx_right},
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
@@ -1252,8 +1253,7 @@ impl CorpusStorage {
             let any_node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
             q.add_operator(
                 Box::new(operators::PartOfSubCorpusSpec {
-                    min_dist: 1,
-                    max_dist: Unbounded,
+                    dist: RangeSpec::Unbound,
                 }),
                 &any_node_idx,
                 &corpus_idx,

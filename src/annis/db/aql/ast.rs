@@ -98,8 +98,4 @@ pub enum BinaryOpSpec {
     IdenticalNode(IdenticalNodeSpec),
 }
 
-#[derive(Debug, Clone)]
-pub struct RangeSpec {
-    pub min_dist: usize,
-    pub max_dist: std::ops::Bound<usize>,
-}
+pub use annis::db::aql::operators::RangeSpec;
