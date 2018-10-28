@@ -1,3 +1,11 @@
+release 0.11.1
+==============
+
+Fixed Bugs
+----------
+
+- [#31](https://github.com/corpus-tools/graphANNIS/issues/31) Reorder result in find also when acting as a proxy.
+
 release v0.11.0
 ===============
 
