@@ -92,8 +92,12 @@ impl<'a> Iterator for ExecutionPlan<'a> {
 
     fn next(&mut self) -> Option<Vec<Match>> {
         if self.proxy_mode {
-            // just act as an proxy
-            self.plans[0].next()
+            // just act as an proxy, but make sure the order is the same as requested in the query
+            if let Some(n) = self.plans[0].next() {
+                Some(self.reorder_match(n))
+            } else {
+                None
+            }
         } else {
             while self.current_plan < self.plans.len() {
                 if let Some(n) = self.plans[self.current_plan].next() {
