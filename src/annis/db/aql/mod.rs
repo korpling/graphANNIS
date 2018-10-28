@@ -1,7 +1,6 @@
 mod ast;
 mod normalize;
 pub mod operators;
-use std;
 
 lalrpop_mod!(
     #[allow(clippy)]
@@ -10,6 +9,7 @@ lalrpop_mod!(
 
 use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
 use annis::db::aql::operators::identical_node::IdenticalNodeSpec;
+use annis::db::aql::operators::RangeSpec;
 use annis::db::exec::nodesearch::NodeSearchSpec;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
@@ -116,8 +116,7 @@ fn map_conjunction<'a>(
                 // add a special join to the first node of the query
                 q.add_operator(
                     Box::new(PartOfSubCorpusSpec {
-                        min_dist: 1,
-                        max_dist: std::ops::Bound::Unbounded,
+                        dist: RangeSpec::Unbound,
                     }),
                     &first_node_pos,
                     &meta_node_idx,
