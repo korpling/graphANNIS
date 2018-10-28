@@ -1,3 +1,18 @@
+release v0.11.0
+===============
+
+Fixed Bugs
+----------
+
+- [#30](https://github.com/corpus-tools/graphANNIS/issues/30) Fix most of the queries in the benchmark test test
+- [#29](https://github.com/corpus-tools/graphANNIS/issues/29) Use the std::ops::Bound class to mark the upper value instead of relaying on usize::max_value()
+
+Enhancements
+------------
+
+- [#27](https://github.com/corpus-tools/graphANNIS/issues/27) Make the corpus cache more robust and avoid swapping
+- [#19](https://github.com/corpus-tools/graphANNIS/issues/19) Check codebase with the clippy tool
+
 release v0.10.1
 ===============
 
