@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet;
 use std;
 use std::sync::Arc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct OverlapSpec;
 
 #[derive(Clone)]

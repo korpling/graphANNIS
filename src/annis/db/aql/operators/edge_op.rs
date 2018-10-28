@@ -1,4 +1,5 @@
 use annis::db::annostorage::AnnoStorage;
+use annis::db::aql::operators::RangeSpec;
 use annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use annis::db::AnnotationStorage;
 use annis::db::{Graph, Match, ANNIS_NS};
@@ -13,8 +14,7 @@ use std::sync::Arc;
 #[derive(Clone, Debug)]
 struct BaseEdgeOpSpec {
     pub components: Vec<Component>,
-    pub min_dist: usize,
-    pub max_dist: std::ops::Bound<usize>,
+    pub dist: RangeSpec,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
     pub is_reflexive: bool,
     pub op_str: Option<String>,
@@ -73,10 +73,7 @@ fn check_edge_annotation(
         Some(EdgeAnnoSearchSpec::ExactValue { ns, name, val }) => {
             for a in gs
                 .get_anno_storage()
-                .get_annotations_for_item(&Edge {
-                    source,
-                    target,
-                })
+                .get_annotations_for_item(&Edge { source, target })
             {
                 if name != &a.key.name {
                     continue;
@@ -102,10 +99,7 @@ fn check_edge_annotation(
             if let Ok(re) = re {
                 for a in gs
                     .get_anno_storage()
-                    .get_annotations_for_item(&Edge {
-                        source,
-                        target,
-                    })
+                    .get_annotations_for_item(&Edge { source, target })
                 {
                     if name != &a.key.name {
                         continue;
@@ -140,13 +134,11 @@ impl std::fmt::Display for BaseEdgeOp {
             String::from("")
         };
 
-        let range_frag = super::format_range(self.spec.min_dist, self.spec.max_dist);
-
         if let Some(ref op_str) = self.spec.op_str {
             if self.inverse {
-                write!(f, "{}\u{20D6}{}{}", op_str, range_frag, anno_frag)
+                write!(f, "{}\u{20D6}{}{}", op_str, self.spec.dist, anno_frag)
             } else {
-                write!(f, "{}{}{}", op_str, range_frag, anno_frag)
+                write!(f, "{}{}{}", op_str, self.spec.dist, anno_frag)
             }
         } else {
             write!(f, "?")
@@ -164,7 +156,7 @@ impl Operator for BaseEdgeOp {
             // no duplicates are possible
             let result: VecDeque<Match> = if self.inverse {
                 self.gs[0]
-                    .find_connected_inverse(lhs.node, spec.min_dist, spec.max_dist)
+                    .find_connected_inverse(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                     .fuse()
                     .filter(move |candidate| {
                         check_edge_annotation(
@@ -179,7 +171,7 @@ impl Operator for BaseEdgeOp {
                     }).collect()
             } else {
                 self.gs[0]
-                    .find_connected(lhs.node, spec.min_dist, spec.max_dist)
+                    .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                     .fuse()
                     .filter(move |candidate| {
                         check_edge_annotation(
@@ -202,7 +194,7 @@ impl Operator for BaseEdgeOp {
                         let lhs = lhs.clone();
 
                         e.as_ref()
-                            .find_connected_inverse(lhs.node, spec.min_dist, spec.max_dist)
+                            .find_connected_inverse(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                             .fuse()
                             .filter(move |candidate| {
                                 check_edge_annotation(
@@ -223,7 +215,7 @@ impl Operator for BaseEdgeOp {
                         let lhs = lhs.clone();
 
                         e.as_ref()
-                            .find_connected(lhs.node, spec.min_dist, spec.max_dist)
+                            .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
                             .fuse()
                             .filter(move |candidate| {
                                 check_edge_annotation(
@@ -247,12 +239,12 @@ impl Operator for BaseEdgeOp {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         for e in &self.gs {
             if self.inverse {
-                if e.is_connected(&rhs.node, &lhs.node, self.spec.min_dist, self.spec.max_dist)
+                if e.is_connected(&rhs.node, &lhs.node, self.spec.dist.min_dist(), self.spec.dist.max_dist())
                     && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
                 {
                     return true;
                 }
-            } else if e.is_connected(&lhs.node, &rhs.node, self.spec.min_dist, self.spec.max_dist)
+            } else if e.is_connected(&lhs.node, &rhs.node, self.spec.dist.min_dist(), self.spec.dist.max_dist())
                 && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), lhs.node, rhs.node)
             {
                 return true;
@@ -310,13 +302,13 @@ impl Operator for BaseEdgeOp {
                     return EstimationType::SELECTIVITY(1.0);
                 }
                 // get number of nodes reachable from min to max distance
-                let max_dist = match self.spec.max_dist {
+                let max_dist = match self.spec.dist.max_dist() {
                     std::ops::Bound::Unbounded => usize::max_value(),
                     std::ops::Bound::Included(max_dist) => max_dist,
                     std::ops::Bound::Excluded(max_dist) => max_dist - 1,
                 };
                 let max_path_length = std::cmp::min(max_dist, stats.max_depth) as i32;
-                let min_path_length = std::cmp::max(0, self.spec.min_dist - 1) as i32;
+                let min_path_length = std::cmp::max(0, self.spec.dist.min_dist() - 1) as i32;
 
                 if stats.avg_fan_out > 1.0 {
                     // Assume two complete k-ary trees (with the average fan-out as k)
@@ -334,8 +326,10 @@ impl Operator for BaseEdgeOp {
                 } else {
                     // We can't use the formula for complete k-ary trees because we can't divide by zero and don't want negative
                     // numbers. Use the simplified estimation with multiplication instead.
-                    let reachable_max: f64 = (stats.avg_fan_out * f64::from(max_path_length)).ceil();
-                    let reachable_min: f64 = (stats.avg_fan_out * f64::from(min_path_length)).ceil();
+                    let reachable_max: f64 =
+                        (stats.avg_fan_out * f64::from(max_path_length)).ceil();
+                    let reachable_min: f64 =
+                        (stats.avg_fan_out * f64::from(min_path_length)).ceil();
 
                     gs_selectivity = (reachable_max - reachable_min) / max_nodes;
                 }
@@ -385,11 +379,10 @@ impl Operator for BaseEdgeOp {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DominanceSpec {
     pub name: String,
-    pub min_dist: usize,
-    pub max_dist: std::ops::Bound<usize>,
+    pub dist: RangeSpec,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
@@ -408,8 +401,7 @@ impl OperatorSpec for DominanceSpec {
         let base = BaseEdgeOpSpec {
             op_str: Some(op_str),
             components,
-            min_dist: self.min_dist,
-            max_dist: self.max_dist,
+            dist: self.dist.clone(),
             edge_anno: self.edge_anno.clone(),
             is_reflexive: true,
         };
@@ -417,11 +409,10 @@ impl OperatorSpec for DominanceSpec {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PointingSpec {
     pub name: String,
-    pub min_dist: usize,
-    pub max_dist: std::ops::Bound<usize>,
+    pub dist: RangeSpec,
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
@@ -440,8 +431,7 @@ impl OperatorSpec for PointingSpec {
 
         let base = BaseEdgeOpSpec {
             components,
-            min_dist: self.min_dist,
-            max_dist: self.max_dist,
+            dist: self.dist.clone(),
             edge_anno: self.edge_anno.clone(),
             is_reflexive: true,
             op_str: Some(op_str),
@@ -450,10 +440,9 @@ impl OperatorSpec for PointingSpec {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PartOfSubCorpusSpec {
-    pub min_dist: usize,
-    pub max_dist: std::ops::Bound<usize>,
+    pub dist: RangeSpec,
 }
 
 impl OperatorSpec for PartOfSubCorpusSpec {
@@ -475,8 +464,7 @@ impl OperatorSpec for PartOfSubCorpusSpec {
         let base = BaseEdgeOpSpec {
             op_str: Some(String::from("@")),
             components,
-            min_dist: self.min_dist,
-            max_dist: self.max_dist,
+            dist: self.dist.clone(),
             edge_anno: None,
             is_reflexive: false,
         };

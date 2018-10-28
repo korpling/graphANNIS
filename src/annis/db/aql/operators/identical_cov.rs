@@ -9,7 +9,7 @@ use annis::types::{AnnoKeyID, Component, ComponentType};
 use std;
 use std::sync::Arc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalCoverageSpec;
 
 #[derive(Clone)]

@@ -19,7 +19,7 @@ pub struct NodeSearch<'a> {
     desc: Option<Desc>,
     node_search_desc: Arc<NodeSearchDesc>,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum NodeSearchSpec {
     ExactValue {
         ns: Option<String>,

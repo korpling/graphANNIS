@@ -48,6 +48,7 @@ impl CommandCompleter {
         known_commands.insert("frequency".to_string());
         known_commands.insert("plan".to_string());
         known_commands.insert("use_parallel".to_string());
+        known_commands.insert("quirks_mode".to_string());
         known_commands.insert("info".to_string());
 
         known_commands.insert("quit".to_string());
@@ -106,6 +107,7 @@ struct AnnisRunner {
     current_corpus: Option<String>,
     data_dir: PathBuf,
     use_parallel_joins: bool,
+    query_language: QueryLanguage,
 }
 
 impl AnnisRunner {
@@ -115,6 +117,7 @@ impl AnnisRunner {
             current_corpus: None,
             data_dir: PathBuf::from(data_dir),
             use_parallel_joins: true,
+            query_language: QueryLanguage::AQL,
         })
     }
 
@@ -182,6 +185,7 @@ impl AnnisRunner {
                 "find" => self.find(&args),
                 "frequency" => self.frequency(&args),
                 "use_parallel" => self.use_parallel(&args),
+                "quirks_mode" => self.quirks_mode(&args),
                 "info" => self.info(),
                 "quit" | "exit" => return false,
                 _ => Err(format!("unknown command \"{}\"", cmd).into()),
@@ -333,7 +337,7 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or("No corpus storage location set")?
-                .plan(corpus, args, QueryLanguage::AQL)?;
+                .plan(corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -353,7 +357,7 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or("No corpus storage location set")?
-                .count(corpus, args, QueryLanguage::AQL)?;
+                .count(corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -376,7 +380,7 @@ impl AnnisRunner {
                 .find(
                     corpus,
                     args,
-                    QueryLanguage::AQL,
+                    self.query_language,
                     0,
                     usize::max_value(),
                     ResultOrder::Normal,
@@ -421,7 +425,7 @@ impl AnnisRunner {
                 .storage
                 .as_ref()
                 .ok_or("No corpus storage location set")?
-                .frequency(corpus, splitted_arg[1], QueryLanguage::AQL, table_def)?;
+                .frequency(corpus, splitted_arg[1], self.query_language, table_def)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -472,6 +476,32 @@ impl AnnisRunner {
             println!("Join parallization is enabled");
         } else {
             println!("Join parallization is disabled");
+        }
+
+        Ok(())
+    }
+    
+    fn quirks_mode(&mut self, args:&str) -> Result<()> {
+        let use_quirks = match args.trim().to_lowercase().as_str() {
+            "on" | "true" => true,
+            "off" | "false" => false,
+            _ => return Err(format!("unknown argument \"{}\"", args).into()),
+        };
+        
+
+        self.query_language = if use_quirks {
+            QueryLanguage::AQLQuirksV3
+        } else {
+            QueryLanguage::AQLQuirksV3
+        };
+
+        match self.query_language {
+            QueryLanguage::AQLQuirksV3 => {
+                println!("Quirks mode is enabled");
+            },
+            QueryLanguage::AQL => {
+                println!("Quirks mode is disabled");
+            }
         }
 
         Ok(())

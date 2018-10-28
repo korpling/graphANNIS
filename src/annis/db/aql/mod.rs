@@ -1,8 +1,6 @@
 mod ast;
-mod normalize;
 pub mod operators;
-use std;
-
+use boolean_expression::Expr;
 lalrpop_mod!(
     #[allow(clippy)]
     parser
@@ -10,6 +8,7 @@ lalrpop_mod!(
 
 use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
 use annis::db::aql::operators::identical_node::IdenticalNodeSpec;
+use annis::db::aql::operators::RangeSpec;
 use annis::db::exec::nodesearch::NodeSearchSpec;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
@@ -21,10 +20,12 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 fn map_conjunction<'a>(
-    c: ast::Conjunction,
+    c: Vec<ast::Literal>,
     offsets: &BTreeMap<usize, usize>,
+    var_idx_offset: usize,
+    quirks_mode: bool,
 ) -> Result<Conjunction<'a>> {
-    let mut q = Conjunction::new();
+    let mut q = Conjunction::with_offset(var_idx_offset);
     // collect and sort all node searches according to their start position in the text
     let mut pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)> = BTreeMap::default();
 
@@ -32,48 +33,47 @@ fn map_conjunction<'a>(
 
     let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();
 
-    for f in &c {
-        if let ast::Factor::Literal(literal) = f {
-            match literal {
-                ast::Literal::NodeSearch {
+    for literal in &c {
+        match literal {
+            ast::Literal::NodeSearch {
+                spec,
+                pos,
+                variable,
+            } => {
+                if let Some(pos) = pos {
+                    pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
+                    pos_to_endpos.insert(pos.start, pos.end);
+                }
+            }
+            ast::Literal::BinaryOp { lhs, rhs, .. } => {
+                if let ast::Operand::Literal {
                     spec,
                     pos,
                     variable,
-                } => {
-                    if let Some(pos) = pos {
-                        pos_to_node.insert(pos.start, (spec.clone(), variable.clone()));
-                        pos_to_endpos.insert(pos.start, pos.end);
-                    }
+                } = lhs
+                {
+                    pos_to_node
+                        .entry(pos.start)
+                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
+                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
                 }
-                ast::Literal::BinaryOp { lhs, rhs, .. } => {
-                    if let ast::Operand::Literal {
-                        spec,
-                        pos,
-                        variable,
-                    } = lhs
-                    {
-                        pos_to_node
-                            .entry(pos.start)
-                            .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
-                        pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
-                    }
-                    if let ast::Operand::Literal {
-                        spec,
-                        pos,
-                        variable,
-                    } = rhs
-                    {
-                        pos_to_node
-                            .entry(pos.start)
-                            .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
-                        pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
-                    }
+                if let ast::Operand::Literal {
+                    spec,
+                    pos,
+                    variable,
+                } = rhs
+                {
+                    pos_to_node
+                        .entry(pos.start)
+                        .or_insert_with(|| (spec.as_ref().clone(), variable.clone()));
+                    pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
                 }
-                ast::Literal::LegacyMetaSearch { spec, pos } => {
-                    legacy_meta_search.push((spec.clone(), pos.clone()));
-                }
-            };
-        }
+            }
+            ast::Literal::LegacyMetaSearch { spec, pos } => {
+                legacy_meta_search.push((spec.clone(), pos.clone()));
+            }
+        };
+
     }
 
     // add all nodes specs in order of their start position
@@ -97,7 +97,77 @@ fn map_conjunction<'a>(
         }
     }
 
-    // add all legacy meta searches
+
+    // in quirks mode, all legacy metadata constraints are applied to all conjunctions
+    if !quirks_mode {
+        // add all legacy meta searches
+        add_legacy_metadata_constraints(&mut q, legacy_meta_search, first_node_pos)?;
+    }
+
+    // finally add all operators
+
+    for literal in c {
+        if let ast::Literal::BinaryOp {
+            lhs,
+            mut op,
+            rhs,
+            pos,
+        } = literal
+        {
+            let idx_left = match lhs {
+                ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
+                    .entry(pos.start)
+                    .or_insert_with(|| q.add_node(spec.as_ref().clone(), None))
+                    .clone(),
+                ast::Operand::NodeRef(node_ref) => match node_ref {
+                    ast::NodeRef::ID(id) => id.to_string(),
+                    ast::NodeRef::Name(name) => name,
+                },
+            };
+
+            let idx_right = match rhs {
+                ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
+                    .entry(pos.start)
+                    .or_insert_with(|| q.add_node(spec.as_ref().clone(), None))
+                    .clone(),
+                ast::Operand::NodeRef(node_ref) => match node_ref {
+                    ast::NodeRef::ID(id) => id.to_string(),
+                    ast::NodeRef::Name(name) => name,
+                },
+            };
+
+            let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
+                Some(LineColumnRange {
+                    start: get_line_and_column_for_pos(pos.start, &offsets),
+                    end: Some(get_line_and_column_for_pos(pos.end, &offsets)),
+                })
+            } else {
+                None
+            };
+
+            if quirks_mode {
+                if let ast::BinaryOpSpec::Precedence(ref mut spec) = op {
+                    // limit unspecified .* precedence to 50
+                    spec.dist = if let RangeSpec::Unbound = spec.dist {
+                        RangeSpec::Bound {min_dist: 1, max_dist: 50}
+                    } else {
+                        spec.dist.clone()
+                    };
+                }
+            }
+            q.add_operator_from_query(make_operator_spec(op), &idx_left, &idx_right, op_pos)?;
+        }
+    
+    }
+
+    Ok(q)
+}
+
+fn add_legacy_metadata_constraints(
+    q: &mut Conjunction,
+    legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)>,
+    first_node_pos: Option<String>,
+) -> Result<()> {
     {
         let mut first_meta_idx: Option<String> = None;
         // TODO: add warning to the user not to use this construct anymore
@@ -116,8 +186,7 @@ fn map_conjunction<'a>(
                 // add a special join to the first node of the query
                 q.add_operator(
                     Box::new(PartOfSubCorpusSpec {
-                        min_dist: 1,
-                        max_dist: std::ops::Bound::Unbounded,
+                        dist: RangeSpec::Unbound,
                     }),
                     &first_node_pos,
                     &meta_node_idx,
@@ -141,66 +210,103 @@ fn map_conjunction<'a>(
             }
         }
     }
-
-    // finally add all operators
-
-    for f in c {
-        if let ast::Factor::Literal(literal) = f {
-            if let ast::Literal::BinaryOp { lhs, op, rhs, pos } = literal {
-                let idx_left = match lhs {
-                    ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
-                        .entry(pos.start)
-                        .or_insert_with(|| q.add_node(spec.as_ref().clone(), None))
-                        .clone(),
-                    ast::Operand::NodeRef(node_ref) => match node_ref {
-                        ast::NodeRef::ID(id) => id.to_string(),
-                        ast::NodeRef::Name(name) => name,
-                    },
-                };
-
-                let idx_right = match rhs {
-                    ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
-                        .entry(pos.start)
-                        .or_insert_with(|| q.add_node(spec.as_ref().clone(), None))
-                        .clone(),
-                    ast::Operand::NodeRef(node_ref) => match node_ref {
-                        ast::NodeRef::ID(id) => id.to_string(),
-                        ast::NodeRef::Name(name) => name,
-                    },
-                };
-
-                let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
-                    Some(LineColumnRange {
-                        start: get_line_and_column_for_pos(pos.start, &offsets),
-                        end: Some(get_line_and_column_for_pos(pos.end, &offsets)),
-                    })
-                } else {
-                    None
-                };
-
-                q.add_operator_from_query(make_operator_spec(op), &idx_left, &idx_right, op_pos)?;
-            }
-        }
-    }
-
-    Ok(q)
+    Ok(())
 }
 
-pub fn parse<'a>(query_as_aql: &str) -> Result<Disjunction<'a>> {
+fn find_all_children_for_and(expr : &ast::Expr, followers : &mut Vec<ast::Literal>) {
+    match expr {
+        Expr::Terminal(l) => {
+            followers.push(l.clone());
+        },
+        Expr::And(lhs, rhs) => {
+            find_all_children_for_and(lhs, followers);
+            find_all_children_for_and(rhs, followers);
+        },
+        _ => {}
+    }
+}
+
+fn find_all_children_for_or(expr : &ast::Expr, followers : &mut Vec<ast::Expr>) {
+    match expr {
+        Expr::Or(lhs, rhs) => {
+            find_all_children_for_or(lhs, followers);
+            find_all_children_for_or(rhs, followers);
+        },
+        _ => {
+            // add the expression itself
+            followers.push(expr.clone());
+        }
+    }
+}
+
+fn get_alternatives_from_dnf(expr : ast::Expr) -> Vec<Vec<ast::Literal>> {
+    if expr.is_and() {
+        let mut followers = Vec::new();
+        find_all_children_for_and(&expr, &mut followers);
+        return vec![followers];
+    } else if expr.is_or() {
+        let mut non_or_roots = Vec::new();
+        find_all_children_for_or(&expr, &mut non_or_roots);
+
+        let mut result = Vec::new();
+        for root in non_or_roots {
+            if root.is_and() {
+                let mut followers = Vec::new();
+                find_all_children_for_and(&root, &mut followers);
+                result.push(followers);
+            } else if let Expr::Terminal(t) = root {
+                result.push(vec![t]);
+            }
+        }
+        return result;
+    } else if let Expr::Terminal(t) = expr {
+        return vec![vec![t]];
+    }
+    vec![]
+}
+
+pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a>> {
     let ast = parser::DisjunctionParser::new().parse(query_as_aql);
     match ast {
-        Ok(mut ast) => {
+        Ok(ast) => {
             let offsets = get_line_offsets(query_as_aql);
 
             // make sure AST is in DNF
-            normalize::to_disjunctive_normal_form(&mut ast);
+            let ast : ast::Expr = ast.simplify_via_laws();
+            let ast = get_alternatives_from_dnf(ast);
+
+            let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();
+            if quirks_mode {
+                for conjunction in &ast {
+                    for literal in conjunction {
+                        if let ast::Literal::LegacyMetaSearch { spec, pos } = literal {
+                            legacy_meta_search.push((spec.clone(), pos.clone()));
+                        }
+                    }
+                }
+            }
 
             // map all conjunctions and its literals
             let mut alternatives: Vec<Conjunction> = Vec::new();
+            let mut var_idx_offset = 0;
             for c in ast {
                 // add the conjunction to the disjunction
-                alternatives.push(map_conjunction(c, &offsets)?);
+                let mut mapped = map_conjunction(c, &offsets, var_idx_offset, quirks_mode)?;
+
+                if quirks_mode {
+                    // apply the meta constraints from all conjunctions to conjunctions
+                    let first_node_pos = mapped.get_variable_by_pos(0);
+                    add_legacy_metadata_constraints(
+                        &mut mapped,
+                        legacy_meta_search.clone(),
+                        first_node_pos,
+                    )?;
+                }
+                var_idx_offset += mapped.num_of_nodes();
+
+                alternatives.push(mapped);
             }
+
             Ok(Disjunction::new(alternatives))
         }
         Err(e) => {

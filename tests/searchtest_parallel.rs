@@ -65,7 +65,7 @@ fn search_test_base(corpus : &str, panic_on_invalid : bool) {
 
 #[ignore]
 #[test]
-fn all_from_folder() {
+fn all_from_folder_parallel() {
     let queries_dir = get_query_dir();
     // each folder is one corpus
     if let Ok(paths) = std::fs::read_dir(queries_dir) {

@@ -22,6 +22,7 @@ extern crate regex;
 extern crate regex_syntax;
 extern crate rustc_hash;
 extern crate tempdir;
+extern crate boolean_expression;
 
 extern crate bincode;
 extern crate serde;
