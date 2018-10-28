@@ -1,6 +1,6 @@
 [package]
 name = "graphannis"
-version = "0.10.1" #:version
+version = "0.11.0" #:version
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"
@@ -14,7 +14,7 @@ build = "build.rs"
 crate-type = ["rlib", "staticlib","cdylib"]
 
 [build-dependencies]
-lalrpop = "0.16.0"
+lalrpop = "0.16"
 
 [dependencies]
 regex = "1.0"
