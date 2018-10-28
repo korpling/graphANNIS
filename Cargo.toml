@@ -1,12 +1,12 @@
 [package]
 name = "graphannis"
-version = "0.10.1" #:version
+version = "0.11.0" #:version
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"
 description = "This is a prototype for a new backend implementation of the ANNIS linguistic search and visualization system."
 repository= "https://github.com/corpus-tools/graphANNIS"
-readme = "README_cratesio.md"
+readme = "crate-info.md"
 autobins=true
 build = "build.rs"
 
@@ -14,7 +14,7 @@ build = "build.rs"
 crate-type = ["rlib", "staticlib","cdylib"]
 
 [build-dependencies]
-lalrpop = "0.16.0"
+lalrpop = "0.16"
 
 [dependencies]
 regex = "1.0"
@@ -39,6 +39,7 @@ sys-info = "0.5"
 fs2 = "0.4"
 lalrpop-util = "0.16"
 error-chain = "0.12"
+boolean_expression = "0.3"
 
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "1.0"
@@ -58,12 +59,14 @@ rustdoc-args = ["--cfg", "docs_rs_workaround"]
 kernel32-sys = { version = "0.2.2" }
 
 [dev-dependencies]
-criterion = "0.2"
 simplelog = "0.5"
 
 [features]
-cli = ["rustyline", "simplelog", "clap", "criterion", "prettytable-rs"]
+cli = ["rustyline", "simplelog", "clap", "prettytable-rs"]
 c-api = ["libc", "simplelog"]
+
+[profile.release]
+incremental = true
 
 [[bench]]
 name = "graphannis"
@@ -75,4 +78,4 @@ required-features=["cli"]
 
 [[bin]]
 name="bench_annisqueries"
-required-features=["cli"]
+required-features=["criterion", "simplelog", "clap"]

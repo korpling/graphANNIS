@@ -22,7 +22,7 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 /// Takes a node name/ID and extracts both the document path as array and the node name itself.
@@ -52,7 +52,7 @@ pub fn extract_node_path(full_node_name: &str) -> (Vec<String>, String) {
     // separate path and name first
     let hash_pos = full_node_name.rfind('#');
 
-    let path_str: &str = &full_node_name[0..hash_pos.unwrap_or(full_node_name.len())];
+    let path_str: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
     let mut path: Vec<String> = Vec::with_capacity(4);
     path.extend(
         path_str
@@ -77,6 +77,7 @@ pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
     }
 }
 
+/// Defines a definition of a query including its number of expected results.
 #[derive(Debug)]
 pub struct SearchDef {
     pub aql: String,
@@ -85,6 +86,7 @@ pub struct SearchDef {
 }
 
 impl SearchDef {
+    /// Create a definition of a query by a file name.
     pub fn from_file(base: &Path) -> Option<SearchDef> {
         let mut p_aql = PathBuf::from(base);
         p_aql.set_extension("aql");
@@ -116,10 +118,14 @@ impl SearchDef {
             }
         }
 
-        return None;
+        None
     }
 }
 
+/// Returns an iterator over all query definitions of a folder.
+/// - `folder` - The folder on the file system.
+/// - `panic_on_invalid` - If true, an invalid query definition will trigger a panic, otherwise it will be ignored. 
+/// Can be used if this query is called in a test case to fail the test.
 pub fn get_queries_from_folder(
     folder: &Path,
     panic_on_invalid: bool,
@@ -133,10 +139,12 @@ pub fn get_queries_from_folder(
                 if p.exists() && p.is_file() && p.extension() == Some(&OsString::from("aql")) {
                     let r = SearchDef::from_file(&p);
                     if panic_on_invalid {
-                        let r = r.expect(&format!(
-                            "Search definition for query {} is incomplete",
-                            p.to_string_lossy()
-                        ));
+                        let r = r.unwrap_or_else(|| {
+                            panic!(
+                                "Search definition for query {} is incomplete",
+                                p.to_string_lossy()
+                            )
+                        });
                         return Some(r);
                     } else {
                         return r;
@@ -144,11 +152,11 @@ pub fn get_queries_from_folder(
                 }
             }
 
-            return None;
+            None
         });
 
-        return Box::from(it);
+        Box::from(it)
+    } else {
+        Box::new(std::iter::empty())
     }
-
-    return Box::new(std::iter::empty());
 }

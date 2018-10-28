@@ -1,5 +1,6 @@
 use std::*;
 use super::ast;
+use boolean_expression::Expr;
 use std::rc::Rc;
 use annis::operator::EdgeAnnoSearchSpec;
 use annis::db::exec::nodesearch::NodeSearchSpec;
@@ -13,6 +14,7 @@ use annis::db::aql::operators::{
     InclusionSpec,
     IdenticalNodeSpec,
 };
+use self::ast::RangeSpec;
 
 grammar;
 
@@ -32,70 +34,61 @@ match {
     _
 }
 
-pub Disjunction : ast::Disjunction  = {
+pub Disjunction : ast::Expr  = {
     <head:Conjunction> <tail:("|" Conjunction)*> => {
-        let mut result = ast::Disjunction::new();
+        let mut expr = head;
         for t in tail.into_iter() {
-            result.push_front(t.1);
+            expr = ast::Expr::or(expr, t.1)
         }
-        result.push_front(head);
-        return result;
+        return expr;
     },
 }
 
-Conjunction : ast::Conjunction = {
+Conjunction : ast::Expr = {
     <head:Factor> <tail:("&" Factor)*> => {
-        let mut r = ast::Conjunction::new();
+        let mut expr = head;
         for t in tail.into_iter() {
-            for f in t.1.into_iter() {
-                r.push_front(f);
-            }
+            expr = ast::Expr::and(expr, t.1)
         }
-        for f in head.into_iter() {
-            r.push_front(f);
-        }
-        return r;
+        return expr;
     },
 }
 
-Factor : Vec<ast::Factor> = {
-    Literal => {
-        let mut result = Vec::new();
-        for l in <>.into_iter() {
-            result.push(ast::Factor::Literal(l));
-        }
-        result
-    },
-    "(" <d:Disjunction> ")" => vec![ast::Factor::Disjunction(d)],
+Factor : ast::Expr = {
+    Literal => <>,
+    "(" <d:Disjunction> ")" => <>,
 }
 
-Literal : Vec<ast::Literal> = {
+Literal : ast::Expr = {
     // any node annotation search
     <start: @L> <var:(VARIABLE_DEF)?> <spec:NodeSearch> <end: @R> => {
         let pos = Some(ast::Pos{start, end});
-        vec![ast::Literal::NodeSearch{pos, spec, variable: var.and_then(|s| Some(s[0..s.len()-1].to_string()))}]
+        Expr::Terminal(ast::Literal::NodeSearch{pos, spec, variable: var.and_then(|s| Some(s[0..s.len()-1].to_string()))})
     },
     // binary operator
     <start: @L> <lhs:Operand> <op:BinaryOpSpec> <rhs:Operand> <tail:(BinaryOpSpec Operand)*> <end: @R> => {
-        let mut result : Vec<ast::Literal> = Vec::new();
         // TODO: can we get the position for each individual binary operator?
         let pos = ast::Pos {
             start, end
         };
-        result.push(ast::Literal::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: Some(pos.clone())});
-        
+        let mut expr = 
+            Expr::Terminal(
+                ast::Literal::BinaryOp{lhs: lhs.clone(), op, rhs: rhs.clone(), pos: Some(pos.clone())}
+            ); 
+        // transform the list of literals into an AND if there is a tail
         let mut last_operand = rhs.clone();
         for t in tail.into_iter() {
-            result.push(ast::Literal::BinaryOp{
+            let tail_expr = ast::Literal::BinaryOp{
                 lhs: last_operand.clone(), 
                 op: t.0, 
                 rhs: t.1.clone(), 
                 pos: Some(pos.clone())
-            });
+            };
+            expr = ast::Expr::and(expr, Expr::Terminal(tail_expr));
+
             last_operand = t.1;
         }
-
-        return result;
+        expr
     },
     // legacy meta-data query `meta::doc="..."`
     <start: @L> "meta::" <name:QName> "=" <text:TextSearch> <end: @R> => {
@@ -118,7 +111,7 @@ Literal : Vec<ast::Literal> = {
                 }
             },
         };
-        vec![ast::Literal::LegacyMetaSearch{spec, pos}]
+        Expr::Terminal(ast::Literal::LegacyMetaSearch{spec, pos})
     },
 }
 
@@ -206,8 +199,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         let name = type_def[">".len()..].to_string();
         ast::BinaryOpSpec::Dominance(DominanceSpec {
             name,
-            min_dist: 1,
-            max_dist: 1,
+            dist: RangeSpec::Bound {min_dist: 1, max_dist: 1},
             edge_anno: Some(anno),
         })
     },
@@ -217,15 +209,13 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         if let Some(range) = range {
             ast::BinaryOpSpec::Dominance(DominanceSpec {
                 name,
-                min_dist: range.min_dist,
-                max_dist: range.max_dist,
+                dist: range,
                 edge_anno: None,
             })
         } else {
             ast::BinaryOpSpec::Dominance(DominanceSpec {
                 name,
-                min_dist: 1,
-                max_dist: 1,
+                dist: RangeSpec::Bound{min_dist: 1, max_dist: 1},
                 edge_anno: None,
             })
         }
@@ -235,8 +225,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         let name = type_def["->".len()..].to_string();
         ast::BinaryOpSpec::Pointing(PointingSpec {
             name,
-            min_dist: 1,
-            max_dist: 1,
+            dist: RangeSpec::Bound{min_dist: 1, max_dist: 1},
             edge_anno: Some(anno),
         })
     },
@@ -246,15 +235,13 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         if let Some(range) = range {
             ast::BinaryOpSpec::Pointing(PointingSpec {
                 name,
-                min_dist: range.min_dist,
-                max_dist: range.max_dist,
+                dist: range,
                 edge_anno: None,
             })
         } else {
             ast::BinaryOpSpec::Pointing(PointingSpec {
                 name,
-                min_dist: 1,
-                max_dist: 1,
+                dist: RangeSpec::Bound{min_dist: 1, max_dist: 1},
                 edge_anno: None,
             })
         }
@@ -270,14 +257,12 @@ BinaryOpSpec : ast::BinaryOpSpec = {
         if let Some(range) = range {
             ast::BinaryOpSpec::Precedence(PrecedenceSpec {
                 segmentation,
-                min_dist: range.min_dist,
-                max_dist: range.max_dist,
+                dist: range,
             })
         } else {
             ast::BinaryOpSpec::Precedence(PrecedenceSpec {
                 segmentation,
-                min_dist: 1,
-                max_dist: 1,
+                dist: RangeSpec::Bound{min_dist: 1, max_dist: 1},
             })
         }
     },
@@ -285,13 +270,11 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     "@" <range:(RangeSpec)?> => {
         if let Some(range) = range {
             ast::BinaryOpSpec::PartOfSubCorpus(PartOfSubCorpusSpec {
-                min_dist: range.min_dist,
-                max_dist: range.max_dist,
+                dist: range,
             })
         } else {
             ast::BinaryOpSpec::PartOfSubCorpus(PartOfSubCorpusSpec {
-                min_dist: 1,
-                max_dist: 1,
+               dist: RangeSpec::Bound{min_dist: 1, max_dist: 1},
             })
         }
     },
@@ -339,18 +322,15 @@ EdgeAnno: EdgeAnnoSearchSpec = {
 }
 
 RangeSpec: ast::RangeSpec = {
-    (",")? <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec {
+    (",")? <min:DIGITS> "," <max:DIGITS> => ast::RangeSpec::Bound {
         min_dist: min.parse().unwrap_or_default(), 
         max_dist: max.parse().unwrap_or_default(),
     },
-    (",")? <exact:DIGITS> => ast::RangeSpec {
+    (",")? <exact:DIGITS> => ast::RangeSpec::Bound {
         min_dist: exact.parse().unwrap_or_default(), 
         max_dist: exact.parse().unwrap_or_default(),
     },
-    "*" => ast::RangeSpec {
-        min_dist: 1, 
-        max_dist: usize::max_value(),
-    }  
+    "*" => ast::RangeSpec::Unbound,
     
 }
 

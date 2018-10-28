@@ -23,5 +23,5 @@ include = ["graphannis"]
 
 [export]
 prefix = "Annis"
-exclude = ["MAX_BUFFER_SIZE", "malloc_usable_size"]
+exclude = ["MAX_BUFFER_SIZE", "malloc_usable_size", "Expr"]
 

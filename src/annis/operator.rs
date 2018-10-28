@@ -3,7 +3,7 @@ use annis::db::{Graph, Match};
 use annis::types::{Component, Edge};
 use std;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum EdgeAnnoSearchSpec {
     ExactValue {
         ns: Option<String>,
@@ -20,29 +20,29 @@ pub enum EdgeAnnoSearchSpec {
 impl std::fmt::Display for EdgeAnnoSearchSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &EdgeAnnoSearchSpec::ExactValue {
+            EdgeAnnoSearchSpec::ExactValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
-                let qname = if let &Some(ref ns) = ns {
+                let qname = if let Some(ref ns) = ns {
                     format!("{}:{}", ns, name)
                 } else {
                     name.clone()
                 };
 
-                if let &Some(ref val) = val {
+                if let Some(ref val) = val {
                     write!(f, "{}=\"{}\"", qname, val)
                 } else {
                     write!(f, "{}", qname)
                 }
             }
-            &EdgeAnnoSearchSpec::RegexValue {
+            EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
-                 let qname = if let &Some(ref ns) = ns {
+                 let qname = if let Some(ref ns) = ns {
                     format!("{}:{}", ns, name)
                 } else {
                     name.clone()
@@ -58,7 +58,7 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 impl EdgeAnnoSearchSpec {
     pub fn guess_max_count(&self, anno_storage: &AnnotationStorage<Edge>) -> Option<usize> {
         match self {
-            &EdgeAnnoSearchSpec::ExactValue {
+            EdgeAnnoSearchSpec::ExactValue {
                 ref ns,
                 ref name,
                 ref val,
@@ -75,7 +75,7 @@ impl EdgeAnnoSearchSpec {
                     return Some(anno_storage.guess_max_count(None, name.clone(), &val, &val));
                 }
             }
-            &EdgeAnnoSearchSpec::RegexValue {
+            EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,

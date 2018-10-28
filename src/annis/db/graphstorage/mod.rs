@@ -35,10 +35,10 @@ pub struct GraphStatistic {
 /// Basic trait for accessing edges of a graph for a specific component.
 pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all outgoing edges for a given `node`.
-    fn get_outgoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
+    fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
     /// Get all incoming edges for a given `node`.
-    fn get_ingoing_edges<'a>(&'a self, node: &NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
+    fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
     /// Get the annotation storage for the edges of this container.
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
@@ -58,17 +58,17 @@ pub trait GraphStorage: EdgeContainer {
     /// Find all nodes reachable from a given start node inside the component.
     fn find_connected<'a>(
         &'a self,
-        node: &NodeID,
+        node: NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> Box<Iterator<Item = NodeID> + 'a>;
 
     /// Find all nodes reachable from a given start node inside the component, when the directed edges are inversed.
     fn find_connected_inverse<'a>(
         &'a self,
-        node: &NodeID,
+        node: NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> Box<Iterator<Item = NodeID> + 'a>;
 
     /// Compute the distance (shortest path length) of two nodes inside this component.
@@ -80,7 +80,7 @@ pub trait GraphStorage: EdgeContainer {
         source: &NodeID,
         target: &NodeID,
         min_distance: usize,
-        max_distance: usize,
+        max_distance: std::ops::Bound<usize>,
     ) -> bool;
 
     /// Copy the content of another component.

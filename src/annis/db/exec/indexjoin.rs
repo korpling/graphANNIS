@@ -1,5 +1,6 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use annis::db::annostorage::AnnoStorage;
+use annis::db::query::conjunction::OperatorEntry;
 use annis::db::Match;
 use annis::operator::{EstimationType, Operator};
 use annis::types::{AnnoKey, NodeID};
@@ -26,15 +27,13 @@ impl<'a> IndexJoin<'a> {
     ///
     /// * `lhs` - An iterator for a left-hand-side
     /// * `lhs_idx` - The index of the element in the LHS that should be used as a source
-    /// * `op` - The operator that connects the LHS and RHS
+    /// * `op_entry` - The operator that connects the LHS and RHS (with description)
     /// * `anno_qname` A pair of the annotation namespace and name (both optional) to define which annotations to fetch
     /// * `anno_cond` - A filter function to determine if a RHS candidate is included
     pub fn new(
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        node_nr_lhs: usize,
-        node_nr_rhs: usize,
-        op: Box<Operator>,
+        op_entry: OperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         rhs_desc: Option<&Desc>,
@@ -58,30 +57,31 @@ impl<'a> IndexJoin<'a> {
 
                     let result = (out_lhs as f64) + (op_sel * (out_rhs as f64) * (out_lhs as f64));
 
-                    return result.round() as usize;
+                    result.round() as usize
                 }
-                EstimationType::MIN => {
-                    return out_lhs;
-                }
+                EstimationType::MIN => out_lhs,
             }
         };
 
-        return IndexJoin {
+        IndexJoin {
             desc: Desc::join(
-                &op,
+                op_entry.op.as_ref(),
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin",
-                &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                &format!(
+                    "#{} {} #{}",
+                    op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                ),
                 &processed_func,
             ),
             lhs: lhs_peek,
             lhs_idx,
-            op,
+            op: op_entry.op,
             node_search_desc,
             node_annos,
             rhs_candidate: None,
-        };
+        }
     }
 
     fn next_candidates(&mut self) -> Option<Box<Iterator<Item = Match>>> {
@@ -125,7 +125,7 @@ impl<'a> IndexJoin<'a> {
                     return Some(Box::new(it_nodes.flat_map(move |match_node| {
                         let mut matches: Vec<Match> = Vec::new();
                         matches.reserve(keys.len());
-                        for key_id in keys.clone().into_iter() {
+                        for key_id in keys.clone() {
                             if node_annos
                                 .get_value_for_item_by_id(&match_node.node, key_id)
                                 .is_some()
@@ -145,7 +145,7 @@ impl<'a> IndexJoin<'a> {
                     let anno_keys = node_annos.get_all_keys_for_item(&match_node.node);
                     let mut matches: Vec<Match> = Vec::new();
                     matches.reserve(anno_keys.len());
-                    for anno_key in anno_keys.into_iter() {
+                    for anno_key in anno_keys {
                         if let Some(key_id) = node_annos.get_key_id(&anno_key) {
                             matches.push(Match {
                                 node: match_node.node,
@@ -158,7 +158,7 @@ impl<'a> IndexJoin<'a> {
             }
         }
 
-        return None;
+        None
     }
 }
 
@@ -181,21 +181,17 @@ impl<'a> Iterator for IndexJoin<'a> {
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {
                 Some(rhs.into_iter().peekable())
             } else {
-                None
+                return None;
             };
-        }
-
-        if self.rhs_candidate.is_none() {
-            return None;
         }
 
         loop {
             if let Some(m_lhs) = self.lhs.peek() {
-                let rhs_candidate = self.rhs_candidate.as_mut().unwrap();
+                let rhs_candidate = self.rhs_candidate.as_mut()?;
                 while let Some(mut m_rhs) = rhs_candidate.next() {
                     // check if all filters are true
                     let mut filter_result = true;
-                    for f in self.node_search_desc.cond.iter() {
+                    for f in &self.node_search_desc.cond {
                         if !(f)(&m_rhs) {
                             filter_result = false;
                             break;
@@ -205,7 +201,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                     if filter_result {
                         // replace the annotation with a constant value if needed
                         if let Some(ref const_anno) = self.node_search_desc.const_output {
-                            m_rhs.anno_key = const_anno.clone();
+                            m_rhs.anno_key = *const_anno;
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
@@ -220,6 +216,7 @@ impl<'a> Iterator for IndexJoin<'a> {
                             if self.node_search_desc.const_output.is_some() {
                                 // only return the one unique constAnno for this node and no duplicates
                                 // skip all RHS candidates that have the same node ID
+                                #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
                                 loop {
                                     if let Some(next_match) = rhs_candidate.peek() {
                                         if next_match.node != matched_node {
@@ -238,9 +235,7 @@ impl<'a> Iterator for IndexJoin<'a> {
             }
 
             // consume next outer
-            if self.lhs.next().is_none() {
-                return None;
-            }
+            self.lhs.next()?;
 
             // inner was completed once, get new candidates
             self.rhs_candidate = if let Some(rhs) = self.next_candidates() {

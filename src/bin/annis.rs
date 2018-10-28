@@ -11,11 +11,11 @@ extern crate simplelog;
 use clap::{App, Arg};
 use graphannis::corpusstorage::CorpusInfo;
 use graphannis::corpusstorage::FrequencyDefEntry;
+use graphannis::corpusstorage::ImportFormat;
 use graphannis::corpusstorage::LoadStatus;
-use graphannis::corpusstorage::ResultOrder;
 use graphannis::corpusstorage::QueryLanguage;
+use graphannis::corpusstorage::ResultOrder;
 use graphannis::errors::*;
-use graphannis::relannis;
 use graphannis::CorpusStorage;
 use prettytable::Cell;
 use prettytable::Row;
@@ -48,6 +48,7 @@ impl CommandCompleter {
         known_commands.insert("frequency".to_string());
         known_commands.insert("plan".to_string());
         known_commands.insert("use_parallel".to_string());
+        known_commands.insert("quirks_mode".to_string());
         known_commands.insert("info".to_string());
 
         known_commands.insert("quit".to_string());
@@ -106,15 +107,17 @@ struct AnnisRunner {
     current_corpus: Option<String>,
     data_dir: PathBuf,
     use_parallel_joins: bool,
+    query_language: QueryLanguage,
 }
 
 impl AnnisRunner {
     pub fn new(data_dir: &Path) -> Result<AnnisRunner> {
         Ok(AnnisRunner {
-            storage: Some(CorpusStorage::with_auto_cache_size(data_dir, false)?),
+            storage: Some(CorpusStorage::with_auto_cache_size(data_dir, true)?),
             current_corpus: None,
             data_dir: PathBuf::from(data_dir),
             use_parallel_joins: true,
+            query_language: QueryLanguage::AQL,
         })
     }
 
@@ -123,7 +126,7 @@ impl AnnisRunner {
         if let Err(_) = rl.load_history("annis_history.txt") {
             println!("No previous history.");
         }
-        
+
         if let Some(ref storage) = self.storage {
             rl.set_completer(Some(CommandCompleter::new(
                 storage.list().unwrap_or_default(),
@@ -182,6 +185,7 @@ impl AnnisRunner {
                 "find" => self.find(&args),
                 "frequency" => self.frequency(&args),
                 "use_parallel" => self.use_parallel(&args),
+                "quirks_mode" => self.quirks_mode(&args),
                 "info" => self.info(),
                 "quit" | "exit" => return false,
                 _ => Err(format!("unknown command \"{}\"", cmd).into()),
@@ -197,28 +201,33 @@ impl AnnisRunner {
     fn import_relannis(&mut self, args: &str) -> Result<()> {
         let args: Vec<&str> = args.split(' ').collect();
         if args.is_empty() {
-            return Err("You need to location of the relANNIS files and optionally a name as argument".into());
+            return Err(
+                "You need to location of the relANNIS files and optionally a name as argument"
+                    .into(),
+            );
         }
 
         let path = args[0];
 
         let t_before = std::time::SystemTime::now();
-        let (name, db) = relannis::load(&PathBuf::from(path))?;
+        let name : String = self.storage
+            .as_ref()
+            .ok_or("No corpus storage location set")?
+            .import_from_fs(&PathBuf::from(path), ImportFormat::RelANNIS, None)?;
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
-            info!{"Loaded corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
+            info!{"Imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
         }
-
-        info!("Saving imported corpus to disk");
-        let name = if args.len() > 1 { args[1] } else { &name };
-        self.storage.as_ref().ok_or("No corpus storage location set")?.import(name, db);
-        info!("Finished saving corpus {} to disk", name);    
 
         Ok(())
     }
 
     fn list(&self) -> Result<()> {
-        let mut corpora = self.storage.as_ref().ok_or("No corpus storage location set")?.list()?;
+        let mut corpora = self
+            .storage
+            .as_ref()
+            .ok_or("No corpus storage location set")?
+            .list()?;
         corpora.sort();
         for c in corpora {
             let desc = match c.load_status {
@@ -243,7 +252,10 @@ impl AnnisRunner {
         }
         let name = args;
 
-        self.storage.as_ref().ok_or("No corpus storage location set")?.delete(name)?;
+        self.storage
+            .as_ref()
+            .ok_or("No corpus storage location set")?
+            .delete(name)?;
         info!("Deleted corpus {}.", name);
 
         Ok(())
@@ -253,7 +265,11 @@ impl AnnisRunner {
         if args.is_empty() {
             self.current_corpus = None;
         } else {
-            let corpora = self.storage.as_ref().ok_or("No corpus storage location set")?.list()?;
+            let corpora = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .list()?;
             let corpora = BTreeSet::from_iter(corpora.into_iter().map(|c| c.name));
             let selected = String::from(args);
             if corpora.contains(&selected) {
@@ -261,14 +277,17 @@ impl AnnisRunner {
             } else {
                 println!("Corpus {} does not exist. Uses the \"list\" command to get all available corpora", selected);
             }
-        
         }
         Ok(())
     }
 
     fn info(&self) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
-            let cinfo = self.storage.as_ref().ok_or("No corpus storage location set")?.info(corpus)?;
+            let cinfo = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .info(corpus)?;
             println!("{}", cinfo);
         } else {
             println!("You need to select a corpus for the \"info\" command");
@@ -279,12 +298,14 @@ impl AnnisRunner {
     fn preload(&mut self) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            self.storage.as_ref().ok_or("No corpus storage location set")?.preload(corpus)?;
+            self.storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .preload(corpus)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Preloaded corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
-
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -294,12 +315,14 @@ impl AnnisRunner {
     fn update_statistics(&mut self) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            self.storage.as_ref().ok_or("No corpus storage location set")?.update_statistics(corpus)?;
+            self.storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .update_statistics(corpus)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Updated statistics for corpus in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
-
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -310,12 +333,16 @@ impl AnnisRunner {
     fn plan(&self, args: &str) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let plan = self.storage.as_ref().ok_or("No corpus storage location set")?.plan(corpus, args, QueryLanguage::AQL)?;
+            let plan = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .plan(corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Planned query in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
-            
+
             println!("{}", plan);
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
@@ -323,17 +350,20 @@ impl AnnisRunner {
         Ok(())
     }
 
-    fn count(&self, args: &str) -> Result<()>  {
+    fn count(&self, args: &str) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let c = self.storage.as_ref().ok_or("No corpus storage location set")?.count(corpus, args, QueryLanguage::AQL)?;
+            let c = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .count(corpus, args, self.query_language)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
             }
-        
-            println!("result: {} matches", c);
 
+            println!("result: {} matches", c);
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -343,9 +373,18 @@ impl AnnisRunner {
     fn find(&self, args: &str) -> Result<()> {
         if let Some(ref corpus) = self.current_corpus {
             let t_before = std::time::SystemTime::now();
-            let matches =
-                self.storage.as_ref().ok_or("No corpus storage location set")?
-                    .find(corpus, args, QueryLanguage::AQL, 0, usize::max_value(), ResultOrder::Normal)?;
+            let matches = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .find(
+                    corpus,
+                    args,
+                    self.query_language,
+                    0,
+                    usize::max_value(),
+                    ResultOrder::Normal,
+                )?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -354,7 +393,6 @@ impl AnnisRunner {
             for m in matches {
                 println!("{}", m);
             }
-            
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
         }
@@ -383,7 +421,11 @@ impl AnnisRunner {
             out.add_row(header_row);
 
             let t_before = std::time::SystemTime::now();
-            let frequency_table = self.storage.as_ref().ok_or("No corpus storage location set")?.frequency(corpus, splitted_arg[1], QueryLanguage::AQL, table_def)?;
+            let frequency_table = self
+                .storage
+                .as_ref()
+                .ok_or("No corpus storage location set")?
+                .frequency(corpus, splitted_arg[1], self.query_language, table_def)?;
             let load_time = t_before.elapsed();
             if let Ok(t) = load_time {
                 info!{"Executed query in in {} ms", (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};
@@ -402,7 +444,7 @@ impl AnnisRunner {
                 out.add_row(out_row);
             }
             out.printstd();
-        
+
         // TODO output error if needed
         } else {
             println!("You need to select a corpus first with the \"corpus\" command");
@@ -419,12 +461,14 @@ impl AnnisRunner {
         };
 
         if self.use_parallel_joins != new_val {
-            
             // the old corpus storage instance should release the disk lock
             self.storage = None;
-            
+
             // re-init the corpus storage
-            self.storage = Some(CorpusStorage::with_auto_cache_size(&self.data_dir, new_val)?);
+            self.storage = Some(CorpusStorage::with_auto_cache_size(
+                &self.data_dir,
+                new_val,
+            )?);
             self.use_parallel_joins = new_val;
         }
 
@@ -432,6 +476,32 @@ impl AnnisRunner {
             println!("Join parallization is enabled");
         } else {
             println!("Join parallization is disabled");
+        }
+
+        Ok(())
+    }
+    
+    fn quirks_mode(&mut self, args:&str) -> Result<()> {
+        let use_quirks = match args.trim().to_lowercase().as_str() {
+            "on" | "true" => true,
+            "off" | "false" => false,
+            _ => return Err(format!("unknown argument \"{}\"", args).into()),
+        };
+        
+
+        self.query_language = if use_quirks {
+            QueryLanguage::AQLQuirksV3
+        } else {
+            QueryLanguage::AQLQuirksV3
+        };
+
+        match self.query_language {
+            QueryLanguage::AQLQuirksV3 => {
+                println!("Quirks mode is enabled");
+            },
+            QueryLanguage::AQL => {
+                println!("Quirks mode is disabled");
+            }
         }
 
         Ok(())
@@ -463,7 +533,7 @@ fn main() {
         ).get_matches();
 
     let log_filter = if matches.is_present("debug") {
-        LevelFilter::Trace
+        LevelFilter::Debug
     } else {
         LevelFilter::Info
     };

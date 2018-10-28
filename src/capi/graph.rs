@@ -82,7 +82,7 @@ pub extern "C" fn annis_graph_outgoing_edges(
 
     if let Some(gs) = db.get_graphstorage(component) {
         let gs: Arc<GraphStorage> = gs;
-        result.extend(gs.get_outgoing_edges(&source).map(|target| Edge {
+        result.extend(gs.get_outgoing_edges(source).map(|target| Edge {
             source: source.clone(),
             target,
         }));

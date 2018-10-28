@@ -15,7 +15,7 @@ limitations under the License.s
 #ifndef graphannis_capi_h
 #define graphannis_capi_h
 
-/* Generated with cbindgen:0.6.1 */
+/* Generated with cbindgen:0.6.6 */
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -59,6 +59,16 @@ typedef enum {
   PartOfSubcorpus,
 } AnnisComponentType;
 
+/*
+ * An enum of all supported input formats of graphANNIS.
+ */
+typedef enum {
+  /*
+   * Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
+   */
+  RelANNIS,
+} AnnisImportFormat;
+
 typedef enum {
   Off,
   Error,
@@ -71,11 +81,15 @@ typedef enum {
 /*
  * An enum over all supported query languages of graphANNIS.
  *
- * Currently, only the ANNIS Query Language (AQL) is supported, but this enum allows us to add e.g. a quirks mode for older query language versions
+ * Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
  * or completly new query languages.
  */
 typedef enum {
   AQL,
+  /*
+   * Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
+   */
+  AQLQuirksV3,
 } AnnisQueryLanguage;
 
 /*
@@ -135,6 +149,9 @@ typedef struct AnnisFrequencyTable_AnnisCString AnnisFrequencyTable_AnnisCString
  */
 typedef struct AnnisGraph AnnisGraph;
 
+/*
+ * A list of changes to apply to an graph.
+ */
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
 
 typedef struct AnnisIterPtr_AnnisNodeID AnnisIterPtr_AnnisNodeID;
@@ -151,7 +168,7 @@ typedef struct AnnisVec_AnnisError AnnisVec_AnnisError;
 
 typedef struct AnnisVec_AnnisQueryAttributeDescription AnnisVec_AnnisQueryAttributeDescription;
 
-typedef struct AnnisVec_AnnisVec_AnnisT AnnisVec_AnnisVec_AnnisT;
+typedef struct AnnisVec_AnnisVec_AnnisCString AnnisVec_AnnisVec_AnnisCString;
 
 typedef AnnisVec_AnnisError AnnisErrorList;
 
@@ -172,7 +189,7 @@ typedef struct {
 /*
  * Simple definition of a matrix from a single data type.
  */
-typedef AnnisVec_AnnisVec_AnnisT AnnisMatrix_AnnisCString;
+typedef AnnisVec_AnnisVec_AnnisCString AnnisMatrix_AnnisCString;
 
 /*
  * Unique internal identifier for a single node.
@@ -243,9 +260,10 @@ AnnisFrequencyTable_AnnisCString *annis_cs_frequency(const AnnisCorpusStorage *p
                                                      const char *frequency_query_definition,
                                                      AnnisErrorList **err);
 
-void annis_cs_import_relannis(AnnisCorpusStorage *ptr,
-                              const char *corpus,
+char *annis_cs_import_from_fs(AnnisCorpusStorage *ptr,
                               const char *path,
+                              AnnisImportFormat format,
+                              const char *corpus,
                               AnnisErrorList **err);
 
 /*

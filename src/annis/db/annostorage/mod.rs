@@ -107,11 +107,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let anno = self.create_sparse_anno(anno);
 
         let existing_anno = {
-            let existing_item_entry = self.by_container.entry(item.clone()).or_insert(Vec::new());
+            let existing_item_entry = self.by_container.entry(item.clone()).or_insert_with(Vec::new);
 
             // check if there is already an item with the same annotation key
             let existing_entry_idx =
-                existing_item_entry.binary_search_by_key(&anno.key, |a| a.key.clone());
+                existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
 
             if let Ok(existing_entry_idx) = existing_entry_idx {
                 let orig_anno = existing_item_entry[existing_entry_idx].clone();
@@ -139,10 +139,10 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         // inserts a new relation between the annotation and the item
         // if set is not existing yet it is created
         self.by_anno
-            .entry(anno.key.clone())
-            .or_insert(FxHashMap::default())
-            .entry(anno.val.clone())
-            .or_insert(Vec::default())
+            .entry(anno.key)
+            .or_insert_with(FxHashMap::default)
+            .entry(anno.val)
+            .or_insert_with(Vec::default)
             .push(item.clone());
 
         if existing_anno.is_none() {
@@ -151,23 +151,23 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
             if let Some(largest_item) = self.largest_item.clone() {
                 if largest_item < item {
-                    self.largest_item = Some(item.clone());
+                    self.largest_item = Some(item);
                 }
             } else {
-                self.largest_item = Some(item.clone());
+                self.largest_item = Some(item);
             }
 
             let anno_key_entry = self
                 .anno_key_sizes
                 .entry(orig_anno_key.clone())
                 .or_insert(0);
-            *anno_key_entry = *anno_key_entry + 1;
+            *anno_key_entry += 1;
         }
     }
 
     fn check_and_remove_value_symbol(&mut self, value_id: usize) {
         let mut still_used = false;
-        for (_, values) in self.by_anno.iter() {
+        for values in self.by_anno.values() {
             if values.contains_key(&value_id) {
                 still_used = true;
                 break;
@@ -192,7 +192,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 // since value was found, also remove the item from the other containers
                 self.remove_element_from_by_anno(&all_annos[anno_idx], item);
 
-                let old_value = all_annos[anno_idx].val.clone();
+                let old_value = all_annos[anno_idx].val;
 
                 // remove the specific annotation key from the entry
                 all_annos.remove(anno_idx);
@@ -201,7 +201,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 let new_key_count: usize =
                     if let Some(num_of_keys) = self.anno_key_sizes.get_mut(orig_key) {
                         *num_of_keys -= 1;
-                        num_of_keys.clone()
+                        *num_of_keys
                     } else {
                         0
                     };
@@ -226,7 +226,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         if let Some(result) = result {
             return self.anno_values.get_value(result).cloned();
         }
-        return None;
+        None
     }
 
     pub fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
@@ -240,7 +240,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 }
             }
         }
-        return None;
+        None
     }
 
     pub fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str> {
@@ -252,7 +252,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 }
             }
         }
-        return None;
+        None
     }
 
     pub fn find_annotations_for_item(
@@ -281,13 +281,12 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     .collect();
                 return res;
             }
-        } else {
+        } else if let Some(annos) = self.by_container.get(item)  {
             // no annotation name given, return all
-            if let Some(annos) = self.by_container.get(item) {
-                return annos.iter().map(|sparse_anno| sparse_anno.key).collect();
-            } else {
-                return vec![];
-            }
+            return annos.iter().map(|sparse_anno| sparse_anno.key).collect();
+             
+        } else {
+            return vec![];
         }
     }
 
@@ -303,7 +302,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             return result;
         }
         // return empty result if not found
-        return Vec::new();
+        Vec::new()
     }
 
     fn get_annotations_for_item_impl(&self, item: &T) -> Vec<Annotation> {
@@ -317,7 +316,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             return result;
         }
         // return empty result if not found
-        return Vec::new();
+        Vec::new()
     }
 
     pub fn clear(&mut self) {
@@ -345,7 +344,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 break;
             }
         }
-        return result;
+        result
     }
 
     /// Returns an internal identifier for the annotation key that can be used for faster lookup of values.
@@ -458,7 +457,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         for (_anno_key, anno_size) in qualified_keys {
             result += anno_size;
         }
-        return result;
+        result
     }
 
     fn guess_max_count_impl(
@@ -479,7 +478,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let mut count_matches: usize = 0;
 
         // guess for each fully qualified annotation key and return the sum of all guesses
-        for anno_key in qualified_keys.into_iter() {
+        for anno_key in qualified_keys {
             if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
                 universe_size += *anno_size;
 
@@ -495,8 +494,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                                 let bucket_begin = &histo[i];
                                 let bucket_end = &histo[i + 1];
                                 // check if the range overlaps with the search range
-                                if bucket_begin <= &String::from(upper_val)
-                                    && &String::from(lower_val) <= bucket_end
+                                if bucket_begin.as_str() <= upper_val
+                                    && lower_val <= bucket_end.as_str()
                                 {
                                     count_matches += 1;
                                 }
@@ -509,9 +508,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
         if sum_histogram_buckets > 0 {
             let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
-            return (selectivity * (universe_size as f64)).round() as usize;
+            (selectivity * (universe_size as f64)).round() as usize
         } else {
-            return 0;
+            0
         }
     }
 
@@ -533,7 +532,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             }
         }
 
-        return 0;
+        0
     }
 
     pub fn get_largest_item(&self) -> Option<T> {
@@ -547,7 +546,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         self.histogram_bounds.clear();
 
         // collect statistics for each annotation key separatly
-        for (anno_key, _num_of_annos) in &self.anno_key_sizes {
+        for anno_key in self.anno_key_sizes.keys() {
             if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
                 // sample a maximal number of annotation values
                 let mut rng = rand::thread_rng();
@@ -556,7 +555,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                         .iter()
                         .flat_map(|(val, items)| {
                             // repeat value corresponding to the number of nodes with this annotation
-                            let v = vec![val.clone(); items.len()];
+                            let v = vec![*val; items.len()];
                             v.into_iter()
                         }).collect();
                     let sampled_anno_indexes: FxHashSet<usize> = rand::seq::sample_indices(
@@ -584,8 +583,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
                     let hist = self
                         .histogram_bounds
-                        .entry(anno_key.clone())
-                        .or_insert(std::vec::Vec::new());
+                        .entry(anno_key)
+                        .or_insert_with(std::vec::Vec::new);
 
                     if num_hist_bounds >= 2 {
                         hist.resize(num_hist_bounds, String::from(""));
@@ -596,8 +595,8 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
                         let mut pos = 0;
                         let mut pos_fraction = 0;
-                        for i in 0..num_hist_bounds {
-                            hist[i] = sampled_anno_values[pos].clone();
+                        for hist_item in hist.iter_mut() {
+                            *hist_item = sampled_anno_values[pos].clone();
                             pos += delta;
                             pos_fraction += delta_fraction;
 
@@ -660,7 +659,7 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
                         anno_key: anno_key_id,
                     })
                 });
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn regex_anno_search<'a>(
@@ -676,7 +675,7 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
                 .matching_items(namespace, name, None)
                 .filter(move |(node, anno_key_id)| {
                     if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
-                        re.is_match(val.as_ref())
+                        re.is_match(val)
                     } else {
                         false
                     }
@@ -712,7 +711,7 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
-        return self.anno_key_sizes.keys().cloned().collect();
+        self.anno_key_sizes.keys().cloned().collect()
     }
 }
 
@@ -739,11 +738,11 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
             self.matching_items(namespace, name, value)
                 .filter_map(move |(edge, anno_key_id)| {
                     Some(Match {
-                        node: edge.source.clone(),
+                        node: edge.source,
                         anno_key: anno_key_id,
                     })
                 });
-        return Box::new(it);
+        Box::new(it)
     }
 
     fn regex_anno_search<'a>(
@@ -759,13 +758,13 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
                 .matching_items(namespace, name, None)
                 .filter(move |(node, anno_key_id)| {
                     if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
-                        re.is_match(val.as_ref())
+                        re.is_match(val)
                     } else {
                         false
                     }
                 }).filter_map(move |(edge, anno_key_id)| {
                     Some(Match {
-                        node: edge.source.clone(),
+                        node: edge.source,
                         anno_key: anno_key_id,
                     })
                 });
@@ -791,7 +790,7 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
-        return self.anno_key_sizes.keys().cloned().collect();
+        self.anno_key_sizes.keys().cloned().collect()
     }
 
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {

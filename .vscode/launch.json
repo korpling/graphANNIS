@@ -13,7 +13,10 @@
             "terminal": "integrated",
             "env": {
                 "RUST_BACKTRACE": "1"
-            }
+            },
+            "sourceLanguages": [
+                "rust"
+            ]
         },
         {
             "type": "lldb",

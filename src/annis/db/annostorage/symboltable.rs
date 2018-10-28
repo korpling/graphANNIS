@@ -24,7 +24,7 @@ where
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut size: usize = 0;
         // measure the size of all items and add the overhead of the Arc (two counter fields)
-        for s in self.by_id.iter() {
+        for s in &self.by_id {
             size += std::mem::size_of::<Arc<T>>() + s.size_of(ops);
         }
 
@@ -41,7 +41,7 @@ where
     pub fn new() -> SymbolTable<T> {
         let by_id = Vec::default();
         SymbolTable {
-            by_id: by_id,
+            by_id,
             by_value: BTreeMap::default(),
             empty_slots: Vec::default(),
         }
@@ -78,7 +78,7 @@ where
         };
         self.by_value.insert(val, id);
 
-        return id;
+        id
     }
 
     pub fn remove(&mut self, symbol: usize) -> Option<Arc<T>> {
@@ -94,7 +94,7 @@ where
                 return Some(existing);
             }
         }
-        return None;
+        None
     }
 
     pub fn get_value(&self, id: usize) -> Option<&T> {
@@ -103,16 +103,16 @@ where
                 return Some(val.as_ref());
             }
         }
-        return None;
+        None
     }
 
     pub fn get_symbol(&self, val: &T) -> Option<usize> {
-        return self.by_value.get(val).cloned();
+        self.by_value.get(val).cloned()
     }
 
     #[cfg(test)]
     pub fn len(&self) -> usize {
-        return self.by_id.len();
+        self.by_id.len()
     }
 
     pub fn clear(&mut self) {

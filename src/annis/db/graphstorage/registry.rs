@@ -1,8 +1,8 @@
 use super::adjacencylist::AdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
-use annis::errors::*;
 use annis::db::graphstorage::{GraphStatistic, GraphStorage};
+use annis::errors::*;
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;
@@ -51,18 +51,16 @@ pub fn get_optimal_impl_heuristic(stats: &GraphStatistic) -> GSInfo {
         } else {
             return get_prepostorder_by_size(stats);
         }
-    } else if !stats.cyclic {
-        // it might be still wise to use pre/post order if the graph is "almost" a tree, thus
-        // does not have many exceptions
-        if stats.dfs_visit_ratio <= 1.03 {
-            // there is no more than 3% overhead
-            // TODO: how to determine the border?
-            return get_prepostorder_by_size(stats);
-        }
+    // it might be still wise to use pre/post order if the graph is "almost" a tree, thus
+    // does not have many exceptions
+    } else if !stats.cyclic && stats.dfs_visit_ratio <= 1.03 {
+        // there is no more than 3% overhead
+        // TODO: how to determine the border?
+        return get_prepostorder_by_size(stats);
     }
 
     // fallback
-    return create_info::<AdjacencyListStorage>();;
+    create_info::<AdjacencyListStorage>()
 }
 
 fn get_prepostorder_by_size(stats: &GraphStatistic) -> GSInfo {
@@ -81,30 +79,26 @@ fn get_prepostorder_by_size(stats: &GraphStatistic) -> GSInfo {
             } else if stats.max_depth < u32::max_value() as usize {
                 return create_info::<PrePostOrderStorage<u32, u32>>();
             }
-        } else {
-            if stats.max_depth < u8::max_value() as usize {
-                return create_info::<PrePostOrderStorage<u64, u8>>();
-            } else if stats.max_depth < u32::max_value() as usize {
-                return create_info::<PrePostOrderStorage<u64, u32>>();
-            }
-        }
-    } else {
-        if stats.max_depth < u8::max_value() as usize {
+        } else if stats.max_depth < u8::max_value() as usize {
             return create_info::<PrePostOrderStorage<u64, u8>>();
+        } else if stats.max_depth < u32::max_value() as usize {
+            return create_info::<PrePostOrderStorage<u64, u32>>();
         }
+    } else if stats.max_depth < u8::max_value() as usize {
+        return create_info::<PrePostOrderStorage<u64, u8>>();
     }
-    return create_info::<PrePostOrderStorage<u64, u64>>();;
+    create_info::<PrePostOrderStorage<u64, u64>>()
 }
 
 fn get_linear_by_size(stats: &GraphStatistic) -> GSInfo {
     if stats.max_depth < u8::max_value() as usize {
-        return create_info::<LinearGraphStorage<u8>>();
+        create_info::<LinearGraphStorage<u8>>()
     } else if stats.max_depth < u16::max_value() as usize {
-        return create_info::<LinearGraphStorage<u16>>();
+        create_info::<LinearGraphStorage<u16>>()
     } else if stats.max_depth < u32::max_value() as usize {
-        return create_info::<LinearGraphStorage<u32>>();
+        create_info::<LinearGraphStorage<u32>>()
     } else {
-        return create_info::<LinearGraphStorage<u64>>();
+        create_info::<LinearGraphStorage<u64>>()
     }
 }
 
@@ -135,14 +129,14 @@ pub fn create_from_info(info: &GSInfo) -> Arc<GraphStorage> {
 }
 
 pub fn deserialize(impl_name: &str, input: &mut std::io::Read) -> Result<Arc<GraphStorage>> {
-    let info = REGISTRY.get(impl_name).ok_or(format!(
+    let info = REGISTRY.get(impl_name).ok_or_else(|| format!(
         "Could not find implementation for graph storage with name '{}'",
         impl_name
     ))?;
-    return (info.deserialize_func)(input);
+    (info.deserialize_func)(input)
 }
 
-pub fn serialize(data: Arc<GraphStorage>, writer: &mut std::io::Write) -> Result<String> {
+pub fn serialize(data: &Arc<GraphStorage>, writer: &mut std::io::Write) -> Result<String> {
     data.serialize_gs(writer)?;
     Ok(data.serialization_id())
 }
