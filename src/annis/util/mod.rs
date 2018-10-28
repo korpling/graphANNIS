@@ -77,6 +77,7 @@ pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
     }
 }
 
+/// Defines a definition of a query including its number of expected results.
 #[derive(Debug)]
 pub struct SearchDef {
     pub aql: String,
@@ -85,6 +86,7 @@ pub struct SearchDef {
 }
 
 impl SearchDef {
+    /// Create a definition of a query by a file name.
     pub fn from_file(base: &Path) -> Option<SearchDef> {
         let mut p_aql = PathBuf::from(base);
         p_aql.set_extension("aql");
@@ -120,6 +122,10 @@ impl SearchDef {
     }
 }
 
+/// Returns an iterator over all query definitions of a folder.
+/// - `folder` - The folder on the file system.
+/// - `panic_on_invalid` - If true, an invalid query definition will trigger a panic, otherwise it will be ignored. 
+/// Can be used if this query is called in a test case to fail the test.
 pub fn get_queries_from_folder(
     folder: &Path,
     panic_on_invalid: bool,

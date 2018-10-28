@@ -192,7 +192,7 @@ impl FromStr for FrequencyDefEntry {
 
 /// An enum over all supported query languages of graphANNIS.
 ///
-/// Currently, only the ANNIS Query Language (AQL) is supported, but this enum allows us to add e.g. a quirks mode for older query language versions
+/// Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
 /// or completly new query languages.
 #[repr(C)]
 #[derive(Clone, Copy)]
