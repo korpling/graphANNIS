@@ -1003,7 +1003,11 @@ impl CorpusStorage {
                 }
             };
 
-            quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
+            if self.query_config.use_parallel_joins {
+                quicksort::sort_first_n_items_parallel(&mut tmp_results, offset + limit, order_func);
+            } else {
+                quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
+            }
         }
 
         let expected_size = std::cmp::min(tmp_results.len(), limit);
