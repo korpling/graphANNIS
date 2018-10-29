@@ -15,7 +15,7 @@ use annis::errors::ErrorKind;
 use annis::errors::*;
 use annis::types::AnnoKey;
 use annis::types::{
-    Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, NodeID,
+    AnnoKeyID, Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, NodeID,
     QueryAttributeDescription,
 };
 use annis::util;
@@ -40,6 +40,7 @@ use rustc_hash::FxHashMap;
 
 use rand;
 use rand::Rng;
+use rayon::prelude::*;
 use sys_info;
 
 enum CacheEntry {
@@ -878,6 +879,47 @@ impl CorpusStorage {
         })
     }
 
+    fn create_node_to_path_cache<'a>(
+        &self,
+        results: &Vec<Vec<Match>>,
+        db: &'a Graph,
+        node_name_key_id: AnnoKeyID,
+    ) -> FxHashMap<NodeID, (Vec<&'a str>, &'a str)> {
+        if self.query_config.use_parallel_joins {
+            // cache all paths of the matches in parallel
+            let node_to_path_cache: Vec<(NodeID, (Vec<&str>, &str))> = results
+                .par_iter()
+                .flat_map(|mgroup| mgroup)
+                .filter_map(|m| {
+                    if let Some(path) = db
+                        .node_annos
+                        .get_value_for_item_by_id(&m.node, node_name_key_id)
+                    {
+                        Some((m.node, util::extract_node_path(&path)))
+                    } else {
+                        None
+                    }
+                }).collect();
+
+            FxHashMap::from_iter(node_to_path_cache.into_iter())
+        } else {
+            let mut node_to_path_cache = FxHashMap::default();
+            for mgroup in results {
+                for m in mgroup {
+                    if !node_to_path_cache.contains_key(&m.node) {
+                        if let Some(path) = db
+                            .node_annos
+                            .get_value_for_item_by_id(&m.node, node_name_key_id)
+                        {
+                            node_to_path_cache.insert(m.node, util::extract_node_path(&path));
+                        }
+                    }
+                }
+            }
+            node_to_path_cache
+        }
+    }
+
     /// Find all results for a `query` and return the match ID for each result.
     ///
     /// The query is paginated and an offset and limit can be specified.
@@ -917,24 +959,15 @@ impl CorpusStorage {
             .node_annos
             .get_key_id(&db.get_node_name_key())
             .ok_or("No internal ID for node names found")?;
-        let mut node_to_path_cache = FxHashMap::default();
+
         let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(1024);
 
         for mgroup in plan {
-            // cache all paths of the matches
-            for m in &mgroup {
-                if let Some(path) = db
-                    .node_annos
-                    .get_value_for_item_by_id(&m.node, node_name_key_id)
-                {
-                    let path = util::extract_node_path(&path);
-                    node_to_path_cache.insert(m.node, path);
-                }
-            }
-
             // add all matches to temporary vector
             tmp_results.push(mgroup);
         }
+
+        let node_to_path_cache = self.create_node_to_path_cache(&tmp_results, db, node_name_key_id);
 
         // either sort or randomly shuffle results
         if order == ResultOrder::Random {
