@@ -11,7 +11,7 @@ where
 {
     let item_len = items.len();
     if item_len > 0 {
-        quicksort(items, 0, item_len - 1, n, &order_func);
+        quicksort(items, n, &order_func);
     }
 }
 
@@ -24,41 +24,47 @@ where
 /// The algorithm used a randomized pivot element.
 fn quicksort<T, F>(
     items: &mut [T],
-    p: usize,
-    r: usize,
     max_size: usize,
     order_func: &F,
 ) where
     F: Fn(&T, &T) -> std::cmp::Ordering,
 {
-    if p < r {
-        let q = randomized_partition(items, p, r, order_func);
+    if items.len() > 1 {
+        let q = randomized_partition(items, order_func);
         if q > 0 {
-            quicksort(items, p, q - 1, max_size, order_func);
+            quicksort(&mut items[0..q], max_size, order_func);
         }
-        if (q - p) < max_size {
+        if q < max_size {
             // only sort right partition if the left partition is not large enough
-            quicksort(items, q + 1, r, max_size, order_func);
+            quicksort(&mut items[(q + 1)..], max_size, order_func);
         }
     }
 }
 
-fn randomized_partition<T, F>(items: &mut [T], p: usize, r: usize, order_func: &F) -> usize
+fn randomized_partition<T, F>(items: &mut [T], order_func: &F) -> usize
 where
     F: Fn(&T, &T) -> std::cmp::Ordering,
 {
-    let mut rng = rand::thread_rng();
-    let i = rng.gen_range(p, r+1);
-    items.swap(r, i);
-    partition(items, p, r, order_func)
+    let items_len = items.len();
+    if items_len == 0 {
+        0
+    } else {
+        let mut rng = rand::thread_rng();
+        let i = rng.gen_range(0, items_len);
+        items.swap(items_len-1, i);
+        partition(items, order_func)
+    }
 }
 
-fn partition<T, F>(items: &mut [T], p: usize, r: usize, order_func: &F) -> usize
+fn partition<T, F>(items: &mut [T], order_func: &F) -> usize
 where
     F: Fn(&T, &T) -> std::cmp::Ordering,
 {
-    let mut i = p;
-    for j in p..r {
+    let r = items.len()-1;
+
+    let mut i = 0;
+
+    for j in 0..(items.len()-1) {
         let comparision = order_func(&items[j], &items[r]);
         match comparision {
             std::cmp::Ordering::Less | std::cmp::Ordering::Equal => {
