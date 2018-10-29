@@ -1,8 +1,6 @@
+use annis::db::graphstorage::GraphStorage;
 use annis::db::token_helper::TokenHelper;
-use annis::db::Graph;
 use annis::db::Match;
-use annis::types::Component;
-use annis::types::ComponentType;
 use annis::types::NodeID;
 use rustc_hash::FxHashMap;
 use std;
@@ -11,11 +9,13 @@ use std::cmp::Ordering;
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
-    db: &Graph,
     node_to_path: &FxHashMap<NodeID, (Vec<&str>, &str)>,
+    token_helper: Option<&TokenHelper>,
+    gs_order: Option<&GraphStorage>,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
-        let element_cmp = compare_match_by_text_pos(&m1[i], &m2[i], db, node_to_path);
+        let element_cmp =
+            compare_match_by_text_pos(&m1[i], &m2[i], node_to_path, token_helper, gs_order);
         if element_cmp != Ordering::Equal {
             return element_cmp;
         }
@@ -24,11 +24,12 @@ pub fn compare_matchgroup_by_text_pos(
     m1.len().cmp(&m2.len())
 }
 
-pub fn compare_match_by_text_pos(
+fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
-    db: &Graph,
     node_to_path: &FxHashMap<NodeID, (Vec<&str>, &str)>,
+    token_helper: Option<&TokenHelper>,
+    gs_order: Option<&GraphStorage>,
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
@@ -45,23 +46,24 @@ pub fn compare_match_by_text_pos(
             }
 
             // 2. compare the token ordering
-            let component_order = Component {
-                ctype: ComponentType::Ordering,
-                layer: String::from("annis"),
-                name: String::from(""),
-            };
-
-            if let (Some(token_helper), Some(gs_order)) =
-                (TokenHelper::new(db), db.get_graphstorage(&component_order))
-            {
+            if let (Some(token_helper), Some(gs_order)) = (token_helper, gs_order) {
                 if let (Some(m1_lefttok), Some(m2_lefttok)) = (
                     token_helper.left_token_for(m1.node),
                     token_helper.left_token_for(m2.node),
                 ) {
-                    if gs_order.is_connected(&m1_lefttok, &m2_lefttok, 1, std::ops::Bound::Unbounded) {
+                    if gs_order.is_connected(
+                        &m1_lefttok,
+                        &m2_lefttok,
+                        1,
+                        std::ops::Bound::Unbounded,
+                    ) {
                         return Ordering::Less;
-                    } else if gs_order.is_connected(&m2_lefttok, &m1_lefttok, 1, std::ops::Bound::Unbounded)
-                    {
+                    } else if gs_order.is_connected(
+                        &m2_lefttok,
+                        &m1_lefttok,
+                        1,
+                        std::ops::Bound::Unbounded,
+                    ) {
                         return Ordering::Greater;
                     }
                 }

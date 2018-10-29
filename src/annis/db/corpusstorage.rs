@@ -9,6 +9,7 @@ use annis::db::query;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
 use annis::db::relannis;
+use annis::db::token_helper::TokenHelper;
 use annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
 use annis::errors::ErrorKind;
 use annis::errors::*;
@@ -940,26 +941,35 @@ impl CorpusStorage {
             let mut rng = rand::thread_rng();
             rng.shuffle(&mut tmp_results[..])
         } else {
+            let token_helper = TokenHelper::new(db);
+            let component_order = Component {
+                ctype: ComponentType::Ordering,
+                layer: String::from("annis"),
+                name: String::from(""),
+            };
+
+            let gs_order = db.get_graphstorage_as_ref(&component_order);
             let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                 if order == ResultOrder::Inverted {
                     db::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
-                        db,
                         &node_to_path_cache,
+                        token_helper.as_ref(),
+                        gs_order,
                     ).reverse()
                 } else {
                     db::sort_matches::compare_matchgroup_by_text_pos(
                         m1,
                         m2,
-                        db,
                         &node_to_path_cache,
+                        token_helper.as_ref(),
+                        gs_order,
                     )
                 }
             };
 
-            quicksort::sort_first_n_items(&mut tmp_results, offset+limit, order_func);
-
+            quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
         }
 
         let expected_size = std::cmp::min(tmp_results.len(), limit);
