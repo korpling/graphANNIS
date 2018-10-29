@@ -959,8 +959,9 @@ impl CorpusStorage {
             .node_annos
             .get_key_id(&db.get_node_name_key())
             .ok_or("No internal ID for node names found")?;
-
-        let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(1024);
+        
+        let estimated_result_size = plan.estimated_output_size();
+        let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
 
         for mgroup in plan {
             // add all matches to temporary vector

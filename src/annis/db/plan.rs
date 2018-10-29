@@ -72,6 +72,18 @@ impl<'a> ExecutionPlan<'a> {
             tmp
         }
     }
+
+    pub fn estimated_output_size(&self) -> usize {
+        let mut estimation = 0;
+        for desc in &self.descriptions {
+            if let Some(desc) = desc {
+                if let Some(ref cost) = desc.cost {
+                    estimation += cost.output;
+                }
+            }
+        }
+        estimation
+    }
 }
 
 impl<'a> std::fmt::Display for ExecutionPlan<'a> {
