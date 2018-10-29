@@ -23,7 +23,7 @@ where
 ///
 /// The algorithm used a randomized pivot element.
 fn quicksort<T, F>(
-    items: &mut Vec<T>,
+    items: &mut [T],
     p: usize,
     r: usize,
     max_size: usize,
@@ -43,7 +43,7 @@ fn quicksort<T, F>(
     }
 }
 
-fn randomized_partition<T, F>(items: &mut Vec<T>, p: usize, r: usize, order_func: &F) -> usize
+fn randomized_partition<T, F>(items: &mut [T], p: usize, r: usize, order_func: &F) -> usize
 where
     F: Fn(&T, &T) -> std::cmp::Ordering,
 {
@@ -53,7 +53,7 @@ where
     partition(items, p, r, order_func)
 }
 
-fn partition<T, F>(items: &mut Vec<T>, p: usize, r: usize, order_func: &F) -> usize
+fn partition<T, F>(items: &mut [T], p: usize, r: usize, order_func: &F) -> usize
 where
     F: Fn(&T, &T) -> std::cmp::Ordering,
 {
