@@ -12,7 +12,7 @@ pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
     db: &Graph,
-    node_to_path: &FxHashMap<NodeID, (Vec<String>, String)>,
+    node_to_path: &FxHashMap<NodeID, (Vec<&str>, &str)>,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
         let element_cmp = compare_match_by_text_pos(&m1[i], &m2[i], db, node_to_path);
@@ -28,7 +28,7 @@ pub fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
     db: &Graph,
-    node_to_path: &FxHashMap<NodeID, (Vec<String>, String)>,
+    node_to_path: &FxHashMap<NodeID, (Vec<&str>, &str)>,
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare

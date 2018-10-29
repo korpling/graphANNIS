@@ -48,23 +48,22 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
 /// assert_eq!(name, "");
 /// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
 /// ```
-pub fn extract_node_path(full_node_name: &str) -> (Vec<String>, String) {
+pub fn extract_node_path(full_node_name: &str) -> (Vec<&str>, &str) {
     // separate path and name first
     let hash_pos = full_node_name.rfind('#');
 
     let path_str: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
-    let mut path: Vec<String> = Vec::with_capacity(4);
+    let mut path: Vec<&str> = Vec::with_capacity(4);
     path.extend(
         path_str
             .split('/')
             .filter(|s| !s.is_empty())
-            .map(|s| s.to_owned()),
     );
 
     if let Some(hash_pos) = hash_pos {
-        return (path, full_node_name[hash_pos + 1..].to_owned());
+        return (path, &full_node_name[hash_pos + 1..]);
     } else {
-        return (path, "".to_owned());
+        return (path, "");
     }
 }
 
