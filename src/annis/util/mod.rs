@@ -53,13 +53,7 @@ pub fn extract_node_path(full_node_name: &str) -> (Vec<&str>, &str) {
     let hash_pos = full_node_name.rfind('#');
 
     let path_str: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
-    let mut path: Vec<&str> = Vec::with_capacity(4);
-    path.extend(
-        path_str
-            .split('/')
-            .filter(|s| !s.is_empty())
-    );
-
+    let path: Vec<&str> = path_str.split('/').filter(|s| !s.is_empty()).collect();
     if let Some(hash_pos) = hash_pos {
         return (path, &full_node_name[hash_pos + 1..]);
     } else {
@@ -123,7 +117,7 @@ impl SearchDef {
 
 /// Returns an iterator over all query definitions of a folder.
 /// - `folder` - The folder on the file system.
-/// - `panic_on_invalid` - If true, an invalid query definition will trigger a panic, otherwise it will be ignored. 
+/// - `panic_on_invalid` - If true, an invalid query definition will trigger a panic, otherwise it will be ignored.
 /// Can be used if this query is called in a test case to fail the test.
 pub fn get_queries_from_folder(
     folder: &Path,
