@@ -54,7 +54,8 @@ pub fn extract_node_path(full_node_name: &str) -> (Vec<&str>, &str) {
     let hash_pos = full_node_name.rfind('#');
 
     let path_str: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
-    let path: Vec<&str> = path_str.split('/').filter(|s| !s.is_empty()).collect();
+    let mut path: Vec<&str> = Vec::with_capacity(4);
+    path.extend(path_str.split('/').filter(|s| !s.is_empty()));
     if let Some(hash_pos) = hash_pos {
         return (path, &full_node_name[hash_pos + 1..]);
     } else {
