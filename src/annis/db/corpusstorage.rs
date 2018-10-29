@@ -1573,10 +1573,6 @@ mod tests {
 
     #[test]
     fn load_cs_twice() {
-        // Init logger to get a trace of the actions that failed
-        simplelog::SimpleLogger::init(log::LevelFilter::Trace, simplelog::Config::default())
-            .unwrap();
-
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
             {
                 let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
