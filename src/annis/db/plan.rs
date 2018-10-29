@@ -52,11 +52,14 @@ impl<'a> ExecutionPlan<'a> {
     }
 
     fn reorder_match(&self, tmp: Vec<Match>) -> Vec<Match> {
+        if tmp.len() <= 1 {
+            // nothing to reorder
+            return tmp;
+        }
         if let Some(ref desc) = self.descriptions[self.current_plan] {
             let desc: &Desc = desc;
             // re-order the matched nodes by the original node position of the query
-            let mut result: Vec<Match> = Vec::new();
-            result.reserve(tmp.len());
+            let mut result: Vec<Match> = Vec::with_capacity(tmp.len());
             for i in 0..tmp.len() {
                 if let Some(mapped_pos) = desc.node_pos.get(&i) {
                     result.push(tmp[*mapped_pos].clone());
