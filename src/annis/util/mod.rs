@@ -1,4 +1,5 @@
 pub mod memory_estimation;
+pub mod quicksort;
 
 use regex_syntax;
 use std;

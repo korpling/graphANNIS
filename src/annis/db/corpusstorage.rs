@@ -19,6 +19,7 @@ use annis::types::{
 };
 use annis::util;
 use annis::util::memory_estimation;
+use annis::util::quicksort;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -38,7 +39,6 @@ use rustc_hash::FxHashMap;
 
 use rand;
 use rand::Rng;
-use rayon::prelude::*;
 use sys_info;
 
 enum CacheEntry {
@@ -198,7 +198,7 @@ impl FromStr for FrequencyDefEntry {
 #[derive(Clone, Copy)]
 pub enum QueryLanguage {
     AQL,
-    /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3 
+    /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
     AQLQuirksV3,
 }
 
@@ -958,11 +958,8 @@ impl CorpusStorage {
                 }
             };
 
-            if self.query_config.use_parallel_joins {
-                tmp_results.par_sort_unstable_by(order_func);
-            } else {
-                tmp_results.sort_unstable_by(order_func);
-            }
+            quicksort::sort_first_n_items(&mut tmp_results, offset+limit, order_func);
+
         }
 
         let expected_size = std::cmp::min(tmp_results.len(), limit);
@@ -1143,7 +1140,10 @@ impl CorpusStorage {
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
-                        dist: RangeSpec::Bound {min_dist: 0, max_dist: ctx_right},
+                        dist: RangeSpec::Bound {
+                            min_dist: 0,
+                            max_dist: ctx_right,
+                        },
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
@@ -1182,7 +1182,10 @@ impl CorpusStorage {
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
-                        dist: RangeSpec::Bound{min_dist: 0, max_dist: ctx_right},
+                        dist: RangeSpec::Bound {
+                            min_dist: 0,
+                            max_dist: ctx_right,
+                        },
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
