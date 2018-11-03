@@ -223,4 +223,5 @@ pub mod binary_filter;
 pub mod indexjoin;
 pub mod nestedloop;
 pub mod nodesearch;
+pub mod tokensearch;
 pub mod parallel;
