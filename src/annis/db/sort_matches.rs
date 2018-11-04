@@ -24,7 +24,7 @@ pub fn compare_matchgroup_by_text_pos(
     m1.len().cmp(&m2.len())
 }
 
-fn compare_match_by_text_pos(
+pub fn compare_match_by_text_pos(
     m1: &Match,
     m2: &Match,
     node_to_path: &FxHashMap<NodeID, (Vec<&str>, &str)>,
@@ -80,3 +80,4 @@ fn compare_match_by_text_pos(
         m1.node.cmp(&m2.node)
     }
 }
+
