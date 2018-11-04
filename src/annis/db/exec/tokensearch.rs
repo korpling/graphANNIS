@@ -2,9 +2,11 @@ use annis::db::exec::Desc;
 use annis::db::exec::ExecutionNode;
 use annis::db::graphstorage::GraphStorage;
 use annis::db::sort_matches;
+use annis::db::token_helper;
 use annis::db::token_helper::TokenHelper;
 use annis::db::Graph;
 use annis::db::Match;
+use annis::errors::*;
 use annis::types::AnnoKeyID;
 use annis::types::{Component, ComponentType, NodeID};
 use annis::util;
@@ -34,11 +36,11 @@ lazy_static! {
 }
 
 impl<'a> AnyTokenSearch<'a> {
-    pub fn new(db: &'a Graph) -> Option<AnyTokenSearch<'a>> {
-        let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER)?;
-        let token_helper = TokenHelper::new(db)?;
+    pub fn new(db: &'a Graph) -> Result<AnyTokenSearch<'a>> {
+        let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER).ok_or("ORDERING component not loaded")?;
+        let token_helper = TokenHelper::new(db).ok_or("Components related to token search are not loaded")?;
 
-        Some(AnyTokenSearch {
+        Ok(AnyTokenSearch {
             order_gs,
             token_helper,
             db,
@@ -49,6 +51,12 @@ impl<'a> AnyTokenSearch<'a> {
                 .unwrap_or_default(),
             root_iterators: None,
         })
+    }
+
+    pub fn necessary_components() -> Vec<Component> {
+        let mut components = token_helper::necessary_components();
+        components.push(COMPONENT_ORDER.clone());
+        components
     }
 
     fn get_root_iterators(&mut self) -> &mut Vec<Box<Iterator<Item = NodeID> + 'a>> {
