@@ -20,6 +20,7 @@ pub struct NodeSearch<'a> {
 
     desc: Option<Desc>,
     node_search_desc: Arc<NodeSearchDesc>,
+    is_sorted: bool,
 }
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum NodeSearchSpec {
@@ -241,6 +242,7 @@ impl<'a> NodeSearch<'a> {
                         cond: vec![filter_func],
                         const_output,
                     }),
+                    is_sorted: false,
                 })
             }
         }
@@ -327,6 +329,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output,
             }),
+            is_sorted: false,
         })
     }
 
@@ -426,6 +429,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output,
             }),
+            is_sorted: false,
         })
     }
 
@@ -579,6 +583,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output: Some(const_output),
             }),
+            is_sorted: false,
         })
     }
 
@@ -629,6 +634,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output: Some(const_output),
             }),
+            is_sorted: true,
         })
     }
 
@@ -693,6 +699,7 @@ impl<'a> NodeSearch<'a> {
             it: Box::new(it),
             desc: new_desc,
             node_search_desc,
+            is_sorted: false,
         })
     }
 
@@ -716,6 +723,10 @@ impl<'a> ExecutionNode for NodeSearch<'a> {
 
     fn as_nodesearch(&self) -> Option<&NodeSearch> {
         Some(self)
+    }
+
+    fn is_sorted_by_text(&self) -> bool {
+        self.is_sorted
     }
 }
 

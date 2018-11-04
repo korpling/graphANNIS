@@ -84,6 +84,16 @@ impl<'a> ExecutionPlan<'a> {
         }
         estimation
     }
+
+    pub fn is_sorted_by_text(&self) -> bool {
+        if self.plans.len() > 1 {
+            false
+        } else if self.plans.is_empty() {
+            true
+        } else {
+            self.plans[0].is_sorted_by_text()
+        }
+    }
 }
 
 impl<'a> std::fmt::Display for ExecutionPlan<'a> {

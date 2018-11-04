@@ -194,6 +194,10 @@ pub trait ExecutionNode: Iterator {
     fn get_desc(&self) -> Option<&Desc> {
         None
     }
+
+    fn is_sorted_by_text(&self) -> bool {
+        false
+    }
 }
 
 pub struct EmptyResultSet;

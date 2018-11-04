@@ -955,100 +955,115 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
 
+        let mut expected_size: Option<usize> = None;
+        let base_it: Box<Iterator<Item = Vec<Match>>> =
+            if order == ResultOrder::Normal && plan.is_sorted_by_text() {
+                // if the output is already sorted, directly return the iterator
+                Box::from(plan)
+            } else {
+                let node_name_key_id = db
+                    .node_annos
+                    .get_key_id(&db.get_node_name_key())
+                    .ok_or("No internal ID for node names found")?;
+
+                let estimated_result_size = plan.estimated_output_size();
+                let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
+
+                for mgroup in plan {
+                    // add all matches to temporary vector
+                    tmp_results.push(mgroup);
+                }
+
+                let node_to_path_cache =
+                    self.create_node_to_path_cache(&tmp_results, db, node_name_key_id);
+
+                // either sort or randomly shuffle results
+                if order == ResultOrder::Random {
+                    let mut rng = rand::thread_rng();
+                    rng.shuffle(&mut tmp_results[..])
+                } else {
+                    let token_helper = TokenHelper::new(db);
+                    let component_order = Component {
+                        ctype: ComponentType::Ordering,
+                        layer: String::from("annis"),
+                        name: String::from(""),
+                    };
+
+                    let gs_order = db.get_graphstorage_as_ref(&component_order);
+                    let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                        if order == ResultOrder::Inverted {
+                            db::sort_matches::compare_matchgroup_by_text_pos(
+                                m1,
+                                m2,
+                                &node_to_path_cache,
+                                token_helper.as_ref(),
+                                gs_order,
+                            ).reverse()
+                        } else {
+                            db::sort_matches::compare_matchgroup_by_text_pos(
+                                m1,
+                                m2,
+                                &node_to_path_cache,
+                                token_helper.as_ref(),
+                                gs_order,
+                            )
+                        }
+                    };
+
+                    if self.query_config.use_parallel_joins {
+                        quicksort::sort_first_n_items_parallel(
+                            &mut tmp_results,
+                            offset + limit,
+                            order_func,
+                        );
+                    } else {
+                        quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
+                    }
+                }
+                expected_size = Some(tmp_results.len());
+                Box::from(tmp_results.into_iter())
+            };
+
         let node_name_key_id = db
             .node_annos
             .get_key_id(&db.get_node_name_key())
             .ok_or("No internal ID for node names found")?;
-        
-        let estimated_result_size = plan.estimated_output_size();
-        let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
 
-        for mgroup in plan {
-            // add all matches to temporary vector
-            tmp_results.push(mgroup);
-        }
-
-        let node_to_path_cache = self.create_node_to_path_cache(&tmp_results, db, node_name_key_id);
-
-        // either sort or randomly shuffle results
-        if order == ResultOrder::Random {
-            let mut rng = rand::thread_rng();
-            rng.shuffle(&mut tmp_results[..])
+        let mut results: Vec<String> = if let Some(expected_size) = expected_size {
+            Vec::with_capacity(std::cmp::min(expected_size, limit))
         } else {
-            let token_helper = TokenHelper::new(db);
-            let component_order = Component {
-                ctype: ComponentType::Ordering,
-                layer: String::from("annis"),
-                name: String::from(""),
-            };
+            Vec::new()
+        };
+        results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
+            let mut match_desc: Vec<String> = Vec::new();
+            for singlematch in &m {
+                let mut node_desc = String::new();
 
-            let gs_order = db.get_graphstorage_as_ref(&component_order);
-            let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
-                if order == ResultOrder::Inverted {
-                    db::sort_matches::compare_matchgroup_by_text_pos(
-                        m1,
-                        m2,
-                        &node_to_path_cache,
-                        token_helper.as_ref(),
-                        gs_order,
-                    ).reverse()
-                } else {
-                    db::sort_matches::compare_matchgroup_by_text_pos(
-                        m1,
-                        m2,
-                        &node_to_path_cache,
-                        token_helper.as_ref(),
-                        gs_order,
-                    )
-                }
-            };
-
-            if self.query_config.use_parallel_joins {
-                quicksort::sort_first_n_items_parallel(&mut tmp_results, offset + limit, order_func);
-            } else {
-                quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
-            }
-        }
-
-        let expected_size = std::cmp::min(tmp_results.len(), limit);
-
-        let mut results: Vec<String> = Vec::with_capacity(expected_size);
-        results.extend(
-            tmp_results
-                .into_iter()
-                .skip(offset)
-                .take(limit)
-                .map(|m: Vec<Match>| {
-                    let mut match_desc: Vec<String> = Vec::new();
-                    for singlematch in &m {
-                        let mut node_desc = String::new();
-
-                        if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                            if &anno_key.ns != "annis" {
-                                if !anno_key.ns.is_empty() {
-                                    node_desc.push_str(&anno_key.ns);
-                                    node_desc.push_str("::");
-                                }
-                                node_desc.push_str(&anno_key.name);
-                                node_desc.push_str("::");
-                            }
+                if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
+                    if &anno_key.ns != "annis" {
+                        if !anno_key.ns.is_empty() {
+                            node_desc.push_str(&anno_key.ns);
+                            node_desc.push_str("::");
                         }
-
-                        if let Some(name) = db
-                            .node_annos
-                            .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
-                        {
-                            node_desc.push_str("salt:/");
-                            node_desc.push_str(name);
-                        }
-
-                        match_desc.push(node_desc);
+                        node_desc.push_str(&anno_key.name);
+                        node_desc.push_str("::");
                     }
-                    let mut result = String::new();
-                    result.push_str(&match_desc.join(" "));
-                    result
-                }),
-        );
+                }
+
+                if let Some(name) = db
+                    .node_annos
+                    .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
+                {
+                    node_desc.push_str("salt:/");
+                    node_desc.push_str(name);
+                }
+
+                match_desc.push(node_desc);
+            }
+            let mut result = String::new();
+            result.push_str(&match_desc.join(" "));
+            result
+        }));
 
         Ok(results)
     }
