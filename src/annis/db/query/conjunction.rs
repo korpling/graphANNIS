@@ -309,6 +309,9 @@ impl<'a> Conjunction<'a> {
             let mut c = op_entry.op.necessary_components(db);
             result.append(&mut c);
         }
+        for n in &self.nodes {
+            result.extend(n.1.necessary_components(db));
+        }
 
         result
     }
