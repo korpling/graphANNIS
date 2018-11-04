@@ -153,7 +153,7 @@ pub enum ResultOrder {
     /// Inverted the order of `Normal`.
     Inverted,
     /// A random ordering which is **not stable**. Each new query will result in a different order.
-    Random,
+    Randomized,
 }
 
 struct PreparationResult<'a> {
@@ -978,7 +978,7 @@ impl CorpusStorage {
                     self.create_node_to_path_cache(&tmp_results, db, node_name_key_id);
 
                 // either sort or randomly shuffle results
-                if order == ResultOrder::Random {
+                if order == ResultOrder::Randomized {
                     let mut rng = rand::thread_rng();
                     rng.shuffle(&mut tmp_results[..])
                 } else {

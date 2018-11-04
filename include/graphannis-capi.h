@@ -107,7 +107,7 @@ typedef enum {
   /*
    * A random ordering which is **not stable**. Each new query will result in a different order.
    */
-  Random,
+  Randomized,
 } AnnisResultOrder;
 
 /*
