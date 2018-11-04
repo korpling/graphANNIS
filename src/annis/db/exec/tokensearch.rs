@@ -4,6 +4,7 @@ use annis::db::graphstorage::GraphStorage;
 use annis::db::sort_matches;
 use annis::db::token_helper;
 use annis::db::token_helper::TokenHelper;
+use annis::db::AnnotationStorage;
 use annis::db::Graph;
 use annis::db::Match;
 use annis::errors::*;
@@ -20,8 +21,8 @@ pub struct AnyTokenSearch<'a> {
     desc: Option<Desc>,
     node_name_key: AnnoKeyID,
     db: &'a Graph,
-    token_helper: TokenHelper,
-    order_gs: &'a GraphStorage,
+    token_helper: Option<TokenHelper>,
+    order_gs: Option<&'a GraphStorage>,
     root_iterators: Option<Vec<Box<Iterator<Item = NodeID> + 'a>>>,
 }
 
@@ -37,8 +38,8 @@ lazy_static! {
 
 impl<'a> AnyTokenSearch<'a> {
     pub fn new(db: &'a Graph) -> Result<AnyTokenSearch<'a>> {
-        let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER).ok_or("ORDERING component not loaded")?;
-        let token_helper = TokenHelper::new(db).ok_or("Components related to token search are not loaded")?;
+        let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER);
+        let token_helper = TokenHelper::new(db);
 
         Ok(AnyTokenSearch {
             order_gs,
@@ -63,15 +64,28 @@ impl<'a> AnyTokenSearch<'a> {
         if let Some(ref mut root_iterators) = self.root_iterators {
             return root_iterators;
         } else {
-            // iterate over all nodes that are part of the ORDERING component and find the root nodes
+            // iterate over all nodes that are token and check if they are root node nodes in the ORDERING component
             let mut root_nodes: Vec<Match> = Vec::new();
-            for n in self.order_gs.source_nodes() {
-                if self.order_gs.get_ingoing_edges(n).next() == None {
+            for tok_candidate in self.db.node_annos.exact_anno_search(
+                Some("annis".to_owned()),
+                "tok".to_owned(),
+                None,
+            ) {
+                let n = tok_candidate.node;
+                let mut is_root_tok = true;
+                if let Some(ref token_helper) = self.token_helper {
+                    is_root_tok = is_root_tok && token_helper.is_token(n);
+                }
+                if let Some(order_gs) = self.order_gs {
+                    is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next() == None;
+                }
+                if is_root_tok {
                     root_nodes.push(Match {
                         node: n,
                         anno_key: self.node_name_key,
                     });
                 }
+            
             }
             // Sort the root nodes by their reverse text position,
             // so that removing the last item will return the first root node.
@@ -91,17 +105,20 @@ impl<'a> AnyTokenSearch<'a> {
                     b,
                     a,
                     &node_to_path,
-                    Some(&self.token_helper),
-                    Some(self.order_gs),
+                    self.token_helper.as_ref(),
+                    self.order_gs,
                 )
             });
 
             // for root nodes add an iterator for all reachable nodes in the order component
             let mut root_iterators = Vec::new();
             for root in root_nodes {
-                let it = self
-                    .order_gs
-                    .find_connected(root.node, 0, std::ops::Bound::Unbounded);
+                let it = if let Some(order_gs) = self.order_gs {
+                    order_gs.find_connected(root.node, 0, std::ops::Bound::Unbounded)
+                } else {
+                    // there is only the the root token and no ordering component
+                    Box::from(vec![root.node].into_iter())
+                };
                 root_iterators.push(it);
             }
             self.root_iterators = Some(root_iterators);
@@ -149,5 +166,35 @@ impl<'a> Iterator for AnyTokenSearch<'a> {
         }
 
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use update::{GraphUpdate, UpdateEvent};
+
+    #[test]
+    fn find_with_only_one_token() {
+        let mut g = Graph::new();
+
+        let mut update = GraphUpdate::new();
+        update.add_event(UpdateEvent::AddNode {
+            node_name: "doc1/tok1".to_owned(),
+            node_type: "node".to_owned(),
+        });
+        update.add_event(UpdateEvent::AddNodeLabel {
+            node_name: "doc1/tok1".to_owned(),
+            anno_ns: "annis".to_owned(),
+            anno_name: "tok".to_owned(),
+            anno_value: "The".to_owned(),
+        });
+        update.finish();
+
+        g.apply_update(&mut update).unwrap();
+
+        let search_result: Vec<Vec<Match>> = AnyTokenSearch::new(&g).unwrap().collect();
+        assert_eq!(1, search_result.len());
     }
 }
