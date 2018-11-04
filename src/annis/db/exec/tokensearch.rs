@@ -6,7 +6,7 @@ use annis::db::token_helper::TokenHelper;
 use annis::db::Graph;
 use annis::db::Match;
 use annis::types::AnnoKeyID;
-use annis::types::NodeID;
+use annis::types::{Component, ComponentType, NodeID};
 use annis::util;
 
 use std::fmt;
@@ -14,7 +14,7 @@ use std::fmt;
 use rustc_hash::FxHashMap;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps the search for *all* token in a corpus.
-pub struct TokenSearch<'a> {
+pub struct AnyTokenSearch<'a> {
     desc: Option<Desc>,
     node_name_key: AnnoKeyID,
     db: &'a Graph,
@@ -23,13 +23,22 @@ pub struct TokenSearch<'a> {
     root_iterators: Option<Vec<Box<Iterator<Item = NodeID> + 'a>>>,
 }
 
-impl<'a> TokenSearch<'a> {
-    pub fn new(
-        db: &'a Graph,
-        token_helper: TokenHelper,
-        order_gs: &'a GraphStorage,
-    ) -> TokenSearch<'a> {
-        TokenSearch {
+lazy_static! {
+    static ref COMPONENT_ORDER: Component = {
+        Component {
+            ctype: ComponentType::Ordering,
+            layer: String::from("annis"),
+            name: String::from(""),
+        }
+    };
+}
+
+impl<'a> AnyTokenSearch<'a> {
+    pub fn new(db: &'a Graph) -> Option<AnyTokenSearch<'a>> {
+        let order_gs = db.get_graphstorage_as_ref(&COMPONENT_ORDER)?;
+        let token_helper = TokenHelper::new(db)?;
+
+        Some(AnyTokenSearch {
             order_gs,
             token_helper,
             db,
@@ -39,7 +48,7 @@ impl<'a> TokenSearch<'a> {
                 .get_key_id(&db.get_node_name_key())
                 .unwrap_or_default(),
             root_iterators: None,
-        }
+        })
     }
 
     fn get_root_iterators(&mut self) -> &mut Vec<Box<Iterator<Item = NodeID> + 'a>> {
@@ -93,13 +102,13 @@ impl<'a> TokenSearch<'a> {
     }
 }
 
-impl<'a> fmt::Display for TokenSearch<'a> {
+impl<'a> fmt::Display for AnyTokenSearch<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "tok")
     }
 }
 
-impl<'a> ExecutionNode for TokenSearch<'a> {
+impl<'a> ExecutionNode for AnyTokenSearch<'a> {
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
     }
@@ -109,7 +118,7 @@ impl<'a> ExecutionNode for TokenSearch<'a> {
     }
 }
 
-impl<'a> Iterator for TokenSearch<'a> {
+impl<'a> Iterator for AnyTokenSearch<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {
