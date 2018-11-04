@@ -154,6 +154,9 @@ pub enum ResultOrder {
     Inverted,
     /// A random ordering which is **not stable**. Each new query will result in a different order.
     Randomized,
+    /// Results are not ordered at all, but also not actively randomized
+    /// Each new query *might* result in a different order.
+    NotSorted,
 }
 
 struct PreparationResult<'a> {
@@ -953,76 +956,85 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        let mut query_config = self.query_config.clone();
+        if order == ResultOrder::NotSorted {
+            // Do not use parallization of the order should not be sorted to have a more stable result ordering.
+            // Even if we do not promise to have a stable ordering, it should be the same
+            // for the same session on the same corpus.
+            query_config.use_parallel_joins = false;
+        }
+
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &query_config)?;
 
         let mut expected_size: Option<usize> = None;
-        let base_it: Box<Iterator<Item = Vec<Match>>> =
-            if order == ResultOrder::Normal && plan.is_sorted_by_text() {
-                // if the output is already sorted, directly return the iterator
-                Box::from(plan)
+        let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
+            || (order == ResultOrder::Normal && plan.is_sorted_by_text())
+        {
+            // if the output is already sorted correctly, directly return the iterator
+            Box::from(plan)
+        } else {
+            let node_name_key_id = db
+                .node_annos
+                .get_key_id(&db.get_node_name_key())
+                .ok_or("No internal ID for node names found")?;
+
+            let estimated_result_size = plan.estimated_output_size();
+            let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
+
+            for mgroup in plan {
+                // add all matches to temporary vector
+                tmp_results.push(mgroup);
+            }
+
+            let node_to_path_cache =
+                self.create_node_to_path_cache(&tmp_results, db, node_name_key_id);
+
+            // either sort or randomly shuffle results
+            if order == ResultOrder::Randomized {
+                let mut rng = rand::thread_rng();
+                rng.shuffle(&mut tmp_results[..])
             } else {
-                let node_name_key_id = db
-                    .node_annos
-                    .get_key_id(&db.get_node_name_key())
-                    .ok_or("No internal ID for node names found")?;
+                let token_helper = TokenHelper::new(db);
+                let component_order = Component {
+                    ctype: ComponentType::Ordering,
+                    layer: String::from("annis"),
+                    name: String::from(""),
+                };
 
-                let estimated_result_size = plan.estimated_output_size();
-                let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
-
-                for mgroup in plan {
-                    // add all matches to temporary vector
-                    tmp_results.push(mgroup);
-                }
-
-                let node_to_path_cache =
-                    self.create_node_to_path_cache(&tmp_results, db, node_name_key_id);
-
-                // either sort or randomly shuffle results
-                if order == ResultOrder::Randomized {
-                    let mut rng = rand::thread_rng();
-                    rng.shuffle(&mut tmp_results[..])
-                } else {
-                    let token_helper = TokenHelper::new(db);
-                    let component_order = Component {
-                        ctype: ComponentType::Ordering,
-                        layer: String::from("annis"),
-                        name: String::from(""),
-                    };
-
-                    let gs_order = db.get_graphstorage_as_ref(&component_order);
-                    let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
-                        if order == ResultOrder::Inverted {
-                            db::sort_matches::compare_matchgroup_by_text_pos(
-                                m1,
-                                m2,
-                                &node_to_path_cache,
-                                token_helper.as_ref(),
-                                gs_order,
-                            ).reverse()
-                        } else {
-                            db::sort_matches::compare_matchgroup_by_text_pos(
-                                m1,
-                                m2,
-                                &node_to_path_cache,
-                                token_helper.as_ref(),
-                                gs_order,
-                            )
-                        }
-                    };
-
-                    if self.query_config.use_parallel_joins {
-                        quicksort::sort_first_n_items_parallel(
-                            &mut tmp_results,
-                            offset + limit,
-                            order_func,
-                        );
+                let gs_order = db.get_graphstorage_as_ref(&component_order);
+                let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                    if order == ResultOrder::Inverted {
+                        db::sort_matches::compare_matchgroup_by_text_pos(
+                            m1,
+                            m2,
+                            &node_to_path_cache,
+                            token_helper.as_ref(),
+                            gs_order,
+                        ).reverse()
                     } else {
-                        quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
+                        db::sort_matches::compare_matchgroup_by_text_pos(
+                            m1,
+                            m2,
+                            &node_to_path_cache,
+                            token_helper.as_ref(),
+                            gs_order,
+                        )
                     }
+                };
+
+                if self.query_config.use_parallel_joins {
+                    quicksort::sort_first_n_items_parallel(
+                        &mut tmp_results,
+                        offset + limit,
+                        order_func,
+                    );
+                } else {
+                    quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
                 }
-                expected_size = Some(tmp_results.len());
-                Box::from(tmp_results.into_iter())
-            };
+            }
+            expected_size = Some(tmp_results.len());
+            Box::from(tmp_results.into_iter())
+        };
 
         let node_name_key_id = db
             .node_annos

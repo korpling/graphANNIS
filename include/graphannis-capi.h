@@ -108,6 +108,11 @@ typedef enum {
    * A random ordering which is **not stable**. Each new query will result in a different order.
    */
   Randomized,
+  /*
+   * Results are not ordered at all, but also not actively randomized
+   * Each new query *might* result in a different order.
+   */
+  NotSorted,
 } AnnisResultOrder;
 
 /*
