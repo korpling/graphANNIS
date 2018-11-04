@@ -26,43 +26,6 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
     false
 }
 
-/// Takes a node name/ID and extracts both the document path as array and the node name itself.
-///
-/// Complete node names/IDs have the form `toplevel-corpus/sub-corpus/.../document#node-name`,
-/// mimicking simple URIs (without a scheme) and a limited set of allowed characters as corpus/document names.
-/// The part before the fragment is returned as vector, the latter one as string.
-///
-/// # Examples
-/// ```
-/// extern crate graphannis;
-/// use graphannis::util;
-///
-/// let full_node_name = "toplevel/subcorpus1/subcorpus2/doc1#mynode";
-/// let (path, name) = util::extract_node_path(full_node_name);
-///
-/// assert_eq!(name, "mynode");
-/// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
-///
-/// let full_doc_name = "toplevel/subcorpus1/subcorpus2/doc1";
-/// let (path, name) = util::extract_node_path(full_doc_name);
-///
-/// assert_eq!(name, "");
-/// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
-/// ```
-pub fn extract_node_path(full_node_name: &str) -> (Vec<&str>, &str) {
-    // separate path and name first
-    let hash_pos = full_node_name.rfind('#');
-
-    let path_str: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
-    let mut path: Vec<&str> = Vec::with_capacity(4);
-    path.extend(path_str.split('/').filter(|s| !s.is_empty()));
-    if let Some(hash_pos) = hash_pos {
-        return (path, &full_node_name[hash_pos + 1..]);
-    } else {
-        return (path, "");
-    }
-}
-
 pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
     let sep_pos = qname.find("::.+");
     if let Some(sep_pos) = sep_pos {

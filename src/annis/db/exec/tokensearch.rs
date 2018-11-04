@@ -10,11 +10,9 @@ use annis::db::Match;
 use annis::errors::*;
 use annis::types::AnnoKeyID;
 use annis::types::{Component, ComponentType, NodeID};
-use annis::util;
 
 use std::fmt;
 
-use rustc_hash::FxHashMap;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps the search for *all* token in a corpus.
 pub struct AnyTokenSearch<'a> {
@@ -87,24 +85,11 @@ impl<'a> AnyTokenSearch<'a> {
                 }
             
             }
-            // Sort the root nodes by their reverse text position,
-            // so that removing the last item will return the first root node.
-            let mut node_to_path: FxHashMap<NodeID, (Vec<&str>, &str)> = FxHashMap::default();
-            for m in &root_nodes {
-                if let Some(path) = self
-                    .db
-                    .node_annos
-                    .get_value_for_item_by_id(&m.node, self.node_name_key)
-                {
-                    node_to_path.insert(m.node, util::extract_node_path(path));
-                }
-            }
-
             root_nodes.sort_unstable_by(|a, b| {
                 sort_matches::compare_match_by_text_pos(
                     b,
                     a,
-                    &node_to_path,
+                    &self.db.node_annos,
                     self.token_helper.as_ref(),
                     self.order_gs,
                 )
