@@ -73,11 +73,11 @@ impl<'a> AnyTokenSearch<'a> {
             ) {
                 let n = tok_candidate.node;
                 let mut is_root_tok = true;
-                if let Some(ref token_helper) = self.token_helper {
-                    is_root_tok = is_root_tok && token_helper.is_token(n);
-                }
                 if let Some(order_gs) = self.order_gs {
                     is_root_tok = is_root_tok && order_gs.get_ingoing_edges(n).next() == None;
+                }
+                if let Some(ref token_helper) = self.token_helper {
+                    is_root_tok = is_root_tok && token_helper.is_token(n);
                 }
                 if is_root_tok {
                     root_nodes.push(Match {
