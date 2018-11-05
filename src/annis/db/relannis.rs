@@ -64,49 +64,9 @@ where
         };
 
         let mut db = Graph::new();
+        let toplevel_corpus_name = load_node_and_corpus_tables(&path, &mut db, is_annis_33, &progress_callback)?;
 
-        let corpus_table =
-            parse_corpus_tab(&path, is_annis_33, &progress_callback)?;
-
-        let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
-
-        let nodes_by_text = load_nodes(
-            &path,
-            &mut db,
-            &corpus_table.corpus_id_to_name,
-            &corpus_table.toplevel_corpus_name,
-            is_annis_33,
-            &progress_callback,
-        )?;
-
-        let component_by_id = load_component_tab(&path, &mut db, is_annis_33, &progress_callback)?;
-
-        let (pre_to_component, pre_to_edge) = load_rank_tab(
-            &path,
-            &mut db,
-            &component_by_id,
-            is_annis_33,
-            &progress_callback,
-        )?;
-        load_edge_annotation(
-            &path,
-            &mut db,
-            &pre_to_component,
-            &pre_to_edge,
-            is_annis_33,
-            &progress_callback,
-        )?;
-
-        let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
-
-        add_subcorpora(
-            &mut db,
-            &corpus_table,
-            &nodes_by_text,
-            &texts,
-            &corpus_id_to_annos,
-            is_annis_33,
-        )?;
+        load_edge_tables(&path, &mut db, is_annis_33, &progress_callback)?;
 
         progress_callback("calculating node statistics");
         Arc::make_mut(&mut db.node_annos).calculate_statistics();
@@ -122,10 +82,74 @@ where
             path.to_string_lossy()
         ));
 
-        return Ok((corpus_table.toplevel_corpus_name, db));
+        return Ok((toplevel_corpus_name, db));
     }
 
     Err(format!("Directory {} not found", path.to_string_lossy()).into())
+}
+
+fn load_node_and_corpus_tables<F>(
+    path: &PathBuf,
+    db: &mut Graph,
+    is_annis_33: bool,
+    progress_callback: &F,
+) -> Result<String>
+where
+    F: Fn(&str) -> (),
+{
+    let corpus_table = parse_corpus_tab(&path, is_annis_33, &progress_callback)?;
+    let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
+    let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
+
+    let nodes_by_text = load_nodes(
+        path,
+        db,
+        &corpus_table.corpus_id_to_name,
+        &corpus_table.toplevel_corpus_name,
+        is_annis_33,
+        progress_callback,
+    )?;
+
+    add_subcorpora(
+        db,
+        &corpus_table,
+        &nodes_by_text,
+        &texts,
+        &corpus_id_to_annos,
+        is_annis_33,
+    )?;
+
+    Ok(corpus_table.toplevel_corpus_name)
+}
+
+fn load_edge_tables<F>(
+    path: &PathBuf,
+    db: &mut Graph,
+    is_annis_33: bool,
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
+    let (pre_to_component, pre_to_edge) = {
+        let component_by_id = load_component_tab(path, db, is_annis_33, progress_callback)?;
+
+        let (pre_to_component, pre_to_edge) =
+            load_rank_tab(path, db, &component_by_id, is_annis_33, progress_callback)?;
+
+        (pre_to_component, pre_to_edge)
+    };
+
+    load_edge_annotation(
+        path,
+        db,
+        &pre_to_component,
+        &pre_to_edge,
+        is_annis_33,
+        progress_callback,
+    )?;
+
+    Ok(())
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -196,7 +220,7 @@ where
     Ok(ParsedCorpusTable {
         toplevel_corpus_name,
         corpus_by_preorder,
-        corpus_id_to_name
+        corpus_id_to_name,
     })
 }
 
@@ -413,12 +437,16 @@ where
                     };
 
                     // find left/right aligned basic token
-                    let left_aligned_tok =
-                        textpos_table.token_by_left_textpos.get(&left_pos).ok_or_else(|| {
+                    let left_aligned_tok = textpos_table
+                        .token_by_left_textpos
+                        .get(&left_pos)
+                        .ok_or_else(|| {
                             format!("Can't get left-aligned token for node {:?}", left_pos)
                         })?;
-                    let right_aligned_tok =
-                        textpos_table.token_by_right_textpos.get(&right_pos).ok_or_else(|| {
+                    let right_aligned_tok = textpos_table
+                        .token_by_right_textpos
+                        .get(&right_pos)
+                        .ok_or_else(|| {
                             format!("Can't get right-aligned token for node {:?}", right_pos)
                         })?;
 
@@ -1036,7 +1064,8 @@ fn add_subcorpora(
         corpus_id_2_nid.insert(*corpus_id, corpus_node_id);
 
         if *pre != 0 {
-            let corpus_name = corpus_table.corpus_id_to_name
+            let corpus_name = corpus_table
+                .corpus_id_to_name
                 .get(corpus_id)
                 .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?;
             let full_name = format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
@@ -1103,10 +1132,14 @@ fn add_subcorpora(
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let corpus_name = corpus_table.corpus_id_to_name
+            let corpus_name = corpus_table
+                .corpus_id_to_name
                 .get(&corpus_ref)
                 .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?;
-            let full_name = format!("{}/{}#{}", corpus_table.toplevel_corpus_name, corpus_name, text_name);
+            let full_name = format!(
+                "{}/{}#{}",
+                corpus_table.toplevel_corpus_name, corpus_name, text_name
+            );
             let anno_name = Annotation {
                 key: db.get_node_name_key(),
                 val: full_name,
