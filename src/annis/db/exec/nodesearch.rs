@@ -1,3 +1,4 @@
+use annis::types::AnnoKey;
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use annis::db::AnnotationStorage;
 use annis::db::exec::tokensearch::AnyTokenSearch;
@@ -148,6 +149,7 @@ impl<'a> NodeSearch<'a> {
                 is_meta,
                 &query_fragment,
                 node_nr,
+                location_in_query,
             ),
             NodeSearchSpec::RegexValue {
                 ns,
@@ -175,6 +177,7 @@ impl<'a> NodeSearch<'a> {
                         is_meta,
                         &query_fragment,
                         node_nr,
+                        location_in_query,
                     )
                 }
             }
@@ -255,7 +258,36 @@ impl<'a> NodeSearch<'a> {
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
+        location: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
+
+        // check that the annotation key actually exist
+        let key_ranges: Vec<AnnoKey> = if let Some(ref ns) = qname.0 {
+            vec![AnnoKey {ns: ns.clone(), name: qname.1.clone() }]
+        } else {
+            db.node_annos.get_qnames(&qname.1)
+        };
+        let mut annotation_key_exists = false;
+        for k in key_ranges {
+            if db.node_annos.get_key_id(&k).is_some() {
+                annotation_key_exists = true;
+                break;
+            }
+        }
+        if !annotation_key_exists {
+            if let Some(ns) = qname.0 {
+                return Err(ErrorKind::AQLSemanticError(
+                        format!("\"{}:{}\" is not a valid annotation name in selected corpus", ns, qname.1).into(),
+                        location,
+                    ).into());
+            } else {
+                return Err(ErrorKind::AQLSemanticError(
+                        format!("\"{}\" is not a valid annotation name in selected corpus", qname.1).into(),
+                        location,
+                    ).into());
+            }
+        }
+
         let base_it = db.node_annos
                 .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone());
 
