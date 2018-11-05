@@ -125,6 +125,15 @@ where
         Ok(())
     }
 
+    fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
+    where
+        for<'de> Self: std::marker::Sized + Deserialize<'de>,
+    {
+        let mut result : LinearGraphStorage<PosT> = bincode::deserialize_from(input)?;
+        result.annos.after_deserialization();
+        Ok(result)
+    }
+
     fn find_connected<'a>(
         &'a self,
         source: NodeID,

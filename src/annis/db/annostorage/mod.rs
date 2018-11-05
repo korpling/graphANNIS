@@ -715,6 +715,13 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
     }
 }
 
+impl AnnoStorage<Edge> {
+    pub fn after_deserialization(&mut self) {
+        self.anno_keys.after_deserialization();
+        self.anno_values.after_deserialization();
+    }
+}
+
 impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
     fn get_annotations_for_item(&self, item: &Edge) -> Vec<Annotation> {
         self.get_annotations_for_item_impl(item)
@@ -796,6 +803,7 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
         self.get_all_values_impl(key, most_frequent_first)
     }
+    
 }
 
 mod symboltable;
