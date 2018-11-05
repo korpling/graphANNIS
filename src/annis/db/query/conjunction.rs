@@ -478,10 +478,6 @@ impl<'a> Conjunction<'a> {
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
 
-        // Remember node search errors, but do not bail out of this function before the component
-        // semantics check has been performed.
-        let mut node_search_errors: Vec<Error> = Vec::default();
-
         // 1. add all nodes
 
         // Create a map where the key is the component number
@@ -499,55 +495,51 @@ impl<'a> Conjunction<'a> {
                 node_nr,
                 db,
                 self.location_in_query.get(n_var).cloned(),
-            );
-            match node_search {
-                Ok(mut node_search) => {
-                    node2component.insert(node_nr, node_nr);
+            )?;
+            node2component.insert(node_nr, node_nr);
 
-                    let (orig_query_frag, orig_impl_desc, cost) =
-                        if let Some(d) = node_search.get_desc() {
-                            if let Some(ref c) = d.cost {
-                                node2cost.insert(node_nr, c.clone());
-                            }
-
-                            (
-                                d.query_fragment.clone(),
-                                d.impl_description.clone(),
-                                d.cost.clone(),
-                            )
-                        } else {
-                            (String::from(""), String::from(""), None)
-                        };
-                    // make sure the description is correct
-                    let mut node_pos = BTreeMap::new();
-                    node_pos.insert(node_nr, 0);
-                    let new_desc = Desc {
-                        component_nr: node_nr,
-                        lhs: None,
-                        rhs: None,
-                        node_pos,
-                        impl_description: orig_impl_desc,
-                        query_fragment: orig_query_frag,
-                        cost,
-                    };
-                    node_search.set_desc(Some(new_desc));
-
-                    let node_by_component_search = self.optimize_node_search_by_operator(
-                        node_search.get_node_search_desc(),
-                        node_search.get_desc(),
-                        Box::new(self.operators.iter()),
-                        db,
-                    );
-
-                    // move to map
-                    if let Some(node_by_component_search) = node_by_component_search {
-                        component2exec.insert(node_nr, node_by_component_search);
-                    } else {
-                        component2exec.insert(node_nr, Box::new(node_search));
+            let (orig_query_frag, orig_impl_desc, cost) =
+                if let Some(d) = node_search.get_desc() {
+                    if let Some(ref c) = d.cost {
+                        node2cost.insert(node_nr, c.clone());
                     }
-                }
-                Err(e) => node_search_errors.push(e),
+
+                    (
+                        d.query_fragment.clone(),
+                        d.impl_description.clone(),
+                        d.cost.clone(),
+                    )
+                } else {
+                    (String::from(""), String::from(""), None)
+                };
+            // make sure the description is correct
+            let mut node_pos = BTreeMap::new();
+            node_pos.insert(node_nr, 0);
+            let new_desc = Desc {
+                component_nr: node_nr,
+                lhs: None,
+                rhs: None,
+                node_pos,
+                impl_description: orig_impl_desc,
+                query_fragment: orig_query_frag,
+                cost,
             };
+            node_search.set_desc(Some(new_desc));
+
+            let node_by_component_search = self.optimize_node_search_by_operator(
+                node_search.get_node_search_desc(),
+                node_search.get_desc(),
+                Box::new(self.operators.iter()),
+                db,
+            );
+
+            // move to map
+            if let Some(node_by_component_search) = node_by_component_search {
+                component2exec.insert(node_nr, node_by_component_search);
+            } else {
+                component2exec.insert(node_nr, Box::new(node_search));
+            }
+        
         }
 
         // 2. add the joins which produce the results in operand order
@@ -663,10 +655,6 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        // now apply the the node error check
-        if !node_search_errors.is_empty() {
-            return Err(node_search_errors.remove(0));
-        }
 
         let first_component_id = first_component_id.ok_or_else(|| {
             ErrorKind::ImpossibleSearch(String::from("no component in query at all"))

@@ -32,6 +32,8 @@ impl<'a> ExecutionPlan<'a> {
             } else if let Err(e) = p {
                 if let ErrorKind::AQLSemanticError(_, _) = e.kind() {
                     return Err(e);
+                } else if let ErrorKind::AQLSyntaxError(_, _) = e.kind() {
+                    return Err(e);
                 }
             }
         }
