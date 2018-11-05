@@ -2,7 +2,6 @@ use annis::db::AnnotationStorage;
 use annis::db::Graph;
 use annis::errors::*;
 use annis::types::{AnnoKey, Annotation, Edge, NodeID};
-use bincode;
 use malloc_size_of::MallocSizeOf;
 use serde::Deserialize;
 use std;
@@ -54,7 +53,6 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
 /// A graph storage is the representation of an edge component of a graph with specific structures.
 /// These specific structures are exploited to efficiently implement reachability queries.
 pub trait GraphStorage: EdgeContainer {
-
     /// Find all nodes reachable from a given start node inside the component.
     fn find_connected<'a>(
         &'a self,
@@ -91,7 +89,7 @@ pub trait GraphStorage: EdgeContainer {
     fn as_edgecontainer(&self) -> &EdgeContainer;
 
     /// Try to downcast this graph storage to a [WriteableGraphStorage](trait.WriteableGraphStorage.html) trait.
-    /// Returns `None` if this graph storage is not writable. 
+    /// Returns `None` if this graph storage is not writable.
     fn as_writeable(&mut self) -> Option<&mut WriteableGraphStorage> {
         None
     }
@@ -110,16 +108,11 @@ pub trait GraphStorage: EdgeContainer {
     /// De-serialize this graph storage.
     fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
     where
-        for<'de> Self: std::marker::Sized + Deserialize<'de>,
-    {
-        let result = bincode::deserialize_from(input)?;
-        Ok(result)
-    }
+        for<'de> Self: std::marker::Sized + Deserialize<'de>;
 }
 
 /// Trait for accessing graph storages which can be written to.
 pub trait WriteableGraphStorage: GraphStorage {
-
     /// Add an edge to this graph storage.
     fn add_edge(&mut self, edge: Edge);
 

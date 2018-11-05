@@ -1485,7 +1485,7 @@ impl CorpusStorage {
         result
     }
 
-    /// Returns a list of all node annotations of a corpus given by `corpus_name`.
+    /// Returns a list of all edge annotations of a corpus given by `corpus_name` and the `component`.
     ///
     /// - `list_values` - If true include the possible values in the result.
     /// - `only_most_frequent_values` - If both this argument and `list_values` are true, only return the most frequent value for each annotation name.

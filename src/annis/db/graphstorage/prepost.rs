@@ -168,6 +168,15 @@ where
         Ok(())
     }
 
+    fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
+    where
+        for<'de> Self: std::marker::Sized + Deserialize<'de>,
+    {
+        let mut result: PrePostOrderStorage<OrderT, LevelT> = bincode::deserialize_from(input)?;
+        result.annos.after_deserialization();
+        Ok(result)
+    }
+
     fn find_connected<'a>(
         &'a self,
         node: NodeID,
@@ -234,7 +243,7 @@ where
         if let Some(start_orders) = self.node_to_order.get(&start_node) {
             let mut visited = FxHashSet::<NodeID>::default();
 
-             let max_distance = match max_distance {
+            let max_distance = match max_distance {
                 Unbounded => usize::max_value(),
                 Included(max_distance) => max_distance,
                 Excluded(max_distance) => max_distance - 1,
@@ -370,8 +379,7 @@ where
             self.node_to_order.get(source),
             self.node_to_order.get(target),
         ) {
-
-             let max_distance = match max_distance {
+            let max_distance = match max_distance {
                 Unbounded => usize::max_value(),
                 Included(max_distance) => max_distance,
                 Excluded(max_distance) => max_distance - 1,
