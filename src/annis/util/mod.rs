@@ -1,4 +1,5 @@
 pub mod memory_estimation;
+pub mod quicksort;
 
 use regex_syntax;
 use std;
@@ -23,49 +24,6 @@ pub fn contains_regex_metacharacters(pattern: &str) -> bool {
         }
     }
     false
-}
-
-/// Takes a node name/ID and extracts both the document path as array and the node name itself.
-///
-/// Complete node names/IDs have the form `toplevel-corpus/sub-corpus/.../document#node-name`,
-/// mimicking simple URIs (without a scheme) and a limited set of allowed characters as corpus/document names.
-/// The part before the fragment is returned as vector, the latter one as string.
-///
-/// # Examples
-/// ```
-/// extern crate graphannis;
-/// use graphannis::util;
-///
-/// let full_node_name = "toplevel/subcorpus1/subcorpus2/doc1#mynode";
-/// let (path, name) = util::extract_node_path(full_node_name);
-///
-/// assert_eq!(name, "mynode");
-/// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
-///
-/// let full_doc_name = "toplevel/subcorpus1/subcorpus2/doc1";
-/// let (path, name) = util::extract_node_path(full_doc_name);
-///
-/// assert_eq!(name, "");
-/// assert_eq!(path, vec!["toplevel", "subcorpus1", "subcorpus2", "doc1"]);
-/// ```
-pub fn extract_node_path(full_node_name: &str) -> (Vec<String>, String) {
-    // separate path and name first
-    let hash_pos = full_node_name.rfind('#');
-
-    let path_str: &str = &full_node_name[0..hash_pos.unwrap_or_else(|| full_node_name.len())];
-    let mut path: Vec<String> = Vec::with_capacity(4);
-    path.extend(
-        path_str
-            .split('/')
-            .filter(|s| !s.is_empty())
-            .map(|s| s.to_owned()),
-    );
-
-    if let Some(hash_pos) = hash_pos {
-        return (path, full_node_name[hash_pos + 1..].to_owned());
-    } else {
-        return (path, "".to_owned());
-    }
 }
 
 pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
@@ -124,7 +82,7 @@ impl SearchDef {
 
 /// Returns an iterator over all query definitions of a folder.
 /// - `folder` - The folder on the file system.
-/// - `panic_on_invalid` - If true, an invalid query definition will trigger a panic, otherwise it will be ignored. 
+/// - `panic_on_invalid` - If true, an invalid query definition will trigger a panic, otherwise it will be ignored.
 /// Can be used if this query is called in a test case to fail the test.
 pub fn get_queries_from_folder(
     folder: &Path,

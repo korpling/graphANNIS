@@ -9,6 +9,7 @@ use annis::db::query;
 use annis::db::query::conjunction::Conjunction;
 use annis::db::query::disjunction::Disjunction;
 use annis::db::relannis;
+use annis::db::token_helper::TokenHelper;
 use annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
 use annis::errors::ErrorKind;
 use annis::errors::*;
@@ -19,6 +20,7 @@ use annis::types::{
 };
 use annis::util;
 use annis::util::memory_estimation;
+use annis::util::quicksort;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -38,7 +40,6 @@ use rustc_hash::FxHashMap;
 
 use rand;
 use rand::Rng;
-use rayon::prelude::*;
 use sys_info;
 
 enum CacheEntry {
@@ -151,7 +152,10 @@ pub enum ResultOrder {
     /// Inverted the order of `Normal`.
     Inverted,
     /// A random ordering which is **not stable**. Each new query will result in a different order.
-    Random,
+    Randomized,
+    /// Results are not ordered at all, but also not actively randomized
+    /// Each new query *might* result in a different order.
+    NotSorted,
 }
 
 struct PreparationResult<'a> {
@@ -198,7 +202,7 @@ impl FromStr for FrequencyDefEntry {
 #[derive(Clone, Copy)]
 pub enum QueryLanguage {
     AQL,
-    /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3 
+    /// Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
     AQLQuirksV3,
 }
 
@@ -910,100 +914,118 @@ impl CorpusStorage {
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
-        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
+        let mut query_config = self.query_config.clone();
+        if order == ResultOrder::NotSorted {
+            // Do not use parallization of the order should not be sorted to have a more stable result ordering.
+            // Even if we do not promise to have a stable ordering, it should be the same
+            // for the same session on the same corpus.
+            query_config.use_parallel_joins = false;
+        }
+
+        let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &query_config)?;
+
+        let mut expected_size: Option<usize> = None;
+        let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
+            || (order == ResultOrder::Normal && plan.is_sorted_by_text())
+        {
+            // if the output is already sorted correctly, directly return the iterator
+            Box::from(plan)
+        } else {
+            let estimated_result_size = plan.estimated_output_size();
+            let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(estimated_result_size);
+
+            for mgroup in plan {
+                // add all matches to temporary vector
+                tmp_results.push(mgroup);
+            }
+
+            // either sort or randomly shuffle results
+            if order == ResultOrder::Randomized {
+                let mut rng = rand::thread_rng();
+                rng.shuffle(&mut tmp_results[..])
+            } else {
+                let token_helper = TokenHelper::new(db);
+                let component_order = Component {
+                    ctype: ComponentType::Ordering,
+                    layer: String::from("annis"),
+                    name: String::from(""),
+                };
+
+                let gs_order = db.get_graphstorage_as_ref(&component_order);
+                let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
+                    if order == ResultOrder::Inverted {
+                        db::sort_matches::compare_matchgroup_by_text_pos(
+                            m1,
+                            m2,
+                            &db.node_annos,
+                            token_helper.as_ref(),
+                            gs_order,
+                        ).reverse()
+                    } else {
+                        db::sort_matches::compare_matchgroup_by_text_pos(
+                            m1,
+                            m2,
+                            &db.node_annos,
+                            token_helper.as_ref(),
+                            gs_order,
+                        )
+                    }
+                };
+
+                if self.query_config.use_parallel_joins {
+                    quicksort::sort_first_n_items_parallel(
+                        &mut tmp_results,
+                        offset + limit,
+                        order_func,
+                    );
+                } else {
+                    quicksort::sort_first_n_items(&mut tmp_results, offset + limit, order_func);
+                }
+            }
+            expected_size = Some(tmp_results.len());
+            Box::from(tmp_results.into_iter())
+        };
 
         let node_name_key_id = db
             .node_annos
             .get_key_id(&db.get_node_name_key())
             .ok_or("No internal ID for node names found")?;
-        let mut node_to_path_cache = FxHashMap::default();
-        let mut tmp_results: Vec<Vec<Match>> = Vec::with_capacity(1024);
 
-        for mgroup in plan {
-            // cache all paths of the matches
-            for m in &mgroup {
-                if let Some(path) = db
-                    .node_annos
-                    .get_value_for_item_by_id(&m.node, node_name_key_id)
-                {
-                    let path = util::extract_node_path(&path);
-                    node_to_path_cache.insert(m.node, path);
-                }
-            }
-
-            // add all matches to temporary vector
-            tmp_results.push(mgroup);
-        }
-
-        // either sort or randomly shuffle results
-        if order == ResultOrder::Random {
-            let mut rng = rand::thread_rng();
-            rng.shuffle(&mut tmp_results[..])
+        let mut results: Vec<String> = if let Some(expected_size) = expected_size {
+            Vec::with_capacity(std::cmp::min(expected_size, limit))
         } else {
-            let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
-                if order == ResultOrder::Inverted {
-                    db::sort_matches::compare_matchgroup_by_text_pos(
-                        m1,
-                        m2,
-                        db,
-                        &node_to_path_cache,
-                    ).reverse()
-                } else {
-                    db::sort_matches::compare_matchgroup_by_text_pos(
-                        m1,
-                        m2,
-                        db,
-                        &node_to_path_cache,
-                    )
-                }
-            };
+            Vec::new()
+        };
+        results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
+            let mut match_desc: Vec<String> = Vec::new();
+            for singlematch in &m {
+                let mut node_desc = String::new();
 
-            if self.query_config.use_parallel_joins {
-                tmp_results.par_sort_unstable_by(order_func);
-            } else {
-                tmp_results.sort_unstable_by(order_func);
-            }
-        }
-
-        let expected_size = std::cmp::min(tmp_results.len(), limit);
-
-        let mut results: Vec<String> = Vec::with_capacity(expected_size);
-        results.extend(
-            tmp_results
-                .into_iter()
-                .skip(offset)
-                .take(limit)
-                .map(|m: Vec<Match>| {
-                    let mut match_desc: Vec<String> = Vec::new();
-                    for singlematch in &m {
-                        let mut node_desc = String::new();
-
-                        if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                            if &anno_key.ns != "annis" {
-                                if !anno_key.ns.is_empty() {
-                                    node_desc.push_str(&anno_key.ns);
-                                    node_desc.push_str("::");
-                                }
-                                node_desc.push_str(&anno_key.name);
-                                node_desc.push_str("::");
-                            }
+                if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
+                    if &anno_key.ns != "annis" {
+                        if !anno_key.ns.is_empty() {
+                            node_desc.push_str(&anno_key.ns);
+                            node_desc.push_str("::");
                         }
-
-                        if let Some(name) = db
-                            .node_annos
-                            .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
-                        {
-                            node_desc.push_str("salt:/");
-                            node_desc.push_str(name);
-                        }
-
-                        match_desc.push(node_desc);
+                        node_desc.push_str(&anno_key.name);
+                        node_desc.push_str("::");
                     }
-                    let mut result = String::new();
-                    result.push_str(&match_desc.join(" "));
-                    result
-                }),
-        );
+                }
+
+                if let Some(name) = db
+                    .node_annos
+                    .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
+                {
+                    node_desc.push_str("salt:/");
+                    node_desc.push_str(name);
+                }
+
+                match_desc.push(node_desc);
+            }
+            let mut result = String::new();
+            result.push_str(&match_desc.join(" "));
+            result
+        }));
 
         Ok(results)
     }
@@ -1143,7 +1165,10 @@ impl CorpusStorage {
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
-                        dist: RangeSpec::Bound {min_dist: 0, max_dist: ctx_right},
+                        dist: RangeSpec::Bound {
+                            min_dist: 0,
+                            max_dist: ctx_right,
+                        },
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
@@ -1182,7 +1207,10 @@ impl CorpusStorage {
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
-                        dist: RangeSpec::Bound{min_dist: 0, max_dist: ctx_right},
+                        dist: RangeSpec::Bound {
+                            min_dist: 0,
+                            max_dist: ctx_right,
+                        },
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
@@ -1457,7 +1485,7 @@ impl CorpusStorage {
         result
     }
 
-    /// Returns a list of all node annotations of a corpus given by `corpus_name`.
+    /// Returns a list of all edge annotations of a corpus given by `corpus_name` and the `component`.
     ///
     /// - `list_values` - If true include the possible values in the result.
     /// - `only_most_frequent_values` - If both this argument and `list_values` are true, only return the most frequent value for each annotation name.
@@ -1570,10 +1598,6 @@ mod tests {
 
     #[test]
     fn load_cs_twice() {
-        // Init logger to get a trace of the actions that failed
-        simplelog::SimpleLogger::init(log::LevelFilter::Trace, simplelog::Config::default())
-            .unwrap();
-
         if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
             {
                 let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();

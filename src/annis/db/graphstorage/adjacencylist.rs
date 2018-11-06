@@ -93,6 +93,15 @@ impl GraphStorage for AdjacencyListStorage {
         Ok(())
     }
 
+    fn deserialize_gs(input: &mut std::io::Read) -> Result<Self>
+    where
+        for<'de> Self: std::marker::Sized + Deserialize<'de>,
+    {
+        let mut result: AdjacencyListStorage = bincode::deserialize_from(input)?;
+        result.annos.after_deserialization();
+        Ok(result)
+    }
+
     fn find_connected<'a>(
         &'a self,
         node: NodeID,

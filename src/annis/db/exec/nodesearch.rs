@@ -1,10 +1,12 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use annis::db::AnnotationStorage;
+use annis::db::exec::tokensearch::AnyTokenSearch;
 use annis::db::{Graph, Match, ANNIS_NS};
 use annis::errors::*;
 use annis::operator::EdgeAnnoSearchSpec;
 use annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
 use annis::util;
+use annis::db::exec::tokensearch;
 use itertools::Itertools;
 use regex;
 use std;
@@ -18,6 +20,7 @@ pub struct NodeSearch<'a> {
 
     desc: Option<Desc>,
     node_search_desc: Arc<NodeSearchDesc>,
+    is_sorted: bool,
 }
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum NodeSearchSpec {
@@ -58,6 +61,13 @@ impl NodeSearchSpec {
             val: val.map(String::from),
             is_meta,
         }
+    }
+
+    pub fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
+        if let &NodeSearchSpec::AnyToken = &self {
+            return tokensearch::AnyTokenSearch::necessary_components();
+        }
+        vec![]
     }
 }
 
@@ -186,14 +196,10 @@ impl<'a> NodeSearch<'a> {
                 node_nr,
                 location_in_query,
             ),
-            NodeSearchSpec::AnyToken => NodeSearch::new_tokensearch(
+            NodeSearchSpec::AnyToken => NodeSearch::new_anytoken_search(
                 db,
-                None,
-                true,
-                false,
                 &query_fragment,
                 node_nr,
-                location_in_query,
             ),
             NodeSearchSpec::AnyNode => {
                 let type_key = db.get_node_type_key();
@@ -236,6 +242,7 @@ impl<'a> NodeSearch<'a> {
                         cond: vec![filter_func],
                         const_output,
                     }),
+                    is_sorted: false,
                 })
             }
         }
@@ -322,6 +329,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output,
             }),
+            is_sorted: false,
         })
     }
 
@@ -421,6 +429,7 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output,
             }),
+            is_sorted: false,
         })
     }
 
@@ -574,6 +583,58 @@ impl<'a> NodeSearch<'a> {
                 cond: filters,
                 const_output: Some(const_output),
             }),
+            is_sorted: false,
+        })
+    }
+
+    fn new_anytoken_search(
+        db: &'a Graph,
+        query_fragment: &str,
+        node_nr: usize,
+    ) -> Result<NodeSearch<'a>> {
+        let tok_key = db.get_token_key();
+        
+        let it: Box<Iterator<Item = Vec<Match>>> = Box::from(AnyTokenSearch::new(db)?);
+        // create filter functions
+        let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
+      
+        let cov_gs = db.get_graphstorage(&Component {
+            ctype: ComponentType::Coverage,
+            layer: String::from(ANNIS_NS),
+            name: String::from(""),
+        });
+        let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
+            if let Some(ref cov) = cov_gs {
+                cov.get_outgoing_edges(m.node).next().is_none()
+            } else {
+                true
+            }
+        });
+        filters.push(filter_func);
+    
+        let est_output = db.node_annos
+                .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone());
+        // always assume at least one output item otherwise very small selectivity can fool the planner
+        let est_output = std::cmp::max(1, est_output);
+
+        let const_output = db
+            .node_annos
+            .get_key_id(&db.get_node_type_key())
+            .ok_or("Node type annotation does not exist in database")?;
+
+        Ok(NodeSearch {
+            it: Box::new(it),
+            desc: Some(Desc::empty_with_fragment(
+                &query_fragment,
+                node_nr,
+                Some(est_output),
+            )),
+            node_search_desc: Arc::new(NodeSearchDesc {
+                qname: (Some(tok_key.ns), Some(tok_key.name)),
+                cond: filters,
+                const_output: Some(const_output),
+            }),
+            is_sorted: true,
         })
     }
 
@@ -638,6 +699,7 @@ impl<'a> NodeSearch<'a> {
             it: Box::new(it),
             desc: new_desc,
             node_search_desc,
+            is_sorted: false,
         })
     }
 
@@ -661,6 +723,10 @@ impl<'a> ExecutionNode for NodeSearch<'a> {
 
     fn as_nodesearch(&self) -> Option<&NodeSearch> {
         Some(self)
+    }
+
+    fn is_sorted_by_text(&self) -> bool {
+        self.is_sorted
     }
 }
 
