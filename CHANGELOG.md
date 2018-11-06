@@ -1,3 +1,18 @@
+release 0.12.0
+==============
+
+Fixed Bugs
+----------
+
+- [#34](https://github.com/corpus-tools/graphANNIS/issues/34) Fix loading of edge annotation storages
+
+Enhancements
+------------
+
+- [#33](https://github.com/corpus-tools/graphANNIS/issues/33) Improve memory usage of the relANNIS importer
+- [#32](https://github.com/corpus-tools/graphANNIS/issues/32) Faster and more flexible sort of results in "find" function
+
+
 release 0.11.1
 ==============
 

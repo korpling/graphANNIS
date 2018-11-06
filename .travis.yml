@@ -14,7 +14,9 @@ branches:
   only:
     # Release tags
     - /^v\d+\.\d+\.\d+.*$/
-    - test-release-tag-please-ignore
+    # Release preparation branches
+    - /^release/.+/
+    # Develop branch
     - develop
 
 script:
