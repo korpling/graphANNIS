@@ -1235,6 +1235,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         component_type_filter: Option<ComponentType>,
     ) -> Result<Graph> {
+        
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
         let mut max_alt_size = 0;
@@ -1295,10 +1296,19 @@ impl CorpusStorage {
         extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config, None)
     }
 
-    /// Return the copy of the graph of the corpus given by `corpus_name`.
+    /// Return the copy of the graph of the corpus structure given by `corpus_name`.
     pub fn corpus_graph(&self, corpus_name: &str) -> Result<Graph> {
-        let db_entry = self.get_fully_loaded_entry(corpus_name)?;
+        
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
+        let subcorpus_components = {
+            // make sure all subcorpus partitions are loaded
+            let lock = db_entry.read().unwrap();
+            let mut db = get_read_or_error(&lock)?;
+            db.get_all_components(Some(ComponentType::PartOfSubcorpus), None)
+        };
+        let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?; 
+        
         let mut query = Conjunction::new();
 
         query.add_node(
@@ -1781,11 +1791,7 @@ fn extract_subgraph_by_query(
         }
     }
 
-    let mut components = orig_db.get_all_components(None, None);
-    if let Some(component_type_filter) = component_type_filter {
-        components.retain(|c| c.ctype == component_type_filter);
-    }
-
+    let components = orig_db.get_all_components(component_type_filter, None);
 
     for m in &match_result {
         create_subgraph_edge(m.node, &mut result, orig_db, &components);
