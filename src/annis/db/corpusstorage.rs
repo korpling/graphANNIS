@@ -1219,7 +1219,7 @@ impl CorpusStorage {
                 query.alternatives.push(q_right);
             }
         }
-        extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config)
+        extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -1227,11 +1227,13 @@ impl CorpusStorage {
     /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
     /// - `query` - The query which defines included nodes.
     /// - `query_language` - The query language of the query (e.g. AQL).
+    /// - `component_type_filter` - If set, only include edges of that belong to a component of the given type.
     pub fn subgraph_for_query(
         &self,
         corpus_name: &str,
         query: &str,
         query_language: QueryLanguage,
+        component_type_filter: Option<ComponentType>,
     ) -> Result<Graph> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
@@ -1247,6 +1249,7 @@ impl CorpusStorage {
             &prep.query,
             &match_idx,
             &self.query_config,
+            component_type_filter,
         )
     }
 
@@ -1289,7 +1292,7 @@ impl CorpusStorage {
             query.alternatives.push(q);
         }
 
-        extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config)
+        extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config, None)
     }
 
     /// Return the copy of the graph of the corpus given by `corpus_name`.
@@ -1308,6 +1311,7 @@ impl CorpusStorage {
             &query.into_disjunction(),
             &[0],
             &self.query_config,
+            Some(ComponentType::PartOfSubcorpus),
         )
     }
 
@@ -1746,6 +1750,7 @@ fn extract_subgraph_by_query(
     query: &Disjunction,
     match_idx: &[usize],
     query_config: &query::Config,
+    component_type_filter: Option<ComponentType>,
 ) -> Result<Graph> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
@@ -1754,8 +1759,6 @@ fn extract_subgraph_by_query(
     let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).chain_err(|| "")?;
 
     debug!("executing subgraph query\n{}", plan);
-
-    let all_components = orig_db.get_all_components(None, None);
 
     // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
     // match vector differ.
@@ -1778,8 +1781,14 @@ fn extract_subgraph_by_query(
         }
     }
 
+    let mut components = orig_db.get_all_components(None, None);
+    if let Some(component_type_filter) = component_type_filter {
+        components.retain(|c| c.ctype == component_type_filter);
+    }
+
+
     for m in &match_result {
-        create_subgraph_edge(m.node, &mut result, orig_db, &all_components);
+        create_subgraph_edge(m.node, &mut result, orig_db, &components);
     }
 
     Ok(result)
@@ -1796,10 +1805,10 @@ fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut Graph,
     orig_db: &Graph,
-    all_components: &[Component],
+    components: &[Component],
 ) {
     // find outgoing edges
-    for c in all_components {
+    for c in components {
         if let Some(orig_gs) = orig_db.get_graphstorage(c) {
             for target in orig_gs.get_outgoing_edges(source_id) {
                 let e = Edge {

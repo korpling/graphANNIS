@@ -217,7 +217,28 @@ pub extern "C" fn annis_cs_subgraph_for_query(
     let query = cstr!(query);
 
     let result = try_cerr!(
-        cs.subgraph_for_query(&corpus, &query, query_language),
+        cs.subgraph_for_query(&corpus, &query, query_language, None),
+        err,
+        std::ptr::null_mut()
+    );
+    return Box::into_raw(Box::new(result));
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
+    ptr: *const CorpusStorage,
+    corpus_name: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
+    component_type_filter: ComponentType,
+    err: *mut *mut ErrorList,
+) -> *mut Graph {
+    let cs: &CorpusStorage = cast_const!(ptr);
+    let corpus = cstr!(corpus_name);
+    let query = cstr!(query);
+
+    let result = try_cerr!(
+        cs.subgraph_for_query(&corpus, &query, query_language, Some(component_type_filter)),
         err,
         std::ptr::null_mut()
     );
