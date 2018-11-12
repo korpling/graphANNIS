@@ -317,6 +317,7 @@ impl Graph {
     /// * `location` - The path on the disk
     /// * `preload` - If `true`, all components are loaded from disk into main memory.
     fn load_from(&mut self, location: &Path, preload: bool) -> Result<()> {
+        info!("Loading corpus from {}", location.to_string_lossy());
         self.clear();
 
         let location = PathBuf::from(location);
