@@ -1587,7 +1587,7 @@ impl Drop for CorpusStorage {
 mod tests {
     extern crate log;
     extern crate simplelog;
-    extern crate tempdir;
+    extern crate tempfile;
 
     use corpusstorage::QueryLanguage;
     use update::{GraphUpdate, UpdateEvent};
@@ -1595,7 +1595,7 @@ mod tests {
 
     #[test]
     fn delete() {
-        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+        if let Ok(tmp) = tempfile::tempdir() {
             let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
             // fully load a corpus
             let mut g = GraphUpdate::new();
@@ -1612,7 +1612,7 @@ mod tests {
 
     #[test]
     fn load_cs_twice() {
-        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+        if let Ok(tmp) = tempfile::tempdir() {
             {
                 let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
@@ -1639,7 +1639,7 @@ mod tests {
 
     #[test]
     fn apply_update_add_nodes() {
-        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+        if let Ok(tmp) = tempfile::tempdir() {
             let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
             let mut g = GraphUpdate::new();
