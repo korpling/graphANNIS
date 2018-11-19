@@ -19,7 +19,7 @@ use std::str::FromStr;
 use std::string::ToString;
 use std::sync::{Arc, Mutex};
 use strum::IntoEnumIterator;
-use tempdir::TempDir;
+use tempfile;
 
 pub mod annostorage;
 pub mod aql;
@@ -364,7 +364,7 @@ impl Graph {
             // save the current corpus under the actual location
             self.save_to(&location.join("current"))?;
             // rename backup folder (renaming is atomic and deleting could leave an incomplete backup folder on disk)
-            let tmp_dir = TempDir::new_in(location, "temporary-graphannis-backup")?;
+            let tmp_dir = tempfile::Builder::new().prefix("temporary-graphannis-backup").tempdir_in(location)?;
             std::fs::rename(&backup, tmp_dir.path())?;
             // remove it after renaming it
             tmp_dir.close()?;
