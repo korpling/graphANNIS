@@ -133,7 +133,7 @@ impl<'a> Iterator for ExecutionPlan<'a> {
                         n.iter().map(|m: &Match| (m.node, m.anno_key)).collect();
                     if self.unique_result_set.insert(key) {
                         // new result found, break out of while-loop and return the result
-                        return Some(n)
+                        return Some(n);
                     }
                 } else {
                     // proceed to next plan

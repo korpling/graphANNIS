@@ -217,7 +217,28 @@ pub extern "C" fn annis_cs_subgraph_for_query(
     let query = cstr!(query);
 
     let result = try_cerr!(
-        cs.subgraph_for_query(&corpus, &query, query_language),
+        cs.subgraph_for_query(&corpus, &query, query_language, None),
+        err,
+        std::ptr::null_mut()
+    );
+    return Box::into_raw(Box::new(result));
+}
+
+#[no_mangle]
+pub extern "C" fn annis_cs_subgraph_for_query_with_ctype(
+    ptr: *const CorpusStorage,
+    corpus_name: *const libc::c_char,
+    query: *const libc::c_char,
+    query_language: QueryLanguage,
+    component_type_filter: ComponentType,
+    err: *mut *mut ErrorList,
+) -> *mut Graph {
+    let cs: &CorpusStorage = cast_const!(ptr);
+    let corpus = cstr!(corpus_name);
+    let query = cstr!(query);
+
+    let result = try_cerr!(
+        cs.subgraph_for_query(&corpus, &query, query_language, Some(component_type_filter)),
         err,
         std::ptr::null_mut()
     );
@@ -399,9 +420,15 @@ pub extern "C" fn annis_cs_import_from_fs(
     };
     let path: &str = &cstr!(path);
 
-    let corpus_name : String =  try_cerr!(cs.import_from_fs(&PathBuf::from(path), format, override_corpus_name), err, std::ptr::null_mut());
+    let corpus_name: String = try_cerr!(
+        cs.import_from_fs(&PathBuf::from(path), format, override_corpus_name),
+        err,
+        std::ptr::null_mut()
+    );
 
-    return CString::new(corpus_name.as_str()).unwrap_or_default().into_raw();
+    return CString::new(corpus_name.as_str())
+        .unwrap_or_default()
+        .into_raw();
 }
 
 #[no_mangle]

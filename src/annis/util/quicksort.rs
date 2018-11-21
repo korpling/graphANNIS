@@ -9,7 +9,7 @@ use std;
 pub fn sort_first_n_items<T, F>(items: &mut Vec<T>, n: usize, order_func: F)
 where
     T: Send,
-    F: Fn(&T, &T) -> std::cmp::Ordering +  Sync,
+    F: Fn(&T, &T) -> std::cmp::Ordering + Sync,
 {
     let item_len = items.len();
     if item_len > 0 {
@@ -26,7 +26,7 @@ where
 /// The algorithm used a randomized pivot element and is executed in parallel.
 fn quicksort<T, F>(items: &mut [T], max_size: usize, order_func: &F)
 where
-    F: Fn(&T, &T) -> std::cmp::Ordering
+    F: Fn(&T, &T) -> std::cmp::Ordering,
 {
     if items.len() > 1 {
         let q = randomized_partition(items, order_func);
@@ -47,7 +47,7 @@ where
 pub fn sort_first_n_items_parallel<T, F>(items: &mut Vec<T>, n: usize, order_func: F)
 where
     T: Send,
-    F: Fn(&T, &T) -> std::cmp::Ordering +  Sync,
+    F: Fn(&T, &T) -> std::cmp::Ordering + Sync,
 {
     let item_len = items.len();
     if item_len > 0 {
@@ -65,7 +65,7 @@ where
 fn quicksort_parallel<T, F>(items: &mut [T], max_size: usize, order_func: &F)
 where
     T: Send,
-    F: Fn(&T, &T) -> std::cmp::Ordering + Sync
+    F: Fn(&T, &T) -> std::cmp::Ordering + Sync,
 {
     if items.len() > 1 {
         let q = randomized_partition(items, order_func);
@@ -125,7 +125,8 @@ where
 #[cfg(test)]
 mod test {
 
-    use rand::distributions::{Distribution, Range};
+    use rand;
+    use rand::distributions::Distribution;
     use rand::Rng;
 
     #[test]
@@ -190,7 +191,7 @@ mod test {
     fn random_sort_test() {
         // compare 100 random arrays against the standard library sort
         let mut rng = rand::thread_rng();
-        let random_item_gen = Range::new(1, 100);
+        let random_item_gen = rand::distributions::Uniform::from(1..100);
 
         for _i in 0..100 {
             // the arrays should have a size from 10 to 50
@@ -211,7 +212,7 @@ mod test {
     fn random_sort_test_parallel() {
         // compare 100 random arrays against the standard library sort
         let mut rng = rand::thread_rng();
-        let random_item_gen = Range::new(1, 100);
+        let random_item_gen = rand::distributions::Uniform::from(1..100);
 
         for _i in 0..100 {
             // the arrays should have a size from 10 to 50

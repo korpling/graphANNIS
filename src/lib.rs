@@ -15,14 +15,15 @@ extern crate log;
 #[macro_use]
 extern crate error_chain;
 
+extern crate boolean_expression;
 extern crate linked_hash_map;
 extern crate multimap;
 extern crate rand;
+extern crate rand_xorshift;
 extern crate regex;
 extern crate regex_syntax;
 extern crate rustc_hash;
-extern crate tempdir;
-extern crate boolean_expression;
+extern crate tempfile;
 
 extern crate bincode;
 extern crate serde;

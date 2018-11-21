@@ -129,7 +129,7 @@ where
     where
         for<'de> Self: std::marker::Sized + Deserialize<'de>,
     {
-        let mut result : LinearGraphStorage<PosT> = bincode::deserialize_from(input)?;
+        let mut result: LinearGraphStorage<PosT> = bincode::deserialize_from(input)?;
         result.annos.after_deserialization();
         Ok(result)
     }
@@ -149,15 +149,15 @@ where
                                 std::ops::Bound::Unbounded => {
                                     return Box::new(chain[min_distance..].iter().cloned())
                                 }
-                                std::ops::Bound::Included(max_distance) => offset + max_distance + 1,
+                                std::ops::Bound::Included(max_distance) => {
+                                    offset + max_distance + 1
+                                }
                                 std::ops::Bound::Excluded(max_distance) => offset + max_distance,
                             };
                             // clip to chain length
                             let max_distance = std::cmp::min(chain.len(), max_distance);
                             if min_distance < max_distance {
-                                return Box::new(
-                                    chain[min_distance..max_distance].iter().cloned(),
-                                );
+                                return Box::new(chain[min_distance..max_distance].iter().cloned());
                             }
                         }
                     }
@@ -176,11 +176,14 @@ where
         if let Some(start_pos) = self.node_to_pos.get(&source) {
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
-
                     let max_distance = match max_distance {
                         std::ops::Bound::Unbounded => offset,
-                        std::ops::Bound::Included(max_distance) => offset.checked_sub(max_distance).unwrap_or(0),
-                        std::ops::Bound::Excluded(max_distance) => offset.checked_sub(max_distance+1).unwrap_or(0),
+                        std::ops::Bound::Included(max_distance) => {
+                            offset.checked_sub(max_distance).unwrap_or(0)
+                        }
+                        std::ops::Bound::Excluded(max_distance) => {
+                            offset.checked_sub(max_distance + 1).unwrap_or(0)
+                        }
                     };
 
                     if let Some(min_distance) = offset.checked_sub(min_distance) {
@@ -234,13 +237,13 @@ where
                     match max_distance {
                         std::ops::Bound::Unbounded => {
                             return diff >= min_distance;
-                        },
+                        }
                         std::ops::Bound::Included(max_distance) => {
                             return diff >= min_distance && diff <= max_distance;
-                        },
+                        }
                         std::ops::Bound::Excluded(max_distance) => {
                             return diff >= min_distance && diff < max_distance;
-                        },
+                        }
                     }
                 }
             }

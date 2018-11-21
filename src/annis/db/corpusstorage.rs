@@ -39,7 +39,7 @@ use update::GraphUpdate;
 use rustc_hash::FxHashMap;
 
 use rand;
-use rand::Rng;
+use rand::seq::SliceRandom;
 use sys_info;
 
 enum CacheEntry {
@@ -942,7 +942,7 @@ impl CorpusStorage {
             // either sort or randomly shuffle results
             if order == ResultOrder::Randomized {
                 let mut rng = rand::thread_rng();
-                rng.shuffle(&mut tmp_results[..])
+                tmp_results.shuffle(&mut rng);
             } else {
                 let token_helper = TokenHelper::new(db);
                 let component_order = Component {
@@ -1219,7 +1219,7 @@ impl CorpusStorage {
                 query.alternatives.push(q_right);
             }
         }
-        extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config)
+        extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
     }
 
     /// Return the copy of a subgraph which includes all nodes matched by the given `query`.
@@ -1227,11 +1227,13 @@ impl CorpusStorage {
     /// - `corpus_name` - The name of the corpus for which the subgraph should be generated from.
     /// - `query` - The query which defines included nodes.
     /// - `query_language` - The query language of the query (e.g. AQL).
+    /// - `component_type_filter` - If set, only include edges of that belong to a component of the given type.
     pub fn subgraph_for_query(
         &self,
         corpus_name: &str,
         query: &str,
         query_language: QueryLanguage,
+        component_type_filter: Option<ComponentType>,
     ) -> Result<Graph> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
@@ -1247,6 +1249,7 @@ impl CorpusStorage {
             &prep.query,
             &match_idx,
             &self.query_config,
+            component_type_filter,
         )
     }
 
@@ -1289,12 +1292,20 @@ impl CorpusStorage {
             query.alternatives.push(q);
         }
 
-        extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config)
+        extract_subgraph_by_query(&db_entry, &query, &[1], &self.query_config, None)
     }
 
-    /// Return the copy of the graph of the corpus given by `corpus_name`.
+    /// Return the copy of the graph of the corpus structure given by `corpus_name`.
     pub fn corpus_graph(&self, corpus_name: &str) -> Result<Graph> {
-        let db_entry = self.get_fully_loaded_entry(corpus_name)?;
+        let db_entry = self.get_loaded_entry(corpus_name, false)?;
+
+        let subcorpus_components = {
+            // make sure all subcorpus partitions are loaded
+            let lock = db_entry.read().unwrap();
+            let mut db = get_read_or_error(&lock)?;
+            db.get_all_components(Some(ComponentType::PartOfSubcorpus), None)
+        };
+        let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
 
         let mut query = Conjunction::new();
 
@@ -1308,6 +1319,7 @@ impl CorpusStorage {
             &query.into_disjunction(),
             &[0],
             &self.query_config,
+            Some(ComponentType::PartOfSubcorpus),
         )
     }
 
@@ -1573,7 +1585,7 @@ impl Drop for CorpusStorage {
 mod tests {
     extern crate log;
     extern crate simplelog;
-    extern crate tempdir;
+    extern crate tempfile;
 
     use corpusstorage::QueryLanguage;
     use update::{GraphUpdate, UpdateEvent};
@@ -1581,7 +1593,7 @@ mod tests {
 
     #[test]
     fn delete() {
-        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+        if let Ok(tmp) = tempfile::tempdir() {
             let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
             // fully load a corpus
             let mut g = GraphUpdate::new();
@@ -1598,7 +1610,7 @@ mod tests {
 
     #[test]
     fn load_cs_twice() {
-        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+        if let Ok(tmp) = tempfile::tempdir() {
             {
                 let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
@@ -1625,7 +1637,7 @@ mod tests {
 
     #[test]
     fn apply_update_add_nodes() {
-        if let Ok(tmp) = tempdir::TempDir::new("annis_test") {
+        if let Ok(tmp) = tempfile::tempdir() {
             let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
             let mut g = GraphUpdate::new();
@@ -1746,6 +1758,7 @@ fn extract_subgraph_by_query(
     query: &Disjunction,
     match_idx: &[usize],
     query_config: &query::Config,
+    component_type_filter: Option<ComponentType>,
 ) -> Result<Graph> {
     // accuire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
@@ -1754,8 +1767,6 @@ fn extract_subgraph_by_query(
     let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).chain_err(|| "")?;
 
     debug!("executing subgraph query\n{}", plan);
-
-    let all_components = orig_db.get_all_components(None, None);
 
     // We have to keep our own unique set because the query will return "duplicates" whenever the other parts of the
     // match vector differ.
@@ -1778,8 +1789,10 @@ fn extract_subgraph_by_query(
         }
     }
 
+    let components = orig_db.get_all_components(component_type_filter, None);
+
     for m in &match_result {
-        create_subgraph_edge(m.node, &mut result, orig_db, &all_components);
+        create_subgraph_edge(m.node, &mut result, orig_db, &components);
     }
 
     Ok(result)
@@ -1796,10 +1809,10 @@ fn create_subgraph_edge(
     source_id: NodeID,
     db: &mut Graph,
     orig_db: &Graph,
-    all_components: &[Component],
+    components: &[Component],
 ) {
     // find outgoing edges
-    for c in all_components {
+    for c in components {
         if let Some(orig_gs) = orig_db.get_graphstorage(c) {
             for target in orig_gs.get_outgoing_edges(source_id) {
                 let e = Edge {

@@ -14,9 +14,9 @@ use annis::errors::*;
 use annis::operator::{Operator, OperatorSpec};
 use annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
-use rand::distributions::Range;
+use rand::distributions::Uniform;
 use rand::SeedableRng;
-use rand::XorShiftRng;
+use rand_xorshift::XorShiftRng;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::iter::FromIterator;
@@ -326,7 +326,7 @@ impl<'a> Conjunction<'a> {
 
         // use a constant seed to make the result deterministic
         let mut rng = XorShiftRng::from_seed(*b"Graphs are great");
-        let dist = Range::new(0, self.operators.len());
+        let dist = Uniform::from(0..self.operators.len());
 
         let mut best_operator_order = Vec::from_iter(0..self.operators.len());
 

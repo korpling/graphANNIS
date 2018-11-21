@@ -124,7 +124,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    extern crate tempdir;
     use super::*;
 
     #[test]

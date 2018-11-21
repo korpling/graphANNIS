@@ -210,7 +210,8 @@ impl AnnisRunner {
         let path = args[0];
 
         let t_before = std::time::SystemTime::now();
-        let name : String = self.storage
+        let name: String = self
+            .storage
             .as_ref()
             .ok_or("No corpus storage location set")?
             .import_from_fs(&PathBuf::from(path), ImportFormat::RelANNIS, None)?;
@@ -480,14 +481,13 @@ impl AnnisRunner {
 
         Ok(())
     }
-    
-    fn quirks_mode(&mut self, args:&str) -> Result<()> {
+
+    fn quirks_mode(&mut self, args: &str) -> Result<()> {
         let use_quirks = match args.trim().to_lowercase().as_str() {
             "on" | "true" => true,
             "off" | "false" => false,
             _ => return Err(format!("unknown argument \"{}\"", args).into()),
         };
-        
 
         self.query_language = if use_quirks {
             QueryLanguage::AQLQuirksV3
@@ -498,7 +498,7 @@ impl AnnisRunner {
         match self.query_language {
             QueryLanguage::AQLQuirksV3 => {
                 println!("Quirks mode is enabled");
-            },
+            }
             QueryLanguage::AQL => {
                 println!("Quirks mode is disabled");
             }

@@ -1,9 +1,9 @@
+use super::Matrix;
+use corpusstorage::{FrequencyTable, QueryAttributeDescription};
+use graph::{Annotation, Component, Edge, NodeID};
 use libc::{c_char, c_void, size_t};
 use std;
 use std::ffi::CString;
-use graph::{Annotation, Component, Edge, NodeID};
-use corpusstorage::{FrequencyTable, QueryAttributeDescription};
-use super::Matrix;
 
 #[no_mangle]
 pub extern "C" fn annis_free(ptr: *mut c_void) {
@@ -86,20 +86,26 @@ pub extern "C" fn annis_vec_str_push(ptr: *mut Vec<CString>, v: *const c_char) {
 
 #[no_mangle]
 pub extern "C" fn annis_annotation_ns(ptr: *const Annotation) -> *mut c_char {
-    let anno : &Annotation = cast_const!(ptr);
-    return CString::new(anno.key.ns.as_str()).unwrap_or_default().into_raw();
+    let anno: &Annotation = cast_const!(ptr);
+    return CString::new(anno.key.ns.as_str())
+        .unwrap_or_default()
+        .into_raw();
 }
 
 #[no_mangle]
 pub extern "C" fn annis_annotation_name(ptr: *const Annotation) -> *mut c_char {
-    let anno : &Annotation= cast_const!(ptr);
-    return CString::new(anno.key.name.as_str()).unwrap_or_default().into_raw();
+    let anno: &Annotation = cast_const!(ptr);
+    return CString::new(anno.key.name.as_str())
+        .unwrap_or_default()
+        .into_raw();
 }
 
 #[no_mangle]
 pub extern "C" fn annis_annotation_val(ptr: *const Annotation) -> *mut c_char {
-    let anno : &Annotation = cast_const!(ptr);
-    return CString::new(anno.val.as_str()).unwrap_or_default().into_raw();
+    let anno: &Annotation = cast_const!(ptr);
+    return CString::new(anno.val.as_str())
+        .unwrap_or_default()
+        .into_raw();
 }
 
 #[no_mangle]

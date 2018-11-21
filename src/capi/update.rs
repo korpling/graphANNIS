@@ -9,7 +9,6 @@ pub extern "C" fn annis_graphupdate_new() -> *mut GraphUpdate {
     return Box::into_raw(Box::new(gu));
 }
 
-
 #[no_mangle]
 pub extern "C" fn annis_graphupdate_add_node(
     ptr: *mut GraphUpdate,
@@ -153,10 +152,7 @@ pub extern "C" fn annis_graphupdate_delete_edge_label(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_graphupdate_size(
-    ptr: *const GraphUpdate
-) -> libc::size_t {
-    let g : &GraphUpdate = cast_const!(ptr);
+pub extern "C" fn annis_graphupdate_size(ptr: *const GraphUpdate) -> libc::size_t {
+    let g: &GraphUpdate = cast_const!(ptr);
     return g.len();
 }
-

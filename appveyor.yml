@@ -44,7 +44,7 @@ test_script:
       cargo test --release --all-features --verbose  -- --ignored
     )
 
-before_deploy:
+build_script:
   # TODO Update this to build the artifacts that matter to you
   - cargo build --target %TARGET% --release --features "c-api"
 

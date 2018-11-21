@@ -8,9 +8,7 @@ pub struct Disjunction<'a> {
 
 impl<'a> Disjunction<'a> {
     pub fn new(alternatives: Vec<Conjunction<'a>>) -> Disjunction<'a> {
-        Disjunction {
-            alternatives,
-        }
+        Disjunction { alternatives }
     }
 
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
