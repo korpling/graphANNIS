@@ -29,8 +29,6 @@ where
     size
 }
 
-
-
 #[cfg(not(windows))]
 pub mod platform {
     use std::os::raw::c_void;

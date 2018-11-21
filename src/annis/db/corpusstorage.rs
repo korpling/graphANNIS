@@ -1235,7 +1235,6 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         component_type_filter: Option<ComponentType>,
     ) -> Result<Graph> {
-        
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
         let mut max_alt_size = 0;
@@ -1298,7 +1297,6 @@ impl CorpusStorage {
 
     /// Return the copy of the graph of the corpus structure given by `corpus_name`.
     pub fn corpus_graph(&self, corpus_name: &str) -> Result<Graph> {
-        
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
         let subcorpus_components = {
@@ -1307,8 +1305,8 @@ impl CorpusStorage {
             let mut db = get_read_or_error(&lock)?;
             db.get_all_components(Some(ComponentType::PartOfSubcorpus), None)
         };
-        let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?; 
-        
+        let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
+
         let mut query = Conjunction::new();
 
         query.add_node(

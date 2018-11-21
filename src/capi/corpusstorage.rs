@@ -420,9 +420,15 @@ pub extern "C" fn annis_cs_import_from_fs(
     };
     let path: &str = &cstr!(path);
 
-    let corpus_name : String =  try_cerr!(cs.import_from_fs(&PathBuf::from(path), format, override_corpus_name), err, std::ptr::null_mut());
+    let corpus_name: String = try_cerr!(
+        cs.import_from_fs(&PathBuf::from(path), format, override_corpus_name),
+        err,
+        std::ptr::null_mut()
+    );
 
-    return CString::new(corpus_name.as_str()).unwrap_or_default().into_raw();
+    return CString::new(corpus_name.as_str())
+        .unwrap_or_default()
+        .into_raw();
 }
 
 #[no_mangle]

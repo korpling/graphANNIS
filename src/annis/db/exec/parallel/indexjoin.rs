@@ -72,7 +72,10 @@ impl<'a> IndexJoin<'a> {
                 lhs_desc.as_ref(),
                 rhs_desc,
                 "indexjoin (parallel)",
-                &format!("#{} {} #{}", op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right),
+                &format!(
+                    "#{} {} #{}",
+                    op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                ),
                 &processed_func,
             ),
             lhs: lhs_peek,
@@ -117,7 +120,9 @@ impl<'a> IndexJoin<'a> {
 
         // find all RHS in parallel
         lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
-            if let Some(rhs_candidate) = next_candidates(m_lhs, op, lhs_idx, &node_annos, &node_search_desc) {
+            if let Some(rhs_candidate) =
+                next_candidates(m_lhs, op, lhs_idx, &node_annos, &node_search_desc)
+            {
                 let mut rhs_candidate = rhs_candidate.into_iter().peekable();
                 while let Some(mut m_rhs) = rhs_candidate.next() {
                     // check if all filters are true
@@ -130,15 +135,15 @@ impl<'a> IndexJoin<'a> {
                     }
 
                     if filter_result {
-
                         // replace the annotation with a constant value if needed
                         if let Some(ref const_anno) = node_search_desc.const_output {
                             m_rhs.anno_key = *const_anno;
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
-                        if op.is_reflexive() || m_lhs[lhs_idx].node != m_rhs.node
-                            || m_lhs[lhs_idx].anno_key !=  m_rhs.anno_key
+                        if op.is_reflexive()
+                            || m_lhs[lhs_idx].node != m_rhs.node
+                            || m_lhs[lhs_idx].anno_key != m_rhs.anno_key
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();

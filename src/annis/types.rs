@@ -141,16 +141,7 @@ impl std::fmt::Display for Component {
 }
 
 pub trait NumValue:
-    Send
-    + Sync
-    + Ord
-    + Num
-    + AddAssign
-    + Clone
-    + Bounded
-    + FromPrimitive
-    + ToPrimitive
-    + MallocSizeOf
+    Send + Sync + Ord + Num + AddAssign + Clone + Bounded + FromPrimitive + ToPrimitive + MallocSizeOf
 {
 }
 
@@ -160,7 +151,7 @@ impl NumValue for u16 {}
 impl NumValue for u8 {}
 
 /// Definition of the result of a `frequency` query.
-/// 
+///
 /// This is a vector of rows, and each row is a vector of columns with the different
 /// attribute values and a number of matches having this combination of attribute values.
 pub type FrequencyTable<T> = Vec<(Vec<T>, usize)>;

@@ -110,19 +110,26 @@ impl Operator for Inclusion {
                     .gs_order
                     .find_connected(start_lhs, 0, std::ops::Bound::Included(l))
                     .flat_map(move |t| {
-                        let it_aligned = self.gs_left.get_outgoing_edges(t).into_iter().filter(
-                            move |n| {
-                                // right-aligned token of candidate
-                                let mut end_n = self.gs_right.get_outgoing_edges(*n);
-                                if let Some(end_n) = end_n.next() {
-                                    // path between right-most tokens exists in ORDERING component
-                                    // and has maximum length l
-                                    self.gs_order.is_connected(&end_n, &end_lhs, 0, std::ops::Bound::Included(l))
-                                } else {
-                                    false
-                                }
-                            },
-                        );
+                        let it_aligned =
+                            self.gs_left
+                                .get_outgoing_edges(t)
+                                .into_iter()
+                                .filter(move |n| {
+                                    // right-aligned token of candidate
+                                    let mut end_n = self.gs_right.get_outgoing_edges(*n);
+                                    if let Some(end_n) = end_n.next() {
+                                        // path between right-most tokens exists in ORDERING component
+                                        // and has maximum length l
+                                        self.gs_order.is_connected(
+                                            &end_n,
+                                            &end_lhs,
+                                            0,
+                                            std::ops::Bound::Included(l),
+                                        )
+                                    } else {
+                                        false
+                                    }
+                                });
                         // return the token itself and all aligned nodes
                         std::iter::once(t).chain(it_aligned)
                     }).map(|n| Match {

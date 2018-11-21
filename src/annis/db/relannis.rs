@@ -64,7 +64,8 @@ where
         };
 
         let mut db = Graph::new();
-        let toplevel_corpus_name = load_node_and_corpus_tables(&path, &mut db, is_annis_33, &progress_callback)?;
+        let toplevel_corpus_name =
+            load_node_and_corpus_tables(&path, &mut db, is_annis_33, &progress_callback)?;
 
         load_edge_tables(&path, &mut db, is_annis_33, &progress_callback)?;
 

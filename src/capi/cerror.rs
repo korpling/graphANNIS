@@ -1,9 +1,9 @@
-use std::ffi::CString;
-use std;
-use log;
-use errors;
-use libc::{size_t, c_char};
 use super::data::{vec_get, vec_size};
+use errors;
+use libc::{c_char, size_t};
+use log;
+use std;
+use std::ffi::CString;
 
 pub struct Error {
     pub msg: CString,
@@ -17,15 +17,15 @@ impl From<errors::Error> for ErrorList {
         let mut result = ErrorList::new();
         result.push(Error {
             msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-            kind: CString::new(e.kind().description()).unwrap_or(CString::default()), 
+            kind: CString::new(e.kind().description()).unwrap_or(CString::default()),
         });
         for e in e.iter().skip(1) {
             result.push(Error {
                 msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-                kind: CString::new("Cause").unwrap_or(CString::default()), 
+                kind: CString::new("Cause").unwrap_or(CString::default()),
             });
         }
-       
+
         return result;
     }
 }
@@ -40,7 +40,7 @@ impl From<log::SetLoggerError> for Error {
         } else {
             // meta-error
             Error {
-                msg:  CString::new(String::from("Some error occured")).unwrap(),
+                msg: CString::new(String::from("Some error occured")).unwrap(),
                 kind: CString::new("SetLoggerError").unwrap(),
             }
         };
@@ -58,7 +58,7 @@ impl From<std::io::Error> for Error {
         } else {
             // meta-error
             Error {
-                msg:  CString::new(String::from("Some error occured")).unwrap(),
+                msg: CString::new(String::from("Some error occured")).unwrap(),
                 kind: CString::new("std::io::Error").unwrap(),
             }
         };
@@ -66,16 +66,17 @@ impl From<std::io::Error> for Error {
     }
 }
 
-pub fn new(err : errors::Error) -> * mut ErrorList {
+pub fn new(err: errors::Error) -> *mut ErrorList {
     Box::into_raw(Box::new(ErrorList::from(err)))
 }
 
 #[no_mangle]
-pub extern "C" fn annis_error_size(ptr : * const ErrorList) -> size_t {vec_size(ptr)}
-
+pub extern "C" fn annis_error_size(ptr: *const ErrorList) -> size_t {
+    vec_size(ptr)
+}
 
 #[no_mangle]
-pub extern "C" fn annis_error_get_msg(ptr : * const ErrorList, i : size_t) -> * const c_char {
+pub extern "C" fn annis_error_get_msg(ptr: *const ErrorList, i: size_t) -> *const c_char {
     let item = vec_get(ptr, i);
     if item.is_null() {
         return std::ptr::null();
@@ -85,7 +86,7 @@ pub extern "C" fn annis_error_get_msg(ptr : * const ErrorList, i : size_t) -> * 
 }
 
 #[no_mangle]
-pub extern "C" fn annis_error_get_kind(ptr : * const ErrorList, i : size_t) -> * const c_char {
+pub extern "C" fn annis_error_get_kind(ptr: *const ErrorList, i: size_t) -> *const c_char {
     let item = vec_get(ptr, i);
     if item.is_null() {
         return std::ptr::null();
@@ -93,4 +94,3 @@ pub extern "C" fn annis_error_get_kind(ptr : * const ErrorList, i : size_t) -> *
     let err: &Error = cast_const!(item);
     return err.kind.as_ptr();
 }
-

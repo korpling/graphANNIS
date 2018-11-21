@@ -1,12 +1,12 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
-use annis::db::AnnotationStorage;
+use annis::db::exec::tokensearch;
 use annis::db::exec::tokensearch::AnyTokenSearch;
+use annis::db::AnnotationStorage;
 use annis::db::{Graph, Match, ANNIS_NS};
 use annis::errors::*;
 use annis::operator::EdgeAnnoSearchSpec;
 use annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
 use annis::util;
-use annis::db::exec::tokensearch;
 use itertools::Itertools;
 use regex;
 use std;
@@ -160,7 +160,7 @@ impl<'a> NodeSearch<'a> {
                 if is_regex {
                     NodeSearch::new_annosearch_regex(
                         db,
-                        (ns,name),
+                        (ns, name),
                         &val,
                         is_meta,
                         &query_fragment,
@@ -170,7 +170,7 @@ impl<'a> NodeSearch<'a> {
                 } else {
                     NodeSearch::new_annosearch_exact(
                         db,
-                        (ns,name),
+                        (ns, name),
                         Some(val),
                         is_meta,
                         &query_fragment,
@@ -196,11 +196,9 @@ impl<'a> NodeSearch<'a> {
                 node_nr,
                 location_in_query,
             ),
-            NodeSearchSpec::AnyToken => NodeSearch::new_anytoken_search(
-                db,
-                &query_fragment,
-                node_nr,
-            ),
+            NodeSearchSpec::AnyToken => {
+                NodeSearch::new_anytoken_search(db, &query_fragment, node_nr)
+            }
             NodeSearchSpec::AnyNode => {
                 let type_key = db.get_node_type_key();
 
@@ -250,13 +248,14 @@ impl<'a> NodeSearch<'a> {
 
     fn new_annosearch_exact(
         db: &'a Graph,
-        qname:(Option<String>, String),
+        qname: (Option<String>, String),
         val: Option<String>,
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
-        let base_it = db.node_annos
+        let base_it =
+            db.node_annos
                 .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone());
 
         let const_output = if is_meta {
@@ -335,21 +334,17 @@ impl<'a> NodeSearch<'a> {
 
     fn new_annosearch_regex(
         db: &'a Graph,
-        qname:(Option<String>, String),
+        qname: (Option<String>, String),
         pattern: &str,
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
-        let base_it = 
-            // match_regex works only with values
-            db.node_annos.regex_anno_search(
-                qname.0.clone(),
-                qname.1.clone(),
-                pattern,
-            );
-        
+        // match_regex works only with values
+        let base_it = db
+            .node_annos
+            .regex_anno_search(qname.0.clone(), qname.1.clone(), pattern);
 
         let const_output = if is_meta {
             Some(
@@ -383,12 +378,9 @@ impl<'a> NodeSearch<'a> {
             base_it
         };
 
-        let est_output = 
-            db.node_annos.guess_max_count_regex(
-                qname.0.clone(),
-                qname.1.clone(),
-                pattern,
-            );
+        let est_output =
+            db.node_annos
+                .guess_max_count_regex(qname.0.clone(), qname.1.clone(), pattern);
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
@@ -403,8 +395,7 @@ impl<'a> NodeSearch<'a> {
             Ok(re) => {
                 let node_annos = db.node_annos.clone();
                 filters.push(Box::new(move |m| {
-                    if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
-                    {
+                    if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
                         return re.is_match(val);
                     } else {
                         return false;
@@ -416,7 +407,7 @@ impl<'a> NodeSearch<'a> {
                 location_in_query
             )),
         }
-    
+
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
@@ -593,11 +584,11 @@ impl<'a> NodeSearch<'a> {
         node_nr: usize,
     ) -> Result<NodeSearch<'a>> {
         let tok_key = db.get_token_key();
-        
+
         let it: Box<Iterator<Item = Vec<Match>>> = Box::from(AnyTokenSearch::new(db)?);
         // create filter functions
         let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
-      
+
         let cov_gs = db.get_graphstorage(&Component {
             ctype: ComponentType::Coverage,
             layer: String::from(ANNIS_NS),
@@ -611,9 +602,10 @@ impl<'a> NodeSearch<'a> {
             }
         });
         filters.push(filter_func);
-    
-        let est_output = db.node_annos
-                .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone());
+
+        let est_output = db
+            .node_annos
+            .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone());
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
 

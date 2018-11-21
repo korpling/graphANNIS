@@ -73,7 +73,6 @@ fn map_conjunction<'a>(
                 legacy_meta_search.push((spec.clone(), pos.clone()));
             }
         };
-
     }
 
     // add all nodes specs in order of their start position
@@ -96,7 +95,6 @@ fn map_conjunction<'a>(
             first_node_pos = Some(idx);
         }
     }
-
 
     // in quirks mode, all legacy metadata constraints are applied to all conjunctions
     if !quirks_mode {
@@ -149,7 +147,10 @@ fn map_conjunction<'a>(
                 if let ast::BinaryOpSpec::Precedence(ref mut spec) = op {
                     // limit unspecified .* precedence to 50
                     spec.dist = if let RangeSpec::Unbound = spec.dist {
-                        RangeSpec::Bound {min_dist: 1, max_dist: 50}
+                        RangeSpec::Bound {
+                            min_dist: 1,
+                            max_dist: 50,
+                        }
                     } else {
                         spec.dist.clone()
                     };
@@ -157,7 +158,6 @@ fn map_conjunction<'a>(
             }
             q.add_operator_from_query(make_operator_spec(op), &idx_left, &idx_right, op_pos)?;
         }
-    
     }
 
     Ok(q)
@@ -213,25 +213,25 @@ fn add_legacy_metadata_constraints(
     Ok(())
 }
 
-fn find_all_children_for_and(expr : &ast::Expr, followers : &mut Vec<ast::Literal>) {
+fn find_all_children_for_and(expr: &ast::Expr, followers: &mut Vec<ast::Literal>) {
     match expr {
         Expr::Terminal(l) => {
             followers.push(l.clone());
-        },
+        }
         Expr::And(lhs, rhs) => {
             find_all_children_for_and(lhs, followers);
             find_all_children_for_and(rhs, followers);
-        },
+        }
         _ => {}
     }
 }
 
-fn find_all_children_for_or(expr : &ast::Expr, followers : &mut Vec<ast::Expr>) {
+fn find_all_children_for_or(expr: &ast::Expr, followers: &mut Vec<ast::Expr>) {
     match expr {
         Expr::Or(lhs, rhs) => {
             find_all_children_for_or(lhs, followers);
             find_all_children_for_or(rhs, followers);
-        },
+        }
         _ => {
             // add the expression itself
             followers.push(expr.clone());
@@ -239,7 +239,7 @@ fn find_all_children_for_or(expr : &ast::Expr, followers : &mut Vec<ast::Expr>) 
     }
 }
 
-fn get_alternatives_from_dnf(expr : ast::Expr) -> Vec<Vec<ast::Literal>> {
+fn get_alternatives_from_dnf(expr: ast::Expr) -> Vec<Vec<ast::Literal>> {
     if expr.is_and() {
         let mut followers = Vec::new();
         find_all_children_for_and(&expr, &mut followers);
@@ -272,7 +272,7 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
             let offsets = get_line_offsets(query_as_aql);
 
             // make sure AST is in DNF
-            let ast : ast::Expr = ast.simplify_via_laws();
+            let ast: ast::Expr = ast.simplify_via_laws();
             let ast = get_alternatives_from_dnf(ast);
 
             let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();

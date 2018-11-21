@@ -13,7 +13,6 @@ use annis::types::{Component, ComponentType, NodeID};
 
 use std::fmt;
 
-
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps the search for *all* token in a corpus.
 pub struct AnyTokenSearch<'a> {
     desc: Option<Desc>,
@@ -83,7 +82,6 @@ impl<'a> AnyTokenSearch<'a> {
                         anno_key: self.node_name_key,
                     });
                 }
-            
             }
             root_nodes.sort_unstable_by(|a, b| {
                 sort_matches::compare_match_by_text_pos(

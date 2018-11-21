@@ -97,23 +97,24 @@ impl<'a> IndexJoin<'a> {
                         name: name.clone(),
                     });
                     let key_id = self.node_annos.get_key_id(key.as_ref());
-                    return Some(Box::new(it_nodes
-                        .filter_map(move |match_node| {
-                            if let Some(key_id) = key_id {
-                                if node_annos.get_value_for_item_by_id(&match_node.node, key_id).is_some() {
-                                    Some(Match {
-                                        node: match_node.node,
-                                        anno_key: key_id,
-                                    })
-                                } else {
-                                    // this annotation was not found for this node, remove it from iterator
-                                    None
-                                }
+                    return Some(Box::new(it_nodes.filter_map(move |match_node| {
+                        if let Some(key_id) = key_id {
+                            if node_annos
+                                .get_value_for_item_by_id(&match_node.node, key_id)
+                                .is_some()
+                            {
+                                Some(Match {
+                                    node: match_node.node,
+                                    anno_key: key_id,
+                                })
                             } else {
+                                // this annotation was not found for this node, remove it from iterator
                                 None
                             }
-                        }))
-                    );
+                        } else {
+                            None
+                        }
+                    })));
                 } else {
                     let keys: Vec<usize> = self
                         .node_annos

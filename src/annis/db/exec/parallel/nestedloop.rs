@@ -23,7 +23,6 @@ pub struct NestedLoop<'a> {
     desc: Desc,
 }
 
-
 type MatchCandidate = (Vec<Match>, Vec<Match>, Sender<Vec<Match>>);
 
 impl<'a> NestedLoop<'a> {
@@ -100,12 +99,8 @@ impl<'a> NestedLoop<'a> {
         }
     }
 
-    fn next_match_buffer(
-        &mut self,
-        tx: &Sender<Vec<Match>>,
-    ) -> Vec<MatchCandidate> {
-        let mut match_candidate_buffer: Vec<MatchCandidate> =
-            Vec::with_capacity(MAX_BUFFER_SIZE);
+    fn next_match_buffer(&mut self, tx: &Sender<Vec<Match>>) -> Vec<MatchCandidate> {
+        let mut match_candidate_buffer: Vec<MatchCandidate> = Vec::with_capacity(MAX_BUFFER_SIZE);
         while match_candidate_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(m_outer) = self.outer.peek() {
                 if self.pos_inner_cache.is_some() {
@@ -169,7 +164,7 @@ impl<'a> NestedLoop<'a> {
                     op.filter_match(&m_inner[inner_idx], &m_outer[outer_idx])
                 };
                 // filter by reflexivity if necessary
-                
+
                 if filter_true
                     && (op.is_reflexive()
                         || m_outer[outer_idx].node != m_inner[inner_idx].node
@@ -212,8 +207,7 @@ impl<'a> Iterator for NestedLoop<'a> {
 
         loop {
             {
-                let match_receiver =
-                    self.match_receiver.as_mut()?;
+                let match_receiver = self.match_receiver.as_mut()?;
                 if let Ok(result) = match_receiver.recv() {
                     return Some(result);
                 }
