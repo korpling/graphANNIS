@@ -1,6 +1,6 @@
+use boolean_expression;
 use std;
 use std::rc::Rc;
-use boolean_expression;
 
 use annis::db::aql::operators::{
     DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec, OverlapSpec,

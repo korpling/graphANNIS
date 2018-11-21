@@ -46,7 +46,10 @@ pub extern "C" fn annis_graph_nodes_by_type(
 }
 
 #[no_mangle]
-pub extern "C" fn annis_graph_annotations_for_node(g: *const Graph, node: NodeID) -> *mut Vec<Annotation> {
+pub extern "C" fn annis_graph_annotations_for_node(
+    g: *const Graph,
+    node: NodeID,
+) -> *mut Vec<Annotation> {
     let db: &Graph = cast_const!(g);
 
     Box::into_raw(Box::new(db.get_annotations_for_item(&node)))

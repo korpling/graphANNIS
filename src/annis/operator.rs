@@ -14,7 +14,7 @@ pub enum EdgeAnnoSearchSpec {
         ns: Option<String>,
         name: String,
         val: String,
-    }
+    },
 }
 
 impl std::fmt::Display for EdgeAnnoSearchSpec {
@@ -42,14 +42,13 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
                 ref name,
                 ref val,
             } => {
-                 let qname = if let Some(ref ns) = ns {
+                let qname = if let Some(ref ns) = ns {
                     format!("{}:{}", ns, name)
                 } else {
                     name.clone()
                 };
 
                 write!(f, "{}=/{}/", qname, val)
-
             }
         }
     }

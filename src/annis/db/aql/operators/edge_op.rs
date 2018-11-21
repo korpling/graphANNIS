@@ -194,8 +194,11 @@ impl Operator for BaseEdgeOp {
                         let lhs = lhs.clone();
 
                         e.as_ref()
-                            .find_connected_inverse(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
-                            .fuse()
+                            .find_connected_inverse(
+                                lhs.node,
+                                spec.dist.min_dist(),
+                                spec.dist.max_dist(),
+                            ).fuse()
                             .filter(move |candidate| {
                                 check_edge_annotation(
                                     &self.spec.edge_anno,
@@ -239,14 +242,26 @@ impl Operator for BaseEdgeOp {
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
         for e in &self.gs {
             if self.inverse {
-                if e.is_connected(&rhs.node, &lhs.node, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-                    && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
+                if e.is_connected(
+                    &rhs.node,
+                    &lhs.node,
+                    self.spec.dist.min_dist(),
+                    self.spec.dist.max_dist(),
+                ) && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), rhs.node, lhs.node)
                 {
                     return true;
                 }
-            } else if e.is_connected(&lhs.node, &rhs.node, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-                && check_edge_annotation(&self.spec.edge_anno, e.as_ref(), lhs.node, rhs.node)
-            {
+            } else if e.is_connected(
+                &lhs.node,
+                &rhs.node,
+                self.spec.dist.min_dist(),
+                self.spec.dist.max_dist(),
+            ) && check_edge_annotation(
+                &self.spec.edge_anno,
+                e.as_ref(),
+                lhs.node,
+                rhs.node,
+            ) {
                 return true;
             }
         }

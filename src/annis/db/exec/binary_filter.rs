@@ -47,7 +47,10 @@ impl<'a> BinaryFilter<'a> {
                 component_nr: orig_desc.component_nr,
                 node_pos: orig_desc.node_pos.clone(),
                 impl_description: String::from("filter"),
-                query_fragment: format!("#{} {} #{}", op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right),
+                query_fragment: format!(
+                    "#{} {} #{}",
+                    op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                ),
                 cost: cost_est,
                 lhs: Some(Box::new(orig_desc.clone())),
                 rhs: None,
@@ -55,7 +58,8 @@ impl<'a> BinaryFilter<'a> {
         } else {
             None
         };
-        let it = exec.filter(move |tuple| op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
+        let it =
+            exec.filter(move |tuple| op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
         BinaryFilter {
             desc,
             it: Box::new(it),

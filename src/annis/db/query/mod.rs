@@ -1,6 +1,6 @@
-#[derive(Clone,Default,Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct Config {
-    pub use_parallel_joins : bool,
+    pub use_parallel_joins: bool,
 }
 
 pub mod conjunction;

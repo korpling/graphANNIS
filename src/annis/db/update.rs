@@ -9,9 +9,7 @@ pub enum UpdateEvent {
         node_type: String,
     },
     /// Delete a node given by the name.
-    DeleteNode {
-        node_name: String,
-    },
+    DeleteNode { node_name: String },
     /// Add a label to a the node given by the name.
     AddNodeLabel {
         node_name: String,
@@ -52,7 +50,7 @@ pub enum UpdateEvent {
         anno_name: String,
         anno_value: String,
     },
-    /// Delete a label from an edge between two nodes. 
+    /// Delete a label from an edge between two nodes.
     DeleteEdgeLabel {
         source_node: String,
         target_node: String,
@@ -68,8 +66,8 @@ pub enum UpdateEvent {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[repr(C)]
 pub struct GraphUpdate {
-    diffs : Vec<(u64, UpdateEvent)>,
-    last_consistent_change_id : u64,
+    diffs: Vec<(u64, UpdateEvent)>,
+    last_consistent_change_id: u64,
 }
 
 impl GraphUpdate {
@@ -82,8 +80,8 @@ impl GraphUpdate {
     }
 
     /// Add the given event to the update list.
-    pub fn add_event(&mut self, event : UpdateEvent) {
-        let change_id = self.last_consistent_change_id + (self.diffs.len() as u64)  + 1;
+    pub fn add_event(&mut self, event: UpdateEvent) {
+        let change_id = self.last_consistent_change_id + (self.diffs.len() as u64) + 1;
         self.diffs.push((change_id, event));
     }
 
@@ -92,7 +90,7 @@ impl GraphUpdate {
         if self.diffs.is_empty() {
             true
         } else {
-            self.last_consistent_change_id == self.diffs[self.diffs.len()-1].0
+            self.last_consistent_change_id == self.diffs[self.diffs.len() - 1].0
         }
     }
 
@@ -104,12 +102,12 @@ impl GraphUpdate {
     /// Mark the current state as consistent.
     pub fn finish(&mut self) {
         if !self.diffs.is_empty() {
-            self.last_consistent_change_id = self.diffs[self.diffs.len()-1].0;
+            self.last_consistent_change_id = self.diffs[self.diffs.len() - 1].0;
         }
     }
 
     /// Get all consistent changes.
-    pub fn consistent_changes<'a>(&'a self) -> Box<Iterator<Item=(u64, UpdateEvent)> + 'a> {
+    pub fn consistent_changes<'a>(&'a self) -> Box<Iterator<Item = (u64, UpdateEvent)> + 'a> {
         let last_consistent_change_id = self.last_consistent_change_id;
         let it = self.diffs.iter().filter_map(move |d| {
             if d.0 <= last_consistent_change_id {

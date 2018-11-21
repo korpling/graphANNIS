@@ -1,14 +1,13 @@
 extern crate graphannis;
 
-use graphannis::CorpusStorage;
 use graphannis::corpusstorage::QueryLanguage;
 use graphannis::util;
+use graphannis::CorpusStorage;
 
-use std::path::{PathBuf};
 use std::cell::RefCell;
+use std::path::PathBuf;
 
 use std::collections::HashSet;
-
 
 thread_local!{
    pub static CORPUS_STORAGE : RefCell<Option<CorpusStorage>> = {
@@ -37,12 +36,11 @@ fn get_query_dir() -> PathBuf {
     query_dir
 }
 
-
-fn search_test_base(corpus : &str, panic_on_invalid : bool) {
+fn search_test_base(corpus: &str, panic_on_invalid: bool) {
     CORPUS_STORAGE.with(|cs| {
         if let Some(ref cs) = *cs.borrow() {
             if let Ok(corpora) = cs.list() {
-                let corpora : HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
+                let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
                 // ignore of corpus does not exist
                 if corpora.contains(corpus) {
                     let mut d = get_query_dir();
@@ -54,14 +52,12 @@ fn search_test_base(corpus : &str, panic_on_invalid : bool) {
                             "Query '{}' ({}) on corpus {} should have had count {} but was {}.",
                             def.aql, def.name, corpus, def.count, count
                         );
-                            
                     }
                 }
             }
         }
     });
 }
-
 
 #[ignore]
 #[test]
@@ -74,7 +70,7 @@ fn all_from_folder_parallel() {
                 if let Ok(ftype) = p.file_type() {
                     if ftype.is_dir() {
                         if let Ok(corpus_name) = p.file_name().into_string() {
-                           search_test_base(&corpus_name, true);
+                            search_test_base(&corpus_name, true);
                         }
                     }
                 }
@@ -82,5 +78,3 @@ fn all_from_folder_parallel() {
         }
     }
 }
-
-

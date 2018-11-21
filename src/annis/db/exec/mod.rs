@@ -24,11 +24,7 @@ pub struct Desc {
     pub cost: Option<CostEstimate>,
 }
 
-fn calculate_outputsize(
-    op: &Operator,
-    cost_lhs: &CostEstimate,
-    cost_rhs: &CostEstimate,
-) -> usize {
+fn calculate_outputsize(op: &Operator, cost_lhs: &CostEstimate, cost_rhs: &CostEstimate) -> usize {
     let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = (cost_lhs.output * cost_rhs.output) as f64;
@@ -227,5 +223,5 @@ pub mod binary_filter;
 pub mod indexjoin;
 pub mod nestedloop;
 pub mod nodesearch;
-pub mod tokensearch;
 pub mod parallel;
+pub mod tokensearch;

@@ -107,11 +107,13 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         let anno = self.create_sparse_anno(anno);
 
         let existing_anno = {
-            let existing_item_entry = self.by_container.entry(item.clone()).or_insert_with(Vec::new);
+            let existing_item_entry = self
+                .by_container
+                .entry(item.clone())
+                .or_insert_with(Vec::new);
 
             // check if there is already an item with the same annotation key
-            let existing_entry_idx =
-                existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
+            let existing_entry_idx = existing_item_entry.binary_search_by_key(&anno.key, |a| a.key);
 
             if let Ok(existing_entry_idx) = existing_entry_idx {
                 let orig_anno = existing_item_entry[existing_entry_idx].clone();
@@ -281,10 +283,9 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                     .collect();
                 return res;
             }
-        } else if let Some(annos) = self.by_container.get(item)  {
+        } else if let Some(annos) = self.by_container.get(item) {
             // no annotation name given, return all
             return annos.iter().map(|sparse_anno| sparse_anno.key).collect();
-             
         } else {
             return vec![];
         }
@@ -407,15 +408,17 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
 
             if let Some(target_value_symbol) = target_value_symbol {
                 let it = values
-                .into_iter()
-                // find the items with the correct value
-                .filter_map(move |(key_id, values)| if let Some(items) = values.get(&target_value_symbol) {
-                    Some((items, key_id))
-                } else {
-                    None
-                })
-                // flatten the hash set of all items, returns all items for the condition
-                .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
+                    .into_iter()
+                    // find the items with the correct value
+                    .filter_map(move |(key_id, values)| {
+                        if let Some(items) = values.get(&target_value_symbol) {
+                            Some((items, key_id))
+                        } else {
+                            None
+                        }
+                    })
+                    // flatten the hash set of all items, returns all items for the condition
+                    .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
                 return Box::new(it);
             } else {
                 // value is not known, return empty result
@@ -423,13 +426,11 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
             }
         } else {
             let it = values
-            .into_iter()
-            // flatten the hash set of all items, returns all items for the condition
-            .flat_map(|(key_id, values)| values.iter().zip(std::iter::repeat(key_id)))
-            // create annotations from all flattened values
-            .flat_map(move | ((_, items), key_id) | {
-                items.iter().zip(std::iter::repeat(key_id))
-            });
+                .into_iter()
+                // flatten the hash set of all items, returns all items for the condition
+                .flat_map(|(key_id, values)| values.iter().zip(std::iter::repeat(key_id)))
+                // create annotations from all flattened values
+                .flat_map(move |((_, items), key_id)| items.iter().zip(std::iter::repeat(key_id)));
             return Box::new(it);
         }
     }
@@ -803,7 +804,6 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
         self.get_all_values_impl(key, most_frequent_first)
     }
-    
 }
 
 mod symboltable;

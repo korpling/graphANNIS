@@ -10,14 +10,14 @@ pub enum RangeSpec {
 impl RangeSpec {
     pub fn max_dist(&self) -> std::ops::Bound<usize> {
         match &self {
-            RangeSpec::Bound {max_dist, .. } =>  std::ops::Bound::Included(*max_dist),
+            RangeSpec::Bound { max_dist, .. } => std::ops::Bound::Included(*max_dist),
             RangeSpec::Unbound => std::ops::Bound::Unbounded,
         }
     }
 
     pub fn min_dist(&self) -> usize {
         match &self {
-            RangeSpec::Bound {min_dist, .. } =>  *min_dist,
+            RangeSpec::Bound { min_dist, .. } => *min_dist,
             RangeSpec::Unbound => 1,
         }
     }
@@ -32,10 +32,8 @@ impl fmt::Display for RangeSpec {
                 } else {
                     write!(f, "{},{}", min_dist, max_dist)
                 }
-            },
-            RangeSpec::Unbound => {
-                write!(f, "*")
             }
+            RangeSpec::Unbound => write!(f, "*"),
         }
     }
 }

@@ -1,3 +1,11 @@
+release 0.13.0
+==============
+
+Enhancements
+------------
+
+- [#36](https://github.com/corpus-tools/graphANNIS/issues/36) Add function to only extract a subgraph with components ofa given type
+
 release 0.12.0
 ==============
 
