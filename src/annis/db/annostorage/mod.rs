@@ -558,7 +558,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                             let v = vec![*val; items.len()];
                             v.into_iter()
                         }).collect();
-                    let sampled_anno_indexes: FxHashSet<usize> = rand::seq::sample_indices(
+                    let sampled_anno_indexes: FxHashSet<usize> = rand::seq::index::sample(
                         &mut rng,
                         sampled_anno_values.len(),
                         std::cmp::min(sampled_anno_values.len(), max_sampled_annotations),

@@ -125,7 +125,8 @@ where
 #[cfg(test)]
 mod test {
 
-    use rand::distributions::{Distribution, Range};
+    use rand;
+    use rand::distributions::Distribution;
     use rand::Rng;
 
     #[test]
@@ -190,7 +191,7 @@ mod test {
     fn random_sort_test() {
         // compare 100 random arrays against the standard library sort
         let mut rng = rand::thread_rng();
-        let random_item_gen = Range::new(1, 100);
+        let random_item_gen = rand::distributions::Uniform::from(1..100);
 
         for _i in 0..100 {
             // the arrays should have a size from 10 to 50
@@ -211,7 +212,7 @@ mod test {
     fn random_sort_test_parallel() {
         // compare 100 random arrays against the standard library sort
         let mut rng = rand::thread_rng();
-        let random_item_gen = Range::new(1, 100);
+        let random_item_gen = rand::distributions::Uniform::from(1..100);
 
         for _i in 0..100 {
             // the arrays should have a size from 10 to 50

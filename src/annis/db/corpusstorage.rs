@@ -39,7 +39,7 @@ use update::GraphUpdate;
 use rustc_hash::FxHashMap;
 
 use rand;
-use rand::Rng;
+use rand::seq::SliceRandom;
 use sys_info;
 
 enum CacheEntry {
@@ -942,7 +942,7 @@ impl CorpusStorage {
             // either sort or randomly shuffle results
             if order == ResultOrder::Randomized {
                 let mut rng = rand::thread_rng();
-                rng.shuffle(&mut tmp_results[..])
+                tmp_results.shuffle(&mut rng);
             } else {
                 let token_helper = TokenHelper::new(db);
                 let component_order = Component {
