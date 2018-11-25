@@ -41,7 +41,8 @@ script:
 before_deploy:
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
-  - mdbook build --dest-dir docs/book/${TRAVIS_TAG} docs/
+  - export SHORT_VERSION=`echo ${TRAVIS_TAG} | sed -E 's/(\.[0-9]+)$//'`
+  - mdbook build --dest-dir docs/book/${SHORT_VERSION} docs/
 
 
 deploy:
