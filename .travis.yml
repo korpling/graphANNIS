@@ -22,7 +22,7 @@ branches:
     # Develop branch
     - develop
     # used for testing the release process
-    - /^ignore-test-release-tag.*/
+    - feature/doc-deploy-subfolder
 
 before_script:
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
@@ -60,8 +60,8 @@ deploy:
     script: bash misc/deploy-docs.sh
     on:
       repo: corpus-tools/graphANNIS
-      all_branches: true
-      tags: true
+      branch: feature/doc-deploy-subfolder
+#      tags: true
       condition: $TRAVIS_OS_NAME = linux
     skip-cleanup: true
       
