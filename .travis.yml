@@ -36,7 +36,7 @@ script:
   - ./target/release/annis data --cmd 'import relannis/GUM'
   - cargo test --all-features --release  -- --ignored
   # also test that the documentation is generated without error
-  - cd documentation && mdbook test -d test && mdbook build -d book/${TRAVIS_TAG} 
+  - cd documentation && mdbook test && mdbook build -d book/${TRAVIS_TAG} 
 
 before_deploy:
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so

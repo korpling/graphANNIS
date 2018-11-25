@@ -6,7 +6,7 @@ if [ -n "$GITHUB_API_KEY" ]; then
     cd "$TRAVIS_BUILD_DIR"
 
     echo "cloning gh-pages"
-    git clone  --single-branch gh-pages https://thomaskrause:$GITHUB_API_KEY@github.com/corpus-tools/graphANNIS gh-pages
+    git clone -q  -b gh-pages https://thomaskrause:$GITHUB_API_KEY@github.com/corpus-tools/graphANNIS gh-pages &>/dev/null
     cp -R documentation/book/* gh-pages/
     cd gh-pages
     git add .
