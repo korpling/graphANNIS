@@ -19,12 +19,19 @@ branches:
     # Develop branch
     - develop
 
+before_script:
+  - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
+  - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.2" mdbook)
+  - cargo install-update -a
+
 script:
   - RUST_BACKTRACE=1 cargo test --all-features --release
   -  "./misc/download-gum-corpus.sh"
   - cargo build --all-features --release
   - ./target/release/annis data --cmd 'import relannis/GUM'
   - cargo test --all-features --release  -- --ignored
+  # also test that the documentation is generated without error
+  - cd documentation && mdbook test
 
 before_deploy:
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
