@@ -42,7 +42,7 @@ script:
   # also test that the documentation is generated without error
   - mdbook test docs/
   # generate the documentation for possible deploy
-  - mdbook build --dest-dir docs/book/${SHORT_VERSION} docs/
+  - mdbook build --dest-dir book/${SHORT_VERSION} docs/
 
 before_deploy:
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so

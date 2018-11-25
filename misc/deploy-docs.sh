@@ -9,7 +9,7 @@ if [ -n "$GITHUB_API_KEY" ]; then
     git clone -q  -b gh-pages https://thomaskrause:$GITHUB_API_KEY@github.com/corpus-tools/graphANNIS gh-pages &>/dev/null
     cd gh-pages
     mkdir -p docs
-    cp -R ../docs/book/* gh-pages/
+    cp -R ${TRAVIS_BUILD_DIR}/docs/book/* .
     git add .
     git -c user.name='travis' -c user.email='travis' commit -m "update documentation"
     echo "pushing to gh-pages"
