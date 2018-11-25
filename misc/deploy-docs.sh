@@ -7,7 +7,7 @@ if [ -n "$GITHUB_API_KEY" ]; then
 
     echo "cloning gh-pages"
     git clone -q  -b gh-pages https://thomaskrause:$GITHUB_API_KEY@github.com/corpus-tools/graphANNIS gh-pages &>/dev/null
-    cp -R documentation/book/* gh-pages/
+    cp -R docs/book/* gh-pages/
     cd gh-pages
     git add .
     git -c user.name='travis' -c user.email='travis' commit -m "update documentation"
