@@ -28,6 +28,8 @@ before_script:
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
   - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.2" mdbook)
   - cargo install-update -a
+  - export SHORT_VERSION=`echo ${TRAVIS_TAG} | sed -E 's/(\.[0-9]+)$//'`
+  
 
 script:
   - RUST_BACKTRACE=1 cargo test --all-features --release
@@ -37,12 +39,12 @@ script:
   - cargo test --all-features --release  -- --ignored
   # also test that the documentation is generated without error
   - mdbook test docs/
+  # generate the documentation for possible deploy
+  - mdbook build --dest-dir docs/book/${SHORT_VERSION} docs/
 
 before_deploy:
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
-  - export SHORT_VERSION=`echo ${TRAVIS_TAG} | sed -E 's/(\.[0-9]+)$//'`
-  - mdbook build --dest-dir docs/book/${SHORT_VERSION} docs/
 
 
 deploy:
