@@ -11,6 +11,7 @@ if [ -n "$GITHUB_API_KEY" ]; then
     cd gh-pages
     git add .
     git -c user.name='travis' -c user.email='travis' commit -m "update documentation"
+    echo "pushing to gh-pages"
     git push -q https://thomaskrause:$GITHUB_API_KEY@github.com/corpus-tools/graphANNIS gh-pages &>/dev/null
     cd "$TRAVIS_BUILD_DIR"
 fi
