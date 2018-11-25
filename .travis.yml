@@ -57,7 +57,7 @@ deploy:
     tag_name: $TRAVIS_TAG
     draft: true
   - provider: script
-    script: bash misc/deploy-docs.sh
+    script: bash $TRAVIS_BUILD_DIR/misc/deploy-docs.sh
     on:
       repo: corpus-tools/graphANNIS
       branch: feature/doc-deploy-subfolder
