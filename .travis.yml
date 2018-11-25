@@ -10,7 +10,7 @@ sudo: required
 
 cache:
   directories:
-    - /home/travis/.cargo
+    - $HOME/.cargo
 before_cache:
   - rm -rf /home/travis/.cargo/registry
 
