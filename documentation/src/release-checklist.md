@@ -22,11 +22,3 @@ This means that if a language bindings adds a feature, that has been released in
 9. Publish to **crates.io** with `cargo publish`
 10. Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
 11. Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
-
-## Python language bindings
-
-FIXME
-
-## Java language bindings
-
-FIXME
