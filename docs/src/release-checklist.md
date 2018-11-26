@@ -9,7 +9,7 @@ This means that if a language bindings adds a feature, that has been released in
 
 ## Core library release
 
-1. Make a new **release branch** `release/<version>` either from the `develop` branch for feature releases. If you make a bug-fix release create a branch named `hotfix/<version>` from the `master` branch .
+1. Make a new **release branch** `release/<version>` either from the `develop` branch for feature releases. If you make a bug-fix release create a branch named `hotfix/<version>` from the `master` branch.
 2. **Update version** information, by 
    - changing the `version` field in the `Cargo.toml` file
    - running `cargo build` to update your local `Cargo.lock` file (even if this file is not committed to Git)
@@ -18,7 +18,30 @@ This means that if a language bindings adds a feature, that has been released in
 5. **Commit and push**, wait for Continuous Integration to finish
 6. Close the corresponding **GitHub milestone** and remember its ID
 7. Update the **`CHANGELOG.md`** file by executing `./misc/changelog.py <milestone-id>` and pasting the result into the changelog
-8. **Tag and push** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop` branch.
+8. **Tag and push** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop` branch then delete the release branch.
 9. Publish to **crates.io** with `cargo publish`
 10. Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
 11. Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
+
+## Python wrapper release
+
+1. Make a new **release branch** `release/<version>` either from the `develop` branch for feature releases. If you make a bug-fix release create a branch named `hotfix/<version>` from the `master` branch.
+2. **Update version** information, by 
+    - changing the `version` field in the `setup.py` file
+    - specifying the corresponding graphANNIS release tag in the `GRAPHANNIS_VERSION` environment variable in `.travis.yml`
+3. **Download** release artifacts from the core library: `./package/download-release-binaries.sh <version-tag>` 
+4.  **Test** with 
+    - `python3 -m unittest`
+    - `./doctest_runner.py`
+5. **Commit**, wait for Continuous Integration to finish
+6. **Tag and push** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop` branch then delete the release branch.
+
+Continuous Integration will automatically deploy all released versions on the `master` branch.
+
+## Java wrapper release
+
+1. **Start** the release process with `mvn jgitflow:release-start`
+2. **Download** release artifacts from the core library: `./package/download-release-binaries.sh <version-tag>`
+3. **Test** with `mvn test`
+4. **Finish** the release process with `mvn jgitflow:release-finish`
+5. **Release** the closed staging repository to Maven Central with the Nexus interface: https://oss.sonatype.org/
