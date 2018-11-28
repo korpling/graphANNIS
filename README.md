@@ -1,4 +1,4 @@
-Documentation: [![Documentation](https://docs.rs/graphannis/badge.svg)](https://docs.rs/graphannis/) / Build status: [![Build Status Linux & MacOS X](https://travis-ci.org/corpus-tools/graphANNIS.svg?branch=develop)](https://travis-ci.org/corpus-tools/graphANNIS) (Linux & MacOS)
+Documentation: [![Documentation](https://docs.rs/graphannis/badge.svg)](https://docs.rs/graphannis/) / Build status: [![Build Status Linux & MacOS X](https://travis-ci.org/korpling/graphANNIS.svg?branch=develop)](https://travis-ci.org/korpling/graphANNIS) (Linux & MacOS)
 [![Build status Windows](https://ci.appveyor.com/api/projects/status/27axqoanq6rj3xps/branch/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/develop) (Windows)
 
 graphANNIS
@@ -30,8 +30,8 @@ This software depends on several 3rd party libraries. These are documented in th
 Language bindings
 ------------------
 
-- Java: https://github.com/corpus-tools/graphANNIS-java
-- Python 3: https://github.com/corpus-tools/graphANNIS-python
+- Java: https://github.com/korpling/graphANNIS-java
+- Python 3: https://github.com/korpling/graphANNIS-python
 
 Author(s)
 ---------
