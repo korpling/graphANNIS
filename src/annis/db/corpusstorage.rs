@@ -1,29 +1,29 @@
-use annis::db;
-use annis::db::annostorage::AnnoStorage;
-use annis::db::aql;
-use annis::db::aql::operators;
-use annis::db::aql::operators::RangeSpec;
-use annis::db::exec::nodesearch::NodeSearchSpec;
-use annis::db::plan::ExecutionPlan;
-use annis::db::query;
-use annis::db::query::conjunction::Conjunction;
-use annis::db::query::disjunction::Disjunction;
-use annis::db::relannis;
-use annis::db::token_helper::TokenHelper;
-use annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
-use annis::errors::ErrorKind;
-use annis::errors::*;
-use annis::types::AnnoKey;
-use annis::types::{
+use crate::annis::db;
+use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::aql;
+use crate::annis::db::aql::operators;
+use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::annis::db::plan::ExecutionPlan;
+use crate::annis::db::query;
+use crate::annis::db::query::conjunction::Conjunction;
+use crate::annis::db::query::disjunction::Disjunction;
+use crate::annis::db::relannis;
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
+use crate::annis::errors::ErrorKind;
+use crate::annis::errors::*;
+use crate::annis::types::AnnoKey;
+use crate::annis::types::{
     Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, NodeID,
     QueryAttributeDescription,
 };
-use annis::util;
-use annis::util::memory_estimation;
-use annis::util::quicksort;
+use crate::annis::util;
+use crate::annis::util::memory_estimation;
+use crate::annis::util::quicksort;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
@@ -34,7 +34,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread;
-use update::GraphUpdate;
+use crate::update::GraphUpdate;
 
 use rustc_hash::FxHashMap;
 
@@ -1587,9 +1587,9 @@ mod tests {
     extern crate simplelog;
     extern crate tempfile;
 
-    use corpusstorage::QueryLanguage;
-    use update::{GraphUpdate, UpdateEvent};
-    use CorpusStorage;
+    use crate::corpusstorage::QueryLanguage;
+    use crate::update::{GraphUpdate, UpdateEvent};
+    use crate::CorpusStorage;
 
     #[test]
     fn delete() {

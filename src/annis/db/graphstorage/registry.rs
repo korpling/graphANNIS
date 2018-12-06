@@ -1,8 +1,8 @@
 use super::adjacencylist::AdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
-use annis::db::graphstorage::{GraphStatistic, GraphStorage};
-use annis::errors::*;
+use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
+use crate::annis::errors::*;
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;

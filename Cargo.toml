@@ -9,6 +9,7 @@ repository= "https://github.com/korpling/graphANNIS"
 readme = "crate-info.md"
 autobins=true
 build = "build.rs"
+edition = "2018"
 
 [lib]
 crate-type = ["rlib", "staticlib","cdylib"]

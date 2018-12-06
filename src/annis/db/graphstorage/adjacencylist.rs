@@ -1,8 +1,8 @@
 use super::*;
-use annis::db::annostorage::AnnoStorage;
-use annis::db::AnnotationStorage;
-use annis::dfs::CycleSafeDFS;
-use annis::types::Edge;
+use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::dfs::CycleSafeDFS;
+use crate::annis::types::Edge;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeSet;

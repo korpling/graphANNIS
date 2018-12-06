@@ -1,9 +1,9 @@
-use annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
-use annis::db::query::disjunction::Disjunction;
-use annis::db::query::Config;
-use annis::db::{Graph, Match};
-use annis::errors::*;
-use annis::types::{AnnoKeyID, NodeID};
+use crate::annis::db::exec::{Desc, EmptyResultSet, ExecutionNode};
+use crate::annis::db::query::disjunction::Disjunction;
+use crate::annis::db::query::Config;
+use crate::annis::db::{Graph, Match};
+use crate::annis::errors::*;
+use crate::annis::types::{AnnoKeyID, NodeID};
 use std;
 use std::collections::HashSet;
 use std::fmt::Formatter;

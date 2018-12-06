@@ -1,6 +1,6 @@
 use super::super::{Desc, ExecutionNode};
-use annis::db::Match;
-use annis::operator::Operator;
+use crate::annis::db::Match;
+use crate::annis::operator::Operator;
 use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};

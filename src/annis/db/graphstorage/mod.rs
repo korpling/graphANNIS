@@ -1,8 +1,8 @@
-use annis::db::AnnotationStorage;
-use annis::db::Graph;
-use annis::errors::*;
-use annis::types::{AnnoKey, Annotation, Edge, NodeID};
-use malloc_size_of::MallocSizeOf;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::Graph;
+use crate::annis::errors::*;
+use crate::annis::types::{AnnoKey, Annotation, Edge, NodeID};
+use crate::malloc_size_of::MallocSizeOf;
 use serde::Deserialize;
 use std;
 

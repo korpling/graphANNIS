@@ -1,6 +1,6 @@
-use annis::db::{Graph, Match};
-use annis::operator::*;
-use annis::types::{AnnoKeyID, Component};
+use crate::annis::db::{Graph, Match};
+use crate::annis::operator::*;
+use crate::annis::types::{AnnoKeyID, Component};
 use std;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]

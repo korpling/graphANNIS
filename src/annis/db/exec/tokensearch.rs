@@ -1,15 +1,15 @@
-use annis::db::exec::Desc;
-use annis::db::exec::ExecutionNode;
-use annis::db::graphstorage::GraphStorage;
-use annis::db::sort_matches;
-use annis::db::token_helper;
-use annis::db::token_helper::TokenHelper;
-use annis::db::AnnotationStorage;
-use annis::db::Graph;
-use annis::db::Match;
-use annis::errors::*;
-use annis::types::AnnoKeyID;
-use annis::types::{Component, ComponentType, NodeID};
+use crate::annis::db::exec::Desc;
+use crate::annis::db::exec::ExecutionNode;
+use crate::annis::db::graphstorage::GraphStorage;
+use crate::annis::db::sort_matches;
+use crate::annis::db::token_helper;
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::Graph;
+use crate::annis::db::Match;
+use crate::annis::errors::*;
+use crate::annis::types::AnnoKeyID;
+use crate::annis::types::{Component, ComponentType, NodeID};
 
 use std::fmt;
 
@@ -156,7 +156,7 @@ impl<'a> Iterator for AnyTokenSearch<'a> {
 mod tests {
 
     use super::*;
-    use update::{GraphUpdate, UpdateEvent};
+    use crate::update::{GraphUpdate, UpdateEvent};
 
     #[test]
     fn find_with_only_one_token() {

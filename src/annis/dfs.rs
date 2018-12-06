@@ -1,5 +1,5 @@
-use annis::db::graphstorage::EdgeContainer;
-use annis::types::NodeID;
+use crate::annis::db::graphstorage::EdgeContainer;
+use crate::annis::types::NodeID;
 use rustc_hash::FxHashSet;
 
 pub struct CycleSafeDFS<'a> {

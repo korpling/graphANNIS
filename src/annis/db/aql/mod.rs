@@ -6,15 +6,15 @@ lalrpop_mod!(
     parser
 );
 
-use annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
-use annis::db::aql::operators::identical_node::IdenticalNodeSpec;
-use annis::db::aql::operators::RangeSpec;
-use annis::db::exec::nodesearch::NodeSearchSpec;
-use annis::db::query::conjunction::Conjunction;
-use annis::db::query::disjunction::Disjunction;
-use annis::errors::*;
-use annis::operator::OperatorSpec;
-use annis::types::{LineColumn, LineColumnRange};
+use crate::annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
+use crate::annis::db::aql::operators::identical_node::IdenticalNodeSpec;
+use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::annis::db::query::conjunction::Conjunction;
+use crate::annis::db::query::disjunction::Disjunction;
+use crate::annis::errors::*;
+use crate::annis::operator::OperatorSpec;
+use crate::annis::types::{LineColumn, LineColumnRange};
 use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
 use std::collections::HashMap;

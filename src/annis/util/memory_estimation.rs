@@ -1,4 +1,4 @@
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std;
 
 pub fn shallow_size_of_btreemap<K, V>(

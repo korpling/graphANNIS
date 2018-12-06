@@ -1,13 +1,13 @@
-use annis::db::annostorage::AnnoStorage;
-use annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
-use annis::db::graphstorage::registry;
-use annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
-use annis::db::update::{GraphUpdate, UpdateEvent};
-use annis::errors::*;
-use annis::types::AnnoKey;
-use annis::types::{AnnoKeyID, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
+use crate::annis::db::graphstorage::registry;
+use crate::annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
+use crate::annis::db::update::{GraphUpdate, UpdateEvent};
+use crate::annis::errors::*;
+use crate::annis::types::AnnoKey;
+use crate::annis::types::{AnnoKeyID, Annotation, Component, ComponentType, Edge, NodeID};
 use bincode;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rayon::prelude::*;
 use serde;
 use std;
@@ -183,7 +183,7 @@ impl MallocSizeOf for Graph {
 }
 
 fn load_component_from_disk(component_path: Option<PathBuf>) -> Result<Arc<GraphStorage>> {
-    let cpath = try!(component_path.ok_or("Can't load component with empty path"));
+    let cpath = r#try!(component_path.ok_or("Can't load component with empty path"));
 
     // load component into memory
     let impl_path = PathBuf::from(&cpath).join("impl.cfg");
@@ -1049,7 +1049,7 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use annis::types::{AnnoKey, Annotation, ComponentType, Edge};
+    use crate::annis::types::{AnnoKey, Annotation, ComponentType, Edge};
 
     #[test]
     fn create_writeable_gs() {

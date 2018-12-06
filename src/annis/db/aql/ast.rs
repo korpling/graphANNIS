@@ -2,11 +2,11 @@ use boolean_expression;
 use std;
 use std::rc::Rc;
 
-use annis::db::aql::operators::{
+use crate::annis::db::aql::operators::{
     DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec, OverlapSpec,
     PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec,
 };
-use annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct Pos {
@@ -90,4 +90,4 @@ pub enum BinaryOpSpec {
     IdenticalNode(IdenticalNodeSpec),
 }
 
-pub use annis::db::aql::operators::RangeSpec;
+pub use crate::annis::db::aql::operators::RangeSpec;
