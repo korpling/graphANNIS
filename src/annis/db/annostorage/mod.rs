@@ -1,14 +1,14 @@
 use self::symboltable::SymbolTable;
-use annis::db::AnnotationStorage;
-use annis::db::Match;
-use annis::errors::*;
-use annis::types::{AnnoKey, AnnoKeyID, Annotation};
-use annis::types::{Edge, NodeID};
-use annis::util;
-use annis::util::memory_estimation;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::Match;
+use crate::annis::errors::*;
+use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
+use crate::annis::types::{Edge, NodeID};
+use crate::annis::util;
+use crate::annis::util::memory_estimation;
 use bincode;
 use itertools::Itertools;
-use malloc_size_of::MallocSizeOf;
+use crate::malloc_size_of::MallocSizeOf;
 use rand;
 use regex;
 use regex_syntax;
@@ -79,7 +79,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
     }
 
     fn remove_element_from_by_anno(&mut self, anno: &SparseAnnotation, item: &T) {
-        let remove_anno_key = if let Some(mut annos_for_key) = self.by_anno.get_mut(&anno.key) {
+        let remove_anno_key = if let Some(annos_for_key) = self.by_anno.get_mut(&anno.key) {
             let remove_anno_val = if let Some(items_for_anno) = annos_for_key.get_mut(&anno.val) {
                 items_for_anno.retain(|i| i != item);
                 items_for_anno.is_empty()

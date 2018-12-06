@@ -1,7 +1,7 @@
 use self::nodesearch::NodeSearch;
-use annis::db::Match;
-use annis::operator::{EstimationType, Operator};
-use annis::types::AnnoKeyID;
+use crate::annis::db::Match;
+use crate::annis::operator::{EstimationType, Operator};
+use crate::annis::types::AnnoKeyID;
 
 use std;
 use std::collections::BTreeMap;

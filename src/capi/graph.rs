@@ -1,11 +1,11 @@
-use capi::data::IterPtr;
-use graph::{Annotation, AnnotationStorage, Component, ComponentType, Edge, NodeID};
-use graph::{GraphStorage, Match};
+use crate::capi::data::IterPtr;
+use crate::graph::{Annotation, AnnotationStorage, Component, ComponentType, Edge, NodeID};
+use crate::graph::{GraphStorage, Match};
 use libc;
 use std;
 use std::ffi::CString;
 use std::sync::Arc;
-use Graph;
+use crate::Graph;
 
 #[no_mangle]
 pub extern "C" fn annis_component_type(c: *const Component) -> ComponentType {

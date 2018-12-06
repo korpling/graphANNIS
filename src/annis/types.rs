@@ -4,7 +4,7 @@ use std::fmt;
 use std::ops::AddAssign;
 use std::string::String;
 
-use malloc_size_of::MallocSizeOf;
+use crate::malloc_size_of::MallocSizeOf;
 
 /// Unique internal identifier for a single node.
 pub type NodeID = u64;

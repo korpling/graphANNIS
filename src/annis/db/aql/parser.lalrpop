@@ -2,9 +2,9 @@ use std::*;
 use super::ast;
 use boolean_expression::Expr;
 use std::rc::Rc;
-use annis::operator::EdgeAnnoSearchSpec;
-use annis::db::exec::nodesearch::NodeSearchSpec;
-use annis::db::aql::operators::{
+use crate::annis::operator::EdgeAnnoSearchSpec;
+use crate::annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::annis::db::aql::operators::{
     OverlapSpec, 
     IdenticalCoverageSpec,
     PrecedenceSpec,

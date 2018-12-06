@@ -1,9 +1,9 @@
-use annis::db::annostorage::AnnoStorage;
-use annis::db::graphstorage::GraphStorage;
-use annis::db::token_helper::TokenHelper;
-use annis::db::Match;
-use annis::db::{ANNIS_NS, NODE_NAME};
-use annis::types::{AnnoKey, NodeID};
+use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::graphstorage::GraphStorage;
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::Match;
+use crate::annis::db::{ANNIS_NS, NODE_NAME};
+use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::cmp::Ordering;
 

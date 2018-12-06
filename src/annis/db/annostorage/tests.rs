@@ -1,5 +1,5 @@
 use super::*;
-use annis::types::NodeID;
+use crate::annis::types::NodeID;
 
 #[test]
 fn insert_same_anno() {

@@ -1,5 +1,5 @@
-use annis::util::memory_estimation::shallow_size_of_btreemap;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::annis::util::memory_estimation::shallow_size_of_btreemap;
+use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use std;
 use std::collections::BTreeMap;

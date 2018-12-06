@@ -1,6 +1,6 @@
-use annis::db::AnnotationStorage;
-use annis::db::{Graph, Match};
-use annis::types::{Component, Edge};
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::{Graph, Match};
+use crate::annis::types::{Component, Edge};
 use std;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
