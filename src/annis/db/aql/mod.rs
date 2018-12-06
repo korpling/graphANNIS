@@ -2,7 +2,7 @@ mod ast;
 pub mod operators;
 use boolean_expression::Expr;
 lalrpop_mod!(
-    #[allow(clippy)]
+    #[allow(clippy::all)]
     parser
 );
 

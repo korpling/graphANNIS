@@ -1302,7 +1302,7 @@ impl CorpusStorage {
         let subcorpus_components = {
             // make sure all subcorpus partitions are loaded
             let lock = db_entry.read().unwrap();
-            let mut db = get_read_or_error(&lock)?;
+            let db = get_read_or_error(&lock)?;
             db.get_all_components(Some(ComponentType::PartOfSubcorpus), None)
         };
         let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
@@ -1384,7 +1384,7 @@ impl CorpusStorage {
                 tuple.push(tuple_val);
             }
             // add the tuple to the frequency count
-            let mut tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
+            let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
             *tuple_count += 1;
         }
 
@@ -1594,7 +1594,7 @@ mod tests {
     #[test]
     fn delete() {
         if let Ok(tmp) = tempfile::tempdir() {
-            let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+            let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
             // fully load a corpus
             let mut g = GraphUpdate::new();
             g.add_event(UpdateEvent::AddNode {
@@ -1612,7 +1612,7 @@ mod tests {
     fn load_cs_twice() {
         if let Ok(tmp) = tempfile::tempdir() {
             {
-                let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+                let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
                 g.add_event(UpdateEvent::AddNode {
                     node_name: "test".to_string(),
@@ -1623,7 +1623,7 @@ mod tests {
             }
 
             {
-                let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+                let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
                 g.add_event(UpdateEvent::AddNode {
                     node_name: "test".to_string(),
@@ -1638,7 +1638,7 @@ mod tests {
     #[test]
     fn apply_update_add_nodes() {
         if let Ok(tmp) = tempfile::tempdir() {
-            let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+            let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
             let mut g = GraphUpdate::new();
             g.add_event(UpdateEvent::AddNode {

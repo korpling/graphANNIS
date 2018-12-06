@@ -806,7 +806,7 @@ where
         let col_type = get_field_str(&line, 1).ok_or("Missing column")?;
         if col_type != "NULL" {
             let layer = get_field_str(&line, 2).ok_or("Missing column")?;
-            let mut name = get_field_str(&line, 3).ok_or("Missing column")?;
+            let name = get_field_str(&line, 3).ok_or("Missing column")?;
             let name = if name == "NULL" {
                 String::from("")
             } else {

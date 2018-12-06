@@ -494,7 +494,7 @@ impl<'a> Conjunction<'a> {
             let n_spec = &self.nodes[node_nr].1;
             let n_var = &self.nodes[node_nr].0;
 
-            let mut node_search = NodeSearch::from_spec(
+            let node_search = NodeSearch::from_spec(
                 n_spec.clone(),
                 node_nr,
                 db,
