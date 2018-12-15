@@ -15,7 +15,7 @@ How to compile
 ---------------
 
 graphANNIS is written in the Rust programming language (https://www.rust-lang.org).
-You can install Rust from https://www.rust-lang.org/en-US/install.html.
+You can install Rust from https://www.rust-lang.org/tools/install.
 After you have installed Rust, you can can build the complete project with
 
 ```
