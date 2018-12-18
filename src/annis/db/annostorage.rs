@@ -2,8 +2,8 @@ use self::symboltable::SymbolTable;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
+use crate::annis::types::Edge;
 use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
-use crate::annis::types::{Edge};
 use crate::annis::util;
 use crate::annis::util::memory_estimation;
 use crate::malloc_size_of::MallocSizeOf;
@@ -44,9 +44,7 @@ pub struct AnnoStorage<T: Ord + Hash + MallocSizeOf + Default> {
     total_number_of_annos: usize,
 }
 
-impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default>
-    AnnoStorage<T>
-{
+impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStorage<T> {
     pub fn new() -> AnnoStorage<T> {
         AnnoStorage {
             by_container: FxHashMap::default(),
@@ -305,20 +303,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default>
         Vec::new()
     }
 
-    fn get_annotations_for_item_impl(&self, item: &T) -> Vec<Annotation> {
-        if let Some(all_annos) = self.by_container.get(item) {
-            let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
-            for a in all_annos.iter() {
-                if let Some(a) = self.create_annotation_from_sparse(a) {
-                    result.push(a);
-                }
-            }
-            return result;
-        }
-        // return empty result if not found
-        Vec::new()
-    }
-
     pub fn clear(&mut self) {
         self.by_container.clear();
         self.by_anno.clear();
@@ -355,30 +339,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default>
     /// Returns the annotation key from the internal identifier.
     pub fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
         self.anno_keys.get_value(key_id).cloned()
-    }
-
-    fn get_all_values_impl(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
-        if let Some(key) = self.anno_keys.get_symbol(key) {
-            if let Some(values_for_key) = self.by_anno.get(&key) {
-                if most_frequent_first {
-                    let result = values_for_key
-                        .iter()
-                        .filter_map(|(val, items)| {
-                            let val = self.anno_values.get_value(*val)?;
-                            Some((items.len(), val))
-                        })
-                        .sorted();
-                    return result.into_iter().rev().map(|(_, val)| &val[..]).collect();
-                } else {
-                    return values_for_key
-                        .iter()
-                        .filter_map(|(val, _items)| self.anno_values.get_value(*val))
-                        .map(|val| &val[..])
-                        .collect();
-                }
-            }
-        }
-        return vec![];
     }
 
     fn matching_items<'a>(
@@ -438,107 +398,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default>
                 });
             return Box::new(it);
         }
-    }
-
-    fn number_of_annotations_by_name_impl(&self, ns: Option<String>, name: String) -> usize {
-        let qualified_keys = match ns {
-            Some(ns) => self.anno_key_sizes.range((
-                Included(AnnoKey {
-                    name: name.clone(),
-                    ns: ns.clone(),
-                }),
-                Included(AnnoKey { name, ns }),
-            )),
-            None => self.anno_key_sizes.range(
-                AnnoKey {
-                    name: name.clone(),
-                    ns: String::default(),
-                }..AnnoKey {
-                    name,
-                    ns: std::char::MAX.to_string(),
-                },
-            ),
-        };
-        let mut result = 0;
-        for (_anno_key, anno_size) in qualified_keys {
-            result += anno_size;
-        }
-        result
-    }
-
-    fn guess_max_count_impl(
-        &self,
-        ns: Option<String>,
-        name: String,
-        lower_val: &str,
-        upper_val: &str,
-    ) -> usize {
-        // find all complete keys which have the given name (and namespace if given)
-        let qualified_keys = match ns {
-            Some(ns) => vec![AnnoKey { name, ns }],
-            None => self.get_qnames(&name),
-        };
-
-        let mut universe_size: usize = 0;
-        let mut sum_histogram_buckets: usize = 0;
-        let mut count_matches: usize = 0;
-
-        // guess for each fully qualified annotation key and return the sum of all guesses
-        for anno_key in qualified_keys {
-            if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
-                universe_size += *anno_size;
-
-                if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
-                    if let Some(histo) = self.histogram_bounds.get(&anno_key) {
-                        // find the range in which the value is contained
-
-                        // we need to make sure the histogram is not empty -> should have at least two bounds
-                        if histo.len() >= 2 {
-                            sum_histogram_buckets += histo.len() - 1;
-
-                            for i in 0..histo.len() - 1 {
-                                let bucket_begin = &histo[i];
-                                let bucket_end = &histo[i + 1];
-                                // check if the range overlaps with the search range
-                                if bucket_begin.as_str() <= upper_val
-                                    && lower_val <= bucket_end.as_str()
-                                {
-                                    count_matches += 1;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if sum_histogram_buckets > 0 {
-            let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
-            (selectivity * (universe_size as f64)).round() as usize
-        } else {
-            0
-        }
-    }
-
-    fn guess_max_count_regex_impl(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
-        let full_match_pattern = util::regex_full_match(pattern);
-
-        let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
-        if let Ok(parsed) = parsed {
-            let expr: regex_syntax::hir::Hir = parsed;
-
-            let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
-            let val_prefix = std::str::from_utf8(prefix_set.longest_common_prefix());
-
-            if val_prefix.is_ok() {
-                let lower_val = val_prefix.unwrap();
-                let mut upper_val = String::from(lower_val);
-                upper_val.push(std::char::MAX);
-                return self.guess_max_count_impl(ns, name, &lower_val, &upper_val);
-            }
-        }
-
-        0
     }
 
     pub fn get_largest_item(&self) -> Option<T> {
@@ -619,8 +478,10 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default>
         }
     }
 
-    pub fn load_from_file(&mut self, path: &str) -> Result<()> 
-    where for<'de> T: serde::Deserialize<'de> {
+    pub fn load_from_file(&mut self, path: &str) -> Result<()>
+    where
+        for<'de> T: serde::Deserialize<'de>,
+    {
         // always remove all entries first, so even if there is an error the anno storage is empty
         self.clear();
 
@@ -643,17 +504,21 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default>
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorage<T>
 where
-    T: Ord
-        + Hash
-        + MallocSizeOf
-        + Default
-        + Clone
-        + serde::Serialize
-        + serde::Deserialize<'de>,
+    T: Ord + Hash + MallocSizeOf + Default + Clone + serde::Serialize + serde::Deserialize<'de>,
     (T, AnnoKeyID): Into<Match>,
 {
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
-        self.get_annotations_for_item_impl(item)
+        if let Some(all_annos) = self.by_container.get(item) {
+            let mut result: Vec<Annotation> = Vec::with_capacity(all_annos.len());
+            for a in all_annos.iter() {
+                if let Some(a) = self.create_annotation_from_sparse(a) {
+                    result.push(a);
+                }
+            }
+            return result;
+        }
+        // return empty result if not found
+        Vec::new()
     }
 
     fn number_of_annotations(&self) -> usize {
@@ -661,7 +526,29 @@ where
     }
 
     fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
-        self.number_of_annotations_by_name_impl(ns, name)
+        let qualified_keys = match ns {
+            Some(ns) => self.anno_key_sizes.range((
+                Included(AnnoKey {
+                    name: name.clone(),
+                    ns: ns.clone(),
+                }),
+                Included(AnnoKey { name, ns }),
+            )),
+            None => self.anno_key_sizes.range(
+                AnnoKey {
+                    name: name.clone(),
+                    ns: String::default(),
+                }..AnnoKey {
+                    name,
+                    ns: std::char::MAX.to_string(),
+                },
+            ),
+        };
+        let mut result = 0;
+        for (_anno_key, anno_size) in qualified_keys {
+            result += anno_size;
+        }
+        result
     }
 
     fn exact_anno_search<'a>(
@@ -709,15 +596,96 @@ where
         lower_val: &str,
         upper_val: &str,
     ) -> usize {
-        self.guess_max_count_impl(ns, name, lower_val, upper_val)
+        // find all complete keys which have the given name (and namespace if given)
+        let qualified_keys = match ns {
+            Some(ns) => vec![AnnoKey { name, ns }],
+            None => self.get_qnames(&name),
+        };
+
+        let mut universe_size: usize = 0;
+        let mut sum_histogram_buckets: usize = 0;
+        let mut count_matches: usize = 0;
+
+        // guess for each fully qualified annotation key and return the sum of all guesses
+        for anno_key in qualified_keys {
+            if let Some(anno_size) = self.anno_key_sizes.get(&anno_key) {
+                universe_size += *anno_size;
+
+                if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
+                    if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                        // find the range in which the value is contained
+
+                        // we need to make sure the histogram is not empty -> should have at least two bounds
+                        if histo.len() >= 2 {
+                            sum_histogram_buckets += histo.len() - 1;
+
+                            for i in 0..histo.len() - 1 {
+                                let bucket_begin = &histo[i];
+                                let bucket_end = &histo[i + 1];
+                                // check if the range overlaps with the search range
+                                if bucket_begin.as_str() <= upper_val
+                                    && lower_val <= bucket_end.as_str()
+                                {
+                                    count_matches += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if sum_histogram_buckets > 0 {
+            let selectivity: f64 = (count_matches as f64) / (sum_histogram_buckets as f64);
+            (selectivity * (universe_size as f64)).round() as usize
+        } else {
+            0
+        }
     }
 
     fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize {
-        self.guess_max_count_regex_impl(ns, name, pattern)
+        let full_match_pattern = util::regex_full_match(pattern);
+
+        let parsed = regex_syntax::Parser::new().parse(&full_match_pattern);
+        if let Ok(parsed) = parsed {
+            let expr: regex_syntax::hir::Hir = parsed;
+
+            let prefix_set = regex_syntax::hir::literal::Literals::prefixes(&expr);
+            let val_prefix = std::str::from_utf8(prefix_set.longest_common_prefix());
+
+            if val_prefix.is_ok() {
+                let lower_val = val_prefix.unwrap();
+                let mut upper_val = String::from(lower_val);
+                upper_val.push(std::char::MAX);
+                return self.guess_max_count(ns, name, &lower_val, &upper_val);
+            }
+        }
+
+        0
     }
 
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
-        self.get_all_values_impl(key, most_frequent_first)
+        if let Some(key) = self.anno_keys.get_symbol(key) {
+            if let Some(values_for_key) = self.by_anno.get(&key) {
+                if most_frequent_first {
+                    let result = values_for_key
+                        .iter()
+                        .filter_map(|(val, items)| {
+                            let val = self.anno_values.get_value(*val)?;
+                            Some((items.len(), val))
+                        })
+                        .sorted();
+                    return result.into_iter().rev().map(|(_, val)| &val[..]).collect();
+                } else {
+                    return values_for_key
+                        .iter()
+                        .filter_map(|(val, _items)| self.anno_values.get_value(*val))
+                        .map(|val| &val[..])
+                        .collect();
+                }
+            }
+        }
+        return vec![];
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
