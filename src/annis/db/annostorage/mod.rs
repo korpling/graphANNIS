@@ -654,11 +654,8 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
     ) -> Box<Iterator<Item = Match> + 'a> {
         let it =
             self.matching_items(namespace, name, value)
-                .filter_map(move |(node, anno_key_id)| {
-                    Some(Match {
-                        node: *node,
-                        anno_key: anno_key_id,
-                    })
+                .filter_map(move |item| {
+                    Some(item.into())
                 });
         Box::new(it)
     }
@@ -744,11 +741,8 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
     ) -> Box<Iterator<Item = Match> + 'a> {
         let it =
             self.matching_items(namespace, name, value)
-                .filter_map(move |(edge, anno_key_id)| {
-                    Some(Match {
-                        node: edge.source,
-                        anno_key: anno_key_id,
-                    })
+                .filter_map(move |item| {
+                    Some(item.into())
                 });
         Box::new(it)
     }
