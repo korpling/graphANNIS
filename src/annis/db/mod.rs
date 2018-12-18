@@ -65,7 +65,7 @@ impl Match {
     }
 }
 
-impl Into<Match> for (&Edge, AnnoKeyID) {
+impl Into<Match> for (Edge, AnnoKeyID) {
     fn into(self) -> Match {
         Match {
             node: self.0.source,
@@ -74,10 +74,10 @@ impl Into<Match> for (&Edge, AnnoKeyID) {
     }
 }
 
-impl Into<Match> for (&NodeID, AnnoKeyID) {
+impl Into<Match> for (NodeID, AnnoKeyID) {
     fn into(self) -> Match {
         Match {
-            node: *self.0,
+            node: self.0,
             anno_key: self.1,
         }
     }

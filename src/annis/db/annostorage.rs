@@ -386,7 +386,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
         namespace: Option<String>,
         name: String,
         value: Option<String>,
-    ) -> Box<Iterator<Item = (&T, AnnoKeyID)> + 'a> {
+    ) -> Box<Iterator<Item = (T, AnnoKeyID)> + 'a> {
         let key_ranges: Vec<AnnoKey> = if let Some(ns) = namespace {
             vec![AnnoKey { ns, name }]
         } else {
@@ -418,7 +418,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                         }
                     })
                     // flatten the hash set of all items, returns all items for the condition
-                    .flat_map(|(items, key_id)| items.iter().zip(std::iter::repeat(key_id)));
+                    .flat_map(|(items, key_id)| items.iter().cloned().zip(std::iter::repeat(key_id)));
                 return Box::new(it);
             } else {
                 // value is not known, return empty result
@@ -430,7 +430,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + DeserializeOwned + MallocSizeOf 
                 // flatten the hash set of all items, returns all items for the condition
                 .flat_map(|(key_id, values)| values.iter().zip(std::iter::repeat(key_id)))
                 // create annotations from all flattened values
-                .flat_map(move |((_, items), key_id)| items.iter().zip(std::iter::repeat(key_id)));
+                .flat_map(move |((_, items), key_id)| items.iter().cloned().zip(std::iter::repeat(key_id)));
             return Box::new(it);
         }
     }
