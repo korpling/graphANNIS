@@ -344,7 +344,7 @@ impl<'a> NodeSearch<'a> {
         // match_regex works only with values
         let base_it = db
             .node_annos
-            .regex_anno_search(qname.0.clone(), qname.1.clone(), pattern);
+            .regex_anno_search(qname.0.clone(), qname.1.clone(), pattern, false);
 
         let const_output = if is_meta {
             Some(
@@ -442,7 +442,7 @@ impl<'a> NodeSearch<'a> {
         let it_base: Box<Iterator<Item = Match>> = if let Some(v) = val.clone() {
             let it = if match_regex {
                 db.node_annos
-                    .regex_anno_search(Some(tok_key.ns.clone()), tok_key.name.clone(), &v)
+                    .regex_anno_search(Some(tok_key.ns.clone()), tok_key.name.clone(), &v, false)
             } else {
                 db.node_annos.exact_anno_search(
                     Some(tok_key.ns.clone()),

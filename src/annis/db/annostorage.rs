@@ -593,6 +593,7 @@ where
         namespace: Option<String>,
         name: String,
         pattern: &str,
+        negated: bool,
     ) -> Box<Iterator<Item = Match> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
         let compiled_result = regex::Regex::new(&full_match_pattern);
@@ -601,7 +602,11 @@ where
                 .matching_items(namespace, name, None)
                 .filter(move |(node, anno_key_id)| {
                     if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
-                        re.is_match(val)
+                        if negated {
+                            !re.is_match(val)
+                        } else {
+                            re.is_match(val)
+                        }
                     } else {
                         false
                     }
@@ -609,8 +614,13 @@ where
                 .map(move |item| item.into());
             return Box::new(it);
         } else {
-            // if regular expression pattern is invalid return empty iterator
-            return Box::new(std::iter::empty());
+            if negated {
+                // return all values
+                return self.exact_anno_search(namespace, name, None.into());
+            } else {
+                // if regular expression pattern is invalid return empty iterator
+                return Box::new(std::iter::empty());
+            }
         }
     }
 
