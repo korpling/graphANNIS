@@ -204,7 +204,7 @@ impl<'a> NodeSearch<'a> {
 
                 let it = db
                     .node_annos
-                    .exact_anno_search(Some(type_key.ns), type_key.name, Some("node".to_owned()))
+                    .exact_anno_search(Some(type_key.ns), type_key.name, Some("node".to_owned()).into())
                     .map(move |n| vec![n]);
 
                 let node_annos = db.node_annos.clone();
@@ -256,7 +256,7 @@ impl<'a> NodeSearch<'a> {
     ) -> Result<NodeSearch<'a>> {
         let base_it =
             db.node_annos
-                .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone());
+                .exact_anno_search(qname.0.clone(), qname.1.clone(), val.clone().into());
 
         let const_output = if is_meta {
             Some(
@@ -447,7 +447,7 @@ impl<'a> NodeSearch<'a> {
                 db.node_annos.exact_anno_search(
                     Some(tok_key.ns.clone()),
                     tok_key.name.clone(),
-                    Some(v),
+                    Some(v).into(),
                 )
             };
             Box::new(it)
@@ -455,7 +455,7 @@ impl<'a> NodeSearch<'a> {
             let it = db.node_annos.exact_anno_search(
                 Some(tok_key.ns.clone()),
                 tok_key.name.clone(),
-                None,
+                None.into(),
             );
             Box::new(it)
         };
@@ -654,7 +654,7 @@ impl<'a> NodeSearch<'a> {
                         let anno_storage: &AnnotationStorage<Edge> = gs.get_anno_storage();
 
                         let it = anno_storage
-                            .exact_anno_search(ns.clone(), name.clone(), val.clone())
+                            .exact_anno_search(ns.clone(), name.clone(), val.clone().into())
                             .map(|m: Match| m.node);
                         return Box::new(it);
                     } else {

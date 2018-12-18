@@ -1,6 +1,7 @@
 use self::symboltable::SymbolTable;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
+use crate::annis::db::ValueSearch;
 use crate::annis::errors::*;
 use crate::annis::types::Edge;
 use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
@@ -555,12 +556,36 @@ where
         &'a self,
         namespace: Option<String>,
         name: String,
-        value: Option<String>,
+        value: ValueSearch<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        let it = self
-            .matching_items(namespace, name, value)
-            .filter_map(move |item| Some(item.into()));
-        Box::new(it)
+        match value {
+            ValueSearch::Any => {
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .map(move |item| item.into());
+                Box::new(it)
+            }
+            ValueSearch::Some(value) => {
+                let it = self
+                    .matching_items(namespace, name, Some(value))
+                    .map(move |item| item.into());
+                Box::new(it)
+            }
+            ValueSearch::NotSome(value) => {
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .filter(move |(node, anno_key_id)| {
+                        if let Some(item_value) = self.get_value_for_item_by_id(node, *anno_key_id) {
+                            item_value != value
+                        } else {
+                            false
+                        }
+                    })
+                    .map(move |item| item.into());
+                Box::new(it)
+                
+            }
+        }
     }
 
     fn regex_anno_search<'a>(
@@ -581,7 +606,7 @@ where
                         false
                     }
                 })
-                .filter_map(move |item| Some(item.into()));
+                .map(move |item| item.into());
             return Box::new(it);
         } else {
             // if regular expression pattern is invalid return empty iterator

@@ -83,6 +83,21 @@ impl Into<Match> for (NodeID, AnnoKeyID) {
     }
 }
 
+pub enum ValueSearch<T> {
+    Any,
+    Some(T),
+    NotSome(T),
+}
+
+impl<T> From<Option<T>> for ValueSearch<T> {
+    fn from(orig : Option<T>) -> ValueSearch<T> {
+        match orig {
+            None => ValueSearch::Any,
+            Some(v) => ValueSearch::Some(v),
+        }
+    }
+}
+
 /// Access annotations for nodes or edges.
 pub trait AnnotationStorage<T> {
     /// Get all annotations for an `item` (node or edge).
@@ -108,7 +123,7 @@ pub trait AnnotationStorage<T> {
         &'a self,
         namespace: Option<String>,
         name: String,
-        value: Option<String>,
+        value: ValueSearch<String>,
     ) -> Box<Iterator<Item = Match> + 'a>;
 
     /// Returns an iterator for all items where the value matches the regular expression.
@@ -261,7 +276,7 @@ impl AnnotationStorage<NodeID> for Graph {
         &'a self,
         namespace: Option<String>,
         name: String,
-        value: Option<String>,
+        value: ValueSearch<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
         self.node_annos.exact_anno_search(namespace, name, value)
     }
@@ -947,7 +962,7 @@ impl Graph {
         let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
             Some(ANNIS_NS.to_owned()),
             NODE_NAME.to_owned(),
-            Some(node_name.to_owned()),
+            Some(node_name.to_owned()).into(),
         );
         if let Some(m) = all_nodes_with_anno.next() {
             return Some(m.node);

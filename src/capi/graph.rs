@@ -40,7 +40,7 @@ pub extern "C" fn annis_graph_nodes_by_type(
         .exact_anno_search(
             Some(type_key.ns),
             type_key.name,
-            Some(String::from(node_type)),
+            Some(String::from(node_type)).into(),
         ).map(|m: Match| m.get_node());
     return Box::into_raw(Box::new(Box::new(it)));
 }

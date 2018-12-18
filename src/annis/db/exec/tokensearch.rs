@@ -66,7 +66,7 @@ impl<'a> AnyTokenSearch<'a> {
             for tok_candidate in self.db.node_annos.exact_anno_search(
                 Some("annis".to_owned()),
                 "tok".to_owned(),
-                None,
+                None.into(),
             ) {
                 let n = tok_candidate.node;
                 let mut is_root_tok = true;
