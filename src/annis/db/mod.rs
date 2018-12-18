@@ -6,8 +6,8 @@ use crate::annis::db::update::{GraphUpdate, UpdateEvent};
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{AnnoKeyID, Annotation, Component, ComponentType, Edge, NodeID};
-use bincode;
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use bincode;
 use rayon::prelude::*;
 use serde;
 use std;
@@ -62,6 +62,24 @@ impl Match {
             .to_owned();
         let key = graph.node_annos.get_key_value(self.anno_key)?;
         Some(Annotation { key, val })
+    }
+}
+
+impl Into<Match> for (Edge, AnnoKeyID) {
+    fn into(self) -> Match {
+        Match {
+            node: self.0.source,
+            anno_key: self.1,
+        }
+    }
+}
+
+impl Into<Match> for (NodeID, AnnoKeyID) {
+    fn into(self) -> Match {
+        Match {
+            node: self.0,
+            anno_key: self.1,
+        }
     }
 }
 
@@ -869,7 +887,8 @@ impl Graph {
                 let cpath = self.component_path(&c);
                 let loaded_component = load_component_from_disk(cpath);
                 (c, loaded_component)
-            }).collect();
+            })
+            .collect();
 
         // insert all the loaded components
         for (c, gs) in loaded_components {
@@ -1066,7 +1085,8 @@ mod tests {
                 ctype: ComponentType::Pointing,
                 layer: String::from("test"),
                 name: String::from("dep"),
-            }).unwrap();
+            })
+            .unwrap();
 
         gs.add_edge(Edge {
             source: 0,
