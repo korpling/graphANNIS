@@ -677,11 +677,8 @@ impl AnnotationStorage<NodeID> for AnnoStorage<NodeID> {
                     } else {
                         false
                     }
-                }).filter_map(move |(node, anno_key_id)| {
-                    Some(Match {
-                        node: *node,
-                        anno_key: anno_key_id,
-                    })
+                }).filter_map(move |item| {
+                    Some(item.into())
                 });
             return Box::new(it);
         } else {
@@ -764,11 +761,8 @@ impl AnnotationStorage<Edge> for AnnoStorage<Edge> {
                     } else {
                         false
                     }
-                }).filter_map(move |(edge, anno_key_id)| {
-                    Some(Match {
-                        node: edge.source,
-                        anno_key: anno_key_id,
-                    })
+                }).filter_map(move |item| {
+                    Some(item.into())
                 });
             return Box::new(it);
         } else {
