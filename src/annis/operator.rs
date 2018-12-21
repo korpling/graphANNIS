@@ -10,7 +10,17 @@ pub enum EdgeAnnoSearchSpec {
         name: String,
         val: Option<String>,
     },
+    NotExactValue {
+        ns: Option<String>,
+        name: String,
+        val: String,
+    },
     RegexValue {
+        ns: Option<String>,
+        name: String,
+        val: String,
+    },
+    NotRegexValue {
         ns: Option<String>,
         name: String,
         val: String,
@@ -37,6 +47,19 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
                     write!(f, "{}", qname)
                 }
             }
+            EdgeAnnoSearchSpec::NotExactValue {
+                ref ns,
+                ref name,
+                ref val,
+            } => {
+                let qname = if let Some(ref ns) = ns {
+                    format!("{}:{}", ns, name)
+                } else {
+                    name.clone()
+                };
+
+                write!(f, "{}!=\"{}\"", qname, val)
+            }
             EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
@@ -50,44 +73,62 @@ impl std::fmt::Display for EdgeAnnoSearchSpec {
 
                 write!(f, "{}=/{}/", qname, val)
             }
+            EdgeAnnoSearchSpec::NotRegexValue {
+                ref ns,
+                ref name,
+                ref val,
+            } => {
+                let qname = if let Some(ref ns) = ns {
+                    format!("{}:{}", ns, name)
+                } else {
+                    name.clone()
+                };
+
+                write!(f, "{}!=/{}/", qname, val)
+            }
         }
     }
 }
 
 impl EdgeAnnoSearchSpec {
-    pub fn guess_max_count(&self, anno_storage: &AnnotationStorage<Edge>) -> Option<usize> {
+    pub fn guess_max_count(&self, anno_storage: &AnnotationStorage<Edge>) -> usize {
         match self {
             EdgeAnnoSearchSpec::ExactValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
-                let val = val.clone()?;
-                if let Some(ns) = ns.clone() {
-                    return Some(anno_storage.guess_max_count(
-                        Some(ns.clone()),
-                        name.clone(),
-                        &val,
-                        &val,
-                    ));
+                if let Some(val) = val {
+                    let val = val.clone();
+                    return anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val);
                 } else {
-                    return Some(anno_storage.guess_max_count(None, name.clone(), &val, &val));
-                }
+                    return anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
+                }                
+            }
+            EdgeAnnoSearchSpec::NotExactValue {
+                ref ns,
+                ref name,
+                ref val,
+            } => {
+                let val = val.clone();
+                let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
+                return total - anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val);
             }
             EdgeAnnoSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
             } => {
-                if let Some(ns) = ns.clone() {
-                    return Some(anno_storage.guess_max_count_regex(
-                        Some(ns.clone()),
-                        name.clone(),
-                        &val,
-                    ));
-                } else {
-                    return Some(anno_storage.guess_max_count_regex(None, name.clone(), &val));
-                }
+                let val = val.clone();
+                return anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val);
+            }
+            EdgeAnnoSearchSpec::NotRegexValue {
+                ref ns,
+                ref name,
+                ref val,
+            } => {
+                let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
+                return total - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), &val);
             }
         }
     }

@@ -386,23 +386,44 @@ TextSearch: ast::TextSearch = {
 };
 
 EdgeAnno: EdgeAnnoSearchSpec = {
-    "[" <name:QName> "=" <val:TextSearch> "]"  => {
-        // TODO: negation
+    "[" <name:QName> <cmp:ComparisionOperator> <val:TextSearch> "]"  => {
         // TODO: multiple edge annotations
         
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
-                EdgeAnnoSearchSpec::ExactValue {
-                    ns: name.0,
-                    name: name.1,
-                    val: Some(val.0),
+                match cmp {
+                    ast::ComparisionOperator::Equal => {
+                        EdgeAnnoSearchSpec::ExactValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: Some(val.0),
+                        }
+                    }
+                    ast::ComparisionOperator::NotEqual => {
+                        EdgeAnnoSearchSpec::NotExactValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: val.0,
+                        }
+                    }
                 }
             },
             ast::StringMatchType::Regex => {
-                EdgeAnnoSearchSpec::RegexValue {
-                    ns: name.0,
-                    name: name.1,
-                    val: val.0,
+                match cmp {
+                    ast::ComparisionOperator::Equal => {
+                        EdgeAnnoSearchSpec::RegexValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: val.0,
+                        }
+                    }
+                    ast::ComparisionOperator::NotEqual => {
+                        EdgeAnnoSearchSpec::NotRegexValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: val.0,
+                        }
+                    }
                 }
             },
         };
