@@ -157,20 +157,55 @@ NodeSearch : NodeSearchSpec = {
     NODE => NodeSearchSpec::AnyNode,
     // searching for tokens with `tok`
     TOK => NodeSearchSpec::AnyToken,
-    // searching for a token value, e.g. tok="abc" or "abc"
-    <tok_def:(TOK "=")?> <val:TextSearch>=> {
-        // TODO: negation
+    // searching for a token value specificly on the minimal "tok" layer, e.g. tok="abc"
+    <tok_def:TOK> <cmp:ComparisionOperator> <val:TextSearch> => {
+        let spec = match val.1 { 
+            ast::StringMatchType::Exact => {
+                match cmp {
+                    ast::ComparisionOperator::Equal => {
+                        NodeSearchSpec::ExactTokenValue {
+                            val: val.0,
+                            leafs_only: true,
+                        }
+                    }
+                    ast::ComparisionOperator::NotEqual => {
+                        NodeSearchSpec::NotExactTokenValue {
+                            val: val.0,
+                        }
+                    }
+                }
+            },
+            ast::StringMatchType::Regex => {
+                match cmp {
+                    ast::ComparisionOperator::Equal => {
+                        NodeSearchSpec::RegexTokenValue {
+                            val: val.0,
+                            leafs_only: true,
+                        }
+                    }
+                    ast::ComparisionOperator::NotEqual => {
+                        NodeSearchSpec::NotRegexTokenValue {
+                            val: val.0,
+                        }
+                    }
+                }
+            },
+        };
+        spec
+    },
+    // searching for a span value on any tokenization/segmentation layer abc"
+    <val:TextSearch> => {
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
                 NodeSearchSpec::ExactTokenValue {
                     val: val.0,
-                    leafs_only: tok_def.is_some(),
+                    leafs_only: false,
                 }
             },
             ast::StringMatchType::Regex => {
                 NodeSearchSpec::RegexTokenValue {
                     val: val.0,
-                    leafs_only: tok_def.is_some(),
+                    leafs_only: false,
                 }
             },
         };
@@ -178,7 +213,6 @@ NodeSearch : NodeSearchSpec = {
     },
     // named annotation search with value, e.g. pos="NN"
     <name:QName> <cmp:ComparisionOperator> <text:TextSearch> => {
-        // TODO: negation
         let spec = match text.1 { 
             ast::StringMatchType::Exact => {
                 match cmp {
