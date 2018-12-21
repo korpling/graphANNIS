@@ -434,12 +434,9 @@ impl<'a> Conjunction<'a> {
                                 let anno_storage: &AnnotationStorage<
                                     Edge,
                                 > = gs.get_anno_storage();
-                                if let Some(edge_anno_est) =
-                                    edge_anno_spec.guess_max_count(anno_storage)
-                                {
-                                    estimated_component_search += edge_anno_est;
-                                    estimation_valid = true;
-                                }
+                                let edge_anno_est = edge_anno_spec.guess_max_count(anno_storage);
+                                estimated_component_search += edge_anno_est;
+                                estimation_valid = true;
                             } else if let Some(stats) = gs.get_statistics() {
                                 let stats: &GraphStatistic = stats;
                                 estimated_component_search += stats.nodes;

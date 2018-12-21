@@ -63,6 +63,11 @@ pub enum Operand {
 #[derive(Debug, Clone)]
 pub struct TextSearch(pub String, pub StringMatchType);
 
+pub enum ComparisionOperator {
+    Equal,
+    NotEqual,
+}
+
 #[derive(Debug, Clone)]
 pub struct QName(pub Option<String>, pub String);
 

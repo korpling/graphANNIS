@@ -416,7 +416,7 @@ where
         let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
             Some(node_name_key.ns.clone()),
             node_name_key.name.clone(),
-            None,
+            None.into(),
         );
 
         // first add all nodes that are a source of an edge as possible roots
@@ -431,7 +431,7 @@ where
 
         let nodes: Box<Iterator<Item = Match>> =
             db.node_annos
-                .exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
+                .exact_anno_search(Some(node_name_key.ns), node_name_key.name, None.into());
         for m in nodes {
             let m: Match = m;
 

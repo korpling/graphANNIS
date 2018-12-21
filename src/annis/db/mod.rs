@@ -83,6 +83,22 @@ impl Into<Match> for (NodeID, AnnoKeyID) {
     }
 }
 
+#[derive(Clone)]
+pub enum ValueSearch<T> {
+    Any,
+    Some(T),
+    NotSome(T),
+}
+
+impl<T> From<Option<T>> for ValueSearch<T> {
+    fn from(orig : Option<T>) -> ValueSearch<T> {
+        match orig {
+            None => ValueSearch::Any,
+            Some(v) => ValueSearch::Some(v),
+        }
+    }
+}
+
 /// Access annotations for nodes or edges.
 pub trait AnnotationStorage<T> {
     /// Get all annotations for an `item` (node or edge).
@@ -108,7 +124,7 @@ pub trait AnnotationStorage<T> {
         &'a self,
         namespace: Option<String>,
         name: String,
-        value: Option<String>,
+        value: ValueSearch<String>,
     ) -> Box<Iterator<Item = Match> + 'a>;
 
     /// Returns an iterator for all items where the value matches the regular expression.
@@ -118,6 +134,7 @@ pub trait AnnotationStorage<T> {
     /// - `namespace`- If given, only annotations having this namespace are returned.
     /// - `name`  - Only annotations with this name are returned.
     /// - `pattern` - If given, only annotation having a value that mattches this pattern are returned.
+    /// - `negated` - If true, find all annotations that do not match the value
     ///
     /// The result is an iterator over matches.
     /// A match contains the node ID and the qualifed name of the matched annotation
@@ -127,6 +144,7 @@ pub trait AnnotationStorage<T> {
         namespace: Option<String>,
         name: String,
         pattern: &str,
+        negated: bool,
     ) -> Box<Iterator<Item = Match> + 'a>;
 
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
@@ -261,7 +279,7 @@ impl AnnotationStorage<NodeID> for Graph {
         &'a self,
         namespace: Option<String>,
         name: String,
-        value: Option<String>,
+        value: ValueSearch<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
         self.node_annos.exact_anno_search(namespace, name, value)
     }
@@ -271,8 +289,9 @@ impl AnnotationStorage<NodeID> for Graph {
         namespace: Option<String>,
         name: String,
         pattern: &str,
+        negated: bool,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        self.node_annos.regex_anno_search(namespace, name, pattern)
+        self.node_annos.regex_anno_search(namespace, name, pattern, negated)
     }
 
     fn guess_max_count(
@@ -947,7 +966,7 @@ impl Graph {
         let mut all_nodes_with_anno = self.node_annos.exact_anno_search(
             Some(ANNIS_NS.to_owned()),
             NODE_NAME.to_owned(),
-            Some(node_name.to_owned()),
+            Some(node_name.to_owned()).into(),
         );
         if let Some(m) = all_nodes_with_anno.next() {
             return Some(m.node);

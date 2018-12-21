@@ -1,6 +1,7 @@
 use self::symboltable::SymbolTable;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
+use crate::annis::db::ValueSearch;
 use crate::annis::errors::*;
 use crate::annis::types::Edge;
 use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
@@ -555,12 +556,36 @@ where
         &'a self,
         namespace: Option<String>,
         name: String,
-        value: Option<String>,
+        value: ValueSearch<String>,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        let it = self
-            .matching_items(namespace, name, value)
-            .filter_map(move |item| Some(item.into()));
-        Box::new(it)
+        match value {
+            ValueSearch::Any => {
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .map(move |item| item.into());
+                Box::new(it)
+            }
+            ValueSearch::Some(value) => {
+                let it = self
+                    .matching_items(namespace, name, Some(value))
+                    .map(move |item| item.into());
+                Box::new(it)
+            }
+            ValueSearch::NotSome(value) => {
+                let it = self
+                    .matching_items(namespace, name, None)
+                    .filter(move |(node, anno_key_id)| {
+                        if let Some(item_value) = self.get_value_for_item_by_id(node, *anno_key_id) {
+                            item_value != value
+                        } else {
+                            false
+                        }
+                    })
+                    .map(move |item| item.into());
+                Box::new(it)
+                
+            }
+        }
     }
 
     fn regex_anno_search<'a>(
@@ -568,6 +593,7 @@ where
         namespace: Option<String>,
         name: String,
         pattern: &str,
+        negated: bool,
     ) -> Box<Iterator<Item = Match> + 'a> {
         let full_match_pattern = util::regex_full_match(pattern);
         let compiled_result = regex::Regex::new(&full_match_pattern);
@@ -576,16 +602,25 @@ where
                 .matching_items(namespace, name, None)
                 .filter(move |(node, anno_key_id)| {
                     if let Some(val) = self.get_value_for_item_by_id(node, *anno_key_id) {
-                        re.is_match(val)
+                        if negated {
+                            !re.is_match(val)
+                        } else {
+                            re.is_match(val)
+                        }
                     } else {
                         false
                     }
                 })
-                .filter_map(move |item| Some(item.into()));
+                .map(move |item| item.into());
             return Box::new(it);
         } else {
-            // if regular expression pattern is invalid return empty iterator
-            return Box::new(std::iter::empty());
+            if negated {
+                // return all values
+                return self.exact_anno_search(namespace, name, None.into());
+            } else {
+                // if regular expression pattern is invalid return empty iterator
+                return Box::new(std::iter::empty());
+            }
         }
     }
 
