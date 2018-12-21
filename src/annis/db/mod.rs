@@ -83,6 +83,7 @@ impl Into<Match> for (NodeID, AnnoKeyID) {
     }
 }
 
+#[derive(Clone)]
 pub enum ValueSearch<T> {
     Any,
     Some(T),
