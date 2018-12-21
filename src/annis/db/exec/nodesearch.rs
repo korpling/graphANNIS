@@ -410,12 +410,22 @@ impl<'a> NodeSearch<'a> {
             base_it
         };
 
-        let est_output = if let ValueSearch::Some(ref val) = val {
-            db.node_annos
-                .guess_max_count(qname.0.clone(), qname.1.clone(), &val, &val)
-        } else {
-            db.node_annos
-                .number_of_annotations_by_name(qname.0.clone(), qname.1.clone())
+        let est_output = match val {
+            ValueSearch::Some(ref val) => {
+                db.node_annos
+                    .guess_max_count(qname.0.clone(), qname.1.clone(), &val, &val)
+            }
+            ValueSearch::NotSome(ref val) => {
+                let total = db
+                    .node_annos
+                    .number_of_annotations_by_name(qname.0.clone(), qname.1.clone());
+                total
+                    - db.node_annos
+                        .guess_max_count(qname.0.clone(), qname.1.clone(), &val, &val)
+            }
+            ValueSearch::Any => db
+                .node_annos
+                .number_of_annotations_by_name(qname.0.clone(), qname.1.clone()),
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -499,9 +509,17 @@ impl<'a> NodeSearch<'a> {
             base_it
         };
 
-        let est_output =
+        let est_output = if negated {
+            let total = db
+                .node_annos
+                .number_of_annotations_by_name(qname.0.clone(), qname.1.clone());
+            total
+                - db.node_annos
+                    .guess_max_count_regex(qname.0.clone(), qname.1.clone(), pattern)
+        } else {
             db.node_annos
-                .guess_max_count_regex(qname.0.clone(), qname.1.clone(), pattern);
+                .guess_max_count_regex(qname.0.clone(), qname.1.clone(), pattern)
+        };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
