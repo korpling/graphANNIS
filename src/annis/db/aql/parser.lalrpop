@@ -177,23 +177,47 @@ NodeSearch : NodeSearchSpec = {
         spec
     },
     // named annotation search with value, e.g. pos="NN"
-    <name:QName> "=" <text:TextSearch> => {
+    <name:QName> <cmp:ComparisionOperator> <text:TextSearch> => {
         // TODO: negation
         let spec = match text.1 { 
             ast::StringMatchType::Exact => {
-                NodeSearchSpec::ExactValue {
-                    ns: name.0,
-                    name: name.1,
-                    val: Some(text.0),
-                    is_meta: false,
+                match cmp {
+                    ast::ComparisionOperator::Equal => {
+                        NodeSearchSpec::ExactValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: Some(text.0),
+                            is_meta: false,
+                        }
+                    }
+                    ast::ComparisionOperator::NotEqual => {
+                        NodeSearchSpec::NotExactValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: text.0,
+                            is_meta: false,
+                        }
+                    }
                 }
             },
             ast::StringMatchType::Regex => {
-                NodeSearchSpec::RegexValue {
-                    ns: name.0,
-                    name: name.1,
-                    val: text.0,
-                    is_meta: false,
+                match cmp {
+                    ast::ComparisionOperator::Equal => {
+                         NodeSearchSpec::RegexValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: text.0,
+                            is_meta: false,
+                        }
+                    }
+                    ast::ComparisionOperator::NotEqual => {
+                        NodeSearchSpec::NotRegexValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: text.0,
+                            is_meta: false,
+                        }
+                    }
                 }
             },
         };
