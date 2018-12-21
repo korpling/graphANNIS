@@ -91,24 +91,50 @@ Literal : ast::Expr = {
         expr
     },
     // legacy meta-data query `meta::doc="..."`
-    <start: @L> "meta::" <name:QName> "=" <text:TextSearch> <end: @R> => {
+    <start: @L> "meta::" <name:QName> <cmp:ComparisionOperator> <text:TextSearch> <end: @R> => {
         let pos = ast::Pos {start, end};
         let spec = match text.1 { 
             ast::StringMatchType::Exact => {
-                NodeSearchSpec::ExactValue {
-                    ns: name.0,
-                    name: name.1,
-                    val: Some(text.0),
-                    is_meta: true,
+                match cmp {
+                    ast::ComparisionOperator::Equal => {
+                        NodeSearchSpec::ExactValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: Some(text.0),
+                            is_meta: true,
+                        }
+                    }
+                    ast::ComparisionOperator::NotEqual => {
+                        NodeSearchSpec::NotExactValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: text.0,
+                            is_meta: true,
+                        }
+                    }
                 }
+
             },
             ast::StringMatchType::Regex => {
-                NodeSearchSpec::RegexValue {
-                    ns: name.0,
-                    name: name.1,
-                    val: text.0,
-                    is_meta: true,
+                match cmp {
+                    ast::ComparisionOperator::Equal => {
+                        NodeSearchSpec::RegexValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: text.0,
+                            is_meta: true,
+                        }
+                    }
+                    ast::ComparisionOperator::NotEqual => {
+                        NodeSearchSpec::NotRegexValue {
+                            ns: name.0,
+                            name: name.1,
+                            val: text.0,
+                            is_meta: true,
+                        }
+                    }                    
                 }
+                
             },
         };
         Expr::Terminal(ast::Literal::LegacyMetaSearch{spec, pos})
@@ -287,6 +313,11 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     // Identical node
     IDENT_NODE => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
     // TODO: add more operators
+}
+
+ComparisionOperator: ast::ComparisionOperator = {
+    "=" => ast::ComparisionOperator::Equal,
+    "!=" => ast::ComparisionOperator::NotEqual,
 }
 
 TextSearch: ast::TextSearch = {
