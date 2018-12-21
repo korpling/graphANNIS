@@ -1,0 +1,1 @@
+cat="S" & cat="PP" & #1 >[func!="MO"] #2
