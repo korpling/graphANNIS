@@ -277,7 +277,7 @@ impl<'a> NodeSearch<'a> {
             }
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
-                Some(val).into(),
+                ValueSearch::Some(val),
                 leafs_only,
                 false,
                 &query_fragment,
@@ -286,7 +286,7 @@ impl<'a> NodeSearch<'a> {
             ),
             NodeSearchSpec::NotExactTokenValue { val } => NodeSearch::new_tokensearch(
                 db,
-                Some(val).into(),
+                ValueSearch::NotSome(val),
                 true,
                 false,
                 &query_fragment,
@@ -295,7 +295,7 @@ impl<'a> NodeSearch<'a> {
             ),
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
-                Some(val).into(),
+                ValueSearch::Some(val),
                 leafs_only,
                 true,
                 &query_fragment,
