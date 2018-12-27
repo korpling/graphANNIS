@@ -325,10 +325,6 @@ where
                         source: *n,
                         target: *current_token,
                     });
-                    gs_left.add_edge(Edge {
-                        source: *current_token,
-                        target: *n,
-                    });
                 }
             }
             // find all nodes that end together with the current token
@@ -348,10 +344,6 @@ where
                     gs_right.add_edge(Edge {
                         source: *n,
                         target: *current_token,
-                    });
-                    gs_right.add_edge(Edge {
-                        source: *current_token,
-                        target: *n,
                     });
                 }
             }

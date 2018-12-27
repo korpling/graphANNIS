@@ -112,7 +112,7 @@ impl Operator for Inclusion {
                     .flat_map(move |t| {
                         let it_aligned =
                             self.gs_left
-                                .get_outgoing_edges(t)
+                                .get_ingoing_edges(t)
                                 .into_iter()
                                 .filter(move |n| {
                                     // right-aligned token of candidate

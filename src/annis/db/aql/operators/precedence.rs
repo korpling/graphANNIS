@@ -137,7 +137,7 @@ impl Operator for Precedence {
             .fuse()
             // find all left aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_left.get_outgoing_edges(t);
+                let it_aligned = self.gs_left.get_ingoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
@@ -241,7 +241,7 @@ impl Operator for InversePrecedence {
             .fuse()
             // find all right aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_right.get_outgoing_edges(t);
+                let it_aligned = self.gs_right.get_ingoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
