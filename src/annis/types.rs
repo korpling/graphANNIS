@@ -99,8 +99,6 @@ impl Edge {
 pub enum ComponentType {
     /// Edges between a span node and its tokens. Implies text coverage.
     Coverage,
-    /// Edges between a token and a span node.
-    InverseCoverage,
     /// Edges between a structural node and any other structural node, span or token. Implies text coverage.
     Dominance,
     /// Edge between any node.

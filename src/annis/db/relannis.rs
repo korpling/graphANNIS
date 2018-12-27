@@ -406,15 +406,9 @@ where
         layer: String::from("annis"),
         name: String::from(""),
     };
-    let component_inv_cov = Component {
-        ctype: ComponentType::InverseCoverage,
-        layer: String::from("annis"),
-        name: String::from(""),
-    };
 
     // make sure the components exists, even if they are empty
     db.get_or_create_writable(&component_coverage)?;
-    db.get_or_create_writable(&component_inv_cov)?;
 
     {
         progress_callback("calculating the automatically generated COVERAGE edges");
@@ -475,20 +469,11 @@ where
                             format!("Can't get token ID for position {:?}", tok_idx)
                         })?;
                         if *n != *tok_id {
-                            {
-                                let gs = db.get_or_create_writable(&component_coverage)?;
-                                gs.add_edge(Edge {
-                                    source: *n,
-                                    target: *tok_id,
-                                });
-                            }
-                            {
-                                let gs = db.get_or_create_writable(&component_inv_cov)?;
-                                gs.add_edge(Edge {
-                                    source: *tok_id,
-                                    target: *n,
-                                });
-                            }
+                            let gs = db.get_or_create_writable(&component_coverage)?;
+                            gs.add_edge(Edge {
+                                source: *n,
+                                target: *tok_id,
+                            });
                         }
                     }
                 } // end if not a token

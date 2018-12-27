@@ -22,6 +22,10 @@ pub struct GraphStatistic {
     pub avg_fan_out: f64,
     /// Max fan-out of 99% of the data.
     pub fan_out_99_percentile: usize,
+
+    /// Max inverse fan-out of 99% of the data.
+    pub inverse_fan_out_99_percentile: usize,
+
     /// Maximal number of children of a node.
     pub max_fan_out: usize,
     /// Maximum length from a root node to a terminal node.
