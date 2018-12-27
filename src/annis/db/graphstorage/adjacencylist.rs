@@ -18,6 +18,19 @@ pub struct AdjacencyListStorage {
     stats: Option<GraphStatistic>,
 }
 
+fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
+    let mut fan_outs: Vec<usize> = Vec::new();
+    if !edges.is_empty() {
+        for (_, outgoing) in edges {
+            fan_outs.push(outgoing.len());
+        }
+    }
+    // order the fan-outs
+    fan_outs.sort();
+
+    fan_outs
+}
+
 impl Default for AdjacencyListStorage {
     fn default() -> Self {
         AdjacencyListStorage::new()
@@ -274,6 +287,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             max_fan_out: 0,
             avg_fan_out: 0.0,
             fan_out_99_percentile: 0,
+            inverse_fan_out_99_percentile: 0,
             cyclic: false,
             rooted_tree: true,
             nodes: 0,
@@ -282,7 +296,6 @@ impl WriteableGraphStorage for AdjacencyListStorage {
 
         self.annos.calculate_statistics();
 
-        let mut sum_fan_out = 0;
         let mut has_incoming_edge: BTreeSet<NodeID> = BTreeSet::new();
 
         // find all root nodes
@@ -307,39 +320,29 @@ impl WriteableGraphStorage for AdjacencyListStorage {
             stats.nodes = all_nodes.len();
         }
 
-        let mut fan_outs: Vec<usize> = Vec::new();
-        let mut last_source_id: Option<NodeID> = None;
-        let mut current_fan_out = 0;
         if !self.edges.is_empty() {
-            for (source, outgoing) in &self.edges {
+            for (_, outgoing) in &self.edges {
                 for target in outgoing {
                     roots.remove(&target);
-
-                    if let Some(last) = last_source_id {
-                        if last != *source {
-                            stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
-                            sum_fan_out += current_fan_out;
-                            fan_outs.push(current_fan_out);
-
-                            current_fan_out = 0;
-                        }
-                    }
-                    last_source_id = Some(*source);
-                    current_fan_out += 1;
                 }
             }
-            // add the statistics for the last node
-            stats.max_fan_out = std::cmp::max(stats.max_fan_out, current_fan_out);
-            sum_fan_out += current_fan_out;
-            fan_outs.push(current_fan_out);
         }
-        // order the fan-outs
-        fan_outs.sort();
+
+        let fan_outs = get_fan_outs(&self.edges);
+        let sum_fan_out : usize = fan_outs.iter().sum();
+
+        if let Some(last) = fan_outs.last() {
+            stats.max_fan_out = *last;
+        }
+        let inverse_fan_outs = get_fan_outs(&self.inverse_edges);
 
         // get the percentile value(s)
         // set some default values in case there are not enough elements in the component
         if !fan_outs.is_empty() {
             stats.fan_out_99_percentile = fan_outs[fan_outs.len() - 1];
+        }
+        if !inverse_fan_outs.is_empty() {
+            stats.inverse_fan_out_99_percentile = inverse_fan_outs[inverse_fan_outs.len() - 1];
         }
         // calculate the more accurate values
         if fan_outs.len() >= 100 {
@@ -348,7 +351,13 @@ impl WriteableGraphStorage for AdjacencyListStorage {
                 stats.fan_out_99_percentile = fan_outs[idx];
             }
         }
-
+        if inverse_fan_outs.len() >= 100 {
+            let idx: usize = inverse_fan_outs.len() / 100;
+            if idx < inverse_fan_outs.len() {
+                stats.inverse_fan_out_99_percentile = inverse_fan_outs[idx];
+            }
+        }
+        
         let mut number_of_visits = 0;
         if roots.is_empty() && !self.edges.is_empty() {
             // if we have edges but no roots at all there must be a cycle
