@@ -184,7 +184,7 @@ impl Operator for Inclusion {
             } else {
                 let covered_token_per_node: f64 = stats_cov.fan_out_99_percentile as f64;
                 let aligned_non_token: f64 =
-                    covered_token_per_node * (stats_left.fan_out_99_percentile as f64);
+                    covered_token_per_node * (stats_left.inverse_fan_out_99_percentile as f64);
 
                 let sum_included = covered_token_per_node + aligned_non_token;
                 return EstimationType::SELECTIVITY(sum_included / (stats_cov.nodes as f64));
