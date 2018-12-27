@@ -68,6 +68,8 @@ pub struct GraphStorageInfo {
     pub load_status: LoadStatus,
     /// Number of edge annotations in this graph storage.
     pub number_of_annotations: usize,
+    /// Name of the implementation
+    pub implementation: String,
 }
 
 impl fmt::Display for GraphStorageInfo {
@@ -77,6 +79,7 @@ impl fmt::Display for GraphStorageInfo {
             "Component {}: {} annnotations",
             self.component, self.number_of_annotations
         )?;
+        writeln!(f, "Implementation: {}", self.implementation)?;
         match self.load_status {
             LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
             LoadStatus::PartiallyLoaded(memory_size) => {
@@ -361,6 +364,7 @@ impl CorpusStorage {
                             component: c.clone(),
                             load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
                             number_of_annotations: gs.get_anno_storage().number_of_annotations(),
+                            implementation: gs.serialization_id().clone(),
                         });
                     } else {
                         load_status = LoadStatus::PartiallyLoaded(heap_size);
@@ -368,6 +372,7 @@ impl CorpusStorage {
                             component: c.clone(),
                             load_status: LoadStatus::NotLoaded,
                             number_of_annotations: 0,
+                            implementation: "".to_owned(),
                         })
                     }
                 }
