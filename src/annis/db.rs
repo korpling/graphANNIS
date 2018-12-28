@@ -9,10 +9,12 @@ use crate::annis::types::{AnnoKeyID, Annotation, Component, ComponentType, Edge,
 use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use bincode;
 use rayon::prelude::*;
+use rustc_hash::FxHashSet;
 use serde;
 use std;
 use std::collections::BTreeMap;
 use std::io::prelude::*;
+use std::iter::FromIterator;
 use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -91,7 +93,7 @@ pub enum ValueSearch<T> {
 }
 
 impl<T> From<Option<T>> for ValueSearch<T> {
-    fn from(orig : Option<T>) -> ValueSearch<T> {
+    fn from(orig: Option<T>) -> ValueSearch<T> {
         match orig {
             None => ValueSearch::Any,
             Some(v) => ValueSearch::Some(v),
@@ -291,7 +293,8 @@ impl AnnotationStorage<NodeID> for Graph {
         pattern: &str,
         negated: bool,
     ) -> Box<Iterator<Item = Match> + 'a> {
-        self.node_annos.regex_anno_search(namespace, name, pattern, negated)
+        self.node_annos
+            .regex_anno_search(namespace, name, pattern, negated)
     }
 
     fn guess_max_count(
@@ -509,6 +512,8 @@ impl Graph {
     fn apply_update_in_memory(&mut self, u: &GraphUpdate) -> Result<()> {
         self.reset_cached_size();
 
+        let mut invalid_nodes: FxHashSet<NodeID> = FxHashSet::default();
+
         for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
             match change {
@@ -538,6 +543,7 @@ impl Graph {
                         let node_annos = Arc::make_mut(&mut self.node_annos);
                         node_annos.insert(new_node_id, new_anno_name);
                         node_annos.insert(new_node_id, new_anno_type);
+                        invalid_nodes.insert(new_node_id);
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
@@ -553,6 +559,7 @@ impl Graph {
                         for c in self.get_all_components(None, None) {
                             self.components.remove(&c);
                         }
+                        invalid_nodes.insert(existing_node_id);
                     }
                 }
                 UpdateEvent::AddNodeLabel {
@@ -606,6 +613,9 @@ impl Graph {
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target });
+
+                            invalid_nodes.insert(source);
+                            invalid_nodes.insert(target);
                         }
                     }
                 }
@@ -628,6 +638,9 @@ impl Graph {
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
+
+                            invalid_nodes.insert(source);
+                            invalid_nodes.insert(target);
                         }
                     }
                 }
@@ -702,7 +715,128 @@ impl Graph {
             } // end match update entry type
             self.current_change_id = id;
         } // end for each consistent update entry
+
+        // re-index
+        if let Some(gs_order) = self.get_graphstorage(&Component {
+            ctype: ComponentType::Ordering, layer: ANNIS_NS.to_owned(), name: "".to_owned(),
+        }) {
+            self.reindex_left_right_token(invalid_nodes, gs_order)?;
+        }
+
         Ok(())
+    }
+
+    fn reindex_left_right_token(&mut self, invalid_nodes: FxHashSet<NodeID>, gs_order : Arc<GraphStorage>) -> Result<()> {
+        {
+            // remove existing left/right token edges for the invalidated nodes
+            let gs_left = self.get_or_create_writable(&Component {
+                ctype: ComponentType::LeftToken,
+                name: "".to_owned(),
+                layer: ANNIS_NS.to_owned(),
+            })?;
+
+            for n in invalid_nodes.iter() {
+                gs_left.delete_node(n);
+            }
+
+            let gs_right = self.get_or_create_writable(&Component {
+                ctype: ComponentType::RightToken,
+                name: "".to_owned(),
+                layer: ANNIS_NS.to_owned(),
+            })?;
+
+            for n in invalid_nodes.iter() {
+                gs_right.delete_node(n);
+            }
+        }
+
+        // go over each node and calculate the left-most and right-most token
+        for n in invalid_nodes.iter() {
+            self.calculate_token_alignment(*n, ComponentType::LeftToken, gs_order.as_ref())?;
+            self.calculate_token_alignment(*n, ComponentType::RightToken, gs_order.as_ref())?;
+        }
+        Ok(())
+    }
+
+    fn calculate_token_alignment(&mut self, n: NodeID, ctype: ComponentType, gs_order : &GraphStorage) -> Result<NodeID> {
+
+        let coverage_component = Component {
+            ctype: ComponentType::Coverage,
+            name: "".to_owned(),
+            layer: ANNIS_NS.to_owned(),
+        };
+        let alignment_component = Component {
+            ctype: ctype.clone(),
+            name: "".to_owned(),
+            layer: ANNIS_NS.to_owned(),
+        };
+
+        // if this is a token, return the token itself
+        if self.node_annos.get_value_for_item(&n, &self.get_token_key()).is_some() {
+            // also check if this is an actually token and not only a segmentation
+            if let Some(gs_coverage) = self.get_graphstorage(&coverage_component) {
+                if gs_coverage.get_outgoing_edges(n).next().is_none() {
+                    return Ok(n);
+                }
+            }
+        }
+
+        // if the node already has a left/right token, just return this value
+        let gs = self
+            .get_graphstorage(&alignment_component)
+            .ok_or("token alignment component does not exist")?;
+        let existing = gs.get_outgoing_edges(n).next();
+        if let Some(existing) = existing {
+            return Ok(existing);
+        }
+
+        // recursivly get all candidate token by iterating over text-coverage edges
+        let mut candidates = FxHashSet::default();
+
+        let mut text_coverage_components =
+            self.get_all_components(Some(ComponentType::Dominance), Some(""));
+        text_coverage_components.push(coverage_component.clone());
+        for c in text_coverage_components {
+            if let Some(gs_for_component) = self.get_graphstorage(&c) {
+                for target in gs_for_component.get_outgoing_edges(n) {
+                    let candidate_for_target = self.calculate_token_alignment(target, ctype.clone(), gs_order)?;
+                    candidates.insert(candidate_for_target);
+                }
+            }
+        }
+
+        // order the candidate token by their position in the order chain
+        let mut candidates = Vec::from_iter(candidates.into_iter());
+        candidates.sort_unstable_by(move |a, b| {
+            if a == b {
+                return std::cmp::Ordering::Equal;
+            }
+            if gs_order.is_connected(&a, &b, 1, std::ops::Bound::Unbounded) {
+                return std::cmp::Ordering::Less;
+            } else if gs_order.is_connected(&b, &a, 1, std::ops::Bound::Unbounded) {
+                return std::cmp::Ordering::Greater;
+            }
+            return std::cmp::Ordering::Equal;
+        });
+
+        // add edge to left/right most candidate token
+        let t = if ctype == ComponentType::RightToken {
+            candidates.last()
+        } else {
+            candidates.first()
+        };
+        if let Some(t) = t {
+            let gs = self.get_or_create_writable(&alignment_component)?;
+            gs.add_edge(Edge {
+                source: n,
+                target: *t,
+            });
+
+            return Ok(*t);
+        } else {
+            return Err(format!("node {} is not connected to any token", n).into());
+        }
+    
     }
 
     /// Apply a sequence of updates (`u` parameter) to this graph.
