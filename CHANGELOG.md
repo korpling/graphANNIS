@@ -1,3 +1,15 @@
+release 0.14.0
+==============
+
+Enhancements
+------------
+
+- [#44](https://github.com/korpling/graphANNIS/issues/44) Add support for the `_l_` and `_r_` alignment AQL operators
+- [#43](https://github.com/korpling/graphANNIS/issues/43) Automatic creation of left- and right-most token edges
+- [#42](https://github.com/korpling/graphANNIS/issues/42) Remove inverse coverage and inverse left-/right-most token edges
+- [#41](https://github.com/korpling/graphANNIS/issues/41) Add value negation
+- [#38](https://github.com/korpling/graphANNIS/issues/38) Add an mdBook based documentation
+
 release 0.13.0
 ==============
 
