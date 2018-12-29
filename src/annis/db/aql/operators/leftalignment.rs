@@ -68,12 +68,10 @@ impl Operator for LeftAlignment {
         let mut aligned = Vec::default();
 
         if let Some(lhs_token) = self.tok_helper.left_token_for(lhs.node) {
-            if lhs.node != lhs_token {
-                aligned.push(Match {
-                    node: lhs_token,
-                    anno_key: AnnoKeyID::default(),
-                });
-            }
+            aligned.push(Match {
+                node: lhs_token,
+                anno_key: AnnoKeyID::default(),
+            });
             aligned.extend(self.gs_left.get_ingoing_edges(lhs_token).map(|n| Match {
                 node: n,
                 anno_key: AnnoKeyID::default(),
