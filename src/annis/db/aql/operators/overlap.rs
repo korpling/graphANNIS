@@ -1,10 +1,10 @@
-use annis::db::graphstorage::GraphStorage;
-use annis::db::token_helper;
-use annis::db::token_helper::TokenHelper;
-use annis::db::{Graph, Match};
-use annis::operator::EstimationType;
-use annis::operator::{Operator, OperatorSpec};
-use annis::types::{AnnoKeyID, Component, ComponentType, NodeID};
+use crate::annis::db::graphstorage::GraphStorage;
+use crate::annis::db::token_helper;
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::{Graph, Match};
+use crate::annis::operator::EstimationType;
+use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::types::{AnnoKeyID, Component, ComponentType, NodeID};
 use rustc_hash::FxHashSet;
 
 use std;
@@ -17,7 +17,6 @@ pub struct OverlapSpec;
 pub struct Overlap {
     gs_order: Arc<GraphStorage>,
     gs_cov: Arc<GraphStorage>,
-    gs_invcov: Arc<GraphStorage>,
     tok_helper: TokenHelper,
 }
 
@@ -36,13 +35,6 @@ lazy_static! {
             name: String::from(""),
         }
     };
-    static ref COMPONENT_INV_COVERAGE: Component = {
-        Component {
-            ctype: ComponentType::InverseCoverage,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
 }
 
 impl OperatorSpec for OverlapSpec {
@@ -50,7 +42,6 @@ impl OperatorSpec for OverlapSpec {
         let mut v: Vec<Component> = vec![
             COMPONENT_ORDER.clone(),
             COMPONENT_COVERAGE.clone(),
-            COMPONENT_INV_COVERAGE.clone(),
         ];
         v.append(&mut token_helper::necessary_components());
         v
@@ -70,14 +61,12 @@ impl Overlap {
     pub fn new(db: &Graph) -> Option<Overlap> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_cov = db.get_graphstorage(&COMPONENT_COVERAGE)?;
-        let gs_invcov = db.get_graphstorage(&COMPONENT_INV_COVERAGE)?;
 
         let tok_helper = TokenHelper::new(db)?;
 
         Some(Overlap {
             gs_order,
             gs_cov,
-            gs_invcov,
             tok_helper,
         })
     }
@@ -108,8 +97,8 @@ impl Operator for Overlap {
         for t in covered {
             // get all nodes that are covering the token
             for n in self
-                .gs_invcov
-                .find_connected(t, 1, std::ops::Bound::Included(1))
+                .gs_cov
+                .find_connected_inverse(t, 1, std::ops::Bound::Included(1))
                 .fuse()
             {
                 result.insert(n);
@@ -152,10 +141,9 @@ impl Operator for Overlap {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        if let (Some(stats_cov), Some(stats_order), Some(stats_invcov)) = (
+        if let (Some(stats_cov), Some(stats_order)) = (
             self.gs_cov.get_statistics(),
             self.gs_order.get_statistics(),
-            self.gs_invcov.get_statistics(),
         ) {
             let num_of_token = stats_order.nodes as f64;
             if stats_cov.nodes == 0 {
@@ -165,7 +153,7 @@ impl Operator for Overlap {
                 let covered_token_per_node: f64 = stats_cov.fan_out_99_percentile as f64;
                 // for each covered token get the number of inverse covered non-token nodes
                 let aligned_non_token: f64 =
-                    covered_token_per_node * (stats_invcov.fan_out_99_percentile as f64);
+                    covered_token_per_node * (stats_cov.inverse_fan_out_99_percentile as f64);
 
                 let sum_included = covered_token_per_node + aligned_non_token;
                 return EstimationType::SELECTIVITY(sum_included / (stats_cov.nodes as f64));

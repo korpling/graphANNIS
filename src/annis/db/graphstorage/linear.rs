@@ -1,12 +1,12 @@
 use super::{GraphStatistic, GraphStorage};
-use annis::db::annostorage::AnnoStorage;
-use annis::db::graphstorage::EdgeContainer;
-use annis::db::AnnotationStorage;
-use annis::db::Graph;
-use annis::db::Match;
-use annis::dfs::{CycleSafeDFS, DFSStep};
-use annis::errors::*;
-use annis::types::{AnnoKey, Edge, NodeID, NumValue};
+use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::graphstorage::EdgeContainer;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::Graph;
+use crate::annis::db::Match;
+use crate::annis::dfs::{CycleSafeDFS, DFSStep};
+use crate::annis::errors::*;
+use crate::annis::types::{AnnoKey, Edge, NodeID, NumValue};
 use bincode;
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
@@ -91,10 +91,6 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
-        &self.annos
-    }
-
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
         // use the node chains to find source nodes, but always skip the last element
         // because the last element is only a target node, not a source node
@@ -116,6 +112,10 @@ impl<PosT: 'static> GraphStorage for LinearGraphStorage<PosT>
 where
     for<'de> PosT: NumValue + Deserialize<'de> + Serialize,
 {
+    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
+        &self.annos
+    }
+
     fn serialization_id(&self) -> String {
         format!("LinearO{}V1", std::mem::size_of::<PosT>() * 8)
     }
@@ -252,7 +252,7 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &EdgeContainer) {
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
         self.clear();
 
         // find all roots of the component
@@ -261,7 +261,7 @@ where
         let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
             Some(node_name_key.ns.clone()),
             node_name_key.name.clone(),
-            None,
+            None.into(),
         );
 
         // first add all nodes that are a source of an edge as possible roots
@@ -274,9 +274,11 @@ where
             }
         }
 
-        let nodes: Box<Iterator<Item = Match>> =
-            db.node_annos
-                .exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
+        let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+            Some(node_name_key.ns),
+            node_name_key.name,
+            None.into(),
+        );
         for m in nodes {
             let m: Match = m;
 
@@ -305,7 +307,7 @@ where
             };
             self.node_to_pos.insert(*root_node, pos);
 
-            let dfs = CycleSafeDFS::new(orig, *root_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *root_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
 

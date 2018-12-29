@@ -4,7 +4,7 @@ use std::fmt;
 use std::ops::AddAssign;
 use std::string::String;
 
-use malloc_size_of::MallocSizeOf;
+use crate::malloc_size_of::MallocSizeOf;
 
 /// Unique internal identifier for a single node.
 pub type NodeID = u64;
@@ -99,10 +99,8 @@ impl Edge {
 pub enum ComponentType {
     /// Edges between a span node and its tokens. Implies text coverage.
     Coverage,
-    /// Edges between a token and a span node.
-    InverseCoverage,
     /// Edges between a structural node and any other structural node, span or token. Implies text coverage.
-    Dominance,
+    Dominance = 2,
     /// Edge between any node.
     Pointing,
     /// Edge between two tokens implying that the source node comes before the target node in the textflow.

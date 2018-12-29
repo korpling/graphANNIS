@@ -8,7 +8,13 @@ os:
 dist: trusty
 sudo: required
 
-cache: cargo
+cache:
+  directories:
+    - $HOME/.cargo
+    - $TRAVIS_BUILD_DIR/target/release
+
+env:
+  secure: "0OIkzQeI7toU8qOms0mqm0bjrzB2CUOll4w4cPD5zzxq+v91BGYeRve1NcPWlxUv3WbBFOQoS6x2vJ3W92FMKmoJ+pE2ZdVKGzTkrAhBnffZiFYnuK8b3GJ6jOS4zbiNS38fTfDiHU6NtUb1eKYJl7aEH68q3tstXLJY2fJ36/NP4OKe8WlDKcOxsyV/Kn3HLIm9D4dK11jHmNvLISr4+ls5tVgpbDuU06Qz+4PvpkdH3Rb1vX7wMbsR1mhsJGE4tozYb7AupPGT47nFrUnkI9IW3EbIsDJZVhlIwKZf9HCXLIXMuVITdlN2OUKEVBapaQuLBKDmxdsyW+bBFccjjKb9kIhLI+EqQQhQGEeAzozmpWd3krnOGQTDNHddcjBD1sZ+QyG3/nk+y2nvdqd+NUP1DdrwsdSQoL8iksvQ2DTH9XiZxvGh0zCOv/DE8b4l8xZSLugYEHQTWUgReC+5qgLrkzrfMn3oKWUf10izvsMMJ57kftWFfzdgegLaMqe15A+KpU/g9M8aw/12t6MfaCqj/+EBbxYUB1K+vYYtnrdrxYs1xPDWWMa5VDhIsvu+Gn22vuUZOM2K99PHmf3TCxeckpVDRkjqgb6Nvmo6wZy1D8Xaiv7wGXpVACljoQriAOumSB8HvjYr2LDzeXf2QRlD+bK+RtTNZmEDq7JoCl4="
 
 branches:
   only:
@@ -18,6 +24,15 @@ branches:
     - /^release/.+/
     # Develop branch
     - develop
+    # used when testing the release process
+    #- feature/doc-deploy-subfolder
+
+before_script:
+  - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
+  - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.2" mdbook)
+  - cargo install-update -a
+  - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
+  
 
 script:
   - RUST_BACKTRACE=1 cargo test --all-features --release
@@ -25,6 +40,10 @@ script:
   - cargo build --all-features --release
   - ./target/release/annis data --cmd 'import relannis/GUM'
   - cargo test --all-features --release  -- --ignored
+  # also test that the documentation is generated without error
+  - mdbook test docs/
+  # generate the documentation for possible deploy
+  - mdbook build --dest-dir book/${SHORT_VERSION} docs/
 
 before_deploy:
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
@@ -32,15 +51,24 @@ before_deploy:
 
 
 deploy:
-  provider: releases
-  api_key:
-    secure: "VZxMx6T27LnD2Y8PIXzSMuTE+bfBRo+FyxEyZ/tcDwWYttcU9fNtHuD96sIooNifdup1aiW4hMYkOfjGEqMhzymJIflT+rWms4EmljxTG45XJivooak+oe2T4wQvELBSH3ejmQxD5Zyvjn/i3ifOIbpJAMVPqSwjkHSnyXwWk2ARX35XIpa40XLi1T3fsrQmeH4JAFSdlCnsF6AelacwwbwtPudZHnTh795oIBEnAtihcmKClLCE8OV7pP8kaDISvHoKsHly5wmBTzxpQh7P8srIRCQjYxU/e4LBlS8NiIcz1h5ca9htV3wZKbJgoOIGiVB+FsCRJtdwGmk6IiF8pB6D8A3mI+EUxcJvmFKIzc83IcqulPs3S0XrsdwHT7TA/uBScOBhbLbx1VtU8lhMvfGKdo74Jx2NU9XeaNr+ptM0ewMxqL3zjITKjEDsO1OrLbcGnpCfswSfFV+TgLHw7wEOdRbRzWSdhROFUEZ2tW6GIfFVwtrLUPXs2ikW5H/8Ja/QV2v0joHqLbGvMZD13RpiRJdziQQANQPsfs8i59B7zrrP7/BwRr9lLP8kABIZ/e2bHGZJJH57jmt/QR5Aa445L/K5g1uC0vLcj7epUVcHcgiZakW1ZNX8o8fCOLJKkO9xB9qEKH6KfdZc09+yxdEsTs1w7HBYuE0LqRuvdek="
-  file_glob: true
-  file: "${RELEASE_PKG_FILE}"
-  on:
-    repo: corpus-tools/graphANNIS
-    branch: master
-    tags: true
-  skip_cleanup: true
-  tag_name: $TRAVIS_TAG
-  draft: true
+  - provider: releases
+    api_key:
+      secure: "VZxMx6T27LnD2Y8PIXzSMuTE+bfBRo+FyxEyZ/tcDwWYttcU9fNtHuD96sIooNifdup1aiW4hMYkOfjGEqMhzymJIflT+rWms4EmljxTG45XJivooak+oe2T4wQvELBSH3ejmQxD5Zyvjn/i3ifOIbpJAMVPqSwjkHSnyXwWk2ARX35XIpa40XLi1T3fsrQmeH4JAFSdlCnsF6AelacwwbwtPudZHnTh795oIBEnAtihcmKClLCE8OV7pP8kaDISvHoKsHly5wmBTzxpQh7P8srIRCQjYxU/e4LBlS8NiIcz1h5ca9htV3wZKbJgoOIGiVB+FsCRJtdwGmk6IiF8pB6D8A3mI+EUxcJvmFKIzc83IcqulPs3S0XrsdwHT7TA/uBScOBhbLbx1VtU8lhMvfGKdo74Jx2NU9XeaNr+ptM0ewMxqL3zjITKjEDsO1OrLbcGnpCfswSfFV+TgLHw7wEOdRbRzWSdhROFUEZ2tW6GIfFVwtrLUPXs2ikW5H/8Ja/QV2v0joHqLbGvMZD13RpiRJdziQQANQPsfs8i59B7zrrP7/BwRr9lLP8kABIZ/e2bHGZJJH57jmt/QR5Aa445L/K5g1uC0vLcj7epUVcHcgiZakW1ZNX8o8fCOLJKkO9xB9qEKH6KfdZc09+yxdEsTs1w7HBYuE0LqRuvdek="
+    file_glob: true
+    file: "${RELEASE_PKG_FILE}"
+    on:
+      repo: corpus-tools/graphANNIS
+      branch: master
+      tags: true
+    skip_cleanup: true
+    tag_name: $TRAVIS_TAG
+    draft: true
+  - provider: script
+    script: bash $TRAVIS_BUILD_DIR/misc/deploy-docs.sh
+    on:
+      repo: corpus-tools/graphANNIS
+      branch: master
+      tags: true
+      condition: $TRAVIS_OS_NAME = linux
+    skip-cleanup: true
+      

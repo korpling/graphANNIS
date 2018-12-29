@@ -1,4 +1,4 @@
-use annis::db::graphstorage::EdgeContainer;
+use crate::annis::db::graphstorage::EdgeContainer;
 use bincode;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
@@ -7,13 +7,13 @@ use std::clone::Clone;
 use std::ops::Bound::*;
 
 use super::{GraphStatistic, GraphStorage};
-use annis::db::annostorage::AnnoStorage;
-use annis::db::AnnotationStorage;
-use annis::db::Graph;
-use annis::db::Match;
-use annis::dfs::{CycleSafeDFS, DFSStep};
-use annis::errors::*;
-use annis::types::{AnnoKey, Edge, NodeID, NumValue};
+use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::Graph;
+use crate::annis::db::Match;
+use crate::annis::dfs::{CycleSafeDFS, DFSStep};
+use crate::annis::errors::*;
+use crate::annis::types::{AnnoKey, Edge, NodeID, NumValue};
 
 #[derive(PartialOrd, PartialEq, Ord, Eq, Clone, Serialize, Deserialize, MallocSizeOf)]
 pub struct PrePost<OrderT, LevelT> {
@@ -129,10 +129,6 @@ where
         self.find_connected_inverse(node, 1, Included(1))
     }
 
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
-        &self.annos
-    }
-
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
         let it = self.node_to_order.iter().filter_map(move |(n, _order)| {
             // check if this is actual a source node (and not only a target node)
@@ -155,6 +151,10 @@ where
     for<'de> OrderT: NumValue + Deserialize<'de> + Serialize,
     for<'de> LevelT: NumValue + Deserialize<'de> + Serialize,
 {
+    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
+        &self.annos
+    }
+
     fn serialization_id(&self) -> String {
         format!(
             "PrePostOrderO{}L{}V1",
@@ -204,7 +204,8 @@ where
                     self.order_to_node[start..end]
                         .iter()
                         .map(move |order| (root_order.clone(), order))
-                }).filter_map(move |(root, order)| match order {
+                })
+                .filter_map(move |(root, order)| match order {
                     OrderVecEntry::Pre {
                         ref post,
                         ref level,
@@ -227,7 +228,8 @@ where
                         }
                     }
                     _ => None,
-                }).filter(move |n| visited.insert(n.clone()));
+                })
+                .filter(move |n| visited.insert(n.clone()));
             return Box::new(it);
         } else {
             return Box::new(std::iter::empty());
@@ -273,7 +275,8 @@ where
                         .iter()
                         .enumerate()
                         .map(move |(idx, order)| (use_post, root_order.clone(), start + idx, order))
-                }).filter_map(move |(use_post, root, idx, order)| {
+                })
+                .filter_map(move |(use_post, root, idx, order)| {
                     let (current_pre, current_post, current_level, current_node) = if use_post {
                         match order {
                             OrderVecEntry::Post {
@@ -324,7 +327,8 @@ where
                     } else {
                         None
                     }
-                }).filter(move |n| visited.insert(n.clone()));
+                })
+                .filter(move |n| visited.insert(n.clone()));
             return Box::new(it);
         } else {
             return Box::new(std::iter::empty());
@@ -407,7 +411,7 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &EdgeContainer) {
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
         self.clear();
 
         // find all roots of the component
@@ -416,7 +420,7 @@ where
         let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
             Some(node_name_key.ns.clone()),
             node_name_key.name.clone(),
-            None,
+            None.into(),
         );
 
         // first add all nodes that are a source of an edge as possible roots
@@ -429,9 +433,11 @@ where
             }
         }
 
-        let nodes: Box<Iterator<Item = Match>> =
-            db.node_annos
-                .exact_anno_search(Some(node_name_key.ns), node_name_key.name, None);
+        let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+            Some(node_name_key.ns),
+            node_name_key.name,
+            None.into(),
+        );
         for m in nodes {
             let m: Match = m;
 
@@ -465,7 +471,7 @@ where
                 &mut node_stack,
             );
 
-            let dfs = CycleSafeDFS::new(orig, *start_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *start_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
                 if step.distance > last_distance {

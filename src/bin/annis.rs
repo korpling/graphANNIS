@@ -207,6 +207,12 @@ impl AnnisRunner {
             );
         }
 
+        let overwritten_corpus_name = if args.len() >= 2 {
+            Some(args[1].to_owned())
+        } else {
+            None
+        };
+
         let path = args[0];
 
         let t_before = std::time::SystemTime::now();
@@ -214,7 +220,7 @@ impl AnnisRunner {
             .storage
             .as_ref()
             .ok_or("No corpus storage location set")?
-            .import_from_fs(&PathBuf::from(path), ImportFormat::RelANNIS, None)?;
+            .import_from_fs(&PathBuf::from(path), ImportFormat::RelANNIS, overwritten_corpus_name)?;
         let load_time = t_before.elapsed();
         if let Ok(t) = load_time {
             info!{"Imported corpus {} in {} ms", name, (t.as_secs() * 1000 + t.subsec_nanos() as u64 / 1_000_000)};

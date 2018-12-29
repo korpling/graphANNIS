@@ -1,29 +1,30 @@
-use annis::db;
-use annis::db::annostorage::AnnoStorage;
-use annis::db::aql;
-use annis::db::aql::operators;
-use annis::db::aql::operators::RangeSpec;
-use annis::db::exec::nodesearch::NodeSearchSpec;
-use annis::db::plan::ExecutionPlan;
-use annis::db::query;
-use annis::db::query::conjunction::Conjunction;
-use annis::db::query::disjunction::Disjunction;
-use annis::db::relannis;
-use annis::db::token_helper::TokenHelper;
-use annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
-use annis::errors::ErrorKind;
-use annis::errors::*;
-use annis::types::AnnoKey;
-use annis::types::{
+use crate::annis::db;
+use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::aql;
+use crate::annis::db::aql::operators;
+use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::annis::db::plan::ExecutionPlan;
+use crate::annis::db::query;
+use crate::annis::db::query::conjunction::Conjunction;
+use crate::annis::db::query::disjunction::Disjunction;
+use crate::annis::db::relannis;
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
+use crate::annis::errors::ErrorKind;
+use crate::annis::errors::*;
+use crate::annis::types::AnnoKey;
+use crate::annis::types::{
     Annotation, Component, ComponentType, CountExtra, Edge, FrequencyTable, NodeID,
     QueryAttributeDescription,
 };
-use annis::util;
-use annis::util::memory_estimation;
-use annis::util::quicksort;
+use crate::annis::util;
+use crate::annis::util::memory_estimation;
+use crate::annis::util::quicksort;
+use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::update::GraphUpdate;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
@@ -34,7 +35,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread;
-use update::GraphUpdate;
 
 use rustc_hash::FxHashMap;
 
@@ -68,6 +68,8 @@ pub struct GraphStorageInfo {
     pub load_status: LoadStatus,
     /// Number of edge annotations in this graph storage.
     pub number_of_annotations: usize,
+    /// Name of the implementation
+    pub implementation: String,
 }
 
 impl fmt::Display for GraphStorageInfo {
@@ -77,6 +79,7 @@ impl fmt::Display for GraphStorageInfo {
             "Component {}: {} annnotations",
             self.component, self.number_of_annotations
         )?;
+        writeln!(f, "Implementation: {}", self.implementation)?;
         match self.load_status {
             LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
             LoadStatus::PartiallyLoaded(memory_size) => {
@@ -361,6 +364,7 @@ impl CorpusStorage {
                             component: c.clone(),
                             load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
                             number_of_annotations: gs.get_anno_storage().number_of_annotations(),
+                            implementation: gs.serialization_id().clone(),
                         });
                     } else {
                         load_status = LoadStatus::PartiallyLoaded(heap_size);
@@ -368,6 +372,7 @@ impl CorpusStorage {
                             component: c.clone(),
                             load_status: LoadStatus::NotLoaded,
                             number_of_annotations: 0,
+                            implementation: "".to_owned(),
                         })
                     }
                 }
@@ -960,7 +965,8 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
-                        ).reverse()
+                        )
+                        .reverse()
                     } else {
                         db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
@@ -1302,7 +1308,7 @@ impl CorpusStorage {
         let subcorpus_components = {
             // make sure all subcorpus partitions are loaded
             let lock = db_entry.read().unwrap();
-            let mut db = get_read_or_error(&lock)?;
+            let db = get_read_or_error(&lock)?;
             db.get_all_components(Some(ComponentType::PartOfSubcorpus), None)
         };
         let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
@@ -1384,7 +1390,7 @@ impl CorpusStorage {
                 tuple.push(tuple_val);
             }
             // add the tuple to the frequency count
-            let mut tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
+            let tuple_count: &mut usize = tuple_frequency.entry(tuple).or_insert(0);
             *tuple_count += 1;
         }
 
@@ -1515,8 +1521,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
-                    let edge_annos: &AnnotationStorage<Edge> =
-                        gs.as_edgecontainer().get_anno_storage();
+                    let edge_annos: &AnnotationStorage<Edge> = gs.get_anno_storage();
                     for key in edge_annos.annotation_keys() {
                         if list_values {
                             if only_most_frequent_values {
@@ -1587,14 +1592,14 @@ mod tests {
     extern crate simplelog;
     extern crate tempfile;
 
-    use corpusstorage::QueryLanguage;
-    use update::{GraphUpdate, UpdateEvent};
-    use CorpusStorage;
+    use crate::corpusstorage::QueryLanguage;
+    use crate::update::{GraphUpdate, UpdateEvent};
+    use crate::CorpusStorage;
 
     #[test]
     fn delete() {
         if let Ok(tmp) = tempfile::tempdir() {
-            let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+            let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
             // fully load a corpus
             let mut g = GraphUpdate::new();
             g.add_event(UpdateEvent::AddNode {
@@ -1612,7 +1617,7 @@ mod tests {
     fn load_cs_twice() {
         if let Ok(tmp) = tempfile::tempdir() {
             {
-                let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+                let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
                 g.add_event(UpdateEvent::AddNode {
                     node_name: "test".to_string(),
@@ -1623,7 +1628,7 @@ mod tests {
             }
 
             {
-                let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+                let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
                 let mut g = GraphUpdate::new();
                 g.add_event(UpdateEvent::AddNode {
                     node_name: "test".to_string(),
@@ -1638,7 +1643,7 @@ mod tests {
     #[test]
     fn apply_update_add_nodes() {
         if let Ok(tmp) = tempfile::tempdir() {
-            let mut cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
+            let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
             let mut g = GraphUpdate::new();
             g.add_event(UpdateEvent::AddNode {
@@ -1815,20 +1820,22 @@ fn create_subgraph_edge(
     for c in components {
         if let Some(orig_gs) = orig_db.get_graphstorage(c) {
             for target in orig_gs.get_outgoing_edges(source_id) {
-                let e = Edge {
-                    source: source_id,
-                    target,
-                };
-                if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                    new_gs.add_edge(e.clone());
-                }
-
-                for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
-                    source: source_id,
-                    target,
-                }) {
+                if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
+                    let e = Edge {
+                        source: source_id,
+                        target,
+                    };
                     if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                        new_gs.add_edge_annotation(e.clone(), a);
+                        new_gs.add_edge(e.clone());
+                    }
+
+                    for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
+                        source: source_id,
+                        target,
+                    }) {
+                        if let Ok(new_gs) = db.get_or_create_writable(&c) {
+                            new_gs.add_edge_annotation(e.clone(), a);
+                        }
                     }
                 }
             }

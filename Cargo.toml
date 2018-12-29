@@ -1,14 +1,15 @@
 [package]
 name = "graphannis"
-version = "0.13.0" #:version
+version = "0.14.0" #:version
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"
 description = "This is a prototype for a new backend implementation of the ANNIS linguistic search and visualization system."
-repository= "https://github.com/corpus-tools/graphANNIS"
+repository= "https://github.com/korpling/graphANNIS"
 readme = "crate-info.md"
 autobins=true
 build = "build.rs"
+edition = "2018"
 
 [lib]
 crate-type = ["rlib", "staticlib","cdylib"]
@@ -27,7 +28,7 @@ rand_xorshift = "0.1"
 csv = "1.0"
 multimap = "0.4"
 log = "0.4"
-lazy_static = "1.2"
+lazy_static = "1.1"
 strum = "0.11"
 strum_macros = "0.11"
 num = "0.2"
@@ -48,7 +49,7 @@ graphannis-malloc_size_of_derive = "1.0"
 rustyline = {version="1.0", optional=true }
 simplelog = {version="0.5", optional=true}
 clap = {version="2", optional=true}
-criterion = {version="0.2", optional=true}
+criterion = {version="0.2.6", optional=true}
 prettytable-rs = {version="0.8", optional=true}
 
 libc = {version="0.2", optional=true}

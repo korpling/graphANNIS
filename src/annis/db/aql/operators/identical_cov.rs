@@ -1,10 +1,10 @@
-use annis::db::graphstorage::GraphStorage;
-use annis::db::token_helper;
-use annis::db::token_helper::TokenHelper;
-use annis::db::{Graph, Match};
-use annis::operator::EstimationType;
-use annis::operator::{Operator, OperatorSpec};
-use annis::types::{AnnoKeyID, Component, ComponentType};
+use crate::annis::db::graphstorage::GraphStorage;
+use crate::annis::db::token_helper;
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::{Graph, Match};
+use crate::annis::operator::EstimationType;
+use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
 use std::sync::Arc;
@@ -93,7 +93,7 @@ impl Operator for IdenticalCoverage {
             }
 
             // find left-aligned non-token
-            let v = self.gs_left.get_outgoing_edges(n_left);
+            let v = self.gs_left.get_ingoing_edges(n_left);
             for c in v {
                 // check if also right-aligned
                 if let Some(c_right) = self.tok_helper.right_token_for(c) {

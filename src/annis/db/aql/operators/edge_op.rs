@@ -1,11 +1,11 @@
-use annis::db::annostorage::AnnoStorage;
-use annis::db::aql::operators::RangeSpec;
-use annis::db::graphstorage::{GraphStatistic, GraphStorage};
-use annis::db::AnnotationStorage;
-use annis::db::{Graph, Match, ANNIS_NS};
-use annis::operator::{EdgeAnnoSearchSpec, EstimationType, Operator, OperatorSpec};
-use annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, NodeID};
-use annis::util;
+use crate::annis::db::annostorage::AnnoStorage;
+use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::{Graph, Match, ANNIS_NS};
+use crate::annis::operator::{EdgeAnnoSearchSpec, EstimationType, Operator, OperatorSpec};
+use crate::annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, NodeID};
+use crate::annis::util;
 use regex;
 use std;
 use std::collections::VecDeque;
@@ -93,6 +93,28 @@ fn check_edge_annotation(
             }
             false
         }
+        Some(EdgeAnnoSearchSpec::NotExactValue { ns, name, val }) => {
+            for a in gs
+                .get_anno_storage()
+                .get_annotations_for_item(&Edge { source, target })
+            {
+                if name != &a.key.name {
+                    continue;
+                }
+                if let Some(template_ns) = ns {
+                    if template_ns != &a.key.ns {
+                        continue;
+                    }
+                }
+                if val.as_str() == a.val.as_str() {
+                    continue;
+                }
+            
+                // all checks passed, this edge has the correct annotation
+                return true;
+            }
+            false
+        }
         Some(EdgeAnnoSearchSpec::RegexValue { ns, name, val }) => {
             let full_match_pattern = util::regex_full_match(&val);
             let re = regex::Regex::new(&full_match_pattern);
@@ -111,6 +133,33 @@ fn check_edge_annotation(
                     }
 
                     if !re.is_match(&*a.val) {
+                        continue;
+                    }
+
+                    // all checks passed, this edge has the correct annotation
+                    return true;
+                }
+            }
+            false
+        }
+        Some(EdgeAnnoSearchSpec::NotRegexValue { ns, name, val }) => {
+            let full_match_pattern = util::regex_full_match(&val);
+            let re = regex::Regex::new(&full_match_pattern);
+            if let Ok(re) = re {
+                for a in gs
+                    .get_anno_storage()
+                    .get_annotations_for_item(&Edge { source, target })
+                {
+                    if name != &a.key.name {
+                        continue;
+                    }
+                    if let Some(template_ns) = ns {
+                        if template_ns != &a.key.ns {
+                            continue;
+                        }
+                    }
+
+                    if re.is_match(&*a.val) {
                         continue;
                     }
 
@@ -377,8 +426,17 @@ impl Operator for BaseEdgeOp {
                                 anno_storage.number_of_annotations_by_name(ns.clone(), name.clone())
                             }
                         }
+                        EdgeAnnoSearchSpec::NotExactValue { val, ns, name } => {
+                            let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
+                            total - anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
+                            
+                        }
                         EdgeAnnoSearchSpec::RegexValue { val, ns, name } => {
                             anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
+                        }
+                        EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
+                            let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
+                            total - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
                         }
                     };
                     let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);

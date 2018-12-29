@@ -30,13 +30,9 @@ typedef enum {
    */
   Coverage,
   /*
-   * Edges between a token and a span node.
-   */
-  InverseCoverage,
-  /*
    * Edges between a structural node and any other structural node, span or token. Implies text coverage.
    */
-  Dominance,
+  Dominance = 2,
   /*
    * Edge between any node.
    */

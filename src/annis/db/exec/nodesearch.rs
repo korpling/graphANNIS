@@ -1,12 +1,13 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
-use annis::db::exec::tokensearch;
-use annis::db::exec::tokensearch::AnyTokenSearch;
-use annis::db::AnnotationStorage;
-use annis::db::{Graph, Match, ANNIS_NS};
-use annis::errors::*;
-use annis::operator::EdgeAnnoSearchSpec;
-use annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
-use annis::util;
+use crate::annis::db::exec::tokensearch;
+use crate::annis::db::exec::tokensearch::AnyTokenSearch;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::ValueSearch;
+use crate::annis::db::{Graph, Match, ANNIS_NS};
+use crate::annis::errors::*;
+use crate::annis::operator::EdgeAnnoSearchSpec;
+use crate::annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
+use crate::annis::util;
 use itertools::Itertools;
 use regex;
 use std;
@@ -30,7 +31,19 @@ pub enum NodeSearchSpec {
         val: Option<String>,
         is_meta: bool,
     },
+    NotExactValue {
+        ns: Option<String>,
+        name: String,
+        val: String,
+        is_meta: bool,
+    },
     RegexValue {
+        ns: Option<String>,
+        name: String,
+        val: String,
+        is_meta: bool,
+    },
+    NotRegexValue {
         ns: Option<String>,
         name: String,
         val: String,
@@ -40,9 +53,15 @@ pub enum NodeSearchSpec {
         val: String,
         leafs_only: bool,
     },
+    NotExactTokenValue {
+        val: String,
+    },
     RegexTokenValue {
         val: String,
         leafs_only: bool,
+    },
+    NotRegexTokenValue {
+        val: String,
     },
     AnyToken,
     AnyNode,
@@ -79,47 +98,81 @@ impl fmt::Display for NodeSearchSpec {
                 ref name,
                 ref val,
                 ..
-            } => if ns.is_some() && val.is_some() {
-                write!(
-                    f,
-                    "{}:{}=\"{}\"",
-                    ns.as_ref().unwrap(),
-                    name,
-                    val.as_ref().unwrap()
-                )
-            } else if ns.is_some() {
-                write!(f, "{}:{}", ns.as_ref().unwrap(), name)
-            } else if val.is_some() {
-                write!(f, "{}=\"{}\"", name, val.as_ref().unwrap())
-            } else {
-                write!(f, "{}", name)
-            },
+            } => {
+                if ns.is_some() && val.is_some() {
+                    write!(
+                        f,
+                        "{}:{}=\"{}\"",
+                        ns.as_ref().unwrap(),
+                        name,
+                        val.as_ref().unwrap()
+                    )
+                } else if ns.is_some() {
+                    write!(f, "{}:{}", ns.as_ref().unwrap(), name)
+                } else if val.is_some() {
+                    write!(f, "{}=\"{}\"", name, val.as_ref().unwrap())
+                } else {
+                    write!(f, "{}", name)
+                }
+            }
+            NodeSearchSpec::NotExactValue {
+                ref ns,
+                ref name,
+                ref val,
+                ..
+            } => {
+                if let Some(ref ns) = ns {
+                    write!(f, "{}:{}!=\"{}\"", ns, name, &val)
+                } else {
+                    write!(f, "{}!=\"{}\"", name, &val)
+                }
+            }
             NodeSearchSpec::RegexValue {
                 ref ns,
                 ref name,
                 ref val,
                 ..
-            } => if ns.is_some() {
-                write!(f, "{}:{}=/{}/", ns.as_ref().unwrap(), name, &val)
-            } else {
-                write!(f, "{}=/{}/", name, &val)
-            },
+            } => {
+                if ns.is_some() {
+                    write!(f, "{}:{}=/{}/", ns.as_ref().unwrap(), name, &val)
+                } else {
+                    write!(f, "{}=/{}/", name, &val)
+                }
+            }
+            NodeSearchSpec::NotRegexValue {
+                ref ns,
+                ref name,
+                ref val,
+                ..
+            } => {
+                if let Some(ref ns) = ns {
+                    write!(f, "{}:{}!=/{}/", ns, name, &val)
+                } else {
+                    write!(f, "{}!=/{}/", name, &val)
+                }
+            }
             NodeSearchSpec::ExactTokenValue {
                 ref val,
                 ref leafs_only,
-            } => if *leafs_only {
-                write!(f, "tok=\"{}\"", val)
-            } else {
-                write!(f, "\"{}\"", val)
-            },
+            } => {
+                if *leafs_only {
+                    write!(f, "tok=\"{}\"", val)
+                } else {
+                    write!(f, "\"{}\"", val)
+                }
+            }
+            NodeSearchSpec::NotExactTokenValue { ref val } => write!(f, "tok!=\"{}\"", val),
             NodeSearchSpec::RegexTokenValue {
                 ref val,
                 ref leafs_only,
-            } => if *leafs_only {
-                write!(f, "tok=/{}/", val)
-            } else {
-                write!(f, "/{}/", val)
-            },
+            } => {
+                if *leafs_only {
+                    write!(f, "tok=/{}/", val)
+                } else {
+                    write!(f, "/{}/", val)
+                }
+            }
+            NodeSearchSpec::NotRegexTokenValue { ref val } => write!(f, "tok!=/{}/", val),
             NodeSearchSpec::AnyToken => write!(f, "tok"),
             NodeSearchSpec::AnyNode => write!(f, "node"),
         }
@@ -144,7 +197,20 @@ impl<'a> NodeSearch<'a> {
             } => NodeSearch::new_annosearch_exact(
                 db,
                 (ns, name),
+                val.into(),
+                is_meta,
+                &query_fragment,
+                node_nr,
+            ),
+            NodeSearchSpec::NotExactValue {
+                ns,
+                name,
                 val,
+                is_meta,
+            } => NodeSearch::new_annosearch_exact(
+                db,
+                (ns, name),
+                ValueSearch::NotSome(val),
                 is_meta,
                 &query_fragment,
                 node_nr,
@@ -162,6 +228,7 @@ impl<'a> NodeSearch<'a> {
                         db,
                         (ns, name),
                         &val,
+                        false,
                         is_meta,
                         &query_fragment,
                         node_nr,
@@ -171,7 +238,37 @@ impl<'a> NodeSearch<'a> {
                     NodeSearch::new_annosearch_exact(
                         db,
                         (ns, name),
-                        Some(val),
+                        ValueSearch::Some(val),
+                        is_meta,
+                        &query_fragment,
+                        node_nr,
+                    )
+                }
+            }
+            NodeSearchSpec::NotRegexValue {
+                ns,
+                name,
+                val,
+                is_meta,
+            } => {
+                // check if the regex can be replaced with an exact value search
+                let is_regex = util::contains_regex_metacharacters(&val);
+                if is_regex {
+                    NodeSearch::new_annosearch_regex(
+                        db,
+                        (ns, name),
+                        &val,
+                        true,
+                        is_meta,
+                        &query_fragment,
+                        node_nr,
+                        location_in_query,
+                    )
+                } else {
+                    NodeSearch::new_annosearch_exact(
+                        db,
+                        (ns, name),
+                        ValueSearch::NotSome(val),
                         is_meta,
                         &query_fragment,
                         node_nr,
@@ -180,8 +277,17 @@ impl<'a> NodeSearch<'a> {
             }
             NodeSearchSpec::ExactTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
-                Some(val),
+                ValueSearch::Some(val),
                 leafs_only,
+                false,
+                &query_fragment,
+                node_nr,
+                location_in_query,
+            ),
+            NodeSearchSpec::NotExactTokenValue { val } => NodeSearch::new_tokensearch(
+                db,
+                ValueSearch::NotSome(val),
+                true,
                 false,
                 &query_fragment,
                 node_nr,
@@ -189,8 +295,17 @@ impl<'a> NodeSearch<'a> {
             ),
             NodeSearchSpec::RegexTokenValue { val, leafs_only } => NodeSearch::new_tokensearch(
                 db,
-                Some(val),
+                ValueSearch::Some(val),
                 leafs_only,
+                true,
+                &query_fragment,
+                node_nr,
+                location_in_query,
+            ),
+            NodeSearchSpec::NotRegexTokenValue { val } => NodeSearch::new_tokensearch(
+                db,
+                ValueSearch::NotSome(val),
+                true,
                 true,
                 &query_fragment,
                 node_nr,
@@ -204,7 +319,11 @@ impl<'a> NodeSearch<'a> {
 
                 let it = db
                     .node_annos
-                    .exact_anno_search(Some(type_key.ns), type_key.name, Some("node".to_owned()))
+                    .exact_anno_search(
+                        Some(type_key.ns),
+                        type_key.name,
+                        Some("node".to_owned()).into(),
+                    )
                     .map(move |n| vec![n]);
 
                 let node_annos = db.node_annos.clone();
@@ -249,7 +368,7 @@ impl<'a> NodeSearch<'a> {
     fn new_annosearch_exact(
         db: &'a Graph,
         qname: (Option<String>, String),
-        val: Option<String>,
+        val: ValueSearch<String>,
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
@@ -283,19 +402,30 @@ impl<'a> NodeSearch<'a> {
                         .map(move |m| Match {
                             node: m.node,
                             anno_key: const_output,
-                        }).unique(),
+                        })
+                        .unique(),
                 )
             }
         } else {
             base_it
         };
 
-        let est_output = if let Some(ref val) = val {
-            db.node_annos
-                .guess_max_count(qname.0.clone(), qname.1.clone(), &val, &val)
-        } else {
-            db.node_annos
-                .number_of_annotations_by_name(qname.0.clone(), qname.1.clone())
+        let est_output = match val {
+            ValueSearch::Some(ref val) => {
+                db.node_annos
+                    .guess_max_count(qname.0.clone(), qname.1.clone(), &val, &val)
+            }
+            ValueSearch::NotSome(ref val) => {
+                let total = db
+                    .node_annos
+                    .number_of_annotations_by_name(qname.0.clone(), qname.1.clone());
+                total
+                    - db.node_annos
+                        .guess_max_count(qname.0.clone(), qname.1.clone(), &val, &val)
+            }
+            ValueSearch::Any => db
+                .node_annos
+                .number_of_annotations_by_name(qname.0.clone(), qname.1.clone()),
         };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
@@ -305,8 +435,7 @@ impl<'a> NodeSearch<'a> {
 
         let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
-        if val.is_some() {
-            let val = val.unwrap();
+        if let ValueSearch::Some(val) = val {
             let node_annos = db.node_annos.clone();
             filters.push(Box::new(move |m| {
                 if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
@@ -336,15 +465,16 @@ impl<'a> NodeSearch<'a> {
         db: &'a Graph,
         qname: (Option<String>, String),
         pattern: &str,
+        negated: bool,
         is_meta: bool,
         query_fragment: &str,
         node_nr: usize,
         location_in_query: Option<LineColumnRange>,
     ) -> Result<NodeSearch<'a>> {
         // match_regex works only with values
-        let base_it = db
-            .node_annos
-            .regex_anno_search(qname.0.clone(), qname.1.clone(), pattern);
+        let base_it =
+            db.node_annos
+                .regex_anno_search(qname.0.clone(), qname.1.clone(), pattern, negated);
 
         let const_output = if is_meta {
             Some(
@@ -371,16 +501,25 @@ impl<'a> NodeSearch<'a> {
                         .map(move |m| Match {
                             node: m.node,
                             anno_key: const_output,
-                        }).unique(),
+                        })
+                        .unique(),
                 )
             }
         } else {
             base_it
         };
 
-        let est_output =
+        let est_output = if negated {
+            let total = db
+                .node_annos
+                .number_of_annotations_by_name(qname.0.clone(), qname.1.clone());
+            total
+                - db.node_annos
+                    .guess_max_count_regex(qname.0.clone(), qname.1.clone(), pattern)
+        } else {
             db.node_annos
-                .guess_max_count_regex(qname.0.clone(), qname.1.clone(), pattern);
+                .guess_max_count_regex(qname.0.clone(), qname.1.clone(), pattern)
+        };
 
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
@@ -426,7 +565,7 @@ impl<'a> NodeSearch<'a> {
 
     fn new_tokensearch(
         db: &'a Graph,
-        val: Option<String>,
+        val: ValueSearch<String>,
         leafs_only: bool,
         match_regex: bool,
         query_fragment: &str,
@@ -438,27 +577,51 @@ impl<'a> NodeSearch<'a> {
             .node_annos
             .get_key_id(&db.get_node_type_key())
             .ok_or("Node type annotation does not exist in database")?;
-
-        let it_base: Box<Iterator<Item = Match>> = if let Some(v) = val.clone() {
-            let it = if match_regex {
-                db.node_annos
-                    .regex_anno_search(Some(tok_key.ns.clone()), tok_key.name.clone(), &v)
-            } else {
-                db.node_annos.exact_anno_search(
+        let it_base: Box<Iterator<Item = Match>> = match val {
+            ValueSearch::Any => {
+                let it = db.node_annos.exact_anno_search(
                     Some(tok_key.ns.clone()),
                     tok_key.name.clone(),
-                    Some(v),
-                )
-            };
-            Box::new(it)
-        } else {
-            let it = db.node_annos.exact_anno_search(
-                Some(tok_key.ns.clone()),
-                tok_key.name.clone(),
-                None,
-            );
-            Box::new(it)
+                    None.into(),
+                );
+                Box::new(it)
+            }
+            ValueSearch::Some(ref val) => {
+                let it = if match_regex {
+                    db.node_annos.regex_anno_search(
+                        Some(tok_key.ns.clone()),
+                        tok_key.name.clone(),
+                        val,
+                        false,
+                    )
+                } else {
+                    db.node_annos.exact_anno_search(
+                        Some(tok_key.ns.clone()),
+                        tok_key.name.clone(),
+                        ValueSearch::Some(val.clone()),
+                    )
+                };
+                Box::new(it)
+            }
+            ValueSearch::NotSome(ref val) => {
+                let it = if match_regex {
+                    db.node_annos.regex_anno_search(
+                        Some(tok_key.ns.clone()),
+                        tok_key.name.clone(),
+                        val,
+                        true,
+                    )
+                } else {
+                    db.node_annos.exact_anno_search(
+                        Some(tok_key.ns.clone()),
+                        tok_key.name.clone(),
+                        ValueSearch::NotSome(val.clone()),
+                    )
+                };
+                Box::new(it)
+            }
         };
+
         let it_base = if leafs_only {
             let cov_gs = db.get_graphstorage(&Component {
                 ctype: ComponentType::Coverage,
@@ -486,36 +649,76 @@ impl<'a> NodeSearch<'a> {
         // create filter functions
         let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
-        if let Some(v) = val.clone() {
-            if match_regex {
-                let full_match_pattern = util::regex_full_match(&v);
-                let re = regex::Regex::new(&full_match_pattern);
-                let node_annos = db.node_annos.clone();
-                match re {
-                    Ok(re) => filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+        match val {
+            ValueSearch::Some(ref val) => {
+                if match_regex {
+                    let full_match_pattern = util::regex_full_match(val);
+                    let re = regex::Regex::new(&full_match_pattern);
+                    let node_annos = db.node_annos.clone();
+                    match re {
+                        Ok(re) => filters.push(Box::new(move |m| {
+                            if let Some(val) =
+                                node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                            {
+                                return re.is_match(val);
+                            } else {
+                                return false;
+                            }
+                        })),
+                        Err(e) => bail!(ErrorKind::AQLSemanticError(
+                            format!("/{}/ -> {}", val, e),
+                            location_in_query
+                        )),
+                    };
+                } else {
+                    let node_annos = db.node_annos.clone();
+                    let val = val.clone();
+                    filters.push(Box::new(move |m| {
+                        if let Some(anno_val) =
+                            node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
                         {
-                            return re.is_match(val);
+                            return anno_val == val.as_str();
                         } else {
                             return false;
                         }
-                    })),
-                    Err(e) => bail!(ErrorKind::AQLSemanticError(
-                        format!("/{}/ -> {}", v, e),
-                        location_in_query
-                    )),
+                    }));
                 };
-            } else {
-                let node_annos = db.node_annos.clone();
-                filters.push(Box::new(move |m| {
-                    if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
-                    {
-                        return anno_val == v.as_str();
-                    } else {
-                        return false;
-                    }
-                }));
-            };
+            }
+            ValueSearch::NotSome(ref val) => {
+                if match_regex {
+                    let full_match_pattern = util::regex_full_match(val);
+                    let re = regex::Regex::new(&full_match_pattern);
+                    let node_annos = db.node_annos.clone();
+                    match re {
+                        Ok(re) => filters.push(Box::new(move |m| {
+                            if let Some(val) =
+                                node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                            {
+                                return !re.is_match(val);
+                            } else {
+                                return false;
+                            }
+                        })),
+                        Err(e) => bail!(ErrorKind::AQLSemanticError(
+                            format!("/{}/ -> {}", val, e),
+                            location_in_query
+                        )),
+                    };
+                } else {
+                    let node_annos = db.node_annos.clone();
+                    let val = val.clone();
+                    filters.push(Box::new(move |m| {
+                        if let Some(anno_val) =
+                            node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                        {
+                            return anno_val != val.as_str();
+                        } else {
+                            return false;
+                        }
+                    }));
+                };
+            }
+            ValueSearch::Any => {}
         };
 
         if leafs_only {
@@ -535,24 +738,46 @@ impl<'a> NodeSearch<'a> {
         };
 
         // TODO: is_leaf should be part of the estimation
-        let est_output = if let Some(val) = val {
-            if match_regex {
-                db.node_annos.guess_max_count_regex(
-                    Some(tok_key.ns.clone()),
-                    tok_key.name.clone(),
-                    &val,
-                )
-            } else {
-                db.node_annos.guess_max_count(
-                    Some(tok_key.ns.clone()),
-                    tok_key.name.clone(),
-                    &val,
-                    &val,
-                )
+        let est_output = match val {
+            ValueSearch::Some(ref val) => {
+                if match_regex {
+                    db.node_annos.guess_max_count_regex(
+                        Some(tok_key.ns.clone()),
+                        tok_key.name.clone(),
+                        val,
+                    )
+                } else {
+                    db.node_annos.guess_max_count(
+                        Some(tok_key.ns.clone()),
+                        tok_key.name.clone(),
+                        val,
+                        val,
+                    )
+                }
             }
-        } else {
-            db.node_annos
-                .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone())
+            ValueSearch::NotSome(val) => {
+                let total_count = db
+                    .node_annos
+                    .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone());
+                let positive_count = if match_regex {
+                    db.node_annos.guess_max_count_regex(
+                        Some(tok_key.ns.clone()),
+                        tok_key.name.clone(),
+                        &val,
+                    )
+                } else {
+                    db.node_annos.guess_max_count(
+                        Some(tok_key.ns.clone()),
+                        tok_key.name.clone(),
+                        &val,
+                        &val,
+                    )
+                };
+                total_count - positive_count
+            }
+            ValueSearch::Any => db
+                .node_annos
+                .number_of_annotations_by_name(Some(tok_key.ns.clone()), tok_key.name.clone()),
         };
         // always assume at least one output item otherwise very small selectivity can fool the planner
         let est_output = std::cmp::max(1, est_output);
@@ -654,7 +879,7 @@ impl<'a> NodeSearch<'a> {
                         let anno_storage: &AnnotationStorage<Edge> = gs.get_anno_storage();
 
                         let it = anno_storage
-                            .exact_anno_search(ns.clone(), name.clone(), val.clone())
+                            .exact_anno_search(ns.clone(), name.clone(), val.clone().into())
                             .map(|m: Match| m.node);
                         return Box::new(it);
                     } else {
@@ -664,7 +889,8 @@ impl<'a> NodeSearch<'a> {
                 } else {
                     return Box::new(std::iter::empty());
                 }
-            }).flat_map(move |node: NodeID| {
+            })
+            .flat_map(move |node: NodeID| {
                 // fetch annotation candidates for the node based on the original description
                 let node_search_desc = node_search_desc_1.clone();
                 db.node_annos
@@ -672,9 +898,11 @@ impl<'a> NodeSearch<'a> {
                         &node,
                         node_search_desc.qname.0.clone(),
                         node_search_desc.qname.1.clone(),
-                    ).into_iter()
+                    )
+                    .into_iter()
                     .map(move |anno_key| Match { node, anno_key })
-            }).filter_map(move |m: Match| -> Option<Vec<Match>> {
+            })
+            .filter_map(move |m: Match| -> Option<Vec<Match>> {
                 // only include the nodes that fullfill all original node search predicates
                 for cond in &node_search_desc_2.cond {
                     if !cond(&m) {

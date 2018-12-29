@@ -1,18 +1,18 @@
 use super::disjunction::Disjunction;
 use super::Config;
-use annis::db::exec::binary_filter::BinaryFilter;
-use annis::db::exec::indexjoin::IndexJoin;
-use annis::db::exec::nestedloop::NestedLoop;
-use annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
-use annis::db::exec::parallel;
-use annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
-use annis::db::graphstorage::GraphStatistic;
-use annis::db::AnnotationStorage;
-use annis::db::Graph;
-use annis::db::Match;
-use annis::errors::*;
-use annis::operator::{Operator, OperatorSpec};
-use annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
+use crate::annis::db::exec::binary_filter::BinaryFilter;
+use crate::annis::db::exec::indexjoin::IndexJoin;
+use crate::annis::db::exec::nestedloop::NestedLoop;
+use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
+use crate::annis::db::exec::parallel;
+use crate::annis::db::exec::{CostEstimate, Desc, ExecutionNode, NodeSearchDesc};
+use crate::annis::db::graphstorage::GraphStatistic;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::Graph;
+use crate::annis::db::Match;
+use crate::annis::errors::*;
+use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::SeedableRng;
@@ -434,12 +434,9 @@ impl<'a> Conjunction<'a> {
                                 let anno_storage: &AnnotationStorage<
                                     Edge,
                                 > = gs.get_anno_storage();
-                                if let Some(edge_anno_est) =
-                                    edge_anno_spec.guess_max_count(anno_storage)
-                                {
-                                    estimated_component_search += edge_anno_est;
-                                    estimation_valid = true;
-                                }
+                                let edge_anno_est = edge_anno_spec.guess_max_count(anno_storage);
+                                estimated_component_search += edge_anno_est;
+                                estimation_valid = true;
                             } else if let Some(stats) = gs.get_statistics() {
                                 let stats: &GraphStatistic = stats;
                                 estimated_component_search += stats.nodes;
@@ -494,7 +491,7 @@ impl<'a> Conjunction<'a> {
             let n_spec = &self.nodes[node_nr].1;
             let n_var = &self.nodes[node_nr].0;
 
-            let mut node_search = NodeSearch::from_spec(
+            let node_search = NodeSearch::from_spec(
                 n_spec.clone(),
                 node_nr,
                 db,

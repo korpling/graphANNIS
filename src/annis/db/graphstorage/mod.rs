@@ -1,8 +1,8 @@
-use annis::db::AnnotationStorage;
-use annis::db::Graph;
-use annis::errors::*;
-use annis::types::{AnnoKey, Annotation, Edge, NodeID};
-use malloc_size_of::MallocSizeOf;
+use crate::annis::db::AnnotationStorage;
+use crate::annis::db::Graph;
+use crate::annis::errors::*;
+use crate::annis::types::{AnnoKey, Annotation, Edge, NodeID};
+use crate::malloc_size_of::MallocSizeOf;
 use serde::Deserialize;
 use std;
 
@@ -22,6 +22,10 @@ pub struct GraphStatistic {
     pub avg_fan_out: f64,
     /// Max fan-out of 99% of the data.
     pub fan_out_99_percentile: usize,
+
+    /// Max inverse fan-out of 99% of the data.
+    pub inverse_fan_out_99_percentile: usize,
+
     /// Maximal number of children of a node.
     pub max_fan_out: usize,
     /// Maximum length from a root node to a terminal node.
@@ -38,9 +42,6 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
 
     /// Get all incoming edges for a given `node`.
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
-
-    /// Get the annotation storage for the edges of this container.
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
 
     fn get_statistics(&self) -> Option<&GraphStatistic> {
         None
@@ -81,9 +82,13 @@ pub trait GraphStorage: EdgeContainer {
         max_distance: std::ops::Bound<usize>,
     ) -> bool;
 
+
+    /// Get the annotation storage for the edges of this graph storage.
+    fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
+
     /// Copy the content of another component.
     /// This removes the existing content of this graph storage.
-    fn copy(&mut self, db: &Graph, orig: &EdgeContainer);
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage);
 
     /// Upcast this graph storage to the [EdgeContainer](trait.EdgeContainer.html) trait.
     fn as_edgecontainer(&self) -> &EdgeContainer;
@@ -138,3 +143,4 @@ pub mod adjacencylist;
 pub mod linear;
 pub mod prepost;
 pub mod registry;
+pub mod union;

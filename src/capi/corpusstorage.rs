@@ -1,17 +1,17 @@
 use super::cerror;
 use super::cerror::ErrorList;
 use super::Matrix;
-use corpusstorage::{
+use crate::corpusstorage::{
     CacheStrategy, CountExtra, FrequencyDefEntry, FrequencyTable, ImportFormat,
     QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
-use graph::{AnnotationStorage, Component, ComponentType};
+use crate::graph::{AnnotationStorage, Component, ComponentType};
 use libc;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
-use update::GraphUpdate;
-use {CorpusStorage, Graph};
+use crate::update::GraphUpdate;
+use crate::{CorpusStorage, Graph};
 
 /// Create a new corpus storage with an automatically determined maximum cache size.
 #[no_mangle]

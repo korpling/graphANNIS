@@ -107,8 +107,6 @@ fn main() {
         ).arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
-    criterion::init_logging();
-
     let mut crit: Criterion = Criterion::default().warm_up_time(Duration::from_millis(500));
     if let Some(nsamples) = matches.value_of("nsamples") {
         crit = crit.sample_size(nsamples.parse::<usize>().unwrap());

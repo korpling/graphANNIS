@@ -1,7 +1,7 @@
 use super::data::{vec_get, vec_size};
-use errors;
+use crate::errors;
 use libc::{c_char, size_t};
-use log;
+use ::log;
 use std;
 use std::ffi::CString;
 

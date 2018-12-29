@@ -1,7 +1,7 @@
-use annis::db::graphstorage::WriteableGraphStorage;
-use annis::db::{Graph, ANNIS_NS};
-use annis::errors::*;
-use annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::annis::db::graphstorage::WriteableGraphStorage;
+use crate::annis::db::{Graph, ANNIS_NS};
+use crate::annis::errors::*;
+use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use csv;
 use multimap::MultiMap;
 use std;
@@ -311,7 +311,7 @@ where
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: *(try!(node_to_left.get(&current_token).ok_or_else(|| format!(
+                val: *(r#try!(node_to_left.get(&current_token).ok_or_else(|| format!(
                     "Can't find node that starts together with token {}",
                     current_token
                 )))),
@@ -325,10 +325,6 @@ where
                         source: *n,
                         target: *current_token,
                     });
-                    gs_left.add_edge(Edge {
-                        source: *current_token,
-                        target: *n,
-                    });
                 }
             }
             // find all nodes that end together with the current token
@@ -336,7 +332,7 @@ where
                 segmentation: String::from(""),
                 text_id: current_textprop.text_id,
                 corpus_id: current_textprop.corpus_id,
-                val: *(try!(node_to_right.get(current_token).ok_or_else(|| format!(
+                val: *(r#try!(node_to_right.get(current_token).ok_or_else(|| format!(
                     "Can't find node that has the same end as token {}",
                     current_token
                 )))),
@@ -348,10 +344,6 @@ where
                     gs_right.add_edge(Edge {
                         source: *n,
                         target: *current_token,
-                    });
-                    gs_right.add_edge(Edge {
-                        source: *current_token,
-                        target: *n,
                     });
                 }
             }
@@ -406,15 +398,9 @@ where
         layer: String::from("annis"),
         name: String::from(""),
     };
-    let component_inv_cov = Component {
-        ctype: ComponentType::InverseCoverage,
-        layer: String::from("annis"),
-        name: String::from(""),
-    };
 
     // make sure the components exists, even if they are empty
     db.get_or_create_writable(&component_coverage)?;
-    db.get_or_create_writable(&component_inv_cov)?;
 
     {
         progress_callback("calculating the automatically generated COVERAGE edges");
@@ -475,20 +461,11 @@ where
                             format!("Can't get token ID for position {:?}", tok_idx)
                         })?;
                         if *n != *tok_id {
-                            {
-                                let gs = db.get_or_create_writable(&component_coverage)?;
-                                gs.add_edge(Edge {
-                                    source: *n,
-                                    target: *tok_id,
-                                });
-                            }
-                            {
-                                let gs = db.get_or_create_writable(&component_inv_cov)?;
-                                gs.add_edge(Edge {
-                                    source: *tok_id,
-                                    target: *n,
-                                });
-                            }
+                            let gs = db.get_or_create_writable(&component_coverage)?;
+                            gs.add_edge(Edge {
+                                source: *n,
+                                target: *tok_id,
+                            });
                         }
                     }
                 } // end if not a token
@@ -806,7 +783,7 @@ where
         let col_type = get_field_str(&line, 1).ok_or("Missing column")?;
         if col_type != "NULL" {
             let layer = get_field_str(&line, 2).ok_or("Missing column")?;
-            let mut name = get_field_str(&line, 3).ok_or("Missing column")?;
+            let name = get_field_str(&line, 3).ok_or("Missing column")?;
             let name = if name == "NULL" {
                 String::from("")
             } else {

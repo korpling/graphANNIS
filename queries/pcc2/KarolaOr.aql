@@ -1,0 +1,1 @@
+a#"Karola" & (b#lemma="Karola" | b#pos="NE") & #a _=_ #b

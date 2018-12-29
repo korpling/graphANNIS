@@ -1,6 +1,6 @@
 use super::Matrix;
-use corpusstorage::{FrequencyTable, QueryAttributeDescription};
-use graph::{Annotation, Component, Edge, NodeID};
+use crate::corpusstorage::{FrequencyTable, QueryAttributeDescription};
+use crate::graph::{Annotation, Component, Edge, NodeID};
 use libc::{c_char, c_void, size_t};
 use std;
 use std::ffi::CString;

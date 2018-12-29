@@ -1,11 +1,11 @@
-use annis::db::aql::operators::RangeSpec;
-use annis::db::graphstorage::GraphStorage;
-use annis::db::token_helper;
-use annis::db::token_helper::TokenHelper;
-use annis::db::{Graph, Match};
-use annis::operator::EstimationType;
-use annis::operator::{Operator, OperatorSpec};
-use annis::types::{AnnoKeyID, Component, ComponentType};
+use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::graphstorage::GraphStorage;
+use crate::annis::db::token_helper;
+use crate::annis::db::token_helper::TokenHelper;
+use crate::annis::db::{Graph, Match};
+use crate::annis::operator::EstimationType;
+use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
 use std::collections::VecDeque;
@@ -137,7 +137,7 @@ impl Operator for Precedence {
             .fuse()
             // find all left aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_left.get_outgoing_edges(t);
+                let it_aligned = self.gs_left.get_ingoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
@@ -241,7 +241,7 @@ impl Operator for InversePrecedence {
             .fuse()
             // find all right aligned nodes for this token and add it together with the token itself
             .flat_map(move |t| {
-                let it_aligned = self.gs_right.get_outgoing_edges(t);
+                let it_aligned = self.gs_right.get_ingoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
             })
             // map the result as match
