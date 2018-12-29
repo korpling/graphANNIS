@@ -57,7 +57,7 @@ deploy:
     file_glob: true
     file: "${RELEASE_PKG_FILE}"
     on:
-      repo: corpus-tools/graphANNIS
+      repo: korpling/graphANNIS
       branch: master
       tags: true
     skip_cleanup: true
