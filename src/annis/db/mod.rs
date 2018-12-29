@@ -619,7 +619,6 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target });
 
-                            
                             invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
                             invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
                         }
@@ -749,7 +748,7 @@ impl Graph {
         let union = UnionEdgeContainer::new(containers);
 
         let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::max_value());
-        
+
         dfs.map(|step| step.node).collect()
     }
 
@@ -783,8 +782,8 @@ impl Graph {
 
         // go over each node and calculate the left-most and right-most token
         for n in invalid_nodes.iter() {
-            self.calculate_token_alignment(*n, ComponentType::LeftToken, gs_order.as_ref())?;
-            self.calculate_token_alignment(*n, ComponentType::RightToken, gs_order.as_ref())?;
+            self.calculate_token_alignment(*n, ComponentType::LeftToken, gs_order.as_ref());
+            self.calculate_token_alignment(*n, ComponentType::RightToken, gs_order.as_ref());
         }
         Ok(())
     }
@@ -794,7 +793,7 @@ impl Graph {
         n: NodeID,
         ctype: ComponentType,
         gs_order: &GraphStorage,
-    ) -> Result<NodeID> {
+    ) -> Option<NodeID> {
         let coverage_component = Component {
             ctype: ComponentType::Coverage,
             name: "".to_owned(),
@@ -815,18 +814,18 @@ impl Graph {
             // also check if this is an actually token and not only a segmentation
             if let Some(gs_coverage) = self.get_graphstorage(&coverage_component) {
                 if gs_coverage.get_outgoing_edges(n).next().is_none() {
-                    return Ok(n);
+                    return Some(n);
                 }
             }
         }
 
         // if the node already has a left/right token, just return this value
-        let gs = self
-            .get_graphstorage(&alignment_component)
-            .ok_or("token alignment component does not exist")?;
-        let existing = gs.get_outgoing_edges(n).next();
+        let existing = self
+            .get_graphstorage_as_ref(&alignment_component)?
+            .get_outgoing_edges(n)
+            .next();
         if let Some(existing) = existing {
-            return Ok(existing);
+            return Some(existing);
         }
 
         // recursivly get all candidate token by iterating over text-coverage edges
@@ -866,15 +865,15 @@ impl Graph {
             candidates.first()
         };
         if let Some(t) = t {
-            let gs = self.get_or_create_writable(&alignment_component)?;
+            let gs = self.get_or_create_writable(&alignment_component).ok()?;
             gs.add_edge(Edge {
                 source: n,
                 target: *t,
             });
 
-            return Ok(*t);
+            return Some(*t);
         } else {
-            return Err(format!("node {} is not connected to any token", n).into());
+            return None;
         }
     }
 
@@ -983,7 +982,10 @@ impl Graph {
             // copy to writable implementation if needed
             let is_writable = {
                 Arc::get_mut(&mut loaded_comp)
-                    .ok_or("Could not get mutable reference")?
+                    .ok_or(format!(
+                        "Could not get mutable reference for component {}",
+                        c
+                    ))?
                     .as_writeable()
                     .is_some()
             };
@@ -1041,11 +1043,19 @@ impl Graph {
         let entry: &mut Arc<GraphStorage> = self
             .components
             .get_mut(c)
-            .ok_or("Could not get mutable reference")?
+            .ok_or(format!(
+                "Could not get mutable reference for component {}",
+                c
+            ))?
             .as_mut()
-            .ok_or("Could not get mutable reference to optional value")?;
-        let gs_mut_ref: &mut GraphStorage =
-            Arc::get_mut(entry).ok_or("Could not get mutable reference")?;
+            .ok_or(format!(
+                "Could not get mutable reference to optional value for component {}",
+                c
+            ))?;
+        let gs_mut_ref: &mut GraphStorage = Arc::get_mut(entry).ok_or(format!(
+            "Could not get mutable reference for component {}",
+            c
+        ))?;
         Ok(gs_mut_ref.as_writeable().ok_or("Invalid type")?)
     }
 
