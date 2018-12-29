@@ -17,7 +17,7 @@ This means that if a language bindings adds a feature, that has been released in
 4. **Test publishing** with `cargo publish --dry-run --allow-dirty`
 5. Close the corresponding **GitHub milestone** and remember its ID
 6. Update and commit the **`CHANGELOG.md`** file by executing `./misc/changelog.py <milestone-id>` and pasting the result into the changelog
-7. **Tag and push** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop` branch then delete the release branch.
+7. **Tag** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop`, branch then delete the release branch and **push** all changes.
 9. Publish to **crates.io** with `cargo publish`
 10. Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
 11. Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
