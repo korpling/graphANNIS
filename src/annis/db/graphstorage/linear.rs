@@ -91,10 +91,6 @@ where
         Box::from(std::iter::empty())
     }
 
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
-        &self.annos
-    }
-
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
         // use the node chains to find source nodes, but always skip the last element
         // because the last element is only a target node, not a source node
@@ -116,6 +112,10 @@ impl<PosT: 'static> GraphStorage for LinearGraphStorage<PosT>
 where
     for<'de> PosT: NumValue + Deserialize<'de> + Serialize,
 {
+    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
+        &self.annos
+    }
+
     fn serialization_id(&self) -> String {
         format!("LinearO{}V1", std::mem::size_of::<PosT>() * 8)
     }
@@ -252,7 +252,7 @@ where
         false
     }
 
-    fn copy(&mut self, db: &Graph, orig: &EdgeContainer) {
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
         self.clear();
 
         // find all roots of the component
@@ -274,9 +274,11 @@ where
             }
         }
 
-        let nodes: Box<Iterator<Item = Match>> =
-            db.node_annos
-                .exact_anno_search(Some(node_name_key.ns), node_name_key.name, None.into());
+        let nodes: Box<Iterator<Item = Match>> = db.node_annos.exact_anno_search(
+            Some(node_name_key.ns),
+            node_name_key.name,
+            None.into(),
+        );
         for m in nodes {
             let m: Match = m;
 
@@ -305,7 +307,7 @@ where
             };
             self.node_to_pos.insert(*root_node, pos);
 
-            let dfs = CycleSafeDFS::new(orig, *root_node, 1, usize::max_value());
+            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *root_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
 

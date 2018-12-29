@@ -32,7 +32,7 @@ typedef enum {
   /*
    * Edges between a structural node and any other structural node, span or token. Implies text coverage.
    */
-  Dominance,
+  Dominance = 2,
   /*
    * Edge between any node.
    */

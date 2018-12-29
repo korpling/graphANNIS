@@ -77,11 +77,6 @@ impl EdgeContainer for AdjacencyListStorage {
         }
         Box::new(std::iter::empty())
     }
-
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
-        &self.annos
-    }
-
     fn source_nodes<'a>(&'a self) -> Box<Iterator<Item = NodeID> + 'a> {
         let it = self
             .edges
@@ -97,6 +92,12 @@ impl EdgeContainer for AdjacencyListStorage {
 }
 
 impl GraphStorage for AdjacencyListStorage {
+
+    fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
+        &self.annos
+    }
+
+
     fn serialization_id(&self) -> String {
         "AdjacencyListV1".to_owned()
     }
@@ -177,7 +178,7 @@ impl GraphStorage for AdjacencyListStorage {
         it.next().is_some()
     }
 
-    fn copy(&mut self, _db: &Graph, orig: &EdgeContainer) {
+    fn copy(&mut self, _db: &Graph, orig: &GraphStorage) {
         self.clear();
 
         for source in orig.source_nodes() {
