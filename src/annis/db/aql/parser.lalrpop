@@ -13,6 +13,7 @@ use crate::annis::db::aql::operators::{
     PartOfSubCorpusSpec,
     InclusionSpec,
     LeftAlignmentSpec,
+    RightAlignmentSpec,
     IdenticalNodeSpec,
 };
 use self::ast::RangeSpec;
@@ -27,6 +28,7 @@ match {
     "_o_" => OVERLAP,
     "_i_" => INCLUSION,
     "_l_" => LEFT_ALIGNED,
+    "_r_" => RIGHT_ALIGNED,
 } else {
     r"[a-zA-Z_%][a-zA-Z0-9_\-%]*" => ID,
     r##"#[0-9]+"## => NODE_REF,
@@ -372,6 +374,8 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     INCLUSION => ast::BinaryOpSpec::Inclusion(InclusionSpec {}),
     // Left alignment
     LEFT_ALIGNED => ast::BinaryOpSpec::LeftAlignment(LeftAlignmentSpec {}),
+    // Right alignment
+    RIGHT_ALIGNED => ast::BinaryOpSpec::RightAlignment(RightAlignmentSpec {}),
     // Identical node
     IDENT_NODE => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
     // TODO: add more operators

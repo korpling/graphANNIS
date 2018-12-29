@@ -339,6 +339,7 @@ fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
         ast::BinaryOpSpec::PartOfSubCorpus(spec) => Box::new(spec),
         ast::BinaryOpSpec::Inclusion(spec) => Box::new(spec),
         ast::BinaryOpSpec::LeftAlignment(spec) => Box::new(spec),
+        ast::BinaryOpSpec::RightAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
     }
 }
