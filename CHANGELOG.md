@@ -1,3 +1,11 @@
+release 0.14.1
+==============
+
+Fixed Bugs
+----------
+
+- [#45](https://github.com/korpling/graphANNIS/issues/45) Travis configuration used wrong repository and could not deploy release binaries
+
 release 0.14.0
 ==============
 
