@@ -28,19 +28,19 @@ This means that if a language bindings adds a feature, that has been released in
 2. **Update version** information, by 
     - changing the `version` field in the `setup.py` file
     - specifying the corresponding graphANNIS release tag in the `GRAPHANNIS_VERSION` environment variable in `.travis.yml`
+    - committing the changed files
 3. **Download** release artifacts from the core library: `./package/download-release-binaries.sh <version-tag>` 
 4.  **Test** with 
     - `python3 -m unittest`
     - `./doctest_runner.py`
-5. **Commit**, wait for Continuous Integration to finish
-6. **Tag and push** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop` branch then delete the release branch.
+5. **Tag and push** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop` branch then delete the release branch.
 
 Continuous Integration will automatically deploy all released versions on the `master` branch.
 
 ## Java wrapper release
 
 1. **Start** the release process with `mvn jgitflow:release-start`
-2. **Download** release artifacts from the core library: `./package/download-release-binaries.sh <version-tag>`
+2. **Download** release artifacts from the core library: `./misc/download-release-binaries.sh <version-tag>`
 3. **Test** with `mvn test`
 4. **Finish** the release process with `mvn jgitflow:release-finish`
-5. **Release** the closed staging repository to Maven Central with the Nexus interface: https://oss.sonatype.org/
+5. **Release** the closed staging repository to Maven Central with the Nexus interface: [https://oss.sonatype.org/](https://oss.sonatype.org/)
