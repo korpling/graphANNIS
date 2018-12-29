@@ -953,7 +953,7 @@ impl Graph {
                 loaded_comp
             } else {
                 let mut gs_copy: AdjacencyListStorage = registry::create_writeable();
-                gs_copy.copy(&self, loaded_comp.as_edgecontainer());
+                gs_copy.copy(&self, loaded_comp.as_ref());
                 Arc::from(gs_copy)
             };
 
@@ -1077,7 +1077,7 @@ impl Graph {
                 if opt_info.id != gs.serialization_id() {
                     let mut new_gs = registry::create_from_info(&opt_info);
                     let converted = if let Some(new_gs_mut) = Arc::get_mut(&mut new_gs) {
-                        new_gs_mut.copy(self, gs.as_edgecontainer());
+                        new_gs_mut.copy(self, gs.as_ref());
                         true
                     } else {
                         false

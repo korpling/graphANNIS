@@ -43,9 +43,6 @@ pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all incoming edges for a given `node`.
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a>;
 
-    /// Get the annotation storage for the edges of this container.
-    fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
-
     fn get_statistics(&self) -> Option<&GraphStatistic> {
         None
     }
@@ -85,9 +82,13 @@ pub trait GraphStorage: EdgeContainer {
         max_distance: std::ops::Bound<usize>,
     ) -> bool;
 
+
+    /// Get the annotation storage for the edges of this graph storage.
+    fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;
+
     /// Copy the content of another component.
     /// This removes the existing content of this graph storage.
-    fn copy(&mut self, db: &Graph, orig: &EdgeContainer);
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage);
 
     /// Upcast this graph storage to the [EdgeContainer](trait.EdgeContainer.html) trait.
     fn as_edgecontainer(&self) -> &EdgeContainer;
