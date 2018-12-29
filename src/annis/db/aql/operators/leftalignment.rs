@@ -1,3 +1,4 @@
+use crate::annis::operator::EstimationType;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
@@ -99,5 +100,14 @@ impl Operator for LeftAlignment {
 
     fn get_inverse_operator(&self) -> Option<Box<Operator>> {
         Some(Box::new(self.clone()))
+    }
+
+    fn estimation_type(&self) -> EstimationType {
+        if let Some(stats_left) = self.gs_left.get_statistics() {
+            let aligned_nodes_per_token: f64 = stats_left.inverse_fan_out_99_percentile as f64;
+            return EstimationType::SELECTIVITY(aligned_nodes_per_token / (stats_left.nodes as f64));
+        }
+
+        EstimationType::SELECTIVITY(0.1)
     }
 }
