@@ -21,9 +21,10 @@ use crate::annis::types::{
 use crate::annis::util;
 use crate::annis::util::memory_estimation;
 use crate::annis::util::quicksort;
+use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use crate::update::GraphUpdate;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
-use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
@@ -34,7 +35,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::{Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::thread;
-use crate::update::GraphUpdate;
 
 use rustc_hash::FxHashMap;
 
@@ -965,7 +965,8 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
-                        ).reverse()
+                        )
+                        .reverse()
                     } else {
                         db::sort_matches::compare_matchgroup_by_text_pos(
                             m1,
@@ -1520,8 +1521,7 @@ impl CorpusStorage {
             let lock = db_entry.read().unwrap();
             if let Ok(db) = get_read_or_error(&lock) {
                 if let Some(gs) = db.get_graphstorage(&component) {
-                    let edge_annos: &AnnotationStorage<Edge> =
-                        gs.get_anno_storage();
+                    let edge_annos: &AnnotationStorage<Edge> = gs.get_anno_storage();
                     for key in edge_annos.annotation_keys() {
                         if list_values {
                             if only_most_frequent_values {
@@ -1820,20 +1820,22 @@ fn create_subgraph_edge(
     for c in components {
         if let Some(orig_gs) = orig_db.get_graphstorage(c) {
             for target in orig_gs.get_outgoing_edges(source_id) {
-                let e = Edge {
-                    source: source_id,
-                    target,
-                };
-                if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                    new_gs.add_edge(e.clone());
-                }
-
-                for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
-                    source: source_id,
-                    target,
-                }) {
+                if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
+                    let e = Edge {
+                        source: source_id,
+                        target,
+                    };
                     if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                        new_gs.add_edge_annotation(e.clone(), a);
+                        new_gs.add_edge(e.clone());
+                    }
+
+                    for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
+                        source: source_id,
+                        target,
+                    }) {
+                        if let Ok(new_gs) = db.get_or_create_writable(&c) {
+                            new_gs.add_edge_annotation(e.clone(), a);
+                        }
                     }
                 }
             }
