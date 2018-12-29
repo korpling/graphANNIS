@@ -92,11 +92,9 @@ impl EdgeContainer for AdjacencyListStorage {
 }
 
 impl GraphStorage for AdjacencyListStorage {
-
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge> {
         &self.annos
     }
-
 
     fn serialization_id(&self) -> String {
         "AdjacencyListV1".to_owned()
@@ -330,7 +328,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         }
 
         let fan_outs = get_fan_outs(&self.edges);
-        let sum_fan_out : usize = fan_outs.iter().sum();
+        let sum_fan_out: usize = fan_outs.iter().sum();
 
         if let Some(last) = fan_outs.last() {
             stats.max_fan_out = *last;
@@ -358,7 +356,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
                 stats.inverse_fan_out_99_percentile = inverse_fan_outs[idx];
             }
         }
-        
+
         let mut number_of_visits = 0;
         if roots.is_empty() && !self.edges.is_empty() {
             // if we have edges but no roots at all there must be a cycle
@@ -399,6 +397,71 @@ mod tests {
     use super::*;
 
     use itertools::Itertools;
+
+    #[test]
+    fn multiple_paths_find_range() {
+        /*
+        +---+
+        | 1 | -+
+        +---+  |
+            |    |
+            |    |
+            v    |
+        +---+  |
+        | 2 |  |
+        +---+  |
+            |    |
+            |    |
+            v    |
+        +---+  |
+        | 3 | <+
+        +---+
+            |
+            |
+            v
+        +---+
+        | 4 |
+        +---+
+            |
+            |
+            v
+        +---+
+        | 5 |
+        +---+
+        */
+
+        let mut gs = AdjacencyListStorage::new();
+        gs.add_edge(Edge {
+            source: 1,
+            target: 2,
+        });
+        gs.add_edge(Edge {
+            source: 2,
+            target: 3,
+        });
+        gs.add_edge(Edge {
+            source: 3,
+            target: 4,
+        });
+        gs.add_edge(Edge {
+            source: 1,
+            target: 3,
+        });
+        gs.add_edge(Edge {
+            source: 4,
+            target: 5,
+        });
+
+        let mut found: Vec<NodeID> = gs
+            .find_connected(1, 3, std::ops::Bound::Included(3))
+            .collect();
+
+        assert_eq!(2, found.len());
+        found.sort();
+
+        assert_eq!(4, found[0]);
+        assert_eq!(5, found[1]);
+    }
 
     #[test]
     fn simple_dag_find_all() {
@@ -483,4 +546,33 @@ mod tests {
         assert_eq!(true, reachable.is_empty());
     }
 
+    #[test]
+    fn indirect_cycle_statistics() {
+        let mut gs = AdjacencyListStorage::new();
+
+         gs.add_edge(Edge {
+             source: 1,
+             target: 2,
+         });
+
+        gs.add_edge(Edge {
+            source: 2,
+            target: 3,
+        });
+
+        gs.add_edge(Edge {
+            source: 3,
+            target: 4,
+        });
+
+        gs.add_edge(Edge {
+            source: 4,
+            target: 2,
+        });
+
+        gs.calculate_statistics();
+        assert_eq!(true, gs.get_statistics().is_some());
+        let stats = gs.get_statistics().unwrap();
+        assert_eq!(true, stats.cyclic);
+    }
 }
