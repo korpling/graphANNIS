@@ -11,15 +11,16 @@ use std::sync::Arc;
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct LeftAlignmentSpec;
 
+#[derive(Clone)]
 pub struct LeftAlignment {
-    gs_cov: Arc<GraphStorage>,
+    gs_left: Arc<GraphStorage>,
     tok_helper: TokenHelper,
 }
 
 lazy_static! {
-    static ref COMPONENT_COV: Component = {
+    static ref COMPONENT_LEFT: Component = {
         Component {
-            ctype: ComponentType::Coverage,
+            ctype: ComponentType::LeftToken,
             layer: String::from("annis"),
             name: String::from(""),
         }
@@ -28,7 +29,7 @@ lazy_static! {
 
 impl OperatorSpec for LeftAlignmentSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
-        let mut v: Vec<Component> = vec![COMPONENT_COV.clone()];
+        let mut v: Vec<Component> = vec![COMPONENT_LEFT.clone()];
         v.append(&mut token_helper::necessary_components());
         v
     }
@@ -45,11 +46,11 @@ impl OperatorSpec for LeftAlignmentSpec {
 
 impl LeftAlignment {
     pub fn new(db: &Graph) -> Option<LeftAlignment> {
-        let gs_cov = db.get_graphstorage(&COMPONENT_COV)?;
+        let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
 
         let tok_helper = TokenHelper::new(db)?;
 
-        Some(LeftAlignment { gs_cov, tok_helper })
+        Some(LeftAlignment { gs_left, tok_helper })
     }
 }
 
@@ -60,6 +61,8 @@ impl std::fmt::Display for LeftAlignment {
 }
 
 impl Operator for LeftAlignment {
+    
+
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let mut aligned = Vec::default();
 
@@ -70,7 +73,7 @@ impl Operator for LeftAlignment {
                     anno_key: AnnoKeyID::default(),
                 });
             }
-            aligned.extend(self.gs_cov.get_outgoing_edges(lhs_token).map(|n| Match {
+            aligned.extend(self.gs_left.get_ingoing_edges(lhs_token).map(|n| Match {
                 node: n,
                 anno_key: AnnoKeyID::default(),
             }));
@@ -88,5 +91,13 @@ impl Operator for LeftAlignment {
         } else {
             return false;
         }
+    }
+
+    fn is_reflexive(&self) -> bool {
+        false
+    }
+
+    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+        Some(Box::new(self.clone()))
     }
 }
