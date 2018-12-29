@@ -1,8 +1,11 @@
 use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::graphstorage::adjacencylist::AdjacencyListStorage;
 use crate::annis::db::graphstorage::registry;
+use crate::annis::db::graphstorage::union::UnionEdgeContainer;
+use crate::annis::db::graphstorage::EdgeContainer;
 use crate::annis::db::graphstorage::{GraphStorage, WriteableGraphStorage};
 use crate::annis::db::update::{GraphUpdate, UpdateEvent};
+use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{AnnoKeyID, Annotation, Component, ComponentType, Edge, NodeID};
@@ -543,7 +546,8 @@ impl Graph {
                         let node_annos = Arc::make_mut(&mut self.node_annos);
                         node_annos.insert(new_node_id, new_anno_name);
                         node_annos.insert(new_node_id, new_anno_type);
-                        invalid_nodes.insert(new_node_id);
+
+                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(new_node_id));
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
@@ -559,7 +563,8 @@ impl Graph {
                         for c in self.get_all_components(None, None) {
                             self.components.remove(&c);
                         }
-                        invalid_nodes.insert(existing_node_id);
+
+                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(existing_node_id));
                     }
                 }
                 UpdateEvent::AddNodeLabel {
@@ -614,8 +619,9 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target });
 
-                            invalid_nodes.insert(source);
-                            invalid_nodes.insert(target);
+                            
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
                         }
                     }
                 }
@@ -639,8 +645,8 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
 
-                            invalid_nodes.insert(source);
-                            invalid_nodes.insert(target);
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
                         }
                     }
                 }
@@ -718,7 +724,9 @@ impl Graph {
 
         // re-index
         if let Some(gs_order) = self.get_graphstorage(&Component {
-            ctype: ComponentType::Ordering, layer: ANNIS_NS.to_owned(), name: "".to_owned(),
+            ctype: ComponentType::Ordering,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
         }) {
             self.reindex_left_right_token(invalid_nodes, gs_order)?;
         }
@@ -726,7 +734,30 @@ impl Graph {
         Ok(())
     }
 
-    fn reindex_left_right_token(&mut self, invalid_nodes: FxHashSet<NodeID>, gs_order : Arc<GraphStorage>) -> Result<()> {
+    fn get_parent_text_coverage_nodes(&self, node: NodeID) -> Vec<NodeID> {
+        let mut text_coverage_components =
+            self.get_all_components(Some(ComponentType::Dominance), Some(""));
+        text_coverage_components
+            .extend(self.get_all_components(Some(ComponentType::Coverage), Some("")));
+
+        let containers: Vec<&EdgeContainer> = text_coverage_components
+            .iter()
+            .filter_map(|c| self.get_graphstorage_as_ref(c))
+            .map(|gs| gs.as_edgecontainer())
+            .collect();
+
+        let union = UnionEdgeContainer::new(containers);
+
+        let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::max_value());
+        
+        dfs.map(|step| step.node).collect()
+    }
+
+    fn reindex_left_right_token(
+        &mut self,
+        invalid_nodes: FxHashSet<NodeID>,
+        gs_order: Arc<GraphStorage>,
+    ) -> Result<()> {
         {
             // remove existing left/right token edges for the invalidated nodes
             let gs_left = self.get_or_create_writable(&Component {
@@ -758,8 +789,12 @@ impl Graph {
         Ok(())
     }
 
-    fn calculate_token_alignment(&mut self, n: NodeID, ctype: ComponentType, gs_order : &GraphStorage) -> Result<NodeID> {
-
+    fn calculate_token_alignment(
+        &mut self,
+        n: NodeID,
+        ctype: ComponentType,
+        gs_order: &GraphStorage,
+    ) -> Result<NodeID> {
         let coverage_component = Component {
             ctype: ComponentType::Coverage,
             name: "".to_owned(),
@@ -772,7 +807,11 @@ impl Graph {
         };
 
         // if this is a token, return the token itself
-        if self.node_annos.get_value_for_item(&n, &self.get_token_key()).is_some() {
+        if self
+            .node_annos
+            .get_value_for_item(&n, &self.get_token_key())
+            .is_some()
+        {
             // also check if this is an actually token and not only a segmentation
             if let Some(gs_coverage) = self.get_graphstorage(&coverage_component) {
                 if gs_coverage.get_outgoing_edges(n).next().is_none() {
@@ -799,7 +838,8 @@ impl Graph {
         for c in text_coverage_components {
             if let Some(gs_for_component) = self.get_graphstorage(&c) {
                 for target in gs_for_component.get_outgoing_edges(n) {
-                    let candidate_for_target = self.calculate_token_alignment(target, ctype.clone(), gs_order)?;
+                    let candidate_for_target =
+                        self.calculate_token_alignment(target, ctype.clone(), gs_order)?;
                     candidates.insert(candidate_for_target);
                 }
             }
@@ -836,7 +876,6 @@ impl Graph {
         } else {
             return Err(format!("node {} is not connected to any token", n).into());
         }
-    
     }
 
     /// Apply a sequence of updates (`u` parameter) to this graph.

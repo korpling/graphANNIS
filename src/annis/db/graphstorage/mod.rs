@@ -143,3 +143,4 @@ pub mod adjacencylist;
 pub mod linear;
 pub mod prepost;
 pub mod registry;
+pub mod union;
