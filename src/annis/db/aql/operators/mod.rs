@@ -51,5 +51,6 @@ pub use self::identical_cov::IdenticalCoverageSpec;
 pub use self::identical_node::IdenticalNodeSpec;
 pub use self::inclusion::InclusionSpec;
 pub use self::overlap::OverlapSpec;
+pub use self::leftalignment::LeftAlignmentSpec;
 pub use self::precedence::PrecedenceSpec;
 

@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::annis::db::aql::operators::{
     DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec, OverlapSpec,
-    PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec,
+    PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec, LeftAlignmentSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 
@@ -92,6 +92,7 @@ pub enum BinaryOpSpec {
     IdenticalCoverage(IdenticalCoverageSpec),
     PartOfSubCorpus(PartOfSubCorpusSpec),
     Inclusion(InclusionSpec),
+    LeftAlignment(LeftAlignmentSpec),
     IdenticalNode(IdenticalNodeSpec),
 }
 
