@@ -1,3 +1,13 @@
+release 0.14.2
+==============
+
+Fixed Bugs
+----------
+
+- [#50](https://github.com/korpling/graphANNIS/issues/50) Non-reflexive operator join on "any token search" leads to non-empty result
+- [#48](https://github.com/korpling/graphANNIS/issues/48) Importing PCC 2.1 corpus hangs at "calculating statistics for component LeftToken/annis/"
+- [#46](https://github.com/korpling/graphANNIS/issues/46) Filter not applied for negated annotation search
+
 release 0.14.1
 ==============
 
