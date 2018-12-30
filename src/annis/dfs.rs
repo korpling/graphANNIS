@@ -94,7 +94,7 @@ impl<'a> CycleSafeDFS<'a> {
             trace!("cycle detected for node {} with distance {}", &node, dist);
             self.last_distance = dist;
             self.cycle_detected = true;
-            trace!("removing from stack");
+            trace!("removing from stack because of cycle");
             self.stack.pop();
             false
         } else {
