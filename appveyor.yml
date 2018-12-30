@@ -4,6 +4,9 @@
 # Building is done in the test phase, so we disable Appveyor's build phase.
 build: false
 
+# More concurrency, especially when both the release tag and the new develop branch are build
+max_jobs: 3
+
 environment:
   global:
   # TODO This is the Rust channel that build jobs will use by default but can be
