@@ -582,6 +582,7 @@ mod tests {
         assert_eq!(true, stats.cyclic);
     }
 
+    #[ignore]
     #[test]
     fn multi_branch_cycle_statistics() {
         let mut gs = AdjacencyListStorage::new();
