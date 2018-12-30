@@ -575,14 +575,20 @@ where
                 Arc::make_mut(&mut db.node_annos).insert(node_nr, layer_anno);
             }
 
-            let left_val = line.get(5).ok_or("Missing column")?.parse::<u32>()?;
+            // Use left/right token columns for relANNIS 3.3 and the left/right character column otherwise.
+            // For some malformed corpora, the token coverage information is more robust and guaranties that a node is
+            // only left/right aligned to a single token.
+            let left_column = if is_annis_33 {8} else {5};
+            let right_column = if is_annis_33 {9} else {6};
+
+            let left_val = line.get(left_column).ok_or("Missing column")?.parse::<u32>()?;
             let left = TextProperty {
                 segmentation: String::from(""),
                 val: left_val,
                 corpus_id,
                 text_id,
             };
-            let right_val = line.get(6).ok_or("Missing column")?.parse::<u32>()?;
+            let right_val = line.get(right_column).ok_or("Missing column")?.parse::<u32>()?;
             let right = TextProperty {
                 segmentation: String::from(""),
                 val: right_val,
