@@ -435,16 +435,31 @@ impl<'a> NodeSearch<'a> {
 
         let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
-        if let ValueSearch::Some(val) = val {
-            let node_annos = db.node_annos.clone();
-            filters.push(Box::new(move |m| {
-                if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
-                    return anno_val == val.as_str();
-                } else {
-                    return false;
-                }
-            }));
-        };
+        match val {
+            ValueSearch::Any => {}
+            ValueSearch::Some(val) => {
+                let node_annos = db.node_annos.clone();
+                filters.push(Box::new(move |m| {
+                    if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                    {
+                        return anno_val == val.as_str();
+                    } else {
+                        return false;
+                    }
+                }));
+            }
+            ValueSearch::NotSome(val) => {
+                let node_annos = db.node_annos.clone();
+                filters.push(Box::new(move |m| {
+                    if let Some(anno_val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                    {
+                        return anno_val != val.as_str();
+                    } else {
+                        return false;
+                    }
+                }));
+            }
+        }
         Ok(NodeSearch {
             it: Box::new(it),
             desc: Some(Desc::empty_with_fragment(
@@ -533,13 +548,23 @@ impl<'a> NodeSearch<'a> {
         match re {
             Ok(re) => {
                 let node_annos = db.node_annos.clone();
-                filters.push(Box::new(move |m| {
-                    if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
-                        return re.is_match(val);
-                    } else {
-                        return false;
-                    }
-                }));
+                if negated {
+                    filters.push(Box::new(move |m| {
+                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                            return !re.is_match(val);
+                        } else {
+                            return false;
+                        }
+                    }));
+                } else {
+                    filters.push(Box::new(move |m| {
+                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                            return re.is_match(val);
+                        } else {
+                            return false;
+                        }
+                    }));
+                }
             }
             Err(e) => bail!(ErrorKind::AQLSemanticError(
                 format!("/{}/ -> {}", pattern, e),
