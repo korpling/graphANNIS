@@ -1,12 +1,11 @@
 pub mod memory_estimation;
 pub mod quicksort;
 
+use csv;
 use regex_syntax;
+use serde_derive;
 use std;
-use std::ffi::{OsStr, OsString};
-use std::fs::File;
-use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub fn regex_full_match(pattern: &str) -> String {
     let mut full_match_pattern = String::new();
@@ -36,85 +35,32 @@ pub fn split_qname(qname: &str) -> (Option<&str>, &str) {
 }
 
 /// Defines a definition of a query including its number of expected results.
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct SearchDef {
     pub aql: String,
     pub count: u64,
     pub name: String,
+    pub corpus: String,
 }
 
-impl SearchDef {
-    /// Create a definition of a query by a file name.
-    pub fn from_file(base: &Path) -> Option<SearchDef> {
-        let mut p_aql = PathBuf::from(base);
-        p_aql.set_extension("aql");
-
-        let mut p_count = PathBuf::from(base);
-        p_count.set_extension("count");
-
-        let f_aql = File::open(p_aql.clone());
-        let f_count = File::open(p_count);
-
-        if let (Ok(mut f_aql), Ok(mut f_count)) = (f_aql, f_count) {
-            let mut aql = String::new();
-            let mut count = String::new();
-
-            if let (Ok(_), Ok(_)) = (
-                f_aql.read_to_string(&mut aql),
-                f_count.read_to_string(&mut count),
-            ) {
-                // try to parse the count value
-                if let Ok(count) = count.trim().parse::<u64>() {
-                    let unknown_name = OsString::from("<unknown>");
-                    let name: &OsStr = p_aql.file_stem().unwrap_or(&unknown_name);
-                    return Some(SearchDef {
-                        aql: String::from(aql.trim()),
-                        count,
-                        name: String::from(name.to_string_lossy()),
-                    });
-                }
-            }
-        }
-
-        None
-    }
-}
-
-/// Returns an iterator over all query definitions of a folder.
-/// - `folder` - The folder on the file system.
+/// Returns a vector over all query definitions defined in a CSV file.
+/// - `file` - The CSV fil path.
 /// - `panic_on_invalid` - If true, an invalid query definition will trigger a panic, otherwise it will be ignored.
 /// Can be used if this query is called in a test case to fail the test.
-pub fn get_queries_from_folder(
-    folder: &Path,
-    panic_on_invalid: bool,
-) -> Box<Iterator<Item = SearchDef>> {
-    // get an iterator over all files in the folder
-    if let Ok(it_folder) = folder.read_dir() {
-        // filter by file type and read both the ".aql", ".json" and ".count" files
-        let it = it_folder.filter_map(move |e| -> Option<SearchDef> {
-            if let Ok(e) = e {
-                let p = e.path();
-                if p.exists() && p.is_file() && p.extension() == Some(&OsString::from("aql")) {
-                    let r = SearchDef::from_file(&p);
-                    if panic_on_invalid {
-                        let r = r.unwrap_or_else(|| {
-                            panic!(
-                                "Search definition for query {} is incomplete",
-                                p.to_string_lossy()
-                            )
-                        });
-                        return Some(r);
-                    } else {
-                        return r;
-                    }
-                }
-            }
-
-            None
-        });
-
-        Box::from(it)
+pub fn get_queries_from_csv(file: &Path, panic_on_invalid: bool) -> Vec<SearchDef> {
+    if let Ok(mut reader) = csv::Reader::from_path(file) {
+        if panic_on_invalid {
+            let it = reader
+                .deserialize()
+                .map(|row| -> SearchDef { row.unwrap() });
+            it.collect()
+        } else {
+            let it = reader
+                .deserialize()
+                .filter_map(|row| -> Option<SearchDef> { row.ok() });
+            it.collect()
+        }
     } else {
-        Box::new(std::iter::empty())
+        vec![]
     }
 }
