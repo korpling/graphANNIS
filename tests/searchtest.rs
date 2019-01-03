@@ -43,12 +43,13 @@ fn all_from_csv() {
     CORPUS_STORAGE.with(|cs| {
         if let Some(ref cs) = *cs.borrow() {
             for def in util::get_queries_from_csv(&queries_file, true) {
-                let count = cs
-                    .count(&def.corpus, &def.aql, QueryLanguage::AQL)
-                    .unwrap_or(0);
+                let mut count = 0;
+                for c in def.corpus.iter() {
+                    count += cs.count(c, &def.aql, QueryLanguage::AQL).unwrap_or(0)
+                }
                 assert_eq!(
                     def.count, count,
-                    "Query '{}' ({}) on corpus {} should have had count {} but was {}.",
+                    "Query '{}' ({}) on corpus {:?} should have had count {} but was {}.",
                     def.aql, def.name, def.corpus, def.count, count
                 );
             }

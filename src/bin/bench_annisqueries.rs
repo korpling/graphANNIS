@@ -22,7 +22,7 @@ pub struct CountBench {
 
 impl std::fmt::Debug for CountBench {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}/{}", self.def.corpus, self.def.name)
+        write!(f, "{}/{}", self.def.corpus[0], self.def.name)
     }
 }
 
@@ -37,7 +37,7 @@ pub fn create_query_input(
 
     let queries = util::get_queries_from_csv(queries_file, true);
     for def in queries {
-        let mut bench_name = String::from(def.corpus.clone());
+        let mut bench_name = String::from(def.corpus[0].clone());
         bench_name.push_str("/");
         bench_name.push_str(&def.name);
 
@@ -138,13 +138,18 @@ fn main() {
     crit.bench_function_over_inputs(
         "count",
         |b: &mut Bencher, obj: &CountBench| {
-            obj.cs.preload(&obj.def.corpus).unwrap();
+            for c in obj.def.corpus.iter() {
+                // TODO: preloading all corpora is necessary, but how do we prevent unloading?
+                obj.cs.preload(c).unwrap();
+            }
             b.iter(|| {
-                if let Ok(count) = obj.cs.count(&obj.def.corpus, &obj.def.aql, QueryLanguage::AQL) {
-                    assert_eq!(obj.def.count, count);
-                } else {
-                    assert_eq!(obj.def.count, 0);
+                let mut all_corpora_count = 0;
+                for c in obj.def.corpus.iter() {
+                    if let Ok(count) = obj.cs.count(c, &obj.def.aql, QueryLanguage::AQL) {
+                        all_corpora_count += count;
+                    }
                 }
+                assert_eq!(obj.def.count, all_corpora_count);
             });
         },
         benches,
