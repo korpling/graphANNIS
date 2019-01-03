@@ -1,116 +1,63 @@
 name,aql,corpus,count
-CatSearch,"cat
-",tiger2,373436
-PluralNP,"cat=""VP"" > cat=""NP"" > morph=/.*Pl.*/
-",tiger2,6760
-TokenPrecedence,"tiger:pos=""NN"" .2,10 tiger:pos=""ART""
-",tiger2,179024
-TokenPrecedenceThreeNodes,"tiger:pos=""NN"" .2,10 tiger:pos=""ART"" . tiger:pos=""NN""
-",tiger2,114042
+PluralNP,"cat=""VP"" > cat=""NP"" > morph=/.*Pl.*/",tiger2,6760
+CatSearch,cat,tiger2,373436
+TokenPrecedence,"tiger:pos=""NN"" .2,10 tiger:pos=""ART""",tiger2,179024
+TokenPrecedenceThreeNodes,"tiger:pos=""NN"" .2,10 tiger:pos=""ART"" . tiger:pos=""NN""",tiger2,114042
 PPNotModifier,"cat=""S"" & cat=""PP"" & #1 >[func!=""MO""] #2",tiger2,3642
-BilharzioseSentence,"tiger:cat=""S"" & tok=""Bilharziose"" & #1 >* #2
-",tiger2,21
-noun_with_metadata,"pos=""NN"" & meta::type=""interview"" & meta::doc=/.*_ants/
-",GUM,126
-coffee,"infstat=""giv"" & entity=""object"" & ""Coffee"" & #1 _o_#3 & #2 _o_ #3
-",GUM,1
-kind_dom_kind,"kind >[relname=""evidence""] kind
-",GUM,56
+BilharzioseSentence,"tiger:cat=""S"" & tok=""Bilharziose"" & #1 >* #2",tiger2,21
+noun_with_metadata,"pos=""NN"" & meta::type=""interview"" & meta::doc=/.*_ants/",GUM,126
+city,"lemma=""city"" _o_ entity ->coref[type=""coref""] entity",GUM,64
+coffee,"infstat=""giv"" & entity=""object"" & ""Coffee"" & #1 _o_#3 & #2 _o_ #3",GUM,1
+kind_dom_kind,"kind >[relname=""evidence""] kind",GUM,56
+corefAnno,"infstat=""giv"" ->coref[type=""coref""] entity=""person""",GUM,636
+edge_anno_regex,pos=/V.*/ ->dep[func=/(d|c).*/] tok,GUM,3754
 entity,"entity=""person"" ->coref[type=""coref""] infstat 
 & cat > tok 
 & #1 _=_ #3 
 & ""studies"" 
-& #5 ->dep[func=""nsubj""] #4
-",GUM,2
-meta_interview,"pos=""RB"" & meta::type=""interview""
-",GUM,522
-VV_dep,"pos=/VV.*/ ->dep[func=""nsubj""] tok & tok & #1 ->dep[func=""dobj""] #3
-",GUM,955
-nonexisting_dep,"tok=""'s"" ->dep[func=""nsubjpass""]tok
-",GUM,0
-city,"lemma=""city"" _o_ entity ->coref[type=""coref""] entity
-",GUM,64
-tok_dep_tok,"tok ->dep[func=""dep""] tok
-",GUM,246
-dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2
-",GUM,1
-edge_anno_regex,pos=/V.*/ ->dep[func=/(d|c).*/] tok,GUM,3754
-corefAnno,"infstat=""giv"" ->coref[type=""coref""] entity=""person""
-",GUM,636
-POS,"POS
-",parlament,3134192
-PosValueSearch,"default_ns:pos=""NN""
-",ridges7,46957
-DiplNameSearch,"dipl
-",ridges7,252777
-Benchmark2,"tok .2,10 tok
-",ridges7,2317482
-PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node
-",ridges7,28
-Benchmark1,"default_ns:pos=""NN"" .2,10 default_ns:pos=""ART""
-",ridges7,37228
-SeedOverlap,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _o_ #2
-",ridges7,300
-NotWennExact,"KOUS_sem=""konditional"" _i_ lemma!=""wenn""
-",ridges7,119
-Inclusion,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _i_ #2
-",ridges7,300
-NotWennRegex,"KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/
-",ridges7,119
-DasAuch,"""Das"" .dipl,1,10 ""auch""
-",ridges7,28
-NodeCount,"node
-",pcc2,998
-TokIdentCovNode,"tok=/A.*/ & node & #1 _=_ #2
-",pcc2,2
-Precedence,"exmaralda:Inf-Stat=""acc-sit"" .1,500 exmaralda:NP=""NP""
-",pcc2,27
-MultiDominance,"node >2,4 node
-",pcc2,2072
-CatSearch,"cat
-",pcc2,155
-DirectPointing,"mmax:np_form=""defnp"" & mmax:np_form=""pper""  & #2 ->anaphor_antecedent #1
-",pcc2,5
-MMaxAnnos_ambiguity,"mmax:ambiguity=""not_ambig""
-",pcc2,73
-TokenIndex,"""Die"" . ""Jugendlichen""
-",pcc2,2
-TestQueryOverlap2,"mmax:ambiguity=""not_ambig"" _o_ mmax:complex_np=""yes""
-",pcc2,47
-MMaxAnnos_complex_np,"mmax:complex_np=""yes""
-",pcc2,17
-KarolaAlignTok,"""Karola"" & pos=""NE"" & #1 _l_ #2 & #1 _r_ #2
-",pcc2,1
-DepthFirst,"""Tiefe"" .2,10 tok
-",pcc2,9
-NodeIdentCovNode,"node _=_ node
-",pcc2,1078
-RangedDominance,"tiger:cat=""S"" >2,4 cat
-",pcc2,93
-TokIdentCovNN,"tok=/A.*/ & pos=/NN/ & #1 _=_ #2
-",pcc2,5
-AnyNodeIncludeSeed,"node _i_ node
-",pcc2,14349
+& #5 ->dep[func=""nsubj""] #4",GUM,2
+VV_dep,"pos=/VV.*/ ->dep[func=""nsubj""] tok & tok & #1 ->dep[func=""dobj""] #3",GUM,955
+tok_dep_tok,"tok ->dep[func=""dep""] tok",GUM,246
+nonexisting_dep,"tok=""'s"" ->dep[func=""nsubjpass""]tok",GUM,0
+dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2",GUM,1
+meta_interview,"pos=""RB"" & meta::type=""interview""",GUM,522
+POS,POS,parlament,3134192
+DiplNameSearch,dipl,ridges7,252777
+PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",ridges7,28
+NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,ridges7,119
+Benchmark2,"tok .2,10 tok",ridges7,2317482
+NotWennExact,"KOUS_sem=""konditional"" _i_ lemma!=""wenn""",ridges7,119
+SeedOverlap,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _o_ #2",ridges7,300
+Benchmark1,"default_ns:pos=""NN"" .2,10 default_ns:pos=""ART""",ridges7,37228
+DasAuch,"""Das"" .dipl,1,10 ""auch""",ridges7,28
+PosValueSearch,"default_ns:pos=""NN""",ridges7,46957
+Inclusion,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _i_ #2",ridges7,300
+StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2,2
+IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2,1
+Regex,cat=/.P/ >* /A.*/,pcc2,12
+NodeCount,node,pcc2,998
+KarolaAlignLemma,"lemma=""Karola"" & pos=""NE"" & #1 _l_ #2 & #1 _r_ #2",pcc2,1
 NotProperNound,"pos!=""NE""",pcc2,388
-NotDocument,"tok & meta::Titel!=""Steilpass""",pcc2,212
-TestQueryOverlap1,"exmaralda:Inf-Stat=""new"" _o_ exmaralda:PP
-",pcc2,3
-StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""
-",pcc2,2
-KarolaOr,"a#""Karola"" & (b#lemma=""Karola"" | b#pos=""NE"") & #a _=_ #b
-",pcc2,2
-IndirectPointing,"mmax:np_form=""defnp"" & mmax:np_form=""pper""  & #2 ->anaphor_antecedent * #1
-",pcc2,13
-DirectPointingWithAnno,"tiger:pos=""ADJD"" ->dep[func=""punct""] "".""
-",pcc2,4
-Regex,"cat=/.P/ >* /A.*/
-",pcc2,12
-IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""
-",pcc2,1
-InclusionQuery,"mmax:ambiguity=""not_ambig"" _i_ mmax:complex_np=""yes""
-",pcc2,23
-KarolaAlignLemma,"lemma=""Karola"" & pos=""NE"" & #1 _l_ #2 & #1 _r_ #2
-",pcc2,1
-Profile,"node ->dep[func=""sbj""] node
-",pcc2,38
+KarolaOr,"a#""Karola"" & (b#lemma=""Karola"" | b#pos=""NE"") & #a _=_ #b",pcc2,2
+Profile,"node ->dep[func=""sbj""] node",pcc2,38
+IndirectPointing,"mmax:np_form=""defnp"" & mmax:np_form=""pper""  & #2 ->anaphor_antecedent * #1",pcc2,13
+TokIdentCovNode,tok=/A.*/ & node & #1 _=_ #2,pcc2,2
+MMaxAnnos_ambiguity,"mmax:ambiguity=""not_ambig""",pcc2,73
+CatSearch,cat,pcc2,155
+InclusionQuery,"mmax:ambiguity=""not_ambig"" _i_ mmax:complex_np=""yes""",pcc2,23
+AnyNodeIncludeSeed,node _i_ node,pcc2,14349
+KarolaAlignTok,"""Karola"" & pos=""NE"" & #1 _l_ #2 & #1 _r_ #2",pcc2,1
+TokIdentCovNN,tok=/A.*/ & pos=/NN/ & #1 _=_ #2,pcc2,5
+RangedDominance,"tiger:cat=""S"" >2,4 cat",pcc2,93
+NodeIdentCovNode,node _=_ node,pcc2,1078
+Precedence,"exmaralda:Inf-Stat=""acc-sit"" .1,500 exmaralda:NP=""NP""",pcc2,27
 NotNoun,pos!=/(NN)|(NE)/,pcc2,326
+TestQueryOverlap2,"mmax:ambiguity=""not_ambig"" _o_ mmax:complex_np=""yes""",pcc2,47
+TestQueryOverlap1,"exmaralda:Inf-Stat=""new"" _o_ exmaralda:PP",pcc2,3
+MMaxAnnos_complex_np,"mmax:complex_np=""yes""",pcc2,17
+TokenIndex,"""Die"" . ""Jugendlichen""",pcc2,2
+MultiDominance,"node >2,4 node",pcc2,2072
+NotDocument,"tok & meta::Titel!=""Steilpass""",pcc2,212
+DirectPointingWithAnno,"tiger:pos=""ADJD"" ->dep[func=""punct""] "".""",pcc2,4
+DirectPointing,"mmax:np_form=""defnp"" & mmax:np_form=""pper""  & #2 ->anaphor_antecedent #1",pcc2,5
+DepthFirst,"""Tiefe"" .2,10 tok",pcc2,9

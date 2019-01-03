@@ -28,7 +28,7 @@ for subfolder in os.listdir(query_folder):
             if os.path.isfile(aql_file) and os.path.isfile(count_file):
                 row = {"corpus": subfolder, "name": name}
                 with open(aql_file, "r") as f:
-                    row["aql"] = f.read()
+                    row["aql"] = f.read().strip()
                 with open(count_file, "r") as f:
                     row["count"] = int(f.read().strip())
                     
