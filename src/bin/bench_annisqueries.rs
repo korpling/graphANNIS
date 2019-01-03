@@ -17,49 +17,34 @@ use graphannis::CorpusStorage;
 
 pub struct CountBench {
     pub def: util::SearchDef,
-    pub corpus: String,
     pub cs: Arc<CorpusStorage>,
 }
 
 impl std::fmt::Debug for CountBench {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}/{}", self.corpus, self.def.name)
+        write!(f, "{}/{}", self.def.corpus[0], self.def.name)
     }
 }
 
 pub fn create_query_input(
     data_dir: &Path,
-    queries_dir: &Path,
+    queries_file: &Path,
     use_parallel_joins: bool,
 ) -> std::vec::Vec<CountBench> {
     let mut benches = std::vec::Vec::new();
 
     let cs = Arc::new(CorpusStorage::with_auto_cache_size(data_dir, use_parallel_joins).unwrap());
 
-    // each folder is one corpus
-    if let Ok(paths) = std::fs::read_dir(queries_dir) {
-        for p in paths {
-            if let Ok(p) = p {
-                if let Ok(ftype) = p.file_type() {
-                    if ftype.is_dir() {
-                        if let Ok(corpus_name) = p.file_name().into_string() {
-                            let queries = util::get_queries_from_folder(&p.path(), true);
-                            for def in queries {
-                                let mut bench_name = String::from(corpus_name.clone());
-                                bench_name.push_str("/");
-                                bench_name.push_str(&def.name);
+    let queries = util::get_queries_from_csv(queries_file, true);
+    for def in queries {
+        let mut bench_name = String::from(def.corpus[0].clone());
+        bench_name.push_str("/");
+        bench_name.push_str(&def.name);
 
-                                benches.push(CountBench {
-                                    def,
-                                    corpus: corpus_name.clone(),
-                                    cs: cs.clone(),
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        benches.push(CountBench {
+            def,
+            cs: cs.clone(),
+        });
     }
 
     return benches;
@@ -71,40 +56,47 @@ fn main() {
             Arg::with_name("output-dir")
                 .long("output-dir")
                 .takes_value(true),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("data")
                 .long("data")
                 .short("d")
                 .takes_value(true)
                 .required(true),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("queries")
                 .long("queries")
                 .short("q")
                 .takes_value(true)
                 .required(true),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("parallel")
                 .long("parallel")
                 .short("p")
                 .takes_value(false)
                 .required(false),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("save-baseline")
                 .long("save-baseline")
                 .takes_value(true)
                 .required(false),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("baseline")
                 .long("baseline")
                 .takes_value(true)
                 .required(false),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("nsamples")
                 .long("nsamples")
                 .takes_value(true)
                 .required(false),
-        ).arg(Arg::with_name("FILTER").required(false))
+        )
+        .arg(Arg::with_name("FILTER").required(false))
         .get_matches();
 
     let mut crit: Criterion = Criterion::default().warm_up_time(Duration::from_millis(500));
@@ -146,15 +138,21 @@ fn main() {
     crit.bench_function_over_inputs(
         "count",
         |b: &mut Bencher, obj: &CountBench| {
-            obj.cs.preload(&obj.corpus).unwrap();
+            for c in obj.def.corpus.iter() {
+                // TODO: preloading all corpora is necessary, but how do we prevent unloading?
+                obj.cs.preload(c).unwrap();
+            }
             b.iter(|| {
-                if let Ok(count) = obj.cs.count(&obj.corpus, &obj.def.aql, QueryLanguage::AQL) {
-                    assert_eq!(obj.def.count, count);
-                } else {
-                    assert_eq!(obj.def.count, 0);
+                let mut all_corpora_count = 0;
+                for c in obj.def.corpus.iter() {
+                    if let Ok(count) = obj.cs.count(c, &obj.def.aql, QueryLanguage::AQL) {
+                        all_corpora_count += count;
+                    }
                 }
+                assert_eq!(obj.def.count, all_corpora_count);
             });
         },
         benches,
-    ).final_summary();
+    )
+    .final_summary();
 }

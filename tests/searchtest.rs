@@ -27,56 +27,39 @@ thread_local! {
        };
 }
 
-fn get_query_dir() -> PathBuf {
-    let query_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_QUERIES") {
+fn get_query_file() -> PathBuf {
+    let query_file = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_QUERIES") {
         path
     } else {
-        String::from("queries")
+        String::from("queries/tests.csv")
     });
-    query_dir
+    query_file
 }
 
-fn search_test_base(corpus: &str, panic_on_invalid: bool) {
+#[ignore]
+#[test]
+fn all_from_csv() {
+    let queries_file = get_query_file();
     CORPUS_STORAGE.with(|cs| {
         if let Some(ref cs) = *cs.borrow() {
             if let Ok(corpora) = cs.list() {
                 let corpora: HashSet<String> = corpora.into_iter().map(|c| c.name).collect();
-                // ignore of corpus does not exist
-                if corpora.contains(corpus) {
-                    let mut d = get_query_dir();
-                    d.push(corpus);
-                    for def in util::get_queries_from_folder(&d, panic_on_invalid) {
-                        let count = cs.count(corpus, &def.aql, QueryLanguage::AQL).unwrap_or(0);
+                for def in util::get_queries_from_csv(&queries_file, true) {
+                    if def.corpus.iter().filter(|c| corpora.contains(c.to_owned())).next().is_some() {
+                        let mut count = 0;
+                        for c in def.corpus.iter() {
+                            count += cs.count(c, &def.aql, QueryLanguage::AQL).unwrap_or(0)
+                        }
                         assert_eq!(
                             def.count, count,
-                            "Query '{}' ({}) on corpus {} should have had count {} but was {}.",
-                            def.aql, def.name, corpus, def.count, count
+                            "Query '{}' ({}) on corpus {:?} should have had count {} but was {}.",
+                            def.aql, def.name, def.corpus, def.count, count
                         );
                     }
                 }
             }
         }
     });
-}
-
-#[ignore]
-#[test]
-fn all_from_folder() {
-    let queries_dir = get_query_dir();
-    // each folder is one corpus
-    if let Ok(paths) = std::fs::read_dir(queries_dir) {
-        for p in paths {
-            if let Ok(p) = p {
-                if let Ok(ftype) = p.file_type() {
-                    if ftype.is_dir() {
-                        if let Ok(corpus_name) = p.file_name().into_string() {
-                            search_test_base(&corpus_name, true);
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 #[ignore]
@@ -95,8 +78,14 @@ fn non_reflexivity_nodes() {
                     ];
 
                     for o in operators_to_test.into_iter() {
-                        let count = cs.count("GUM", &format!("node {} node", o), QueryLanguage::AQL).unwrap_or(0);
-                        assert_ne!(node_count, count, "\"{}\" operator should be non-reflexive for nodes", o);
+                        let count = cs
+                            .count("GUM", &format!("node {} node", o), QueryLanguage::AQL)
+                            .unwrap_or(0);
+                        assert_ne!(
+                            node_count, count,
+                            "\"{}\" operator should be non-reflexive for nodes",
+                            o
+                        );
                     }
                 }
             }
@@ -120,8 +109,14 @@ fn non_reflexivity_tokens() {
                     ];
 
                     for o in operators_to_test.into_iter() {
-                        let count = cs.count("GUM", &format!("tok {} tok", o), QueryLanguage::AQL).unwrap_or(0);
-                        assert_ne!(tok_count, count, "\"{}\" operator should be non-reflexive for tokens", o);
+                        let count = cs
+                            .count("GUM", &format!("tok {} tok", o), QueryLanguage::AQL)
+                            .unwrap_or(0);
+                        assert_ne!(
+                            tok_count, count,
+                            "\"{}\" operator should be non-reflexive for tokens",
+                            o
+                        );
                     }
                 }
             }
