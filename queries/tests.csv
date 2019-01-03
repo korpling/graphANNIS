@@ -44,16 +44,16 @@ TokenIndex,"""Die"" . ""Jugendlichen""",pcc2.1,2
 MultiDominance,"node >2,4 node",pcc2.1,178253
 DirectPointing,"primmark_np_form=""defnp"" & primmark_np_form=""pper"" & #2 ->anaphor_antecedent #1",pcc2.1,148
 DepthFirst,"""Tiefe"" .2,10 tok",pcc2.1,9
-DiplNameSearch,dipl,ridges7,252777
-PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",ridges7,28
-NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,ridges7,119
-Benchmark2,"tok .2,10 tok",ridges7,2317482
-NotWennExact,"KOUS_sem=""konditional"" _i_ lemma!=""wenn""",ridges7,119
-SeedOverlap,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _o_ #2",ridges7,300
-Benchmark1,"default_ns:pos=""NN"" .2,10 default_ns:pos=""ART""",ridges7,37228
-DasAuch,"""Das"" .dipl,1,10 ""auch""",ridges7,28
-PosValueSearch,"default_ns:pos=""NN""",ridges7,46957
-Inclusion,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _i_ #2",ridges7,300
+DiplNameSearch,dipl,RIDGES_Herbology_Version7.0,252777
+PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",RIDGES_Herbology_Version7.0,28
+NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,RIDGES_Herbology_Version7.0,119
+Benchmark2,"tok .2,10 tok",RIDGES_Herbology_Version7.0,2317482
+NotWennExact,"KOUS_sem=""konditional"" _i_ lemma!=""wenn""",RIDGES_Herbology_Version7.0,119
+SeedOverlap,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _o_ #2",RIDGES_Herbology_Version7.0,300
+Benchmark1,"default_ns:pos=""NN"" .2,10 default_ns:pos=""ART""",RIDGES_Herbology_Version7.0,37228
+DasAuch,"""Das"" .dipl,1,10 ""auch""",RIDGES_Herbology_Version7.0,28
+PosValueSearch,"default_ns:pos=""NN""",RIDGES_Herbology_Version7.0,46957
+Inclusion,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _i_ #2",RIDGES_Herbology_Version7.0,300
 PluralNP,"cat=""VP"" > cat=""NP"" > morph=/.*Pl.*/",tiger2,6760
 CatSearch,cat,tiger2,373436
 TokenPrecedence,"tiger:pos=""NN"" .2,10 tiger:pos=""ART""",tiger2,179024
