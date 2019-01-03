@@ -2,6 +2,8 @@ use lalrpop;
 use csv;
 use std::env;
 use std::path::PathBuf;
+use regex::Regex;
+use std::ops::Deref;
 
 /// Take the CSV file with the queries and add a test case for each query whose
 /// corpora exist
@@ -21,16 +23,20 @@ fn create_search_tests() -> Option<()> {
         String::from("data")
     });
 
+    let invalid_chars = Regex::new(r"[^A-Za-z0-9_]").unwrap();
+
     if query_file.is_file() {
         let mut reader = csv::Reader::from_path(query_file).ok()?;
         for row in reader.records() {
             use std::io::Write;
             let row = row.ok()?;
             let name = row.get(0)?;
+            let name_escaped = invalid_chars.replace_all(name, "_");
             let aql = row.get(1)?;
             let corpus = row.get(2)?;
+            let corpus_escaped = invalid_chars.replace_all(corpus, "_");
             let count = row.get(3)?.trim().parse::<i64>().ok()?;
-            let corpus_dir = db_dir.join(corpus);
+            let corpus_dir = db_dir.join(corpus.deref());
             if corpus_dir.is_dir() {
                 // output test case if corpus exists locally
                 write!(f,
@@ -38,7 +44,7 @@ fn create_search_tests() -> Option<()> {
 #[ignore]
 #[test]
 #[allow(non_snake_case)]
-fn search_serial_{corpus}_{name}() {{
+fn search_serial_{corpus_escaped}_{name_escaped}() {{
     let aql = r#\"\"\"{aql}\"\"\"#;
     CORPUS_STORAGE.with(|cs| {{
         if let Some(ref cs) = *cs.borrow() {{
@@ -53,13 +59,13 @@ fn search_serial_{corpus}_{name}() {{
 }}
 
 ", 
-                name=name, corpus=corpus, aql=aql, count=count).ok()?;
+                name=name, name_escaped=name_escaped, corpus=corpus, corpus_escaped=corpus_escaped, aql=aql, count=count).ok()?;
                 write!(f,
 "
 #[ignore]
 #[test]
 #[allow(non_snake_case)]
-fn search_parallel_{corpus}_{name}() {{
+fn search_parallel_{corpus_escaped}_{name_escaped}() {{
     let aql = r#\"\"\"{aql}\"\"\"#;
     CORPUS_STORAGE_PARALLEL.with(|cs| {{
         if let Some(ref cs) = *cs.borrow() {{
@@ -74,7 +80,7 @@ fn search_parallel_{corpus}_{name}() {{
 }}
 
 ", 
-                name=name, corpus=corpus, aql=aql, count=count).ok()?;
+                name=name, name_escaped=name_escaped, corpus=corpus, corpus_escaped=corpus_escaped, aql=aql, count=count).ok()?;
             }
         }
     }

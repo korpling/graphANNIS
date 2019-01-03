@@ -43,7 +43,10 @@ test_script:
       cargo test --target %TARGET% --release --all-features &&
       appveyor-retry appveyor DownloadFile https://github.com/amir-zeldes/gum/archive/f8ac9944fae39ae37c4db186304e3c1ab41f77f3.zip -FileName gum.zip && 
       7z e gum.zip -orelannis\GUM -aoa &&
+      appveyor-retry appveyor DownloadFile http://angcl.ling.uni-potsdam.de/resources/pcc2.1_annis.zip -FileName pcc21.zip && 
+      7z e pcc21.zip -orelannis\pcc21 -aoa &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
+      target\%TARGET%\release\annis.exe data --cmd "import relannis/pcc21" &&
       cargo test --release --all-features --verbose  -- --ignored
     )
 
