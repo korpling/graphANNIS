@@ -38,7 +38,7 @@ fn create_search_tests() -> Option<()> {
 #[ignore]
 #[test]
 #[allow(non_snake_case)]
-fn search_{corpus}_{name}_serial() {{
+fn search_serial_{corpus}_{name}() {{
     let aql = r#\"\"\"{aql}\"\"\"#;
     CORPUS_STORAGE.with(|cs| {{
         if let Some(ref cs) = *cs.borrow() {{
@@ -59,7 +59,7 @@ fn search_{corpus}_{name}_serial() {{
 #[ignore]
 #[test]
 #[allow(non_snake_case)]
-fn search_{corpus}_{name}_parallel() {{
+fn search_parallel_{corpus}_{name}() {{
     let aql = r#\"\"\"{aql}\"\"\"#;
     CORPUS_STORAGE_PARALLEL.with(|cs| {{
         if let Some(ref cs) = *cs.borrow() {{
