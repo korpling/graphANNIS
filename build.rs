@@ -8,6 +8,10 @@ use std::ops::Deref;
 /// Take the CSV file with the queries and add a test case for each query whose
 /// corpora exist
 fn create_search_tests() -> Option<()> {
+    
+    println!("rerun-if-env-changed=ANNIS4_TEST_QUERIES");
+    println!("rerun-if-env-changed=ANNIS4_TEST_DATA");
+    
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let destination = std::path::Path::new(&out_dir).join("searchtest.rs");
     let mut f = std::fs::File::create(&destination).unwrap();
@@ -17,11 +21,15 @@ fn create_search_tests() -> Option<()> {
     } else {
         String::from("queries/tests.csv")
     });
+    println!("cargo:rerun-if-changed={}", query_file.to_string_lossy());
+
+
     let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
         path
     } else {
         String::from("data")
     });
+    println!("cargo:rerun-if-changed={}", db_dir.to_string_lossy());
 
     let invalid_chars = Regex::new(r"[^A-Za-z0-9_]").unwrap();
 
