@@ -90,6 +90,7 @@ def main(argv):
                             query_def["count"] = int(result.getElementsByTagName("matchCount")[0].childNodes[0].data)
 
                     writer.writerow(query_def)
+                    sys.stdout.flush()
                     idx += 1
 
 
