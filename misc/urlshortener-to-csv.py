@@ -52,7 +52,7 @@ def main(argv):
         usage()
         exit(1)
 
-    if service_url != None:
+    if service_url is not None:
         http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
 
     fields = ["name", "aql", "corpus", "count"]
@@ -65,27 +65,32 @@ def main(argv):
         reader = csv.reader(url_shortener_file, delimiter='\t', quoting=csv.QUOTE_NONE, doublequote=False, escapechar=None)
         for row in reader:
             url = row[3]
-            # ignore the embedded vizualization for now, only use the query references
+            # ignore the embedded visualization for now, only use the query references
             if url.startswith('/#'):
                 # parse the fragment of the URL
                 params = parse_fragment(url[2:])
-                query_def = dict()
-                query_def["name"] = str(idx)
-                query_def["corpus"] = params["c"]
-                query_def["aql"] = params["q"]
-                query_def["count"] = -1
+                if params["q"] is not None and len(params["q"]) > 0:
+                    query_def = dict()
+                    query_def["name"] = str(idx)
+                    query_def["corpus"] = params["c"]
+                    query_def["aql"] = params["q"]
+                    query_def["count"] = -1
 
-                # try to query the number of results   
-                if service_url != None:
-                    count_endpoint = service_url + "/annis/query/search/count"
-                    response = http.request('GET', count_endpoint, {'corpora' : query_def["corpus"], 'q': query_def["aql"]})
-                    if response.status == 200:
-                        # Result is an XML
-                        result = xml.dom.minidom.parseString(response.data)
-                        query_def["count"] = int(result.getElementsByTagName("matchCount")[0].childNodes[0].data)
+                    # try to query the number of results   
+                    if service_url is not None:
+                        count_endpoint = service_url + "/annis/query/search/count"
+                        headers = None
+                        if service_username is not None and service_password is not None:
+                            headers = urllib3.make_headers(basic_auth=service_username + ":" + service_password)
 
-                writer.writerow(query_def)
-                idx += 1
+                        response = http.request('GET', count_endpoint, {'corpora' : query_def["corpus"], 'q': query_def["aql"]}, headers)
+                        if response.status == 200:
+                            # Result is an XML
+                            result = xml.dom.minidom.parseString(response.data)
+                            query_def["count"] = int(result.getElementsByTagName("matchCount")[0].childNodes[0].data)
+
+                    writer.writerow(query_def)
+                    idx += 1
 
 
 
