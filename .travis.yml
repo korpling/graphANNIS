@@ -41,7 +41,7 @@ script:
   - ./target/release/annis data --cmd 'import relannis/GUM'
   - ./target/release/annis data --cmd 'import relannis/pcc2.1'
   - ./target/release/annis data --cmd 'import relannis/RIDGES_Herbology_Version7.0'
-  - cargo test --all-features --release  -- --ignored
+  - cargo test --release  -- --ignored
   # also test that the documentation is generated without error
   - mdbook test docs/
   # generate the documentation for possible deploy
