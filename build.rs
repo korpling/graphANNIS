@@ -19,7 +19,7 @@ fn create_search_tests() -> Option<()> {
     let query_file = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_QUERIES") {
         path
     } else {
-        String::from("queries/tests.csv")
+        String::from("tests/searchtest_queries.csv")
     });
     println!("cargo:rerun-if-changed={}", query_file.to_string_lossy());
 
