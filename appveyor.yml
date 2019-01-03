@@ -50,7 +50,7 @@ test_script:
       target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/pcc2.1" &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/RIDGES_Herbology_Version7.0" &&
-      cargo test --release --all-features --verbose  -- --ignored
+      cargo test --release -- --ignored
     )
 
 build_script:
