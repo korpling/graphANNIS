@@ -36,10 +36,12 @@ before_script:
 
 script:
   - RUST_BACKTRACE=1 cargo test --all-features --release
-  -  "./misc/download-gum-corpus.sh"
+  -  "./misc/download-test-corpora.sh"
   - cargo build --all-features --release
   - ./target/release/annis data --cmd 'import relannis/GUM'
-  - cargo test --all-features --release  -- --ignored
+  - ./target/release/annis data --cmd 'import relannis/pcc2.1'
+  - ./target/release/annis data --cmd 'import relannis/RIDGES_Herbology_Version7.0'
+  - cargo test --release  -- --ignored
   # also test that the documentation is generated without error
   - mdbook test docs/
   # generate the documentation for possible deploy

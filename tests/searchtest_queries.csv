@@ -1,0 +1,61 @@
+name,aql,corpus,count
+noun_with_metadata,"pos=""NN"" & meta::type=""interview"" & meta::doc=/.*_ants/",GUM,126
+city,"lemma=""city"" _o_ entity ->coref[type=""coref""] entity",GUM,64
+coffee,"infstat=""giv"" & entity=""object"" & ""Coffee"" & #1 _o_#3 & #2 _o_ #3",GUM,1
+kind_dom_kind,"kind >[relname=""evidence""] kind",GUM,56
+corefAnno,"infstat=""giv"" ->coref[type=""coref""] entity=""person""",GUM,636
+edge_anno_regex,pos=/V.*/ ->dep[func=/(d|c).*/] tok,GUM,3754
+entity,"entity=""person"" ->coref[type=""coref""] infstat 
+& cat > tok 
+& #1 _=_ #3 
+& ""studies"" 
+& #5 ->dep[func=""nsubj""] #4",GUM,2
+VV_dep,"pos=/VV.*/ ->dep[func=""nsubj""] tok & tok & #1 ->dep[func=""dobj""] #3",GUM,955
+tok_dep_tok,"tok ->dep[func=""dep""] tok",GUM,246
+nonexisting_dep,"tok=""'s"" ->dep[func=""nsubjpass""]tok",GUM,0
+dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2",GUM,1
+meta_interview,"pos=""RB"" & meta::type=""interview""",GUM,522
+Profile,"node ->dep[func=""sbj""] node",GUM,3070
+DirectPointingWithAnno,"pos=""JJ"" ->dep[func=""cop""] ""is""",GUM,112
+NotDocument,"tok & meta::doc!=""maz-11299""",pcc2.1,34709
+StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
+IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
+Regex,cat=/.P/ >* /A.*/,pcc2.1,1130
+NodeCount,node,pcc2.1,79596
+KarolaAlignLemma,"lemma=""Karola"" & pos=""NE"" & #1 _l_ #2 & #1 _r_ #2",pcc2.1,1
+NotProperNound,"pos!=""NE""",pcc2.1,32280
+KarolaOr,"a#""Karola"" & (b#lemma=""Karola"" | b#pos=""NE"") & #a _=_ #b",pcc2.1,2
+IndirectPointing,"primmark_np_form=""defnp"" & primmark_np_form=""pper""  & #2 ->anaphor_antecedent * #1",pcc2.1,296
+TokIdentCovNode,tok=/A.*/ & node & #1 _=_ #2,pcc2.1,155
+MMaxAnnos_ambiguity,"Mmax2:primmark_ambiguity=""not_ambig""",pcc2.1,5133
+CatSearch,cat,pcc2.1,13808
+InclusionQuery,"primmark_ambiguity=""not_ambig"" _i_ primmark_complex_np=""yes""",pcc2.1,1590
+AnyNodeIncludeSeed,node _i_ node,pcc2.1,14349
+KarolaAlignTok,"""Karola"" & pos=""NE"" & #1 _l_ #2 & #1 _r_ #2",pcc2.1,1
+TokIdentCovNN,tok=/A.*/ & pos=/NN/ & #1 _=_ #2,pcc2.1,491
+RangedDominance,"tiger:cat=""S"" >2,4 cat",pcc2.1,7795
+NodeIdentCovNode,node _=_ node,pcc2.1,86952
+Precedence,"primmark_ambiguity=""not_ambig"" .1,500 primmark_phrase_type=""np""",pcc2.1,51181
+NotNoun,pos!=/(NN)|(NE)/,pcc2.1,26000
+TestQueryOverlap2,"primmark_ambiguity=""not_ambig"" _o_ primmark_complex_np=""yes""",pcc2.1,3149
+TestQueryOverlap1,"primmark_ambiguity=""not_ambig"" _o_ primmark_phrase_type=""pp""",pcc2.1,3144
+MMaxAnnos_complex_np,"Mmax2:primmark_complex_np=""yes""",pcc2.1,1252
+TokenIndex,"""Die"" . ""Jugendlichen""",pcc2.1,2
+MultiDominance,"node >2,4 node",pcc2.1,178253
+DirectPointing,"primmark_np_form=""defnp"" & primmark_np_form=""pper"" & #2 ->anaphor_antecedent #1",pcc2.1,148
+DepthFirst,"""Tiefe"" .2,10 tok",pcc2.1,9
+PluralNP,"cat=""VP"" > cat=""NP"" > morph=/.*Pl.*/",pcc2.1,21
+TokenPrecedence,"tiger:pos=""NN"" .2,10 tiger:pos=""ART""",pcc2.1,5484
+TokenPrecedenceThreeNodes,"tiger:pos=""NN"" .2,10 tiger:pos=""ART"" . tiger:pos=""NN""",pcc2.1,3775
+PPNotModifier,"cat=""S"" & cat=""PP"" & #1 >[func!=""MO""] #2",pcc2.1,129
+BrandenBurgSentence,"tiger:cat=""S"" & tok=/Brandenburg.*/ & #1 >* #2",pcc2.1,46
+DiplNameSearch,dipl,RIDGES_Herbology_Version7.0,252777
+PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",RIDGES_Herbology_Version7.0,28
+NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,RIDGES_Herbology_Version7.0,119
+Benchmark2,"tok .2,10 tok",RIDGES_Herbology_Version7.0,2317482
+NotWennExact,"KOUS_sem=""konditional"" _i_ lemma!=""wenn""",RIDGES_Herbology_Version7.0,119
+SeedOverlap,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _o_ #2",RIDGES_Herbology_Version7.0,300
+Benchmark1,"default_ns:pos=""NN"" .2,10 default_ns:pos=""ART""",RIDGES_Herbology_Version7.0,37228
+DasAuch,"""Das"" .dipl,1,10 ""auch""",RIDGES_Herbology_Version7.0,28
+PosValueSearch,"default_ns:pos=""NN""",RIDGES_Herbology_Version7.0,46957
+Inclusion,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _i_ #2",RIDGES_Herbology_Version7.0,300
