@@ -21,7 +21,6 @@ tok_dep_tok,"tok ->dep[func=""dep""] tok",GUM,246
 nonexisting_dep,"tok=""'s"" ->dep[func=""nsubjpass""]tok",GUM,0
 dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2",GUM,1
 meta_interview,"pos=""RB"" & meta::type=""interview""",GUM,522
-POS,POS,parlament,3134192
 DiplNameSearch,dipl,ridges7,252777
 PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",ridges7,28
 NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,ridges7,119
