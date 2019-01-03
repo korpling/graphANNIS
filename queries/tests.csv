@@ -17,7 +17,7 @@ dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2",GUM,1
 meta_interview,"pos=""RB"" & meta::type=""interview""",GUM,522
 Profile,"node ->dep[func=""sbj""] node",GUM,3070
 DirectPointingWithAnno,"pos=""JJ"" ->dep[func=""cop""] ""is""",GUM,112
-NotDocument,"tok & meta::doc!=""maz-11299""",pcc2,34709
+NotDocument,"tok & meta::doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
 IsConnectedRange,"""Jugendlichen"" .3,10 ""Musikcafé""",pcc2.1,1
 Regex,cat=/.P/ >* /A.*/,pcc2.1,1130
@@ -44,6 +44,11 @@ TokenIndex,"""Die"" . ""Jugendlichen""",pcc2.1,2
 MultiDominance,"node >2,4 node",pcc2.1,178253
 DirectPointing,"primmark_np_form=""defnp"" & primmark_np_form=""pper"" & #2 ->anaphor_antecedent #1",pcc2.1,148
 DepthFirst,"""Tiefe"" .2,10 tok",pcc2.1,9
+PluralNP,"cat=""VP"" > cat=""NP"" > morph=/.*Pl.*/",pcc2.1,21
+TokenPrecedence,"tiger:pos=""NN"" .2,10 tiger:pos=""ART""",pcc2.1,5484
+TokenPrecedenceThreeNodes,"tiger:pos=""NN"" .2,10 tiger:pos=""ART"" . tiger:pos=""NN""",pcc2.1,3775
+PPNotModifier,"cat=""S"" & cat=""PP"" & #1 >[func!=""MO""] #2",pcc2.1,129
+BrandenBurgSentence,"tiger:cat=""S"" & tok=/Brandenburg.*/ & #1 >* #2",pcc2.1,46
 DiplNameSearch,dipl,RIDGES_Herbology_Version7.0,252777
 PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",RIDGES_Herbology_Version7.0,28
 NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,RIDGES_Herbology_Version7.0,119
@@ -54,9 +59,3 @@ Benchmark1,"default_ns:pos=""NN"" .2,10 default_ns:pos=""ART""",RIDGES_Herbology
 DasAuch,"""Das"" .dipl,1,10 ""auch""",RIDGES_Herbology_Version7.0,28
 PosValueSearch,"default_ns:pos=""NN""",RIDGES_Herbology_Version7.0,46957
 Inclusion,"default_ns:pos=""NN"" & default_ns:norm=""Blumen"" & #1 _i_ #2",RIDGES_Herbology_Version7.0,300
-PluralNP,"cat=""VP"" > cat=""NP"" > morph=/.*Pl.*/",tiger2,6760
-CatSearch,cat,tiger2,373436
-TokenPrecedence,"tiger:pos=""NN"" .2,10 tiger:pos=""ART""",tiger2,179024
-TokenPrecedenceThreeNodes,"tiger:pos=""NN"" .2,10 tiger:pos=""ART"" . tiger:pos=""NN""",tiger2,114042
-PPNotModifier,"cat=""S"" & cat=""PP"" & #1 >[func!=""MO""] #2",tiger2,3642
-BilharzioseSentence,"tiger:cat=""S"" & tok=""Bilharziose"" & #1 >* #2",tiger2,21
