@@ -27,13 +27,14 @@ struct OperatorSpecEntry<'a> {
     op: Box<OperatorSpec + 'a>,
     idx_left: usize,
     idx_right: usize,
-    /*    original_order: usize, */
+    global_reflexivity: bool,
 }
 
 pub struct OperatorEntry {
     pub op: Box<Operator>,
     pub node_nr_left: usize,
     pub node_nr_right: usize,
+    pub global_reflexivity: bool,
 }
 
 #[derive(Debug)]
@@ -131,6 +132,7 @@ fn create_join<'b>(
                         node_nr_left: op_entry.node_nr_right,
                         node_nr_right: op_entry.node_nr_left,
                         op: inverse_op,
+                        global_reflexivity: op_entry.global_reflexivity,
                     },
                     exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                     db.node_annos.clone(),
@@ -145,6 +147,7 @@ fn create_join<'b>(
                         node_nr_left: op_entry.node_nr_right,
                         node_nr_right: op_entry.node_nr_left,
                         op: inverse_op,
+                        global_reflexivity: op_entry.global_reflexivity,
                     },
                     exec_left.as_nodesearch().unwrap().get_node_search_desc(),
                     db.node_annos.clone(),
@@ -158,24 +161,20 @@ fn create_join<'b>(
     // use nested loop as "fallback"
     if config.use_parallel_joins {
         let join = parallel::nestedloop::NestedLoop::new(
+            op_entry,
             exec_left,
             exec_right,
             idx_left,
             idx_right,
-            op_entry.node_nr_left,
-            op_entry.node_nr_right,
-            op_entry.op,
         );
         Box::new(join)
     } else {
         let join = NestedLoop::new(
+            op_entry,
             exec_left,
             exec_right,
             idx_left,
             idx_right,
-            op_entry.node_nr_left,
-            op_entry.node_nr_right,
-            op_entry.op,
         );
         Box::new(join)
     }
@@ -253,8 +252,9 @@ impl<'a> Conjunction<'a> {
         op: Box<OperatorSpec>,
         var_left: &str,
         var_right: &str,
+        global_reflexivity: bool,
     ) -> Result<()> {
-        self.add_operator_from_query(op, var_left, var_right, None)
+        self.add_operator_from_query(op, var_left, var_right, None, global_reflexivity)
     }
 
     pub fn add_operator_from_query(
@@ -263,6 +263,7 @@ impl<'a> Conjunction<'a> {
         var_left: &str,
         var_right: &str,
         location: Option<LineColumnRange>,
+        global_reflexivity: bool,
     ) -> Result<()> {
         //let original_order = self.operators.len();
         if let Some(idx_left) = self.variables.get(var_left) {
@@ -271,19 +272,22 @@ impl<'a> Conjunction<'a> {
                     op,
                     idx_left: *idx_left,
                     idx_right: *idx_right,
+                    global_reflexivity,
                 });
                 return Ok(());
             } else {
                 return Err(ErrorKind::AQLSemanticError(
                     format!("Operand '#{}' not found", var_right).into(),
                     location,
-                ).into());
+                )
+                .into());
             }
         } else {
             return Err(ErrorKind::AQLSemanticError(
                 format!("Operand '#{}' not found", var_left).into(),
                 location,
-            ).into());
+            )
+            .into());
         }
     }
 
@@ -316,7 +320,11 @@ impl<'a> Conjunction<'a> {
         result
     }
 
-    fn optimize_join_order_heuristics(&self, db: &'a Graph, config: &Config) -> Result<Vec<usize>> {
+    fn optimize_join_order_heuristics(
+        &self,
+        db: &'a Graph,
+        config: &Config,
+    ) -> Result<Vec<usize>> {
         // check if there is something to optimize
         if self.operators.is_empty() {
             return Ok(vec![]);
@@ -374,7 +382,8 @@ impl<'a> Conjunction<'a> {
 
             let mut found_better_plan = false;
             for op_order in family_operators.iter().skip(1) {
-                let alt_plan = self.make_exec_plan_with_order(db, config, op_order.clone())?;
+                let alt_plan =
+                    self.make_exec_plan_with_order(db, config, op_order.clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
                     .ok_or("Plan description missing")?
@@ -431,9 +440,7 @@ impl<'a> Conjunction<'a> {
                         if let Some(gs) = db.get_graphstorage(c) {
                             // check if we can apply an even more restrictive edge annotation search
                             if let Some(edge_anno_spec) = op_spec.get_edge_anno_spec() {
-                                let anno_storage: &AnnotationStorage<
-                                    Edge,
-                                > = gs.get_anno_storage();
+                                let anno_storage: &AnnotationStorage<Edge> = gs.get_anno_storage();
                                 let edge_anno_est = edge_anno_spec.guess_max_count(anno_storage);
                                 estimated_component_search += edge_anno_est;
                                 estimation_valid = true;
@@ -579,6 +586,7 @@ impl<'a> Conjunction<'a> {
                 op,
                 node_nr_left: spec_idx_left + 1,
                 node_nr_right: spec_idx_right + 1,
+                global_reflexivity: op_spec_entry.global_reflexivity,
             };
 
             let component_left: usize = *(node2component
@@ -655,7 +663,8 @@ impl<'a> Conjunction<'a> {
                             n_var
                         ),
                         location.cloned(),
-                    ).into());
+                    )
+                    .into());
                 }
             }
         }
@@ -671,7 +680,8 @@ impl<'a> Conjunction<'a> {
         component2exec.remove(&first_component_id).ok_or_else(|| {
             ErrorKind::ImpossibleSearch(String::from(
                 "could not find execution node for query component",
-            )).into()
+            ))
+            .into()
         })
     }
 

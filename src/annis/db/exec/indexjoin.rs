@@ -19,6 +19,7 @@ pub struct IndexJoin<'a> {
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
     desc: Desc,
+    global_reflexivity: bool,
 }
 
 impl<'a> IndexJoin<'a> {
@@ -81,6 +82,7 @@ impl<'a> IndexJoin<'a> {
             node_search_desc,
             node_annos,
             rhs_candidate: None,
+            global_reflexivity: op_entry.global_reflexivity,
         }
     }
 
@@ -206,7 +208,10 @@ impl<'a> Iterator for IndexJoin<'a> {
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
-                        if self.op.is_reflexive() || m_rhs.different_to_all(&m_lhs) {
+                        if self.op.is_reflexive()
+                            || (self.global_reflexivity && m_rhs.different_to_all(&m_lhs)
+                            || (!self.global_reflexivity && m_rhs.different_to(&m_lhs[self.lhs_idx])))
+                        {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();
                             let matched_node = m_rhs.node;

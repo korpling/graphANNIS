@@ -1087,6 +1087,7 @@ impl CorpusStorage {
                     Box::new(operators::OverlapSpec {}),
                     &n_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_left.add_operator(
                     Box::new(operators::PrecedenceSpec {
@@ -1098,11 +1099,13 @@ impl CorpusStorage {
                     }),
                     &tok_precedence_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_left.add_operator(
                     Box::new(operators::OverlapSpec {}),
                     &any_node_idx,
                     &tok_precedence_idx,
+                    true,
                 )?;
 
                 query.alternatives.push(q_left);
@@ -1129,6 +1132,7 @@ impl CorpusStorage {
                     Box::new(operators::OverlapSpec {}),
                     &n_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_left.add_operator(
                     Box::new(operators::PrecedenceSpec {
@@ -1140,6 +1144,7 @@ impl CorpusStorage {
                     }),
                     &tok_precedence_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
 
                 query.alternatives.push(q_left);
@@ -1167,6 +1172,7 @@ impl CorpusStorage {
                     Box::new(operators::OverlapSpec {}),
                     &n_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
@@ -1178,11 +1184,13 @@ impl CorpusStorage {
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
+                    true,
                 )?;
                 q_right.add_operator(
                     Box::new(operators::OverlapSpec {}),
                     &any_node_idx,
                     &tok_precedence_idx,
+                    true,
                 )?;
 
                 query.alternatives.push(q_right);
@@ -1209,6 +1217,7 @@ impl CorpusStorage {
                     Box::new(operators::OverlapSpec {}),
                     &n_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
@@ -1220,6 +1229,7 @@ impl CorpusStorage {
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
+                    true,
                 )?;
 
                 query.alternatives.push(q_right);
@@ -1294,6 +1304,7 @@ impl CorpusStorage {
                 }),
                 &any_node_idx,
                 &corpus_idx,
+                true,
             )?;
             query.alternatives.push(q);
         }
