@@ -141,10 +141,7 @@ impl<'a> IndexJoin<'a> {
                         }
 
                         // check if lhs and rhs are equal and if this is allowed in this query
-                        if op.is_reflexive()
-                            || m_lhs[lhs_idx].node != m_rhs.node
-                            || m_lhs[lhs_idx].anno_key != m_rhs.anno_key
-                        {
+                        if op.is_reflexive() || m_rhs.different_to_all(&m_lhs) {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();
                             let matched_node = m_rhs.node;

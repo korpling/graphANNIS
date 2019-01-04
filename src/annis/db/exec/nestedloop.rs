@@ -122,9 +122,8 @@ impl<'a> Iterator for NestedLoop<'a> {
                         // filter by reflexivity if necessary
                         if filter_true
                             && (self.op.is_reflexive()
-                                || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
-                                || m_outer[self.outer_idx].anno_key
-                                    != m_inner[self.inner_idx].anno_key)
+                                || (m_outer[self.outer_idx].different_to_all(&m_inner)
+                                    && m_inner[self.inner_idx].different_to_all(&m_outer)))
                         {
                             let mut result = m_outer.clone();
                             result.append(&mut m_inner.clone());
