@@ -103,7 +103,7 @@ fn main() {
     if let Some(nsamples) = matches.value_of("nsamples") {
         crit = crit.sample_size(nsamples.parse::<usize>().unwrap());
     } else {
-        crit = crit.sample_size(5);
+        crit = crit.sample_size(10);
     }
 
     if let Some(out) = matches.value_of("output-dir") {
