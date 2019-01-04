@@ -156,7 +156,7 @@ fn map_conjunction<'a>(
                     };
                 }
             }
-            q.add_operator_from_query(make_operator_spec(op), &idx_left, &idx_right, op_pos)?;
+            q.add_operator_from_query(make_operator_spec(op), &idx_left, &idx_right, op_pos, !quirks_mode)?;
         }
     }
 
@@ -180,6 +180,7 @@ fn add_legacy_metadata_constraints(
                     Box::new(IdenticalNodeSpec {}),
                     &first_meta_idx,
                     &meta_node_idx,
+                    true,
                 )?;
             } else if let Some(first_node_pos) = first_node_pos.clone() {
                 first_meta_idx = Some(meta_node_idx.clone());
@@ -190,6 +191,7 @@ fn add_legacy_metadata_constraints(
                     }),
                     &first_node_pos,
                     &meta_node_idx,
+                    true,
                 )?;
                 // Also make sure the matched node is actually a document
                 // (the @* could match anything in the hierarchy, including the toplevel corpus)
@@ -206,6 +208,7 @@ fn add_legacy_metadata_constraints(
                     Box::new(IdenticalNodeSpec {}),
                     &meta_node_idx,
                     &doc_anno_idx,
+                    true,
                 )?;
             }
         }

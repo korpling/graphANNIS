@@ -68,6 +68,25 @@ impl Match {
         let key = graph.node_annos.get_key_value(self.anno_key)?;
         Some(Annotation { key, val })
     }
+
+    /// Returns true if this match is different to all the other matches given as argument.
+    /// 
+    /// A single match is different if the node ID or the annotation key are different.
+    pub fn different_to_all(&self, other : &Vec<Match>) -> bool {
+        for o in other.iter() {
+            if self.node == o.node && self.anno_key == o.anno_key {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Returns true if this match is different to the other match given as argument.
+    /// 
+    /// A single match is different if the node ID or the annotation key are different.
+    pub fn different_to(&self, other : &Match) -> bool {
+        self.node != other.node || self.anno_key != other.anno_key
+    }
 }
 
 impl Into<Match> for (Edge, AnnoKeyID) {
