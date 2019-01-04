@@ -45,11 +45,8 @@ test_script:
       7z e gum.zip -orelannis\GUM -aoa &&
       appveyor-retry appveyor DownloadFile http://angcl.ling.uni-potsdam.de/resources/pcc2.1_annis.zip -FileName pcc21.zip && 
       7z e pcc21.zip -orelannis\pcc2.1 -aoa &&
-      appveyor-retry appveyor DownloadFile https://www.linguistik.hu-berlin.de/de/institut/professuren/korpuslinguistik/forschung/ridges-projekt/download-files/v7/annis.zip -FileName ridges7.zip && 
-      7z e ridges7.zip -orelannis\RIDGES_Herbology_Version7.0 -aoa &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/pcc2.1" &&
-      target\%TARGET%\release\annis.exe data --cmd "import relannis/RIDGES_Herbology_Version7.0" &&
       cargo test --release -- --ignored
     )
 
