@@ -52,39 +52,19 @@ fn create_search_tests() -> Option<()> {
 #[ignore]
 #[test]
 #[allow(non_snake_case)]
-fn search_serial_{corpus_escaped}_{name_escaped}() {{
-    let aql = r#\"\"\"{aql}\"\"\"#;
-    CORPUS_STORAGE.with(|cs| {{
-        if let Some(ref cs) = *cs.borrow() {{
-            let search_count = cs.count(\"{corpus}\", aql, QueryLanguage::AQL).unwrap_or(0);
-            assert_eq!(
-                {count}, search_count,
-                \"Query '{{}}' ({name}) on corpus {corpus} should have had count {count} but was {{}}.\", 
-                aql, search_count
-            );
-        }}
-    }});
-}}
-
-", 
-                name=name, name_escaped=name_escaped, corpus=corpus, corpus_escaped=corpus_escaped, aql=aql, count=count).ok()?;
-                write!(f,
-"
-#[ignore]
-#[test]
-#[allow(non_snake_case)]
-fn search_parallel_{corpus_escaped}_{name_escaped}() {{
-    let aql = r#\"\"\"{aql}\"\"\"#;
-    CORPUS_STORAGE_PARALLEL.with(|cs| {{
-        if let Some(ref cs) = *cs.borrow() {{
-            let search_count = cs.count(\"{corpus}\", aql, QueryLanguage::AQL).unwrap_or(0);
-            assert_eq!(
-                {count}, search_count,
-                \"Query '{{}}' ({name}) on corpus {corpus} should have had count {count} but was {{}}.\", 
-                aql, search_count
-            );
-        }}
-    }});
+fn search_{corpus_escaped}_{name_escaped}() {{
+    let aql = r###\"{aql}\"###;
+    if let Some(cs_mutex) = CORPUS_STORAGE.as_ref() {{
+        let search_count = {{ 
+            let cs = cs_mutex.lock().unwrap();
+            cs.count(\"{corpus}\", aql, QueryLanguage::AQL).unwrap_or(0)
+        }};
+        assert_eq!(
+            {count}, search_count,
+            \"Query '{{}}' ({name}) on corpus {corpus} should have had count {count} but was {{}}.\", 
+            aql, search_count
+        );
+    }}
 }}
 
 ", 

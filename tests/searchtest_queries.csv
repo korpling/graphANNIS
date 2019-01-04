@@ -15,7 +15,7 @@ tok_dep_tok,"tok ->dep[func=""dep""] tok",GUM,246
 nonexisting_dep,"tok=""'s"" ->dep[func=""nsubjpass""]tok",GUM,0
 dep_xcomp,"""easy"" & ""measure"" & #1 ->dep[func=""xcomp""] #2",GUM,1
 meta_interview,"pos=""RB"" & meta::type=""interview""",GUM,522
-Profile,"node ->dep[func=""sbj""] node",GUM,3070
+Profile,"node ->dep[func=""nsubj""] node",GUM,3070
 DirectPointingWithAnno,"pos=""JJ"" ->dep[func=""cop""] ""is""",GUM,112
 NotDocument,"tok & meta::doc!=""maz-11299""",pcc2.1,34709
 StructureInclusionSeed,"cat=""S"" _i_ cat=""AP""",pcc2.1,726
@@ -30,7 +30,7 @@ TokIdentCovNode,tok=/A.*/ & node & #1 _=_ #2,pcc2.1,155
 MMaxAnnos_ambiguity,"Mmax2:primmark_ambiguity=""not_ambig""",pcc2.1,5133
 CatSearch,cat,pcc2.1,13808
 InclusionQuery,"primmark_ambiguity=""not_ambig"" _i_ primmark_complex_np=""yes""",pcc2.1,1590
-AnyNodeIncludeSeed,node _i_ node,pcc2.1,14349
+AnyNodeIncludeSeed,node _i_ node,pcc2.1,1240656
 KarolaAlignTok,"""Karola"" & pos=""NE"" & #1 _l_ #2 & #1 _r_ #2",pcc2.1,1
 TokIdentCovNN,tok=/A.*/ & pos=/NN/ & #1 _=_ #2,pcc2.1,491
 RangedDominance,"tiger:cat=""S"" >2,4 cat",pcc2.1,7795
