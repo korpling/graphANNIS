@@ -1,5 +1,5 @@
 use super::super::{Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::OperatorEntry;
+use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
 use crate::annis::operator::BinaryOperator;
 use rayon::prelude::*;
@@ -30,7 +30,7 @@ type MatchCandidate = (Vec<Match>, Vec<Match>, Sender<Vec<Match>>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
-        op_entry: OperatorEntry,
+        op_entry: BinaryOperatorEntry,
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         rhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,

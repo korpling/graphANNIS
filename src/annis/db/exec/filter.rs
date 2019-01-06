@@ -1,10 +1,10 @@
 use super::{CostEstimate, Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::OperatorEntry;
+use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
 use crate::annis::operator::{EstimationType, BinaryOperator};
 use std;
 
-pub struct BinaryFilter<'a> {
+pub struct Filter<'a> {
     it: Box<Iterator<Item = Vec<Match>> + 'a>,
     desc: Option<Desc>,
 }
@@ -25,13 +25,13 @@ fn calculate_outputsize(op: &BinaryOperator, num_tuples: usize) -> usize {
     std::cmp::max(output, 1)
 }
 
-impl<'a> BinaryFilter<'a> {
-    pub fn new(
+impl<'a> Filter<'a> {
+    pub fn new_binary(
         exec: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
-        op_entry: OperatorEntry,
-    ) -> BinaryFilter<'a> {
+        op_entry: BinaryOperatorEntry,
+    ) -> Filter<'a> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {
                 Some(CostEstimate {
@@ -60,14 +60,15 @@ impl<'a> BinaryFilter<'a> {
         };
         let it =
             exec.filter(move |tuple| op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
-        BinaryFilter {
+        Filter {
             desc,
             it: Box::new(it),
         }
     }
+
 }
 
-impl<'a> ExecutionNode for BinaryFilter<'a> {
+impl<'a> ExecutionNode for Filter<'a> {
     fn as_iter(&mut self) -> &mut Iterator<Item = Vec<Match>> {
         self
     }
@@ -77,7 +78,7 @@ impl<'a> ExecutionNode for BinaryFilter<'a> {
     }
 }
 
-impl<'a> Iterator for BinaryFilter<'a> {
+impl<'a> Iterator for Filter<'a> {
     type Item = Vec<Match>;
 
     fn next(&mut self) -> Option<Vec<Match>> {

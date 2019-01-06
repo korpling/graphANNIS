@@ -219,7 +219,7 @@ impl ExecutionNode for EmptyResultSet {
     }
 }
 
-pub mod binary_filter;
+pub mod filter;
 pub mod indexjoin;
 pub mod nestedloop;
 pub mod nodesearch;

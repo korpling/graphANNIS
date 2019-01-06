@@ -1,6 +1,6 @@
 use super::disjunction::Disjunction;
 use super::Config;
-use crate::annis::db::exec::binary_filter::BinaryFilter;
+use crate::annis::db::exec::filter::Filter;
 use crate::annis::db::exec::indexjoin::IndexJoin;
 use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
@@ -36,12 +36,20 @@ struct UnaryOperatorSpecEntry<'a> {
     idx: usize,
 }
 
-pub struct OperatorEntry {
+pub struct BinaryOperatorEntry {
     pub op: Box<BinaryOperator>,
     pub node_nr_left: usize,
     pub node_nr_right: usize,
     pub global_reflexivity: bool,
 }
+
+pub struct UnaryOperatorEntry {
+    pub filter: Box<BinaryOperator>,
+    pub node_nr_left: usize,
+    pub node_nr_right: usize,
+    pub global_reflexivity: bool,
+}
+
 
 #[derive(Debug)]
 pub struct Conjunction<'a> {
@@ -99,7 +107,7 @@ fn should_switch_operand_order(
 fn create_join<'b>(
     db: &Graph,
     config: &Config,
-    op_entry: OperatorEntry,
+    op_entry: BinaryOperatorEntry,
     exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
     exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
     idx_left: usize,
@@ -135,7 +143,7 @@ fn create_join<'b>(
                 let join = parallel::indexjoin::IndexJoin::new(
                     exec_right,
                     idx_right,
-                    OperatorEntry {
+                    BinaryOperatorEntry {
                         node_nr_left: op_entry.node_nr_right,
                         node_nr_right: op_entry.node_nr_left,
                         op: inverse_op,
@@ -150,7 +158,7 @@ fn create_join<'b>(
                 let join = IndexJoin::new(
                     exec_right,
                     idx_right,
-                    OperatorEntry {
+                    BinaryOperatorEntry {
                         node_nr_left: op_entry.node_nr_right,
                         node_nr_right: op_entry.node_nr_left,
                         op: inverse_op,
@@ -252,12 +260,10 @@ impl<'a> Conjunction<'a> {
         op: Box<UnaryOperatorSpec>,
         var: &str,
         location: Option<LineColumnRange>,
-    ) -> Result<()>  {
+    ) -> Result<()> {
         if let Some(idx) = self.variables.get(var) {
-            self.unary_operators.push(UnaryOperatorSpecEntry {
-                op,
-                idx: *idx,
-            });
+            self.unary_operators
+                .push(UnaryOperatorSpecEntry { op, idx: *idx });
             return Ok(());
         } else {
             return Err(ErrorKind::AQLSemanticError(
@@ -570,7 +576,16 @@ impl<'a> Conjunction<'a> {
             };
         }
 
-        // 2. add the joins which produce the results in operand order
+        // 2. add unary operators as filter to the existing node search
+        for op in self.unary_operators.iter() {
+            // let exec: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+            //     .remove(&op.idx)
+            //     .ok_or_else(|| format!("no execution node for component {}", op.idx))?;
+            unimplemented!()
+
+        }
+
+        // 3. add the joins which produce the results in operand order
         for i in operator_order {
             let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
 
@@ -599,7 +614,7 @@ impl<'a> Conjunction<'a> {
             spec_idx_left -= self.var_idx_offset;
             spec_idx_right -= self.var_idx_offset;
 
-            let op_entry = OperatorEntry {
+            let op_entry = BinaryOperatorEntry {
                 op,
                 node_nr_left: spec_idx_left + 1,
                 node_nr_right: spec_idx_right + 1,
@@ -636,7 +651,7 @@ impl<'a> Conjunction<'a> {
                         .get(&spec_idx_right)
                         .ok_or("RHS operand not found")?);
 
-                    let filter = BinaryFilter::new(exec_left, idx_left, idx_right, op_entry);
+                    let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
                     Box::new(filter)
                 } else {
                     let exec_right = component2exec.remove(&component_right).ok_or_else(|| {
@@ -663,7 +678,7 @@ impl<'a> Conjunction<'a> {
             component2exec.insert(new_component_nr, new_exec);
         }
 
-        // 3. check if there is only one component left (all nodes are connected)
+        // 4. check if there is only one component left (all nodes are connected)
         let mut first_component_id: Option<usize> = None;
         for (node_nr, cid) in &node2component {
             if first_component_id.is_none() {

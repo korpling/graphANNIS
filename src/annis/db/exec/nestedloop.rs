@@ -1,5 +1,5 @@
 use super::{Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::OperatorEntry;
+use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
 use crate::annis::operator::BinaryOperator;
 use std::iter::Peekable;
@@ -21,7 +21,7 @@ pub struct NestedLoop<'a> {
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
-        op_entry: OperatorEntry,
+        op_entry: BinaryOperatorEntry,
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         rhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
