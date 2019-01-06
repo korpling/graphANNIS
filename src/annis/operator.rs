@@ -170,3 +170,8 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
         None
     }
 }
+
+pub trait UnaryOperatorSpec: std::fmt::Debug {
+    fn necessary_components(&self, db: &Graph) -> Vec<Component>;
+    fn create_filter(&self, db: &Graph) -> Box<Fn(&Match) -> bool>;
+}
