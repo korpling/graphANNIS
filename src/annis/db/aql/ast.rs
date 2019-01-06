@@ -3,8 +3,9 @@ use std;
 use std::rc::Rc;
 
 use crate::annis::db::aql::operators::{
-    DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec, OverlapSpec,
-    PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec, LeftAlignmentSpec, RightAlignmentSpec,
+    AritySpec, DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec,
+    LeftAlignmentSpec, OverlapSpec, PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec,
+    RightAlignmentSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 
@@ -42,6 +43,11 @@ pub enum Literal {
         lhs: Operand,
         op: BinaryOpSpec,
         rhs: Operand,
+        pos: Option<Pos>,
+    },
+    UnaryOp {
+        node_ref: NodeRef,
+        op: UnaryOpSpec,
         pos: Option<Pos>,
     },
     LegacyMetaSearch {
@@ -95,6 +101,11 @@ pub enum BinaryOpSpec {
     LeftAlignment(LeftAlignmentSpec),
     RightAlignment(RightAlignmentSpec),
     IdenticalNode(IdenticalNodeSpec),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum UnaryOpSpec {
+    Arity(AritySpec),
 }
 
 pub use crate::annis::db::aql::operators::RangeSpec;
