@@ -6,8 +6,8 @@ lalrpop_mod!(
     parser
 );
 
-use crate::annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
-use crate::annis::db::aql::operators::identical_node::IdenticalNodeSpec;
+use crate::annis::db::aql::operators::PartOfSubCorpusSpec;
+use crate::annis::db::aql::operators::IdenticalNodeSpec;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::query::conjunction::Conjunction;
