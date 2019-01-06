@@ -3,7 +3,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, Match};
 use crate::annis::operator::EstimationType;
-use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKeyID, Component, ComponentType, NodeID};
 use rustc_hash::FxHashSet;
 
@@ -37,7 +37,7 @@ lazy_static! {
     };
 }
 
-impl OperatorSpec for OverlapSpec {
+impl BinaryOperatorSpec for OverlapSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![
             COMPONENT_ORDER.clone(),
@@ -47,7 +47,7 @@ impl OperatorSpec for OverlapSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let optional_op = Overlap::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -78,7 +78,7 @@ impl std::fmt::Display for Overlap {
     }
 }
 
-impl Operator for Overlap {
+impl BinaryOperator for Overlap {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
@@ -136,7 +136,7 @@ impl Operator for Overlap {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 

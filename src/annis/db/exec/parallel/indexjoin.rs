@@ -2,7 +2,7 @@ use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::query::conjunction::OperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, Operator};
+use crate::annis::operator::{EstimationType, BinaryOperator};
 use crate::annis::types::{AnnoKey, NodeID};
 use rayon::prelude::*;
 use std::iter::Peekable;
@@ -17,7 +17,7 @@ const MAX_BUFFER_SIZE: usize = 512;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     match_receiver: Option<Receiver<Vec<Match>>>,
-    op: Arc<Operator>,
+    op: Arc<BinaryOperator>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
@@ -114,11 +114,11 @@ impl<'a> IndexJoin<'a> {
         }
 
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
-        let op: Arc<Operator> = self.op.clone();
+        let op: Arc<BinaryOperator> = self.op.clone();
         let lhs_idx = self.lhs_idx;
         let node_annos = self.node_annos.clone();
 
-        let op: &Operator = op.as_ref();
+        let op: &BinaryOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         // find all RHS in parallel
@@ -181,7 +181,7 @@ impl<'a> IndexJoin<'a> {
 
 fn next_candidates(
     m_lhs: &[Match],
-    op: &Operator,
+    op: &BinaryOperator,
     lhs_idx: usize,
     node_annos: &Arc<AnnoStorage<NodeID>>,
     node_search_desc: &Arc<NodeSearchDesc>,

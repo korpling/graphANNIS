@@ -1,13 +1,13 @@
 use super::{Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::OperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::Operator;
+use crate::annis::operator::BinaryOperator;
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-    op: Box<Operator>,
+    op: Box<BinaryOperator>,
     inner_idx: usize,
     outer_idx: usize,
     inner_cache: Vec<Vec<Match>>,

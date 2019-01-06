@@ -3,7 +3,7 @@ use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::{Graph, Match, ANNIS_NS};
-use crate::annis::operator::{EdgeAnnoSearchSpec, EstimationType, Operator, OperatorSpec};
+use crate::annis::operator::{EdgeAnnoSearchSpec, EstimationType, BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, NodeID};
 use crate::annis::util;
 use regex;
@@ -44,12 +44,12 @@ impl BaseEdgeOp {
     }
 }
 
-impl OperatorSpec for BaseEdgeOpSpec {
+impl BinaryOperatorSpec for BaseEdgeOpSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         self.components.clone()
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let optional_op = BaseEdgeOp::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -195,7 +195,7 @@ impl std::fmt::Display for BaseEdgeOp {
     }
 }
 
-impl Operator for BaseEdgeOp {
+impl BinaryOperator for BaseEdgeOp {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let lhs = lhs.clone();
         let spec = self.spec.clone();
@@ -321,7 +321,7 @@ impl Operator for BaseEdgeOp {
         self.spec.is_reflexive
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         // Check if all graph storages have the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         for g in &self.gs {
@@ -459,12 +459,12 @@ pub struct DominanceSpec {
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
-impl OperatorSpec for DominanceSpec {
+impl BinaryOperatorSpec for DominanceSpec {
     fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         db.get_all_components(Some(ComponentType::Dominance), Some(&self.name))
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let components = db.get_all_components(Some(ComponentType::Dominance), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from(">")
@@ -489,12 +489,12 @@ pub struct PointingSpec {
     pub edge_anno: Option<EdgeAnnoSearchSpec>,
 }
 
-impl OperatorSpec for PointingSpec {
+impl BinaryOperatorSpec for PointingSpec {
     fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         db.get_all_components(Some(ComponentType::Pointing), Some(&self.name))
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let components = db.get_all_components(Some(ComponentType::Pointing), Some(&self.name));
         let op_str = if self.name.is_empty() {
             String::from("->")
@@ -518,7 +518,7 @@ pub struct PartOfSubCorpusSpec {
     pub dist: RangeSpec,
 }
 
-impl OperatorSpec for PartOfSubCorpusSpec {
+impl BinaryOperatorSpec for PartOfSubCorpusSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let components = vec![Component {
             ctype: ComponentType::PartOfSubcorpus,
@@ -528,7 +528,7 @@ impl OperatorSpec for PartOfSubCorpusSpec {
         components
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let components = vec![Component {
             ctype: ComponentType::PartOfSubcorpus,
             layer: String::from(ANNIS_NS),

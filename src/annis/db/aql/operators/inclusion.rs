@@ -3,7 +3,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, Match};
 use crate::annis::operator::EstimationType;
-use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
@@ -53,7 +53,7 @@ lazy_static! {
     };
 }
 
-impl OperatorSpec for InclusionSpec {
+impl BinaryOperatorSpec for InclusionSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![
             COMPONENT_ORDER.clone(),
@@ -65,7 +65,7 @@ impl OperatorSpec for InclusionSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let optional_op = Inclusion::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -100,7 +100,7 @@ impl std::fmt::Display for Inclusion {
     }
 }
 
-impl Operator for Inclusion {
+impl BinaryOperator for Inclusion {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         if let (Some(start_lhs), Some(end_lhs)) = self.tok_helper.left_right_token_for(lhs.node) {
             // span length of LHS

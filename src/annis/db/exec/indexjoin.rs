@@ -2,7 +2,7 @@ use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::query::conjunction::OperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, Operator};
+use crate::annis::operator::{EstimationType, BinaryOperator};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::iter::Peekable;
@@ -14,7 +14,7 @@ use std::sync::Arc;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     rhs_candidate: Option<std::iter::Peekable<Box<Iterator<Item = Match>>>>,
-    op: Box<Operator>,
+    op: Box<BinaryOperator>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,

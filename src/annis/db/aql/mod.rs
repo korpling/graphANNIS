@@ -13,7 +13,7 @@ use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::errors::*;
-use crate::annis::operator::OperatorSpec;
+use crate::annis::operator::BinaryOperatorSpec;
 use crate::annis::types::{LineColumn, LineColumnRange};
 use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
@@ -332,7 +332,7 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
     }
 }
 
-fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
+fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<BinaryOperatorSpec> {
     match op {
         ast::BinaryOpSpec::Dominance(spec) => Box::new(spec),
         ast::BinaryOpSpec::Pointing(spec) => Box::new(spec),

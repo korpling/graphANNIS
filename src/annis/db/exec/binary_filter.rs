@@ -1,7 +1,7 @@
 use super::{CostEstimate, Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::OperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, Operator};
+use crate::annis::operator::{EstimationType, BinaryOperator};
 use std;
 
 pub struct BinaryFilter<'a> {
@@ -9,7 +9,7 @@ pub struct BinaryFilter<'a> {
     desc: Option<Desc>,
 }
 
-fn calculate_outputsize(op: &Operator, num_tuples: usize) -> usize {
+fn calculate_outputsize(op: &BinaryOperator, num_tuples: usize) -> usize {
     let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = num_tuples as f64;

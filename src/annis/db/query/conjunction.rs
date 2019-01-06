@@ -11,7 +11,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
-use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
@@ -24,14 +24,14 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 struct OperatorSpecEntry<'a> {
-    op: Box<OperatorSpec + 'a>,
+    op: Box<BinaryOperatorSpec + 'a>,
     idx_left: usize,
     idx_right: usize,
     global_reflexivity: bool,
 }
 
 pub struct OperatorEntry {
-    pub op: Box<Operator>,
+    pub op: Box<BinaryOperator>,
     pub node_nr_left: usize,
     pub node_nr_right: usize,
     pub global_reflexivity: bool,
@@ -249,7 +249,7 @@ impl<'a> Conjunction<'a> {
     }
     pub fn add_operator(
         &mut self,
-        op: Box<OperatorSpec>,
+        op: Box<BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         global_reflexivity: bool,
@@ -259,7 +259,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn add_operator_from_query(
         &mut self,
-        op: Box<OperatorSpec>,
+        op: Box<BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         location: Option<LineColumnRange>,
@@ -558,7 +558,7 @@ impl<'a> Conjunction<'a> {
         for i in operator_order {
             let op_spec_entry: &OperatorSpecEntry<'a> = &self.operators[i];
 
-            let mut op: Box<Operator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
+            let mut op: Box<BinaryOperator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
                 ErrorKind::ImpossibleSearch(format!(
                     "could not create operator {:?}",
                     op_spec_entry
