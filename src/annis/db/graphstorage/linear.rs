@@ -177,7 +177,7 @@ where
             if let Some(chain) = self.node_chains.get(&start_pos.root) {
                 if let Some(offset) = start_pos.pos.to_usize() {
                     let max_distance = match max_distance {
-                        std::ops::Bound::Unbounded => offset,
+                        std::ops::Bound::Unbounded => 0,
                         std::ops::Bound::Included(max_distance) => {
                             offset.checked_sub(max_distance).unwrap_or(0)
                         }
