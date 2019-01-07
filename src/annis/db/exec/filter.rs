@@ -1,7 +1,7 @@
 use super::{CostEstimate, Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::BinaryOperatorEntry;
+use crate::annis::db::query::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, BinaryOperator};
+use crate::annis::operator::{EstimationType, BinaryOperator, UnaryOperator};
 use std;
 
 pub struct Filter<'a> {
@@ -9,7 +9,7 @@ pub struct Filter<'a> {
     desc: Option<Desc>,
 }
 
-fn calculate_outputsize(op: &BinaryOperator, num_tuples: usize) -> usize {
+fn calculate_binary_outputsize(op: &BinaryOperator, num_tuples: usize) -> usize {
     let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = num_tuples as f64;
@@ -18,6 +18,18 @@ fn calculate_outputsize(op: &BinaryOperator, num_tuples: usize) -> usize {
             } else {
                 (num_tuples * selectivity).round() as usize
             }
+        }
+        EstimationType::MIN => num_tuples,
+    };
+    // always assume at least one output item otherwise very small selectivity can fool the planner
+    std::cmp::max(output, 1)
+}
+
+fn calculate_unary_outputsize(op: &UnaryOperator, num_tuples: usize) -> usize {
+    let output = match op.estimation_type() {
+        EstimationType::SELECTIVITY(selectivity) => {
+            let num_tuples = num_tuples as f64;
+            (num_tuples * selectivity).round() as usize
         }
         EstimationType::MIN => num_tuples,
     };
@@ -35,7 +47,7 @@ impl<'a> Filter<'a> {
         let desc = if let Some(orig_desc) = exec.get_desc() {
             let cost_est = if let Some(ref orig_cost) = orig_desc.cost {
                 Some(CostEstimate {
-                    output: calculate_outputsize(op_entry.op.as_ref(), orig_cost.output),
+                    output: calculate_binary_outputsize(op_entry.op.as_ref(), orig_cost.output),
                     processed_in_step: orig_cost.processed_in_step,
                     intermediate_sum: orig_cost.intermediate_sum + orig_cost.processed_in_step,
                 })
@@ -60,6 +72,45 @@ impl<'a> Filter<'a> {
         };
         let it =
             exec.filter(move |tuple| op_entry.op.filter_match(&tuple[lhs_idx], &tuple[rhs_idx]));
+        Filter {
+            desc,
+            it: Box::new(it),
+        }
+    }
+
+    pub fn new_unary(
+        exec: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
+        idx: usize,
+        op_entry: UnaryOperatorEntry,
+    ) -> Filter<'a> {
+        let desc = if let Some(orig_desc) = exec.get_desc() {
+            let cost_est = if let Some(ref orig_cost) = orig_desc.cost {
+                Some(CostEstimate {
+                    output: calculate_unary_outputsize(op_entry.op.as_ref(), orig_cost.output),
+                    processed_in_step: orig_cost.processed_in_step,
+                    intermediate_sum: orig_cost.intermediate_sum + orig_cost.processed_in_step,
+                })
+            } else {
+                None
+            };
+
+            Some(Desc {
+                component_nr: orig_desc.component_nr,
+                node_pos: orig_desc.node_pos.clone(),
+                impl_description: String::from("filter"),
+                query_fragment: format!(
+                    "#{}{}",
+                    op_entry.node_nr, op_entry.op,
+                ),
+                cost: cost_est,
+                lhs: Some(Box::new(orig_desc.clone())),
+                rhs: None,
+            })
+        } else {
+            None
+        };
+        let it =
+            exec.filter(move |tuple| op_entry.op.filter_match(&tuple[idx]));
         Filter {
             desc,
             it: Box::new(it),

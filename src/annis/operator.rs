@@ -177,7 +177,7 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
     fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>>;
 }
 
-pub trait UnaryOperator {
+pub trait UnaryOperator : std::fmt::Display + Send + Sync {
 
     fn filter_match(&self, m: &Match) -> bool;
 

@@ -11,7 +11,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
-use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec, UnaryOperatorSpec};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec};
 use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
@@ -44,10 +44,8 @@ pub struct BinaryOperatorEntry {
 }
 
 pub struct UnaryOperatorEntry {
-    pub filter: Box<BinaryOperator>,
-    pub node_nr_left: usize,
-    pub node_nr_right: usize,
-    pub global_reflexivity: bool,
+    pub op: Box<UnaryOperator>,
+    pub node_nr: usize,
 }
 
 
@@ -577,11 +575,25 @@ impl<'a> Conjunction<'a> {
         }
 
         // 2. add unary operators as filter to the existing node search
-        for op in self.unary_operators.iter() {
-            // let exec: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
-            //     .remove(&op.idx)
-            //     .ok_or_else(|| format!("no execution node for component {}", op.idx))?;
-            unimplemented!()
+        for op_spec_entry in self.unary_operators.iter() {
+            let child_exec: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+                .remove(&op_spec_entry.idx)
+                .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
+            
+            let op: Box<UnaryOperator> =
+                op_spec_entry.op.create_operator(db).ok_or_else(|| {
+                    ErrorKind::ImpossibleSearch(format!(
+                        "could not create operator {:?}",
+                        op_spec_entry
+                    ))
+                })?;
+            let op_entry = UnaryOperatorEntry {
+                op,
+                node_nr: op_spec_entry.idx + 1,
+            };
+            let filter_exec = Filter::new_unary(child_exec, 0, op_entry);
+            
+            component2exec.insert(op_spec_entry.idx, Box::new(filter_exec));
 
         }
 

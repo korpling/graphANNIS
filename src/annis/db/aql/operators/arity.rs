@@ -47,6 +47,12 @@ struct ArityOperator {
     allowed_range: RangeSpec,
 }
 
+impl std::fmt::Display for ArityOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, ":arity={}", self.allowed_range)
+    }
+}
+
 
 impl UnaryOperator for ArityOperator {
 
