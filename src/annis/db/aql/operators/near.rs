@@ -118,39 +118,49 @@ impl std::fmt::Display for Near {
 
 impl BinaryOperator for Near {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
-        let start = if self.spec.segmentation.is_some() {
+        let start_forward = if self.spec.segmentation.is_some() {
             Some(lhs.node)
         } else {
             self.tok_helper.right_token_for(lhs.node)
         };
 
-        if start.is_none() {
-            return Box::new(std::iter::empty::<Match>());
-        }
+        let start_backward = if self.spec.segmentation.is_some() {
+            Some(lhs.node)
+        } else {
+            self.tok_helper.left_token_for(lhs.node)
+        };
 
-        let start = start.unwrap();
+        let it_forward : Box<Iterator<Item=u64>> = if let Some(start) = start_forward {
+            let it = self
+                .gs_order
+                // get all token in the range
+                .find_connected(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
+                .fuse()
+                // find all left aligned nodes for this token and add it together with the token itself
+                .flat_map(move |t| {
+                    let it_aligned = self.gs_left.get_ingoing_edges(t);
+                    std::iter::once(t).chain(it_aligned)
+                });
+            Box::new(it)
+        } else {
+            Box::new(std::iter::empty::<u64>())
+        };
 
-        let it_forward = self
-            .gs_order
-            // get all token in the range
-            .find_connected(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-            .fuse()
-            // find all left aligned nodes for this token and add it together with the token itself
-            .flat_map(move |t| {
-                let it_aligned = self.gs_left.get_ingoing_edges(t);
-                std::iter::once(t).chain(it_aligned)
-            });
-
-        let it_backward = self
-            .gs_order
-            // get all token in the range
-            .find_connected_inverse(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
-            .fuse()
-            // find all right aligned nodes for this token and add it together with the token itself
-            .flat_map(move |t| {
-                let it_aligned = self.gs_right.get_ingoing_edges(t);
-                std::iter::once(t).chain(it_aligned)
-            });
+        let it_backward : Box<Iterator<Item=u64>> = if let Some(start) = start_backward {
+            let it = self
+                .gs_order
+                // get all token in the range
+                .find_connected_inverse(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
+                .fuse()
+                // find all right aligned nodes for this token and add it together with the token itself
+                .flat_map(move |t| {
+                    let it_aligned = self.gs_right.get_ingoing_edges(t);
+                    std::iter::once(t).chain(it_aligned)
+                });
+            Box::new(it)
+        } else {
+            Box::new(std::iter::empty::<u64>())
+        };
 
         // materialize a list of all matches
         let result: VecDeque<Match> = it_forward
@@ -166,7 +176,7 @@ impl BinaryOperator for Near {
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        let start_end = if self.spec.segmentation.is_some() {
+        let start_end_forward = if self.spec.segmentation.is_some() {
             (lhs.node, rhs.node)
         } else {
             let start = self.tok_helper.right_token_for(lhs.node);
@@ -176,15 +186,26 @@ impl BinaryOperator for Near {
             }
             (start.unwrap(), end.unwrap())
         };
+        let start_end_backward = if self.spec.segmentation.is_some() {
+            (lhs.node, rhs.node)
+        } else {
+            let start = self.tok_helper.left_token_for(lhs.node);
+            let end = self.tok_helper.right_token_for(rhs.node);
+            if start.is_none() || end.is_none() {
+                return false;
+            }
+            (start.unwrap(), end.unwrap())
+        };
+
 
         self.gs_order.is_connected(
-            &start_end.0,
-            &start_end.1,
+            &start_end_forward.0,
+            &start_end_forward.1,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         ) || self.gs_order.is_connected(
-            &start_end.1,
-            &start_end.0,
+            &start_end_backward.1,
+            &start_end_backward.0,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         )
@@ -198,7 +219,7 @@ impl BinaryOperator for Near {
                 std::ops::Bound::Excluded(max_dist) => max_dist - 1,
             };
             let max_possible_dist = std::cmp::min(max_dist, stats_order.max_depth);
-            let num_of_descendants = 2 *(max_possible_dist - self.spec.dist.min_dist() + 1);
+            let num_of_descendants = 2 * (max_possible_dist - self.spec.dist.min_dist() + 1);
 
             return EstimationType::SELECTIVITY(
                 (num_of_descendants as f64) / (stats_order.nodes as f64 / 2.0),
