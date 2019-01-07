@@ -20,9 +20,9 @@ lazy_static! {
 
         // only execute the test if the directory exists
         if db_dir.exists() && db_dir.is_dir() {
-            if let Ok(cs) = CorpusStorage::with_auto_cache_size(&db_dir, true) {
-                return Some(Mutex::new(cs))
-            }
+            // but fail if directory is blocked
+            let cs = CorpusStorage::with_auto_cache_size(&db_dir, true).unwrap();
+            return Some(Mutex::new(cs));
         }
         None
     };
@@ -49,7 +49,7 @@ fn non_reflexivity_nodes() {
                 };
 
                 let operators_to_test = vec![
-                    ".", ".*", ">", ">*", "_=_", "_i_", "_o_", "_l_", "_r_", "->dep", "->dep *",
+                    ".", ".*", "^", "^*", ">", ">*", "_=_", "_i_", "_o_", "_l_", "_r_", "->dep", "->dep *",
                 ];
 
                 for o in operators_to_test.into_iter() {

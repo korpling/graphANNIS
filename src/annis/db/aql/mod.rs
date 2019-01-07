@@ -362,6 +362,7 @@ fn make_binary_operator_spec(op: ast::BinaryOpSpec) -> Box<BinaryOperatorSpec> {
         ast::BinaryOpSpec::Dominance(spec) => Box::new(spec),
         ast::BinaryOpSpec::Pointing(spec) => Box::new(spec),
         ast::BinaryOpSpec::Precedence(spec) => Box::new(spec),
+        ast::BinaryOpSpec::Near(spec) => Box::new(spec),
         ast::BinaryOpSpec::Overlap(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalCoverage(spec) => Box::new(spec),
         ast::BinaryOpSpec::PartOfSubCorpus(spec) => Box::new(spec),

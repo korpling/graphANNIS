@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::annis::db::aql::operators::{
     AritySpec, DominanceSpec, IdenticalCoverageSpec, IdenticalNodeSpec, InclusionSpec,
     LeftAlignmentSpec, OverlapSpec, PartOfSubCorpusSpec, PointingSpec, PrecedenceSpec,
+    NearSpec,
     RightAlignmentSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
@@ -43,7 +44,7 @@ pub enum Literal {
         lhs: Operand,
         op: BinaryOpSpec,
         rhs: Operand,
-        pos: Option<Pos>,
+        pos: Option<Pos>
     },
     UnaryOp {
         node_ref: NodeRef,
@@ -69,7 +70,7 @@ pub enum Operand {
 #[derive(Debug, Clone)]
 pub struct TextSearch(pub String, pub StringMatchType);
 
-pub enum ComparisionOperator {
+pub enum ComparisonOperator {
     Equal,
     NotEqual,
 }
@@ -94,6 +95,7 @@ pub enum BinaryOpSpec {
     Dominance(DominanceSpec),
     Pointing(PointingSpec),
     Precedence(PrecedenceSpec),
+    Near(NearSpec),
     Overlap(OverlapSpec),
     IdenticalCoverage(IdenticalCoverageSpec),
     PartOfSubCorpus(PartOfSubCorpusSpec),
