@@ -130,8 +130,7 @@ impl BinaryOperator for Near {
 
         let start = start.unwrap();
 
-        // materialize a list of all matches
-        let result: VecDeque<Match> = self
+        let it_forward = self
             .gs_order
             // get all token in the range
             .find_connected(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
@@ -140,12 +139,28 @@ impl BinaryOperator for Near {
             .flat_map(move |t| {
                 let it_aligned = self.gs_left.get_ingoing_edges(t);
                 std::iter::once(t).chain(it_aligned)
-            })
+            });
+
+        let it_backward = self
+            .gs_order
+            // get all token in the range
+            .find_connected_inverse(start, self.spec.dist.min_dist(), self.spec.dist.max_dist())
+            .fuse()
+            // find all right aligned nodes for this token and add it together with the token itself
+            .flat_map(move |t| {
+                let it_aligned = self.gs_right.get_ingoing_edges(t);
+                std::iter::once(t).chain(it_aligned)
+            });
+
+        // materialize a list of all matches
+        let result: VecDeque<Match> = it_forward
+            .chain(it_backward)
             // map the result as match
             .map(|n| Match {
                 node: n,
                 anno_key: AnnoKeyID::default(),
-            }).collect();
+            })
+            .collect();
 
         Box::new(result.into_iter())
     }
@@ -183,7 +198,7 @@ impl BinaryOperator for Near {
                 std::ops::Bound::Excluded(max_dist) => max_dist - 1,
             };
             let max_possible_dist = std::cmp::min(max_dist, stats_order.max_depth);
-            let num_of_descendants = max_possible_dist - self.spec.dist.min_dist() + 1;
+            let num_of_descendants = 2 *(max_possible_dist - self.spec.dist.min_dist() + 1);
 
             return EstimationType::SELECTIVITY(
                 (num_of_descendants as f64) / (stats_order.nodes as f64 / 2.0),
@@ -197,4 +212,3 @@ impl BinaryOperator for Near {
         Some(Box::new(self.clone()))
     }
 }
-
