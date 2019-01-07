@@ -612,7 +612,9 @@ impl Graph {
                         }
                         // delete all edges pointing to this node either as source or target
                         for c in self.get_all_components(None, None) {
-                            self.components.remove(&c);
+                            if let Ok(gs) = self.get_or_create_writable(&c) {
+                                gs.delete_node(&existing_node_id);
+                            }
                         }
 
                         invalid_nodes.extend(self.get_parent_text_coverage_nodes(existing_node_id));

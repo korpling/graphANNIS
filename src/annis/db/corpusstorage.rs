@@ -1658,7 +1658,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_update_add_nodes() {
+    fn apply_update_add_and_delete_nodes() {
         if let Ok(tmp) = tempfile::tempdir() {
             let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
@@ -1672,9 +1672,23 @@ mod tests {
                 node_type: "corpus".to_string(),
             });
             g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#MyToken".to_string(),
+                node_name: "root/doc1#MyToken1".to_string(),
                 node_type: "node".to_string(),
             });
+
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1#MyToken2".to_string(),
+                node_type: "node".to_string(),
+            });
+
+            g.add_event(UpdateEvent::AddEdge {
+                source_node: "root/doc1#MyToken1".to_owned(),
+                target_node: "root/doc1#MyToken2".to_owned(),
+                layer: "dep".to_owned(),
+                component_type: "Pointing".to_owned(),
+                component_name: "dep".to_owned(),
+            });
+
             g.add_event(UpdateEvent::AddNode {
                 node_name: "root/doc2".to_string(),
                 node_type: "corpus".to_string(),
@@ -1687,7 +1701,23 @@ mod tests {
             cs.apply_update("root", &mut g).unwrap();
 
             let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
+            assert_eq!(3, node_count);
+
+            let edge_count = cs.count("root", "node ->dep node", QueryLanguage::AQL).unwrap();
+            assert_eq!(1, edge_count);
+
+            // delete one of the tokens
+            let mut g = GraphUpdate::new();
+            g.add_event(UpdateEvent::DeleteNode {
+                node_name: "root/doc1#MyToken2".to_string(),
+            });
+            cs.apply_update("root", &mut g).unwrap();
+
+            let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
             assert_eq!(2, node_count);
+            let edge_count = cs.count("root", "node ->dep node", QueryLanguage::AQL).unwrap();
+            assert_eq!(0, edge_count);
+
         }
     }
 
