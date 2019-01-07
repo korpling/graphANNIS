@@ -603,6 +603,9 @@ impl Graph {
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
+
+                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(existing_node_id));
+
                         // delete all annotations
                         {
                             let node_annos = Arc::make_mut(&mut self.node_annos);
@@ -616,8 +619,6 @@ impl Graph {
                                 gs.delete_node(&existing_node_id);
                             }
                         }
-
-                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(existing_node_id));
                     }
                 }
                 UpdateEvent::AddNodeLabel {
@@ -689,6 +690,10 @@ impl Graph {
                         self.get_node_id_from_name(&target_node),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
+
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
+                            
                             let c = Component {
                                 ctype,
                                 layer,
@@ -697,8 +702,6 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
 
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
                         }
                     }
                 }
