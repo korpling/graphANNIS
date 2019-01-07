@@ -8,8 +8,8 @@ use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
-use std::collections::VecDeque;
 use std::sync::Arc;
+use rustc_hash::FxHashSet;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NearSpec {
@@ -162,8 +162,8 @@ impl BinaryOperator for Near {
             Box::new(std::iter::empty::<u64>())
         };
 
-        // materialize a list of all matches
-        let result: VecDeque<Match> = it_forward
+        // materialize a set of all matches
+        let result: FxHashSet<Match> = it_forward
             .chain(it_backward)
             // map the result as match
             .map(|n| Match {
