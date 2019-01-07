@@ -334,6 +334,11 @@ impl<'a> Conjunction<'a> {
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = vec![];
 
+        for op_entry in &self.unary_operators {
+            let mut c = op_entry.op.necessary_components(db);
+            result.append(&mut c);
+        }
+
         for op_entry in &self.binary_operators {
             let mut c = op_entry.op.necessary_components(db);
             result.append(&mut c);
