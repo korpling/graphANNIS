@@ -50,6 +50,16 @@ TokenPrecedenceThreeNodes,"tiger:pos=""NN"" .2,10 tiger:pos=""ART"" . tiger:pos=
 PPNotModifier,"cat=""S"" & cat=""PP"" & #1 >[func!=""MO""] #2",pcc2.1,129
 BrandenBurgSentence,"tiger:cat=""S"" & tok=/Brandenburg.*/ & #1 >* #2",pcc2.1,46
 NPThreeOut,"cat=""NP"" & #1:arity=3 & node & #1 > #2 & #2:arity=3",pcc2.1,254
+ConjunctionNearNounDirect,"pos=""KON"" & pos=""NN"" & #1 ^ #2",pcc2.1,472
+ConjunctionNearNounDistance,"pos=""KON"" & pos=""NN"" & #1 ^3 #2",pcc2.1,407
+ConjunctionNearNounRange,"pos=""KON"" & pos=""NN"" & #1 ^3,4 #2",pcc2.1,745
+ConjunctionNearNounIndirect,"pos=""KON"" & pos=""NN"" & #1 ^* #2",pcc2.1,33175
+SegmentNearDirect,SEGMENT-1 ^ SEGMENT-2,pcc2.1,28
+SegmentNearRange,"SEGMENT-1 ^1,10 SEGMENT-2",pcc2.1,150
+SegmentNearIndirect,SEGMENT-1 ^* SEGMENT-2,pcc2.1,1471
+NewInDirect,"""in"" ^ primmark_referentiality=""discourse-new""",pcc2.1,63
+NNNearARTDirect,"pos=""NN"" ^ pos=""ART""",pcc2.1,2907
+NNNearARTDIndirect,"pos=""NN"" ^*pos=""ART""",pcc2.1,122469
 DiplNameSearch,dipl,RIDGES_Herbology_Version7.0,252777
 PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",RIDGES_Herbology_Version7.0,28
 NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,RIDGES_Herbology_Version7.0,119
