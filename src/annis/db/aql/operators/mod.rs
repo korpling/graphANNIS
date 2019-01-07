@@ -45,6 +45,7 @@ mod identical_node;
 mod inclusion;
 mod overlap;
 mod precedence;
+mod near;
 mod leftalignment;
 mod rightalignment;
 
@@ -56,4 +57,5 @@ pub use self::overlap::OverlapSpec;
 pub use self::leftalignment::LeftAlignmentSpec;
 pub use self::rightalignment::RightAlignmentSpec;
 pub use self::precedence::PrecedenceSpec;
+pub use self::near::NearSpec;
 pub use self::arity::AritySpec;
