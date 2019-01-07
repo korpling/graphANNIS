@@ -49,6 +49,7 @@ TokenPrecedence,"tiger:pos=""NN"" .2,10 tiger:pos=""ART""",pcc2.1,5484
 TokenPrecedenceThreeNodes,"tiger:pos=""NN"" .2,10 tiger:pos=""ART"" . tiger:pos=""NN""",pcc2.1,3775
 PPNotModifier,"cat=""S"" & cat=""PP"" & #1 >[func!=""MO""] #2",pcc2.1,129
 BrandenBurgSentence,"tiger:cat=""S"" & tok=/Brandenburg.*/ & #1 >* #2",pcc2.1,46
+NPThreeOut,"cat=""NP"" & #1:arity=3 & node & #1 > #2 & #2:arity=3",pcc2.1,254
 DiplNameSearch,dipl,RIDGES_Herbology_Version7.0,252777
 PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",RIDGES_Herbology_Version7.0,28
 NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,RIDGES_Herbology_Version7.0,119
