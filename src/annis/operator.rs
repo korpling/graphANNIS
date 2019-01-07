@@ -173,5 +173,15 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {
     fn necessary_components(&self, db: &Graph) -> Vec<Component>;
-    fn create_filter(&self, db: &Graph) -> Box<Fn(&Match) -> bool>;
+
+    fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>>;
+}
+
+pub trait UnaryOperator {
+
+    fn filter_match(&self, m: &Match) -> bool;
+
+    fn estimation_type(&self) -> EstimationType {
+        EstimationType::SELECTIVITY(0.1)
+    }
 }

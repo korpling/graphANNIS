@@ -1,16 +1,17 @@
 use super::RangeSpec;
-use crate::annis::operator::UnaryOperatorSpec;
-use crate::graph::{ComponentType, Component, Match, NodeID};
+use crate::annis::db::graphstorage::GraphStorage;
+use crate::annis::operator::{UnaryOperator, UnaryOperatorSpec};
+use crate::graph::{Component, ComponentType, Match, NodeID};
 use crate::Graph;
+use std::sync::Arc;
 
-use std;
 use rustc_hash::FxHashSet;
+use std;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AritySpec {
     pub children: RangeSpec,
 }
-
 
 impl UnaryOperatorSpec for AritySpec {
     fn necessary_components(&self, db: &Graph) -> Vec<Component> {
@@ -19,7 +20,7 @@ impl UnaryOperatorSpec for AritySpec {
         result.extend(db.get_all_components(Some(ComponentType::Coverage), None));
         result
     }
-    fn create_filter(&self, db: &Graph) -> Box<Fn(&Match) -> bool> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>> {
         // collect all relevant graph storages
         let mut graphstorages = Vec::default();
 
@@ -34,20 +35,32 @@ impl UnaryOperatorSpec for AritySpec {
             }
         }
 
-        let allowed_range = self.children.clone();
+        Some(Box::new(ArityOperator {
+            graphstorages,
+            allowed_range: self.children.clone(),
+        }))
+    }
+}
 
-        // create the filter which collects all child-nodes in all graphstorages
-        let filter = move |m : &Match| -> bool {
-            let mut children : FxHashSet<NodeID> = FxHashSet::default();
-            for gs in graphstorages.iter() {
+struct ArityOperator {
+    graphstorages: Vec<Arc<GraphStorage>>,
+    allowed_range: RangeSpec,
+}
+
+
+impl UnaryOperator for ArityOperator {
+
+    fn filter_match(&self, m: &Match) -> bool {
+        let mut children: FxHashSet<NodeID> = FxHashSet::default();
+            for gs in self.graphstorages.iter() {
                 for out in gs.get_outgoing_edges(m.node) {
                     children.insert(out);
                 }
             }
 
             let num_children = children.len();
-            if num_children >= allowed_range.min_dist() {
-                match allowed_range.max_dist() {
+            if num_children >= self.allowed_range.min_dist() {
+                match self.allowed_range.max_dist() {
                     std::ops::Bound::Unbounded => true,
                     std::ops::Bound::Included(max_dist) => num_children <= max_dist,
                     std::ops::Bound::Excluded(max_dist) => num_children < max_dist,
@@ -55,7 +68,5 @@ impl UnaryOperatorSpec for AritySpec {
             } else {
                 false
             }
-        };
-        Box::new(filter)
     }
 }
