@@ -17,7 +17,7 @@ impl UnaryOperatorSpec for AritySpec {
     fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = Vec::default();
         result.extend(db.get_all_components(Some(ComponentType::Dominance), None));
-        result.extend(db.get_all_components(Some(ComponentType::Coverage), None));
+        result.extend(db.get_all_components(Some(ComponentType::Pointing), None));
         result
     }
     fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>> {
@@ -29,7 +29,7 @@ impl UnaryOperatorSpec for AritySpec {
                 graphstorages.push(gs);
             }
         }
-        for component in db.get_all_components(Some(ComponentType::Coverage), None) {
+        for component in db.get_all_components(Some(ComponentType::Pointing), None) {
             if let Some(gs) = db.get_graphstorage(&component) {
                 graphstorages.push(gs);
             }
