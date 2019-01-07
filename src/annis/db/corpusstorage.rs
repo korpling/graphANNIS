@@ -446,13 +446,19 @@ impl CorpusStorage {
         // make sure the cache is not too large before adding the new corpus
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
 
-        let mut db = Graph::new();
-        if create_corpus {
+        let db = if create_corpus {
+            // create the default graph storages that are assumed to exist in every corpus
+            let mut db = Graph::with_default_graphstorages()?;
+
+            // save corpus to the path where it should be stored
             db.persist_to(&db_path)
                 .chain_err(|| format!("Could not create corpus with name {}", corpus_name))?;
+            db
         } else {
+            let mut db = Graph::new();
             db.load_from(&db_path, false)?;
-        }
+            db
+        };
 
         let entry = Arc::new(RwLock::new(CacheEntry::Loaded(db)));
         // first remove entry, than add it: this ensures it is at the end of the linked hash map

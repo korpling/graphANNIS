@@ -359,6 +359,38 @@ impl Graph {
         }
     }
 
+    /// Create a new instance without any location on the disk but with the default graph storage components
+    /// (Coverage, Order, LeftToken, RightToken, PartOfSubcorpus).
+    fn with_default_graphstorages() -> Result<Graph> {
+        let mut db = Graph::new();
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::Coverage,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::Ordering,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::LeftToken,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::RightToken,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::PartOfSubcorpus,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        Ok(db)
+    }
+
     fn set_location(&mut self, location: &Path) -> Result<()> {
         self.location = Some(PathBuf::from(location));
 
