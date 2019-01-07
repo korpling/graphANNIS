@@ -69,7 +69,7 @@ pub enum Operand {
 #[derive(Debug, Clone)]
 pub struct TextSearch(pub String, pub StringMatchType);
 
-pub enum ComparisionOperator {
+pub enum ComparisonOperator {
     Equal,
     NotEqual,
 }

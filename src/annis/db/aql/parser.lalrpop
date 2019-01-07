@@ -101,12 +101,12 @@ Literal : ast::Expr = {
         Expr::Terminal(ast::Literal::UnaryOp{node_ref, op, pos})
     },
     // legacy meta-data query `meta::doc="..."`
-    <start: @L> "meta::" <name:QName> <cmp:ComparisionOperator> <text:TextSearch> <end: @R> => {
+    <start: @L> "meta::" <name:QName> <cmp:ComparisonOperator> <text:TextSearch> <end: @R> => {
         let pos = ast::Pos {start, end};
         let spec = match text.1 { 
             ast::StringMatchType::Exact => {
                 match cmp {
-                    ast::ComparisionOperator::Equal => {
+                    ast::ComparisonOperator::Equal => {
                         NodeSearchSpec::ExactValue {
                             ns: name.0,
                             name: name.1,
@@ -114,7 +114,7 @@ Literal : ast::Expr = {
                             is_meta: true,
                         }
                     }
-                    ast::ComparisionOperator::NotEqual => {
+                    ast::ComparisonOperator::NotEqual => {
                         NodeSearchSpec::NotExactValue {
                             ns: name.0,
                             name: name.1,
@@ -127,7 +127,7 @@ Literal : ast::Expr = {
             },
             ast::StringMatchType::Regex => {
                 match cmp {
-                    ast::ComparisionOperator::Equal => {
+                    ast::ComparisonOperator::Equal => {
                         NodeSearchSpec::RegexValue {
                             ns: name.0,
                             name: name.1,
@@ -135,7 +135,7 @@ Literal : ast::Expr = {
                             is_meta: true,
                         }
                     }
-                    ast::ComparisionOperator::NotEqual => {
+                    ast::ComparisonOperator::NotEqual => {
                         NodeSearchSpec::NotRegexValue {
                             ns: name.0,
                             name: name.1,
@@ -168,17 +168,17 @@ NodeSearch : NodeSearchSpec = {
     // searching for tokens with `tok`
     TOK => NodeSearchSpec::AnyToken,
     // searching for a token value specificly on the minimal "tok" layer, e.g. tok="abc"
-    <tok_def:TOK> <cmp:ComparisionOperator> <val:TextSearch> => {
+    <tok_def:TOK> <cmp:ComparisonOperator> <val:TextSearch> => {
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
                 match cmp {
-                    ast::ComparisionOperator::Equal => {
+                    ast::ComparisonOperator::Equal => {
                         NodeSearchSpec::ExactTokenValue {
                             val: val.0,
                             leafs_only: true,
                         }
                     }
-                    ast::ComparisionOperator::NotEqual => {
+                    ast::ComparisonOperator::NotEqual => {
                         NodeSearchSpec::NotExactTokenValue {
                             val: val.0,
                         }
@@ -187,13 +187,13 @@ NodeSearch : NodeSearchSpec = {
             },
             ast::StringMatchType::Regex => {
                 match cmp {
-                    ast::ComparisionOperator::Equal => {
+                    ast::ComparisonOperator::Equal => {
                         NodeSearchSpec::RegexTokenValue {
                             val: val.0,
                             leafs_only: true,
                         }
                     }
-                    ast::ComparisionOperator::NotEqual => {
+                    ast::ComparisonOperator::NotEqual => {
                         NodeSearchSpec::NotRegexTokenValue {
                             val: val.0,
                         }
@@ -222,11 +222,11 @@ NodeSearch : NodeSearchSpec = {
         spec
     },
     // named annotation search with value, e.g. pos="NN"
-    <name:QName> <cmp:ComparisionOperator> <text:TextSearch> => {
+    <name:QName> <cmp:ComparisonOperator> <text:TextSearch> => {
         let spec = match text.1 { 
             ast::StringMatchType::Exact => {
                 match cmp {
-                    ast::ComparisionOperator::Equal => {
+                    ast::ComparisonOperator::Equal => {
                         NodeSearchSpec::ExactValue {
                             ns: name.0,
                             name: name.1,
@@ -234,7 +234,7 @@ NodeSearch : NodeSearchSpec = {
                             is_meta: false,
                         }
                     }
-                    ast::ComparisionOperator::NotEqual => {
+                    ast::ComparisonOperator::NotEqual => {
                         NodeSearchSpec::NotExactValue {
                             ns: name.0,
                             name: name.1,
@@ -246,7 +246,7 @@ NodeSearch : NodeSearchSpec = {
             },
             ast::StringMatchType::Regex => {
                 match cmp {
-                    ast::ComparisionOperator::Equal => {
+                    ast::ComparisonOperator::Equal => {
                          NodeSearchSpec::RegexValue {
                             ns: name.0,
                             name: name.1,
@@ -254,7 +254,7 @@ NodeSearch : NodeSearchSpec = {
                             is_meta: false,
                         }
                     }
-                    ast::ComparisionOperator::NotEqual => {
+                    ast::ComparisonOperator::NotEqual => {
                         NodeSearchSpec::NotRegexValue {
                             ns: name.0,
                             name: name.1,
@@ -398,9 +398,9 @@ UnaryOpSpec : ast::UnaryOpSpec = {
     // TODO: add more unary operators
 }
 
-ComparisionOperator: ast::ComparisionOperator = {
-    "=" => ast::ComparisionOperator::Equal,
-    "!=" => ast::ComparisionOperator::NotEqual,
+ComparisonOperator: ast::ComparisonOperator = {
+    "=" => ast::ComparisonOperator::Equal,
+    "!=" => ast::ComparisonOperator::NotEqual,
 }
 
 TextSearch: ast::TextSearch = {
@@ -411,20 +411,20 @@ TextSearch: ast::TextSearch = {
 };
 
 EdgeAnno: EdgeAnnoSearchSpec = {
-    "[" <name:QName> <cmp:ComparisionOperator> <val:TextSearch> "]"  => {
+    "[" <name:QName> <cmp:ComparisonOperator> <val:TextSearch> "]"  => {
         // TODO: multiple edge annotations
         
         let spec = match val.1 { 
             ast::StringMatchType::Exact => {
                 match cmp {
-                    ast::ComparisionOperator::Equal => {
+                    ast::ComparisonOperator::Equal => {
                         EdgeAnnoSearchSpec::ExactValue {
                             ns: name.0,
                             name: name.1,
                             val: Some(val.0),
                         }
                     }
-                    ast::ComparisionOperator::NotEqual => {
+                    ast::ComparisonOperator::NotEqual => {
                         EdgeAnnoSearchSpec::NotExactValue {
                             ns: name.0,
                             name: name.1,
@@ -435,14 +435,14 @@ EdgeAnno: EdgeAnnoSearchSpec = {
             },
             ast::StringMatchType::Regex => {
                 match cmp {
-                    ast::ComparisionOperator::Equal => {
+                    ast::ComparisonOperator::Equal => {
                         EdgeAnnoSearchSpec::RegexValue {
                             ns: name.0,
                             name: name.1,
                             val: val.0,
                         }
                     }
-                    ast::ComparisionOperator::NotEqual => {
+                    ast::ComparisonOperator::NotEqual => {
                         EdgeAnnoSearchSpec::NotRegexValue {
                             ns: name.0,
                             name: name.1,
