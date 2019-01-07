@@ -9,6 +9,7 @@ use crate::annis::db::aql::operators::{
     OverlapSpec, 
     IdenticalCoverageSpec,
     PrecedenceSpec,
+    NearSpec,
     DominanceSpec,
     PointingSpec,
     PartOfSubCorpusSpec,
@@ -355,6 +356,26 @@ BinaryOpSpec : ast::BinaryOpSpec = {
             })
         } else {
             ast::BinaryOpSpec::Precedence(PrecedenceSpec {
+                segmentation,
+                dist: RangeSpec::Bound{min_dist: 1, max_dist: 1},
+            })
+        }
+    },
+    //Near
+    <near_def:r"\^([a-zA-Z_%][a-zA-Z0-9_\-%]*)?"> <range:(RangeSpec)?>  => { 
+        let seg_name = near_def[".".len()..].to_string();
+        let segmentation = if seg_name.is_empty() {
+            None
+        } else {
+            Some(seg_name)
+        };
+        if let Some(range) = range {
+            ast::BinaryOpSpec::Near(NearSpec {
+                segmentation,
+                dist: range,
+            })
+        } else {
+            ast::BinaryOpSpec::Near(NearSpec {
                 segmentation,
                 dist: RangeSpec::Bound{min_dist: 1, max_dist: 1},
             })
