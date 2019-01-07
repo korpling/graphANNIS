@@ -1,7 +1,7 @@
 use super::super::{Desc, ExecutionNode};
-use crate::annis::db::query::conjunction::OperatorEntry;
+use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::Operator;
+use crate::annis::operator::BinaryOperator;
 use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -12,7 +12,7 @@ const MAX_BUFFER_SIZE: usize = 512;
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-    op: Arc<Operator>,
+    op: Arc<BinaryOperator>,
     inner_idx: usize,
     outer_idx: usize,
 
@@ -30,7 +30,7 @@ type MatchCandidate = (Vec<Match>, Vec<Match>, Sender<Vec<Match>>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
-        op_entry: OperatorEntry,
+        op_entry: BinaryOperatorEntry,
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         rhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
@@ -162,7 +162,7 @@ impl<'a> NestedLoop<'a> {
         let inner_idx = self.inner_idx;
         let op = self.op.clone();
 
-        let op: &Operator = op.as_ref();
+        let op: &BinaryOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
         match_candidate_buffer

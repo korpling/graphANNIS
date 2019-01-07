@@ -4,8 +4,8 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
-use crate::annis::operator::Operator;
-use crate::annis::operator::OperatorSpec;
+use crate::annis::operator::BinaryOperator;
+use crate::annis::operator::BinaryOperatorSpec;
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 use std::sync::Arc;
 
@@ -28,14 +28,14 @@ lazy_static! {
     };
 }
 
-impl OperatorSpec for RightAlignmentSpec {
+impl BinaryOperatorSpec for RightAlignmentSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![COMPONENT_RIGHT.clone()];
         v.append(&mut token_helper::necessary_components());
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let optional_op = RightAlignment::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -61,7 +61,7 @@ impl std::fmt::Display for RightAlignment {
     }
 }
 
-impl Operator for RightAlignment {
+impl BinaryOperator for RightAlignment {
     
 
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
@@ -96,7 +96,7 @@ impl Operator for RightAlignment {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 

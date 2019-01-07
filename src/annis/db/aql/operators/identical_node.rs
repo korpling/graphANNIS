@@ -6,12 +6,12 @@ use std;
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalNodeSpec;
 
-impl OperatorSpec for IdenticalNodeSpec {
+impl BinaryOperatorSpec for IdenticalNodeSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         vec![]
     }
 
-    fn create_operator(&self, _db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, _db: &Graph) -> Option<Box<BinaryOperator>> {
         Some(Box::new(IdenticalNode {}))
     }
 }
@@ -25,7 +25,7 @@ impl std::fmt::Display for IdenticalNode {
     }
 }
 
-impl Operator for IdenticalNode {
+impl BinaryOperator for IdenticalNode {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         Box::new(std::iter::once(Match {
             node: lhs.node,
@@ -41,7 +41,7 @@ impl Operator for IdenticalNode {
         EstimationType::MIN
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 }

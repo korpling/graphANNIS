@@ -1,6 +1,6 @@
 use super::disjunction::Disjunction;
 use super::Config;
-use crate::annis::db::exec::binary_filter::BinaryFilter;
+use crate::annis::db::exec::filter::Filter;
 use crate::annis::db::exec::indexjoin::IndexJoin;
 use crate::annis::db::exec::nestedloop::NestedLoop;
 use crate::annis::db::exec::nodesearch::{NodeSearch, NodeSearchSpec};
@@ -11,7 +11,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
-use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec};
 use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
@@ -23,24 +23,37 @@ use std::iter::FromIterator;
 use std::sync::Arc;
 
 #[derive(Debug)]
-struct OperatorSpecEntry<'a> {
-    op: Box<OperatorSpec + 'a>,
+struct BinaryOperatorSpecEntry<'a> {
+    op: Box<BinaryOperatorSpec + 'a>,
     idx_left: usize,
     idx_right: usize,
     global_reflexivity: bool,
 }
 
-pub struct OperatorEntry {
-    pub op: Box<Operator>,
+#[derive(Debug)]
+struct UnaryOperatorSpecEntry<'a> {
+    op: Box<UnaryOperatorSpec + 'a>,
+    idx: usize,
+}
+
+pub struct BinaryOperatorEntry {
+    pub op: Box<BinaryOperator>,
     pub node_nr_left: usize,
     pub node_nr_right: usize,
     pub global_reflexivity: bool,
 }
 
+pub struct UnaryOperatorEntry {
+    pub op: Box<UnaryOperator>,
+    pub node_nr: usize,
+}
+
+
 #[derive(Debug)]
 pub struct Conjunction<'a> {
     nodes: Vec<(String, NodeSearchSpec)>,
-    operators: Vec<OperatorSpecEntry<'a>>,
+    binary_operators: Vec<BinaryOperatorSpecEntry<'a>>,
+    unary_operators: Vec<UnaryOperatorSpecEntry<'a>>,
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
     var_idx_offset: usize,
@@ -70,7 +83,7 @@ fn update_components_for_nodes(
 }
 
 fn should_switch_operand_order(
-    op_spec: &OperatorSpecEntry,
+    op_spec: &BinaryOperatorSpecEntry,
     node2cost: &BTreeMap<usize, CostEstimate>,
 ) -> bool {
     if let (Some(cost_lhs), Some(cost_rhs)) = (
@@ -92,7 +105,7 @@ fn should_switch_operand_order(
 fn create_join<'b>(
     db: &Graph,
     config: &Config,
-    op_entry: OperatorEntry,
+    op_entry: BinaryOperatorEntry,
     exec_left: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
     exec_right: Box<ExecutionNode<Item = Vec<Match>> + 'b>,
     idx_left: usize,
@@ -128,7 +141,7 @@ fn create_join<'b>(
                 let join = parallel::indexjoin::IndexJoin::new(
                     exec_right,
                     idx_right,
-                    OperatorEntry {
+                    BinaryOperatorEntry {
                         node_nr_left: op_entry.node_nr_right,
                         node_nr_right: op_entry.node_nr_left,
                         op: inverse_op,
@@ -143,7 +156,7 @@ fn create_join<'b>(
                 let join = IndexJoin::new(
                     exec_right,
                     idx_right,
-                    OperatorEntry {
+                    BinaryOperatorEntry {
                         node_nr_left: op_entry.node_nr_right,
                         node_nr_right: op_entry.node_nr_left,
                         op: inverse_op,
@@ -161,21 +174,11 @@ fn create_join<'b>(
     // use nested loop as "fallback"
     if config.use_parallel_joins {
         let join = parallel::nestedloop::NestedLoop::new(
-            op_entry,
-            exec_left,
-            exec_right,
-            idx_left,
-            idx_right,
+            op_entry, exec_left, exec_right, idx_left, idx_right,
         );
         Box::new(join)
     } else {
-        let join = NestedLoop::new(
-            op_entry,
-            exec_left,
-            exec_right,
-            idx_left,
-            idx_right,
-        );
+        let join = NestedLoop::new(op_entry, exec_left, exec_right, idx_left, idx_right);
         Box::new(join)
     }
 }
@@ -184,7 +187,8 @@ impl<'a> Conjunction<'a> {
     pub fn new() -> Conjunction<'a> {
         Conjunction {
             nodes: vec![],
-            operators: vec![],
+            binary_operators: vec![],
+            unary_operators: vec![],
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
             var_idx_offset: 0,
@@ -194,7 +198,8 @@ impl<'a> Conjunction<'a> {
     pub fn with_offset(var_idx_offset: usize) -> Conjunction<'a> {
         Conjunction {
             nodes: vec![],
-            operators: vec![],
+            binary_operators: vec![],
+            unary_operators: vec![],
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
             var_idx_offset,
@@ -247,9 +252,29 @@ impl<'a> Conjunction<'a> {
         }
         variable
     }
+
+    pub fn add_unary_operator_from_query(
+        &mut self,
+        op: Box<UnaryOperatorSpec>,
+        var: &str,
+        location: Option<LineColumnRange>,
+    ) -> Result<()> {
+        if let Some(idx) = self.variables.get(var) {
+            self.unary_operators
+                .push(UnaryOperatorSpecEntry { op, idx: *idx });
+            return Ok(());
+        } else {
+            return Err(ErrorKind::AQLSemanticError(
+                format!("Operand '#{}' not found", var).into(),
+                location,
+            )
+            .into());
+        }
+    }
+
     pub fn add_operator(
         &mut self,
-        op: Box<OperatorSpec>,
+        op: Box<BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         global_reflexivity: bool,
@@ -259,7 +284,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn add_operator_from_query(
         &mut self,
-        op: Box<OperatorSpec>,
+        op: Box<BinaryOperatorSpec>,
         var_left: &str,
         var_right: &str,
         location: Option<LineColumnRange>,
@@ -268,7 +293,7 @@ impl<'a> Conjunction<'a> {
         //let original_order = self.operators.len();
         if let Some(idx_left) = self.variables.get(var_left) {
             if let Some(idx_right) = self.variables.get(var_right) {
-                self.operators.push(OperatorSpecEntry {
+                self.binary_operators.push(BinaryOperatorSpecEntry {
                     op,
                     idx_left: *idx_left,
                     idx_right: *idx_right,
@@ -309,7 +334,12 @@ impl<'a> Conjunction<'a> {
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut result = vec![];
 
-        for op_entry in &self.operators {
+        for op_entry in &self.unary_operators {
+            let mut c = op_entry.op.necessary_components(db);
+            result.append(&mut c);
+        }
+
+        for op_entry in &self.binary_operators {
             let mut c = op_entry.op.necessary_components(db);
             result.append(&mut c);
         }
@@ -320,23 +350,19 @@ impl<'a> Conjunction<'a> {
         result
     }
 
-    fn optimize_join_order_heuristics(
-        &self,
-        db: &'a Graph,
-        config: &Config,
-    ) -> Result<Vec<usize>> {
+    fn optimize_join_order_heuristics(&self, db: &'a Graph, config: &Config) -> Result<Vec<usize>> {
         // check if there is something to optimize
-        if self.operators.is_empty() {
+        if self.binary_operators.is_empty() {
             return Ok(vec![]);
-        } else if self.operators.len() == 1 {
+        } else if self.binary_operators.len() == 1 {
             return Ok(vec![0]);
         }
 
         // use a constant seed to make the result deterministic
         let mut rng = XorShiftRng::from_seed(*b"Graphs are great");
-        let dist = Uniform::from(0..self.operators.len());
+        let dist = Uniform::from(0..self.binary_operators.len());
 
-        let mut best_operator_order = Vec::from_iter(0..self.operators.len());
+        let mut best_operator_order = Vec::from_iter(0..self.binary_operators.len());
 
         // TODO: cache the base estimates
         let initial_plan =
@@ -357,7 +383,7 @@ impl<'a> Conjunction<'a> {
         );
 
         let num_new_generations = 4;
-        let max_unsuccessful_tries = 5 * self.operators.len();
+        let max_unsuccessful_tries = 5 * self.binary_operators.len();
         let mut unsucessful = 0;
         while unsucessful < max_unsuccessful_tries {
             let mut family_operators: Vec<Vec<usize>> = Vec::new();
@@ -382,8 +408,7 @@ impl<'a> Conjunction<'a> {
 
             let mut found_better_plan = false;
             for op_order in family_operators.iter().skip(1) {
-                let alt_plan =
-                    self.make_exec_plan_with_order(db, config, op_order.clone())?;
+                let alt_plan = self.make_exec_plan_with_order(db, config, op_order.clone())?;
                 let alt_cost = alt_plan
                     .get_desc()
                     .ok_or("Plan description missing")?
@@ -420,7 +445,7 @@ impl<'a> Conjunction<'a> {
         &'a self,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        op_spec_entries: Box<Iterator<Item = &'a OperatorSpecEntry> + 'a>,
+        op_spec_entries: Box<Iterator<Item = &'a BinaryOperatorSpecEntry> + 'a>,
         db: &'a Graph,
     ) -> Option<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
         let desc = desc?;
@@ -539,7 +564,7 @@ impl<'a> Conjunction<'a> {
                     let node_by_component_search = self.optimize_node_search_by_operator(
                         node_search.get_node_search_desc(),
                         node_search.get_desc(),
-                        Box::new(self.operators.iter()),
+                        Box::new(self.binary_operators.iter()),
                         db,
                     );
 
@@ -554,16 +579,40 @@ impl<'a> Conjunction<'a> {
             };
         }
 
-        // 2. add the joins which produce the results in operand order
-        for i in operator_order {
-            let op_spec_entry: &OperatorSpecEntry<'a> = &self.operators[i];
+        // 2. add unary operators as filter to the existing node search
+        for op_spec_entry in self.unary_operators.iter() {
+            let child_exec: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
+                .remove(&op_spec_entry.idx)
+                .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
+            
+            let op: Box<UnaryOperator> =
+                op_spec_entry.op.create_operator(db).ok_or_else(|| {
+                    ErrorKind::ImpossibleSearch(format!(
+                        "could not create operator {:?}",
+                        op_spec_entry
+                    ))
+                })?;
+            let op_entry = UnaryOperatorEntry {
+                op,
+                node_nr: op_spec_entry.idx + 1,
+            };
+            let filter_exec = Filter::new_unary(child_exec, 0, op_entry);
+            
+            component2exec.insert(op_spec_entry.idx, Box::new(filter_exec));
 
-            let mut op: Box<Operator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(format!(
-                    "could not create operator {:?}",
-                    op_spec_entry
-                ))
-            })?;
+        }
+
+        // 3. add the joins which produce the results in operand order
+        for i in operator_order {
+            let op_spec_entry: &BinaryOperatorSpecEntry<'a> = &self.binary_operators[i];
+
+            let mut op: Box<BinaryOperator> =
+                op_spec_entry.op.create_operator(db).ok_or_else(|| {
+                    ErrorKind::ImpossibleSearch(format!(
+                        "could not create operator {:?}",
+                        op_spec_entry
+                    ))
+                })?;
 
             let mut spec_idx_left = op_spec_entry.idx_left;
             let mut spec_idx_right = op_spec_entry.idx_right;
@@ -582,7 +631,7 @@ impl<'a> Conjunction<'a> {
             spec_idx_left -= self.var_idx_offset;
             spec_idx_right -= self.var_idx_offset;
 
-            let op_entry = OperatorEntry {
+            let op_entry = BinaryOperatorEntry {
                 op,
                 node_nr_left: spec_idx_left + 1,
                 node_nr_right: spec_idx_right + 1,
@@ -619,7 +668,7 @@ impl<'a> Conjunction<'a> {
                         .get(&spec_idx_right)
                         .ok_or("RHS operand not found")?);
 
-                    let filter = BinaryFilter::new(exec_left, idx_left, idx_right, op_entry);
+                    let filter = Filter::new_binary(exec_left, idx_left, idx_right, op_entry);
                     Box::new(filter)
                 } else {
                     let exec_right = component2exec.remove(&component_right).ok_or_else(|| {
@@ -646,7 +695,7 @@ impl<'a> Conjunction<'a> {
             component2exec.insert(new_component_nr, new_exec);
         }
 
-        // 3. check if there is only one component left (all nodes are connected)
+        // 4. check if there is only one component left (all nodes are connected)
         let mut first_component_id: Option<usize> = None;
         for (node_nr, cid) in &node2component {
             if first_component_id.is_none() {

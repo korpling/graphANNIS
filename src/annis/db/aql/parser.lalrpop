@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::aql::operators::{
+    AritySpec,
     OverlapSpec, 
     IdenticalCoverageSpec,
     PrecedenceSpec,
@@ -93,6 +94,11 @@ Literal : ast::Expr = {
             last_operand = t.1;
         }
         expr
+    },
+    // unary operator
+    <start: @L> <node_ref:NodeRef> <op:UnaryOpSpec> <end: @R> => {
+        let pos = Some(ast::Pos{start, end});
+        Expr::Terminal(ast::Literal::UnaryOp{node_ref, op, pos})
     },
     // legacy meta-data query `meta::doc="..."`
     <start: @L> "meta::" <name:QName> <cmp:ComparisionOperator> <text:TextSearch> <end: @R> => {
@@ -378,7 +384,18 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     RIGHT_ALIGNED => ast::BinaryOpSpec::RightAlignment(RightAlignmentSpec {}),
     // Identical node
     IDENT_NODE => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
-    // TODO: add more operators
+    // TODO: add more binary operators
+}
+
+/// Unary operators only have one operand
+UnaryOpSpec : ast::UnaryOpSpec = {
+    // Part of subcorpus
+    ":arity" "=" <children:RangeSpec> => {
+        ast::UnaryOpSpec::Arity(AritySpec {
+            children
+        })
+    },
+    // TODO: add more unary operators
 }
 
 ComparisionOperator: ast::ComparisionOperator = {

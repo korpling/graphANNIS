@@ -4,7 +4,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, Match};
 use crate::annis::operator::EstimationType;
-use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
@@ -42,7 +42,7 @@ lazy_static! {
     };
 }
 
-impl OperatorSpec for PrecedenceSpec {
+impl BinaryOperatorSpec for PrecedenceSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
@@ -62,7 +62,7 @@ impl OperatorSpec for PrecedenceSpec {
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let optional_op = Precedence::new(db, self.clone());
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -115,7 +115,7 @@ impl std::fmt::Display for Precedence {
     }
 }
 
-impl Operator for Precedence {
+impl BinaryOperator for Precedence {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -187,7 +187,7 @@ impl Operator for Precedence {
         EstimationType::SELECTIVITY(0.1)
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         // Check if order graph storages has the same inverse cost.
         // If not, we don't provide an inverse operator, because the plans would not account for the different costs
         if !self.gs_order.inverse_has_same_cost() {
@@ -219,7 +219,7 @@ impl std::fmt::Display for InversePrecedence {
     }
 }
 
-impl Operator for InversePrecedence {
+impl BinaryOperator for InversePrecedence {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let start = if self.spec.segmentation.is_some() {
             Some(lhs.node)
@@ -273,7 +273,7 @@ impl Operator for InversePrecedence {
         )
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         let prec = Precedence {
             gs_order: self.gs_order.clone(),
             gs_left: self.gs_left.clone(),

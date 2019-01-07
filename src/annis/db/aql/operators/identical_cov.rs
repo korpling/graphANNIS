@@ -3,7 +3,7 @@ use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{Graph, Match};
 use crate::annis::operator::EstimationType;
-use crate::annis::operator::{Operator, OperatorSpec};
+use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
@@ -36,14 +36,14 @@ lazy_static! {
     };
 }
 
-impl OperatorSpec for IdenticalCoverageSpec {
+impl BinaryOperatorSpec for IdenticalCoverageSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![COMPONENT_LEFT.clone(), COMPONENT_ORDER.clone()];
         v.append(&mut token_helper::necessary_components());
         v
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let optional_op = IdenticalCoverage::new(db);
         if let Some(op) = optional_op {
             return Some(Box::new(op));
@@ -73,7 +73,7 @@ impl std::fmt::Display for IdenticalCoverage {
     }
 }
 
-impl Operator for IdenticalCoverage {
+impl BinaryOperator for IdenticalCoverage {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let n_left = self.tok_helper.left_token_for(lhs.node);
         let n_right = self.tok_helper.right_token_for(lhs.node);
@@ -128,7 +128,7 @@ impl Operator for IdenticalCoverage {
         false
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         Some(Box::new(self.clone()))
     }
 
