@@ -18,7 +18,7 @@ pub struct NearSpec {
 }
 
 #[derive(Clone)]
-pub struct Near {
+struct Near {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
     gs_right: Arc<GraphStorage>,
@@ -165,6 +165,11 @@ impl BinaryOperator for Near {
         self.gs_order.is_connected(
             &start_end.0,
             &start_end.1,
+            self.spec.dist.min_dist(),
+            self.spec.dist.max_dist(),
+        ) || self.gs_order.is_connected(
+            &start_end.1,
+            &start_end.0,
             self.spec.dist.min_dist(),
             self.spec.dist.max_dist(),
         )
