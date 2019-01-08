@@ -1,3 +1,20 @@
+release 0.15.0
+==============
+
+Fixed Bugs
+----------
+
+- [#59](https://github.com/korpling/graphANNIS/issues/59) Nodes are not deleted from graph storages via the "applyUpdate" API
+- [#55](https://github.com/korpling/graphANNIS/issues/55) Subgraph query does not work if there is no coverage component.
+- [#54](https://github.com/korpling/graphANNIS/issues/54) Check all existing matches when checking reflexivity
+
+Enhancements
+------------
+
+- [#58](https://github.com/korpling/graphANNIS/issues/58) Implement ^ (near) operator
+- [#57](https://github.com/korpling/graphANNIS/issues/57) Implement ":arity" (number of outgoing edges) unary operator
+- [#52](https://github.com/korpling/graphANNIS/issues/52) Use CSV files for query set definition
+
 release 0.14.2
 ==============
 
