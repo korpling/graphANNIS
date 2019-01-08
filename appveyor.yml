@@ -4,6 +4,9 @@
 # Building is done in the test phase, so we disable Appveyor's build phase.
 build: false
 
+# More concurrency, especially when both the release tag and the new develop branch are build
+max_jobs: 3
+
 environment:
   global:
   # TODO This is the Rust channel that build jobs will use by default but can be
@@ -40,8 +43,11 @@ test_script:
       cargo test --target %TARGET% --release --all-features &&
       appveyor-retry appveyor DownloadFile https://github.com/amir-zeldes/gum/archive/f8ac9944fae39ae37c4db186304e3c1ab41f77f3.zip -FileName gum.zip && 
       7z e gum.zip -orelannis\GUM -aoa &&
+      appveyor-retry appveyor DownloadFile http://angcl.ling.uni-potsdam.de/resources/pcc2.1_annis.zip -FileName pcc21.zip && 
+      7z e pcc21.zip -orelannis\pcc2.1 -aoa &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
-      cargo test --release --all-features --verbose  -- --ignored
+      target\%TARGET%\release\annis.exe data --cmd "import relannis/pcc2.1" &&
+      cargo test --release -- --ignored
     )
 
 build_script:

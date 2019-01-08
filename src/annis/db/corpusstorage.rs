@@ -446,13 +446,19 @@ impl CorpusStorage {
         // make sure the cache is not too large before adding the new corpus
         check_cache_size_and_remove_with_cache(cache, &self.cache_strategy, vec![]);
 
-        let mut db = Graph::new();
-        if create_corpus {
+        let db = if create_corpus {
+            // create the default graph storages that are assumed to exist in every corpus
+            let mut db = Graph::with_default_graphstorages()?;
+
+            // save corpus to the path where it should be stored
             db.persist_to(&db_path)
                 .chain_err(|| format!("Could not create corpus with name {}", corpus_name))?;
+            db
         } else {
+            let mut db = Graph::new();
             db.load_from(&db_path, false)?;
-        }
+            db
+        };
 
         let entry = Arc::new(RwLock::new(CacheEntry::Loaded(db)));
         // first remove entry, than add it: this ensures it is at the end of the linked hash map
@@ -1087,6 +1093,7 @@ impl CorpusStorage {
                     Box::new(operators::OverlapSpec {}),
                     &n_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_left.add_operator(
                     Box::new(operators::PrecedenceSpec {
@@ -1098,11 +1105,13 @@ impl CorpusStorage {
                     }),
                     &tok_precedence_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_left.add_operator(
                     Box::new(operators::OverlapSpec {}),
                     &any_node_idx,
                     &tok_precedence_idx,
+                    true,
                 )?;
 
                 query.alternatives.push(q_left);
@@ -1129,6 +1138,7 @@ impl CorpusStorage {
                     Box::new(operators::OverlapSpec {}),
                     &n_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_left.add_operator(
                     Box::new(operators::PrecedenceSpec {
@@ -1140,6 +1150,7 @@ impl CorpusStorage {
                     }),
                     &tok_precedence_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
 
                 query.alternatives.push(q_left);
@@ -1167,6 +1178,7 @@ impl CorpusStorage {
                     Box::new(operators::OverlapSpec {}),
                     &n_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
@@ -1178,11 +1190,13 @@ impl CorpusStorage {
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
+                    true,
                 )?;
                 q_right.add_operator(
                     Box::new(operators::OverlapSpec {}),
                     &any_node_idx,
                     &tok_precedence_idx,
+                    true,
                 )?;
 
                 query.alternatives.push(q_right);
@@ -1209,6 +1223,7 @@ impl CorpusStorage {
                     Box::new(operators::OverlapSpec {}),
                     &n_idx,
                     &tok_covered_idx,
+                    true,
                 )?;
                 q_right.add_operator(
                     Box::new(operators::PrecedenceSpec {
@@ -1220,6 +1235,7 @@ impl CorpusStorage {
                     }),
                     &tok_covered_idx,
                     &tok_precedence_idx,
+                    true,
                 )?;
 
                 query.alternatives.push(q_right);
@@ -1294,6 +1310,7 @@ impl CorpusStorage {
                 }),
                 &any_node_idx,
                 &corpus_idx,
+                true,
             )?;
             query.alternatives.push(q);
         }
@@ -1641,7 +1658,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_update_add_nodes() {
+    fn apply_update_add_and_delete_nodes() {
         if let Ok(tmp) = tempfile::tempdir() {
             let cs = CorpusStorage::with_auto_cache_size(tmp.path(), false).unwrap();
 
@@ -1655,9 +1672,23 @@ mod tests {
                 node_type: "corpus".to_string(),
             });
             g.add_event(UpdateEvent::AddNode {
-                node_name: "root/doc1#MyToken".to_string(),
+                node_name: "root/doc1#MyToken1".to_string(),
                 node_type: "node".to_string(),
             });
+
+            g.add_event(UpdateEvent::AddNode {
+                node_name: "root/doc1#MyToken2".to_string(),
+                node_type: "node".to_string(),
+            });
+
+            g.add_event(UpdateEvent::AddEdge {
+                source_node: "root/doc1#MyToken1".to_owned(),
+                target_node: "root/doc1#MyToken2".to_owned(),
+                layer: "dep".to_owned(),
+                component_type: "Pointing".to_owned(),
+                component_name: "dep".to_owned(),
+            });
+
             g.add_event(UpdateEvent::AddNode {
                 node_name: "root/doc2".to_string(),
                 node_type: "corpus".to_string(),
@@ -1670,7 +1701,23 @@ mod tests {
             cs.apply_update("root", &mut g).unwrap();
 
             let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
+            assert_eq!(3, node_count);
+
+            let edge_count = cs.count("root", "node ->dep node", QueryLanguage::AQL).unwrap();
+            assert_eq!(1, edge_count);
+
+            // delete one of the tokens
+            let mut g = GraphUpdate::new();
+            g.add_event(UpdateEvent::DeleteNode {
+                node_name: "root/doc1#MyToken2".to_string(),
+            });
+            cs.apply_update("root", &mut g).unwrap();
+
+            let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
             assert_eq!(2, node_count);
+            let edge_count = cs.count("root", "node ->dep node", QueryLanguage::AQL).unwrap();
+            assert_eq!(0, edge_count);
+
         }
     }
 

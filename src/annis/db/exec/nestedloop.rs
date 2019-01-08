@@ -1,12 +1,13 @@
 use super::{Desc, ExecutionNode};
+use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::Operator;
+use crate::annis::operator::BinaryOperator;
 use std::iter::Peekable;
 
 pub struct NestedLoop<'a> {
     outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
-    op: Box<Operator>,
+    op: Box<BinaryOperator>,
     inner_idx: usize,
     outer_idx: usize,
     inner_cache: Vec<Vec<Match>>,
@@ -14,17 +15,17 @@ pub struct NestedLoop<'a> {
 
     left_is_outer: bool,
     desc: Desc,
+
+    global_reflexivity: bool,
 }
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
+        op_entry: BinaryOperatorEntry,
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         rhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
         rhs_idx: usize,
-        node_nr_lhs: usize,
-        node_nr_rhs: usize,
-        op: Box<Operator>,
     ) -> NestedLoop<'a> {
         let mut left_is_outer = true;
         if let (Some(ref desc_lhs), Some(ref desc_rhs)) = (lhs.get_desc(), rhs.get_desc()) {
@@ -48,42 +49,50 @@ impl<'a> NestedLoop<'a> {
         if left_is_outer {
             NestedLoop {
                 desc: Desc::join(
-                    op.as_ref(),
+                    op_entry.op.as_ref(),
                     lhs.get_desc(),
                     rhs.get_desc(),
                     "nestedloop L-R",
-                    &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                    &format!(
+                        "#{} {} #{}",
+                        op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                    ),
                     &processed_func,
                 ),
 
                 outer: lhs.peekable(),
                 inner: rhs,
-                op,
+                op: op_entry.op,
                 outer_idx: lhs_idx,
                 inner_idx: rhs_idx,
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
+                global_reflexivity: op_entry.global_reflexivity,
             }
         } else {
             NestedLoop {
                 desc: Desc::join(
-                    op.as_ref(),
+                    op_entry.op.as_ref(),
                     rhs.get_desc(),
                     lhs.get_desc(),
                     "nestedloop R-L",
-                    &format!("#{} {} #{}", node_nr_lhs, op, node_nr_rhs),
+                    &format!(
+                        "#{} {} #{}",
+                        op_entry.node_nr_left, op_entry.op, op_entry.node_nr_right
+                    ),
                     &processed_func,
                 ),
 
                 outer: rhs.peekable(),
                 inner: lhs,
-                op,
+                op: op_entry.op,
                 outer_idx: rhs_idx,
                 inner_idx: lhs_idx,
                 inner_cache: Vec::new(),
                 pos_inner_cache: None,
                 left_is_outer,
+                global_reflexivity: op_entry.global_reflexivity,
             }
         }
     }
@@ -122,9 +131,12 @@ impl<'a> Iterator for NestedLoop<'a> {
                         // filter by reflexivity if necessary
                         if filter_true
                             && (self.op.is_reflexive()
-                                || m_outer[self.outer_idx].node != m_inner[self.inner_idx].node
-                                || m_outer[self.outer_idx].anno_key
-                                    != m_inner[self.inner_idx].anno_key)
+                                || (self.global_reflexivity
+                                    && m_outer[self.outer_idx].different_to_all(&m_inner)
+                                    && m_inner[self.inner_idx].different_to_all(&m_outer))
+                                || (!self.global_reflexivity
+                                    && m_outer[self.outer_idx]
+                                        .different_to(&m_inner[self.inner_idx])))
                         {
                             let mut result = m_outer.clone();
                             result.append(&mut m_inner.clone());

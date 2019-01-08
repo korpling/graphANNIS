@@ -1,8 +1,8 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::annostorage::AnnoStorage;
-use crate::annis::db::query::conjunction::OperatorEntry;
+use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, Operator};
+use crate::annis::operator::{EstimationType, BinaryOperator};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::iter::Peekable;
@@ -14,11 +14,12 @@ use std::sync::Arc;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     rhs_candidate: Option<std::iter::Peekable<Box<Iterator<Item = Match>>>>,
-    op: Box<Operator>,
+    op: Box<BinaryOperator>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
     desc: Desc,
+    global_reflexivity: bool,
 }
 
 impl<'a> IndexJoin<'a> {
@@ -33,7 +34,7 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        op_entry: OperatorEntry,
+        op_entry: BinaryOperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         rhs_desc: Option<&Desc>,
@@ -81,6 +82,7 @@ impl<'a> IndexJoin<'a> {
             node_search_desc,
             node_annos,
             rhs_candidate: None,
+            global_reflexivity: op_entry.global_reflexivity,
         }
     }
 
@@ -207,8 +209,8 @@ impl<'a> Iterator for IndexJoin<'a> {
 
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if self.op.is_reflexive()
-                            || m_lhs[self.lhs_idx].node != m_rhs.node
-                            || m_lhs[self.lhs_idx].anno_key != m_rhs.anno_key
+                            || (self.global_reflexivity && m_rhs.different_to_all(&m_lhs)
+                            || (!self.global_reflexivity && m_rhs.different_to(&m_lhs[self.lhs_idx])))
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();

@@ -1,8 +1,8 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::annostorage::AnnoStorage;
-use crate::annis::db::query::conjunction::OperatorEntry;
+use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, Operator};
+use crate::annis::operator::{EstimationType, BinaryOperator};
 use crate::annis::types::{AnnoKey, NodeID};
 use rayon::prelude::*;
 use std::iter::Peekable;
@@ -17,11 +17,12 @@ const MAX_BUFFER_SIZE: usize = 512;
 pub struct IndexJoin<'a> {
     lhs: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
     match_receiver: Option<Receiver<Vec<Match>>>,
-    op: Arc<Operator>,
+    op: Arc<BinaryOperator>,
     lhs_idx: usize,
     node_search_desc: Arc<NodeSearchDesc>,
     node_annos: Arc<AnnoStorage<NodeID>>,
     desc: Desc,
+    global_reflexivity: bool,
 }
 
 impl<'a> IndexJoin<'a> {
@@ -36,7 +37,7 @@ impl<'a> IndexJoin<'a> {
     pub fn new(
         lhs: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
         lhs_idx: usize,
-        op_entry: OperatorEntry,
+        op_entry: BinaryOperatorEntry,
         node_search_desc: Arc<NodeSearchDesc>,
         node_annos: Arc<AnnoStorage<NodeID>>,
         rhs_desc: Option<&Desc>,
@@ -84,6 +85,7 @@ impl<'a> IndexJoin<'a> {
             node_search_desc,
             node_annos,
             match_receiver: None,
+            global_reflexivity: op_entry.global_reflexivity,
         }
     }
 
@@ -112,11 +114,12 @@ impl<'a> IndexJoin<'a> {
         }
 
         let node_search_desc: Arc<NodeSearchDesc> = self.node_search_desc.clone();
-        let op: Arc<Operator> = self.op.clone();
+        let op: Arc<BinaryOperator> = self.op.clone();
         let lhs_idx = self.lhs_idx;
         let node_annos = self.node_annos.clone();
 
-        let op: &Operator = op.as_ref();
+        let op: &BinaryOperator = op.as_ref();
+        let global_reflexivity = self.global_reflexivity;
 
         // find all RHS in parallel
         lhs_buffer.par_iter_mut().for_each(|(m_lhs, tx)| {
@@ -142,8 +145,8 @@ impl<'a> IndexJoin<'a> {
 
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if op.is_reflexive()
-                            || m_lhs[lhs_idx].node != m_rhs.node
-                            || m_lhs[lhs_idx].anno_key != m_rhs.anno_key
+                            || (global_reflexivity && m_rhs.different_to_all(&m_lhs)
+                            || (!global_reflexivity && m_rhs.different_to(&m_lhs[lhs_idx])))
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();
@@ -178,7 +181,7 @@ impl<'a> IndexJoin<'a> {
 
 fn next_candidates(
     m_lhs: &[Match],
-    op: &Operator,
+    op: &BinaryOperator,
     lhs_idx: usize,
     node_annos: &Arc<AnnoStorage<NodeID>>,
     node_search_desc: &Arc<NodeSearchDesc>,

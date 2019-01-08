@@ -94,6 +94,6 @@ pub mod errors {
 
 /// Utility functions.
 pub mod util {
-    pub use crate::annis::util::get_queries_from_folder;
+    pub use crate::annis::util::get_queries_from_csv;
     pub use crate::annis::util::SearchDef;
 }

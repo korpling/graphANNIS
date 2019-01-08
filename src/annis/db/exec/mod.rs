@@ -1,6 +1,6 @@
 use self::nodesearch::NodeSearch;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, Operator};
+use crate::annis::operator::{EstimationType, BinaryOperator};
 use crate::annis::types::AnnoKeyID;
 
 use std;
@@ -24,7 +24,7 @@ pub struct Desc {
     pub cost: Option<CostEstimate>,
 }
 
-fn calculate_outputsize(op: &Operator, cost_lhs: &CostEstimate, cost_rhs: &CostEstimate) -> usize {
+fn calculate_outputsize(op: &BinaryOperator, cost_lhs: &CostEstimate, cost_rhs: &CostEstimate) -> usize {
     let output = match op.estimation_type() {
         EstimationType::SELECTIVITY(selectivity) => {
             let num_tuples = (cost_lhs.output * cost_rhs.output) as f64;
@@ -71,7 +71,7 @@ impl Desc {
     }
 
     pub fn join(
-        op: &Operator,
+        op: &BinaryOperator,
         lhs: Option<&Desc>,
         rhs: Option<&Desc>,
         impl_description: &str,
@@ -219,7 +219,7 @@ impl ExecutionNode for EmptyResultSet {
     }
 }
 
-pub mod binary_filter;
+pub mod filter;
 pub mod indexjoin;
 pub mod nestedloop;
 pub mod nodesearch;

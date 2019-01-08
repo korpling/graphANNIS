@@ -38,14 +38,16 @@ impl fmt::Display for RangeSpec {
     }
 }
 
-pub mod edge_op;
-pub mod identical_cov;
-pub mod identical_node;
-pub mod inclusion;
-pub mod overlap;
-pub mod precedence;
-pub mod leftalignment;
-pub mod rightalignment;
+mod arity;
+mod edge_op;
+mod identical_cov;
+mod identical_node;
+mod inclusion;
+mod overlap;
+mod precedence;
+mod near;
+mod leftalignment;
+mod rightalignment;
 
 pub use self::edge_op::{DominanceSpec, PartOfSubCorpusSpec, PointingSpec};
 pub use self::identical_cov::IdenticalCoverageSpec;
@@ -55,4 +57,5 @@ pub use self::overlap::OverlapSpec;
 pub use self::leftalignment::LeftAlignmentSpec;
 pub use self::rightalignment::RightAlignmentSpec;
 pub use self::precedence::PrecedenceSpec;
-
+pub use self::near::NearSpec;
+pub use self::arity::AritySpec;

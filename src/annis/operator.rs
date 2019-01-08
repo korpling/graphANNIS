@@ -139,7 +139,7 @@ pub enum EstimationType {
     MIN,
 }
 
-pub trait Operator: std::fmt::Display + Send + Sync {
+pub trait BinaryOperator: std::fmt::Display + Send + Sync {
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>>;
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool;
@@ -148,7 +148,7 @@ pub trait Operator: std::fmt::Display + Send + Sync {
         true
     }
 
-    fn get_inverse_operator(&self) -> Option<Box<Operator>> {
+    fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         None
     }
 
@@ -161,12 +161,27 @@ pub trait Operator: std::fmt::Display + Send + Sync {
     }
 }
 
-pub trait OperatorSpec: std::fmt::Debug {
+pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn necessary_components(&self, db: &Graph) -> Vec<Component>;
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<Operator>>;
+    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>>;
 
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None
+    }
+}
+
+pub trait UnaryOperatorSpec: std::fmt::Debug {
+    fn necessary_components(&self, db: &Graph) -> Vec<Component>;
+
+    fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>>;
+}
+
+pub trait UnaryOperator : std::fmt::Display + Send + Sync {
+
+    fn filter_match(&self, m: &Match) -> bool;
+
+    fn estimation_type(&self) -> EstimationType {
+        EstimationType::SELECTIVITY(0.1)
     }
 }

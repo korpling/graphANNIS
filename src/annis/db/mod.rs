@@ -68,6 +68,25 @@ impl Match {
         let key = graph.node_annos.get_key_value(self.anno_key)?;
         Some(Annotation { key, val })
     }
+
+    /// Returns true if this match is different to all the other matches given as argument.
+    /// 
+    /// A single match is different if the node ID or the annotation key are different.
+    pub fn different_to_all(&self, other : &Vec<Match>) -> bool {
+        for o in other.iter() {
+            if self.node == o.node && self.anno_key == o.anno_key {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Returns true if this match is different to the other match given as argument.
+    /// 
+    /// A single match is different if the node ID or the annotation key are different.
+    pub fn different_to(&self, other : &Match) -> bool {
+        self.node != other.node || self.anno_key != other.anno_key
+    }
 }
 
 impl Into<Match> for (Edge, AnnoKeyID) {
@@ -340,6 +359,38 @@ impl Graph {
         }
     }
 
+    /// Create a new instance without any location on the disk but with the default graph storage components
+    /// (Coverage, Order, LeftToken, RightToken, PartOfSubcorpus).
+    fn with_default_graphstorages() -> Result<Graph> {
+        let mut db = Graph::new();
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::Coverage,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::Ordering,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::LeftToken,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::RightToken,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        db.get_or_create_writable(&Component {
+            ctype: ComponentType::PartOfSubcorpus,
+            layer: ANNIS_NS.to_owned(),
+            name: "".to_owned(),
+        })?;
+        Ok(db)
+    }
+
     fn set_location(&mut self, location: &Path) -> Result<()> {
         self.location = Some(PathBuf::from(location));
 
@@ -552,6 +603,9 @@ impl Graph {
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
+
+                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(existing_node_id));
+
                         // delete all annotations
                         {
                             let node_annos = Arc::make_mut(&mut self.node_annos);
@@ -561,10 +615,10 @@ impl Graph {
                         }
                         // delete all edges pointing to this node either as source or target
                         for c in self.get_all_components(None, None) {
-                            self.components.remove(&c);
+                            if let Ok(gs) = self.get_or_create_writable(&c) {
+                                gs.delete_node(&existing_node_id);
+                            }
                         }
-
-                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(existing_node_id));
                     }
                 }
                 UpdateEvent::AddNodeLabel {
@@ -636,6 +690,10 @@ impl Graph {
                         self.get_node_id_from_name(&target_node),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
+
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
+                            
                             let c = Component {
                                 ctype,
                                 layer,
@@ -644,8 +702,6 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
 
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
                         }
                     }
                 }

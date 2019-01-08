@@ -6,14 +6,14 @@ lalrpop_mod!(
     parser
 );
 
-use crate::annis::db::aql::operators::edge_op::PartOfSubCorpusSpec;
-use crate::annis::db::aql::operators::identical_node::IdenticalNodeSpec;
+use crate::annis::db::aql::operators::PartOfSubCorpusSpec;
+use crate::annis::db::aql::operators::IdenticalNodeSpec;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::errors::*;
-use crate::annis::operator::OperatorSpec;
+use crate::annis::operator::{BinaryOperatorSpec, UnaryOperatorSpec};
 use crate::annis::types::{LineColumn, LineColumnRange};
 use lalrpop_util::ParseError;
 use std::collections::BTreeMap;
@@ -69,6 +69,9 @@ fn map_conjunction<'a>(
                     pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
                 }
             }
+            ast::Literal::UnaryOp {..} => {
+                // can only have node reference, not a literal
+            }
             ast::Literal::LegacyMetaSearch { spec, pos } => {
                 legacy_meta_search.push((spec.clone(), pos.clone()));
             }
@@ -96,13 +99,35 @@ fn map_conjunction<'a>(
         }
     }
 
+    // add all unary operators as filter(s) to the referenced nodes
+    for literal in c.iter() {
+        if let ast::Literal::UnaryOp {node_ref, op, pos} = literal {
+            let var = match node_ref {
+                ast::NodeRef::ID(id) => id.to_string(),
+                ast::NodeRef::Name(name) => name.clone(),
+            };
+
+            let op_pos: Option<LineColumnRange> = if let Some(pos) = pos {
+                Some(LineColumnRange {
+                    start: get_line_and_column_for_pos(pos.start, &offsets),
+                    end: Some(get_line_and_column_for_pos(pos.end, &offsets)),
+                })
+            } else {
+                None
+            };
+
+            q.add_unary_operator_from_query(make_unary_operator_spec(op.clone()), &var, op_pos)?;
+
+        }
+    }
+
     // in quirks mode, all legacy metadata constraints are applied to all conjunctions
     if !quirks_mode {
         // add all legacy meta searches
         add_legacy_metadata_constraints(&mut q, legacy_meta_search, first_node_pos)?;
     }
 
-    // finally add all operators
+    // finally add all binary operators
 
     for literal in c {
         if let ast::Literal::BinaryOp {
@@ -156,7 +181,7 @@ fn map_conjunction<'a>(
                     };
                 }
             }
-            q.add_operator_from_query(make_operator_spec(op), &idx_left, &idx_right, op_pos)?;
+            q.add_operator_from_query(make_binary_operator_spec(op), &idx_left, &idx_right, op_pos, !quirks_mode)?;
         }
     }
 
@@ -180,6 +205,7 @@ fn add_legacy_metadata_constraints(
                     Box::new(IdenticalNodeSpec {}),
                     &first_meta_idx,
                     &meta_node_idx,
+                    true,
                 )?;
             } else if let Some(first_node_pos) = first_node_pos.clone() {
                 first_meta_idx = Some(meta_node_idx.clone());
@@ -190,6 +216,7 @@ fn add_legacy_metadata_constraints(
                     }),
                     &first_node_pos,
                     &meta_node_idx,
+                    true,
                 )?;
                 // Also make sure the matched node is actually a document
                 // (the @* could match anything in the hierarchy, including the toplevel corpus)
@@ -206,6 +233,7 @@ fn add_legacy_metadata_constraints(
                     Box::new(IdenticalNodeSpec {}),
                     &meta_node_idx,
                     &doc_anno_idx,
+                    true,
                 )?;
             }
         }
@@ -329,11 +357,12 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
     }
 }
 
-fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
+fn make_binary_operator_spec(op: ast::BinaryOpSpec) -> Box<BinaryOperatorSpec> {
     match op {
         ast::BinaryOpSpec::Dominance(spec) => Box::new(spec),
         ast::BinaryOpSpec::Pointing(spec) => Box::new(spec),
         ast::BinaryOpSpec::Precedence(spec) => Box::new(spec),
+        ast::BinaryOpSpec::Near(spec) => Box::new(spec),
         ast::BinaryOpSpec::Overlap(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalCoverage(spec) => Box::new(spec),
         ast::BinaryOpSpec::PartOfSubCorpus(spec) => Box::new(spec),
@@ -341,6 +370,12 @@ fn make_operator_spec(op: ast::BinaryOpSpec) -> Box<OperatorSpec> {
         ast::BinaryOpSpec::LeftAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::RightAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
+    }
+}
+
+fn make_unary_operator_spec(op: ast::UnaryOpSpec) -> Box<UnaryOperatorSpec> {
+    match op {
+        ast::UnaryOpSpec::Arity(spec) => Box::new(spec),
     }
 }
 
