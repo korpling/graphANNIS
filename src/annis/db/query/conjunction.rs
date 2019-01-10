@@ -710,7 +710,7 @@ impl<'a> Conjunction<'a> {
 
     fn check_components_connected(&self) -> Result<()> {
         let mut node2component: HashMap<usize, usize> = HashMap::new();
-        node2component.extend((0..self.nodes.len()).map(|i| (i, i)));
+        node2component.extend((self.var_idx_offset..self.nodes.len()+self.var_idx_offset).map(|i| (i, i)));
 
         for op_entry in self.binary_operators.iter() {
             if op_entry.op.is_binding() {
