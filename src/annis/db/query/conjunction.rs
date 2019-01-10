@@ -700,25 +700,43 @@ impl<'a> Conjunction<'a> {
         }
 
         // it must be checked before that all components are connected
-        component2exec.into_iter().map(|(_cid,exec)| exec).next().ok_or_else(|| {
-            ErrorKind::ImpossibleSearch(String::from(
-                "could not find execution node for query component",
-            ))
-            .into()
-        })
+        component2exec
+            .into_iter()
+            .map(|(_cid, exec)| exec)
+            .next()
+            .ok_or_else(|| {
+                ErrorKind::ImpossibleSearch(String::from(
+                    "could not find execution node for query component",
+                ))
+                .into()
+            })
     }
 
     fn check_components_connected(&self) -> Result<()> {
-        let mut node2component: HashMap<usize, usize> = HashMap::new();
-        node2component.extend((self.var_idx_offset..self.nodes.len()+self.var_idx_offset).map(|i| (i, i)));
+        let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
+        node2component
+            .extend((self.var_idx_offset..self.nodes.len() + self.var_idx_offset).map(|i| (i, i)));
 
         for op_entry in self.binary_operators.iter() {
             if op_entry.op.is_binding() {
                 // merge both operands to the same component
-                if let Some(component_left) = node2component.get(&op_entry.idx_left) {
-                    node2component.insert(op_entry.idx_right, *component_left);
-                } else if let Some(component_right) = node2component.get(&op_entry.idx_right) {
-                    node2component.insert(op_entry.idx_left, *component_right);
+                if let (Some(component_left), Some(component_right)) = (
+                    node2component.get(&op_entry.idx_left),
+                    node2component.get(&op_entry.idx_right),
+                ) {
+                    let component_left = *component_left;
+                    let component_right = *component_right;
+                    let new_component_nr = component_left;
+                    update_components_for_nodes(
+                        &mut node2component,
+                        component_left,
+                        new_component_nr,
+                    );
+                    update_components_for_nodes(
+                        &mut node2component,
+                        component_right,
+                        new_component_nr,
+                    );
                 }
             }
         }
