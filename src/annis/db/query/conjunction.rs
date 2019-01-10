@@ -11,7 +11,9 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
-use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec};
+use crate::annis::operator::{
+    BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
+};
 use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
@@ -47,7 +49,6 @@ pub struct UnaryOperatorEntry {
     pub op: Box<UnaryOperator>,
     pub node_nr: usize,
 }
-
 
 #[derive(Debug)]
 pub struct Conjunction<'a> {
@@ -584,22 +585,20 @@ impl<'a> Conjunction<'a> {
             let child_exec: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
                 .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
-            
-            let op: Box<UnaryOperator> =
-                op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    ErrorKind::ImpossibleSearch(format!(
-                        "could not create operator {:?}",
-                        op_spec_entry
-                    ))
-                })?;
+
+            let op: Box<UnaryOperator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
+                ErrorKind::ImpossibleSearch(format!(
+                    "could not create operator {:?}",
+                    op_spec_entry
+                ))
+            })?;
             let op_entry = UnaryOperatorEntry {
                 op,
                 node_nr: op_spec_entry.idx + 1,
             };
             let filter_exec = Filter::new_unary(child_exec, 0, op_entry);
-            
-            component2exec.insert(op_spec_entry.idx, Box::new(filter_exec));
 
+            component2exec.insert(op_spec_entry.idx, Box::new(filter_exec));
         }
 
         // 3. add the joins which produce the results in operand order
@@ -695,7 +694,36 @@ impl<'a> Conjunction<'a> {
             component2exec.insert(new_component_nr, new_exec);
         }
 
-        // 4. check if there is only one component left (all nodes are connected)
+        // apply the the node error check
+        if !node_search_errors.is_empty() {
+            return Err(node_search_errors.remove(0));
+        }
+
+        // it must be checked before that all components are connected
+        component2exec.into_iter().map(|(_cid,exec)| exec).next().ok_or_else(|| {
+            ErrorKind::ImpossibleSearch(String::from(
+                "could not find execution node for query component",
+            ))
+            .into()
+        })
+    }
+
+    fn check_components_connected(&self) -> Result<()> {
+        let mut node2component: HashMap<usize, usize> = HashMap::new();
+        node2component.extend((0..self.nodes.len()).map(|i| (i, i)));
+
+        for op_entry in self.binary_operators.iter() {
+            if op_entry.op.is_binding() {
+                // merge both operands to the same component
+                if let Some(component_left) = node2component.get(&op_entry.idx_left) {
+                    node2component.insert(op_entry.idx_right, *component_left);
+                } else if let Some(component_right) = node2component.get(&op_entry.idx_right) {
+                    node2component.insert(op_entry.idx_left, *component_right);
+                }
+            }
+        }
+
+        // check if there is only one component left (all nodes are connected)
         let mut first_component_id: Option<usize> = None;
         for (node_nr, cid) in &node2component {
             if first_component_id.is_none() {
@@ -718,20 +746,7 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        // now apply the the node error check
-        if !node_search_errors.is_empty() {
-            return Err(node_search_errors.remove(0));
-        }
-
-        let first_component_id = first_component_id.ok_or_else(|| {
-            ErrorKind::ImpossibleSearch(String::from("no component in query at all"))
-        })?;
-        component2exec.remove(&first_component_id).ok_or_else(|| {
-            ErrorKind::ImpossibleSearch(String::from(
-                "could not find execution node for query component",
-            ))
-            .into()
-        })
+        Ok(())
     }
 
     pub fn make_exec_node(
@@ -739,6 +754,8 @@ impl<'a> Conjunction<'a> {
         db: &'a Graph,
         config: &Config,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
+        self.check_components_connected()?;
+
         let operator_order = self.optimize_join_order_heuristics(db, config)?;
         self.make_exec_plan_with_order(db, config, operator_order)
     }
