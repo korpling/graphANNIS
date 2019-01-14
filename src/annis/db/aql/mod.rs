@@ -380,6 +380,9 @@ fn make_binary_operator_spec(
         ast::BinaryOpSpec::IdenticalValue => {
             Box::new(IdenticalValueSpec { spec_left, spec_right, negated: false })
         }
+        ast::BinaryOpSpec::NotIdenticalValue => {
+            Box::new(IdenticalValueSpec { spec_left, spec_right, negated: true })
+        }
     };
     Ok(op_spec)
 }

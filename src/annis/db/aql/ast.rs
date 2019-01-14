@@ -103,6 +103,7 @@ pub enum BinaryOpSpec {
     RightAlignment(RightAlignmentSpec),
     IdenticalNode(IdenticalNodeSpec),
     IdenticalValue,
+    NotIdenticalValue
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

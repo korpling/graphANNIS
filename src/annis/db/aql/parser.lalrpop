@@ -32,6 +32,7 @@ match {
     "_l_" => LEFT_ALIGNED,
     "_r_" => RIGHT_ALIGNED,
     "==" => IDENTICAL_VALUE,
+    "!=" => NOT_IDENTICAL_VALUE,
 } else {
     r"[a-zA-Z_%][a-zA-Z0-9_\-%]*" => ID,
     r##"#[0-9]+"## => NODE_REF,
@@ -407,6 +408,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     // Identical node
     IDENT_NODE => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
     IDENTICAL_VALUE => ast::BinaryOpSpec::IdenticalValue,
+    NOT_IDENTICAL_VALUE => ast::BinaryOpSpec::NotIdenticalValue,
     // TODO: add more binary operators
 }
 
