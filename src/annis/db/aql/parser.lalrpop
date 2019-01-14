@@ -31,6 +31,7 @@ match {
     "_i_" => INCLUSION,
     "_l_" => LEFT_ALIGNED,
     "_r_" => RIGHT_ALIGNED,
+    "==" => IDENTICAL_VALUE,
 } else {
     r"[a-zA-Z_%][a-zA-Z0-9_\-%]*" => ID,
     r##"#[0-9]+"## => NODE_REF,
@@ -405,6 +406,7 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     RIGHT_ALIGNED => ast::BinaryOpSpec::RightAlignment(RightAlignmentSpec {}),
     // Identical node
     IDENT_NODE => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
+    IDENTICAL_VALUE => ast::BinaryOpSpec::IdenticalValue,
     // TODO: add more binary operators
 }
 

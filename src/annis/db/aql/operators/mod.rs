@@ -60,4 +60,4 @@ pub use self::rightalignment::RightAlignmentSpec;
 pub use self::precedence::PrecedenceSpec;
 pub use self::near::NearSpec;
 pub use self::arity::AritySpec;
-pub use self::identical_value::{IdenticalValueSpec, Type};
+pub use self::identical_value::IdenticalValueSpec;

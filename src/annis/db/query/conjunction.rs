@@ -292,37 +292,34 @@ impl<'a> Conjunction<'a> {
         global_reflexivity: bool,
     ) -> Result<()> {
         //let original_order = self.operators.len();
-        if let Some(idx_left) = self.variables.get(var_left) {
-            if let Some(idx_right) = self.variables.get(var_right) {
-                self.binary_operators.push(BinaryOperatorSpecEntry {
-                    op,
-                    idx_left: *idx_left,
-                    idx_right: *idx_right,
-                    global_reflexivity,
-                });
-                return Ok(());
-            } else {
-                return Err(ErrorKind::AQLSemanticError(
-                    format!("Operand '#{}' not found", var_right).into(),
-                    location,
-                )
-                .into());
-            }
-        } else {
-            return Err(ErrorKind::AQLSemanticError(
-                format!("Operand '#{}' not found", var_left).into(),
-                location,
-            )
-            .into());
-        }
+        let idx_left = self.resolve_variable_pos(var_left, location.clone())?;
+        let idx_right = self.resolve_variable_pos(var_right, location.clone())?;
+
+        self.binary_operators.push(BinaryOperatorSpecEntry {
+            op,
+            idx_left: idx_left,
+            idx_right: idx_right,
+            global_reflexivity,
+        });
+        return Ok(());
+    
+    
     }
 
     pub fn num_of_nodes(&self) -> usize {
         self.nodes.len()
     }
 
-    pub fn get_variable_pos(&self, variable: &str) -> Option<usize> {
-        self.variables.get(variable).cloned()
+    pub fn resolve_variable_pos(&self, variable: &str, location: Option<LineColumnRange>) -> Result<usize> {
+        
+        if let Some(pos) = self.variables.get(variable) {
+            return Ok(pos.clone());
+        }
+        Err(ErrorKind::AQLSemanticError(
+            format!("Operand '#{}' not found", variable).into(),
+            location,
+        )
+        .into())
     }
 
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
@@ -330,6 +327,25 @@ impl<'a> Conjunction<'a> {
             return Some(self.nodes[pos].0.clone());
         }
         None
+    }
+
+    pub fn resolve_variable(
+        &self,
+        variable: &str,
+        location: Option<LineColumnRange>,
+    ) -> Result<NodeSearchSpec> {
+        let idx = self.resolve_variable_pos(variable, location.clone())?;
+        if let Some(pos) = idx.checked_sub(self.var_idx_offset) {
+            if pos < self.nodes.len() {
+                return Ok(self.nodes[pos].1.clone());
+            }
+        }
+    
+        return Err(ErrorKind::AQLSemanticError(
+            format!("Operand '#{}' not found", variable).into(),
+            location,
+        )
+        .into());
     }
 
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
