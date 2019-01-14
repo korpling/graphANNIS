@@ -5,7 +5,6 @@ use crate::annis::types::{AnnoKey, Component, NodeID};
 use std;
 use std::sync::Arc;
 
-
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalValueSpec {
     pub spec_left: NodeSearchSpec,
@@ -47,16 +46,35 @@ impl IdenticalValue {
             NodeSearchSpec::ExactValue { .. }
             | NodeSearchSpec::NotExactValue { .. }
             | NodeSearchSpec::RegexValue { .. }
-            | NodeSearchSpec::NotRegexValue { .. } => {
-                self
+            | NodeSearchSpec::NotRegexValue { .. } => self
                 .node_annos
-                .get_value_for_item_by_id(&m.node, m.anno_key)
-            }
+                .get_value_for_item_by_id(&m.node, m.anno_key),
             NodeSearchSpec::AnyToken
             | NodeSearchSpec::ExactTokenValue { .. }
             | NodeSearchSpec::NotExactTokenValue { .. }
             | NodeSearchSpec::RegexTokenValue { .. }
-            | NodeSearchSpec::NotRegexTokenValue { .. } => self.node_annos.get_value_for_item(&m.node, &self.tok_key),
+            | NodeSearchSpec::NotRegexTokenValue { .. } => {
+                self.node_annos.get_value_for_item(&m.node, &self.tok_key)
+            }
+            NodeSearchSpec::AnyNode => None,
+        }
+    }
+
+    fn anno_def_for_spec(spec: &NodeSearchSpec) -> Option<(Option<String>, String)> {
+        match spec {
+            NodeSearchSpec::ExactValue { ns, name, .. }
+            | NodeSearchSpec::NotExactValue { ns, name, .. }
+            | NodeSearchSpec::RegexValue { ns, name, .. }
+            | NodeSearchSpec::NotRegexValue { ns, name, .. } => Some((ns.clone(), name.clone())),
+            NodeSearchSpec::AnyToken
+            | NodeSearchSpec::ExactTokenValue { .. }
+            | NodeSearchSpec::NotExactTokenValue { .. }
+            | NodeSearchSpec::RegexTokenValue { .. }
+            | NodeSearchSpec::NotRegexTokenValue { .. } => {
+                let ns = Some(ANNIS_NS.to_string());
+                let name = TOK.to_string();
+                Some((ns, name))
+            }
             NodeSearchSpec::AnyNode => None,
         }
     }
@@ -68,31 +86,12 @@ impl BinaryOperator for IdenticalValue {
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
             let lhs_val = lhs_val.to_owned();
 
-            let rhs_candidates : Vec<Match> = match &self.spec_right {
-                NodeSearchSpec::ExactValue { ns, name, .. }
-                | NodeSearchSpec::NotExactValue { ns, name, .. }
-                | NodeSearchSpec::RegexValue { ns, name, .. }
-                | NodeSearchSpec::NotRegexValue { ns, name, .. } => self.node_annos.exact_anno_search(
-                        ns.to_owned(),
-                        name.to_owned(),
-                        ValueSearch::Some(lhs_val.to_string()),
-                    ),
-                NodeSearchSpec::AnyToken
-                | NodeSearchSpec::ExactTokenValue { .. }
-                | NodeSearchSpec::NotExactTokenValue { .. }
-                | NodeSearchSpec::RegexTokenValue {  .. }
-                | NodeSearchSpec::NotRegexTokenValue {  .. } => self.node_annos.exact_anno_search(
-                    Some(ANNIS_NS.to_string()),
-                    TOK.to_string(),
-                    ValueSearch::Some(lhs_val),
-                ),
-                NodeSearchSpec::AnyNode => Box::new(std::iter::empty()),
+            if let Some((ns, name)) = IdenticalValue::anno_def_for_spec(&self.spec_right) {
+                let rhs_candidates: Vec<Match> = self.node_annos.exact_anno_search(ns, name, ValueSearch::Some(lhs_val)).collect();
+                return Box::new(rhs_candidates.into_iter())
             }
-            .collect();
-            Box::new(rhs_candidates.into_iter())
-        } else {
-            Box::new(std::iter::empty())
         }
+        Box::new(std::iter::empty()) 
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
@@ -107,7 +106,18 @@ impl BinaryOperator for IdenticalValue {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        EstimationType::MIN
+        if let Some((ns, name)) = IdenticalValue::anno_def_for_spec(&self.spec_left) {
+            if let Some(most_frequent_value_left) = self.node_annos.guess_most_frequent_value(ns, name) {
+                if let Some((ns, name)) = IdenticalValue::anno_def_for_spec(&self.spec_right) {
+                    let guessed_count_right = self.node_annos.guess_max_count(ns.clone(), name.clone(), &most_frequent_value_left, &most_frequent_value_left);
+                    
+                    let total_annos = self.node_annos.number_of_annotations_by_name(ns, name);
+                    return EstimationType::SELECTIVITY(guessed_count_right as f64 / total_annos as f64)
+                }
+            }
+        }
+        // fallback to default
+        EstimationType::SELECTIVITY(0.5)
     }
 
     fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
