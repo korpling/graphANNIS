@@ -9,7 +9,9 @@ use std::sync::Arc;
 pub struct IdenticalValueSpec {
     pub spec_left: NodeSearchSpec,
     pub spec_right: NodeSearchSpec,
+    pub negated: bool,
 }
+
 
 impl BinaryOperatorSpec for IdenticalValueSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
@@ -22,6 +24,7 @@ impl BinaryOperatorSpec for IdenticalValueSpec {
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
             tok_key: db.get_token_key(),
+            negated: self.negated,
         }))
     }
 
@@ -36,11 +39,16 @@ pub struct IdenticalValue {
     tok_key: AnnoKey,
     spec_left: NodeSearchSpec,
     spec_right: NodeSearchSpec,
+    negated: bool,
 }
 
 impl std::fmt::Display for IdenticalValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "==")
+        if self.negated {
+            write!(f, "!=")
+        } else {
+            write!(f, "==")
+        }
     }
 }
 
@@ -89,9 +97,14 @@ impl BinaryOperator for IdenticalValue {
         let lhs = lhs.clone();
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
             let lhs_val = lhs_val.to_owned();
+            let val_search = if self.negated {
+                ValueSearch::NotSome(lhs_val)
+            } else {
+                ValueSearch::Some(lhs_val)
+            };
 
             if let Some((ns, name)) = IdenticalValue::anno_def_for_spec(&self.spec_right) {
-                let rhs_candidates: Vec<Match> = self.node_annos.exact_anno_search(ns, name, ValueSearch::Some(lhs_val)).collect();
+                let rhs_candidates: Vec<Match> = self.node_annos.exact_anno_search(ns, name, val_search).collect();
                 return Box::new(rhs_candidates.into_iter())
             }
         }
@@ -103,7 +116,11 @@ impl BinaryOperator for IdenticalValue {
         let rhs_val = self.value_for_match(rhs, &self.spec_right);
 
         if let (Some(lhs_val), Some(rhs_val)) = (lhs_val, rhs_val) {
-            lhs_val == rhs_val
+            if self.negated {
+                lhs_val != rhs_val
+            } else {
+                lhs_val == rhs_val
+            }
         } else {
             false
         }
@@ -116,7 +133,12 @@ impl BinaryOperator for IdenticalValue {
                     let guessed_count_right = self.node_annos.guess_max_count(ns.clone(), name.clone(), &most_frequent_value_left, &most_frequent_value_left);
                     
                     let total_annos = self.node_annos.number_of_annotations_by_name(ns, name);
-                    return EstimationType::SELECTIVITY(guessed_count_right as f64 / total_annos as f64)
+                    let sel = guessed_count_right as f64 / total_annos as f64;
+                    if self.negated {
+                        return EstimationType::SELECTIVITY(1.0 - sel);
+                    } else {
+                        return EstimationType::SELECTIVITY(sel)
+                    }
                 }
             }
         }

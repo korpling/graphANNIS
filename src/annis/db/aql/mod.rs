@@ -378,7 +378,7 @@ fn make_binary_operator_spec(
         ast::BinaryOpSpec::RightAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalValue => {
-            Box::new(IdenticalValueSpec { spec_left, spec_right })
+            Box::new(IdenticalValueSpec { spec_left, spec_right, negated: false })
         }
     };
     Ok(op_spec)
