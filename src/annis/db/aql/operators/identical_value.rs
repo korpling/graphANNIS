@@ -1,14 +1,13 @@
-use crate::annis::db::AnnoStorage;
-use crate::annis::db::{Graph, Match};
+use crate::annis::db::{AnnoStorage, AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, TOK};
 use crate::annis::operator::*;
-use crate::annis::types::{AnnoKey, AnnoKeyID, Component, NodeID};
+use crate::annis::types::{AnnoKey, Component, NodeID};
 use std;
 use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum Type {
     TokenText,
-    AnnotationValue,
+    AnnotationValue { ns: Option<String>, name: String },
 }
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
@@ -22,7 +21,7 @@ impl BinaryOperatorSpec for IdenticalValueSpec {
         vec![]
     }
 
-    fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
+    fn create_operator<'a>(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(IdenticalValue {
             node_annos: db.node_annos.clone(),
             lhs_type: self.lhs_type.clone(),
@@ -46,31 +45,40 @@ impl std::fmt::Display for IdenticalValue {
     }
 }
 
+impl IdenticalValue {
+    fn value_for_match(&self, m: &Match, t: &Type) -> Option<&str> {
+        match t {
+            Type::AnnotationValue { .. } => self
+                .node_annos
+                .get_value_for_item_by_id(&m.node, m.anno_key),
+            Type::TokenText => self.node_annos.get_value_for_item(&m.node, &self.tok_key),
+        }
+    }
+}
+
 impl BinaryOperator for IdenticalValue {
-    fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
-        Box::new(std::iter::once(Match {
-            node: lhs.node,
-            anno_key: AnnoKeyID::default(),
-        }))
+    fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<Iterator<Item = Match> > {
+        let lhs = lhs.clone();
+        if let Some(lhs_val) = self.value_for_match(&lhs, &self.lhs_type) {
+                 let lhs_val = lhs_val.to_owned();
+            
+                 let rhs_candidates : Vec<Match> = match &self.lhs_type {
+                     Type::TokenText => {
+                         self.node_annos.exact_anno_search(Some(ANNIS_NS.to_string()), TOK.to_string(), ValueSearch::Some(lhs_val))
+                     }
+                     Type::AnnotationValue {ns, name} => {
+                         self.node_annos.exact_anno_search(ns.to_owned(), name.to_owned(), ValueSearch::Some(lhs_val.to_string()))
+                     }
+                 }.collect();
+                 Box::new(rhs_candidates.into_iter())
+        } else {
+            Box::new(std::iter::empty())
+        }
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
-        let lhs_val = match self.lhs_type {
-            Type::AnnotationValue => {
-                self.node_annos.get_value_for_item_by_id(&lhs.node, lhs.anno_key)
-            } 
-            Type::TokenText => {
-                self.node_annos.get_value_for_item(&lhs.node, &self.tok_key)
-            }
-        };
-        let rhs_val = match self.rhs_type {
-            Type::AnnotationValue => {
-                self.node_annos.get_value_for_item_by_id(&rhs.node, rhs.anno_key)
-            } 
-            Type::TokenText => {
-                self.node_annos.get_value_for_item(&rhs.node, &self.tok_key)
-            }
-        };
+        let lhs_val = self.value_for_match(lhs, &self.lhs_type);
+        let rhs_val = self.value_for_match(rhs, &self.rhs_type);
 
         if let (Some(lhs_val), Some(rhs_val)) = (lhs_val, rhs_val) {
             lhs_val == rhs_val
@@ -84,6 +92,6 @@ impl BinaryOperator for IdenticalValue {
     }
 
     fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
-        Some(Box::new(self.clone()))
+        Some(Box::from(self.clone()))
     }
 }
