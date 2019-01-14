@@ -7,7 +7,7 @@ lalrpop_mod!(
 );
 
 use crate::annis::db::aql::operators::{
-    IdenticalNodeSpec, IdenticalValueSpec, PartOfSubCorpusSpec, RangeSpec,
+    IdenticalNodeSpec, EqualValueSpec, PartOfSubCorpusSpec, RangeSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::query::conjunction::Conjunction;
@@ -377,11 +377,11 @@ fn make_binary_operator_spec(
         ast::BinaryOpSpec::LeftAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::RightAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
-        ast::BinaryOpSpec::IdenticalValue => {
-            Box::new(IdenticalValueSpec { spec_left, spec_right, negated: false })
+        ast::BinaryOpSpec::EqualValue => {
+            Box::new(EqualValueSpec { spec_left, spec_right, negated: false })
         }
-        ast::BinaryOpSpec::NotIdenticalValue => {
-            Box::new(IdenticalValueSpec { spec_left, spec_right, negated: true })
+        ast::BinaryOpSpec::NotEqualValue => {
+            Box::new(EqualValueSpec { spec_left, spec_right, negated: true })
         }
     };
     Ok(op_spec)

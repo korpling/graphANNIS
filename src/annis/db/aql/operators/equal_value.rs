@@ -6,20 +6,20 @@ use std;
 use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
-pub struct IdenticalValueSpec {
+pub struct EqualValueSpec {
     pub spec_left: NodeSearchSpec,
     pub spec_right: NodeSearchSpec,
     pub negated: bool,
 }
 
 
-impl BinaryOperatorSpec for IdenticalValueSpec {
+impl BinaryOperatorSpec for EqualValueSpec {
     fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
         vec![]
     }
 
     fn create_operator<'a>(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
-        Some(Box::new(IdenticalValue {
+        Some(Box::new(EqualValue {
             node_annos: db.node_annos.clone(),
             spec_left: self.spec_left.clone(),
             spec_right: self.spec_right.clone(),
@@ -34,7 +34,7 @@ impl BinaryOperatorSpec for IdenticalValueSpec {
 }
 
 #[derive(Clone)]
-pub struct IdenticalValue {
+pub struct EqualValue {
     node_annos: Arc<AnnoStorage<NodeID>>,
     tok_key: AnnoKey,
     spec_left: NodeSearchSpec,
@@ -42,7 +42,7 @@ pub struct IdenticalValue {
     negated: bool,
 }
 
-impl std::fmt::Display for IdenticalValue {
+impl std::fmt::Display for EqualValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.negated {
             write!(f, "!=")
@@ -52,7 +52,7 @@ impl std::fmt::Display for IdenticalValue {
     }
 }
 
-impl IdenticalValue {
+impl EqualValue {
     fn value_for_match(&self, m: &Match, spec: &NodeSearchSpec) -> Option<&str> {
         match spec {
             NodeSearchSpec::ExactValue { .. }
@@ -92,7 +92,7 @@ impl IdenticalValue {
     }
 }
 
-impl BinaryOperator for IdenticalValue {
+impl BinaryOperator for EqualValue {
     fn retrieve_matches<'a>(&'a self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let lhs = lhs.clone();
         if let Some(lhs_val) = self.value_for_match(&lhs, &self.spec_left) {
@@ -103,7 +103,7 @@ impl BinaryOperator for IdenticalValue {
                 ValueSearch::Some(lhs_val)
             };
 
-            if let Some((ns, name)) = IdenticalValue::anno_def_for_spec(&self.spec_right) {
+            if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
                 let rhs_candidates: Vec<Match> = self.node_annos.exact_anno_search(ns, name, val_search).collect();
                 return Box::new(rhs_candidates.into_iter())
             }
@@ -127,9 +127,9 @@ impl BinaryOperator for IdenticalValue {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        if let Some((ns, name)) = IdenticalValue::anno_def_for_spec(&self.spec_left) {
+        if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_left) {
             if let Some(most_frequent_value_left) = self.node_annos.guess_most_frequent_value(ns, name) {
-                if let Some((ns, name)) = IdenticalValue::anno_def_for_spec(&self.spec_right) {
+                if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
                     let guessed_count_right = self.node_annos.guess_max_count(ns.clone(), name.clone(), &most_frequent_value_left, &most_frequent_value_left);
                     
                     let total_annos = self.node_annos.number_of_annotations_by_name(ns, name);

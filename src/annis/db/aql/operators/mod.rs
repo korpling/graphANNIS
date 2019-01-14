@@ -48,7 +48,7 @@ mod precedence;
 mod near;
 mod leftalignment;
 mod rightalignment;
-mod identical_value;
+mod equal_value;
 
 pub use self::edge_op::{DominanceSpec, PartOfSubCorpusSpec, PointingSpec};
 pub use self::identical_cov::IdenticalCoverageSpec;
@@ -60,4 +60,4 @@ pub use self::rightalignment::RightAlignmentSpec;
 pub use self::precedence::PrecedenceSpec;
 pub use self::near::NearSpec;
 pub use self::arity::AritySpec;
-pub use self::identical_value::IdenticalValueSpec;
+pub use self::equal_value::EqualValueSpec;
