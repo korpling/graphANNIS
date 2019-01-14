@@ -60,6 +60,10 @@ SegmentNearIndirect,SEGMENT-1 ^* SEGMENT-2,pcc2.1,1471
 NewInDirect,"""in"" ^ primmark_referentiality=""discourse-new""",pcc2.1,63
 NNNearARTDirect,"pos=""NN"" ^ pos=""ART""",pcc2.1,2907
 NNNearARTDIndirect,"pos=""NN"" ^*pos=""ART""",pcc2.1,122469
+PosEqual,pos . pos & #1 == #2,pcc2.1,808
+PosNotEqual,pos=/N./ . pos=/N./ & #1 != #2,pcc2.1,225
+LemmaTokEqual,"lemma=""der"" _=_ tok & #1 == #2",pcc2.1,56
+LemmaTokNotEqual,"lemma=""der"" _=_ tok & #1 != #2",pcc2.1,136
 DiplNameSearch,dipl,RIDGES_Herbology_Version7.0,252777
 PrecedenceMixedSpanTok,"default_ns:pos=""PTKANT"" . node",RIDGES_Herbology_Version7.0,28
 NotWennRegex,KOUS_sem=/konditional/ _i_ lemma!=/wenn.*/,RIDGES_Herbology_Version7.0,119
