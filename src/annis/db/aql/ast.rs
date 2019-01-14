@@ -69,6 +69,7 @@ pub enum Operand {
 #[derive(Debug, Clone)]
 pub struct TextSearch(pub String, pub StringMatchType);
 
+#[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum ComparisonOperator {
     Equal,
     NotEqual,
@@ -102,8 +103,8 @@ pub enum BinaryOpSpec {
     LeftAlignment(LeftAlignmentSpec),
     RightAlignment(RightAlignmentSpec),
     IdenticalNode(IdenticalNodeSpec),
-    EqualValue,
-    NotEqualValue
+    ValueComparison(ComparisonOperator),
+
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

@@ -31,8 +31,6 @@ match {
     "_i_" => INCLUSION,
     "_l_" => LEFT_ALIGNED,
     "_r_" => RIGHT_ALIGNED,
-    "==" => EQUAL_VALUE,
-    "!=" => NOT_EQUAL_VALUE,
 } else {
     r"[a-zA-Z_%][a-zA-Z0-9_\-%]*" => ID,
     r##"#[0-9]+"## => NODE_REF,
@@ -97,6 +95,27 @@ Literal : ast::Expr = {
             last_operand = t.1;
         }
         expr
+    },
+
+    // value comparison filter (same)
+    <start: @L> <lhs:NodeRef> <cmp:"=="> <rhs:NodeRef> <end: @R> => {
+        let pos = ast::Pos {
+            start, end
+        };
+        let op = ast::BinaryOpSpec::ValueComparison(ast::ComparisonOperator::Equal);
+        Expr::Terminal(
+            ast::Literal::BinaryOp{lhs: ast::Operand::NodeRef(lhs), op, rhs: ast::Operand::NodeRef(rhs), pos: Some(pos.clone())}
+        ) 
+    },
+    // value comparison filter (not same)
+    <start: @L> <lhs:NodeRef> <cmp:"!="> <rhs:NodeRef> <end: @R> => {
+        let pos = ast::Pos {
+            start, end
+        };
+        let op = ast::BinaryOpSpec::ValueComparison(ast::ComparisonOperator::NotEqual);
+        Expr::Terminal(
+            ast::Literal::BinaryOp{lhs: ast::Operand::NodeRef(lhs), op, rhs: ast::Operand::NodeRef(rhs), pos: Some(pos.clone())}
+        ) 
     },
     // unary operator
     <start: @L> <node_ref:NodeRef> <op:UnaryOpSpec> <end: @R> => {
@@ -407,8 +426,6 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     RIGHT_ALIGNED => ast::BinaryOpSpec::RightAlignment(RightAlignmentSpec {}),
     // Identical node
     IDENT_NODE => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
-    EQUAL_VALUE => ast::BinaryOpSpec::EqualValue,
-    NOT_EQUAL_VALUE => ast::BinaryOpSpec::NotEqualValue,
     // TODO: add more binary operators
 }
 

@@ -3,11 +3,12 @@ pub mod operators;
 use boolean_expression::Expr;
 lalrpop_mod!(
     #[allow(clippy::all)]
-    parser, "/annis/db/aql/parser.rs"
+    parser,
+    "/annis/db/aql/parser.rs"
 );
 
 use crate::annis::db::aql::operators::{
-    IdenticalNodeSpec, EqualValueSpec, PartOfSubCorpusSpec, RangeSpec,
+    EqualValueSpec, IdenticalNodeSpec, PartOfSubCorpusSpec, RangeSpec,
 };
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::query::conjunction::Conjunction;
@@ -377,12 +378,18 @@ fn make_binary_operator_spec(
         ast::BinaryOpSpec::LeftAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::RightAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
-        ast::BinaryOpSpec::EqualValue => {
-            Box::new(EqualValueSpec { spec_left, spec_right, negated: false })
-        }
-        ast::BinaryOpSpec::NotEqualValue => {
-            Box::new(EqualValueSpec { spec_left, spec_right, negated: true })
-        }
+        ast::BinaryOpSpec::ValueComparison(cmp) => match cmp {
+            ast::ComparisonOperator::Equal => Box::new(EqualValueSpec {
+                spec_left,
+                spec_right,
+                negated: false,
+            }),
+            ast::ComparisonOperator::NotEqual => Box::new(EqualValueSpec {
+                spec_left,
+                spec_right,
+                negated: true,
+            }),
+        },
     };
     Ok(op_spec)
 }

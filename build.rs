@@ -76,6 +76,7 @@ fn search_{corpus_escaped}_{name_escaped}() {{
 }
 
 fn create_parser() {
+    println!("cargo:rerun-if-changed={}", "src/annis/db/aql/parser.lalrpop");
     lalrpop::process_root().unwrap();
 }
 
