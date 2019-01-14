@@ -3,7 +3,7 @@ pub mod operators;
 use boolean_expression::Expr;
 lalrpop_mod!(
     #[allow(clippy::all)]
-    parser
+    parser, "/annis/db/aql/parser.rs"
 );
 
 use crate::annis::db::aql::operators::{
