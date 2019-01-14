@@ -24,6 +24,10 @@ impl BinaryOperatorSpec for IdenticalValueSpec {
             tok_key: db.get_token_key(),
         }))
     }
+
+    fn is_binding(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Clone)]
@@ -123,4 +127,5 @@ impl BinaryOperator for IdenticalValue {
     fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         Some(Box::from(self.clone()))
     }
+
 }
