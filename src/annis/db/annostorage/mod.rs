@@ -16,7 +16,7 @@ use regex_syntax;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde;
 use std;
-use std::collections::BTreeMap;
+use std::collections::{HashMap, BTreeMap};
 use std::collections::Bound::*;
 use std::hash::Hash;
 use std::path::PathBuf;
@@ -411,7 +411,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
 
         self.histogram_bounds.clear();
 
-        // collect statistics for each annotation key separatly
+        // collect statistics for each annotation key separately
         for anno_key in self.anno_key_sizes.keys() {
             if let Some(anno_key) = self.anno_keys.get_symbol(anno_key) {
                 // sample a maximal number of annotation values
@@ -500,6 +500,47 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         self.anno_values.after_deserialization();
 
         Ok(())
+    }
+
+    pub fn guess_most_frequent_value(
+        &self,
+        ns: Option<String>,
+        name: String,
+    ) -> Option<String> {
+        // find all complete keys which have the given name (and namespace if given)
+        let qualified_keys = match ns {
+            Some(ns) => vec![AnnoKey { name, ns }],
+            None => self.get_qnames(&name),
+        };
+
+        let mut sampled_values : HashMap<String, usize> = HashMap::default();
+
+        // guess for each fully qualified annotation key 
+        for anno_key in qualified_keys {
+            if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
+                if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                    for v in histo.iter() {
+                        let count : &mut usize = sampled_values.entry(v.to_owned()).or_insert(0);
+                        *count += 1;
+                    }
+                }
+            }
+        
+        }
+        // find the value which is most frequent
+        if sampled_values.len() > 0 {
+            let mut max_count = 0;
+            let mut max_value = "".to_owned();
+            for (v, count) in sampled_values.into_iter() {
+                if count >= max_count {
+                    max_value = v;
+                    max_count = count;
+                }
+            }
+            Some(max_value)
+        } else {
+            None
+        }
     }
 }
 

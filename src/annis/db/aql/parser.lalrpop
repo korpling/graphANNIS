@@ -96,6 +96,32 @@ Literal : ast::Expr = {
         }
         expr
     },
+    // binary filter between node references (and not any operands)
+   <start: @L> <lhs:NodeRef> <filter:FilterOpSpec> <rhs:NodeRef> <tail:(FilterOpSpec NodeRef)*> <end: @R> => {
+        // TODO: can we get the position for each individual binary operator?
+        let pos = ast::Pos {
+            start, end
+        };
+        let mut expr = 
+            Expr::Terminal(
+                ast::Literal::BinaryOp{lhs: ast::Operand::NodeRef(lhs.clone()), op: filter, 
+                    rhs: ast::Operand::NodeRef(rhs.clone()), pos: Some(pos.clone())}
+            ); 
+        // transform the list of literals into an AND if there is a tail
+        let mut last_operand = rhs.clone();
+        for t in tail.into_iter() {
+            let tail_expr = ast::Literal::BinaryOp{
+                lhs: ast::Operand::NodeRef(last_operand.clone()), 
+                op: t.0, 
+                rhs: ast::Operand::NodeRef(t.1.clone()), 
+                pos: Some(pos.clone())
+            };
+            expr = ast::Expr::and(expr, Expr::Terminal(tail_expr));
+
+            last_operand = t.1;
+        }
+        expr
+    },
     // unary operator
     <start: @L> <node_ref:NodeRef> <op:UnaryOpSpec> <end: @R> => {
         let pos = Some(ast::Pos{start, end});
@@ -406,6 +432,12 @@ BinaryOpSpec : ast::BinaryOpSpec = {
     // Identical node
     IDENT_NODE => ast::BinaryOpSpec::IdenticalNode(IdenticalNodeSpec {}),
     // TODO: add more binary operators
+}
+
+/// Filters which can be only applied between node references
+FilterOpSpec : ast::BinaryOpSpec = {
+    "==" => ast::BinaryOpSpec::ValueComparison(ast::ComparisonOperator::Equal),
+    "!=" => ast::BinaryOpSpec::ValueComparison(ast::ComparisonOperator::NotEqual),
 }
 
 /// Unary operators only have one operand

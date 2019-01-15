@@ -1,6 +1,5 @@
 use lalrpop;
 use csv;
-use std::env;
 use std::path::PathBuf;
 use regex::Regex;
 use std::ops::Deref;
@@ -77,11 +76,8 @@ fn search_{corpus_escaped}_{name_escaped}() {{
 }
 
 fn create_parser() {
-    lalrpop::Configuration::new()
-        .set_in_dir("src/annis/db/aql/")
-        .set_out_dir(env::var("OUT_DIR").unwrap())
-        .process()
-        .unwrap();
+    println!("cargo:rerun-if-changed={}", "src/annis/db/aql/parser.lalrpop");
+    lalrpop::process_root().unwrap();
 }
 
 fn main() {

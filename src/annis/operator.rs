@@ -169,6 +169,11 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
     fn get_edge_anno_spec(&self) -> Option<EdgeAnnoSearchSpec> {
         None
     }
+
+
+    fn is_binding(&self) -> bool {
+        true
+    }
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {
