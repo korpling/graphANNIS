@@ -401,7 +401,7 @@ fn add_automatic_cov_edge_for_node(
                 "Can't get left-aligned token for node {}",
                 n,
             )
-        })?;
+        });
     let right_aligned_tok = textpos_table
         .token_by_right_textpos
         .get(&right_pos)
@@ -410,7 +410,20 @@ fn add_automatic_cov_edge_for_node(
                 "Can't get right-aligned token for node {}",
                 n,
             )
-        })?;
+        });
+
+    // If only one of the aligned token is missing, use it for both sides, this is consistent with
+    // the relANNIS import of ANNIS3
+    let left_aligned_tok = if let Ok(left_aligned_tok) = left_aligned_tok {
+         left_aligned_tok
+    } else {
+        right_aligned_tok.clone()?
+    };
+    let right_aligned_tok = if let Ok(right_aligned_tok) = right_aligned_tok {
+        right_aligned_tok
+    } else {
+        left_aligned_tok
+    };
 
     let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or_else(|| {
         format!(
