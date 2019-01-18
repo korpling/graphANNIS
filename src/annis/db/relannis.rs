@@ -380,85 +380,6 @@ where
     Ok(())
 }
 
-fn add_automatic_cov_edge_for_node(
-    n: NodeID,
-    textprop: &TextProperty,
-    component_coverage: &Component,
-    left_pos: TextProperty,
-    right_pos: TextProperty,
-    db: &mut Graph,
-    token_by_index: &BTreeMap<TextProperty, NodeID>,
-    token_to_index: &BTreeMap<NodeID, TextProperty>,
-    textpos_table: &TextPosTable,
-) -> Result<()>
-{
-    // find left/right aligned basic token
-    let left_aligned_tok = textpos_table
-        .token_by_left_textpos
-        .get(&left_pos)
-        .ok_or_else(|| {
-            format!(
-                "Can't get left-aligned token for node {}",
-                n,
-            )
-        });
-    let right_aligned_tok = textpos_table
-        .token_by_right_textpos
-        .get(&right_pos)
-        .ok_or_else(|| {
-            format!(
-                "Can't get right-aligned token for node {}",
-                n,
-            )
-        });
-
-    // If only one of the aligned token is missing, use it for both sides, this is consistent with
-    // the relANNIS import of ANNIS3
-    let left_aligned_tok = if let Ok(left_aligned_tok) = left_aligned_tok {
-         left_aligned_tok
-    } else {
-        right_aligned_tok.clone()?
-    };
-    let right_aligned_tok = if let Ok(right_aligned_tok) = right_aligned_tok {
-        right_aligned_tok
-    } else {
-        left_aligned_tok
-    };
-
-    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or_else(|| {
-        format!(
-            "Can't get position of left-aligned token {}",
-            left_aligned_tok
-        )
-    })?;
-    let right_tok_pos = token_to_index.get(&right_aligned_tok).ok_or_else(|| {
-        format!(
-            "Can't get position of right-aligned token {}",
-            right_aligned_tok
-        )
-    })?;
-    for i in left_tok_pos.val..(right_tok_pos.val + 1) {
-        let tok_idx = TextProperty {
-            segmentation: String::from(""),
-            corpus_id: textprop.corpus_id,
-            text_id: textprop.text_id,
-            val: i,
-        };
-        let tok_id = token_by_index
-            .get(&tok_idx)
-            .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
-        if n != *tok_id {
-            let gs = db.get_or_create_writable(&component_coverage)?;
-            gs.add_edge(Edge {
-                source: n,
-                target: *tok_id,
-            });
-        }
-    }
-
-    Ok(())
-}
-
 fn calculate_automatic_coverage_edges<F>(
     db: &mut Graph,
     token_by_index: &BTreeMap<TextProperty, NodeID>,
@@ -502,19 +423,50 @@ where
                         val: *right_pos,
                     };
 
-                    if let Err(e) = add_automatic_cov_edge_for_node(
-                        *n,
-                        textprop,
-                        &component_coverage,
-                        left_pos,
-                        right_pos,
-                        db,
-                        token_by_index,
-                        token_to_index,
-                        textpos_table,
-                    ) {
-                        // output a warning but do not fail
-                        warn!("Adding coverage edges (connects spans with tokens) failed: {}", e)
+                    // find left/right aligned basic token
+                    let left_aligned_tok = textpos_table
+                        .token_by_left_textpos
+                        .get(&left_pos)
+                        .ok_or_else(|| {
+                            format!("Can't get left-aligned token for node {:?}", left_pos)
+                        })?;
+                    let right_aligned_tok = textpos_table
+                        .token_by_right_textpos
+                        .get(&right_pos)
+                        .ok_or_else(|| {
+                            format!("Can't get right-aligned token for node {:?}", right_pos)
+                        })?;
+
+                    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or_else(|| {
+                        format!(
+                            "Can't get position of left-aligned token {}",
+                            left_aligned_tok
+                        )
+                    })?;
+                    let right_tok_pos =
+                        token_to_index.get(&right_aligned_tok).ok_or_else(|| {
+                            format!(
+                                "Can't get position of right-aligned token {}",
+                                right_aligned_tok
+                            )
+                        })?;
+                    for i in left_tok_pos.val..(right_tok_pos.val + 1) {
+                        let tok_idx = TextProperty {
+                            segmentation: String::from(""),
+                            corpus_id: textprop.corpus_id,
+                            text_id: textprop.text_id,
+                            val: i,
+                        };
+                        let tok_id = token_by_index.get(&tok_idx).ok_or_else(|| {
+                            format!("Can't get token ID for position {:?}", tok_idx)
+                        })?;
+                        if *n != *tok_id {
+                            let gs = db.get_or_create_writable(&component_coverage)?;
+                            gs.add_edge(Edge {
+                                source: *n,
+                                target: *tok_id,
+                            });
+                        }
                     }
                 } // end if not a token
             }
@@ -626,23 +578,17 @@ where
             // Use left/right token columns for relANNIS 3.3 and the left/right character column otherwise.
             // For some malformed corpora, the token coverage information is more robust and guaranties that a node is
             // only left/right aligned to a single token.
-            let left_column = if is_annis_33 { 8 } else { 5 };
-            let right_column = if is_annis_33 { 9 } else { 6 };
+            let left_column = if is_annis_33 {8} else {5};
+            let right_column = if is_annis_33 {9} else {6};
 
-            let left_val = line
-                .get(left_column)
-                .ok_or("Missing column")?
-                .parse::<u32>()?;
+            let left_val = line.get(left_column).ok_or("Missing column")?.parse::<u32>()?;
             let left = TextProperty {
                 segmentation: String::from(""),
                 val: left_val,
                 corpus_id,
                 text_id,
             };
-            let right_val = line
-                .get(right_column)
-                .ok_or("Missing column")?
-                .parse::<u32>()?;
+            let right_val = line.get(right_column).ok_or("Missing column")?.parse::<u32>()?;
             let right = TextProperty {
                 segmentation: String::from(""),
                 val: right_val,
