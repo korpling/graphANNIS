@@ -1,3 +1,16 @@
+release 0.16.0
+==============
+
+Fixed Bugs
+----------
+
+- [#62](https://github.com/korpling/graphANNIS/issues/62) Warn about missing coverage edges instead of failing the whole import
+
+Enhancements
+------------
+
+- [#61](https://github.com/korpling/graphANNIS/issues/61) Implement the equal and not equal value operators
+
 release 0.15.0
 ==============
 
