@@ -11,7 +11,9 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
-use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec};
+use crate::annis::operator::{
+    BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
+};
 use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
@@ -47,7 +49,6 @@ pub struct UnaryOperatorEntry {
     pub op: Box<UnaryOperator>,
     pub node_nr: usize,
 }
-
 
 #[derive(Debug)]
 pub struct Conjunction<'a> {
@@ -291,37 +292,34 @@ impl<'a> Conjunction<'a> {
         global_reflexivity: bool,
     ) -> Result<()> {
         //let original_order = self.operators.len();
-        if let Some(idx_left) = self.variables.get(var_left) {
-            if let Some(idx_right) = self.variables.get(var_right) {
-                self.binary_operators.push(BinaryOperatorSpecEntry {
-                    op,
-                    idx_left: *idx_left,
-                    idx_right: *idx_right,
-                    global_reflexivity,
-                });
-                return Ok(());
-            } else {
-                return Err(ErrorKind::AQLSemanticError(
-                    format!("Operand '#{}' not found", var_right).into(),
-                    location,
-                )
-                .into());
-            }
-        } else {
-            return Err(ErrorKind::AQLSemanticError(
-                format!("Operand '#{}' not found", var_left).into(),
-                location,
-            )
-            .into());
-        }
+        let idx_left = self.resolve_variable_pos(var_left, location.clone())?;
+        let idx_right = self.resolve_variable_pos(var_right, location.clone())?;
+
+        self.binary_operators.push(BinaryOperatorSpecEntry {
+            op,
+            idx_left: idx_left,
+            idx_right: idx_right,
+            global_reflexivity,
+        });
+        return Ok(());
+    
+    
     }
 
     pub fn num_of_nodes(&self) -> usize {
         self.nodes.len()
     }
 
-    pub fn get_variable_pos(&self, variable: &str) -> Option<usize> {
-        self.variables.get(variable).cloned()
+    pub fn resolve_variable_pos(&self, variable: &str, location: Option<LineColumnRange>) -> Result<usize> {
+        
+        if let Some(pos) = self.variables.get(variable) {
+            return Ok(pos.clone());
+        }
+        Err(ErrorKind::AQLSemanticError(
+            format!("Operand '#{}' not found", variable).into(),
+            location,
+        )
+        .into())
     }
 
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
@@ -329,6 +327,25 @@ impl<'a> Conjunction<'a> {
             return Some(self.nodes[pos].0.clone());
         }
         None
+    }
+
+    pub fn resolve_variable(
+        &self,
+        variable: &str,
+        location: Option<LineColumnRange>,
+    ) -> Result<NodeSearchSpec> {
+        let idx = self.resolve_variable_pos(variable, location.clone())?;
+        if let Some(pos) = idx.checked_sub(self.var_idx_offset) {
+            if pos < self.nodes.len() {
+                return Ok(self.nodes[pos].1.clone());
+            }
+        }
+    
+        return Err(ErrorKind::AQLSemanticError(
+            format!("Operand '#{}' not found", variable).into(),
+            location,
+        )
+        .into());
     }
 
     pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
@@ -584,22 +601,20 @@ impl<'a> Conjunction<'a> {
             let child_exec: Box<ExecutionNode<Item = Vec<Match>> + 'a> = component2exec
                 .remove(&op_spec_entry.idx)
                 .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
-            
-            let op: Box<UnaryOperator> =
-                op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    ErrorKind::ImpossibleSearch(format!(
-                        "could not create operator {:?}",
-                        op_spec_entry
-                    ))
-                })?;
+
+            let op: Box<UnaryOperator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
+                ErrorKind::ImpossibleSearch(format!(
+                    "could not create operator {:?}",
+                    op_spec_entry
+                ))
+            })?;
             let op_entry = UnaryOperatorEntry {
                 op,
                 node_nr: op_spec_entry.idx + 1,
             };
             let filter_exec = Filter::new_unary(child_exec, 0, op_entry);
-            
-            component2exec.insert(op_spec_entry.idx, Box::new(filter_exec));
 
+            component2exec.insert(op_spec_entry.idx, Box::new(filter_exec));
         }
 
         // 3. add the joins which produce the results in operand order
@@ -695,7 +710,54 @@ impl<'a> Conjunction<'a> {
             component2exec.insert(new_component_nr, new_exec);
         }
 
-        // 4. check if there is only one component left (all nodes are connected)
+        // apply the the node error check
+        if !node_search_errors.is_empty() {
+            return Err(node_search_errors.remove(0));
+        }
+
+        // it must be checked before that all components are connected
+        component2exec
+            .into_iter()
+            .map(|(_cid, exec)| exec)
+            .next()
+            .ok_or_else(|| {
+                ErrorKind::ImpossibleSearch(String::from(
+                    "could not find execution node for query component",
+                ))
+                .into()
+            })
+    }
+
+    fn check_components_connected(&self) -> Result<()> {
+        let mut node2component: BTreeMap<usize, usize> = BTreeMap::new();
+        node2component
+            .extend((self.var_idx_offset..self.nodes.len() + self.var_idx_offset).map(|i| (i, i)));
+
+        for op_entry in self.binary_operators.iter() {
+            if op_entry.op.is_binding() {
+                // merge both operands to the same component
+                if let (Some(component_left), Some(component_right)) = (
+                    node2component.get(&op_entry.idx_left),
+                    node2component.get(&op_entry.idx_right),
+                ) {
+                    let component_left = *component_left;
+                    let component_right = *component_right;
+                    let new_component_nr = component_left;
+                    update_components_for_nodes(
+                        &mut node2component,
+                        component_left,
+                        new_component_nr,
+                    );
+                    update_components_for_nodes(
+                        &mut node2component,
+                        component_right,
+                        new_component_nr,
+                    );
+                }
+            }
+        }
+
+        // check if there is only one component left (all nodes are connected)
         let mut first_component_id: Option<usize> = None;
         for (node_nr, cid) in &node2component {
             if first_component_id.is_none() {
@@ -718,20 +780,7 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        // now apply the the node error check
-        if !node_search_errors.is_empty() {
-            return Err(node_search_errors.remove(0));
-        }
-
-        let first_component_id = first_component_id.ok_or_else(|| {
-            ErrorKind::ImpossibleSearch(String::from("no component in query at all"))
-        })?;
-        component2exec.remove(&first_component_id).ok_or_else(|| {
-            ErrorKind::ImpossibleSearch(String::from(
-                "could not find execution node for query component",
-            ))
-            .into()
-        })
+        Ok(())
     }
 
     pub fn make_exec_node(
@@ -739,6 +788,8 @@ impl<'a> Conjunction<'a> {
         db: &'a Graph,
         config: &Config,
     ) -> Result<Box<ExecutionNode<Item = Vec<Match>> + 'a>> {
+        self.check_components_connected()?;
+
         let operator_order = self.optimize_join_order_heuristics(db, config)?;
         self.make_exec_plan_with_order(db, config, operator_order)
     }

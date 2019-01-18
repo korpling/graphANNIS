@@ -24,7 +24,7 @@ impl<'a> Disjunction<'a> {
 
     pub fn get_variable_pos(&self, variable: &str) -> Option<usize> {
         for alt in &self.alternatives {
-            if let Some(var_pos) = alt.get_variable_pos(variable) {
+            if let Ok(var_pos) = alt.resolve_variable_pos(variable, None) {
                 return Some(var_pos);
             }
         }

@@ -3,12 +3,13 @@ pub mod operators;
 use boolean_expression::Expr;
 lalrpop_mod!(
     #[allow(clippy::all)]
-    parser
+    parser,
+    "/annis/db/aql/parser.rs"
 );
 
-use crate::annis::db::aql::operators::PartOfSubCorpusSpec;
-use crate::annis::db::aql::operators::IdenticalNodeSpec;
-use crate::annis::db::aql::operators::RangeSpec;
+use crate::annis::db::aql::operators::{
+    EqualValueSpec, IdenticalNodeSpec, PartOfSubCorpusSpec, RangeSpec,
+};
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
@@ -69,7 +70,7 @@ fn map_conjunction<'a>(
                     pos_to_endpos.entry(pos.start).or_insert_with(|| pos.end);
                 }
             }
-            ast::Literal::UnaryOp {..} => {
+            ast::Literal::UnaryOp { .. } => {
                 // can only have node reference, not a literal
             }
             ast::Literal::LegacyMetaSearch { spec, pos } => {
@@ -101,7 +102,7 @@ fn map_conjunction<'a>(
 
     // add all unary operators as filter(s) to the referenced nodes
     for literal in c.iter() {
-        if let ast::Literal::UnaryOp {node_ref, op, pos} = literal {
+        if let ast::Literal::UnaryOp { node_ref, op, pos } = literal {
             let var = match node_ref {
                 ast::NodeRef::ID(id) => id.to_string(),
                 ast::NodeRef::Name(name) => name.clone(),
@@ -117,7 +118,6 @@ fn map_conjunction<'a>(
             };
 
             q.add_unary_operator_from_query(make_unary_operator_spec(op.clone()), &var, op_pos)?;
-
         }
     }
 
@@ -137,7 +137,7 @@ fn map_conjunction<'a>(
             pos,
         } = literal
         {
-            let idx_left = match lhs {
+            let var_left = match lhs {
                 ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
                     .entry(pos.start)
                     .or_insert_with(|| q.add_node(spec.as_ref().clone(), None))
@@ -148,7 +148,7 @@ fn map_conjunction<'a>(
                 },
             };
 
-            let idx_right = match rhs {
+            let var_right = match rhs {
                 ast::Operand::Literal { spec, pos, .. } => pos_to_node_id
                     .entry(pos.start)
                     .or_insert_with(|| q.add_node(spec.as_ref().clone(), None))
@@ -168,6 +168,9 @@ fn map_conjunction<'a>(
                 None
             };
 
+            let spec_left = q.resolve_variable(&var_left, op_pos.clone())?;
+            let spec_right = q.resolve_variable(&var_right, op_pos.clone())?;
+
             if quirks_mode {
                 if let ast::BinaryOpSpec::Precedence(ref mut spec) = op {
                     // limit unspecified .* precedence to 50
@@ -181,7 +184,8 @@ fn map_conjunction<'a>(
                     };
                 }
             }
-            q.add_operator_from_query(make_binary_operator_spec(op), &idx_left, &idx_right, op_pos, !quirks_mode)?;
+            let op_spec = make_binary_operator_spec(op, spec_left, spec_right)?;
+            q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
         }
     }
 
@@ -343,7 +347,8 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
                 ParseError::ExtraToken { .. } => "Extra token at end of query.",
                 ParseError::UnrecognizedToken { .. } => "Unexpected token in query.",
                 ParseError::User { error } => error,
-            }.to_string();
+            }
+            .to_string();
             let location = extract_location(&e, query_as_aql);
             if let ParseError::UnrecognizedToken { expected, .. } = e {
                 if !expected.is_empty() {
@@ -356,9 +361,12 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
         }
     }
 }
-
-fn make_binary_operator_spec(op: ast::BinaryOpSpec) -> Box<BinaryOperatorSpec> {
-    match op {
+fn make_binary_operator_spec(
+    op: ast::BinaryOpSpec,
+    spec_left: NodeSearchSpec,
+    spec_right: NodeSearchSpec,
+) -> Result<Box<BinaryOperatorSpec>> {
+    let op_spec: Box<BinaryOperatorSpec> = match op {
         ast::BinaryOpSpec::Dominance(spec) => Box::new(spec),
         ast::BinaryOpSpec::Pointing(spec) => Box::new(spec),
         ast::BinaryOpSpec::Precedence(spec) => Box::new(spec),
@@ -370,7 +378,20 @@ fn make_binary_operator_spec(op: ast::BinaryOpSpec) -> Box<BinaryOperatorSpec> {
         ast::BinaryOpSpec::LeftAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::RightAlignment(spec) => Box::new(spec),
         ast::BinaryOpSpec::IdenticalNode(spec) => Box::new(spec),
-    }
+        ast::BinaryOpSpec::ValueComparison(cmp) => match cmp {
+            ast::ComparisonOperator::Equal => Box::new(EqualValueSpec {
+                spec_left,
+                spec_right,
+                negated: false,
+            }),
+            ast::ComparisonOperator::NotEqual => Box::new(EqualValueSpec {
+                spec_left,
+                spec_right,
+                negated: true,
+            }),
+        },
+    };
+    Ok(op_spec)
 }
 
 fn make_unary_operator_spec(op: ast::UnaryOpSpec) -> Box<UnaryOperatorSpec> {
@@ -408,7 +429,8 @@ pub fn get_line_and_column_for_pos(
                 line: *line,
                 column,
             }
-        }).next()
+        })
+        .next()
         .unwrap_or(LineColumn { line: 0, column: 0 })
 }
 
