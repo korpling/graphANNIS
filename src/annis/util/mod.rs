@@ -3,7 +3,6 @@ pub mod quicksort;
 
 use csv;
 use regex_syntax;
-use serde_derive;
 use std;
 use std::path::Path;
 
