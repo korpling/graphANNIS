@@ -235,7 +235,7 @@ impl AnnisRunner {
             .as_ref()
             .ok_or("No corpus storage location set")?
             .list()?;
-        corpora.sort();
+        corpora.sort_unstable_by_key(|info| info.name.clone());
         for c in corpora {
             let desc = match c.load_status {
                 LoadStatus::NotLoaded => String::from("not loaded"),

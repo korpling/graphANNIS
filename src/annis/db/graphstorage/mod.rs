@@ -35,6 +35,19 @@ pub struct GraphStatistic {
     pub dfs_visit_ratio: f64,
 }
 
+impl std::fmt::Display for GraphStatistic {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "nodes={}, avg_fan_out={:.2}, max_fan_out={}, max_depth={}", self.nodes, self.avg_fan_out, self.max_fan_out, self.max_depth)?;
+        if self.cyclic {        
+            write!(f, ", cyclic")?;
+        }
+        if self.rooted_tree {
+            write!(f, ", tree")?;
+        }
+        Ok(())
+    }
+}
+
 /// Basic trait for accessing edges of a graph for a specific component.
 pub trait EdgeContainer: Sync + Send + MallocSizeOf {
     /// Get all outgoing edges for a given `node`.
