@@ -1,4 +1,6 @@
+use crate::annis::db::Graph;
 use super::adjacencylist::AdjacencyListStorage;
+use super::dense_adjacency::DenseAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
@@ -19,6 +21,7 @@ lazy_static! {
         let mut m = HashMap::new();
 
         insert_info::<AdjacencyListStorage>(&mut m);
+        insert_info::<DenseAdjacencyListStorage>(&mut m);
 
         insert_info::<PrePostOrderStorage<u64, u64>>(&mut m);
         insert_info::<PrePostOrderStorage<u64, u32>>(&mut m);
@@ -41,10 +44,10 @@ pub fn create_writeable() -> AdjacencyListStorage {
     AdjacencyListStorage::new()
 }
 
-pub fn get_optimal_impl_heuristic(stats: &GraphStatistic) -> GSInfo {
+pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo {
     if stats.max_depth <= 1 {
         // if we don't have any deep graph structures an adjencency list is always fasted (and has no overhead)
-        return create_info::<AdjacencyListStorage>();
+        return get_adjacencylist_impl(db, stats);
     } else if stats.rooted_tree {
         if stats.max_fan_out <= 1 {
             return get_linear_by_size(stats);
@@ -60,6 +63,18 @@ pub fn get_optimal_impl_heuristic(stats: &GraphStatistic) -> GSInfo {
     }
 
     // fallback
+    get_adjacencylist_impl(db, stats)
+}
+
+fn get_adjacencylist_impl(db: &Graph, stats: &GraphStatistic) -> GSInfo {
+
+    // check if a large percentage of nodes are part of the graph storage
+    if let Some(largest_node_id) = db.node_annos.get_largest_item() {
+        if (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
+            return create_info::<DenseAdjacencyListStorage>();
+        }
+    }
+
     create_info::<AdjacencyListStorage>()
 }
 
