@@ -182,10 +182,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
                     }
                 }
             }
-
-            self.edges.shrink_to_fit();
             self.inverse_edges.sort_unstable();
-
             self.stats = orig.get_statistics().cloned();
             self.annos.calculate_statistics();
         }
