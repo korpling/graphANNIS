@@ -11,7 +11,7 @@ use std::ops::Bound;
 
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct DenseAdjacencyListStorage {
-    edges: Vec<Vec<NodeID>>,
+    edges: Vec<Option<NodeID>>,
     inverse_edges: Vec<Edge>,
     annos: AnnoStorage<Edge>,
     stats: Option<GraphStatistic>,
@@ -39,12 +39,9 @@ impl EdgeContainer for DenseAdjacencyListStorage {
     fn get_outgoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
         if let Some(node) = node.to_usize() {
             if node < self.edges.len() {
-                let outgoing: &Vec<NodeID> = &self.edges[node];
-                return match outgoing.len() {
-                    0 => Box::new(std::iter::empty()),
-                    1 => Box::new(std::iter::once(outgoing[0])),
-                    _ => Box::new(outgoing.iter().cloned()),
-                };
+                if let Some(outgoing) = self.edges[node] {
+                    return Box::new(std::iter::once(outgoing));
+                }
             }
         }
         Box::new(std::iter::empty())
@@ -85,7 +82,7 @@ impl EdgeContainer for DenseAdjacencyListStorage {
             .edges
             .iter()
             .enumerate()
-            .filter(|(_, outgoing)| !outgoing.is_empty())
+            .filter(|(_, outgoing)| outgoing.is_none())
             .filter_map(|(key, _)| key.to_u64());
         Box::new(it)
     }
@@ -158,39 +155,40 @@ impl GraphStorage for DenseAdjacencyListStorage {
         &self.annos
     }
 
-    fn copy(&mut self, _db: &Graph, orig: &GraphStorage) {
+    fn copy(&mut self, db: &Graph, orig: &GraphStorage) {
         self.annos.clear();
         self.edges.clear();
         self.inverse_edges.clear();
 
-        for source in orig.source_nodes() {
-            if let Some(idx) = source.to_usize() {
-                if idx >= self.edges.len() {
-                    self.edges.resize(idx, vec![]);
-                }
-                let outgoing: &mut Vec<NodeID> = &mut self.edges[idx];
-                for target in orig.get_outgoing_edges(source) {
+        if let Some(largest_idx) = db.node_annos.get_largest_item().and_then(|idx| idx.to_usize()) {
+            
+            debug!("Resizing dense adjacency list to size {}", largest_idx + 1);
+            self.edges.resize(largest_idx+1, None);
 
-                    // insert edge 
-                    outgoing.push(target);
+            for source in orig.source_nodes() {
+                if let Some(idx) = source.to_usize() {
 
-                    // insert inverse edge
-                    let e = Edge { source, target};
-                    let ie = e.inverse();
-                    if let Err(inverse_idx) = self.inverse_edges.binary_search(&ie) {
-                        self.inverse_edges.insert(inverse_idx, ie);
-                    }
-                    
-                    // insert annotation
-                    for a in orig.get_anno_storage().get_annotations_for_item(&e) {
-                        self.annos.insert(e.clone(), a);
+                    if let Some(target) = orig.get_outgoing_edges(source).next() {
+                         // insert edge 
+                         self.edges[idx] = Some(target);
+
+                        // insert inverse edge
+                        let e = Edge { source, target};
+                        self.inverse_edges.push(e.inverse());                        
+                        // insert annotation
+                        for a in orig.get_anno_storage().get_annotations_for_item(&e) {
+                            self.annos.insert(e.clone(), a);
+                        }
                     }
                 }
             }
-        }
 
-        self.stats = orig.get_statistics().cloned();
-        self.annos.calculate_statistics();
+            self.edges.shrink_to_fit();
+            self.inverse_edges.sort_unstable();
+
+            self.stats = orig.get_statistics().cloned();
+            self.annos.calculate_statistics();
+        }
     }
 
     fn as_edgecontainer(&self) -> &EdgeContainer {
@@ -199,7 +197,7 @@ impl GraphStorage for DenseAdjacencyListStorage {
 
     /// Return an identifier for this graph storage which is used to distinguish the different graph storages when (de-) serialized.
     fn serialization_id(&self) -> String {
-        "DemseAdjacencyListV1".to_owned()
+        "DenseAdjacencyListV1".to_owned()
     }
 
     /// Serialize this graph storage.

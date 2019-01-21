@@ -70,7 +70,7 @@ fn get_adjacencylist_impl(db: &Graph, stats: &GraphStatistic) -> GSInfo {
 
     // check if a large percentage of nodes are part of the graph storage
     if let Some(largest_node_id) = db.node_annos.get_largest_item() {
-        if (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
+        if stats.max_fan_out <= 1 && (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {
             return create_info::<DenseAdjacencyListStorage>();
         }
     }
