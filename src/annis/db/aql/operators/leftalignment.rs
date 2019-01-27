@@ -29,9 +29,9 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for LeftAlignmentSpec {
-    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
+    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![COMPONENT_LEFT.clone()];
-        v.append(&mut token_helper::necessary_components());
+        v.append(&mut token_helper::necessary_components(db));
         v
     }
 

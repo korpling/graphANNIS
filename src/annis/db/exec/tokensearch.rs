@@ -51,8 +51,8 @@ impl<'a> AnyTokenSearch<'a> {
         })
     }
 
-    pub fn necessary_components() -> Vec<Component> {
-        let mut components = token_helper::necessary_components();
+    pub fn necessary_components(db: &Graph) -> Vec<Component> {
+        let mut components = token_helper::necessary_components(db);
         components.push(COMPONENT_ORDER.clone());
         components
     }

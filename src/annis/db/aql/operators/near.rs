@@ -44,7 +44,7 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for NearSpec {
-    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
+    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
@@ -59,7 +59,7 @@ impl BinaryOperatorSpec for NearSpec {
             COMPONENT_LEFT.clone(),
             COMPONENT_RIGHT.clone(),
         ];
-        v.append(&mut token_helper::necessary_components());
+        v.append(&mut token_helper::necessary_components(db));
         v
     }
 

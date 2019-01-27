@@ -54,14 +54,14 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for InclusionSpec {
-    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
+    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         let mut v: Vec<Component> = vec![
             COMPONENT_ORDER.clone(),
             COMPONENT_LEFT.clone(),
             COMPONENT_RIGHT.clone(),
             COMPONENT_COV.clone(),
         ];
-        v.append(&mut token_helper::necessary_components());
+        v.append(&mut token_helper::necessary_components(db));
         v
     }
 

@@ -82,9 +82,9 @@ impl NodeSearchSpec {
         }
     }
 
-    pub fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
+    pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
         if let &NodeSearchSpec::AnyToken = &self {
-            return tokensearch::AnyTokenSearch::necessary_components();
+            return tokensearch::AnyTokenSearch::necessary_components(db);
         }
         vec![]
     }
