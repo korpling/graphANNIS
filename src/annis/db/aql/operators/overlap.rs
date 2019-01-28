@@ -53,13 +53,11 @@ impl BinaryOperatorSpec for OverlapSpec {
 impl Overlap {
     pub fn new(db: &Graph) -> Option<Overlap> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
-        let mut gs_cov = Vec::default();
-        for c in db.get_all_components(Some(ComponentType::Coverage), None) {
-            if let Some(gs) = db.get_graphstorage(&c) {
-                gs_cov.push(gs);
-            }
-        }
-
+        let gs_cov: Vec<Arc<GraphStorage>> = db
+            .get_all_components(Some(ComponentType::Coverage), None)
+            .into_iter()
+            .filter_map(|c| db.get_graphstorage(&c))
+            .collect();
         let tok_helper = TokenHelper::new(db)?;
 
         Some(Overlap {
