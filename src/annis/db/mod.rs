@@ -891,6 +891,19 @@ impl Graph {
             }
         }
 
+        if let Ok(gs_cov) = self.get_or_create_writable(&Component {
+            ctype: ComponentType::Coverage,
+            name: "inherited-coverage".to_owned(),
+            layer: ANNIS_NS.to_owned(),
+        }) {
+            for t in covered_token.iter() {
+                gs_cov.add_edge(Edge {
+                    source: n,
+                    target: *t,
+                });
+            }
+        }
+
         covered_token
     }
 
