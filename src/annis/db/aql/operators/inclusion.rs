@@ -17,7 +17,7 @@ pub struct Inclusion {
     gs_order: Arc<GraphStorage>,
     gs_left: Arc<GraphStorage>,
     gs_right: Arc<GraphStorage>,
-    gs_cov: Arc<GraphStorage>,
+    gs_cov: Vec<Arc<GraphStorage>>,
 
     tok_helper: TokenHelper,
 }
@@ -44,13 +44,6 @@ lazy_static! {
             name: String::from(""),
         }
     };
-    static ref COMPONENT_COV: Component = {
-        Component {
-            ctype: ComponentType::Coverage,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
 }
 
 impl BinaryOperatorSpec for InclusionSpec {
@@ -59,8 +52,8 @@ impl BinaryOperatorSpec for InclusionSpec {
             COMPONENT_ORDER.clone(),
             COMPONENT_LEFT.clone(),
             COMPONENT_RIGHT.clone(),
-            COMPONENT_COV.clone(),
         ];
+        v.extend(db.get_all_components(Some(ComponentType::Coverage), None));
         v.append(&mut token_helper::necessary_components(db));
         v
     }
@@ -80,7 +73,14 @@ impl Inclusion {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
-        let gs_cov = db.get_graphstorage(&COMPONENT_COV)?;
+
+        let cov_components = db.get_all_components(Some(ComponentType::Coverage), None);
+        let mut gs_cov = Vec::with_capacity(cov_components.len());
+        for c in cov_components {
+            if let Some(gs) = db.get_graphstorage(&c) {
+                gs_cov.push(gs);
+            }
+        }
 
         let tok_helper = TokenHelper::new(db)?;
 
@@ -172,22 +172,29 @@ impl BinaryOperator for Inclusion {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        if let (Some(stats_cov), Some(stats_order), Some(stats_left)) = (
-            self.gs_cov.get_statistics(),
+        let mut sum_cov_nodes = 0;
+        let mut max_cov_fan_out_99 = 0;
+        for gs in self.gs_cov.iter() {
+            if let Some(stats) = gs.get_statistics() {
+                sum_cov_nodes += stats.nodes;
+                max_cov_fan_out_99 = max_cov_fan_out_99.max(stats.fan_out_99_percentile);
+            }
+        }
+        if let (Some(stats_order), Some(stats_left)) = (
             self.gs_order.get_statistics(),
             self.gs_left.get_statistics(),
         ) {
             let num_of_token = stats_order.nodes as f64;
-            if stats_cov.nodes == 0 {
+            if sum_cov_nodes == 0 {
                 // only token in this corpus
                 return EstimationType::SELECTIVITY(1.0 / num_of_token);
             } else {
-                let covered_token_per_node: f64 = stats_cov.fan_out_99_percentile as f64;
+                let covered_token_per_node: f64 = max_cov_fan_out_99 as f64;
                 let aligned_non_token: f64 =
                     covered_token_per_node * (stats_left.inverse_fan_out_99_percentile as f64);
 
                 let sum_included = covered_token_per_node + aligned_non_token;
-                return EstimationType::SELECTIVITY(sum_included / (stats_cov.nodes as f64));
+                return EstimationType::SELECTIVITY(sum_included / (sum_cov_nodes as f64));
             }
         }
 
