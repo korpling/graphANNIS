@@ -9,6 +9,7 @@ use rustc_hash::FxHashSet;
 
 use std;
 use std::sync::Arc;
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct OverlapSpec;
@@ -38,12 +39,11 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for OverlapSpec {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
-        let mut v: Vec<Component> = vec![
-            COMPONENT_ORDER.clone(),
-            COMPONENT_COVERAGE.clone(),
-        ];
-        v.append(&mut token_helper::necessary_components(db));
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        let mut v = HashSet::default();
+        v.insert(COMPONENT_ORDER.clone());
+        v.insert(COMPONENT_COVERAGE.clone());
+        v.extend(token_helper::necessary_components(db));
         v
     }
 

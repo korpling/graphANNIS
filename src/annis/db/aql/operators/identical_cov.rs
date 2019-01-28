@@ -8,6 +8,7 @@ use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
 use std::sync::Arc;
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalCoverageSpec;
@@ -37,9 +38,11 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for IdenticalCoverageSpec {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
-        let mut v: Vec<Component> = vec![COMPONENT_LEFT.clone(), COMPONENT_ORDER.clone()];
-        v.append(&mut token_helper::necessary_components(db));
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        let mut v = HashSet::new();
+        v.insert(COMPONENT_LEFT.clone());
+        v.insert(COMPONENT_ORDER.clone());
+        v.extend(token_helper::necessary_components(db));
         v
     }
 

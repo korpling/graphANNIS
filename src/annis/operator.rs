@@ -2,6 +2,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::{Graph, Match};
 use crate::annis::types::{Component, Edge};
 use std;
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub enum EdgeAnnoSearchSpec {
@@ -162,7 +163,7 @@ pub trait BinaryOperator: std::fmt::Display + Send + Sync {
 }
 
 pub trait BinaryOperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component>;
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component>;
 
     fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>>;
 
@@ -177,7 +178,7 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
 }
 
 pub trait UnaryOperatorSpec: std::fmt::Debug {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component>;
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component>;
 
     fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>>;
 }

@@ -4,6 +4,7 @@ use crate::annis::db::Graph;
 use crate::annis::types::{Component, ComponentType, NodeID};
 
 use std::sync::Arc;
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct TokenHelper {
@@ -31,8 +32,10 @@ lazy_static! {
     };
 }
 
-pub fn necessary_components(db: &Graph) -> Vec<Component> {
-    let mut result = vec![COMPONENT_LEFT.clone(), COMPONENT_RIGHT.clone()];
+pub fn necessary_components(db: &Graph) -> HashSet<Component> {
+    let mut result = HashSet::default();
+    result.insert(COMPONENT_LEFT.clone());
+    result.insert(COMPONENT_RIGHT.clone());
     // we need all coverage components
     result.extend(
         db.get_all_components(Some(ComponentType::Coverage), None)

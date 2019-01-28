@@ -13,6 +13,7 @@ use regex;
 use std;
 use std::fmt;
 use std::sync::Arc;
+use std::collections::HashSet;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps base node (annotation) searches.
 pub struct NodeSearch<'a> {
@@ -82,11 +83,11 @@ impl NodeSearchSpec {
         }
     }
 
-    pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
+    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         if let &NodeSearchSpec::AnyToken = &self {
             return tokensearch::AnyTokenSearch::necessary_components(db);
         }
-        vec![]
+        HashSet::default()
     }
 }
 
@@ -884,7 +885,7 @@ impl<'a> NodeSearch<'a> {
         db: &'a Graph,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        components: Vec<Component>,
+        components: HashSet<Component>,
         edge_anno_spec: Option<EdgeAnnoSearchSpec>,
     ) -> Result<NodeSearch<'a>> {
         let node_search_desc_1 = node_search_desc.clone();

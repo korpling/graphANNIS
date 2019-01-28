@@ -3,12 +3,15 @@ use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::{Graph, Match, ANNIS_NS};
-use crate::annis::operator::{EdgeAnnoSearchSpec, EstimationType, BinaryOperator, BinaryOperatorSpec};
+use crate::annis::operator::{
+    BinaryOperator, BinaryOperatorSpec, EdgeAnnoSearchSpec, EstimationType,
+};
 use crate::annis::types::{AnnoKey, AnnoKeyID, Component, ComponentType, Edge, NodeID};
 use crate::annis::util;
 use regex;
 use std;
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
+use std::iter::FromIterator;
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
@@ -45,8 +48,8 @@ impl BaseEdgeOp {
 }
 
 impl BinaryOperatorSpec for BaseEdgeOpSpec {
-    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
-        self.components.clone()
+    fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
+        HashSet::from_iter(self.components.clone())
     }
 
     fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
@@ -109,7 +112,7 @@ fn check_edge_annotation(
                 if val.as_str() == a.val.as_str() {
                     continue;
                 }
-            
+
                 // all checks passed, this edge has the correct annotation
                 return true;
             }
@@ -214,10 +217,12 @@ impl BinaryOperator for BaseEdgeOp {
                             *candidate,
                             lhs.clone().node,
                         )
-                    }).map(|n| Match {
+                    })
+                    .map(|n| Match {
                         node: n,
                         anno_key: AnnoKeyID::default(),
-                    }).collect()
+                    })
+                    .collect()
             } else {
                 self.gs[0]
                     .find_connected(lhs.node, spec.dist.min_dist(), spec.dist.max_dist())
@@ -229,10 +234,12 @@ impl BinaryOperator for BaseEdgeOp {
                             lhs.clone().node,
                             *candidate,
                         )
-                    }).map(|n| Match {
+                    })
+                    .map(|n| Match {
                         node: n,
                         anno_key: AnnoKeyID::default(),
-                    }).collect()
+                    })
+                    .collect()
             };
             Box::new(result.into_iter())
         } else {
@@ -247,7 +254,8 @@ impl BinaryOperator for BaseEdgeOp {
                                 lhs.node,
                                 spec.dist.min_dist(),
                                 spec.dist.max_dist(),
-                            ).fuse()
+                            )
+                            .fuse()
                             .filter(move |candidate| {
                                 check_edge_annotation(
                                     &self.spec.edge_anno,
@@ -255,11 +263,13 @@ impl BinaryOperator for BaseEdgeOp {
                                     *candidate,
                                     lhs.clone().node,
                                 )
-                            }).map(|n| Match {
+                            })
+                            .map(|n| Match {
                                 node: n,
                                 anno_key: AnnoKeyID::default(),
                             })
-                    }).collect()
+                    })
+                    .collect()
             } else {
                 self.gs
                     .iter()
@@ -276,11 +286,13 @@ impl BinaryOperator for BaseEdgeOp {
                                     lhs.clone().node,
                                     *candidate,
                                 )
-                            }).map(|n| Match {
+                            })
+                            .map(|n| Match {
                                 node: n,
                                 anno_key: AnnoKeyID::default(),
                             })
-                    }).collect()
+                    })
+                    .collect()
             };
             all.sort_unstable();
             all.dedup();
@@ -427,16 +439,18 @@ impl BinaryOperator for BaseEdgeOp {
                             }
                         }
                         EdgeAnnoSearchSpec::NotExactValue { val, ns, name } => {
-                            let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
+                            let total = anno_storage
+                                .number_of_annotations_by_name(ns.clone(), name.clone());
                             total - anno_storage.guess_max_count(ns.clone(), name.clone(), val, val)
-                            
                         }
                         EdgeAnnoSearchSpec::RegexValue { val, ns, name } => {
                             anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
                         }
                         EdgeAnnoSearchSpec::NotRegexValue { val, ns, name } => {
-                            let total = anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
-                            total - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
+                            let total = anno_storage
+                                .number_of_annotations_by_name(ns.clone(), name.clone());
+                            total
+                                - anno_storage.guess_max_count_regex(ns.clone(), name.clone(), val)
                         }
                     };
                     let g_sel: f64 = (guessed_count as f64) / (num_of_annos as f64);
@@ -460,8 +474,8 @@ pub struct DominanceSpec {
 }
 
 impl BinaryOperatorSpec for DominanceSpec {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
-        db.get_all_components(Some(ComponentType::Dominance), Some(&self.name))
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        HashSet::from_iter(db.get_all_components(Some(ComponentType::Dominance), Some(&self.name)))
     }
 
     fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
@@ -490,8 +504,8 @@ pub struct PointingSpec {
 }
 
 impl BinaryOperatorSpec for PointingSpec {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
-        db.get_all_components(Some(ComponentType::Pointing), Some(&self.name))
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        HashSet::from_iter(db.get_all_components(Some(ComponentType::Pointing), Some(&self.name)))
     }
 
     fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
@@ -519,12 +533,13 @@ pub struct PartOfSubCorpusSpec {
 }
 
 impl BinaryOperatorSpec for PartOfSubCorpusSpec {
-    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
-        let components = vec![Component {
+    fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
+        let mut components = HashSet::default();
+        components.insert(Component {
             ctype: ComponentType::PartOfSubcorpus,
             layer: String::from(ANNIS_NS),
             name: String::from(""),
-        }];
+        });
         components
     }
 

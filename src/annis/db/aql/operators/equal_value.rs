@@ -4,6 +4,7 @@ use crate::annis::operator::*;
 use crate::annis::types::{AnnoKey, Component, NodeID};
 use std;
 use std::sync::Arc;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct EqualValueSpec {
@@ -14,8 +15,8 @@ pub struct EqualValueSpec {
 
 
 impl BinaryOperatorSpec for EqualValueSpec {
-    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
-        vec![]
+    fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
+        HashSet::default()
     }
 
     fn create_operator<'a>(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {

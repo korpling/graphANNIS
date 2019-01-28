@@ -8,6 +8,7 @@ use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 use std::sync::Arc;
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct LeftAlignmentSpec;
@@ -29,9 +30,10 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for LeftAlignmentSpec {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
-        let mut v: Vec<Component> = vec![COMPONENT_LEFT.clone()];
-        v.append(&mut token_helper::necessary_components(db));
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        let mut v = HashSet::default();
+        v.insert(COMPONENT_LEFT.clone());
+        v.extend(token_helper::necessary_components(db));
         v
     }
 

@@ -8,7 +8,7 @@ use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -43,7 +43,7 @@ lazy_static! {
 }
 
 impl BinaryOperatorSpec for PrecedenceSpec {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let component_order = Component {
             ctype: ComponentType::Ordering,
             layer: String::from("annis"),
@@ -53,12 +53,11 @@ impl BinaryOperatorSpec for PrecedenceSpec {
                 .unwrap_or_else(|| String::from("")),
         };
 
-        let mut v: Vec<Component> = vec![
-            component_order.clone(),
-            COMPONENT_LEFT.clone(),
-            COMPONENT_RIGHT.clone(),
-        ];
-        v.append(&mut token_helper::necessary_components(db));
+        let mut v = HashSet::default();
+        v.insert(component_order.clone());
+        v.insert(COMPONENT_LEFT.clone());
+        v.insert(COMPONENT_RIGHT.clone());
+        v.extend(token_helper::necessary_components(db));
         v
     }
 
