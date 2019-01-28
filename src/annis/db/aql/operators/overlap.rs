@@ -8,8 +8,8 @@ use crate::annis::types::{AnnoKeyID, Component, ComponentType, NodeID};
 use rustc_hash::FxHashSet;
 
 use std;
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct OverlapSpec;
@@ -17,7 +17,7 @@ pub struct OverlapSpec;
 #[derive(Clone)]
 pub struct Overlap {
     gs_order: Arc<GraphStorage>,
-    gs_cov: Arc<GraphStorage>,
+    gs_cov: Vec<Arc<GraphStorage>>,
     tok_helper: TokenHelper,
 }
 
@@ -29,20 +29,13 @@ lazy_static! {
             name: String::from(""),
         }
     };
-    static ref COMPONENT_COVERAGE: Component = {
-        Component {
-            ctype: ComponentType::Coverage,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
 }
 
 impl BinaryOperatorSpec for OverlapSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
-        v.insert(COMPONENT_COVERAGE.clone());
+        v.extend(db.get_all_components(Some(ComponentType::Coverage), None));
         v.extend(token_helper::necessary_components(db));
         v
     }
@@ -60,7 +53,12 @@ impl BinaryOperatorSpec for OverlapSpec {
 impl Overlap {
     pub fn new(db: &Graph) -> Option<Overlap> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
-        let gs_cov = db.get_graphstorage(&COMPONENT_COVERAGE)?;
+        let mut gs_cov = Vec::default();
+        for c in db.get_all_components(Some(ComponentType::Coverage), None) {
+            if let Some(gs) = db.get_graphstorage(&c) {
+                gs_cov.push(gs);
+            }
+        }
 
         let tok_helper = TokenHelper::new(db)?;
 
@@ -83,28 +81,28 @@ impl BinaryOperator for Overlap {
         // use set to filter out duplicates
         let mut result = FxHashSet::default();
 
-        let covered: Box<Iterator<Item = NodeID>> = if self.tok_helper.is_token(lhs.node) {
-            Box::new(std::iter::once(lhs.node))
-        } else {
-            // all covered token
-            Box::new(
-                self.gs_cov
-                    .find_connected(lhs.node, 1, std::ops::Bound::Included(1))
-                    .fuse(),
-            )
-        };
+        let lhs_is_token = self.tok_helper.is_token(lhs.node);
 
-        for t in covered {
-            // get all nodes that are covering the token
-            for n in self
-                .gs_cov
-                .find_connected_inverse(t, 1, std::ops::Bound::Included(1))
-                .fuse()
-            {
-                result.insert(n);
+        for gs_cov in self.gs_cov.iter() {
+            let covered: Box<Iterator<Item = NodeID>> = if lhs_is_token {
+                Box::new(std::iter::once(lhs.node))
+            } else {
+                // all covered token
+                Box::new(
+                    gs_cov
+                        .find_connected(lhs.node, 1, std::ops::Bound::Included(1))
+                        .fuse(),
+                )
+            };
+
+            for t in covered {
+                // get all nodes that are covering the token
+                for n in gs_cov.get_ingoing_edges(t) {
+                    result.insert(n);
+                }
+                // also add the token itself
+                result.insert(t);
             }
-            // also add the token itself
-            result.insert(t);
         }
 
         Box::new(result.into_iter().map(|n| Match {
@@ -141,22 +139,29 @@ impl BinaryOperator for Overlap {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        if let (Some(stats_cov), Some(stats_order)) = (
-            self.gs_cov.get_statistics(),
-            self.gs_order.get_statistics(),
-        ) {
+        if let Some(stats_order) = self.gs_order.get_statistics() {
+            let mut sum_included = 0;
+            let mut sum_cov_nodes = 0;
+
             let num_of_token = stats_order.nodes as f64;
-            if stats_cov.nodes == 0 {
+
+            for gs_cov in self.gs_cov.iter() {
+                if let Some(stats_cov) = gs_cov.get_statistics() {
+                    sum_cov_nodes += stats_cov.nodes;
+                    let covered_token_per_node = stats_cov.fan_out_99_percentile;
+                    // for each covered token get the number of inverse covered non-token nodes
+                    let aligned_non_token =
+                        covered_token_per_node * (stats_cov.inverse_fan_out_99_percentile);
+
+                    sum_included += covered_token_per_node + aligned_non_token;
+                }
+            }
+
+            if sum_cov_nodes == 0 {
                 // only token in this corpus
                 return EstimationType::SELECTIVITY(1.0 / num_of_token);
             } else {
-                let covered_token_per_node: f64 = stats_cov.fan_out_99_percentile as f64;
-                // for each covered token get the number of inverse covered non-token nodes
-                let aligned_non_token: f64 =
-                    covered_token_per_node * (stats_cov.inverse_fan_out_99_percentile as f64);
-
-                let sum_included = covered_token_per_node + aligned_non_token;
-                return EstimationType::SELECTIVITY(sum_included / (stats_cov.nodes as f64));
+                return EstimationType::SELECTIVITY(sum_included as f64 / (sum_cov_nodes as f64));
             }
         }
 
