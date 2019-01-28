@@ -131,10 +131,12 @@ impl BinaryOperator for Inclusion {
                                 });
                         // return the token itself and all aligned nodes
                         std::iter::once(t).chain(it_aligned)
-                    }).map(|n| Match {
+                    })
+                    .map(|n| Match {
                         node: n,
                         anno_key: AnnoKeyID::default(),
-                    }).collect();
+                    })
+                    .collect();
                 return Box::new(result.into_iter());
             }
         }
@@ -171,29 +173,30 @@ impl BinaryOperator for Inclusion {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        let mut sum_cov_nodes = 0;
-        let mut max_cov_fan_out_99 = 0;
-        for gs in self.gs_cov.iter() {
-            if let Some(stats) = gs.get_statistics() {
-                sum_cov_nodes += stats.nodes;
-                max_cov_fan_out_99 = max_cov_fan_out_99.max(stats.fan_out_99_percentile);
-            }
-        }
         if let (Some(stats_order), Some(stats_left)) = (
             self.gs_order.get_statistics(),
             self.gs_left.get_statistics(),
         ) {
+            let mut sum_cov_nodes = 0;
+            let mut sum_included = 0;
+            
             let num_of_token = stats_order.nodes as f64;
+            for gs_cov in self.gs_cov.iter() {
+                if let Some(stats_cov) = gs_cov.get_statistics() {
+                    sum_cov_nodes += stats_cov.nodes;
+
+                    let covered_token_per_node = stats_cov.fan_out_99_percentile;
+                    let aligned_non_token =
+                        covered_token_per_node * stats_left.inverse_fan_out_99_percentile;
+
+                    sum_included += covered_token_per_node + aligned_non_token;
+                }
+            }
             if sum_cov_nodes == 0 {
                 // only token in this corpus
                 return EstimationType::SELECTIVITY(1.0 / num_of_token);
             } else {
-                let covered_token_per_node: f64 = max_cov_fan_out_99 as f64;
-                let aligned_non_token: f64 =
-                    covered_token_per_node * (stats_left.inverse_fan_out_99_percentile as f64);
-
-                let sum_included = covered_token_per_node + aligned_non_token;
-                return EstimationType::SELECTIVITY(sum_included / (sum_cov_nodes as f64));
+                return EstimationType::SELECTIVITY((sum_included as f64) / (sum_cov_nodes as f64));
             }
         }
 
