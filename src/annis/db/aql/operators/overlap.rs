@@ -17,7 +17,6 @@ pub struct OverlapSpec;
 #[derive(Clone)]
 pub struct Overlap {
     gs_order: Arc<GraphStorage>,
-    gs_cov: Vec<Arc<GraphStorage>>,
     tok_helper: TokenHelper,
 }
 
@@ -35,7 +34,6 @@ impl BinaryOperatorSpec for OverlapSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
-        v.extend(db.get_all_components(Some(ComponentType::Coverage), None));
         v.extend(token_helper::necessary_components(db));
         v
     }
@@ -53,23 +51,10 @@ impl BinaryOperatorSpec for OverlapSpec {
 impl Overlap {
     pub fn new(db: &Graph) -> Option<Overlap> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
-        let gs_cov: Vec<Arc<GraphStorage>> = db
-            .get_all_components(Some(ComponentType::Coverage), None)
-            .into_iter()
-            .filter_map(|c| db.get_graphstorage(&c))
-            .filter(|gs| {
-                if let Some(stats) = gs.get_statistics() {
-                    stats.nodes > 0
-                } else {
-                    true
-                }
-            })
-            .collect();
         let tok_helper = TokenHelper::new(db)?;
 
         Some(Overlap {
             gs_order,
-            gs_cov,
             tok_helper,
         })
     }
@@ -88,7 +73,7 @@ impl BinaryOperator for Overlap {
 
         let lhs_is_token = self.tok_helper.is_token(lhs.node);
 
-        for gs_cov in self.gs_cov.iter() {
+        for gs_cov in self.tok_helper.get_gs_coverage().iter() {
             let covered: Box<Iterator<Item = NodeID>> = if lhs_is_token {
                 Box::new(std::iter::once(lhs.node))
             } else {
@@ -150,7 +135,7 @@ impl BinaryOperator for Overlap {
 
             let num_of_token = stats_order.nodes as f64;
 
-            for gs_cov in self.gs_cov.iter() {
+            for gs_cov in self.tok_helper.get_gs_coverage().iter() {
                 if let Some(stats_cov) = gs_cov.get_statistics() {
                     sum_cov_nodes += stats_cov.nodes;
                     let covered_token_per_node = stats_cov.fan_out_99_percentile;

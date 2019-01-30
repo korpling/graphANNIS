@@ -68,6 +68,17 @@ impl TokenHelper {
             tok_key: db.node_annos.get_key_id(&db.get_token_key())?,
         })
     }
+    pub fn get_gs_coverage(&self) -> &Vec<Arc<GraphStorage>> {
+        &self.cov_edges
+    }
+
+    pub fn get_gs_left_token(&self) -> &GraphStorage {
+        self.left_edges.as_ref()
+    }
+
+    pub fn get_gs_right_token_(&self) -> &GraphStorage {
+        self.right_edges.as_ref()
+    }
 
     pub fn is_token(&self, id: NodeID) -> bool {
         if self

@@ -15,10 +15,6 @@ pub struct InclusionSpec;
 
 pub struct Inclusion {
     gs_order: Arc<GraphStorage>,
-    gs_left: Arc<GraphStorage>,
-    gs_right: Arc<GraphStorage>,
-    gs_cov: Vec<Arc<GraphStorage>>,
-
     tok_helper: TokenHelper,
 }
 
@@ -30,29 +26,12 @@ lazy_static! {
             name: String::from(""),
         }
     };
-    static ref COMPONENT_LEFT: Component = {
-        Component {
-            ctype: ComponentType::LeftToken,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
-    static ref COMPONENT_RIGHT: Component = {
-        Component {
-            ctype: ComponentType::RightToken,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
 }
 
 impl BinaryOperatorSpec for InclusionSpec {
     fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         let mut v = HashSet::default();
         v.insert(COMPONENT_ORDER.clone());
-        v.insert(COMPONENT_LEFT.clone());
-        v.insert(COMPONENT_RIGHT.clone());
-        v.extend(db.get_all_components(Some(ComponentType::Coverage), None));
         v.extend(token_helper::necessary_components(db));
         v
     }
@@ -70,29 +49,11 @@ impl BinaryOperatorSpec for InclusionSpec {
 impl Inclusion {
     pub fn new(db: &Graph) -> Option<Inclusion> {
         let gs_order = db.get_graphstorage(&COMPONENT_ORDER)?;
-        let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
-        let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
-
-        let gs_cov: Vec<Arc<GraphStorage>> = db
-            .get_all_components(Some(ComponentType::Coverage), None)
-            .into_iter()
-            .filter_map(|c| db.get_graphstorage(&c))
-            .filter(|gs| {
-                if let Some(stats) = gs.get_statistics() {
-                    stats.nodes > 0
-                } else {
-                    true
-                }
-            })
-            .collect();
 
         let tok_helper = TokenHelper::new(db)?;
 
         Some(Inclusion {
             gs_order,
-            gs_left,
-            gs_right,
-            gs_cov,
             tok_helper,
         })
     }
@@ -114,26 +75,28 @@ impl BinaryOperator for Inclusion {
                     .gs_order
                     .find_connected(start_lhs, 0, std::ops::Bound::Included(l))
                     .flat_map(move |t| {
-                        let it_aligned =
-                            self.gs_left
-                                .get_ingoing_edges(t)
-                                .into_iter()
-                                .filter(move |n| {
-                                    // right-aligned token of candidate
-                                    let mut end_n = self.gs_right.get_outgoing_edges(*n);
-                                    if let Some(end_n) = end_n.next() {
-                                        // path between right-most tokens exists in ORDERING component
-                                        // and has maximum length l
-                                        self.gs_order.is_connected(
-                                            &end_n,
-                                            &end_lhs,
-                                            0,
-                                            std::ops::Bound::Included(l),
-                                        )
-                                    } else {
-                                        false
-                                    }
-                                });
+                        let it_aligned = self
+                            .tok_helper
+                            .get_gs_left_token()
+                            .get_ingoing_edges(t)
+                            .into_iter()
+                            .filter(move |n| {
+                                // right-aligned token of candidate
+                                let mut end_n =
+                                    self.tok_helper.get_gs_right_token_().get_outgoing_edges(*n);
+                                if let Some(end_n) = end_n.next() {
+                                    // path between right-most tokens exists in ORDERING component
+                                    // and has maximum length l
+                                    self.gs_order.is_connected(
+                                        &end_n,
+                                        &end_lhs,
+                                        0,
+                                        std::ops::Bound::Included(l),
+                                    )
+                                } else {
+                                    false
+                                }
+                            });
                         // return the token itself and all aligned nodes
                         std::iter::once(t).chain(it_aligned)
                     })
@@ -180,13 +143,13 @@ impl BinaryOperator for Inclusion {
     fn estimation_type(&self) -> EstimationType {
         if let (Some(stats_order), Some(stats_left)) = (
             self.gs_order.get_statistics(),
-            self.gs_left.get_statistics(),
+            self.tok_helper.get_gs_left_token().get_statistics(),
         ) {
             let mut sum_cov_nodes = 0;
             let mut sum_included = 0;
 
             let num_of_token = stats_order.nodes as f64;
-            for gs_cov in self.gs_cov.iter() {
+            for gs_cov in self.tok_helper.get_gs_coverage().iter() {
                 if let Some(stats_cov) = gs_cov.get_statistics() {
                     sum_cov_nodes += stats_cov.nodes;
 

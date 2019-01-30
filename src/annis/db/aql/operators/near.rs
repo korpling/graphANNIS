@@ -7,10 +7,10 @@ use crate::annis::operator::EstimationType;
 use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
-use std;
-use std::sync::Arc;
-use std::collections::HashSet;
 use rustc_hash::FxHashSet;
+use std;
+use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NearSpec {
@@ -21,27 +21,8 @@ pub struct NearSpec {
 #[derive(Clone)]
 struct Near {
     gs_order: Arc<GraphStorage>,
-    gs_left: Arc<GraphStorage>,
-    gs_right: Arc<GraphStorage>,
     tok_helper: TokenHelper,
     spec: NearSpec,
-}
-
-lazy_static! {
-    static ref COMPONENT_LEFT: Component = {
-        Component {
-            ctype: ComponentType::LeftToken,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
-    static ref COMPONENT_RIGHT: Component = {
-        Component {
-            ctype: ComponentType::RightToken,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
 }
 
 impl BinaryOperatorSpec for NearSpec {
@@ -57,8 +38,6 @@ impl BinaryOperatorSpec for NearSpec {
 
         let mut v = HashSet::default();
         v.insert(component_order.clone());
-        v.insert(COMPONENT_LEFT.clone());
-        v.insert(COMPONENT_RIGHT.clone());
         v.extend(token_helper::necessary_components(db));
         v
     }
@@ -95,15 +74,11 @@ impl Near {
         };
 
         let gs_order = db.get_graphstorage(&component_order)?;
-        let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
-        let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
 
         let tok_helper = TokenHelper::new(db)?;
 
         Some(Near {
             gs_order,
-            gs_left,
-            gs_right,
             tok_helper,
             spec,
         })
@@ -130,7 +105,7 @@ impl BinaryOperator for Near {
             self.tok_helper.left_token_for(lhs.node)
         };
 
-        let it_forward : Box<Iterator<Item=u64>> = if let Some(start) = start_forward {
+        let it_forward: Box<Iterator<Item = u64>> = if let Some(start) = start_forward {
             let it = self
                 .gs_order
                 // get all token in the range
@@ -138,7 +113,7 @@ impl BinaryOperator for Near {
                 .fuse()
                 // find all left aligned nodes for this token and add it together with the token itself
                 .flat_map(move |t| {
-                    let it_aligned = self.gs_left.get_ingoing_edges(t);
+                    let it_aligned = self.tok_helper.get_gs_left_token().get_ingoing_edges(t);
                     std::iter::once(t).chain(it_aligned)
                 });
             Box::new(it)
@@ -146,7 +121,7 @@ impl BinaryOperator for Near {
             Box::new(std::iter::empty::<u64>())
         };
 
-        let it_backward : Box<Iterator<Item=u64>> = if let Some(start) = start_backward {
+        let it_backward: Box<Iterator<Item = u64>> = if let Some(start) = start_backward {
             let it = self
                 .gs_order
                 // get all token in the range
@@ -154,7 +129,7 @@ impl BinaryOperator for Near {
                 .fuse()
                 // find all right aligned nodes for this token and add it together with the token itself
                 .flat_map(move |t| {
-                    let it_aligned = self.gs_right.get_ingoing_edges(t);
+                    let it_aligned = self.tok_helper.get_gs_right_token_().get_ingoing_edges(t);
                     std::iter::once(t).chain(it_aligned)
                 });
             Box::new(it)
@@ -196,7 +171,6 @@ impl BinaryOperator for Near {
             }
             (start.unwrap(), end.unwrap())
         };
-
 
         self.gs_order.is_connected(
             &start_end_forward.0,

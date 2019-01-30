@@ -1314,17 +1314,33 @@ impl Graph {
         ctype: Option<ComponentType>,
         name: Option<&str>,
     ) -> Vec<Component> {
-        if let (Some(ctype), Some(name)) = (ctype.clone(), name) {
+        if let (Some(ctype), Some(name)) = (&ctype, name) {
             // lookup component from sorted map
             let mut result: Vec<Component> = Vec::new();
             let ckey = Component {
-                ctype,
+                ctype: ctype.clone(),
                 name: String::from(name),
-                layer: String::from(""),
+                layer: String::default(),
             };
 
             for (c, _) in self.components.range(ckey..) {
                 if c.name != name {
+                    break;
+                }
+                result.push(c.clone());
+            }
+            return result;
+        } else if let Some(ctype) = &ctype {
+            // lookup component from sorted map
+            let mut result: Vec<Component> = Vec::new();
+            let ckey = Component {
+                ctype: ctype.clone(),
+                name: String::default(),
+                layer: String::default(),
+            };
+
+            for (c, _) in self.components.range(ckey..) {
+                if c.ctype != *ctype {
                     break;
                 }
                 result.push(c.clone());
