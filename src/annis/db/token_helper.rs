@@ -51,7 +51,15 @@ impl TokenHelper {
         let mut cov_edges = Vec::with_capacity(cov_components.len());
         for c in cov_components {
             if let Some(gs) = db.get_graphstorage(&c) {
-                cov_edges.push(gs);
+                let empty = if let Some(stats) = gs.get_statistics() {
+                    stats.nodes == 0
+                } else {
+                    false
+                };
+
+                if !empty {
+                    cov_edges.push(gs);
+                }
             }
         }
         Some(TokenHelper {

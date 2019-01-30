@@ -656,6 +656,13 @@ impl<'a> NodeSearch<'a> {
                 .get_all_components(Some(ComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
+                .filter(|gs| {
+                    if let Some(stats) = gs.get_statistics() {
+                        stats.nodes > 0
+                    } else {
+                        true
+                    }
+                })
                 .collect();
 
             let it = it_base.filter(move |n| {
@@ -757,6 +764,13 @@ impl<'a> NodeSearch<'a> {
                 .get_all_components(Some(ComponentType::Coverage), None)
                 .into_iter()
                 .filter_map(|c| db.get_graphstorage(&c))
+                .filter(|gs| {
+                    if let Some(stats) = gs.get_statistics() {
+                        stats.nodes > 0
+                    } else {
+                        true
+                    }
+                })
                 .collect();
 
             let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
@@ -851,6 +865,13 @@ impl<'a> NodeSearch<'a> {
             .get_all_components(Some(ComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| db.get_graphstorage(&c))
+            .filter(|gs| {
+                if let Some(stats) = gs.get_statistics() {
+                    stats.nodes > 0
+                } else {
+                    true
+                }
+            })
             .collect();
 
         let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
