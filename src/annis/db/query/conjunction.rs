@@ -19,8 +19,7 @@ use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
-use std::collections::BTreeMap;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, BTreeMap};
 use std::iter::FromIterator;
 use std::sync::Arc;
 
@@ -348,17 +347,17 @@ impl<'a> Conjunction<'a> {
         .into());
     }
 
-    pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
-        let mut result = vec![];
+    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        let mut result = HashSet::default();
 
         for op_entry in &self.unary_operators {
-            let mut c = op_entry.op.necessary_components(db);
-            result.append(&mut c);
+            let c = op_entry.op.necessary_components(db);
+            result.extend(c);
         }
 
         for op_entry in &self.binary_operators {
-            let mut c = op_entry.op.necessary_components(db);
-            result.append(&mut c);
+            let c = op_entry.op.necessary_components(db);
+            result.extend(c);
         }
         for n in &self.nodes {
             result.extend(n.1.necessary_components(db));

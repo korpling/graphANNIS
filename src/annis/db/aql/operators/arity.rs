@@ -4,6 +4,7 @@ use crate::annis::operator::EstimationType;
 use crate::annis::operator::{UnaryOperator, UnaryOperatorSpec};
 use crate::graph::{Component, ComponentType, Match, NodeID};
 use crate::Graph;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use rustc_hash::FxHashSet;
@@ -15,8 +16,8 @@ pub struct AritySpec {
 }
 
 impl UnaryOperatorSpec for AritySpec {
-    fn necessary_components(&self, db: &Graph) -> Vec<Component> {
-        let mut result = Vec::default();
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        let mut result = HashSet::default();
         result.extend(db.get_all_components(Some(ComponentType::Dominance), None));
         result.extend(db.get_all_components(Some(ComponentType::Pointing), None));
         result
@@ -78,7 +79,7 @@ impl UnaryOperator for ArityOperator {
     fn estimation_type(&self) -> EstimationType {
         if let RangeSpec::Bound { min_dist, max_dist } = self.allowed_range {
             let mut min_matches_any = false;
-            let mut max_sel : f64 = 0.0;
+            let mut max_sel: f64 = 0.0;
 
             for gs in self.graphstorages.iter() {
                 if let Some(stats) = gs.get_statistics() {
@@ -104,7 +105,7 @@ impl UnaryOperator for ArityOperator {
                 }
             }
 
-            if min_matches_any {                
+            if min_matches_any {
                 if max_sel >= 1.0 {
                     EstimationType::SELECTIVITY(1.0)
                 } else {

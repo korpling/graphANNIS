@@ -2,13 +2,14 @@ use crate::annis::db::{Graph, Match};
 use crate::annis::operator::*;
 use crate::annis::types::{AnnoKeyID, Component};
 use std;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalNodeSpec;
 
 impl BinaryOperatorSpec for IdenticalNodeSpec {
-    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
-        vec![]
+    fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
+        HashSet::default()
     }
 
     fn create_operator(&self, _db: &Graph) -> Option<Box<BinaryOperator>> {

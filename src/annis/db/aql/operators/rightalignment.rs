@@ -1,37 +1,25 @@
-use crate::annis::operator::EstimationType;
-use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::operator::BinaryOperator;
 use crate::annis::operator::BinaryOperatorSpec;
-use crate::annis::types::{AnnoKeyID, Component, ComponentType};
-use std::sync::Arc;
+use crate::annis::operator::EstimationType;
+use crate::annis::types::{AnnoKeyID, Component};
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct RightAlignmentSpec;
 
 #[derive(Clone)]
 pub struct RightAlignment {
-    gs_right: Arc<GraphStorage>,
     tok_helper: TokenHelper,
 }
 
-lazy_static! {
-    static ref COMPONENT_RIGHT: Component = {
-        Component {
-            ctype: ComponentType::RightToken,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
-}
-
 impl BinaryOperatorSpec for RightAlignmentSpec {
-    fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
-        let mut v: Vec<Component> = vec![COMPONENT_RIGHT.clone()];
-        v.append(&mut token_helper::necessary_components());
+    fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        let mut v = HashSet::default();
+        v.extend(token_helper::necessary_components(db));
         v
     }
 
@@ -47,11 +35,9 @@ impl BinaryOperatorSpec for RightAlignmentSpec {
 
 impl RightAlignment {
     pub fn new(db: &Graph) -> Option<RightAlignment> {
-        let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
-
         let tok_helper = TokenHelper::new(db)?;
 
-        Some(RightAlignment { gs_right, tok_helper })
+        Some(RightAlignment { tok_helper })
     }
 }
 
@@ -62,8 +48,6 @@ impl std::fmt::Display for RightAlignment {
 }
 
 impl BinaryOperator for RightAlignment {
-    
-
     fn retrieve_matches(&self, lhs: &Match) -> Box<Iterator<Item = Match>> {
         let mut aligned = Vec::default();
 
@@ -72,7 +56,7 @@ impl BinaryOperator for RightAlignment {
                 node: lhs_token,
                 anno_key: AnnoKeyID::default(),
             });
-            aligned.extend(self.gs_right.get_ingoing_edges(lhs_token).map(|n| Match {
+            aligned.extend(self.tok_helper.get_gs_right_token_().get_ingoing_edges(lhs_token).map(|n| Match {
                 node: n,
                 anno_key: AnnoKeyID::default(),
             }));
@@ -101,9 +85,11 @@ impl BinaryOperator for RightAlignment {
     }
 
     fn estimation_type(&self) -> EstimationType {
-        if let Some(stats_right) = self.gs_right.get_statistics() {
+        if let Some(stats_right) = self.tok_helper.get_gs_right_token_().get_statistics() {
             let aligned_nodes_per_token: f64 = stats_right.inverse_fan_out_99_percentile as f64;
-            return EstimationType::SELECTIVITY(aligned_nodes_per_token / (stats_right.nodes as f64));
+            return EstimationType::SELECTIVITY(
+                aligned_nodes_per_token / (stats_right.nodes as f64),
+            );
         }
 
         EstimationType::SELECTIVITY(0.1)

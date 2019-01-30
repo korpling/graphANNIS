@@ -1,9 +1,10 @@
 use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::exec::tokensearch;
 use crate::annis::db::exec::tokensearch::AnyTokenSearch;
+use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::ValueSearch;
-use crate::annis::db::{Graph, Match, ANNIS_NS};
+use crate::annis::db::{Graph, Match};
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
@@ -11,6 +12,7 @@ use crate::annis::util;
 use itertools::Itertools;
 use regex;
 use std;
+use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
 
@@ -82,11 +84,11 @@ impl NodeSearchSpec {
         }
     }
 
-    pub fn necessary_components(&self, _db: &Graph) -> Vec<Component> {
+    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
         if let &NodeSearchSpec::AnyToken = &self {
-            return tokensearch::AnyTokenSearch::necessary_components();
+            return tokensearch::AnyTokenSearch::necessary_components(db);
         }
-        vec![]
+        HashSet::default()
     }
 }
 
@@ -550,7 +552,8 @@ impl<'a> NodeSearch<'a> {
                 let node_annos = db.node_annos.clone();
                 if negated {
                     filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                        {
                             return !re.is_match(val);
                         } else {
                             return false;
@@ -558,7 +561,8 @@ impl<'a> NodeSearch<'a> {
                     }));
                 } else {
                     filters.push(Box::new(move |m| {
-                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                        if let Some(val) = node_annos.get_value_for_item_by_id(&m.node, m.anno_key)
+                        {
                             return re.is_match(val);
                         } else {
                             return false;
@@ -648,17 +652,26 @@ impl<'a> NodeSearch<'a> {
         };
 
         let it_base = if leafs_only {
-            let cov_gs = db.get_graphstorage(&Component {
-                ctype: ComponentType::Coverage,
-                layer: String::from(ANNIS_NS),
-                name: String::from(""),
-            });
+            let cov_gs: Vec<Arc<GraphStorage>> = db
+                .get_all_components(Some(ComponentType::Coverage), None)
+                .into_iter()
+                .filter_map(|c| db.get_graphstorage(&c))
+                .filter(|gs| {
+                    if let Some(stats) = gs.get_statistics() {
+                        stats.nodes > 0
+                    } else {
+                        true
+                    }
+                })
+                .collect();
+
             let it = it_base.filter(move |n| {
-                if let Some(ref cov) = cov_gs {
-                    cov.get_outgoing_edges(n.node).next().is_none()
-                } else {
-                    true
+                for cov in cov_gs.iter() {
+                    if cov.get_outgoing_edges(n.node).next().is_some() {
+                        return false;
+                    }
                 }
+                true
             });
             Box::new(it)
         } else {
@@ -747,17 +760,26 @@ impl<'a> NodeSearch<'a> {
         };
 
         if leafs_only {
-            let cov_gs = db.get_graphstorage(&Component {
-                ctype: ComponentType::Coverage,
-                layer: String::from(ANNIS_NS),
-                name: String::from(""),
-            });
+            let cov_gs: Vec<Arc<GraphStorage>> = db
+                .get_all_components(Some(ComponentType::Coverage), None)
+                .into_iter()
+                .filter_map(|c| db.get_graphstorage(&c))
+                .filter(|gs| {
+                    if let Some(stats) = gs.get_statistics() {
+                        stats.nodes > 0
+                    } else {
+                        true
+                    }
+                })
+                .collect();
+
             let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
-                if let Some(ref cov) = cov_gs {
-                    cov.get_outgoing_edges(m.node).next().is_none()
-                } else {
-                    true
+                for cov in cov_gs.iter() {
+                    if cov.get_outgoing_edges(m.node).next().is_some() {
+                        return false;
+                    }
                 }
+                true
             });
             filters.push(filter_func);
         };
@@ -839,17 +861,26 @@ impl<'a> NodeSearch<'a> {
         // create filter functions
         let mut filters: Vec<Box<Fn(&Match) -> bool + Send + Sync>> = Vec::new();
 
-        let cov_gs = db.get_graphstorage(&Component {
-            ctype: ComponentType::Coverage,
-            layer: String::from(ANNIS_NS),
-            name: String::from(""),
-        });
+        let cov_gs: Vec<Arc<GraphStorage>> = db
+            .get_all_components(Some(ComponentType::Coverage), None)
+            .into_iter()
+            .filter_map(|c| db.get_graphstorage(&c))
+            .filter(|gs| {
+                if let Some(stats) = gs.get_statistics() {
+                    stats.nodes > 0
+                } else {
+                    true
+                }
+            })
+            .collect();
+
         let filter_func: Box<Fn(&Match) -> bool + Send + Sync> = Box::new(move |m| {
-            if let Some(ref cov) = cov_gs {
-                cov.get_outgoing_edges(m.node).next().is_none()
-            } else {
-                true
+            for cov in cov_gs.iter() {
+                if cov.get_outgoing_edges(m.node).next().is_some() {
+                    return false;
+                }
             }
+            true
         });
         filters.push(filter_func);
 
@@ -884,7 +915,7 @@ impl<'a> NodeSearch<'a> {
         db: &'a Graph,
         node_search_desc: Arc<NodeSearchDesc>,
         desc: Option<&Desc>,
-        components: Vec<Component>,
+        components: HashSet<Component>,
         edge_anno_spec: Option<EdgeAnnoSearchSpec>,
     ) -> Result<NodeSearch<'a>> {
         let node_search_desc_1 = node_search_desc.clone();

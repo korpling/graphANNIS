@@ -70,9 +70,9 @@ impl Match {
     }
 
     /// Returns true if this match is different to all the other matches given as argument.
-    /// 
+    ///
     /// A single match is different if the node ID or the annotation key are different.
-    pub fn different_to_all(&self, other : &Vec<Match>) -> bool {
+    pub fn different_to_all(&self, other: &Vec<Match>) -> bool {
         for o in other.iter() {
             if self.node == o.node && self.anno_key == o.anno_key {
                 return false;
@@ -82,9 +82,9 @@ impl Match {
     }
 
     /// Returns true if this match is different to the other match given as argument.
-    /// 
+    ///
     /// A single match is different if the node ID or the annotation key are different.
-    pub fn different_to(&self, other : &Match) -> bool {
+    pub fn different_to(&self, other: &Match) -> bool {
         self.node != other.node || self.anno_key != other.anno_key
     }
 }
@@ -603,7 +603,6 @@ impl Graph {
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
-
                         invalid_nodes.extend(self.get_parent_text_coverage_nodes(existing_node_id));
 
                         // delete all annotations
@@ -690,10 +689,9 @@ impl Graph {
                         self.get_node_id_from_name(&target_node),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
-
                             invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
                             invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
-                            
+
                             let c = Component {
                                 ctype,
                                 layer,
@@ -701,7 +699,6 @@ impl Graph {
                             };
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
-
                         }
                     }
                 }
@@ -783,7 +780,7 @@ impl Graph {
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         }) {
-            self.reindex_left_right_token(invalid_nodes, gs_order)?;
+            self.reindex_inherited_coverage(invalid_nodes, gs_order)?;
         }
 
         Ok(())
@@ -808,7 +805,7 @@ impl Graph {
         dfs.map(|step| step.node).collect()
     }
 
-    fn reindex_left_right_token(
+    fn reindex_inherited_coverage(
         &mut self,
         invalid_nodes: FxHashSet<NodeID>,
         gs_order: Arc<GraphStorage>,
@@ -834,6 +831,15 @@ impl Graph {
             for n in invalid_nodes.iter() {
                 gs_right.delete_node(n);
             }
+
+            let gs_cov = self.get_or_create_writable(&Component {
+                ctype: ComponentType::Coverage,
+                name: "inherited-coverage".to_owned(),
+                layer: ANNIS_NS.to_owned(),
+            })?;
+            for n in invalid_nodes.iter() {
+                gs_cov.delete_node(n);
+            }
         }
 
         // go over each node and calculate the left-most and right-most token
@@ -841,7 +847,64 @@ impl Graph {
             self.calculate_token_alignment(*n, ComponentType::LeftToken, gs_order.as_ref());
             self.calculate_token_alignment(*n, ComponentType::RightToken, gs_order.as_ref());
         }
+
+        if let Some(token_helper) = token_helper::TokenHelper::new(self) {
+            for n in invalid_nodes.iter() {
+                self.calculate_inherited_coverage_edges(*n, &token_helper);
+            }
+        }
+
         Ok(())
+    }
+
+    fn calculate_inherited_coverage_edges(
+        &mut self,
+        n: NodeID,
+        token_helper: &token_helper::TokenHelper,
+    ) -> FxHashSet<NodeID> {
+        let all_cov_gs: Vec<Arc<GraphStorage>> = self
+            .get_all_components(Some(ComponentType::Coverage), None)
+            .into_iter()
+            .filter_map(|c| self.get_graphstorage(&c))
+            .collect();
+
+        let mut covered_token = FxHashSet::default();
+        for gs in all_cov_gs.iter() {
+            covered_token.extend(gs.find_connected(n, 1, std::ops::Bound::Included(1)));
+        }
+
+        if covered_token.is_empty() {
+            if token_helper.is_token(n) {
+                covered_token.insert(n);
+            } else {
+                // recursivly get the covered token from all children connected by a dominance relation
+                for dom_component in
+                    self.get_all_components(Some(ComponentType::Dominance), Some(""))
+                {
+                    if let Some(dom_gs) = self.get_graphstorage(&dom_component) {
+                        for out in dom_gs.get_outgoing_edges(n) {
+                            covered_token
+                                .extend(self.calculate_inherited_coverage_edges(out, token_helper));
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Ok(gs_cov) = self.get_or_create_writable(&Component {
+            ctype: ComponentType::Coverage,
+            name: "inherited-coverage".to_owned(),
+            layer: ANNIS_NS.to_owned(),
+        }) {
+            for t in covered_token.iter() {
+                gs_cov.add_edge(Edge {
+                    source: n,
+                    target: *t,
+                });
+            }
+        }
+
+        covered_token
     }
 
     fn calculate_token_alignment(
@@ -850,16 +913,17 @@ impl Graph {
         ctype: ComponentType,
         gs_order: &GraphStorage,
     ) -> Option<NodeID> {
-        let coverage_component = Component {
-            ctype: ComponentType::Coverage,
-            name: "".to_owned(),
-            layer: ANNIS_NS.to_owned(),
-        };
         let alignment_component = Component {
             ctype: ctype.clone(),
             name: "".to_owned(),
             layer: ANNIS_NS.to_owned(),
         };
+
+        let all_cov_gs: Vec<Arc<GraphStorage>> = self
+            .get_all_components(Some(ComponentType::Coverage), None)
+            .into_iter()
+            .filter_map(|c| self.get_graphstorage(&c))
+            .collect();
 
         // if this is a token, return the token itself
         if self
@@ -868,10 +932,15 @@ impl Graph {
             .is_some()
         {
             // also check if this is an actually token and not only a segmentation
-            if let Some(gs_coverage) = self.get_graphstorage(&coverage_component) {
-                if gs_coverage.get_outgoing_edges(n).next().is_none() {
-                    return Some(n);
+            let mut is_token = true;
+            for gs_coverage in all_cov_gs.iter() {
+                if gs_coverage.get_outgoing_edges(n).next().is_some() {
+                    is_token = false;
+                    break;
                 }
+            }
+            if is_token {
+                return Some(n);
             }
         }
 
@@ -889,7 +958,8 @@ impl Graph {
 
         let mut text_coverage_components =
             self.get_all_components(Some(ComponentType::Dominance), Some(""));
-        text_coverage_components.push(coverage_component.clone());
+        text_coverage_components
+            .extend(self.get_all_components(Some(ComponentType::Coverage), None));
         for c in text_coverage_components {
             if let Some(gs_for_component) = self.get_graphstorage(&c) {
                 for target in gs_for_component.get_outgoing_edges(n) {
@@ -1244,17 +1314,33 @@ impl Graph {
         ctype: Option<ComponentType>,
         name: Option<&str>,
     ) -> Vec<Component> {
-        if let (Some(ctype), Some(name)) = (ctype.clone(), name) {
+        if let (Some(ctype), Some(name)) = (&ctype, name) {
             // lookup component from sorted map
             let mut result: Vec<Component> = Vec::new();
             let ckey = Component {
-                ctype,
+                ctype: ctype.clone(),
                 name: String::from(name),
-                layer: String::from(""),
+                layer: String::default(),
             };
 
             for (c, _) in self.components.range(ckey..) {
                 if c.name != name {
+                    break;
+                }
+                result.push(c.clone());
+            }
+            return result;
+        } else if let Some(ctype) = &ctype {
+            // lookup component from sorted map
+            let mut result: Vec<Component> = Vec::new();
+            let ckey = Component {
+                ctype: ctype.clone(),
+                name: String::default(),
+                layer: String::default(),
+            };
+
+            for (c, _) in self.components.range(ckey..) {
+                if c.ctype != *ctype {
                     break;
                 }
                 result.push(c.clone());
