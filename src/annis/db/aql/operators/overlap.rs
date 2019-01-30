@@ -57,6 +57,13 @@ impl Overlap {
             .get_all_components(Some(ComponentType::Coverage), None)
             .into_iter()
             .filter_map(|c| db.get_graphstorage(&c))
+            .filter(|gs| {
+                if let Some(stats) = gs.get_statistics() {
+                    stats.nodes > 0
+                } else {
+                    true
+                }
+            })
             .collect();
         let tok_helper = TokenHelper::new(db)?;
 

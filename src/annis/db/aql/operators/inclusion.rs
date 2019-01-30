@@ -73,13 +73,18 @@ impl Inclusion {
         let gs_left = db.get_graphstorage(&COMPONENT_LEFT)?;
         let gs_right = db.get_graphstorage(&COMPONENT_RIGHT)?;
 
-        let cov_components = db.get_all_components(Some(ComponentType::Coverage), None);
-        let mut gs_cov = Vec::with_capacity(cov_components.len());
-        for c in cov_components {
-            if let Some(gs) = db.get_graphstorage(&c) {
-                gs_cov.push(gs);
-            }
-        }
+        let gs_cov: Vec<Arc<GraphStorage>> = db
+            .get_all_components(Some(ComponentType::Coverage), None)
+            .into_iter()
+            .filter_map(|c| db.get_graphstorage(&c))
+            .filter(|gs| {
+                if let Some(stats) = gs.get_statistics() {
+                    stats.nodes > 0
+                } else {
+                    true
+                }
+            })
+            .collect();
 
         let tok_helper = TokenHelper::new(db)?;
 
@@ -179,7 +184,7 @@ impl BinaryOperator for Inclusion {
         ) {
             let mut sum_cov_nodes = 0;
             let mut sum_included = 0;
-            
+
             let num_of_token = stats_order.nodes as f64;
             for gs_cov in self.gs_cov.iter() {
                 if let Some(stats_cov) = gs_cov.get_statistics() {

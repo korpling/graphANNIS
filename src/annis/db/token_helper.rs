@@ -47,21 +47,19 @@ pub fn necessary_components(db: &Graph) -> HashSet<Component> {
 
 impl TokenHelper {
     pub fn new(db: &Graph) -> Option<TokenHelper> {
-        let cov_components = db.get_all_components(Some(ComponentType::Coverage), None);
-        let mut cov_edges = Vec::with_capacity(cov_components.len());
-        for c in cov_components {
-            if let Some(gs) = db.get_graphstorage(&c) {
-                let empty = if let Some(stats) = gs.get_statistics() {
-                    stats.nodes == 0
+        let cov_edges: Vec<Arc<GraphStorage>> = db
+            .get_all_components(Some(ComponentType::Coverage), None)
+            .into_iter()
+            .filter_map(|c| db.get_graphstorage(&c))
+            .filter(|gs| {
+                if let Some(stats) = gs.get_statistics() {
+                    stats.nodes > 0
                 } else {
-                    false
-                };
-
-                if !empty {
-                    cov_edges.push(gs);
+                    true
                 }
-            }
-        }
+            })
+            .collect();
+            
         Some(TokenHelper {
             node_annos: db.node_annos.clone(),
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
