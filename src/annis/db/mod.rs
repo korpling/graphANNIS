@@ -1246,7 +1246,7 @@ impl Graph {
     fn optimize_impl(&mut self, c: &Component) {
         if let Some(gs) = self.get_graphstorage(c) {
             if let Some(stats) = gs.get_statistics() {
-                let opt_info = registry::get_optimal_impl_heuristic(stats);
+                let opt_info = registry::get_optimal_impl_heuristic(self, stats);
 
                 // convert if necessary
                 if opt_info.id != gs.serialization_id() {
