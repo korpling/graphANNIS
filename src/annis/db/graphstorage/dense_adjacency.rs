@@ -5,14 +5,14 @@ use crate::annis::dfs::CycleSafeDFS;
 use crate::annis::errors::*;
 use crate::annis::types::{Edge, NodeID};
 use num::ToPrimitive;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Deserialize;
 use std::ops::Bound;
 
 #[derive(Serialize, Deserialize, Clone, MallocSizeOf)]
 pub struct DenseAdjacencyListStorage {
     edges: Vec<Option<NodeID>>,
-    inverse_edges: Vec<Edge>,
+    inverse_edges: FxHashMap<NodeID, Vec<NodeID>>,
     annos: AnnoStorage<Edge>,
     stats: Option<GraphStatistic>,
 }
@@ -27,7 +27,7 @@ impl DenseAdjacencyListStorage {
     pub fn new() -> DenseAdjacencyListStorage {
         DenseAdjacencyListStorage {
             edges: Vec::default(),
-            inverse_edges: Vec::default(),
+            inverse_edges: FxHashMap::default(),
             annos: AnnoStorage::new(),
             stats: None,
         }
@@ -47,26 +47,12 @@ impl EdgeContainer for DenseAdjacencyListStorage {
         Box::new(std::iter::empty())
     }
 
-    /// Get all incoming edges for a given `node`.
     fn get_ingoing_edges<'a>(&'a self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'a> {
-        // inverse is a sorted vector of edges, find any index with the correct source node
-        if let Ok(found_idx) = self.inverse_edges.binary_search_by_key(&node, |e| e.source) {
-            // check forward and backward to find all edges with this source node
-            let mut start_idx = found_idx;
-            while start_idx > 0 && self.inverse_edges[start_idx - 1].source == node {
-                start_idx -= 1;
-            }
-            let mut end_idx = found_idx;
-            while end_idx < self.inverse_edges.len() - 1
-                && self.inverse_edges[end_idx + 1].source == node
-            {
-                end_idx += 1;
-            }
-            let outgoing: &[Edge] = &self.inverse_edges[start_idx..end_idx + 1];
-            return match outgoing.len() {
+        if let Some(ingoing) = self.inverse_edges.get(&node) {
+            return match ingoing.len() {
                 0 => Box::new(std::iter::empty()),
-                1 => Box::new(std::iter::once(outgoing[0].target)),
-                _ => Box::new(outgoing.iter().map(|e| e.target)),
+                1 => Box::new(std::iter::once(ingoing[0])),
+                _ => Box::new(ingoing.iter().cloned()),
             };
         }
         Box::new(std::iter::empty())
@@ -160,21 +146,30 @@ impl GraphStorage for DenseAdjacencyListStorage {
         self.edges.clear();
         self.inverse_edges.clear();
 
-        if let Some(largest_idx) = db.node_annos.get_largest_item().and_then(|idx| idx.to_usize()) {
-            
+        if let Some(largest_idx) = db
+            .node_annos
+            .get_largest_item()
+            .and_then(|idx| idx.to_usize())
+        {
             debug!("Resizing dense adjacency list to size {}", largest_idx + 1);
-            self.edges.resize(largest_idx+1, None);
+            self.edges.resize(largest_idx + 1, None);
 
             for source in orig.source_nodes() {
                 if let Some(idx) = source.to_usize() {
-
                     if let Some(target) = orig.get_outgoing_edges(source).next() {
-                         // insert edge 
-                         self.edges[idx] = Some(target);
+                        // insert edge
+                        self.edges[idx] = Some(target);
 
                         // insert inverse edge
-                        let e = Edge { source, target};
-                        self.inverse_edges.push(e.inverse());                        
+                        let e = Edge { source, target };
+                        let inverse_entry = self
+                            .inverse_edges
+                            .entry(e.target)
+                            .or_insert_with(Vec::default);
+                        // no need to insert it: edge already exists
+                        if let Err(insertion_idx) = inverse_entry.binary_search(&e.source) {
+                            inverse_entry.insert(insertion_idx, e.source);
+                        }
                         // insert annotation
                         for a in orig.get_anno_storage().get_annotations_for_item(&e) {
                             self.annos.insert(e.clone(), a);
@@ -182,7 +177,6 @@ impl GraphStorage for DenseAdjacencyListStorage {
                     }
                 }
             }
-            self.inverse_edges.sort_unstable();
             self.stats = orig.get_statistics().cloned();
             self.annos.calculate_statistics();
         }
@@ -190,6 +184,10 @@ impl GraphStorage for DenseAdjacencyListStorage {
 
     fn as_edgecontainer(&self) -> &EdgeContainer {
         self
+    }
+
+    fn inverse_has_same_cost(&self) -> bool {
+        true
     }
 
     /// Return an identifier for this graph storage which is used to distinguish the different graph storages when (de-) serialized.
