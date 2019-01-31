@@ -3,3 +3,6 @@ authors = ["Thomas Krause"]
 multilingual = false
 src = "src"
 title = "graphANNIS documentation"
+
+[output.html]
+mathjax-support = true 
