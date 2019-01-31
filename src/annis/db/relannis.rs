@@ -12,7 +12,7 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 #[derive(Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 struct TextProperty {
@@ -74,14 +74,21 @@ where
         };
 
         let mut db = Graph::new();
-        let (toplevel_corpus_name, id_to_node_name) =
+        let (toplevel_corpus_name, id_to_node_name, textpos_table) =
             load_node_and_corpus_tables(&path, &mut db, is_annis_33, &progress_callback)?;
 
-        load_edge_tables(
+        let has_text_coverage_edge = load_edge_tables(
             &path,
             &mut db,
             is_annis_33,
             &id_to_node_name,
+            &progress_callback,
+        )?;
+
+        calculate_automatic_coverage_edges(
+            &mut db,
+            has_text_coverage_edge,
+            &textpos_table,
             &progress_callback,
         )?;
 
@@ -110,7 +117,7 @@ fn load_node_and_corpus_tables<F>(
     db: &mut Graph,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(String, FxHashMap<NodeID, String>)>
+) -> Result<(String, FxHashMap<NodeID, String>, TextPosTable)>
 where
     F: Fn(&str) -> (),
 {
@@ -118,7 +125,7 @@ where
     let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
     let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
 
-    let (nodes_by_text, id_to_node_name) = load_nodes(
+    let (nodes_by_text, id_to_node_name, textpos_table) = load_nodes(
         path,
         db,
         &corpus_table.corpus_id_to_name,
@@ -136,7 +143,11 @@ where
         is_annis_33,
     )?;
 
-    Ok((corpus_table.toplevel_corpus_name, id_to_node_name))
+    Ok((
+        corpus_table.toplevel_corpus_name,
+        id_to_node_name,
+        textpos_table,
+    ))
 }
 
 fn load_edge_tables<F>(
@@ -145,14 +156,14 @@ fn load_edge_tables<F>(
     is_annis_33: bool,
     id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: &F,
-) -> Result<()>
+) -> Result<(FxHashSet<NodeID>)>
 where
     F: Fn(&str) -> (),
 {
-    let (pre_to_component, pre_to_edge) = {
+    let (pre_to_component, pre_to_edge, has_text_coverage_edge) = {
         let component_by_id = load_component_tab(path, is_annis_33, progress_callback)?;
 
-        let (pre_to_component, pre_to_edge) = load_rank_tab(
+        let (pre_to_component, pre_to_edge, has_text_coverage_edge) = load_rank_tab(
             path,
             db,
             &component_by_id,
@@ -161,7 +172,7 @@ where
             progress_callback,
         )?;
 
-        (pre_to_component, pre_to_edge)
+        (pre_to_component, pre_to_edge, has_text_coverage_edge)
     };
 
     load_edge_annotation(
@@ -174,7 +185,7 @@ where
         progress_callback,
     )?;
 
-    Ok(())
+    Ok(has_text_coverage_edge)
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -379,18 +390,24 @@ fn add_automatic_cov_edge_for_node(
         left_aligned_tok
     };
 
-    let left_tok_pos = textpos_table.token_to_index.get(&left_aligned_tok).ok_or_else(|| {
-        format!(
-            "Can't get position of left-aligned token {}",
-            left_aligned_tok
-        )
-    })?;
-    let right_tok_pos = textpos_table.token_to_index.get(&right_aligned_tok).ok_or_else(|| {
-        format!(
-            "Can't get position of right-aligned token {}",
-            right_aligned_tok
-        )
-    })?;
+    let left_tok_pos = textpos_table
+        .token_to_index
+        .get(&left_aligned_tok)
+        .ok_or_else(|| {
+            format!(
+                "Can't get position of left-aligned token {}",
+                left_aligned_tok
+            )
+        })?;
+    let right_tok_pos = textpos_table
+        .token_to_index
+        .get(&right_aligned_tok)
+        .ok_or_else(|| {
+            format!(
+                "Can't get position of right-aligned token {}",
+                right_aligned_tok
+            )
+        })?;
 
     for i in left_tok_pos.val..(right_tok_pos.val + 1) {
         let tok_idx = TextProperty {
@@ -399,7 +416,8 @@ fn add_automatic_cov_edge_for_node(
             text_id: left_tok_pos.text_id,
             val: i,
         };
-        let tok_id = textpos_table.token_by_index
+        let tok_id = textpos_table
+            .token_by_index
             .get(&tok_idx)
             .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
         if n != *tok_id {
@@ -416,6 +434,7 @@ fn add_automatic_cov_edge_for_node(
 
 fn calculate_automatic_coverage_edges<F>(
     db: &mut Graph,
+    has_text_coverage_edge: FxHashSet<NodeID>,
     textpos_table: &TextPosTable,
     progress_callback: &F,
 ) -> Result<()>
@@ -438,7 +457,9 @@ where
         );
         for (n, textprop) in textpos_table.node_to_left.iter() {
             if textprop.segmentation == "" {
-                if !textpos_table.token_to_index.contains_key(&n) {
+                if !textpos_table.token_to_index.contains_key(&n)
+                    && !has_text_coverage_edge.contains(&n)
+                {
                     let left_pos = TextProperty {
                         segmentation: String::from(""),
                         corpus_id: textprop.corpus_id,
@@ -471,7 +492,6 @@ where
                         )
                     }
                 } // end if not a token
-            
             }
         }
     }
@@ -490,6 +510,7 @@ fn load_node_tab<F>(
     MultiMap<TextKey, NodeID>,
     BTreeMap<NodeID, String>,
     FxHashMap<NodeID, String>,
+    TextPosTable,
 )>
 where
     F: Fn(&str) -> (),
@@ -666,15 +687,20 @@ where
     } // end "scan all lines" visibility block
 
     if !textpos_table.token_by_index.is_empty() {
-        calculate_automatic_token_order(db, &textpos_table.token_by_index, &id_to_node_name, progress_callback)?;
+        calculate_automatic_token_order(
+            db,
+            &textpos_table.token_by_index,
+            &id_to_node_name,
+            progress_callback,
+        )?;
     } // end if token_by_index not empty
 
-    calculate_automatic_coverage_edges(
-        db,
-        &textpos_table,
-        progress_callback,
-    )?;
-    Ok((nodes_by_text, missing_seg_span, id_to_node_name))
+    Ok((
+        nodes_by_text,
+        missing_seg_span,
+        id_to_node_name,
+        textpos_table,
+    ))
 }
 
 fn load_node_anno_tab<F>(
@@ -799,11 +825,15 @@ fn load_nodes<F>(
     toplevel_corpus_name: &str,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(MultiMap<TextKey, NodeID>, FxHashMap<NodeID, String>)>
+) -> Result<(
+    MultiMap<TextKey, NodeID>,
+    FxHashMap<NodeID, String>,
+    TextPosTable,
+)>
 where
     F: Fn(&str) -> (),
 {
-    let (nodes_by_text, missing_seg_span, id_to_node_name) = load_node_tab(
+    let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) = load_node_tab(
         path,
         db,
         corpus_id_to_name,
@@ -820,7 +850,7 @@ where
         progress_callback,
     )?;
 
-    Ok((nodes_by_text, id_to_node_name))
+    Ok((nodes_by_text, id_to_node_name, textpos_table))
 }
 
 fn load_rank_tab<F>(
@@ -830,7 +860,11 @@ fn load_rank_tab<F>(
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(BTreeMap<u32, Component>, BTreeMap<u32, Edge>)>
+) -> Result<(
+    BTreeMap<u32, Component>,
+    BTreeMap<u32, Edge>,
+    FxHashSet<NodeID>,
+)>
 where
     F: Fn(&str) -> (),
 {
@@ -847,6 +881,8 @@ where
     ));
 
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
+
+    let mut has_text_coverage_edge: FxHashSet<NodeID> = FxHashSet::default();
 
     let pos_node_ref = if is_annis_33 { 3 } else { 2 };
     let pos_component_ref = if is_annis_33 { 4 } else { 3 };
@@ -897,6 +933,10 @@ where
                         component_name: c.name.clone(),
                     });
 
+                    if c.ctype == ComponentType::Dominance || c.ctype == ComponentType::Coverage {
+                        has_text_coverage_edge.insert(*source);
+                    }
+
                     let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
                     pre_to_edge.insert(
                         pre,
@@ -913,7 +953,7 @@ where
 
     db.apply_update(&mut update)?;
 
-    Ok((pre_to_component, pre_to_edge))
+    Ok((pre_to_component, pre_to_edge, has_text_coverage_edge))
 }
 
 fn load_edge_annotation<F>(
