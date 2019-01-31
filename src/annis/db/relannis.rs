@@ -289,6 +289,7 @@ where
 fn calculate_automatic_token_order<F>(
     db: &mut Graph,
     token_by_index: &BTreeMap<TextProperty, NodeID>,
+    id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: F,
 ) -> Result<()>
 where
@@ -296,33 +297,35 @@ where
 {
     // TODO: cleanup, better variable naming
     // iterate over all token by their order, find the nodes with the same
-    // text coverage (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
+    // text coverage (either left or right) and add explicit Ordering edge
 
     progress_callback("calculating the automatically generated Ordering edges");
+
+    let mut update = GraphUpdate::new();
 
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
 
     for (current_textprop, current_token) in token_by_index {
-        let component_order = Component {
-            ctype: ComponentType::Ordering,
-            layer: String::from("annis"),
-            name: current_textprop.segmentation.clone(),
-        };
-
-        let gs_order = db.get_or_create_writable(&component_order)?;
-
         // if the last token/text value is valid and we are still in the same text
-        if last_token.is_some() && last_textprop.is_some() {
-            let last = last_textprop.clone().unwrap();
-            if last.corpus_id == current_textprop.corpus_id
-                && last.text_id == current_textprop.text_id
-                && last.segmentation == current_textprop.segmentation
+        if let (Some(last_token), Some(last_textprop)) = (last_token, last_textprop) {
+            if last_textprop.corpus_id == current_textprop.corpus_id
+                && last_textprop.text_id == current_textprop.text_id
+                && last_textprop.segmentation == current_textprop.segmentation
             {
                 // we are still in the same text, add ordering between token
-                gs_order.add_edge(Edge {
-                    source: last_token.unwrap(),
-                    target: *current_token,
+                update.add_event(UpdateEvent::AddEdge {
+                    source_node: id_to_node_name
+                        .get(&last_token)
+                        .ok_or("Missing node name")?
+                        .clone(),
+                    target_node: id_to_node_name
+                        .get(current_token)
+                        .ok_or("Missing node name")?
+                        .clone(),
+                    layer: ANNIS_NS.to_owned(),
+                    component_type: ComponentType::Ordering.to_string(),
+                    component_name: current_textprop.segmentation.clone(),
                 });
             }
         } // end if same text
@@ -331,6 +334,8 @@ where
         last_textprop = Some(current_textprop.clone());
         last_token = Some(*current_token);
     } // end for each token
+
+    db.apply_update(&mut update)?;
 
     Ok(())
 }
@@ -695,7 +700,7 @@ where
     } // end "scan all lines" visibility block
 
     if !token_by_index.is_empty() {
-        calculate_automatic_token_order(db, &token_by_index, progress_callback)?;
+        calculate_automatic_token_order(db, &token_by_index, &id_to_node_name, progress_callback)?;
     } // end if token_by_index not empty
 
     calculate_automatic_coverage_edges(
