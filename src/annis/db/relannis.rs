@@ -1,7 +1,8 @@
 use crate::annis::db::graphstorage::WriteableGraphStorage;
-use crate::annis::db::{Graph, ANNIS_NS};
+use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
+use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
 use multimap::MultiMap;
 use std;
@@ -282,13 +283,10 @@ where
     // iterate over all token by their order, find the nodes with the same
     // text coverage (either left or right) and add explicit ORDERING, LEFT_TOKEN and RIGHT_TOKEN edges
 
-    progress_callback(
-        "calculating the automatically generated Ordering edges",
-    );
+    progress_callback("calculating the automatically generated Ordering edges");
 
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
-
 
     for (current_textprop, current_token) in token_by_index {
         let component_order = Component {
@@ -334,32 +332,21 @@ fn add_automatic_cov_edge_for_node(
     token_by_index: &BTreeMap<TextProperty, NodeID>,
     token_to_index: &BTreeMap<NodeID, TextProperty>,
     textpos_table: &TextPosTable,
-) -> Result<()>
-{
+) -> Result<()> {
     // find left/right aligned basic token
     let left_aligned_tok = textpos_table
         .token_by_left_textpos
         .get(&left_pos)
-        .ok_or_else(|| {
-            format!(
-                "Can't get left-aligned token for node {}",
-                n,
-            )
-        });
+        .ok_or_else(|| format!("Can't get left-aligned token for node {}", n,));
     let right_aligned_tok = textpos_table
         .token_by_right_textpos
         .get(&right_pos)
-        .ok_or_else(|| {
-            format!(
-                "Can't get right-aligned token for node {}",
-                n,
-            )
-        });
+        .ok_or_else(|| format!("Can't get right-aligned token for node {}", n,));
 
     // If only one of the aligned token is missing, use it for both sides, this is consistent with
     // the relANNIS import of ANNIS3
     let left_aligned_tok = if let Ok(left_aligned_tok) = left_aligned_tok {
-         left_aligned_tok
+        left_aligned_tok
     } else {
         right_aligned_tok.clone()?
     };
@@ -448,7 +435,9 @@ where
     db.get_or_create_writable(&component_coverage)?;
 
     {
-        progress_callback("calculating the automatically generated Coverage, LeftToken and RightToken edges");
+        progress_callback(
+            "calculating the automatically generated Coverage, LeftToken and RightToken edges",
+        );
         for (textprop, n_vec) in left_to_node {
             if textprop.segmentation == "" {
                 for n in n_vec {
@@ -483,7 +472,10 @@ where
                             textpos_table,
                         ) {
                             // output a warning but do not fail
-                            warn!("Adding coverage edges (connects spans with tokens) failed: {}", e)
+                            warn!(
+                                "Adding coverage edges (connects spans with tokens) failed: {}",
+                                e
+                            )
                         }
                     } // end if not a token
                 }
@@ -544,6 +536,7 @@ where
 
     // start "scan all lines" visibility block
     {
+        let mut update = GraphUpdate::new();
         let mut node_tab_csv = postgresql_import_reader(node_tab_path.as_path())?;
 
         for result in node_tab_csv.records() {
@@ -570,27 +563,18 @@ where
                 .ok_or_else(|| format!("Document with ID {} missing", corpus_id))?;
 
             let node_qname = format!("{}/{}#{}", toplevel_corpus_name, doc_name, node_name);
-            let node_name_anno = Annotation {
-                key: db.get_node_name_key(),
-                val: node_qname,
-            };
-            Arc::make_mut(&mut db.node_annos).insert(node_nr, node_name_anno);
-
-            let node_type_anno = Annotation {
-                key: db.get_node_type_key(),
-                val: "node".to_owned(),
-            };
-            Arc::make_mut(&mut db.node_annos).insert(node_nr, node_type_anno);
+            update.add_event(UpdateEvent::AddNode {
+                node_name: node_qname.clone(),
+                node_type: "node".to_owned(),
+            });
 
             if !layer.is_empty() && layer != "NULL" {
-                let layer_anno = Annotation {
-                    key: AnnoKey {
-                        ns: "annis".to_owned(),
-                        name: "layer".to_owned(),
-                    },
-                    val: layer,
-                };
-                Arc::make_mut(&mut db.node_annos).insert(node_nr, layer_anno);
+                update.add_event(UpdateEvent::AddNodeLabel {
+                    node_name: node_qname.clone(),
+                    anno_ns: ANNIS_NS.to_owned(),
+                    anno_name: "layer".to_owned(),
+                    anno_value: layer,
+                });
             }
 
             // Use left/right token columns for relANNIS 3.3 and the left/right character column otherwise.
@@ -631,11 +615,12 @@ where
                     get_field_str(&line, 9).ok_or("Missing column")?
                 };
 
-                let tok_anno = Annotation {
-                    key: db.get_token_key(),
-                    val: span,
-                };
-                Arc::make_mut(&mut db.node_annos).insert(node_nr, tok_anno);
+                update.add_event(UpdateEvent::AddNodeLabel {
+                    node_name: node_qname,
+                    anno_ns: ANNIS_NS.to_owned(),
+                    anno_name: TOK.to_owned(), 
+                    anno_value: span,
+                });
 
                 let index = TextProperty {
                     segmentation: String::from(""),
@@ -663,11 +648,12 @@ where
 
                     if is_annis_33 {
                         // directly add the span information
-                        let tok_anno = Annotation {
-                            key: db.get_token_key(),
-                            val: get_field_str(&line, 12).ok_or("Missing column")?,
-                        };
-                        Arc::make_mut(&mut db.node_annos).insert(node_nr, tok_anno);
+                        update.add_event(UpdateEvent::AddNodeLabel {
+                            node_name: node_qname,
+                            anno_ns: ANNIS_NS.to_owned(),
+                            anno_name: TOK.to_owned(),
+                            anno_value: get_field_str(&line, 12).ok_or("Missing column")?,
+                        });
                     } else {
                         // we need to get the span information from the node_annotation file later
                         missing_seg_span.insert(node_nr, segmentation_name.clone());
@@ -683,14 +669,12 @@ where
                 } // end if node has segmentation info
             } // endif if check segmentations
         }
+
+        db.apply_update(&mut update)?;
     } // end "scan all lines" visibility block
 
     if !token_by_index.is_empty() {
-        calculate_automatic_token_order(
-            db,
-            &token_by_index,
-            progress_callback,
-        )?;
+        calculate_automatic_token_order(db, &token_by_index, progress_callback)?;
     } // end if token_by_index not empty
 
     calculate_automatic_coverage_edges(
