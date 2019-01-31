@@ -41,6 +41,14 @@ struct ParsedCorpusTable {
 struct TextPosTable {
     token_by_left_textpos: BTreeMap<TextProperty, NodeID>,
     token_by_right_textpos: BTreeMap<TextProperty, NodeID>,
+    // maps a token index to an node ID
+    token_by_index: BTreeMap<TextProperty, NodeID>,
+    // maps a token node id to the token index
+    token_to_index: BTreeMap<NodeID, TextProperty>,
+    // map as node to it's "left" value
+    node_to_left: BTreeMap<NodeID, TextProperty>,
+    // map as node to it's "right" value
+    node_to_right: BTreeMap<NodeID, TextProperty>,
 }
 
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
@@ -342,13 +350,10 @@ where
 
 fn add_automatic_cov_edge_for_node(
     n: NodeID,
-    textprop: &TextProperty,
     component_coverage: &Component,
     left_pos: TextProperty,
     right_pos: TextProperty,
     db: &mut Graph,
-    token_by_index: &BTreeMap<TextProperty, NodeID>,
-    token_to_index: &BTreeMap<NodeID, TextProperty>,
     textpos_table: &TextPosTable,
 ) -> Result<()> {
     // find left/right aligned basic token
@@ -374,13 +379,13 @@ fn add_automatic_cov_edge_for_node(
         left_aligned_tok
     };
 
-    let left_tok_pos = token_to_index.get(&left_aligned_tok).ok_or_else(|| {
+    let left_tok_pos = textpos_table.token_to_index.get(&left_aligned_tok).ok_or_else(|| {
         format!(
             "Can't get position of left-aligned token {}",
             left_aligned_tok
         )
     })?;
-    let right_tok_pos = token_to_index.get(&right_aligned_tok).ok_or_else(|| {
+    let right_tok_pos = textpos_table.token_to_index.get(&right_aligned_tok).ok_or_else(|| {
         format!(
             "Can't get position of right-aligned token {}",
             right_aligned_tok
@@ -390,11 +395,11 @@ fn add_automatic_cov_edge_for_node(
     for i in left_tok_pos.val..(right_tok_pos.val + 1) {
         let tok_idx = TextProperty {
             segmentation: String::from(""),
-            corpus_id: textprop.corpus_id,
-            text_id: textprop.text_id,
+            corpus_id: left_tok_pos.corpus_id,
+            text_id: left_tok_pos.text_id,
             val: i,
         };
-        let tok_id = token_by_index
+        let tok_id = textpos_table.token_by_index
             .get(&tok_idx)
             .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
         if n != *tok_id {
@@ -411,10 +416,6 @@ fn add_automatic_cov_edge_for_node(
 
 fn calculate_automatic_coverage_edges<F>(
     db: &mut Graph,
-    token_by_index: &BTreeMap<TextProperty, NodeID>,
-    token_to_index: &BTreeMap<NodeID, TextProperty>,
-    node_to_right: &BTreeMap<NodeID, u32>,
-    left_to_node: &MultiMap<TextProperty, NodeID>,
     textpos_table: &TextPosTable,
     progress_callback: &F,
 ) -> Result<()>
@@ -435,45 +436,42 @@ where
         progress_callback(
             "calculating the automatically generated Coverage, LeftToken and RightToken edges",
         );
-        for (textprop, n_vec) in left_to_node {
+        for (n, textprop) in textpos_table.node_to_left.iter() {
             if textprop.segmentation == "" {
-                for n in n_vec {
-                    if !token_to_index.contains_key(&n) {
-                        let left_pos = TextProperty {
-                            segmentation: String::from(""),
-                            corpus_id: textprop.corpus_id,
-                            text_id: textprop.text_id,
-                            val: textprop.val,
-                        };
-                        let right_pos = node_to_right
-                            .get(&n)
-                            .ok_or_else(|| format!("Can't get right position of node {}", n))?;
-                        let right_pos = TextProperty {
-                            segmentation: String::from(""),
-                            corpus_id: textprop.corpus_id,
-                            text_id: textprop.text_id,
-                            val: *right_pos,
-                        };
+                if !textpos_table.token_to_index.contains_key(&n) {
+                    let left_pos = TextProperty {
+                        segmentation: String::from(""),
+                        corpus_id: textprop.corpus_id,
+                        text_id: textprop.text_id,
+                        val: textprop.val,
+                    };
+                    let right_pos = textpos_table
+                        .node_to_right
+                        .get(&n)
+                        .ok_or_else(|| format!("Can't get right position of node {}", n))?;
+                    let right_pos = TextProperty {
+                        segmentation: String::from(""),
+                        corpus_id: textprop.corpus_id,
+                        text_id: textprop.text_id,
+                        val: right_pos.val,
+                    };
 
-                        if let Err(e) = add_automatic_cov_edge_for_node(
-                            *n,
-                            textprop,
-                            &component_coverage,
-                            left_pos,
-                            right_pos,
-                            db,
-                            token_by_index,
-                            token_to_index,
-                            textpos_table,
-                        ) {
-                            // output a warning but do not fail
-                            warn!(
-                                "Adding coverage edges (connects spans with tokens) failed: {}",
-                                e
-                            )
-                        }
-                    } // end if not a token
-                }
+                    if let Err(e) = add_automatic_cov_edge_for_node(
+                        *n,
+                        &component_coverage,
+                        left_pos,
+                        right_pos,
+                        db,
+                        textpos_table,
+                    ) {
+                        // output a warning but do not fail
+                        warn!(
+                            "Adding coverage edges (connects spans with tokens) failed: {}",
+                            e
+                        )
+                    }
+                } // end if not a token
+            
             }
         }
     }
@@ -512,27 +510,20 @@ where
         node_tab_path.to_str().unwrap_or_default()
     ));
 
-    // maps a token index to an node ID
-    let mut token_by_index: BTreeMap<TextProperty, NodeID> = BTreeMap::new();
-
     // map the "left" value to the nodes it belongs to
     let mut left_to_node: MultiMap<TextProperty, NodeID> = MultiMap::new();
     // map the "right" value to the nodes it belongs to
     let mut right_to_node: MultiMap<TextProperty, NodeID> = MultiMap::new();
 
-    // map as node to it's "left" value
-    let mut node_to_left: BTreeMap<NodeID, u32> = BTreeMap::new();
-    // map as node to it's "right" value
-    let mut node_to_right: BTreeMap<NodeID, u32> = BTreeMap::new();
-
     // maps a character position to it's token
     let mut textpos_table = TextPosTable {
         token_by_left_textpos: BTreeMap::new(),
         token_by_right_textpos: BTreeMap::new(),
+        node_to_left: BTreeMap::new(),
+        node_to_right: BTreeMap::new(),
+        token_by_index: BTreeMap::new(),
+        token_to_index: BTreeMap::new(),
     };
-
-    // maps a token node id to the token index
-    let mut token_to_index: BTreeMap<NodeID, TextProperty> = BTreeMap::new();
 
     // start "scan all lines" visibility block
     {
@@ -606,8 +597,8 @@ where
             };
             left_to_node.insert(left.clone(), node_nr);
             right_to_node.insert(right.clone(), node_nr);
-            node_to_left.insert(node_nr, left_val);
-            node_to_right.insert(node_nr, right_val);
+            textpos_table.node_to_left.insert(node_nr, left.clone());
+            textpos_table.node_to_right.insert(node_nr, right.clone());
 
             if token_index_raw != "NULL" {
                 let span = if has_segmentations {
@@ -629,8 +620,8 @@ where
                     text_id,
                     corpus_id,
                 };
-                token_by_index.insert(index.clone(), node_nr);
-                token_to_index.insert(node_nr, index);
+                textpos_table.token_by_index.insert(index.clone(), node_nr);
+                textpos_table.token_to_index.insert(node_nr, index);
                 textpos_table.token_by_left_textpos.insert(left, node_nr);
                 textpos_table.token_by_right_textpos.insert(right, node_nr);
             } else if has_segmentations {
@@ -666,7 +657,7 @@ where
                         corpus_id,
                         text_id,
                     };
-                    token_by_index.insert(index, node_nr);
+                    textpos_table.token_by_index.insert(index, node_nr);
                 } // end if node has segmentation info
             } // endif if check segmentations
         }
@@ -674,16 +665,12 @@ where
         db.apply_update(&mut update)?;
     } // end "scan all lines" visibility block
 
-    if !token_by_index.is_empty() {
-        calculate_automatic_token_order(db, &token_by_index, &id_to_node_name, progress_callback)?;
+    if !textpos_table.token_by_index.is_empty() {
+        calculate_automatic_token_order(db, &textpos_table.token_by_index, &id_to_node_name, progress_callback)?;
     } // end if token_by_index not empty
 
     calculate_automatic_coverage_edges(
         db,
-        &token_by_index,
-        &token_to_index,
-        &node_to_right,
-        &left_to_node,
         &textpos_table,
         progress_callback,
     )?;
