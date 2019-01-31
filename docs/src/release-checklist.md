@@ -12,6 +12,7 @@ This means that if a language bindings adds a feature, that has been released in
 1. Make a new **release branch** `release/<version>` from the `develop` branch for feature releases. If you make a bug-fix release create a branch named `hotfix/<version>` from the `master` branch.
 2. **Update version** information, by 
    - changing and committing the `version` field in the `Cargo.toml` file
+   - changing and committing the link to the developer guide in `README.md`
    - running `cargo build` to update your local `Cargo.lock` file (even if this file is not committed to Git)
 3. **Update BOM.txt** by executing `cargo bom > BOM.txt`
 4. **Test** with `cargo test` and eventually some manual tests.
