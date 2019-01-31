@@ -30,8 +30,8 @@ Graphs are the aggregation of node labels and edge components.
 ## Corpus structure
 
 GraphANNIS has two kinds of nodes:
-	- annotation graph nodes and
-	- corpus graph nodes.
+- annotation graph nodes and
+- corpus graph nodes.
 
 They are both parts of the same graph structure but are distinguished by the special label "annis::node_type".
 It can either have the value "node" for nodes belonging to the annotation graph or "corpus" for nodes belonging to the corpus graph.
