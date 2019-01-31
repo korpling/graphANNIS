@@ -14,7 +14,7 @@ GraphANNIS does not partition the data documents like it was done in relANNIS, g
 In this model, each node is internally identified by a unique ID.
 Node labels consist of a namespace, a name, and a value and are connected to a node by its ID.
 No explicit representation of nodes exists: If a node exists there must be at least one label for this node.
-There is a special label named `annis::node_name`[^qname]} that can be applied to any node to mark its existence.
+There is a special label named "annis::node_name"[^qname]} that can be applied to any node to mark its existence.
 
 GraphANNIS has the concept of components for edges.
 A component has a type, a name, and a layer. 
@@ -33,8 +33,8 @@ GraphANNIS has two kinds of nodes:
 	- annotation graph nodes and
 	- corpus graph nodes.
 
-They are both parts of the same graph structure but are distinguished by the special label `annis::node_type`.
-It can either have the value `node` for nodes belonging to the annotation graph or `corpus` for nodes belonging to the corpus graph.
+They are both parts of the same graph structure but are distinguished by the special label "annis::node_type".
+It can either have the value "node" for nodes belonging to the annotation graph or "corpus" for nodes belonging to the corpus graph.
 Nodes that belong to a corpus graph are connected with edges that belong to a component of the type `PartOfSubcorpus`.
 The source node is always the node that is part of the (sub-) corpus, and the target node is the node which is higher in the corpus graph hierarchy.
 
@@ -44,9 +44,18 @@ In this example, each annotation graph node belongs to exactly one document and 
 However, the data model allows to add an annotation node to several documents, and a document or sub-corpus can be part of several (sub-) corpora.
 In this regard, graphANNIS is more flexible than Salt.
 
-
-
 ## Token
+
+Since AQL has no concept of textual data sources, the leafs of the annotation graph in graphANNIS are the tokens.
+Tokens have a special label "annis::tok" which has the spanned text as its value.
+Additionally, tokens are connected with edges that belong to a component of type `Ordering`.
+
+![Example for token representation in graphANNIS](graphannis-example-token.png)
+
+The ordering edges are very similar to the explicit `SOrderRelation` edges in Salt, except that they are not obligatory but are needed to determine the order of the tokens in the absence of any character index.
+They also support multiple tokenizations because there can be more than one component of the type `Ordering`.
+When there are multiple components with this type, the name of the component corresponds to the name of the tokenization and is empty for the default tokenization.
+
 
 ## Spans
 
