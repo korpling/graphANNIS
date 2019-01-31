@@ -1,7 +1,7 @@
 | Documentation | Build Status
 |-------------- |--------------|
 | [Developer Guide](https://korpling.github.io/graphANNIS/docs/v0.16/)  |  [![Build Status](https://travis-ci.org/korpling/graphANNIS.svg?branch=develop)](https://travis-ci.org/korpling/graphANNIS) (Linux & MacOS) | 
-|  API: [![API documentation](https://docs.rs/graphannis/badge.svg)](https://docs.rs/graphannis/) | [![Build status](https://ci.appveyor.com/api/projects/status/nc86noerser0bvha/branch/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/develop) (Windows) |
+|  [![API documentation](https://docs.rs/graphannis/badge.svg)](https://docs.rs/graphannis/) (API) | [![Build status](https://ci.appveyor.com/api/projects/status/nc86noerser0bvha/branch/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/develop) (Windows) |
 
 graphANNIS
 ==========
