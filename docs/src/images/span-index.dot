@@ -53,12 +53,12 @@ digraph Span {
   }
 	
   {
-	  hirend -> t4 [dir=both,style=dashed,color=dimgray,fontcolor=dimgray,label="LeftToken"];
-	  hirend -> t5 [dir=both,style=dashed,color=dimgray,fontcolor=dimgray,label="RightToken"];
+	  hirend -> t4 [style=dashed,color=dimgray,fontcolor=dimgray,label="LeftToken"];
+	  hirend -> t5 [style=dashed,color=dimgray,fontcolor=dimgray,label="RightToken"];
   }	
 
   {
-    stype -> t1 [dir=both,style=dashed,color=dimgray,fontcolor=dimgray,label="LeftToken"];
-	  stype -> t7 [dir=both,style=dashed,color=dimgray,fontcolor=dimgray,label="RightToken"];
+    stype -> t1 [style=dashed,color=dimgray,fontcolor=dimgray,label="LeftToken"];
+	  stype -> t7 [style=dashed,color=dimgray,fontcolor=dimgray,label="RightToken"];
   }
 }

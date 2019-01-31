@@ -1,6 +1,6 @@
 digraph Syntax {
   margin=0;
-  
+  graph [dpi=400];
 	{rank=same;
 	  t1[label="node_name=t1\ntok=That"];
 	  t2[label="node_name=t2\ntok=is"];
@@ -8,13 +8,12 @@ digraph Syntax {
 	  t4[label="node_name=t4\ntok=Category"];
 	  t5[label="node_name=t5\ntok=3"];
 	  t6[label="node_name=t6\ntok=storm"];
-	  t7[label="node_name=t7\ntok=."];
 	}
 
  
   {
     // also add the ordering
-    edge [color="blue", fontcolor="blue", style="solid", label="ORDERING"];
+    edge [color="blue", fontcolor="blue", style="solid", label="Ordering"];
 
 
     t1 -> t2;
@@ -22,11 +21,9 @@ digraph Syntax {
     t3 -> t4;
     t4 -> t5;
     t5 -> t6;
-    t6 -> t7;  
   }
  
   {
-    s1[label="node_name=s1\ncat=ROOT"];
     s2[label="node_name=s2\ncat=S"];
     s3[label="node_name=s3\ncat=NP"];
     s4[label="node_name=s4\ncat=VP"];
@@ -34,12 +31,10 @@ digraph Syntax {
   }
 
   {
-    edge[color=red, fontcolor=red, label="DOMINANCE"];
-    s1 -> s2;
-
+    edge[color=red, fontcolor=red, label="Dominance"];
+    
     s2 -> s3;
     s2 -> s4;
-    s2 -> t7;    
         
     s3 -> t1;
     
@@ -53,22 +48,29 @@ digraph Syntax {
   }
 
   {
-    edge[dir=both,style=dashed,color=dimgray,fontcolor=dimgray,label="LEFT_TOKEN"];
-    s1 -> t1;
-    s2 -> t1;
-    s3 -> t1;
-    s4 -> t2;
-    s5 -> t3;
-  }
-
-  {
-    edge[dir=both,style=dashed,color=dimgray,fontcolor=dimgray,label="RIGHT_TOKEN"];
-    s1 -> t7;
-    s2 -> t7;
-    s3 -> t1;
-    s4 -> t6;
-    s5 -> t6;
+    edge [style=dotted,color=darkgreen,fontcolor=darkgreen, label="Coverage"];
     
+    s2 -> t1;
+    s2 -> t2;
+    s2 -> t3;
+    s2 -> t4;
+    s2 -> t5;
+    s2 -> t6;
+
+    s3 -> t1;
+    
+    s4 -> t2;
+    s4 -> t3;
+    s4 -> t4;
+    s4 -> t5;
+    s4 -> t6;
+
+    s5 -> t3;
+    s5 -> t4;
+    s5 -> t5;
+    s5 -> t6;
+
+
   }	
 
 }
