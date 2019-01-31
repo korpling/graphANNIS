@@ -74,24 +74,32 @@ where
         };
 
         let mut db = Graph::new();
+        let mut update = GraphUpdate::new();
+
         let (toplevel_corpus_name, id_to_node_name, textpos_table) =
-            load_node_and_corpus_tables(&path, &mut db, is_annis_33, &progress_callback)?;
+            load_node_and_corpus_tables(&path, &mut update, is_annis_33, &progress_callback)?;
 
         let has_text_coverage_edge = load_edge_tables(
             &path,
-            &mut db,
+            &mut update,
             is_annis_33,
             &id_to_node_name,
             &progress_callback,
         )?;
 
         calculate_automatic_coverage_edges(
-            &mut db,
+            &mut update,
             has_text_coverage_edge,
             &textpos_table,
             &id_to_node_name,
             &progress_callback,
         )?;
+
+        progress_callback(&format!(
+            "applying update"
+        ));
+
+        db.apply_update(&mut update)?;
 
         progress_callback("calculating node statistics");
         Arc::make_mut(&mut db.node_annos).calculate_statistics();
@@ -115,7 +123,7 @@ where
 
 fn load_node_and_corpus_tables<F>(
     path: &PathBuf,
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<(String, FxHashMap<NodeID, String>, TextPosTable)>
@@ -128,7 +136,7 @@ where
 
     let (nodes_by_text, id_to_node_name, textpos_table) = load_nodes(
         path,
-        db,
+        update,
         &corpus_table.corpus_id_to_name,
         &corpus_table.toplevel_corpus_name,
         is_annis_33,
@@ -136,7 +144,7 @@ where
     )?;
 
     add_subcorpora(
-        db,
+        update,
         &corpus_table,
         &nodes_by_text,
         &texts,
@@ -154,7 +162,7 @@ where
 
 fn load_edge_tables<F>(
     path: &PathBuf,
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     is_annis_33: bool,
     id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: &F,
@@ -167,7 +175,7 @@ where
 
         let (pre_to_component, pre_to_edge, has_text_coverage_edge) = load_rank_tab(
             path,
-            db,
+            update,
             &component_by_id,
             id_to_node_name,
             is_annis_33,
@@ -179,7 +187,7 @@ where
 
     load_edge_annotation(
         path,
-        db,
+        update,
         &pre_to_component,
         &pre_to_edge,
         id_to_node_name,
@@ -308,7 +316,7 @@ where
 }
 
 fn calculate_automatic_token_order<F>(
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     token_by_index: &BTreeMap<TextProperty, NodeID>,
     id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: F,
@@ -321,8 +329,6 @@ where
     // text coverage (either left or right) and add explicit Ordering edge
 
     progress_callback("calculating the automatically generated Ordering edges");
-
-    let mut update = GraphUpdate::new();
 
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
@@ -355,8 +361,6 @@ where
         last_textprop = Some(current_textprop.clone());
         last_token = Some(*current_token);
     } // end for each token
-
-    db.apply_update(&mut update)?;
 
     Ok(())
 }
@@ -440,7 +444,7 @@ fn add_automatic_cov_edge_for_node(
 }
 
 fn calculate_automatic_coverage_edges<F>(
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     has_text_coverage_edge: FxHashSet<NodeID>,
     textpos_table: &TextPosTable,
     id_to_node_name: &FxHashMap<NodeID, String>,
@@ -451,8 +455,6 @@ where
 {
     // add explicit coverage edges for each node in the special annis namespace coverage component
     progress_callback("calculating the automatically generated Coverage edges");
-
-    let mut update = GraphUpdate::new();
 
     for (n, textprop) in textpos_table.node_to_left.iter() {
         if textprop.segmentation == "" {
@@ -477,7 +479,7 @@ where
                 };
 
                 if let Err(e) = add_automatic_cov_edge_for_node(
-                    &mut update,
+                    update,
                     *n,
                     left_pos,
                     right_pos,
@@ -494,14 +496,12 @@ where
         }
     }
 
-    db.apply_update(&mut update)?;
-
     Ok(())
 }
 
 fn load_node_tab<F>(
     path: &PathBuf,
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
@@ -548,7 +548,6 @@ where
 
     // start "scan all lines" visibility block
     {
-        let mut update = GraphUpdate::new();
         let mut node_tab_csv = postgresql_import_reader(node_tab_path.as_path())?;
 
         for result in node_tab_csv.records() {
@@ -683,12 +682,11 @@ where
             } // endif if check segmentations
         }
 
-        db.apply_update(&mut update)?;
     } // end "scan all lines" visibility block
 
     if !textpos_table.token_by_index.is_empty() {
         calculate_automatic_token_order(
-            db,
+            update,
             &textpos_table.token_by_index,
             &id_to_node_name,
             progress_callback,
@@ -705,7 +703,7 @@ where
 
 fn load_node_anno_tab<F>(
     path: &PathBuf,
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     missing_seg_span: &BTreeMap<NodeID, String>,
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
@@ -725,8 +723,6 @@ where
         "loading {}",
         node_anno_tab_path.to_str().unwrap_or_default()
     ));
-
-    let mut update = GraphUpdate::new();
 
     let mut node_anno_tab_csv = postgresql_import_reader(node_anno_tab_path.as_path())?;
 
@@ -771,7 +767,6 @@ where
         }
     }
 
-    db.apply_update(&mut update)?;
     Ok(())
 }
 
@@ -820,7 +815,7 @@ where
 
 fn load_nodes<F>(
     path: &PathBuf,
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
@@ -835,7 +830,7 @@ where
 {
     let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) = load_node_tab(
         path,
-        db,
+        update,
         corpus_id_to_name,
         toplevel_corpus_name,
         is_annis_33,
@@ -843,7 +838,7 @@ where
     )?;
     load_node_anno_tab(
         path,
-        db,
+        update,
         &missing_seg_span,
         &id_to_node_name,
         is_annis_33,
@@ -855,7 +850,7 @@ where
 
 fn load_rank_tab<F>(
     path: &PathBuf,
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     component_by_id: &BTreeMap<u32, Component>,
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
@@ -901,8 +896,6 @@ where
     let mut pre_to_edge: BTreeMap<u32, Edge> = BTreeMap::new();
     // second run: get the actual edges
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
-
-    let mut update = GraphUpdate::new();
 
     for result in rank_tab_csv.records() {
         let line = result?;
@@ -951,14 +944,12 @@ where
         }
     }
 
-    db.apply_update(&mut update)?;
-
     Ok((pre_to_component, pre_to_edge, has_text_coverage_edge))
 }
 
 fn load_edge_annotation<F>(
     path: &PathBuf,
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     pre_to_component: &BTreeMap<u32, Component>,
     pre_to_edge: &BTreeMap<u32, Edge>,
     id_to_node_name: &FxHashMap<NodeID, String>,
@@ -979,8 +970,6 @@ where
         "loading {}",
         edge_anno_tab_path.to_str().unwrap_or_default()
     ));
-
-    let mut update = GraphUpdate::new();
 
     let mut edge_anno_tab_csv = postgresql_import_reader(edge_anno_tab_path.as_path())?;
 
@@ -1013,8 +1002,6 @@ where
             }
         }
     }
-
-    db.apply_update(&mut update)?;
 
     Ok(())
 }
@@ -1064,7 +1051,7 @@ where
 }
 
 fn add_subcorpora(
-    db: &mut Graph,
+    update: &mut GraphUpdate,
     corpus_table: &ParsedCorpusTable,
     nodes_by_text: &MultiMap<TextKey, NodeID>,
     texts: &HashMap<TextKey, Text>,
@@ -1072,7 +1059,6 @@ fn add_subcorpora(
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
 ) -> Result<()> {
-    let mut update = GraphUpdate::new();
 
     // add the toplevel corpus as node
     {
@@ -1196,8 +1182,6 @@ fn add_subcorpora(
             }
         }
     } // end for each text
-
-    db.apply_update(&mut update)?;
 
     Ok(())
 }
