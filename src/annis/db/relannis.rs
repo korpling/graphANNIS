@@ -13,6 +13,8 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use rustc_hash::FxHashMap;
+
 #[derive(Eq, PartialEq, PartialOrd, Ord, Hash, Clone, Debug)]
 struct TextProperty {
     segmentation: String,
@@ -493,12 +495,17 @@ fn load_node_tab<F>(
     toplevel_corpus_name: &str,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(MultiMap<TextKey, NodeID>, BTreeMap<NodeID, String>)>
+) -> Result<(
+    MultiMap<TextKey, NodeID>,
+    BTreeMap<NodeID, String>,
+    FxHashMap<NodeID, String>,
+)>
 where
     F: Fn(&str) -> (),
 {
     let mut nodes_by_text: MultiMap<TextKey, NodeID> = MultiMap::new();
     let mut missing_seg_span: BTreeMap<NodeID, String> = BTreeMap::new();
+    let mut id_to_node_name: FxHashMap<NodeID, String> = FxHashMap::default();
 
     let mut node_tab_path = PathBuf::from(path);
     node_tab_path.push(if is_annis_33 {
@@ -567,6 +574,7 @@ where
                 node_name: node_qname.clone(),
                 node_type: "node".to_owned(),
             });
+            id_to_node_name.insert(node_nr, node_qname.clone());
 
             if !layer.is_empty() && layer != "NULL" {
                 update.add_event(UpdateEvent::AddNodeLabel {
@@ -618,7 +626,7 @@ where
                 update.add_event(UpdateEvent::AddNodeLabel {
                     node_name: node_qname,
                     anno_ns: ANNIS_NS.to_owned(),
-                    anno_name: TOK.to_owned(), 
+                    anno_name: TOK.to_owned(),
                     anno_value: span,
                 });
 
@@ -686,13 +694,14 @@ where
         &textpos_table,
         progress_callback,
     )?;
-    Ok((nodes_by_text, missing_seg_span))
+    Ok((nodes_by_text, missing_seg_span, id_to_node_name))
 }
 
 fn load_node_anno_tab<F>(
     path: &PathBuf,
     db: &mut Graph,
     missing_seg_span: &BTreeMap<NodeID, String>,
+    id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<()>
@@ -711,6 +720,8 @@ where
         node_anno_tab_path.to_str().unwrap_or_default()
     ));
 
+    let mut update = GraphUpdate::new();
+
     let mut node_anno_tab_csv = postgresql_import_reader(node_anno_tab_path.as_path())?;
 
     for result in node_anno_tab_csv.records() {
@@ -718,6 +729,7 @@ where
 
         let col_id = line.get(0).ok_or("Missing column")?;
         let node_id: NodeID = col_id.parse()?;
+        let node_name = id_to_node_name.get(&node_id).ok_or("Missing node name")?;
         let col_ns = get_field_str(&line, 1).ok_or("Missing column")?;
         let col_name = get_field_str(&line, 2).ok_or("Missing column")?;
         let col_val = get_field_str(&line, 3).ok_or("Missing column")?;
@@ -730,35 +742,30 @@ where
                 col_val
             };
 
-            Arc::make_mut(&mut db.node_annos).insert(
-                node_id,
-                Annotation {
-                    key: AnnoKey {
-                        ns: col_ns,
-                        name: col_name,
-                    },
-                    val: anno_val.clone(),
-                },
-            );
+            update.add_event(UpdateEvent::AddNodeLabel {
+                node_name: node_name.clone(),
+                anno_ns: col_ns,
+                anno_name: col_name,
+                anno_value: anno_val.clone(),
+            });
 
             // add all missing span values from the annotation, but don't add NULL values
             if let Some(seg) = missing_seg_span.get(&node_id) {
                 if seg == &get_field_str(&line, 2).ok_or("Missing column")?
                     && get_field_str(&line, 3).ok_or("Missing column")? != "NULL"
                 {
-                    let tok_key = db.get_token_key();
-                    Arc::make_mut(&mut db.node_annos).insert(
-                        node_id,
-                        Annotation {
-                            key: tok_key,
-                            val: anno_val,
-                        },
-                    );
+                    update.add_event(UpdateEvent::AddNodeLabel {
+                        node_name: node_name.clone(),
+                        anno_ns: ANNIS_NS.to_owned(),
+                        anno_name: TOK.to_owned(),
+                        anno_value: anno_val,
+                    });
                 }
             }
         }
     }
 
+    db.apply_update(&mut update)?;
     Ok(())
 }
 
@@ -819,7 +826,7 @@ fn load_nodes<F>(
 where
     F: Fn(&str) -> (),
 {
-    let (nodes_by_text, missing_seg_span) = load_node_tab(
+    let (nodes_by_text, missing_seg_span, id_to_node_name) = load_node_tab(
         path,
         db,
         corpus_id_to_name,
@@ -827,7 +834,14 @@ where
         is_annis_33,
         progress_callback,
     )?;
-    load_node_anno_tab(path, db, &missing_seg_span, is_annis_33, progress_callback)?;
+    load_node_anno_tab(
+        path,
+        db,
+        &missing_seg_span,
+        &id_to_node_name,
+        is_annis_33,
+        progress_callback,
+    )?;
 
     Ok(nodes_by_text)
 }
