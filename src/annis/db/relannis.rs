@@ -344,8 +344,6 @@ fn add_automatic_cov_edge_for_node(
     n: NodeID,
     textprop: &TextProperty,
     component_coverage: &Component,
-    component_left_token: &Component,
-    component_right_token: &Component,
     left_pos: TextProperty,
     right_pos: TextProperty,
     db: &mut Graph,
@@ -389,17 +387,6 @@ fn add_automatic_cov_edge_for_node(
         )
     })?;
 
-    let gs_left = db.get_or_create_writable(component_left_token)?;
-    gs_left.add_edge(Edge {
-        source: n,
-        target: *left_aligned_tok,
-    });
-    let gs_right = db.get_or_create_writable(component_right_token)?;
-    gs_right.add_edge(Edge {
-        source: n,
-        target: *right_aligned_tok,
-    });
-
     for i in left_tok_pos.val..(right_tok_pos.val + 1) {
         let tok_idx = TextProperty {
             segmentation: String::from(""),
@@ -440,16 +427,6 @@ where
         layer: String::from("annis"),
         name: String::from(""),
     };
-    let component_left = Component {
-        ctype: ComponentType::LeftToken,
-        layer: String::from("annis"),
-        name: String::from(""),
-    };
-    let component_right = Component {
-        ctype: ComponentType::RightToken,
-        layer: String::from("annis"),
-        name: String::from(""),
-    };
 
     // make sure the components exists, even if they are empty
     db.get_or_create_writable(&component_coverage)?;
@@ -482,8 +459,6 @@ where
                             *n,
                             textprop,
                             &component_coverage,
-                            &component_left,
-                            &component_right,
                             left_pos,
                             right_pos,
                             db,
