@@ -1,4 +1,3 @@
-use crate::annis::db::graphstorage::WriteableGraphStorage;
 use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
@@ -67,10 +66,16 @@ where
         };
 
         let mut db = Graph::new();
-        let toplevel_corpus_name =
+        let (toplevel_corpus_name, id_to_node_name) =
             load_node_and_corpus_tables(&path, &mut db, is_annis_33, &progress_callback)?;
 
-        load_edge_tables(&path, &mut db, is_annis_33, &progress_callback)?;
+        load_edge_tables(
+            &path,
+            &mut db,
+            is_annis_33,
+            &id_to_node_name,
+            &progress_callback,
+        )?;
 
         progress_callback("calculating node statistics");
         Arc::make_mut(&mut db.node_annos).calculate_statistics();
@@ -97,7 +102,7 @@ fn load_node_and_corpus_tables<F>(
     db: &mut Graph,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<String>
+) -> Result<(String, FxHashMap<NodeID, String>)>
 where
     F: Fn(&str) -> (),
 {
@@ -105,7 +110,7 @@ where
     let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
     let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
 
-    let nodes_by_text = load_nodes(
+    let (nodes_by_text, id_to_node_name) = load_nodes(
         path,
         db,
         &corpus_table.corpus_id_to_name,
@@ -123,23 +128,30 @@ where
         is_annis_33,
     )?;
 
-    Ok(corpus_table.toplevel_corpus_name)
+    Ok((corpus_table.toplevel_corpus_name, id_to_node_name))
 }
 
 fn load_edge_tables<F>(
     path: &PathBuf,
     db: &mut Graph,
     is_annis_33: bool,
+    id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: &F,
 ) -> Result<()>
 where
     F: Fn(&str) -> (),
 {
     let (pre_to_component, pre_to_edge) = {
-        let component_by_id = load_component_tab(path, db, is_annis_33, progress_callback)?;
+        let component_by_id = load_component_tab(path, is_annis_33, progress_callback)?;
 
-        let (pre_to_component, pre_to_edge) =
-            load_rank_tab(path, db, &component_by_id, is_annis_33, progress_callback)?;
+        let (pre_to_component, pre_to_edge) = load_rank_tab(
+            path,
+            db,
+            &component_by_id,
+            id_to_node_name,
+            is_annis_33,
+            progress_callback,
+        )?;
 
         (pre_to_component, pre_to_edge)
     };
@@ -149,6 +161,7 @@ where
         db,
         &pre_to_component,
         &pre_to_edge,
+        id_to_node_name,
         is_annis_33,
         progress_callback,
     )?;
@@ -771,7 +784,6 @@ where
 
 fn load_component_tab<F>(
     path: &PathBuf,
-    db: &mut Graph,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<BTreeMap<u32, Component>>
@@ -807,9 +819,7 @@ where
                 name
             };
             let ctype = component_type_from_short_name(&col_type)?;
-            let c = Component { ctype, layer, name };
-            db.get_or_create_writable(&c)?;
-            component_by_id.insert(cid, c);
+            component_by_id.insert(cid, Component { ctype, layer, name });
         }
     }
     Ok(component_by_id)
@@ -822,7 +832,7 @@ fn load_nodes<F>(
     toplevel_corpus_name: &str,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<MultiMap<TextKey, NodeID>>
+) -> Result<(MultiMap<TextKey, NodeID>, FxHashMap<NodeID, String>)>
 where
     F: Fn(&str) -> (),
 {
@@ -843,13 +853,14 @@ where
         progress_callback,
     )?;
 
-    Ok(nodes_by_text)
+    Ok((nodes_by_text, id_to_node_name))
 }
 
 fn load_rank_tab<F>(
     path: &PathBuf,
     db: &mut Graph,
     component_by_id: &BTreeMap<u32, Component>,
+    id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<(BTreeMap<u32, Component>, BTreeMap<u32, Edge>)>
@@ -887,6 +898,9 @@ where
     let mut pre_to_edge: BTreeMap<u32, Edge> = BTreeMap::new();
     // second run: get the actual edges
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
+
+    let mut update = GraphUpdate::new();
+
     for result in rank_tab_csv.records() {
         let line = result?;
 
@@ -902,20 +916,35 @@ where
                 if let Some(c) = component_by_id.get(&component_ref) {
                     let target: NodeID = line.get(pos_node_ref).ok_or("Missing column")?.parse()?;
 
-                    let gs = db.get_or_create_writable(&c)?;
-                    let e = Edge {
-                        source: *source,
-                        target,
-                    };
-                    gs.add_edge(e.clone());
+                    update.add_event(UpdateEvent::AddEdge {
+                        source_node: id_to_node_name
+                            .get(&source)
+                            .ok_or("Missing node name")?
+                            .to_owned(),
+                        target_node: id_to_node_name
+                            .get(&target)
+                            .ok_or("Missing node name")?
+                            .to_owned(),
+                        layer: c.layer.clone(),
+                        component_type: c.ctype.to_string(),
+                        component_name: c.name.clone(),
+                    });
 
                     let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
-                    pre_to_edge.insert(pre, e);
+                    pre_to_edge.insert(
+                        pre,
+                        Edge {
+                            source: *source,
+                            target,
+                        },
+                    );
                     pre_to_component.insert(pre, c.clone());
                 }
             }
         }
     }
+
+    db.apply_update(&mut update)?;
 
     Ok((pre_to_component, pre_to_edge))
 }
@@ -925,6 +954,7 @@ fn load_edge_annotation<F>(
     db: &mut Graph,
     pre_to_component: &BTreeMap<u32, Component>,
     pre_to_edge: &BTreeMap<u32, Edge>,
+    id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<()>
@@ -943,6 +973,8 @@ where
         edge_anno_tab_path.to_str().unwrap_or_default()
     ));
 
+    let mut update = GraphUpdate::new();
+
     let mut edge_anno_tab_csv = postgresql_import_reader(edge_anno_tab_path.as_path())?;
 
     for result in edge_anno_tab_csv.records() {
@@ -955,15 +987,27 @@ where
                 let name = get_field_str(&line, 2).ok_or("Missing column")?;
                 let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
-                let anno = Annotation {
-                    key: AnnoKey { ns, name },
-                    val,
-                };
-                let gs: &mut WriteableGraphStorage = db.get_or_create_writable(&c)?;
-                gs.add_edge_annotation(e.clone(), anno);
+                update.add_event(UpdateEvent::AddEdgeLabel {
+                    source_node: id_to_node_name
+                        .get(&e.source)
+                        .ok_or("Missing node name")?
+                        .to_owned(),
+                    target_node: id_to_node_name
+                        .get(&e.target)
+                        .ok_or("Missing node name")?
+                        .to_owned(),
+                    layer: c.layer.clone(),
+                    component_type: c.ctype.to_string(),
+                    component_name: c.name.clone(),
+                    anno_ns: ns,
+                    anno_name: name,
+                    anno_value: val,
+                });
             }
         }
     }
+
+    db.apply_update(&mut update)?;
 
     Ok(())
 }
