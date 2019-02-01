@@ -568,6 +568,10 @@ impl Graph {
 
         let mut invalid_nodes: FxHashSet<NodeID> = FxHashSet::default();
 
+        let mut text_coverage_components = FxHashSet::default();
+        text_coverage_components.extend(self.get_all_components(Some(ComponentType::Dominance), Some("")));
+        text_coverage_components.extend(self.get_all_components(Some(ComponentType::Coverage), Some("")));
+
         for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
             match change {
@@ -598,12 +602,18 @@ impl Graph {
                         node_annos.insert(new_node_id, new_anno_name);
                         node_annos.insert(new_node_id, new_anno_type);
 
-                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(new_node_id));
+                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                            new_node_id,
+                            &text_coverage_components,
+                        ));
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
-                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(existing_node_id));
+                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                            existing_node_id,
+                            &text_coverage_components,
+                        ));
 
                         // delete all annotations
                         {
@@ -672,8 +682,26 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             gs.add_edge(Edge { source, target });
 
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
+                            if (c.ctype == ComponentType::Dominance
+                                || c.ctype == ComponentType::Coverage)
+                                && c.name.is_empty()
+                            {
+                                // might be a new text coverage component
+                                text_coverage_components.insert(c.clone());
+                            }
+
+                            invalid_nodes.extend(
+                                self.get_parent_text_coverage_nodes(
+                                    source,
+                                    &text_coverage_components,
+                                ),
+                            );
+                            invalid_nodes.extend(
+                                self.get_parent_text_coverage_nodes(
+                                    target,
+                                    &text_coverage_components,
+                                ),
+                            );
                         }
                     }
                 }
@@ -689,8 +717,18 @@ impl Graph {
                         self.get_node_id_from_name(&target_node),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(source));
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(target));
+                            invalid_nodes.extend(
+                                self.get_parent_text_coverage_nodes(
+                                    source,
+                                    &text_coverage_components,
+                                ),
+                            );
+                            invalid_nodes.extend(
+                                self.get_parent_text_coverage_nodes(
+                                    target,
+                                    &text_coverage_components,
+                                ),
+                            );
 
                             let c = Component {
                                 ctype,
@@ -786,12 +824,11 @@ impl Graph {
         Ok(())
     }
 
-    fn get_parent_text_coverage_nodes(&self, node: NodeID) -> Vec<NodeID> {
-        let mut text_coverage_components =
-            self.get_all_components(Some(ComponentType::Dominance), Some(""));
-        text_coverage_components
-            .extend(self.get_all_components(Some(ComponentType::Coverage), Some("")));
-
+    fn get_parent_text_coverage_nodes(
+        &self,
+        node: NodeID,
+        text_coverage_components: &FxHashSet<Component>,
+    ) -> Vec<NodeID> {
         let containers: Vec<&EdgeContainer> = text_coverage_components
             .iter()
             .filter_map(|c| self.get_graphstorage_as_ref(c))
