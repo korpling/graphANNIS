@@ -1145,6 +1145,8 @@ fn add_subcorpora(
                 .corpus_id_to_name
                 .get(&corpus_ref)
                 .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?;
+            let subcorpus_full_name =
+                format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
             let text_full_name = format!(
                 "{}/{}#{}",
                 corpus_table.toplevel_corpus_name, corpus_name, text_name
@@ -1158,11 +1160,7 @@ fn add_subcorpora(
             // add an edge from the text to the document
             update.add_event(UpdateEvent::AddEdge {
                 source_node: text_full_name.clone(),
-                target_node: corpus_table
-                    .corpus_id_to_name
-                    .get(&corpus_ref)
-                    .ok_or("Missing corpus node name")?
-                    .clone(),
+                target_node: subcorpus_full_name,
                 layer: ANNIS_NS.to_owned(),
                 component_type: ComponentType::PartOfSubcorpus.to_string(),
                 component_name: String::default(),
