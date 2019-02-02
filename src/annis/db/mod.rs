@@ -601,19 +601,17 @@ impl Graph {
                         let node_annos = Arc::make_mut(&mut self.node_annos);
                         node_annos.insert(new_node_id, new_anno_name);
                         node_annos.insert(new_node_id, new_anno_type);
-
-                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(
-                            new_node_id,
-                            &text_coverage_components,
-                        ));
                     }
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
-                        invalid_nodes.extend(self.get_parent_text_coverage_nodes(
-                            existing_node_id,
-                            &text_coverage_components,
-                        ));
+
+                        if !invalid_nodes.contains(&existing_node_id) {
+                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                existing_node_id,
+                                &text_coverage_components,
+                            ));
+                        }
 
                         // delete all annotations
                         {
@@ -690,18 +688,23 @@ impl Graph {
                                 text_coverage_components.insert(c.clone());
                             }
 
-                            invalid_nodes.extend(
-                                self.get_parent_text_coverage_nodes(
-                                    source,
-                                    &text_coverage_components,
-                                ),
-                            );
-                            invalid_nodes.extend(
-                                self.get_parent_text_coverage_nodes(
-                                    target,
-                                    &text_coverage_components,
-                                ),
-                            );
+                            if !invalid_nodes.contains(&source) {
+                                invalid_nodes.extend(
+                                    self.get_parent_text_coverage_nodes(
+                                        source,
+                                        &text_coverage_components,
+                                    ),
+                                );
+                            }
+
+                            if !invalid_nodes.contains(&target) {
+                                invalid_nodes.extend(
+                                    self.get_parent_text_coverage_nodes(
+                                        target,
+                                        &text_coverage_components,
+                                    ),
+                                );
+                            }
                         }
                     }
                 }
@@ -717,18 +720,24 @@ impl Graph {
                         self.get_node_id_from_name(&target_node),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
-                            invalid_nodes.extend(
-                                self.get_parent_text_coverage_nodes(
-                                    source,
-                                    &text_coverage_components,
-                                ),
-                            );
-                            invalid_nodes.extend(
-                                self.get_parent_text_coverage_nodes(
-                                    target,
-                                    &text_coverage_components,
-                                ),
-                            );
+
+                            if !invalid_nodes.contains(&source) {
+                                invalid_nodes.extend(
+                                    self.get_parent_text_coverage_nodes(
+                                        source,
+                                        &text_coverage_components,
+                                    ),
+                                );
+                            }
+
+                            if !invalid_nodes.contains(&target) {
+                                invalid_nodes.extend(
+                                    self.get_parent_text_coverage_nodes(
+                                        target,
+                                        &text_coverage_components,
+                                    ),
+                                );
+                            }
 
                             let c = Component {
                                 ctype,
