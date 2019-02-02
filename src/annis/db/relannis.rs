@@ -79,6 +79,11 @@ where
         let (toplevel_corpus_name, id_to_node_name, textpos_table) =
             load_node_and_corpus_tables(&path, &mut update, is_annis_33, &progress_callback)?;
 
+        progress_callback(&format!("committing {} annotation node and corpus structure updates", update.len()));
+        db.apply_update(&mut update)?;
+
+        let mut update = GraphUpdate::new();
+
         let text_coverage_edges = load_edge_tables(
             &path,
             &mut update,
@@ -95,8 +100,7 @@ where
             &progress_callback,
         )?;
 
-        progress_callback(&format!("applying update"));
-
+        progress_callback(&format!("committing {} edge updates", update.len()));
         db.apply_update(&mut update)?;
 
         progress_callback("calculating node statistics");
