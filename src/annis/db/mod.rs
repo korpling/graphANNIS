@@ -568,9 +568,8 @@ impl Graph {
 
         let mut invalid_nodes: FxHashSet<NodeID> = FxHashSet::default();
 
-
         let all_components = self.get_all_components(None, None);
-        
+
         let mut text_coverage_components = FxHashSet::default();
         text_coverage_components
             .extend(self.get_all_components(Some(ComponentType::Dominance), Some("")));
@@ -883,14 +882,18 @@ impl Graph {
             }
         }
 
-        if let Some(token_helper) = token_helper::TokenHelper::new(self) {
+        let all_cov_components = self.get_all_components(Some(ComponentType::Coverage), None);
+        let all_dom_gs: Vec<Arc<GraphStorage>> = self
+            .get_all_components(Some(ComponentType::Dominance), Some(""))
+            .into_iter()
+            .filter_map(|c| self.get_graphstorage(&c))
+            .collect();
+        {
             // go over each node and calculate the left-most and right-most token
 
-            let all_dom_components =
-                self.get_all_components(Some(ComponentType::Dominance), Some(""));
-            let all_dom_gs: Vec<Arc<GraphStorage>> = all_dom_components
-                .into_iter()
-                .filter_map(|c| self.get_graphstorage(&c))
+            let all_cov_gs: Vec<Arc<GraphStorage>> = all_cov_components
+                .iter()
+                .filter_map(|c| self.get_graphstorage(c))
                 .collect();
 
             for n in invalid_nodes.iter() {
@@ -898,21 +901,21 @@ impl Graph {
                     *n,
                     ComponentType::LeftToken,
                     gs_order.as_ref(),
-                    token_helper.get_gs_coverage(),
+                    &all_cov_gs,
                     &all_dom_gs,
                 );
                 self.calculate_token_alignment(
                     *n,
                     ComponentType::RightToken,
                     gs_order.as_ref(),
-                    token_helper.get_gs_coverage(),
+                    &all_cov_gs,
                     &all_dom_gs,
                 );
             }
+        }
 
-            for n in invalid_nodes.iter() {
-                self.calculate_inherited_coverage_edges(*n, &token_helper, &all_dom_gs);
-            }
+        for n in invalid_nodes.iter() {
+            self.calculate_inherited_coverage_edges(*n, &all_cov_components, &all_dom_gs);
         }
 
         Ok(())
@@ -921,16 +924,22 @@ impl Graph {
     fn calculate_inherited_coverage_edges(
         &mut self,
         n: NodeID,
-        token_helper: &token_helper::TokenHelper,
+        all_cov_components: &Vec<Component>,
         all_dom_gs: &Vec<Arc<GraphStorage>>,
     ) -> FxHashSet<NodeID> {
         let mut covered_token = FxHashSet::default();
-        for gs in token_helper.get_gs_coverage().iter() {
-            covered_token.extend(gs.find_connected(n, 1, std::ops::Bound::Included(1)));
+        for c in all_cov_components.iter() {
+            if let Some(gs) = self.get_graphstorage_as_ref(c) {
+                covered_token.extend(gs.find_connected(n, 1, std::ops::Bound::Included(1)));
+            }
         }
 
         if covered_token.is_empty() {
-            if token_helper.is_token(n) {
+            if self
+                .node_annos
+                .get_value_for_item(&n, &self.get_token_key())
+                .is_some()
+            {
                 covered_token.insert(n);
             } else {
                 // recursivly get the covered token from all children connected by a dominance relation
@@ -938,11 +947,10 @@ impl Graph {
                     for out in dom_gs.get_outgoing_edges(n) {
                         covered_token.extend(self.calculate_inherited_coverage_edges(
                             out,
-                            token_helper,
+                            all_cov_components,
                             all_dom_gs,
                         ));
                     }
-                
                 }
             }
         }
