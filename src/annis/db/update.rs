@@ -89,10 +89,10 @@ impl GraphUpdate {
 
     /// Check if the last item of the last has been marked as consistent.
     pub fn is_consistent(&self) -> bool {
-        if self.diffs.is_empty() {
-            true
+        if let Some(last) = self.diffs.back() {
+            self.last_consistent_change_id == last.0
         } else {
-            self.last_consistent_change_id == self.diffs[self.diffs.len() - 1].0
+            true
         }
     }
 
@@ -103,18 +103,18 @@ impl GraphUpdate {
 
     /// Mark the current state as consistent.
     pub fn finish(&mut self) {
-        if !self.diffs.is_empty() {
-            self.last_consistent_change_id = self.diffs[self.diffs.len() - 1].0;
+        if let Some(last) = self.diffs.back() {
+            self.last_consistent_change_id = last.0;
         }
     }
 
 
-    /// Get all consistent changes, removing all elements of the update in the process
-    pub fn into_consistent_changes<'a>(&'a mut self) -> Box<Iterator<Item = (u64, UpdateEvent)> + 'a> {
+    /// Get all consistent changes
+    pub fn consistent_changes<'a>(&'a self) -> Box<Iterator<Item = (u64, UpdateEvent)> + 'a> {
         let last_consistent_change_id = self.last_consistent_change_id;
-        let it = self.diffs.drain(..).filter_map(move |d| {
+        let it = self.diffs.iter().filter_map(move |d| {
             if d.0 <= last_consistent_change_id {
-                Some((d.0, d.1))
+                Some((d.0, d.1.clone()))
             } else {
                 None
             }

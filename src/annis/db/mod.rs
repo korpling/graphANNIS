@@ -576,7 +576,7 @@ impl Graph {
         text_coverage_components
             .extend(self.get_all_components(Some(ComponentType::Coverage), Some("")));
 
-        for (id, change) in u.into_consistent_changes() {
+        for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
             match change {
                 UpdateEvent::AddNode {
