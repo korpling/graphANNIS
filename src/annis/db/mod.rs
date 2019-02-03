@@ -610,10 +610,11 @@ impl Graph {
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
                         if !invalid_nodes.contains(&existing_node_id) {
-                            invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                            self.extend_parent_text_coverage_nodes(
                                 existing_node_id,
                                 &text_coverage_components,
-                            ));
+                                &mut invalid_nodes,
+                            );
                         }
 
                         // delete all annotations
@@ -692,17 +693,19 @@ impl Graph {
                             }
 
                             if c.ctype != ComponentType::Pointing {
-                                invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                self.extend_parent_text_coverage_nodes(
                                     source,
                                     &text_coverage_components,
-                                ));
+                                    &mut invalid_nodes,
+                                );
                             }
 
                             if c.ctype == ComponentType::Ordering {
-                                invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                self.extend_parent_text_coverage_nodes(
                                     target,
                                     &text_coverage_components,
-                                ));
+                                    &mut invalid_nodes,
+                                );
                             }
                         }
                     }
@@ -726,17 +729,19 @@ impl Graph {
                             };
 
                             if c.ctype != ComponentType::Pointing {
-                                invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                self.extend_parent_text_coverage_nodes(
                                     source,
                                     &text_coverage_components,
-                                ));
+                                    &mut invalid_nodes,
+                                );
                             }
 
                             if c.ctype == ComponentType::Ordering {
-                                invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                self.extend_parent_text_coverage_nodes(
                                     target,
                                     &text_coverage_components,
-                                ));
+                                    &mut invalid_nodes,
+                                );
                             }
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
@@ -827,11 +832,12 @@ impl Graph {
         Ok(())
     }
 
-    fn get_parent_text_coverage_nodes(
+    fn extend_parent_text_coverage_nodes(
         &self,
         node: NodeID,
         text_coverage_components: &FxHashSet<Component>,
-    ) -> Vec<NodeID> {
+        invalid_nodes: &mut FxHashSet<NodeID>,
+    ) {
         let containers: Vec<&EdgeContainer> = text_coverage_components
             .iter()
             .filter_map(|c| self.get_graphstorage_as_ref(c))
@@ -841,8 +847,9 @@ impl Graph {
         let union = UnionEdgeContainer::new(containers);
 
         let dfs = CycleSafeDFS::new_inverse(&union, node, 0, usize::max_value());
-
-        dfs.map(|step| step.node).collect()
+        for step in dfs {
+            invalid_nodes.insert(step.node);
+        }
     }
 
     fn reindex_inherited_coverage(
