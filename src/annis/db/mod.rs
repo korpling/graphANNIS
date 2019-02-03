@@ -568,9 +568,14 @@ impl Graph {
 
         let mut invalid_nodes: FxHashSet<NodeID> = FxHashSet::default();
 
+
+        let all_components = self.get_all_components(None, None);
+        
         let mut text_coverage_components = FxHashSet::default();
-        text_coverage_components.extend(self.get_all_components(Some(ComponentType::Dominance), Some("")));
-        text_coverage_components.extend(self.get_all_components(Some(ComponentType::Coverage), Some("")));
+        text_coverage_components
+            .extend(self.get_all_components(Some(ComponentType::Dominance), Some("")));
+        text_coverage_components
+            .extend(self.get_all_components(Some(ComponentType::Coverage), Some("")));
 
         for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
@@ -605,7 +610,6 @@ impl Graph {
                 }
                 UpdateEvent::DeleteNode { node_name } => {
                     if let Some(existing_node_id) = self.get_node_id_from_name(&node_name) {
-
                         if !invalid_nodes.contains(&existing_node_id) {
                             invalid_nodes.extend(self.get_parent_text_coverage_nodes(
                                 existing_node_id,
@@ -621,8 +625,8 @@ impl Graph {
                             }
                         }
                         // delete all edges pointing to this node either as source or target
-                        for c in self.get_all_components(None, None) {
-                            if let Ok(gs) = self.get_or_create_writable(&c) {
+                        for c in all_components.iter() {
+                            if let Ok(gs) = self.get_or_create_writable(c) {
                                 gs.delete_node(&existing_node_id);
                             }
                         }
@@ -689,21 +693,17 @@ impl Graph {
                             }
 
                             if c.ctype != ComponentType::Pointing {
-                                invalid_nodes.extend(
-                                    self.get_parent_text_coverage_nodes(
-                                        source,
-                                        &text_coverage_components,
-                                    ),
-                                );
+                                invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                    source,
+                                    &text_coverage_components,
+                                ));
                             }
 
                             if c.ctype == ComponentType::Ordering {
-                                invalid_nodes.extend(
-                                    self.get_parent_text_coverage_nodes(
-                                        target,
-                                        &text_coverage_components,
-                                    ),
-                                );
+                                invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                    target,
+                                    &text_coverage_components,
+                                ));
                             }
                         }
                     }
@@ -720,9 +720,6 @@ impl Graph {
                         self.get_node_id_from_name(&target_node),
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
-
-                            
-
                             let c = Component {
                                 ctype,
                                 layer,
@@ -730,21 +727,17 @@ impl Graph {
                             };
 
                             if c.ctype != ComponentType::Pointing {
-                                invalid_nodes.extend(
-                                    self.get_parent_text_coverage_nodes(
-                                        source,
-                                        &text_coverage_components,
-                                    ),
-                                );
+                                invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                    source,
+                                    &text_coverage_components,
+                                ));
                             }
 
                             if c.ctype == ComponentType::Ordering {
-                                invalid_nodes.extend(
-                                    self.get_parent_text_coverage_nodes(
-                                        target,
-                                        &text_coverage_components,
-                                    ),
-                                );
+                                invalid_nodes.extend(self.get_parent_text_coverage_nodes(
+                                    target,
+                                    &text_coverage_components,
+                                ));
                             }
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
@@ -890,15 +883,35 @@ impl Graph {
             }
         }
 
-        // go over each node and calculate the left-most and right-most token
-        for n in invalid_nodes.iter() {
-            self.calculate_token_alignment(*n, ComponentType::LeftToken, gs_order.as_ref());
-            self.calculate_token_alignment(*n, ComponentType::RightToken, gs_order.as_ref());
-        }
-
         if let Some(token_helper) = token_helper::TokenHelper::new(self) {
+            // go over each node and calculate the left-most and right-most token
+
+            let all_dom_components =
+                self.get_all_components(Some(ComponentType::Dominance), Some(""));
+            let all_dom_gs: Vec<Arc<GraphStorage>> = all_dom_components
+                .into_iter()
+                .filter_map(|c| self.get_graphstorage(&c))
+                .collect();
+
             for n in invalid_nodes.iter() {
-                self.calculate_inherited_coverage_edges(*n, &token_helper);
+                self.calculate_token_alignment(
+                    *n,
+                    ComponentType::LeftToken,
+                    gs_order.as_ref(),
+                    token_helper.get_gs_coverage(),
+                    &all_dom_gs,
+                );
+                self.calculate_token_alignment(
+                    *n,
+                    ComponentType::RightToken,
+                    gs_order.as_ref(),
+                    token_helper.get_gs_coverage(),
+                    &all_dom_gs,
+                );
+            }
+
+            for n in invalid_nodes.iter() {
+                self.calculate_inherited_coverage_edges(*n, &token_helper, &all_dom_gs);
             }
         }
 
@@ -909,15 +922,10 @@ impl Graph {
         &mut self,
         n: NodeID,
         token_helper: &token_helper::TokenHelper,
+        all_dom_gs: &Vec<Arc<GraphStorage>>,
     ) -> FxHashSet<NodeID> {
-        let all_cov_gs: Vec<Arc<GraphStorage>> = self
-            .get_all_components(Some(ComponentType::Coverage), None)
-            .into_iter()
-            .filter_map(|c| self.get_graphstorage(&c))
-            .collect();
-
         let mut covered_token = FxHashSet::default();
-        for gs in all_cov_gs.iter() {
+        for gs in token_helper.get_gs_coverage().iter() {
             covered_token.extend(gs.find_connected(n, 1, std::ops::Bound::Included(1)));
         }
 
@@ -926,15 +934,15 @@ impl Graph {
                 covered_token.insert(n);
             } else {
                 // recursivly get the covered token from all children connected by a dominance relation
-                for dom_component in
-                    self.get_all_components(Some(ComponentType::Dominance), Some(""))
-                {
-                    if let Some(dom_gs) = self.get_graphstorage(&dom_component) {
-                        for out in dom_gs.get_outgoing_edges(n) {
-                            covered_token
-                                .extend(self.calculate_inherited_coverage_edges(out, token_helper));
-                        }
+                for dom_gs in all_dom_gs {
+                    for out in dom_gs.get_outgoing_edges(n) {
+                        covered_token.extend(self.calculate_inherited_coverage_edges(
+                            out,
+                            token_helper,
+                            all_dom_gs,
+                        ));
                     }
+                
                 }
             }
         }
@@ -960,18 +968,14 @@ impl Graph {
         n: NodeID,
         ctype: ComponentType,
         gs_order: &GraphStorage,
+        all_cov_gs: &Vec<Arc<GraphStorage>>,
+        all_dom_gs: &Vec<Arc<GraphStorage>>,
     ) -> Option<NodeID> {
         let alignment_component = Component {
             ctype: ctype.clone(),
             name: "".to_owned(),
             layer: ANNIS_NS.to_owned(),
         };
-
-        let all_cov_gs: Vec<Arc<GraphStorage>> = self
-            .get_all_components(Some(ComponentType::Coverage), None)
-            .into_iter()
-            .filter_map(|c| self.get_graphstorage(&c))
-            .collect();
 
         // if this is a token, return the token itself
         if self
@@ -1004,17 +1008,16 @@ impl Graph {
         // recursivly get all candidate token by iterating over text-coverage edges
         let mut candidates = FxHashSet::default();
 
-        let mut text_coverage_components =
-            self.get_all_components(Some(ComponentType::Dominance), Some(""));
-        text_coverage_components
-            .extend(self.get_all_components(Some(ComponentType::Coverage), None));
-        for c in text_coverage_components {
-            if let Some(gs_for_component) = self.get_graphstorage(&c) {
-                for target in gs_for_component.get_outgoing_edges(n) {
-                    let candidate_for_target =
-                        self.calculate_token_alignment(target, ctype.clone(), gs_order)?;
-                    candidates.insert(candidate_for_target);
-                }
+        for gs_for_component in all_dom_gs.iter().chain(all_cov_gs.iter()) {
+            for target in gs_for_component.get_outgoing_edges(n) {
+                let candidate_for_target = self.calculate_token_alignment(
+                    target,
+                    ctype.clone(),
+                    gs_order,
+                    all_cov_gs,
+                    all_dom_gs,
+                )?;
+                candidates.insert(candidate_for_target);
             }
         }
 
