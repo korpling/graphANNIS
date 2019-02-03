@@ -43,6 +43,8 @@ The source node is always the node that is part of the (sub-) corpus, and the ta
 In this example, each annotation graph node belongs to exactly one document and the corpus graph is a tree.
 However, the data model allows to add an annotation node to several documents, and a document or sub-corpus can be part of several (sub-) corpora.
 In this regard, graphANNIS is more flexible than Salt.
+In addition to "corpus" and "node", you can add your own types of node, e.g. "datasource" for nodes that should not be 
+treated like a document in meta-data searches, but represent a data source like a text.
 
 ## Tokens
 
