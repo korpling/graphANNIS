@@ -688,7 +688,7 @@ impl Graph {
                                 text_coverage_components.insert(c.clone());
                             }
 
-                            if !invalid_nodes.contains(&source) {
+                            if c.ctype != ComponentType::Pointing {
                                 invalid_nodes.extend(
                                     self.get_parent_text_coverage_nodes(
                                         source,
@@ -697,7 +697,7 @@ impl Graph {
                                 );
                             }
 
-                            if !invalid_nodes.contains(&target) {
+                            if c.ctype == ComponentType::Ordering {
                                 invalid_nodes.extend(
                                     self.get_parent_text_coverage_nodes(
                                         target,
@@ -721,7 +721,15 @@ impl Graph {
                     ) {
                         if let Ok(ctype) = ComponentType::from_str(&component_type) {
 
-                            if !invalid_nodes.contains(&source) {
+                            
+
+                            let c = Component {
+                                ctype,
+                                layer,
+                                name: component_name,
+                            };
+
+                            if c.ctype != ComponentType::Pointing {
                                 invalid_nodes.extend(
                                     self.get_parent_text_coverage_nodes(
                                         source,
@@ -730,7 +738,7 @@ impl Graph {
                                 );
                             }
 
-                            if !invalid_nodes.contains(&target) {
+                            if c.ctype == ComponentType::Ordering {
                                 invalid_nodes.extend(
                                     self.get_parent_text_coverage_nodes(
                                         target,
@@ -738,12 +746,6 @@ impl Graph {
                                     ),
                                 );
                             }
-
-                            let c = Component {
-                                ctype,
-                                layer,
-                                name: component_name,
-                            };
                             let gs = self.get_or_create_writable(&c)?;
                             gs.delete_edge(&Edge { source, target });
                         }
