@@ -82,6 +82,11 @@ where
         progress_callback(&format!("committing {} annotation node and corpus structure updates", update.len()));
         db.apply_update(&mut update)?;
 
+        for order_component in db.get_all_components(Some(ComponentType::Ordering), None) {
+            db.calculate_component_statistics(&order_component)?;
+            db.optimize_impl(&order_component);
+        }
+
         let mut update = GraphUpdate::new();
 
         let text_coverage_edges = load_edge_tables(
@@ -92,6 +97,11 @@ where
             &progress_callback,
         )?;
 
+        progress_callback(&format!("committing {} edge updates", update.len()));
+        db.apply_update(&mut update)?;
+
+        let mut update = GraphUpdate::new();
+
         calculate_automatic_coverage_edges(
             &mut update,
             &text_coverage_edges,
@@ -100,7 +110,7 @@ where
             &progress_callback,
         )?;
 
-        progress_callback(&format!("committing {} edge updates", update.len()));
+        progress_callback(&format!("committing {} automatic generated coverage edge updates", update.len()));
         db.apply_update(&mut update)?;
 
         progress_callback("calculating node statistics");
