@@ -1,3 +1,5 @@
+use crate::annis::db::graphstorage::union::UnionEdgeContainer;
+use crate::annis::db::graphstorage::EdgeContainer;
 use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
@@ -5,10 +7,9 @@ use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
 use multimap::MultiMap;
 use std;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::prelude::*;
-use std::ops::Bound::Included;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -74,44 +75,58 @@ where
         };
 
         let mut db = Graph::new();
-        let mut update = GraphUpdate::new();
+        let (toplevel_corpus_name, id_to_node_name, textpos_table) = {
+            let mut update = GraphUpdate::new();
 
-        let (toplevel_corpus_name, id_to_node_name, textpos_table) =
-            load_node_and_corpus_tables(&path, &mut update, is_annis_33, &progress_callback)?;
+            let (toplevel_corpus_name, id_to_node_name, textpos_table) =
+                load_node_and_corpus_tables(&path, &mut update, is_annis_33, &progress_callback)?;
 
-        progress_callback(&format!("committing {} annotation node and corpus structure updates", update.len()));
-        db.apply_update(&mut update)?;
+            progress_callback(&format!(
+                "committing {} annotation node and corpus structure updates",
+                update.len()
+            ));
+            db.apply_update(&mut update)?;
+
+            (toplevel_corpus_name, id_to_node_name, textpos_table)
+        };
 
         for order_component in db.get_all_components(Some(ComponentType::Ordering), None) {
             db.calculate_component_statistics(&order_component)?;
             db.optimize_impl(&order_component);
         }
 
-        let mut update = GraphUpdate::new();
+        {
+            let mut update = GraphUpdate::new();
 
-        let text_coverage_edges = load_edge_tables(
-            &path,
-            &mut update,
-            is_annis_33,
-            &id_to_node_name,
-            &progress_callback,
-        )?;
+            load_edge_tables(
+                &path,
+                &mut update,
+                is_annis_33,
+                &id_to_node_name,
+                &progress_callback,
+            )?;
 
-        progress_callback(&format!("committing {} edge updates", update.len()));
-        db.apply_update(&mut update)?;
+            progress_callback(&format!("committing {} edge updates", update.len()));
+            db.apply_update(&mut update)?;
+        };
 
-        let mut update = GraphUpdate::new();
+        {
+            let mut update = GraphUpdate::new();
 
-        calculate_automatic_coverage_edges(
-            &mut update,
-            &text_coverage_edges,
-            &textpos_table,
-            &id_to_node_name,
-            &progress_callback,
-        )?;
+            calculate_automatic_coverage_edges(
+                &mut update,
+                &db,
+                &textpos_table,
+                &id_to_node_name,
+                &progress_callback,
+            )?;
 
-        progress_callback(&format!("committing {} automatic generated coverage edge updates", update.len()));
-        db.apply_update(&mut update)?;
+            progress_callback(&format!(
+                "committing {} automatic generated coverage edge updates",
+                update.len()
+            ));
+            db.apply_update(&mut update)?;
+        }
 
         progress_callback("calculating node statistics");
         Arc::make_mut(&mut db.node_annos).calculate_statistics();
@@ -178,14 +193,14 @@ fn load_edge_tables<F>(
     is_annis_33: bool,
     id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: &F,
-) -> Result<(BTreeSet<Edge>)>
+) -> Result<()>
 where
     F: Fn(&str) -> (),
 {
-    let (pre_to_component, pre_to_edge, text_coverage_edges) = {
+    let (pre_to_component, pre_to_edge) = {
         let component_by_id = load_component_tab(path, is_annis_33, progress_callback)?;
 
-        let (pre_to_component, pre_to_edge, text_coverage_edges) = load_rank_tab(
+        let (pre_to_component, pre_to_edge) = load_rank_tab(
             path,
             update,
             &component_by_id,
@@ -194,7 +209,7 @@ where
             progress_callback,
         )?;
 
-        (pre_to_component, pre_to_edge, text_coverage_edges)
+        (pre_to_component, pre_to_edge)
     };
 
     load_edge_annotation(
@@ -207,7 +222,7 @@ where
         progress_callback,
     )?;
 
-    Ok(text_coverage_edges)
+    Ok(())
 }
 
 fn postgresql_import_reader(path: &Path) -> std::result::Result<csv::Reader<File>, csv::Error> {
@@ -384,7 +399,7 @@ fn add_automatic_cov_edge_for_node(
     right_pos: TextProperty,
     textpos_table: &TextPosTable,
     id_to_node_name: &FxHashMap<NodeID, String>,
-    text_coverage_edges: &BTreeSet<Edge>,
+    text_coverage_containers: &UnionEdgeContainer,
 ) -> Result<()> {
     // find left/right aligned basic token
     let left_aligned_tok = textpos_table
@@ -440,32 +455,16 @@ fn add_automatic_cov_edge_for_node(
             .get(&tok_idx)
             .ok_or_else(|| format!("Can't get token ID for position {:?}", tok_idx))?;
         if n != *tok_id {
-            let edge = Edge {
-                source: n,
-                target: *tok_id,
-            };
             // only add edge of no other coverage edge exists
-            if !text_coverage_edges.contains(&edge) {
-                let nodes_with_same_source = (
-                    Included(Edge {
-                        source: n,
-                        target: NodeID::min_value(),
-                    }),
-                    Included(Edge {
-                        source: n,
-                        target: NodeID::max_value(),
-                    }),
-                );
-                let component_name = if text_coverage_edges
-                    .range(nodes_with_same_source)
-                    .next()
-                    .is_some()
-                {
-                    // this is an additional auto-generated coverage edge, mark it as such
-                    "autogenerated-coverage"
-                } else {
+            let existing_outgoing_cov: Vec<NodeID> =
+                text_coverage_containers.get_outgoing_edges(n).collect();
+            if !existing_outgoing_cov.contains(tok_id) {
+                let component_name = if existing_outgoing_cov.is_empty() {
                     // the node has no other coverage edges, use a neutral component
                     ""
+                } else {
+                    // this is an additional auto-generated coverage edge, mark it as such
+                    "autogenerated-coverage"
                 };
 
                 update.add_event(UpdateEvent::AddEdge {
@@ -487,7 +486,7 @@ fn add_automatic_cov_edge_for_node(
 
 fn calculate_automatic_coverage_edges<F>(
     update: &mut GraphUpdate,
-    text_coverage_edges: &BTreeSet<Edge>,
+    db: &Graph,
     textpos_table: &TextPosTable,
     id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: &F,
@@ -497,6 +496,15 @@ where
 {
     // add explicit coverage edges for each node in the special annis namespace coverage component
     progress_callback("calculating the automatically generated Coverage edges");
+
+    let other_coverage_gs: Vec<&EdgeContainer> = db
+        .get_all_components(Some(ComponentType::Coverage), None)
+        .into_iter()
+        .filter_map(|c| db.get_graphstorage_as_ref(&c))
+        .map(|gs| gs.as_edgecontainer())
+        .collect();
+
+    let text_coverage_containers = UnionEdgeContainer::new(other_coverage_gs);
 
     for (n, textprop) in textpos_table.node_to_left.iter() {
         if textprop.segmentation == "" {
@@ -525,7 +533,7 @@ where
                     right_pos,
                     textpos_table,
                     id_to_node_name,
-                    &text_coverage_edges,
+                    &text_coverage_containers,
                 ) {
                     // output a warning but do not fail
                     warn!(
@@ -895,11 +903,7 @@ fn load_rank_tab<F>(
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
     progress_callback: &F,
-) -> Result<(
-    BTreeMap<u32, Component>,
-    BTreeMap<u32, Edge>,
-    BTreeSet<Edge>,
-)>
+) -> Result<(BTreeMap<u32, Component>, BTreeMap<u32, Edge>)>
 where
     F: Fn(&str) -> (),
 {
@@ -916,8 +920,6 @@ where
     ));
 
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
-
-    let mut text_coverage_edges: BTreeSet<Edge> = BTreeSet::default();
 
     let pos_node_ref = if is_annis_33 { 3 } else { 2 };
     let pos_component_ref = if is_annis_33 { 4 } else { 3 };
@@ -973,10 +975,6 @@ where
                         target,
                     };
 
-                    if c.ctype == ComponentType::Coverage {
-                        text_coverage_edges.insert(e.clone());
-                    }
-
                     pre_to_edge.insert(pre, e);
                     pre_to_component.insert(pre, c.clone());
                 }
@@ -984,7 +982,7 @@ where
         }
     }
 
-    Ok((pre_to_component, pre_to_edge, text_coverage_edges))
+    Ok((pre_to_component, pre_to_edge))
 }
 
 fn load_edge_annotation<F>(
