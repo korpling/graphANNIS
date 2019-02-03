@@ -446,9 +446,9 @@ impl Graph {
             // apply any outstanding log file updates
             let f_log = std::fs::File::open(log_path)?;
             let mut buf_reader = std::io::BufReader::new(f_log);
-            let update: GraphUpdate = bincode::deserialize_from(&mut buf_reader)?;
+            let mut update: GraphUpdate = bincode::deserialize_from(&mut buf_reader)?;
             if update.get_last_consistent_change_id() > self.current_change_id {
-                self.apply_update_in_memory(&update)?;
+                self.apply_update_in_memory(&mut update)?;
             }
         } else {
             self.current_change_id = 0;
@@ -563,7 +563,7 @@ impl Graph {
         self.internal_save(&location.join("current"))
     }
 
-    fn apply_update_in_memory(&mut self, u: &GraphUpdate) -> Result<()> {
+    fn apply_update_in_memory(&mut self, u: &mut GraphUpdate) -> Result<()> {
         self.reset_cached_size();
 
         let mut invalid_nodes: FxHashSet<NodeID> = FxHashSet::default();
@@ -576,7 +576,7 @@ impl Graph {
         text_coverage_components
             .extend(self.get_all_components(Some(ComponentType::Coverage), Some("")));
 
-        for (id, change) in u.consistent_changes() {
+        for (id, change) in u.into_consistent_changes() {
             trace!("applying event {:?}", &change);
             match change {
                 UpdateEvent::AddNode {
@@ -1081,7 +1081,7 @@ impl Graph {
         // we have to make sure that the corpus is fully loaded (with all components) before we can apply the update.
         self.ensure_loaded_all()?;
 
-        let result = self.apply_update_in_memory(&u);
+        let result = self.apply_update_in_memory(u);
 
         trace!("memory updates completed");
 

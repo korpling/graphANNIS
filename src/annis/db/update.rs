@@ -1,5 +1,7 @@
 //! Types used to describe updates on graphs.
 
+use std::collections::VecDeque;
+
 /// Describes a single update on the graph.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum UpdateEvent {
@@ -66,7 +68,7 @@ pub enum UpdateEvent {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[repr(C)]
 pub struct GraphUpdate {
-    diffs: Vec<(u64, UpdateEvent)>,
+    diffs: VecDeque<(u64, UpdateEvent)>,
     last_consistent_change_id: u64,
 }
 
@@ -74,7 +76,7 @@ impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            diffs: vec![],
+            diffs: VecDeque::default(),
             last_consistent_change_id: 0,
         }
     }
@@ -82,7 +84,7 @@ impl GraphUpdate {
     /// Add the given event to the update list.
     pub fn add_event(&mut self, event: UpdateEvent) {
         let change_id = self.last_consistent_change_id + (self.diffs.len() as u64) + 1;
-        self.diffs.push((change_id, event));
+        self.diffs.push_back((change_id, event));
     }
 
     /// Check if the last item of the last has been marked as consistent.
@@ -106,12 +108,13 @@ impl GraphUpdate {
         }
     }
 
-    /// Get all consistent changes.
-    pub fn consistent_changes<'a>(&'a self) -> Box<Iterator<Item = (u64, UpdateEvent)> + 'a> {
+
+    /// Get all consistent changes, removing all elements of the update in the process
+    pub fn into_consistent_changes<'a>(&'a mut self) -> Box<Iterator<Item = (u64, UpdateEvent)> + 'a> {
         let last_consistent_change_id = self.last_consistent_change_id;
-        let it = self.diffs.iter().filter_map(move |d| {
+        let it = self.diffs.drain(..).filter_map(move |d| {
             if d.0 <= last_consistent_change_id {
-                Some((d.0, d.1.clone()))
+                Some((d.0, d.1))
             } else {
                 None
             }
