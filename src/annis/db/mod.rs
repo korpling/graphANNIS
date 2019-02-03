@@ -692,7 +692,10 @@ impl Graph {
                                 text_coverage_components.insert(c.clone());
                             }
 
-                            if c.ctype != ComponentType::Pointing {
+                            if c.ctype == ComponentType::Coverage
+                                || c.ctype == ComponentType::Dominance
+                                || c.ctype == ComponentType::Ordering
+                            {
                                 self.extend_parent_text_coverage_nodes(
                                     source,
                                     &text_coverage_components,
@@ -728,7 +731,10 @@ impl Graph {
                                 name: component_name,
                             };
 
-                            if c.ctype != ComponentType::Pointing {
+                            if c.ctype == ComponentType::Coverage
+                                || c.ctype == ComponentType::Dominance
+                                || c.ctype == ComponentType::Ordering
+                            {
                                 self.extend_parent_text_coverage_nodes(
                                     source,
                                     &text_coverage_components,
