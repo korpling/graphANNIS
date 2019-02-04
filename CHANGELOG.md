@@ -1,3 +1,14 @@
+release 0.17.0
+==============
+
+Enhancements
+------------
+
+- [#68](https://github.com/korpling/graphANNIS/issues/68) Use applyUpdate() API to import legacy relANNIS files
+- [#67](https://github.com/korpling/graphANNIS/issues/67) Document the data model of graphANNIS
+- [#66](https://github.com/korpling/graphANNIS/issues/66) Automatic creation of inherited coverage edges
+- [#65](https://github.com/korpling/graphANNIS/issues/65) Add a new adjecency list based graph storage for dense components.
+
 release 0.16.0
 ==============
 

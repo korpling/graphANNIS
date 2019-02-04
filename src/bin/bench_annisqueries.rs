@@ -135,24 +135,25 @@ fn main() {
 
     let benches = create_query_input(&data_dir, &queries_dir, use_parallel_joins);
 
-    crit.bench_function_over_inputs(
-        "count",
-        |b: &mut Bencher, obj: &CountBench| {
-            for c in obj.def.corpus.iter() {
-                // TODO: preloading all corpora is necessary, but how do we prevent unloading?
-                obj.cs.preload(c).unwrap();
-            }
-            b.iter(|| {
-                let mut all_corpora_count = 0;
+    crit.with_plots()
+        .bench_function_over_inputs(
+            "count",
+            |b: &mut Bencher, obj: &CountBench| {
                 for c in obj.def.corpus.iter() {
-                    if let Ok(count) = obj.cs.count(c, &obj.def.aql, QueryLanguage::AQL) {
-                        all_corpora_count += count;
-                    }
+                    // TODO: preloading all corpora is necessary, but how do we prevent unloading?
+                    obj.cs.preload(c).unwrap();
                 }
-                assert_eq!(obj.def.count, all_corpora_count);
-            });
-        },
-        benches,
-    )
-    .final_summary();
+                b.iter(|| {
+                    let mut all_corpora_count = 0;
+                    for c in obj.def.corpus.iter() {
+                        if let Ok(count) = obj.cs.count(c, &obj.def.aql, QueryLanguage::AQL) {
+                            all_corpora_count += count;
+                        }
+                    }
+                    assert_eq!(obj.def.count, all_corpora_count);
+                });
+            },
+            benches,
+        )
+        .final_summary();
 }

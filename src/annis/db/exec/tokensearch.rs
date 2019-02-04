@@ -12,6 +12,7 @@ use crate::annis::types::AnnoKeyID;
 use crate::annis::types::{Component, ComponentType, NodeID};
 
 use std::fmt;
+use std::collections::HashSet;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps the search for *all* token in a corpus.
 pub struct AnyTokenSearch<'a> {
@@ -51,9 +52,9 @@ impl<'a> AnyTokenSearch<'a> {
         })
     }
 
-    pub fn necessary_components() -> Vec<Component> {
-        let mut components = token_helper::necessary_components();
-        components.push(COMPONENT_ORDER.clone());
+    pub fn necessary_components(db: &Graph) -> HashSet<Component> {
+        let mut components = token_helper::necessary_components(db);
+        components.insert(COMPONENT_ORDER.clone());
         components
     }
 

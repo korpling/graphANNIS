@@ -27,20 +27,15 @@ impl<'a> CycleSafeDFS<'a> {
         min_distance: usize,
         max_distance: usize,
     ) -> CycleSafeDFS<'a> {
-        let mut stack = vec![];
-        stack.push((node, 0));
-
-        let path = vec![];
-        let nodes_in_path = FxHashSet::default();
-
+       
         CycleSafeDFS {
             min_distance,
             max_distance,
             inverse: false,
             container,
-            stack,
-            path,
-            nodes_in_path,
+            stack: vec![(node, 0)],
+            path: Vec::default(),
+            nodes_in_path: FxHashSet::default(),
             last_distance: 0,
             cycle_detected: false,
         }
@@ -52,20 +47,15 @@ impl<'a> CycleSafeDFS<'a> {
         min_distance: usize,
         max_distance: usize,
     ) -> CycleSafeDFS<'a> {
-        let mut stack = vec![];
-        stack.push((node, 0));
-
-        let path = vec![];
-        let nodes_in_path = FxHashSet::default();
-
+        
         CycleSafeDFS {
             min_distance,
             max_distance,
             inverse: true,
             container,
-            stack,
-            path,
-            nodes_in_path,
+            stack: vec![(node, 0)],
+            path: Vec::default(),
+            nodes_in_path: FxHashSet::default(),
             last_distance: 0,
             cycle_detected: true,
         }

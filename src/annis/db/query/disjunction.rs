@@ -1,6 +1,7 @@
 use super::conjunction::Conjunction;
 use crate::annis::db::Graph;
 use crate::annis::types::Component;
+use std::collections::HashSet;
 
 pub struct Disjunction<'a> {
     pub alternatives: Vec<Conjunction<'a>>,
@@ -11,12 +12,12 @@ impl<'a> Disjunction<'a> {
         Disjunction { alternatives }
     }
 
-    pub fn necessary_components(&self, db: &Graph) -> Vec<Component> {
-        let mut result = vec![];
+    pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
+        let mut result = HashSet::default();
 
         for alt in &self.alternatives {
-            let mut c = alt.necessary_components(db);
-            result.append(&mut c);
+            let c = alt.necessary_components(db);
+            result.extend(c);
         }
 
         result

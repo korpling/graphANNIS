@@ -4,6 +4,7 @@ use crate::annis::db::aql;
 use crate::annis::db::aql::operators;
 use crate::annis::db::aql::operators::RangeSpec;
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
+use crate::annis::db::graphstorage::GraphStatistic;
 use crate::annis::db::plan::ExecutionPlan;
 use crate::annis::db::query;
 use crate::annis::db::query::conjunction::Conjunction;
@@ -60,7 +61,6 @@ pub enum LoadStatus {
 }
 
 /// Information about a single graph storage of the corpus.
-#[derive(Ord, Eq, PartialOrd, PartialEq)]
 pub struct GraphStorageInfo {
     /// The component this graph storage belongs to.
     pub component: Component,
@@ -70,6 +70,8 @@ pub struct GraphStorageInfo {
     pub number_of_annotations: usize,
     /// Name of the implementation
     pub implementation: String,
+    /// Graph statistics
+    pub statistics: Option<GraphStatistic>,
 }
 
 impl fmt::Display for GraphStorageInfo {
@@ -79,6 +81,9 @@ impl fmt::Display for GraphStorageInfo {
             "Component {}: {} annnotations",
             self.component, self.number_of_annotations
         )?;
+        if let Some(stats) = &self.statistics {
+            writeln!(f, "Stats: {}", stats)?;
+        }
         writeln!(f, "Implementation: {}", self.implementation)?;
         match self.load_status {
             LoadStatus::NotLoaded => writeln!(f, "Not Loaded")?,
@@ -104,7 +109,6 @@ impl fmt::Display for GraphStorageInfo {
 }
 
 /// Information about a corpus that is part of the corpus storage.
-#[derive(Ord, Eq, PartialOrd, PartialEq)]
 pub struct CorpusInfo {
     /// Name of the corpus.
     pub name: String,
@@ -365,6 +369,7 @@ impl CorpusStorage {
                             load_status: LoadStatus::FullyLoaded(gs.size_of(mem_ops)),
                             number_of_annotations: gs.get_anno_storage().number_of_annotations(),
                             implementation: gs.serialization_id().clone(),
+                            statistics: gs.get_statistics().cloned(),
                         });
                     } else {
                         load_status = LoadStatus::PartiallyLoaded(heap_size);
@@ -373,6 +378,7 @@ impl CorpusStorage {
                             load_status: LoadStatus::NotLoaded,
                             number_of_annotations: 0,
                             implementation: "".to_owned(),
+                            statistics: None,
                         })
                     }
                 }
@@ -1703,7 +1709,9 @@ mod tests {
             let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
             assert_eq!(3, node_count);
 
-            let edge_count = cs.count("root", "node ->dep node", QueryLanguage::AQL).unwrap();
+            let edge_count = cs
+                .count("root", "node ->dep node", QueryLanguage::AQL)
+                .unwrap();
             assert_eq!(1, edge_count);
 
             // delete one of the tokens
@@ -1715,9 +1723,10 @@ mod tests {
 
             let node_count = cs.count("root", "node", QueryLanguage::AQL).unwrap();
             assert_eq!(2, node_count);
-            let edge_count = cs.count("root", "node ->dep node", QueryLanguage::AQL).unwrap();
+            let edge_count = cs
+                .count("root", "node ->dep node", QueryLanguage::AQL)
+                .unwrap();
             assert_eq!(0, edge_count);
-
         }
     }
 
@@ -1865,23 +1874,28 @@ fn create_subgraph_edge(
 ) {
     // find outgoing edges
     for c in components {
-        if let Some(orig_gs) = orig_db.get_graphstorage(c) {
-            for target in orig_gs.get_outgoing_edges(source_id) {
-                if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
-                    let e = Edge {
-                        source: source_id,
-                        target,
-                    };
-                    if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                        new_gs.add_edge(e.clone());
-                    }
-
-                    for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
-                        source: source_id,
-                        target,
-                    }) {
+        // don't include index components
+        if !(c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
+        && !(c.ctype == ComponentType::LeftToken)
+        && !(c.ctype == ComponentType::RightToken) {
+            if let Some(orig_gs) = orig_db.get_graphstorage(c) {
+                for target in orig_gs.get_outgoing_edges(source_id) {
+                    if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
+                        let e = Edge {
+                            source: source_id,
+                            target,
+                        };
                         if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                            new_gs.add_edge_annotation(e.clone(), a);
+                            new_gs.add_edge(e.clone());
+                        }
+
+                        for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
+                            source: source_id,
+                            target,
+                        }) {
+                            if let Ok(new_gs) = db.get_or_create_writable(&c) {
+                                new_gs.add_edge_annotation(e.clone(), a);
+                            }
                         }
                     }
                 }

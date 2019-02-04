@@ -74,7 +74,7 @@ impl GraphUpdate {
     /// Create a new empty list of updates.
     pub fn new() -> GraphUpdate {
         GraphUpdate {
-            diffs: vec![],
+            diffs: Vec::default(),
             last_consistent_change_id: 0,
         }
     }
@@ -87,10 +87,10 @@ impl GraphUpdate {
 
     /// Check if the last item of the last has been marked as consistent.
     pub fn is_consistent(&self) -> bool {
-        if self.diffs.is_empty() {
-            true
+        if let Some(last) = self.diffs.last() {
+            self.last_consistent_change_id == last.0
         } else {
-            self.last_consistent_change_id == self.diffs[self.diffs.len() - 1].0
+            true
         }
     }
 
@@ -101,12 +101,12 @@ impl GraphUpdate {
 
     /// Mark the current state as consistent.
     pub fn finish(&mut self) {
-        if !self.diffs.is_empty() {
-            self.last_consistent_change_id = self.diffs[self.diffs.len() - 1].0;
+        if let Some(last) = self.diffs.last() {
+            self.last_consistent_change_id = last.0;
         }
     }
 
-    /// Get all consistent changes.
+    /// Get all consistent changes
     pub fn consistent_changes<'a>(&'a self) -> Box<Iterator<Item = (u64, UpdateEvent)> + 'a> {
         let last_consistent_change_id = self.last_consistent_change_id;
         let it = self.diffs.iter().filter_map(move |d| {

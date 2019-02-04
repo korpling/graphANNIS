@@ -4,13 +4,14 @@ use crate::annis::db::Graph;
 use crate::annis::types::{Component, ComponentType, NodeID};
 
 use std::sync::Arc;
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct TokenHelper {
     node_annos: Arc<AnnoStorage<NodeID>>,
     left_edges: Arc<GraphStorage>,
     right_edges: Arc<GraphStorage>,
-    cov_edges: Option<Arc<GraphStorage>>,
+    cov_edges: Vec<Arc<GraphStorage>>,
     tok_key: usize,
 }
 
@@ -29,46 +30,72 @@ lazy_static! {
             name: String::from(""),
         }
     };
-    static ref COMPONENT_COV: Component = {
-        Component {
-            ctype: ComponentType::Coverage,
-            layer: String::from("annis"),
-            name: String::from(""),
-        }
-    };
 }
 
-pub fn necessary_components() -> Vec<Component> {
-    vec![
-        COMPONENT_LEFT.clone(),
-        COMPONENT_RIGHT.clone(),
-        COMPONENT_COV.clone(),
-    ]
+pub fn necessary_components(db: &Graph) -> HashSet<Component> {
+    let mut result = HashSet::default();
+    result.insert(COMPONENT_LEFT.clone());
+    result.insert(COMPONENT_RIGHT.clone());
+    // we need all coverage components
+    result.extend(
+        db.get_all_components(Some(ComponentType::Coverage), None)
+            .into_iter(),
+    );
+
+    result
 }
 
 impl TokenHelper {
     pub fn new(db: &Graph) -> Option<TokenHelper> {
+        let cov_edges: Vec<Arc<GraphStorage>> = db
+            .get_all_components(Some(ComponentType::Coverage), None)
+            .into_iter()
+            .filter_map(|c| db.get_graphstorage(&c))
+            .filter(|gs| {
+                if let Some(stats) = gs.get_statistics() {
+                    stats.nodes > 0
+                } else {
+                    true
+                }
+            })
+            .collect();
+            
         Some(TokenHelper {
             node_annos: db.node_annos.clone(),
             left_edges: db.get_graphstorage(&COMPONENT_LEFT)?,
             right_edges: db.get_graphstorage(&COMPONENT_RIGHT)?,
-            cov_edges: db.get_graphstorage(&COMPONENT_COV),
+            cov_edges,
             tok_key: db.node_annos.get_key_id(&db.get_token_key())?,
         })
     }
+    pub fn get_gs_coverage(&self) -> &Vec<Arc<GraphStorage>> {
+        &self.cov_edges
+    }
+
+    pub fn get_gs_left_token(&self) -> &GraphStorage {
+        self.left_edges.as_ref()
+    }
+
+    pub fn get_gs_right_token_(&self) -> &GraphStorage {
+        self.right_edges.as_ref()
+    }
 
     pub fn is_token(&self, id: NodeID) -> bool {
-        self.node_annos
+        if self
+            .node_annos
             .get_value_for_item_by_id(&id, self.tok_key)
             .is_some()
-            && self.cov_edges.is_some()
-            && self
-                .cov_edges
-                .as_ref()
-                .unwrap()
-                .get_outgoing_edges(id)
-                .next()
-                .is_none()
+        {
+            // check if there is no outgoing edge in any of the coverage components
+            for c in self.cov_edges.iter() {
+                if c.get_outgoing_edges(id).next().is_some() {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
     pub fn right_token_for(&self, n: NodeID) -> Option<NodeID> {
