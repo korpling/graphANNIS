@@ -1,3 +1,11 @@
+release 0.17.1
+==============
+
+Fixed Bugs
+----------
+
+- [#69](https://github.com/korpling/graphANNIS/issues/69) relANNIS-Import: Subgraph query does not work if there is no coverage component.
+
 release 0.17.0
 ==============
 
