@@ -592,6 +592,7 @@ impl Graph {
                             } else {
                                 0
                             };
+
                         let new_anno_name = Annotation {
                             key: self.get_node_name_key(),
                             val: node_name,
@@ -695,6 +696,8 @@ impl Graph {
                             if c.ctype == ComponentType::Coverage
                                 || c.ctype == ComponentType::Dominance
                                 || c.ctype == ComponentType::Ordering
+                                || c.ctype == ComponentType::LeftToken
+                                || c.ctype == ComponentType::RightToken
                             {
                                 self.extend_parent_text_coverage_nodes(
                                     source,
@@ -734,6 +737,8 @@ impl Graph {
                             if c.ctype == ComponentType::Coverage
                                 || c.ctype == ComponentType::Dominance
                                 || c.ctype == ComponentType::Ordering
+                                || c.ctype == ComponentType::LeftToken
+                                || c.ctype == ComponentType::RightToken
                             {
                                 self.extend_parent_text_coverage_nodes(
                                     source,
@@ -1026,7 +1031,7 @@ impl Graph {
             return Some(existing);
         }
 
-        // recursivly get all candidate token by iterating over text-coverage edges
+        // recursively get all candidate token by iterating over text-coverage edges
         let mut candidates = FxHashSet::default();
 
         for gs_for_component in all_dom_gs.iter().chain(all_cov_gs.iter()) {
@@ -1064,10 +1069,11 @@ impl Graph {
         };
         if let Some(t) = t {
             let gs = self.get_or_create_writable(&alignment_component).ok()?;
-            gs.add_edge(Edge {
+            let e = Edge {
                 source: n,
                 target: *t,
-            });
+            };
+            gs.add_edge(e);
 
             return Some(*t);
         } else {

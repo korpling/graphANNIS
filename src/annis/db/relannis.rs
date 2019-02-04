@@ -468,8 +468,12 @@ where
 
     let mut update = GraphUpdate::new();
 
-    let other_coverage_gs: Vec<&EdgeContainer> = g
+    let other_coverage_components : Vec<Component> = g
         .get_all_components(Some(ComponentType::Coverage), None)
+        .into_iter()
+        .filter(|c| c.layer != "annis").collect();
+
+    let other_coverage_gs: Vec<&EdgeContainer> = other_coverage_components
         .into_iter()
         .filter_map(|c| g.get_graphstorage_as_ref(&c))
         .map(|gs| gs.as_edgecontainer())
