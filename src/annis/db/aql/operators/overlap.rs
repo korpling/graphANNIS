@@ -86,9 +86,11 @@ impl BinaryOperator for Overlap {
             };
 
             for t in covered {
-                // get all nodes that are covering the token
-                for n in gs_cov.get_ingoing_edges(t) {
-                    result.insert(n);
+                // get all nodes that are covering the token (in all coverage components)
+                for gs_cov in self.tok_helper.get_gs_coverage().iter() {
+                    for n in gs_cov.get_ingoing_edges(t) {
+                        result.insert(n);
+                    }
                 }
                 // also add the token itself
                 result.insert(t);

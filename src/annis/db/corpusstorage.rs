@@ -1874,23 +1874,28 @@ fn create_subgraph_edge(
 ) {
     // find outgoing edges
     for c in components {
-        if let Some(orig_gs) = orig_db.get_graphstorage(c) {
-            for target in orig_gs.get_outgoing_edges(source_id) {
-                if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
-                    let e = Edge {
-                        source: source_id,
-                        target,
-                    };
-                    if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                        new_gs.add_edge(e.clone());
-                    }
-
-                    for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
-                        source: source_id,
-                        target,
-                    }) {
+        // don't include index components
+        if !(c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
+        && !(c.ctype == ComponentType::LeftToken)
+        && !(c.ctype == ComponentType::RightToken) {
+            if let Some(orig_gs) = orig_db.get_graphstorage(c) {
+                for target in orig_gs.get_outgoing_edges(source_id) {
+                    if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
+                        let e = Edge {
+                            source: source_id,
+                            target,
+                        };
                         if let Ok(new_gs) = db.get_or_create_writable(&c) {
-                            new_gs.add_edge_annotation(e.clone(), a);
+                            new_gs.add_edge(e.clone());
+                        }
+
+                        for a in orig_gs.get_anno_storage().get_annotations_for_item(&Edge {
+                            source: source_id,
+                            target,
+                        }) {
+                            if let Ok(new_gs) = db.get_or_create_writable(&c) {
+                                new_gs.add_edge_annotation(e.clone(), a);
+                            }
                         }
                     }
                 }
