@@ -73,7 +73,7 @@ where
             false
         };
 
-        let mut db = Graph::new();
+        let mut db = Graph::with_default_graphstorages()?;
         let (toplevel_corpus_name, id_to_node_name, textpos_table) = {
             let (toplevel_corpus_name, id_to_node_name, textpos_table) =
                 load_node_and_corpus_tables(&path, &mut db, is_annis_33, &progress_callback)?;
