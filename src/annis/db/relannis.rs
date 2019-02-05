@@ -66,14 +66,19 @@ impl<'a> ChunkUpdater<'a> {
         }
     }
 
-    fn add_event<F>(&mut self, event: UpdateEvent, progress_callback: &F) -> Result<()>
+    fn add_event<F>(
+        &mut self,
+        event: UpdateEvent,
+        message: Option<&str>,
+        progress_callback: &F,
+    ) -> Result<()>
     where
         F: Fn(&str),
     {
         self.update.add_event(event);
 
         if self.update.len() >= self.max_number_events {
-            self.commit(None, progress_callback)?;
+            self.commit(message, progress_callback)?;
         }
 
         Ok(())
@@ -194,7 +199,6 @@ where
         is_annis_33,
         progress_callback,
     )?;
-
 
     Ok((
         corpus_table.toplevel_corpus_name,
@@ -371,7 +375,8 @@ where
     // iterate over all token by their order, find the nodes with the same
     // text coverage (either left or right) and add explicit Ordering edge
 
-    progress_callback("calculating the automatically generated Ordering edges");
+    let msg = "calculating the automatically generated Ordering edges";
+    progress_callback(msg);
 
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
@@ -398,6 +403,7 @@ where
                         component_type: ComponentType::Ordering.to_string(),
                         component_name: current_textprop.segmentation.clone(),
                     },
+                    Some(msg),
                     progress_callback,
                 )?;
             }
@@ -408,8 +414,7 @@ where
         last_token = Some(*current_token);
     } // end for each token
 
-    updater.commit(Some("committing the automatically generated Ordering edges"), progress_callback)?;
-
+    updater.commit(Some(msg), progress_callback)?;
 
     Ok(())
 }
@@ -521,6 +526,7 @@ where
                         component_type: ComponentType::Coverage.to_string(),
                         component_name: component_name.to_owned(),
                     },
+                    Some("calculating the automatically generated Coverage edges"),
                     progress_callback,
                 )?;
             }
@@ -583,8 +589,10 @@ where
         }
     }
 
-
-    updater.commit(Some("committing automatically created coverage edges"), progress_callback)?;
+    updater.commit(
+        Some("calculating the automatically generated Coverage edges"),
+        progress_callback,
+    )?;
 
     Ok(())
 }
@@ -620,6 +628,8 @@ where
         "loading {}",
         node_tab_path.to_str().unwrap_or_default()
     ));
+
+    let msg = "committing nodes";
 
     // map the "left" value to the nodes it belongs to
     let mut left_to_node: MultiMap<TextProperty, NodeID> = MultiMap::new();
@@ -669,6 +679,7 @@ where
                     node_name: node_qname.clone(),
                     node_type: "node".to_owned(),
                 },
+                Some(msg),
                 progress_callback,
             )?;
             id_to_node_name.insert(node_nr, node_qname.clone());
@@ -681,6 +692,7 @@ where
                         anno_name: "layer".to_owned(),
                         anno_value: layer,
                     },
+                    Some(msg),
                     progress_callback,
                 )?;
             }
@@ -730,6 +742,7 @@ where
                         anno_name: TOK.to_owned(),
                         anno_value: span,
                     },
+                    Some(msg),
                     progress_callback,
                 )?;
 
@@ -766,6 +779,7 @@ where
                                 anno_name: TOK.to_owned(),
                                 anno_value: get_field_str(&line, 12).ok_or("Missing column")?,
                             },
+                            Some(msg),
                             progress_callback,
                         )?;
                     } else {
@@ -785,7 +799,7 @@ where
         }
     } // end "scan all lines" visibility block
 
-    updater.commit(Some("committing nodes"), progress_callback)?;
+    updater.commit(Some(msg), progress_callback)?;
 
     if !textpos_table.token_by_index.is_empty() {
         calculate_automatic_token_order(
@@ -795,8 +809,6 @@ where
             progress_callback,
         )?;
     } // end if token_by_index not empty
-
-
 
     Ok((
         nodes_by_text,
@@ -829,6 +841,8 @@ where
         node_anno_tab_path.to_str().unwrap_or_default()
     ));
 
+    let msg = "committing node annotations";
+
     let mut node_anno_tab_csv = postgresql_import_reader(node_anno_tab_path.as_path())?;
 
     for result in node_anno_tab_csv.records() {
@@ -856,6 +870,7 @@ where
                     anno_name: col_name,
                     anno_value: anno_val.clone(),
                 },
+                Some(msg),
                 progress_callback,
             )?;
 
@@ -871,6 +886,7 @@ where
                             anno_name: TOK.to_owned(),
                             anno_value: anno_val,
                         },
+                        Some(msg),
                         progress_callback,
                     )?;
                 }
@@ -878,7 +894,7 @@ where
         }
     }
 
-    updater.commit(Some("committing node annotations"), progress_callback)?;
+    updater.commit(Some(msg), progress_callback)?;
 
     Ok(())
 }
@@ -1019,6 +1035,8 @@ where
     // second run: get the actual edges
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
 
+    let msg = "committing edges";
+    
     for result in rank_tab_csv.records() {
         let line = result?;
 
@@ -1034,19 +1052,23 @@ where
                 if let Some(c) = component_by_id.get(&component_ref) {
                     let target: NodeID = line.get(pos_node_ref).ok_or("Missing column")?.parse()?;
 
-                    updater.add_event(UpdateEvent::AddEdge {
-                        source_node: id_to_node_name
-                            .get(&source)
-                            .ok_or("Missing node name")?
-                            .to_owned(),
-                        target_node: id_to_node_name
-                            .get(&target)
-                            .ok_or("Missing node name")?
-                            .to_owned(),
-                        layer: c.layer.clone(),
-                        component_type: c.ctype.to_string(),
-                        component_name: c.name.clone(),
-                    }, progress_callback)?;
+                    updater.add_event(
+                        UpdateEvent::AddEdge {
+                            source_node: id_to_node_name
+                                .get(&source)
+                                .ok_or("Missing node name")?
+                                .to_owned(),
+                            target_node: id_to_node_name
+                                .get(&target)
+                                .ok_or("Missing node name")?
+                                .to_owned(),
+                            layer: c.layer.clone(),
+                            component_type: c.ctype.to_string(),
+                            component_name: c.name.clone(),
+                        },
+                        Some(msg),
+                        progress_callback,
+                    )?;
 
                     let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
 
@@ -1066,8 +1088,7 @@ where
         }
     }
 
-
-    updater.commit(Some("committing edges"), progress_callback)?;
+    updater.commit(Some(msg), progress_callback)?;
 
     Ok((pre_to_component, pre_to_edge, text_coverage_edges))
 }
@@ -1084,7 +1105,6 @@ fn load_edge_annotation<F>(
 where
     F: Fn(&str) -> (),
 {
-
     let mut edge_anno_tab_path = PathBuf::from(path);
     edge_anno_tab_path.push(if is_annis_33 {
         "edge_annotation.annis"
@@ -1096,6 +1116,8 @@ where
         "loading {}",
         edge_anno_tab_path.to_str().unwrap_or_default()
     ));
+
+    let msg = "committing edge annotations";
 
     let mut edge_anno_tab_csv = postgresql_import_reader(edge_anno_tab_path.as_path())?;
 
@@ -1109,29 +1131,32 @@ where
                 let name = get_field_str(&line, 2).ok_or("Missing column")?;
                 let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
-                updater.add_event(UpdateEvent::AddEdgeLabel {
-                    source_node: id_to_node_name
-                        .get(&e.source)
-                        .ok_or("Missing node name")?
-                        .to_owned(),
-                    target_node: id_to_node_name
-                        .get(&e.target)
-                        .ok_or("Missing node name")?
-                        .to_owned(),
-                    layer: c.layer.clone(),
-                    component_type: c.ctype.to_string(),
-                    component_name: c.name.clone(),
-                    anno_ns: ns,
-                    anno_name: name,
-                    anno_value: val,
-                }, progress_callback)?;
+                updater.add_event(
+                    UpdateEvent::AddEdgeLabel {
+                        source_node: id_to_node_name
+                            .get(&e.source)
+                            .ok_or("Missing node name")?
+                            .to_owned(),
+                        target_node: id_to_node_name
+                            .get(&e.target)
+                            .ok_or("Missing node name")?
+                            .to_owned(),
+                        layer: c.layer.clone(),
+                        component_type: c.ctype.to_string(),
+                        component_name: c.name.clone(),
+                        anno_ns: ns,
+                        anno_name: name,
+                        anno_value: val,
+                    },
+                    Some(msg),
+                    progress_callback,
+                )?;
             }
         }
     }
 
+    updater.commit(Some(msg), progress_callback)?;
 
-    updater.commit(Some("committing edge annotations"), progress_callback)?;
-    
     Ok(())
 }
 
@@ -1192,6 +1217,7 @@ fn add_subcorpora<F>(
 where
     F: Fn(&str) -> (),
 {
+    let msg = "committing corpus structure";
     // add the toplevel corpus as node
     {
         updater.add_event(
@@ -1199,6 +1225,7 @@ where
                 node_name: corpus_table.toplevel_corpus_name.to_owned(),
                 node_type: "corpus".to_owned(),
             },
+            Some(msg),
             progress_callback,
         )?;
 
@@ -1213,6 +1240,7 @@ where
                             anno_name: anno.key.name.clone(),
                             anno_value: anno.val.clone(),
                         },
+                        Some(msg),
                         progress_callback,
                     )?;
                 }
@@ -1236,6 +1264,7 @@ where
                     node_name: subcorpus_full_name.clone(),
                     node_type: "corpus".to_owned(),
                 },
+                Some(msg),
                 progress_callback,
             )?;
             updater.add_event(
@@ -1245,6 +1274,7 @@ where
                     anno_name: "doc".to_owned(),
                     anno_value: corpus_name.to_owned(),
                 },
+                Some(msg),
                 progress_callback,
             )?;
 
@@ -1258,6 +1288,7 @@ where
                             anno_name: anno.key.name.clone(),
                             anno_value: anno.val.clone(),
                         },
+                        Some(msg),
                         progress_callback,
                     )?;
                 }
@@ -1271,6 +1302,7 @@ where
                     component_type: ComponentType::PartOfSubcorpus.to_string(),
                     component_name: String::default(),
                 },
+                Some(msg),
                 progress_callback,
             )?;
         } // end if not toplevel corpus
@@ -1307,6 +1339,7 @@ where
                     node_name: text_full_name.clone(),
                     node_type: "datasource".to_owned(),
                 },
+                Some(msg),
                 progress_callback,
             )?;
 
@@ -1319,6 +1352,7 @@ where
                     component_type: ComponentType::PartOfSubcorpus.to_string(),
                     component_name: String::default(),
                 },
+                Some(msg),
                 progress_callback,
             )?;
 
@@ -1333,6 +1367,7 @@ where
                             component_type: ComponentType::PartOfSubcorpus.to_string(),
                             component_name: String::default(),
                         },
+                        Some(msg),
                         progress_callback,
                     )?;
                 }
@@ -1340,7 +1375,7 @@ where
         }
     } // end for each text
 
-    updater.commit(Some("committing corpus structure"), progress_callback)?;
+    updater.commit(Some(msg), progress_callback)?;
 
     Ok(())
 }
