@@ -51,6 +51,34 @@ struct TextPosTable {
     node_to_right: BTreeMap<NodeID, TextProperty>,
 }
 
+struct ChunkUpdater<'a> {
+    g: &'a mut Graph,
+    max_number_events: usize,
+    update: GraphUpdate,
+}
+
+impl<'a> ChunkUpdater<'a> {
+    fn new(g : &'a mut Graph, max_number_events: usize) -> ChunkUpdater<'a> {
+        ChunkUpdater {
+            g,
+            max_number_events,
+            update: GraphUpdate::new(),
+        }
+    }
+
+    fn add_event(&mut self, event : UpdateEvent) {
+        if self.update.len() > self.max_number_events {
+            self.commit();
+        }
+        self.update.add_event(event);
+    }
+
+    fn commit(&mut self) {
+        self.g.apply_update(&mut self.update);
+        self.update = GraphUpdate::new();
+    }
+}
+
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
 ///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
