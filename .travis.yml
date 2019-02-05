@@ -4,6 +4,7 @@ rust:
 os:
   - linux
   - osx
+  - windows
 
 dist: trusty
 sudo: required
@@ -49,6 +50,7 @@ script:
 before_deploy:
   - export RELEASE_PKG_FILE=target/release/libgraphannis.so
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dylib ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then export RELEASE_PKG_FILE=target/release/libgraphannis.dll ; fi
 
 
 deploy:
