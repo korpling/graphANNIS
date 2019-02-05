@@ -51,6 +51,54 @@ struct TextPosTable {
     node_to_right: BTreeMap<NodeID, TextProperty>,
 }
 
+struct ChunkUpdater<'a> {
+    g: &'a mut Graph,
+    max_number_events: usize,
+    update: GraphUpdate,
+}
+
+impl<'a> ChunkUpdater<'a> {
+    fn new(g: &'a mut Graph, max_number_events: usize) -> ChunkUpdater<'a> {
+        ChunkUpdater {
+            g,
+            max_number_events,
+            update: GraphUpdate::new(),
+        }
+    }
+
+    fn add_event<F>(
+        &mut self,
+        event: UpdateEvent,
+        message: Option<&str>,
+        progress_callback: &F,
+    ) -> Result<()>
+    where
+        F: Fn(&str),
+    {
+        self.update.add_event(event);
+
+        if self.update.len() >= self.max_number_events {
+            self.commit(message, progress_callback)?;
+        }
+
+        Ok(())
+    }
+
+    fn commit<F>(&mut self, message: Option<&str>, progress_callback: &F) -> Result<()>
+    where
+        F: Fn(&str),
+    {
+        if let Some(message) = message {
+            progress_callback(&format!("{} ({} updates)", message, self.update.len()));
+        } else {
+            progress_callback(&format!("committing {} updates", self.update.len()));
+        }
+        self.g.apply_update(&mut self.update)?;
+        self.update = GraphUpdate::new();
+        Ok(())
+    }
+}
+
 /// Load a c corpus in the legacy relANNIS format from the specified `path`.
 ///
 /// Returns a tuple consisting of the corpus name and the extracted annotation graph.
@@ -74,23 +122,24 @@ where
         };
 
         let mut db = Graph::with_default_graphstorages()?;
+        let mut updater = ChunkUpdater::new(&mut db, 1_000_000);
         let (toplevel_corpus_name, id_to_node_name, textpos_table) = {
             let (toplevel_corpus_name, id_to_node_name, textpos_table) =
-                load_node_and_corpus_tables(&path, &mut db, is_annis_33, &progress_callback)?;
+                load_node_and_corpus_tables(&path, &mut updater, is_annis_33, &progress_callback)?;
 
             (toplevel_corpus_name, id_to_node_name, textpos_table)
         };
         {
             let text_coverage_edges = load_edge_tables(
                 &path,
-                &mut db,
+                &mut updater,
                 is_annis_33,
                 &id_to_node_name,
                 &progress_callback,
             )?;
 
             calculate_automatic_coverage_edges(
-                &mut db,
+                &mut updater,
                 &textpos_table,
                 &id_to_node_name,
                 &text_coverage_edges,
@@ -120,7 +169,7 @@ where
 
 fn load_node_and_corpus_tables<F>(
     path: &PathBuf,
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<(String, FxHashMap<NodeID, String>, TextPosTable)>
@@ -133,7 +182,7 @@ where
 
     let (nodes_by_text, id_to_node_name, textpos_table) = load_nodes(
         path,
-        g,
+        updater,
         &corpus_table.corpus_id_to_name,
         &corpus_table.toplevel_corpus_name,
         is_annis_33,
@@ -141,7 +190,7 @@ where
     )?;
 
     add_subcorpora(
-        g,
+        updater,
         &corpus_table,
         &nodes_by_text,
         &texts,
@@ -160,7 +209,7 @@ where
 
 fn load_edge_tables<F>(
     path: &PathBuf,
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     is_annis_33: bool,
     id_to_node_name: &FxHashMap<NodeID, String>,
     progress_callback: &F,
@@ -173,7 +222,7 @@ where
 
         let (pre_to_component, pre_to_edge, text_coverage_edges) = load_rank_tab(
             path,
-            g,
+            updater,
             &component_by_id,
             id_to_node_name,
             is_annis_33,
@@ -185,7 +234,7 @@ where
 
     load_edge_annotation(
         path,
-        g,
+        updater,
         &pre_to_component,
         &pre_to_edge,
         id_to_node_name,
@@ -314,10 +363,10 @@ where
 }
 
 fn calculate_automatic_token_order<F>(
-    update: &mut GraphUpdate,
+    updater: &mut ChunkUpdater,
     token_by_index: &BTreeMap<TextProperty, NodeID>,
     id_to_node_name: &FxHashMap<NodeID, String>,
-    progress_callback: F,
+    progress_callback: &F,
 ) -> Result<()>
 where
     F: Fn(&str) -> (),
@@ -326,7 +375,8 @@ where
     // iterate over all token by their order, find the nodes with the same
     // text coverage (either left or right) and add explicit Ordering edge
 
-    progress_callback("calculating the automatically generated Ordering edges");
+    let msg = "calculating the automatically generated Ordering edges";
+    progress_callback(msg);
 
     let mut last_textprop: Option<TextProperty> = None;
     let mut last_token: Option<NodeID> = None;
@@ -339,19 +389,23 @@ where
                 && last_textprop.segmentation == current_textprop.segmentation
             {
                 // we are still in the same text, add ordering between token
-                update.add_event(UpdateEvent::AddEdge {
-                    source_node: id_to_node_name
-                        .get(&last_token)
-                        .ok_or("Missing node name")?
-                        .clone(),
-                    target_node: id_to_node_name
-                        .get(current_token)
-                        .ok_or("Missing node name")?
-                        .clone(),
-                    layer: ANNIS_NS.to_owned(),
-                    component_type: ComponentType::Ordering.to_string(),
-                    component_name: current_textprop.segmentation.clone(),
-                });
+                updater.add_event(
+                    UpdateEvent::AddEdge {
+                        source_node: id_to_node_name
+                            .get(&last_token)
+                            .ok_or("Missing node name")?
+                            .clone(),
+                        target_node: id_to_node_name
+                            .get(current_token)
+                            .ok_or("Missing node name")?
+                            .clone(),
+                        layer: ANNIS_NS.to_owned(),
+                        component_type: ComponentType::Ordering.to_string(),
+                        component_name: current_textprop.segmentation.clone(),
+                    },
+                    Some(msg),
+                    progress_callback,
+                )?;
             }
         } // end if same text
 
@@ -360,18 +414,24 @@ where
         last_token = Some(*current_token);
     } // end for each token
 
+    updater.commit(Some(msg), progress_callback)?;
+
     Ok(())
 }
 
-fn add_automatic_cov_edge_for_node(
-    update: &mut GraphUpdate,
+fn add_automatic_cov_edge_for_node<F>(
+    updater: &mut ChunkUpdater,
     n: NodeID,
     left_pos: TextProperty,
     right_pos: TextProperty,
     textpos_table: &TextPosTable,
     id_to_node_name: &FxHashMap<NodeID, String>,
     text_coverage_edges: &BTreeSet<Edge>,
-) -> Result<()> {
+    progress_callback: &F,
+) -> Result<()>
+where
+    F: Fn(&str) -> (),
+{
     // find left/right aligned basic token
     let left_aligned_tok = textpos_table
         .token_by_left_textpos
@@ -455,16 +515,20 @@ fn add_automatic_cov_edge_for_node(
                     ""
                 };
 
-                update.add_event(UpdateEvent::AddEdge {
-                    source_node: id_to_node_name.get(&n).ok_or("Missing node name")?.clone(),
-                    target_node: id_to_node_name
-                        .get(tok_id)
-                        .ok_or("Missing node name")?
-                        .clone(),
-                    layer: ANNIS_NS.to_owned(),
-                    component_type: ComponentType::Coverage.to_string(),
-                    component_name: component_name.to_owned(),
-                });
+                updater.add_event(
+                    UpdateEvent::AddEdge {
+                        source_node: id_to_node_name.get(&n).ok_or("Missing node name")?.clone(),
+                        target_node: id_to_node_name
+                            .get(tok_id)
+                            .ok_or("Missing node name")?
+                            .clone(),
+                        layer: ANNIS_NS.to_owned(),
+                        component_type: ComponentType::Coverage.to_string(),
+                        component_name: component_name.to_owned(),
+                    },
+                    Some("calculating the automatically generated Coverage edges"),
+                    progress_callback,
+                )?;
             }
         }
     }
@@ -473,7 +537,7 @@ fn add_automatic_cov_edge_for_node(
 }
 
 fn calculate_automatic_coverage_edges<F>(
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     textpos_table: &TextPosTable,
     id_to_node_name: &FxHashMap<NodeID, String>,
     text_coverage_edges: &BTreeSet<Edge>,
@@ -484,8 +548,6 @@ where
 {
     // add explicit coverage edges for each node in the special annis namespace coverage component
     progress_callback("calculating the automatically generated Coverage edges");
-
-    let mut update = GraphUpdate::new();
 
     for (n, textprop) in textpos_table.node_to_left.iter() {
         if textprop.segmentation == "" {
@@ -508,13 +570,14 @@ where
                 };
 
                 if let Err(e) = add_automatic_cov_edge_for_node(
-                    &mut update,
+                    updater,
                     *n,
                     left_pos,
                     right_pos,
                     textpos_table,
                     id_to_node_name,
                     text_coverage_edges,
+                    progress_callback,
                 ) {
                     // output a warning but do not fail
                     warn!(
@@ -526,18 +589,17 @@ where
         }
     }
 
-    progress_callback(&format!(
-        "committing {} automatic generated coverage edge updates",
-        update.len()
-    ));
-    g.apply_update(&mut update)?;
+    updater.commit(
+        Some("calculating the automatically generated Coverage edges"),
+        progress_callback,
+    )?;
 
     Ok(())
 }
 
 fn load_node_tab<F>(
     path: &PathBuf,
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
@@ -551,8 +613,6 @@ fn load_node_tab<F>(
 where
     F: Fn(&str) -> (),
 {
-    let mut update = GraphUpdate::new();
-
     let mut nodes_by_text: MultiMap<TextKey, NodeID> = MultiMap::new();
     let mut missing_seg_span: BTreeMap<NodeID, String> = BTreeMap::new();
     let mut id_to_node_name: FxHashMap<NodeID, String> = FxHashMap::default();
@@ -568,6 +628,8 @@ where
         "loading {}",
         node_tab_path.to_str().unwrap_or_default()
     ));
+
+    let msg = "committing nodes";
 
     // map the "left" value to the nodes it belongs to
     let mut left_to_node: MultiMap<TextProperty, NodeID> = MultiMap::new();
@@ -612,19 +674,27 @@ where
                 .ok_or_else(|| format!("Document with ID {} missing", corpus_id))?;
 
             let node_qname = format!("{}/{}#{}", toplevel_corpus_name, doc_name, node_name);
-            update.add_event(UpdateEvent::AddNode {
-                node_name: node_qname.clone(),
-                node_type: "node".to_owned(),
-            });
+            updater.add_event(
+                UpdateEvent::AddNode {
+                    node_name: node_qname.clone(),
+                    node_type: "node".to_owned(),
+                },
+                Some(msg),
+                progress_callback,
+            )?;
             id_to_node_name.insert(node_nr, node_qname.clone());
 
             if !layer.is_empty() && layer != "NULL" {
-                update.add_event(UpdateEvent::AddNodeLabel {
-                    node_name: node_qname.clone(),
-                    anno_ns: ANNIS_NS.to_owned(),
-                    anno_name: "layer".to_owned(),
-                    anno_value: layer,
-                });
+                updater.add_event(
+                    UpdateEvent::AddNodeLabel {
+                        node_name: node_qname.clone(),
+                        anno_ns: ANNIS_NS.to_owned(),
+                        anno_name: "layer".to_owned(),
+                        anno_value: layer,
+                    },
+                    Some(msg),
+                    progress_callback,
+                )?;
             }
 
             // Use left/right token columns for relANNIS 3.3 and the left/right character column otherwise.
@@ -665,12 +735,16 @@ where
                     get_field_str(&line, 9).ok_or("Missing column")?
                 };
 
-                update.add_event(UpdateEvent::AddNodeLabel {
-                    node_name: node_qname,
-                    anno_ns: ANNIS_NS.to_owned(),
-                    anno_name: TOK.to_owned(),
-                    anno_value: span,
-                });
+                updater.add_event(
+                    UpdateEvent::AddNodeLabel {
+                        node_name: node_qname,
+                        anno_ns: ANNIS_NS.to_owned(),
+                        anno_name: TOK.to_owned(),
+                        anno_value: span,
+                    },
+                    Some(msg),
+                    progress_callback,
+                )?;
 
                 let index = TextProperty {
                     segmentation: String::from(""),
@@ -698,12 +772,16 @@ where
 
                     if is_annis_33 {
                         // directly add the span information
-                        update.add_event(UpdateEvent::AddNodeLabel {
-                            node_name: node_qname,
-                            anno_ns: ANNIS_NS.to_owned(),
-                            anno_name: TOK.to_owned(),
-                            anno_value: get_field_str(&line, 12).ok_or("Missing column")?,
-                        });
+                        updater.add_event(
+                            UpdateEvent::AddNodeLabel {
+                                node_name: node_qname,
+                                anno_ns: ANNIS_NS.to_owned(),
+                                anno_name: TOK.to_owned(),
+                                anno_value: get_field_str(&line, 12).ok_or("Missing column")?,
+                            },
+                            Some(msg),
+                            progress_callback,
+                        )?;
                     } else {
                         // we need to get the span information from the node_annotation file later
                         missing_seg_span.insert(node_nr, segmentation_name.clone());
@@ -721,17 +799,16 @@ where
         }
     } // end "scan all lines" visibility block
 
+    updater.commit(Some(msg), progress_callback)?;
+
     if !textpos_table.token_by_index.is_empty() {
         calculate_automatic_token_order(
-            &mut update,
+            updater,
             &textpos_table.token_by_index,
             &id_to_node_name,
             progress_callback,
         )?;
     } // end if token_by_index not empty
-
-    progress_callback(&format!("committing {} node updates", update.len()));
-    g.apply_update(&mut update)?;
 
     Ok((
         nodes_by_text,
@@ -743,7 +820,7 @@ where
 
 fn load_node_anno_tab<F>(
     path: &PathBuf,
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     missing_seg_span: &BTreeMap<NodeID, String>,
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
@@ -752,8 +829,6 @@ fn load_node_anno_tab<F>(
 where
     F: Fn(&str) -> (),
 {
-    let mut update = GraphUpdate::new();
-
     let mut node_anno_tab_path = PathBuf::from(path);
     node_anno_tab_path.push(if is_annis_33 {
         "node_annotation.annis"
@@ -765,6 +840,8 @@ where
         "loading {}",
         node_anno_tab_path.to_str().unwrap_or_default()
     ));
+
+    let msg = "committing node annotations";
 
     let mut node_anno_tab_csv = postgresql_import_reader(node_anno_tab_path.as_path())?;
 
@@ -786,34 +863,38 @@ where
                 col_val
             };
 
-            update.add_event(UpdateEvent::AddNodeLabel {
-                node_name: node_name.clone(),
-                anno_ns: col_ns,
-                anno_name: col_name,
-                anno_value: anno_val.clone(),
-            });
+            updater.add_event(
+                UpdateEvent::AddNodeLabel {
+                    node_name: node_name.clone(),
+                    anno_ns: col_ns,
+                    anno_name: col_name,
+                    anno_value: anno_val.clone(),
+                },
+                Some(msg),
+                progress_callback,
+            )?;
 
             // add all missing span values from the annotation, but don't add NULL values
             if let Some(seg) = missing_seg_span.get(&node_id) {
                 if seg == &get_field_str(&line, 2).ok_or("Missing column")?
                     && get_field_str(&line, 3).ok_or("Missing column")? != "NULL"
                 {
-                    update.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: node_name.clone(),
-                        anno_ns: ANNIS_NS.to_owned(),
-                        anno_name: TOK.to_owned(),
-                        anno_value: anno_val,
-                    });
+                    updater.add_event(
+                        UpdateEvent::AddNodeLabel {
+                            node_name: node_name.clone(),
+                            anno_ns: ANNIS_NS.to_owned(),
+                            anno_name: TOK.to_owned(),
+                            anno_value: anno_val,
+                        },
+                        Some(msg),
+                        progress_callback,
+                    )?;
                 }
             }
         }
     }
 
-    progress_callback(&format!(
-        "committing {} node annotation updates",
-        update.len()
-    ));
-    g.apply_update(&mut update)?;
+    updater.commit(Some(msg), progress_callback)?;
 
     Ok(())
 }
@@ -863,7 +944,7 @@ where
 
 fn load_nodes<F>(
     path: &PathBuf,
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     corpus_id_to_name: &BTreeMap<u32, String>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
@@ -878,21 +959,24 @@ where
 {
     let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) = load_node_tab(
         path,
-        g,
+        updater,
         corpus_id_to_name,
         toplevel_corpus_name,
         is_annis_33,
         progress_callback,
     )?;
 
-    for order_component in g.get_all_components(Some(ComponentType::Ordering), None) {
-        g.calculate_component_statistics(&order_component)?;
-        g.optimize_impl(&order_component);
+    for order_component in updater
+        .g
+        .get_all_components(Some(ComponentType::Ordering), None)
+    {
+        updater.g.calculate_component_statistics(&order_component)?;
+        updater.g.optimize_impl(&order_component);
     }
 
     load_node_anno_tab(
         path,
-        g,
+        updater,
         &missing_seg_span,
         &id_to_node_name,
         is_annis_33,
@@ -904,7 +988,7 @@ where
 
 fn load_rank_tab<F>(
     path: &PathBuf,
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     component_by_id: &BTreeMap<u32, Component>,
     id_to_node_name: &FxHashMap<NodeID, String>,
     is_annis_33: bool,
@@ -917,7 +1001,6 @@ fn load_rank_tab<F>(
 where
     F: Fn(&str) -> (),
 {
-    let mut update = GraphUpdate::new();
     let mut text_coverage_edges: BTreeSet<Edge> = BTreeSet::default();
 
     let mut rank_tab_path = PathBuf::from(path);
@@ -952,6 +1035,8 @@ where
     // second run: get the actual edges
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
 
+    let msg = "committing edges";
+    
     for result in rank_tab_csv.records() {
         let line = result?;
 
@@ -967,19 +1052,23 @@ where
                 if let Some(c) = component_by_id.get(&component_ref) {
                     let target: NodeID = line.get(pos_node_ref).ok_or("Missing column")?.parse()?;
 
-                    update.add_event(UpdateEvent::AddEdge {
-                        source_node: id_to_node_name
-                            .get(&source)
-                            .ok_or("Missing node name")?
-                            .to_owned(),
-                        target_node: id_to_node_name
-                            .get(&target)
-                            .ok_or("Missing node name")?
-                            .to_owned(),
-                        layer: c.layer.clone(),
-                        component_type: c.ctype.to_string(),
-                        component_name: c.name.clone(),
-                    });
+                    updater.add_event(
+                        UpdateEvent::AddEdge {
+                            source_node: id_to_node_name
+                                .get(&source)
+                                .ok_or("Missing node name")?
+                                .to_owned(),
+                            target_node: id_to_node_name
+                                .get(&target)
+                                .ok_or("Missing node name")?
+                                .to_owned(),
+                            layer: c.layer.clone(),
+                            component_type: c.ctype.to_string(),
+                            component_name: c.name.clone(),
+                        },
+                        Some(msg),
+                        progress_callback,
+                    )?;
 
                     let pre: u32 = line.get(0).ok_or("Missing column")?.parse()?;
 
@@ -999,15 +1088,14 @@ where
         }
     }
 
-    progress_callback(&format!("committing {} edge updates", update.len()));
-    g.apply_update(&mut update)?;
+    updater.commit(Some(msg), progress_callback)?;
 
     Ok((pre_to_component, pre_to_edge, text_coverage_edges))
 }
 
 fn load_edge_annotation<F>(
     path: &PathBuf,
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     pre_to_component: &BTreeMap<u32, Component>,
     pre_to_edge: &BTreeMap<u32, Edge>,
     id_to_node_name: &FxHashMap<NodeID, String>,
@@ -1017,8 +1105,6 @@ fn load_edge_annotation<F>(
 where
     F: Fn(&str) -> (),
 {
-    let mut update = GraphUpdate::new();
-
     let mut edge_anno_tab_path = PathBuf::from(path);
     edge_anno_tab_path.push(if is_annis_33 {
         "edge_annotation.annis"
@@ -1030,6 +1116,8 @@ where
         "loading {}",
         edge_anno_tab_path.to_str().unwrap_or_default()
     ));
+
+    let msg = "committing edge annotations";
 
     let mut edge_anno_tab_csv = postgresql_import_reader(edge_anno_tab_path.as_path())?;
 
@@ -1043,31 +1131,31 @@ where
                 let name = get_field_str(&line, 2).ok_or("Missing column")?;
                 let val = get_field_str(&line, 3).ok_or("Missing column")?;
 
-                update.add_event(UpdateEvent::AddEdgeLabel {
-                    source_node: id_to_node_name
-                        .get(&e.source)
-                        .ok_or("Missing node name")?
-                        .to_owned(),
-                    target_node: id_to_node_name
-                        .get(&e.target)
-                        .ok_or("Missing node name")?
-                        .to_owned(),
-                    layer: c.layer.clone(),
-                    component_type: c.ctype.to_string(),
-                    component_name: c.name.clone(),
-                    anno_ns: ns,
-                    anno_name: name,
-                    anno_value: val,
-                });
+                updater.add_event(
+                    UpdateEvent::AddEdgeLabel {
+                        source_node: id_to_node_name
+                            .get(&e.source)
+                            .ok_or("Missing node name")?
+                            .to_owned(),
+                        target_node: id_to_node_name
+                            .get(&e.target)
+                            .ok_or("Missing node name")?
+                            .to_owned(),
+                        layer: c.layer.clone(),
+                        component_type: c.ctype.to_string(),
+                        component_name: c.name.clone(),
+                        anno_ns: ns,
+                        anno_name: name,
+                        anno_value: val,
+                    },
+                    Some(msg),
+                    progress_callback,
+                )?;
             }
         }
     }
 
-    progress_callback(&format!(
-        "committing {} edge annotation updates",
-        update.len()
-    ));
-    g.apply_update(&mut update)?;
+    updater.commit(Some(msg), progress_callback)?;
 
     Ok(())
 }
@@ -1117,7 +1205,7 @@ where
 }
 
 fn add_subcorpora<F>(
-    g: &mut Graph,
+    updater: &mut ChunkUpdater,
     corpus_table: &ParsedCorpusTable,
     nodes_by_text: &MultiMap<TextKey, NodeID>,
     texts: &HashMap<TextKey, Text>,
@@ -1129,25 +1217,32 @@ fn add_subcorpora<F>(
 where
     F: Fn(&str) -> (),
 {
-    let mut update = GraphUpdate::new();
-
+    let msg = "committing corpus structure";
     // add the toplevel corpus as node
     {
-        update.add_event(UpdateEvent::AddNode {
-            node_name: corpus_table.toplevel_corpus_name.to_owned(),
-            node_type: "corpus".to_owned(),
-        });
+        updater.add_event(
+            UpdateEvent::AddNode {
+                node_name: corpus_table.toplevel_corpus_name.to_owned(),
+                node_type: "corpus".to_owned(),
+            },
+            Some(msg),
+            progress_callback,
+        )?;
 
         // add all metadata for the top-level corpus node
         if let Some(cid) = corpus_table.corpus_by_preorder.get(&0) {
             if let Some(anno_vec) = corpus_id_to_annos.get_vec(cid) {
                 for anno in anno_vec {
-                    update.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: corpus_table.toplevel_corpus_name.to_owned(),
-                        anno_ns: anno.key.ns.clone(),
-                        anno_name: anno.key.name.clone(),
-                        anno_value: anno.val.clone(),
-                    });
+                    updater.add_event(
+                        UpdateEvent::AddNodeLabel {
+                            node_name: corpus_table.toplevel_corpus_name.to_owned(),
+                            anno_ns: anno.key.ns.clone(),
+                            anno_name: anno.key.name.clone(),
+                            anno_value: anno.val.clone(),
+                        },
+                        Some(msg),
+                        progress_callback,
+                    )?;
                 }
             }
         }
@@ -1164,36 +1259,52 @@ where
                 format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
 
             // add a basic node labels for the new (sub-) corpus/document
-            update.add_event(UpdateEvent::AddNode {
-                node_name: subcorpus_full_name.clone(),
-                node_type: "corpus".to_owned(),
-            });
-            update.add_event(UpdateEvent::AddNodeLabel {
-                node_name: subcorpus_full_name.clone(),
-                anno_ns: ANNIS_NS.to_owned(),
-                anno_name: "doc".to_owned(),
-                anno_value: corpus_name.to_owned(),
-            });
+            updater.add_event(
+                UpdateEvent::AddNode {
+                    node_name: subcorpus_full_name.clone(),
+                    node_type: "corpus".to_owned(),
+                },
+                Some(msg),
+                progress_callback,
+            )?;
+            updater.add_event(
+                UpdateEvent::AddNodeLabel {
+                    node_name: subcorpus_full_name.clone(),
+                    anno_ns: ANNIS_NS.to_owned(),
+                    anno_name: "doc".to_owned(),
+                    anno_value: corpus_name.to_owned(),
+                },
+                Some(msg),
+                progress_callback,
+            )?;
 
             // add all metadata for the document node
             if let Some(anno_vec) = corpus_id_to_annos.get_vec(&corpus_id) {
                 for anno in anno_vec {
-                    update.add_event(UpdateEvent::AddNodeLabel {
-                        node_name: subcorpus_full_name.clone(),
-                        anno_ns: anno.key.ns.clone(),
-                        anno_name: anno.key.name.clone(),
-                        anno_value: anno.val.clone(),
-                    });
+                    updater.add_event(
+                        UpdateEvent::AddNodeLabel {
+                            node_name: subcorpus_full_name.clone(),
+                            anno_ns: anno.key.ns.clone(),
+                            anno_name: anno.key.name.clone(),
+                            anno_value: anno.val.clone(),
+                        },
+                        Some(msg),
+                        progress_callback,
+                    )?;
                 }
             }
             // add an edge from the document (or sub-corpus) to the top-level corpus
-            update.add_event(UpdateEvent::AddEdge {
-                source_node: subcorpus_full_name.clone(),
-                target_node: corpus_table.toplevel_corpus_name.to_owned(),
-                layer: ANNIS_NS.to_owned(),
-                component_type: ComponentType::PartOfSubcorpus.to_string(),
-                component_name: String::default(),
-            });
+            updater.add_event(
+                UpdateEvent::AddEdge {
+                    source_node: subcorpus_full_name.clone(),
+                    target_node: corpus_table.toplevel_corpus_name.to_owned(),
+                    layer: ANNIS_NS.to_owned(),
+                    component_type: ComponentType::PartOfSubcorpus.to_string(),
+                    component_name: String::default(),
+                },
+                Some(msg),
+                progress_callback,
+            )?;
         } // end if not toplevel corpus
     } // end for each document/sub-corpus
 
@@ -1223,40 +1334,48 @@ where
                 corpus_table.toplevel_corpus_name, corpus_name, text_name
             );
 
-            update.add_event(UpdateEvent::AddNode {
-                node_name: text_full_name.clone(),
-                node_type: "datasource".to_owned(),
-            });
+            updater.add_event(
+                UpdateEvent::AddNode {
+                    node_name: text_full_name.clone(),
+                    node_type: "datasource".to_owned(),
+                },
+                Some(msg),
+                progress_callback,
+            )?;
 
             // add an edge from the text to the document
-            update.add_event(UpdateEvent::AddEdge {
-                source_node: text_full_name.clone(),
-                target_node: subcorpus_full_name,
-                layer: ANNIS_NS.to_owned(),
-                component_type: ComponentType::PartOfSubcorpus.to_string(),
-                component_name: String::default(),
-            });
+            updater.add_event(
+                UpdateEvent::AddEdge {
+                    source_node: text_full_name.clone(),
+                    target_node: subcorpus_full_name,
+                    layer: ANNIS_NS.to_owned(),
+                    component_type: ComponentType::PartOfSubcorpus.to_string(),
+                    component_name: String::default(),
+                },
+                Some(msg),
+                progress_callback,
+            )?;
 
             // find all nodes belonging to this text and add a relation
             if let Some(n_vec) = nodes_by_text.get_vec(text_key) {
                 for n in n_vec {
-                    update.add_event(UpdateEvent::AddEdge {
-                        source_node: id_to_node_name.get(n).ok_or("Missing node name")?.clone(),
-                        target_node: text_full_name.clone(),
-                        layer: ANNIS_NS.to_owned(),
-                        component_type: ComponentType::PartOfSubcorpus.to_string(),
-                        component_name: String::default(),
-                    });
+                    updater.add_event(
+                        UpdateEvent::AddEdge {
+                            source_node: id_to_node_name.get(n).ok_or("Missing node name")?.clone(),
+                            target_node: text_full_name.clone(),
+                            layer: ANNIS_NS.to_owned(),
+                            component_type: ComponentType::PartOfSubcorpus.to_string(),
+                            component_name: String::default(),
+                        },
+                        Some(msg),
+                        progress_callback,
+                    )?;
                 }
             }
         }
     } // end for each text
 
-    progress_callback(&format!(
-        "committing {} corpus structure updates",
-        update.len()
-    ));
-    g.apply_update(&mut update)?;
+    updater.commit(Some(msg), progress_callback)?;
 
     Ok(())
 }
