@@ -66,16 +66,19 @@ impl<'a> ChunkUpdater<'a> {
         }
     }
 
-    fn add_event(&mut self, event : UpdateEvent) {
+    fn add_event(&mut self, event : UpdateEvent) -> Result<()> {
         if self.update.len() > self.max_number_events {
-            self.commit();
+            self.commit()?;
         }
         self.update.add_event(event);
+
+        Ok(())
     }
 
-    fn commit(&mut self) {
-        self.g.apply_update(&mut self.update);
+    fn commit(&mut self) -> Result<()> {
+        self.g.apply_update(&mut self.update)?;
         self.update = GraphUpdate::new();
+        Ok(())
     }
 }
 
