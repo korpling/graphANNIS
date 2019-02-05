@@ -408,6 +408,9 @@ where
         last_token = Some(*current_token);
     } // end for each token
 
+    updater.commit(Some("committing the automatically generated Ordering edges"), progress_callback)?;
+
+
     Ok(())
 }
 
@@ -782,6 +785,8 @@ where
         }
     } // end "scan all lines" visibility block
 
+    updater.commit(Some("committing nodes"), progress_callback)?;
+
     if !textpos_table.token_by_index.is_empty() {
         calculate_automatic_token_order(
             updater,
@@ -792,7 +797,6 @@ where
     } // end if token_by_index not empty
 
 
-    updater.commit(Some("committing nodes"), progress_callback)?;
 
     Ok((
         nodes_by_text,
