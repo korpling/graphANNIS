@@ -574,7 +574,7 @@ impl Graph {
         text_coverage_components
             .extend(self.get_all_components(Some(ComponentType::Dominance), Some("")));
         text_coverage_components
-            .extend(self.get_all_components(Some(ComponentType::Coverage), Some("")));
+            .extend(self.get_all_components(Some(ComponentType::Coverage), None));
 
         for (id, change) in u.consistent_changes() {
             trace!("applying event {:?}", &change);
@@ -1402,7 +1402,7 @@ impl Graph {
             };
 
             for (c, _) in self.components.range(ckey..) {
-                if c.name != name {
+                if c.name != name || c.ctype != *ctype {
                     break;
                 }
                 result.push(c.clone());

@@ -1,3 +1,12 @@
+release 0.17.2
+==============
+
+Fixed Bugs
+----------
+
+- [#70](https://github.com/korpling/graphANNIS/issues/70) get_all_components() returns all components with matching name if none with the same type exist
+
+
 release 0.17.1
 ==============
 
