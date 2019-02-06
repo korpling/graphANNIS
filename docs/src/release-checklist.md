@@ -15,7 +15,7 @@ This means that if a language bindings adds a feature, that has been released in
    - `cargo release patch` for hotfixes updates (e.g. 1.0.0 to 1.0.1)
    - `cargo release minor` for minor updates (e.g. 1.0.1 to 1.1.0)
    - `cargo release major` for major updates (e.g. 1.1.0 to 2.0.0)
-4. **merge** the release branch both into the master and develop branch then delete the release branch.
+4. **Merge** the release branch both into the master and develop branch then delete the release branch.
 5.  Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
 6.  Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
 
