@@ -3,4 +3,7 @@ sign-commit = true
 tag-prefix = "v"
 no-dev-version = true
 pre-release-hook = ["cargo", "test"]
-pre-release-replacements = [ {file="CHANGELOG.md", search="Unreleased", replace="{{version}}"}, {file="CHANGELOG.md", search="ReleaseDate", replace="{{date}}"} ]
+pre-release-replacements = [ 
+    {file="CHANGELOG.md", search="Unreleased", replace="{{version}}"},
+    {file="CHANGELOG.md", search="ReleaseDate", replace="{{date}}"} 
+]
