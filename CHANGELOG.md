@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Release process is now using the [cargo-release](https://crates.io/crates/cargo-release) script
+
 ### Changed
 
 - Separate the update events in smaller chunks for relANNIS import to save memory
