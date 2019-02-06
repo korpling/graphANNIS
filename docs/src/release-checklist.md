@@ -10,16 +10,15 @@ This means that if a language bindings adds a feature, that has been released in
 ## Core library release
 
 1. Make a new **release branch** `release/<version>` from the `develop` branch for feature releases. If you make a bug-fix release create a branch named `hotfix/<version>` from the `master` branch.
-2. **Test** with `cargo test` and eventually some manual tests.
-3. **Update BOM.txt** by executing `cargo bom > BOM.txt`
-4. Close the corresponding **GitHub milestone** and remember its ID
-5. Update and commit the **`CHANGELOG.md`** file by executing `./misc/changelog.py <milestone-id>` and pasting the result into the changelog
-6. **Release** the branch with the [cargo-release plugin](https://crates.io/crates/cargo-release)
-7. - `cargo release patch` for hotfixes updates 
-   - `cargo release minor` for minor updates 
-   - `cargo release major` for major updates
-8.  Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
-9.  Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
+2. Close the corresponding **GitHub milestone** and remember its ID
+3. Update and commit the **`CHANGELOG.md`** file by executing `./misc/changelog.py <milestone-id>` and pasting the result into the changelog
+4. **Release** the branch with the [cargo-release plugin](https://crates.io/crates/cargo-release)
+   - `cargo release patch` for hotfixes updates (e.g. 1.0.0 to 1.0.1)
+   - `cargo release minor` for minor updates (e.g. 1.0.1 to 1.1.0)
+   - `cargo release major` for major updates (e.g. 1.1.0 to 2.0.0)
+5. **merge** the release branch both into the master and develop branch then delete the release branch.
+6.  Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
+7.  Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
 
 ## Python wrapper release
 
