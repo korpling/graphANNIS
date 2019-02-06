@@ -1,0 +1,4 @@
+upload-doc = false
+sign-commit = true
+tag-prefix = "v"
+no-dev-version = true
