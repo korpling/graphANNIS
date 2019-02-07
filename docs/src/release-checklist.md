@@ -10,19 +10,14 @@ This means that if a language bindings adds a feature, that has been released in
 ## Core library release
 
 1. Make a new **release branch** `release/<version>` from the `develop` branch for feature releases. If you make a bug-fix release create a branch named `hotfix/<version>` from the `master` branch.
-2. **Update version** information, by 
-   - changing and committing the `version` field in the `Cargo.toml` file
-   - changing and committing the link to the developer guide in `README.md`
-   - running `cargo build` to update your local `Cargo.lock` file (even if this file is not committed to Git)
-3. **Update BOM.txt** by executing `cargo bom > BOM.txt`
-4. **Test** with `cargo test` and eventually some manual tests.
-5. **Test publishing** with `cargo publish --dry-run --allow-dirty`
-6. Close the corresponding **GitHub milestone** and remember its ID
-7. Update and commit the **`CHANGELOG.md`** file by executing `./misc/changelog.py <milestone-id>` and pasting the result into the changelog
-8. **Tag** the latest commit with the prefix `v`, e.g. `v1.4.0`, **merge** the release branch both into the `master` and `develop`, branch then delete the release branch and **push** all changes.
-9. Publish the checked out `master` branch to **crates.io** with `cargo publish`
-10. Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
-11. Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
+2. If this is a major or minor release, **update the link to the Developer Guide** documentation in the `README.md` to point to the new version short version, omitting the patch level and with adding a "v" prefix (e.g. https://korpling.github.io/graphANNIS/docs/v1.0/)
+3. **Release** the branch with the [cargo-release plugin](https://crates.io/crates/cargo-release)
+   - `cargo release patch` for hotfixes updates (e.g. 1.0.0 to 1.0.1)
+   - `cargo release minor` for minor updates (e.g. 1.0.1 to 1.1.0)
+   - `cargo release major` for major updates (e.g. 1.1.0 to 2.0.0)
+4. **Merge** the release branch both into the master and develop branch then delete the release branch.
+5.  Create the **release on GitHub**, copy the changelog entry as release notes. Save the release as draft
+6.  Wait for Continuous Integration to finish building the release artifacts for all systems and then **publish the drafted release**
 
 ## Python wrapper release
 
