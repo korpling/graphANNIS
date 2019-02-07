@@ -820,7 +820,7 @@ impl CorpusStorage {
     ) -> Result<String> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
-        // accuire read-only lock and plan
+        // acquire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
@@ -842,7 +842,7 @@ impl CorpusStorage {
     ) -> Result<u64> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
-        // accuire read-only lock and execute query
+        // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
@@ -863,7 +863,7 @@ impl CorpusStorage {
     ) -> Result<CountExtra> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
-        // accuire read-only lock and execute query
+        // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db: &Graph = get_read_or_error(&lock)?;
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &self.query_config)?;
@@ -927,7 +927,7 @@ impl CorpusStorage {
         };
         let prep = self.prepare_query(corpus_name, query, query_language, vec![order_component])?;
 
-        // accuire read-only lock and execute query
+        // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
 
@@ -1369,7 +1369,7 @@ impl CorpusStorage {
     ) -> Result<FrequencyTable<String>> {
         let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
 
-        // accuire read-only lock and execute query
+        // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
         let db: &Graph = get_read_or_error(&lock)?;
 
@@ -1821,7 +1821,7 @@ fn extract_subgraph_by_query(
     query_config: &query::Config,
     component_type_filter: Option<ComponentType>,
 ) -> Result<Graph> {
-    // accuire read-only lock and create query that finds the context nodes
+    // acquire read-only lock and create query that finds the context nodes
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
@@ -1922,7 +1922,7 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         })?;
     lock_file.try_lock_exclusive().chain_err(|| {
         format!(
-            "Could not accuire lock for directory {}",
+            "Could not acquire lock for directory {}",
             db_dir.to_string_lossy()
         )
     })?;

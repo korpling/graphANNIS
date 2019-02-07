@@ -1129,7 +1129,7 @@ impl Graph {
         // TODO: friendly abort any currently running thread
 
         if let Some(ref location) = self.location {
-            // Accuire lock, so that only one thread can write background data at the same time
+            // Acquire lock, so that only one thread can write background data at the same time
             let _lock = self.background_persistance.lock().unwrap();
 
             // Move the old corpus to the backup sub-folder. When the corpus is loaded again and there is backup folder
