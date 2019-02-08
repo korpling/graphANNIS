@@ -1077,31 +1077,28 @@ impl CorpusStorage {
                 &source_node_id
             };
 
-            // left context (non-token)
+            let m = NodeSearchSpec::ExactValue {
+                ns: Some(db::ANNIS_NS.to_string()),
+                name: db::NODE_NAME.to_string(),
+                val: Some(source_node_id.to_string()),
+                is_meta: false,
+            };
+
+            // nodes overlapping the match: m _o_ node
             {
-                let mut q_left: Conjunction = Conjunction::new();
+                let mut q = Conjunction::new();
+                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+                let m_idx = q.add_node(m.clone(), None);
+                q.add_operator(Box::new(operators::OverlapSpec {}), &m_idx, &node_idx, true)?;
+                query.alternatives.push(q);
+            }
+            // tokens left of match: tok .0,ctx_left m
+            {
+                let mut q = Conjunction::new();
+                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+                let m_idx = q.add_node(m.clone(), None);
 
-                let any_node_idx = q_left.add_node(NodeSearchSpec::AnyNode, None);
-
-                let n_idx = q_left.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
-                        val: Some(source_node_id.to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
-                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
-
-                q_left.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &n_idx,
-                    &tok_covered_idx,
-                    true,
-                )?;
-                q_left.add_operator(
+                q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         dist: RangeSpec::Bound {
@@ -1109,44 +1106,27 @@ impl CorpusStorage {
                             max_dist: ctx_left,
                         },
                     }),
-                    &tok_precedence_idx,
-                    &tok_covered_idx,
+                    &tok_idx,
+                    &m_idx,
                     true,
                 )?;
-                q_left.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &any_node_idx,
-                    &tok_precedence_idx,
-                    true,
-                )?;
-
-                query.alternatives.push(q_left);
+                query.alternatives.push(q);
             }
 
-            // left context (token onlys)
+            // nodes overlapping tokens left of match: node _o_ tok .0,ctx_left m
             {
-                let mut q_left: Conjunction = Conjunction::new();
+                let mut q = Conjunction::new();
 
-                let tok_precedence_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
-
-                let n_idx = q_left.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
-                        val: Some(source_node_id.to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let tok_covered_idx = q_left.add_node(NodeSearchSpec::AnyToken, None);
-
-                q_left.add_operator(
+                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+                let m_idx = q.add_node(m.clone(), None);
+                q.add_operator(
                     Box::new(operators::OverlapSpec {}),
-                    &n_idx,
-                    &tok_covered_idx,
+                    &node_idx,
+                    &tok_idx,
                     true,
                 )?;
-                q_left.add_operator(
+                q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         dist: RangeSpec::Bound {
@@ -1154,39 +1134,20 @@ impl CorpusStorage {
                             max_dist: ctx_left,
                         },
                     }),
-                    &tok_precedence_idx,
-                    &tok_covered_idx,
+                    &tok_idx,
+                    &m_idx,
                     true,
                 )?;
-
-                query.alternatives.push(q_left);
+                query.alternatives.push(q);
             }
-
-            // right context (non-token)
+            // tokens right of match: m .0,ctx_right tok
             {
-                let mut q_right: Conjunction = Conjunction::new();
+                let mut q = Conjunction::new();
 
-                let any_node_idx = q_right.add_node(NodeSearchSpec::AnyNode, None);
+                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+                let m_idx = q.add_node(m.clone(), None);
 
-                let n_idx = q_right.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
-                        val: Some(source_node_id.to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
-                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
-
-                q_right.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &n_idx,
-                    &tok_covered_idx,
-                    true,
-                )?;
-                q_right.add_operator(
+                q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         dist: RangeSpec::Bound {
@@ -1194,44 +1155,22 @@ impl CorpusStorage {
                             max_dist: ctx_right,
                         },
                     }),
-                    &tok_covered_idx,
-                    &tok_precedence_idx,
+                    &m_idx,
+                    &tok_idx,
                     true,
                 )?;
-                q_right.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &any_node_idx,
-                    &tok_precedence_idx,
-                    true,
-                )?;
-
-                query.alternatives.push(q_right);
+                query.alternatives.push(q);
             }
 
-            // right context (token only)
+            // nodes overlapping tokens right of match: m .0,ctx_right node _o_ tok
             {
-                let mut q_right: Conjunction = Conjunction::new();
-
-                let tok_precedence_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
-
-                let n_idx = q_right.add_node(
-                    NodeSearchSpec::ExactValue {
-                        ns: Some(db::ANNIS_NS.to_string()),
-                        name: db::NODE_NAME.to_string(),
-                        val: Some(source_node_id.to_string()),
-                        is_meta: false,
-                    },
-                    None,
-                );
-                let tok_covered_idx = q_right.add_node(NodeSearchSpec::AnyToken, None);
-
-                q_right.add_operator(
-                    Box::new(operators::OverlapSpec {}),
-                    &n_idx,
-                    &tok_covered_idx,
-                    true,
-                )?;
-                q_right.add_operator(
+                let mut q = Conjunction::new();
+                
+                let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
+                let m_idx = q.add_node(m.clone(), None);
+                let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
+ 
+                q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
                         dist: RangeSpec::Bound {
@@ -1239,12 +1178,17 @@ impl CorpusStorage {
                             max_dist: ctx_right,
                         },
                     }),
-                    &tok_covered_idx,
-                    &tok_precedence_idx,
+                    &m_idx,
+                    &tok_idx,
                     true,
                 )?;
-
-                query.alternatives.push(q_right);
+                q.add_operator(
+                    Box::new(operators::OverlapSpec {}),
+                    &tok_idx,
+                    &node_idx,
+                    true,
+                )?;
+                query.alternatives.push(q);
             }
         }
         extract_subgraph_by_query(&db_entry, &query, &[0], &self.query_config, None)
@@ -1876,8 +1820,9 @@ fn create_subgraph_edge(
     for c in components {
         // don't include index components
         if !(c.ctype == ComponentType::Coverage && c.layer == "annis" && c.name != "")
-        && !(c.ctype == ComponentType::LeftToken)
-        && !(c.ctype == ComponentType::RightToken) {
+            && !(c.ctype == ComponentType::LeftToken)
+            && !(c.ctype == ComponentType::RightToken)
+        {
             if let Some(orig_gs) = orig_db.get_graphstorage(c) {
                 for target in orig_gs.get_outgoing_edges(source_id) {
                     if !db.node_annos.get_all_keys_for_item(&target).is_empty() {
