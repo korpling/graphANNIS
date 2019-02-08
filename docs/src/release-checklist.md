@@ -36,8 +36,8 @@ Continuous Integration will automatically deploy all released versions on the `m
 
 ## Java wrapper release
 
-1. **Start** the release process with `mvn jgitflow:release-start`
+1. **Start** the release process with `mvn jgitflow:release-start` or `mvn jgitflow:hotfix-start`
 2. **Download** release artifacts from the core library: `./misc/download-release-binaries.sh <version-tag>`
 3. **Test** with `mvn test`
-4. **Finish** the release process with `mvn jgitflow:release-finish`
+4. **Finish** the release process with `mvn jgitflow:release-finish` or `mvn jgitflow:hotfix-finish`
 5. **Close and Release** the staging repository to Maven Central with the Nexus interface: [https://oss.sonatype.org/](https://oss.sonatype.org/)
