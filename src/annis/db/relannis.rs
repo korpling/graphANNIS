@@ -32,10 +32,18 @@ struct Text {
     name: String,
 }
 
+struct CorpusTableEntry {
+    id: u32,
+    pre: u32,
+    post: u32,
+    name: String,
+    corpus_type: String,
+}
+
 struct ParsedCorpusTable {
     toplevel_corpus_name: String,
     corpus_by_preorder: BTreeMap<u32, u32>,
-    corpus_id_to_name: BTreeMap<u32, String>,
+    corpus_by_id: BTreeMap<u32, CorpusTableEntry>,
 }
 
 struct TextPosTable {
@@ -183,7 +191,7 @@ where
     let (nodes_by_text, id_to_node_name, textpos_table) = load_nodes(
         path,
         updater,
-        &corpus_table.corpus_id_to_name,
+        &corpus_table.corpus_by_id,
         &corpus_table.toplevel_corpus_name,
         is_annis_33,
         progress_callback,
@@ -285,9 +293,8 @@ where
         corpus_tab_path.to_str().unwrap_or_default()
     ));
 
-    let mut toplevel_corpus_name: Option<String> = None;
     let mut corpus_by_preorder = BTreeMap::new();
-    let mut corpus_id_to_name = BTreeMap::new();
+    let mut corpus_by_id = BTreeMap::new();
 
     let mut corpus_tab_csv = postgresql_import_reader(corpus_tab_path.as_path())?;
 
@@ -298,22 +305,24 @@ where
         let name = get_field_str(&line, 1).ok_or("Missing column")?;
         let type_str = get_field_str(&line, 2).ok_or("Missing column")?;
         let pre_order = line.get(4).ok_or("Missing column")?.parse::<u32>()?;
+        let post_order = line.get(5).ok_or("Missing column")?.parse::<u32>()?;
 
-        corpus_id_to_name.insert(id, name.clone());
-        if type_str == "CORPUS" && pre_order == 0 {
-            toplevel_corpus_name = Some(name);
-            corpus_by_preorder.insert(pre_order, id);
-        } else if type_str == "DOCUMENT" {
-            // TODO: do not only add documents but also sub-corpora
-            corpus_by_preorder.insert(pre_order, id);
-        }
+        corpus_by_id.insert(id, CorpusTableEntry {
+            id,
+            pre: pre_order,
+            post: post_order,
+            name: name.clone(),
+            corpus_type: type_str.clone(),
+        });
+        
+        corpus_by_preorder.insert(pre_order, id);
     }
 
-    let toplevel_corpus_name = toplevel_corpus_name.ok_or("Toplevel corpus name not found")?;
+    let toplevel_corpus_id = corpus_by_preorder.iter().next().ok_or("Toplevel corpus not found")?.1;
     Ok(ParsedCorpusTable {
-        toplevel_corpus_name,
+        toplevel_corpus_name: corpus_by_id.get(toplevel_corpus_id).ok_or("Toplevel corpus name not found")?.name.clone(),
         corpus_by_preorder,
-        corpus_id_to_name,
+        corpus_by_id,
     })
 }
 
@@ -600,7 +609,7 @@ where
 fn load_node_tab<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
-    corpus_id_to_name: &BTreeMap<u32, String>,
+    corpus_by_id: &BTreeMap<u32, CorpusTableEntry>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
     progress_callback: &F,
@@ -669,9 +678,10 @@ where
                 node_nr,
             );
 
-            let doc_name = corpus_id_to_name
+            let doc_name = &corpus_by_id
                 .get(&corpus_id)
-                .ok_or_else(|| format!("Document with ID {} missing", corpus_id))?;
+                .ok_or_else(|| format!("Document with ID {} missing", corpus_id))?
+                .name;
 
             let node_qname = format!("{}/{}#{}", toplevel_corpus_name, doc_name, node_name);
             updater.add_event(
@@ -945,7 +955,7 @@ where
 fn load_nodes<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
-    corpus_id_to_name: &BTreeMap<u32, String>,
+    corpus_by_id: &BTreeMap<u32, CorpusTableEntry>,
     toplevel_corpus_name: &str,
     is_annis_33: bool,
     progress_callback: &F,
@@ -960,7 +970,7 @@ where
     let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) = load_node_tab(
         path,
         updater,
-        corpus_id_to_name,
+        corpus_by_id,
         toplevel_corpus_name,
         is_annis_33,
         progress_callback,
@@ -1251,10 +1261,11 @@ where
     // add all subcorpora/documents (start with the largest pre-order)
     for (pre, corpus_id) in corpus_table.corpus_by_preorder.iter().rev() {
         if *pre != 0 {
-            let corpus_name = corpus_table
-                .corpus_id_to_name
+            let corpus_name = &corpus_table
+                .corpus_by_id
                 .get(corpus_id)
-                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?;
+                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?
+                .name;
             let subcorpus_full_name =
                 format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
 
@@ -1323,10 +1334,11 @@ where
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let corpus_name = corpus_table
-                .corpus_id_to_name
+            let corpus_name = &corpus_table
+                .corpus_by_id
                 .get(&corpus_ref)
-                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?;
+                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?
+                .name;
             let subcorpus_full_name =
                 format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
             let text_full_name = format!(
