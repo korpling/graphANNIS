@@ -863,6 +863,8 @@ where
                 col_val
             };
 
+            let col_ns = if col_ns == "NULL" { String::default() } else { col_ns };
+
             updater.add_event(
                 UpdateEvent::AddNodeLabel {
                     node_name: node_name.clone(),
@@ -1036,7 +1038,7 @@ where
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
 
     let msg = "committing edges";
-    
+
     for result in rank_tab_csv.records() {
         let line = result?;
 
@@ -1128,6 +1130,7 @@ where
         if let Some(c) = pre_to_component.get(&pre) {
             if let Some(e) = pre_to_edge.get(&pre) {
                 let ns = get_field_str(&line, 1).ok_or("Missing column")?;
+                let ns = if ns == "NULL" { String::default() } else { ns };
                 let name = get_field_str(&line, 2).ok_or("Missing column")?;
                 let val = get_field_str(&line, 3).ok_or("Missing column")?;
 

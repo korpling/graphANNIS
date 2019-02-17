@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Renamed the "PartOfSubcorpus" component type to more general "PartOf"
 
+### Fixed
+
+- "NULL" annotation namespaces where imported as "NULL" in relANNIS import
+
 ## [0.18.1] - 2019-02-08
 
 ### Changed
