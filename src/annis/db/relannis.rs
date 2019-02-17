@@ -33,11 +33,9 @@ struct Text {
 }
 
 struct CorpusTableEntry {
-    id: u32,
     pre: u32,
     post: u32,
     name: String,
-    corpus_type: String,
 }
 
 struct ParsedCorpusTable {
@@ -303,24 +301,32 @@ where
 
         let id = line.get(0).ok_or("Missing column")?.parse::<u32>()?;
         let name = get_field_str(&line, 1).ok_or("Missing column")?;
-        let type_str = get_field_str(&line, 2).ok_or("Missing column")?;
         let pre_order = line.get(4).ok_or("Missing column")?.parse::<u32>()?;
         let post_order = line.get(5).ok_or("Missing column")?.parse::<u32>()?;
 
-        corpus_by_id.insert(id, CorpusTableEntry {
+        corpus_by_id.insert(
             id,
-            pre: pre_order,
-            post: post_order,
-            name: name.clone(),
-            corpus_type: type_str.clone(),
-        });
-        
+            CorpusTableEntry {
+                pre: pre_order,
+                post: post_order,
+                name: name.clone(),
+            },
+        );
+
         corpus_by_preorder.insert(pre_order, id);
     }
 
-    let toplevel_corpus_id = corpus_by_preorder.iter().next().ok_or("Toplevel corpus not found")?.1;
+    let toplevel_corpus_id = corpus_by_preorder
+        .iter()
+        .next()
+        .ok_or("Toplevel corpus not found")?
+        .1;
     Ok(ParsedCorpusTable {
-        toplevel_corpus_name: corpus_by_id.get(toplevel_corpus_id).ok_or("Toplevel corpus name not found")?.name.clone(),
+        toplevel_corpus_name: corpus_by_id
+            .get(toplevel_corpus_id)
+            .ok_or("Toplevel corpus name not found")?
+            .name
+            .clone(),
         corpus_by_preorder,
         corpus_by_id,
     })
@@ -1046,7 +1052,7 @@ where
     let mut rank_tab_csv = postgresql_import_reader(rank_tab_path.as_path())?;
 
     let msg = "committing edges";
-    
+
     for result in rank_tab_csv.records() {
         let line = result?;
 
@@ -1258,16 +1264,26 @@ where
         }
     }
 
-    // add all subcorpora/documents (start with the largest pre-order)
-    for (pre, corpus_id) in corpus_table.corpus_by_preorder.iter().rev() {
+    // add all subcorpora/documents (start with the smallest pre-order)
+    for (pre, corpus_id) in corpus_table.corpus_by_preorder.iter() {
         if *pre != 0 {
-            let corpus_name = &corpus_table
+            let corpus = corpus_table
                 .corpus_by_id
                 .get(corpus_id)
-                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?
-                .name;
-            let subcorpus_full_name =
-                format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
+                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_id))?;
+
+            let corpus_name = &corpus.name;
+
+            let parent_corpus_path: Vec<&str> = corpus_table
+                .corpus_by_preorder
+                .range(0..*pre)
+                .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
+                .filter(|parent_corpus| parent_corpus.post < corpus.post)
+                .map(|parent_corpus| parent_corpus.name.as_ref())
+                .collect();
+            let parent_corpus_path = parent_corpus_path.join("/");
+
+            let subcorpus_full_name = format!("{}/{}", parent_corpus_path, corpus_name);
 
             // add a basic node labels for the new (sub-) corpus/document
             updater.add_event(
@@ -1334,17 +1350,22 @@ where
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let corpus_name = &corpus_table
+            let corpus = corpus_table
                 .corpus_by_id
                 .get(&corpus_ref)
-                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?
-                .name;
-            let subcorpus_full_name =
-                format!("{}/{}", corpus_table.toplevel_corpus_name, corpus_name);
-            let text_full_name = format!(
-                "{}/{}#{}",
-                corpus_table.toplevel_corpus_name, corpus_name, text_name
-            );
+                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?;
+
+            let parent_corpus_path: Vec<&str> = corpus_table
+                .corpus_by_preorder
+                .range(0..corpus.pre)
+                .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
+                .filter(|parent_corpus| parent_corpus.post < corpus.post)
+                .map(|parent_corpus| parent_corpus.name.as_ref())
+                .collect();
+            let parent_corpus_path = parent_corpus_path.join("/");
+
+            let subcorpus_full_name = format!("{}/{}", parent_corpus_path, &corpus.name);
+            let text_full_name = format!("{}#{}", &subcorpus_full_name, text_name);
 
             updater.add_event(
                 UpdateEvent::AddNode {
