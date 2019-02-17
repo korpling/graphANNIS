@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Citation File Format (https://citation-file-format.github.io/) meta-data
 
+### Changed
+
+- Renamed the "PartOfSubcorpus" component type to more general "PartOf"
+
 ## [0.18.1] - 2019-02-08
 
 ### Changed

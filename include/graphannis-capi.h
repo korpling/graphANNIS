@@ -50,9 +50,9 @@ typedef enum {
    */
   RightToken,
   /*
-   * Implies that the source node belongs to the parent corpus/subcorpus/document node.
+   * Implies that the source node belongs to the parent corpus/subcorpus/document/datasource node.
    */
-  PartOfSubcorpus,
+  PartOf,
 } AnnisComponentType;
 
 /*
