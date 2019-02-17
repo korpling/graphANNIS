@@ -189,8 +189,7 @@ where
     let (nodes_by_text, id_to_node_name, textpos_table) = load_nodes(
         path,
         updater,
-        &corpus_table.corpus_by_id,
-        &corpus_table.toplevel_corpus_name,
+        &corpus_table,
         is_annis_33,
         progress_callback,
     )?;
@@ -615,8 +614,7 @@ where
 fn load_node_tab<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
-    corpus_by_id: &BTreeMap<u32, CorpusTableEntry>,
-    toplevel_corpus_name: &str,
+    corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<(
@@ -684,12 +682,7 @@ where
                 node_nr,
             );
 
-            let doc_name = &corpus_by_id
-                .get(&corpus_id)
-                .ok_or_else(|| format!("Document with ID {} missing", corpus_id))?
-                .name;
-
-            let node_qname = format!("{}/{}#{}", toplevel_corpus_name, doc_name, node_name);
+            let node_qname = format!("{}#{}", get_corpus_path(corpus_id, corpus_table)?, node_name);
             updater.add_event(
                 UpdateEvent::AddNode {
                     node_name: node_qname.clone(),
@@ -961,8 +954,7 @@ where
 fn load_nodes<F>(
     path: &PathBuf,
     updater: &mut ChunkUpdater,
-    corpus_by_id: &BTreeMap<u32, CorpusTableEntry>,
-    toplevel_corpus_name: &str,
+    corpus_table: &ParsedCorpusTable,
     is_annis_33: bool,
     progress_callback: &F,
 ) -> Result<(
@@ -976,8 +968,7 @@ where
     let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) = load_node_tab(
         path,
         updater,
-        corpus_by_id,
-        toplevel_corpus_name,
+        corpus_table,
         is_annis_33,
         progress_callback,
     )?;
@@ -1220,6 +1211,28 @@ where
     Ok(corpus_id_to_anno)
 }
 
+fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
+
+    let corpus = corpus_table.corpus_by_id.get(&cid).ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
+    let pre = corpus.pre;
+    let post = corpus.post;
+
+    let parent_corpus_path: Vec<&str> = corpus_table
+        .corpus_by_preorder
+        .range(0..pre)
+        .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
+        .filter(|parent_corpus| post < parent_corpus.post)
+        .map(|parent_corpus| parent_corpus.name.as_ref())
+        .collect();
+        Ok(parent_corpus_path.join("/"))
+}
+
+fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
+    let parent_path = get_parent_path(cid, corpus_table)?;
+    let corpus = corpus_table.corpus_by_id.get(&cid).ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
+    Ok(format!("{}/{}", parent_path, &corpus.name))
+}
+
 fn add_subcorpora<F>(
     updater: &mut ChunkUpdater,
     corpus_table: &ParsedCorpusTable,
@@ -1274,16 +1287,7 @@ where
 
             let corpus_name = &corpus.name;
 
-            let parent_corpus_path: Vec<&str> = corpus_table
-                .corpus_by_preorder
-                .range(0..*pre)
-                .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
-                .filter(|parent_corpus| parent_corpus.post < corpus.post)
-                .map(|parent_corpus| parent_corpus.name.as_ref())
-                .collect();
-            let parent_corpus_path = parent_corpus_path.join("/");
-
-            let subcorpus_full_name = format!("{}/{}", parent_corpus_path, corpus_name);
+            let subcorpus_full_name = get_corpus_path(*corpus_id, corpus_table)?;
 
             // add a basic node labels for the new (sub-) corpus/document
             updater.add_event(
@@ -1350,21 +1354,8 @@ where
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let corpus = corpus_table
-                .corpus_by_id
-                .get(&corpus_ref)
-                .ok_or_else(|| format!("Can't get name for corpus with ID {}", corpus_ref))?;
 
-            let parent_corpus_path: Vec<&str> = corpus_table
-                .corpus_by_preorder
-                .range(0..corpus.pre)
-                .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
-                .filter(|parent_corpus| parent_corpus.post < corpus.post)
-                .map(|parent_corpus| parent_corpus.name.as_ref())
-                .collect();
-            let parent_corpus_path = parent_corpus_path.join("/");
-
-            let subcorpus_full_name = format!("{}/{}", parent_corpus_path, &corpus.name);
+            let subcorpus_full_name = get_corpus_path(corpus_ref, corpus_table)?;
             let text_full_name = format!("{}#{}", &subcorpus_full_name, text_name);
 
             updater.add_event(
