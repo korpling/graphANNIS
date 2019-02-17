@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Renamed the "PartOfSubcorpus" component type to more general "PartOf"
+- relANNIS import now takes the sub-corpus structure into account
 
 ## [0.18.1] - 2019-02-08
 
