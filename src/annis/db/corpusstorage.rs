@@ -1276,7 +1276,7 @@ impl CorpusStorage {
             // make sure all subcorpus partitions are loaded
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            db.get_all_components(Some(ComponentType::PartOfSubcorpus), None)
+            db.get_all_components(Some(ComponentType::PartOf), None)
         };
         let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
 
@@ -1292,7 +1292,7 @@ impl CorpusStorage {
             &query.into_disjunction(),
             &[0],
             &self.query_config,
-            Some(ComponentType::PartOfSubcorpus),
+            Some(ComponentType::PartOf),
         )
     }
 

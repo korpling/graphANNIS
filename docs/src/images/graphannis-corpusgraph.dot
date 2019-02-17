@@ -19,7 +19,7 @@ digraph CorpusGraph {
   }
 
   {
-    edge[label="PartOfSubcorpus"];
+    edge[label="PartOf"];
     s1 -> top;
     s2 -> s1;
     d1 -> s2;
