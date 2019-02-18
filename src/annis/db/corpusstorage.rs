@@ -10,6 +10,7 @@ use crate::annis::db::query;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::relannis;
+use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
 use crate::annis::errors::ErrorKind;
@@ -698,13 +699,16 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn prepare_query<'a>(
+    fn prepare_query<'a, F>(
         &self,
         corpus_name: &str,
         query: &'a str,
         query_language: QueryLanguage,
-        additional_components: Vec<Component>,
-    ) -> Result<PreparationResult<'a>> {
+        additional_components_callback: F,
+    ) -> Result<PreparationResult<'a>>
+    where
+        F: FnOnce(&Graph) -> Vec<Component>,
+    {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
         // make sure the database is loaded with all necessary components
@@ -721,6 +725,8 @@ impl CorpusStorage {
 
             let mut missing: HashSet<Component> =
                 HashSet::from_iter(necessary_components.iter().cloned());
+
+            let additional_components = additional_components_callback(db);
 
             // make sure the additional components are loaded
             missing.extend(additional_components.into_iter());
@@ -799,7 +805,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
     ) -> Result<bool> {
         let prep: PreparationResult =
-            self.prepare_query(corpus_name, query, query_language, vec![])?;
+            self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
         // also get the semantic errors by creating an execution plan on the actual Graph
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
@@ -818,7 +824,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<String> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
@@ -840,7 +846,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<u64> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -861,7 +867,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<CountExtra> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -920,12 +926,19 @@ impl CorpusStorage {
         limit: usize,
         order: ResultOrder,
     ) -> Result<Vec<String>> {
-        let order_component = Component {
-            ctype: ComponentType::Ordering,
-            layer: String::from("annis"),
-            name: String::from(""),
-        };
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![order_component])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
+            let mut additional_components = vec![Component {
+                ctype: ComponentType::Ordering,
+                layer: String::from("annis"),
+                name: String::from(""),
+            }];
+            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
+                for c in token_helper::necessary_components(db) {
+                    additional_components.push(c);
+                }
+            }
+            additional_components
+        })?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -1165,11 +1178,11 @@ impl CorpusStorage {
             // nodes overlapping tokens right of match: m .0,ctx_right node _o_ tok
             {
                 let mut q = Conjunction::new();
-                
+
                 let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
                 let m_idx = q.add_node(m.clone(), None);
                 let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
- 
+
                 q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
@@ -1207,7 +1220,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         component_type_filter: Option<ComponentType>,
     ) -> Result<Graph> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         let mut max_alt_size = 0;
         for alt in &prep.query.alternatives {
@@ -1311,7 +1324,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();

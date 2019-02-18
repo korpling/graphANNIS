@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - "NULL" annotation namespaces where imported as "NULL" in relANNIS import
+- Result ordering for "find(...)" function was not correct if token helper components where not loaded
 
 ## [0.18.1] - 2019-02-08
 
