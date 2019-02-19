@@ -127,8 +127,9 @@ fn map_conjunction<'a>(
         add_legacy_metadata_constraints(&mut q, legacy_meta_search, first_node_pos)?;
     }
 
-    // finally add all binary operators
+    let mut num_pointing_or_dominance_joins: HashMap<String, usize> = HashMap::default();
 
+    // finally add all binary operators
     for literal in c {
         if let ast::Literal::BinaryOp {
             lhs,
@@ -172,21 +173,40 @@ fn map_conjunction<'a>(
             let spec_right = q.resolve_variable(&var_right, op_pos.clone())?;
 
             if quirks_mode {
-                if let ast::BinaryOpSpec::Precedence(ref mut spec) = op {
-                    // limit unspecified .* precedence to 50
-                    spec.dist = if let RangeSpec::Unbound = spec.dist {
-                        RangeSpec::Bound {
-                            min_dist: 1,
-                            max_dist: 50,
-                        }
-                    } else {
-                        spec.dist.clone()
-                    };
+                match op {
+                    ast::BinaryOpSpec::Dominance(_) | ast::BinaryOpSpec::Pointing(_) => {
+                        let entry_lhs = num_pointing_or_dominance_joins
+                            .entry(var_left.clone())
+                            .or_insert(0);
+                        *entry_lhs += 1;
+                        let entry_rhs = num_pointing_or_dominance_joins
+                            .entry(var_right.clone())
+                            .or_insert(0);
+                        *entry_rhs += 1;
+                    }
+                    ast::BinaryOpSpec::Precedence(ref mut spec) => {
+                        // limit unspecified .* precedence to 50
+                        spec.dist = if let RangeSpec::Unbound = spec.dist {
+                            RangeSpec::Bound {
+                                min_dist: 1,
+                                max_dist: 50,
+                            }
+                        } else {
+                            spec.dist.clone()
+                        };
+                    }
+                    _ => {}
                 }
             }
             let op_spec = make_binary_operator_spec(op, spec_left, spec_right)?;
             q.add_operator_from_query(op_spec, &var_left, &var_right, op_pos, !quirks_mode)?;
         }
+    }
+
+    if quirks_mode {
+        // TODO: add additional nodes to the query to emulate the old behavior of distributing
+        // joins for precedence and dominance operators on different query nodes
+
     }
 
     Ok(q)
