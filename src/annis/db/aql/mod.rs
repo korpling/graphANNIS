@@ -204,13 +204,22 @@ fn map_conjunction<'a>(
     }
 
     if quirks_mode {
-        // TODO: add additional nodes to the query to emulate the old behavior of distributing
+        // add additional nodes to the query to emulate the old behavior of distributing
         // joins for precedence and dominance operators on different query nodes
-
+        for (orig_var, num_joins) in num_pointing_or_dominance_joins {
+            // add an additional node for each extra join and join this artificial node with identity relation
+            for _ in 1..num_joins {
+                if let Ok(node_spec) = q.resolve_variable(&orig_var, None) {
+                    let new_var = q.add_node(node_spec, None);
+                    q.add_operator(Box::new(IdenticalNodeSpec {}), &orig_var, &new_var, false)?;
+                }
+            }
+        }
     }
 
     Ok(q)
 }
+
 
 fn add_legacy_metadata_constraints(
     q: &mut Conjunction,
