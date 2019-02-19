@@ -946,7 +946,7 @@ impl CorpusStorage {
 
         let mut query_config = self.query_config.clone();
         if order == ResultOrder::NotSorted {
-            // Do not use parallization of the order should not be sorted to have a more stable result ordering.
+            // Do execute query in parallel if the order should not be sorted to have a more stable result ordering.
             // Even if we do not promise to have a stable ordering, it should be the same
             // for the same session on the same corpus.
             query_config.use_parallel_joins = false;
