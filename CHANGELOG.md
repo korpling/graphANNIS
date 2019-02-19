@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - "NULL" annotation namespaces where imported as "NULL" in relANNIS import
 - Result ordering for "find(...)" function was not correct if token helper components where not loaded
+- Quirks mode now also emulates the component search normalization behavior. 
+Search nodes that where part of multiple dominance/pointing relation joins where duplicated and joined with 
+the identity operator to work around the issue that nodes of different components could not be joined in relANNIS.
+This leads additional output nodes in the find(...) query.
+See also the [original JavaDoc](https://github.com/korpling/ANNIS/blob/b7e0e36a0e1ac043e820462dd3f788f5107505a5/annis-service/src/main/java/annis/ql/parser/ComponentSearchRelationNormalizer.java#L32) for an explanation.
 
 ## [0.18.1] - 2019-02-08
 
