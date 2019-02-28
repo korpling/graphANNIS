@@ -75,11 +75,11 @@ g.add_node_label("t6", "annis", "tok", ".")
 # Add the ordering edges to specify token order.
 # The names of the source and target nodes are given as arguments, 
 # followed by the component layer, type and name.
-g.add_edge("t1", "t2", "", "Ordering", "")
-g.add_edge("t2", "t3", "", "Ordering", "")
-g.add_edge("t3", "t4", "", "Ordering", "")
-g.add_edge("t4", "t5", "", "Ordering", "")
-g.add_edge("t5", "t6", "", "Ordering", "")
+g.add_edge("t1", "t2", "annis", "Ordering", "")
+g.add_edge("t2", "t3", "annis", "Ordering", "")
+g.add_edge("t3", "t4", "annis", "Ordering", "")
+g.add_edge("t4", "t5", "annis", "Ordering", "")
+g.add_edge("t5", "t6", "annis", "Ordering", "")
 ```
 You could add additional annotations like part of speech as labels on nodes.
 For labels on edges, you can use the `add_edge_label(...)` function.
@@ -112,11 +112,40 @@ Output:
 2
 [['salt:/t2'], ['salt:/t5']]
 ```
-
+GraphANNIS will add the URI scheme `salt:/` to your node names automatically.
 
 ## Getting subgraphs
 
-TODO
+The result from the `find(...)` function can be used to generate a subgraph for the matches.
+It will contain all covered nodes of the matches and additionally a given context (defined in tokens).
+```python
+from graphannis.util import node_name_from_match
+with CorpusStorageManager() as cs: 
+    matches = cs.find(["tutorialCorpus"], 'tok . tok', offset=0, limit=100)
+    for m in matches:
+        print(m)
+        G = cs.subgraph("tutorialCorpus", node_name_from_match(m), ctx_left=2, ctx_right=2)
+        print("Number of nodes in subgraph: " + str(len(G.nodes)))
+```
+Output:
+```
+['salt:/t1', 'salt:/t2']
+Number of nodes in subgraph: 4
+['salt:/t2', 'salt:/t3']
+Number of nodes in subgraph: 5
+['salt:/t3', 'salt:/t4']
+Number of nodes in subgraph: 6
+['salt:/t4', 'salt:/t5']
+Number of nodes in subgraph: 5
+['salt:/t5', 'salt:/t6']
+Number of nodes in subgraph: 4
+```
+The result object of the `subgraph(...)` function is the type [NetworkX MultiDiGraph](https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html).
+[NetworkX](https://networkx.github.io/documentation/stable/tutorial.html) is a graph library, that provides basic graph access and manipulation functions, but also implements graph traversal and other graph algorithms.
+
+**Note:** The `subgraph(...)` function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.
+
+TODO: corpus structure
 
 [^aql]: You can get an overview of AQL [here](http://corpus-tools.org/annis/aql.html) or detailled information in the
 [User Guide](http://korpling.github.io/ANNIS/3.6/user-guide/aql.html).
