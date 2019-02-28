@@ -49,37 +49,38 @@ from graphannis.graph import GraphUpdate
 g = GraphUpdate()
 
 # First argument is the node name.
-g.add_node("t1")
+g.add_node("tutorial/doc1#t1")
 # First argument is the node name, 
 # then comes the annotation namespace, name and value.
-g.add_node_label("t1", "annis", "tok", "That")
+g.add_node_label("tutorial/doc1#t1", "annis", "tok", "That")
 
-g.add_node("t2")
-g.add_node_label("t2", "annis", "tok", "is")
+g.add_node("tutorial/doc1#t2")
+g.add_node_label("tutorial/doc1#t2", "annis", "tok", "is")
 
-g.add_node("t3")
-g.add_node_label("t3", "annis", "tok", "a")
+g.add_node("tutorial/doc1#t3")
+g.add_node_label("tutorial/doc1#t3", "annis", "tok", "a")
 
-g.add_node("t3")
-g.add_node_label("t3", "annis", "tok", "Category")
+g.add_node("tutorial/doc1#t4")
+g.add_node_label("tutorial/doc1#t4", "annis", "tok", "Category")
 
-g.add_node("t4")
-g.add_node_label("t4", "annis", "tok", "3")
+g.add_node("tutorial/doc1#t5")
+g.add_node_label("tutorial/doc1#t5", "annis", "tok", "3")
 
-g.add_node("t5")
-g.add_node_label("t5", "annis", "tok", "storm")
+g.add_node("tutorial/doc1#t6")
+g.add_node_label("tutorial/doc1#t6", "annis", "tok", "storm")
 
-g.add_node("t6")
-g.add_node_label("t6", "annis", "tok", ".")
+g.add_node("tutorial/doc1#t7")
+g.add_node_label("tutorial/doc1#t7", "annis", "tok", ".")
 
 # Add the ordering edges to specify token order.
 # The names of the source and target nodes are given as arguments, 
 # followed by the component layer, type and name.
-g.add_edge("t1", "t2", "annis", "Ordering", "")
-g.add_edge("t2", "t3", "annis", "Ordering", "")
-g.add_edge("t3", "t4", "annis", "Ordering", "")
-g.add_edge("t4", "t5", "annis", "Ordering", "")
-g.add_edge("t5", "t6", "annis", "Ordering", "")
+g.add_edge("tutorial/doc1#t1", "tutorial/doc1#t2", "annis", "Ordering", "")
+g.add_edge("tutorial/doc1#t2", "tutorial/doc1#t3", "annis", "Ordering", "")
+g.add_edge("tutorial/doc1#t3", "tutorial/doc1#t4", "annis", "Ordering", "")
+g.add_edge("tutorial/doc1#t4", "tutorial/doc1#t5", "annis", "Ordering", "")
+g.add_edge("tutorial/doc1#t5", "tutorial/doc1#t6", "annis", "Ordering", "")
+g.add_edge("tutorial/doc1#t6", "tutorial/doc1#t7", "annis", "Ordering", "")
 ```
 You could add additional annotations like part of speech as labels on nodes.
 For labels on edges, you can use the `add_edge_label(...)` function.
@@ -87,8 +88,8 @@ For labels on edges, you can use the `add_edge_label(...)` function.
 This `GraphUpdate` object can then be used with the `applyUpdate(...)` function:
 ```python
 with CorpusStorageManager() as cs:
-    cs.apply_update("tutorialCorpus", g)
-    # this now includes the "tutorialCorpus"
+    cs.apply_update("tutorial", g)
+    # this now includes the "tutorial"
     print(cs.list())
 ```
 
@@ -102,15 +103,15 @@ You have to give the list of corpora and the query as arguments to both function
 The following example searches for all tokens that contain a `s` character.[^aql]
 ```python
 with CorpusStorageManager() as cs: 
-    number_of_matches = cs.count(["tutorialCorpus"], 'tok=/.*s.*/')
+    number_of_matches = cs.count(["tutorial"], 'tok=/.*s.*/')
     print(number_of_matches)
-    matches = cs.find(["tutorialCorpus"], 'tok=/.*s.*/', offset=0, limit=100)
+    matches = cs.find(["tutorial"], 'tok=/.*s.*/', offset=0, limit=100)
     print(matches)
 ```
 Output:
 ```
 2
-[['salt:/t2'], ['salt:/t5']]
+[['salt:/tutorial/doc1#t2'], ['salt:/tutorial/doc1#t6']]
 ```
 GraphANNIS will add the URI scheme `salt:/` to your node names automatically.
 
@@ -121,31 +122,63 @@ It will contain all covered nodes of the matches and additionally a given contex
 ```python
 from graphannis.util import node_name_from_match
 with CorpusStorageManager() as cs: 
-    matches = cs.find(["tutorialCorpus"], 'tok . tok', offset=0, limit=100)
+    matches = cs.find(["tutorial"], 'tok . tok', offset=0, limit=100)
     for m in matches:
         print(m)
-        G = cs.subgraph("tutorialCorpus", node_name_from_match(m), ctx_left=2, ctx_right=2)
+        G = cs.subgraph("tutorial", node_name_from_match(m), ctx_left=2, ctx_right=2)
         print("Number of nodes in subgraph: " + str(len(G.nodes)))
 ```
 Output:
 ```
-['salt:/t1', 'salt:/t2']
+['salt:/tutorial/doc1#t1', 'salt:/tutorial/doc1#t2']
 Number of nodes in subgraph: 4
-['salt:/t2', 'salt:/t3']
+['salt:/tutorial/doc1#t2', 'salt:/tutorial/doc1#t3']
 Number of nodes in subgraph: 5
-['salt:/t3', 'salt:/t4']
+['salt:/tutorial/doc1#t3', 'salt:/tutorial/doc1#t4']
 Number of nodes in subgraph: 6
-['salt:/t4', 'salt:/t5']
+['salt:/tutorial/doc1#t4', 'salt:/tutorial/doc1#t5']
+Number of nodes in subgraph: 6
+['salt:/tutorial/doc1#t5', 'salt:/tutorial/doc1#t6']
 Number of nodes in subgraph: 5
-['salt:/t5', 'salt:/t6']
+['salt:/tutorial/doc1#t6', 'salt:/tutorial/doc1#t7']
 Number of nodes in subgraph: 4
+
 ```
 The result object of the `subgraph(...)` function is the type [NetworkX MultiDiGraph](https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html).
 [NetworkX](https://networkx.github.io/documentation/stable/tutorial.html) is a graph library, that provides basic graph access and manipulation functions, but also implements graph traversal and other graph algorithms.
 
 **Note:** The `subgraph(...)` function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.
 
-TODO: corpus structure
+Normally a corpus is structured into subcorpora and documents.
+GraphANNIS uses node types and relations of type `PartOf` to [model the corpus structure](annotation-graph.md#corpus-structure).
+If you have document nodes and the `PartOf` relation between the annotation nodes and its document, you can use the
+`subcorpus_graph(...)` function to get all annotation nodes for a given list of document names.
+
+```python
+with CorpusStorageManager() as cs:
+    g = GraphUpdate()
+    # create the corpus and document node
+    g.add_node('tutorial', node_type='corpus')
+    g.add_node('tutorial/doc1', node_type='corpus')
+    g.add_edge('tutorial/doc1','tutorial', 'annis', 'PartOf', '')
+    # add the corpus structure to the existing nodes
+    g.add_edge('tutorial/doc1#t1','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t2','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t3','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t4','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t5','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t6','tutorial/doc1', 'annis', 'PartOf', '')
+    g.add_edge('tutorial/doc1#t7','tutorial/doc1', 'annis', 'PartOf', '')
+    # apply the changes
+    cs.apply_update('tutorial', g)
+    # get the whole document as graph
+    G = cs.subcorpus_graph('tutorial', ['tutorial/doc1'])
+    print(G.nodes)
+```
+Output:
+```
+['salt:/tutorial/doc1#t1', 'salt:/tutorial/doc1#t6', 'salt:/tutorial/doc1#t4', 'salt:/tutorial/doc1#t2', 'salt:/tutorial/doc1#t7', 'salt:/tutorial/doc1#t5', 'salt:/tutorial/doc1#t3']
+```
 
 [^aql]: You can get an overview of AQL [here](http://corpus-tools.org/annis/aql.html) or detailled information in the
 [User Guide](http://korpling.github.io/ANNIS/3.6/user-guide/aql.html).
