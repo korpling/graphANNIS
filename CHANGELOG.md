@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Renamed the "PartOfSubcorpus" component type to more general "PartOf"
+- **Renamed the "PartOfSubcorpus" component type to more general "PartOf"**
 - relANNIS import now takes the sub-corpus structure into account
 - Quirks mode now also emulates the component search normalization behavior. 
 Search nodes that where part of multiple dominance/pointing relation joins where duplicated and joined with 
