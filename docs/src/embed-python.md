@@ -81,6 +81,9 @@ g.add_edge("t3", "t4", "", "Ordering", "")
 g.add_edge("t4", "t5", "", "Ordering", "")
 g.add_edge("t5", "t6", "", "Ordering", "")
 ```
+You could add additional annotations like part of speech as labels on nodes.
+For labels on edges, you can use the `add_edge_label(...)` function.
+
 This `GraphUpdate` object can then be used with the `applyUpdate(...)` function:
 ```python
 with CorpusStorageManager() as cs:
@@ -91,8 +94,29 @@ with CorpusStorageManager() as cs:
 
 ## Querying 
 
-TODO
+There are two functions to query a corpus with AQL:
+- `count(...)` returns the number of matches, and
+- `find(...)` returns a paginated list of matched node IDs.
+
+You have to give the list of corpora and the query as arguments to both functions.
+The following example searches for all tokens that contain a `s` character.[^aql]
+```python
+with CorpusStorageManager() as cs: 
+    number_of_matches = cs.count(["tutorialCorpus"], 'tok=/.*s.*/')
+    print(number_of_matches)
+    matches = cs.find(["tutorialCorpus"], 'tok=/.*s.*/', offset=0, limit=100)
+    print(matches)
+```
+Output:
+```
+2
+[['salt:/t2'], ['salt:/t5']]
+```
+
 
 ## Getting subgraphs
 
 TODO
+
+[^aql]: You can get an overview of AQL [here](http://corpus-tools.org/annis/aql.html) or detailled information in the
+[User Guide](http://korpling.github.io/ANNIS/3.6/user-guide/aql.html).
