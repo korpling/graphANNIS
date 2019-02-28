@@ -7,6 +7,6 @@ This chapter is a tutorial in to how to embed graphANNIS into your own applicati
 
 Currently, graphANNIS can be embedded into programs written in these programming languages:
 - [Python (version 3.6 or later)](./embed-python.md)
-- Java (Tutorial in process)
-- Rust (Tutorial in process)
-- C (Tutorial in process)
+- Java (Tutorial is work in progress)
+- Rust (Tutorial is work in progress)
+- C (Tutorial is work in progress)
