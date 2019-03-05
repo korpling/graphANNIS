@@ -124,14 +124,14 @@ fn main() {
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#7".to_owned(),
+        node_name: "tutorial/doc1#t7".to_owned(),
         node_type: "node".to_owned(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
         node_name: "tutorial/doc1#t7".to_owned(),
         anno_ns: "annis".to_owned(),
         anno_name: "tok".to_owned(),
-        anno_value: ",".to_owned(),
+        anno_value: ".".to_owned(),
     });
 
     // Add the ordering edges to specify token order.
@@ -237,34 +237,37 @@ GraphANNIS will add the URI scheme `salt:/` to your node names automatically.
 
 The result from the `find(...)` function can be used to generate a subgraph for the matches.
 It will contain all covered nodes of the matches and additionally a given context (defined in tokens).
-```java
-package org.corpus_tools;
+```rust,noplaypen
+use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
+use graphannis::graph::AnnotationStorage;
+use graphannis::util;
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.corpus_tools.graphannis.CorpusStorageManager;
-import org.corpus_tools.graphannis.Util;
-import org.corpus_tools.graphannis.errors.GraphANNISException;
-import org.corpus_tools.graphannis.model.Graph;
-import org.corpus_tools.graphannis.model.Node;
-
-public class FindSubgraph {
-    public static void main(String[] args) throws GraphANNISException {
-        CorpusStorageManager cs = new CorpusStorageManager("data");
-        String[] matches = cs.find(Arrays.asList("tutorial"), "tok . tok", 0, 100);
-        for (String m : matches) {
-            System.out.println(m);
-            // convert the match string to a list of node IDs
-            List<String> node_names = Util.nodeNamesFromMatch(m);
-            Graph g = cs.subgraph("tutorial", node_names, 2, 2);
-            // iterate over all nodes of type "node" and output the name
-            int numberOfNodes = 0;
-            for (Node n : g.getNodesByType("node")) {
-                numberOfNodes++;
-            }
-            System.out.println("Number of nodes in subgraph: " + numberOfNodes);
-        }
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
+    let matches = cs
+        .find(
+            "tutorial",
+            "tok . tok",
+            QueryLanguage::AQL,
+            0,
+            100,
+            ResultOrder::Normal,
+        )
+        .unwrap();
+    for m in matches {
+        println!("{}", m);
+        // convert the match string to a list of node IDs
+        let node_names = util::node_names_from_match(&m);
+        let g = cs.subgraph("tutorial", node_names, 2, 2).unwrap();
+        // find all nodes of type "node" (regular annotation nodes)
+        let node_search = g.exact_anno_search(
+            Some("annis".to_string()),
+            "node_type".to_string(),
+            Some("node".to_string()).into(),
+        );
+        println!("Number of nodes in subgraph: {}", node_search.count());
     }
 }
 ```

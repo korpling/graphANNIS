@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Utility function `node_names_from_match` for getting the node identifiers from the matches
 - Citation File Format (https://citation-file-format.github.io/) meta-data
 
 ### Changed
