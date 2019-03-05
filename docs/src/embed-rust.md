@@ -1,59 +1,49 @@
-# Java Tutorial
+# Rust Tutorial
 
 ## Installation
 
-GraphANNIS works with applications written for Java 8 or later.
-If you are using Apache Maven as your build system, you can add a dependency to graphANNIS with
-
-```
-<dependency>
-  <groupId>org.corpus-tools</groupId>
-  <artifactId>graphannis-api</artifactId>
-  <version>INSERT_VERSION_HERE</version>
-</dependency>
+Add a dependency to graphANNIS in you `Cargo.toml` file:
+```toml
+graphannis = "INSERT_VERSION_HERE"
 ```
 
 ## API documentation
 
-The API documentation is available at 
-[http://www.javadoc.io/doc/org.corpus-tools/graphannis-api/](http://www.javadoc.io/doc/org.corpus-tools/graphannis-api/).
+The API documentation is available at [https://docs.rs/graphannis/](https://docs.rs/graphannis/).
 
 ## Corpus data directory
 
 Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
-A `CorpusStorageManager` is used to access a collection corpora by their name.
-```java
-package org.corpus_tools;
+A `CorpusStorage` is used to access a collection corpora by their name.
+```rust,noplaypen
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
 
-import org.corpus_tools.graphannis.CorpusStorageManager;
-import org.corpus_tools.graphannis.errors.GraphANNISException;
-
-public class ListCorpora {
-    public static void main(String[] args) throws GraphANNISException {
-        CorpusStorageManager cs = new CorpusStorageManager("data");
-        String[] corpora = cs.list();
-        System.out.println(corpora.length);
-    }
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
+    let corpora = cs.list().unwrap();
+    let corpus_names : Vec<String> = corpora.into_iter().map(|corpus_info| corpus_info.name).collect();
+    println!("{:?}", corpus_names);
 }
 ```
-This will print an `0`, because no corpora have been created yet.
-In this example, the `CorpusStorageManager` uses the sub-directory `data` of the current working directory to store the corpora.
+This will print an empty list, because no corpora have been created yet.
+In this example, the `CorpusStorage` uses the sub-directory `data` of the current working directory to store the corpora.
 You can also use an absolute path as argument
-```java
-CorpusStorageManager cs = new CorpusStorageManager("/tmp/graphannis-data");
+```rust,noplaypen
+let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("/tmp/graphannis-data"), true)?;
 ```
 Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
-The `CorpusStorageManager` is thread-safe, thus multiple threads of the same process can call all functions in parallel.
+The `CorpusStorae` is thread-safe, thus multiple threads of the same process can call all functions in parallel.
 
 ## Adding corpus data
 
 Linguistic annotations as represented in graphANNIS as directed graphs (see the [data model](./annotation-graph.md) section for more information).
-You can add nodes and edges via the `applyUpdate(...)` function.
+You can add nodes and edges via the `apply_update(...)` function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class `GraphUpdate`.
 E.g the following code creates a graph update for the tokenized sentence "That is a Category 3 storm.".
-The resulting `GraphUpdate` object can then be used with the `applyUpdate(...)` function to insert the changes into the corpus.
-```java
+The resulting `GraphUpdate` object can then be used with the `apply_update(...)` function to insert the changes into the corpus.
+```rust,noplaypen
 package org.corpus_tools;
 
 import org.corpus_tools.graphannis.CorpusStorageManager;
