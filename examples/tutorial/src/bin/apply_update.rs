@@ -76,14 +76,14 @@ fn main() {
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#7".to_owned(),
+        node_name: "tutorial/doc1#t7".to_owned(),
         node_type: "node".to_owned(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
         node_name: "tutorial/doc1#t7".to_owned(),
         anno_ns: "annis".to_owned(),
         anno_name: "tok".to_owned(),
-        anno_value: ",".to_owned(),
+        anno_value: ".".to_owned(),
     });
 
     // Add the ordering edges to specify token order.
