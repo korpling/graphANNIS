@@ -5,6 +5,7 @@ use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::ValueSearch;
 use crate::annis::db::{Graph, Match};
+use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};

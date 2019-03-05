@@ -14,6 +14,7 @@ use crate::annis::db::exec::nodesearch::NodeSearchSpec;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::errors::*;
+use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::operator::{BinaryOperatorSpec, UnaryOperatorSpec};
 use crate::annis::types::{LineColumn, LineColumnRange};
 use lalrpop_util::ParseError;

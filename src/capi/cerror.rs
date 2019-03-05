@@ -4,6 +4,7 @@ use libc::{c_char, size_t};
 use ::log;
 use std;
 use std::ffi::CString;
+use std::error::Error as StdError;
 
 pub struct Error {
     pub msg: CString,
@@ -12,20 +13,38 @@ pub struct Error {
 
 pub type ErrorList = Vec<Error>;
 
-impl From<errors::Error> for ErrorList {
-    fn from(e: errors::Error) -> ErrorList {
+struct CauseIterator<'a> {
+    current: Option<&'a StdError>,
+}
+
+impl<'a> std::iter::Iterator for CauseIterator<'a> {
+    type Item=Error;
+
+    fn next(&mut self) -> std::option::Option<Error> {
+        let std_error = self.current?;
+        let result = Error {
+            msg: CString::new(std_error.to_string()).unwrap_or(CString::default()),
+            kind: CString::new("Cause").unwrap_or(CString::default()),
+        };
+        self.current = std_error.source();
+        Some(result)
+    }
+    
+}
+
+impl From<errors::AnnisError> for ErrorList {
+    fn from(e: errors::AnnisError) -> ErrorList {
         let mut result = ErrorList::new();
         result.push(Error {
             msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-            kind: CString::new(e.kind().description()).unwrap_or(CString::default()),
+            kind: CString::new(e.kind()).unwrap_or(CString::default()),
         });
-        for e in e.iter().skip(1) {
-            result.push(Error {
-                msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-                kind: CString::new("Cause").unwrap_or(CString::default()),
-            });
+        let cause_it = CauseIterator {
+            current: e.source()
+        };
+        for e in cause_it {
+            result.push(e)
         }
-
         return result;
     }
 }
@@ -66,7 +85,7 @@ impl From<std::io::Error> for Error {
     }
 }
 
-pub fn new(err: errors::Error) -> *mut ErrorList {
+pub fn new(err: errors::AnnisError) -> *mut ErrorList {
     Box::into_raw(Box::new(ErrorList::from(err)))
 }
 

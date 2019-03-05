@@ -13,7 +13,8 @@ use crate::annis::db::relannis;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
-use crate::annis::errors::ErrorKind;
+use crate::annis::errors_legacy::ErrorKind;
+use crate::annis::errors_legacy::ResultExt;
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{
@@ -183,7 +184,7 @@ pub struct FrequencyDefEntry {
 }
 
 impl FromStr for FrequencyDefEntry {
-    type Err = Error;
+    type Err = AnnisError;
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
@@ -1693,7 +1694,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     if let CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
-        return Err(ErrorKind::LoadingDBFailed("".to_string()).into());
+        return Err(AnnisError::LoadingGraphFailed{name: "".to_string()}.into());
     }
 }
 

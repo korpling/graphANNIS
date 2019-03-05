@@ -10,6 +10,7 @@ use crate::annis::db::graphstorage::GraphStatistic;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
+use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::errors::*;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
@@ -525,7 +526,7 @@ impl<'a> Conjunction<'a> {
 
         // Remember node search errors, but do not bail out of this function before the component
         // semantics check has been performed.
-        let mut node_search_errors: Vec<Error> = Vec::default();
+        let mut node_search_errors: Vec<AnnisError> = Vec::default();
 
         // 1. add all nodes
 

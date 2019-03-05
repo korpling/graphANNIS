@@ -3,6 +3,7 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::db::ValueSearch;
 use crate::annis::errors::*;
+use crate::annis::errors_legacy::ResultExt;
 use crate::annis::types::Edge;
 use crate::annis::types::{AnnoKey, AnnoKeyID, Annotation};
 use crate::annis::util;
