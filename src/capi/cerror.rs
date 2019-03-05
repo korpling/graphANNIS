@@ -32,8 +32,8 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
     
 }
 
-impl From<errors::AnnisError> for ErrorList {
-    fn from(e: errors::AnnisError) -> ErrorList {
+impl From<errors::Error> for ErrorList {
+    fn from(e: errors::Error) -> ErrorList {
         let mut result = ErrorList::new();
         result.push(Error {
             msg: CString::new(e.to_string()).unwrap_or(CString::default()),
@@ -59,7 +59,7 @@ impl From<log::SetLoggerError> for Error {
         } else {
             // meta-error
             Error {
-                msg: CString::new(String::from("Some error occured")).unwrap(),
+                msg: CString::new(String::from("Some error occurred")).unwrap(),
                 kind: CString::new("SetLoggerError").unwrap(),
             }
         };
@@ -77,7 +77,7 @@ impl From<std::io::Error> for Error {
         } else {
             // meta-error
             Error {
-                msg: CString::new(String::from("Some error occured")).unwrap(),
+                msg: CString::new(String::from("Some error occurred")).unwrap(),
                 kind: CString::new("std::io::Error").unwrap(),
             }
         };
@@ -85,7 +85,7 @@ impl From<std::io::Error> for Error {
     }
 }
 
-pub fn new(err: errors::AnnisError) -> *mut ErrorList {
+pub fn new(err: errors::Error) -> *mut ErrorList {
     Box::into_raw(Box::new(ErrorList::from(err)))
 }
 

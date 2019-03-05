@@ -184,7 +184,7 @@ pub struct FrequencyDefEntry {
 }
 
 impl FromStr for FrequencyDefEntry {
-    type Err = AnnisError;
+    type Err = Error;
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
@@ -1694,7 +1694,7 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     if let CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
-        return Err(AnnisError::LoadingGraphFailed{name: "".to_string()}.into());
+        return Err(Error::LoadingGraphFailed{name: "".to_string()}.into());
     }
 }
 
