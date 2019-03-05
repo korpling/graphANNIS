@@ -37,7 +37,7 @@ macro_rules! try_cerr {
             Err(err) => {
                 if !$err_ptr.is_null() {
                     unsafe {
-                        *$err_ptr = cerror::new(err);
+                        *$err_ptr = cerror::new(err.into());
                     }
                 }
                 return $default_return_val;
@@ -45,6 +45,7 @@ macro_rules! try_cerr {
         }
     };
 }
+
 
 /// Simple definition of a matrix from a single data type.
 pub type Matrix<T> = Vec<Vec<T>>;
