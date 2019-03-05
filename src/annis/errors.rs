@@ -1,6 +1,5 @@
 #![allow(deprecated)]
 
-use crate::annis::types::Component;
 use crate::annis::types::LineColumnRange;
 
 error_chain! {
@@ -16,11 +15,6 @@ error_chain! {
     }
 
     errors {
-        LoadingComponentFailed(c: Component) {
-            description("Could not load component from disk"),
-            display("Could not load component {} from disk", c),
-        }
-
         LoadingDBFailed(db : String) {
             description("Could not load graph from disk"),
             display("Could not load graph {} from disk", &db),
