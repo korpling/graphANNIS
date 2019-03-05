@@ -33,7 +33,7 @@ You can also use an absolute path as argument
 let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("/tmp/graphannis-data"), true)?;
 ```
 Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
-The `CorpusStorae` is thread-safe, thus multiple threads of the same process can call all functions in parallel.
+The `CorpusStorage` is thread-safe, thus multiple threads of the same process can call all functions in parallel.
 
 ## Adding corpus data
 
@@ -44,65 +44,159 @@ These graph update lists are represented by the class `GraphUpdate`.
 E.g the following code creates a graph update for the tokenized sentence "That is a Category 3 storm.".
 The resulting `GraphUpdate` object can then be used with the `apply_update(...)` function to insert the changes into the corpus.
 ```rust,noplaypen
-package org.corpus_tools;
+use graphannis::update::{GraphUpdate, UpdateEvent};
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
 
-import org.corpus_tools.graphannis.CorpusStorageManager;
-import org.corpus_tools.graphannis.GraphUpdate;
-import org.corpus_tools.graphannis.errors.GraphANNISException;
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
 
-public class ApplyUpdate {
-    public static void main(String[] args) throws GraphANNISException {
-        CorpusStorageManager cs = new CorpusStorageManager("data");
+    let mut g = GraphUpdate::new();
 
-        GraphUpdate g = new GraphUpdate();
+    // First add the node (with the default type "node"),
+    // then all node labels for the node.
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial/doc1#t1".to_owned(),
+        node_type: "node".to_owned(),
+    });
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: "tutorial/doc1#t1".to_owned(),
+        anno_ns: "annis".to_owned(),
+        anno_name: "tok".to_owned(),
+        anno_value: "That".to_owned(),
+    });
 
-        // First argument is the node name.
-        g.addNode("tutorial/doc1#t1");
-        // First argument is the node name, 
-        // then comes the annotation namespace, name and value.
-        g.addNodeLabel("tutorial/doc1#t1", "annis", "tok", "That");
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial/doc1#t2".to_owned(),
+        node_type: "node".to_owned(),
+    });
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: "tutorial/doc1#t2".to_owned(),
+        anno_ns: "annis".to_owned(),
+        anno_name: "tok".to_owned(),
+        anno_value: "is".to_owned(),
+    });
 
-        g.addNode("tutorial/doc1#t2");
-        g.addNodeLabel("tutorial/doc1#t2", "annis", "tok", "is");
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial/doc1#t3".to_owned(),
+        node_type: "node".to_owned(),
+    });
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: "tutorial/doc1#t3".to_owned(),
+        anno_ns: "annis".to_owned(),
+        anno_name: "tok".to_owned(),
+        anno_value: "a".to_owned(),
+    });
 
-        g.addNode("tutorial/doc1#t3");
-        g.addNodeLabel("tutorial/doc1#t3", "annis", "tok", "a");
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial/doc1#t4".to_owned(),
+        node_type: "node".to_owned(),
+    });
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: "tutorial/doc1#t4".to_owned(),
+        anno_ns: "annis".to_owned(),
+        anno_name: "tok".to_owned(),
+        anno_value: "Category".to_owned(),
+    });
 
-        g.addNode("tutorial/doc1#t4");
-        g.addNodeLabel("tutorial/doc1#t4", "annis", "tok", "Category");
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial/doc1#t5".to_owned(),
+        node_type: "node".to_owned(),
+    });
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: "tutorial/doc1#t5".to_owned(),
+        anno_ns: "annis".to_owned(),
+        anno_name: "tok".to_owned(),
+        anno_value: "3".to_owned(),
+    });
 
-        g.addNode("tutorial/doc1#t5");
-        g.addNodeLabel("tutorial/doc1#t5", "annis", "tok", "3");
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial/doc1#t6".to_owned(),
+        node_type: "node".to_owned(),
+    });
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: "tutorial/doc1#t6".to_owned(),
+        anno_ns: "annis".to_owned(),
+        anno_name: "tok".to_owned(),
+        anno_value: "storm".to_owned(),
+    });
 
-        g.addNode("tutorial/doc1#t6");
-        g.addNodeLabel("tutorial/doc1#t6", "annis", "tok", "storm");
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial/doc1#7".to_owned(),
+        node_type: "node".to_owned(),
+    });
+    g.add_event(UpdateEvent::AddNodeLabel {
+        node_name: "tutorial/doc1#t7".to_owned(),
+        anno_ns: "annis".to_owned(),
+        anno_name: "tok".to_owned(),
+        anno_value: ",".to_owned(),
+    });
 
-        g.addNode("tutorial/doc1#t7");
-        g.addNodeLabel("tutorial/doc1#t7", "annis", "tok", ".");
+    // Add the ordering edges to specify token order.
+    // The names of the source and target nodes are given as in the enum as fields,
+    // followed by the component layer, type and name.
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t1".to_owned(),
+        target_node: "tutorial/doc1#t2".to_owned(),
+        layer: "annis".to_owned(),
+        component_type: "Ordering".to_owned(),
+        component_name: "".to_owned(),
+    });
 
-        // Add the ordering edges to specify token order.
-        // The names of the source and target nodes are given as arguments, 
-        // followed by the component layer, type and name.
-        g.addEdge("tutorial/doc1#t1", "tutorial/doc1#t2", "annis", "Ordering", "");
-        g.addEdge("tutorial/doc1#t2", "tutorial/doc1#t3", "annis", "Ordering", "");
-        g.addEdge("tutorial/doc1#t3", "tutorial/doc1#t4", "annis", "Ordering", "");
-        g.addEdge("tutorial/doc1#t4", "tutorial/doc1#t5", "annis", "Ordering", "");
-        g.addEdge("tutorial/doc1#t5", "tutorial/doc1#t6", "annis", "Ordering", "");
-        g.addEdge("tutorial/doc1#t6", "tutorial/doc1#t7", "annis", "Ordering", "");
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t2".to_owned(),
+        target_node: "tutorial/doc1#t3".to_owned(),
+        layer: "annis".to_owned(),
+        component_type: "Ordering".to_owned(),
+        component_name: "".to_owned(),
+    });
 
-        cs.applyUpdate("tutorial", g);
-        String[] corpora = cs.list();
-        if(corpora.length > 0) {
-            System.out.println(corpora[0]);
-        } else {
-            System.out.println("No corpus found");
-        }
-        
-    }
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t3".to_owned(),
+        target_node: "tutorial/doc1#t4".to_owned(),
+        layer: "annis".to_owned(),
+        component_type: "Ordering".to_owned(),
+        component_name: "".to_owned(),
+    });
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t4".to_owned(),
+        target_node: "tutorial/doc1#t5".to_owned(),
+        layer: "annis".to_owned(),
+        component_type: "Ordering".to_owned(),
+        component_name: "".to_owned(),
+    });
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t5".to_owned(),
+        target_node: "tutorial/doc1#t6".to_owned(),
+        layer: "annis".to_owned(),
+        component_type: "Ordering".to_owned(),
+        component_name: "".to_owned(),
+    });
+
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t6".to_owned(),
+        target_node: "tutorial/doc1#t7".to_owned(),
+        layer: "annis".to_owned(),
+        component_type: "Ordering".to_owned(),
+        component_name: "".to_owned(),
+    });
+
+    // Insert the changes in the corpus with the name "tutorial"
+    cs.apply_update("tutorial", &mut g).unwrap();
+
+    // List newly created corpus
+    let corpora = cs.list().unwrap();
+    let corpus_names: Vec<String> = corpora
+        .into_iter()
+        .map(|corpus_info| corpus_info.name)
+        .collect();
+    println!("{:?}", corpus_names);
 }
 ```
 You could add additional annotations like part of speech as labels on nodes.
-For labels on edges, you can use the `addEdgeLabel(...)` function.
+For labels on edges, you can use the `UpdateEvent::AddEdgeLabel` enum variant.
 
 
 ## Querying 
