@@ -7,4 +7,5 @@
 - [How to embed into applications](./embed.md)
     - [Python Tutorial](./embed-python.md)
     - [Java Tutorial](./embed-java.md)
+    - [Rust Tutorial](./embed-rust.md)
 - [Release checklist](./release-checklist.md)
