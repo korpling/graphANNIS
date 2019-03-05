@@ -15,7 +15,7 @@ The API documentation is available at [https://docs.rs/graphannis/](https://docs
 
 Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
 A `CorpusStorage` is used to access a collection corpora by their name.
-```rust,noplaypen
+```rust,noplaypen,ignore
 use graphannis::CorpusStorage;
 use std::path::PathBuf;
 
@@ -29,7 +29,7 @@ fn main() {
 This will print an empty list, because no corpora have been created yet.
 In this example, the `CorpusStorage` uses the sub-directory `data` of the current working directory to store the corpora.
 You can also use an absolute path as argument
-```rust,noplaypen
+```rust,noplaypen,ignore
 let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("/tmp/graphannis-data"), true)?;
 ```
 Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
@@ -45,7 +45,7 @@ E.g the following code creates a graph update for the tokenized sentence "That i
 Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.
 The resulting `GraphUpdate` object can then be used with the `apply_update(...)` function to insert the changes into the corpus.
 
-```rust,noplaypen
+```rust,noplaypen,ignore
 use graphannis::update::{GraphUpdate, UpdateEvent};
 use graphannis::CorpusStorage;
 use std::path::PathBuf;
@@ -209,7 +209,7 @@ There are two functions to query a corpus with AQL:
 
 You have to give the list of corpora and the query as arguments to both functions.
 The following example searches for all tokens that contain a `s` character.[^aql]
-```rust,noplaypen
+```rust,noplaypen,ignore
 use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
 use graphannis::CorpusStorage;
 use std::path::PathBuf;
@@ -237,7 +237,7 @@ fn main() {
 }
 ```
 Output:
-```
+```ignore
 Number of matches: 2
 Match 0: salt:/tutorial/doc1#t2
 Match 1: salt:/tutorial/doc1#t6
@@ -248,7 +248,7 @@ GraphANNIS will add the URI scheme `salt:/` to your node names automatically.
 
 The result from the `find(...)` function can be used to generate a subgraph for the matches.
 It will contain all covered nodes of the matches and additionally a given context (defined in tokens).
-```rust,noplaypen
+```rust,noplaypen,ignore
 use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
 use graphannis::graph::AnnotationStorage;
 use graphannis::util;
@@ -283,7 +283,7 @@ fn main() {
 }
 ```
 Output:
-```
+```ignore
 salt:/tutorial/doc1#t1 salt:/tutorial/doc1#t2
 Number of nodes in subgraph: 4
 salt:/tutorial/doc1#t2 salt:/tutorial/doc1#t3
@@ -306,7 +306,7 @@ GraphANNIS uses node types and relations of type `PartOf` to [model the corpus s
 If you have document nodes and the `PartOf` relation between the annotation nodes and its document, you can use the
 `subcorpus_graph(...)` function to get all annotation nodes for a given list of document names.
 
-```rust,noplaypen
+```rust,noplaypen,ignore
 use graphannis::graph::AnnotationStorage;
 use graphannis::update::{GraphUpdate, UpdateEvent};
 use graphannis::CorpusStorage;
@@ -409,7 +409,7 @@ fn main() {
 }
 ```
 Output:
-```
+```ignore
 tutorial/doc1#t5
 tutorial/doc1#t7
 tutorial/doc1#t1

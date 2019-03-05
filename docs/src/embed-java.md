@@ -5,7 +5,7 @@
 GraphANNIS works with applications written for Java 8 or later.
 If you are using Apache Maven as your build system, you can add a dependency to graphANNIS with
 
-```
+```xml
 <dependency>
   <groupId>org.corpus-tools</groupId>
   <artifactId>graphannis-api</artifactId>
@@ -147,7 +147,7 @@ public class Query {
 
 ```
 Output:
-```
+```ignore
 Number of matches: 2
 Match 0: salt:/tutorial/doc1#t2
 Match 1: salt:/tutorial/doc1#t6
@@ -190,7 +190,7 @@ public class FindSubgraph {
 }
 ```
 Output:
-```
+```ignore
 salt:/tutorial/doc1#t1 salt:/tutorial/doc1#t2
 Number of nodes in subgraph: 4
 salt:/tutorial/doc1#t2 salt:/tutorial/doc1#t3
@@ -252,7 +252,7 @@ public class SubcorpusGraph {
 
 ```
 Output:
-```
+```ignore
 tutorial/doc1#t1
 tutorial/doc1#t2
 tutorial/doc1#t3
