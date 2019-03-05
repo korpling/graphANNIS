@@ -58,131 +58,131 @@ fn main() {
     // First add the node (with the default type "node"),
     // then all node labels for the node.
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t1".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t1".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t1".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "That".to_owned(),
+        node_name: "tutorial/doc1#t1".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "That".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t2".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t2".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t2".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "is".to_owned(),
+        node_name: "tutorial/doc1#t2".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "is".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t3".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t3".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t3".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "a".to_owned(),
+        node_name: "tutorial/doc1#t3".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "a".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t4".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t4".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t4".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "Category".to_owned(),
+        node_name: "tutorial/doc1#t4".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "Category".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t5".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t5".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t5".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "3".to_owned(),
+        node_name: "tutorial/doc1#t5".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "3".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t6".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t6".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t6".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "storm".to_owned(),
+        node_name: "tutorial/doc1#t6".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "storm".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t7".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t7".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t7".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: ".".to_owned(),
+        node_name: "tutorial/doc1#t7".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: ".".to_string(),
     });
 
     // Add the ordering edges to specify token order.
     // The names of the source and target nodes are given as in the enum as fields,
     // followed by the component layer, type and name.
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t1".to_owned(),
-        target_node: "tutorial/doc1#t2".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t1".to_string(),
+        target_node: "tutorial/doc1#t2".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t2".to_owned(),
-        target_node: "tutorial/doc1#t3".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t2".to_string(),
+        target_node: "tutorial/doc1#t3".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t3".to_owned(),
-        target_node: "tutorial/doc1#t4".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t3".to_string(),
+        target_node: "tutorial/doc1#t4".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t4".to_owned(),
-        target_node: "tutorial/doc1#t5".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t4".to_string(),
+        target_node: "tutorial/doc1#t5".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t5".to_owned(),
-        target_node: "tutorial/doc1#t6".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t5".to_string(),
+        target_node: "tutorial/doc1#t6".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t6".to_owned(),
-        target_node: "tutorial/doc1#t7".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t6".to_string(),
+        target_node: "tutorial/doc1#t7".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     // Insert the changes in the corpus with the name "tutorial"
@@ -210,16 +210,27 @@ There are two functions to query a corpus with AQL:
 You have to give the list of corpora and the query as arguments to both functions.
 The following example searches for all tokens that contain a `s` character.[^aql]
 ```rust,noplaypen
-use graphannis::CorpusStorage;
 use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
+use graphannis::CorpusStorage;
 use std::path::PathBuf;
 
 fn main() {
     let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
-    let number_of_matches = cs.count("tutorial", "tok=/.*s.*/", QueryLanguage::AQL).unwrap();
+    let number_of_matches = cs
+        .count("tutorial", "tok=/.*s.*/", QueryLanguage::AQL)
+        .unwrap();
     println!("Number of matches: {}", number_of_matches);
 
-    let matches = cs.find("tutorial", "tok=/.*s.*/", QueryLanguage::AQL, 0, 100, ResultOrder::Normal).unwrap();
+    let matches = cs
+        .find(
+            "tutorial",
+            "tok=/.*s.*/",
+            QueryLanguage::AQL,
+            0,
+            100,
+            ResultOrder::Normal,
+        )
+        .unwrap();
     for i in 0..matches.len() {
         println!("Match {}: {}", i, matches[i]);
     }
@@ -286,7 +297,7 @@ Number of nodes in subgraph: 5
 salt:/tutorial/doc1#t6 salt:/tutorial/doc1#t7
 Number of nodes in subgraph: 4
 ```
-The result object of the `subgraph(...)` function is the type `Graph`, which provides basic graph access functions (see the JavaDoc for details).
+The result object of the `subgraph(...)` function is the type `Graph`, which provides basic graph access functions (see the API documentation for details).
 
 **Note:** The `subgraph(...)` function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.
 
@@ -295,53 +306,117 @@ GraphANNIS uses node types and relations of type `PartOf` to [model the corpus s
 If you have document nodes and the `PartOf` relation between the annotation nodes and its document, you can use the
 `subcorpus_graph(...)` function to get all annotation nodes for a given list of document names.
 
-```java
-package org.corpus_tools;
+```rust,noplaypen
+use graphannis::graph::AnnotationStorage;
+use graphannis::update::{GraphUpdate, UpdateEvent};
+use graphannis::CorpusStorage;
+use std::path::PathBuf;
 
-import java.util.Arrays;
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
+    let mut g = GraphUpdate::new();
+    // create the corpus and document node
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial".to_string(),
+        node_type: "corpus".to_string(),
+    });
+    g.add_event(UpdateEvent::AddNode {
+        node_name: "tutorial/doc1".to_string(),
+        node_type: "corpus".to_string(),
+    });
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1".to_string(),
+        target_node: "tutorial".to_string(),
+        layer: "annis".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    });
+    // add the corpus structure to the existing nodes
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t1".to_string(),
+        target_node: "tutorial/doc1".to_string(),
+        layer: "annis".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    });
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t2".to_string(),
+        target_node: "tutorial/doc1".to_string(),
+        layer: "annis".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    });
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t3".to_string(),
+        target_node: "tutorial/doc1".to_string(),
+        layer: "annis".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    });
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t4".to_string(),
+        target_node: "tutorial/doc1".to_string(),
+        layer: "annis".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    });
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t5".to_string(),
+        target_node: "tutorial/doc1".to_string(),
+        layer: "annis".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    });
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t6".to_string(),
+        target_node: "tutorial/doc1".to_string(),
+        layer: "annis".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    });
+    g.add_event(UpdateEvent::AddEdge {
+        source_node: "tutorial/doc1#t7".to_string(),
+        target_node: "tutorial/doc1".to_string(),
+        layer: "annis".to_string(),
+        component_type: "PartOf".to_string(),
+        component_name: "".to_string(),
+    });
+    // apply the changes
+    cs.apply_update("tutorial", &mut g).unwrap();
 
-import org.corpus_tools.graphannis.CorpusStorageManager;
-import org.corpus_tools.graphannis.GraphUpdate;
-import org.corpus_tools.graphannis.errors.GraphANNISException;
-import org.corpus_tools.graphannis.model.Graph;
-import org.corpus_tools.graphannis.model.Node;
-
-public class SubcorpusGraph {
-    public static void main(String[] args) throws GraphANNISException {
-        CorpusStorageManager cs = new CorpusStorageManager("data");
-        GraphUpdate g = new GraphUpdate();
-        // create the corpus and document node
-        g.addNode("tutorial", "corpus");
-        g.addNode("tutorial/doc1", "corpus");
-        g.addEdge("tutorial/doc1", "tutorial", "annis", "PartOf", "");
-        // add the corpus structure to the existing nodes
-        g.addEdge("tutorial/doc1#t1", "tutorial/doc1", "annis", "PartOf", "");
-        g.addEdge("tutorial/doc1#t2", "tutorial/doc1", "annis", "PartOf", "");
-        g.addEdge("tutorial/doc1#t3", "tutorial/doc1", "annis", "PartOf", "");
-        g.addEdge("tutorial/doc1#t4", "tutorial/doc1", "annis", "PartOf", "");
-        g.addEdge("tutorial/doc1#t5", "tutorial/doc1", "annis", "PartOf", "");
-        g.addEdge("tutorial/doc1#t6", "tutorial/doc1", "annis", "PartOf", "");
-        g.addEdge("tutorial/doc1#t7", "tutorial/doc1", "annis", "PartOf", "");
-        // apply the changes
-        cs.applyUpdate("tutorial", g);
-        // get the whole document as graph
-        Graph subgraph = cs.subcorpusGraph("tutorial", Arrays.asList("tutorial/doc1"));
-        for (Node n : subgraph.getNodesByType("node")) {
-            System.out.println(n.getName());
-        }
+    // get the whole document as graph
+    let subgraph = cs
+        .subcorpus_graph("tutorial", vec!["tutorial/doc1".to_string()])
+        .unwrap();
+    let node_search = subgraph.exact_anno_search(
+        Some("annis".to_string()),
+        "node_type".to_string(),
+        Some("node".to_string()).into(),
+    );
+    for m in node_search {
+        // get the numeric node ID from the match
+        let id = m.get_node();
+        // get the node name from the ID by searching for the label with the name "annis::node_name"
+        let matched_node_name = subgraph
+            .get_annotations_for_item(&id)
+            .into_iter()
+            .filter(|anno| anno.key.ns == "annis" && anno.key.name == "node_name")
+            .map(|anno| anno.val)
+            .next()
+            .unwrap();
+        println!("{}", matched_node_name);
     }
 }
-
 ```
 Output:
 ```
+tutorial/doc1#t5
+tutorial/doc1#t7
 tutorial/doc1#t1
+tutorial/doc1#t6
+tutorial/doc1#t4
 tutorial/doc1#t2
 tutorial/doc1#t3
-tutorial/doc1#t4
-tutorial/doc1#t5
-tutorial/doc1#t6
-tutorial/doc1#t7
 ```
 
 [^aql]: You can get an overview of AQL [here](http://corpus-tools.org/annis/aql.html) or detailled information in the

@@ -10,131 +10,131 @@ fn main() {
     // First add the node (with the default type "node"),
     // then all node labels for the node.
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t1".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t1".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t1".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "That".to_owned(),
+        node_name: "tutorial/doc1#t1".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "That".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t2".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t2".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t2".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "is".to_owned(),
+        node_name: "tutorial/doc1#t2".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "is".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t3".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t3".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t3".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "a".to_owned(),
+        node_name: "tutorial/doc1#t3".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "a".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t4".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t4".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t4".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "Category".to_owned(),
+        node_name: "tutorial/doc1#t4".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "Category".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t5".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t5".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t5".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "3".to_owned(),
+        node_name: "tutorial/doc1#t5".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "3".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t6".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t6".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t6".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: "storm".to_owned(),
+        node_name: "tutorial/doc1#t6".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: "storm".to_string(),
     });
 
     g.add_event(UpdateEvent::AddNode {
-        node_name: "tutorial/doc1#t7".to_owned(),
-        node_type: "node".to_owned(),
+        node_name: "tutorial/doc1#t7".to_string(),
+        node_type: "node".to_string(),
     });
     g.add_event(UpdateEvent::AddNodeLabel {
-        node_name: "tutorial/doc1#t7".to_owned(),
-        anno_ns: "annis".to_owned(),
-        anno_name: "tok".to_owned(),
-        anno_value: ".".to_owned(),
+        node_name: "tutorial/doc1#t7".to_string(),
+        anno_ns: "annis".to_string(),
+        anno_name: "tok".to_string(),
+        anno_value: ".".to_string(),
     });
 
     // Add the ordering edges to specify token order.
     // The names of the source and target nodes are given as in the enum as fields,
     // followed by the component layer, type and name.
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t1".to_owned(),
-        target_node: "tutorial/doc1#t2".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t1".to_string(),
+        target_node: "tutorial/doc1#t2".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t2".to_owned(),
-        target_node: "tutorial/doc1#t3".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t2".to_string(),
+        target_node: "tutorial/doc1#t3".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t3".to_owned(),
-        target_node: "tutorial/doc1#t4".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t3".to_string(),
+        target_node: "tutorial/doc1#t4".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t4".to_owned(),
-        target_node: "tutorial/doc1#t5".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t4".to_string(),
+        target_node: "tutorial/doc1#t5".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t5".to_owned(),
-        target_node: "tutorial/doc1#t6".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t5".to_string(),
+        target_node: "tutorial/doc1#t6".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     g.add_event(UpdateEvent::AddEdge {
-        source_node: "tutorial/doc1#t6".to_owned(),
-        target_node: "tutorial/doc1#t7".to_owned(),
-        layer: "annis".to_owned(),
-        component_type: "Ordering".to_owned(),
-        component_name: "".to_owned(),
+        source_node: "tutorial/doc1#t6".to_string(),
+        target_node: "tutorial/doc1#t7".to_string(),
+        layer: "annis".to_string(),
+        component_type: "Ordering".to_string(),
+        component_name: "".to_string(),
     });
 
     // Insert the changes in the corpus with the name "tutorial"
