@@ -57,7 +57,7 @@ fn compare_document_path(p1: &str, p2: &str) -> std::cmp::Ordering {
 }
 
 lazy_static! {
-    static ref node_name_key: AnnoKey = AnnoKey {
+    static ref NODE_NAME_KEY: AnnoKey = AnnoKey {
         ns: ANNIS_NS.to_string(),
         name: NODE_NAME.to_string(),
     };
@@ -75,8 +75,8 @@ pub fn compare_match_by_text_pos(
         m1.anno_key.cmp(&m2.anno_key)
     } else {
         // get the node paths and names
-        let m1_anno_val = node_annos.get_value_for_item(&m1.node, &node_name_key);
-        let m2_anno_val = node_annos.get_value_for_item(&m2.node, &node_name_key);
+        let m1_anno_val = node_annos.get_value_for_item(&m1.node, &NODE_NAME_KEY);
+        let m2_anno_val = node_annos.get_value_for_item(&m2.node, &NODE_NAME_KEY);
 
         if let (Some(m1_anno_val), Some(m2_anno_val)) = (m1_anno_val, m2_anno_val) {
             let (m1_path, m1_name) = split_path_and_nodename(m1_anno_val);
