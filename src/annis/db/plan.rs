@@ -31,7 +31,7 @@ impl<'a> ExecutionPlan<'a> {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);
             } else if let Err(e) = p {
-                if let AnnisError::Legacy(e) = e {
+                if let Error::Legacy(e) = e {
                     if let ErrorKind::AQLSemanticError(_, _) = e.kind() {
                         return Err(e.into());
                     }

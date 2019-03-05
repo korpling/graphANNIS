@@ -1,12 +1,12 @@
-use std::error::Error;
+use std::error::Error as StdError;
 use std::fmt::Display;
 use crate::annis::errors_legacy;
 
 
-pub type Result<T> = std::result::Result<T, AnnisError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
-pub enum AnnisError {
+pub enum Error {
     LoadingGraphFailed { name: String },
     Generic(String),
     Legacy(errors_legacy::Error),
@@ -19,139 +19,139 @@ pub enum AnnisError {
     Regex(::regex::Error),
 }
 
-impl AnnisError {
+impl Error {
     pub fn kind(&self) -> &str {
         match self {
-            AnnisError::LoadingGraphFailed {..} => "LoadingGraphFailed",
-            AnnisError::Legacy(e) => e.kind().description(),
-            AnnisError::Generic(_) => "Generic",
-            AnnisError::IO(_) => "IO",
-            AnnisError::Bincode(_) => "Bincode",
-            AnnisError::CSV(_) => "CSV",
-            AnnisError::ParseIntError(_) => "ParseIntError",
-            AnnisError::Fmt(_) => "Fmt",
-            AnnisError::Strum(_) => "Strum",
-            AnnisError::Regex(_) => "Regex",
+            Error::LoadingGraphFailed {..} => "LoadingGraphFailed",
+            Error::Legacy(e) => e.kind().description(),
+            Error::Generic(_) => "Generic",
+            Error::IO(_) => "IO",
+            Error::Bincode(_) => "Bincode",
+            Error::CSV(_) => "CSV",
+            Error::ParseIntError(_) => "ParseIntError",
+            Error::Fmt(_) => "Fmt",
+            Error::Strum(_) => "Strum",
+            Error::Regex(_) => "Regex",
         }
     }
 }
 
-impl std::convert::From<errors_legacy::ErrorKind> for AnnisError {
-    fn from(e : errors_legacy::ErrorKind) -> AnnisError {
-        AnnisError::Legacy(e.into())
+impl std::convert::From<errors_legacy::ErrorKind> for Error {
+    fn from(e : errors_legacy::ErrorKind) -> Error {
+        Error::Legacy(e.into())
     }
 }
 
-impl std::convert::From<errors_legacy::Error> for AnnisError {
-    fn from(e : errors_legacy::Error) -> AnnisError {
-        AnnisError::Legacy(e)
+impl std::convert::From<errors_legacy::Error> for Error {
+    fn from(e : errors_legacy::Error) -> Error {
+        Error::Legacy(e)
     }
 }
 
-impl std::convert::From<std::io::Error> for AnnisError {
-    fn from(e : std::io::Error) -> AnnisError {
-        AnnisError::IO(e)
+impl std::convert::From<std::io::Error> for Error {
+    fn from(e : std::io::Error) -> Error {
+        Error::IO(e)
     }
 }
 
-impl std::convert::From<::bincode::Error> for AnnisError {
-    fn from(e : ::bincode::Error) -> AnnisError {
-        AnnisError::Bincode(e)
+impl std::convert::From<::bincode::Error> for Error {
+    fn from(e : ::bincode::Error) -> Error {
+        Error::Bincode(e)
     }
 }
 
-impl std::convert::From<::csv::Error> for AnnisError {
-    fn from(e : ::csv::Error) -> AnnisError {
-        AnnisError::CSV(e)
+impl std::convert::From<::csv::Error> for Error {
+    fn from(e : ::csv::Error) -> Error {
+        Error::CSV(e)
     }
 }
 
-impl std::convert::From<std::num::ParseIntError> for AnnisError {
-    fn from(e : std::num::ParseIntError) -> AnnisError {
-        AnnisError::ParseIntError(e)
+impl std::convert::From<std::num::ParseIntError> for Error {
+    fn from(e : std::num::ParseIntError) -> Error {
+        Error::ParseIntError(e)
     }
 }
 
-impl std::convert::From<std::fmt::Error> for AnnisError {
-    fn from(e : std::fmt::Error) -> AnnisError {
-        AnnisError::Fmt(e)
+impl std::convert::From<std::fmt::Error> for Error {
+    fn from(e : std::fmt::Error) -> Error {
+        Error::Fmt(e)
     }
 }
 
-impl std::convert::From<strum::ParseError> for AnnisError {
-    fn from(e : strum::ParseError) -> AnnisError {
-        AnnisError::Strum(e)
+impl std::convert::From<strum::ParseError> for Error {
+    fn from(e : strum::ParseError) -> Error {
+        Error::Strum(e)
     }
 }
 
-impl std::convert::From<regex::Error> for AnnisError {
-    fn from(e : regex::Error) -> AnnisError {
-        AnnisError::Regex(e)
+impl std::convert::From<regex::Error> for Error {
+    fn from(e : regex::Error) -> Error {
+        Error::Regex(e)
     }
 }
 
 
-impl std::convert::From<&str> for AnnisError {
-    fn from(e : &str) -> AnnisError {
-        AnnisError::Generic(e.to_string())
+impl std::convert::From<&str> for Error {
+    fn from(e : &str) -> Error {
+        Error::Generic(e.to_string())
     }
 }
 
-impl std::convert::From<String> for AnnisError {
-    fn from(e : String) -> AnnisError {
-        AnnisError::Generic(e)
+impl std::convert::From<String> for Error {
+    fn from(e : String) -> Error {
+        Error::Generic(e)
     }
 }
 
-impl Display for AnnisError {
+impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            AnnisError::LoadingGraphFailed { name } => {
+            Error::LoadingGraphFailed { name } => {
                 write!(f, "Could not load graph {} from disk", &name)
             },
-            AnnisError::Legacy(e) => {
+            Error::Legacy(e) => {
                 e.fmt(f)
             },
-            AnnisError::Generic(e) => {
+            Error::Generic(e) => {
                 write!(f, "{}", e)
             }
-            AnnisError::IO(e) => {
+            Error::IO(e) => {
                 e.fmt(f)
             },
-            AnnisError::Bincode(e) => {
+            Error::Bincode(e) => {
                 e.fmt(f)
             },
-            AnnisError::CSV(e) => {
+            Error::CSV(e) => {
                 e.fmt(f)
             }
-            AnnisError::ParseIntError(e) => {
+            Error::ParseIntError(e) => {
                 e.fmt(f)
             },
-            AnnisError::Fmt(e) => {
+            Error::Fmt(e) => {
                 e.fmt(f)
             },
-            AnnisError::Strum(e) => {
+            Error::Strum(e) => {
                 e.fmt(f)
             },
-            AnnisError::Regex(e) => {
+            Error::Regex(e) => {
                 e.fmt(f)
             }
         }
     }
 }
 
-impl Error for AnnisError {
-    fn source(&self) -> Option<&(Error + 'static)> {
+impl StdError for Error {
+    fn source(&self) -> Option<&(StdError + 'static)> {
         match self {
-            AnnisError::LoadingGraphFailed { .. } | AnnisError::Generic(_) => None,
-            AnnisError::Legacy(e) => e.source(),
-            AnnisError::Bincode(e) => Some(e),
-            AnnisError::IO(e) => Some(e),
-            AnnisError::CSV(e) => Some(e),
-            AnnisError::ParseIntError(e) => Some(e),
-            AnnisError::Fmt(e) => Some(e),
-            AnnisError::Strum(e) => Some(e),
-            AnnisError::Regex(e) => Some(e),
+            Error::LoadingGraphFailed { .. } | Error::Generic(_) => None,
+            Error::Legacy(e) => e.source(),
+            Error::Bincode(e) => Some(e),
+            Error::IO(e) => Some(e),
+            Error::CSV(e) => Some(e),
+            Error::ParseIntError(e) => Some(e),
+            Error::Fmt(e) => Some(e),
+            Error::Strum(e) => Some(e),
+            Error::Regex(e) => Some(e),
         }
     }
 }

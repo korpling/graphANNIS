@@ -526,7 +526,7 @@ impl<'a> Conjunction<'a> {
 
         // Remember node search errors, but do not bail out of this function before the component
         // semantics check has been performed.
-        let mut node_search_errors: Vec<AnnisError> = Vec::default();
+        let mut node_search_errors: Vec<Error> = Vec::default();
 
         // 1. add all nodes
 
