@@ -38,13 +38,13 @@ impl AnnisError {
 
 impl std::convert::From<errors_legacy::ErrorKind> for AnnisError {
     fn from(e : errors_legacy::ErrorKind) -> AnnisError {
-        unimplemented!()
+        AnnisError::Legacy(e.into())
     }
 }
 
 impl std::convert::From<errors_legacy::Error> for AnnisError {
     fn from(e : errors_legacy::Error) -> AnnisError {
-        unimplemented!()
+        AnnisError::Legacy(e)
     }
 }
 
