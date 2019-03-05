@@ -43,6 +43,7 @@ You can add nodes and edges via the `apply_update(...)` function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class `graphannis.graph.GraphUpdate`.
 E.g the following code creates a graph update for the tokenized sentence "That is a Category 3 storm."
+Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.
 
 ```python
 from graphannis.graph import GraphUpdate

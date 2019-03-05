@@ -52,7 +52,9 @@ You can add nodes and edges via the `applyUpdate(...)` function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class `GraphUpdate`.
 E.g the following code creates a graph update for the tokenized sentence "That is a Category 3 storm.".
+Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.
 The resulting `GraphUpdate` object can then be used with the `applyUpdate(...)` function to insert the changes into the corpus.
+
 ```java
 package org.corpus_tools;
 

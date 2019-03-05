@@ -42,7 +42,9 @@ You can add nodes and edges via the `apply_update(...)` function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class `GraphUpdate`.
 E.g the following code creates a graph update for the tokenized sentence "That is a Category 3 storm.".
+Normally, you would not add all events manually in the source code, which gets a bit verbose, but have input data that you map to update events.
 The resulting `GraphUpdate` object can then be used with the `apply_update(...)` function to insert the changes into the corpus.
+
 ```rust,noplaypen
 use graphannis::update::{GraphUpdate, UpdateEvent};
 use graphannis::CorpusStorage;
@@ -207,26 +209,21 @@ There are two functions to query a corpus with AQL:
 
 You have to give the list of corpora and the query as arguments to both functions.
 The following example searches for all tokens that contain a `s` character.[^aql]
-```java
-package org.corpus_tools;
+```rust,noplaypen
+use graphannis::CorpusStorage;
+use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
+use std::path::PathBuf;
 
-import java.util.Arrays;
+fn main() {
+    let cs = CorpusStorage::with_auto_cache_size(&PathBuf::from("data"), true).unwrap();
+    let number_of_matches = cs.count("tutorial", "tok=/.*s.*/", QueryLanguage::AQL).unwrap();
+    println!("Number of matches: {}", number_of_matches);
 
-import org.corpus_tools.graphannis.CorpusStorageManager;
-import org.corpus_tools.graphannis.errors.GraphANNISException;
-
-public class Query {
-    public static void main(String[] args) throws GraphANNISException {
-        CorpusStorageManager cs = new CorpusStorageManager("data");
-        long number_of_matches = cs.count(Arrays.asList("tutorial"), "tok=/.*s.*/");
-        System.out.println("Number of matches: " + number_of_matches);
-        String[] matches = cs.find(Arrays.asList("tutorial"), "tok=/.*s.*/", 0, 100);
-        for (int i = 0; i < matches.length; i++) {
-            System.out.println("Match " + i + ": " + matches[i]);
-        }
+    let matches = cs.find("tutorial", "tok=/.*s.*/", QueryLanguage::AQL, 0, 100, ResultOrder::Normal).unwrap();
+    for i in 0..matches.len() {
+        println!("Match {}: {}", i, matches[i]);
     }
 }
-
 ```
 Output:
 ```
