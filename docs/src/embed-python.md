@@ -110,7 +110,7 @@ with CorpusStorageManager() as cs:
     print(matches)
 ```
 Output:
-```
+```ignore
 2
 [['salt:/tutorial/doc1#t2'], ['salt:/tutorial/doc1#t6']]
 ```
@@ -130,7 +130,7 @@ with CorpusStorageManager() as cs:
         print("Number of nodes in subgraph: " + str(len(G.nodes)))
 ```
 Output:
-```
+```ignore
 ['salt:/tutorial/doc1#t1', 'salt:/tutorial/doc1#t2']
 Number of nodes in subgraph: 4
 ['salt:/tutorial/doc1#t2', 'salt:/tutorial/doc1#t3']
@@ -177,7 +177,7 @@ with CorpusStorageManager() as cs:
     print(G.nodes)
 ```
 Output:
-```
+```ignore
 ['salt:/tutorial/doc1#t1', 'salt:/tutorial/doc1#t6', 'salt:/tutorial/doc1#t4', 'salt:/tutorial/doc1#t2', 'salt:/tutorial/doc1#t7', 'salt:/tutorial/doc1#t5', 'salt:/tutorial/doc1#t3']
 ```
 
