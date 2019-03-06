@@ -11,7 +11,6 @@ use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
 use crate::annis::errors::*;
-use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
@@ -600,7 +599,7 @@ impl<'a> Conjunction<'a> {
                 .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
 
             let op: Box<UnaryOperator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(format!(
+                Error::ImpossibleSearch(format!(
                     "could not create operator {:?}",
                     op_spec_entry
                 ))
@@ -620,7 +619,7 @@ impl<'a> Conjunction<'a> {
 
             let mut op: Box<BinaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    ErrorKind::ImpossibleSearch(format!(
+                    Error::ImpossibleSearch(format!(
                         "could not create operator {:?}",
                         op_spec_entry
                     ))
@@ -718,10 +717,9 @@ impl<'a> Conjunction<'a> {
             .map(|(_cid, exec)| exec)
             .next()
             .ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(String::from(
+                Error::ImpossibleSearch(String::from(
                     "could not find execution node for query component",
                 ))
-                .into()
             })
     }
 
