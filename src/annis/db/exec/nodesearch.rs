@@ -741,7 +741,7 @@ impl<'a> NodeSearch<'a> {
                                 return false;
                             }
                         })),
-                        Err(e) => bail!(Error::AQLSemanticError {
+                        Err(e) => return Err(Error::AQLSemanticError {
                             desc: format!("/{}/ -> {}", val, e),
                             location: location_in_query
                         }),
