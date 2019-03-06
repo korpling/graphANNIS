@@ -1,5 +1,4 @@
 pub mod errors;
-pub mod errors_legacy;
 
 #[macro_use]
 pub mod util;
