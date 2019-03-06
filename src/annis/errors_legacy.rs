@@ -13,14 +13,5 @@ error_chain! {
     }
 
     errors {
-        NoSuchString(val : String) {
-            description("String does not exist"),
-            display("String '{}' does not exist", &val),
-        }
-
-        NoSuchCorpus(name : String) {
-            description("NoSuchCorpus"),
-            display("Corpus {} not found", &name)
-        }
     }
 }

@@ -13,7 +13,6 @@ use crate::annis::db::relannis;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
-use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::errors_legacy::ResultExt;
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
@@ -448,7 +447,7 @@ impl CorpusStorage {
         } else if create_if_missing {
             true
         } else {
-            return Err(ErrorKind::NoSuchCorpus(corpus_name.to_string()).into());
+            return Err(Error::NoSuchCorpus(corpus_name.to_string()));
         };
 
         // make sure the cache is not too large before adding the new corpus
