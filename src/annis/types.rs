@@ -109,8 +109,8 @@ pub enum ComponentType {
     LeftToken,
     /// Explicit edge between any non-token node and the right-most token it covers.
     RightToken,
-    /// Implies that the source node belongs to the parent corpus/subcorpus/document node.
-    PartOfSubcorpus,
+    /// Implies that the source node belongs to the parent corpus/subcorpus/document/datasource node.
+    PartOf,
 }
 
 impl fmt::Display for ComponentType {

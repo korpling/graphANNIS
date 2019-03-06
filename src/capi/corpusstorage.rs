@@ -6,12 +6,12 @@ use crate::corpusstorage::{
     QueryAttributeDescription, QueryLanguage, ResultOrder,
 };
 use crate::graph::{AnnotationStorage, Component, ComponentType};
+use crate::update::GraphUpdate;
+use crate::{CorpusStorage, Graph};
 use libc;
 use std;
 use std::ffi::CString;
 use std::path::PathBuf;
-use crate::update::GraphUpdate;
-use crate::{CorpusStorage, Graph};
 
 /// Create a new corpus storage with an automatically determined maximum cache size.
 #[no_mangle]

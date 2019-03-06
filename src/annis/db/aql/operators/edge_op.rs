@@ -536,7 +536,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
     fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
         let mut components = HashSet::default();
         components.insert(Component {
-            ctype: ComponentType::PartOfSubcorpus,
+            ctype: ComponentType::PartOf,
             layer: String::from(ANNIS_NS),
             name: String::from(""),
         });
@@ -545,7 +545,7 @@ impl BinaryOperatorSpec for PartOfSubCorpusSpec {
 
     fn create_operator(&self, db: &Graph) -> Option<Box<BinaryOperator>> {
         let components = vec![Component {
-            ctype: ComponentType::PartOfSubcorpus,
+            ctype: ComponentType::PartOf,
             layer: String::from(ANNIS_NS),
             name: String::from(""),
         }];

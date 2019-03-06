@@ -104,7 +104,7 @@ impl EdgeAnnoSearchSpec {
                     return anno_storage.guess_max_count(ns.clone(), name.clone(), &val, &val);
                 } else {
                     return anno_storage.number_of_annotations_by_name(ns.clone(), name.clone());
-                }                
+                }
             }
             EdgeAnnoSearchSpec::NotExactValue {
                 ref ns,
@@ -171,7 +171,6 @@ pub trait BinaryOperatorSpec: std::fmt::Debug {
         None
     }
 
-
     fn is_binding(&self) -> bool {
         true
     }
@@ -183,8 +182,7 @@ pub trait UnaryOperatorSpec: std::fmt::Debug {
     fn create_operator(&self, db: &Graph) -> Option<Box<UnaryOperator>>;
 }
 
-pub trait UnaryOperator : std::fmt::Display + Send + Sync {
-
+pub trait UnaryOperator: std::fmt::Display + Send + Sync {
     fn filter_match(&self, m: &Match) -> bool;
 
     fn estimation_type(&self) -> EstimationType {

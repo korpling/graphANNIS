@@ -16,8 +16,8 @@ use regex_syntax;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde;
 use std;
-use std::collections::{HashMap, BTreeMap};
 use std::collections::Bound::*;
+use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 use std::path::PathBuf;
 
@@ -487,11 +487,14 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         self.clear();
 
         let path = PathBuf::from(path);
-        let f = std::fs::File::open(path.clone()).chain_err(|| {
-            format!(
-                "Could not load string storage from file {}",
-                path.to_string_lossy()
-            )
+        let f = std::fs::File::open(path.clone()).or_else(|e| {
+            Err(Error::Generic {
+                msg: format!(
+                    "Could not load string storage from file {}",
+                    path.to_string_lossy(),
+                ),
+                cause: Some(Box::new(e)),
+            })
         })?;
         let mut reader = std::io::BufReader::new(f);
         *self = bincode::deserialize_from(&mut reader)?;
@@ -502,30 +505,25 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         Ok(())
     }
 
-    pub fn guess_most_frequent_value(
-        &self,
-        ns: Option<String>,
-        name: String,
-    ) -> Option<String> {
+    pub fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String> {
         // find all complete keys which have the given name (and namespace if given)
         let qualified_keys = match ns {
             Some(ns) => vec![AnnoKey { name, ns }],
             None => self.get_qnames(&name),
         };
 
-        let mut sampled_values : HashMap<String, usize> = HashMap::default();
+        let mut sampled_values: HashMap<String, usize> = HashMap::default();
 
-        // guess for each fully qualified annotation key 
+        // guess for each fully qualified annotation key
         for anno_key in qualified_keys {
             if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
                 if let Some(histo) = self.histogram_bounds.get(&anno_key) {
                     for v in histo.iter() {
-                        let count : &mut usize = sampled_values.entry(v.to_owned()).or_insert(0);
+                        let count: &mut usize = sampled_values.entry(v.to_owned()).or_insert(0);
                         *count += 1;
                     }
                 }
             }
-        
         }
         // find the value which is most frequent
         if sampled_values.len() > 0 {
@@ -616,7 +614,8 @@ where
                 let it = self
                     .matching_items(namespace, name, None)
                     .filter(move |(node, anno_key_id)| {
-                        if let Some(item_value) = self.get_value_for_item_by_id(node, *anno_key_id) {
+                        if let Some(item_value) = self.get_value_for_item_by_id(node, *anno_key_id)
+                        {
                             item_value != value
                         } else {
                             false
@@ -624,7 +623,6 @@ where
                     })
                     .map(move |item| item.into());
                 Box::new(it)
-                
             }
         }
     }

@@ -37,7 +37,7 @@ macro_rules! try_cerr {
             Err(err) => {
                 if !$err_ptr.is_null() {
                     unsafe {
-                        *$err_ptr = cerror::new(err);
+                        *$err_ptr = cerror::new(err.into());
                     }
                 }
                 return $default_return_val;

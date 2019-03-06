@@ -9,7 +9,7 @@ This means that if a language bindings adds a feature, that has been released in
 
 ## Core library release
 
-1. Make a new **release branch** `release/<version>` from the `develop` branch for feature releases. If you make a bug-fix release create a branch named `hotfix/<version>` from the `master` branch.
+1. Create and push a new **release branch** `release/<version>` from the `develop` branch for feature releases. If you make a bug-fix release create a branch named `hotfix/<version>` from the `master` branch.
 2. If this is a major or minor release, **update the link to the Developer Guide** documentation in the `README.md` to point to the new version short version, omitting the patch level and with adding a "v" prefix (e.g. https://korpling.github.io/graphANNIS/docs/v1.0/)
 3. **Release** the branch with the [cargo-release plugin](https://crates.io/crates/cargo-release)
    - `cargo release patch` for hotfixes updates (e.g. 1.0.0 to 1.0.1)
@@ -36,8 +36,8 @@ Continuous Integration will automatically deploy all released versions on the `m
 
 ## Java wrapper release
 
-1. **Start** the release process with `mvn jgitflow:release-start`
+1. **Start** the release process with `mvn gitflow:release-start` or `mvn gitflow:hotfix-start`
 2. **Download** release artifacts from the core library: `./misc/download-release-binaries.sh <version-tag>`
 3. **Test** with `mvn test`
-4. **Finish** the release process with `mvn jgitflow:release-finish`
+4. **Finish** the release process with `mvn gitflow:release-finish` or `mvn gitflow:hotfix-finish`
 5. **Close and Release** the staging repository to Maven Central with the Nexus interface: [https://oss.sonatype.org/](https://oss.sonatype.org/)

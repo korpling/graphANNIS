@@ -1,7 +1,7 @@
 use super::{CostEstimate, Desc, ExecutionNode};
 use crate::annis::db::query::conjunction::{BinaryOperatorEntry, UnaryOperatorEntry};
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, BinaryOperator, UnaryOperator};
+use crate::annis::operator::{BinaryOperator, EstimationType, UnaryOperator};
 use std;
 
 pub struct Filter<'a> {
@@ -98,10 +98,7 @@ impl<'a> Filter<'a> {
                 component_nr: orig_desc.component_nr,
                 node_pos: orig_desc.node_pos.clone(),
                 impl_description: String::from("filter"),
-                query_fragment: format!(
-                    "#{}{}",
-                    op_entry.node_nr, op_entry.op,
-                ),
+                query_fragment: format!("#{}{}", op_entry.node_nr, op_entry.op,),
                 cost: cost_est,
                 lhs: Some(Box::new(orig_desc.clone())),
                 rhs: None,
@@ -109,14 +106,12 @@ impl<'a> Filter<'a> {
         } else {
             None
         };
-        let it =
-            exec.filter(move |tuple| op_entry.op.filter_match(&tuple[idx]));
+        let it = exec.filter(move |tuple| op_entry.op.filter_match(&tuple[idx]));
         Filter {
             desc,
             it: Box::new(it),
         }
     }
-
 }
 
 impl<'a> ExecutionNode for Filter<'a> {

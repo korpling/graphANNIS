@@ -1,8 +1,9 @@
 use super::data::{vec_get, vec_size};
 use crate::errors;
 use libc::{c_char, size_t};
-use ::log;
+use log;
 use std;
+use std::error::Error as StdError;
 use std::ffi::CString;
 
 pub struct Error {
@@ -12,20 +13,55 @@ pub struct Error {
 
 pub type ErrorList = Vec<Error>;
 
+struct CauseIterator<'a> {
+    current: Option<&'a StdError>,
+}
+
+impl<'a> std::iter::Iterator for CauseIterator<'a> {
+    type Item = Error;
+
+    fn next(&mut self) -> std::option::Option<Error> {
+        let std_error = self.current?;
+        let result = Error {
+            msg: CString::new(std_error.to_string()).unwrap_or(CString::default()),
+            kind: CString::new("Cause").unwrap_or(CString::default()),
+        };
+        self.current = std_error.source();
+        Some(result)
+    }
+}
+
+fn error_kind(e: &errors::Error) -> &str {
+    match e {
+        errors::Error::AQLSyntaxError { .. } => "AQLSyntaxError",
+        errors::Error::AQLSemanticError { .. } => "AQLSemanticError",
+        errors::Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
+        errors::Error::ImpossibleSearch(_) => "ImpossibleSearch",
+        errors::Error::NoSuchCorpus(_) => "NoSuchCorpus",
+        errors::Error::Generic { .. } => "Generic",
+        errors::Error::IO(_) => "IO",
+        errors::Error::Bincode(_) => "Bincode",
+        errors::Error::CSV(_) => "CSV",
+        errors::Error::ParseIntError(_) => "ParseIntError",
+        errors::Error::Fmt(_) => "Fmt",
+        errors::Error::Strum(_) => "Strum",
+        errors::Error::Regex(_) => "Regex",
+    }
+}
+
 impl From<errors::Error> for ErrorList {
     fn from(e: errors::Error) -> ErrorList {
         let mut result = ErrorList::new();
         result.push(Error {
             msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-            kind: CString::new(e.kind().description()).unwrap_or(CString::default()),
+            kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
         });
-        for e in e.iter().skip(1) {
-            result.push(Error {
-                msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-                kind: CString::new("Cause").unwrap_or(CString::default()),
-            });
+        let cause_it = CauseIterator {
+            current: e.source(),
+        };
+        for e in cause_it {
+            result.push(e)
         }
-
         return result;
     }
 }
@@ -40,7 +76,7 @@ impl From<log::SetLoggerError> for Error {
         } else {
             // meta-error
             Error {
-                msg: CString::new(String::from("Some error occured")).unwrap(),
+                msg: CString::new(String::from("Some error occurred")).unwrap(),
                 kind: CString::new("SetLoggerError").unwrap(),
             }
         };
@@ -58,7 +94,7 @@ impl From<std::io::Error> for Error {
         } else {
             // meta-error
             Error {
-                msg: CString::new(String::from("Some error occured")).unwrap(),
+                msg: CString::new(String::from("Some error occurred")).unwrap(),
                 kind: CString::new("std::io::Error").unwrap(),
             }
         };

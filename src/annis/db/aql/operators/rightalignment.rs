@@ -56,10 +56,15 @@ impl BinaryOperator for RightAlignment {
                 node: lhs_token,
                 anno_key: AnnoKeyID::default(),
             });
-            aligned.extend(self.tok_helper.get_gs_right_token_().get_ingoing_edges(lhs_token).map(|n| Match {
-                node: n,
-                anno_key: AnnoKeyID::default(),
-            }));
+            aligned.extend(
+                self.tok_helper
+                    .get_gs_right_token_()
+                    .get_ingoing_edges(lhs_token)
+                    .map(|n| Match {
+                        node: n,
+                        anno_key: AnnoKeyID::default(),
+                    }),
+            );
         }
 
         Box::from(aligned.into_iter())

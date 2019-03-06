@@ -2,7 +2,7 @@ use super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
-use crate::annis::operator::{EstimationType, BinaryOperator};
+use crate::annis::operator::{BinaryOperator, EstimationType};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::iter::Peekable;
@@ -210,7 +210,8 @@ impl<'a> Iterator for IndexJoin<'a> {
                         // check if lhs and rhs are equal and if this is allowed in this query
                         if self.op.is_reflexive()
                             || (self.global_reflexivity && m_rhs.different_to_all(&m_lhs)
-                            || (!self.global_reflexivity && m_rhs.different_to(&m_lhs[self.lhs_idx])))
+                                || (!self.global_reflexivity
+                                    && m_rhs.different_to(&m_lhs[self.lhs_idx])))
                         {
                             // filters have been checked, return the result
                             let mut result = m_lhs.clone();

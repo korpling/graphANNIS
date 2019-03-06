@@ -19,7 +19,7 @@ use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::SeedableRng;
 use rand_xorshift::XorShiftRng;
-use std::collections::{HashMap, HashSet, BTreeMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::Arc;
 
@@ -264,11 +264,10 @@ impl<'a> Conjunction<'a> {
                 .push(UnaryOperatorSpecEntry { op, idx: *idx });
             return Ok(());
         } else {
-            return Err(ErrorKind::AQLSemanticError(
-                format!("Operand '#{}' not found", var).into(),
+            return Err(Error::AQLSemanticError {
+                desc: format!("Operand '#{}' not found", var).into(),
                 location,
-            )
-            .into());
+            });
         }
     }
 
@@ -301,24 +300,24 @@ impl<'a> Conjunction<'a> {
             global_reflexivity,
         });
         return Ok(());
-    
-    
     }
 
     pub fn num_of_nodes(&self) -> usize {
         self.nodes.len()
     }
 
-    pub fn resolve_variable_pos(&self, variable: &str, location: Option<LineColumnRange>) -> Result<usize> {
-        
+    pub fn resolve_variable_pos(
+        &self,
+        variable: &str,
+        location: Option<LineColumnRange>,
+    ) -> Result<usize> {
         if let Some(pos) = self.variables.get(variable) {
             return Ok(pos.clone());
         }
-        Err(ErrorKind::AQLSemanticError(
-            format!("Operand '#{}' not found", variable).into(),
+        Err(Error::AQLSemanticError {
+            desc: format!("Operand '#{}' not found", variable).into(),
             location,
-        )
-        .into())
+        })
     }
 
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
@@ -339,12 +338,11 @@ impl<'a> Conjunction<'a> {
                 return Ok(self.nodes[pos].1.clone());
             }
         }
-    
-        return Err(ErrorKind::AQLSemanticError(
-            format!("Operand '#{}' not found", variable).into(),
+
+        return Err(Error::AQLSemanticError {
+            desc: format!("Operand '#{}' not found", variable),
             location,
-        )
-        .into());
+        });
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
@@ -602,10 +600,7 @@ impl<'a> Conjunction<'a> {
                 .ok_or_else(|| format!("no execution node for component {}", op_spec_entry.idx))?;
 
             let op: Box<UnaryOperator> = op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(format!(
-                    "could not create operator {:?}",
-                    op_spec_entry
-                ))
+                Error::ImpossibleSearch(format!("could not create operator {:?}", op_spec_entry))
             })?;
             let op_entry = UnaryOperatorEntry {
                 op,
@@ -622,7 +617,7 @@ impl<'a> Conjunction<'a> {
 
             let mut op: Box<BinaryOperator> =
                 op_spec_entry.op.create_operator(db).ok_or_else(|| {
-                    ErrorKind::ImpossibleSearch(format!(
+                    Error::ImpossibleSearch(format!(
                         "could not create operator {:?}",
                         op_spec_entry
                     ))
@@ -720,10 +715,9 @@ impl<'a> Conjunction<'a> {
             .map(|(_cid, exec)| exec)
             .next()
             .ok_or_else(|| {
-                ErrorKind::ImpossibleSearch(String::from(
+                Error::ImpossibleSearch(String::from(
                     "could not find execution node for query component",
                 ))
-                .into()
             })
     }
 
@@ -767,14 +761,13 @@ impl<'a> Conjunction<'a> {
                     let n_var = &self.nodes[*node_nr].0;
                     let location = self.location_in_query.get(n_var);
 
-                    return Err(ErrorKind::AQLSemanticError(
-                        format!(
+                    return Err(Error::AQLSemanticError {
+                        desc: format!(
                             "Variable \"{}\" not bound (use linguistic operators)",
                             n_var
                         ),
-                        location.cloned(),
-                    )
-                    .into());
+                        location: location.cloned(),
+                    });
                 }
             }
         }

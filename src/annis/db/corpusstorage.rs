@@ -10,9 +10,9 @@ use crate::annis::db::query;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::relannis;
+use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
-use crate::annis::errors::ErrorKind;
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{
@@ -322,23 +322,33 @@ impl CorpusStorage {
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
         let mut corpora: Vec<String> = Vec::new();
-        for c_dir in self.db_dir.read_dir().chain_err(|| {
-            format!(
-                "Listing directories from {} failed",
-                self.db_dir.to_string_lossy()
-            )
-        })? {
-            let c_dir = c_dir.chain_err(|| {
-                format!(
-                    "Could not get directory entry of folder {}",
+        let directories = self.db_dir.read_dir().or_else(|e| {
+            Err(Error::Generic {
+                msg: format!(
+                    "Listing directories from {} failed",
                     self.db_dir.to_string_lossy()
-                )
+                ),
+                cause: Some(Box::new(e)),
+            })
+        })?;
+        for c_dir in directories {
+            let c_dir = c_dir.or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!(
+                        "Could not get directory entry of folder {}",
+                        self.db_dir.to_string_lossy()
+                    ),
+                    cause: Some(Box::new(e)),
+                })
             })?;
-            let ftype = c_dir.file_type().chain_err(|| {
-                format!(
-                    "Could not determine file type for {}",
-                    c_dir.path().to_string_lossy()
-                )
+            let ftype = c_dir.file_type().or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!(
+                        "Could not determine file type for {}",
+                        c_dir.path().to_string_lossy()
+                    ),
+                    cause: Some(Box::new(e)),
+                })
             })?;
             if ftype.is_dir() {
                 let corpus_name = c_dir.file_name().to_string_lossy().to_string();
@@ -446,7 +456,7 @@ impl CorpusStorage {
         } else if create_if_missing {
             true
         } else {
-            return Err(ErrorKind::NoSuchCorpus(corpus_name.to_string()).into());
+            return Err(Error::NoSuchCorpus(corpus_name.to_string()));
         };
 
         // make sure the cache is not too large before adding the new corpus
@@ -457,8 +467,12 @@ impl CorpusStorage {
             let mut db = Graph::with_default_graphstorages()?;
 
             // save corpus to the path where it should be stored
-            db.persist_to(&db_path)
-                .chain_err(|| format!("Could not create corpus with name {}", corpus_name))?;
+            db.persist_to(&db_path).or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!("Could not create corpus with name {}", corpus_name),
+                    cause: Some(Box::new(e)),
+                })
+            })?;
             db
         } else {
             let mut db = Graph::new();
@@ -647,8 +661,12 @@ impl CorpusStorage {
             let mut _lock = db_entry.write().unwrap();
 
             if db_path.is_dir() && db_path.exists() {
-                std::fs::remove_dir_all(db_path.clone())
-                    .chain_err(|| "Error when removing existing files")?
+                std::fs::remove_dir_all(db_path.clone()).or_else(|e| {
+                    Err(Error::Generic {
+                        msg: "Error when removing existing files".to_string(),
+                        cause: Some(Box::new(e)),
+                    })
+                })?
             }
 
             return Ok(true);
@@ -661,9 +679,12 @@ impl CorpusStorage {
     ///
     /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self
-            .get_loaded_entry(corpus_name, true)
-            .chain_err(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
+        let db_entry = self.get_loaded_entry(corpus_name, true).or_else(|e| {
+            Err(Error::Generic {
+                msg: format!("Could not get loaded entry for corpus {}", corpus_name),
+                cause: Some(Box::new(e)),
+            })
+        })?;
         {
             let mut lock = db_entry.write().unwrap();
             let db: &mut Graph = get_write_or_error(&mut lock)?;
@@ -698,13 +719,16 @@ impl CorpusStorage {
         Ok(())
     }
 
-    fn prepare_query<'a>(
+    fn prepare_query<'a, F>(
         &self,
         corpus_name: &str,
         query: &'a str,
         query_language: QueryLanguage,
-        additional_components: Vec<Component>,
-    ) -> Result<PreparationResult<'a>> {
+        additional_components_callback: F,
+    ) -> Result<PreparationResult<'a>>
+    where
+        F: FnOnce(&Graph) -> Vec<Component>,
+    {
         let db_entry = self.get_loaded_entry(corpus_name, false)?;
 
         // make sure the database is loaded with all necessary components
@@ -721,6 +745,8 @@ impl CorpusStorage {
 
             let mut missing: HashSet<Component> =
                 HashSet::from_iter(necessary_components.iter().cloned());
+
+            let additional_components = additional_components_callback(db);
 
             // make sure the additional components are loaded
             missing.extend(additional_components.into_iter());
@@ -799,7 +825,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
     ) -> Result<bool> {
         let prep: PreparationResult =
-            self.prepare_query(corpus_name, query, query_language, vec![])?;
+            self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
         // also get the semantic errors by creating an execution plan on the actual Graph
         let lock = prep.db_entry.read().unwrap();
         let db = get_read_or_error(&lock)?;
@@ -818,7 +844,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<String> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and plan
         let lock = prep.db_entry.read().unwrap();
@@ -840,7 +866,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<u64> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -861,7 +887,7 @@ impl CorpusStorage {
         query: &str,
         query_language: QueryLanguage,
     ) -> Result<CountExtra> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -920,12 +946,19 @@ impl CorpusStorage {
         limit: usize,
         order: ResultOrder,
     ) -> Result<Vec<String>> {
-        let order_component = Component {
-            ctype: ComponentType::Ordering,
-            layer: String::from("annis"),
-            name: String::from(""),
-        };
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![order_component])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |db| {
+            let mut additional_components = vec![Component {
+                ctype: ComponentType::Ordering,
+                layer: String::from("annis"),
+                name: String::from(""),
+            }];
+            if order == ResultOrder::Normal || order == ResultOrder::Inverted {
+                for c in token_helper::necessary_components(db) {
+                    additional_components.push(c);
+                }
+            }
+            additional_components
+        })?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -933,7 +966,7 @@ impl CorpusStorage {
 
         let mut query_config = self.query_config.clone();
         if order == ResultOrder::NotSorted {
-            // Do not use parallization of the order should not be sorted to have a more stable result ordering.
+            // Do execute query in parallel if the order should not be sorted to have a more stable result ordering.
             // Even if we do not promise to have a stable ordering, it should be the same
             // for the same session on the same corpus.
             query_config.use_parallel_joins = false;
@@ -1165,11 +1198,11 @@ impl CorpusStorage {
             // nodes overlapping tokens right of match: m .0,ctx_right node _o_ tok
             {
                 let mut q = Conjunction::new();
-                
+
                 let node_idx = q.add_node(NodeSearchSpec::AnyNode, None);
                 let m_idx = q.add_node(m.clone(), None);
                 let tok_idx = q.add_node(NodeSearchSpec::AnyToken, None);
- 
+
                 q.add_operator(
                     Box::new(operators::PrecedenceSpec {
                         segmentation: None,
@@ -1207,7 +1240,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         component_type_filter: Option<ComponentType>,
     ) -> Result<Graph> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         let mut max_alt_size = 0;
         for alt in &prep.query.alternatives {
@@ -1276,7 +1309,7 @@ impl CorpusStorage {
             // make sure all subcorpus partitions are loaded
             let lock = db_entry.read().unwrap();
             let db = get_read_or_error(&lock)?;
-            db.get_all_components(Some(ComponentType::PartOfSubcorpus), None)
+            db.get_all_components(Some(ComponentType::PartOf), None)
         };
         let db_entry = self.get_loaded_entry_with_components(corpus_name, subcorpus_components)?;
 
@@ -1292,7 +1325,7 @@ impl CorpusStorage {
             &query.into_disjunction(),
             &[0],
             &self.query_config,
-            Some(ComponentType::PartOfSubcorpus),
+            Some(ComponentType::PartOf),
         )
     }
 
@@ -1311,7 +1344,7 @@ impl CorpusStorage {
         query_language: QueryLanguage,
         definition: Vec<FrequencyDefEntry>,
     ) -> Result<FrequencyTable<String>> {
-        let prep = self.prepare_query(corpus_name, query, query_language, vec![])?;
+        let prep = self.prepare_query(corpus_name, query, query_language, |_| vec![])?;
 
         // acquire read-only lock and execute query
         let lock = prep.db_entry.read().unwrap();
@@ -1680,7 +1713,10 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     if let CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
-        return Err(ErrorKind::LoadingDBFailed("".to_string()).into());
+        return Err(Error::LoadingGraphFailed {
+            name: "".to_string(),
+        }
+        .into());
     }
 }
 
@@ -1769,7 +1805,12 @@ fn extract_subgraph_by_query(
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).chain_err(|| "")?;
+    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).or_else(|e| {
+        Err(Error::Generic {
+            msg: "".to_string(),
+            cause: Some(Box::new(e)),
+        })
+    })?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -1850,8 +1891,12 @@ fn create_subgraph_edge(
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
-    std::fs::create_dir_all(&db_dir)
-        .chain_err(|| format!("Could not create directory {}", db_dir.to_string_lossy()))?;
+    std::fs::create_dir_all(&db_dir).or_else(|e| {
+        Err(Error::Generic {
+            msg: format!("Could not create directory {}", db_dir.to_string_lossy()),
+            cause: Some(Box::new(e)),
+        })
+    })?;
     let lock_file_path = db_dir.join("db.lock");
     // check if we can get the file lock
     let lock_file = OpenOptions::new()
@@ -1859,17 +1904,23 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         .write(true)
         .create(true)
         .open(lock_file_path.as_path())
-        .chain_err(|| {
-            format!(
-                "Could not open or create lockfile {}",
-                lock_file_path.to_string_lossy()
-            )
+        .or_else(|e| {
+            Err(Error::Generic {
+                msg: format!(
+                    "Could not open or create lockfile {}",
+                    lock_file_path.to_string_lossy()
+                ),
+                cause: Some(Box::new(e)),
+            })
         })?;
-    lock_file.try_lock_exclusive().chain_err(|| {
-        format!(
-            "Could not acquire lock for directory {}",
-            db_dir.to_string_lossy()
-        )
+    lock_file.try_lock_exclusive().or_else(|e| {
+        Err(Error::Generic {
+            msg: format!(
+                "Could not acquire lock for directory {}",
+                db_dir.to_string_lossy()
+            ),
+            cause: Some(Box::new(e)),
+        })
     })?;
 
     Ok(lock_file)

@@ -15,7 +15,6 @@ impl<'a> UnionEdgeContainer<'a> {
 }
 
 impl<'a> EdgeContainer for UnionEdgeContainer<'a> {
-
     fn get_outgoing_edges<'b>(&'b self, node: NodeID) -> Box<Iterator<Item = NodeID> + 'b> {
         let mut targets = FxHashSet::default();
         for c in self.containers.iter() {

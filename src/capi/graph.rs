@@ -1,11 +1,11 @@
 use crate::capi::data::IterPtr;
 use crate::graph::{Annotation, AnnotationStorage, Component, ComponentType, Edge, NodeID};
 use crate::graph::{GraphStorage, Match};
+use crate::Graph;
 use libc;
 use std;
 use std::ffi::CString;
 use std::sync::Arc;
-use crate::Graph;
 
 #[no_mangle]
 pub extern "C" fn annis_component_type(c: *const Component) -> ComponentType {
@@ -41,7 +41,8 @@ pub extern "C" fn annis_graph_nodes_by_type(
             Some(type_key.ns),
             type_key.name,
             Some(String::from(node_type)).into(),
-        ).map(|m: Match| m.get_node());
+        )
+        .map(|m: Match| m.get_node());
     return Box::into_raw(Box::new(Box::new(it)));
 }
 

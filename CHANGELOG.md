@@ -3,6 +3,30 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2019-03-06
+
+### Added
+
+- Utility function `node_names_from_match` for getting the node identifiers from the matches
+- Tutorial for Python, Java and Rust on how to embedd graphANNIS in other programs
+- Citation File Format (https://citation-file-format.github.io/) meta-data
+
+### Changed
+
+- **Renamed the "PartOfSubcorpus" component type to more general "PartOf"**
+- relANNIS import now takes the sub-corpus structure into account
+- Quirks mode now also emulates the component search normalization behavior. 
+Search nodes that where part of multiple dominance/pointing relation joins where duplicated and joined with 
+the identity operator to work around the issue that nodes of different components could not be joined in relANNIS.
+This leads additional output nodes in the find(...) query.
+See also the [original JavaDoc](https://github.com/korpling/ANNIS/blob/b7e0e36a0e1ac043e820462dd3f788f5107505a5/annis-service/src/main/java/annis/ql/parser/ComponentSearchRelationNormalizer.java#L32) for an explanation.
+- The error_chain crate is no longer used for error reporting, instead a custom Error representation is used
+
+### Fixed
+
+- "NULL" annotation namespaces where imported as "NULL" in relANNIS import
+- Result ordering for "find(...)" function was not correct if token helper components where not loaded
+
 ## [0.18.1] - 2019-02-08
 
 ### Changed

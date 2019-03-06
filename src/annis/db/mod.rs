@@ -360,7 +360,7 @@ impl Graph {
     }
 
     /// Create a new instance without any location on the disk but with the default graph storage components
-    /// (Coverage, Order, LeftToken, RightToken, PartOfSubcorpus).
+    /// (Coverage, Order, LeftToken, RightToken, PartOf).
     fn with_default_graphstorages() -> Result<Graph> {
         let mut db = Graph::new();
         db.get_or_create_writable(&Component {
@@ -384,7 +384,7 @@ impl Graph {
             name: "".to_owned(),
         })?;
         db.get_or_create_writable(&Component {
-            ctype: ComponentType::PartOfSubcorpus,
+            ctype: ComponentType::PartOf,
             layer: ANNIS_NS.to_owned(),
             name: "".to_owned(),
         })?;

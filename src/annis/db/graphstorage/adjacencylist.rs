@@ -516,17 +516,11 @@ mod tests {
 
         assert_eq!(
             vec![2, 3],
-            gs.get_outgoing_edges(1)
-                .collect::<Vec<NodeID>>()
-                .into_iter()
-                .sorted()
+            gs.get_outgoing_edges(1).sorted().collect::<Vec<NodeID>>()
         );
         assert_eq!(
             vec![4, 5],
-            gs.get_outgoing_edges(3)
-                .collect::<Vec<NodeID>>()
-                .into_iter()
-                .sorted()
+            gs.get_outgoing_edges(3).sorted().collect::<Vec<NodeID>>()
         );
         assert_eq!(0, gs.get_outgoing_edges(6).count());
         assert_eq!(vec![4], gs.get_outgoing_edges(2).collect::<Vec<NodeID>>());
@@ -766,7 +760,7 @@ mod tests {
             source: 1343,
             target: 1339,
         });
-        
+
         gs.calculate_statistics();
         assert_eq!(true, gs.get_statistics().is_some());
         let stats = gs.get_statistics().unwrap();

@@ -143,7 +143,8 @@ impl BinaryOperator for Precedence {
             .map(|n| Match {
                 node: n,
                 anno_key: AnnoKeyID::default(),
-            }).collect();
+            })
+            .collect();
 
         Box::new(result.into_iter())
     }
@@ -247,7 +248,8 @@ impl BinaryOperator for InversePrecedence {
             .map(|n| Match {
                 node: n,
                 anno_key: AnnoKeyID::default(),
-            }).collect();
+            })
+            .collect();
 
         Box::new(result.into_iter())
     }

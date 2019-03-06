@@ -27,7 +27,6 @@ impl<'a> CycleSafeDFS<'a> {
         min_distance: usize,
         max_distance: usize,
     ) -> CycleSafeDFS<'a> {
-       
         CycleSafeDFS {
             min_distance,
             max_distance,
@@ -47,7 +46,6 @@ impl<'a> CycleSafeDFS<'a> {
         min_distance: usize,
         max_distance: usize,
     ) -> CycleSafeDFS<'a> {
-        
         CycleSafeDFS {
             min_distance,
             max_distance,
