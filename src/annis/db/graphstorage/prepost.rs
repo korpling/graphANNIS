@@ -471,7 +471,8 @@ where
                 &mut node_stack,
             );
 
-            let dfs = CycleSafeDFS::new(orig.as_edgecontainer(), *start_node, 1, usize::max_value());
+            let dfs =
+                CycleSafeDFS::new(orig.as_edgecontainer(), *start_node, 1, usize::max_value());
             for step in dfs {
                 let step: DFSStep = step;
                 if step.distance > last_distance {

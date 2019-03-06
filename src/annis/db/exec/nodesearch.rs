@@ -741,10 +741,12 @@ impl<'a> NodeSearch<'a> {
                                 return false;
                             }
                         })),
-                        Err(e) => return Err(Error::AQLSemanticError {
-                            desc: format!("/{}/ -> {}", val, e),
-                            location: location_in_query
-                        }),
+                        Err(e) => {
+                            return Err(Error::AQLSemanticError {
+                                desc: format!("/{}/ -> {}", val, e),
+                                location: location_in_query,
+                            });
+                        }
                     };
                 } else {
                     let node_annos = db.node_annos.clone();

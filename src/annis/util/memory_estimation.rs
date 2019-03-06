@@ -39,10 +39,7 @@ pub mod platform {
     /// On MacOS X, the external function is not called "malloc_usable_size", but "malloc_size"
     /// (it basically does the same).
     extern "C" {
-        #[cfg_attr(
-            any(target_os = "macos", target_os = "ios"),
-            link_name = "malloc_size"
-        )]
+        #[cfg_attr(any(target_os = "macos", target_os = "ios"), link_name = "malloc_size")]
         fn malloc_usable_size(ptr: *const c_void) -> usize;
     }
 

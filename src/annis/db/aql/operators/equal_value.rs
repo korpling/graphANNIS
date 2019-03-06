@@ -3,8 +3,8 @@ use crate::annis::db::{AnnoStorage, AnnotationStorage, Graph, Match, ValueSearch
 use crate::annis::operator::*;
 use crate::annis::types::{AnnoKey, Component, NodeID};
 use std;
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct EqualValueSpec {
@@ -12,7 +12,6 @@ pub struct EqualValueSpec {
     pub spec_right: NodeSearchSpec,
     pub negated: bool,
 }
-
 
 impl BinaryOperatorSpec for EqualValueSpec {
     fn necessary_components(&self, _db: &Graph) -> HashSet<Component> {
@@ -105,11 +104,14 @@ impl BinaryOperator for EqualValue {
             };
 
             if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
-                let rhs_candidates: Vec<Match> = self.node_annos.exact_anno_search(ns, name, val_search).collect();
-                return Box::new(rhs_candidates.into_iter())
+                let rhs_candidates: Vec<Match> = self
+                    .node_annos
+                    .exact_anno_search(ns, name, val_search)
+                    .collect();
+                return Box::new(rhs_candidates.into_iter());
             }
         }
-        Box::new(std::iter::empty()) 
+        Box::new(std::iter::empty())
     }
 
     fn filter_match(&self, lhs: &Match, rhs: &Match) -> bool {
@@ -129,16 +131,23 @@ impl BinaryOperator for EqualValue {
 
     fn estimation_type(&self) -> EstimationType {
         if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_left) {
-            if let Some(most_frequent_value_left) = self.node_annos.guess_most_frequent_value(ns, name) {
+            if let Some(most_frequent_value_left) =
+                self.node_annos.guess_most_frequent_value(ns, name)
+            {
                 if let Some((ns, name)) = EqualValue::anno_def_for_spec(&self.spec_right) {
-                    let guessed_count_right = self.node_annos.guess_max_count(ns.clone(), name.clone(), &most_frequent_value_left, &most_frequent_value_left);
-                    
+                    let guessed_count_right = self.node_annos.guess_max_count(
+                        ns.clone(),
+                        name.clone(),
+                        &most_frequent_value_left,
+                        &most_frequent_value_left,
+                    );
+
                     let total_annos = self.node_annos.number_of_annotations_by_name(ns, name);
                     let sel = guessed_count_right as f64 / total_annos as f64;
                     if self.negated {
                         return EstimationType::SELECTIVITY(1.0 - sel);
                     } else {
-                        return EstimationType::SELECTIVITY(sel)
+                        return EstimationType::SELECTIVITY(sel);
                     }
                 }
             }
@@ -150,5 +159,4 @@ impl BinaryOperator for EqualValue {
     fn get_inverse_operator(&self) -> Option<Box<BinaryOperator>> {
         Some(Box::from(self.clone()))
     }
-
 }

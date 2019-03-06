@@ -37,8 +37,12 @@ pub struct GraphStatistic {
 
 impl std::fmt::Display for GraphStatistic {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "nodes={}, avg_fan_out={:.2}, max_fan_out={}, max_depth={}", self.nodes, self.avg_fan_out, self.max_fan_out, self.max_depth)?;
-        if self.cyclic {        
+        write!(
+            f,
+            "nodes={}, avg_fan_out={:.2}, max_fan_out={}, max_depth={}",
+            self.nodes, self.avg_fan_out, self.max_fan_out, self.max_depth
+        )?;
+        if self.cyclic {
             write!(f, ", cyclic")?;
         }
         if self.rooted_tree {
@@ -94,7 +98,6 @@ pub trait GraphStorage: EdgeContainer {
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool;
-
 
     /// Get the annotation storage for the edges of this graph storage.
     fn get_anno_storage(&self) -> &AnnotationStorage<Edge>;

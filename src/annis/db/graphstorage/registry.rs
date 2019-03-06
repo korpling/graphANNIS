@@ -1,9 +1,9 @@
-use crate::annis::db::Graph;
 use super::adjacencylist::AdjacencyListStorage;
 use super::dense_adjacency::DenseAdjacencyListStorage;
 use super::linear::LinearGraphStorage;
 use super::prepost::PrePostOrderStorage;
 use crate::annis::db::graphstorage::{GraphStatistic, GraphStorage};
+use crate::annis::db::Graph;
 use crate::annis::errors::*;
 use serde::Deserialize;
 use std;
@@ -67,7 +67,6 @@ pub fn get_optimal_impl_heuristic(db: &Graph, stats: &GraphStatistic) -> GSInfo 
 }
 
 fn get_adjacencylist_impl(db: &Graph, stats: &GraphStatistic) -> GSInfo {
-
     // check if a large percentage of nodes are part of the graph storage
     if let Some(largest_node_id) = db.node_annos.get_largest_item() {
         if stats.max_fan_out <= 1 && (stats.nodes as f64 / largest_node_id as f64) >= 0.75 {

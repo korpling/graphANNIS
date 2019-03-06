@@ -11,8 +11,8 @@ use crate::annis::errors::*;
 use crate::annis::types::AnnoKeyID;
 use crate::annis::types::{Component, ComponentType, NodeID};
 
-use std::fmt;
 use std::collections::HashSet;
+use std::fmt;
 
 /// An [ExecutionNode](#impl-ExecutionNode) which wraps the search for *all* token in a corpus.
 pub struct AnyTokenSearch<'a> {

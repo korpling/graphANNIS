@@ -1,16 +1,15 @@
-use lalrpop;
 use csv;
-use std::path::PathBuf;
+use lalrpop;
 use regex::Regex;
 use std::ops::Deref;
+use std::path::PathBuf;
 
 /// Take the CSV file with the queries and add a test case for each query whose
 /// corpora exist
 fn create_search_tests() -> Option<()> {
-    
     println!("rerun-if-env-changed=ANNIS4_TEST_QUERIES");
     println!("rerun-if-env-changed=ANNIS4_TEST_DATA");
-    
+
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let destination = std::path::Path::new(&out_dir).join("searchtest.rs");
     let mut f = std::fs::File::create(&destination).unwrap();
@@ -21,7 +20,6 @@ fn create_search_tests() -> Option<()> {
         String::from("tests/searchtest_queries.csv")
     });
     println!("cargo:rerun-if-changed={}", query_file.to_string_lossy());
-
 
     let db_dir = PathBuf::from(if let Ok(path) = std::env::var("ANNIS4_TEST_DATA") {
         path
@@ -76,7 +74,10 @@ fn search_{corpus_escaped}_{name_escaped}() {{
 }
 
 fn create_parser() {
-    println!("cargo:rerun-if-changed={}", "src/annis/db/aql/parser.lalrpop");
+    println!(
+        "cargo:rerun-if-changed={}",
+        "src/annis/db/aql/parser.lalrpop"
+    );
     lalrpop::process_root().unwrap();
 }
 

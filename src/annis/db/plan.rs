@@ -30,7 +30,7 @@ impl<'a> ExecutionPlan<'a> {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);
             } else if let Err(e) = p {
-                if let Error::AQLSemanticError{..} = e {
+                if let Error::AQLSemanticError { .. } = e {
                     return Err(e);
                 }
             }

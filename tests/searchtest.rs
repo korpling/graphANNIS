@@ -44,12 +44,12 @@ fn non_reflexivity_nodes() {
             if corpora.contains("GUM") {
                 let node_count = {
                     let cs = cs_mutex.lock().unwrap();
-                    cs.count("GUM", "node", QueryLanguage::AQL)
-                    .unwrap_or(0)
+                    cs.count("GUM", "node", QueryLanguage::AQL).unwrap_or(0)
                 };
 
                 let operators_to_test = vec![
-                    ".", ".*", "^", "^*", ">", ">*", "_=_", "_i_", "_o_", "_l_", "_r_", "->dep", "->dep *",
+                    ".", ".*", "^", "^*", ">", ">*", "_=_", "_i_", "_o_", "_l_", "_r_", "->dep",
+                    "->dep *",
                 ];
 
                 for o in operators_to_test.into_iter() {
@@ -83,8 +83,7 @@ fn non_reflexivity_tokens() {
             if corpora.contains("GUM") {
                 let tok_count = {
                     let cs = cs_mutex.lock().unwrap();
-                    cs.count("GUM", "tok", QueryLanguage::AQL)
-                    .unwrap_or(0)
+                    cs.count("GUM", "tok", QueryLanguage::AQL).unwrap_or(0)
                 };
 
                 let operators_to_test = vec![

@@ -1,6 +1,6 @@
+use crate::update::*;
 use libc;
 use std;
-use crate::update::*;
 
 /// Create a new graph update instance
 #[no_mangle]

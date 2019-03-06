@@ -7,8 +7,8 @@ use crate::annis::operator::{BinaryOperator, BinaryOperatorSpec};
 use crate::annis::types::{AnnoKeyID, Component, ComponentType};
 
 use std;
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialOrd, Ord, Hash, PartialEq, Eq)]
 pub struct IdenticalCoverageSpec;

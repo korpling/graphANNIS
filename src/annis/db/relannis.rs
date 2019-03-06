@@ -186,13 +186,8 @@ where
     let texts = parse_text_tab(&path, is_annis_33, &progress_callback)?;
     let corpus_id_to_annos = load_corpus_annotation(&path, is_annis_33, &progress_callback)?;
 
-    let (nodes_by_text, id_to_node_name, textpos_table) = load_nodes(
-        path,
-        updater,
-        &corpus_table,
-        is_annis_33,
-        progress_callback,
-    )?;
+    let (nodes_by_text, id_to_node_name, textpos_table) =
+        load_nodes(path, updater, &corpus_table, is_annis_33, progress_callback)?;
 
     add_subcorpora(
         updater,
@@ -682,7 +677,11 @@ where
                 node_nr,
             );
 
-            let node_qname = format!("{}#{}", get_corpus_path(corpus_id, corpus_table)?, node_name);
+            let node_qname = format!(
+                "{}#{}",
+                get_corpus_path(corpus_id, corpus_table)?,
+                node_name
+            );
             updater.add_event(
                 UpdateEvent::AddNode {
                     node_name: node_qname.clone(),
@@ -872,7 +871,11 @@ where
                 col_val
             };
 
-            let col_ns = if col_ns == "NULL" { String::default() } else { col_ns };
+            let col_ns = if col_ns == "NULL" {
+                String::default()
+            } else {
+                col_ns
+            };
 
             updater.add_event(
                 UpdateEvent::AddNodeLabel {
@@ -967,13 +970,8 @@ fn load_nodes<F>(
 where
     F: Fn(&str) -> (),
 {
-    let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) = load_node_tab(
-        path,
-        updater,
-        corpus_table,
-        is_annis_33,
-        progress_callback,
-    )?;
+    let (nodes_by_text, missing_seg_span, id_to_node_name, textpos_table) =
+        load_node_tab(path, updater, corpus_table, is_annis_33, progress_callback)?;
 
     for order_component in updater
         .g
@@ -1215,8 +1213,10 @@ where
 }
 
 fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
-
-    let corpus = corpus_table.corpus_by_id.get(&cid).ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
+    let corpus = corpus_table
+        .corpus_by_id
+        .get(&cid)
+        .ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
     let pre = corpus.pre;
     let post = corpus.post;
 
@@ -1227,12 +1227,15 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
         .filter(|parent_corpus| post < parent_corpus.post)
         .map(|parent_corpus| parent_corpus.name.as_ref())
         .collect();
-        Ok(parent_corpus_path.join("/"))
+    Ok(parent_corpus_path.join("/"))
 }
 
 fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String> {
     let parent_path = get_parent_path(cid, corpus_table)?;
-    let corpus = corpus_table.corpus_by_id.get(&cid).ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
+    let corpus = corpus_table
+        .corpus_by_id
+        .get(&cid)
+        .ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
     Ok(format!("{}/{}", parent_path, &corpus.name))
 }
 
@@ -1357,7 +1360,6 @@ where
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-
             let subcorpus_full_name = get_corpus_path(corpus_ref, corpus_table)?;
             let text_full_name = format!("{}#{}", &subcorpus_full_name, text_name);
 

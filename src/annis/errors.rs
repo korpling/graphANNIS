@@ -19,7 +19,10 @@ pub enum Error {
         name: String,
     },
     NoSuchCorpus(String),
-    Generic{msg: String, cause: Option<Box<dyn StdError + 'static + Send>>},
+    Generic {
+        msg: String,
+        cause: Option<Box<dyn StdError + 'static + Send>>,
+    },
     IO(std::io::Error),
     Bincode(::bincode::Error),
     CSV(::csv::Error),
@@ -73,13 +76,19 @@ impl std::convert::From<regex::Error> for Error {
 
 impl std::convert::From<&str> for Error {
     fn from(e: &str) -> Error {
-        Error::Generic{msg: e.to_string(), cause: None}
+        Error::Generic {
+            msg: e.to_string(),
+            cause: None,
+        }
     }
 }
 
 impl std::convert::From<String> for Error {
     fn from(e: String) -> Error {
-        Error::Generic{msg: e, cause: None}
+        Error::Generic {
+            msg: e,
+            cause: None,
+        }
     }
 }
 
@@ -107,7 +116,7 @@ impl Display for Error {
                 write!(f, "Impossible search expression detected: {}", reason)
             }
             Error::NoSuchCorpus(name) => write!(f, "Corpus {} not found", &name),
-            Error::Generic{msg, ..} => write!(f, "{}", msg),
+            Error::Generic { msg, .. } => write!(f, "{}", msg),
             Error::IO(e) => e.fmt(f),
             Error::Bincode(e) => e.fmt(f),
             Error::CSV(e) => e.fmt(f),
@@ -127,11 +136,13 @@ impl StdError for Error {
             | Error::LoadingGraphFailed { .. }
             | Error::ImpossibleSearch(_)
             | Error::NoSuchCorpus(_) => None,
-            Error::Generic{cause, ..} => if let Some(cause) = cause {
-                Some(cause.as_ref())
-            } else {
-                None
-            },
+            Error::Generic { cause, .. } => {
+                if let Some(cause) = cause {
+                    Some(cause.as_ref())
+                } else {
+                    None
+                }
+            }
             Error::Bincode(e) => Some(e),
             Error::IO(e) => Some(e),
             Error::CSV(e) => Some(e),

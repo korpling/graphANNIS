@@ -220,7 +220,6 @@ fn map_conjunction<'a>(
     Ok(q)
 }
 
-
 fn add_legacy_metadata_constraints(
     q: &mut Conjunction,
     legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)>,
@@ -386,7 +385,11 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
                     desc.push_str(&expected.join(","));
                 }
             }
-            Err(Error::AQLSyntaxError{desc: desc.into(), location}.into())
+            Err(Error::AQLSyntaxError {
+                desc: desc.into(),
+                location,
+            }
+            .into())
         }
     }
 }

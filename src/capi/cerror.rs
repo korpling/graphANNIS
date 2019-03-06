@@ -1,10 +1,10 @@
 use super::data::{vec_get, vec_size};
 use crate::errors;
 use libc::{c_char, size_t};
-use ::log;
+use log;
 use std;
-use std::ffi::CString;
 use std::error::Error as StdError;
+use std::ffi::CString;
 
 pub struct Error {
     pub msg: CString,
@@ -18,7 +18,7 @@ struct CauseIterator<'a> {
 }
 
 impl<'a> std::iter::Iterator for CauseIterator<'a> {
-    type Item=Error;
+    type Item = Error;
 
     fn next(&mut self) -> std::option::Option<Error> {
         let std_error = self.current?;
@@ -29,17 +29,16 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
         self.current = std_error.source();
         Some(result)
     }
-    
 }
 
-fn error_kind(e : &errors::Error) -> &str {
+fn error_kind(e: &errors::Error) -> &str {
     match e {
         errors::Error::AQLSyntaxError { .. } => "AQLSyntaxError",
         errors::Error::AQLSemanticError { .. } => "AQLSemanticError",
         errors::Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
         errors::Error::ImpossibleSearch(_) => "ImpossibleSearch",
         errors::Error::NoSuchCorpus(_) => "NoSuchCorpus",
-        errors::Error::Generic{..} => "Generic",
+        errors::Error::Generic { .. } => "Generic",
         errors::Error::IO(_) => "IO",
         errors::Error::Bincode(_) => "Bincode",
         errors::Error::CSV(_) => "CSV",
@@ -58,7 +57,7 @@ impl From<errors::Error> for ErrorList {
             kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
         });
         let cause_it = CauseIterator {
-            current: e.source()
+            current: e.source(),
         };
         for e in cause_it {
             result.push(e)

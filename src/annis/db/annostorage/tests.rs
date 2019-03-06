@@ -29,7 +29,8 @@ fn insert_same_anno() {
                 name: "anno1".to_owned(),
                 ns: "annis".to_owned()
             }
-        ).unwrap()
+        )
+        .unwrap()
     );
 }
 

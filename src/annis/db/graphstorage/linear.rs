@@ -147,7 +147,7 @@ where
                         if min_distance < chain.len() {
                             let max_distance = match max_distance {
                                 std::ops::Bound::Unbounded => {
-                                    return Box::new(chain[min_distance..].iter().cloned())
+                                    return Box::new(chain[min_distance..].iter().cloned());
                                 }
                                 std::ops::Bound::Included(max_distance) => {
                                     offset + max_distance + 1
