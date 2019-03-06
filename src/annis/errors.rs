@@ -15,10 +15,11 @@ pub enum Error {
         desc: String,
         location: Option<LineColumnRange>,
     },
+    ImpossibleSearch(String),
     LoadingGraphFailed {
         name: String,
     },
-    ImpossibleSearch(String),
+    NoSuchCorpus(String),
     Generic(String),
     Legacy(errors_legacy::Error),
     IO(std::io::Error),
@@ -37,6 +38,7 @@ impl Error {
             Error::AQLSemanticError { .. } => "AQLSemanticError",
             Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
             Error::ImpossibleSearch(_) => "ImpossibleSearch",
+            Error::NoSuchCorpus(_) => "NoSuchCorpus",
             Error::Legacy(e) => e.kind().description(),
             Error::Generic(_) => "Generic",
             Error::IO(_) => "IO",
@@ -139,6 +141,7 @@ impl Display for Error {
             Error::ImpossibleSearch(reason) => {
                 write!(f, "Impossible search expression detected: {}", reason)
             }
+            Error::NoSuchCorpus(name) => write!(f, "Corpus {} not found", &name),
             Error::Legacy(e) => e.fmt(f),
             Error::Generic(e) => write!(f, "{}", e),
             Error::IO(e) => e.fmt(f),
@@ -159,7 +162,8 @@ impl StdError for Error {
             | Error::AQLSemanticError { .. }
             | Error::LoadingGraphFailed { .. }
             | Error::ImpossibleSearch(_)
-            | Error::Generic(_) => None,
+            | Error::Generic(_)
+            | Error::NoSuchCorpus(_) => None,
             Error::Legacy(e) => e.source(),
             Error::Bincode(e) => Some(e),
             Error::IO(e) => Some(e),
