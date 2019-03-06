@@ -1,13 +1,23 @@
+use crate::annis::errors_legacy;
+use crate::annis::types::LineColumnRange;
 use std::error::Error as StdError;
 use std::fmt::Display;
-use crate::annis::errors_legacy;
-
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    LoadingGraphFailed { name: String },
+    AQLSyntaxError {
+        desc: String,
+        location: Option<LineColumnRange>,
+    },
+    AQLSemanticError {
+        desc: String,
+        location: Option<LineColumnRange>,
+    },
+    LoadingGraphFailed {
+        name: String,
+    },
     Generic(String),
     Legacy(errors_legacy::Error),
     IO(std::io::Error),
@@ -22,7 +32,9 @@ pub enum Error {
 impl Error {
     pub fn kind(&self) -> &str {
         match self {
-            Error::LoadingGraphFailed {..} => "LoadingGraphFailed",
+            Error::AQLSyntaxError { .. } => "AQLSyntaxError",
+            Error::AQLSemanticError { .. } => "AQLSemanticError",
+            Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
             Error::Legacy(e) => e.kind().description(),
             Error::Generic(_) => "Generic",
             Error::IO(_) => "IO",
@@ -37,68 +49,67 @@ impl Error {
 }
 
 impl std::convert::From<errors_legacy::ErrorKind> for Error {
-    fn from(e : errors_legacy::ErrorKind) -> Error {
+    fn from(e: errors_legacy::ErrorKind) -> Error {
         Error::Legacy(e.into())
     }
 }
 
 impl std::convert::From<errors_legacy::Error> for Error {
-    fn from(e : errors_legacy::Error) -> Error {
+    fn from(e: errors_legacy::Error) -> Error {
         Error::Legacy(e)
     }
 }
 
 impl std::convert::From<std::io::Error> for Error {
-    fn from(e : std::io::Error) -> Error {
+    fn from(e: std::io::Error) -> Error {
         Error::IO(e)
     }
 }
 
 impl std::convert::From<::bincode::Error> for Error {
-    fn from(e : ::bincode::Error) -> Error {
+    fn from(e: ::bincode::Error) -> Error {
         Error::Bincode(e)
     }
 }
 
 impl std::convert::From<::csv::Error> for Error {
-    fn from(e : ::csv::Error) -> Error {
+    fn from(e: ::csv::Error) -> Error {
         Error::CSV(e)
     }
 }
 
 impl std::convert::From<std::num::ParseIntError> for Error {
-    fn from(e : std::num::ParseIntError) -> Error {
+    fn from(e: std::num::ParseIntError) -> Error {
         Error::ParseIntError(e)
     }
 }
 
 impl std::convert::From<std::fmt::Error> for Error {
-    fn from(e : std::fmt::Error) -> Error {
+    fn from(e: std::fmt::Error) -> Error {
         Error::Fmt(e)
     }
 }
 
 impl std::convert::From<strum::ParseError> for Error {
-    fn from(e : strum::ParseError) -> Error {
+    fn from(e: strum::ParseError) -> Error {
         Error::Strum(e)
     }
 }
 
 impl std::convert::From<regex::Error> for Error {
-    fn from(e : regex::Error) -> Error {
+    fn from(e: regex::Error) -> Error {
         Error::Regex(e)
     }
 }
 
-
 impl std::convert::From<&str> for Error {
-    fn from(e : &str) -> Error {
+    fn from(e: &str) -> Error {
         Error::Generic(e.to_string())
     }
 }
 
 impl std::convert::From<String> for Error {
-    fn from(e : String) -> Error {
+    fn from(e: String) -> Error {
         Error::Generic(e)
     }
 }
@@ -106,36 +117,32 @@ impl std::convert::From<String> for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
+            Error::AQLSyntaxError { desc, location } => write!(f, "{}", {
+                if let Some(location) = location {
+                    format!("[{}] {}", &location, desc)
+                } else {
+                    desc.clone()
+                }
+            }),
+            Error::AQLSemanticError { desc, location } => write!(f, "{}", {
+                if let Some(location) = location {
+                    format!("[{}] {}", &location, desc)
+                } else {
+                    desc.clone()
+                }
+            }),
             Error::LoadingGraphFailed { name } => {
                 write!(f, "Could not load graph {} from disk", &name)
-            },
-            Error::Legacy(e) => {
-                e.fmt(f)
-            },
-            Error::Generic(e) => {
-                write!(f, "{}", e)
             }
-            Error::IO(e) => {
-                e.fmt(f)
-            },
-            Error::Bincode(e) => {
-                e.fmt(f)
-            },
-            Error::CSV(e) => {
-                e.fmt(f)
-            }
-            Error::ParseIntError(e) => {
-                e.fmt(f)
-            },
-            Error::Fmt(e) => {
-                e.fmt(f)
-            },
-            Error::Strum(e) => {
-                e.fmt(f)
-            },
-            Error::Regex(e) => {
-                e.fmt(f)
-            }
+            Error::Legacy(e) => e.fmt(f),
+            Error::Generic(e) => write!(f, "{}", e),
+            Error::IO(e) => e.fmt(f),
+            Error::Bincode(e) => e.fmt(f),
+            Error::CSV(e) => e.fmt(f),
+            Error::ParseIntError(e) => e.fmt(f),
+            Error::Fmt(e) => e.fmt(f),
+            Error::Strum(e) => e.fmt(f),
+            Error::Regex(e) => e.fmt(f),
         }
     }
 }
@@ -143,7 +150,9 @@ impl Display for Error {
 impl StdError for Error {
     fn source(&self) -> Option<&(StdError + 'static)> {
         match self {
-            Error::LoadingGraphFailed { .. } | Error::Generic(_) => None,
+            Error::AQLSyntaxError { .. } | Error::AQLSemanticError {..} | Error::LoadingGraphFailed { .. } | Error::Generic(_) => {
+                None
+            }
             Error::Legacy(e) => e.source(),
             Error::Bincode(e) => Some(e),
             Error::IO(e) => Some(e),

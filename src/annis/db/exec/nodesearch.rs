@@ -5,7 +5,6 @@ use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::ValueSearch;
 use crate::annis::db::{Graph, Match};
-use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::errors::*;
 use crate::annis::operator::EdgeAnnoSearchSpec;
 use crate::annis::types::{Component, ComponentType, Edge, LineColumnRange, NodeID};
@@ -571,10 +570,12 @@ impl<'a> NodeSearch<'a> {
                     }));
                 }
             }
-            Err(e) => bail!(ErrorKind::AQLSemanticError(
-                format!("/{}/ -> {}", pattern, e),
-                location_in_query
-            )),
+            Err(e) => {
+                return Err(Error::AQLSemanticError {
+                    desc: format!("/{}/ -> {}", pattern, e),
+                    location: location_in_query,
+                });
+            }
         }
 
         Ok(NodeSearch {
@@ -704,10 +705,12 @@ impl<'a> NodeSearch<'a> {
                                 return false;
                             }
                         })),
-                        Err(e) => bail!(ErrorKind::AQLSemanticError(
-                            format!("/{}/ -> {}", val, e),
-                            location_in_query
-                        )),
+                        Err(e) => {
+                            return Err(Error::AQLSemanticError {
+                                desc: format!("/{}/ -> {}", val, e),
+                                location: location_in_query,
+                            });
+                        }
                     };
                 } else {
                     let node_annos = db.node_annos.clone();
@@ -738,10 +741,10 @@ impl<'a> NodeSearch<'a> {
                                 return false;
                             }
                         })),
-                        Err(e) => bail!(ErrorKind::AQLSemanticError(
-                            format!("/{}/ -> {}", val, e),
-                            location_in_query
-                        )),
+                        Err(e) => bail!(Error::AQLSemanticError {
+                            desc: format!("/{}/ -> {}", val, e),
+                            location: location_in_query
+                        }),
                     };
                 } else {
                     let node_annos = db.node_annos.clone();
