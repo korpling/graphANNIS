@@ -29,25 +29,6 @@ pub enum Error {
     Regex(::regex::Error),
 }
 
-impl Error {
-    pub fn kind(&self) -> &str {
-        match self {
-            Error::AQLSyntaxError { .. } => "AQLSyntaxError",
-            Error::AQLSemanticError { .. } => "AQLSemanticError",
-            Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
-            Error::ImpossibleSearch(_) => "ImpossibleSearch",
-            Error::NoSuchCorpus(_) => "NoSuchCorpus",
-            Error::Generic{..} => "Generic",
-            Error::IO(_) => "IO",
-            Error::Bincode(_) => "Bincode",
-            Error::CSV(_) => "CSV",
-            Error::ParseIntError(_) => "ParseIntError",
-            Error::Fmt(_) => "Fmt",
-            Error::Strum(_) => "Strum",
-            Error::Regex(_) => "Regex",
-        }
-    }
-}
 impl std::convert::From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Error {
         Error::IO(e)

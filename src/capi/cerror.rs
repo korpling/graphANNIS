@@ -32,12 +32,30 @@ impl<'a> std::iter::Iterator for CauseIterator<'a> {
     
 }
 
+fn error_kind(e : &errors::Error) -> &str {
+    match e {
+        errors::Error::AQLSyntaxError { .. } => "AQLSyntaxError",
+        errors::Error::AQLSemanticError { .. } => "AQLSemanticError",
+        errors::Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
+        errors::Error::ImpossibleSearch(_) => "ImpossibleSearch",
+        errors::Error::NoSuchCorpus(_) => "NoSuchCorpus",
+        errors::Error::Generic{..} => "Generic",
+        errors::Error::IO(_) => "IO",
+        errors::Error::Bincode(_) => "Bincode",
+        errors::Error::CSV(_) => "CSV",
+        errors::Error::ParseIntError(_) => "ParseIntError",
+        errors::Error::Fmt(_) => "Fmt",
+        errors::Error::Strum(_) => "Strum",
+        errors::Error::Regex(_) => "Regex",
+    }
+}
+
 impl From<errors::Error> for ErrorList {
     fn from(e: errors::Error) -> ErrorList {
         let mut result = ErrorList::new();
         result.push(Error {
             msg: CString::new(e.to_string()).unwrap_or(CString::default()),
-            kind: CString::new(e.kind()).unwrap_or(CString::default()),
+            kind: CString::new(error_kind(&e)).unwrap_or(CString::default()),
         });
         let cause_it = CauseIterator {
             current: e.source()
