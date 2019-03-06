@@ -20,6 +20,7 @@ Search nodes that where part of multiple dominance/pointing relation joins where
 the identity operator to work around the issue that nodes of different components could not be joined in relANNIS.
 This leads additional output nodes in the find(...) query.
 See also the [original JavaDoc](https://github.com/korpling/ANNIS/blob/b7e0e36a0e1ac043e820462dd3f788f5107505a5/annis-service/src/main/java/annis/ql/parser/ComponentSearchRelationNormalizer.java#L32) for an explanation.
+- The error_chain crate is no longer used for error reporting, instead a custom Error representation is used
 
 ### Fixed
 
