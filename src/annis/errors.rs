@@ -1,4 +1,3 @@
-use crate::annis::errors_legacy;
 use crate::annis::types::LineColumnRange;
 use std::error::Error as StdError;
 use std::fmt::Display;
@@ -20,8 +19,7 @@ pub enum Error {
         name: String,
     },
     NoSuchCorpus(String),
-    Generic(String),
-    Legacy(errors_legacy::Error),
+    Generic{msg: String, cause: Option<Box<dyn StdError + 'static + Send>>},
     IO(std::io::Error),
     Bincode(::bincode::Error),
     CSV(::csv::Error),
@@ -39,8 +37,7 @@ impl Error {
             Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
             Error::ImpossibleSearch(_) => "ImpossibleSearch",
             Error::NoSuchCorpus(_) => "NoSuchCorpus",
-            Error::Legacy(e) => e.kind().description(),
-            Error::Generic(_) => "Generic",
+            Error::Generic{..} => "Generic",
             Error::IO(_) => "IO",
             Error::Bincode(_) => "Bincode",
             Error::CSV(_) => "CSV",
@@ -51,19 +48,6 @@ impl Error {
         }
     }
 }
-
-impl std::convert::From<errors_legacy::ErrorKind> for Error {
-    fn from(e: errors_legacy::ErrorKind) -> Error {
-        Error::Legacy(e.into())
-    }
-}
-
-impl std::convert::From<errors_legacy::Error> for Error {
-    fn from(e: errors_legacy::Error) -> Error {
-        Error::Legacy(e)
-    }
-}
-
 impl std::convert::From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Error {
         Error::IO(e)
@@ -108,13 +92,13 @@ impl std::convert::From<regex::Error> for Error {
 
 impl std::convert::From<&str> for Error {
     fn from(e: &str) -> Error {
-        Error::Generic(e.to_string())
+        Error::Generic{msg: e.to_string(), cause: None}
     }
 }
 
 impl std::convert::From<String> for Error {
     fn from(e: String) -> Error {
-        Error::Generic(e)
+        Error::Generic{msg: e, cause: None}
     }
 }
 
@@ -142,8 +126,7 @@ impl Display for Error {
                 write!(f, "Impossible search expression detected: {}", reason)
             }
             Error::NoSuchCorpus(name) => write!(f, "Corpus {} not found", &name),
-            Error::Legacy(e) => e.fmt(f),
-            Error::Generic(e) => write!(f, "{}", e),
+            Error::Generic{msg, ..} => write!(f, "{}", msg),
             Error::IO(e) => e.fmt(f),
             Error::Bincode(e) => e.fmt(f),
             Error::CSV(e) => e.fmt(f),
@@ -162,9 +145,12 @@ impl StdError for Error {
             | Error::AQLSemanticError { .. }
             | Error::LoadingGraphFailed { .. }
             | Error::ImpossibleSearch(_)
-            | Error::Generic(_)
             | Error::NoSuchCorpus(_) => None,
-            Error::Legacy(e) => e.source(),
+            Error::Generic{cause, ..} => if let Some(cause) = cause {
+                Some(cause.as_ref())
+            } else {
+                None
+            },
             Error::Bincode(e) => Some(e),
             Error::IO(e) => Some(e),
             Error::CSV(e) => Some(e),

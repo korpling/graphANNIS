@@ -13,7 +13,6 @@ use crate::annis::db::relannis;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
-use crate::annis::errors_legacy::ResultExt;
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{
@@ -323,23 +322,33 @@ impl CorpusStorage {
 
     fn list_from_disk(&self) -> Result<Vec<String>> {
         let mut corpora: Vec<String> = Vec::new();
-        for c_dir in self.db_dir.read_dir().chain_err(|| {
-            format!(
-                "Listing directories from {} failed",
-                self.db_dir.to_string_lossy()
-            )
-        })? {
-            let c_dir = c_dir.chain_err(|| {
-                format!(
-                    "Could not get directory entry of folder {}",
+        let directories = self.db_dir.read_dir().or_else(|e| {
+            Err(Error::Generic {
+                msg: format!(
+                    "Listing directories from {} failed",
                     self.db_dir.to_string_lossy()
-                )
+                ),
+                cause: Some(Box::new(e)),
+            })
+        })?;
+        for c_dir in directories {
+            let c_dir = c_dir.or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!(
+                        "Could not get directory entry of folder {}",
+                        self.db_dir.to_string_lossy()
+                    ),
+                    cause: Some(Box::new(e)),
+                })
             })?;
-            let ftype = c_dir.file_type().chain_err(|| {
-                format!(
-                    "Could not determine file type for {}",
-                    c_dir.path().to_string_lossy()
-                )
+            let ftype = c_dir.file_type().or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!(
+                        "Could not determine file type for {}",
+                        c_dir.path().to_string_lossy()
+                    ),
+                    cause: Some(Box::new(e)),
+                })
             })?;
             if ftype.is_dir() {
                 let corpus_name = c_dir.file_name().to_string_lossy().to_string();
@@ -458,8 +467,12 @@ impl CorpusStorage {
             let mut db = Graph::with_default_graphstorages()?;
 
             // save corpus to the path where it should be stored
-            db.persist_to(&db_path)
-                .chain_err(|| format!("Could not create corpus with name {}", corpus_name))?;
+            db.persist_to(&db_path).or_else(|e| {
+                Err(Error::Generic {
+                    msg: format!("Could not create corpus with name {}", corpus_name),
+                    cause: Some(Box::new(e)),
+                })
+            })?;
             db
         } else {
             let mut db = Graph::new();
@@ -648,8 +661,12 @@ impl CorpusStorage {
             let mut _lock = db_entry.write().unwrap();
 
             if db_path.is_dir() && db_path.exists() {
-                std::fs::remove_dir_all(db_path.clone())
-                    .chain_err(|| "Error when removing existing files")?
+                std::fs::remove_dir_all(db_path.clone()).or_else(|e| {
+                    Err(Error::Generic {
+                        msg: "Error when removing existing files".to_string(),
+                        cause: Some(Box::new(e)),
+                    })
+                })?
             }
 
             return Ok(true);
@@ -662,9 +679,12 @@ impl CorpusStorage {
     ///
     /// It is ensured that the update process is atomic and that the changes are persisted to disk if the result is `Ok`.
     pub fn apply_update(&self, corpus_name: &str, update: &mut GraphUpdate) -> Result<()> {
-        let db_entry = self
-            .get_loaded_entry(corpus_name, true)
-            .chain_err(|| format!("Could not get loaded entry for corpus {}", corpus_name))?;
+        let db_entry = self.get_loaded_entry(corpus_name, true).or_else(|e| {
+            Err(Error::Generic {
+                msg: format!("Could not get loaded entry for corpus {}", corpus_name),
+                cause: Some(Box::new(e)),
+            })
+        })?;
         {
             let mut lock = db_entry.write().unwrap();
             let db: &mut Graph = get_write_or_error(&mut lock)?;
@@ -1693,7 +1713,10 @@ fn get_read_or_error<'a>(lock: &'a RwLockReadGuard<CacheEntry>) -> Result<&'a Gr
     if let CacheEntry::Loaded(ref db) = &**lock {
         return Ok(db);
     } else {
-        return Err(Error::LoadingGraphFailed{name: "".to_string()}.into());
+        return Err(Error::LoadingGraphFailed {
+            name: "".to_string(),
+        }
+        .into());
     }
 }
 
@@ -1782,7 +1805,12 @@ fn extract_subgraph_by_query(
     let lock = db_entry.read().unwrap();
     let orig_db = get_read_or_error(&lock)?;
 
-    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).chain_err(|| "")?;
+    let plan = ExecutionPlan::from_disjunction(&query, &orig_db, &query_config).or_else(|e| {
+        Err(Error::Generic {
+            msg: "".to_string(),
+            cause: Some(Box::new(e)),
+        })
+    })?;
 
     debug!("executing subgraph query\n{}", plan);
 
@@ -1863,8 +1891,12 @@ fn create_subgraph_edge(
 }
 
 fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
-    std::fs::create_dir_all(&db_dir)
-        .chain_err(|| format!("Could not create directory {}", db_dir.to_string_lossy()))?;
+    std::fs::create_dir_all(&db_dir).or_else(|e| {
+        Err(Error::Generic {
+            msg: format!("Could not create directory {}", db_dir.to_string_lossy()),
+            cause: Some(Box::new(e)),
+        })
+    })?;
     let lock_file_path = db_dir.join("db.lock");
     // check if we can get the file lock
     let lock_file = OpenOptions::new()
@@ -1872,17 +1904,23 @@ fn create_lockfile_for_directory(db_dir: &Path) -> Result<File> {
         .write(true)
         .create(true)
         .open(lock_file_path.as_path())
-        .chain_err(|| {
-            format!(
-                "Could not open or create lockfile {}",
-                lock_file_path.to_string_lossy()
-            )
+        .or_else(|e| {
+            Err(Error::Generic {
+                msg: format!(
+                    "Could not open or create lockfile {}",
+                    lock_file_path.to_string_lossy()
+                ),
+                cause: Some(Box::new(e)),
+            })
         })?;
-    lock_file.try_lock_exclusive().chain_err(|| {
-        format!(
-            "Could not acquire lock for directory {}",
-            db_dir.to_string_lossy()
-        )
+    lock_file.try_lock_exclusive().or_else(|e| {
+        Err(Error::Generic {
+            msg: format!(
+                "Could not acquire lock for directory {}",
+                db_dir.to_string_lossy()
+            ),
+            cause: Some(Box::new(e)),
+        })
     })?;
 
     Ok(lock_file)
