@@ -18,6 +18,7 @@ pub enum Error {
     LoadingGraphFailed {
         name: String,
     },
+    ImpossibleSearch(String),
     Generic(String),
     Legacy(errors_legacy::Error),
     IO(std::io::Error),
@@ -35,6 +36,7 @@ impl Error {
             Error::AQLSyntaxError { .. } => "AQLSyntaxError",
             Error::AQLSemanticError { .. } => "AQLSemanticError",
             Error::LoadingGraphFailed { .. } => "LoadingGraphFailed",
+            Error::ImpossibleSearch(_) => "ImpossibleSearch",
             Error::Legacy(e) => e.kind().description(),
             Error::Generic(_) => "Generic",
             Error::IO(_) => "IO",
@@ -134,6 +136,9 @@ impl Display for Error {
             Error::LoadingGraphFailed { name } => {
                 write!(f, "Could not load graph {} from disk", &name)
             }
+            Error::ImpossibleSearch(reason) => {
+                write!(f, "Impossible search expression detected: {}", reason)
+            }
             Error::Legacy(e) => e.fmt(f),
             Error::Generic(e) => write!(f, "{}", e),
             Error::IO(e) => e.fmt(f),
@@ -150,9 +155,11 @@ impl Display for Error {
 impl StdError for Error {
     fn source(&self) -> Option<&(StdError + 'static)> {
         match self {
-            Error::AQLSyntaxError { .. } | Error::AQLSemanticError {..} | Error::LoadingGraphFailed { .. } | Error::Generic(_) => {
-                None
-            }
+            Error::AQLSyntaxError { .. }
+            | Error::AQLSemanticError { .. }
+            | Error::LoadingGraphFailed { .. }
+            | Error::ImpossibleSearch(_)
+            | Error::Generic(_) => None,
             Error::Legacy(e) => e.source(),
             Error::Bincode(e) => Some(e),
             Error::IO(e) => Some(e),

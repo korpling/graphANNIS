@@ -13,11 +13,6 @@ error_chain! {
     }
 
     errors {
-        ImpossibleSearch(reason : String) {
-            description("Impossible search expression detected"),
-            display("Impossible search expression detected: {}", reason),
-        }
-
         NoSuchString(val : String) {
             description("String does not exist"),
             display("String '{}' does not exist", &val),
