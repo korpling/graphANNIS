@@ -10,8 +10,8 @@ use crate::annis::db::graphstorage::GraphStatistic;
 use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::db::Match;
-use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::errors::*;
+use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::operator::{
     BinaryOperator, BinaryOperatorSpec, UnaryOperator, UnaryOperatorSpec,
 };
@@ -265,11 +265,10 @@ impl<'a> Conjunction<'a> {
                 .push(UnaryOperatorSpecEntry { op, idx: *idx });
             return Ok(());
         } else {
-            return Err(ErrorKind::AQLSemanticError(
-                format!("Operand '#{}' not found", var).into(),
+            return Err(Error::AQLSemanticError{
+                desc: format!("Operand '#{}' not found", var).into(),
                 location,
-            )
-            .into());
+            });
         }
     }
 
@@ -315,11 +314,10 @@ impl<'a> Conjunction<'a> {
         if let Some(pos) = self.variables.get(variable) {
             return Ok(pos.clone());
         }
-        Err(ErrorKind::AQLSemanticError(
-            format!("Operand '#{}' not found", variable).into(),
+        Err(Error::AQLSemanticError{
+            desc: format!("Operand '#{}' not found", variable).into(),
             location,
-        )
-        .into())
+        })
     }
 
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
@@ -341,11 +339,10 @@ impl<'a> Conjunction<'a> {
             }
         }
     
-        return Err(ErrorKind::AQLSemanticError(
-            format!("Operand '#{}' not found", variable).into(),
+        return Err(Error::AQLSemanticError{
+            desc: format!("Operand '#{}' not found", variable),
             location,
-        )
-        .into());
+        });
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
@@ -768,14 +765,13 @@ impl<'a> Conjunction<'a> {
                     let n_var = &self.nodes[*node_nr].0;
                     let location = self.location_in_query.get(n_var);
 
-                    return Err(ErrorKind::AQLSemanticError(
-                        format!(
+                    return Err(Error::AQLSemanticError{
+                        desc: format!(
                             "Variable \"{}\" not bound (use linguistic operators)",
                             n_var
                         ),
-                        location.cloned(),
-                    )
-                    .into());
+                        location: location.cloned(),
+                    });
                 }
             }
         }

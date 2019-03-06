@@ -3,7 +3,6 @@ use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::query::Config;
 use crate::annis::db::{Graph, Match};
 use crate::annis::errors::*;
-use crate::annis::errors_legacy::ErrorKind;
 use crate::annis::types::{AnnoKeyID, NodeID};
 use std;
 use std::collections::HashSet;
@@ -31,10 +30,8 @@ impl<'a> ExecutionPlan<'a> {
                 descriptions.push(p.get_desc().cloned());
                 plans.push(p);
             } else if let Err(e) = p {
-                if let Error::Legacy(e) = e {
-                    if let ErrorKind::AQLSemanticError(_, _) = e.kind() {
-                        return Err(e.into());
-                    }
+                if let Error::AQLSemanticError{..} = e {
+                    return Err(e);
                 }
             }
         }
