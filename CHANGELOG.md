@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- DOI on Zenodo to cite the Software itself
+
 ## [0.19.0] - 2019-03-06
 
 ### Added
