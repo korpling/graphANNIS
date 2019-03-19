@@ -6,8 +6,9 @@ authors:
     orcid: https://orcid.org/0000-0003-3731-2422
     affiliation:  Humboldt-Universität zu Berlin
 title: graphANNIS
-version: 0.19.0
+version: 0.19.1
 date-released: 2019-03-19
+doi: 10.5281/zenodo.2598164
 references:
     - type: thesis
       title: "ANNIS: A graph-based query system for deeply annotated text corpora"
