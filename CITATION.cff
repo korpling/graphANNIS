@@ -1,12 +1,13 @@
-cff-version: 0.19.0
+cff-version: 1.0.3
 message: If you use this software, please cite it as below.
 authors:
   - family-names: Krause
     given-names: Thomas
     orcid: https://orcid.org/0000-0003-3731-2422
+    affiliation:  Humboldt-Universität zu Berlin
 title: graphANNIS
 version: 0.19.0
-date-released: 2019-03-06
+date-released: 2019-03-19
 references:
     - type: thesis
       title: "ANNIS: A graph-based query system for deeply annotated text corpora"
@@ -16,5 +17,4 @@ references:
         - family-names: Krause
           given-names: Thomas
           orcid: https://orcid.org/0000-0003-3731-2422
-      institution:
-        name: Humboldt-Universität zu Berlin
+          affiliation:  Humboldt-Universität zu Berlin
