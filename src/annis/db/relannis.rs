@@ -61,6 +61,7 @@ struct ChunkUpdater<'a> {
     g: &'a mut Graph,
     max_number_events: usize,
     update: GraphUpdate,
+    num_of_commits: usize,
 }
 
 impl<'a> ChunkUpdater<'a> {
@@ -69,6 +70,7 @@ impl<'a> ChunkUpdater<'a> {
             g,
             max_number_events,
             update: GraphUpdate::new(),
+            num_of_commits: 0,
         }
     }
 
@@ -94,10 +96,11 @@ impl<'a> ChunkUpdater<'a> {
     where
         F: Fn(&str),
     {
+        self.num_of_commits += 1;
         if let Some(message) = message {
-            progress_callback(&format!("{} ({} updates)", message, self.update.len()));
+            progress_callback(&format!("{} ({} updates, {} commits)", message, self.update.len(), self.num_of_commits));
         } else {
-            progress_callback(&format!("committing {} updates", self.update.len()));
+            progress_callback(&format!("committing {} updates ({} commits)", self.update.len(), self.num_of_commits));
         }
         self.g.apply_update(&mut self.update)?;
         self.update = GraphUpdate::new();
