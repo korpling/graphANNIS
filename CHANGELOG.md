@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Salt URIs returned by the `find` command where not escaped
+- Escape corpus and document paths with percent encoding when importing them
 
 ## [0.19.1] - 2019-03-19
 
