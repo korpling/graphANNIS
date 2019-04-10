@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Escape corpus and document paths with percent encoding when importing them
+- Escape corpus and document paths with percent encoding when importing them from relANNIS
 
 ## [0.19.1] - 2019-03-19
 
