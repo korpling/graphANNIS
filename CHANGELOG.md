@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Salt URIs returned by the `find` command where not escaped
+
 ## [0.19.1] - 2019-03-19
 
 ### Added
