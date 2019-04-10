@@ -1067,8 +1067,13 @@ impl CorpusStorage {
                     .node_annos
                     .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                 {
-                    node_desc.push_str("salt:/");
-                    node_desc.push_str(name);
+                    if let Ok(node_url) = url::Url::parse("salt:/").and_then(|u| u.join(name)) {
+                        node_desc.push_str(node_url.as_str());
+                    } else {
+                        // fallback to non-url variant
+                        node_desc.push_str("salt:/");
+                        node_desc.push_str(name);
+                    }
                 }
 
                 match_desc.push(node_desc);

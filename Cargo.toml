@@ -43,6 +43,7 @@ sys-info = "0.5"
 fs2 = "0.4"
 lalrpop-util = "0.16"
 boolean_expression = "0.3"
+url = "1.7"
 
 graphannis-malloc_size_of = "1.0"
 graphannis-malloc_size_of_derive = "1.0"
