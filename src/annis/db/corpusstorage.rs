@@ -974,11 +974,19 @@ impl CorpusStorage {
 
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &query_config)?;
 
+        let quirks_mode = match query_language {
+                QueryLanguage::AQL => false,
+                QueryLanguage::AQLQuirksV3 => true,
+            };
+
+
         let mut expected_size: Option<usize> = None;
         let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
-            || (order == ResultOrder::Normal && plan.is_sorted_by_text())
+            || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
         {
-            // if the output is already sorted correctly, directly return the iterator
+            // If the output is already sorted correctly, directly return the iterator.
+            // Quirks mode may change the order of the results, thus don't use the shortcut
+            // if quirks mode is active.
             Box::from(plan)
         } else {
             let estimated_result_size = plan.estimated_output_size();
@@ -1001,6 +1009,7 @@ impl CorpusStorage {
                     name: String::from(""),
                 };
 
+            
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
                 let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                     if order == ResultOrder::Inverted {
@@ -1010,6 +1019,7 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
+                            quirks_mode,
                         )
                         .reverse()
                     } else {
@@ -1019,6 +1029,7 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
+                            quirks_mode,
                         )
                     }
                 };
