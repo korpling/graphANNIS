@@ -54,7 +54,7 @@ clap = {version="2", optional=true}
 criterion = {version="0.2", optional=true}
 prettytable-rs = {version="0.8", optional=true}
 
-libc = {version="0.2", optional=true}
+libc = {version="0.2"}
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docs_rs_workaround"]
@@ -67,7 +67,7 @@ simplelog = "0.5"
 
 [features]
 cli = ["rustyline", "simplelog", "clap", "prettytable-rs"]
-c-api = ["libc", "simplelog"]
+c-api = ["simplelog"]
 
 [profile.release]
 incremental = true

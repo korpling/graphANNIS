@@ -6,6 +6,8 @@ use crate::annis::db::{ANNIS_NS, NODE_NAME};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::cmp::Ordering;
+use std::ffi::CString;
+
 
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
@@ -54,6 +56,30 @@ fn compare_document_path(p1: &str, p2: &str) -> std::cmp::Ordering {
     let length1 = p1.split('/').filter(|s| !s.is_empty()).count();
     let length2 = p2.split('/').filter(|s| !s.is_empty()).count();
     length1.cmp(&length2)
+}
+
+fn compare_string(s1: &str, s2: &str, use_local_collation: bool) -> std::cmp::Ordering {
+    if use_local_collation {
+        let cmp = unsafe {
+            let c_s1 = CString::new(s1).unwrap_or_default();
+            let c_s2 = CString::new(s2).unwrap_or_default();
+            libc::strcoll(c_s1.as_ptr(), c_s2.as_ptr())
+        };
+        if cmp < 0 {
+            return std::cmp::Ordering::Less;
+        } else if cmp > 0 {
+            return std::cmp::Ordering::Greater;
+        } else {
+            return std::cmp::Ordering::Equal;
+        }
+    } else {
+        if s1 < s2 {
+            return std::cmp::Ordering::Less;
+        } else if s1 > s2 {
+            return std::cmp::Ordering::Greater;
+        }
+        return std::cmp::Ordering::Equal;
+    }
 }
 
 lazy_static! {
