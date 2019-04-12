@@ -123,3 +123,16 @@ pub fn compare_match_by_text_pos(
         m1.node.cmp(&m2.node)
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn tiger_doc_name_sort() {
+        let p1 = "tiger2/tiger2/tiger_release_dec05_110#tok_6";
+        let p2 = "tiger2/tiger2/tiger_release_dec05_1_1#tok_209";
+        assert_eq!(std::cmp::Ordering::Less, compare_document_path(p1, p2));
+    }
+}
