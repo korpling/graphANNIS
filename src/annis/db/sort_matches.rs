@@ -161,6 +161,5 @@ mod tests {
         let p1 = "tiger2/tiger2/tiger_release_dec05_110#tok_6";
         let p2 = "tiger2/tiger2/tiger_release_dec05_1_1#tok_209";
         assert_eq!(std::cmp::Ordering::Less, compare_document_path(p1, p2, false));
-        assert_eq!(std::cmp::Ordering::Greater, compare_document_path(p1, p2, true));
     }
 }
