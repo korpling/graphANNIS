@@ -15,10 +15,11 @@ pub fn compare_matchgroup_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
+    use_local_collation: bool,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
         let element_cmp =
-            compare_match_by_text_pos(&m1[i], &m2[i], node_annos, token_helper, gs_order);
+            compare_match_by_text_pos(&m1[i], &m2[i], node_annos, token_helper, gs_order, use_local_collation);
         if element_cmp != Ordering::Equal {
             return element_cmp;
         }
@@ -38,15 +39,14 @@ fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
     }
 }
 
-fn compare_document_path(p1: &str, p2: &str) -> std::cmp::Ordering {
+fn compare_document_path(p1: &str, p2: &str, use_local_collation: bool) -> std::cmp::Ordering {
     let it1 = p1.split('/').filter(|s| !s.is_empty());
     let it2 = p2.split('/').filter(|s| !s.is_empty());
 
     for (part1, part2) in it1.zip(it2) {
-        if part1 < part2 {
-            return std::cmp::Ordering::Less;
-        } else if part1 > part2 {
-            return std::cmp::Ordering::Greater;
+        let string_cmp = compare_string(part1, part2, use_local_collation);
+        if string_cmp != std::cmp::Ordering::Equal {
+            return string_cmp;
         }
     }
 
@@ -95,6 +95,7 @@ pub fn compare_match_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
+    use_local_collation: bool,
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
@@ -109,7 +110,7 @@ pub fn compare_match_by_text_pos(
             let (m2_path, m2_name) = split_path_and_nodename(m2_anno_val);
 
             // 1. compare the path
-            let path_cmp = compare_document_path(m1_path, m2_path);
+            let path_cmp = compare_document_path(m1_path, m2_path, use_local_collation);
             if path_cmp != Ordering::Equal {
                 return path_cmp;
             }
@@ -159,6 +160,7 @@ mod tests {
     fn tiger_doc_name_sort() {
         let p1 = "tiger2/tiger2/tiger_release_dec05_110#tok_6";
         let p2 = "tiger2/tiger2/tiger_release_dec05_1_1#tok_209";
-        assert_eq!(std::cmp::Ordering::Less, compare_document_path(p1, p2));
+        assert_eq!(std::cmp::Ordering::Less, compare_document_path(p1, p2, false));
+        assert_eq!(std::cmp::Ordering::Greater, compare_document_path(p1, p2, true));
     }
 }
