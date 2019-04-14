@@ -8,7 +8,6 @@ use std;
 use std::cmp::Ordering;
 use std::ffi::CString;
 
-
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
     m2: &[Match],
@@ -18,8 +17,14 @@ pub fn compare_matchgroup_by_text_pos(
     use_local_collation: bool,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
-        let element_cmp =
-            compare_match_by_text_pos(&m1[i], &m2[i], node_annos, token_helper, gs_order, use_local_collation);
+        let element_cmp = compare_match_by_text_pos(
+            &m1[i],
+            &m2[i],
+            node_annos,
+            token_helper,
+            gs_order,
+            use_local_collation,
+        );
         if element_cmp != Ordering::Equal {
             return element_cmp;
         }
@@ -158,8 +163,21 @@ mod tests {
 
     #[test]
     fn tiger_doc_name_sort() {
-        let p1 = "tiger2/tiger2/tiger_release_dec05_110#tok_6";
-        let p2 = "tiger2/tiger2/tiger_release_dec05_1_1#tok_209";
-        assert_eq!(std::cmp::Ordering::Less, compare_document_path(p1, p2, false));
+        unsafe {
+            let locale = CString::new("de_DE.UTF-8").unwrap_or_default();
+            libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
+        }
+
+        let p1 = "tiger2/tiger2/tiger_release_dec05_110";
+        let p2 = "tiger2/tiger2/tiger_release_dec05_1_1";
+        assert_eq!(
+            std::cmp::Ordering::Less,
+            compare_document_path(p1, p2, false)
+        );
+
+        assert_eq!(
+            std::cmp::Ordering::Greater,
+            compare_document_path(p1, p2, true)
+        );
     }
 }
