@@ -170,4 +170,21 @@ mod tests {
             compare_document_path(p1, p2, false)
         );
     }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn tiger_doc_name_sort_strcoll() {
+        unsafe {
+            let locale = CString::new("de_DE.UTF-8").unwrap_or_default();
+            libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
+        }
+
+        let p1 = "tiger2/tiger2/tiger_release_dec05_110";
+        let p2 = "tiger2/tiger2/tiger_release_dec05_1_1";
+
+        assert_eq!(
+            std::cmp::Ordering::Greater,
+            compare_document_path(p1, p2, true)
+        );
+    }
 }
