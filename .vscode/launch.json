@@ -32,7 +32,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug Test",
-            "program": "${workspaceRoot}/target/debug/deps/graphannis-306919db37eec369",
+            "program": "${workspaceRoot}/target/debug/deps/graphannis-95e75e1053f87d13",
             "args": [
                 "tiger_doc_name_sort"
             ],

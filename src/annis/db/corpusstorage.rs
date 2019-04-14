@@ -41,6 +41,7 @@ use rustc_hash::FxHashMap;
 
 use rand;
 use rand::seq::SliceRandom;
+use std::ffi::CString;
 use sys_info;
 
 enum CacheEntry {
@@ -186,9 +187,11 @@ impl FromStr for FrequencyDefEntry {
     fn from_str(s: &str) -> std::result::Result<FrequencyDefEntry, Self::Err> {
         let splitted: Vec<&str> = s.splitn(2, ':').collect();
         if splitted.len() != 2 {
-            return Err("Frequency definition must consists of two parts: \
-                        the referenced node and the annotation name or \"tok\" separated by \":\""
-                .into());
+            return Err(
+                "Frequency definition must consists of two parts: \
+                 the referenced node and the annotation name or \"tok\" separated by \":\""
+                    .into(),
+            );
         }
         let node_ref = splitted[0];
         let anno_key = util::split_qname(splitted[1]);
@@ -248,6 +251,14 @@ pub struct CorpusStorage {
     active_background_workers: Arc<(Mutex<usize>, Condvar)>,
 }
 
+fn init_locale() {
+    // use collation as defined by the environment variables (LANGUAGE, LC_*, etc.)
+    unsafe {
+        let locale = CString::new("").unwrap_or_default();
+        libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
+    }
+}
+
 impl CorpusStorage {
     /// Create a new instance with a maximum size for the internal corpus cache.
     ///
@@ -259,6 +270,8 @@ impl CorpusStorage {
         cache_strategy: CacheStrategy,
         use_parallel_joins: bool,
     ) -> Result<CorpusStorage> {
+        init_locale();
+
         let query_config = query::Config { use_parallel_joins };
 
         #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
@@ -283,6 +296,8 @@ impl CorpusStorage {
     /// - `db_dir` - The path on the filesystem where the corpus storage content is located. Must be an existing directory.
     /// - `use_parallel_joins` - If `true` parallel joins are used by the system, using all available cores.
     pub fn with_auto_cache_size(db_dir: &Path, use_parallel_joins: bool) -> Result<CorpusStorage> {
+        init_locale();
+
         let query_config = query::Config { use_parallel_joins };
 
         // get the amount of available memory, use a quarter of it per default
@@ -975,10 +990,9 @@ impl CorpusStorage {
         let plan = ExecutionPlan::from_disjunction(&prep.query, &db, &query_config)?;
 
         let quirks_mode = match query_language {
-                QueryLanguage::AQL => false,
-                QueryLanguage::AQLQuirksV3 => true,
-            };
-
+            QueryLanguage::AQL => false,
+            QueryLanguage::AQLQuirksV3 => true,
+        };
 
         let mut expected_size: Option<usize> = None;
         let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
@@ -1009,7 +1023,6 @@ impl CorpusStorage {
                     name: String::from(""),
                 };
 
-            
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
                 let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                     if order == ResultOrder::Inverted {
