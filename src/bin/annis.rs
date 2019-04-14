@@ -502,7 +502,7 @@ impl AnnisRunner {
         self.query_language = if use_quirks {
             QueryLanguage::AQLQuirksV3
         } else {
-            QueryLanguage::AQLQuirksV3
+            QueryLanguage::AQL
         };
 
         match self.query_language {

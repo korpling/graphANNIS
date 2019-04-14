@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Escape corpus and document paths with percent encoding when importing them from relANNIS
 - Use locale aware sorting of the results in quirks mode (which depends on the system graphANNIS is executed on)
+- CLI did not allow to turn quirks mode off once activated
 
 ## [0.19.1] - 2019-03-19
 
