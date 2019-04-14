@@ -45,7 +45,6 @@ extern crate num;
 extern crate rayon;
 extern crate sys_info;
 
-#[cfg(feature = "c-api")]
 extern crate libc;
 #[cfg(feature = "c-api")]
 extern crate simplelog;

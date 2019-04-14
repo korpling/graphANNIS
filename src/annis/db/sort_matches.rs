@@ -6,6 +6,7 @@ use crate::annis::db::{ANNIS_NS, NODE_NAME};
 use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::cmp::Ordering;
+use std::ffi::CString;
 
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
@@ -13,10 +14,17 @@ pub fn compare_matchgroup_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
+    use_local_collation: bool,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
-        let element_cmp =
-            compare_match_by_text_pos(&m1[i], &m2[i], node_annos, token_helper, gs_order);
+        let element_cmp = compare_match_by_text_pos(
+            &m1[i],
+            &m2[i],
+            node_annos,
+            token_helper,
+            gs_order,
+            use_local_collation,
+        );
         if element_cmp != Ordering::Equal {
             return element_cmp;
         }
@@ -36,15 +44,14 @@ fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
     }
 }
 
-fn compare_document_path(p1: &str, p2: &str) -> std::cmp::Ordering {
+fn compare_document_path(p1: &str, p2: &str, use_local_collation: bool) -> std::cmp::Ordering {
     let it1 = p1.split('/').filter(|s| !s.is_empty());
     let it2 = p2.split('/').filter(|s| !s.is_empty());
 
     for (part1, part2) in it1.zip(it2) {
-        if part1 < part2 {
-            return std::cmp::Ordering::Less;
-        } else if part1 > part2 {
-            return std::cmp::Ordering::Greater;
+        let string_cmp = compare_string(part1, part2, use_local_collation);
+        if string_cmp != std::cmp::Ordering::Equal {
+            return string_cmp;
         }
     }
 
@@ -54,6 +61,30 @@ fn compare_document_path(p1: &str, p2: &str) -> std::cmp::Ordering {
     let length1 = p1.split('/').filter(|s| !s.is_empty()).count();
     let length2 = p2.split('/').filter(|s| !s.is_empty()).count();
     length1.cmp(&length2)
+}
+
+fn compare_string(s1: &str, s2: &str, use_local_collation: bool) -> std::cmp::Ordering {
+    if use_local_collation {
+        let cmp = unsafe {
+            let c_s1 = CString::new(s1).unwrap_or_default();
+            let c_s2 = CString::new(s2).unwrap_or_default();
+            libc::strcoll(c_s1.as_ptr(), c_s2.as_ptr())
+        };
+        if cmp < 0 {
+            return std::cmp::Ordering::Less;
+        } else if cmp > 0 {
+            return std::cmp::Ordering::Greater;
+        } else {
+            return std::cmp::Ordering::Equal;
+        }
+    } else {
+        if s1 < s2 {
+            return std::cmp::Ordering::Less;
+        } else if s1 > s2 {
+            return std::cmp::Ordering::Greater;
+        }
+        return std::cmp::Ordering::Equal;
+    }
 }
 
 lazy_static! {
@@ -69,6 +100,7 @@ pub fn compare_match_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
+    use_local_collation: bool,
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
@@ -83,7 +115,7 @@ pub fn compare_match_by_text_pos(
             let (m2_path, m2_name) = split_path_and_nodename(m2_anno_val);
 
             // 1. compare the path
-            let path_cmp = compare_document_path(m1_path, m2_path);
+            let path_cmp = compare_document_path(m1_path, m2_path, use_local_collation);
             if path_cmp != Ordering::Equal {
                 return path_cmp;
             }
@@ -121,5 +153,38 @@ pub fn compare_match_by_text_pos(
 
         // compare node IDs directly as last resort
         m1.node.cmp(&m2.node)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn tiger_doc_name_sort() {
+        let p1 = "tiger2/tiger2/tiger_release_dec05_110";
+        let p2 = "tiger2/tiger2/tiger_release_dec05_1_1";
+        assert_eq!(
+            std::cmp::Ordering::Less,
+            compare_document_path(p1, p2, false)
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn tiger_doc_name_sort_strcoll() {
+        unsafe {
+            let locale = CString::new("de_DE.UTF-8").unwrap_or_default();
+            libc::setlocale(libc::LC_COLLATE, locale.as_ptr());
+        }
+
+        let p1 = "tiger2/tiger2/tiger_release_dec05_110";
+        let p2 = "tiger2/tiger2/tiger_release_dec05_1_1";
+
+        assert_eq!(
+            std::cmp::Ordering::Greater,
+            compare_document_path(p1, p2, true)
+        );
     }
 }

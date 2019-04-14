@@ -32,9 +32,9 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug Test",
-            "program": "${workspaceRoot}/target/debug/deps/graphannis-c36481a0eafee093",
+            "program": "${workspaceRoot}/target/debug/deps/graphannis-95e75e1053f87d13",
             "args": [
-                "apply_update_add_nodes"
+                "tiger_doc_name_sort"
             ],
             "cwd": "${workspaceRoot}"
         }

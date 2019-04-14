@@ -61,6 +61,7 @@ struct ChunkUpdater<'a> {
     g: &'a mut Graph,
     max_number_events: usize,
     update: GraphUpdate,
+    num_of_commits: usize,
 }
 
 impl<'a> ChunkUpdater<'a> {
@@ -69,6 +70,7 @@ impl<'a> ChunkUpdater<'a> {
             g,
             max_number_events,
             update: GraphUpdate::new(),
+            num_of_commits: 0,
         }
     }
 
@@ -94,10 +96,20 @@ impl<'a> ChunkUpdater<'a> {
     where
         F: Fn(&str),
     {
+        self.num_of_commits += 1;
         if let Some(message) = message {
-            progress_callback(&format!("{} ({} updates)", message, self.update.len()));
+            progress_callback(&format!(
+                "{} ({} updates, {} commits)",
+                message,
+                self.update.len(),
+                self.num_of_commits
+            ));
         } else {
-            progress_callback(&format!("committing {} updates", self.update.len()));
+            progress_callback(&format!(
+                "committing {} updates ({} commits)",
+                self.update.len(),
+                self.num_of_commits
+            ));
         }
         self.g.apply_update(&mut self.update)?;
         self.update = GraphUpdate::new();
@@ -677,25 +689,26 @@ where
                 node_nr,
             );
 
-            let node_qname = format!(
+            let node_path = format!(
                 "{}#{}",
                 get_corpus_path(corpus_id, corpus_table)?,
+                // fragments don't need escaping
                 node_name
             );
             updater.add_event(
                 UpdateEvent::AddNode {
-                    node_name: node_qname.clone(),
+                    node_name: node_path.clone(),
                     node_type: "node".to_owned(),
                 },
                 Some(msg),
                 progress_callback,
             )?;
-            id_to_node_name.insert(node_nr, node_qname.clone());
+            id_to_node_name.insert(node_nr, node_path.clone());
 
             if !layer.is_empty() && layer != "NULL" {
                 updater.add_event(
                     UpdateEvent::AddNodeLabel {
-                        node_name: node_qname.clone(),
+                        node_name: node_path.clone(),
                         anno_ns: ANNIS_NS.to_owned(),
                         anno_name: "layer".to_owned(),
                         anno_value: layer,
@@ -745,7 +758,7 @@ where
 
                 updater.add_event(
                     UpdateEvent::AddNodeLabel {
-                        node_name: node_qname,
+                        node_name: node_path,
                         anno_ns: ANNIS_NS.to_owned(),
                         anno_name: TOK.to_owned(),
                         anno_value: span,
@@ -782,7 +795,7 @@ where
                         // directly add the span information
                         updater.add_event(
                             UpdateEvent::AddNodeLabel {
-                                node_name: node_qname,
+                                node_name: node_path,
                                 anno_ns: ANNIS_NS.to_owned(),
                                 anno_name: TOK.to_owned(),
                                 anno_value: get_field_str(&line, 12).ok_or("Missing column")?,
@@ -1220,12 +1233,18 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
     let pre = corpus.pre;
     let post = corpus.post;
 
-    let parent_corpus_path: Vec<&str> = corpus_table
+    let parent_corpus_path: Vec<String> = corpus_table
         .corpus_by_preorder
         .range(0..pre)
         .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
         .filter(|parent_corpus| post < parent_corpus.post)
-        .map(|parent_corpus| parent_corpus.name.as_ref())
+        .map(|parent_corpus| {
+            percent_encoding::utf8_percent_encode(
+                parent_corpus.name.as_ref(),
+                percent_encoding::DEFAULT_ENCODE_SET,
+            )
+            .to_string()
+        })
         .collect();
     Ok(parent_corpus_path.join("/"))
 }
@@ -1236,7 +1255,10 @@ fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
         .corpus_by_id
         .get(&cid)
         .ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
-    Ok(format!("{}/{}", parent_path, &corpus.name))
+    let corpus_name =
+        percent_encoding::utf8_percent_encode(&corpus.name, percent_encoding::DEFAULT_ENCODE_SET)
+            .to_string();
+    Ok(format!("{}/{}", parent_path, &corpus_name))
 }
 
 fn add_subcorpora<F>(
@@ -1360,8 +1382,12 @@ where
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
+            let text_name = percent_encoding::utf8_percent_encode(
+                &text_name,
+                percent_encoding::DEFAULT_ENCODE_SET,
+            ).to_string();
             let subcorpus_full_name = get_corpus_path(corpus_ref, corpus_table)?;
-            let text_full_name = format!("{}#{}", &subcorpus_full_name, text_name);
+            let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
 
             updater.add_event(
                 UpdateEvent::AddNode {

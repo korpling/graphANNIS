@@ -3,6 +3,14 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.2] - 2019-04-14
+
+### Fixed
+
+- Escape corpus and document paths with percent encoding when importing them from relANNIS
+- Use locale aware sorting of the results in quirks mode (which depends on the system graphANNIS is executed on)
+- CLI did not allow to turn quirks mode off once activated
+
 ## [0.19.1] - 2019-03-19
 
 ### Added

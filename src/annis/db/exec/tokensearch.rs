@@ -91,6 +91,7 @@ impl<'a> AnyTokenSearch<'a> {
                     &self.db.node_annos,
                     self.token_helper.as_ref(),
                     self.order_gs,
+                    false,
                 )
             });
 
