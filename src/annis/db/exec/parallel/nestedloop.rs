@@ -130,7 +130,7 @@ impl<'a> NestedLoop<'a> {
                     while let Some(m_inner) = self.inner.next() {
                         self.inner_cache.push(m_inner.clone());
 
-                        match_candidate_buffer.push((m_outer.clone(), m_inner.clone(), tx.clone()));
+                        match_candidate_buffer.push((m_outer.clone(), m_inner, tx.clone()));
 
                         if match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
                             return match_candidate_buffer;
