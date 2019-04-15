@@ -16,6 +16,7 @@ pub struct NestedLoop<'a> {
     inner_idx: usize,
     outer_idx: usize,
 
+    match_candidate_buffer: Vec<MatchCandidate>,
     match_receiver: Option<Receiver<Vec<Match>>>,
     inner_cache: Vec<Vec<Match>>,
     pos_inner_cache: Option<usize>,
@@ -79,6 +80,7 @@ impl<'a> NestedLoop<'a> {
                 pos_inner_cache: None,
                 left_is_outer,
                 global_reflexivity: op_entry.global_reflexivity,
+                match_candidate_buffer: Vec::default(),
             }
         } else {
             NestedLoop {
@@ -104,13 +106,15 @@ impl<'a> NestedLoop<'a> {
                 pos_inner_cache: None,
                 left_is_outer,
                 global_reflexivity: op_entry.global_reflexivity,
+                match_candidate_buffer: Vec::default(),
             }
         }
     }
 
-    fn next_match_buffer(&mut self, tx: &Sender<Vec<Match>>) -> Vec<MatchCandidate> {
-        let mut match_candidate_buffer: Vec<MatchCandidate> = Vec::with_capacity(MAX_BUFFER_SIZE);
-        while match_candidate_buffer.len() < MAX_BUFFER_SIZE {
+    fn next_match_buffer(&mut self, tx: &Sender<Vec<Match>>) {
+        self.match_candidate_buffer.clear();
+
+        while self.match_candidate_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(m_outer) = self.outer.peek() {
                 if self.pos_inner_cache.is_some() {
                     let mut cache_pos = self.pos_inner_cache.unwrap();
@@ -120,20 +124,20 @@ impl<'a> NestedLoop<'a> {
                         cache_pos += 1;
                         self.pos_inner_cache = Some(cache_pos);
 
-                        match_candidate_buffer.push((m_outer.clone(), m_inner.clone(), tx.clone()));
+                        self.match_candidate_buffer.push((m_outer.clone(), m_inner.clone(), tx.clone()));
 
-                        if match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
-                            return match_candidate_buffer;
+                        if self.match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
+                            return;
                         }
                     }
                 } else {
                     while let Some(m_inner) = self.inner.next() {
                         self.inner_cache.push(m_inner.clone());
 
-                        match_candidate_buffer.push((m_outer.clone(), m_inner, tx.clone()));
+                        self.match_candidate_buffer.push((m_outer.clone(), m_inner, tx.clone()));
 
-                        if match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
-                            return match_candidate_buffer;
+                        if self.match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
+                            return;
                         }
                     }
                 }
@@ -143,17 +147,17 @@ impl<'a> NestedLoop<'a> {
 
             // consume next outer
             if self.outer.next().is_none() {
-                return match_candidate_buffer;
+                return;
             }
         }
-        match_candidate_buffer
     }
 
     fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
-        let mut match_candidate_buffer = self.next_match_buffer(&tx);
+        
+        self.next_match_buffer(&tx);
 
-        if match_candidate_buffer.is_empty() {
+        if self.match_candidate_buffer.is_empty() {
             return None;
         }
 
@@ -165,7 +169,7 @@ impl<'a> NestedLoop<'a> {
         let op: &BinaryOperator = op.as_ref();
         let global_reflexivity = self.global_reflexivity;
 
-        match_candidate_buffer
+        self.match_candidate_buffer
             .par_iter_mut()
             .for_each(|(m_outer, m_inner, tx)| {
                 let filter_true = if left_is_outer {
