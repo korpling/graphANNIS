@@ -6,6 +6,7 @@ use rayon::prelude::*;
 use std::iter::Peekable;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
+use std::borrow::Cow;
 
 const MAX_BUFFER_SIZE: usize = 512;
 
@@ -16,9 +17,9 @@ pub struct NestedLoop<'a> {
     inner_idx: usize,
     outer_idx: usize,
 
-    match_candidate_buffer: Vec<MatchCandidate>,
+    match_candidate_buffer: Vec<MatchCandidate<'a>>,
     match_receiver: Option<Receiver<Vec<Match>>>,
-    inner_cache: Vec<Vec<Match>>,
+    inner_cache: Vec<Cow<'a, Vec<Match>>>,
     pos_inner_cache: Option<usize>,
 
     left_is_outer: bool,
@@ -27,7 +28,7 @@ pub struct NestedLoop<'a> {
     global_reflexivity: bool,
 }
 
-type MatchCandidate = (Vec<Match>, Vec<Match>, Sender<Vec<Match>>);
+type MatchCandidate<'a> = (Cow<'a, Vec<Match>>, Cow<'a, Vec<Match>>, Sender<Vec<Match>>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
@@ -116,6 +117,8 @@ impl<'a> NestedLoop<'a> {
 
         while self.match_candidate_buffer.len() < MAX_BUFFER_SIZE {
             if let Some(m_outer) = self.outer.peek() {
+                let m_outer : Cow<'a, Vec<Match>> = Cow::Owned(m_outer.clone());
+
                 if self.pos_inner_cache.is_some() {
                     let mut cache_pos = self.pos_inner_cache.unwrap();
 
@@ -132,6 +135,8 @@ impl<'a> NestedLoop<'a> {
                     }
                 } else {
                     while let Some(m_inner) = self.inner.next() {
+                        let m_inner : Cow<'a, Vec<Match>> = Cow::Owned(m_inner);
+
                         self.inner_cache.push(m_inner.clone());
 
                         self.match_candidate_buffer.push((m_outer.clone(), m_inner, tx.clone()));
@@ -187,8 +192,9 @@ impl<'a> NestedLoop<'a> {
                         || (!global_reflexivity
                             && m_outer[outer_idx].different_to(&m_inner[inner_idx])))
                 {
-                    let mut result = m_outer.clone();
-                    result.append(&mut m_inner.clone());
+                    let mut result = Vec::with_capacity(m_outer.len() + m_inner.len());
+                    result.append(m_outer.to_mut());
+                    result.append(m_inner.to_mut());
 
                     if tx.send(result).is_err() {
                         return;
