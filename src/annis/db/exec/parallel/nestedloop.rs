@@ -3,20 +3,20 @@ use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
 use crate::annis::operator::BinaryOperator;
 use rayon::prelude::*;
-use std::iter::Peekable;
+use std::borrow::Cow;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
-use std::borrow::Cow;
 
 const MAX_BUFFER_SIZE: usize = 512;
 
 pub struct NestedLoop<'a> {
-    outer: Peekable<Box<ExecutionNode<Item = Vec<Match>> + 'a>>,
+    outer: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
     inner: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
     op: Arc<BinaryOperator>,
     inner_idx: usize,
     outer_idx: usize,
 
+    current_outer: Option<Arc<Vec<Match>>>,
     match_candidate_buffer: Vec<MatchCandidate<'a>>,
     match_receiver: Option<Receiver<Vec<Match>>>,
     inner_cache: Vec<Cow<'a, Vec<Match>>>,
@@ -28,7 +28,7 @@ pub struct NestedLoop<'a> {
     global_reflexivity: bool,
 }
 
-type MatchCandidate<'a> = (Cow<'a, Vec<Match>>, Cow<'a, Vec<Match>>, Sender<Vec<Match>>);
+type MatchCandidate<'a> = (Arc<Vec<Match>>, Cow<'a, Vec<Match>>, Sender<Vec<Match>>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
@@ -71,7 +71,7 @@ impl<'a> NestedLoop<'a> {
                     &processed_func,
                 ),
 
-                outer: lhs.peekable(),
+                outer: lhs,
                 inner: rhs,
                 op: Arc::from(op_entry.op),
                 outer_idx: lhs_idx,
@@ -82,6 +82,7 @@ impl<'a> NestedLoop<'a> {
                 left_is_outer,
                 global_reflexivity: op_entry.global_reflexivity,
                 match_candidate_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
+                current_outer: None,
             }
         } else {
             NestedLoop {
@@ -97,7 +98,7 @@ impl<'a> NestedLoop<'a> {
                     &processed_func,
                 ),
 
-                outer: rhs.peekable(),
+                outer: rhs,
                 inner: lhs,
                 op: Arc::from(op_entry.op),
                 outer_idx: rhs_idx,
@@ -108,17 +109,32 @@ impl<'a> NestedLoop<'a> {
                 left_is_outer,
                 global_reflexivity: op_entry.global_reflexivity,
                 match_candidate_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
+                current_outer: None,
             }
         }
     }
 
-    fn next_match_buffer(&mut self, tx: &Sender<Vec<Match>>) {
+    fn peek_outer(&mut self) -> Option<Arc<Vec<Match>>> {
+        if self.current_outer.is_none() {
+            if let Some(result) = self.outer.next() {
+                self.current_outer = Some(Arc::from(result));
+            } else {
+                self.current_outer = None;
+            }
+        }
+
+        if let Some(result) = &self.current_outer {
+            return Some(result.clone());
+        } else {
+            return None;
+        }
+    }
+
+    fn next_match_buffer<'b>(&'b mut self, tx: &Sender<Vec<Match>>) {
         self.match_candidate_buffer.clear();
 
         while self.match_candidate_buffer.len() < MAX_BUFFER_SIZE {
-            if let Some(m_outer) = self.outer.peek() {
-                let m_outer : Cow<'a, Vec<Match>> = Cow::Owned(m_outer.clone());
-
+            if let Some(m_outer) = self.peek_outer() {
                 if self.pos_inner_cache.is_some() {
                     let mut cache_pos = self.pos_inner_cache.unwrap();
 
@@ -127,7 +143,11 @@ impl<'a> NestedLoop<'a> {
                         cache_pos += 1;
                         self.pos_inner_cache = Some(cache_pos);
 
-                        self.match_candidate_buffer.push((m_outer.clone(), m_inner.clone(), tx.clone()));
+                        self.match_candidate_buffer.push((
+                            m_outer.clone(),
+                            m_inner.clone(),
+                            tx.clone(),
+                        ));
 
                         if self.match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
                             return;
@@ -135,11 +155,12 @@ impl<'a> NestedLoop<'a> {
                     }
                 } else {
                     while let Some(m_inner) = self.inner.next() {
-                        let m_inner : Cow<'a, Vec<Match>> = Cow::Owned(m_inner);
+                        let m_inner: Cow<'a, Vec<Match>> = Cow::Owned(m_inner);
 
                         self.inner_cache.push(m_inner.clone());
 
-                        self.match_candidate_buffer.push((m_outer.clone(), m_inner, tx.clone()));
+                        self.match_candidate_buffer
+                            .push((m_outer.clone(), m_inner, tx.clone()));
 
                         if self.match_candidate_buffer.len() >= MAX_BUFFER_SIZE {
                             return;
@@ -151,15 +172,16 @@ impl<'a> NestedLoop<'a> {
             }
 
             // consume next outer
-            if self.outer.next().is_none() {
+            self.current_outer = None;
+            if self.peek_outer().is_none() {
                 return;
             }
         }
     }
 
-    fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
+    fn next_match_receiver<'b>(&'b mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
-    
+
         self.next_match_buffer(&tx);
 
         if self.match_candidate_buffer.is_empty() {
@@ -193,7 +215,7 @@ impl<'a> NestedLoop<'a> {
                             && m_outer[outer_idx].different_to(&m_inner[inner_idx])))
                 {
                     let mut result = Vec::with_capacity(m_outer.len() + m_inner.len());
-                    result.append(m_outer.to_mut());
+                    result.extend(m_outer.iter().cloned());
                     result.append(m_inner.to_mut());
 
                     if tx.send(result).is_err() {
@@ -202,7 +224,7 @@ impl<'a> NestedLoop<'a> {
                 }
             });
         self.match_candidate_buffer.clear();
-        
+
         Some(rx)
     }
 }
