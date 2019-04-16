@@ -81,7 +81,7 @@ impl<'a> NestedLoop<'a> {
                 pos_inner_cache: None,
                 left_is_outer,
                 global_reflexivity: op_entry.global_reflexivity,
-                match_candidate_buffer: Vec::default(),
+                match_candidate_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
             }
         } else {
             NestedLoop {
@@ -107,7 +107,7 @@ impl<'a> NestedLoop<'a> {
                 pos_inner_cache: None,
                 left_is_outer,
                 global_reflexivity: op_entry.global_reflexivity,
-                match_candidate_buffer: Vec::default(),
+                match_candidate_buffer: Vec::with_capacity(MAX_BUFFER_SIZE),
             }
         }
     }
@@ -159,7 +159,7 @@ impl<'a> NestedLoop<'a> {
 
     fn next_match_receiver(&mut self) -> Option<Receiver<Vec<Match>>> {
         let (tx, rx) = channel();
-        
+    
         self.next_match_buffer(&tx);
 
         if self.match_candidate_buffer.is_empty() {
@@ -201,6 +201,8 @@ impl<'a> NestedLoop<'a> {
                     }
                 }
             });
+        self.match_candidate_buffer.clear();
+        
         Some(rx)
     }
 }
