@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 
-const MAX_BUFFER_SIZE: usize = 512;
+const MAX_BUFFER_SIZE: usize = 1024;
 
 pub struct NestedLoop<'a> {
     outer: Box<ExecutionNode<Item = Vec<Match>> + 'a>,
