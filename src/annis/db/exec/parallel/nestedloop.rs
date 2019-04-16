@@ -3,7 +3,6 @@ use crate::annis::db::query::conjunction::BinaryOperatorEntry;
 use crate::annis::db::Match;
 use crate::annis::operator::BinaryOperator;
 use rayon::prelude::*;
-use std::borrow::Cow;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 
