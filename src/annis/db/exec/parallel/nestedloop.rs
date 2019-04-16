@@ -17,9 +17,9 @@ pub struct NestedLoop<'a> {
     outer_idx: usize,
 
     current_outer: Option<Arc<Vec<Match>>>,
-    match_candidate_buffer: Vec<MatchCandidate<'a>>,
+    match_candidate_buffer: Vec<MatchCandidate>,
     match_receiver: Option<Receiver<Vec<Match>>>,
-    inner_cache: Vec<Cow<'a, Vec<Match>>>,
+    inner_cache: Vec<Arc<Vec<Match>>>,
     pos_inner_cache: Option<usize>,
 
     left_is_outer: bool,
@@ -28,7 +28,7 @@ pub struct NestedLoop<'a> {
     global_reflexivity: bool,
 }
 
-type MatchCandidate<'a> = (Arc<Vec<Match>>, Cow<'a, Vec<Match>>, Sender<Vec<Match>>);
+type MatchCandidate = (Arc<Vec<Match>>, Arc<Vec<Match>>, Sender<Vec<Match>>);
 
 impl<'a> NestedLoop<'a> {
     pub fn new(
@@ -155,7 +155,7 @@ impl<'a> NestedLoop<'a> {
                     }
                 } else {
                     while let Some(m_inner) = self.inner.next() {
-                        let m_inner: Cow<'a, Vec<Match>> = Cow::Owned(m_inner);
+                        let m_inner : Arc<Vec<Match>> = Arc::from(m_inner);
 
                         self.inner_cache.push(m_inner.clone());
 
@@ -216,7 +216,8 @@ impl<'a> NestedLoop<'a> {
                 {
                     let mut result = Vec::with_capacity(m_outer.len() + m_inner.len());
                     result.extend(m_outer.iter().cloned());
-                    result.append(m_inner.to_mut());
+                    result.extend(m_inner.iter().cloned());
+                    
 
                     if tx.send(result).is_err() {
                         return;
