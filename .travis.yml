@@ -35,9 +35,9 @@ before_script:
   
 
 script:
-  - RUST_BACKTRACE=1 cargo test --all-features --release
+  - RUST_BACKTRACE=1 cargo test --release --features c-api cli
   -  "./misc/download-test-corpora.sh"
-  - cargo build --all-features --release
+  - cargo build --release --features c-api cli
   - ./target/release/annis data --cmd 'import relannis/GUM'
   - ./target/release/annis data --cmd 'import relannis/pcc2.1'
   - cargo test --release  -- --ignored
