@@ -1073,7 +1073,9 @@ impl CorpusStorage {
         };
         results.extend(base_it.skip(offset).take(limit).map(|m: Vec<Match>| {
             let mut match_desc: Vec<String> = Vec::new();
-            for singlematch in &m {
+            for i in 0..m.len(){
+                let singlematch : &Match = &m[i];
+
                 let mut node_desc = String::new();
 
                 if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
