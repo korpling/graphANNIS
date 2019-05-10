@@ -422,7 +422,7 @@ If you are using Apache Maven as your build system, you can add a dependency to 
 <pre><code class="language-xml">&lt;dependency&gt;
   &lt;groupId&gt;org.corpus-tools&lt;/groupId&gt;
   &lt;artifactId&gt;graphannis-api&lt;/artifactId&gt;
-  &lt;version&gt;0.19.2&lt;/version&gt;
+  &lt;version&gt;0.19.4&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
 <a class="header" href="#api-documentation-1" id="api-documentation-1"><h2>API documentation</h2></a>
@@ -658,7 +658,7 @@ tutorial/doc1#t7
 <a class="header" href="#rust-tutorial" id="rust-tutorial"><h1>Rust Tutorial</h1></a>
 <a class="header" href="#installation-2" id="installation-2"><h2>Installation</h2></a>
 <p>Add a dependency to graphANNIS in you <code>Cargo.toml</code> file:</p>
-<pre><code class="language-toml">graphannis = &quot;0.19.2&quot;
+<pre><code class="language-toml">graphannis = &quot;0.19.4&quot;
 </code></pre>
 <a class="header" href="#api-documentation-2" id="api-documentation-2"><h2>API documentation</h2></a>
 <p>The API documentation is available at <a href="https://docs.rs/graphannis/">https://docs.rs/graphannis/</a>.</p>
@@ -1100,7 +1100,7 @@ This means that if a language bindings adds a feature, that has been released in
 <li><strong>Download</strong> release artifacts from the core library: <code>./misc/download-release-binaries.sh &lt;version-tag&gt;</code></li>
 <li><strong>Test</strong> with <code>mvn test</code></li>
 <li><strong>Finish</strong> the release process with <code>mvn gitflow:release-finish</code> or <code>mvn gitflow:hotfix-finish</code></li>
-<li><strong>Close and Release</strong> the staging repository to Maven Central with the Nexus interface: <a href="https://oss.sonatype.org/">https://oss.sonatype.org/</a></li>
+<li><strong>Release</strong> the closed staging repository to Maven Central with the Nexus interface: <a href="https://oss.sonatype.org/">https://oss.sonatype.org/</a></li>
 </ol>
 
                     </main>
