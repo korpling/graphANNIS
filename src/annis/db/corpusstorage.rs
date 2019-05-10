@@ -1076,28 +1076,38 @@ impl CorpusStorage {
             for i in 0..m.len(){
                 let singlematch : &Match = &m[i];
 
-                let mut node_desc = String::new();
+                let include_in_output = if let Some(var) = prep.query.get_variable_by_pos(i) {
+                    prep.query.is_included_in_output(&var)
+                } else {
+                    true
+                };
 
-                if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                    if &anno_key.ns != "annis" {
-                        if !anno_key.ns.is_empty() {
-                            node_desc.push_str(&anno_key.ns);
+                if include_in_output {
+
+                    let mut node_desc = String::new();
+
+                    if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
+                        if &anno_key.ns != "annis" {
+                            if !anno_key.ns.is_empty() {
+                                node_desc.push_str(&anno_key.ns);
+                                node_desc.push_str("::");
+                            }
+                            node_desc.push_str(&anno_key.name);
                             node_desc.push_str("::");
                         }
-                        node_desc.push_str(&anno_key.name);
-                        node_desc.push_str("::");
                     }
+
+                    if let Some(name) = db
+                        .node_annos
+                        .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
+                    {
+                        node_desc.push_str("salt:/");
+                        node_desc.push_str(name);
+                    }
+
+                    match_desc.push(node_desc);
                 }
 
-                if let Some(name) = db
-                    .node_annos
-                    .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
-                {
-                    node_desc.push_str("salt:/");
-                    node_desc.push_str(name);
-                }
-
-                match_desc.push(node_desc);
             }
             let mut result = String::new();
             result.push_str(&match_desc.join(" "));

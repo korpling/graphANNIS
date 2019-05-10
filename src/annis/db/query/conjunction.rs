@@ -56,7 +56,7 @@ pub struct Conjunction<'a> {
     unary_operators: Vec<UnaryOperatorSpecEntry<'a>>,
     variables: HashMap<String, usize>,
     location_in_query: HashMap<String, LineColumnRange>,
-    include_in_output: HashMap<String, bool>,
+    include_in_output: HashSet<String>,
     var_idx_offset: usize,
 }
 
@@ -192,7 +192,7 @@ impl<'a> Conjunction<'a> {
             unary_operators: vec![],
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
-            include_in_output: HashMap::default(),
+            include_in_output: HashSet::default(),
             var_idx_offset: 0,
         }
     }
@@ -204,7 +204,7 @@ impl<'a> Conjunction<'a> {
             unary_operators: vec![],
             variables: HashMap::default(),
             location_in_query: HashMap::default(),
-            include_in_output: HashMap::default(),
+            include_in_output: HashSet::default(),
             var_idx_offset,
         }
     }
@@ -250,8 +250,10 @@ impl<'a> Conjunction<'a> {
             (idx + 1).to_string()
         };
         self.nodes.push((variable.clone(), node));
-        self.include_in_output.insert(variable.clone(), included_in_output);
         self.variables.insert(variable.clone(), idx);
+        if included_in_output {
+            self.include_in_output.insert(variable.clone());
+        }
         if let Some(location) = location {
             self.location_in_query.insert(variable.clone(), location);
         }
@@ -323,6 +325,10 @@ impl<'a> Conjunction<'a> {
             desc: format!("Operand '#{}' not found", variable).into(),
             location,
         })
+    }
+
+    pub fn is_included_in_output(&self, variable: &str) -> bool {
+        self.include_in_output.contains(variable)
     }
 
     pub fn get_variable_by_pos(&self, pos: usize) -> Option<String> {
