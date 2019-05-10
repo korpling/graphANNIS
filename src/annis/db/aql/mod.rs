@@ -252,7 +252,7 @@ fn add_legacy_metadata_constraints(
                 )?;
                 // Also make sure the matched node is actually a document
                 // (the @* could match anything in the hierarchy, including the toplevel corpus)
-                let doc_anno_idx = q.add_node(
+                let doc_anno_idx = q.add_node_from_query(
                     NodeSearchSpec::ExactValue {
                         ns: Some("annis".to_string()),
                         name: "doc".to_string(),
@@ -260,6 +260,8 @@ fn add_legacy_metadata_constraints(
                         is_meta: true,
                     },
                     None,
+                    None,
+                    false
                 );
                 q.add_operator(
                     Box::new(IdenticalNodeSpec {}),
