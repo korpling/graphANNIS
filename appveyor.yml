@@ -47,7 +47,7 @@ test_script:
       7z e pcc21.zip -orelannis\pcc2.1 -aoa &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/pcc2.1" &&
-      cargo test --release -- --ignored
+      cargo test --target %TARGET% --release -- --ignored
     )
 
 build_script:
