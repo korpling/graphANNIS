@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Optimize parallel nested loop join by performing less copy operations
 
+### Fixed
+
+- Quirks mode: meta-data nodes are not part of the match result anymore
+
 ## [0.19.2] - 2019-04-14
 
 ### Fixed
