@@ -3,6 +3,16 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.4] - 2019-05-10
+
+### Changed
+
+- Optimize parallel nested loop join by performing less copy operations
+
+### Fixed
+
+- Quirks mode: meta-data nodes are not part of the match result anymore
+
 ## [0.19.2] - 2019-04-14
 
 ### Fixed

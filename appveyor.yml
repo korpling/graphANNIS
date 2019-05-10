@@ -39,15 +39,15 @@ install:
 test_script:
   # we don't run the "test phase" when doing deploys
   - if [%APPVEYOR_REPO_TAG%]==[false] (
-      cargo build --target %TARGET% --release --all-features &&
-      cargo test --target %TARGET% --release --all-features &&
+      cargo build --target %TARGET% --release --features "c-api cli" &&
+      cargo test --target %TARGET% --release --features "c-api cli" &&
       appveyor-retry appveyor DownloadFile https://github.com/amir-zeldes/gum/archive/f8ac9944fae39ae37c4db186304e3c1ab41f77f3.zip -FileName gum.zip && 
       7z e gum.zip -orelannis\GUM -aoa &&
       appveyor-retry appveyor DownloadFile http://angcl.ling.uni-potsdam.de/resources/pcc2.1_annis.zip -FileName pcc21.zip && 
       7z e pcc21.zip -orelannis\pcc2.1 -aoa &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
       target\%TARGET%\release\annis.exe data --cmd "import relannis/pcc2.1" &&
-      cargo test --release -- --ignored
+      cargo test --target %TARGET% --release -- --ignored
     )
 
 build_script:
@@ -76,8 +76,8 @@ deploy:
   provider: GitHub
 
 cache:
-  - C:\Users\appveyor\.cargo\registry
-  - target
+  - C:\Users\appveyor\.cargo\bin
+  - C:\Users\appveyor\.cargo\.crates.toml
 
 branches:
   only:
