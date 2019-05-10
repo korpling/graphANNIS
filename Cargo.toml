@@ -38,7 +38,7 @@ linked-hash-map = "0.5"
 tempfile = "3.0"
 itertools = "0.8"
 rustc-hash = "1.0"
-rayon = "1.0"
+rayon = {version="1.0",  default-features=false}
 sys-info = "0.5"
 fs2 = "0.4"
 lalrpop-util = "0.16"
@@ -50,9 +50,9 @@ graphannis-malloc_size_of_derive = "1.0"
 
 rustyline = {version="1.0", optional=true }
 simplelog = {version="0.5", optional=true}
-clap = {version="2", optional=true}
-criterion = {version="0.2", optional=true}
-prettytable-rs = {version="0.8", optional=true}
+clap = {version="2", optional=true, default-features=false}
+criterion = {version="0.2", optional=true, default-features=false}
+prettytable-rs = {version="0.8", optional=true, default-features=false}
 
 libc = {version="0.2"}
 
