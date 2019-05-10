@@ -93,7 +93,7 @@ fn map_conjunction<'a>(
             None
         };
 
-        let idx = q.add_node_from_query(node_spec, variable, Some(LineColumnRange { start, end }));
+        let idx = q.add_node_from_query(node_spec, variable, Some(LineColumnRange { start, end }), true);
         pos_to_node_id.insert(start_pos, idx.clone());
         if first_node_pos.is_none() {
             first_node_pos = Some(idx);
@@ -230,7 +230,7 @@ fn add_legacy_metadata_constraints(
         // TODO: add warning to the user not to use this construct anymore
         for (spec, _pos) in legacy_meta_search {
             // add an artificial node that describes the document/corpus node
-            let meta_node_idx = q.add_node(spec, None);
+            let meta_node_idx = q.add_node_from_query(spec, None, None, false);
             if let Some(first_meta_idx) = first_meta_idx.clone() {
                 // avoid nested loops by joining additional meta nodes with a "identical node"
                 q.add_operator(

@@ -51,7 +51,7 @@ pub struct UnaryOperatorEntry {
 
 #[derive(Debug)]
 pub struct Conjunction<'a> {
-    nodes: Vec<(String, NodeSearchSpec)>,
+    nodes: Vec<(String, NodeSearchSpec, bool)>,
     binary_operators: Vec<BinaryOperatorSpecEntry<'a>>,
     unary_operators: Vec<UnaryOperatorSpecEntry<'a>>,
     variables: HashMap<String, usize>,
@@ -212,7 +212,7 @@ impl<'a> Conjunction<'a> {
 
     pub fn get_node_descriptions(&self) -> Vec<QueryAttributeDescription> {
         let mut result = Vec::default();
-        for (var, spec) in &self.nodes {
+        for (var, spec, _) in &self.nodes {
             let anno_name = match spec {
                 NodeSearchSpec::ExactValue { name, .. } => Some(name.clone()),
                 NodeSearchSpec::RegexValue { name, .. } => Some(name.clone()),
@@ -230,7 +230,7 @@ impl<'a> Conjunction<'a> {
     }
 
     pub fn add_node(&mut self, node: NodeSearchSpec, variable: Option<&str>) -> String {
-        self.add_node_from_query(node, variable, None)
+        self.add_node_from_query(node, variable, None, true)
     }
 
     pub fn add_node_from_query(
@@ -238,6 +238,7 @@ impl<'a> Conjunction<'a> {
         node: NodeSearchSpec,
         variable: Option<&str>,
         location: Option<LineColumnRange>,
+        included_in_output: bool,
     ) -> String {
         let idx = self.var_idx_offset + self.nodes.len();
         let variable = if let Some(variable) = variable {
@@ -245,7 +246,7 @@ impl<'a> Conjunction<'a> {
         } else {
             (idx + 1).to_string()
         };
-        self.nodes.push((variable.clone(), node));
+        self.nodes.push((variable.clone(), node, included_in_output));
         self.variables.insert(variable.clone(), idx);
         if let Some(location) = location {
             self.location_in_query.insert(variable.clone(), location);
