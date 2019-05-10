@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Optimize parallel nested loop join perform less copy operations
+- Optimize parallel nested loop join by performing less copy operations
 
 ## [0.19.2] - 2019-04-14
 
