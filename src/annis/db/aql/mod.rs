@@ -376,6 +376,7 @@ pub fn parse<'a>(query_as_aql: &str, quirks_mode: bool) -> Result<Disjunction<'a
                 ParseError::InvalidToken { .. } => "Invalid token detected.",
                 ParseError::ExtraToken { .. } => "Extra token at end of query.",
                 ParseError::UnrecognizedToken { .. } => "Unexpected token in query.",
+                ParseError::UnrecognizedEOF { .. } => "Unexpected end of query.",
                 ParseError::User { error } => error,
             }
             .to_string();
@@ -488,18 +489,17 @@ fn extract_location<'a>(
             })
         }
         ParseError::UnrecognizedToken { token, .. } => {
-            if let Some(token) = token {
-                let start = get_line_and_column_for_pos(token.0, &offsets);
-                let end = get_line_and_column_for_pos(token.2 - 1, &offsets);
-                Some(LineColumnRange {
-                    start,
-                    end: Some(end),
-                })
-            } else {
-                // set to end of query
-                let start = get_line_and_column_for_pos(input.len() - 1, &offsets);
-                Some(LineColumnRange { start, end: None })
-            }
+            let start = get_line_and_column_for_pos(token.0, &offsets);
+            let end = get_line_and_column_for_pos(token.2 - 1, &offsets);
+            Some(LineColumnRange {
+                start,
+                end: Some(end),
+            })
+        }
+        ParseError::UnrecognizedEOF {..} => {
+            // set to end of query
+            let start = get_line_and_column_for_pos(input.len() - 1, &offsets);
+            Some(LineColumnRange { start, end: None })
         }
         ParseError::User { .. } => None,
     };
