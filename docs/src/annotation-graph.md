@@ -14,7 +14,7 @@ GraphANNIS does not partition the data documents like it was done in relANNIS, g
 In this model, each node is internally identified by a unique ID.
 Node labels consist of a namespace, a name, and a value and are connected to a node by its ID.
 No explicit representation of nodes exists: If a node exists there must be at least one label for this node.
-There is a special label named "annis::node_name"[^qname]} that can be applied to any node to mark its existence.
+There is a special label named "annis::node_name"[^qname] that can be applied to any node to mark its existence.
 
 GraphANNIS has the concept of components for edges.
 A component has a type, a name, and a layer. 
