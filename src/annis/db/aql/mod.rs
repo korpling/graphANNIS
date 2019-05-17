@@ -74,11 +74,7 @@ fn map_conjunction<'a>(
             ast::Literal::LegacyMetaSearch { pos, .. } => {
                 if !quirks_mode {
                     let start = get_line_and_column_for_pos(pos.start, &offsets);
-                    let end = if let Some(end_pos) = pos_to_endpos.get(&pos.end) {
-                        Some(get_line_and_column_for_pos(*end_pos, &offsets))
-                    } else {
-                        None
-                    };
+                    let end = Some(get_line_and_column_for_pos(pos.start + "meta::".len()-1, &offsets));
                     return Err(Error::AQLSyntaxError {
                         desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
                         location: Some(LineColumnRange {start, end}),
