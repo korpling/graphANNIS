@@ -5,7 +5,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
-### Changed
+### Deprecated
 
 - `meta::` queries are no deprecated and can only be used in quirks mode
 
