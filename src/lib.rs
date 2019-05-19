@@ -12,6 +12,9 @@ extern crate graphannis_malloc_size_of_derive as malloc_size_of_derive;
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate percent_encoding;
+
 extern crate boolean_expression;
 extern crate linked_hash_map;
 extern crate multimap;
