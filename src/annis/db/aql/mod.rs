@@ -88,7 +88,7 @@ fn map_conjunction<'a>(
     // add all nodes specs in order of their start position
     let mut first_node_pos: Option<String> = None;
 
-    let mut pos_to_node_id: HashMap<usize, String> = HashMap::default();
+    let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
     for (start_pos, (node_spec, variable)) in pos_to_node {
         let variable = variable.as_ref().map(|s| &**s);
 
@@ -209,11 +209,13 @@ fn map_conjunction<'a>(
     }
 
     if quirks_mode {
-        // add additional nodes to the query to emulate the old behavior of distributing
-        // joins for precedence and dominance operators on different query nodes
-        for (orig_var, num_joins) in num_pointing_or_dominance_joins {
+        // Add additional nodes to the query to emulate the old behavior of distributing
+        // joins for pointing and dominance operators on different query nodes.
+        // Iterate over the query nodes in their order as given by the query.
+        for(_, orig_var) in pos_to_node_id.iter() {
+            let num_joins = num_pointing_or_dominance_joins.get(orig_var).unwrap_or(&0);
             // add an additional node for each extra join and join this artificial node with identity relation
-            for _ in 1..num_joins {
+            for _ in 1..*num_joins {
                 if let Ok(node_spec) = q.resolve_variable(&orig_var, None) {
                     let new_var = q.add_node(node_spec, None);
                     q.add_operator(Box::new(IdenticalNodeSpec {}), &orig_var, &new_var, false)?;
