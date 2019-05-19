@@ -82,8 +82,6 @@ branches:
   only:
     # Release tags
     - /^v\d+\.\d+\.\d+.*$/
-     # Release preparation branches
-    - /^release/.+/
      # Develop branch
     - develop
     
