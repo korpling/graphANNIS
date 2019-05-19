@@ -32,8 +32,6 @@ fn map_conjunction<'a>(
 
     let mut pos_to_endpos: BTreeMap<usize, usize> = BTreeMap::default();
 
-    let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();
-
     for literal in &c {
         match literal {
             ast::Literal::NodeSearch {
@@ -73,8 +71,16 @@ fn map_conjunction<'a>(
             ast::Literal::UnaryOp { .. } => {
                 // can only have node reference, not a literal
             }
-            ast::Literal::LegacyMetaSearch { spec, pos } => {
-                legacy_meta_search.push((spec.clone(), pos.clone()));
+            ast::Literal::LegacyMetaSearch { pos, .. } => {
+                if !quirks_mode {
+                    let start = get_line_and_column_for_pos(pos.start, &offsets);
+                    let end = Some(get_line_and_column_for_pos(pos.start + "meta::".len()-1, &offsets));
+                    return Err(Error::AQLSyntaxError {
+                        desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
+                        location: Some(LineColumnRange {start, end}),
+                    }
+                    .into());
+                }
             }
         };
     }
@@ -82,7 +88,7 @@ fn map_conjunction<'a>(
     // add all nodes specs in order of their start position
     let mut first_node_pos: Option<String> = None;
 
-    let mut pos_to_node_id: HashMap<usize, String> = HashMap::default();
+    let mut pos_to_node_id: BTreeMap<usize, String> = BTreeMap::default();
     for (start_pos, (node_spec, variable)) in pos_to_node {
         let variable = variable.as_ref().map(|s| &**s);
 
@@ -93,7 +99,12 @@ fn map_conjunction<'a>(
             None
         };
 
-        let idx = q.add_node_from_query(node_spec, variable, Some(LineColumnRange { start, end }), true);
+        let idx = q.add_node_from_query(
+            node_spec,
+            variable,
+            Some(LineColumnRange { start, end }),
+            true,
+        );
         pos_to_node_id.insert(start_pos, idx.clone());
         if first_node_pos.is_none() {
             first_node_pos = Some(idx);
@@ -119,12 +130,6 @@ fn map_conjunction<'a>(
 
             q.add_unary_operator_from_query(make_unary_operator_spec(op.clone()), &var, op_pos)?;
         }
-    }
-
-    // in quirks mode, all legacy metadata constraints are applied to all conjunctions
-    if !quirks_mode {
-        // add all legacy meta searches
-        add_legacy_metadata_constraints(&mut q, legacy_meta_search, first_node_pos)?;
     }
 
     let mut num_pointing_or_dominance_joins: HashMap<String, usize> = HashMap::default();
@@ -204,11 +209,13 @@ fn map_conjunction<'a>(
     }
 
     if quirks_mode {
-        // add additional nodes to the query to emulate the old behavior of distributing
-        // joins for precedence and dominance operators on different query nodes
-        for (orig_var, num_joins) in num_pointing_or_dominance_joins {
+        // Add additional nodes to the query to emulate the old behavior of distributing
+        // joins for pointing and dominance operators on different query nodes.
+        // Iterate over the query nodes in their order as given by the query.
+        for(_, orig_var) in pos_to_node_id.iter() {
+            let num_joins = num_pointing_or_dominance_joins.get(orig_var).unwrap_or(&0);
             // add an additional node for each extra join and join this artificial node with identity relation
-            for _ in 1..num_joins {
+            for _ in 1..*num_joins {
                 if let Ok(node_spec) = q.resolve_variable(&orig_var, None) {
                     let new_var = q.add_node(node_spec, None);
                     q.add_operator(Box::new(IdenticalNodeSpec {}), &orig_var, &new_var, false)?;
@@ -261,7 +268,7 @@ fn add_legacy_metadata_constraints(
                     },
                     None,
                     None,
-                    false
+                    false,
                 );
                 q.add_operator(
                     Box::new(IdenticalNodeSpec {}),
@@ -496,7 +503,7 @@ fn extract_location<'a>(
                 end: Some(end),
             })
         }
-        ParseError::UnrecognizedEOF {..} => {
+        ParseError::UnrecognizedEOF { .. } => {
             // set to end of query
             let start = get_line_and_column_for_pos(input.len() - 1, &offsets);
             Some(LineColumnRange { start, end: None })

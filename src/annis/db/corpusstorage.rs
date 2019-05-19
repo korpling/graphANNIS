@@ -26,6 +26,7 @@ use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::update::GraphUpdate;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
+use percent_encoding::{utf8_percent_encode, SIMPLE_ENCODE_SET};
 use std;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
@@ -235,6 +236,11 @@ pub enum CacheStrategy {
     /// Cache size is checked before and after a corpus is loaded.
     /// The loaded entry is always added to the cache, even if the single corpus is larger than the maximum size.
     PercentOfFreeMemory(f64),
+}
+
+define_encode_set! {
+     /// This encode set is used encoding the Salt identifiers in the output of the `find(...)` function.
+     pub SALT_URI_ENCODE_SET = [SIMPLE_ENCODE_SET] | {' ', ':', '%'}
 }
 
 /// A thread-safe API for managing corpora stored in a common location on the file system.
@@ -1091,12 +1097,16 @@ impl CorpusStorage {
                     let mut node_desc = String::new();
 
                     if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                        if &anno_key.ns != "annis" {
+                        if &anno_key.ns != ANNIS_NS || &anno_key.name != NODE_TYPE {
                             if !anno_key.ns.is_empty() {
-                                node_desc.push_str(&anno_key.ns);
+                                let encoded_anno_ns: std::borrow::Cow<str> =
+                                    utf8_percent_encode(&anno_key.ns, SALT_URI_ENCODE_SET).into();
+                                node_desc.push_str(&encoded_anno_ns);
                                 node_desc.push_str("::");
                             }
-                            node_desc.push_str(&anno_key.name);
+                            let encoded_anno_name: std::borrow::Cow<str> =
+                                utf8_percent_encode(&anno_key.name, SALT_URI_ENCODE_SET).into();
+                            node_desc.push_str(&encoded_anno_name);
                             node_desc.push_str("::");
                         }
                     }
@@ -1105,8 +1115,10 @@ impl CorpusStorage {
                         .node_annos
                         .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                     {
+                        let encoded_name: std::borrow::Cow<str> =
+                            utf8_percent_encode(name, SALT_URI_ENCODE_SET).into();
                         node_desc.push_str("salt:/");
-                        node_desc.push_str(name);
+                        node_desc.push_str(&encoded_name);
                     }
 
                     match_desc.push(node_desc);

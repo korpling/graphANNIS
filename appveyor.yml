@@ -45,8 +45,8 @@ test_script:
       7z e gum.zip -orelannis\GUM -aoa &&
       appveyor-retry appveyor DownloadFile http://angcl.ling.uni-potsdam.de/resources/pcc2.1_annis.zip -FileName pcc21.zip && 
       7z e pcc21.zip -orelannis\pcc2.1 -aoa &&
-      target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
-      target\%TARGET%\release\annis.exe data --cmd "import relannis/pcc2.1" &&
+      IF NOT EXIST data\GUM target\%TARGET%\release\annis.exe data --cmd "import relannis/GUM" &&
+      IF NOT EXIST data\pcc2.1 target\%TARGET%\release\annis.exe data --cmd "import relannis/pcc2.1" &&
       cargo test --target %TARGET% --release -- --ignored
     )
 
@@ -76,8 +76,9 @@ deploy:
   provider: GitHub
 
 cache:
-  - C:\Users\appveyor\.cargo\bin
-  - C:\Users\appveyor\.cargo\.crates.toml
+  - C:\Users\appveyor\.cargo
+  - target
+  - data
 
 branches:
   only:

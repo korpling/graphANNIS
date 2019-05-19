@@ -11,6 +11,8 @@ sudo: required
 cache:
   directories:
     - $HOME/.cargo
+    - $TRAVIS_BUILD_DIR/target
+    - $TRAVIS_BUILD_DIR/data
 
 env:
   secure: "0OIkzQeI7toU8qOms0mqm0bjrzB2CUOll4w4cPD5zzxq+v91BGYeRve1NcPWlxUv3WbBFOQoS6x2vJ3W92FMKmoJ+pE2ZdVKGzTkrAhBnffZiFYnuK8b3GJ6jOS4zbiNS38fTfDiHU6NtUb1eKYJl7aEH68q3tstXLJY2fJ36/NP4OKe8WlDKcOxsyV/Kn3HLIm9D4dK11jHmNvLISr4+ls5tVgpbDuU06Qz+4PvpkdH3Rb1vX7wMbsR1mhsJGE4tozYb7AupPGT47nFrUnkI9IW3EbIsDJZVhlIwKZf9HCXLIXMuVITdlN2OUKEVBapaQuLBKDmxdsyW+bBFccjjKb9kIhLI+EqQQhQGEeAzozmpWd3krnOGQTDNHddcjBD1sZ+QyG3/nk+y2nvdqd+NUP1DdrwsdSQoL8iksvQ2DTH9XiZxvGh0zCOv/DE8b4l8xZSLugYEHQTWUgReC+5qgLrkzrfMn3oKWUf10izvsMMJ57kftWFfzdgegLaMqe15A+KpU/g9M8aw/12t6MfaCqj/+EBbxYUB1K+vYYtnrdrxYs1xPDWWMa5VDhIsvu+Gn22vuUZOM2K99PHmf3TCxeckpVDRkjqgb6Nvmo6wZy1D8Xaiv7wGXpVACljoQriAOumSB8HvjYr2LDzeXf2QRlD+bK+RtTNZmEDq7JoCl4="
@@ -26,11 +28,9 @@ branches:
     # used when testing the release process
     #- feature/doc-deploy-subfolder
 
-before_cache:
-  - rm -rf /home/travis/.cargo/registry
-
 before_script:
-  - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update) ; fi
+  - (test -x $HOME/.cargo/bin/cargo-install-update || (curl -L -o cargo-install-update.tbz2 https://github.com/nabijaczleweli/cargo-update/releases/download/v1.7.0/cargo-install-update-v1.7.0.tbz2 && tar -C $HOME/.cargo/bin/ -jxf cargo-install-update.tbz2))
   - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.2" mdbook)
   - cargo install-update -a
   - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
@@ -38,10 +38,10 @@ before_script:
 
 script:
   - RUST_BACKTRACE=1 cargo test --release --features "c-api cli"
-  -  "./misc/download-test-corpora.sh"
+  - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - cargo build --release --features "c-api cli"
-  - ./target/release/annis data --cmd 'import relannis/GUM'
-  - ./target/release/annis data --cmd 'import relannis/pcc2.1'
+  - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
+  - (test -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
   - cargo test --release  -- --ignored
   # also test that the documentation is generated without error
   - mdbook test docs/
