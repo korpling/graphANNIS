@@ -1091,7 +1091,7 @@ impl CorpusStorage {
                     let mut node_desc = String::new();
 
                     if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
-                        if &anno_key.ns != "annis" {
+                        if &anno_key.ns != ANNIS_NS || &anno_key.name != NODE_TYPE {
                             if !anno_key.ns.is_empty() {
                                 node_desc.push_str(&anno_key.ns);
                                 node_desc.push_str("::");
