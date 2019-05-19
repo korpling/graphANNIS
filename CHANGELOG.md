@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Output annotations with the namespace "annis" in find function
 - Quirks mode: add additional identity joins in the order as the nodes are defined in the query
+- Encode ",", " " and ":" in the Salt ID output of the `find(...)` function
 
 ## [0.19.4] - 2019-05-10
 
