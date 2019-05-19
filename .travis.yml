@@ -28,9 +28,6 @@ branches:
     # used when testing the release process
     #- feature/doc-deploy-subfolder
 
-before_cache:
-  - rm -rf /home/travis/.cargo/registry
-
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update) ; fi
   - (test -x $HOME/.cargo/bin/cargo-install-update || (curl -L -o cargo-install-update.tbz2 https://github.com/nabijaczleweli/cargo-update/releases/download/v1.7.0/cargo-install-update-v1.7.0.tbz2 && tar -C $HOME/.cargo/bin/ -jxf cargo-install-update.tbz2))
@@ -41,7 +38,7 @@ before_script:
 
 script:
   - RUST_BACKTRACE=1 cargo test --release --features "c-api cli"
-  -  "./misc/download-test-corpora.sh"
+  - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - cargo build --release --features "c-api cli"
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
   - (test -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
