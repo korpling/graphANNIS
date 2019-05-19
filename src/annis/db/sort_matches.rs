@@ -29,8 +29,11 @@ pub fn compare_matchgroup_by_text_pos(
             return element_cmp;
         }
     }
-    // sort shorter vectors before larger ones
-    m1.len().cmp(&m2.len())
+    // Sort longer vectors ("more specific") before shorter ones
+    // This originates from the old SQL based system, where an "unfilled" match position had the NULL value.
+    // NULL values where sorted *after* the ones with actual values. In practice, this means the more specific
+    // matches come first.
+    m2.len().cmp(&m1.len())
 }
 
 fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
