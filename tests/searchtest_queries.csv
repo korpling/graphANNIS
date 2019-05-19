@@ -1,5 +1,5 @@
 name,aql,corpus,count
-noun_with_metadata,"pos=""NN"" & @* type=""interview"" _ident_ doc=/.*_ants/",GUM,126
+noun_with_metadata,"pos=""NN"" @* type=""interview"" _ident_ doc=/.*_ants/",GUM,126
 city,"lemma=""city"" _o_ entity ->coref[type=""coref""] entity",GUM,64
 coffee,"infstat=""giv"" & entity=""object"" & ""Coffee"" & #1 _o_#3 & #2 _o_ #3",GUM,1
 kind_dom_kind,"kind >[relname=""evidence""] kind",GUM,56
