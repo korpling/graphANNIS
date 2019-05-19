@@ -32,8 +32,6 @@ fn map_conjunction<'a>(
 
     let mut pos_to_endpos: BTreeMap<usize, usize> = BTreeMap::default();
 
-    let mut legacy_meta_search: Vec<(NodeSearchSpec, ast::Pos)> = Vec::new();
-
     for literal in &c {
         match literal {
             ast::Literal::NodeSearch {
@@ -73,8 +71,16 @@ fn map_conjunction<'a>(
             ast::Literal::UnaryOp { .. } => {
                 // can only have node reference, not a literal
             }
-            ast::Literal::LegacyMetaSearch { spec, pos } => {
-                legacy_meta_search.push((spec.clone(), pos.clone()));
+            ast::Literal::LegacyMetaSearch { pos, .. } => {
+                if !quirks_mode {
+                    let start = get_line_and_column_for_pos(pos.start, &offsets);
+                    let end = Some(get_line_and_column_for_pos(pos.start + "meta::".len()-1, &offsets));
+                    return Err(Error::AQLSyntaxError {
+                        desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
+                        location: Some(LineColumnRange {start, end}),
+                    }
+                    .into());
+                }
             }
         };
     }
@@ -93,7 +99,12 @@ fn map_conjunction<'a>(
             None
         };
 
-        let idx = q.add_node_from_query(node_spec, variable, Some(LineColumnRange { start, end }), true);
+        let idx = q.add_node_from_query(
+            node_spec,
+            variable,
+            Some(LineColumnRange { start, end }),
+            true,
+        );
         pos_to_node_id.insert(start_pos, idx.clone());
         if first_node_pos.is_none() {
             first_node_pos = Some(idx);
@@ -119,12 +130,6 @@ fn map_conjunction<'a>(
 
             q.add_unary_operator_from_query(make_unary_operator_spec(op.clone()), &var, op_pos)?;
         }
-    }
-
-    // in quirks mode, all legacy metadata constraints are applied to all conjunctions
-    if !quirks_mode {
-        // add all legacy meta searches
-        add_legacy_metadata_constraints(&mut q, legacy_meta_search, first_node_pos)?;
     }
 
     let mut num_pointing_or_dominance_joins: HashMap<String, usize> = HashMap::default();
@@ -263,7 +268,7 @@ fn add_legacy_metadata_constraints(
                     },
                     None,
                     None,
-                    false
+                    false,
                 );
                 q.add_operator(
                     Box::new(IdenticalNodeSpec {}),
@@ -498,7 +503,7 @@ fn extract_location<'a>(
                 end: Some(end),
             })
         }
-        ParseError::UnrecognizedEOF {..} => {
+        ParseError::UnrecognizedEOF { .. } => {
             // set to end of query
             let start = get_line_and_column_for_pos(input.len() - 1, &offsets);
             Some(LineColumnRange { start, end: None })

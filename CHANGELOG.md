@@ -5,11 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Deprecated
+
+- `meta::` queries are no deprecated and can only be used in quirks mode
+
 ### Fixed
 
 - Output annotations with the namespace "annis" in find function
 - Quirks mode: add additional identity joins in the order as the nodes are defined in the query
 - Encode ",", " " and ":" in the Salt ID output of the `find(...)` function
+- Sort longer vectors ("more specific") before shorter ones in `find(...)` output
 
 ## [0.19.4] - 2019-05-10
 
