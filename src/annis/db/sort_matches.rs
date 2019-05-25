@@ -51,9 +51,11 @@ fn compare_document_path(p1: &str, p2: &str, quirks_mode: bool) -> std::cmp::Ord
     let it1 = p1.split('/').filter(|s| !s.is_empty());
     let it2 = p2.split('/').filter(|s| !s.is_empty());
 
-    if quirks_mode { 
-        // only compare the last part (the document name) in quirks mode
-        if let (Some(part1), Some(part2)) = (it1.last(), it2.last()) {
+    if quirks_mode {
+        // reverse the path in quirks mode
+        let path1: Vec<&str> = it1.collect();
+        let path2: Vec<&str> = it2.collect();
+        for (part1, part2) in path1.into_iter().rev().zip(path2.into_iter().rev()) {
             let string_cmp = compare_string(part1, part2, true);
             if string_cmp != std::cmp::Ordering::Equal {
                 return string_cmp;
