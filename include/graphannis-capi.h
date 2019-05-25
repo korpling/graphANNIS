@@ -328,14 +328,17 @@ bool annis_cs_validate_query(const AnnisCorpusStorage *ptr,
 /*
  * Create a new corpus storage with an automatically determined maximum cache size.
  */
-AnnisCorpusStorage *annis_cs_with_auto_cache_size(const char *db_dir, bool use_parallel);
+AnnisCorpusStorage *annis_cs_with_auto_cache_size(const char *db_dir,
+                                                  bool use_parallel,
+                                                  AnnisErrorList **err);
 
 /*
  * Create a new corpus storage with an manually defined maximum cache size.
  */
 AnnisCorpusStorage *annis_cs_with_max_cache_size(const char *db_dir,
                                                  uintptr_t max_cache_size,
-                                                 bool use_parallel);
+                                                 bool use_parallel,
+                                                 AnnisErrorList **err);
 
 const char *annis_error_get_kind(const AnnisErrorList *ptr, size_t i);
 

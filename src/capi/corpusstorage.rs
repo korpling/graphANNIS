@@ -18,6 +18,7 @@ use std::path::PathBuf;
 pub extern "C" fn annis_cs_with_auto_cache_size(
     db_dir: *const libc::c_char,
     use_parallel: bool,
+    err: *mut *mut ErrorList,
 ) -> *mut CorpusStorage {
     let db_dir = cstr!(db_dir);
 
@@ -29,9 +30,16 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
         Ok(result) => {
             return Box::into_raw(Box::new(result));
         }
-        Err(err) => error!("Could create corpus storage, error message was:\n{:?}", err),
-    };
-    return std::ptr::null_mut();
+        Err(e) => {
+            if !err.is_null() {
+                unsafe {
+                    *err = cerror::new(e.into());
+                }
+
+            }
+            return std::ptr::null_mut();
+        }
+    }
 }
 
 /// Create a new corpus storage with an manually defined maximum cache size.
@@ -40,6 +48,7 @@ pub extern "C" fn annis_cs_with_max_cache_size(
     db_dir: *const libc::c_char,
     max_cache_size: usize,
     use_parallel: bool,
+    err: *mut *mut ErrorList,
 ) -> *mut CorpusStorage {
     let db_dir = cstr!(db_dir);
 
@@ -51,13 +60,21 @@ pub extern "C" fn annis_cs_with_max_cache_size(
         use_parallel,
     );
 
+
     match s {
         Ok(result) => {
             return Box::into_raw(Box::new(result));
         }
-        Err(err) => error!("Could create corpus storage, error message was:\n{:?}", err),
-    };
-    return std::ptr::null_mut();
+        Err(e) => {
+            if !err.is_null() {
+                unsafe {
+                    *err = cerror::new(e.into());
+                }
+
+            }
+            return std::ptr::null_mut();
+        }
+    }
 }
 
 #[no_mangle]
