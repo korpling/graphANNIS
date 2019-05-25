@@ -2,6 +2,8 @@ use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use crate::update::{GraphUpdate, UpdateEvent};
+use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
+use percent_encoding::utf8_percent_encode;
 use csv;
 use multimap::MultiMap;
 use std;
@@ -1239,9 +1241,9 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
         .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
         .filter(|parent_corpus| post < parent_corpus.post)
         .map(|parent_corpus| {
-            percent_encoding::utf8_percent_encode(
+            utf8_percent_encode(
                 parent_corpus.name.as_ref(),
-                percent_encoding::DEFAULT_ENCODE_SET,
+                SALT_URI_ENCODE_SET,
             )
             .to_string()
         })
@@ -1256,7 +1258,7 @@ fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
         .get(&cid)
         .ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
     let corpus_name =
-        percent_encoding::utf8_percent_encode(&corpus.name, percent_encoding::DEFAULT_ENCODE_SET)
+        utf8_percent_encode(&corpus.name, SALT_URI_ENCODE_SET)
             .to_string();
     Ok(format!("{}/{}", parent_path, &corpus_name))
 }
@@ -1382,9 +1384,9 @@ where
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let text_name = percent_encoding::utf8_percent_encode(
+            let text_name = utf8_percent_encode(
                 &text_name,
-                percent_encoding::DEFAULT_ENCODE_SET,
+                SALT_URI_ENCODE_SET,
             ).to_string();
             let subcorpus_full_name = get_corpus_path(corpus_ref, corpus_table)?;
             let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
