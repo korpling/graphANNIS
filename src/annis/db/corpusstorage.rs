@@ -26,8 +26,9 @@ use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::update::GraphUpdate;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
-use percent_encoding::{utf8_percent_encode, SIMPLE_ENCODE_SET};
+use percent_encoding::{utf8_percent_encode, PATH_SEGMENT_ENCODE_SET, SIMPLE_ENCODE_SET};
 use std;
+use std::borrow::Cow;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
@@ -468,7 +469,9 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // if not loaded yet, get write-lock and load entry
-        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
+        let escaped_corpus_name: Cow<str> =
+            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
+        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &escaped_corpus_name]
             .iter()
             .collect();
 
@@ -619,9 +622,10 @@ impl CorpusStorage {
         }
 
         let corpus_name = corpus_name.unwrap_or(orig_name);
+        let escaped_corpus_name : Cow<str> = utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
 
         let mut db_path = PathBuf::from(&self.db_dir);
-        db_path.push(corpus_name.clone());
+        db_path.push(escaped_corpus_name.to_string());
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
@@ -1099,12 +1103,12 @@ impl CorpusStorage {
                     if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
                         if &anno_key.ns != ANNIS_NS || &anno_key.name != NODE_TYPE {
                             if !anno_key.ns.is_empty() {
-                                let encoded_anno_ns: std::borrow::Cow<str> =
+                                let encoded_anno_ns: Cow<str> =
                                     utf8_percent_encode(&anno_key.ns, SALT_URI_ENCODE_SET).into();
                                 node_desc.push_str(&encoded_anno_ns);
                                 node_desc.push_str("::");
                             }
-                            let encoded_anno_name: std::borrow::Cow<str> =
+                            let encoded_anno_name: Cow<str> =
                                 utf8_percent_encode(&anno_key.name, SALT_URI_ENCODE_SET).into();
                             node_desc.push_str(&encoded_anno_name);
                             node_desc.push_str("::");
@@ -1115,7 +1119,7 @@ impl CorpusStorage {
                         .node_annos
                         .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                     {
-                        let encoded_name: std::borrow::Cow<str> =
+                        let encoded_name: Cow<str> =
                             utf8_percent_encode(name, SALT_URI_ENCODE_SET).into();
                         node_desc.push_str("salt:/");
                         node_desc.push_str(&encoded_name);
