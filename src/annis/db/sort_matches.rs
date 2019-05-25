@@ -14,7 +14,7 @@ pub fn compare_matchgroup_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
-    use_local_collation: bool,
+    quirks_mode: bool,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
         let element_cmp = compare_match_by_text_pos(
@@ -23,7 +23,7 @@ pub fn compare_matchgroup_by_text_pos(
             node_annos,
             token_helper,
             gs_order,
-            use_local_collation,
+            quirks_mode,
         );
         if element_cmp != Ordering::Equal {
             return element_cmp;
@@ -47,14 +47,24 @@ fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
     }
 }
 
-fn compare_document_path(p1: &str, p2: &str, use_local_collation: bool) -> std::cmp::Ordering {
+fn compare_document_path(p1: &str, p2: &str, quirks_mode: bool) -> std::cmp::Ordering {
     let it1 = p1.split('/').filter(|s| !s.is_empty());
     let it2 = p2.split('/').filter(|s| !s.is_empty());
 
-    for (part1, part2) in it1.zip(it2) {
-        let string_cmp = compare_string(part1, part2, use_local_collation);
-        if string_cmp != std::cmp::Ordering::Equal {
-            return string_cmp;
+    if quirks_mode { 
+        // only compare the last part (the document name) in quirks mode
+        if let (Some(part1), Some(part2)) = (it1.last(), it2.last()) {
+            let string_cmp = compare_string(part1, part2, true);
+            if string_cmp != std::cmp::Ordering::Equal {
+                return string_cmp;
+            }
+        }
+    } else {
+        for (part1, part2) in it1.zip(it2) {
+            let string_cmp = compare_string(part1, part2, false);
+            if string_cmp != std::cmp::Ordering::Equal {
+                return string_cmp;
+            }
         }
     }
 
@@ -103,7 +113,7 @@ pub fn compare_match_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
-    use_local_collation: bool,
+    quirks_mode: bool,
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
@@ -118,7 +128,7 @@ pub fn compare_match_by_text_pos(
             let (m2_path, m2_name) = split_path_and_nodename(m2_anno_val);
 
             // 1. compare the path
-            let path_cmp = compare_document_path(m1_path, m2_path, use_local_collation);
+            let path_cmp = compare_document_path(m1_path, m2_path, quirks_mode);
             if path_cmp != Ordering::Equal {
                 return path_cmp;
             }
