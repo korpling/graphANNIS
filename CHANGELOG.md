@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- CorpusStorageManager: Escape the corpus name when writing it to its disk location to support e.g. corpora with slash 
+  in their name.
+
 ## [0.20.0] - 2019-05-19
 
 ### Deprecated
