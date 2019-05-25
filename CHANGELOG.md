@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CorpusStorageManager: Escape the corpus name when writing it to its disk location to support e.g. corpora with slash 
   in their name.
 - Quirks mode: sort matches not by complete document path, but only by the document name
+- Node names/paths where double encoded both when importing them and when executing the "find" function
 
 ## [0.20.0] - 2019-05-19
 
