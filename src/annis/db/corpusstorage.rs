@@ -1119,10 +1119,8 @@ impl CorpusStorage {
                         .node_annos
                         .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                     {
-                        let encoded_name: Cow<str> =
-                            utf8_percent_encode(name, SALT_URI_ENCODE_SET).into();
                         node_desc.push_str("salt:/");
-                        node_desc.push_str(&encoded_name);
+                        node_desc.push_str(name);
                     }
 
                     match_desc.push(node_desc);
