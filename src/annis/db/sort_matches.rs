@@ -160,8 +160,9 @@ pub fn compare_match_by_text_pos(
             }
 
             // 3. compare the name
-            // In PostgreSQL, the name column had the special "C" locale collation, thus don't use the local collation
-            // in quirks mode, but emulate the "C" behavior
+            // In PostgreSQL, the name column had the special "C" locale collation. 
+            // Thus don't use the local collation in quirks mode, but emulate the "C" behavior by treating
+            // A-Z as characters, but using code points for everything else
             let name_cmp = if quirks_mode {
                 m1_name
                     .to_ascii_lowercase()
