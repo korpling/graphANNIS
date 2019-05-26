@@ -10,6 +10,7 @@ use crate::annis::db::Match;
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKeyID;
 use crate::annis::types::{Component, ComponentType, NodeID};
+use crate::annis::db::sort_matches::CollationType;
 
 use std::collections::HashSet;
 use std::fmt;
@@ -91,6 +92,7 @@ impl<'a> AnyTokenSearch<'a> {
                     &self.db.node_annos,
                     self.token_helper.as_ref(),
                     self.order_gs,
+                    CollationType::Default,
                     false,
                 )
             });
