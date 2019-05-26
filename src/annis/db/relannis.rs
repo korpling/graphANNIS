@@ -1298,7 +1298,6 @@ where
             progress_callback,
         )?;
 
-
         // add all metadata for the top-level corpus node
         if let Some(cid) = corpus_table.corpus_by_preorder.get(&0) {
             if let Some(anno_vec) = corpus_id_to_annos.get_vec(cid) {

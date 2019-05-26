@@ -13,7 +13,7 @@ use crate::annis::db::relannis;
 use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
+use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_TYPE};
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{
@@ -1006,6 +1006,23 @@ impl CorpusStorage {
             QueryLanguage::AQLQuirksV3 => true,
         };
 
+        // Try to find the relANNIS version by getting the attribute value which should be attached to the
+        // toplevel corpus node.
+        let mut relannis_version_32 = false;
+        if quirks_mode {
+            let mut relannis_version_it = db.exact_anno_search(
+                Some(ANNIS_NS.to_owned()),
+                "relannis-version".to_owned(),
+                ValueSearch::Any,
+            );
+            if let Some(m) = relannis_version_it.next() {
+                if let Some(v) = db.node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                    if v == "3.2" {
+                        relannis_version_32 = true;
+                    }
+                }
+            }
+        }
         let mut expected_size: Option<usize> = None;
         let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
             || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
@@ -1036,9 +1053,13 @@ impl CorpusStorage {
                 };
 
                 let collation = if quirks_mode {
-                    CollationType::Default
+                    if relannis_version_32 {
+                        CollationType::Locale
+                    } else {
+                        CollationType::C
+                    }
                 } else {
-                    CollationType::Locale
+                    CollationType::Default
                 };
 
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
