@@ -470,6 +470,19 @@ pub extern "C" fn annis_cs_delete(
     try_cerr!(cs.delete(&corpus), err, false)
 }
 
+/// Unloads a corpus from the cache.
+#[no_mangle]
+pub extern "C" fn annis_cs_unload(
+    ptr: *mut CorpusStorage,
+    corpus: *const libc::c_char,
+    _err: *mut *mut ErrorList,
+) {
+    let cs: &mut CorpusStorage = cast_mut!(ptr);
+    let corpus = cstr!(corpus);
+
+    cs.unload(&corpus);
+}
+
 #[no_mangle]
 pub extern "C" fn annis_cs_apply_update(
     ptr: *mut CorpusStorage,
