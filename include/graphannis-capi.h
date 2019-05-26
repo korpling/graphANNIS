@@ -319,6 +319,11 @@ AnnisGraph *annis_cs_subgraph_for_query_with_ctype(const AnnisCorpusStorage *ptr
                                                    AnnisComponentType component_type_filter,
                                                    AnnisErrorList **err);
 
+/*
+ * Unloads a corpus from the cache.
+ */
+void annis_cs_unload(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **_err);
+
 bool annis_cs_validate_query(const AnnisCorpusStorage *ptr,
                              const char *corpus,
                              const char *query,

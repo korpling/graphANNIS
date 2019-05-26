@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - C API now has an argument to return error messages when creating a corpus storage
 
+### Added
+
+- C API now also allows to unload a corpus from the cache manually
+
 ### Fixed
 
 - CorpusStorageManager: Escape the corpus name when writing it to its disk location to support e.g. corpora with slash 
