@@ -7,6 +7,7 @@ use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::cmp::Ordering;
 use std::ffi::CString;
+use std::borrow::Cow;
 
 #[derive(Clone, Copy)]
 pub enum CollationType {
@@ -59,17 +60,19 @@ fn compare_document_path(
     p1: &str,
     p2: &str,
     collation: CollationType,
-    reverse_path: bool,
+    quirks_mode: bool,
 ) -> std::cmp::Ordering {
     let it1 = p1.split('/').filter(|s| !s.is_empty());
     let it2 = p2.split('/').filter(|s| !s.is_empty());
 
-    if reverse_path {
-        // reverse the path in quirks mode
+    if quirks_mode {
+        // only use the document name in quirks mode and make sure it is decoded from a possible percentage encoding
         let path1: Vec<&str> = it1.collect();
         let path2: Vec<&str> = it2.collect();
-        for (part1, part2) in path1.into_iter().rev().zip(path2.into_iter().rev()) {
-            let string_cmp = compare_string(part1, part2, collation);
+        if let (Some(doc1), Some(doc2)) = (path1.last(), path2.last()) {
+            let doc1 : Cow<str> = percent_encoding::percent_decode(doc1.as_bytes()).decode_utf8_lossy();
+            let doc2 : Cow<str> = percent_encoding::percent_decode(doc2.as_bytes()).decode_utf8_lossy();
+            let string_cmp = compare_string(&doc1, &doc2, collation);
             if string_cmp != std::cmp::Ordering::Equal {
                 return string_cmp;
             }
@@ -132,7 +135,7 @@ pub fn compare_match_by_text_pos(
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
     collation: CollationType,
-    reverse_path: bool,
+    quirks_mode: bool,
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
@@ -147,7 +150,7 @@ pub fn compare_match_by_text_pos(
             let (m2_path, m2_name) = split_path_and_nodename(m2_anno_val);
 
             // 1. compare the path
-            let path_cmp = compare_document_path(m1_path, m2_path, collation, reverse_path);
+            let path_cmp = compare_document_path(m1_path, m2_path, collation, quirks_mode);
             if path_cmp != Ordering::Equal {
                 return path_cmp;
             }
