@@ -154,7 +154,7 @@ impl<'a> NestedLoop<'a> {
                     }
                 } else {
                     while let Some(m_inner) = self.inner.next() {
-                        let m_inner : Arc<Vec<Match>> = Arc::from(m_inner);
+                        let m_inner: Arc<Vec<Match>> = Arc::from(m_inner);
 
                         self.inner_cache.push(m_inner.clone());
 
@@ -216,7 +216,6 @@ impl<'a> NestedLoop<'a> {
                     let mut result = Vec::with_capacity(m_outer.len() + m_inner.len());
                     result.extend(m_outer.iter().cloned());
                     result.extend(m_inner.iter().cloned());
-                    
 
                     if tx.send(result).is_err() {
                         return;

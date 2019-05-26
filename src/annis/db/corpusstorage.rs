@@ -10,9 +10,10 @@ use crate::annis::db::query;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::relannis;
+use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
-use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
+use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, NODE_TYPE};
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKey;
 use crate::annis::types::{
@@ -26,8 +27,9 @@ use crate::malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::update::GraphUpdate;
 use fs2::FileExt;
 use linked_hash_map::LinkedHashMap;
-use percent_encoding::{utf8_percent_encode, SIMPLE_ENCODE_SET};
+use percent_encoding::{utf8_percent_encode, PATH_SEGMENT_ENCODE_SET, SIMPLE_ENCODE_SET};
 use std;
+use std::borrow::Cow;
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 use std::fs::File;
@@ -468,7 +470,9 @@ impl CorpusStorage {
         let cache = &mut *cache_lock;
 
         // if not loaded yet, get write-lock and load entry
-        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &corpus_name]
+        let escaped_corpus_name: Cow<str> =
+            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
+        let db_path: PathBuf = [self.db_dir.to_string_lossy().as_ref(), &escaped_corpus_name]
             .iter()
             .collect();
 
@@ -619,9 +623,11 @@ impl CorpusStorage {
         }
 
         let corpus_name = corpus_name.unwrap_or(orig_name);
+        let escaped_corpus_name: Cow<str> =
+            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
 
         let mut db_path = PathBuf::from(&self.db_dir);
-        db_path.push(corpus_name.clone());
+        db_path.push(escaped_corpus_name.to_string());
 
         let mut cache_lock = self.corpus_cache.write().unwrap();
         let cache = &mut *cache_lock;
@@ -1000,6 +1006,23 @@ impl CorpusStorage {
             QueryLanguage::AQLQuirksV3 => true,
         };
 
+        // Try to find the relANNIS version by getting the attribute value which should be attached to the
+        // toplevel corpus node.
+        let mut relannis_version_33 = false;
+        if quirks_mode {
+            let mut relannis_version_it = db.exact_anno_search(
+                Some(ANNIS_NS.to_owned()),
+                "relannis-version".to_owned(),
+                ValueSearch::Any,
+            );
+            if let Some(m) = relannis_version_it.next() {
+                if let Some(v) = db.node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
+                    if v == "3.3" {
+                        relannis_version_33 = true;
+                    }
+                }
+            }
+        }
         let mut expected_size: Option<usize> = None;
         let base_it: Box<Iterator<Item = Vec<Match>>> = if order == ResultOrder::NotSorted
             || (order == ResultOrder::Normal && plan.is_sorted_by_text() && !quirks_mode)
@@ -1029,6 +1052,12 @@ impl CorpusStorage {
                     name: String::from(""),
                 };
 
+                let collation = if quirks_mode && !relannis_version_33 {
+                    CollationType::Locale
+                } else {
+                    CollationType::Default
+                };
+
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
                 let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                     if order == ResultOrder::Inverted {
@@ -1038,6 +1067,7 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
+                            collation,
                             quirks_mode,
                         )
                         .reverse()
@@ -1048,6 +1078,7 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
+                            collation,
                             quirks_mode,
                         )
                     }
@@ -1099,12 +1130,12 @@ impl CorpusStorage {
                     if let Some(anno_key) = db.node_annos.get_key_value(singlematch.anno_key) {
                         if &anno_key.ns != ANNIS_NS || &anno_key.name != NODE_TYPE {
                             if !anno_key.ns.is_empty() {
-                                let encoded_anno_ns: std::borrow::Cow<str> =
+                                let encoded_anno_ns: Cow<str> =
                                     utf8_percent_encode(&anno_key.ns, SALT_URI_ENCODE_SET).into();
                                 node_desc.push_str(&encoded_anno_ns);
                                 node_desc.push_str("::");
                             }
-                            let encoded_anno_name: std::borrow::Cow<str> =
+                            let encoded_anno_name: Cow<str> =
                                 utf8_percent_encode(&anno_key.name, SALT_URI_ENCODE_SET).into();
                             node_desc.push_str(&encoded_anno_name);
                             node_desc.push_str("::");
@@ -1115,10 +1146,8 @@ impl CorpusStorage {
                         .node_annos
                         .get_value_for_item_by_id(&singlematch.node, node_name_key_id)
                     {
-                        let encoded_name: std::borrow::Cow<str> =
-                            utf8_percent_encode(name, SALT_URI_ENCODE_SET).into();
                         node_desc.push_str("salt:/");
-                        node_desc.push_str(&encoded_name);
+                        node_desc.push_str(name);
                     }
 
                     match_desc.push(node_desc);

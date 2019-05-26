@@ -7,6 +7,13 @@ use crate::annis::types::{AnnoKey, NodeID};
 use std;
 use std::cmp::Ordering;
 use std::ffi::CString;
+use std::borrow::Cow;
+
+#[derive(Clone, Copy)]
+pub enum CollationType {
+    Default,
+    Locale,
+}
 
 pub fn compare_matchgroup_by_text_pos(
     m1: &[Match],
@@ -14,7 +21,8 @@ pub fn compare_matchgroup_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
-    use_local_collation: bool,
+    collation: CollationType,
+    reverse_path: bool,
 ) -> Ordering {
     for i in 0..std::cmp::min(m1.len(), m2.len()) {
         let element_cmp = compare_match_by_text_pos(
@@ -23,7 +31,8 @@ pub fn compare_matchgroup_by_text_pos(
             node_annos,
             token_helper,
             gs_order,
-            use_local_collation,
+            collation,
+            reverse_path,
         );
         if element_cmp != Ordering::Equal {
             return element_cmp;
@@ -47,14 +56,33 @@ fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
     }
 }
 
-fn compare_document_path(p1: &str, p2: &str, use_local_collation: bool) -> std::cmp::Ordering {
+fn compare_document_path(
+    p1: &str,
+    p2: &str,
+    collation: CollationType,
+    quirks_mode: bool,
+) -> std::cmp::Ordering {
     let it1 = p1.split('/').filter(|s| !s.is_empty());
     let it2 = p2.split('/').filter(|s| !s.is_empty());
 
-    for (part1, part2) in it1.zip(it2) {
-        let string_cmp = compare_string(part1, part2, use_local_collation);
-        if string_cmp != std::cmp::Ordering::Equal {
-            return string_cmp;
+    if quirks_mode {
+        // only use the document name in quirks mode and make sure it is decoded from a possible percentage encoding
+        let path1: Vec<&str> = it1.collect();
+        let path2: Vec<&str> = it2.collect();
+        if let (Some(doc1), Some(doc2)) = (path1.last(), path2.last()) {
+            let doc1 : Cow<str> = percent_encoding::percent_decode(doc1.as_bytes()).decode_utf8_lossy();
+            let doc2 : Cow<str> = percent_encoding::percent_decode(doc2.as_bytes()).decode_utf8_lossy();
+            let string_cmp = compare_string(&doc1, &doc2, collation);
+            if string_cmp != std::cmp::Ordering::Equal {
+                return string_cmp;
+            }
+        }
+    } else {
+        for (part1, part2) in it1.zip(it2) {
+            let string_cmp = compare_string(part1, part2, collation);
+            if string_cmp != std::cmp::Ordering::Equal {
+                return string_cmp;
+            }
         }
     }
 
@@ -66,27 +94,30 @@ fn compare_document_path(p1: &str, p2: &str, use_local_collation: bool) -> std::
     length1.cmp(&length2)
 }
 
-fn compare_string(s1: &str, s2: &str, use_local_collation: bool) -> std::cmp::Ordering {
-    if use_local_collation {
-        let cmp = unsafe {
-            let c_s1 = CString::new(s1).unwrap_or_default();
-            let c_s2 = CString::new(s2).unwrap_or_default();
-            libc::strcoll(c_s1.as_ptr(), c_s2.as_ptr())
-        };
-        if cmp < 0 {
-            return std::cmp::Ordering::Less;
-        } else if cmp > 0 {
-            return std::cmp::Ordering::Greater;
-        } else {
+fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ordering {
+    match collation {
+        CollationType::Default => {
+            if s1 < s2 {
+                return std::cmp::Ordering::Less;
+            } else if s1 > s2 {
+                return std::cmp::Ordering::Greater;
+            }
             return std::cmp::Ordering::Equal;
         }
-    } else {
-        if s1 < s2 {
-            return std::cmp::Ordering::Less;
-        } else if s1 > s2 {
-            return std::cmp::Ordering::Greater;
+        CollationType::Locale => {
+            let cmp = unsafe {
+                let c_s1 = CString::new(s1).unwrap_or_default();
+                let c_s2 = CString::new(s2).unwrap_or_default();
+                libc::strcoll(c_s1.as_ptr(), c_s2.as_ptr())
+            };
+            if cmp < 0 {
+                return std::cmp::Ordering::Less;
+            } else if cmp > 0 {
+                return std::cmp::Ordering::Greater;
+            } else {
+                return std::cmp::Ordering::Equal;
+            }
         }
-        return std::cmp::Ordering::Equal;
     }
 }
 
@@ -103,7 +134,8 @@ pub fn compare_match_by_text_pos(
     node_annos: &AnnoStorage<NodeID>,
     token_helper: Option<&TokenHelper>,
     gs_order: Option<&GraphStorage>,
-    use_local_collation: bool,
+    collation: CollationType,
+    quirks_mode: bool,
 ) -> Ordering {
     if m1.node == m2.node {
         // same node, use annotation name and namespace to compare
@@ -118,7 +150,7 @@ pub fn compare_match_by_text_pos(
             let (m2_path, m2_name) = split_path_and_nodename(m2_anno_val);
 
             // 1. compare the path
-            let path_cmp = compare_document_path(m1_path, m2_path, use_local_collation);
+            let path_cmp = compare_document_path(m1_path, m2_path, collation, quirks_mode);
             if path_cmp != Ordering::Equal {
                 return path_cmp;
             }
@@ -148,7 +180,7 @@ pub fn compare_match_by_text_pos(
             }
 
             // 3. compare the name
-            let name_cmp = m1_name.cmp(&m2_name);
+            let name_cmp = compare_string(&m1_name, &m2_name, collation);
             if name_cmp != Ordering::Equal {
                 return name_cmp;
             }
@@ -170,7 +202,7 @@ mod tests {
         let p2 = "tiger2/tiger2/tiger_release_dec05_1_1";
         assert_eq!(
             std::cmp::Ordering::Less,
-            compare_document_path(p1, p2, false)
+            compare_document_path(p1, p2, CollationType::Default, false)
         );
     }
 
@@ -187,7 +219,7 @@ mod tests {
 
         assert_eq!(
             std::cmp::Ordering::Greater,
-            compare_document_path(p1, p2, true)
+            compare_document_path(p1, p2, CollationType::Locale, true)
         );
     }
 }

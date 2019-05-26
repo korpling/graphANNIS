@@ -2,6 +2,7 @@ use crate::annis::db::exec::Desc;
 use crate::annis::db::exec::ExecutionNode;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::sort_matches;
+use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::AnnotationStorage;
@@ -91,6 +92,7 @@ impl<'a> AnyTokenSearch<'a> {
                     &self.db.node_annos,
                     self.token_helper.as_ref(),
                     self.order_gs,
+                    CollationType::Default,
                     false,
                 )
             });

@@ -1,9 +1,11 @@
+use crate::annis::db::corpusstorage::SALT_URI_ENCODE_SET;
 use crate::annis::db::{Graph, ANNIS_NS, TOK};
 use crate::annis::errors::*;
 use crate::annis::types::{AnnoKey, Annotation, Component, ComponentType, Edge, NodeID};
 use crate::update::{GraphUpdate, UpdateEvent};
 use csv;
 use multimap::MultiMap;
+use percent_encoding::utf8_percent_encode;
 use std;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::File;
@@ -1239,11 +1241,7 @@ fn get_parent_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
         .filter_map(|(_, cid)| corpus_table.corpus_by_id.get(cid))
         .filter(|parent_corpus| post < parent_corpus.post)
         .map(|parent_corpus| {
-            percent_encoding::utf8_percent_encode(
-                parent_corpus.name.as_ref(),
-                percent_encoding::DEFAULT_ENCODE_SET,
-            )
-            .to_string()
+            utf8_percent_encode(parent_corpus.name.as_ref(), SALT_URI_ENCODE_SET).to_string()
         })
         .collect();
     Ok(parent_corpus_path.join("/"))
@@ -1255,9 +1253,7 @@ fn get_corpus_path(cid: u32, corpus_table: &ParsedCorpusTable) -> Result<String>
         .corpus_by_id
         .get(&cid)
         .ok_or_else(|| format!("Corpus with ID {} not found", cid))?;
-    let corpus_name =
-        percent_encoding::utf8_percent_encode(&corpus.name, percent_encoding::DEFAULT_ENCODE_SET)
-            .to_string();
+    let corpus_name = utf8_percent_encode(&corpus.name, SALT_URI_ENCODE_SET).to_string();
     Ok(format!("{}/{}", parent_path, &corpus_name))
 }
 
@@ -1281,6 +1277,22 @@ where
             UpdateEvent::AddNode {
                 node_name: corpus_table.toplevel_corpus_name.to_owned(),
                 node_type: "corpus".to_owned(),
+            },
+            Some(msg),
+            progress_callback,
+        )?;
+
+        // save the relANNIS version as meta data attribute on the toplevel corpus
+        updater.add_event(
+            UpdateEvent::AddNodeLabel {
+                node_name: corpus_table.toplevel_corpus_name.to_owned(),
+                anno_ns: ANNIS_NS.to_owned(),
+                anno_name: "relannis-version".to_owned(),
+                anno_value: if is_annis_33 {
+                    "3.3".to_owned()
+                } else {
+                    "3.2".to_owned()
+                },
             },
             Some(msg),
             progress_callback,
@@ -1382,10 +1394,7 @@ where
             texts.get(&new_text_key).map(|k| k.name.clone())
         };
         if let (Some(text_name), Some(corpus_ref)) = (text_name, text_key.corpus_ref) {
-            let text_name = percent_encoding::utf8_percent_encode(
-                &text_name,
-                percent_encoding::DEFAULT_ENCODE_SET,
-            ).to_string();
+            let text_name = utf8_percent_encode(&text_name, SALT_URI_ENCODE_SET).to_string();
             let subcorpus_full_name = get_corpus_path(corpus_ref, corpus_table)?;
             let text_full_name = format!("{}#{}", &subcorpus_full_name, &text_name);
 

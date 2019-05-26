@@ -21,8 +21,6 @@ branches:
   only:
     # Release tags
     - /^v\d+\.\d+\.\d+.*$/
-    # Release preparation branches
-    - /^release/.+/
     # Develop branch
     - develop
     # used when testing the release process
@@ -37,11 +35,11 @@ before_script:
   
 
 script:
-  - RUST_BACKTRACE=1 cargo test --release --features "c-api cli"
-  - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - cargo build --release --features "c-api cli"
+  - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
   - (test -d data/pcc2.1 || ./target/release/annis data --cmd 'import relannis/pcc2.1')
+  - cargo test --release
   - cargo test --release  -- --ignored
   # also test that the documentation is generated without error
   - mdbook test docs/

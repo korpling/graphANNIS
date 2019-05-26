@@ -3,11 +3,29 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2019-05-26
+
+### Changed
+
+- C API now has an argument to return error messages when creating a corpus storage
+
+### Added
+
+- C API now also allows to unload a corpus from the cache manually
+
+### Fixed
+
+- CorpusStorageManager: Escape the corpus name when writing it to its disk location to support e.g. corpora with slash 
+  in their name.
+- Quirks mode: sort matches by reversed document path (document first)
+- Node names/paths where double encoded both when importing them and when executing the "find" function
+- Quirks mode: use default collation of Rust for corpora imported from relANNIS 3.3
+
 ## [0.20.0] - 2019-05-19
 
 ### Deprecated
 
-- `meta::` queries are no deprecated and can only be used in quirks mode
+- `meta::` queries are now deprecated and can only be used in quirks mode
 
 ### Fixed
 

@@ -319,6 +319,11 @@ AnnisGraph *annis_cs_subgraph_for_query_with_ctype(const AnnisCorpusStorage *ptr
                                                    AnnisComponentType component_type_filter,
                                                    AnnisErrorList **err);
 
+/*
+ * Unloads a corpus from the cache.
+ */
+void annis_cs_unload(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **_err);
+
 bool annis_cs_validate_query(const AnnisCorpusStorage *ptr,
                              const char *corpus,
                              const char *query,
@@ -328,14 +333,17 @@ bool annis_cs_validate_query(const AnnisCorpusStorage *ptr,
 /*
  * Create a new corpus storage with an automatically determined maximum cache size.
  */
-AnnisCorpusStorage *annis_cs_with_auto_cache_size(const char *db_dir, bool use_parallel);
+AnnisCorpusStorage *annis_cs_with_auto_cache_size(const char *db_dir,
+                                                  bool use_parallel,
+                                                  AnnisErrorList **err);
 
 /*
  * Create a new corpus storage with an manually defined maximum cache size.
  */
 AnnisCorpusStorage *annis_cs_with_max_cache_size(const char *db_dir,
                                                  uintptr_t max_cache_size,
-                                                 bool use_parallel);
+                                                 bool use_parallel,
+                                                 AnnisErrorList **err);
 
 const char *annis_error_get_kind(const AnnisErrorList *ptr, size_t i);
 
