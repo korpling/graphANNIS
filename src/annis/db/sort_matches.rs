@@ -56,7 +56,12 @@ fn split_path_and_nodename(full_node_name: &str) -> (&str, &str) {
     }
 }
 
-fn compare_document_path(p1: &str, p2: &str, collation: CollationType, reverse_path: bool) -> std::cmp::Ordering {
+fn compare_document_path(
+    p1: &str,
+    p2: &str,
+    collation: CollationType,
+    reverse_path: bool,
+) -> std::cmp::Ordering {
     let it1 = p1.split('/').filter(|s| !s.is_empty());
     let it2 = p2.split('/').filter(|s| !s.is_empty());
 
@@ -89,19 +94,15 @@ fn compare_document_path(p1: &str, p2: &str, collation: CollationType, reverse_p
 
 fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ordering {
     match collation {
-
         CollationType::Default => {
             if s1 < s2 {
-            return std::cmp::Ordering::Less;
-        } else if s1 > s2 {
-            return std::cmp::Ordering::Greater;
+                return std::cmp::Ordering::Less;
+            } else if s1 > s2 {
+                return std::cmp::Ordering::Greater;
+            }
+            return std::cmp::Ordering::Equal;
         }
-        return std::cmp::Ordering::Equal;
-        }
-        CollationType::C => {
-            s1.to_ascii_lowercase()
-                    .cmp(&s2.to_ascii_lowercase())
-        }
+        CollationType::C => s1.to_ascii_lowercase().cmp(&s2.to_ascii_lowercase()),
         CollationType::Locale => {
             let cmp = unsafe {
                 let c_s1 = CString::new(s1).unwrap_or_default();
@@ -178,10 +179,10 @@ pub fn compare_match_by_text_pos(
             }
 
             // 3. compare the name
-           let name_cmp = compare_string(&m1_name, &m2_name, collation);
-           if name_cmp != Ordering::Equal {
-               return name_cmp;
-           }
+            let name_cmp = compare_string(&m1_name, &m2_name, collation);
+            if name_cmp != Ordering::Equal {
+                return name_cmp;
+            }
         }
 
         // compare node IDs directly as last resort

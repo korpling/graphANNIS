@@ -2,6 +2,7 @@ use crate::annis::db::exec::Desc;
 use crate::annis::db::exec::ExecutionNode;
 use crate::annis::db::graphstorage::GraphStorage;
 use crate::annis::db::sort_matches;
+use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::AnnotationStorage;
@@ -10,7 +11,6 @@ use crate::annis::db::Match;
 use crate::annis::errors::*;
 use crate::annis::types::AnnoKeyID;
 use crate::annis::types::{Component, ComponentType, NodeID};
-use crate::annis::db::sort_matches::CollationType;
 
 use std::collections::HashSet;
 use std::fmt;
