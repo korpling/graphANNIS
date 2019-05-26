@@ -1008,7 +1008,7 @@ impl CorpusStorage {
 
         // Try to find the relANNIS version by getting the attribute value which should be attached to the
         // toplevel corpus node.
-        let mut relannis_version_32 = false;
+        let mut relannis_version_33 = false;
         if quirks_mode {
             let mut relannis_version_it = db.exact_anno_search(
                 Some(ANNIS_NS.to_owned()),
@@ -1017,8 +1017,8 @@ impl CorpusStorage {
             );
             if let Some(m) = relannis_version_it.next() {
                 if let Some(v) = db.node_annos.get_value_for_item_by_id(&m.node, m.anno_key) {
-                    if v == "3.2" {
-                        relannis_version_32 = true;
+                    if v == "3.3" {
+                        relannis_version_33 = true;
                     }
                 }
             }
@@ -1052,12 +1052,8 @@ impl CorpusStorage {
                     name: String::from(""),
                 };
 
-                let collation = if quirks_mode {
-                    if relannis_version_32 {
-                        CollationType::Locale
-                    } else {
-                        CollationType::C
-                    }
+                let collation = if quirks_mode && !relannis_version_33 {
+                    CollationType::Locale
                 } else {
                     CollationType::Default
                 };
