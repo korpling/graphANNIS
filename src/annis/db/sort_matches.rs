@@ -11,7 +11,6 @@ use std::ffi::CString;
 #[derive(Clone, Copy)]
 pub enum CollationType {
     Default,
-    C,
     Locale,
 }
 
@@ -102,7 +101,6 @@ fn compare_string(s1: &str, s2: &str, collation: CollationType) -> std::cmp::Ord
             }
             return std::cmp::Ordering::Equal;
         }
-        CollationType::C => s1.to_ascii_lowercase().cmp(&s2.to_ascii_lowercase()),
         CollationType::Locale => {
             let cmp = unsafe {
                 let c_s1 = CString::new(s1).unwrap_or_default();
