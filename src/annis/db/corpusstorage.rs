@@ -10,6 +10,7 @@ use crate::annis::db::query;
 use crate::annis::db::query::conjunction::Conjunction;
 use crate::annis::db::query::disjunction::Disjunction;
 use crate::annis::db::relannis;
+use crate::annis::db::sort_matches::CollationType;
 use crate::annis::db::token_helper;
 use crate::annis::db::token_helper::TokenHelper;
 use crate::annis::db::{AnnotationStorage, Graph, Match, ANNIS_NS, NODE_TYPE};
@@ -1033,6 +1034,12 @@ impl CorpusStorage {
                     name: String::from(""),
                 };
 
+                let collation = if quirks_mode {
+                    CollationType::Default
+                } else {
+                    CollationType::Locale
+                };
+
                 let gs_order = db.get_graphstorage_as_ref(&component_order);
                 let order_func = |m1: &Vec<Match>, m2: &Vec<Match>| -> std::cmp::Ordering {
                     if order == ResultOrder::Inverted {
@@ -1042,6 +1049,7 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
+                            collation,
                             quirks_mode,
                         )
                         .reverse()
@@ -1052,6 +1060,7 @@ impl CorpusStorage {
                             &db.node_annos,
                             token_helper.as_ref(),
                             gs_order,
+                            collation,
                             quirks_mode,
                         )
                     }
