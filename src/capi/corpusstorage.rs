@@ -35,7 +35,6 @@ pub extern "C" fn annis_cs_with_auto_cache_size(
                 unsafe {
                     *err = cerror::new(e.into());
                 }
-
             }
             return std::ptr::null_mut();
         }
@@ -60,7 +59,6 @@ pub extern "C" fn annis_cs_with_max_cache_size(
         use_parallel,
     );
 
-
     match s {
         Ok(result) => {
             return Box::into_raw(Box::new(result));
@@ -70,7 +68,6 @@ pub extern "C" fn annis_cs_with_max_cache_size(
                 unsafe {
                     *err = cerror::new(e.into());
                 }
-
             }
             return std::ptr::null_mut();
         }

@@ -74,7 +74,10 @@ fn map_conjunction<'a>(
             ast::Literal::LegacyMetaSearch { pos, .. } => {
                 if !quirks_mode {
                     let start = get_line_and_column_for_pos(pos.start, &offsets);
-                    let end = Some(get_line_and_column_for_pos(pos.start + "meta::".len()-1, &offsets));
+                    let end = Some(get_line_and_column_for_pos(
+                        pos.start + "meta::".len() - 1,
+                        &offsets,
+                    ));
                     return Err(Error::AQLSyntaxError {
                         desc: "Legacy metadata search is no longer allowed. Use the @* operator and normal attribute search instead.".into(),
                         location: Some(LineColumnRange {start, end}),
@@ -212,7 +215,7 @@ fn map_conjunction<'a>(
         // Add additional nodes to the query to emulate the old behavior of distributing
         // joins for pointing and dominance operators on different query nodes.
         // Iterate over the query nodes in their order as given by the query.
-        for(_, orig_var) in pos_to_node_id.iter() {
+        for (_, orig_var) in pos_to_node_id.iter() {
             let num_joins = num_pointing_or_dominance_joins.get(orig_var).unwrap_or(&0);
             // add an additional node for each extra join and join this artificial node with identity relation
             for _ in 1..*num_joins {

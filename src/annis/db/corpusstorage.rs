@@ -623,7 +623,8 @@ impl CorpusStorage {
         }
 
         let corpus_name = corpus_name.unwrap_or(orig_name);
-        let escaped_corpus_name : Cow<str> = utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
+        let escaped_corpus_name: Cow<str> =
+            utf8_percent_encode(&corpus_name, PATH_SEGMENT_ENCODE_SET).into();
 
         let mut db_path = PathBuf::from(&self.db_dir);
         db_path.push(escaped_corpus_name.to_string());
