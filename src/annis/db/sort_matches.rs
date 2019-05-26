@@ -160,7 +160,15 @@ pub fn compare_match_by_text_pos(
             }
 
             // 3. compare the name
-            let name_cmp = compare_string(&m1_name, &m2_name, quirks_mode);
+            // In PostgreSQL, the name column had the special "C" locale collation, thus don't use the local collation
+            // in quirks mode, but emulate the "C" behavior
+            let name_cmp = if quirks_mode {
+                m1_name
+                    .to_ascii_lowercase()
+                    .cmp(&m2_name.to_ascii_lowercase())
+            } else {
+                m1_name.cmp(&m2_name)
+            };
             if name_cmp != Ordering::Equal {
                 return name_cmp;
             }
