@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in their name.
 - Quirks mode: sort matches by reversed document path (document first)
 - Node names/paths where double encoded both when importing them and when executing the "find" function
+- Quirks mode: also use localized collation for node name, not only for the document path
 
 ## [0.20.0] - 2019-05-19
 

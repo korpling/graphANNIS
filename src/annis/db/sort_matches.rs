@@ -160,7 +160,7 @@ pub fn compare_match_by_text_pos(
             }
 
             // 3. compare the name
-            let name_cmp = m1_name.cmp(&m2_name);
+            let name_cmp = compare_string(&m1_name, &m2_name, quirks_mode);
             if name_cmp != Ordering::Equal {
                 return name_cmp;
             }
