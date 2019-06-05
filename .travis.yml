@@ -35,6 +35,7 @@ before_script:
   
 
 script:
+  - cargo fmt --  --check
   - cargo build --release --features "c-api cli"
   - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')
