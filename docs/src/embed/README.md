@@ -6,7 +6,7 @@ It provides an API to add annotation graphs, querying them with AQL and retrievi
 This chapter is a tutorial in to how to embed graphANNIS into your own application.
 
 Currently, graphANNIS can be embedded into programs written in these programming languages:
-- [Python (version 3.6 or later)](./embed-python.md)
-- [Java (version 8 or later)](./embed-java.md)
-- [Rust](./embed-rust.md)
+- [Python (version 3.6 or later)](./python.md)
+- [Java (version 8 or later)](./java.md)
+- [Rust](./rust.md)
 - C (No tutorial yet)
