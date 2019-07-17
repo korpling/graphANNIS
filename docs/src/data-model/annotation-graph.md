@@ -4,7 +4,7 @@
 
 The following figure gives an overview of the elements of the graphANNIS model, which is based on a directed graph (see Cormen et al. 2009, p. 1168[^cormen]).
 
-![Elements of the graphANNIS model](graphannis-model.png)
+![Elements of the graphANNIS model](graph-model.png)
 
 GraphANNIS does not partition the data documents like it was done in relANNIS, graphANNIS partitions the corpora into 
 
