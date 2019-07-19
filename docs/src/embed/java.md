@@ -9,7 +9,7 @@ If you are using Apache Maven as your build system, you can add a dependency to 
 <dependency>
   <groupId>org.corpus-tools</groupId>
   <artifactId>graphannis-api</artifactId>
-  <version>0.21.0</version>
+  <version>0.21.1</version>
 </dependency>
 ```
 
