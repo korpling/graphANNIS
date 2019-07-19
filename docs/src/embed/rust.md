@@ -4,7 +4,7 @@
 
 Add a dependency to graphANNIS in you `Cargo.toml` file:
 ```toml
-graphannis = "0.21.0"
+graphannis = "0.21.1"
 ```
 
 ## API documentation
@@ -37,7 +37,7 @@ The `CorpusStorage` is thread-safe, thus multiple threads of the same process ca
 
 ## Adding corpus data
 
-Linguistic annotations as represented in graphANNIS as directed graphs (see the [data model](./annotation-graph.md) section for more information).
+Linguistic annotations as represented in graphANNIS as directed graphs (see the [data model](../data-model/annotation-graph.md) section for more information).
 You can add nodes and edges via the `apply_update(...)` function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class `GraphUpdate`.
@@ -302,7 +302,7 @@ The result object of the `subgraph(...)` function is the type `Graph`, which pro
 **Note:** The `subgraph(...)` function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.
 
 Normally a corpus is structured into subcorpora and documents.
-GraphANNIS uses node types and relations of type `PartOf` to [model the corpus structure](annotation-graph.md#corpus-structure).
+GraphANNIS uses node types and relations of type `PartOf` to [model the corpus structure](../data-model/annotation-graph.md#corpus-structure).
 If you have document nodes and the `PartOf` relation between the annotation nodes and its document, you can use the
 `subcorpus_graph(...)` function to get all annotation nodes for a given list of document names.
 
