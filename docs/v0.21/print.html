@@ -4,6 +4,10 @@
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
         <title>graphANNIS documentation</title>
+        
+        <meta name="robots" content="noindex" />
+        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -59,7 +63,7 @@
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
             var theme;
-            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { } 
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             document.body.className = theme;
             document.querySelector('html').className = theme + ' js';
@@ -78,7 +82,10 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li><a href="index.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="data-model.html"><strong aria-hidden="true">2.</strong> Data model</a></li><li><ol class="section"><li><a href="annotation-graph.html"><strong aria-hidden="true">2.1.</strong> Annotations as graph</a></li><li><a href="data-model-indexes.html"><strong aria-hidden="true">2.2.</strong> Indexes for faster query execution</a></li></ol></li><li><a href="embed.html"><strong aria-hidden="true">3.</strong> How to embed into applications</a></li><li><ol class="section"><li><a href="embed-python.html"><strong aria-hidden="true">3.1.</strong> Python Tutorial</a></li><li><a href="embed-java.html"><strong aria-hidden="true">3.2.</strong> Java Tutorial</a></li><li><a href="embed-rust.html"><strong aria-hidden="true">3.3.</strong> Rust Tutorial</a></li></ol></li><li><a href="release-checklist.html"><strong aria-hidden="true">4.</strong> Release checklist</a></li></ol>
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li><a href="index.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="data-model/index.html"><strong aria-hidden="true">2.</strong> Data model</a></li><li><ol class="section"><li><a href="data-model/annotation-graph.html"><strong aria-hidden="true">2.1.</strong> Annotations as graph</a></li><li><a href="data-model/indexes.html"><strong aria-hidden="true">2.2.</strong> Indexes for faster query execution</a></li></ol></li><li><a href="embed/index.html"><strong aria-hidden="true">3.</strong> How to embed into applications</a></li><li><ol class="section"><li><a href="embed/python.html"><strong aria-hidden="true">3.1.</strong> Python Tutorial</a></li><li><a href="embed/java.html"><strong aria-hidden="true">3.2.</strong> Java Tutorial</a></li><li><a href="embed/rust.html"><strong aria-hidden="true">3.3.</strong> Rust Tutorial</a></li></ol></li><li><a href="release-checklist.html"><strong aria-hidden="true">4.</strong> Release checklist</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -108,7 +115,7 @@
                             
                         </div>
 
-                        <h1 class="menu-title">graphANNIS documentation</h1> 
+                        <h1 class="menu-title">graphANNIS documentation</h1>
 
                         <div class="right-buttons">
                             <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -143,13 +150,13 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="#introduction" id="introduction"><h1>Introduction</h1></a>
+                        <h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
 <p>The graphANNIS library is a new backend implementation of the <a href="http://corpus-tools.org/annis/">ANNIS linguistic search and visualization system</a>.</p>
 <p>It is part of the larger system with a web-based front-end, a REST-service (both written in the Java programming language).
-<img src="images/graphannis-architecture.png" alt="graphANNIS architecture overview" />
+<img src="architecture.png" alt="graphANNIS architecture overview" />
 As a backend, it is in charge of performing the actual AQL queries and returning the results, which can be either
 the number of matches, the IDs of the matches or sub-graphs for a specific set of matches.</p>
-<a class="header" href="#data-model" id="data-model"><h1>Data model</h1></a>
+<h1><a class="header" href="#data-model" id="data-model">Data model</a></h1>
 <p>The data model and concepts used by graphANNIS are similar to the ones of <a href="http://corpus-tools.org/salt/">Salt</a> (see the <a href="https://github.com/korpling/salt/raw/master/gh-site/doc/salt_modelGuide.pdf">Salt model guide</a> for more information).
 Historically, Salt and ANNIS with its query language AQL have been developed in parallel, sharing concepts and ideas
 how a linguistic corpus should be modeled as a directed labeled graph.
@@ -159,11 +166,11 @@ information while the ANNIS data model transforms the data model to allow an eff
 By using graphs, as Salt does, it is more flexible in modeling the data and can be more close to Salt than the relational database scheme of older ANNIS version could be.
 Some parts of the data model are exposed to the outside, e.g. when a user applies changes to a graph.
 Others are internal and are used to index structures needed for AQL, but which can be deduced from the information in the public data model.</p>
-<a class="header" href="#representing-annotations-as-graph" id="representing-annotations-as-graph"><h1>Representing annotations as graph</h1></a>
-<a class="header" href="#elements-of-the-graph" id="elements-of-the-graph"><h2>Elements of the graph</h2></a>
+<h1><a class="header" href="#representing-annotations-as-graph" id="representing-annotations-as-graph">Representing annotations as graph</a></h1>
+<h2><a class="header" href="#elements-of-the-graph" id="elements-of-the-graph">Elements of the graph</a></h2>
 <p>The following figure gives an overview of the elements of the graphANNIS model, which is based on a directed graph (see Cormen et al. 2009, p. 1168<sup class="footnote-reference"><a href="#cormen">1</a></sup>).</p>
-<p><img src="images/graphannis-model.png" alt="Elements of the graphANNIS model" /></p>
-<p>GraphANNIS does not partition the data documents like it was done in relANNIS, graphANNIS partitions the corpora into</p>
+<p><img src="data-model/graph-model.png" alt="Elements of the graphANNIS model" /></p>
+<p>GraphANNIS does not partition the data documents like it was done in relANNIS, graphANNIS partitions the corpora into </p>
 <ul>
 <li>information about the nodes and node labels, and</li>
 <li>edges and edge label information which are partitioned again into components.</li>
@@ -173,7 +180,7 @@ Node labels consist of a namespace, a name, and a value and are connected to a n
 No explicit representation of nodes exists: If a node exists there must be at least one label for this node.
 There is a special label named &quot;annis::node_name&quot;<sup class="footnote-reference"><a href="#qname">2</a></sup> that can be applied to any node to mark its existence.</p>
 <p>GraphANNIS has the concept of components for edges.
-A component has a type, a name, and a layer.
+A component has a type, a name, and a layer. 
 It consists of edges and edge labels.
 Edges between two nodes are uniquely defined inside a component with the source and target node ID.
 There can not be more than one edge between the same two nodes inside the same component.
@@ -181,7 +188,7 @@ Each edge can have multiple edge labels.
 In addition to the source and target node ID, edge labels also have namespaces, names and values.
 For one edge, only one edge label having the same namespace and name can exist.
 Graphs are the aggregation of node labels and edge components.</p>
-<a class="header" href="#corpus-structure" id="corpus-structure"><h2>Corpus structure</h2></a>
+<h2><a class="header" href="#corpus-structure" id="corpus-structure">Corpus structure</a></h2>
 <p>GraphANNIS has two kinds of nodes:</p>
 <ul>
 <li>annotation graph nodes and</li>
@@ -191,34 +198,34 @@ Graphs are the aggregation of node labels and edge components.</p>
 It can either have the value &quot;node&quot; for nodes belonging to the annotation graph or &quot;corpus&quot; for nodes belonging to the corpus graph.
 Nodes that belong to a corpus graph are connected with edges that belong to a component of the type <code>PartOf</code>.
 The source node is always the node that is part of the (sub-) corpus, and the target node is the node which is higher in the corpus graph hierarchy.</p>
-<p><img src="images/corpusgraph.png" alt="Example corpus graph representation in graphANNIS" /></p>
+<p><img src="data-model/corpusgraph.png" alt="Example corpus graph representation in graphANNIS" /></p>
 <p>In this example, each annotation graph node belongs to exactly one document and the corpus graph is a tree.
 However, the data model allows to add an annotation node to several documents, and a document or sub-corpus can be part of several (sub-) corpora.
 In this regard, graphANNIS is more flexible than Salt.
-In addition to &quot;corpus&quot; and &quot;node&quot;, you can add your own types of node, e.g. &quot;datasource&quot; for nodes that should not be
+In addition to &quot;corpus&quot; and &quot;node&quot;, you can add your own types of node, e.g. &quot;datasource&quot; for nodes that should not be 
 treated like a document in meta-data searches, but represent a data source like a text.</p>
-<a class="header" href="#tokens" id="tokens"><h2>Tokens</h2></a>
+<h2><a class="header" href="#tokens" id="tokens">Tokens</a></h2>
 <p>Since AQL has no concept of textual data sources, the leafs of the annotation graph in graphANNIS are the tokens.
 Tokens have a special label &quot;annis::tok&quot; which has the spanned text as its value.
 Additionally, tokens are connected with edges that belong to a component of type <code>Ordering</code>.</p>
-<p><img src="images/token.png" alt="Example for token representation in graphANNIS" /></p>
+<p><img src="data-model/token.png" alt="Example for token representation in graphANNIS" /></p>
 <p>The ordering edges are very similar to the explicit <code>SOrderRelation</code> edges in Salt, except that they are not obligatory but are needed to determine the order of the tokens in the absence of any character index.
 They also support multiple tokenizations because there can be more than one component of the type <code>Ordering</code>.
 When there are multiple components with this type, the name of the component corresponds to the name of the tokenization and is empty for the default tokenization.</p>
-<a class="header" href="#spans" id="spans"><h2>Spans</h2></a>
+<h2><a class="header" href="#spans" id="spans">Spans</a></h2>
 <p>Spans are nodes that are not a token but cover a set of tokens.
 They also implicitly cover the original text that is covered by these tokens.
 GraphANNIS expresses these coverage relations by using explicit edges between the spans and each token it covers.
 These edges are part of a component of the type <code>Coverage</code>.</p>
-<p><img src="images//span.png" alt="Example for spans represented in graphANNIS" /></p>
-<a class="header" href="#dominance-relations" id="dominance-relations"><h2>Dominance relations</h2></a>
+<p><img src="data-model/span.png" alt="Example for spans represented in graphANNIS" /></p>
+<h2><a class="header" href="#dominance-relations" id="dominance-relations">Dominance relations</a></h2>
 <p>While spans are used to describe non-hierarchical node structures, hierarchical structures like constituent trees are modeled using edges of the type <code>Dominance</code>.</p>
-<p><img src="images/constituent.png" alt="Example for a constituent tree represented in graphANNIS" /></p>
+<p><img src="data-model/constituent.png" alt="Example for a constituent tree represented in graphANNIS" /></p>
 <p>These edges can also have additional labels if the annotation scheme requires it.
 In contrast to Salt, where nodes have different types, in graphANNIS, only the edges are typed.
 Thus, <code>Dominance</code> edges can be in theory added to any node.
 Since they imply text-coverage, these components should be non-cyclic.</p>
-<a class="header" href="#pointing-relations" id="pointing-relations"><h2>Pointing relations</h2></a>
+<h2><a class="header" href="#pointing-relations" id="pointing-relations">Pointing relations</a></h2>
 <p>For relations that are not implying text-coverage, edges of type <code>Pointing</code> can be used.
 These have the same semantics as the <code>SPointingRelation</code> of Salt and can have additional labels for expressing edge annotations.
 The type of a pointing relation in AQLs corresponds to the name of the edge component in graphANNIS.</p>
@@ -228,37 +235,37 @@ The type of a pointing relation in AQLs corresponds to the name of the edge comp
 <div class="footnote-definition" id="qname"><sup class="footnote-definition-label">2</sup>
 <p>This is a fully qualified representation of the label name which includes the reserved namespace &quot;annis&quot;.</p>
 </div>
-<a class="header" href="#indexes-for-faster-query-execution" id="indexes-for-faster-query-execution"><h1>Indexes for faster query execution</h1></a>
+<h1><a class="header" href="#indexes-for-faster-query-execution" id="indexes-for-faster-query-execution">Indexes for faster query execution</a></h1>
 <p>GraphANNIS uses helper edges to speed-up AQL query execution.
 These are automatically created or updated when a graph update is executed via the <code>apply_update(...)</code> function of the <code>CorpusStorage</code> structure.
 Users of the API do not have to add these edges by their-self.</p>
-<a class="header" href="#inherited-coverage" id="inherited-coverage"><h2>Inherited coverage</h2></a>
+<h2><a class="header" href="#inherited-coverage" id="inherited-coverage">Inherited coverage</a></h2>
 <p>Dominance relations imply text-coverage and thus any node connected inherits the covered token from its child nodes.
 Instead of traversing the dominance edges on query time, inherited coverage relations are explicitly added to the nodes.</p>
-<p><img src="images/constituent-index.png" alt="Example of inherited coverage edges for a constituent tree" /></p>
-<a class="header" href="#left-most-and-right-most-token-of-a-node" id="left-most-and-right-most-token-of-a-node"><h2>Left-most and right-most token of a node</h2></a>
+<p><img src="data-model/constituent-index.png" alt="Example of inherited coverage edges for a constituent tree" /></p>
+<h2><a class="header" href="#left-most-and-right-most-token-of-a-node" id="left-most-and-right-most-token-of-a-node">Left-most and right-most token of a node</a></h2>
 <p>These components of type <code>LeftToken</code> and <code>RightToken</code> allow providing faster implementations for some operators that deal with text coverage or precedence.
 Their target node is the left-most or right-most covered token of a node.
 The covered token are ordered by their position in the chain of <code>Ordering</code> relations.
 If there is a path of any length from token \({t_1}\) to \({t_2}\), \({t_1}\) is more &quot;left&quot; than \({t_2}\).</p>
-<p><img src="images/span-index.png" alt="LeftToken and RightToken example for span" /></p>
+<p><img src="data-model/span-index.png" alt="LeftToken and RightToken example for span" /></p>
 <p>While the coverage edges are similar to the <code>SSpanningRelation</code>, the left and right token edges are inspired from the two columns of the <code>node</code> table in relANNIS (the legacy relational database implementation of ANNIS) with the same name.
 Each node of the annotation graph that is not a token must have a left and right token edge because AQL implicitly requires all nodes to be connected to tokens.
 Lookup for all left- or right-aligned nodes of a token is possible by accesssing the inverse edges of the <code>LeftToken</code> and <code>RightToken</code> component.</p>
-<a class="header" href="#how-to-embed-into-applications" id="how-to-embed-into-applications"><h1>How to embed into applications</h1></a>
+<h1><a class="header" href="#how-to-embed-into-applications" id="how-to-embed-into-applications">How to embed into applications</a></h1>
 <p>GraphANNIS was developed as a new backend for the ANNIS linguistic search and visualization system but can be embedded
 into other applications as well.
 It provides an API to add annotation graphs, querying them with AQL and retrieving subgraphs for matches.
 This chapter is a tutorial in to how to embed graphANNIS into your own application.</p>
 <p>Currently, graphANNIS can be embedded into programs written in these programming languages:</p>
 <ul>
-<li><a href="./embed-python.html">Python (version 3.6 or later)</a></li>
-<li><a href="./embed-java.html">Java (version 8 or later)</a></li>
-<li><a href="./embed-rust.html">Rust</a></li>
+<li><a href="embed/./python.html">Python (version 3.6 or later)</a></li>
+<li><a href="embed/./java.html">Java (version 8 or later)</a></li>
+<li><a href="embed/./rust.html">Rust</a></li>
 <li>C (No tutorial yet)</li>
 </ul>
-<a class="header" href="#python-tutorial" id="python-tutorial"><h1>Python Tutorial</h1></a>
-<a class="header" href="#installation" id="installation"><h2>Installation</h2></a>
+<h1><a class="header" href="#python-tutorial" id="python-tutorial">Python Tutorial</a></h1>
+<h2><a class="header" href="#installation" id="installation">Installation</a></h2>
 <p>GraphANNIS works with applications written for Python 3.6 or later.
 You can download the graphANNIS library with pip</p>
 <pre><code class="language-bash">pip install graphannis
@@ -266,9 +273,9 @@ You can download the graphANNIS library with pip</p>
 <p>In some environments (e.g. Ubuntu Linux), you have to use <code>pip3</code> instead to select Python 3.</p>
 <pre><code class="language-bash">pip3 install graphannis
 </code></pre>
-<a class="header" href="#api-documentation" id="api-documentation"><h2>API documentation</h2></a>
+<h2><a class="header" href="#api-documentation" id="api-documentation">API documentation</a></h2>
 <p>The API documentation is available at <a href="http://graphannis-python.readthedocs.io/">http://graphannis-python.readthedocs.io/</a>.</p>
-<a class="header" href="#corpus-data-directory" id="corpus-data-directory"><h2>Corpus data directory</h2></a>
+<h2><a class="header" href="#corpus-data-directory" id="corpus-data-directory">Corpus data directory</a></h2>
 <p>Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
 A <code>CorpusStorageManager</code> is used to access a collection corpora by their name.</p>
 <pre><code class="language-python">from graphannis.cs import CorpusStorageManager
@@ -284,8 +291,8 @@ with CorpusStorageManager(db_dir='/tmp/graphannis-data') as cs:
 </code></pre>
 <p>Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
 The <code>CorpusStorageManager</code> is thread-safe, thus multiple threads of the same process can call all functions in parallel.</p>
-<a class="header" href="#adding-corpus-data" id="adding-corpus-data"><h2>Adding corpus data</h2></a>
-<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="./annotation-graph.html">data model</a> section for more information).
+<h2><a class="header" href="#adding-corpus-data" id="adding-corpus-data">Adding corpus data</a></h2>
+<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="embed/../data-model/annotation-graph.html">data model</a> section for more information).
 You can add nodes and edges via the <code>apply_update(...)</code> function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class <code>graphannis.graph.GraphUpdate</code>.
@@ -336,7 +343,7 @@ For labels on edges, you can use the <code>add_edge_label(...)</code> function.<
     # this now includes the &quot;tutorial&quot;
     print(cs.list())
 </code></pre>
-<a class="header" href="#querying" id="querying"><h2>Querying</h2></a>
+<h2><a class="header" href="#querying" id="querying">Querying</a></h2>
 <p>There are two functions to query a corpus with AQL:</p>
 <ul>
 <li><code>count(...)</code> returns the number of matches, and</li>
@@ -355,7 +362,7 @@ The following example searches for all tokens that contain a <code>s</code> char
 [['salt:/tutorial/doc1#t2'], ['salt:/tutorial/doc1#t6']]
 </code></pre>
 <p>GraphANNIS will add the URI scheme <code>salt:/</code> to your node names automatically.</p>
-<a class="header" href="#getting-subgraphs" id="getting-subgraphs"><h2>Getting subgraphs</h2></a>
+<h2><a class="header" href="#getting-subgraphs" id="getting-subgraphs">Getting subgraphs</a></h2>
 <p>The result from the <code>find(...)</code> function can be used to generate a subgraph for the matches.
 It will contain all covered nodes of the matches and additionally a given context (defined in tokens).</p>
 <pre><code class="language-python">from graphannis.util import node_name_from_match
@@ -385,7 +392,7 @@ Number of nodes in subgraph: 4
 <a href="https://networkx.github.io/documentation/stable/tutorial.html">NetworkX</a> is a graph library, that provides basic graph access and manipulation functions, but also implements graph traversal and other graph algorithms.</p>
 <p><strong>Note:</strong> The <code>subgraph(...)</code> function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.</p>
 <p>Normally a corpus is structured into subcorpora and documents.
-GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="annotation-graph.html#corpus-structure">model the corpus structure</a>.
+GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="embed/../data-model/annotation-graph.html#corpus-structure">model the corpus structure</a>.
 If you have document nodes and the <code>PartOf</code> relation between the annotation nodes and its document, you can use the
 <code>subcorpus_graph(...)</code> function to get all annotation nodes for a given list of document names.</p>
 <pre><code class="language-python">with CorpusStorageManager() as cs:
@@ -415,20 +422,20 @@ If you have document nodes and the <code>PartOf</code> relation between the anno
 <p>You can get an overview of AQL <a href="http://corpus-tools.org/annis/aql.html">here</a> or detailled information in the
 <a href="http://korpling.github.io/ANNIS/3.6/user-guide/aql.html">User Guide</a>.</p>
 </div>
-<a class="header" href="#java-tutorial" id="java-tutorial"><h1>Java Tutorial</h1></a>
-<a class="header" href="#installation-1" id="installation-1"><h2>Installation</h2></a>
+<h1><a class="header" href="#java-tutorial" id="java-tutorial">Java Tutorial</a></h1>
+<h2><a class="header" href="#installation-1" id="installation-1">Installation</a></h2>
 <p>GraphANNIS works with applications written for Java 8 or later.
 If you are using Apache Maven as your build system, you can add a dependency to graphANNIS with</p>
 <pre><code class="language-xml">&lt;dependency&gt;
   &lt;groupId&gt;org.corpus-tools&lt;/groupId&gt;
   &lt;artifactId&gt;graphannis-api&lt;/artifactId&gt;
-  &lt;version&gt;0.21.0&lt;/version&gt;
+  &lt;version&gt;0.21.1&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<a class="header" href="#api-documentation-1" id="api-documentation-1"><h2>API documentation</h2></a>
-<p>The API documentation is available at
+<h2><a class="header" href="#api-documentation-1" id="api-documentation-1">API documentation</a></h2>
+<p>The API documentation is available at 
 <a href="http://www.javadoc.io/doc/org.corpus-tools/graphannis-api/">http://www.javadoc.io/doc/org.corpus-tools/graphannis-api/</a>.</p>
-<a class="header" href="#corpus-data-directory-1" id="corpus-data-directory-1"><h2>Corpus data directory</h2></a>
+<h2><a class="header" href="#corpus-data-directory-1" id="corpus-data-directory-1">Corpus data directory</a></h2>
 <p>Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
 A <code>CorpusStorageManager</code> is used to access a collection corpora by their name.</p>
 <pre><code class="language-java">package org.corpus_tools;
@@ -451,8 +458,8 @@ You can also use an absolute path as argument</p>
 </code></pre>
 <p>Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
 The <code>CorpusStorageManager</code> is thread-safe, thus multiple threads of the same process can call all functions in parallel.</p>
-<a class="header" href="#adding-corpus-data-1" id="adding-corpus-data-1"><h2>Adding corpus data</h2></a>
-<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="./annotation-graph.html">data model</a> section for more information).
+<h2><a class="header" href="#adding-corpus-data-1" id="adding-corpus-data-1">Adding corpus data</a></h2>
+<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="embed/../data-model/annotation-graph.html">data model</a> section for more information).
 You can add nodes and edges via the <code>applyUpdate(...)</code> function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class <code>GraphUpdate</code>.
@@ -518,7 +525,7 @@ public class ApplyUpdate {
 </code></pre>
 <p>You could add additional annotations like part of speech as labels on nodes.
 For labels on edges, you can use the <code>addEdgeLabel(...)</code> function.</p>
-<a class="header" href="#querying-1" id="querying-1"><h2>Querying</h2></a>
+<h2><a class="header" href="#querying-1" id="querying-1">Querying</a></h2>
 <p>There are two functions to query a corpus with AQL:</p>
 <ul>
 <li><code>count(...)</code> returns the number of matches, and</li>
@@ -552,7 +559,7 @@ Match 0: salt:/tutorial/doc1#t2
 Match 1: salt:/tutorial/doc1#t6
 </code></pre>
 <p>GraphANNIS will add the URI scheme <code>salt:/</code> to your node names automatically.</p>
-<a class="header" href="#getting-subgraphs-1" id="getting-subgraphs-1"><h2>Getting subgraphs</h2></a>
+<h2><a class="header" href="#getting-subgraphs-1" id="getting-subgraphs-1">Getting subgraphs</a></h2>
 <p>The result from the <code>find(...)</code> function can be used to generate a subgraph for the matches.
 It will contain all covered nodes of the matches and additionally a given context (defined in tokens).</p>
 <pre><code class="language-java">package org.corpus_tools;
@@ -602,7 +609,7 @@ Number of nodes in subgraph: 4
 <p>The result object of the <code>subgraph(...)</code> function is the type <code>Graph</code>, which provides basic graph access functions (see the JavaDoc for details).</p>
 <p><strong>Note:</strong> The <code>subgraph(...)</code> function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.</p>
 <p>Normally a corpus is structured into subcorpora and documents.
-GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="annotation-graph.html#corpus-structure">model the corpus structure</a>.
+GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="embed/../data-model/annotation-graph.html#corpus-structure">model the corpus structure</a>.
 If you have document nodes and the <code>PartOf</code> relation between the annotation nodes and its document, you can use the
 <code>subcorpus_graph(...)</code> function to get all annotation nodes for a given list of document names.</p>
 <pre><code class="language-java">package org.corpus_tools;
@@ -655,14 +662,14 @@ tutorial/doc1#t7
 <p>You can get an overview of AQL <a href="http://corpus-tools.org/annis/aql.html">here</a> or detailled information in the
 <a href="http://korpling.github.io/ANNIS/3.6/user-guide/aql.html">User Guide</a>.</p>
 </div>
-<a class="header" href="#rust-tutorial" id="rust-tutorial"><h1>Rust Tutorial</h1></a>
-<a class="header" href="#installation-2" id="installation-2"><h2>Installation</h2></a>
+<h1><a class="header" href="#rust-tutorial" id="rust-tutorial">Rust Tutorial</a></h1>
+<h2><a class="header" href="#installation-2" id="installation-2">Installation</a></h2>
 <p>Add a dependency to graphANNIS in you <code>Cargo.toml</code> file:</p>
-<pre><code class="language-toml">graphannis = &quot;0.21.0&quot;
+<pre><code class="language-toml">graphannis = &quot;0.21.1&quot;
 </code></pre>
-<a class="header" href="#api-documentation-2" id="api-documentation-2"><h2>API documentation</h2></a>
+<h2><a class="header" href="#api-documentation-2" id="api-documentation-2">API documentation</a></h2>
 <p>The API documentation is available at <a href="https://docs.rs/graphannis/">https://docs.rs/graphannis/</a>.</p>
-<a class="header" href="#corpus-data-directory-2" id="corpus-data-directory-2"><h2>Corpus data directory</h2></a>
+<h2><a class="header" href="#corpus-data-directory-2" id="corpus-data-directory-2">Corpus data directory</a></h2>
 <p>Data is organized in corpora, where each corpus has a name and annotations can only refer to other annotations in the same corpus.
 A <code>CorpusStorage</code> is used to access a collection corpora by their name.</p>
 <pre><code class="language-rust noplaypen ignore">use graphannis::CorpusStorage;
@@ -682,8 +689,8 @@ You can also use an absolute path as argument</p>
 </code></pre>
 <p>Only one process can access a graphANNIS data directory, other processes will fail to open it if there is another process holding a lock.
 The <code>CorpusStorage</code> is thread-safe, thus multiple threads of the same process can call all functions in parallel.</p>
-<a class="header" href="#adding-corpus-data-2" id="adding-corpus-data-2"><h2>Adding corpus data</h2></a>
-<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="./annotation-graph.html">data model</a> section for more information).
+<h2><a class="header" href="#adding-corpus-data-2" id="adding-corpus-data-2">Adding corpus data</a></h2>
+<p>Linguistic annotations as represented in graphANNIS as directed graphs (see the <a href="embed/../data-model/annotation-graph.html">data model</a> section for more information).
 You can add nodes and edges via the <code>apply_update(...)</code> function.
 It takes the corpus name and a list of graph updates as argument.
 These graph update lists are represented by the class <code>GraphUpdate</code>.
@@ -843,7 +850,7 @@ fn main() {
 </code></pre>
 <p>You could add additional annotations like part of speech as labels on nodes.
 For labels on edges, you can use the <code>UpdateEvent::AddEdgeLabel</code> enum variant.</p>
-<a class="header" href="#querying-2" id="querying-2"><h2>Querying</h2></a>
+<h2><a class="header" href="#querying-2" id="querying-2">Querying</a></h2>
 <p>There are two functions to query a corpus with AQL:</p>
 <ul>
 <li><code>count(...)</code> returns the number of matches, and</li>
@@ -883,7 +890,7 @@ Match 0: salt:/tutorial/doc1#t2
 Match 1: salt:/tutorial/doc1#t6
 </code></pre>
 <p>GraphANNIS will add the URI scheme <code>salt:/</code> to your node names automatically.</p>
-<a class="header" href="#getting-subgraphs-2" id="getting-subgraphs-2"><h2>Getting subgraphs</h2></a>
+<h2><a class="header" href="#getting-subgraphs-2" id="getting-subgraphs-2">Getting subgraphs</a></h2>
 <p>The result from the <code>find(...)</code> function can be used to generate a subgraph for the matches.
 It will contain all covered nodes of the matches and additionally a given context (defined in tokens).</p>
 <pre><code class="language-rust noplaypen ignore">use graphannis::corpusstorage::{QueryLanguage, ResultOrder};
@@ -936,7 +943,7 @@ Number of nodes in subgraph: 4
 <p>The result object of the <code>subgraph(...)</code> function is the type <code>Graph</code>, which provides basic graph access functions (see the API documentation for details).</p>
 <p><strong>Note:</strong> The <code>subgraph(...)</code> function takes a single corpus name as argument instead of a list, so you need to know to which corpus a matched node belongs to.</p>
 <p>Normally a corpus is structured into subcorpora and documents.
-GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="annotation-graph.html#corpus-structure">model the corpus structure</a>.
+GraphANNIS uses node types and relations of type <code>PartOf</code> to <a href="embed/../data-model/annotation-graph.html#corpus-structure">model the corpus structure</a>.
 If you have document nodes and the <code>PartOf</code> relation between the annotation nodes and its document, you can use the
 <code>subcorpus_graph(...)</code> function to get all annotation nodes for a given list of document names.</p>
 <pre><code class="language-rust noplaypen ignore">use graphannis::graph::AnnotationStorage;
@@ -1053,13 +1060,13 @@ tutorial/doc1#t3
 <p>You can get an overview of AQL <a href="http://corpus-tools.org/annis/aql.html">here</a> or detailled information in the
 <a href="http://korpling.github.io/ANNIS/3.6/user-guide/aql.html">User Guide</a>.</p>
 </div>
-<a class="header" href="#release-checklist" id="release-checklist"><h1>Release checklist</h1></a>
+<h1><a class="header" href="#release-checklist" id="release-checklist">Release checklist</a></h1>
 <p>This is a list of steps needed to perform a new graphANNIS release.
 A release includes the Rust-based core graphANNIS library, but also the
 language bindings for Java and Python.</p>
 <p>GraphANNIS uses <a href="https://semver.org/">semantic versioning</a> and the version numbers for the core and the language bindings should be synchronized.
 This means that if a language bindings adds a feature, that has been released in the core library before but was not covered by the binding, also the core library might need to release an update with the matching version number (even if it is not releasing any new features by itself).</p>
-<a class="header" href="#core-library-release" id="core-library-release"><h2>Core library release</h2></a>
+<h2><a class="header" href="#core-library-release" id="core-library-release">Core library release</a></h2>
 <ol>
 <li>Create and push a new <strong>release branch</strong> <code>release/&lt;version&gt;</code> from the <code>develop</code> branch for feature releases. If you make a bug-fix release create a branch named <code>hotfix/&lt;version&gt;</code> from the <code>master</code> branch.</li>
 <li>If this is a major or minor release, <strong>update the link to the Developer Guide</strong> documentation in the <code>README.md</code> to point to the new version short version, omitting the patch level and with adding a &quot;v&quot; prefix (e.g. https://korpling.github.io/graphANNIS/docs/v1.0/)</li>
@@ -1074,18 +1081,18 @@ This means that if a language bindings adds a feature, that has been released in
 <li>Create the <strong>release on GitHub</strong>, copy the changelog entry as release notes. Save the release as draft</li>
 <li>Wait for Continuous Integration to finish building the release artifacts for all systems and then <strong>publish the drafted release</strong></li>
 </ol>
-<a class="header" href="#python-wrapper-release" id="python-wrapper-release"><h2>Python wrapper release</h2></a>
+<h2><a class="header" href="#python-wrapper-release" id="python-wrapper-release">Python wrapper release</a></h2>
 <ol>
 <li>Make a new <strong>release branch</strong> <code>release/&lt;version&gt;</code> from the <code>develop</code> branch for feature releases. If you make a bug-fix release create a branch named <code>hotfix/&lt;version&gt;</code> from the <code>master</code> branch.</li>
-<li><strong>Update version</strong> information, by
+<li><strong>Update version</strong> information, by 
 <ul>
 <li>changing the <code>version</code> field in the <code>setup.py</code> file</li>
 <li>specifying the corresponding graphANNIS release tag in the <code>GRAPHANNIS_VERSION</code> environment variable in <code>.travis.yml</code></li>
 <li>committing the changed files</li>
 </ul>
 </li>
-<li><strong>Download</strong> release artifacts from the core library: <code>./package/download-release-binaries.sh &lt;version-tag&gt;</code></li>
-<li><strong>Test</strong> with
+<li><strong>Download</strong> release artifacts from the core library: <code>./package/download-release-binaries.sh &lt;version-tag&gt;</code> </li>
+<li><strong>Test</strong> with 
 <ul>
 <li><code>python3 -m unittest</code></li>
 <li><code>./doctest_runner.py</code></li>
@@ -1094,7 +1101,7 @@ This means that if a language bindings adds a feature, that has been released in
 <li><strong>Tag and push</strong> the latest commit with the prefix <code>v</code>, e.g. <code>v1.4.0</code>, <strong>merge</strong> the release branch both into the <code>master</code> and <code>develop</code> branch then delete the release branch.</li>
 </ol>
 <p>Continuous Integration will automatically deploy all released versions on the <code>master</code> branch.</p>
-<a class="header" href="#java-wrapper-release" id="java-wrapper-release"><h2>Java wrapper release</h2></a>
+<h2><a class="header" href="#java-wrapper-release" id="java-wrapper-release">Java wrapper release</a></h2>
 <ol>
 <li><strong>Start</strong> the release process with <code>mvn gitflow:release-start</code> or <code>mvn gitflow:hotfix-start</code></li>
 <li><strong>Download</strong> release artifacts from the core library: <code>./misc/download-release-binaries.sh &lt;version-tag&gt;</code></li>
