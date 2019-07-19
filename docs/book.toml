@@ -6,5 +6,3 @@ title = "graphANNIS documentation"
 
 [output.html]
 mathjax-support = true 
-
-[output.linkcheck]
