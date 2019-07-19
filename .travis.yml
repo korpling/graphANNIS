@@ -27,16 +27,14 @@ branches:
     #- feature/doc-deploy-subfolder
 
 before_script:
-  - rustup component add rustfmt
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update) ; fi
   - (test -x $HOME/.cargo/bin/cargo-install-update || (curl -L -o cargo-install-update.tbz2 https://github.com/nabijaczleweli/cargo-update/releases/download/v1.7.0/cargo-install-update-v1.7.0.tbz2 && tar -C $HOME/.cargo/bin/ -jxf cargo-install-update.tbz2))
-  - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.3" mdbook)
+  - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.2" mdbook)
   - cargo install-update -a
   - export SHORT_VERSION=`echo ${TRAVIS_TAG:-develop} | sed -E 's/(\.[0-9]+)$//'`
   
 
 script:
-  - cargo fmt --  --check
   - cargo build --release --features "c-api cli"
   - (test -d data/GUM/ -a -d data/pcc2.1/ || "./misc/download-test-corpora.sh")
   - (test -d data/GUM || ./target/release/annis data --cmd 'import relannis/GUM')

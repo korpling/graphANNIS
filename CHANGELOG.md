@@ -3,14 +3,6 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.21.1] - 2019-07-19
-
-### Changed
-
-- Organize documentation topics in sub-folders. 
-  Previously, mdbook did not updated the images on these sites on the print.html. 
-  Since mdbook >0.3.1 this is fixed and we can use the better layout.
-
 ## [0.21.0] - 2019-05-26
 
 ### Changed

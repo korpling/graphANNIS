@@ -90,7 +90,7 @@ pub extern "C" fn annis_cs_count(
     query: *const libc::c_char,
     query_language: QueryLanguage,
     err: *mut *mut ErrorList,
-) -> u64 {
+) -> libc::uint64_t {
     let cs: &CorpusStorage = cast_const!(ptr);
 
     let query = cstr!(query);
