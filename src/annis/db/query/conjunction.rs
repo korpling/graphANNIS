@@ -18,7 +18,7 @@ use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescri
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::SeedableRng;
-use rand_xorshift::XorShiftRng;
+use rand::rngs::SmallRng;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::Arc;
@@ -384,7 +384,7 @@ impl<'a> Conjunction<'a> {
         }
 
         // use a constant seed to make the result deterministic
-        let mut rng = XorShiftRng::from_seed(*b"Graphs are great");
+        let mut rng = SmallRng::from_seed(*b"Graphs are great");
         let dist = Uniform::from(0..self.binary_operators.len());
 
         let mut best_operator_order = Vec::from_iter(0..self.binary_operators.len());
