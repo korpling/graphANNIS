@@ -1,6 +1,6 @@
 [package]
 name = "graphannis"
-version = "0.21.0"
+version = "0.22.0"
 authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 
 license = "Apache-2.0"

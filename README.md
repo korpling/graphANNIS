@@ -3,7 +3,7 @@ graphANNIS  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2598164.svg)](ht
 
 | Documentation | Build Status
 |-------------- |--------------|
-| [Developer Guide](https://korpling.github.io/graphANNIS/docs/v0.21/)  |  [![Build Status](https://travis-ci.org/korpling/graphANNIS.svg?branch=develop)](https://travis-ci.org/korpling/graphANNIS) (Linux & MacOS) | 
+| [Developer Guide](https://korpling.github.io/graphANNIS/docs/v0.22)  |  [![Build Status](https://travis-ci.org/korpling/graphANNIS.svg?branch=develop)](https://travis-ci.org/korpling/graphANNIS) (Linux & MacOS) | 
 |  [![API documentation](https://docs.rs/graphannis/badge.svg)](https://docs.rs/graphannis/) (API) | [![Build status](https://ci.appveyor.com/api/projects/status/nc86noerser0bvha/branch/develop?svg=true)](https://ci.appveyor.com/project/thomaskrause/graphannis/branch/develop) (Windows) |
 
 This is a new backend implementation of the ANNIS linguistic search and visualization system (http://corpus-tools.org/annis/). 
