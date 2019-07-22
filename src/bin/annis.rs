@@ -551,7 +551,11 @@ fn main() {
         LevelFilter::Info
     };
 
-    if let Err(e) = TermLogger::init(log_filter, simplelog::Config::default(), simplelog::TerminalMode::Mixed) {
+    if let Err(e) = TermLogger::init(
+        log_filter,
+        simplelog::Config::default(),
+        simplelog::TerminalMode::Mixed,
+    ) {
         println!("Error, can't initialize the terminal log output: {}.\nWill degrade to a more simple logger", e);
         if let Err(e_simple) = SimpleLogger::init(log_filter, simplelog::Config::default()) {
             println!("Simple logging failed too: {}", e_simple);

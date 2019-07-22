@@ -17,8 +17,8 @@ use crate::annis::operator::{
 use crate::annis::types::{Component, Edge, LineColumnRange, QueryAttributeDescription};
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
-use rand::SeedableRng;
 use rand::rngs::SmallRng;
+use rand::SeedableRng;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::Arc;
