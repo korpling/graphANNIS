@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated several dependencies
+- Organize documentation topics in sub-folders. 
+  Previously, mdbook did not updated the images on these sites on the print.html. 
+  Since mdbook >0.3.1 this is fixed and we can use the better layout.
 
 ## [0.21.0] - 2019-05-26
 
