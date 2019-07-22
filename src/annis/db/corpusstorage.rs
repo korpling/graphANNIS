@@ -1669,7 +1669,6 @@ impl Drop for CorpusStorage {
 #[cfg(test)]
 mod tests {
     extern crate log;
-    extern crate simplelog;
     extern crate tempfile;
 
     use crate::corpusstorage::QueryLanguage;
