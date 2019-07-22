@@ -45,7 +45,7 @@ boolean_expression = "0.3"
 percent-encoding = "1.0"
 
 graphannis-malloc_size_of = "1.0"
-graphannis-malloc_size_of_derive = "1.0"
+graphannis-malloc_size_of_derive = "2.0"
 
 rustyline = {version="1.0", optional=true }
 simplelog = {version="0.6", optional=true}
