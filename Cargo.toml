@@ -61,9 +61,6 @@ rustdoc-args = ["--cfg", "docs_rs_workaround"]
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2.2" }
 
-[dev-dependencies]
-simplelog = "0.6"
-
 [features]
 cli = ["rustyline", "simplelog", "clap", "prettytable-rs"]
 c-api = ["simplelog"]
