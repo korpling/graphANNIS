@@ -34,7 +34,7 @@ strum = "0.15"
 strum_macros = "0.15"
 num = "0.2"
 linked-hash-map = "0.5"
-tempfile = "3.0"
+tempfile = "3.1"
 itertools = "0.8"
 rustc-hash = "1.0"
 rayon = {version="1.0",  default-features=false}
