@@ -15,51 +15,52 @@ limitations under the License.s
 #ifndef graphannis_capi_h
 #define graphannis_capi_h
 
-/* Generated with cbindgen:0.6.7 */
+/* Generated with cbindgen:0.9.0 */
 
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
-/*
+/**
  * Specifies the type of component. Types determine certain semantics about the edges of this graph components.
  */
 typedef enum {
-  /*
+  /**
    * Edges between a span node and its tokens. Implies text coverage.
    */
   Coverage,
-  /*
+  /**
    * Edges between a structural node and any other structural node, span or token. Implies text coverage.
    */
   Dominance = 2,
-  /*
+  /**
    * Edge between any node.
    */
   Pointing,
-  /*
+  /**
    * Edge between two tokens implying that the source node comes before the target node in the textflow.
    */
   Ordering,
-  /*
+  /**
    * Explicit edge between any non-token node and the left-most token it covers.
    */
   LeftToken,
-  /*
+  /**
    * Explicit edge between any non-token node and the right-most token it covers.
    */
   RightToken,
-  /*
+  /**
    * Implies that the source node belongs to the parent corpus/subcorpus/document/datasource node.
    */
   PartOf,
 } AnnisComponentType;
 
-/*
+/**
  * An enum of all supported input formats of graphANNIS.
  */
 typedef enum {
-  /*
+  /**
    * Legacy [relANNIS import file format](http://korpling.github.io/ANNIS/doc/dev-annisimportformat.html)
    */
   RelANNIS,
@@ -74,83 +75,77 @@ typedef enum {
   Trace,
 } AnnisLogLevel;
 
-/*
+/**
  * An enum over all supported query languages of graphANNIS.
- *
  * Currently, only the ANNIS Query Language (AQL) and its variants are supported, but this enum allows us to add a support for older query language versions
  * or completly new query languages.
  */
 typedef enum {
   AQL,
-  /*
+  /**
    * Emulates the (sometimes problematic) behavior of AQL used in ANNIS 3
    */
   AQLQuirksV3,
 } AnnisQueryLanguage;
 
-/*
+/**
  * Defines the order of results of a `find` query.
  */
 typedef enum {
-  /*
+  /**
    * Order results by their document name and the the text position of the match.
    */
   Normal,
-  /*
+  /**
    * Inverted the order of `Normal`.
    */
   Inverted,
-  /*
+  /**
    * A random ordering which is **not stable**. Each new query will result in a different order.
    */
   Randomized,
-  /*
+  /**
    * Results are not ordered at all, but also not actively randomized
    * Each new query *might* result in a different order.
    */
   NotSorted,
 } AnnisResultOrder;
 
-/*
+/**
  * An annotation with a qualified name and a value.
  */
 typedef struct AnnisAnnotation AnnisAnnotation;
 
-/*
+/**
  * Identifies an edge component of the graph.
  */
 typedef struct AnnisComponent AnnisComponent;
 
-/*
+/**
  * A thread-safe API for managing corpora stored in a common location on the file system.
- *
  * Multiple corpora can be part of a corpus storage and they are identified by their unique name.
  * Corpora are loaded from disk into main memory on demand:
  * An internal main memory cache is used to avoid re-loading a recently queried corpus from disk again.
  */
 typedef struct AnnisCorpusStorage AnnisCorpusStorage;
 
-/*
+/**
  * Definition of the result of a `frequency` query.
- *
  * This is a vector of rows, and each row is a vector of columns with the different
  * attribute values and a number of matches having this combination of attribute values.
  */
 typedef struct AnnisFrequencyTable_CString AnnisFrequencyTable_CString;
 
-/*
+/**
  * A representation of a graph including node annotations and edges.
  * Edges are partioned into components and each component is implemented by specialized graph storage implementation.
- *
  * Use the [CorpusStorage](struct.CorpusStorage.html) struct to create and manage instances of a `Graph`.
- *
  * Graphs can have an optional location on the disk.
  * In this case, changes to the graph via the [apply_update(...)](#method.apply_update) function are automatically persisted to this location.
- *
  */
 typedef struct AnnisGraph AnnisGraph;
 
-/*
+/**
  * A list of changes to apply to an graph.
  */
 typedef struct AnnisGraphUpdate AnnisGraphUpdate;
@@ -173,31 +168,31 @@ typedef struct AnnisVec_Vec_CString AnnisVec_Vec_CString;
 
 typedef AnnisVec_Error AnnisErrorList;
 
-/*
+/**
  * A struct that contains the extended results of the count query.
  */
 typedef struct {
-  /*
+  /**
    * Total number of matches.
    */
   uint64_t match_count;
-  /*
+  /**
    * Number of documents with at least one match.
    */
   uint64_t document_count;
 } AnnisCountExtra;
 
-/*
+/**
  * Simple definition of a matrix from a single data type.
  */
 typedef AnnisVec_Vec_CString AnnisMatrix_CString;
 
-/*
+/**
  * Unique internal identifier for a single node.
  */
 typedef uint64_t AnnisNodeID;
 
-/*
+/**
  * Directed edge between a source and target node which are identified by their ID.
  */
 typedef struct {
@@ -238,7 +233,7 @@ AnnisCountExtra annis_cs_count_extra(const AnnisCorpusStorage *ptr,
                                      AnnisQueryLanguage query_language,
                                      AnnisErrorList **err);
 
-/*
+/**
  * Deletes a corpus from the corpus storage.
  */
 bool annis_cs_delete(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **err);
@@ -267,7 +262,7 @@ char *annis_cs_import_from_fs(AnnisCorpusStorage *ptr,
                               const char *corpus,
                               AnnisErrorList **err);
 
-/*
+/**
  * List all known corpora.
  */
 AnnisVec_CString *annis_cs_list(const AnnisCorpusStorage *ptr, AnnisErrorList **err);
@@ -319,7 +314,7 @@ AnnisGraph *annis_cs_subgraph_for_query_with_ctype(const AnnisCorpusStorage *ptr
                                                    AnnisComponentType component_type_filter,
                                                    AnnisErrorList **err);
 
-/*
+/**
  * Unloads a corpus from the cache.
  */
 void annis_cs_unload(AnnisCorpusStorage *ptr, const char *corpus, AnnisErrorList **_err);
@@ -330,14 +325,14 @@ bool annis_cs_validate_query(const AnnisCorpusStorage *ptr,
                              AnnisQueryLanguage query_language,
                              AnnisErrorList **err);
 
-/*
+/**
  * Create a new corpus storage with an automatically determined maximum cache size.
  */
 AnnisCorpusStorage *annis_cs_with_auto_cache_size(const char *db_dir,
                                                   bool use_parallel,
                                                   AnnisErrorList **err);
 
-/*
+/**
  * Create a new corpus storage with an manually defined maximum cache size.
  */
 AnnisCorpusStorage *annis_cs_with_max_cache_size(const char *db_dir,
@@ -428,7 +423,7 @@ void annis_graphupdate_delete_node_label(AnnisGraphUpdate *ptr,
                                          const char *anno_ns,
                                          const char *anno_name);
 
-/*
+/**
  * Create a new graph update instance
  */
 AnnisGraphUpdate *annis_graphupdate_new(void);
@@ -459,12 +454,12 @@ const AnnisEdge *annis_vec_edge_get(const AnnisVec_Edge *ptr, size_t i);
 
 size_t annis_vec_edge_size(const AnnisVec_Edge *ptr);
 
-/*
+/**
  * Result char* must be freeed with annis_str_free!
  */
 char *annis_vec_qattdesc_get_anno_name(const AnnisVec_QueryAttributeDescription *ptr, size_t i);
 
-/*
+/**
  * Result char* must be freeed with annis_str_free!
  */
 char *annis_vec_qattdesc_get_aql_fragment(const AnnisVec_QueryAttributeDescription *ptr, size_t i);
@@ -472,7 +467,7 @@ char *annis_vec_qattdesc_get_aql_fragment(const AnnisVec_QueryAttributeDescripti
 uintptr_t annis_vec_qattdesc_get_component_nr(const AnnisVec_QueryAttributeDescription *ptr,
                                               size_t i);
 
-/*
+/**
  * Result char* must be freeed with annis_str_free!
  */
 char *annis_vec_qattdesc_get_variable(const AnnisVec_QueryAttributeDescription *ptr, size_t i);
