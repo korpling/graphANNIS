@@ -229,66 +229,6 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
         None
     }
 
-    pub fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
-        let key = self.anno_keys.get_symbol(key)?;
-
-        if let Some(all_annos) = self.by_container.get(item) {
-            let idx = all_annos.binary_search_by_key(&key, |a| a.key);
-            if let Ok(idx) = idx {
-                if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
-                    return Some(&val[..]);
-                }
-            }
-        }
-        None
-    }
-
-    pub fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str> {
-        if let Some(all_annos) = self.by_container.get(item) {
-            let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
-            if let Ok(idx) = idx {
-                if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
-                    return Some(&val[..]);
-                }
-            }
-        }
-        None
-    }
-
-    pub fn find_annotations_for_item(
-        &self,
-        item: &T,
-        ns: Option<String>,
-        name: Option<String>,
-    ) -> Vec<AnnoKeyID> {
-        if let Some(name) = name {
-            if let Some(ns) = ns {
-                // fully qualified search
-                let key = AnnoKey { ns, name };
-                if let Some(key_id) = self.get_key_id(&key) {
-                    if self.get_value_for_item_by_id(item, key_id).is_some() {
-                        return vec![key_id];
-                    }
-                }
-                return vec![];
-            } else {
-                // get all qualified names for the given annotation name
-                let res: Vec<AnnoKeyID> = self
-                    .get_qnames(&name)
-                    .into_iter()
-                    .filter_map(|key| self.get_key_id(&key))
-                    .filter(|key_id| self.get_value_for_item_by_id(item, *key_id).is_some())
-                    .collect();
-                return res;
-            }
-        } else if let Some(annos) = self.by_container.get(item) {
-            // no annotation name given, return all
-            return annos.iter().map(|sparse_anno| sparse_anno.key).collect();
-        } else {
-            return vec![];
-        }
-    }
-
     /// Get all the annotation keys of a node
     pub fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey> {
         if let Some(all_annos) = self.by_container.get(item) {
@@ -504,47 +444,19 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
 
         Ok(())
     }
-
-    pub fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String> {
-        // find all complete keys which have the given name (and namespace if given)
-        let qualified_keys = match ns {
-            Some(ns) => vec![AnnoKey { name, ns }],
-            None => self.get_qnames(&name),
-        };
-
-        let mut sampled_values: HashMap<String, usize> = HashMap::default();
-
-        // guess for each fully qualified annotation key
-        for anno_key in qualified_keys {
-            if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
-                if let Some(histo) = self.histogram_bounds.get(&anno_key) {
-                    for v in histo.iter() {
-                        let count: &mut usize = sampled_values.entry(v.to_owned()).or_insert(0);
-                        *count += 1;
-                    }
-                }
-            }
-        }
-        // find the value which is most frequent
-        if sampled_values.len() > 0 {
-            let mut max_count = 0;
-            let mut max_value = "".to_owned();
-            for (v, count) in sampled_values.into_iter() {
-                if count >= max_count {
-                    max_value = v;
-                    max_count = count;
-                }
-            }
-            Some(max_value)
-        } else {
-            None
-        }
-    }
 }
 
 impl<'de, T> AnnotationStorage<T> for AnnoStorage<T>
 where
-    T: Ord + Hash + MallocSizeOf + Default + Clone + serde::Serialize + serde::Deserialize<'de> + Send + Sync,
+    T: Ord
+        + Hash
+        + MallocSizeOf
+        + Default
+        + Clone
+        + serde::Serialize
+        + serde::Deserialize<'de>
+        + Send
+        + Sync,
     (T, AnnoKeyID): Into<Match>,
 {
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation> {
@@ -563,6 +475,32 @@ where
 
     fn number_of_annotations(&self) -> usize {
         self.total_number_of_annos
+    }
+
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str> {
+        let key = self.anno_keys.get_symbol(key)?;
+
+        if let Some(all_annos) = self.by_container.get(item) {
+            let idx = all_annos.binary_search_by_key(&key, |a| a.key);
+            if let Ok(idx) = idx {
+                if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
+                    return Some(&val[..]);
+                }
+            }
+        }
+        None
+    }
+
+    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str> {
+        if let Some(all_annos) = self.by_container.get(item) {
+            let idx = all_annos.binary_search_by_key(&key_id, |a| a.key);
+            if let Ok(idx) = idx {
+                if let Some(val) = self.anno_values.get_value(all_annos[idx].val) {
+                    return Some(&val[..]);
+                }
+            }
+        }
+        None
     }
 
     fn number_of_annotations_by_name(&self, ns: Option<String>, name: String) -> usize {
@@ -663,6 +601,40 @@ where
         }
     }
 
+    fn find_annotations_for_item(
+        &self,
+        item: &T,
+        ns: Option<String>,
+        name: Option<String>,
+    ) -> Vec<AnnoKeyID> {
+        if let Some(name) = name {
+            if let Some(ns) = ns {
+                // fully qualified search
+                let key = AnnoKey { ns, name };
+                if let Some(key_id) = self.get_key_id(&key) {
+                    if self.get_value_for_item_by_id(item, key_id).is_some() {
+                        return vec![key_id];
+                    }
+                }
+                return vec![];
+            } else {
+                // get all qualified names for the given annotation name
+                let res: Vec<AnnoKeyID> = self
+                    .get_qnames(&name)
+                    .into_iter()
+                    .filter_map(|key| self.get_key_id(&key))
+                    .filter(|key_id| self.get_value_for_item_by_id(item, *key_id).is_some())
+                    .collect();
+                return res;
+            }
+        } else if let Some(annos) = self.by_container.get(item) {
+            // no annotation name given, return all
+            return annos.iter().map(|sparse_anno| sparse_anno.key).collect();
+        } else {
+            return vec![];
+        }
+    }
+
     fn guess_max_count(
         &self,
         ns: Option<String>,
@@ -736,6 +708,42 @@ where
         }
 
         0
+    }
+
+    fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String> {
+        // find all complete keys which have the given name (and namespace if given)
+        let qualified_keys = match ns {
+            Some(ns) => vec![AnnoKey { name, ns }],
+            None => self.get_qnames(&name),
+        };
+
+        let mut sampled_values: HashMap<String, usize> = HashMap::default();
+
+        // guess for each fully qualified annotation key
+        for anno_key in qualified_keys {
+            if let Some(anno_key) = self.anno_keys.get_symbol(&anno_key) {
+                if let Some(histo) = self.histogram_bounds.get(&anno_key) {
+                    for v in histo.iter() {
+                        let count: &mut usize = sampled_values.entry(v.to_owned()).or_insert(0);
+                        *count += 1;
+                    }
+                }
+            }
+        }
+        // find the value which is most frequent
+        if sampled_values.len() > 0 {
+            let mut max_count = 0;
+            let mut max_value = "".to_owned();
+            for (v, count) in sampled_values.into_iter() {
+                if count >= max_count {
+                    max_value = v;
+                    max_count = count;
+                }
+            }
+            Some(max_value)
+        } else {
+            None
+        }
     }
 
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {

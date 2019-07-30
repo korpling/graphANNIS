@@ -124,10 +124,16 @@ impl<T> From<Option<T>> for ValueSearch<T> {
 }
 
 /// Access annotations for nodes or edges.
-pub trait AnnotationStorage<T> : Send + Sync
-    where T : Send + Sync {
+pub trait AnnotationStorage<T>: Send + Sync
+where
+    T: Send + Sync,
+{
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
+
+    fn get_value_for_item(&self, item: &T, key: &AnnoKey) -> Option<&str>;
+
+    fn get_value_for_item_by_id(&self, item: &T, key_id: AnnoKeyID) -> Option<&str>;
 
     /// Return the total number of annotations contained in this `AnnotationStorage`.
     fn number_of_annotations(&self) -> usize;
@@ -172,6 +178,13 @@ pub trait AnnotationStorage<T> : Send + Sync
         negated: bool,
     ) -> Box<Iterator<Item = Match> + 'a>;
 
+    fn find_annotations_for_item(
+        &self,
+        item: &T,
+        ns: Option<String>,
+        name: Option<String>,
+    ) -> Vec<AnnoKeyID>;
+
     /// Estimate the number of results for an [annotation exact search](#tymethod.exact_anno_search) for a given an inclusive value range.
     ///
     /// - `ns` - If given, only annotations having this namespace are considered.
@@ -193,6 +206,8 @@ pub trait AnnotationStorage<T> : Send + Sync
     /// - `name`  - Only annotations with this name are considered.
     /// - `pattern`- The regular expression pattern.
     fn guess_max_count_regex(&self, ns: Option<String>, name: String, pattern: &str) -> usize;
+
+    fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String>;
 
     /// Return a list of all existing values for a given annotation `key`.
     /// If the `most_frequent_first`parameter is true, the results are sorted by their frequency.
@@ -320,6 +335,15 @@ impl AnnotationStorage<NodeID> for Graph {
             .regex_anno_search(namespace, name, pattern, negated)
     }
 
+    fn find_annotations_for_item(
+        &self,
+        item: &NodeID,
+        ns: Option<String>,
+        name: Option<String>,
+    ) -> Vec<AnnoKeyID> {
+        self.node_annos.find_annotations_for_item(item, ns, name)
+    }
+
     fn guess_max_count(
         &self,
         ns: Option<String>,
@@ -335,12 +359,24 @@ impl AnnotationStorage<NodeID> for Graph {
         self.node_annos.guess_max_count_regex(ns, name, pattern)
     }
 
+    fn guess_most_frequent_value(&self, ns: Option<String>, name: String) -> Option<String> {
+        self.node_annos.guess_most_frequent_value(ns, name)
+    }
+
     fn get_all_values(&self, key: &AnnoKey, most_frequent_first: bool) -> Vec<&str> {
         self.node_annos.get_all_values(key, most_frequent_first)
     }
 
     fn annotation_keys(&self) -> Vec<AnnoKey> {
         self.node_annos.annotation_keys()
+    }
+
+    fn get_value_for_item(&self, item: &NodeID, key: &AnnoKey) -> Option<&str> {
+        self.node_annos.get_value_for_item(item, key)
+    }
+
+    fn get_value_for_item_by_id(&self, item: &NodeID, key_id: AnnoKeyID) -> Option<&str> {
+        self.node_annos.get_value_for_item_by_id(item, key_id)
     }
 }
 

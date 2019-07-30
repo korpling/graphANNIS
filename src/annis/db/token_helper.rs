@@ -1,5 +1,6 @@
 use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::graphstorage::GraphStorage;
+use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Graph;
 use crate::annis::types::{Component, ComponentType, NodeID};
 

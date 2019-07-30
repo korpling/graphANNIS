@@ -1,6 +1,7 @@
 use super::super::{Desc, ExecutionNode, NodeSearchDesc};
 use crate::annis::db::annostorage::AnnoStorage;
 use crate::annis::db::query::conjunction::BinaryOperatorEntry;
+use crate::annis::db::AnnotationStorage;
 use crate::annis::db::Match;
 use crate::annis::operator::{BinaryOperator, EstimationType};
 use crate::annis::types::{AnnoKey, NodeID};

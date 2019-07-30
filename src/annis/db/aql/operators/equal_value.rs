@@ -1,5 +1,5 @@
 use crate::annis::db::exec::nodesearch::NodeSearchSpec;
-use crate::annis::db::{AnnoStorage, AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, TOK};
+use crate::annis::db::{AnnotationStorage, Graph, Match, ValueSearch, ANNIS_NS, TOK};
 use crate::annis::operator::*;
 use crate::annis::types::{AnnoKey, Component, NodeID};
 use std;
@@ -35,7 +35,7 @@ impl BinaryOperatorSpec for EqualValueSpec {
 
 #[derive(Clone)]
 pub struct EqualValue {
-    node_annos: Arc<AnnoStorage<NodeID>>,
+    node_annos: Arc<AnnotationStorage<NodeID>>,
     tok_key: AnnoKey,
     spec_left: NodeSearchSpec,
     spec_right: NodeSearchSpec,
