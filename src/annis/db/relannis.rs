@@ -573,43 +573,42 @@ where
     progress_callback("calculating the automatically generated Coverage edges");
 
     for (n, textprop) in textpos_table.node_to_left.iter() {
-        if textprop.segmentation == "" {
-            if !textpos_table.token_to_index.contains_key(&n) {
-                let left_pos = TextProperty {
-                    segmentation: String::from(""),
-                    corpus_id: textprop.corpus_id,
-                    text_id: textprop.text_id,
-                    val: textprop.val,
-                };
-                let right_pos = textpos_table
-                    .node_to_right
-                    .get(&n)
-                    .ok_or_else(|| format!("Can't get right position of node {}", n))?;
-                let right_pos = TextProperty {
-                    segmentation: String::from(""),
-                    corpus_id: textprop.corpus_id,
-                    text_id: textprop.text_id,
-                    val: right_pos.val,
-                };
+        if textprop.segmentation == "" && !textpos_table.token_to_index.contains_key(&n) {
+            let left_pos = TextProperty {
+                segmentation: String::from(""),
+                corpus_id: textprop.corpus_id,
+                text_id: textprop.text_id,
+                val: textprop.val,
+            };
+            let right_pos = textpos_table
+                .node_to_right
+                .get(&n)
+                .ok_or_else(|| format!("Can't get right position of node {}", n))?;
+            let right_pos = TextProperty {
+                segmentation: String::from(""),
+                corpus_id: textprop.corpus_id,
+                text_id: textprop.text_id,
+                val: right_pos.val,
+            };
 
-                if let Err(e) = add_automatic_cov_edge_for_node(
-                    updater,
-                    *n,
-                    left_pos,
-                    right_pos,
-                    textpos_table,
-                    id_to_node_name,
-                    text_coverage_edges,
-                    progress_callback,
-                ) {
-                    // output a warning but do not fail
-                    warn!(
-                        "Adding coverage edges (connects spans with tokens) failed: {}",
-                        e
-                    )
-                }
-            } // end if not a token
-        }
+            if let Err(e) = add_automatic_cov_edge_for_node(
+                updater,
+                *n,
+                left_pos,
+                right_pos,
+                textpos_table,
+                id_to_node_name,
+                text_coverage_edges,
+                progress_callback,
+            ) {
+                // output a warning but do not fail
+                warn!(
+                    "Adding coverage edges (connects spans with tokens) failed: {}",
+                    e
+                )
+            }
+        
+        }  // end if not a token
     }
 
     updater.commit(
