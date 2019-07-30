@@ -526,7 +526,7 @@ impl<T: Ord + Hash + Clone + serde::Serialize + MallocSizeOf + Default> AnnoStor
             }
         }
         // find the value which is most frequent
-        if sampled_values.len() > 0 {
+        if !sampled_values.is_empty() {
             let mut max_count = 0;
             let mut max_value = "".to_owned();
             for (v, count) in sampled_values.into_iter() {
