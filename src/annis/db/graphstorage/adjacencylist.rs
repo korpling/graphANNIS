@@ -21,7 +21,7 @@ pub struct AdjacencyListStorage {
 fn get_fan_outs(edges: &FxHashMap<NodeID, Vec<NodeID>>) -> Vec<usize> {
     let mut fan_outs: Vec<usize> = Vec::new();
     if !edges.is_empty() {
-        for (_, outgoing) in edges {
+        for outgoing in edges.values() {
             fan_outs.push(outgoing.len());
         }
     }
@@ -321,7 +321,7 @@ impl WriteableGraphStorage for AdjacencyListStorage {
         }
 
         if !self.edges.is_empty() {
-            for (_, outgoing) in &self.edges {
+            for outgoing in self.edges.values() {
                 for target in outgoing {
                     roots.remove(&target);
                 }
