@@ -85,7 +85,7 @@ impl NodeSearchSpec {
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
-        if let &NodeSearchSpec::AnyToken = &self {
+        if let NodeSearchSpec::AnyToken = self {
             return tokensearch::AnyTokenSearch::necessary_components(db);
         }
         HashSet::default()
