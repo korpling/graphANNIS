@@ -188,9 +188,9 @@ where
 
                     if let Some(min_distance) = offset.checked_sub(min_distance) {
                         if min_distance < chain.len() && max_distance <= min_distance {
-                            // return all entries in the chain between min_distance..max_distance
+                            // return all entries in the chain between min_distance..max_distance (inclusive)
                             return Box::new(
-                                chain[max_distance..(min_distance + 1)].iter().cloned(),
+                                chain[max_distance..=min_distance].iter().cloned(),
                             );
                         } else if max_distance < chain.len() {
                             // return all entries in the chain between min_distance..max_distance

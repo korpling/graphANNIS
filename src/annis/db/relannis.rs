@@ -497,7 +497,7 @@ where
             )
         })?;
 
-    for i in left_tok_pos.val..(right_tok_pos.val + 1) {
+    for i in left_tok_pos.val..=right_tok_pos.val {
         let tok_idx = TextProperty {
             segmentation: String::default(),
             corpus_id: left_tok_pos.corpus_id,

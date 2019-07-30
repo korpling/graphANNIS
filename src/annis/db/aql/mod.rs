@@ -463,7 +463,7 @@ pub fn get_line_and_column_for_pos(
 ) -> LineColumn {
     // get the offset for the position by searching for all offsets smaller than the position and taking the last one
     offset_to_line
-        .range(..pos + 1)
+        .range(..=pos)
         .rev()
         .map(|(offset, line)| {
             // column starts with 1 at line offset
