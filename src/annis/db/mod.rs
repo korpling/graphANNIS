@@ -1058,7 +1058,7 @@ impl Graph {
             } else if gs_order.is_connected(&b, &a, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Greater;
             }
-            return std::cmp::Ordering::Equal;
+            std::cmp::Ordering::Equal
         });
 
         // add edge to left/right most candidate token

@@ -306,7 +306,7 @@ impl<'a> Conjunction<'a> {
             idx_right,
             global_reflexivity,
         });
-        return Ok(());
+        Ok(())
     }
 
     pub fn num_of_nodes(&self) -> usize {
@@ -350,10 +350,10 @@ impl<'a> Conjunction<'a> {
             }
         }
 
-        return Err(Error::AQLSemanticError {
+        Err(Error::AQLSemanticError {
             desc: format!("Operand '#{}' not found", variable),
             location,
-        });
+        })
     }
 
     pub fn necessary_components(&self, db: &Graph) -> HashSet<Component> {
