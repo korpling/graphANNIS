@@ -563,6 +563,7 @@ impl Graph {
         self.internal_save(&location.join("current"))
     }
 
+    #[allow(clippy::cognitive_complexity)]
     fn apply_update_in_memory(&mut self, u: &mut GraphUpdate) -> Result<()> {
         self.reset_cached_size();
 
