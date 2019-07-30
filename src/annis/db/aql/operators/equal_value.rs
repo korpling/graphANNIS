@@ -18,7 +18,7 @@ impl BinaryOperatorSpec for EqualValueSpec {
         HashSet::default()
     }
 
-    fn create_operator<'a>(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
+    fn create_operator(&self, db: &Graph) -> Option<Box<dyn BinaryOperator>> {
         Some(Box::new(EqualValue {
             node_annos: db.node_annos.clone(),
             spec_left: self.spec_left.clone(),
