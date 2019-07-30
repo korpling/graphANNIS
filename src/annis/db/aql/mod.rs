@@ -149,16 +149,19 @@ fn map_conjunction<'a>(
     Ok(q)
 }
 
+type PosToNodeMap = BTreeMap<usize, (NodeSearchSpec, Option<String>)>;
+type PosToEndPosMap = BTreeMap<usize, usize>;
+
 fn calculate_node_positions(
     c: &[ast::Literal],
     offsets: &BTreeMap<usize, usize>,
     quirks_mode: bool,
 ) -> Result<(
-    BTreeMap<usize, (NodeSearchSpec, Option<String>)>,
-    BTreeMap<usize, usize>,
+    PosToNodeMap,
+    PosToEndPosMap,
 )> {
-    let mut pos_to_node: BTreeMap<usize, (NodeSearchSpec, Option<String>)> = BTreeMap::default();
-    let mut pos_to_endpos: BTreeMap<usize, usize> = BTreeMap::default();
+    let mut pos_to_node = BTreeMap::default();
+    let mut pos_to_endpos = BTreeMap::default();
 
     for literal in c {
         match literal {
