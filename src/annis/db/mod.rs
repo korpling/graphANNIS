@@ -72,7 +72,7 @@ impl Match {
     /// Returns true if this match is different to all the other matches given as argument.
     ///
     /// A single match is different if the node ID or the annotation key are different.
-    pub fn different_to_all(&self, other: &Vec<Match>) -> bool {
+    pub fn different_to_all(&self, other: &[Match]) -> bool {
         for o in other.iter() {
             if self.node == o.node && self.anno_key == o.anno_key {
                 return false;
@@ -942,8 +942,8 @@ impl Graph {
     fn calculate_inherited_coverage_edges(
         &mut self,
         n: NodeID,
-        all_cov_components: &Vec<Component>,
-        all_dom_gs: &Vec<Arc<GraphStorage>>,
+        all_cov_components: &[Component],
+        all_dom_gs: &[Arc<GraphStorage>],
     ) -> FxHashSet<NodeID> {
         let mut covered_token = FxHashSet::default();
         for c in all_cov_components.iter() {
@@ -994,8 +994,8 @@ impl Graph {
         n: NodeID,
         ctype: ComponentType,
         gs_order: &GraphStorage,
-        all_cov_gs: &Vec<Arc<GraphStorage>>,
-        all_dom_gs: &Vec<Arc<GraphStorage>>,
+        all_cov_gs: &[Arc<GraphStorage>],
+        all_dom_gs: &[Arc<GraphStorage>],
     ) -> Option<NodeID> {
         let alignment_component = Component {
             ctype: ctype.clone(),
