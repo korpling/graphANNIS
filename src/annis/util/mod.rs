@@ -77,7 +77,7 @@ pub fn get_queries_from_csv(file: &Path, panic_on_invalid: bool) -> Vec<SearchDe
         } else {
             let it = reader
                 .deserialize()
-                .filter_map(|row| -> Option<SearchDef> { row.ok().into() });
+                .filter_map(|row| -> Option<SearchDef> { row.ok() });
             it.collect()
         }
     } else {

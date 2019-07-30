@@ -79,7 +79,6 @@ impl BinaryOperator for Inclusion {
                             .tok_helper
                             .get_gs_left_token()
                             .get_ingoing_edges(t)
-                            .into_iter()
                             .filter(move |n| {
                                 // right-aligned token of candidate
                                 let mut end_n =
