@@ -215,6 +215,30 @@ impl AnnotationStorage<NodeID> for Graph {
         Arc::make_mut(&mut self.node_annos).insert(item, anno);
     }
 
+    fn get_all_keys_for_item(&self, item: &NodeID) -> Vec<AnnoKey> {
+        self.node_annos.get_all_keys_for_item(item)
+    }
+
+    fn remove_annotation_for_item(&mut self, item: &NodeID, key: &AnnoKey) -> Option<String> {
+        Arc::make_mut(&mut self.node_annos).remove_annotation_for_item(item, key)
+    }
+
+    fn clear(&mut self) {
+        Arc::make_mut(&mut self.node_annos).clear()
+    }
+
+    fn get_qnames(&self, name: &str) -> Vec<AnnoKey> {
+        self.node_annos.get_qnames(name)
+    }
+
+    fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID> {
+        self.node_annos.get_key_id(key)
+    }
+
+    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey> {
+        self.node_annos.get_key_value(key_id)
+    }
+
     fn get_annotations_for_item(&self, item: &NodeID) -> Vec<Annotation> {
         self.node_annos.get_annotations_for_item(item)
     }

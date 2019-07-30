@@ -12,6 +12,22 @@ where
     /// Insert an annotation `anno` (with annotation key and value) for an item `item`.
     fn insert(&mut self, item: T, anno: Annotation);
 
+    /// Get all the annotation keys of a node
+    fn get_all_keys_for_item(&self, item: &T) -> Vec<AnnoKey>;
+
+    fn remove_annotation_for_item(&mut self, item: &T, key: &AnnoKey) -> Option<String>;
+
+    fn clear(&mut self);
+
+    /// Get all qualified annotation names (including namespace) for a given annotation name
+    fn get_qnames(&self, name: &str) -> Vec<AnnoKey>;
+
+    /// Returns an internal identifier for the annotation key that can be used for faster lookup of values.
+    fn get_key_id(&self, key: &AnnoKey) -> Option<AnnoKeyID>;
+
+    /// Returns the annotation key from the internal identifier.
+    fn get_key_value(&self, key_id: AnnoKeyID) -> Option<AnnoKey>;
+
     /// Get all annotations for an `item` (node or edge).
     fn get_annotations_for_item(&self, item: &T) -> Vec<Annotation>;
 
