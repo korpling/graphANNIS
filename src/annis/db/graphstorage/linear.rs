@@ -203,13 +203,13 @@ where
         Box::new(std::iter::empty())
     }
 
-    fn distance(&self, source: &NodeID, target: &NodeID) -> Option<usize> {
+    fn distance(&self, source: NodeID, target: NodeID) -> Option<usize> {
         if source == target {
             return Some(0);
         }
 
         if let (Some(source_pos), Some(target_pos)) =
-            (self.node_to_pos.get(source), self.node_to_pos.get(target))
+            (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
         {
             if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();
@@ -223,13 +223,13 @@ where
 
     fn is_connected(
         &self,
-        source: &NodeID,
-        target: &NodeID,
+        source: NodeID,
+        target: NodeID,
         min_distance: usize,
         max_distance: std::ops::Bound<usize>,
     ) -> bool {
         if let (Some(source_pos), Some(target_pos)) =
-            (self.node_to_pos.get(source), self.node_to_pos.get(target))
+            (self.node_to_pos.get(&source), self.node_to_pos.get(&target))
         {
             if source_pos.root == target_pos.root && source_pos.pos <= target_pos.pos {
                 let diff = target_pos.pos.clone() - source_pos.pos.clone();

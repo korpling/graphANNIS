@@ -628,7 +628,7 @@ impl Graph {
                         // delete all edges pointing to this node either as source or target
                         for c in all_components.iter() {
                             if let Ok(gs) = self.get_or_create_writable(c) {
-                                gs.delete_node(&existing_node_id);
+                                gs.delete_node(existing_node_id);
                             }
                         }
                     }
@@ -782,7 +782,7 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(&source, &target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1)) {
                                 let anno = Annotation {
                                     key: AnnoKey {
                                         ns: anno_ns,
@@ -817,7 +817,7 @@ impl Graph {
                             let gs = self.get_or_create_writable(&c)?;
                             // only add label if the edge already exists
                             let e = Edge { source, target };
-                            if gs.is_connected(&source, &target, 1, Included(1)) {
+                            if gs.is_connected(source, target, 1, Included(1)) {
                                 let key = AnnoKey {
                                     ns: anno_ns,
                                     name: anno_name,
@@ -877,7 +877,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_left.delete_node(n);
+                gs_left.delete_node(*n);
             }
 
             let gs_right = self.get_or_create_writable(&Component {
@@ -887,7 +887,7 @@ impl Graph {
             })?;
 
             for n in invalid_nodes.iter() {
-                gs_right.delete_node(n);
+                gs_right.delete_node(*n);
             }
 
             let gs_cov = self.get_or_create_writable(&Component {
@@ -896,7 +896,7 @@ impl Graph {
                 layer: ANNIS_NS.to_owned(),
             })?;
             for n in invalid_nodes.iter() {
-                gs_cov.delete_node(n);
+                gs_cov.delete_node(*n);
             }
         }
 
@@ -1053,9 +1053,9 @@ impl Graph {
             if a == b {
                 return std::cmp::Ordering::Equal;
             }
-            if gs_order.is_connected(&a, &b, 1, std::ops::Bound::Unbounded) {
+            if gs_order.is_connected(*a, *b, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Less;
-            } else if gs_order.is_connected(&b, &a, 1, std::ops::Bound::Unbounded) {
+            } else if gs_order.is_connected(*b, *a, 1, std::ops::Bound::Unbounded) {
                 return std::cmp::Ordering::Greater;
             }
             std::cmp::Ordering::Equal
